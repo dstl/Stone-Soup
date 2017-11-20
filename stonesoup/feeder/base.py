@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Base classes for Stone Soup feeder"""
 from abc import abstractmethod
 
 from ..base import BaseMeta
@@ -12,10 +13,15 @@ class Feeder(metaclass=BaseMeta):
 
     @abstractmethod
     def append(self, detection):
-        """Append a new :class:`.Detection` to the Feeder"""
+        """Append a new :class:`.Detection` to the Feeder."""
         raise NotImplementedError
 
     @abstractmethod
-    def pop(self):
-        """Pop a :class:`.Detection` from the Feeder"""
+    def popleft(self):
+        """Pop a :class:`.Detection` from the Feeder.
+
+        Raises
+        ------
+        IndexError
+            If called when the Feeder is empty."""
         raise NotImplementedError
