@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-class Reader():
+from ..base import BaseMeta
+
+
+class Reader(metaclass=BaseMeta):
     """Reader base class"""
 
 

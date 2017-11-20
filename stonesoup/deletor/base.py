@@ -1,3 +1,6 @@
 # -*- coding: utf-8 -*-
-class Deletor():
+from ..base import BaseMeta
+
+
+class Deletor(metaclass=BaseMeta):
     """Deletor base class"""

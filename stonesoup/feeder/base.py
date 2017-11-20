@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-from abc import ABC, abstractmethod
+from abc import abstractmethod
+
+from ..base import BaseMeta
 
 
-class Feeder(ABC):
+class Feeder(metaclass=BaseMeta):
     """Feeder base class
 
     Feeder consumes and outputs :class:`.Detection` data and can be used to

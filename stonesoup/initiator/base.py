@@ -1,3 +1,6 @@
 # -*- coding: utf-8 -*-
-class Initiator():
+from ..base import BaseMeta
+
+
+class Initiator(metaclass=BaseMeta):
     """Initiator base class"""

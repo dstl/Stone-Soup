@@ -1,3 +1,6 @@
 # -*- coding: utf-8 -*-
-class Hypothesis():
+from ..base import BaseMeta
+
+
+class Hypothesis(metaclass=BaseMeta):
     """Hypothesis base class"""

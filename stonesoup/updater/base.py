@@ -1,3 +1,6 @@
 # -*- coding: utf-8 -*-
-class Updater():
+from ..base import BaseMeta
+
+
+class Updater(metaclass=BaseMeta):
     """Updater base class"""

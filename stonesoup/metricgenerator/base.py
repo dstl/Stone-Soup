@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-class MetricGenerator():
+from ..base import BaseMeta
+
+class MetricGenerator(metaclass=BaseMeta):
     """Metric Generator base class
 
     Generates :class:`.Metric` which is used to asses the performance of a run.

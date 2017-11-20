@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
-class Tracker():
+from ..base import BaseMeta
+
+
+class Tracker(metaclass=BaseMeta):
     """Tracker base class"""
     pass

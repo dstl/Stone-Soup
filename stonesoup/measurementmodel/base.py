@@ -1,3 +1,6 @@
 # -*- coding: utf-8 -*-
-class MeasurementModel():
+from ..base import BaseMeta
+
+
+class MeasurementModel(metaclass=BaseMeta):
     """Measurement Model base class"""
