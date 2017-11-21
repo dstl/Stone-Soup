@@ -12,11 +12,11 @@ Contents:
     dataflow
     interface
     types
+    stonesoup
 
 Indices and tables
 ==================
 
 * :ref:`genindex`
 * :ref:`modindex`
-* :ref:`search`
 
