@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from ..base import BaseMeta
+from ..base import Base
 
 
-class Simulator(metaclass=BaseMeta):
+class Simulator(Base):
     """Simulator base class"""
 
 

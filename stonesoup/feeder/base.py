@@ -2,7 +2,7 @@
 """Base classes for Stone Soup feeder"""
 from abc import abstractmethod
 
-from ..base import BaseMeta
+from ..base import Base
 
 
 class Empty(Exception):
@@ -10,7 +10,7 @@ class Empty(Exception):
     pass
 
 
-class Feeder(metaclass=BaseMeta):
+class Feeder(Base):
     """Feeder base class
 
     Feeder consumes and outputs :class:`.Detection` data and can be used to
@@ -22,7 +22,7 @@ class Feeder(metaclass=BaseMeta):
 
         Parameters
         ----------
-        detection : :class:`.Detection`
+        detection : Detection
             A :class:`.Detection` to be added to the feeder.
         """
         raise NotImplementedError

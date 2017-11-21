@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from ..base import BaseMeta
+from ..base import Base
 
 
-class Detector(metaclass=BaseMeta):
+class Detector(Base):
     """Detector base class
 
     A Detector processes :class:`.SensorData` to generate :class:`.Detection`

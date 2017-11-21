@@ -12,8 +12,8 @@ class FIFOFeeder(Feeder):
     The most basic :class:`Feeder` which simply passes data as received.
     Utilises :class:`collections.deque` internally."""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._queue = deque()
 
     def put(self, detection):
@@ -21,12 +21,17 @@ class FIFOFeeder(Feeder):
 
         Parameters
         ----------
-        detection
+        detection : Detection
             Detection to be added to internal :class:`collections.deque`."""
         self._queue.append(detection)
 
     def get(self):
         """Pop (left) detection from internal :class:`collections.deque`.
+
+        Returns
+        -------
+        Detection
+            Detection which was first to be added to the Feeder.
 
         Raises
         ------
@@ -35,5 +40,5 @@ class FIFOFeeder(Feeder):
         """
         try:
             return self._queue.popleft()
-        except IndexError as e:
-            raise Empty(e)
+        except IndexError as err:
+            raise Empty(err)

@@ -7,4 +7,7 @@ Readers
 .. automodule:: stonesoup.reader.base
     :show-inheritance:
 
+.. automodule:: stonesoup.reader.file
+    :show-inheritance:
+
 

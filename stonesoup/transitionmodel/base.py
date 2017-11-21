@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from ..base import BaseMeta
+from ..base import Base
 
 
-class TransitionModel(BaseMeta):
+class TransitionModel(Base):
     """Transition Model base class"""

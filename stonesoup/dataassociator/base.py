@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from ..base import BaseMeta
+from ..base import Base
 
 
-class DataAssociator(metaclass=BaseMeta):
+class DataAssociator(Base):
     """Data Associator base class"""

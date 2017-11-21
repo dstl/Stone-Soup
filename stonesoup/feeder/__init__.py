@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Feeder module
+"""Feeder classes are for manipulating data going into the tracker.
 
 A feeder's primary role is to take detection data from inputs into the
 framework, and feed them into the tracking algorithms. These can then

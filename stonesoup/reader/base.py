@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-from ..base import BaseMeta
+"""Base classes for different Readers."""
+from ..base import Base
 
 
-class Reader(metaclass=BaseMeta):
+class Reader(Base):
     """Reader base class"""
 
 

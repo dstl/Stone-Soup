@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from ..base import BaseMeta
+from ..base import Base
 
 
-class MixtureReducer(metaclass=BaseMeta):
+class MixtureReducer(Base):
     """Mixture Reducer base class"""

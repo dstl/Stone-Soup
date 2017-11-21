@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from ..base import BaseMeta
+from ..base import Base
 
 
-class Writer(metaclass=BaseMeta):
+class Writer(Base):
     """Writer base class"""
 
 

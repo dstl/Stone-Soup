@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from ..base import BaseMeta
+from ..base import Base
 
 
-class Predictor(metaclass=BaseMeta):
+class Predictor(Base):
     """Predictor base class"""
