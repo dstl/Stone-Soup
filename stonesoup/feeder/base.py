@@ -5,6 +5,11 @@ from abc import abstractmethod
 from ..base import BaseMeta
 
 
+class Empty(Exception):
+    """Exception raised by :class:`Feeder` when empty."""
+    pass
+
+
 class Feeder(metaclass=BaseMeta):
     """Feeder base class
 
@@ -12,16 +17,22 @@ class Feeder(metaclass=BaseMeta):
     modify the sequence, duplicate or drop data."""
 
     @abstractmethod
-    def append(self, detection):
-        """Append a new :class:`.Detection` to the Feeder."""
+    def put(self, detection):
+        """Put a new :class:`.Detection` in the Feeder.
+
+        Parameters
+        ----------
+        detection : :class:`.Detection`
+            A :class:`.Detection` to be added to the feeder.
+        """
         raise NotImplementedError
 
     @abstractmethod
-    def popleft(self):
-        """Pop a :class:`.Detection` from the Feeder.
+    def get(self):
+        """Get a :class:`.Detection` from the Feeder.
 
         Raises
         ------
-        IndexError
+        Empty
             If called when the Feeder is empty."""
         raise NotImplementedError
