@@ -7,6 +7,7 @@ optionally be used to drop detections, deliver detections out of sequence,
 synchronise out of sequence detections, etc. """
 from .base import Empty, Feeder
 
-from . import simple  # noqa: F401
+from .simple import *  # noqa:F401,F403
 
 __all__ = ['Empty', 'Feeder']
+__all__.extend(subclass_.__name__ for subclass_ in Feeder.subclasses)

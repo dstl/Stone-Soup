@@ -12,6 +12,7 @@ Contents:
     dataflow
     interface
     types
+    stonesoup.base
     stonesoup
 
 Indices and tables

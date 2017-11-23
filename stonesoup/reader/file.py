@@ -23,7 +23,8 @@ class FileReader(Reader):
         self._file = None
 
     def __del__(self):
-        self._file.close()
+        if getattr(self, '_file'):
+            self._file.close()
 
 
 class BinaryFileReader(FileReader):
