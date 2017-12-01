@@ -2,6 +2,7 @@
 import inspect
 from abc import ABCMeta
 from collections import OrderedDict
+from types import MappingProxyType
 
 
 class Property:
@@ -127,12 +128,12 @@ class BaseMeta(ABCMeta):
     @property
     def subclasses(cls):
         """Set of subclasses for the class"""
-        return cls._subclasses.copy()
+        return frozenset(cls._subclasses)
 
     @property
     def properties(cls):
         """Set of properties required to initialise the class"""
-        return cls._properties.copy()
+        return MappingProxyType(cls._properties)
 
 
 class Base(metaclass=BaseMeta):
@@ -152,3 +153,8 @@ class Base(metaclass=BaseMeta):
         bound_arguments.apply_defaults()
         for name, value in bound_arguments.arguments.items():
             setattr(self, name, value)
+
+    def __repr__(self):
+        params = ("{}={!r}".format(name, getattr(self, name))
+                  for name in type(self).properties)
+        return "{}({})".format(type(self).__name__, ", ".join(params))
