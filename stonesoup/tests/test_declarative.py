@@ -21,7 +21,7 @@ def test_init_unordered(base):
                 pass
 
     with pytest.raises(TypeError):
-        class _TestUnordered(base):
+        class _TestUnordered(base):  # noqa: F811
             def __init__(self, property_b, property_a, *args, **kwrags):
                 pass
 
@@ -33,12 +33,12 @@ def test_init_missing(base):
                 pass
 
     with pytest.raises(TypeError):
-        class _TestMissing(base):
+        class _TestMissing(base):  # noqa: F811
             def __init__(self, property_a):
                 pass
 
     with pytest.raises(TypeError):
-        class _TestMissing(base):
+        class _TestMissing(base):  # noqa: F811
             def __init__(self):
                 pass
 
@@ -50,21 +50,21 @@ def test_init_new(base):
                 pass
 
     with pytest.raises(TypeError):
-        class _TestNew(base):
+        class _TestNew(base):  # noqa: F811
             def __init__(self, property_d="default", *args, **kwargs):
                 pass
 
     with pytest.raises(TypeError):
-        class _TestNew(base):
+        class _TestNew(base):  # noqa: F811
             def __init__(self, property_a, property_b, property_c, property_d):
                 pass
 
     with pytest.raises(TypeError):
-        class _TestNew(base):
+        class _TestNew(base):  # noqa: F811
             def __init__(self, *args, property_d, **kwargs):
                 pass
 
-    class _TestNew(base):
+    class _TestNew(base):  # noqa: F811
         def __init__(self, *args, property_d="default", **kwargs):
             pass
     assert not hasattr(_TestNew(1, "2", property_d="10"), 'property_d')
