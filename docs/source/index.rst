@@ -12,6 +12,7 @@ Contents:
     dataflow
     interface
     types
+    stonesoup.config
     stonesoup.base
     stonesoup
 
