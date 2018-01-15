@@ -7,4 +7,5 @@ Stone Soup base data types.
 .. autoclass:: stonesoup.types.GroundTruth
 .. autoclass:: stonesoup.types.Metric
 .. autoclass:: stonesoup.types.SensorData
+.. autoclass:: stonesoup.types.StateVector
 .. autoclass:: stonesoup.types.Track

@@ -1,3 +1,6 @@
 # -*- coding: utf-8 -*-
-class GroundTruth():
+from .base import Type
+
+
+class GroundTruth(Type):
     """Ground Truth type"""

@@ -1,3 +1,6 @@
 # -*- coding: utf-8 -*-
-class Metric():
+from .base import Type
+
+
+class Metric(Type):
     """Metric type"""

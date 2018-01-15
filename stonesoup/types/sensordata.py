@@ -1,3 +1,6 @@
 # -*- coding: utf-8 -*-
-class SensorData():
+from .base import Type
+
+
+class SensorData(Type):
     """Sensor Data type"""

@@ -32,7 +32,7 @@ Tracker Components
 ------------------
 .. autoclass:: stonesoup.dataassociator.DataAssociator
 .. autoclass:: stonesoup.deletor.Deletor
-.. autoclass:: stonesoup.hypothesis.Hypothesis
+.. autoclass:: stonesoup.hypothesiser.Hypothesiser
 .. autoclass:: stonesoup.initiator.Initiator
 .. autoclass:: stonesoup.measurementmodel.MeasurementModel
 .. autoclass:: stonesoup.mixturereducer.MixtureReducer

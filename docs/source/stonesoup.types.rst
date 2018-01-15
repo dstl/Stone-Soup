@@ -4,6 +4,12 @@ Data Types
 .. automodule:: stonesoup.types
     :no-members:
 
+Base Types
+----------
+
+.. autoclass:: stonesoup.types.StateVector
+    :show-inheritance:
+
 Detection Types
 ---------------
 
@@ -14,6 +20,12 @@ Ground Truth Types
 ------------------
 
 .. automodule:: stonesoup.types.groundtruth
+    :show-inheritance:
+
+Hypothesis Types
+----------------
+
+.. automodule:: stonesoup.types.hypothesis
     :show-inheritance:
 
 Metric Types

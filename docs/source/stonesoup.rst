@@ -26,7 +26,7 @@ Tracker Components
 
     stonesoup.dataassociator
     stonesoup.deletor
-    stonesoup.hypothesis
+    stonesoup.hypothesiser
     stonesoup.initiator
     stonesoup.measurementmodel
     stonesoup.mixturereducer
