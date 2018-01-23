@@ -14,6 +14,7 @@ Contents:
     types
     stonesoup.config
     stonesoup.base
+    stonesoup.functions
     stonesoup
 
 Indices and tables

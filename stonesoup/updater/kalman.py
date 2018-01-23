@@ -4,6 +4,7 @@ import numpy as np
 
 from .base import Updater
 from ..types import StateVector
+from ..functions import tria
 
 
 class KalmanUpdater(Updater):
@@ -50,36 +51,19 @@ class SqrtKalmanUpdater(Updater):
         innov = detection.state - meas_mat @ track.state
 
         Pxz = track.covar @ track.covar.T @ meas_mat.T
-        innov_covar = SqrtKalmanUpdater.tria(
+        innov_covar = tria(
             np.concatenate(((meas_mat @ track.covar), detection.covar), axis=1))
         gain = (Pxz @ np.linalg.inv(innov_covar.T)) @ np.linalg.inv(innov_covar)
 
         updated_state = track.state + gain @ innov
 
         temp = gain @ meas_mat
-        updated_state_covar = SqrtKalmanUpdater.tria(np.concatenate(
-            (((np.eye(*temp.shape) - temp) @ track.covar), (gain @ detection.covar)),
+        updated_state_covar = tria(np.concatenate(
+            (((np.eye(*temp.shape) - temp) @ track.covar),
+             (gain @ detection.covar)),
             axis=1))
 
         return (
             StateVector(updated_state, updated_state_covar),
             StateVector(innov, innov_covar))
-
-    @staticmethod
-    # Possible abstract method?
-    def tria(matrix):
-        """Square Root Matrix Triangularization
-
-        Given a rectangular square root matrix obtain a square lower-triangular
-        square root matrix
-        """
-        if not isinstance(matrix, np.matrixlib.defmatrix.matrix):
-            matrix = np.matrix(matrix)
-
-        [_, upper_triangular] = np.linalg.qr(matrix.T)
-        lower_triangular = upper_triangular.T
-
-        lower_triangular = np.abs(lower_triangular)
-
-        return np.array(lower_triangular)
 
