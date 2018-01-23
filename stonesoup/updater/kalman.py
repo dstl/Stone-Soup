@@ -35,7 +35,6 @@ class KalmanUpdater(Updater):
             StateVector(innov, innov_covar))
 
 
-
 class SqrtKalmanUpdater(Updater):
     """Square Root Kalman Filter
 
@@ -51,9 +50,10 @@ class SqrtKalmanUpdater(Updater):
         innov = detection.state - meas_mat @ track.state
 
         Pxz = track.covar @ track.covar.T @ meas_mat.T
-        innov_covar = tria(
-            np.concatenate(((meas_mat @ track.covar), detection.covar), axis=1))
-        gain = (Pxz @ np.linalg.inv(innov_covar.T)) @ np.linalg.inv(innov_covar)
+        innov_covar = tria(np.concatenate(
+            ((meas_mat @ track.covar), detection.covar),
+            axis=1))
+        gain = Pxz @ np.linalg.inv(innov_covar.T) @ np.linalg.inv(innov_covar)
 
         updated_state = track.state + gain @ innov
 
@@ -66,4 +66,3 @@ class SqrtKalmanUpdater(Updater):
         return (
             StateVector(updated_state, updated_state_covar),
             StateVector(innov, innov_covar))
-

@@ -24,4 +24,3 @@ class LikelihoodRatioMatrixHypothesiser(Hypothesiser):
             hypothesis.ratio = 1 - track.det_prob
             hypotheses[track].append(hypothesis)
         return hypotheses
-
