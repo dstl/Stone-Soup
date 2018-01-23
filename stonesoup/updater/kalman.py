@@ -3,6 +3,7 @@
 import numpy as np
 
 from .base import Updater
+from ..types import StateVector
 
 
 class KalmanUpdater(Updater):
@@ -12,24 +13,26 @@ class KalmanUpdater(Updater):
     """
 
     @staticmethod
-    def update(target_state, state_covar, target_meas,
-               meas_covar, meas_mat=None):
+    def update(track, detection, meas_mat=None):
         if meas_mat is None:
-            meas_mat = np.eye(len(target_meas), len(target_state))
+            meas_mat = np.eye(len(detection.state), len(track.state))
 
-        innov = target_meas - meas_mat @ target_state
+        innov = detection.state - meas_mat @ track.state
 
-        innov_covar = meas_covar + meas_mat @ state_covar @ meas_mat.T
-        gain = state_covar @ meas_mat.T @ np.linalg.inv(innov_covar)
+        innov_covar = detection.covar + meas_mat @ track.covar @ meas_mat.T
+        gain = track.covar @ meas_mat.T @ np.linalg.inv(innov_covar)
 
-        updated_state = target_state + gain @ innov
+        updated_state = track.state + gain @ innov
 
         temp = gain @ meas_mat
         temp = np.eye(*temp.shape) - temp
         updated_state_covar = (
-            temp @ state_covar @ temp.T + gain @ meas_covar @ gain.T)
+            temp @ track.covar @ temp.T + gain @ detection.covar @ gain.T)
 
-        return updated_state, updated_state_covar, innov, innov_covar
+        return (
+            StateVector(updated_state, updated_state_covar),
+            StateVector(innov, innov_covar))
+
 
 
 class SqrtKalmanUpdater(Updater):
@@ -39,27 +42,28 @@ class SqrtKalmanUpdater(Updater):
     """
 
     @staticmethod
-    def update(target_state, state_covar, target_meas,
-               meas_covar, meas_mat=None):
-        # state_covar and meas_covar are lower triangular matrices
+    def update(track, detection, meas_mat=None):
+        # track.covar and detection.covar are lower triangular matrices
         if meas_mat is None:
-            meas_mat = np.eye(len(target_meas), len(target_state))
+            meas_mat = np.eye(len(detection.state), len(track.state))
 
-        innov = target_meas - meas_mat @ target_state
+        innov = detection.state - meas_mat @ track.state
 
-        Pxz = state_covar @ state_covar.T @ meas_mat.T
+        Pxz = track.covar @ track.covar.T @ meas_mat.T
         innov_covar = SqrtKalmanUpdater.tria(
-            np.concatenate(((meas_mat @ state_covar), meas_covar), axis=1))
+            np.concatenate(((meas_mat @ track.covar), detection.covar), axis=1))
         gain = (Pxz @ np.linalg.inv(innov_covar.T)) @ np.linalg.inv(innov_covar)
 
-        updated_state = target_state + gain @ innov
+        updated_state = track.state + gain @ innov
 
         temp = gain @ meas_mat
         updated_state_covar = SqrtKalmanUpdater.tria(np.concatenate(
-            (((np.eye(*temp.shape) - temp) @ state_covar), (gain @ meas_covar)),
+            (((np.eye(*temp.shape) - temp) @ track.covar), (gain @ detection.covar)),
             axis=1))
 
-        return updated_state, updated_state_covar, innov, innov_covar
+        return (
+            StateVector(updated_state, updated_state_covar),
+            StateVector(innov, innov_covar))
 
     @staticmethod
     # Possible abstract method?
@@ -75,9 +79,7 @@ class SqrtKalmanUpdater(Updater):
         [_, upper_triangular] = np.linalg.qr(matrix.T)
         lower_triangular = upper_triangular.T
 
-        # Bug? 'Make diagonal elements positive'
         lower_triangular = np.abs(lower_triangular)
-        # np.fill_diagonal(lower_triangular, np.abs(lower_triangular.diagonal()))
 
         return np.array(lower_triangular)
 
