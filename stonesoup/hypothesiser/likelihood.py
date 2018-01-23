@@ -6,7 +6,9 @@ from .base import Hypothesiser
 from ..types import Hypothesis
 
 
+# TODO: Complete documentation
 class LikelihoodRatioMatrixHypothesiser(Hypothesiser):
+    """Likelihood Ratio Matrix Hypothesiser"""
     def hypothesise(self, tracks, detections, clutter_param, gammaVal):
         hypotheses = defaultdict(list)
         for track in tracks:
