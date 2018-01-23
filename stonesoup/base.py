@@ -51,8 +51,15 @@ class BaseMeta(ABCMeta):
     method if required, as these won't effect the use of the class in the
     framework.
     """
-    def __new__(mcls, name, bases, namespace, **kwargs):
-        cls = super().__new__(mcls, name, bases, namespace, **kwargs)
+    def __new__(mcls, name, bases, namespace):
+        if '__init__' not in namespace:
+            # Must replace init so we don't overwrite parent class's
+            # and blank line below so this doesn't become its docstring!
+
+            def __init__(self, *args, **kwargs):
+                super(cls, self).__init__(*args, **kwargs)
+            namespace['__init__'] = __init__
+        cls = super().__new__(mcls, name, bases, namespace)
 
         cls._subclasses = set()
         cls._properties = OrderedDict()
@@ -69,8 +76,7 @@ class BaseMeta(ABCMeta):
             if cls._properties[name].default is not Property.empty:
                 cls._properties.move_to_end(name)
 
-        if '__init__' in namespace:
-            cls._validate_init()
+        cls._validate_init()
         cls._generate_signature()
 
         return cls
