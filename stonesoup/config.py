@@ -13,6 +13,7 @@ from collections import OrderedDict
 from functools import lru_cache
 from importlib import import_module
 
+import numpy as np
 from ruamel.yaml import YAML
 
 from .base import Base
@@ -52,6 +53,10 @@ class YAMLConfigurationFile(ConfigurationFile):
             Base, self.declarative_to_yaml)
         self._yaml.constructor.add_multi_constructor(
             self.tag_prefix, self.declarative_from_yaml)
+        self._yaml.representer.add_representer(
+            np.ndarray, self.ndarray_to_yaml)
+        self._yaml.constructor.add_constructor(
+            "!numpy.ndarray", self.ndarray_from_yaml)
         self._yaml.default_flow_style = False
 
     def dump(self, data, stream, **kwargs):
@@ -77,7 +82,7 @@ class YAMLConfigurationFile(ConfigurationFile):
             cls.yaml_tag(type(node)),
             OrderedDict((name, getattr(node, name))
                         for name, property_ in type(node).properties.items()
-                        if getattr(node, name) != property_.default))
+                        if getattr(node, name) is not property_.default))
 
     @classmethod
     def declarative_from_yaml(cls, constructor, tag_suffix, node):
@@ -105,3 +110,14 @@ class YAMLConfigurationFile(ConfigurationFile):
             module = import_module("..{}".format(module_name), __name__)
             classes = [getattr(module, class_name, None)]
         return classes[0]
+
+    @staticmethod
+    def ndarray_to_yaml(representer, node):
+        """Convert numpy.ndarray to YAML."""
+        return representer.represent_sequence(
+            "!numpy.ndarray", node.tolist(), flow_style=True)
+
+    @staticmethod
+    def ndarray_from_yaml(constructor, node):
+        """Convert YAML to numpy.ndarray."""
+        return np.array(constructor.construct_sequence(node, deep=True))

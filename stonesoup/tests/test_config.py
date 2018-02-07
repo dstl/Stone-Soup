@@ -2,6 +2,7 @@
 import pytest
 
 from ..config import YAMLConfigurationFile
+from ..base import Property
 
 
 @pytest.fixture()
@@ -48,3 +49,19 @@ def test_duplicate_tag_warning(base, conf_file):
 
     with pytest.warns(UserWarning):
         test_declarative(_TestDuplicateBase, conf_file)
+
+
+def test_numpy(base, conf_file):
+    import numpy as np
+
+    class _TestNumpy(base):
+        property_d = Property(np.ndarray, optional=True)
+
+    instance = _TestNumpy(1, "two",
+                          property_d=np.array([[1, 2], [3, 4], [5, 6]]))
+
+    conf_str = conf_file.dumps(instance)
+
+    new_instance = conf_file.load(conf_str)
+    assert isinstance(new_instance.property_d, np.ndarray)
+    assert np.allclose(instance.property_d, new_instance.property_d)
