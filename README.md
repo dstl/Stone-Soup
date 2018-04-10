@@ -1,9 +1,9 @@
 # Stone Soup
 
 ## Background
-Stone Soup is a software project to provide the target tracking community with
-a framework for the development and testing of tracking algorithms. A beta
-release of Stone Soup is slated for March 2019.
+Stone Soup is a software project to provide the target tracking and state estimation
+community with a framework for the development and testing of tracking and state
+estimation algorithms. A beta release of Stone Soup is slated for March 2019.
 
 ## Dependencies
 Stone Soup uses the following dependencies:
