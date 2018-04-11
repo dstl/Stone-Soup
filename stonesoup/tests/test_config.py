@@ -65,3 +65,21 @@ def test_numpy(base, conf_file):
     new_instance = conf_file.load(conf_str)
     assert isinstance(new_instance.property_d, np.ndarray)
     assert np.allclose(instance.property_d, new_instance.property_d)
+
+
+def test_references(base, conf_file):
+    conf_str = """
+        property_b: &prop_b '20'
+        test1: &id001 !stonesoup.tests.conftest.base.%3Clocals%3E._TestBase
+            - property_a: 2
+            - property_b: *prop_b
+        test2: *id001
+        """
+
+    conf = conf_file.load(conf_str)
+    new_instance = conf['test2']
+    assert new_instance is conf['test1']
+    assert isinstance(new_instance, base)
+    assert new_instance.property_a == 2
+    assert new_instance.property_b == "20"
+    assert new_instance.property_c == base.property_c.default
