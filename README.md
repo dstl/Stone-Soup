@@ -10,7 +10,7 @@ Stone Soup uses the following dependencies:
 
 | Name | License |
 | ---- | ------- |
-| [Python (v3.6+)](https://www.python.org/) | PSFL |
+| [Python](https://www.python.org/) (v3.5+) | PSFL |
 | [Numpy](https://www.numpy.org/) | BSD |
 | [ruamel.yaml](https://yaml.readthedocs.io/) | MIT |
 

@@ -51,6 +51,11 @@ class BaseMeta(ABCMeta):
     method if required, as these won't effect the use of the class in the
     framework.
     """
+
+    @classmethod
+    def __prepare__(mcls, name, bases, **kwargs):
+        return OrderedDict()
+
     def __new__(mcls, name, bases, namespace):
         if '__init__' not in namespace:
             # Must replace init so we don't overwrite parent class's
@@ -69,8 +74,8 @@ class BaseMeta(ABCMeta):
                 bcls._subclasses.add(cls)
                 cls._properties.update(bcls._properties)
         cls._properties.update(
-            {key: value for key, value in namespace.items()
-             if isinstance(value, Property)})
+            (key, value) for key, value in namespace.items()
+            if isinstance(value, Property))
         # Optional arguments must follow mandatory
         for name in list(cls._properties):
             if cls._properties[name].default is not Property.empty:
