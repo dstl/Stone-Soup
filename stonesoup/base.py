@@ -20,6 +20,9 @@ class Property:
     :class:`inspect.Parameter.empty` is used to signify the argument is
     mandatory. (Also aliased to :attr:`Property.empty` for ease)
 
+    A description string can also be provided which will be rendered in the
+    documentation.
+
     Parameters
     ----------
     cls : class
@@ -27,6 +30,8 @@ class Property:
     default : any, optional
         A default value, which should be same type as class or None. Defaults
         to :class:`inspect.Parameter.empty` (alias :attr:`Property.empty`)
+    doc : str
+        Doc string for property
     """
     empty = inspect.Parameter.empty
     """Alias to :class:`inspect.Parameter.empty`"""
@@ -37,6 +42,7 @@ class Property:
             self.default = kwargs.pop('default')
         except KeyError:
             self.default = self.empty
+        self.doc = kwargs.pop('doc', None)
 
 
 class BaseMeta(ABCMeta):

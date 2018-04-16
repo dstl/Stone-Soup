@@ -10,25 +10,18 @@ class Type(Base):
 
 
 class StateVector(Type):
-    """State Vector type
-
-    Parameters
-    ==========
-    state : numpy.ndarray
-        state.
-    covar : numpy.ndarray
-        state covariance.
-    """
-    state = Property(np.ndarray)
-    covar = Property(np.ndarray)
+    """State Vector type"""
+    state = Property(np.ndarray, doc="state")
+    covar = Property(np.ndarray, doc="state covariance")
 
     def __init__(self, state, covar, *args, **kwargs):
         if not state.shape[1] == 1:
             raise ValueError(
-                "state shape should be Nx1 dimensions: got {state.shape}")
+                "state shape should be Nx1 dimensions: got {}".format(
+                    state.shape))
 
         if not state.shape[0] == covar.shape[0] == covar.shape[1]:
             raise ValueError(
-                "covar shape should compliment state dimension i.e."
-                "{state.shape[0]}x{state.shape[0]}: got {covar.shape}")
+                "covar shape should compliment state dimension i.e. "
+                "{0}x{0}: got {1}".format(state.shape[0], covar.shape))
         super().__init__(state, covar, *args, **kwargs)
