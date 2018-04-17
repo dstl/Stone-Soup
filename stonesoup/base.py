@@ -1,4 +1,59 @@
 # -*- coding: utf-8 -*-
+"""Provides base for Stone Soup components.
+
+To aid creation of components in Stone Soup, a declarative approach is used to
+declare properties of components. These declared properties are then used to
+generate the signature for the class, populate documentation, and generate
+forms for the user interface.
+
+An example would be:
+
+.. code-block:: python
+
+    class Foo(Base):
+        '''Example Foo class'''
+        foo = Property(str, doc="foo string parameter")
+        bar = Property(int, default=10, doc="bar int parameter, default is 10")
+
+
+This is equivalent to the following:
+
+.. code-block:: python
+
+    class Foo:
+        '''Example Foo class
+
+        Parameters
+        ----------
+        foo : str
+            foo string parameter
+        bar : int, optional
+            bar int parameter, default is 10
+        '''
+
+        def __init__(self, foo, bar=10):
+            self.foo = foo
+            self.bar = 10
+
+.. note::
+
+    The init method is actually part of :class:`Base` class so in the case of
+    having to customise initialisation, :func:`super` should be used e.g.:
+
+    .. code-block:: python
+
+        class Foo(Base):
+        '''Example Foo class'''
+        foo = Property(str, doc="foo string parameter")
+        bar = Property(int, default=10, doc="bar int parameter, default is 10")
+
+        def __init__(self, foo, bar=bar.default, *args, **kwargs):
+            if bar < 0:
+                raise ValueError("...")
+            super().__init__(foo, bar, *args, **kwargs)
+
+
+"""
 import inspect
 from abc import ABCMeta
 from collections import OrderedDict
