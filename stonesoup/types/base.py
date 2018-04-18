@@ -25,3 +25,46 @@ class StateVector(Type):
                 "covar shape should compliment state dimension i.e. "
                 "{0}x{0}: got {1}".format(state.shape[0], covar.shape))
         super().__init__(state, covar, *args, **kwargs)
+
+
+class GaussianState(Type):
+    """Gaussian State type
+
+    This is a simple Gaussian state object, which, as the name suggests,
+    is described by a Gaussian state distribution.
+
+    Parameters
+    ==========
+    ndim : int
+        The number of state dimensions
+    mean : numpy.ndarray
+        The state mean
+    covar : numpy.ndarray
+        The state covariance.
+    """
+
+    mean = Property(np.ndarray, doc="state mean")
+    covar = Property(np.ndarray, doc="state covariance")
+
+    def __init__(self, mean=None, covar=None, *args, **kwargs):
+        if mean is not None:
+            if not mean.shape[1] == 1:
+                raise ValueError(
+                    "state shape should be Nx1 dimensions: got {}".format(
+                        mean.shape))
+        if covar is not None:
+            if not mean.shape[0] == covar.shape[0] == covar.shape[1]:
+                raise ValueError(
+                    "covar shape should compliment state dimension i.e. "
+                    "{0}x{0}: got {1}".format(mean.shape[0], covar.shape))
+
+        super().__init__(mean, covar, *args, **kwargs)
+
+    @property
+    def ndim(self):
+        if(self.mean is not None):
+            return self.mean.shape[0]
+        elif(self.covar is not None):
+            return self.covar.shape[0]
+        else:
+            return None
