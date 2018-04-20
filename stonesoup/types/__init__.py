@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from .base import Type
+from .base import Type, Probability
 
 from .detection import *  # noqa:F401,F403
 from .groundtruth import *  # noqa:F401,F403
