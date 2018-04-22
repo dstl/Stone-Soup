@@ -39,7 +39,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'doc_extensions',
     'sphinx.ext.napoleon',
-    'sphinx.ext.mathjax',
+    'sphinx.ext.mathjax'
 ]
 napoleon_google_docstring = False
 
@@ -220,25 +220,25 @@ htmlhelp_basename = 'StoneSoupdoc'
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
-# The paper size ('letterpaper' or 'a4paper').
-#'papersize': 'letterpaper',
+    # The paper size ('letterpaper' or 'a4paper').
+    # 'papersize': 'letterpaper',
 
-# The font size ('10pt', '11pt' or '12pt').
-#'pointsize': '10pt',
+    # The font size ('10pt', '11pt' or '12pt').
+    # 'pointsize': '10pt',
 
-# Additional stuff for the LaTeX preamble.
-#'preamble': '',
+    # Additional stuff for the LaTeX preamble.
+    # 'preamble': '',
 
-# Latex figure (float) alignment
-#'figure_align': 'htbp',
+    # Latex figure (float) alignment
+    # 'figure_align': 'htbp',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  (master_doc, 'StoneSoup.tex', 'Stone Soup Documentation',
-   'Dstl', 'manual'),
+    (master_doc, 'StoneSoup.tex', 'Stone Soup Documentation',
+     'Dstl', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -281,9 +281,9 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  (master_doc, 'StoneSoup', 'Stone Soup Documentation',
-   author, 'StoneSoup', 'One line description of project.',
-   'Miscellaneous'),
+    (master_doc, 'StoneSoup', 'Stone Soup Documentation',
+     author, 'StoneSoup', 'One line description of project.',
+     'Miscellaneous'),
 ]
 
 # Documents to append as an appendix to all manuals.
