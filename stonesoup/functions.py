@@ -45,15 +45,12 @@ def jacobian(fun, x):
 
     Returns
     -------
-    y : 1-D numpy.ndarray of shape (Ns,1)
-        The transformed vector
     jac: matrix
         The computed Jacobian
     """
 
-    y = fun(x)
     ndim = np.shape(x)[0]
     h = ndim*np.finfo(float).eps
     jac = np.divide(np.imag(fun(np.tile(x, ndim)+np.eye(ndim)*h*1j)), h)
 
-    return y, jac
+    return jac
