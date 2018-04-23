@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-# import numpy as np
-import logging
 import scipy as sp
 from scipy.stats import multivariate_normal
 
@@ -84,10 +82,6 @@ class LinearGaussian1D(MeasurementModel):
             The measurement noise variance
         """
 
-        # Create logger
-        self._logger = logging.getLogger(__name__)
-        self._logger = logging.LoggerAdapter(
-            self._logger, {'classname': self.__class__.__name__})
         self._H = sp.zeros((1, ndim_state))
         self._H[0, mapping] = 1
         self._R = noise_var
@@ -149,16 +143,12 @@ class LinearGaussian1D(MeasurementModel):
         """
 
         if x_t is None:
-            self._logger.debug("x_t is None: Returning H")
             x_t = sp.eye(self.ndim_state)
             noise = 0
         else:
             if issubclass(type(noise), bool) and noise:
-                self._logger.debug(
-                    "noise is True: Applying internally generated noise")
                 noise = self.random(Np=x_t.shape[1])
             elif(issubclass(type(noise), bool) and not noise):
-                self._logger.debug("noise is False: Ignoring noise")
                 noise = 0
 
         y_t = self._H@x_t + noise

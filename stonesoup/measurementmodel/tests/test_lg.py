@@ -6,30 +6,6 @@ from scipy.stats import multivariate_normal
 
 from stonesoup.measurementmodel.base import LinearGaussian1D
 
-import logging
-
-# create logger
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-
-# create console handler and set level to debug
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-
-# create formatter
-formatter = logging.Formatter(
-    '%(asctime)s:%(levelname)s:%(classname)s:\
-    %(filename)s:%(lineno)d: %(message)s', "%H:%M:%S")
-
-# add formatter to ch
-ch.setFormatter(formatter)
-
-# add ch to logger
-logger.addHandler(ch)
-
-logger = logging.LoggerAdapter(
-    logger, {'classname': '__name__'})
-
 
 def test_lgmodel1D():
     """ LinearGaussian1D Measurement Model test """
@@ -48,7 +24,6 @@ def test_lgmodel1D():
                           mapping=0)
 
     # Ensure ```lg.eval()``` returns H
-    logger.debug(lg.eval())
     assert np.array_equal(H, lg.eval()),\
         "ERROR: Call to lg.eval() did not return H"
 

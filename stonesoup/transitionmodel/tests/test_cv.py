@@ -6,30 +6,6 @@ from scipy.stats import multivariate_normal
 
 from stonesoup.transitionmodel.base import ConstantVelocity1D
 
-import logging
-
-# create logger
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-
-# create console handler and set level to debug
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-
-# create formatter
-formatter = logging.Formatter(
-    '%(asctime)s:%(levelname)s:%(classname)s:\
-    %(filename)s:%(lineno)d: %(message)s', "%H:%M:%S")
-
-# add formatter to ch
-ch.setFormatter(formatter)
-
-# add ch to logger
-logger.addHandler(ch)
-
-logger = logging.LoggerAdapter(
-    logger, {'classname': '__name__'})
-
 
 def test_cvmodel1D():
     """ ConstanVelocity1D Transition Model test """

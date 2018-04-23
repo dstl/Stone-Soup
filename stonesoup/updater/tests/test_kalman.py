@@ -2,34 +2,11 @@
 """Test for updater.kalman module"""
 import numpy as np
 
-import logging
-
 from stonesoup.types import Track, Detection, StateVector
-from stonesoup.updater.kalman import KalmanUpdater, SqrtKalmanUpdater
+from stonesoup.updater.kalman import KalmanUpdater, ExtendedKalmanUpdater,\
+    SqrtKalmanUpdater
 from stonesoup.measurementmodel.base import LinearGaussian1D
 from stonesoup.types.base import GaussianState
-
-# create logger
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-
-# create console handler and set level to debug
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-
-# create formatter
-formatter = logging.Formatter(
-    '%(asctime)s:%(levelname)s:%(classname)s:'
-    '%(filename)s:%(lineno)d: %(message)s', "%H:%M:%S")
-
-# add formatter to ch
-ch.setFormatter(formatter)
-
-# add ch to logger
-logger.addHandler(ch)
-
-logger = logging.LoggerAdapter(
-    logger, {'classname': '__name__'})
 
 
 def test_kalman():
@@ -62,6 +39,63 @@ def test_kalman():
                                         meas_pred=meas_pred,
                                         meas=meas,
                                         cross_covar=cross_covar)
+    assert(np.array_equal(state_post.mean, eval_state_post.mean))
+    assert(np.array_equal(state_post.covar, eval_state_post.covar))
+    assert(np.array_equal(kalman_gain, eval_kalman_gain))
+
+    # Re-initialise a kalman predictor
+    ku = KalmanUpdater(meas_model=lg)
+
+    # Perform and assert state prediction (without providing cross-covariance)
+    state_post, kalman_gain = ku.update(state_pred=state_pred,
+                                        meas_pred=meas_pred,
+                                        meas=meas)
+    assert(np.array_equal(state_post.mean, eval_state_post.mean))
+    assert(np.array_equal(state_post.covar, eval_state_post.covar))
+    assert(np.array_equal(kalman_gain, eval_kalman_gain))
+
+
+def test_extendedkalman():
+
+    # Initialise a measurement model
+    lg = LinearGaussian1D(ndim_state=2, mapping=0, noise_var=0.04)
+
+    # Define prior state
+    mean_pred = np.array([[-6.45], [0.7]])
+    covar_pred = np.array([[4.1123, 0.0013],
+                           [0.0013, 0.0365]])
+    state_pred = GaussianState(mean_pred, covar_pred)
+    meas_pred = GaussianState(
+        lg.eval()@state_pred.mean,
+        lg.eval()@state_pred.covar@lg.eval().T+lg.covar())
+    cross_covar = state_pred.covar@lg.eval().T
+    meas = np.array([[-6.23]])
+
+    # Calculate evaluation variables
+    eval_kalman_gain = cross_covar@np.linalg.inv(meas_pred.covar)
+    eval_state_post = GaussianState(
+        state_pred.mean + eval_kalman_gain@(meas-meas_pred.mean),
+        state_pred.covar - eval_kalman_gain@meas_pred.covar@eval_kalman_gain.T)
+
+    # Initialise a kalman predictor
+    ku = ExtendedKalmanUpdater(meas_model=lg)
+
+    # Perform and assert state prediction
+    state_post, kalman_gain = ku.update(state_pred=state_pred,
+                                        meas_pred=meas_pred,
+                                        meas=meas,
+                                        cross_covar=cross_covar)
+    assert(np.array_equal(state_post.mean, eval_state_post.mean))
+    assert(np.array_equal(state_post.covar, eval_state_post.covar))
+    assert(np.array_equal(kalman_gain, eval_kalman_gain))
+
+    # Re-initialise a kalman predictor
+    ku = ExtendedKalmanUpdater(meas_model=lg)
+
+    # Perform and assert state prediction (without providing cross-covariance)
+    state_post, kalman_gain = ku.update(state_pred=state_pred,
+                                        meas_pred=meas_pred,
+                                        meas=meas)
     assert(np.array_equal(state_post.mean, eval_state_post.mean))
     assert(np.array_equal(state_post.covar, eval_state_post.covar))
     assert(np.array_equal(kalman_gain, eval_kalman_gain))

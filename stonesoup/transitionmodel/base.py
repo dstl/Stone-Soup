@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from ..base import Base, Property
 from abc import abstractmethod, abstractproperty
-import logging
 
 # import numpy as np
 import scipy as sp
@@ -103,15 +102,7 @@ class ConstantVelocity1D(TransitionModel):
 
         # TODO: Proper input validation
 
-        # Create logger
-        self._logger = logging.getLogger(__name__)
-        self._logger = logging.LoggerAdapter(
-            self._logger, {'classname': self.__class__.__name__})
-
         super().__init__(noise_diff_coeff, time_variant, *args, **kwargs)
-
-        # self.noise_diff_coeff = noise_diff_coeff
-        # self.time_variant = time_variant
 
         # Definition of F(t) and Q(t)
         self._F = lambda t=self.time_variant: sp.array(
@@ -189,18 +180,13 @@ class ConstantVelocity1D(TransitionModel):
             time = self.time_variant
 
         if x_tm1 is None:
-            self._logger.debug("x_tm1 is None: Returning F")
             x_tm1 = sp.eye(self.ndim_state)
             noise = 0
         else:
             if issubclass(type(noise), bool) and noise:
-                self._logger.debug(
-                    "noise is True: Applying internally generated noise")
                 noise = self.random(Np=x_tm1.shape[1], time=time)
             elif(issubclass(type(noise), bool) and not noise):
-                self._logger.debug("noise is False: Ignoring noise")
                 noise = 0
-        self._logger.debug("self._F: {}".format(self._F(time),))
 
         x_t = self._F(time)@x_tm1 + noise
         return x_t
