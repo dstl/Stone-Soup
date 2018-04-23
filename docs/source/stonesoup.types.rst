@@ -10,6 +10,9 @@ Base Types
 .. autoclass:: stonesoup.types.StateVector
     :show-inheritance:
 
+.. autoclass:: stonesoup.types.base.GaussianState
+    :show-inheritance:
+
 Detection Types
 ---------------
 
