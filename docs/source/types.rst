@@ -4,8 +4,8 @@ Base Data Types
 Stone Soup base data types.
 
 .. autoclass:: stonesoup.types.Detection
-.. autoclass:: stonesoup.types.GroundTruth
+.. autoclass:: stonesoup.types.GroundTruthState
 .. autoclass:: stonesoup.types.Metric
 .. autoclass:: stonesoup.types.SensorData
-.. autoclass:: stonesoup.types.StateVector
+.. autoclass:: stonesoup.types.State
 .. autoclass:: stonesoup.types.Track

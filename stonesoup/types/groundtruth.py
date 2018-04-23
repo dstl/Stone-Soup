@@ -1,17 +1,31 @@
 # -*- coding: utf-8 -*-
-import numpy as np
+from collections.abc import MutableSequence
 
-from ..base import Property
 from .base import Type
+from .state import State
 
 
-class GroundTruth(Type):
-    """Ground Truth type"""
-    state = Property(np.ndarray)
+class GroundTruthState(State):
+    """Ground Truth State type"""
 
-    def __init__(self, state, *args, **kwargs):
-        if not state.shape[1] == 1:
-            raise ValueError(
-                "state shape should be Nx1 dimensions: got {state.shape}")
 
-        super().__init__(state, *args, **kwargs)
+class GroundTruthTrack(Type, MutableSequence):
+    """Ground Truth Track type"""
+
+    def __init__(self, *args, **kwargs):
+        self._states = list(*args, **kwargs)
+
+    def __len__(self):
+        return len(self._states)
+
+    def __setitem__(self, index, value):
+        return self._states.__setitem__(index, value)
+
+    def insert(self, index, value):
+        return self._states.insert(index, value)
+
+    def __delitem__(self, index):
+        return self._states.__delitem__(index)
+
+    def __getitem__(self, index):
+        return self._states.__getitem__(index)

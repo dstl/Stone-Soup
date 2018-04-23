@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from .base import StateVector
+from .state import State
 
 
-class Detection(StateVector):
+class Detection(State):
     """Detection type"""

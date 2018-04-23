@@ -7,4 +7,8 @@ Predictors
 .. automodule:: stonesoup.predictor.base
     :show-inheritance:
 
+Kalman
+------
 
+.. automodule:: stonesoup.predictor.kalman
+    :show-inheritance:

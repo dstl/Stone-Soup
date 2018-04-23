@@ -5,33 +5,30 @@ from .base import Type
 class Track(Type):
     """Track type
 
-    Parameters
-    ==========
-    detections : list of Detection
-        Detection state vectors associated with track
-    estimates : list of StateVector
-        Estimated state vectors associated with track
+    Attributes
+    ----------
+    estimates : list of State
+        Estimated state of the track
+    state : State
+        Most recent estimate state
     state_vector : StateVector
         Most recent estimate state vector
-    state : numpy.ndarray
-        Most recent estimate state
-    covar : numpy.ndarray
+    covar : CovarianceMatrix
         Most recent estimate state covariance
     """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.detections = []
         self.estimates = []
 
     @property
-    def state_vector(self):
+    def state(self):
         return self.estimates[-1]
 
     @property
-    def state(self):
-        return self.state_vector.state
+    def state_vector(self):
+        return self.state.state_vector
 
     @property
     def covar(self):
-        return self.state_vector.covar
+        return self.state.covar

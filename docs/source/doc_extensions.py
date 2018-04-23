@@ -10,7 +10,7 @@ def declarative_class(app, what, name, obj, options, lines):
         except ValueError:
             # No placeholder found, so extend.
             # Numpydoc will ignore empty list: no need to check for properties
-            if not lines[-1] == "":
+            if lines and not lines[-1] == "":
                 lines.append("")
             lines.extend(["Parameters", "----------"])
             param_index = len(lines)

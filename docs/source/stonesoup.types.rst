@@ -7,10 +7,7 @@ Data Types
 Base Types
 ----------
 
-.. autoclass:: stonesoup.types.StateVector
-    :show-inheritance:
-
-.. autoclass:: stonesoup.types.base.GaussianState
+.. automodule:: stonesoup.types.base
     :show-inheritance:
 
 Detection Types
@@ -41,6 +38,12 @@ Sensor Data Types
 -----------------
 
 .. automodule:: stonesoup.types.sensordata
+    :show-inheritance:
+
+State Types
+-----------
+
+.. automodule:: stonesoup.types.state
     :show-inheritance:
 
 Track Types

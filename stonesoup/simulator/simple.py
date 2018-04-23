@@ -1,35 +1,32 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-from .base import DetectionSimulator, GroundTruthSimulator
 from ..base import Property
 from ..measurementmodel import MeasurementModel
+from ..predictor import Predictor
 from ..reader import GroundTruthReader
-from ..transitionmodel import TransitionModel
-from ..types import Detection, GroundTruth, Probability, StateVector, Track
+from ..types import (
+    Detection, GroundTruthState, GroundTruthTrack, Probability, GaussianState)
+from .base import DetectionSimulator, GroundTruthSimulator
 
 
 class SimpleGroundTruthSimulator(GroundTruthSimulator):
     """A simple ground truth track simulator.
-
-    Parameters
-    ----------
-    transition_model : TransitionModel
-        TransitionModel used for propagating tracks.
-    birth_rate : float, optional
-        Rate at which tracks are born. Expected number of occurrences (λ) in
-        Poisson distribution. Default 1.0
-    death_probability : Probability, optional
-        Probability of track dying in each time step. Default 0.1
-    initial_state : StateVector, optional
-        Initial starting state for born tracks.
     """
-    transition_model = Property(TransitionModel)
-    birth_rate = Property(float, default=1.0)
-    death_probability = Property(Probability, default=0.1)
-    initial_state = Property(StateVector, default=StateVector(
-        np.array([[0], [0]]),
-        np.array([[10000, 0], [0, 10]])))
+    predictor = Property(
+        Predictor, doc="Predictor used as propagator for track.")
+    birth_rate = Property(
+        float, default=1.0, doc="Rate at which tracks are born. Expected "
+        "number of occurrences (λ) in Poisson distribution. Default 1.0.")
+    death_probability = Property(
+        Probability, default=0.1,
+        doc="Probability of track dying in each time step. Default 0.1.")
+    initial_state = Property(
+        GaussianState,
+        default=GaussianState(
+            np.array([[0], [0], [0], [0]]),
+            np.diag([10000, 10000, 10, 10])),
+        doc="Initial state to use to generate states")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -37,32 +34,31 @@ class SimpleGroundTruthSimulator(GroundTruthSimulator):
 
     def get_tracks(self):
         active_tracks = set()
-        # TODO: Use transition model
-        F = np.array([[1, 1], [0, 1]])
-        Q = np.array([[1/3, 1/2], [1/2, 1]]) * 0.0002
 
         while True:
             # Random drop tracks
             active_tracks -= set(
-                track
-                for track in active_tracks
+                gttrack
+                for gttrack in active_tracks
                 if np.random.rand() <= self.death_probability)
 
             # Move tracks forward
-            for track in active_tracks:
-                track.groundtruth.append(GroundTruth(
-                    F @ track.groundtruth[-1].state +
-                    np.sqrt(Q) @ np.random.randn(Q.shape[0], 1)))
+            for gttrack in active_tracks:
+                trans_state = self.predictor.predict(gttrack[-1])
+                gttrack.append(GroundTruthState(
+                    trans_state.state_vector +
+                    np.sqrt(trans_state.covar) @
+                    np.random.randn(trans_state.ndim, 1)))
 
             # Random create
             for _ in range(np.random.poisson(self.birth_rate)):
-                track = Track()
-                track.groundtruth = [GroundTruth(
-                    self.initial_state.state +
+                gttrack = GroundTruthTrack()
+                gttrack.append(GroundTruthState(
+                    self.initial_state.state_vector +
                     np.sqrt(self.initial_state.covar) @
-                    np.random.randn(self.initial_state.covar.shape[0], 1))]
-                self.tracks.add(track)
-                active_tracks.add(track)
+                    np.random.randn(self.initial_state.ndim, 1)))
+                self.tracks.add(gttrack)
+                active_tracks.add(gttrack)
 
             yield active_tracks
 
