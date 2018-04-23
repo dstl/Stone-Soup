@@ -17,33 +17,24 @@ class KalmanPredictor(Predictor):
 
     Parameters
     ----------
-    state_prior : :class:`GaussianState`
-        The prior state
-    state_pred : :class:`GaussianState`
-        The predicted state
-    meas_pred : :class:`GaussianState`
-        The predicted measurement
     trans_model : :class:`TransitionModel`
         The transition model used to perform the state prediction
-    meas_model :
+    meas_model : :class:`MeasurementModel`
         The measurement model used to generate the measurement prediction
     ctrl_model : :class:`ControlModel`
         The (optional) control model used during the state prediction
     """
 
     trans_model = Property(TransitionModel, doc="transition model")
-    state_prior = Property(GaussianState, doc="state prior")
     meas_model = Property(MeasurementModel, doc="measurement model")
     ctrl_model = Property(ControlModel, doc="control model")
 
-    def __init__(self, trans_model, state_prior=None,
-                 meas_model=None, ctrl_model=None, *args, **kwargs):
+    def __init__(self, trans_model, meas_model=None,
+                 ctrl_model=None, *args, **kwargs):
         """Constructor method
 
         trans_model : :class:`TransitionModel`
             The transition model used to perform the state prediction
-        state_prior : :class:`GaussianState`, optional
-            The prior state (the default is None)
         meas_model : :class:`MesurementModel`, optional
             The measurement model used to generate the measurement prediction
             (the default is None)
@@ -55,18 +46,17 @@ class KalmanPredictor(Predictor):
 
         # TODO: Input validation
 
-        super().__init__(trans_model, state_prior, meas_model,
+        super().__init__(trans_model, meas_model,
                          ctrl_model, *args, **kwargs)
 
-    def predict(self, ctrl_input=None, state_prior=None):
+    def predict(self, state_prior, ctrl_input=None):
         """Kalman Filter prediction step
 
+        state_prior : :class:`GaussianState`
+            A prior state object
         ctrl_input : 1-D array of shape (Nu,1), optional
             The control input vector. It will only have an effect if
             :attr:`ctrl_model` is not None
-        state_prior : :class:`GaussianState`, optional
-            An "ad-hoc"prior state object (the default is None, which
-            implies that state will be extracted internally from the object)
 
         Returns
         -------
@@ -74,22 +64,23 @@ class KalmanPredictor(Predictor):
             The state prediction
         meas_pred : :class:`GaussianState`
             The measurement prediction
+        cross_covar: 2-D numpy.ndarray of shape (Nm,Nm)
+            The calculated state-to-measurement cross covariance
         """
 
-        self.predict_state(ctrl_input=ctrl_input, state_prior=state_prior)
-        self.predict_meas()
+        state_pred = self.predict_state(state_prior, ctrl_input)
+        meas_pred, cross_covar = self.predict_meas(state_pred)
 
-        return (self.state_pred, self.meas_pred)
+        return (state_pred, meas_pred, cross_covar)
 
-    def predict_state(self, ctrl_input=None, state_prior=None):
+    def predict_state(self, state_prior, ctrl_input=None):
         """Kalman Filter state prediction step
 
+        state_prior : :class:`GaussianState`
+            A prior state object
         ctrl_input : 1-D array of shape (Nu,1), optional
             The control input vector. It will only have an effect if
             :attr:`ctrl_model` is not None
-        state_prior : :class:`GaussianState`, optional
-            An "ad-hoc"prior state object (the default is None, which
-            implies that state will be extracted internally from the object)
 
         Returns
         -------
@@ -99,11 +90,8 @@ class KalmanPredictor(Predictor):
 
         # TODO: Input validation
 
-        if state_prior is not None:
-            self.state_prior = state_prior
-
-        x_prior = self.state_prior.mean
-        P_prior = self.state_prior.covar
+        x_prior = state_prior.mean
+        P_prior = state_prior.covar
         F = self.trans_model.eval()
         Q = self.trans_model.covar()
 
@@ -120,70 +108,65 @@ class KalmanPredictor(Predictor):
             u = ctrl_input
 
         # Perform state prediction
-        self.state_pred = GaussianState()
-        self.state_pred.mean, self.state_pred.covar = self._predict_state(
+        state_pred = GaussianState()
+        state_pred.mean, state_pred.covar = self._predict_state(
             x_prior, P_prior, F, Q, u, B, Qu)
 
-        return self.state_pred
+        return state_pred
 
     def predict_meas(self, state_pred=None):
         """Kalman Filter measurement prediction step
 
         state_pred : :class:`GaussianState`, optional
-            An "ad-hoc" state prediction object (the default is None, which
-            implies that state will be extracted internally from the object)
+            A state prediction object
 
         Returns
         -------
         meas_pred : :class:`GaussianState`
             The measurement prediction
+        cross_covar : 2-D numpy.ndarray of shape (Nm,Nm)
+            The predicted measurement noise (innovation) covariance matrix
         """
 
         # TODO: Input validation
 
-        if state_pred is not None:
-            self.state_pred = state_pred
-
-        x_pred = self.state_pred.mean
-        P_pred = self.state_pred.covar
+        x_pred = state_pred.mean
+        P_pred = state_pred.covar
         H = self.meas_model.eval()
         R = self.meas_model.covar()
 
-        self.meas_pred = GaussianState()
-        self.meas_pred.mean, self.meas_pred.covar = self._predict_meas(
-            x_pred, P_pred, H, R)
+        meas_pred = GaussianState()
+        meas_pred.mean, meas_pred.covar, cross_covar = \
+            self._predict_meas(x_pred, P_pred, H, R)
 
-        return self.meas_pred
+        return meas_pred, cross_covar
 
     @staticmethod
-    def _predict_state(x, P, F, Q, u=0, B=1, Qu=0):
+    def _predict_state(x, P, F, Q, u, B, Qu):
         """Low-level Kalman Filter state prediction
 
         Parameters:
         ----------
-        x : 1-D array-like of length Ns
+        x : 1-D numpy.ndarray of shape (Ns,1)
             The prior state mean
-        P : 2-D array-like of shape (Ns,Ns)
+        P : 2-D numpy.ndarray of shape (Ns,Ns)
             The prior state covariance
-        F : 2-D array-like of shape (Ns,Ns)
+        F : 2-D numpy.ndarray of shape (Ns,Ns)
             The state transition matrix
-        Q : 2-D array-like of shape (Ns,Ns)
+        Q : 2-D numpy.ndarray of shape (Ns,Ns)
             The process noise covariance matrix
-        u : 1-D array-like of length Nu, optional
-            The control input (the default is 0, which implies no control
-            input)
-        B : 2-D array-like of shape (Ns,Nu), optional
-            The control gain matrix (the default is 1, which implies no
-            control gain)
-        Qu : 2-D array-like of shape (Ns,Ns), optional
-            The control process covariance matrix (the default is 0, which
-            implies no control noise)
+        u : 1-D numpy.ndarray of shape (Nu,1)
+            The control input
+        B : 2-D numpy.ndarray of shape (Ns,Nu)
+            The control gain matrix
+        Qu : 2-D numpy.ndarray of shape (Ns,Ns)
+            The control process covariance matrix
 
         Returns
         -------
-        x_pred: 1-D array-like of length Ns
+        x_pred: 1-D numpy.ndarray of shape (Ns,1)
             The predicted state mean
-        P_Pred: 2-D array-like of shape (Ns,Ns)
+        P_Pred: 2-D numpy.ndarray of shape (Ns,Ns)
             The predicted state covariance
         """
 
@@ -198,24 +181,27 @@ class KalmanPredictor(Predictor):
 
         Parameters:
         ----------
-        x_pred : 1-D array-like of length Ns
+        x_pred : 1-D numpy.ndarray of shape (Ns,1)
             The predicted state mean
-        P_pred : 2-D array-like of shape (Ns,Ns)
+        P_pred : 2-D numpy.ndarray of shape (Ns,Ns)
             The predicted state covariance
-        H : 2-D array-like of shape (Nm,Ns)
+        H : 2-D numpy.ndarray of shape (Nm,Ns)
             The measurement model matrix
-        R : 2-D array-like of shape (Nm,Nm)
+        R : 2-D numpy.ndarray of shape (Nm,Nm)
             The measurement noise covariance matrix
 
         Returns
         -------
-        y_pred: 1-D array-like of length Nm
+        y_pred: 1-D numpy.ndarray of shape (Nm,1)
             The predicted measurement mean
-        S: 2-D array-like of shape (Nm,Nm)
+        S: 2-D numpy.ndarray of shape (Nm,Nm)
             The predicted measurement noise (innovation) covariance matrix
+        Pxy: 2-D numpy.ndarray of shape (Nm,Nm)
+            The calculated state-to-measurement cross-covariance
         """
 
         y_pred = H@x_pred
         S = H@P_pred@H.T + R
+        Pxy = P_pred@H.T
 
-        return y_pred, S
+        return y_pred, S, Pxy
