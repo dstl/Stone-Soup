@@ -8,6 +8,7 @@ from ..controlmodel.base import ControlModel
 from .base import Predictor
 from ..types.base import GaussianState
 from ..base import Property
+from ..functions import jacobian
 
 
 class KalmanPredictor(Predictor):
@@ -71,7 +72,7 @@ class KalmanPredictor(Predictor):
         state_pred = self.predict_state(state_prior, ctrl_input)
         meas_pred, cross_covar = self.predict_meas(state_pred)
 
-        return (state_pred, meas_pred, cross_covar)
+        return state_pred, meas_pred, cross_covar
 
     def predict_state(self, state_prior, ctrl_input=None):
         """Kalman Filter state prediction step
@@ -205,3 +206,142 @@ class KalmanPredictor(Predictor):
         Pxy = P_pred@H.T
 
         return y_pred, S, Pxy
+
+
+class ExtendedKalmanPredictor(KalmanPredictor):
+    """ExtendedKalmanPredictor class
+
+    An implementation of an Extended Kalman Filter predictor.
+
+    Parameters
+    ----------
+    trans_model : :class:`TransitionModel`
+        The transition model used to perform the state prediction
+    meas_model : :class:`MeasurementModel`
+        The measurement model used to generate the measurement prediction
+    ctrl_model : :class:`ControlModel`
+        The (optional) control model used during the state prediction
+    """
+
+    trans_model = Property(TransitionModel, doc="transition model")
+    meas_model = Property(MeasurementModel, doc="measurement model")
+    ctrl_model = Property(ControlModel, doc="control model")
+
+    def __init__(self, trans_model, meas_model=None,
+                 ctrl_model=None, *args, **kwargs):
+        """Constructor method
+
+        trans_model : :class:`TransitionModel`
+            The transition model used to perform the state prediction
+        meas_model : :class:`MesurementModel`, optional
+            The measurement model used to generate the measurement prediction
+            (the default is None)
+        ctrl_model : :class:`ControlModel`, optional
+            The (optional) control model used during the state prediction (the
+            default is None)
+
+        """
+
+        # TODO: Input validation
+
+        super().__init__(trans_model, meas_model,
+                         ctrl_model, *args, **kwargs)
+
+    def predict(self, state_prior, ctrl_input=None):
+        """Extended Kalman Filter prediction step
+
+        state_prior : :class:`GaussianState`
+            A prior state object
+        ctrl_input : 1-D array of shape (Nu,1), optional
+            The control input vector. It will only have an effect if
+            :attr:`ctrl_model` is not None
+
+        Returns
+        -------
+        state_pred : :class:`GaussianState`
+            The state prediction
+        meas_pred : :class:`GaussianState`
+            The measurement prediction
+        cross_covar: 2-D numpy.ndarray of shape (Nm,Nm)
+            The calculated state-to-measurement cross covariance
+        """
+
+        state_pred = self.predict_state(state_prior, ctrl_input)
+        meas_pred, cross_covar = self.predict_meas(state_pred)
+
+        return state_pred, meas_pred, cross_covar
+
+    def predict_state(self, state_prior, ctrl_input=None):
+        """Extended Kalman Filter state prediction step
+
+        state_prior : :class:`GaussianState`
+            A prior state object
+        ctrl_input : 1-D array of shape (Nu,1), optional
+            The control input vector. It will only have an effect if
+            :attr:`ctrl_model` is not None
+
+        Returns
+        -------
+        state_pred : :class:`GaussianState`
+            The state prediction
+        """
+
+        # TODO: Input validation
+
+        x_prior = state_prior.mean
+        P_prior = state_prior.covar
+
+        def f(x):
+            return self.trans_model.eval(x)
+        F = jacobian(f, x_prior)
+        print("F={}".format(F))
+        Q = self.trans_model.covar()
+
+        if self.ctrl_model is not None:
+            B = self.ctrl_model.eval()
+            Qu = self.ctrl_model.covar()
+        else:
+            B = np.ones((self.trans_model.ndim_state, 2))
+            Qu = np.zeros(2)
+
+        if ctrl_input is None:
+            u = np.zeros((2, 1))
+        else:
+            u = ctrl_input
+
+        # Perform state prediction
+        state_pred = GaussianState()
+        state_pred.mean, state_pred.covar = super()._predict_state(
+            x_prior, P_prior, F, Q, u, B, Qu)
+
+        return state_pred
+
+    def predict_meas(self, state_pred=None):
+        """Extended Kalman Filter measurement prediction step
+
+        state_pred : :class:`GaussianState`, optional
+            A state prediction object
+
+        Returns
+        -------
+        meas_pred : :class:`GaussianState`
+            The measurement prediction
+        cross_covar : 2-D numpy.ndarray of shape (Nm,Nm)
+            The predicted measurement noise (innovation) covariance matrix
+        """
+
+        # TODO: Input validation
+
+        x_pred = state_pred.mean
+        P_pred = state_pred.covar
+
+        def h(x):
+            return self.meas_model.eval(x)
+        H = jacobian(h, x_pred)
+        R = self.meas_model.covar()
+
+        meas_pred = GaussianState()
+        meas_pred.mean, meas_pred.covar, cross_covar = \
+            super()._predict_meas(x_pred, P_pred, H, R)
+
+        return meas_pred, cross_covar
