@@ -54,8 +54,12 @@ class State(Type):
             return self.state_vector.shape[0]
 
 
-class SecondMomentState(State):
-    """Base for second moment states."""
+class GaussianState(State):
+    """Gaussian State type
+
+    This is a simple Gaussian state object, which, as the name suggests,
+    is described by a Gaussian state distribution.
+    """
     covar = Property(CovarianceMatrix, doc='Covariance matrix of state.')
 
     def __init__(self, state_vector, covar, *args, **kwargs):
@@ -64,14 +68,6 @@ class SecondMomentState(State):
         if self.state_vector.shape[0] != self.covar.shape[0]:
             raise ValueError(
                 "state vector and covar should have same dimensions")
-
-
-class GaussianState(SecondMomentState):
-    """Gaussian State type
-
-    This is a simple Gaussian state object, which, as the name suggests,
-    is described by a Gaussian state distribution.
-    """
 
     @property
     def mean(self):

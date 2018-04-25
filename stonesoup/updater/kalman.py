@@ -3,7 +3,7 @@
 import numpy as np
 
 from .base import Updater
-from ..types import StateVector
+from ..types import GaussianState
 from ..functions import tria
 
 
@@ -16,14 +16,14 @@ class KalmanUpdater(Updater):
     @staticmethod
     def update(track, detection, meas_mat=None):
         if meas_mat is None:
-            meas_mat = np.eye(len(detection.state), len(track.state))
+            meas_mat = np.eye(detection.ndim, track.state.ndim)
 
-        innov = detection.state - meas_mat @ track.state
+        innov_vector = detection.state_vector - meas_mat @ track.state_vector
 
         innov_covar = detection.covar + meas_mat @ track.covar @ meas_mat.T
         gain = track.covar @ meas_mat.T @ np.linalg.inv(innov_covar)
 
-        updated_state = track.state + gain @ innov
+        updated_state_vector = track.state_vector + gain @ innov_vector
 
         temp = gain @ meas_mat
         temp = np.eye(*temp.shape) - temp
@@ -31,8 +31,8 @@ class KalmanUpdater(Updater):
             temp @ track.covar @ temp.T + gain @ detection.covar @ gain.T)
 
         return (
-            StateVector(updated_state, updated_state_covar),
-            StateVector(innov, innov_covar))
+            GaussianState(updated_state_vector, updated_state_covar),
+            GaussianState(innov_vector, innov_covar))
 
 
 class SqrtKalmanUpdater(Updater):
@@ -45,9 +45,9 @@ class SqrtKalmanUpdater(Updater):
     def update(track, detection, meas_mat=None):
         # track.covar and detection.covar are lower triangular matrices
         if meas_mat is None:
-            meas_mat = np.eye(len(detection.state), len(track.state))
+            meas_mat = np.eye(detection.ndim, track.state.ndim)
 
-        innov = detection.state - meas_mat @ track.state
+        innov_vector = detection.state_vector - meas_mat @ track.state_vector
 
         Pxz = track.covar @ track.covar.T @ meas_mat.T
         innov_covar = tria(np.concatenate(
@@ -55,7 +55,7 @@ class SqrtKalmanUpdater(Updater):
             axis=1))
         gain = Pxz @ np.linalg.inv(innov_covar.T) @ np.linalg.inv(innov_covar)
 
-        updated_state = track.state + gain @ innov
+        updated_state = track.state_vector + gain @ innov_vector
 
         temp = gain @ meas_mat
         updated_state_covar = tria(np.concatenate(
@@ -64,5 +64,5 @@ class SqrtKalmanUpdater(Updater):
             axis=1))
 
         return (
-            StateVector(updated_state, updated_state_covar),
-            StateVector(innov, innov_covar))
+            GaussianState(updated_state, updated_state_covar),
+            GaussianState(innov_vector, innov_covar))

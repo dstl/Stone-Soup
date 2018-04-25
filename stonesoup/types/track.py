@@ -7,7 +7,7 @@ class Track(Type):
 
     Attributes
     ----------
-    estimates : list of State
+    states : list of :class:`State`
         Estimated state of the track
     state : State
         Most recent estimate state
@@ -19,11 +19,11 @@ class Track(Type):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.estimates = []
+        self.states = []
 
     @property
     def state(self):
-        return self.estimates[-1]
+        return self.states[-1]
 
     @property
     def state_vector(self):

@@ -11,7 +11,7 @@ from ...types import Detection
 def test_fifo():
     """FIFOFeeder test"""
     feeder = FIFOFeeder()
-    detections = [Detection(np.array([[0]]), np.array([[0]]))
+    detections = [Detection(np.array([[0]]))
                   for _ in range(10)]
     for detection in detections:  # Add them in order…
         feeder.put(detection)
