@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """Test for feeder.simple module"""
+import datetime
+
 import numpy as np
 import pytest
 
@@ -11,7 +13,7 @@ from ...types import Detection
 def test_fifo():
     """FIFOFeeder test"""
     feeder = FIFOFeeder()
-    detections = [Detection(np.array([[0]]))
+    detections = [Detection(datetime.datetime.now(), np.array([[0]]))
                   for _ in range(10)]
     for detection in detections:  # Add them in order…
         feeder.put(detection)
