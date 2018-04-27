@@ -26,15 +26,12 @@ class SingleTargetGroundTruthSimulator(GroundTruthSimulator):
         default=datetime.timedelta(seconds=1),
         doc="Time step between each state. Default one second.")
 
-    def __init__(self, predictor, initial_state=initial_state.default, *args,
-                 **kwargs):
-        if initial_state.timestamp is None:
-            initial_state.timestamp = datetime.datetime.now()
-        super().__init__(predictor, initial_state, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.groundtruth_paths = set()
 
     def groundtruth_paths_gen(self):
-        time = self.initial_state.timestamp
+        time = self.initial_state.timestamp or datetime.datetime.now()
 
         gttrack = GroundTruthPath([
             State(time, self.initial_state.state_vector)])
@@ -73,12 +70,8 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
         Probability, default=0.1,
         doc="Probability of track dying in each time step. Default 0.1.")
 
-    def __init__(self, predictor, initial_state=initial_state.default, *args,
-                 **kwargs):
-        super().__init__(predictor, initial_state, *args, **kwargs)
-
     def groundtruth_paths_gen(self):
-        time = self.initial_state.timestamp
+        time = self.initial_state.timestamp or datetime.datetime.now()
         active_tracks = set()
 
         while True:

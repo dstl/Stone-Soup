@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import copy
 
 from .base import Tracker
 from ..base import Property
@@ -32,7 +33,7 @@ class SingleTargetTracker(Tracker):
         for time, detections in self.detector.detections_gen():
 
             if track is None:
-                state = self.initial_state
+                state = copy.deepcopy(self.initial_state)
                 if state.timestamp is None:
                     state.timestamp = time
                 track = Track()
