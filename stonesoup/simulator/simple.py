@@ -8,8 +8,8 @@ from ..measurementmodel import MeasurementModel
 from ..predictor import Predictor
 from ..reader import GroundTruthReader
 from ..types import (
-    Detection, GaussianState, GroundTruthState, GroundTruthPath, Probability,
-    State)
+    Detection, GaussianDetection, GaussianState, GroundTruthState,
+    GroundTruthPath, Probability, State)
 from .base import DetectionSimulator, GroundTruthSimulator
 
 
@@ -146,20 +146,22 @@ class SimpleDetectionSimulator(DetectionSimulator):
             detections = set()
             for track in tracks:
                 if np.random.rand() < probability_of_detect:
-                    detection = Detection(
+                    detection = GaussianDetection(
                         track[-1].timestamp,
                         H @ track[-1].state_vector +
-                        np.sqrt(R) @ np.random.randn(R.shape[0], 1))
+                        np.sqrt(R) @ np.random.randn(R.shape[0], 1),
+                        np.eye(*R.shape))
                     detection.clutter = False
                     detections.add(detection)
                     self.real_detections.add(detection)
 
             # generate clutter
             for _ in range(np.random.poisson(clutter_rate)):
-                detection = Detection(
+                detection = GaussianDetection(
                     time,
                     np.random.rand(R.shape[0], 1) *
-                    np.diff(meas_range) + meas_range[:, :1])
+                    np.diff(meas_range) + meas_range[:, :1],
+                    np.eye(*R.shape))
                 detections.add(detection)
                 self.clutter_detections.add(detection)
 
