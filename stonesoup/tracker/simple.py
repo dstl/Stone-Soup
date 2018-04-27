@@ -27,6 +27,10 @@ class SingleTargetTracker(Tracker):
         State,
         doc="First state")
 
+    def __init__(self, *args, **kwargs):
+        self.tracks = set()
+        super().__init__(*args, **kwargs)
+
     def tracks_gen(self):
         track = None
 
