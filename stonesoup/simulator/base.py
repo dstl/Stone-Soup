@@ -2,15 +2,16 @@
 from abc import abstractmethod
 from ..base import Base
 from ..reader.base import DetectionReader, GroundTruthReader, SensorDataReader
+from ..detector import Detector
 
 
 class Simulator(Base):
     """Simulator base class"""
 
 
-class DetectionSimulator(Simulator, DetectionReader):
+class DetectionSimulator(Simulator, DetectionReader, Detector):
     """Detection Simulator base class"""
-    def get_detections(self):
+    def detections_gen(self):
         """Returns a generator of detections for each time step."""
         raise NotImplemented
 
@@ -18,7 +19,7 @@ class DetectionSimulator(Simulator, DetectionReader):
 class GroundTruthSimulator(Simulator, GroundTruthReader):
     """Ground truth simulator"""
     @abstractmethod
-    def get_tracks(self):
+    def groundtruth_paths_gen(self):
         """Returns a generator of tracks for each time step."""
         raise NotImplemented
 
@@ -26,6 +27,6 @@ class GroundTruthSimulator(Simulator, GroundTruthReader):
 class SensorSimulator(Simulator, SensorDataReader):
     """Sensor Simulator base class"""
     @abstractmethod
-    def get_sensordata(self):
+    def sensordata_gen(self):
         """Returns a generator of sensor data for each time step."""
         raise NotImplemented

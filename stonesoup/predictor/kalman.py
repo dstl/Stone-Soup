@@ -28,7 +28,7 @@ class KalmanPredictor(Predictor):
     process_noise_covar = Property(
         CovarianceMatrix, doc="Process noise :math:`\mathbf{Q}_k`")
 
-    def predict(self, state):
+    def predict(self, state, time):
         """Predict state
 
         Parameters
@@ -46,6 +46,7 @@ class KalmanPredictor(Predictor):
         trans_matrix = self.transition_model.transition_matrix
         covar = getattr(state, 'covar', np.zeros((state.ndim, state.ndim)))
         return GaussianState(
+            time,
             self.transition_model.transition(state.state_vector),
             trans_matrix @ covar @ trans_matrix.T + self.process_noise_covar
         )

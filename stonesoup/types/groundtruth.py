@@ -9,8 +9,8 @@ class GroundTruthState(State):
     """Ground Truth State type"""
 
 
-class GroundTruthTrack(Type, MutableSequence):
-    """Ground Truth Track type"""
+class GroundTruthPath(Type, MutableSequence):
+    """Ground Truth Path type"""
 
     def __init__(self, *args, **kwargs):
         self._states = list(*args, **kwargs)

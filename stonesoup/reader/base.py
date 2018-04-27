@@ -12,19 +12,19 @@ class Reader(Base):
 class DetectionReader(Reader):
     """Detection Reader base class"""
     @abstractmethod
-    def get_detections(self):
+    def detections_gen(self):
         raise NotImplemented
 
 
 class GroundTruthReader(Reader):
     """Ground Truth Reader base class"""
     @abstractmethod
-    def get_tracks(self):
+    def groundtruth_paths_gen(self):
         raise NotImplemented
 
 
 class SensorDataReader(Reader):
     """Sensor Data Reader base class"""
     @abstractmethod
-    def get_sensordata(self):
+    def sensordata_gen(self):
         raise NotImplemented
