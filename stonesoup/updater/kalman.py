@@ -16,7 +16,7 @@ class KalmanUpdater(Updater):
     @staticmethod
     def update(track, detection, meas_mat=None):
         if meas_mat is None:
-            meas_mat = np.eye(detection.ndim, track.state.ndim)
+            meas_mat = np.eye(detection.ndim, track.ndim)
 
         innov_vector = detection.state_vector - meas_mat @ track.state_vector
 
@@ -30,9 +30,8 @@ class KalmanUpdater(Updater):
         updated_state_covar = (
             temp @ track.covar @ temp.T + gain @ detection.covar @ gain.T)
 
-        return (
-            GaussianState(updated_state_vector, updated_state_covar),
-            GaussianState(innov_vector, innov_covar))
+        return GaussianState(
+            detection.timestamp, updated_state_vector, updated_state_covar)
 
 
 class SqrtKalmanUpdater(Updater):
@@ -45,7 +44,7 @@ class SqrtKalmanUpdater(Updater):
     def update(track, detection, meas_mat=None):
         # track.covar and detection.covar are lower triangular matrices
         if meas_mat is None:
-            meas_mat = np.eye(detection.ndim, track.state.ndim)
+            meas_mat = np.eye(detection.ndim, track.ndim)
 
         innov_vector = detection.state_vector - meas_mat @ track.state_vector
 
@@ -63,6 +62,5 @@ class SqrtKalmanUpdater(Updater):
              (gain @ detection.covar)),
             axis=1))
 
-        return (
-            GaussianState(updated_state, updated_state_covar),
-            GaussianState(innov_vector, innov_covar))
+        return GaussianState(
+            detection.timestamp, updated_state, updated_state_covar)
