@@ -67,6 +67,22 @@ def test_numpy(base, conf_file):
     assert np.allclose(instance.property_d, new_instance.property_d)
 
 
+def test_datetime(base, conf_file):
+    import datetime
+
+    class _TestNumpy(base):
+        property_d = Property(datetime.timedelta, optional=True)
+
+    instance = _TestNumpy(1, "two",
+                          property_d=datetime.timedelta(seconds=500))
+
+    conf_str = conf_file.dumps(instance)
+
+    new_instance = conf_file.load(conf_str)
+    assert isinstance(new_instance.property_d, datetime.timedelta)
+    assert instance.property_d == new_instance.property_d
+
+
 def test_references(base, conf_file):
     conf_str = """
         property_b: &prop_b '20'

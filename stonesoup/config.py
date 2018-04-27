@@ -6,6 +6,7 @@ feature of components is exploited in order to store the configuration of the
 components used for a run.
 
 .. _YAML: http://yaml.org/"""
+import datetime
 import warnings
 from abc import ABC, abstractmethod
 from io import StringIO
@@ -49,15 +50,25 @@ class YAMLConfigurationFile(ConfigurationFile):
 
     def __init__(self):
         self._yaml = YAML()
+        self._yaml.default_flow_style = False
+
+        # Declarative classes
         self._yaml.representer.add_multi_representer(
             Base, self.declarative_to_yaml)
         self._yaml.constructor.add_multi_constructor(
             self.tag_prefix, self.declarative_from_yaml)
+
+        # NumPy
         self._yaml.representer.add_representer(
             np.ndarray, self.ndarray_to_yaml)
         self._yaml.constructor.add_constructor(
             "!numpy.ndarray", self.ndarray_from_yaml)
-        self._yaml.default_flow_style = False
+
+        # Datetime
+        self._yaml.representer.add_representer(
+            datetime.timedelta, self.timedelta_to_yaml)
+        self._yaml.constructor.add_constructor(
+            "!datetime.timedelta", self.timedelta_from_yaml)
 
     def dump(self, data, stream, **kwargs):
         return self._yaml.dump(data, stream, **kwargs)
@@ -121,3 +132,19 @@ class YAMLConfigurationFile(ConfigurationFile):
     def ndarray_from_yaml(constructor, node):
         """Convert YAML to numpy.ndarray."""
         return np.array(constructor.construct_sequence(node, deep=True))
+
+    @staticmethod
+    def timedelta_to_yaml(representer, node):
+        """Convert datetime.timedelta to YAML.
+
+        Value is total number of seconds."""
+        return representer.represent_scalar(
+            "!datetime.timedelta", str(node.total_seconds()))
+
+    @staticmethod
+    def timedelta_from_yaml(constructor, node):
+        """Convert YAML to datetime.timedelta.
+
+        Value should be total number of seconds."""
+        return datetime.timedelta(
+            seconds=float(constructor.construct_scalar(node)))
