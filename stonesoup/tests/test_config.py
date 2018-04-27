@@ -99,3 +99,15 @@ def test_references(base, conf_file):
     assert new_instance.property_a == 2
     assert new_instance.property_b == "20"
     assert new_instance.property_c == base.property_c.default
+
+
+def test_anchor(base, conf_file):
+    instance = base(2, "20")
+
+    conf_str = conf_file.dumps([instance, instance,  {"key": instance}])
+    assert '&id001' in conf_str  # Anchor should be created
+    assert '*id001' in conf_str  # Reference should be created
+
+    new_instances = conf_file.load(conf_str)
+    assert new_instances[0] is new_instances[1]
+    assert new_instances[0] is new_instances[2]['key']

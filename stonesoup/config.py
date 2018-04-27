@@ -122,11 +122,12 @@ class YAMLConfigurationFile(ConfigurationFile):
             classes = [getattr(module, class_name, None)]
         return classes[0]
 
-    @staticmethod
-    def ndarray_to_yaml(representer, node):
+    def ndarray_to_yaml(self, representer, node):
         """Convert numpy.ndarray to YAML."""
+        array = [self._yaml.seq(row) for row in node.tolist()]
+        [seq.fa.set_flow_style() for seq in array]
         return representer.represent_sequence(
-            "!numpy.ndarray", node.tolist(), flow_style=True)
+            "!numpy.ndarray", array)
 
     @staticmethod
     def ndarray_from_yaml(constructor, node):
