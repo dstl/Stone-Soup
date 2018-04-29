@@ -115,10 +115,10 @@ class KalmanPredictor(Predictor):
 
         return state_pred
 
-    def predict_meas(self, state_pred=None):
+    def predict_meas(self, state_pred):
         """Kalman Filter measurement prediction step
 
-        state_pred : :class:`GaussianState`, optional
+        state_pred : :class:`GaussianState`
             A state prediction object
 
         Returns
@@ -266,10 +266,7 @@ class ExtendedKalmanPredictor(KalmanPredictor):
             The calculated state-to-measurement cross covariance
         """
 
-        state_pred = self.predict_state(state_prior, ctrl_input)
-        meas_pred, cross_covar = self.predict_meas(state_pred)
-
-        return state_pred, meas_pred, cross_covar
+        super().predict(state_prior, ctrl_input)
 
     def predict_state(self, state_prior, ctrl_input=None):
         """Extended Kalman Filter state prediction step
@@ -316,10 +313,10 @@ class ExtendedKalmanPredictor(KalmanPredictor):
 
         return state_pred
 
-    def predict_meas(self, state_pred=None):
+    def predict_meas(self, state_pred):
         """Extended Kalman Filter measurement prediction step
 
-        state_pred : :class:`GaussianState`, optional
+        state_pred : :class:`GaussianState`
             A state prediction object
 
         Returns
