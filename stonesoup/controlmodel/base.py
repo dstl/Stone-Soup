@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-from ..base import Base
-from abc import abstractmethod, abstractproperty
+from ..types.model import Model
+from abc import abstractproperty
 
 
-class ControlModel(Base):
+class ControlModel(Model):
     """Control Model base class"""
 
     @abstractproperty
@@ -19,19 +19,4 @@ class ControlModel(Base):
     @abstractproperty
     def mapping(self):
         """ Mapping between control input and state dims """
-        pass
-
-    @abstractmethod
-    def eval(self):
-        """ Model transition function """
-        pass
-
-    @abstractmethod
-    def random(self):
-        """ Model noise/sample generation function """
-        pass
-
-    @abstractmethod
-    def pdf(self):
-        """ Model pdf/likelihood evaluation function """
         pass
