@@ -40,12 +40,12 @@ def jacobian(fun, x):
     fun : function handle
         A(non-linear) transition function
         Must be of the form "y = fun(x)"
-    x : 1-D numpy.ndarray of shape (Ns,1)
+    x : :class:`numpy.ndarray` of shape (Ns,1)
         A state vector
 
     Returns
     -------
-    jac: matrix
+    jac: :class:`numpy.ndarray` of shape (Ns,Ns)
         The computed Jacobian
     """
 
