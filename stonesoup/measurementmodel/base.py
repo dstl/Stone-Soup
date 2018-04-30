@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 import scipy as sp
 from scipy.stats import multivariate_normal
+from ..types.model import Model, LinearModel, GaussianModel
+from ..base import Property
+from abc import abstractproperty
 
-from ..base import Base, Property
-from abc import abstractmethod, abstractproperty
 
-
-class MeasurementModel(Base):
+class MeasurementModel(Model):
     """Measurement Model base class"""
 
     @abstractproperty
@@ -24,24 +24,9 @@ class MeasurementModel(Base):
         """ Mapping between measurement and state dims """
         pass
 
-    @abstractmethod
-    def eval(self):
-        """ Measurement model function """
-        pass
 
-    @abstractmethod
-    def random(self):
-        """ Measurement noise/sample generation function """
-        pass
-
-    @abstractmethod
-    def pdf(self):
-        """ Measurement likelihood evaluation function """
-        pass
-
-
-class LinearGaussian1D(MeasurementModel):
-    r"""This is a class implementation of a time-invariant 1D
+class LinearGaussian1D(MeasurementModel, LinearModel, GaussianModel):
+    """This is a class implementation of a time-invariant 1D
     Linear-Gaussian Measurement Model.
 
     The model is described by the following equations:
@@ -53,38 +38,37 @@ class LinearGaussian1D(MeasurementModel):
     where H_k is a 1xNs matrix and v_k is Gaussian distributed.
 
     Parameters
-        ----------
-        ndim_state : int
-            The number of dimensions of the state Ns, to which the model
-            maps to.
-        ndim_meas : int
-            The number of measurement dimensions Nm (constant = 1)
-        mapping : int
-            Index of state dimension to which the measurement maps
-        noise_var : float
-            The measurement noise variance
+    ----------
+    ndim_meas : :class:`int`
+        The number of measurement dimensions Nm (constant = 1)
     """
 
-    ndim_state = Property(int, doc="number of state dimensions")
-    mapping = Property(sp.ndarray, doc="state-to-measurement dimension mappin")
-    noise_var = Property(float, doc="Measurement noise variance")
+    ndim_state = Property(int, doc="The number of dimensions of the state,"
+                          " to which the model maps")
+    mapping = Property(sp.ndarray, doc="Index of state dimension to which"
+                       " the measurement maps")
+    noise_var = Property(float, doc="The measurement noise variance")
+
+    _transfer_matrix = None
+    _noise_covariance = None
+    _ndim_meas = 1
 
     def __init__(self, ndim_state, mapping, noise_var, *args, **kwargs):
         """Constructor method
 
         Parameters
         ----------
-        ndim_state : int
+        ndim_state : :class:`int`
             The number of dimensions of the state, to which the model maps to.
-        mapping : int
+        mapping : :class:`int`
             Index of state dimension to which the measurement maps
-        noise_var : float
+        noise_var : :class:`float`
             The measurement noise variance
         """
 
-        self._H = sp.zeros((1, ndim_state))
-        self._H[0, mapping] = 1
-        self._R = noise_var
+        self._transfer_matrix = sp.zeros((1, ndim_state))
+        self._transfer_matrix[0, mapping] = 1
+        self._noise_covariance = noise_var
 
         super().__init__(ndim_state, mapping, noise_var, *args, **kwargs)
 
@@ -94,11 +78,11 @@ class LinearGaussian1D(MeasurementModel):
     def ndim_meas(self):
         return self._ndim_meas
 
-    def eval(self, x_t=None, noise=False):
-        r""" Model transition function
+    def eval(self, state_vec=None, noise=False):
+        """ Model transition function
 
-        Propagates a given (set of) state(s)/particle(s) ``x_tm1`` through
-        the dynamic model for time ``time``, with the application of random
+        Projects a given (set of) state(s)/particle(s) ``state_vec``
+        through the measurement model, with the application of random
         process noise ``noise``.
 
         In mathematical terms, this can be written as:
@@ -107,19 +91,20 @@ class LinearGaussian1D(MeasurementModel):
 
             y_t = H*x_t + v_t, v_t \sim p(v_t)
 
-        where :math:`v_t =` ``noise``.
+        where :math:`y_t =` ``meas_vec``, :math:`x_t =` ``state_vec`` and
+        :math:`v_t =` ``noise``.
 
         Parameters
         ----------
-        x_tm1 : 1/2-D numpy.ndarray of shape (Ns,Np)
+        state_vec : :class:`numpy.ndarray` of shape (Ns,Np)
             A (set of) prior state vector(s) :math:`x_{t-1}` from time
             :math:`t-1` (the default is None)
 
-            - If None, the function will return the function transition \
-              matrix :math:`F_t`. In this case, any value passed for ``noise``\
+            - If None, the function will return the measurement \
+              matrix :math:`H_t`. In this case, any value passed for ``noise``\
               will be ignored.
 
-        noise : 1/2-D numpy.ndarray of shape (Ns,Np) or boolean
+        noise : :class:`numpy.ndarray` of shape (Ns,Np) or boolean
             ``noise`` can be of two types:
 
             - A *numpy array* containing a (set of) externally generated \
@@ -132,44 +117,41 @@ class LinearGaussian1D(MeasurementModel):
 
             (the default in False, in which case process noise will be ignored)
 
-        time : scalar
-            A time variant :math:`t` (the default is None, in which case it
-            will be set equal to :py:attr:`time_variant`)
-
         Returns
         -------
-        x_t : 1/2-D numpy.ndarray of shape (Ns,Np)
-            The (set of) predicted state vector(s) :math:`x_{t|t-1}`
+        meas_vec : :class:`numpy.ndarray` of shape (:py:attr:`~ndim_meas`,Np)
+            The (set of) projected state vector(s)/measurement(s) :math:`y_{t}`
         """
 
-        if x_t is None:
-            x_t = sp.eye(self.ndim_state)
+        if state_vec is None:
+            state_vec = sp.eye(self.ndim_state)
             noise = 0
         else:
             if issubclass(type(noise), bool) and noise:
-                noise = self.random(Np=x_t.shape[1])
+                noise = self.random(Np=state_vec.shape[1])
             elif(issubclass(type(noise), bool) and not noise):
                 noise = 0
 
-        y_t = self._H@x_t + noise
+        meas_vec = self._transfer_matrix@state_vec + noise
 
-        return y_t
+        return meas_vec
 
     def covar(self):
         """Returns the measurement model noise covariance matrix.
 
         Returns
         -------
-        covar: numpy.ndarray of shape (Ns,Ns)
+        covar: numpy.ndarray of shape\
+        (:py:attr:`~ndim_meas`,:py:attr:`~ndim_meas`)
             The state covariance, in the form of a rank 2 array.
         """
 
         # TODO: Proper input validation
 
-        return self._R
+        return self._noise_covariance
 
-    def random(self, Np=1, time=None):
-        r""" Model noise/sample generation function
+    def random(self, num_samples=1, time=None):
+        """ Model noise/sample generation function
 
         Generates noise samples from the transition model.
 
@@ -183,12 +165,12 @@ class LinearGaussian1D(MeasurementModel):
 
         Parameters
         ----------
-        Np: scalar, optional
+        num_samples: scalar, optional
             The number of samples to be generated (the default is 1)
 
         Returns
         -------
-        noise : 2-D array of shape (Ns,Np)
+        noise : 2-D array of shape (:py:attr:`~ndim_meas`,``num_samples``)
             A set of Np samples, generated from the model's noise
             distribution.
         """
@@ -196,15 +178,15 @@ class LinearGaussian1D(MeasurementModel):
         # TODO: Proper input validation
 
         noise = multivariate_normal.rvs(
-            sp.array([0, 0]), self._R, Np).T
+            sp.array([0, 0]), self._noise_covariance, num_samples).T
 
         return noise
 
-    def pdf(self, y_t, x_t, time=None):
-        r""" Measurement pdf/likelihood evaluation function
+    def pdf(self, meas_vec, state_vec, time=None):
+        """ Measurement pdf/likelihood evaluation function
 
         Evaluates the pdf/likelihood of the (set of) measurement vector(s)
-        ``y_t``, given the (set of) state vector(s) ``x_t``.
+        ``meas_vec``, given the (set of) state vector(s) ``state_vec``.
 
         In mathematical terms, this can be written as:
 
@@ -214,14 +196,16 @@ class LinearGaussian1D(MeasurementModel):
 
         Parameters
         ----------
-        y_t : 1/2-D numpy.ndarray of shape (:math:`N_m`, :math:`N_{p1}`)
+        meas_vec : :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_meas`, :math:`N_{p1}`)
             A (set of) measurement vector(s) :math:`y_t`
-        x_t : 1/2-D numpy.ndarray of shape (:math:`N_s`, :math:`N_{p2}`)
+        state_vec : :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`, :math:`N_{p2}`)
             A (set of) state vector(s) :math:`x_t`
 
         Returns
         -------
-        p: 1/2-D numpy.ndarray of shape (:math:`N_{p1}`, :math:`N_{p2}`)
+        p: :class:`numpy.ndarray` of shape (:math:`N_{p1}`, :math:`N_{p2}`)
             A matrix of probabilities/likelihoods, where each element
             (:math:`i`, :math:`j`) corresponds to the likelihood of
             ``y_t[:][i]`` given ``x_t[:][j]``.
@@ -229,11 +213,13 @@ class LinearGaussian1D(MeasurementModel):
 
         # TODO: 1) Optimise performance
         #       2) Proper input validation
-        Np1 = y_t.shape[1]
-        Np2 = x_t.shape[1]
+        Np1 = meas_vec.shape[1]
+        Np2 = state_vec.shape[1]
         p = sp.zeros((Np1, Np2))
 
         for i in range(0, Np2):
             p[:, i] = multivariate_normal.pdf(
-                y_t.T, mean=self.eval(x_t[:, i]).T, cov=self._R).T
+                meas_vec.T, mean=self.eval(state_vec[:, i]).T,
+                cov=self._noise_covariance
+            ).T
         return p
