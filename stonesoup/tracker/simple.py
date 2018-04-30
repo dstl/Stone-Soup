@@ -41,6 +41,7 @@ class SingleTargetTracker(Tracker):
                 if state.timestamp is None:
                     state.timestamp = time
                 track = Track()
+                self.tracks.add(track)
             else:
                 state = track.state
 
