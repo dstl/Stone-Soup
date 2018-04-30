@@ -5,6 +5,7 @@ import scipy as np
 from scipy.stats import multivariate_normal
 from ..base import Property
 from .base import TransitionModel
+from ..types.model import LinearModel, GaussianModel, TimeVariantModel
 
 
 class LinearTransitionModel(TransitionModel):
@@ -48,9 +49,10 @@ class LinearTransitionModel(TransitionModel):
         return new_state_vector
 
 
-class ConstantVelocity1D(TransitionModel):
-    r"""This is a class implementation of a time-varying 1D Linear-Gaussian
-    Constant Velocity Dynamic Model.
+class ConstantVelocity1D(TransitionModel, LinearModel,
+                         GaussianModel, TimeVariantModel):
+    r"""This is a class implementation of a time-variant 1D Linear-Gaussian
+    Constant Velocity Transition Model.
 
     The target is assumed to move with (nearly) constant velocity, where
     target acceleration is model as white noise.
@@ -94,17 +96,16 @@ class ConstantVelocity1D(TransitionModel):
 
     Parameters
     ----------
-    noise_diff_coeff: scalar
-        The velocity noise diffusion coefficient :math:`q`
-    ndim_state : scalar, constant
+    ndim_state : :class:`int`, read-only
         The number of state dimensions. *(constant = 2)*
-    time_variant: scalar, optional
-        The value of the time variant :math:`t` in seconds (the default is 1)
-
     """
 
-    noise_diff_coeff = Property(float, doc="noise diffusion coefficient")
-    time_variant = Property(float, default=1)
+    noise_diff_coeff = Property(
+        float, doc="The velocity noise diffusion coefficient :math:`q`")
+    time_variant = Property(float,
+                            doc="The value of the time variant :math:`t` in\
+                            seconds (the default is 1)",
+                            default=1)
 
     def __init__(self, noise_diff_coeff, time_variant, *args, **kwargs):
         """Constructor method """
@@ -113,14 +114,18 @@ class ConstantVelocity1D(TransitionModel):
 
         super().__init__(noise_diff_coeff, time_variant, *args, **kwargs)
 
-        # Definition of F(t) and Q(t)
-        self._F = lambda t=self.time_variant: np.array(
-            [[1, t], [0, 1]])
-        self._Q = lambda t=self.time_variant: np.array(
-            [[np.power(t, 3)/3, np.power(t, 2)/2],
-             [np.power(t, 2)/2, t]])*self.noise_diff_coeff
-
         self._ndim_state = 2
+
+    def _transfer_matrix(self, t=None):
+        if(t is None):
+            t = self.time_variant
+        return np.array([[1, t], [0, 1]])
+
+    def _noise_covariance(self, t=None):
+        if(t is None):
+            t = self.time_variant
+        return np.array([[np.power(t, 3)/3, np.power(t, 2)/2],
+                         [np.power(t, 2)/2, t]])*self.noise_diff_coeff
 
     @property
     def ndim_state(self):
@@ -134,25 +139,26 @@ class ConstantVelocity1D(TransitionModel):
 
         return self._ndim_state
 
-    def eval(self, x_tm1=None, noise=False, time=None):
-        r""" Model transition function
+    def eval(self, state_vector=None, noise=False, time=None):
+        """ Model transition function
 
-        Propagates a given (set of) state(s)/particle(s) ``x_tm1`` through
-        the dynamic model for time ``time``, with the application of random
-        process noise ``noise``.
+        Propagates a given (set of) state(s)/particle(s) ``state_vector``
+        through the dynamic model for time ``time``, with the application of
+        random process noise ``noise``.
 
         In mathematical terms, this can be written as:
 
         .. math::
 
-            x_t = f(x_{t-1},w_t,t), w_t \sim p(w_t)
+            x_t = f(x_{t-1},w_t,t),\ \ w_t \sim p(w_t)
 
-        where :math:`x_t =` ``x_tm1``, :math:`w_t =` ``noise`` and
+        where :math:`x_t =` ``state_vector``, :math:`w_t =` ``noise`` and
         :math:`t` = ``time``.
 
         Parameters
         ----------
-        x_tm1 : 1/2-D numpy.ndarray of shape (Ns,Np)
+        state_vector : :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`,Np)
             A (set of) prior state vector(s) :math:`x_{t-1}` from time
             :math:`t-1` (the default is None)
 
@@ -160,7 +166,8 @@ class ConstantVelocity1D(TransitionModel):
               matrix :math:`F_t`. In this case, any value passed for ``noise``\
               will be ignored.
 
-        noise : 1/2-D numpy.ndarray of shape (Ns,Np) or boolean
+        noise : :class:`numpy.ndarray` of shape (:py:attr:`~ndim_state`,Np) or\
+        boolean
             ``noise`` can be of two types:
 
             - A *numpy array* containing a (set of) externally generated \
@@ -173,13 +180,14 @@ class ConstantVelocity1D(TransitionModel):
 
             (the default in False, in which case process noise will be ignored)
 
-        time : scalar
+        time : :class:`int`
             A time variant :math:`t` (the default is None, in which case it
-            will be set equal to :py:attr:`time_variant`)
+            will be set equal to :py:attr:`~time_variant`)
 
         Returns
         -------
-        x_t : 1/2-D numpy.ndarray of shape (Ns,Np)
+        state_vector_new : :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`,Np)
             The (set of) predicted state vector(s) :math:`x_t`
         """
 
@@ -188,31 +196,32 @@ class ConstantVelocity1D(TransitionModel):
         if time is None:
             time = self.time_variant
 
-        if x_tm1 is None:
-            x_tm1 = np.eye(self.ndim_state)
+        if state_vector is None:
+            state_vector = np.eye(self.ndim_state)
             noise = 0
         else:
             if issubclass(type(noise), bool) and noise:
-                noise = self.random(Np=x_tm1.shape[1], time=time)
+                noise = self.random(Np=state_vector.shape[1], time=time)
             elif(issubclass(type(noise), bool) and not noise):
                 noise = 0
 
-        x_t = self._F(time)@x_tm1 + noise
-        return x_t
+        state_vector_new = self._transfer_matrix(time)@state_vector + noise
+        return state_vector_new
 
     def covar(self, time=None):
         """Returns the transition model noise covariance matrix.
 
         Parameters
         ----------
-        time : scalar
+        time : :class:`int`
             A time variant :math:`t` (the default is None, in which case it
-            will be set equal to :py:attr:`time_variant`)
+            will be set equal to :py:attr:`~time_variant`)
 
         Returns
         -------
-        covar: numpy.ndarray of shape (Ns,Ns)
-            The state covariance, in the form of a rank 2 array.
+        covar: :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The process noise covariance.
         """
 
         # TODO: Proper input validation
@@ -220,14 +229,14 @@ class ConstantVelocity1D(TransitionModel):
         if(time is None):
             time = self.time_variant
 
-        covar = self._Q(time)
+        covar = self._noise_covariance(time)
 
         return covar
 
-    def random(self, Np=1, time=None):
-        r""" Model noise/sample generation function
+    def random(self, num_samples=1, time=None):
+        """ Model noise/sample generation function
 
-        Generates noise samples from the transition model.
+        Generates noisy samples from the transition model.
 
         In mathematical terms, this can be written as:
 
@@ -239,15 +248,16 @@ class ConstantVelocity1D(TransitionModel):
 
         Parameters
         ----------
-        Np: scalar, optional
+        num_samples: :class:`int`, optional
             The number of samples to be generated (the default is 1)
-        time : scalar, optional
+        time : :class:`int`, optional
             A time variant :math:`t` (the default is None, in which case it
-            will be set equal to :py:attr:`time_variant`)
+            will be set equal to :py:attr:`~time_variant`)
 
         Returns
         -------
-        noise : 2-D array of shape (Ns,Np)
+        noise : :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`,``num_samples``)
             A set of Np samples, generated from the model's noise distribution.
         """
 
@@ -257,47 +267,52 @@ class ConstantVelocity1D(TransitionModel):
             time = self.time_variant
 
         noise = multivariate_normal.rvs(
-            np.array([0, 0]), self._Q(time), Np).T
+            np.array([0, 0]), self._noise_covariance(time), num_samples).T
 
         return noise
 
-    def pdf(self, x_t, x_tm1, time=None):
-        r""" Model pdf/likelihood evaluation function
+    def pdf(self, state_vector_trans, state_vector_prior, time=None):
+        """ Model pdf/likelihood evaluation function
 
-        Evaluates the pdf/likelihood of the (set of) predicted state vector(s)
-        ``x_t``, given the (set of) prior state vector(s) ``x_tm1``.
+        Evaluates the pdf/likelihood of the (set of) transformed state
+        vector(s)``state_vector_trans``, given the (set of) prior state
+        vector(s) ``state_vector_prior``.
 
         In mathematical terms, this can be written as:
 
         .. math::
 
-            p = p(x_t | x_{t-1})
+            p = p(x_t | x_{t-1}) = \mathcal{N}(x_t; x_{t-1}, Q_t)
 
-        where :math:`x_t` = ``x_t`` and :math:`x_{t-1}` = ``x_tm1``.
+        where :math:`x_t` = ``state_vector_trans``
+        , :math:`x_{t-1}` = ``state_vector_prior`` and
+        :math:`Q_t` = :py:attr:`~covar`.
 
         Parameters
         ----------
-        x_t : 1/2-D numpy.ndarray of shape (:math:`N_s`, :math:`N_{p1}`)
+        state_vector_trans : :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`, :math:`N_{p1}`)
             A (set of) predicted state vector(s) :math:`x_{t|t-1}`
-        x_tm1 : 1/2-D numpy.ndarray of shape (:math:`N_s`, :math:`N_{p2}`)
+        state_vector_prior : :class:`numpy.ndarray` of shape \
+        (:py:attr:`~ndim_state`, :math:`N_{p2}`)
             A (set of) prior state vector(s) :math:`x_{t-1}` from time
             :math:`t-1`
-        time : scalar, optional
+        time : :class:`int`, optional
             A time variant :math:`t` (the default is None, in which case it
-            will be set equal to :py:attr:`time_variant`)
+            will be set equal to :py:attr:`~time_variant`)
 
         Returns
         -------
-        p: 1/2-D numpy.ndarray of shape (:math:`N_{p1}`, :math:`N_{p2}`)
+        p: :class:`numpy.ndarray` of shape (:math:`N_{p1}`, :math:`N_{p2}`)
             A matrix of probabilities/likelihoods, where each element
             (:math:`i`, :math:`j`) corresponds to the likelihood of
-            ``x_t[:][i]`` given ``x_tm1[:][j]``.
+            ``x_t[:,i]`` given ``x_tm1[:,j]``.
         """
 
         # TODO: 1) Optimise performance
         #       2) Proper input validation
-        Np1 = x_t.shape[1]
-        Np2 = x_tm1.shape[1]
+        Np1 = state_vector_trans.shape[1]
+        Np2 = state_vector_prior.shape[1]
         p = np.zeros((Np1, Np2))
 
         if time is None:
@@ -305,5 +320,8 @@ class ConstantVelocity1D(TransitionModel):
 
         for i in range(0, Np2):
             p[:, i] = multivariate_normal.pdf(
-                x_t.T, mean=self.eval(x_tm1[:, i]).T, cov=self._Q(time)).T
+                state_vector_trans.T,
+                mean=self.eval(state_vector_prior[:, i]).T,
+                cov=self._noise_covariance(time)
+            ).T
         return p

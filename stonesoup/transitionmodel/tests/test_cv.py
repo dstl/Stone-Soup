@@ -4,7 +4,7 @@
 import numpy as np
 from scipy.stats import multivariate_normal
 
-from stonesoup.transitionmodel.base import ConstantVelocity1D
+from stonesoup.transitionmodel.linear import ConstantVelocity1D
 
 
 def test_cvmodel1D():
