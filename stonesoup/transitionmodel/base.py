@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-from ..base import Base
-from abc import abstractmethod, abstractproperty
+from abc import abstractproperty
+from ..types.model import Model
 
 
-class TransitionModel(Base):
+class TransitionModel(Model):
     """Transition Model base class
 
     Paramaters
@@ -17,19 +17,4 @@ class TransitionModel(Base):
     @abstractproperty
     def ndim_state(self):
         """ Number of state dimensions"""
-        pass
-
-    @abstractmethod
-    def eval(self):
-        """ Model transition function """
-        pass
-
-    @abstractmethod
-    def random(self):
-        """ Model noise/sample generation function """
-        pass
-
-    @abstractmethod
-    def pdf(self):
-        """ Model pdf/likelihood evaluation function """
         pass
