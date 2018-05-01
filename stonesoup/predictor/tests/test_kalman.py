@@ -2,10 +2,10 @@
 
 import numpy as np
 
-from stonesoup.transitionmodel.base import ConstantVelocity1D
+from stonesoup.transitionmodel.linear import ConstantVelocity1D
 from stonesoup.measurementmodel.base import LinearGaussian1D
 from stonesoup.predictor.kalman import KalmanPredictor, ExtendedKalmanPredictor
-from stonesoup.types.base import GaussianState
+from stonesoup.types.state import GaussianState
 
 
 def test_kalman():
