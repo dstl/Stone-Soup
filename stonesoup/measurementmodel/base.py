@@ -78,7 +78,7 @@ class LinearGaussian1D(MeasurementModel, LinearModel, GaussianModel):
     def ndim_meas(self):
         return self._ndim_meas
 
-    def eval(self, state_vec=None, noise=False):
+    def eval(self, state_vec=None, noise=False, time=None):
         """ Model transition function
 
         Projects a given (set of) state(s)/particle(s) ``state_vec``
