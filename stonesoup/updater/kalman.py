@@ -5,7 +5,7 @@ import numpy as np
 from .base import Updater
 from ..functions import tria, jacobian
 from ..measurementmodel import MeasurementModel
-from ..types.base import GaussianState, StateVector
+from ..types.state import GaussianState, StateVector
 from ..base import Property
 
 
@@ -42,9 +42,9 @@ class KalmanUpdater(Updater):
             The state prediction
         meas_pred : :class:`GaussianState`
             The measurement prediction
-        meas : 1-D numpy.ndarray of shape (Nm,1)
-            The measurement vector
-        cross_covar: 2-D numpy.ndarray of shape (Nm,Nm), optional
+        meas : :class:`Detection`
+            The measurement
+        cross_covar: :class:`numpy.ndarray` of shape (Nm,Nm), optional
             The state-to-measurement cross covariance (the default is None, in
             which case ``cross_covar`` will be computed internally)
 
@@ -52,18 +52,18 @@ class KalmanUpdater(Updater):
         -------
         state_post : :class:`GaussianState`
             The state posterior
-        kalman_gain : 2-D numpy.ndarray of shape (Ns,Nm)
+        kalman_gain : :class:`numpy.ndarray` of shape (Ns,Nm)
             The computed Kalman gain
         """
 
         if(cross_covar is None):
             cross_covar = state_pred.covar@self.meas_model.eval().T
 
-        state_post = GaussianState()
-
-        state_post.mean, state_post.covar, kalman_gain = \
-            self._update(state_pred.mean, state_pred.covar, meas,
+        state_post_mean, state_post_covar, kalman_gain = \
+            self._update(state_pred.mean, state_pred.covar, meas.state_vector,
                          meas_pred.mean, meas_pred.covar, cross_covar)
+
+        state_post = GaussianState(state_post_mean, state_post_covar)
 
         return state_post, kalman_gain
 
@@ -73,25 +73,25 @@ class KalmanUpdater(Updater):
 
         Parameters
         ----------
-        x_pred: 1-D numpy.ndarray of shape (Ns,1)
+        x_pred: :class:`numpy.ndarray` of shape (Ns,1)
             The predicted state mean
-        P_Pred: 2-D numpy.ndarray of shape (Ns,Ns)
+        P_pred: :class:`numpy.ndarray` of shape (Ns,Ns)
             The predicted state covariance
-        y : 1-D numpy.ndarray of shape (Nm,1)
+        y : :class:`numpy.ndarray` of shape (Nm,1)
             The measurement vector
-        y_pred: 1-D numpy.ndarray of shape (Nm,1)
+        y_pred: :class:`numpy.ndarray` of shape (Nm,1)
             The predicted measurement mean
-        S: 2-D numpy.ndarray of shape (Nm,Nm)
+        S: :class:`numpy.ndarray` of shape (Nm,Nm)
             The predicted measurement noise (innovation) covariance matrix
-        Pxy: 2-D numpy.ndarray of shape (Nm,Nm)
+        Pxy: :class:`numpy.ndarray` of shape (Nm,Nm)
             The calculated state-to-measurement cross covariance
         Returns
         -------
-        x_post: 1-D numpy.ndarray of shape (Ns,1)
+        x_post: :class:`numpy.ndarray` of shape (Ns,1)
             The computed posterior state mean
-        P_post: 2-D numpy.ndarray of shape (Ns,Ns)
+        P_post: :class:`numpy.ndarray` of shape (Ns,Ns)
             The computed posterior state covariance
-        K: 2-D numpy.ndarray of shape (Ns,Nm)
+        K: :class:`numpy.ndarray` of shape (Ns,Nm)
             The computed Kalman gain
         """
 
@@ -136,9 +136,9 @@ class ExtendedKalmanUpdater(KalmanUpdater):
             The state prediction
         meas_pred : :class:`GaussianState`
             The measurement prediction
-        meas : 1-D numpy.ndarray of shape (Nm,1)
+        meas : :class:`numpy.ndarray` of shape (Nm,1)
             The measurement vector
-        cross_covar: 2-D numpy.ndarray of shape (Nm,Nm), optional
+        cross_covar: :class:`numpy.ndarray` of shape (Nm,Nm), optional
             The state-to-measurement cross covariance (the default is None, in
             which case ``cross_covar`` will be computed internally)
 
@@ -146,7 +146,7 @@ class ExtendedKalmanUpdater(KalmanUpdater):
         -------
         state_post : :class:`GaussianState`
             The state posterior
-        kalman_gain : 2-D numpy.ndarray of shape (Ns,Nm)
+        kalman_gain : :class:`numpy.ndarray` of shape (Ns,Nm)
             The computed Kalman gain
         """
 
@@ -156,11 +156,12 @@ class ExtendedKalmanUpdater(KalmanUpdater):
             H = jacobian(h, state_pred.mean)
             cross_covar = state_pred.covar@H.T
 
-        state_post = GaussianState()
+        state_post_mean, state_post_covar, kalman_gain = \
+            super()._update(state_pred.mean, state_pred.covar,
+                            meas.state_vector, meas_pred.mean,
+                            meas_pred.covar, cross_covar)
 
-        state_post.mean, state_post.covar, kalman_gain = \
-            super()._update(state_pred.mean, state_pred.covar, meas,
-                            meas_pred.mean, meas_pred.covar, cross_covar)
+        state_post = GaussianState(state_post_mean, state_post_covar)
 
         return state_post, kalman_gain
 
