@@ -31,7 +31,8 @@ class KalmanUpdater(Updater):
             temp @ track.covar @ temp.T + gain @ detection.covar @ gain.T)
 
         return GaussianState(
-            detection.timestamp, updated_state_vector, updated_state_covar)
+            updated_state_vector, updated_state_covar,
+            timestamp=detection.timestamp)
 
 
 class SqrtKalmanUpdater(Updater):
@@ -63,4 +64,4 @@ class SqrtKalmanUpdater(Updater):
             axis=1))
 
         return GaussianState(
-            detection.timestamp, updated_state, updated_state_covar)
+            updated_state, updated_state_covar, timestamp=detection.timestamp)

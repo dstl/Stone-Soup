@@ -44,12 +44,13 @@ class State(Type):
     """State type.
 
     Most simple state type, which only has time and a state vector."""
-    timestamp = Property(datetime.datetime, doc="Timestamp of the state.")
+    timestamp = Property(datetime.datetime, default=None,
+                         doc="Timestamp of the state. Default None.")
     state_vector = Property(StateVector, doc='State vector.')
 
-    def __init__(self, timestamp, state_vector, *args, **kwargs):
+    def __init__(self, state_vector, *args, **kwargs):
         state_vector.view(StateVector)
-        super().__init__(timestamp, state_vector, *args, **kwargs)
+        super().__init__(state_vector, *args, **kwargs)
 
     @property
     def ndim(self):
@@ -66,9 +67,9 @@ class GaussianState(State):
     """
     covar = Property(CovarianceMatrix, doc='Covariance matrix of state.')
 
-    def __init__(self, timestamp, state_vector, covar, *args, **kwargs):
+    def __init__(self, state_vector, covar, *args, **kwargs):
         covar.view(CovarianceMatrix)
-        super().__init__(timestamp, state_vector, covar, *args, **kwargs)
+        super().__init__(state_vector, covar, *args, **kwargs)
         if self.state_vector.shape[0] != self.covar.shape[0]:
             raise ValueError(
                 "state vector and covar should have same dimensions")

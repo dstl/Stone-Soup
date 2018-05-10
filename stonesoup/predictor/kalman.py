@@ -46,7 +46,7 @@ class KalmanPredictor(Predictor):
         trans_matrix = self.transition_model.transition_matrix
         covar = getattr(state, 'covar', np.zeros((state.ndim, state.ndim)))
         return GaussianState(
-            time,
             self.transition_model.transition(state.state_vector),
-            trans_matrix @ covar @ trans_matrix.T + self.process_noise_covar
+            trans_matrix @ covar @ trans_matrix.T + self.process_noise_covar,
+            timestamp=time,
         )

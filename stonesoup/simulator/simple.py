@@ -19,7 +19,7 @@ class SingleTargetGroundTruthSimulator(GroundTruthSimulator):
         Predictor, doc="Predictor used as propagator for track.")
     initial_state = Property(
         State,
-        default=State(None, np.array([[0], [0], [0], [0]])),
+        default=State(np.array([[0], [0], [0], [0]])),
         doc="Initial state to use to generate ground truth")
     timestep = Property(
         datetime.timedelta,
@@ -34,7 +34,7 @@ class SingleTargetGroundTruthSimulator(GroundTruthSimulator):
         time = self.initial_state.timestamp or datetime.datetime.now()
 
         gttrack = GroundTruthPath([
-            State(time, self.initial_state.state_vector)])
+            GroundTruthState(self.initial_state.state_vector, timestamp=time)])
         self.groundtruth_paths.add(gttrack)
         yield time, {gttrack}
 
@@ -43,10 +43,10 @@ class SingleTargetGroundTruthSimulator(GroundTruthSimulator):
             # Move track forward
             trans_state = self.predictor.predict(gttrack[-1], time)
             gttrack.append(GroundTruthState(
-                time,
                 trans_state.state_vector +
                 np.sqrt(trans_state.covar) @
-                np.random.randn(trans_state.ndim, 1)))
+                np.random.randn(trans_state.ndim, 1),
+                timestamp=time))
 
             yield time, {gttrack}
 
@@ -59,7 +59,6 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
     initial_state = Property(
         GaussianState,
         default=GaussianState(
-            None,
             np.array([[0], [0], [0], [0]]),
             np.diag([10000, 10000, 10, 10])),
         doc="Initial state to use to generate states")
@@ -95,10 +94,10 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
             for _ in range(np.random.poisson(self.birth_rate)):
                 gttrack = GroundTruthPath()
                 gttrack.append(GroundTruthState(
-                    time,
                     self.initial_state.state_vector +
                     np.sqrt(self.initial_state.covar) @
-                    np.random.randn(self.initial_state.ndim, 1)))
+                    np.random.randn(self.initial_state.ndim, 1),
+                    timestamp=time))
                 self.groundtruth_paths.add(gttrack)
                 active_tracks.add(gttrack)
 
@@ -140,10 +139,10 @@ class SimpleDetectionSimulator(DetectionSimulator):
             for track in tracks:
                 if np.random.rand() < probability_of_detect:
                     detection = GaussianDetection(
-                        track[-1].timestamp,
                         H @ track[-1].state_vector +
                         np.sqrt(R) @ np.random.randn(R.shape[0], 1),
-                        np.eye(*R.shape))
+                        np.eye(*R.shape),
+                        timestamp=track[-1].timestamp)
                     detection.clutter = False
                     detections.add(detection)
                     self.real_detections.add(detection)
@@ -151,10 +150,10 @@ class SimpleDetectionSimulator(DetectionSimulator):
             # generate clutter
             for _ in range(np.random.poisson(clutter_rate)):
                 detection = GaussianDetection(
-                    time,
                     np.random.rand(R.shape[0], 1) *
                     np.diff(meas_range) + meas_range[:, :1],
-                    np.eye(*R.shape))
+                    np.eye(*R.shape),
+                    timestamp=time)
                 detections.add(detection)
                 self.clutter_detections.add(detection)
 

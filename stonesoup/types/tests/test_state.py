@@ -19,7 +19,7 @@ def test_gaussianstate():
                       [0.3897, -0.00004, 0.0128, 0],
                       [0, 0.3897, 0.0013, 0.0135]]) * 1e3
 
-    state = GaussianState(datetime.datetime.now(), mean, covar)
+    state = GaussianState(mean, covar)
 
     assert(np.array_equal(mean, state.mean))
     assert(np.array_equal(covar, state.covar))
