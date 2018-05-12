@@ -1,13 +1,13 @@
 Transition Models
 =================
 
-.. automodule:: stonesoup.transitionmodel
+.. automodule:: stonesoup.models.transitionmodel
     :no-members:
 
-.. automodule:: stonesoup.transitionmodel.base
+.. automodule:: stonesoup.models.transitionmodel.base
     :show-inheritance:
 
 Linear
 ------
-.. automodule:: stonesoup.transitionmodel.linear
+.. automodule:: stonesoup.models.transitionmodel.linear
     :show-inheritance:
