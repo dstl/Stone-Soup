@@ -19,7 +19,8 @@ class LinearGaussian1D(MeasurementModel, LinearModel, GaussianModel):
 
       y_t = H_k*x_t + v_k,\ \ \ \   v(k)\sim \mathcal{N}(0,R)
 
-    where H_k is a 1xNs matrix and v_k is Gaussian distributed.
+    where ``H_k`` is a (1, py:attr:`~ndim_state`) matrix and ``v_k`` is\
+    Gaussian distributed.
 
     """
 
@@ -48,7 +49,7 @@ class LinearGaussian1D(MeasurementModel, LinearModel, GaussianModel):
 
         Returns
         -------
-        :class:`numpy.ndarray` of shape (1,:py:attr:`~ndim_state`)
+        :class:`numpy.ndarray` of shape (1, py:attr:`~ndim_state`)
             The model matrix evaluated given the provided time interval.
         """
 
@@ -70,12 +71,12 @@ class LinearGaussian1D(MeasurementModel, LinearModel, GaussianModel):
 
         Returns
         -------
-        :class:`numpy.ndarray` of shape (1,:py:attr:`~ndim_state`)
+        :class:`numpy.ndarray` of shape (1, :py:attr:`~ndim_state`)
             The model fumction evaluated given the provided time interval.
         """
 
         if noise is None:
-            noise = self.random()
+            noise = self.rvs()
 
         return self.matrix(**kwargs)@state_vector + noise
 
@@ -91,7 +92,7 @@ class LinearGaussian1D(MeasurementModel, LinearModel, GaussianModel):
 
         return CovarianceMatrix(self.noise_covar)
 
-    def random(self, num_samples=1, **kwargs):
+    def rvs(self, num_samples=1, **kwargs):
         """ Model noise/sample generation function
 
         Generates noise samples from the transition model.
@@ -100,7 +101,7 @@ class LinearGaussian1D(MeasurementModel, LinearModel, GaussianModel):
 
         .. math::
 
-            v_t \sim \mathcal(N)(0,R_t)
+            v_t \sim \mathcal{N}(0,R_t)
 
         where :math:`v_t =` ``noise``.
 
@@ -111,7 +112,7 @@ class LinearGaussian1D(MeasurementModel, LinearModel, GaussianModel):
 
         Returns
         -------
-        noise : 2-D array of shape (:py:attr:`~ndim_meas`,``num_samples``)
+        noise : 2-D array of shape (:py:attr:`~ndim_meas`, ``num_samples``)
             A set of Np samples, generated from the model's noise
             distribution.
         """
@@ -131,7 +132,7 @@ class LinearGaussian1D(MeasurementModel, LinearModel, GaussianModel):
 
         .. math::
 
-            p = p(y_t | x_t) = \mathcal{N}(y_t; x_t, R_t)
+            p(y_t | x_t) = \mathcal{N}(y_t; x_t, R_t)
 
         Parameters
         ----------

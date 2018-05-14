@@ -56,7 +56,7 @@ def test_lgmodel1D():
 
     # Propagate a state vector throught the model
     # (with external noise)
-    noise = lg.random()
+    noise = lg.rvs()
     meas_pred_w_enoise = lg.function(state_vec,
                                      noise=noise)
     assert np.array_equal(meas_pred_w_enoise, H@state_vec+noise)

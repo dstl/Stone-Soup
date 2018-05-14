@@ -91,8 +91,8 @@ class ConstantVelocity1D(TransitionModel, LinearModel,
 
         .. math::
             Q_t & = & \begin{bmatrix}
-                        \frac{t^3}{3} & \frac{t^2}{2} \\
-                        \frac{t^2}{2} & t
+                        \frac{dt^3}{3} & \frac{dt^2}{2} \\
+                        \frac{dt^2}{2} & dt
                 \end{bmatrix}*q
     """
 
@@ -153,7 +153,7 @@ class ConstantVelocity1D(TransitionModel, LinearModel,
         """
 
         if noise is None:
-            noise = self.random(time_interval=time_interval)
+            noise = self.rvs(time_interval=time_interval)
 
         return self.matrix(time_interval,
                            **kwargs)@state_vector + noise
@@ -182,7 +182,7 @@ class ConstantVelocity1D(TransitionModel, LinearModel,
 
         return CovarianceMatrix(covar)
 
-    def random(self, time_interval, num_samples=1, **kwargs):
+    def rvs(self, time_interval, num_samples=1, **kwargs):
         """ Model noise/sample generation function
 
         Generates noisy samples from the transition model.
@@ -191,7 +191,7 @@ class ConstantVelocity1D(TransitionModel, LinearModel,
 
         .. math::
 
-            w_t \sim \mathcal(N)(0,Q_t)
+            w_t \sim \mathcal{N}(0,Q_t)
 
         where :math:`w_t =` ``noise``.
 
@@ -205,7 +205,7 @@ class ConstantVelocity1D(TransitionModel, LinearModel,
         Returns
         -------
         noise : :class:`numpy.ndarray` of shape\
-        (:py:attr:`~ndim_state`,``num_samples``)
+        (:py:attr:`~ndim_state`, ``num_samples``)
             A set of Np samples, generated from the model's noise distribution.
         """
 

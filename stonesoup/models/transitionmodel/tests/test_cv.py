@@ -78,7 +78,7 @@ def test_cvmodel1D():
 
     # Propagate a state vector throught the model
     # (with external noise)
-    noise = cv.random(timestamp=new_timestamp, time_interval=time_interval)
+    noise = cv.rvs(timestamp=new_timestamp, time_interval=time_interval)
     new_state_vec_w_enoise = cv.function(
         state_vec,
         timestamp=new_timestamp,

@@ -15,7 +15,7 @@ class Model(Type):
         pass
 
     @abstractmethod
-    def random(self):
+    def rvs(self):
         """Model noise/sample generation method"""
         pass
 
