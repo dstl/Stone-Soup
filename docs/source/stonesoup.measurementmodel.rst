@@ -1,10 +1,13 @@
 Measurement Models
 ==================
 
-.. automodule:: stonesoup.measurementmodel
+.. automodule:: stonesoup.models.measurementmodel
     :no-members:
 
-.. automodule:: stonesoup.measurementmodel.base
+.. automodule:: stonesoup.models.measurementmodel.base
     :show-inheritance:
 
-
+Linear
+------
+.. automodule:: stonesoup.models.measurementmodel.linear
+    :show-inheritance:

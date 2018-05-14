@@ -30,3 +30,27 @@ def tria(matrix):
     lower_triangular[:, index] *= -1
 
     return lower_triangular
+
+
+def jacobian(fun, x):
+    """Compute Jacobian through complex step differentiation
+
+    Parameters
+    ----------
+    fun : function handle
+        A(non-linear) transition function
+        Must be of the form "y = fun(x)"
+    x : :class:`numpy.ndarray` of shape (Ns,1)
+        A state vector
+
+    Returns
+    -------
+    jac: :class:`numpy.ndarray` of shape (Ns,Ns)
+        The computed Jacobian
+    """
+
+    ndim = np.shape(x)[0]
+    h = ndim*np.finfo(float).eps
+    jac = np.divide(np.imag(fun(np.tile(x, ndim)+np.eye(ndim)*h*1j)), h)
+
+    return jac

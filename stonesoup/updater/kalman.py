@@ -3,65 +3,144 @@
 import numpy as np
 
 from .base import Updater
-from ..types import GaussianState
-from ..functions import tria
+from ..types.state import GaussianState
 
 
 class KalmanUpdater(Updater):
-    """Simple Kalman Filter
+    """Simple Kalman Updater
 
     Perform measurement update step in the standard Kalman Filter.
     """
 
+    def __init__(self, measurement_model, *args, **kwargs):
+        """Constructor method"""
+
+        super().__init__(measurement_model, *args, **kwargs)
+
+    def update(self, state_pred, meas_pred, meas, cross_covar=None, **kwargs):
+        """Kalman Filter update step
+
+        Parameters
+        ----------
+        state_pred : :class:`GaussianState`
+            The state prediction
+        meas_pred : :class:`GaussianState`
+            The measurement prediction
+        meas : :class:`Detection`
+            The measurement
+        cross_covar: :class:`numpy.ndarray` of shape (Nm,Nm), optional
+            The state-to-measurement cross covariance (the default is None, in
+            which case ``cross_covar`` will be computed internally)
+
+        Returns
+        -------
+        :class:`GaussianState`
+            The state posterior
+        :class:`numpy.ndarray` of shape (Ns,Nm)
+            The computed Kalman gain matrix
+        """
+
+        if(cross_covar is None):
+            cross_covar = state_pred.covar@self.measurement_model.matrix(
+                **kwargs).T
+
+        state_post_mean, state_post_covar, kalman_gain = \
+            self._update(state_pred.mean, state_pred.covar, meas.state_vector,
+                         meas_pred.mean, meas_pred.covar, cross_covar)
+
+        state_post = GaussianState(state_post_mean,
+                                   state_post_covar,
+                                   meas_pred.timestamp)
+
+        return state_post, kalman_gain
+
     @staticmethod
-    def update(track, detection, meas_mat=None):
-        if meas_mat is None:
-            meas_mat = np.eye(detection.ndim, track.ndim)
+    def _update(x_pred, P_pred, y, y_pred, S, Pxy):
+        """Low level Kalman Filter update
 
-        innov_vector = detection.state_vector - meas_mat @ track.state_vector
+        Parameters
+        ----------
+        x_pred: :class:`numpy.ndarray` of shape (Ns,1)
+            The predicted state mean
+        P_pred: :class:`numpy.ndarray` of shape (Ns,Ns)
+            The predicted state covariance
+        y : :class:`numpy.ndarray` of shape (Nm,1)
+            The measurement vector
+        y_pred: :class:`numpy.ndarray` of shape (Nm,1)
+            The predicted measurement mean
+        S: :class:`numpy.ndarray` of shape (Nm,Nm)
+            The predicted measurement noise (innovation) covariance matrix
+        Pxy: :class:`numpy.ndarray` of shape (Nm,Nm)
+            The calculated state-to-measurement cross covariance
+        Returns
+        -------
+        x_post: :class:`numpy.ndarray` of shape (Ns,1)
+            The computed posterior state mean
+        P_post: :class:`numpy.ndarray` of shape (Ns,Ns)
+            The computed posterior state covariance
+        K: :class:`numpy.ndarray` of shape (Ns,Nm)
+            The computed Kalman gain
+        """
 
-        innov_covar = detection.covar + meas_mat @ track.covar @ meas_mat.T
-        gain = track.covar @ meas_mat.T @ np.linalg.inv(innov_covar)
+        K = Pxy@np.linalg.inv(S)
 
-        updated_state_vector = track.state_vector + gain @ innov_vector
+        x_post = x_pred + K@(y-y_pred)
+        P_post = P_pred - K@S@K.T
 
-        temp = gain @ meas_mat
-        temp = np.eye(*temp.shape) - temp
-        updated_state_covar = (
-            temp @ track.covar @ temp.T + gain @ detection.covar @ gain.T)
-
-        return GaussianState(
-            updated_state_vector, updated_state_covar,
-            timestamp=detection.timestamp)
+        return x_post, P_post, K
 
 
-class SqrtKalmanUpdater(Updater):
-    """Square Root Kalman Filter
+class ExtendedKalmanUpdater(KalmanUpdater):
+    """Extended Kalman Updater
 
-    Perform measurement update step in the square root Kalman Filter.
+    Perform measurement update step in the Extended Kalman Filter.
     """
 
-    @staticmethod
-    def update(track, detection, meas_mat=None):
-        # track.covar and detection.covar are lower triangular matrices
-        if meas_mat is None:
-            meas_mat = np.eye(detection.ndim, track.ndim)
+    def __init__(self, measurement_model, *args, **kwargs):
+        """Constructor method"""
 
-        innov_vector = detection.state_vector - meas_mat @ track.state_vector
+        super().__init__(measurement_model, *args, **kwargs)
 
-        Pxz = track.covar @ track.covar.T @ meas_mat.T
-        innov_covar = tria(np.concatenate(
-            ((meas_mat @ track.covar), detection.covar),
-            axis=1))
-        gain = Pxz @ np.linalg.inv(innov_covar.T) @ np.linalg.inv(innov_covar)
+    def update(self, state_pred, meas_pred, meas, cross_covar=None, **kwargs):
+        """ExtendedKalman Filter update step
 
-        updated_state = track.state_vector + gain @ innov_vector
+        Parameters
+        ----------
+        state_pred : :class:`GaussianState`
+            The state prediction
+        meas_pred : :class:`GaussianState`
+            The measurement prediction
+        meas : :class:`numpy.ndarray` of shape (Nm,1)
+            The measurement vector
+        cross_covar: :class:`numpy.ndarray` of shape (Nm,Nm), optional
+            The state-to-measurement cross covariance (the default is None, in
+            which case ``cross_covar`` will be computed internally)
 
-        temp = gain @ meas_mat
-        updated_state_covar = tria(np.concatenate(
-            (((np.eye(*temp.shape) - temp) @ track.covar),
-             (gain @ detection.covar)),
-            axis=1))
+        Returns
+        -------
+        :class:`GaussianState`
+            The state posterior
+        :class:`numpy.ndarray` of shape (Ns,Nm)
+            The computed Kalman gain
+        """
 
-        return GaussianState(
-            updated_state, updated_state_covar, timestamp=detection.timestamp)
+        if(cross_covar is None):
+            # Measurement model parameters
+            try:
+                # Attempt to extract matrix from a LinearModel
+                measurement_matrix = self.measurement_model.matrix(**kwargs)
+            except AttributeError:
+                # Else read jacobian from a NonLinearModel
+                measurement_matrix = self.measurement_model.jacobian(**kwargs)
+            cross_covar = state_pred.covar@measurement_matrix.T
+
+        state_post_mean, state_post_covar, kalman_gain = \
+            super()._update(state_pred.mean, state_pred.covar,
+                            meas.state_vector, meas_pred.mean,
+                            meas_pred.covar, cross_covar)
+
+        state_post = GaussianState(state_post_mean,
+                                   state_post_covar,
+                                   meas_pred.timestamp)
+
+        return state_post, kalman_gain
