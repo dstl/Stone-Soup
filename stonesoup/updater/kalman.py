@@ -3,10 +3,7 @@
 import numpy as np
 
 from .base import Updater
-from ..functions import tria, jacobian
-from ..models.measurementmodel import MeasurementModel
-from ..types.state import GaussianState, StateVector
-from ..base import Property
+from ..types.state import GaussianState
 
 
 class KalmanUpdater(Updater):

@@ -2,7 +2,6 @@
 """Test for updater.kalman module"""
 import numpy as np
 
-from stonesoup.types import Track
 from stonesoup.types.detection import Detection
 from stonesoup.updater.kalman import KalmanUpdater, ExtendedKalmanUpdater
 from stonesoup.models.measurementmodel.linear import LinearGaussian1D
