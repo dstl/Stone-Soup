@@ -4,12 +4,7 @@ import numpy as np
 
 
 from .base import Predictor
-from ..transitionmodel.base import TransitionModel
-from ..measurementmodel.base import MeasurementModel
-from ..controlmodel.base import ControlModel
-from ..types.state import GaussianState, CovarianceMatrix
-from ..base import Property
-from ..functions import jacobian
+from ..types.state import GaussianState, State
 
 
 class KalmanPredictor(Predictor):
@@ -17,139 +12,140 @@ class KalmanPredictor(Predictor):
 
     An implementation of a standard Kalman Filter predictor.
 
-    Parameters
-    ----------
-    trans_model : :class:`stonesoup.transitionmodel.TransitionModel`
-        The transition model used to perform the state prediction
-    meas_model : :class:`MeasurementModel`
-        The measurement model used to generate the measurement prediction
-    ctrl_model : :class:`ControlModel`
-        The (optional) control model used during the state prediction
     """
 
-    trans_model = Property(TransitionModel, doc="transition model")
-    meas_model = Property(MeasurementModel, doc="measurement model")
-    ctrl_model = Property(ControlModel, doc="control model")
+    def __init__(self, transition_model, measurement_model=None,
+                 control_model=None, *args, **kwargs):
+        """Constructor method"""
 
-    def __init__(self, trans_model, meas_model=None,
-                 ctrl_model=None, *args, **kwargs):
-        """Constructor method
+        super().__init__(transition_model, measurement_model,
+                         control_model, *args, **kwargs)
 
-        Parameters
-        ----------
-        trans_model : :class:`stonesoup.transitionmodel.TransitionModel`
-            The transition model used to perform the state prediction
-        meas_model : :class:`MesurementModel`, optional
-            The measurement model used to generate the measurement prediction
-            (the default is None)
-        ctrl_model : :class:`ControlModel`, optional
-            The (optional) control model used during the state prediction (the
-            default is None)
-
-        """
-
-        # TODO: Input validation
-
-        super().__init__(trans_model, meas_model,
-                         ctrl_model, *args, **kwargs)
-
-    def predict(self, state_prior, ctrl_input=None, time=None):
+    def predict(self, state, control_input=None, timestamp=None, **kwargs):
         """Kalman Filter full prediction step
 
         Parameters
         ----------
-        state_prior : :class:`GaussianState`
+        state : :class:`stonesoup.types.state.GaussianState`
             A prior state object
-        ctrl_input : array of shape (Nu,1), optional
-            The control input vector. It will only have an effect if
-            :attr:`ctrl_model` is not None
+        control_input : :class:`stonesoup.types.state.State`, optional
+            The control input. It will only have an effect if
+            :attr:`control_model` is not `None` (the default is `None`)
+        timestamp: :class:`datetime.datetime`, optional
+            A timestamp signifying when the prediction is performed \
+            (the default is `None`)
 
         Returns
         -------
-        state_pred : :class:`GaussianState`
-            The state prediction
-        meas_pred : :class:`GaussianState`
+        :class:`stonesoup.types.state.GaussianState`
+            The predicted state
+        :class:`stonesoup.types.state.GaussianState`
             The measurement prediction
-        cross_covar: :class:`numpy.ndarray` of shape (Nm,Nm)
+        :class:`numpy.ndarray` of shape (Nm,Nm)
             The calculated state-to-measurement cross covariance
         """
 
-        state_pred = self.predict_state(state_prior, ctrl_input)
-        meas_pred, cross_covar = self.predict_meas(state_pred)
+        state_pred = self.predict_state(state, control_input,
+                                        timestamp, **kwargs)
+        meas_pred, cross_covar = self.predict_measurement(state_pred,
+                                                          **kwargs)
 
         return state_pred, meas_pred, cross_covar
 
-    def predict_state(self, state_prior, ctrl_input=None):
+    def predict_state(self, state, control_input=None,
+                      timestamp=None, **kwargs):
         """Kalman Filter state prediction step
 
         Parameters
         ----------
-        state_prior : :class:`GaussianState`
-            A prior state object
-        ctrl_input : array of shape (Nu,1), optional
-            The control input vector. It will only have an effect if
-            :attr:`ctrl_model` is not None
+        state : :class:`stonesoup.types.state.GaussianState`
+            The prior state
+        control_input : :class:`stonesoup.types.state.State`, optional
+            The control input. It will only have an effect if
+            :attr:`control_model` is not `None` (the default is `None`)
+        timestamp: :class:`datetime.datetime`, optional
+            A timestamp signifying when the prediction is performed \
+            (the default is `None`)
 
         Returns
         -------
-        state_pred : :class:`GaussianState`
-            The state prediction
+        :class:`stonesoup.types.state.GaussianState`
+            The predicted state
 
         """
 
-        # TODO: Input validation
+        # Compute time_interval
+        try:
+            time_interval = timestamp - state.timestamp
+        except TypeError as e:
+            # TypeError: (timestamp or state.timestamp) is None
+            time_interval = None
 
-        x_prior = state_prior.mean
-        P_prior = state_prior.covar
-        F = self.trans_model.eval()
-        Q = self.trans_model.covar()
+        # Transition model parameters
+        transition_matrix = self.transition_model.matrix(
+            timestamp=timestamp,
+            time_interval=time_interval)
+        transition_noise_covar = self.transition_model.covar(
+            timestamp=timestamp,
+            time_interval=time_interval)
 
-        if self.ctrl_model is not None:
-            B = self.ctrl_model.eval()
-            Qu = self.ctrl_model.covar()
+        # Control model parameters
+        if self.control_model is None:
+            control_matrix = np.array(np.zeros((2, 2)))
+            contol_noise_covar = np.array(np.zeros((2, 2)))
+            control_input = State(np.array(np.zeros((2, 1))))
         else:
-            B = np.ones((self.trans_model.ndim_state, 2))
-            Qu = np.zeros(2)
-
-        if ctrl_input is None:
-            u = np.zeros((2, 1))
-        else:
-            u = ctrl_input
+            # Extract control matrix
+            control_matrix = self.control_model.matrix(
+                timestamp=timestamp,
+                time_interval=time_interval)
+            # Extract control noise covariance
+            try:
+                # covar() is implemented for control_model
+                contol_noise_covar = self.control_model.covar(
+                    timestamp=timestamp,
+                    time_interval=time_interval)
+            except AttributeError as e:
+                # covar() is NOT implemented for control_model
+                contol_noise_covar = np.zeros(self.control_model.ndim_ctrl)
+            if control_input is None:
+                control_input = np.zeros((self.control_model.ndim_ctrl, 1))
 
         # Perform state prediction
         state_pred_mean, state_pred_covar = self._predict_state(
-            x_prior, P_prior, F, Q, u, B, Qu)
+            state.mean, state.covar, transition_matrix,
+            transition_noise_covar, control_input.state_vector,
+            control_matrix, contol_noise_covar)
 
-        state_pred = GaussianState(state_pred_mean, state_pred_covar)
-        return state_pred
+        return GaussianState(state_pred_mean, state_pred_covar, timestamp)
 
-    def predict_meas(self, state_pred):
+    def predict_measurement(self, state, **kwargs):
         """Kalman Filter measurement prediction step
 
         Parameters
         ----------
-        state_pred : :class:`GaussianState`
-            A state prediction object
+        state : :class:`stonesoup.types.state.GaussianState`
+            A predicted state object
 
         Returns
         -------
-        meas_pred : :class:`GaussianState`
+        :class:`stonesoup.types.state.GaussianState`
             The measurement prediction
-        cross_covar : :class:`numpy.ndarray` of shape (Nm,Nm)
+        :class:`numpy.ndarray` of shape (Nm,Nm)
             The predicted measurement noise (innovation) covariance matrix
         """
 
-        # TODO: Input validation
-
-        x_pred = state_pred.mean
-        P_pred = state_pred.covar
-        H = self.meas_model.eval()
-        R = self.meas_model.covar()
+        # Measurement model parameters
+        measurement_matrix = self.measurement_model.matrix(**kwargs)
+        measurement_noise_covar = self.measurement_model.covar(**kwargs)
 
         meas_pred_mean, meas_pred_covar, cross_covar = \
-            self._predict_meas(x_pred, P_pred, H, R)
+            self._predict_meas(state.mean, state.covar,
+                               measurement_matrix, measurement_noise_covar)
 
-        meas_pred = GaussianState(meas_pred_mean, meas_pred_covar)
+        meas_pred = GaussianState(meas_pred_mean,
+                                  meas_pred_covar,
+                                  state.timestamp)
         return meas_pred, cross_covar
 
     @staticmethod
@@ -175,9 +171,9 @@ class KalmanPredictor(Predictor):
 
         Returns
         -------
-        x_pred: :class:`numpy.ndarray` of shape (Ns,1)
+        :class:`numpy.ndarray` of shape (Ns,1)
             The predicted state mean
-        P_Pred: :class:`numpy.ndarray` of shape (Ns,Ns)
+        :class:`numpy.ndarray` of shape (Ns,Ns)
             The predicted state covariance
         """
 
@@ -221,142 +217,157 @@ class KalmanPredictor(Predictor):
 class ExtendedKalmanPredictor(KalmanPredictor):
     """ExtendedKalmanPredictor class
 
-    An implementation of an Extended Kalman Filter predictor.
+    An implementation of an Extended Kalman Filter predictor"""
 
-    Parameters
-    ----------
-    trans_model : :class:`TransitionModel`
-        The transition model used to perform the state prediction
-    meas_model : :class:`MeasurementModel`
-        The measurement model used to generate the measurement prediction
-    ctrl_model : :class:`ControlModel`
-        The (optional) control model used during the state prediction
-    """
+    def __init__(self, transition_model, measurement_model=None,
+                 control_model=None, *args, **kwargs):
+        """Constructor method"""
 
-    trans_model = Property(TransitionModel, doc="transition model")
-    meas_model = Property(MeasurementModel, doc="measurement model")
-    ctrl_model = Property(ControlModel, doc="control model")
+        super().__init__(transition_model, measurement_model,
+                         control_model, *args, **kwargs)
 
-    def __init__(self, trans_model, meas_model=None,
-                 ctrl_model=None, *args, **kwargs):
-        """Constructor method
-
-        Parameters
-        ----------
-        trans_model : :class:`TransitionModel`
-            The transition model used to perform the state prediction
-        meas_model : :class:`MesurementModel`, optional
-            The measurement model used to generate the measurement prediction
-            (the default is None)
-        ctrl_model : :class:`ControlModel`, optional
-            The (optional) control model used during the state prediction (the
-            default is None)
-
-        """
-
-        # TODO: Input validation
-
-        super().__init__(trans_model, meas_model,
-                         ctrl_model, *args, **kwargs)
-
-    def predict(self, state_prior, ctrl_input=None):
+    def predict(self, state, control_input=None, timestamp=None, **kwargs):
         """Extended Kalman Filter full prediction step
 
         Parameters
         ----------
-        state_prior : :class:`GaussianState`
+        state : :class:`stonesoup.types.state.GaussianState`
             A prior state object
-        ctrl_input : array of shape (Nu,1), optional
-            The control input vector. It will only have an effect if
-            :attr:`ctrl_model` is not None
+        control_input : :class:`stonesoup.types.state.State`, optional
+            The control input. It will only have an effect if
+            :attr:`control_model` is not `None` (the default is `None`)
+        timestamp: :class:`datetime.datetime`, optional
+            A timestamp signifying when the prediction is performed \
+            (the default is `None`)
 
         Returns
         -------
-        state_pred : :class:`GaussianState`
-            The state prediction
-        meas_pred : :class:`GaussianState`
+        :class:`stonesoup.types.state.GaussianState`
+            The predicted state
+        :class:`stonesoup.types.state.GaussianState`
             The measurement prediction
-        cross_covar: :class:`numpy.ndarray` of shape (Nm,Nm)
+        :class:`numpy.ndarray` of shape (Nm,Nm)
             The calculated state-to-measurement cross covariance
         """
 
-        super().predict(state_prior, ctrl_input)
+        return super().predict(state=state,
+                               control_input=control_input,
+                               timestamp=timestamp,
+                               **kwargs)
 
-    def predict_state(self, state_prior, ctrl_input=None):
-        """Extended Kalman Filter state prediction step
+    def predict_state(self, state, control_input=None,
+                      timestamp=None, **kwargs):
+        """ Extended Kalman Filter state prediction step
 
         Parameters
         ----------
-        state_prior : :class:`GaussianState`
-            A prior state object
-        ctrl_input : array of shape (Nu,1), optional
-            The control input vector. It will only have an effect if
-            :attr:`ctrl_model` is not None
+        state : :class:`stonesoup.types.state.GaussianState`
+            The prior state
+        control_input : :class:`stonesoup.types.state.State`, optional
+            The control input. It will only have an effect if
+            :attr:`control_model` is not `None` (the default is `None`)
+        timestamp: :class:`datetime.datetime`, optional
+            A timestamp signifying when the prediction is performed \
+            (the default is `None`)
 
         Returns
         -------
-        state_pred : :class:`GaussianState`
-            The state prediction
+        :class:`stonesoup.types.state.GaussianState`
+            The predicted state
         """
 
-        # TODO: Input validation
+        # Compute time_interval
+        try:
+            time_interval = timestamp - state.timestamp
+        except TypeError as e:
+            # TypeError: (timestamp or state.timestamp) is None
+            time_interval = None
 
-        x_prior = state_prior.mean
-        P_prior = state_prior.covar
+        # Transition model parameters
+        try:
+            # Attempt to extract matrix from a LinearModel
+            transition_matrix = self.transition_model.matrix(
+                timestamp=timestamp,
+                time_interval=time_interval)
+        except AttributeError:
+            # Else read jacobian from a NonLinearModel
+            transition_matrix = self.transition_model.jacobian(
+                timestamp=timestamp,
+                time_interval=time_interval)
 
-        def f(x):
-            return self.trans_model.eval(x)
-        F = jacobian(f, x_prior)
-        print("F={}".format(F))
-        Q = self.trans_model.covar()
+        transition_noise_covar = self.transition_model.covar(
+            timestamp=timestamp,
+            time_interval=time_interval)
 
-        if self.ctrl_model is not None:
-            B = self.ctrl_model.eval()
-            Qu = self.ctrl_model.covar()
+        # Control model parameters
+        if self.control_model is None:
+            control_matrix = np.array(np.zeros((2, 2)))
+            contol_noise_covar = np.array(np.zeros((2, 2)))
+            control_input = State(np.array(np.zeros((2, 1))))
         else:
-            B = np.ones((self.trans_model.ndim_state, 2))
-            Qu = np.zeros(2)
-
-        if ctrl_input is None:
-            u = np.zeros((2, 1))
-        else:
-            u = ctrl_input
+            # Extract control matrix
+            try:
+                # Attempt to extract matrix from a LinearModel
+                control_matrix = self.control_model.matrix(
+                    timestamp=timestamp,
+                    time_interval=time_interval)
+            except AttributeError:
+                # Else read jacobian from a NonLinearModel
+                control_matrix = self.control_model.jacobian(
+                    timestamp=timestamp,
+                    time_interval=time_interval)
+            # Extract control noise covariance
+            try:
+                # covar() is implemented for control_model
+                contol_noise_covar = self.control_model.covar(
+                    timestamp=timestamp,
+                    time_interval=time_interval)
+            except AttributeError as e:
+                # covar() is NOT implemented for control_model
+                contol_noise_covar = np.zeros((self.control_model.ndim_ctrl,
+                                               self.control_model.ndim_ctrl))
+            if control_input is None:
+                control_input = np.zeros((self.control_model.ndim_ctrl, 1))
 
         # Perform state prediction
         state_pred_mean, state_pred_covar = super()._predict_state(
-            x_prior, P_prior, F, Q, u, B, Qu)
-        state_pred = GaussianState(state_pred_mean, state_pred_covar)
+            state.mean, state.covar, transition_matrix,
+            transition_noise_covar, control_input.state_vector,
+            control_matrix, contol_noise_covar)
 
-        return state_pred
+        return GaussianState(state_pred_mean, state_pred_covar, timestamp)
 
-    def predict_meas(self, state_pred):
+    def predict_measurement(self, state, **kwargs):
         """Extended Kalman Filter measurement prediction step
 
         Parameters
         ----------
-        state_pred : :class:`GaussianState`
-            A state prediction object
+        state : :class:`stonesoup.types.state.GaussianState`
+            A predicted state object
 
         Returns
         -------
-        meas_pred : :class:`GaussianState`
+        :class:`stonesoup.types.state.GaussianState`
             The measurement prediction
-        cross_covar : :class:`numpy.ndarray` of shape (Nm,Nm)
+        :class:`numpy.ndarray` of shape (Nm,Nm)
             The predicted measurement noise (innovation) covariance matrix
         """
 
-        # TODO: Input validation
+        # Measurement model parameters
+        try:
+            # Attempt to extract matrix from a LinearModel
+            measurement_matrix = self.measurement_model.matrix(**kwargs)
+        except AttributeError:
+            # Else read jacobian from a NonLinearModel
+            measurement_matrix = self.measurement_model.jacobian(**kwargs)
 
-        x_pred = state_pred.mean
-        P_pred = state_pred.covar
-
-        def h(x):
-            return self.meas_model.eval(x)
-        H = jacobian(h, x_pred)
-        R = self.meas_model.covar()
+        measurement_noise_covar = self.measurement_model.covar(**kwargs)
 
         meas_pred_mean, meas_pred_covar, cross_covar = \
-            super()._predict_meas(x_pred, P_pred, H, R)
-        meas_pred = GaussianState(meas_pred_mean, meas_pred_covar)
+            super()._predict_meas(state.mean, state.covar,
+                                  measurement_matrix, measurement_noise_covar)
 
+        meas_pred = GaussianState(meas_pred_mean,
+                                  meas_pred_covar,
+                                  state.timestamp)
         return meas_pred, cross_covar
