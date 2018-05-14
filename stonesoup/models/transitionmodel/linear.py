@@ -99,11 +99,6 @@ class ConstantVelocity1D(TransitionModel, LinearModel,
     noise_diff_coeff = Property(
         float, doc="The velocity noise diffusion coefficient :math:`q`")
 
-    def __init__(self, noise_diff_coeff, *args, **kwargs):
-        """Constructor method """
-
-        super().__init__(noise_diff_coeff, *args, **kwargs)
-
     @property
     def ndim_state(self):
         """ndim_state getter method

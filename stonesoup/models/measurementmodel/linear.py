@@ -26,12 +26,6 @@ class LinearGaussian1D(MeasurementModel, LinearModel, GaussianModel):
 
     noise_covar = Property(CovarianceMatrix, doc="Noise covariance")
 
-    def __init__(self, ndim_state, mapping, noise_covar, *args, **kwargs):
-        """Constructor method"""
-
-        super().__init__(ndim_state, mapping,
-                         noise_covar, *args, **kwargs)
-
     @property
     def ndim_meas(self):
         """ndim_meas getter method

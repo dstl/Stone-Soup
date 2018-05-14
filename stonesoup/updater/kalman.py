@@ -12,11 +12,6 @@ class KalmanUpdater(Updater):
     Perform measurement update step in the standard Kalman Filter.
     """
 
-    def __init__(self, measurement_model, *args, **kwargs):
-        """Constructor method"""
-
-        super().__init__(measurement_model, *args, **kwargs)
-
     def update(self, state_pred, meas_pred, meas, cross_covar=None, **kwargs):
         """Kalman Filter update step
 
@@ -95,11 +90,6 @@ class ExtendedKalmanUpdater(KalmanUpdater):
 
     Perform measurement update step in the Extended Kalman Filter.
     """
-
-    def __init__(self, measurement_model, *args, **kwargs):
-        """Constructor method"""
-
-        super().__init__(measurement_model, *args, **kwargs)
 
     def update(self, state_pred, meas_pred, meas, cross_covar=None, **kwargs):
         """ExtendedKalman Filter update step

@@ -9,5 +9,7 @@ class Predictor(Base):
     """Predictor base class"""
 
     transition_model = Property(TransitionModel, doc="transition model")
-    measurement_model = Property(MeasurementModel, doc="measurement model")
-    control_model = Property(ControlModel, doc="control model")
+    measurement_model = Property(
+        MeasurementModel, default=None, doc="measurement model")
+    control_model = Property(
+        ControlModel, default=None, doc="control model")

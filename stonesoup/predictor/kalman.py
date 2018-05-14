@@ -14,13 +14,6 @@ class KalmanPredictor(Predictor):
 
     """
 
-    def __init__(self, transition_model, measurement_model=None,
-                 control_model=None, *args, **kwargs):
-        """Constructor method"""
-
-        super().__init__(transition_model, measurement_model,
-                         control_model, *args, **kwargs)
-
     def predict(self, state, control_input=None, timestamp=None, **kwargs):
         """Kalman Filter full prediction step
 
@@ -222,13 +215,6 @@ class ExtendedKalmanPredictor(KalmanPredictor):
     """ExtendedKalmanPredictor class
 
     An implementation of an Extended Kalman Filter predictor"""
-
-    def __init__(self, transition_model, measurement_model=None,
-                 control_model=None, *args, **kwargs):
-        """Constructor method"""
-
-        super().__init__(transition_model, measurement_model,
-                         control_model, *args, **kwargs)
 
     def predict(self, state, control_input=None, timestamp=None, **kwargs):
         """Extended Kalman Filter full prediction step
