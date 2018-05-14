@@ -84,10 +84,12 @@ class KalmanPredictor(Predictor):
         # Transition model parameters
         transition_matrix = self.transition_model.matrix(
             timestamp=timestamp,
-            time_interval=time_interval)
+            time_interval=time_interval,
+            **kwargs)
         transition_noise_covar = self.transition_model.covar(
             timestamp=timestamp,
-            time_interval=time_interval)
+            time_interval=time_interval,
+            **kwargs)
 
         # Control model parameters
         if self.control_model is None:
@@ -98,13 +100,15 @@ class KalmanPredictor(Predictor):
             # Extract control matrix
             control_matrix = self.control_model.matrix(
                 timestamp=timestamp,
-                time_interval=time_interval)
+                time_interval=time_interval,
+                **kwargs)
             # Extract control noise covariance
             try:
                 # covar() is implemented for control_model
                 contol_noise_covar = self.control_model.covar(
                     timestamp=timestamp,
-                    time_interval=time_interval)
+                    time_interval=time_interval,
+                    **kwargs)
             except AttributeError as e:
                 # covar() is NOT implemented for control_model
                 contol_noise_covar = np.zeros(self.control_model.ndim_ctrl)
@@ -288,16 +292,19 @@ class ExtendedKalmanPredictor(KalmanPredictor):
             # Attempt to extract matrix from a LinearModel
             transition_matrix = self.transition_model.matrix(
                 timestamp=timestamp,
-                time_interval=time_interval)
+                time_interval=time_interval,
+                **kwargs)
         except AttributeError:
             # Else read jacobian from a NonLinearModel
             transition_matrix = self.transition_model.jacobian(
                 timestamp=timestamp,
-                time_interval=time_interval)
+                time_interval=time_interval,
+                **kwargs)
 
         transition_noise_covar = self.transition_model.covar(
             timestamp=timestamp,
-            time_interval=time_interval)
+            time_interval=time_interval,
+            **kwargs)
 
         # Control model parameters
         if self.control_model is None:
@@ -310,18 +317,21 @@ class ExtendedKalmanPredictor(KalmanPredictor):
                 # Attempt to extract matrix from a LinearModel
                 control_matrix = self.control_model.matrix(
                     timestamp=timestamp,
-                    time_interval=time_interval)
+                    time_interval=time_interval,
+                    **kwargs)
             except AttributeError:
                 # Else read jacobian from a NonLinearModel
                 control_matrix = self.control_model.jacobian(
                     timestamp=timestamp,
-                    time_interval=time_interval)
+                    time_interval=time_interval,
+                    **kwargs)
             # Extract control noise covariance
             try:
                 # covar() is implemented for control_model
                 contol_noise_covar = self.control_model.covar(
                     timestamp=timestamp,
-                    time_interval=time_interval)
+                    time_interval=time_interval,
+                    **kwargs)
             except AttributeError as e:
                 # covar() is NOT implemented for control_model
                 contol_noise_covar = np.zeros((self.control_model.ndim_ctrl,
