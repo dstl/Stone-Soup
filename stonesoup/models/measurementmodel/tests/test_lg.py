@@ -15,7 +15,7 @@ def test_lgmodel1D():
     # Model-related components
     noise_covar = 0.1  # m/s^2
     H = np.array([[1, 0]])
-    R = noise_covar
+    R = np.array([[noise_covar]])
 
     # Create and a Constant Velocity model object
     lg = LinearGaussian1D(ndim_state=2,

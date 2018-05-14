@@ -90,7 +90,7 @@ class LinearGaussian1D(MeasurementModel, LinearModel, GaussianModel):
             The measurement noise covariance.
         """
 
-        return CovarianceMatrix(self.noise_covar)
+        return CovarianceMatrix(sp.array([[self.noise_covar]]))
 
     def rvs(self, num_samples=1, **kwargs):
         """ Model noise/sample generation function
@@ -118,7 +118,7 @@ class LinearGaussian1D(MeasurementModel, LinearModel, GaussianModel):
         """
 
         noise = multivariate_normal.rvs(
-            sp.array([0, 0]), self.covar(), num_samples).T
+            sp.array([[0]]).ravel(), self.covar(), num_samples).T
 
         return noise
 
