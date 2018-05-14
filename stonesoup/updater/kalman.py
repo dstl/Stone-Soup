@@ -7,19 +7,13 @@ from ..types.state import GaussianState
 
 
 class KalmanUpdater(Updater):
-    """Simple Kalman Filter
+    """Simple Kalman Updater
 
     Perform measurement update step in the standard Kalman Filter.
     """
 
     def __init__(self, measurement_model, *args, **kwargs):
-        """Constructor method
-
-        Parameters
-        ----------
-        measurement_model : :class:`MeasurementModel`
-            The measurement model
-        """
+        """Constructor method"""
 
         super().__init__(measurement_model, *args, **kwargs)
 
@@ -97,7 +91,7 @@ class KalmanUpdater(Updater):
 
 
 class ExtendedKalmanUpdater(KalmanUpdater):
-    """Extended Kalman Filter
+    """Extended Kalman Updater
 
     Perform measurement update step in the Extended Kalman Filter.
     """
