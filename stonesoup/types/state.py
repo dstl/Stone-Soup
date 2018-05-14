@@ -34,9 +34,9 @@ class CovarianceMatrix(Type, np.ndarray):
 
     def __new__(cls, value, *args, **kwargs):
         array = np.array(value)
-        # if not (array.ndim == 2 and array.shape[0] == array.shape[1]):
-        #     raise ValueError("Covariance should be square NxN matrix: got {}"
-        #                      "".format(array.shape))
+        if not array.ndim == 2:
+            raise ValueError("Covariance should have ndim of 2: got {}"
+                             "".format(array.ndim))
         return array.view(cls)
 
 
