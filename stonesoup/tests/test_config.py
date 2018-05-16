@@ -44,11 +44,22 @@ def test_duplicate_tag_warning(base, conf_file):
     class _TestDuplicateBase(base):
         pass
 
+    first_class = _TestDuplicateBase
+
     class _TestDuplicateBase(base):  # noqa:F801
         pass
 
+    second_class = _TestDuplicateBase
+
+    instance = first_class(2, "20")
+    instance.new_property = True
+
+    conf_str = conf_file.dumps(instance)
+
     with pytest.warns(UserWarning):
-        test_declarative(_TestDuplicateBase, conf_file)
+        new_instance = conf_file.load(conf_str)
+
+    assert isinstance(new_instance, (first_class, second_class))
 
 
 def test_numpy(base, conf_file):
