@@ -89,7 +89,7 @@ class LinearGaussian1D(MeasurementModel, LinearModel, GaussianModel):
     def rvs(self, num_samples=1, **kwargs):
         """ Model noise/sample generation function
 
-        Generates noise samples from the transition model.
+        Generates noise samples from the measurement model.
 
         In mathematical terms, this can be written as:
 
