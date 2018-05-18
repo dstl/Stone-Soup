@@ -28,10 +28,9 @@ Tracker Components
     stonesoup.deletor
     stonesoup.hypothesiser
     stonesoup.initiator
-    stonesoup.measurementmodel
     stonesoup.mixturereducer
+    stonesoup.models
     stonesoup.predictor
-    stonesoup.transitionmodel
     stonesoup.updater
 
 Data Types

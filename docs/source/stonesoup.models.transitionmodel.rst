@@ -11,3 +11,4 @@ Linear
 ------
 .. automodule:: stonesoup.models.transitionmodel.linear
     :show-inheritance:
+    :inherited-members:

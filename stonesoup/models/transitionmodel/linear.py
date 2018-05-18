@@ -117,7 +117,7 @@ class ConstantVelocity1D(TransitionModel, LinearModel,
         Parameters
         ----------
         time_interval: :class:`datetime.timedelta`
-            The time interval
+            A time interval :math:`dt`
 
         Returns
         -------
@@ -134,10 +134,10 @@ class ConstantVelocity1D(TransitionModel, LinearModel,
 
         Parameters
         ----------
-        state_vector: class:`stonesoup.types.state.StateVector`
+        state_vector: :class:`stonesoup.types.state.StateVector`
             An input state vector
         time_interval: :class:`datetime.timedelta`
-            The time interval
+            A time interval :math:`dt`
         noise: :class:`numpy.ndarray`
             An externally generated random process noise sample (the default in
             `None`, in which case process noise will be generated internally)
@@ -201,7 +201,7 @@ class ConstantVelocity1D(TransitionModel, LinearModel,
         Parameters
         ----------
         time_interval : :class:`datetime.timedelta`
-            A time variant :math:`t`
+            A time interval :math:`dt`
         num_samples: :class:`int`, optional
             The number of samples to be generated (the default is 1)
 
@@ -237,11 +237,12 @@ class ConstantVelocity1D(TransitionModel, LinearModel,
 
         Parameters
         ----------
-        state_vector_post : :class:`stonesoup.types.state.State`
+        state_vector_post : :class:`stonesoup.types.state.StateVector`
             A predicted/posterior state
-        state_vector_prior : :class:`stonesoup.types.state.State`
+        state_vector_prior : :class:`stonesoup.types.state.StateVector`
             A prior state
         time_interval: :class:`datetime.timedelta`
+            A time interval :math:`dt`
 
         Returns
         -------
@@ -332,7 +333,7 @@ class ConstantVelocity2D(ConstantVelocity1D):
         Parameters
         ----------
         time_interval: :class:`datetime.timedelta`
-            The time interval
+            A time interval :math:`dt`
 
         Returns
         -------
@@ -446,7 +447,7 @@ class ConstantVelocity3D(ConstantVelocity1D):
         Parameters
         ----------
         time_interval: :class:`datetime.timedelta`
-            The time interval
+            A time interval :math:`dt`
 
         Returns
         -------

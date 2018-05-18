@@ -57,7 +57,7 @@ class LinearGaussian1D(MeasurementModel, LinearModel, GaussianModel):
 
         Parameters
         ----------
-        state_vector: class:`stonesoup.types.state.StateVector`
+        state_vector: :class:`stonesoup.types.state.StateVector`
             An input state vector
         noise: :class:`numpy.ndarray`
             An externally generated random process noise sample (the default in
@@ -130,9 +130,9 @@ class LinearGaussian1D(MeasurementModel, LinearModel, GaussianModel):
 
         Parameters
         ----------
-        meas : :class:`stonesoup.types.state.State`
+        meas : :class:`stonesoup.types.state.StateVector`
             A measurement
-        state : :class:`stonesoup.types.state.State`
+        state : :class:`stonesoup.types.state.StateVector`
             A state
 
         Returns
