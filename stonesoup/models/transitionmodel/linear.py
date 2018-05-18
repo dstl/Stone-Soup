@@ -66,14 +66,14 @@ class ConstantVelocity1D(TransitionModel, LinearModel,
             \begin{eqnarray}
                 dx_{pos} & = & x_{vel}*d & | {Position \ on \
                 X-axis (m)} \\
-                dx_{vel} & = & q*dW_t,\ W_t \sim N(0,q^2) & | Speed \ on \
-                X-axis (m/s)
+                dx_{vel} & = & q*dW_t,\ W_t \sim \mathcal{N}(0,q^2) & | Speed \
+                on\ X-axis (m/s)
             \end{eqnarray}
 
     Or equivalently:
 
         .. math::
-            x_t = F_t*x_{t-1} + w_t,\ w_t \sim N(0,Q_t)
+            x_t = F_t*x_{t-1} + w_t,\ w_t \sim \mathcal{N}(0,Q_t)
 
     where:
 
@@ -85,7 +85,7 @@ class ConstantVelocity1D(TransitionModel, LinearModel,
 
         .. math::
             F_t & = & \begin{bmatrix}
-                        1 & t\\
+                        1 & dt\\
                         0 & 1
                 \end{bmatrix}
 
@@ -106,7 +106,7 @@ class ConstantVelocity1D(TransitionModel, LinearModel,
         Returns
         -------
         :class:`int`
-            The number of model state dimensions
+            :math:`2` -> The number of model state dimensions
         """
 
         return 2
@@ -121,7 +121,8 @@ class ConstantVelocity1D(TransitionModel, LinearModel,
 
         Returns
         -------
-        :class:`numpy.ndarray` of shape (2,2)
+        :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
             The model matrix evaluated given the provided time interval.
         """
 
@@ -143,7 +144,8 @@ class ConstantVelocity1D(TransitionModel, LinearModel,
 
         Returns
         -------
-        :class:`numpy.ndarray` of shape (2,2)
+        :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
             The model fuction evaluated given the provided time interval.
         """
 
@@ -153,13 +155,16 @@ class ConstantVelocity1D(TransitionModel, LinearModel,
         return self.matrix(time_interval,
                            **kwargs)@state_vector + noise
 
-    def covar(self, time_interval, **kwargs):
+    def covar(self, time_interval, noise_diff_coeff=None, **kwargs):
         """Returns the transition model noise covariance matrix.
 
         Parameters
         ----------
         time_interval : :class:`datetime.timedelta`
             A time interval :math:`dt`
+        noise_diff_coeff: :class:`float`, optional
+            The noise diffusion coefficient (the default is None, in which\
+            case the value of :py:attr:`~noise_diff_coeff` will be used)
 
         Returns
         -------
@@ -168,12 +173,15 @@ class ConstantVelocity1D(TransitionModel, LinearModel,
             The process noise covariance.
         """
 
+        if noise_diff_coeff is None:
+            noise_diff_coeff = self.noise_diff_coeff
+
         time_interval_sec = time_interval.total_seconds()
 
         covar = sp.array([[sp.power(time_interval_sec, 3)/3,
                            sp.power(time_interval_sec, 2)/2],
                           [sp.power(time_interval_sec, 2)/2,
-                           time_interval_sec]])*self.noise_diff_coeff
+                           time_interval_sec]])*noise_diff_coeff
 
         return CovarianceMatrix(covar)
 
@@ -205,7 +213,7 @@ class ConstantVelocity1D(TransitionModel, LinearModel,
         """
 
         noise = sp.array([multivariate_normal.rvs(
-            sp.array([0, 0]),
+            sp.zeros(self.ndim_state),
             self.covar(time_interval),
             num_samples)]).T
 
@@ -249,3 +257,223 @@ class ConstantVelocity1D(TransitionModel, LinearModel,
             cov=self.covar(time_interval)
         ).T
         return likelihood
+
+
+class ConstantVelocity2D(ConstantVelocity1D):
+    r"""This is a class implementation of a time-variant 2D Linear-Gaussian
+    Constant Velocity Transition Model.
+
+    The target is assumed to move with (nearly) constant velocity, where
+    target acceleration is model as white noise.
+
+    The model is described by the following SDEs:
+
+        .. math::
+            :nowrap:
+
+            \begin{eqnarray}
+                dx_{pos} & = & x_{vel}*dt & | {Position \ on \
+                X-axis (m)} \\
+                dx_{vel} & = & q*dW_t,\ W_t \sim \mathcal{N}(0,q^2) & | Speed \
+                on \ X-axis (m/s) \\
+                dy_{pos} & = & y_{vel}*dt & | {Position \ on \
+                Y-axis (m)} \\
+                dy_{vel} & = & q*dV_t,\ V_t \sim \mathcal{N}(0,q^2) & | Speed \
+                on \ Y-axis (m/s)
+            \end{eqnarray}
+
+    Or equivalently:
+
+        .. math::
+            x_t = F_t*x_{t-1} + w_t,\ w_t \sim \mathcal{N}(0,Q_t)
+
+    where:
+
+        .. math::
+            x & = & \begin{bmatrix}
+                        x_{pos} \\
+                        x_{vel} \\
+                        y_{pos} \\
+                        y_{vel}
+                \end{bmatrix}
+
+        .. math::
+            F_t & = & \begin{bmatrix}
+                        1 & dt & 0 & 0\\
+                        0 & 1 & 0 & 0\\
+                        0 & 0 & 1 & dt\\
+                        0 & 0 & 0 & 1
+                \end{bmatrix}
+
+        .. math::
+            Q_t & = & \begin{bmatrix}
+                        \frac{dt^3}{3} & \frac{dt^2}{2} & 0 & 0 \\
+                        \frac{dt^2}{2} & dt & 0 & 0 \\
+                        0 & 0 & \frac{dt^3}{3} & \frac{dt^2}{2} \\
+                        0 & 0 & \frac{dt^2}{2} & dt
+                \end{bmatrix}*q
+    """
+
+    @property
+    def ndim_state(self):
+        """ndim_state getter method
+
+        Returns
+        -------
+        :class:`int`
+            :math:`4` -> The number of model state dimensions
+        """
+
+        return 4
+
+    def matrix(self, time_interval, **kwargs):
+        """Model matrix :math:`F(t)`
+
+        Parameters
+        ----------
+        time_interval: :class:`datetime.timedelta`
+            The time interval
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The model matrix evaluated given the provided time interval.
+        """
+
+        return sp.linalg.block_diag(super().matrix(time_interval),
+                                    super().matrix(time_interval))
+
+    def covar(self, time_interval, **kwargs):
+        """Returns the transition model noise covariance matrix.
+
+        Parameters
+        ----------
+        time_interval : :class:`datetime.timedelta`
+            A time interval :math:`dt`
+
+        Returns
+        -------
+        :class:`stonesoup.types.state.CovarianceMatrix` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The process noise covariance.
+        """
+
+        return sp.linalg.block_diag(super().covar(time_interval),
+                                    super().covar(time_interval))
+
+
+class ConstantVelocity3D(ConstantVelocity1D):
+    r"""This is a class implementation of a time-variant 3D Linear-Gaussian
+    Constant Velocity Transition Model.
+
+    The target is assumed to move with (nearly) constant velocity, where
+    target acceleration is model as white noise.
+
+    The model is described by the following SDEs:
+
+        .. math::
+            :nowrap:
+
+            \begin{eqnarray}
+                dx_{pos} & = & x_{vel}*dt & | {Position \ on \
+                X-axis (m)} \\
+                dx_{vel} & = & q*dW_t,\ W_t \sim \mathcal{N}(0,q^2) & | Speed \
+                on\ X-axis (m/s) \\
+                dy_{pos} & = & y_{vel}*dt & | {Position \ on \
+                Y-axis (m)} \\
+                dy_{vel} & = & q*dV_t,\ V_t \sim \mathcal{N}(0,q^2) & | Speed \
+                on\ Y-axis (m/s) \\
+                dz_{pos} & = & z_{vel}*dt & | {Position \ on \
+                Z-axis (m)} \\
+                dz_{vel} & = & q*dJ_t,\ J_t \sim \mathcal{N}(0,q^2) & | Speed \
+                on\ Z-axis (m/s)
+            \end{eqnarray}
+
+    Or equivalently:
+
+        .. math::
+            x_t = F_t*x_{t-1} + w_t,\ w_t \sim \mathcal{N}(0,Q_t)
+
+    where:
+
+        .. math::
+            x & = & \begin{bmatrix}
+                        x_{pos} \\
+                        x_{vel} \\
+                        y_{pos} \\
+                        y_{vel} \\
+                        z_{pos} \\
+                        z_{vel}
+                \end{bmatrix}
+
+        .. math::
+            F_t & = & \begin{bmatrix}
+                        1 & dt & 0 & 0 & 0 & 0\\
+                        0 & 1 & 0 & 0 & 0 & 0\\
+                        0 & 0 & 1 & dt & 0 & 0\\
+                        0 & 0 & 0 & 1 & 0 & 0\\
+                        0 & 0 & 0 & 0 & 1 & dt\\
+                        0 & 0 & 0 & 0 & 0 & 1
+                \end{bmatrix}
+
+        .. math::
+            Q_t & = & \begin{bmatrix}
+                        \frac{dt^3}{3} & \frac{dt^2}{2} & 0 & 0 & 0 & 0\\
+                        \frac{dt^2}{2} & dt & 0 & 0 & 0 & 0\\
+                        0 & 0 & \frac{dt^3}{3} & \frac{dt^2}{2} & 0 & 0\\
+                        0 & 0 & \frac{dt^2}{2} & dt & 0 & 0\\
+                        0 & 0 & 0 & 0 & \frac{dt^3}{3} & \frac{dt^2}{2}\\
+                        0 & 0 & 0 & 0 & \frac{dt^2}{2} & dt
+                \end{bmatrix}*q
+    """
+
+    @property
+    def ndim_state(self):
+        """ndim_state getter method
+
+        Returns
+        -------
+        :class:`int`
+            :math:`6` -> The number of model state dimensions
+        """
+
+        return 6
+
+    def matrix(self, time_interval, **kwargs):
+        """Model matrix :math:`F(t)`
+
+        Parameters
+        ----------
+        time_interval: :class:`datetime.timedelta`
+            The time interval
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The model matrix evaluated given the provided time interval.
+        """
+
+        return sp.linalg.block_diag(super().matrix(time_interval),
+                                    super().matrix(time_interval),
+                                    super().matrix(time_interval))
+
+    def covar(self, time_interval, **kwargs):
+        """Returns the transition model noise covariance matrix.
+
+        Parameters
+        ----------
+        time_interval : :class:`datetime.timedelta`
+            A time interval :math:`dt`
+
+        Returns
+        -------
+        :class:`stonesoup.types.state.CovarianceMatrix` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The process noise covariance.
+        """
+
+        return sp.linalg.block_diag(super().covar(time_interval),
+                                    super().covar(time_interval),
+                                    super().covar(time_interval))
