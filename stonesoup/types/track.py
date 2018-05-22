@@ -32,3 +32,11 @@ class Track(Type):
     @property
     def covar(self):
         return self.state.covar
+
+    @property
+    def timestamp(self):
+        return self.state.timestamp
+
+    @property
+    def mean(self):
+        return self.state.mean

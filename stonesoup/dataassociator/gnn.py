@@ -5,11 +5,11 @@ from ..base import Property
 from ..hypothesiser import Hypothesiser
 
 
-class GlobalNearestNeighbour(DataAssociator):
-    """Global Nearest Neighbour Associator
+class NearestNeighbour(DataAssociator):
+    """Nearest Neighbour Associator
 
     Gates, scores and associates detections to a predicted state using the
-    Global Nearest Neighbour method.
+    Nearest Neighbour method.
     """
 
     hypothesiser = Property(
@@ -28,8 +28,9 @@ class GlobalNearestNeighbour(DataAssociator):
 
         """
 
-        hypotheses = {track: self.hypothesiser.hypothesise(track, detections, time)
-                      for track in tracks}
+        hypotheses = {
+            track: self.hypothesiser.hypothesise(track, detections, time)
+            for track in tracks}
 
         # 'Greedy' associator
         associations = {}

@@ -25,17 +25,24 @@ class MahalanobisDistanceHypothesiser(Hypothesiser):
         doc="Distance in standard deviations at which a missed detection is"
             "considered more likely. Default is 4 standard deviations.")
 
-    def hypothesise(self, track, detections, time):
+    def hypothesise(self, track, detections, timestamp):
 
-        hypotheses = set()
+        hypotheses = list()
 
         for detection in detections:
-            prediction, innovation, _ = self.predictor.predict(track, time=detection.timestamp)
-            distance = mahalanobis(detection, prediction.state_vector, np.linalg.inv(prediction.covar))
+            prediction, innovation, _ = self.predictor.predict(
+                track, time=detection.timestamp)
+            distance = mahalanobis(detection.state_vector,
+                                   innovation.state_vector,
+                                   np.linalg.inv(innovation.covar))
 
-            hypotheses.add(DistanceHypothesis(prediction, innovation, detection, distance))
+            hypotheses.append(
+                DistanceHypothesis(prediction, innovation, detection, distance))
 
-        prediction = self.predictor.predict_state(track, time=time)
-        hypotheses.add(DistanceHypothesis(prediction, None, None, self.missed_distance))
+        # Missed detection hypothesis with distance as 'missed_distance'
+        prediction = self.predictor.predict_state(track,
+                                                  timestamp=timestamp)
+        hypotheses.append(
+            DistanceHypothesis(prediction, None, None, self.missed_distance))
 
-        return hypotheses
+        return sorted(hypotheses, reverse=True)

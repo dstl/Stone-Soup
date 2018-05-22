@@ -48,10 +48,12 @@ class SingleTargetTracker(Tracker):
             associations = self.data_associator.associate({track}, detections,
                                                           time)
 
-            if detections:
-                track.states.append(
-                    self.updater.update(associations[track].prediction,
-                                        associations[track].detection))
+            if associations[track].detection is not None:
+                state_post, _ = self.updater.update(
+                    associations[track].prediction,
+                    associations[track].innovation,
+                    associations[track].detection)
+                track.states.append(state_post)
             else:
                 track.states.append(associations[track].prediction)
 
