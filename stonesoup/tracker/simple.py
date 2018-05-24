@@ -5,7 +5,7 @@ from .base import Tracker
 from ..base import Property
 from ..types import State, Track
 from ..detector import Detector
-from ..predictor import Predictor
+from ..dataassociator import DataAssociator
 from ..updater import Updater
 
 
@@ -17,9 +17,9 @@ class SingleTargetTracker(Tracker):
     detector = Property(
         Detector,
         doc="Detector used to generate detection objects.")
-    predictor = Property(
-        Predictor,
-        doc="Predictor used to predict new state of the track.")
+    data_associator = Property(
+        DataAssociator,
+        doc="Association algorithm to pair predictions to detections")
     updater = Property(
         Updater,
         doc="Updater used to update the track object to the new state.")
@@ -36,24 +36,25 @@ class SingleTargetTracker(Tracker):
 
         for time, detections in self.detector.detections_gen():
 
+            # TODO: Initialiser
             if track is None:
                 state = copy.deepcopy(self.initial_state)
                 if state.timestamp is None:
                     state.timestamp = time
                 track = Track()
+                track.states.append(state)
                 self.tracks.add(track)
-            else:
-                state = track.state
 
-            if detections:
-                # TODO: Data associator
-                detection = detections.pop()
-                predicted_state = self.predictor.predict(state,
-                                                         detection.timestamp)
-                track.states.append(self.updater.update(predicted_state,
-                                                        detection))
+            associations = self.data_associator.associate({track}, detections,
+                                                          time)
+
+            if associations[track].detection is not None:
+                state_post, _ = self.updater.update(
+                    associations[track].prediction,
+                    associations[track].innovation,
+                    associations[track].detection)
+                track.states.append(state_post)
             else:
-                predicted_state = self.predictor.predict(state, time)
-                track.states.append(predicted_state)
+                track.states.append(associations[track].prediction)
 
             yield {track}

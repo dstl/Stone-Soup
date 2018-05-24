@@ -1,14 +1,80 @@
 # -*- coding: utf-8 -*-
+
+from abc import abstractclassmethod
+
+from .base import Type
 from ..base import Property
-from .state import State
+from ..types import State
+from ..types import Detection
 
 
-class Hypothesis(State):
+class Hypothesis(Type):
     """Hypothesis base type
 
     Parameters
-    ==========
-    gate : bool
-        True if hypothesis
+    ----------
+
     """
-    gate = Property(bool, default=False)
+
+    prediction = Property(
+        State,
+        doc="Predicted track state")
+    innovation = Property(
+        State,
+        doc="Track prediction in measurement space")
+    detection = Property(
+        Detection,
+        doc="Detection used for hypothesis and updating")
+
+    @abstractclassmethod
+    def __lt__(self, other):
+        raise NotImplemented
+
+    @abstractclassmethod
+    def __le__(self, other):
+        raise NotImplemented
+
+    @abstractclassmethod
+    def __eq__(self, other):
+        raise NotImplemented
+
+    @abstractclassmethod
+    def __gt__(self, other):
+        raise NotImplemented
+
+    @abstractclassmethod
+    def __ge__(self, other):
+        raise NotImplemented
+
+
+class DistanceHypothesis(Hypothesis):
+    """Distance scored hypothesis subclass.
+
+        Notes
+        -----
+        As smaller distance is 'better', comparison logic is reversed
+        i.e. smaller distance is a greater likelihood.
+
+        Parameters
+        ----------
+
+        """
+
+    distance = Property(
+        float,
+        doc="Distance between detection and prediction")
+
+    def __lt__(self, other):
+        return self.distance > other.distance
+
+    def __le__(self, other):
+        return self.distance >= other.distance
+
+    def __eq__(self, other):
+        return self.distance == other.distance
+
+    def __gt__(self, other):
+        return self.distance < other.distance
+
+    def __ge__(self, other):
+        return self.distance <= other.distance
