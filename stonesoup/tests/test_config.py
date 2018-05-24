@@ -94,6 +94,19 @@ def test_datetime(base, conf_file):
     assert instance.property_d == new_instance.property_d
 
 
+def test_path(conf_file):
+    import pathlib
+    import tempfile
+
+    with tempfile.NamedTemporaryFile() as file:
+        path = pathlib.Path(file.name)
+        conf_str = conf_file.dumps(path)
+        assert file.name in conf_str
+
+        new_path = conf_file.load(conf_str)
+        assert new_path is path
+
+
 def test_references(base, conf_file):
     conf_str = """
         property_b: &prop_b '20'

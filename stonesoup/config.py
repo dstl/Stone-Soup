@@ -12,6 +12,7 @@ from abc import ABC, abstractmethod
 from io import StringIO
 from collections import OrderedDict
 from functools import lru_cache
+from pathlib import Path
 from importlib import import_module
 
 import numpy as np
@@ -69,6 +70,12 @@ class YAMLConfigurationFile(ConfigurationFile):
             datetime.timedelta, self.timedelta_to_yaml)
         self._yaml.constructor.add_constructor(
             "!datetime.timedelta", self.timedelta_from_yaml)
+
+        # Path
+        self._yaml.representer.add_multi_representer(
+            Path, self.path_to_yaml)
+        self._yaml.constructor.add_constructor(
+            "!pathlib.Path", self.path_from_yaml)
 
     def dump(self, data, stream, **kwargs):
         return self._yaml.dump(data, stream, **kwargs)
@@ -149,3 +156,18 @@ class YAMLConfigurationFile(ConfigurationFile):
         Value should be total number of seconds."""
         return datetime.timedelta(
             seconds=float(constructor.construct_scalar(node)))
+
+    @staticmethod
+    def path_to_yaml(representer, node):
+        """Convert path to YAML.
+
+        Value is total number of seconds."""
+        return representer.represent_scalar(
+            "!pathlib.Path", str(node))
+
+    @staticmethod
+    def path_from_yaml(constructor, node):
+        """Convert YAML to datetime.timedelta.
+
+        Value should be total number of seconds."""
+        return Path(constructor.construct_scalar(node))
