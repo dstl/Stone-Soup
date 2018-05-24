@@ -5,4 +5,3 @@ from ..updater import Updater
 
 class Hypothesiser(Base):
     """Hypothesiser base class"""
-    updater = Property(Updater)

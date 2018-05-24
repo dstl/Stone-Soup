@@ -39,8 +39,9 @@ class NearestNeighbour(DataAssociator):
             best_hypothesis = None
             for track in tracks - associations.keys():
                 for hypothesis in hypotheses[track]:
-                    if (hypothesis.detection not in associated_detections
-                            and best_hypothesis is None
+                    if hypothesis.detection in associated_detections:
+                        continue
+                    if (best_hypothesis is None
                             or hypothesis > best_hypothesis):
                         best_hypothesis = hypothesis
                         best_hypothesis_track = track

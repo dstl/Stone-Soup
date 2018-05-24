@@ -31,7 +31,7 @@ class MahalanobisDistanceHypothesiser(Hypothesiser):
 
         for detection in detections:
             prediction, innovation, _ = self.predictor.predict(
-                track, time=detection.timestamp)
+                track, timestamp=detection.timestamp)
             distance = mahalanobis(detection.state_vector,
                                    innovation.state_vector,
                                    np.linalg.inv(innovation.covar))
