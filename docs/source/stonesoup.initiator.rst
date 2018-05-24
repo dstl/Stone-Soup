@@ -7,4 +7,7 @@ Initiators
 .. automodule:: stonesoup.initiator.base
     :show-inheritance:
 
+.. automodule:: stonesoup.initiator.simple
+    :show-inheritance:
+
 
