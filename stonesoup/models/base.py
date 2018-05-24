@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from abc import abstractmethod
 
-from ..types import Type
+from ..base import Base
 
 
-class Model(Type):
+class Model(Base):
     """Model type
 
     Base/Abstract class for all models."""
