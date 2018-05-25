@@ -53,14 +53,8 @@ class YAMLConfigurationFile(ConfigurationFile):
         self._yaml = YAML()
         self._yaml.default_flow_style = False
 
-        # Declarative classes
-        self._yaml.representer.add_multi_representer(
-            Base, self.declarative_to_yaml)
-        self._yaml.constructor.add_multi_constructor(
-            self.tag_prefix, self.declarative_from_yaml)
-
         # NumPy
-        self._yaml.representer.add_representer(
+        self._yaml.representer.add_multi_representer(
             np.ndarray, self.ndarray_to_yaml)
         self._yaml.constructor.add_constructor(
             "!numpy.ndarray", self.ndarray_from_yaml)
@@ -76,6 +70,12 @@ class YAMLConfigurationFile(ConfigurationFile):
             Path, self.path_to_yaml)
         self._yaml.constructor.add_constructor(
             "!pathlib.Path", self.path_from_yaml)
+
+        # Declarative classes
+        self._yaml.representer.add_multi_representer(
+            Base, self.declarative_to_yaml)
+        self._yaml.constructor.add_multi_constructor(
+            self.tag_prefix, self.declarative_from_yaml)
 
     def dump(self, data, stream, **kwargs):
         return self._yaml.dump(data, stream, **kwargs)
@@ -131,8 +131,11 @@ class YAMLConfigurationFile(ConfigurationFile):
 
     def ndarray_to_yaml(self, representer, node):
         """Convert numpy.ndarray to YAML."""
-        array = [self._yaml.seq(row) for row in node.tolist()]
-        [seq.fa.set_flow_style() for seq in array]
+        if node.ndim > 1:
+            array = [self._yaml.seq(row) for row in node.tolist()]
+            [seq.fa.set_flow_style() for seq in array]
+        else:
+            array = node.tolist()
         return representer.represent_sequence(
             "!numpy.ndarray", array)
 
