@@ -8,8 +8,8 @@ from ..hypothesiser import Hypothesiser
 class NearestNeighbour(DataAssociator):
     """Nearest Neighbour Associator
 
-    Gates, scores and associates detections to a predicted state using the
-    Nearest Neighbour method.
+    Scores and associates detections to a predicted state using the Nearest
+    Neighbour method.
     """
 
     hypothesiser = Property(
@@ -49,5 +49,46 @@ class NearestNeighbour(DataAssociator):
             associations[best_hypothesis_track] = best_hypothesis
             if best_hypothesis.detection is not None:
                 associated_detections.add(best_hypothesis.detection)
+
+        return associations
+
+
+class GlobalNearestNeighbour(DataAssociator):
+    """Global Nearest Neighbour Associator
+
+    Scores and associates detections to a predicted state using the Global
+    Nearest Neighbour method, assuming a distance-based hypothesis score.
+    """
+
+    hypothesiser = Property(
+        Hypothesiser,
+        doc="Generate a set of hypotheses for each prediction-detection pair")
+
+    def associate(self, tracks, detections, time):
+        """Associate a set of detections with predicted states.
+
+        Parameters
+        ----------
+
+
+        Returns
+        -------
+
+        """
+
+        hypotheses = {
+            track: self.hypothesiser.hypothesise(track, detections, time)
+            for track in tracks}
+
+        associations = {}
+        joint_hypotheses = DataAssociator.enumerate_joint_hypotheses(hypotheses)
+        joint_hypotheses_distance = [sum([hyp.distance for hyp in all_hyps])
+                                     for all_hyps in joint_hypotheses]
+
+        best_joint_hypothesis = joint_hypotheses[
+            joint_hypotheses_distance.index(min(joint_hypotheses_distance))]
+
+        for hypothesis, track in enumerate(tracks):
+            associations[track] = best_joint_hypothesis[hypothesis]
 
         return associations
