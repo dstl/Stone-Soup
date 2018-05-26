@@ -1,79 +1,84 @@
 # -*- coding: utf-8 -*-
 """Test for smoother.lineargaussian"""
+import datetime
+
 import numpy as np
 
-from stonesoup.types import Track, GaussianState, CovarianceMatrix
-from stonesoup.transitionmodel import LinearTransitionModel
+from stonesoup.types.detection import Detection
+from stonesoup.types.state import GaussianState
+from stonesoup.types.track import Track
+from stonesoup.models.transitionmodel.linear import ConstantVelocity1D
+from stonesoup.models.measurementmodel.linear import LinearGaussian1D
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.updater.kalman import KalmanUpdater
 from stonesoup.smoother.lineargaussian import Backward
 
-
 def test_backwards_smooother():
     """Linear Gaussian Backward Smoother test"""
 
-    # Generate some data and apply Kalman filter.
-    T = 6
-    Q = CovarianceMatrix(0.2 * np.eye(2))
-    R = CovarianceMatrix(0.01 * np.eye(2))
-    Model = LinearTransitionModel(np.array([[1, 0.05], [0, 1]]))
-
-    process_noise = [
-        np.array([[-0.2646889 ],
-                  [ 0.25171505]]),
-        np.array([[-0.23481911],
-                  [ 0.34099158]]),
-        np.array([[-0.01526152],
-                  [-0.48696623]]),
-        np.array([[-0.21121374],
-                  [0.42081589]]),
-        np.array([[ 0.68543224],
-                  [-0.25126595]])
+    # Setup list of Detections
+    T = 5
+    measurements = [
+        np.array([[2.486559674128609]]),
+        np.array([[2.424165626519697]]),
+        np.array([[6.603176662762473]]),
+        np.array([[9.329099124074590]]),
+        np.array([[14.637975326666801]]),
     ]
+    detections = [Detection(m) for m in measurements]
 
-    measurement_noise = [
-        np.array([[0.20368294],
-                  [-0.00502441]]),
-        np.array([[-0.06915021],
-                  [ 0.13709835]]),
-        np.array([[-0.04640669],
-                  [0.03396034]]),
-        np.array([[0.11083243],
-                  [-0.04758062]]),
-        np.array([[0.05524205],
-                  [-0.02261846]]),
-        np.array([[0.2596889],
-                  [-0.09494711]])
-    ]
+    t_0 = datetime.datetime.now()
+    t_delta = datetime.timedelta(0,1)
+    t = [t_0]
+    for n in range(T-1):
+        t.append(t[-1] + t_delta)
+    for n in range(T):
+        detections[n].timestamp = t[n]
 
-    truth = [np.array([[3.45], [1.02]])]
-    detections = [GaussianState(truth[0]+measurement_noise[0], R)]
+    # Setup models.
+    initial_state = GaussianState(np.ones([2,1]), np.eye(2), timestamp=t_0)
 
-    for t in range(T-1):
-        truth.append(Model.transition(detections[-1].state_vector) + process_noise[t])
-        detections.append(GaussianState(truth[-1] + measurement_noise[t+1], R))
+    trans_model = ConstantVelocity1D(noise_diff_coeff=1)
+    meas_model = LinearGaussian1D(ndim_state=2, mapping=0, noise_covar=0.4)
 
-    # Filter
+    estimates = [initial_state]
+
+    # Filter Initial Detection
     track = Track()
-    track.states.append(detections[0])
-    new_state, innov = KalmanUpdater.update(track, detections[0])
-    track.states[-1] = new_state
+    track.states.append(initial_state)
+    predictor = KalmanPredictor(transition_model=trans_model,
+                                measurement_model=meas_model)
+    updater = KalmanUpdater(measurement_model=meas_model)
+    meas_pred, cross_var = predictor.predict_measurement(track.state)
+    new_state, gain = updater.update(track.state,
+                                     meas_pred,
+                                     detections[0])
+    track.states[0] = new_state
+    
+    # Filter Remaining Detections.
+    for t in range(1,T):
+        time = detections[t].timestamp
+        state_pred, meas_pred, cross_var = predictor.predict(track.state,
+                                                             timestamp=time)
+        estimates.append(state_pred)
+        state_post, gain = updater.update(state_pred, meas_pred, detections[t])
+        track.states.append(state_post)
+    
+    # Smooth Track
+    smoother = Backward(transition_model=trans_model)
+    smoothed_track = smoother.track_smooth(track, estimates)
 
-    kalman_predictor = KalmanPredictor(Model, Q)
-    estimates = [detections[0]]
+    smoothed_state_vectors = [state.state_vector for state in smoothed_track.states]
 
-    for t in range(1, T):
-        estimate = kalman_predictor.predict(track.state)
-        track.states.append(estimate)
-        estimates.append(estimate)
-        new_state, innov = KalmanUpdater.update(track, detections[t])
-        track.states[-1] = new_state
+    # Verify Values
+    target_smoothed_vectors = [
+        np.array([[1.688813974839928],[1.267196351952188]]),
+        np.array([[3.307200214998506],[2.187167840595264]]),
+        np.array([[6.130402001958210],[3.308896367021604]]),
+        np.array([[9.821303658438408],[4.119557021638030]]),
+        np.array([[14.257730973981149],[4.594862462495096]])
+    ] 
 
-    # Smooth
-    smoothed_track = Backward.batch_smooth(track, estimates, Model)
+    assert np.allclose(smoothed_state_vectors, target_smoothed_vectors)
 
-    assert np.allclose(smoothed_track.states[0].mean,
-                       np.array([[3.64559832],[1.02400049]]))
-    assert np.allclose(smoothed_track.states[0].covar,
-                       np.array([[ 4.88348075e-03, -5.70201551e-06],
-                                 [-5.70201551e-06, 4.88319446e-03]]))
+test_backwards_smooother()
