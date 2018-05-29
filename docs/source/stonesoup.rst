@@ -31,6 +31,7 @@ Tracker Components
     stonesoup.mixturereducer
     stonesoup.models
     stonesoup.predictor
+    stonesoup.smoother
     stonesoup.updater
 
 Data Types
