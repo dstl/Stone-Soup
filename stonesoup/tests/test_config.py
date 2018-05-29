@@ -104,7 +104,7 @@ def test_path(conf_file):
         assert file.name in conf_str
 
         new_path = conf_file.load(conf_str)
-        assert new_path is path
+        assert new_path == path
 
 
 def test_references(base, conf_file):
