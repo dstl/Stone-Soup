@@ -8,12 +8,13 @@ from ..models.transitionmodel import TransitionModel
 class Smoother(Base):
     """Smoother Base Class."""
 
-    transition_model = Property(TransitionModel, default=None, doc="Transition Model.")
+    transition_model = Property(
+        TransitionModel, default=None, doc="Transition Model.")
 
     @abstractmethod
     def smooth(self, *args, **kwargs):
         raise NotImplementedError
-    
+
     @abstractmethod
     def track_smooth(self, *args, **kwargs):
         raise NotImplementedError

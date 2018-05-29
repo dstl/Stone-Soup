@@ -13,7 +13,7 @@ class Backward(Smoother):
     """
 
     def track_smooth(self, filtered_track, estimates):
-        """ Apply smoothing to a track of filtered estimates (e.g. output from a Kalman Filter.)
+        """ Apply smoothing to a track of filtered estimates.
 
         Parameters
         ----------
@@ -30,21 +30,23 @@ class Backward(Smoother):
         track_length = len(filtered_track.states)
         if track_length != len(estimates):
             raise ValueError(
-                "filtered_track.states and estimates should have the same length")
+                "filtered_track.states and estimates should have the same "
+                "length")
 
         penultimate_index = track_length - 2
 
         smoothed_track = copy.deepcopy(filtered_track)
 
         # Iterating backwards from the penultimate state, to the first state.
-        for t in range(penultimate_index,-1,-1):
+        for t in range(penultimate_index, -1, -1):
             smoothed_track.states[t] = self.smooth(filtered_track.states[t],
                                                    estimates[t+1],
                                                    smoothed_track.states[t+1])
 
         return smoothed_track
 
-    def smooth(self, filtered_state_t, predicted_state_tplus1, smoothed_state_tplus1):
+    def smooth(self, filtered_state_t, predicted_state_tplus1,
+               smoothed_state_tplus1):
         """ Deduce smoothed distribution :math:`p(x_{t} | y_{1:T})` from
         :math:`p(x_{t} | y_{1:t})`, :math:`p(x_{t+1} | y_{1:t})`
         and :math:`p(x_{t+1} | y_{1:T})`.
@@ -75,7 +77,7 @@ class Backward(Smoother):
 
         smoother_gain = V @ A.T @ np.linalg.inv(V_predict)
 
-        x_smoothed = x + smoother_gain @ (x_tplus1 - x_predict)
-        V_smoothed = V + smoother_gain @ (V_tplus1 - V_predict) @ smoother_gain.T
+        x_smoothed = x + smoother_gain@(x_tplus1 - x_predict)
+        V_smoothed = V + smoother_gain@(V_tplus1 - V_predict)@smoother_gain.T
 
         return GaussianState(x_smoothed, V_smoothed, timestamp=t)
