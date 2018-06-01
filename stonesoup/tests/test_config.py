@@ -66,7 +66,7 @@ def test_numpy(base, conf_file):
     import numpy as np
 
     class _TestNumpy(base):
-        property_d = Property(np.ndarray, optional=True)
+        property_d = Property(np.ndarray)
 
     instance = _TestNumpy(1, "two",
                           property_d=np.array([[1, 2], [3, 4], [5, 6]]))
@@ -82,7 +82,7 @@ def test_datetime(base, conf_file):
     import datetime
 
     class _TestNumpy(base):
-        property_d = Property(datetime.timedelta, optional=True)
+        property_d = Property(datetime.timedelta)
 
     instance = _TestNumpy(1, "two",
                           property_d=datetime.timedelta(seconds=500))

@@ -2,7 +2,7 @@
 from abc import abstractmethod
 
 from ..base import Base, Property
-from ..models.transitionmodel import TransitionModel
+from ..models.transition import TransitionModel
 
 
 class Smoother(Base):

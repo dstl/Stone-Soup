@@ -4,8 +4,8 @@ import copy
 from .base import Tracker
 from ..base import Property
 from ..types import State, Track
-from ..detector import Detector
 from ..dataassociator import DataAssociator
+from ..reader import DetectionReader
 from ..updater import Updater
 
 
@@ -15,7 +15,7 @@ class SingleTargetTracker(Tracker):
     Track an object using StoneSoup components.
     """
     detector = Property(
-        Detector,
+        DetectionReader,
         doc="Detector used to generate detection objects.")
     data_associator = Property(
         DataAssociator,

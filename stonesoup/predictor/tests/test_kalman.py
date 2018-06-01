@@ -3,8 +3,8 @@ import datetime
 
 import numpy as np
 
-from stonesoup.models.transitionmodel.linear import ConstantVelocity1D
-from stonesoup.models.measurementmodel.linear import LinearGaussian1D
+from stonesoup.models.transition.linear import ConstantVelocity1D
+from stonesoup.models.measurement.linear import LinearGaussian1D
 from stonesoup.predictor.kalman import KalmanPredictor, ExtendedKalmanPredictor
 from stonesoup.types.state import GaussianState
 

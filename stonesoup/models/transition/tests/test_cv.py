@@ -5,7 +5,7 @@ import datetime
 import scipy as sp
 from scipy.stats import multivariate_normal
 
-from stonesoup.models.transitionmodel.linear import ConstantVelocity1D,\
+from stonesoup.models.transition.linear import ConstantVelocity1D,\
     ConstantVelocity2D, ConstantVelocity3D
 
 

@@ -3,7 +3,7 @@
 import numpy as np
 from scipy.stats import multivariate_normal
 
-from stonesoup.models.measurementmodel.linear import LinearGaussian1D
+from stonesoup.models.measurement.linear import LinearGaussian1D
 
 
 def test_lgmodel1D():

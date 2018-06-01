@@ -4,7 +4,7 @@ import numpy as np
 
 from stonesoup.types.detection import Detection
 from stonesoup.updater.kalman import KalmanUpdater, ExtendedKalmanUpdater
-from stonesoup.models.measurementmodel.linear import LinearGaussian1D
+from stonesoup.models.measurement.linear import LinearGaussian1D
 from stonesoup.types.state import GaussianState
 
 

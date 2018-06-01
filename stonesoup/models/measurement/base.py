@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from abc import abstractproperty
+from abc import abstractmethod
 
 import scipy as sp
 
@@ -14,7 +14,8 @@ class MeasurementModel(Model):
     mapping = Property(
         sp.ndarray, doc="Mapping between measurement and state dims")
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def ndim_meas(self):
-        """ Number of measurement dimensions"""
+        """Number of measurement dimensions"""
         pass

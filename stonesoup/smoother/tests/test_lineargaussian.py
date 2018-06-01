@@ -7,8 +7,8 @@ import numpy as np
 from stonesoup.types.detection import Detection
 from stonesoup.types.state import GaussianState
 from stonesoup.types.track import Track
-from stonesoup.models.transitionmodel.linear import ConstantVelocity1D
-from stonesoup.models.measurementmodel.linear import LinearGaussian1D
+from stonesoup.models.transition.linear import ConstantVelocity1D
+from stonesoup.models.measurement.linear import LinearGaussian1D
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.updater.kalman import KalmanUpdater
 from stonesoup.smoother.lineargaussian import Backward

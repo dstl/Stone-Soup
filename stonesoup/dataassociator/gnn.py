@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from .base import DataAssociator
-from ..base import Property
-from ..hypothesiser import Hypothesiser
 
 
 class NearestNeighbour(DataAssociator):
@@ -11,10 +9,6 @@ class NearestNeighbour(DataAssociator):
     Gates, scores and associates detections to a predicted state using the
     Nearest Neighbour method.
     """
-
-    hypothesiser = Property(
-        Hypothesiser,
-        doc="Generate a set of hypotheses for each prediction-detection pair")
 
     def associate(self, tracks, detections, time):
         """Associate detections with predicted states.

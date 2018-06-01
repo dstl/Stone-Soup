@@ -37,13 +37,7 @@ class KalmanPredictor(Predictor):
         :class:`numpy.ndarray` of shape (Nm,Nm)
             The calculated state-to-measurement cross covariance
         """
-
-        state_pred = self.predict_state(state, control_input,
-                                        timestamp, **kwargs)
-        meas_pred, cross_covar = self.predict_measurement(state_pred,
-                                                          **kwargs)
-
-        return state_pred, meas_pred, cross_covar
+        return super().predict(state, control_input, timestamp, **kwargs)
 
     def predict_state(self, state, control_input=None,
                       timestamp=None, **kwargs):
