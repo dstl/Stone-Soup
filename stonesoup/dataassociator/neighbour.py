@@ -42,7 +42,7 @@ class NearestNeighbour(DataAssociator):
                     if hypothesis.detection in associated_detections:
                         continue
                     if (best_hypothesis is None
-                            or hypothesis > best_hypothesis):
+                        or hypothesis > best_hypothesis):
                         best_hypothesis = hypothesis
                         best_hypothesis_track = track
 
@@ -80,15 +80,12 @@ class GlobalNearestNeighbour(DataAssociator):
             track: self.hypothesiser.hypothesise(track, detections, time)
             for track in tracks}
 
-        associations = {}
-        joint_hypotheses = DataAssociator.enumerate_joint_hypotheses(hypotheses)
-        joint_hypotheses_distance = [sum([hyp.distance for hyp in all_hyps])
-                                     for all_hyps in joint_hypotheses]
+        joint_hypotheses = self.enumerate_joint_hypotheses(hypotheses)
+        joint_hypotheses_distance = [
+            sum(hyp.distance for hyp in all_hyps.values()) for all_hyps in
+            joint_hypotheses]
 
-        best_joint_hypothesis = joint_hypotheses[
-            joint_hypotheses_distance.index(min(joint_hypotheses_distance))]
-
-        for hypothesis, track in enumerate(tracks):
-            associations[track] = best_joint_hypothesis[hypothesis]
+        associations = joint_hypotheses[
+            joint_hypotheses_distance.index(max(joint_hypotheses_distance))]
 
         return associations

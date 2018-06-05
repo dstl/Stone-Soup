@@ -7,22 +7,24 @@ class DataAssociator(Base):
     """Data Associator base class"""
 
     @staticmethod
-    def isvalid(joint_hypotheses):
-        number_hypotheses = len(joint_hypotheses)
-        unique_hypotheses = len(set(
-            [hyp.detection for hyp in joint_hypotheses]) - {None})
+    def isvalid(joint_hypothesis):
+        number_hypotheses = len(joint_hypothesis)
+        unique_hypotheses = len(
+            {hyp.detection for hyp in joint_hypothesis} - {None})
         number_null_hypotheses = sum(
-            [hyp.detection is None for hyp in joint_hypotheses])
+            hyp.detection is None for hyp in joint_hypothesis)
 
         if unique_hypotheses + number_null_hypotheses == number_hypotheses:
             return True
         else:
             return False
 
-    @staticmethod
-    def enumerate_joint_hypotheses(hypotheses):
-        joint_hypotheses = list(itertools.product(*hypotheses.values()))
-        joint_hypotheses = list(filter(
-            DataAssociator.isvalid, joint_hypotheses))
+    @classmethod
+    def enumerate_joint_hypotheses(cls, hypotheses):
+        joint_hypotheses = [{track: hypothesis for track, hypothesis in
+                             zip(hypotheses, joint_hypothesis)} for
+                            joint_hypothesis in
+                            itertools.product(*hypotheses.values()) if
+                            cls.isvalid(joint_hypothesis)]
 
         return joint_hypotheses
