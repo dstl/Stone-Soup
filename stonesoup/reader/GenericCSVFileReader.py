@@ -24,10 +24,8 @@ class GenericCSVFileReader(TextFileReader):
     def detections_gen(self):
         with open(str(self.path), newline='') as csv_file:
             reader = csv.DictReader(csv_file)
-            print(reader.fieldnames)
             for row in reader:
                 if self.time_field_format is not None:
-                    print(row[self.time_field])
                     time_field_value = datetime.strptime(row[self.time_field], self.time_field_format)
                 elif self.time_field is True:
                     time_field_value = datetime.fromtimestamp(row[self.time_field])
