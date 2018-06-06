@@ -81,11 +81,6 @@ class GlobalNearestNeighbour(DataAssociator):
             for track in tracks}
 
         joint_hypotheses = self.enumerate_joint_hypotheses(hypotheses)
-        joint_hypotheses_distance = [
-            sum(hyp.distance for hyp in all_hyps.values()) for all_hyps in
-            joint_hypotheses]
-
-        associations = joint_hypotheses[
-            joint_hypotheses_distance.index(max(joint_hypotheses_distance))]
+        associations = max(joint_hypotheses)
 
         return associations

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from ..base import Base
+from ..types import JointHypothesis
 import itertools
 
 
@@ -21,8 +22,8 @@ class DataAssociator(Base):
 
     @classmethod
     def enumerate_joint_hypotheses(cls, hypotheses):
-        joint_hypotheses = [{track: hypothesis for track, hypothesis in
-                             zip(hypotheses, joint_hypothesis)} for
+        joint_hypotheses = [JointHypothesis({track: hypothesis for track, hypothesis in
+                            zip(hypotheses, joint_hypothesis)}) for
                             joint_hypothesis in
                             itertools.product(*hypotheses.values()) if
                             cls.isvalid(joint_hypothesis)]
