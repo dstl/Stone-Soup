@@ -9,7 +9,7 @@ from ..base import LinearModel, GaussianModel
 from .base import MeasurementModel
 
 
-class LinearGaussian1D(MeasurementModel, LinearModel, GaussianModel):
+class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
     """This is a class implementation of a time-invariant 1D
     Linear-Gaussian Measurement Model.
 
@@ -36,7 +36,7 @@ class LinearGaussian1D(MeasurementModel, LinearModel, GaussianModel):
             The number of measurement dimensions
         """
 
-        return 1
+        return len(self.mapping)
 
     def matrix(self, **kwargs):
         """Model matrix :math:`H(t)`
@@ -47,8 +47,10 @@ class LinearGaussian1D(MeasurementModel, LinearModel, GaussianModel):
             The model matrix evaluated given the provided time interval.
         """
 
-        model_matrix = sp.zeros((1, self.ndim_state))
-        model_matrix[0, self.mapping] = 1
+        model_matrix = sp.zeros((self.ndim_meas, self.ndim_state))
+        for dim_meas, dim_state in enumerate(self.mapping):
+            if dim_state is not None:
+                model_matrix[dim_meas, dim_state] = 1
 
         return model_matrix
 
@@ -84,7 +86,7 @@ class LinearGaussian1D(MeasurementModel, LinearModel, GaussianModel):
             The measurement noise covariance.
         """
 
-        return CovarianceMatrix(sp.array([[self.noise_covar]]))
+        return self.noise_covar
 
     def rvs(self, num_samples=1, **kwargs):
         """ Model noise/sample generation function
@@ -112,9 +114,12 @@ class LinearGaussian1D(MeasurementModel, LinearModel, GaussianModel):
         """
 
         noise = multivariate_normal.rvs(
-            sp.array([[0]]).ravel(), self.covar(), num_samples).T
+            sp.zeros(self.ndim_meas), self.covar(), num_samples)
 
-        return noise
+        if num_samples == 1:
+            return noise.reshape((-1, 1))
+        else:
+            return noise.T
 
     def pdf(self, meas_vec, state_vec, **kwargs):
         """ Measurement pdf/likelihood evaluation function
@@ -143,7 +148,7 @@ class LinearGaussian1D(MeasurementModel, LinearModel, GaussianModel):
 
         likelihood = multivariate_normal.pdf(
             meas_vec.T,
-            mean=self.matrix()@state_vec.ravel(),
+            mean=(self.matrix()@state_vec).ravel(),
             cov=self.covar()
-        ).T
+        )
         return likelihood

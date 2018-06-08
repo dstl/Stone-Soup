@@ -4,7 +4,7 @@ import datetime
 import numpy as np
 
 from stonesoup.models.transitionmodel.linear import ConstantVelocity1D
-from stonesoup.models.measurementmodel.linear import LinearGaussian1D
+from stonesoup.models.measurementmodel.linear import LinearGaussian
 from stonesoup.predictor.kalman import KalmanPredictor, ExtendedKalmanPredictor
 from stonesoup.types.state import GaussianState
 
@@ -15,7 +15,8 @@ def test_kalman():
     cv = ConstantVelocity1D(noise_diff_coeff=0.1)
 
     # Initialise a measurement model
-    lg = LinearGaussian1D(ndim_state=2, mapping=0, noise_covar=0.04)
+    lg = LinearGaussian(
+        ndim_state=2, mapping=[0], noise_covar=np.array([[0.04]]))
 
     # Define time related variables
     timestamp = datetime.datetime.now()
@@ -84,7 +85,8 @@ def test_extendedkalman():
     cv = ConstantVelocity1D(noise_diff_coeff=0.1)
 
     # Initialise a measurement model
-    lg = LinearGaussian1D(ndim_state=2, mapping=0, noise_covar=0.04)
+    lg = LinearGaussian(
+        ndim_state=2, mapping=[0], noise_covar=np.array([[0.04]]))
 
     # Define time related variables
     timestamp = datetime.datetime.now()

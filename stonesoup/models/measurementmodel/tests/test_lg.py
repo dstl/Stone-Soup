@@ -1,26 +1,45 @@
 # coding: utf-8
-
+import pytest
 import numpy as np
 from scipy.stats import multivariate_normal
 
-from stonesoup.models.measurementmodel.linear import LinearGaussian1D
+from stonesoup.models.measurementmodel.linear import LinearGaussian
 
 
-def test_lgmodel1D():
-    """ LinearGaussian1D Measurement Model test """
+@pytest.mark.parametrize(
+    "H, R, ndim_state, mapping",
+    [
+        (       # 1D meas, 2D state
+                np.array([[1, 0]]),
+                np.array([[0.1]]),
+                2,
+                [0],
+        ),
+        (       # 2D meas, 4D state
+                np.array([[1, 0, 0, 0], [0, 0, 1, 0]]),
+                np.diag([0.1, 0.1]),
+                4,
+                [0, 2],
+        ),
+        (       # 4D meas, 2D state
+                np.array([[1, 0], [0, 0], [0, 1], [0, 0]]),
+                np.diag([0.1, 0.1, 0.1, 0.1]),
+                2,
+                [0, None, 1, None],
+        ),
+    ],
+    ids=["1D_meas:2D_state", "2D_meas:4D_state", "4D_meas:2D_state"]
+)
+def test_lgmodel(H, R, ndim_state, mapping):
+    """ LinearGaussian 1D Measurement Model test """
 
     # State related variables
-    state_vec = np.array([[3.0], [1.0]])
-
-    # Model-related components
-    noise_covar = 0.1  # m/s^2
-    H = np.array([[1, 0]])
-    R = np.array([[noise_covar]])
+    state_vec = np.array([[n] for n in range(ndim_state)])
 
     # Create and a Constant Velocity model object
-    lg = LinearGaussian1D(ndim_state=2,
-                          noise_covar=noise_covar,
-                          mapping=0)
+    lg = LinearGaussian(ndim_state=ndim_state,
+                        noise_covar=R,
+                        mapping=mapping)
 
     # Ensure ```lg.transfer_function()``` returns H
     assert np.array_equal(H, lg.matrix())
