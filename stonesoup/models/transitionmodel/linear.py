@@ -6,88 +6,26 @@ from scipy.linalg import block_diag
 
 from ...base import Property
 from ...types import CovarianceMatrix
-from ..base import LinearModel, GaussianModel, TimeVariantModel, TimeInvariantModel
+from ..base import (LinearModel, GaussianModel, TimeVariantModel,
+                    TimeInvariantModel)
 from .base import TransitionModel
 
 
-class Combined(TransitionModel, LinearModel, GaussianModel):
-    r"""Combine multiple models into a single model by stacking them.
-    
-    The assumption is that all models are Linear and Gaussian.
-    Time Variant, and Time Invariant models can be combined together.
-    If any of the models are time variant the keyword argument "time_interval" must be supplied to all methods except ndim_state.
-    """
+class LinearGaussianTransitionModel(
+        TransitionModel, LinearModel, GaussianModel):
 
-    model_list = Property(
-        list, doc="List of Transition Models.")
-    
     @property
     def ndim_state(self):
         """ndim_state getter method
 
         Returns
         -------
-        :class:`int`
-            The number of combined model state dimensions.
-        """
-        ndim_state = 0
-        for model in self.model_list:
-            ndim_state += model.ndim_state
-        return ndim_state
-    
-    def matrix(self, **kwargs):
-        """Model matrix :math:`F`
-
-        Returns
-        -------
-        : :class:`numpy.ndarray` of shape\
-        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+        : :class:`int`
+            The number of model state dimensions.
         """
 
-        transition_matrices = [model.matrix(**kwargs) for model in self.model_list]
-        return block_diag(*transition_matrices)
+        return self.matrix().shape[0]
 
-    def function(self, state_vector, noise=None, **kwargs):
-        """Model function :math:`f(x_t,w_t)`
-
-        Parameters
-        ----------
-        state_vector: :class:`stonesoup.types.state.StateVector`
-            An input state vector
-        noise: :class:`numpy.ndarray`
-            An externally generated random process noise sample (the default in
-            `None`, in which case process noise will be generated internally)
-
-        Returns
-        -------
-        : :class:`numpy.ndarray` of shape\
-        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
-            The model fuction evaluated.
-        """
-        if noise is None:
-            noise = self.rvs(**kwargs)
-        
-        return self.matrix(**kwargs) @ state_vector + noise
-    
-    def covar(self, **kwargs):
-        """Returns the transition model noise covariance matrix.
-
-        Parameters
-        ----------
-        noise_diff_coeff: :class:`float`, optional
-            The noise diffusion coefficient (the default is None, in which\
-            case the value of :py:attr:`~noise_diff_coeff` will be used)
-
-        Returns
-        -------
-        : :class:`stonesoup.types.state.CovarianceMatrix` of shape\
-        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
-            The process noise covariance.
-        """
-
-        covar_list = [model.covar(**kwargs) for model in self.model_list]
-        return block_diag(*covar_list)
-    
     def rvs(self, num_samples=1, **kwargs):
         """ Model noise/sample generation function
 
@@ -116,10 +54,13 @@ class Combined(TransitionModel, LinearModel, GaussianModel):
         noise = sp.array([multivariate_normal.rvs(
             sp.zeros(self.ndim_state),
             self.covar(**kwargs),
-            num_samples)]).T 
+            num_samples)])
 
-        return noise
-    
+        if num_samples == 1:
+                return noise.reshape((-1, 1))
+        else:
+            return noise.T
+
     def pdf(self, state_vector_post, state_vector_prior, **kwargs):
         """ Model pdf/likelihood evaluation function
 
@@ -150,24 +91,23 @@ class Combined(TransitionModel, LinearModel, GaussianModel):
 
         likelihood = multivariate_normal.pdf(
             state_vector_post.T,
-            mean=self.function(state_vector_prior,
-                               noise=0,
-                               **kwargs).ravel(),
+            mean=self.function(state_vector_prior, noise=0, **kwargs).ravel(),
             cov=self.covar(**kwargs)
-        ).T
+        )
         return likelihood
 
 
-class LinearGaussianTimeInvariant(TransitionModel, LinearModel,
-                                  GaussianModel, TimeInvariantModel):
-    r"""Generic Linear Gaussian Time Invariant Transition Model."""
+class CombinedLinearGaussianTransitionModel(LinearGaussianTransitionModel):
+    r"""Combine multiple models into a single model by stacking them.
 
-    transition_matrix = Property(
-        sp.ndarray, doc="Transition matrix :math:`\mathbf{F}`.")
-    control_matrix = Property(
-        sp.ndarray, default=None, doc="Control matrix :math:`\mathbf{B}`.")
-    covariance_matrix = Property(
-        sp.ndarray, doc="Transition noise covariance matrix :math:`\mathbf{Q}`.")
+    The assumption is that all models are Linear and Gaussian.
+    Time Variant, and Time Invariant models can be combined together.
+    If any of the models are time variant the keyword argument "time_interval"
+    must be supplied to all methods
+    """
+
+    model_list = Property(
+        [LinearGaussianTransitionModel], doc="List of Transition Models.")
 
     @property
     def ndim_state(self):
@@ -176,11 +116,55 @@ class LinearGaussianTimeInvariant(TransitionModel, LinearModel,
         Returns
         -------
         : :class:`int`
-            The number of model state dimensions.
+            The number of combined model state dimensions.
+        """
+        return sum(model.ndim_state for model in self.model_list)
+
+    def matrix(self, **kwargs):
+        """Model matrix :math:`F`
+
+        Returns
+        -------
+        : :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
         """
 
-        return self.transition_matrix.shape[0]
-    
+        transition_matrices = [
+            model.matrix(**kwargs) for model in self.model_list]
+        return block_diag(*transition_matrices)
+
+    def covar(self, **kwargs):
+        """Returns the transition model noise covariance matrix.
+
+        Parameters
+        ----------
+        noise_diff_coeff: :class:`float`, optional
+            The noise diffusion coefficient (the default is None, in which\
+            case the value of :py:attr:`~noise_diff_coeff` will be used)
+
+        Returns
+        -------
+        : :class:`stonesoup.types.state.CovarianceMatrix` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The process noise covariance.
+        """
+
+        covar_list = [model.covar(**kwargs) for model in self.model_list]
+        return block_diag(*covar_list)
+
+
+class LinearGaussianTimeInvariantTransitionModel(LinearGaussianTransitionModel,
+                                                 TimeInvariantModel):
+    r"""Generic Linear Gaussian Time Invariant Transition Model."""
+
+    transition_matrix = Property(
+        sp.ndarray, doc="Transition matrix :math:`\mathbf{F}`.")
+    control_matrix = Property(
+        sp.ndarray, default=None, doc="Control matrix :math:`\mathbf{B}`.")
+    covariance_matrix = Property(
+        sp.ndarray,
+        doc="Transition noise covariance matrix :math:`\mathbf{Q}`.")
+
     def matrix(self, **kwargs):
         """Model matrix :math:`F`
 
@@ -192,30 +176,7 @@ class LinearGaussianTimeInvariant(TransitionModel, LinearModel,
         """
 
         return self.transition_matrix
-    
-    def function(self, state_vector, noise=None, **kwargs):
-        """Model function :math:`f(x_t,w_t)`
 
-        Parameters
-        ----------
-        state_vector: :class:`stonesoup.types.state.StateVector`
-            An input state vector
-        noise: :class:`numpy.ndarray`
-            An externally generated random process noise sample (the default in
-            `None`, in which case process noise will be generated internally)
-
-        Returns
-        -------
-        : :class:`numpy.ndarray` of shape\
-        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
-            The model fuction evaluated.
-        """
-
-        if noise is None:
-            noise = self.rvs()
-
-        return self.matrix()@state_vector + noise
-    
     def covar(self, **kwargs):
         """Returns the transition model noise covariance matrix.
 
@@ -234,76 +195,8 @@ class LinearGaussianTimeInvariant(TransitionModel, LinearModel,
 
         return self.covariance_matrix
 
-    def rvs(self, num_samples=1, **kwargs):
-        """ Model noise/sample generation function
 
-        Generates noisy samples from the transition model.
-
-        In mathematical terms, this can be written as:
-
-        .. math::
-
-            w_t \sim \mathcal{N}(0,Q)
-
-        where :math:`w_t =` ``noise``.
-
-        Parameters
-        ----------
-        num_samples: :class:`int`, optional
-            The number of samples to be generated (the default is 1)
-
-        Returns
-        -------
-        noise : :class:`numpy.ndarray` of shape\
-        (:py:attr:`~ndim_state`, ``num_samples``)
-            A set of Np samples, generated from the model's noise distribution.
-        """
-
-        noise = sp.array([multivariate_normal.rvs(
-            sp.zeros(self.ndim_state),
-            self.covar(),
-            num_samples)]).T # doesnt work
-        return noise
-
-    def pdf(self, state_vector_post, state_vector_prior, **kwargs):
-        """ Model pdf/likelihood evaluation function
-
-        Evaluates the pdf/likelihood of the transformed state ``state_post``,
-        given the prior state ``state_prior``.
-
-        In mathematical terms, this can be written as:
-
-        .. math::
-
-            p = p(x_t | x_{t-1}) = \mathcal{N}(x_t; x_{t-1}, Q)
-
-        where :math:`x_t` = ``state_post``, :math:`x_{t-1}` = ``state_prior``
-        and :math:`Q` = :py:attr:`~covar`.
-
-        Parameters
-        ----------
-        state_vector_post : :class:`stonesoup.types.state.StateVector`
-            A predicted/posterior state
-        state_vector_prior : :class:`stonesoup.types.state.StateVector`
-            A prior state
-
-        Returns
-        -------
-        : :class:`float`
-            The likelihood of ``state_vec_post``, given ``state_vec_prior``
-        """
-
-        likelihood = multivariate_normal.pdf(
-            state_vector_post.T,
-            mean=self.function(state_vector_prior,
-                               noise=0).ravel(),
-            cov=self.covar()
-        ).T
-        return likelihood
-
-
-class ConstantVelocity1D(TransitionModel, LinearModel,
-                         GaussianModel, TimeVariantModel):
+class ConstantVelocity(LinearGaussianTransitionModel, TimeVariantModel):
     r"""This is a class implementation of a time-variant 1D Linear-Gaussian
     Constant Velocity Transition Model.
 
@@ -380,353 +273,25 @@ class ConstantVelocity1D(TransitionModel, LinearModel,
 
         return sp.array([[1, time_interval.total_seconds()], [0, 1]])
 
-    def function(self, state_vector, time_interval,
-                 noise=None, **kwargs):
-        """Model function :math:`f(t,x(t),w(t))`
-
-        Parameters
-        ----------
-        state_vector: :class:`stonesoup.types.state.StateVector`
-            An input state vector
-        time_interval: :class:`datetime.timedelta`
-            A time interval :math:`dt`
-        noise: :class:`numpy.ndarray`
-            An externally generated random process noise sample (the default in
-            `None`, in which case process noise will be generated internally)
-
-        Returns
-        -------
-        :class:`numpy.ndarray` of shape\
-        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
-            The model fuction evaluated given the provided time interval.
-        """
-
-        if noise is None:
-            noise = self.rvs(time_interval=time_interval)
-
-        return self.matrix(time_interval,
-                           **kwargs)@state_vector + noise
-
-    def covar(self, time_interval, noise_diff_coeff=None, **kwargs):
+    def covar(self, time_interval, **kwargs):
         """Returns the transition model noise covariance matrix.
 
         Parameters
         ----------
         time_interval : :class:`datetime.timedelta`
             A time interval :math:`dt`
-        noise_diff_coeff: :class:`float`, optional
-            The noise diffusion coefficient (the default is None, in which\
-            case the value of :py:attr:`~noise_diff_coeff` will be used)
-
         Returns
         -------
         :class:`stonesoup.types.state.CovarianceMatrix` of shape\
         (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
             The process noise covariance.
         """
-
-        if noise_diff_coeff is None:
-            noise_diff_coeff = self.noise_diff_coeff
 
         time_interval_sec = time_interval.total_seconds()
 
         covar = sp.array([[sp.power(time_interval_sec, 3)/3,
                            sp.power(time_interval_sec, 2)/2],
                           [sp.power(time_interval_sec, 2)/2,
-                           time_interval_sec]])*noise_diff_coeff
+                           time_interval_sec]])*self.noise_diff_coeff
 
         return CovarianceMatrix(covar)
-
-    def rvs(self, time_interval, num_samples=1, **kwargs):
-        """ Model noise/sample generation function
-
-        Generates noisy samples from the transition model.
-
-        In mathematical terms, this can be written as:
-
-        .. math::
-
-            w_t \sim \mathcal{N}(0,Q_t)
-
-        where :math:`w_t =` ``noise``.
-
-        Parameters
-        ----------
-        time_interval : :class:`datetime.timedelta`
-            A time interval :math:`dt`
-        num_samples: :class:`int`, optional
-            The number of samples to be generated (the default is 1)
-
-        Returns
-        -------
-        noise : :class:`numpy.ndarray` of shape\
-        (:py:attr:`~ndim_state`, ``num_samples``)
-            A set of Np samples, generated from the model's noise distribution.
-        """
-
-        noise = sp.array([multivariate_normal.rvs(
-            sp.zeros(self.ndim_state),
-            self.covar(time_interval),
-            num_samples)]).T
-
-        return noise
-
-    def pdf(self, state_vector_post, state_vector_prior,
-            time_interval, **kwargs):
-        """ Model pdf/likelihood evaluation function
-
-        Evaluates the pdf/likelihood of the transformed state ``state_post``,
-        given the prior state ``state_prior``.
-
-        In mathematical terms, this can be written as:
-
-        .. math::
-
-            p = p(x_t | x_{t-1}) = \mathcal{N}(x_t; x_{t-1}, Q_t)
-
-        where :math:`x_t` = ``state_post``, :math:`x_{t-1}` = ``state_prior``
-        and :math:`Q_t` = :py:attr:`~covar`.
-
-        Parameters
-        ----------
-        state_vector_post : :class:`stonesoup.types.state.StateVector`
-            A predicted/posterior state
-        state_vector_prior : :class:`stonesoup.types.state.StateVector`
-            A prior state
-        time_interval: :class:`datetime.timedelta`
-            A time interval :math:`dt`
-
-        Returns
-        -------
-        :class:`float`
-            The likelihood of ``state_vec_post``, given ``state_vec_prior``
-        """
-
-        likelihood = multivariate_normal.pdf(
-            state_vector_post.T,
-            mean=self.function(state_vector_prior,
-                               time_interval,
-                               noise=0).ravel(),
-            cov=self.covar(time_interval)
-        ).T
-        return likelihood
-
-
-class ConstantVelocity2D(ConstantVelocity1D):
-    r"""This is a class implementation of a time-variant 2D Linear-Gaussian
-    Constant Velocity Transition Model.
-
-    The target is assumed to move with (nearly) constant velocity, where
-    target acceleration is model as white noise.
-
-    The model is described by the following SDEs:
-
-        .. math::
-            :nowrap:
-
-            \begin{eqnarray}
-                dx_{pos} & = & x_{vel}*dt & | {Position \ on \
-                X-axis (m)} \\
-                dx_{vel} & = & q*dW_t,\ W_t \sim \mathcal{N}(0,q^2) & | Speed \
-                on \ X-axis (m/s) \\
-                dy_{pos} & = & y_{vel}*dt & | {Position \ on \
-                Y-axis (m)} \\
-                dy_{vel} & = & q*dV_t,\ V_t \sim \mathcal{N}(0,q^2) & | Speed \
-                on \ Y-axis (m/s)
-            \end{eqnarray}
-
-    Or equivalently:
-
-        .. math::
-            x_t = F_t*x_{t-1} + w_t,\ w_t \sim \mathcal{N}(0,Q_t)
-
-    where:
-
-        .. math::
-            x & = & \begin{bmatrix}
-                        x_{pos} \\
-                        x_{vel} \\
-                        y_{pos} \\
-                        y_{vel}
-                \end{bmatrix}
-
-        .. math::
-            F_t & = & \begin{bmatrix}
-                        1 & dt & 0 & 0\\
-                        0 & 1 & 0 & 0\\
-                        0 & 0 & 1 & dt\\
-                        0 & 0 & 0 & 1
-                \end{bmatrix}
-
-        .. math::
-            Q_t & = & \begin{bmatrix}
-                        \frac{dt^3}{3} & \frac{dt^2}{2} & 0 & 0 \\
-                        \frac{dt^2}{2} & dt & 0 & 0 \\
-                        0 & 0 & \frac{dt^3}{3} & \frac{dt^2}{2} \\
-                        0 & 0 & \frac{dt^2}{2} & dt
-                \end{bmatrix}*q
-    """
-
-    @property
-    def ndim_state(self):
-        """ndim_state getter method
-
-        Returns
-        -------
-        :class:`int`
-            :math:`4` -> The number of model state dimensions
-        """
-
-        return 4
-
-    def matrix(self, time_interval, **kwargs):
-        """Model matrix :math:`F(t)`
-
-        Parameters
-        ----------
-        time_interval: :class:`datetime.timedelta`
-            A time interval :math:`dt`
-
-        Returns
-        -------
-        :class:`numpy.ndarray` of shape\
-        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
-            The model matrix evaluated given the provided time interval.
-        """
-
-        return sp.linalg.block_diag(super().matrix(time_interval),
-                                    super().matrix(time_interval))
-
-    def covar(self, time_interval, **kwargs):
-        """Returns the transition model noise covariance matrix.
-
-        Parameters
-        ----------
-        time_interval : :class:`datetime.timedelta`
-            A time interval :math:`dt`
-
-        Returns
-        -------
-        :class:`stonesoup.types.state.CovarianceMatrix` of shape\
-        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
-            The process noise covariance.
-        """
-
-        return sp.linalg.block_diag(super().covar(time_interval),
-                                    super().covar(time_interval))
-
-
-class ConstantVelocity3D(ConstantVelocity1D):
-    r"""This is a class implementation of a time-variant 3D Linear-Gaussian
-    Constant Velocity Transition Model.
-
-    The target is assumed to move with (nearly) constant velocity, where
-    target acceleration is model as white noise.
-
-    The model is described by the following SDEs:
-
-        .. math::
-            :nowrap:
-
-            \begin{eqnarray}
-                dx_{pos} & = & x_{vel}*dt & | {Position \ on \
-                X-axis (m)} \\
-                dx_{vel} & = & q*dW_t,\ W_t \sim \mathcal{N}(0,q^2) & | Speed \
-                on\ X-axis (m/s) \\
-                dy_{pos} & = & y_{vel}*dt & | {Position \ on \
-                Y-axis (m)} \\
-                dy_{vel} & = & q*dV_t,\ V_t \sim \mathcal{N}(0,q^2) & | Speed \
-                on\ Y-axis (m/s) \\
-                dz_{pos} & = & z_{vel}*dt & | {Position \ on \
-                Z-axis (m)} \\
-                dz_{vel} & = & q*dJ_t,\ J_t \sim \mathcal{N}(0,q^2) & | Speed \
-                on\ Z-axis (m/s)
-            \end{eqnarray}
-
-    Or equivalently:
-
-        .. math::
-            x_t = F_t*x_{t-1} + w_t,\ w_t \sim \mathcal{N}(0,Q_t)
-
-    where:
-
-        .. math::
-            x & = & \begin{bmatrix}
-                        x_{pos} \\
-                        x_{vel} \\
-                        y_{pos} \\
-                        y_{vel} \\
-                        z_{pos} \\
-                        z_{vel}
-                \end{bmatrix}
-
-        .. math::
-            F_t & = & \begin{bmatrix}
-                        1 & dt & 0 & 0 & 0 & 0\\
-                        0 & 1 & 0 & 0 & 0 & 0\\
-                        0 & 0 & 1 & dt & 0 & 0\\
-                        0 & 0 & 0 & 1 & 0 & 0\\
-                        0 & 0 & 0 & 0 & 1 & dt\\
-                        0 & 0 & 0 & 0 & 0 & 1
-                \end{bmatrix}
-
-        .. math::
-            Q_t & = & \begin{bmatrix}
-                        \frac{dt^3}{3} & \frac{dt^2}{2} & 0 & 0 & 0 & 0\\
-                        \frac{dt^2}{2} & dt & 0 & 0 & 0 & 0\\
-                        0 & 0 & \frac{dt^3}{3} & \frac{dt^2}{2} & 0 & 0\\
-                        0 & 0 & \frac{dt^2}{2} & dt & 0 & 0\\
-                        0 & 0 & 0 & 0 & \frac{dt^3}{3} & \frac{dt^2}{2}\\
-                        0 & 0 & 0 & 0 & \frac{dt^2}{2} & dt
-                \end{bmatrix}*q
-    """
-
-    @property
-    def ndim_state(self):
-        """ndim_state getter method
-
-        Returns
-        -------
-        :class:`int`
-            :math:`6` -> The number of model state dimensions
-        """
-
-        return 6
-
-    def matrix(self, time_interval, **kwargs):
-        """Model matrix :math:`F(t)`
-
-        Parameters
-        ----------
-        time_interval: :class:`datetime.timedelta`
-            A time interval :math:`dt`
-
-        Returns
-        -------
-        :class:`numpy.ndarray` of shape\
-        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
-            The model matrix evaluated given the provided time interval.
-        """
-
-        return sp.linalg.block_diag(super().matrix(time_interval),
-                                    super().matrix(time_interval),
-                                    super().matrix(time_interval))
-
-    def covar(self, time_interval, **kwargs):
-        """Returns the transition model noise covariance matrix.
-
-        Parameters
-        ----------
-        time_interval : :class:`datetime.timedelta`
-            A time interval :math:`dt`
-
-        Returns
-        -------
-        :class:`stonesoup.types.state.CovarianceMatrix` of shape\
-        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
-            The process noise covariance.
-        """
-
-        return sp.linalg.block_diag(super().covar(time_interval),
-                                    super().covar(time_interval),
-                                    super().covar(time_interval))

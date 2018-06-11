@@ -35,6 +35,28 @@ class LinearModel(Model):
         """ Model matrix"""
         pass
 
+    def function(self, state_vector, noise=None, **kwargs):
+        """Model function :math:`f(t,x(t),w(t))`
+
+        Parameters
+        ----------
+        state_vector: :class:`stonesoup.types.state.StateVector`
+            An input state vector
+        noise: :class:`numpy.ndarray`
+            An externally generated random process noise sample (the default in
+            `None`, in which case process noise will be generated internally)
+
+        Returns
+        -------
+        : :class:`numpy.ndarray`
+            The model function evaluated.
+        """
+
+        if noise is None:
+            noise = self.rvs(**kwargs)
+
+        return self.matrix(**kwargs)@state_vector + noise
+
 
 class NonLinearModel(Model):
     """NonLinearModel class
