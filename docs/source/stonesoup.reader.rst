@@ -10,4 +10,7 @@ Readers
 .. automodule:: stonesoup.reader.file
     :show-inheritance:
 
-
+Generic
+-------
+.. automodule:: stonesoup.reader.generic
+    :show-inheritance:
