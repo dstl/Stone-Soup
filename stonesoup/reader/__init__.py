@@ -2,6 +2,7 @@
 """Reader classes are used for getting data into the framework."""
 from .base import Reader, DetectionReader, GroundTruthReader, SensorDataReader
 
+from .generic import *  # noqa:F401,F403
 from .file import *  # noqa:F401,F403
 
 __all__ = ['DetectionReader', 'GroundTruthReader', 'SensorDataReader']
