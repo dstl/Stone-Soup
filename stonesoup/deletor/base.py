@@ -21,23 +21,15 @@ class Deletor(Base):
 
         Parameters
         ----------
-        tracks : :class:`sets.Set`
-            A set of :class:`stonesoup.types.Track` objects
+        tracks : set of :class:`~.Track`
+            A set of :class:`~.Track` objects
 
         Returns
         -------
-        : (:class:`sets.Set`, :class:`sets.Set`) :class:`tuple`
-            A tuple whose first entry contains the set of survining tracks,\
-            while the second contains the set of deleted tracks.
+        : set of :class:`~.Track`
+            Set of tracks proposed for deletion.
         """
 
-        surviving_tracks = set()
-        deleted_tracks = set()
-
-        for track in tracks:
-            if(self.check_for_deletion(track, **kwargs)):
-                deleted_tracks.add(track)
-            else:
-                surviving_tracks.add(track)
-
-        return (surviving_tracks, deleted_tracks)
+        return {track
+                for track in tracks
+                if self.check_for_deletion(track, **kwargs)}

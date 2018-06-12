@@ -20,8 +20,8 @@ def test_cbd():
     cover_deletion_thresh = 100
     deletor = CovarianceBasedDeletor(cover_deletion_thresh)
 
-    surviving_tracks, deleted_tracks =\
-        deletor.delete_tracks(tracks)
+    deleted_tracks = deletor.delete_tracks(tracks)
+    tracks -= deleted_tracks
 
-    assert(len(surviving_tracks) == 0)
+    assert(len(tracks) == 0)
     assert(len(deleted_tracks) == 1)
