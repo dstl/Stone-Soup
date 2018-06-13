@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-import copy
-
 from .base import Tracker
 from ..base import Property
-from ..types import State, Track
-from ..detector import Detector
 from ..dataassociator import DataAssociator
+from ..deletor import Deletor
+from ..detector import Detector
+from ..initiator import Initiator
 from ..updater import Updater
 
 
@@ -14,6 +13,12 @@ class SingleTargetTracker(Tracker):
 
     Track an object using StoneSoup components.
     """
+    initiator = Property(
+        Initiator,
+        doc="Initiator used to initialise the track.")
+    deletor = Property(
+        Deletor,
+        doc="Initiator used to initialise the track.")
     detector = Property(
         Detector,
         doc="Detector used to generate detection objects.")
@@ -23,9 +28,6 @@ class SingleTargetTracker(Tracker):
     updater = Property(
         Updater,
         doc="Updater used to update the track object to the new state.")
-    initial_state = Property(
-        State,
-        doc="First state")
 
     def __init__(self, *args, **kwargs):
         self.tracks = set()
@@ -36,25 +38,24 @@ class SingleTargetTracker(Tracker):
 
         for time, detections in self.detector.detections_gen():
 
-            # TODO: Initialiser
-            if track is None:
-                state = copy.deepcopy(self.initial_state)
-                if state.timestamp is None:
-                    state.timestamp = time
-                track = Track()
-                track.states.append(state)
-                self.tracks.add(track)
+            if track is not None:
+                associations = self.data_associator.associate(
+                        {track}, detections, time)
+                if associations[track].detection is not None:
+                    state_post, _ = self.updater.update(
+                        associations[track].prediction,
+                        associations[track].innovation,
+                        associations[track].detection)
+                    track.states.append(state_post)
+                else:
+                    track.states.append(associations[track].prediction)
 
-            associations = self.data_associator.associate({track}, detections,
-                                                          time)
+            if track is None or self.deletor.delete_tracks({track}):
+                new_tracks = self.initiator.initiate(detections)
+                if new_tracks:
+                    track = next(iter(new_tracks))
+                    self.tracks.add(track)
+                else:
+                    track = None
 
-            if associations[track].detection is not None:
-                state_post, _ = self.updater.update(
-                    associations[track].prediction,
-                    associations[track].innovation,
-                    associations[track].detection)
-                track.states.append(state_post)
-            else:
-                track.states.append(associations[track].prediction)
-
-            yield {track}
+            yield time, {track}
