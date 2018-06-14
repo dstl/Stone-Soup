@@ -19,15 +19,6 @@ class DataAssociator(Base):
         joint_hypothesis : :class:`JointHypothesis`
             A set of hypotheses linking each prediction to a single detection
 
-        Attributes
-        ----------
-        number_hypotheses : int
-            The number of hypotheses in joint_hypothesis
-        unique_hypotheses : int
-            The number of unique hypotheses in joint_hypothesis
-        number_null_hypotheses : int
-            The number of 'None' hypotheses representing a missed detection
-
         Returns
         -------
         bool
@@ -68,10 +59,10 @@ class DataAssociator(Base):
 
         # Create a list of dictionaries of valid track-hypothesis pairs
         joint_hypotheses = [
-            JointHypothesis({track: hypothesis for track, hypothesis in
-                             zip(hypotheses, joint_hypothesis)}) for
-            joint_hypothesis in
-            itertools.product(*hypotheses.values()) if
-            cls.isvalid(joint_hypothesis)]
+            JointHypothesis({
+                track: hypothesis
+                for track, hypothesis in zip(hypotheses, joint_hypothesis)})
+            for joint_hypothesis in itertools.product(*hypotheses.values())
+            if cls.isvalid(joint_hypothesis)]
 
         return joint_hypotheses

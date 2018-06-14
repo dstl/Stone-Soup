@@ -51,7 +51,7 @@ class NearestNeighbour(DataAssociator):
                         continue
                     # best_hypothesis is 'greater than' other
                     if (best_hypothesis is None
-                        or hypothesis > best_hypothesis):
+                            or hypothesis > best_hypothesis):
                         best_hypothesis = hypothesis
                         best_hypothesis_track = track
 

@@ -12,14 +12,6 @@ from ..types import Detection
 class Hypothesis(Type):
     """Hypothesis base type
 
-    Attributes
-    ----------
-    prediction : :class:`State`
-        Track predicted forward to the time of the detection
-    innovation : :class:`State`
-        Prediction translated into measurement space
-    detection : :class:`Detection`
-        Retrieved measurement
     """
 
     prediction = Property(
@@ -56,17 +48,11 @@ class Hypothesis(Type):
 class DistanceHypothesis(Hypothesis):
     """Distance scored hypothesis subclass.
 
-        Notes
-        -----
-        As smaller distance is 'better', comparison logic is reversed
-        i.e. smaller distance is a greater likelihood.
-
-        Attributes
-        ----------
-        distance : float
-            A hypothesis property - the distance between the prediction and
-            detection
-        """
+    Notes
+    -----
+    As smaller distance is 'better', comparison logic is reversed
+    i.e. smaller distance is a greater likelihood.
+    """
 
     distance = Property(
         float,
@@ -91,10 +77,6 @@ class DistanceHypothesis(Hypothesis):
 class JointHypothesis(Type, UserDict):
     """Joint Hypothesis base type
 
-    Attributes
-    ----------
-    hypotheses : list of :class:`Hypothesis`
-        A set of hypotheses, one per prediction, that make up a joint hypothesis
     """
 
     hypotheses = Property(
@@ -136,16 +118,11 @@ class JointHypothesis(Type, UserDict):
 class DistanceJointHypothesis(JointHypothesis):
     """Distance scored hypothesis subclass.
 
-        Notes
-        -----
-        As smaller distance is 'better', comparison logic is reversed
-        i.e. smaller distance is a greater likelihood.
-
-        Attributes
-        ----------
-        distance : float
-            The sum of the hypothesis distances
-        """
+    Notes
+    -----
+    As smaller distance is 'better', comparison logic is reversed
+    i.e. smaller distance is a greater likelihood.
+    """
 
     def __init__(self, hypotheses):
         super().__init__(hypotheses)
