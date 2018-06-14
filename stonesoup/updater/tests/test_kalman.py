@@ -4,14 +4,15 @@ import numpy as np
 
 from stonesoup.types.detection import Detection
 from stonesoup.updater.kalman import KalmanUpdater, ExtendedKalmanUpdater
-from stonesoup.models.measurementmodel.linear import LinearGaussian1D
+from stonesoup.models.measurementmodel.linear import LinearGaussian
 from stonesoup.types.state import GaussianState
 
 
 def test_kalman():
 
     # Initialise a measurement model
-    lg = LinearGaussian1D(ndim_state=2, mapping=0, noise_covar=0.04)
+    lg = LinearGaussian(ndim_state=2, mapping=[0],
+                        noise_covar=np.array([[0.04]]))
 
     # Define predicted state
     prediction = GaussianState(np.array([[-6.45], [0.7]]),
@@ -64,7 +65,8 @@ def test_kalman():
 def test_extendedkalman():
 
     # Initialise a measurement model
-    lg = LinearGaussian1D(ndim_state=2, mapping=0, noise_covar=0.04)
+    lg = LinearGaussian(ndim_state=2, mapping=[0],
+                        noise_covar=np.array([[0.04]]))
 
     # Define predicted state
     prediction = GaussianState(np.array([[-6.45], [0.7]]),
