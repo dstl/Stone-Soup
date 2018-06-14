@@ -7,7 +7,7 @@ import numpy as np
 from stonesoup.types.detection import Detection
 from stonesoup.types.state import GaussianState
 from stonesoup.types.track import Track
-from stonesoup.models.transitionmodel.linear import ConstantVelocity1D
+from stonesoup.models.transitionmodel.linear import ConstantVelocity
 from stonesoup.models.measurementmodel.linear import LinearGaussian1D
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.updater.kalman import KalmanUpdater
@@ -39,7 +39,7 @@ def test_backwards_smoother():
     # Setup models.
     initial_state = GaussianState(np.ones([2, 1]), np.eye(2), timestamp=t_0)
 
-    trans_model = ConstantVelocity1D(noise_diff_coeff=1)
+    trans_model = ConstantVelocity(noise_diff_coeff=1)
     meas_model = LinearGaussian1D(ndim_state=2, mapping=0, noise_covar=0.4)
 
     estimates = [initial_state]

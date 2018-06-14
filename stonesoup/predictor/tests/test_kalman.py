@@ -3,7 +3,7 @@ import datetime
 
 import numpy as np
 
-from stonesoup.models.transitionmodel.linear import ConstantVelocity1D
+from stonesoup.models.transitionmodel.linear import ConstantVelocity
 from stonesoup.predictor.kalman import KalmanPredictor, ExtendedKalmanPredictor
 from stonesoup.types.state import GaussianState
 
@@ -11,7 +11,7 @@ from stonesoup.types.state import GaussianState
 def test_kalman():
 
     # Initialise a transition model
-    cv = ConstantVelocity1D(noise_diff_coeff=0.1)
+    cv = ConstantVelocity(noise_diff_coeff=0.1)
 
     # Define time related variables
     timestamp = datetime.datetime.now()
@@ -53,7 +53,7 @@ def test_kalman():
 def test_extendedkalman():
 
     # Initialise a transition model
-    cv = ConstantVelocity1D(noise_diff_coeff=0.1)
+    cv = ConstantVelocity(noise_diff_coeff=0.1)
 
     # Define time related variables
     timestamp = datetime.datetime.now()
