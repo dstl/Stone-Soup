@@ -47,22 +47,17 @@ def test_backwards_smoother():
     # Filter Initial Detection
     track = Track()
     track.states.append(initial_state)
-    predictor = KalmanPredictor(transition_model=trans_model,
-                                measurement_model=meas_model)
+    predictor = KalmanPredictor(transition_model=trans_model)
     updater = KalmanUpdater(measurement_model=meas_model)
-    meas_pred, cross_var = predictor.predict_measurement(track.state)
-    new_state, gain = updater.update(track.state,
-                                     meas_pred,
-                                     detections[0])
+    new_state = updater.update(track.state, detections[0])
     track.states[0] = new_state
 
     # Filter Remaining Detections.
     for t in range(1, T):
         time = detections[t].timestamp
-        state_pred, meas_pred, cross_var = predictor.predict(track.state,
-                                                             timestamp=time)
+        state_pred = predictor.predict(track.state, timestamp=time)
         estimates.append(state_pred)
-        state_post, gain = updater.update(state_pred, meas_pred, detections[t])
+        state_post = updater.update(state_pred, detections[t])
         track.states.append(state_post)
 
     # Smooth Track

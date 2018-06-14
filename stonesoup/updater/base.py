@@ -11,5 +11,10 @@ class Updater(Base):
     measurement_model = Property(MeasurementModel, doc="measurement model")
 
     @abstractmethod
-    def update(self, *args, **kwargs):
+    def get_measurement_prediction(self, state_prediction, **kwargs):
+        raise NotImplemented
+
+    @abstractmethod
+    def update(self, prediction, measurement,
+               measurement_prediction=None, **kwargs):
         raise NotImplemented
