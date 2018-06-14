@@ -6,6 +6,7 @@ from .base import Hypothesiser
 from ..base import Property
 from ..types import DistanceHypothesis
 from ..predictor import Predictor
+from ..updater import Updater
 
 
 class MahalanobisDistanceHypothesiser(Hypothesiser):
@@ -18,7 +19,9 @@ class MahalanobisDistanceHypothesiser(Hypothesiser):
     predictor = Property(
         Predictor,
         doc="Predict tracks to detection times")
-
+    updater = Property(
+        Updater,
+        doc="Predict tracks to detection times")
     missed_distance = Property(
         int,
         default=4,
@@ -30,18 +33,20 @@ class MahalanobisDistanceHypothesiser(Hypothesiser):
         hypotheses = list()
 
         for detection in detections:
-            prediction, innovation, _ = self.predictor.predict(
+            prediction = self.predictor.predict(
                 track, timestamp=detection.timestamp)
+            measurement_prediction, _ = self.updater.get_measurement_prediction(
+                prediction)
             distance = mahalanobis(detection.state_vector,
-                                   innovation.state_vector,
-                                   np.linalg.inv(innovation.covar))
+                                   measurement_prediction.state_vector,
+                                   np.linalg.inv(measurement_prediction.covar))
 
             hypotheses.append(
-                DistanceHypothesis(prediction, innovation, detection, distance))
+                DistanceHypothesis(
+                    prediction, measurement_prediction, detection, distance))
 
         # Missed detection hypothesis with distance as 'missed_distance'
-        prediction = self.predictor.predict_state(track,
-                                                  timestamp=timestamp)
+        prediction = self.predictor.predict(track, timestamp=timestamp)
         hypotheses.append(
             DistanceHypothesis(prediction, None, None, self.missed_distance))
 
