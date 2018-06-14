@@ -21,7 +21,7 @@ class MahalanobisDistanceHypothesiser(Hypothesiser):
         doc="Predict tracks to detection times")
     updater = Property(
         Updater,
-        doc="Predict tracks to detection times")
+        doc="Updater used to get measurement prediction")
     missed_distance = Property(
         int,
         default=4,
