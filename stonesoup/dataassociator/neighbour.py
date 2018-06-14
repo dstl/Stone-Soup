@@ -21,26 +21,35 @@ class NearestNeighbour(DataAssociator):
 
         Parameters
         ----------
-
+        tracks : list of :class:`Track`
+            Current tracked objects
+        detections : list of :class:`Detection`
+            Retrieved measurements
+        time : datetime
+            Detection time to predict to
 
         Returns
         -------
-
+        dict
+            Key value pair of tracks with associated detection
         """
 
+        # Generate a set of hypotheses for each track on each detection
         hypotheses = {
             track: self.hypothesiser.hypothesise(track, detections, time)
             for track in tracks}
 
-        # 'Greedy' associator
         associations = {}
         associated_detections = set()
         while tracks > associations.keys():
+            # Define a 'greedy' association
             best_hypothesis = None
             for track in tracks - associations.keys():
                 for hypothesis in hypotheses[track]:
+                    # A detection may only be associated with a single track
                     if hypothesis.detection in associated_detections:
                         continue
+                    # best_hypothesis is 'greater than' other
                     if (best_hypothesis is None
                         or hypothesis > best_hypothesis):
                         best_hypothesis = hypothesis
@@ -69,17 +78,25 @@ class GlobalNearestNeighbour(DataAssociator):
 
         Parameters
         ----------
-
+        tracks : list of :class:`Track`
+            Current tracked objects
+        detections : list of :class:`Detection`
+            Retrieved measurements
+        time : datetime
+            Detection time to predict to
 
         Returns
         -------
-
+        dict
+            Key value pair of tracks with associated detection
         """
 
+        # Generate a set of hypotheses for each track on each detection
         hypotheses = {
             track: self.hypothesiser.hypothesise(track, detections, time)
             for track in tracks}
 
+        # Link hypotheses into a set of joint_hypotheses and evaluate
         joint_hypotheses = self.enumerate_joint_hypotheses(hypotheses)
         associations = max(joint_hypotheses)
 

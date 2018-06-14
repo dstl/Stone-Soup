@@ -12,9 +12,14 @@ from ..types import Detection
 class Hypothesis(Type):
     """Hypothesis base type
 
-    Parameters
+    Attributes
     ----------
-
+    prediction : :class:`State`
+        Track predicted forward to the time of the detection
+    innovation : :class:`State`
+        Prediction translated into measurement space
+    detection : :class:`Detection`
+        Retrieved measurement
     """
 
     prediction = Property(
@@ -56,9 +61,11 @@ class DistanceHypothesis(Hypothesis):
         As smaller distance is 'better', comparison logic is reversed
         i.e. smaller distance is a greater likelihood.
 
-        Parameters
+        Attributes
         ----------
-
+        distance : float
+            A hypothesis property - the distance between the prediction and
+            detection
         """
 
     distance = Property(
@@ -84,9 +91,10 @@ class DistanceHypothesis(Hypothesis):
 class JointHypothesis(Type, UserDict):
     """Joint Hypothesis base type
 
-    Parameters
+    Attributes
     ----------
-
+    hypotheses : list of :class:`Hypothesis`
+        A set of hypotheses, one per prediction, that make up a joint hypothesis
     """
 
     hypotheses = Property(
@@ -133,9 +141,10 @@ class DistanceJointHypothesis(JointHypothesis):
         As smaller distance is 'better', comparison logic is reversed
         i.e. smaller distance is a greater likelihood.
 
-        Parameters
+        Attributes
         ----------
-
+        distance : float
+            The sum of the hypothesis distances
         """
 
     def __init__(self, hypotheses):
