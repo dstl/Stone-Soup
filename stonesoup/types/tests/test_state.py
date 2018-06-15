@@ -33,9 +33,18 @@ def test_gaussianstate():
                       [0.0002, 2.2130, 0, 0],
                       [0.3897, -0.00004, 0.0128, 0],
                       [0, 0.3897, 0.0013, 0.0135]]) * 1e3
+    timestamp = datetime.datetime.now()
 
+    # Test state initiation without timestamp
     state = GaussianState(mean, covar)
-
     assert(np.array_equal(mean, state.mean))
     assert(np.array_equal(covar, state.covar))
     assert(state.ndim == mean.shape[0])
+    assert(state.timestamp is None)
+
+    # Test state initiation with timestamp
+    state = GaussianState(mean, covar, timestamp)
+    assert(np.array_equal(mean, state.mean))
+    assert(np.array_equal(covar, state.covar))
+    assert(state.ndim == mean.shape[0])
+    assert(state.timestamp == timestamp)

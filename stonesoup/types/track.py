@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from .base import Type
+from .base import Type, Property
+from ..types import State
 
 
 class Track(Type):
@@ -17,9 +18,16 @@ class Track(Type):
         Most recent estimate state covariance
     """
 
+    initial_state = Property(State,
+                             doc="The initial state of the track",
+                             default=None)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.states = []
+        if(self.initial_state is not None):
+            self.states = [self.initial_state]
+        else:
+            self.states = []
 
     @property
     def state(self):
