@@ -49,7 +49,7 @@ class SingleTargetTracker(Tracker):
                                                           time)
 
             if associations[track].detection is not None:
-                state_post = self.updater.update(
+                state_post,_ = self.updater.update(
                     associations[track].prediction,
                     associations[track].detection,
                     associations[track].innovation)
