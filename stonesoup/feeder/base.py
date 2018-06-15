@@ -2,37 +2,19 @@
 """Base classes for Stone Soup feeder"""
 from abc import abstractmethod
 
-from ..base import Base
+from ..base import Property
+from ..reader import DetectionReader
 
 
-class Empty(Exception):
-    """Exception raised by :class:`Feeder` when empty."""
-    pass
-
-
-class Feeder(Base):
+class Feeder(DetectionReader):
     """Feeder base class
 
     Feeder consumes and outputs :class:`.Detection` data and can be used to
-    modify the sequence, duplicate or drop data."""
+    modify the sequence, duplicate or drop data.
+    """
+
+    detector = Property(DetectionReader, doc="Source of detections")
 
     @abstractmethod
-    def put(self, detection):
-        """Put a new :class:`.Detection` in the Feeder.
-
-        Parameters
-        ----------
-        detection : Detection
-            A :class:`.Detection` to be added to the feeder.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get(self):
-        """Get a :class:`.Detection` from the Feeder.
-
-        Raises
-        ------
-        Empty
-            If called when the Feeder is empty."""
-        raise NotImplementedError
+    def detections_gen(self):
+        raise NotImplemented

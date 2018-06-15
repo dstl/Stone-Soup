@@ -3,9 +3,9 @@ Models
 
 .. toctree::
 
-    stonesoup.models.controlmodel
-    stonesoup.models.measurementmodel
-    stonesoup.models.transitionmodel
+    stonesoup.models.control
+    stonesoup.models.measurement
+    stonesoup.models.transition
 
 .. automodule:: stonesoup.models
     :no-members:

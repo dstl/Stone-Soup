@@ -25,6 +25,7 @@ Data Output
 Simulators
 ^^^^^^^^^^
 .. autoclass:: stonesoup.simulator.DetectionSimulator
+.. autoclass:: stonesoup.simulator.GroundTruthSimulator
 .. autoclass:: stonesoup.simulator.SensorSimulator
 
 
@@ -34,8 +35,15 @@ Tracker Components
 .. autoclass:: stonesoup.deletor.Deletor
 .. autoclass:: stonesoup.hypothesiser.Hypothesiser
 .. autoclass:: stonesoup.initiator.Initiator
-.. autoclass:: stonesoup.measurementmodel.MeasurementModel
 .. autoclass:: stonesoup.mixturereducer.MixtureReducer
 .. autoclass:: stonesoup.predictor.Predictor
-.. autoclass:: stonesoup.transitionmodel.TransitionModel
 .. autoclass:: stonesoup.updater.Updater
+
+Models
+^^^^^^
+.. autoclass:: stonesoup.models.control.ControlModel
+    :inherited-members:
+.. autoclass:: stonesoup.models.measurement.MeasurementModel
+    :inherited-members:
+.. autoclass:: stonesoup.models.transition.TransitionModel
+    :inherited-members:

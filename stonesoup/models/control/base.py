@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from abc import abstractproperty
+from abc import abstractmethod
 
 import scipy as sp
 
@@ -14,7 +14,8 @@ class ControlModel(Model):
     mapping = Property(
         sp.ndarray, doc="Mapping between control and state dims")
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def ndim_ctrl(self):
-        """ Number of control input dimesions """
+        """Number of control input dimensions"""
         pass

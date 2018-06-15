@@ -3,7 +3,7 @@ from .base import Tracker
 from ..base import Property
 from ..dataassociator import DataAssociator
 from ..deletor import Deletor
-from ..detector import Detector
+from ..reader import DetectionReader
 from ..initiator import Initiator
 from ..updater import Updater
 
@@ -20,7 +20,7 @@ class SingleTargetTracker(Tracker):
         Deletor,
         doc="Initiator used to initialise the track.")
     detector = Property(
-        Detector,
+        DetectionReader,
         doc="Detector used to generate detection objects.")
     data_associator = Property(
         DataAssociator,

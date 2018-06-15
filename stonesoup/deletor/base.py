@@ -5,7 +5,10 @@ from ..base import Base
 
 
 class Deletor(Base):
-    """Deletor base class"""
+    """Deletor base class.
+
+    Proposes tracks for deletion.
+    """
 
     @abstractmethod
     def check_for_deletion(self):

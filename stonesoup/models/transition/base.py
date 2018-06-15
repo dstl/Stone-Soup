@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from abc import abstractproperty
+from abc import abstractmethod
 
 from ..base import Model
 
@@ -7,7 +7,8 @@ from ..base import Model
 class TransitionModel(Model):
     """Transition Model base class"""
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def ndim_state(self):
-        """ Number of state dimensions"""
+        """Number of state dimensions"""
         pass

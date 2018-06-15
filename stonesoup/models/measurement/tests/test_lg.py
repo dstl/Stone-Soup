@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 from scipy.stats import multivariate_normal
 
-from stonesoup.models.measurementmodel.linear import LinearGaussian
+from stonesoup.models.measurement.linear import LinearGaussian
 
 
 @pytest.mark.parametrize(

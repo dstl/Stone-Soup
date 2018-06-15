@@ -1,7 +1,7 @@
 from .base import Initiator
 from ..base import Property
 from ..updater import KalmanUpdater
-from ..models.measurementmodel import MeasurementModel
+from ..models.measurement import MeasurementModel
 from ..types.track import Track
 from ..types.state import GaussianState
 

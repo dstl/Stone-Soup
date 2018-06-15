@@ -85,19 +85,23 @@ class Property:
     default : any, optional
         A default value, which should be same type as class or None. Defaults
         to :class:`inspect.Parameter.empty` (alias :attr:`Property.empty`)
-    doc : str
+    doc : str, optional
         Doc string for property
+
+    Attributes
+    ----------
+    cls
+    default
+    doc
+    empty : :class:`inspect.Parameter.empty`
+        Alias to :class:`inspect.Parameter.empty`
     """
     empty = inspect.Parameter.empty
-    """Alias to :class:`inspect.Parameter.empty`"""
 
-    def __init__(self, cls, **kwargs):
+    def __init__(self, cls, *, default=inspect.Parameter.empty, doc=None):
         self.cls = cls
-        try:
-            self.default = kwargs.pop('default')
-        except KeyError:
-            self.default = self.empty
-        self.doc = kwargs.pop('doc', None)
+        self.default = default
+        self.doc = doc
 
 
 class BaseMeta(ABCMeta):
