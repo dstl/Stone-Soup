@@ -54,9 +54,9 @@ class KalmanPredictor(Predictor):
 
         # Control model parameters
         if self.control_model is None:
-            control_matrix = np.array(np.zeros((2, 2)))
-            contol_noise_covar = np.array(np.zeros((2, 2)))
-            control_input = State(np.array(np.zeros((2, 1))))
+            control_matrix = np.zeros(prior.covar.shape)
+            contol_noise_covar = np.zeros(prior.covar.shape)
+            control_input = State(np.zeros(prior.state_vector.shape))
         else:
             # Extract control matrix
             control_matrix = self.control_model.matrix(
@@ -172,9 +172,9 @@ class ExtendedKalmanPredictor(KalmanPredictor):
 
         # Control model parameters
         if self.control_model is None:
-            control_matrix = np.array(np.zeros((2, 2)))
-            contol_noise_covar = np.array(np.zeros((2, 2)))
-            control_input = State(np.array(np.zeros((2, 1))))
+            control_matrix = np.zeros(prior.covar.shape)
+            contol_noise_covar = np.zeros(prior.covar.shape)
+            control_input = State(np.zeros(prior.state_vector.shape))
         else:
             # Extract control matrix
             try:
