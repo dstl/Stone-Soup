@@ -2,8 +2,7 @@ import datetime
 
 import numpy as np
 
-from stonesoup.models import LinearGaussian1D
-from stonesoup.predictor import KalmanPredictor
+from stonesoup.models import LinearGaussian
 from stonesoup.updater import KalmanUpdater
 from stonesoup.types import GaussianState, Detection
 from stonesoup.initiator import SinglePointInitiator
@@ -18,7 +17,7 @@ def test_spi():
         np.array([[100, 0], [0, 1]]))
 
     # Define a measurement model
-    measurement_model = LinearGaussian1D(2, [0], 1)
+    measurement_model = LinearGaussian(2, [0], np.array([[1]]))
 
     # Define the Initiator
     initiator = SinglePointInitiator(
@@ -41,22 +40,12 @@ def test_spi():
     evaluated_tracks = [False, False]
     for detection in detections:
 
-        detection_state_vec = detection.state_vector
-
-        meas_pred_state_vec, meas_pred_covar, cross_covar =\
-            KalmanPredictor._predict_meas(
-                prior_state.state_vector,
-                prior_state.covar,
-                measurement_model.matrix(),
-                measurement_model.covar())
-
-        post_state_vec, post_state_covar, kalman_gain =\
-            KalmanUpdater._update(prior_state.state_vector,
-                                  prior_state.covar,
-                                  detection_state_vec,
-                                  meas_pred_state_vec,
-                                  meas_pred_covar,
-                                  cross_covar)
+        post_state_vec, post_state_covar, _ =\
+            KalmanUpdater.update_lowlevel(prior_state.state_vector,
+                                          prior_state.covar,
+                                          measurement_model.matrix(),
+                                          measurement_model.covar(),
+                                          detection.state_vector)
 
         eval_track_state = GaussianState(
             post_state_vec,
