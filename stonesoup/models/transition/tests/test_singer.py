@@ -5,7 +5,7 @@ import datetime
 import scipy as sp
 from scipy.stats import multivariate_normal
 
-from stonesoup.models.transitionmodel.linear import \
+from stonesoup.models.transition.linear import \
     (SingerModel1D, SingerModel2D, SingerModel3D)
 
 
