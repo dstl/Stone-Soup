@@ -614,7 +614,7 @@ class ConstantTurn(LinearGaussianTransitionModel, TimeVariantModel):
     noise_diff_coeffs = Property(
         sp.ndarray,
         doc="The acceleration noise diffusion coefficients :math:`q`")
-    omega = Property(
+    turn_rate = Property(
         float, doc=r"The turn rate :math:`\omega`")
 
     @property
@@ -645,17 +645,17 @@ class ConstantTurn(LinearGaussianTransitionModel, TimeVariantModel):
         """
 
         time_interval_sec = time_interval.total_seconds()
-        omegadt = self.omega * time_interval_sec
+        turn_ratedt = self.turn_rate * time_interval_sec
 
         return sp.array(
-            [[1, sp.sin(omegadt) / self.omega,
-              0, -(1 - sp.cos(omegadt)) / self.omega],
-             [0, sp.cos(omegadt),
-              0, -sp.sin(omegadt)],
-             [0, (1 - sp.cos(omegadt)) / self.omega,
-              1, sp.sin(omegadt) / self.omega],
-             [0, sp.sin(omegadt),
-              0, sp.cos(omegadt)]])
+            [[1, sp.sin(turn_ratedt) / self.turn_rate,
+              0, -(1 - sp.cos(turn_ratedt)) / self.turn_rate],
+             [0, sp.cos(turn_ratedt),
+              0, -sp.sin(turn_ratedt)],
+             [0, (1 - sp.cos(turn_ratedt)) / self.turn_rate,
+              1, sp.sin(turn_ratedt) / self.turn_rate],
+             [0, sp.sin(turn_ratedt),
+              0, sp.cos(turn_ratedt)]])
 
     def covar(self, time_interval, **kwargs):
         """Returns the transition model noise covariance matrix.

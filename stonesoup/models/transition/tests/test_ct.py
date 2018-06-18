@@ -12,16 +12,16 @@ def test_ctmodel():
     """ ConstantTurn Transition Model test """
     state_vec = sp.array([[3.0], [1.0], [2.0], [1.0]])
     noise_diff_coeffs = sp.array([[0.01], [0.01]])
-    omega = 0.1
-    base(ConstantTurn, state_vec, noise_diff_coeffs, omega)
+    turn_rate = 0.1
+    base(ConstantTurn, state_vec, noise_diff_coeffs, turn_rate)
 
 
-def base(model, state_vec, noise_diff_coeffs, omega):
+def base(model, state_vec, noise_diff_coeffs, turn_rate):
     """ Base test for n-dimensional ConstantAcceleration Transition Models """
 
     # Create an ConstantTurn model object
     model = model
-    model_obj = model(noise_diff_coeffs=noise_diff_coeffs, omega=omega)
+    model_obj = model(noise_diff_coeffs=noise_diff_coeffs, turn_rate=turn_rate)
 
     # State related variables
     state_vec = state_vec
@@ -32,17 +32,17 @@ def base(model, state_vec, noise_diff_coeffs, omega):
 
     # Model-related components
     noise_diff_coeffs = noise_diff_coeffs  # m/s^3
-    omega = omega
-    omegadt = omega*timediff
+    turn_rate = turn_rate
+    turn_ratedt = turn_rate*timediff
     F = sp.array(
-            [[1, sp.sin(omegadt) / omega,
-              0, -(1 - sp.cos(omegadt)) / omega],
-             [0, sp.cos(omegadt),
-              0, -sp.sin(omegadt)],
-             [0, (1 - sp.cos(omegadt)) / omega,
-              1, sp.sin(omegadt) / omega],
-             [0, sp.sin(omegadt),
-              0, sp.cos(omegadt)]])
+            [[1, sp.sin(turn_ratedt) / turn_rate,
+              0, -(1 - sp.cos(turn_ratedt)) / turn_rate],
+             [0, sp.cos(turn_ratedt),
+              0, -sp.sin(turn_ratedt)],
+             [0, (1 - sp.cos(turn_ratedt)) / turn_rate,
+              1, sp.sin(turn_ratedt) / turn_rate],
+             [0, sp.sin(turn_ratedt),
+              0, sp.cos(turn_ratedt)]])
 
     qx = noise_diff_coeffs[0]
     qy = noise_diff_coeffs[1]
