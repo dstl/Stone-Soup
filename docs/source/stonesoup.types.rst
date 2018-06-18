@@ -46,6 +46,12 @@ State Types
 .. automodule:: stonesoup.types.state
     :show-inheritance:
 
+Prediction Types
+----------------
+
+.. automodule:: stonesoup.types.prediction
+    :show-inheritance:
+
 Track Types
 -----------
 
