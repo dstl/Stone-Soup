@@ -6,14 +6,14 @@ import scipy as sp
 from scipy.stats import multivariate_normal
 
 from stonesoup.models.transition.linear import \
-    (ConstantAcceleration1D, ConstantAcceleration2D, ConstantAcceleration3D)
+    (ConstantAcceleration, CombinedLinearGaussianTransitionModel)
 
 
-def test_ca1dmodel():
-    """ ConstantAcceleration1D Transition Model test """
+def test_cam1dodel():
+    """ ConstantAcceleration Transition Model test """
     state_vec = sp.array([[3.0], [1.0], [0.1]])
     noise_diff_coeffs = sp.array([[0.01]])
-    base(ConstantAcceleration1D, state_vec, noise_diff_coeffs)
+    base(state_vec, noise_diff_coeffs)
 
 
 def test_ca2dmodel():
@@ -21,7 +21,7 @@ def test_ca2dmodel():
     state_vec = sp.array([[3.0], [1.0], [0.1],
                           [2.0], [2.0], [0.2]])
     noise_diff_coeffs = sp.array([[0.01], [0.02]])
-    base(ConstantAcceleration2D, state_vec, noise_diff_coeffs)
+    base(state_vec, noise_diff_coeffs)
 
 
 def test_ca3dmodel():
@@ -30,16 +30,21 @@ def test_ca3dmodel():
                           [2.0], [2.0], [0.2],
                           [4.0], [0.5], [0.05]])
     noise_diff_coeffs = sp.array([[0.01], [0.02], [0.005]])
-    base(ConstantAcceleration3D, state_vec, noise_diff_coeffs)
+    base(state_vec, noise_diff_coeffs)
 
 
-def base(model, state_vec, noise_diff_coeffs):
+def base(state_vec, noise_diff_coeffs):
     """ Base test for n-dimensional ConstantAcceleration Transition Models """
 
-    # Create and an arbitrary dimension ConstantAcceleration model object
-    model = model
-    model_obj = model(noise_diff_coeffs=noise_diff_coeffs)
-    dimension = model_obj.ndim_state // 3 # pos, vel, acc for each dimension
+    # Create a 1D ConstantAcceleration or an n-dimensional
+    # CombinedLinearGaussianTransitionModel object
+    dim = len(state_vec) // 3  # pos, vel, acc for each dimension
+    if dim == 1:
+        model_obj = ConstantAcceleration(noise_diff_coeff=noise_diff_coeffs[0])
+    else:
+        model_list = [ConstantAcceleration(
+            noise_diff_coeff=noise_diff_coeffs[i]) for i in range(0, dim)]
+        model_obj = CombinedLinearGaussianTransitionModel(model_list)
 
     # State related variables
     state_vec = state_vec
@@ -53,7 +58,7 @@ def base(model, state_vec, noise_diff_coeffs):
     base_mat = sp.array([[1, timediff, sp.power(timediff, 2)],
                          [0, 1, timediff],
                          [0, 0, 1]])
-    mat_list = [base_mat for num in range(0, dimension)]
+    mat_list = [base_mat for num in range(0, dim)]
     F = sp.linalg.block_diag(*mat_list)
 
     base_covar = sp.array([[sp.power(timediff, 5) / 20,
@@ -65,8 +70,8 @@ def base(model, state_vec, noise_diff_coeffs):
                            [sp.power(timediff, 3) / 6,
                             sp.power(timediff, 2) / 2,
                             timediff]])
-    covar_list = [base_covar*sp.power(noise_diff_coeffs[i], 2)\
-                  for i in range(0, dimension)]
+    covar_list = [base_covar*sp.power(noise_diff_coeffs[i], 2)
+                  for i in range(0, dim)]
     Q = sp.linalg.block_diag(*covar_list)
 
     # Ensure ```model_obj.transfer_function(time_interval)``` returns F

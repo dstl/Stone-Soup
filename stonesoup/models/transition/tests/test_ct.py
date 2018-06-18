@@ -19,7 +19,7 @@ def test_ctmodel():
 def base(model, state_vec, noise_diff_coeffs, omega):
     """ Base test for n-dimensional ConstantAcceleration Transition Models """
 
-    # Create and a ConstantTurn model object
+    # Create an ConstantTurn model object
     model = model
     model_obj = model(noise_diff_coeffs=noise_diff_coeffs, omega=omega)
 
@@ -43,7 +43,7 @@ def base(model, state_vec, noise_diff_coeffs, omega):
               1, sp.sin(omegadt) / omega],
              [0, sp.sin(omegadt),
               0, sp.cos(omegadt)]])
-    
+
     qx = noise_diff_coeffs[0]
     qy = noise_diff_coeffs[1]
     Q = sp.array([[sp.power(qx, 2) * sp.power(timediff, 3) / 3,

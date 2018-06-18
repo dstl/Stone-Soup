@@ -297,8 +297,8 @@ class ConstantVelocity(LinearGaussianTransitionModel, TimeVariantModel):
         return CovarianceMatrix(covar)
 
 
-class ConstantAcceleration1D(LinearGaussianTransitionModel, TimeVariantModel):
-    r"""This is a class implementation of a time-variant 1D Constant 
+class ConstantAcceleration(LinearGaussianTransitionModel, TimeVariantModel):
+    r"""This is a class implementation of a time-variant 1D Constant
     Acceleration Transition Model.
 
     The target acceleration is modeled as a zero-mean white noise random
@@ -314,9 +314,9 @@ class ConstantAcceleration1D(LinearGaussianTransitionModel, TimeVariantModel):
                 X-axis (m)} \\
                 dx_{vel} & = & x_{acc}*d & | {Speed \
                 on\ X-axis (m/s)} \\
-                dx_{acc} & = & q*W_t,\ W_t \sim 
+                dx_{acc} & = & q*W_t,\ W_t \sim
                 \mathcal{N}(0,q^2) & | {Acceleration \ on \ X-axis (m^2/s)}
-                
+
             \end{eqnarray}
 
     Or equivalently:
@@ -348,9 +348,8 @@ class ConstantAcceleration1D(LinearGaussianTransitionModel, TimeVariantModel):
                       \end{bmatrix}*q^2
     """
 
-    noise_diff_coeffs = Property(
-        sp.ndarray,
-        doc="The acceleration noise diffusion coefficient :math:`q`")
+    noise_diff_coeff = Property(
+        float, doc="The acceleration noise diffusion coefficient :math:`q`")
 
     @property
     def ndim_state(self):
@@ -380,13 +379,11 @@ class ConstantAcceleration1D(LinearGaussianTransitionModel, TimeVariantModel):
         """
 
         time_interval_sec = time_interval.total_seconds()
-        base_mat = sp.array(
+
+        return sp.array(
                     [[1, time_interval_sec, sp.power(time_interval_sec, 2)],
                      [0, 1, time_interval_sec],
                      [0, 0, 1]])
-        mat_list = [base_mat for num in range(0, self.ndim_state // 3)]
-
-        return sp.linalg.block_diag(*mat_list)
 
     def covar(self, time_interval, **kwargs):
         """Returns the transition model noise covariance matrix.
@@ -405,214 +402,25 @@ class ConstantAcceleration1D(LinearGaussianTransitionModel, TimeVariantModel):
 
         time_interval_sec = time_interval.total_seconds()
 
-        base_covar = sp.array([[sp.power(time_interval_sec, 5) / 20,
-                                sp.power(time_interval_sec, 4) / 8,
-                                sp.power(time_interval_sec, 3) / 6],
-                               [sp.power(time_interval_sec, 4) / 8,
-                                sp.power(time_interval_sec, 3) / 3,
-                                sp.power(time_interval_sec, 2) / 2],
-                               [sp.power(time_interval_sec, 3) / 6,
-                                sp.power(time_interval_sec, 2) / 2,
-                                time_interval_sec]])
-        covar_list = [base_covar*sp.power(self.noise_diff_coeffs[i], 2)
-                      for i in range(0, self.ndim_state // 3)]
-        covar = sp.linalg.block_diag(*covar_list)
+        covar = sp.array(
+            [[sp.power(time_interval_sec, 5) / 20,
+              sp.power(time_interval_sec, 4) / 8,
+              sp.power(time_interval_sec, 3) / 6],
+             [sp.power(time_interval_sec, 4) / 8,
+              sp.power(time_interval_sec, 3) / 3,
+              sp.power(time_interval_sec, 2) / 2],
+             [sp.power(time_interval_sec, 3) / 6,
+              sp.power(time_interval_sec, 2) / 2,
+              time_interval_sec]]) * sp.power(self.noise_diff_coeff, 2)
 
         return CovarianceMatrix(covar)
 
 
-class ConstantAcceleration2D(ConstantAcceleration1D):
-    r"""This is a class implementation of a time-variant 2D Constant
-    Acceleration Transition Model.
-
-    The target acceleration is modeled as a zero-mean white noise random
-    process.
-
-    The model is described by the following SDEs:
-
-        .. math::
-            :nowrap:
-
-            \begin{eqnarray}
-                dx_{pos} & = & x_{vel}*d & | {Position \ on \
-                X-axis (m)} \\
-                dx_{vel} & = & x_{acc}*d & | {Speed \
-                on\ X-axis (m/s)} \\
-                dx_{acc} & = &  q_x*W_t,\ W_t \sim
-                \mathcal{N}(0,q_x^2) & | {Speed \ on \ X-axis (m^2/s)}\\
-                dy_{pos} & = & y_{vel}*d & | {Position \ on \
-                Y-axis (m)} \\
-                dy_{vel} & = & y_{acc}*d & | {Speed \
-                on\ X-axis (m/s)} \\
-                dy_{acc} & = & q_y*W_t,\ W_t \sim
-                \mathcal{N}(0,q_y^2) & | {Acceleration \ on \ Y-axis (m^2/s)}
-            \end{eqnarray}
-
-    Or equivalently:
-
-        .. math::
-            x_t = F_t*x_{t-1} + w_t,\ w_t \sim \mathcal{N}(0,Q_t)
-
-    where:
-
-        .. math::
-            x & = & \begin{bmatrix}
-                        x_{pos} \\
-                        x_{vel} \\
-                        x_{acc} \\
-                        y_{pos} \\
-                        y_{vel} \\
-                        y_{acc}
-                    \end{bmatrix}
-
-        .. math::
-            F_t & = & \begin{bmatrix}
-                        1 & dt & \frac{dt^2}{2} & 0 & 0 & 0 \\
-                        0 & 1 & dt & 0 & 0 & 0\\
-                        0 & 0 & 1 & 0 & 0 & 0\\
-                        0 & 0 & 0 & 1 & dt & \frac{dt^2}{2}\\
-                        0 & 0 & 0 & 0 & 1 & dt\\
-                        0 & 0 & 0 & 0 & 0 & 1
-                \end{bmatrix}
-
-        .. math::
-            Q_t & = & \begin{bmatrix}
-                        q_x^2\frac{dt^5}{20} & q_x^2\frac{dt^4}{8} &
-                        q_x^2\frac{dt^3}{6} & 0 & 0 & 0 \\
-                        q_x^2\frac{dt^4}{8} & q_x^2\frac{dt^3}{3} &
-                        q_x^2\frac{dt^2}{2} & 0 & 0 & 0 \\
-                        q_x^2\frac{dt^3}{6} & q_x^2\frac{dt^2}{2} &
-                        q_x^2 dt & 0 & 0 & 0\\
-                        0 & 0 & 0 & q_y^2\frac{dt^5}{20} &
-                        q_y^2\frac{dt^4}{8} & q_y^2\frac{dt^3}{6}\\
-                        0 & 0 & 0 & q_y^2\frac{dt^4}{8} &
-                        q_y^2\frac{dt^3}{3} & q_y^2\frac{dt^2}{2}\\
-                        0 & 0 & 0 & q_y^2\frac{dt^3}{6} &
-                        q_y^2\frac{dt^2}{2} & q_y^2 dt
-                      \end{bmatrix}
-    """
-
-    @property
-    def ndim_state(self):
-        """ndim_state getter method
-
-        Returns
-        -------
-        :class:`int`
-            :math:`6` -> The number of model state dimensions
-        """
-
-        return 6
-
-
-class ConstantAcceleration3D(ConstantAcceleration1D):
-    r"""This is a class implementation of a time-variant 3D Constant 
-    Acceleration Transition Model.
-
-    The target acceleration is modeled as a zero-mean white noise random
-    process.
-
-    The model is described by the following SDEs:
-
-        .. math::
-            :nowrap:
-
-            \begin{eqnarray}
-                dx_{pos} & = & x_{vel}*d & | {Position \ on \
-                X-axis (m)} \\
-                dx_{vel} & = & x_{acc}*d & | {Speed \
-                on\ X-axis (m/s)} \\
-                dx_{acc} & = &  q_x*W_t,\ W_t \sim 
-                \mathcal{N}(0,q_x^2) & | {Speed \ on \ X-axis (m^2/s)}\\
-                 dy_{pos} & = & y_{vel}*d & | {Position \ on \
-                Y-axis (m)} \\
-                dy_{vel} & = & y_{acc}*d & | {Speed \
-                on\ X-axis (m/s)} \\
-                dy_{acc} & = & q_y*W_t,\ W_t \sim 
-                \mathcal{N}(0,q_y^2) & | {Acceleration \ on \ Y-axis (m^2/s)}\\
-                 dz_{pos} & = & z_{vel}*d & | {Position \ on \
-                Z-axis (m)} \\
-                dz_{vel} & = & z_{acc}*d & | {Speed \
-                on\ Z-axis (m/s)} \\
-                dz_{acc} & = &  q_z*W_t,\ W_t \sim 
-                \mathcal{N}(0,q_z^2) & | {Acceleration \ on \ Z-axis (m^2/s)}
-                
-            \end{eqnarray}
-
-    Or equivalently:
-
-        .. math::
-            x_t = F_t*x_{t-1} + w_t,\ w_t \sim \mathcal{N}(0,Q_t)
-
-    where:
-
-        .. math::
-            x & = & \begin{bmatrix}
-                        x_{pos} \\
-                        x_{vel} \\
-                        x_{acc} \\
-                        y_{pos} \\
-                        y_{vel} \\
-                        y_{acc} \\
-                        z_{pos} \\
-                        z_{vel} \\
-                        z_{acc}
-                    \end{bmatrix}
-
-        .. math::
-            F_t & = & \begin{bmatrix}
-                        1 & dt & \frac{dt^2}{2} & 0 & 0 & 0 & 0 & 0 & 0 \\
-                        0 & 1 & dt & 0 & 0 & 0 & 0 & 0 & 0\\
-                        0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0\\
-                        0 & 0 & 0 & 1 & dt & \frac{dt^2}{2} & 0 & 0 & 0\\
-                            0 & 0 & 0 & 0 & 1 & dt & 0 & 0 & 0\\
-                            0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0\\
-                            0 & 0 & 0 & 0 & 0 & 0 & 1 & dt & \frac{dt^2}{2}\\
-                            0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & dt\\
-                            0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1
-                      \end{bmatrix}
-
-        .. math::
-            Q_t & = & \begin{bmatrix}
-                        q_x^2\frac{dt^5}{20} & q_x^2\frac{dt^4}{8} &
-                        q_x^2\frac{dt^3}{6} & 0 & 0 & 0 & 0 & 0 & 0 \\
-                        q_x^2\frac{dt^4}{8} & q_x^2\frac{dt^3}{3} &
-                        q_x^2\frac{dt^2}{2} & 0 & 0 & 0 & 0 & 0 & 0 \\
-                        q_x^2\frac{dt^3}{6} & q_x^2\frac{dt^2}{2} &
-                        q_x^2 dt & 0 & 0 & 0 & 0 & 0 & 0\\
-                            0 & 0 & 0 & q_y^2\frac{dt^5}{20} &
-                        q_y^2\frac{dt^4}{8} & q_y^2\frac{dt^3}{6} & 0 & 0 & 0\\
-                            0 & 0 & 0 & q_y^2\frac{dt^4}{8} &
-                        q_y^2\frac{dt^3}{3} & q_y^2\frac{dt^2}{2}& 0 & 0 & 0\\
-                            0 & 0 & 0 & q_y^2\frac{dt^3}{6} &
-                        q_y^2\frac{dt^2}{2} & q_y^2 dt & 0 & 0 & 0\\
-                            0 & 0 & 0 & 0 & 0 & 0 & q_z^2\frac{dt^5}{20} &
-                        q_z^2\frac{dt^4}{8} & q_z^2\frac{dt^3}{6}\\
-                            0 & 0 & 0 & 0 & 0 & 0 & q_z^2\frac{dt^4}{8} &
-                        q_z^2\frac{dt^3}{3} & q_z^2\frac{dt^2}{2}\\
-                            0 & 0 & 0 & 0 & 0 & 0 &  q_z^2\frac{dt^3}{6} &
-                        q_z^2\frac{dt^2}{2} & q_z^2 dt
-                      \end{bmatrix}
-    """
-
-    @property
-    def ndim_state(self):
-        """ndim_state getter method
-
-        Returns
-        -------
-        :class:`int`
-            :math:`9` -> The number of model state dimensions
-        """
-
-        return 9
-
-
-class SingerModel1D(LinearGaussianTransitionModel, TimeVariantModel):
-    r"""This is a class implementation of a time-variant 1D Singer Transition 
+class Singer(LinearGaussianTransitionModel, TimeVariantModel):
+    r"""This is a class implementation of a time-variant 1D Singer Transition
     Model.
 
-    The target acceleration is modeled as a zero-mean Gauss-Markov random 
+    The target acceleration is modeled as a zero-mean Gauss-Markov random
     process.
 
     The model is described by the following SDEs:
@@ -625,9 +433,9 @@ class SingerModel1D(LinearGaussianTransitionModel, TimeVariantModel):
                 X-axis (m)} \\
                 dx_{vel} & = & x_{acc}*d & | {Speed \
                 on\ X-axis (m/s)} \\
-                dx_{acc} & = & -\alpha*x_{acc}*d + q*W_t,\ W_t \sim 
+                dx_{acc} & = & -\alpha*x_{acc}*d + q*W_t,\ W_t \sim
                 \mathcal{N}(0,q^2) & | {Acceleration \ on \ X-axis (m^2/s)}
-                
+
             \end{eqnarray}
 
     Or equivalently:
@@ -659,12 +467,10 @@ class SingerModel1D(LinearGaussianTransitionModel, TimeVariantModel):
                         \end{bmatrix}
     """
 
-    noise_diff_coeffs = Property(
-        sp.ndarray,
-        doc="The acceleration noise diffusion coefficient :math:`q`")
-    alphas = Property(
-        sp.ndarray,
-        doc=r"The reciprocals of the decorrelation times :math:`\alpha`")
+    noise_diff_coeff = Property(
+        float, doc="The acceleration noise diffusion coefficient :math:`q`")
+    alpha = Property(
+        float, doc=r"The reciprocal of the decorrelation time :math:`\alpha`")
 
     @property
     def ndim_state(self):
@@ -694,23 +500,19 @@ class SingerModel1D(LinearGaussianTransitionModel, TimeVariantModel):
         """
 
         time_interval_sec = time_interval.total_seconds()
-        mat_list = []
-        
-        for i in range(0, self.ndim_state//3):
-            alpha = self.alphas[i]
-            alphadt = alpha * time_interval_sec
-            mat_list.append(sp.array(
-                [[1,
-                  time_interval_sec,
-                  (alphadt - 1 + sp.exp(-alphadt)) / sp.power(alpha, 2)],
-                 [0,
-                  1,
-                  (1 - sp.exp(-alphadt)) / alpha],
-                 [0,
-                  0,
-                  sp.exp(-alphadt)]]))
+        alpha = self.alpha
+        alphadt = alpha * time_interval_sec
 
-        return sp.linalg.block_diag(*mat_list)
+        return sp.array(
+            [[1,
+              time_interval_sec,
+              (alphadt - 1 + sp.exp(-alphadt)) / sp.power(alpha, 2)],
+             [0,
+              1,
+              (1 - sp.exp(-alphadt)) / alpha],
+             [0,
+              0,
+              sp.exp(-alphadt)]])
 
     def covar(self, time_interval, **kwargs):
         """Returns the transition model noise covariance matrix.
@@ -728,249 +530,28 @@ class SingerModel1D(LinearGaussianTransitionModel, TimeVariantModel):
         """
 
         time_interval_sec = time_interval.total_seconds()
-        covar_list = []
-        
-        for i in range(0, self.ndim_state//3):
-            alpha = self.alphas[i]
-            noise_diff_coeff = self.noise_diff_coeffs[i]
-            constant_multiplier = 2 * alpha * sp.power(noise_diff_coeff, 2)
-    
-            covar_list.append(sp.array(
-                                [[sp.power(time_interval_sec, 5) / 20,
-                                  sp.power(time_interval_sec, 4) / 8,
-                                  sp.power(time_interval_sec, 3) / 6],
-                                 [sp.power(time_interval_sec, 4) / 8,
-                                  sp.power(time_interval_sec, 3) / 3,
-                                  sp.power(time_interval_sec, 2) / 2],
-                                 [sp.power(time_interval_sec, 3) / 6,
-                                  sp.power(time_interval_sec, 2) / 2,
-                                  time_interval_sec]]) * constant_multiplier)
-        covar = sp.linalg.block_diag(*covar_list)
+        alpha = self.alpha
+        noise_diff_coeff = self.noise_diff_coeff
+
+        covar = sp.array(
+            [[sp.power(time_interval_sec, 5) / 20,
+              sp.power(time_interval_sec, 4) / 8,
+              sp.power(time_interval_sec, 3) / 6],
+             [sp.power(time_interval_sec, 4) / 8,
+              sp.power(time_interval_sec, 3) / 3,
+              sp.power(time_interval_sec, 2) / 2],
+             [sp.power(time_interval_sec, 3) / 6,
+              sp.power(time_interval_sec, 2) / 2,
+              time_interval_sec]]) * 2 * alpha * sp.power(noise_diff_coeff, 2)
 
         return CovarianceMatrix(covar)
 
 
-class SingerModel2D(SingerModel1D):
-    r"""This is a class implementation of a time-variant 2D Singer Transition 
-    Model.
-
-    The target acceleration in each dimension is modeled as a zero-mean 
-    Gauss-Markov random process.
-
-    The model is described by the following SDEs:
-
-        .. math::
-            :nowrap:
-
-            \begin{eqnarray}
-                dx_{pos} & = & x_{vel}*d & | {Position \ on \
-                X-axis (m)} \\
-                dx_{vel} & = & x_{acc}*d & | {Speed \
-                on\ X-axis (m/s)} \\
-                dx_{acc} & = & -\alpha_x*x_{acc}*d + q_x*W1_t,\ W1_t \sim 
-                \mathcal{N}(0,q_x^2) & | {Acceleration \ on \ X-axis (m^2/s)}\\
-                dy_{pos} & = & y_{vel}*d & | {Position \ on \
-                Y-axis (m)} \\
-                dy_{vel} & = & y_{acc}*d & | {Speed \
-                on\ Y-axis (m/s)} \\
-                dy_{acc} & = & -\alpha_y*y_{acc}*d + q_y*W2_t,\ W2_t \sim 
-                \mathcal{N}(0,q_y^2) & | {Acceleration \ on \ Y-axis (m^2/s)}
-    
-            \end{eqnarray}
-
-    Or equivalently:
-
-        .. math::
-            x_t = F_t*x_{t-1} + w_t,\ w_t \sim \mathcal{N}(0,Q_t)
-
-    where (using approximate Q_t):
-
-        .. math::
-            x & = & \begin{bmatrix}
-                        x_{pos} \\
-                        x_{vel} \\
-                        x_{acc} \\
-                        y_{pos} \\
-                        y_{vel} \\
-                        y_{acc} 
-                    \end{bmatrix}
-
-        .. math::
-            F_t & = & \begin{bmatrix}
-                        1 & dt & (\alpha_x dt-1+e^{-\alpha_x dt})/\alpha_x^2 &
-                        0 & 0 & 0  \\
-                        0 & 1 & (1-e^{-\alpha_x dt})/\alpha_x & 0 & 0 & 0\\
-                        0 & 0 & e^{-\alpha_x t} & 0 & 0 & 0 \\
-                        0 & 0 & 0 & 1 & dt & 
-                        (\alpha_y dt-1+e^{-\alpha_y dt})/\alpha_y^2\\
-                        0 & 0 & 0 &  0 & 1 & (1-e^{-\alpha_y dt})/\alpha_y\\
-                        0 & 0 & 0 & 0 & 0 & e^{-\alpha_y t} 
-                      \end{bmatrix}
-
-        .. math::
-            Q_t & = & \begin{bmatrix}
-                        2*\alpha_x*q_x^2*\frac{dt^5}{20} & 
-                        2*\alpha_x*q_x^2*\frac{dt^4}{8} &
-                        2*\alpha_x*q_x^2*\frac{dt^3}{6} & 0 & 0 & 0\\
-                        2*\alpha_x*q_x^2*\frac{dt^4}{8} &
-                        2*\alpha_x*q_x^2*\frac{dt^3}{3} &
-                        2*\alpha_x*q_x^2*\frac{dt^2}{2} & 0 & 0 & 0  \\
-                        2*\alpha_x*q_x^2*\frac{dt^3}{6} &
-                        2*\alpha_x*q_x^2*\frac{dt^2}{2} &
-                        2*\alpha_x*q_x^2*dt & 0 & & 0 \\
-                        0 & 0 & 0 & 2*\alpha_y*q_y^2*\frac{dt^5}{20} &
-                        2*\alpha_y*q_y^2*\frac{dt^4}{8} &
-                        2*\alpha_y*q_y^2*\frac{dt^3}{6} \\
-                        0 & 0 & 0 & 2*\alpha_y*q_y^2*\frac{dt^4}{8} &
-                        2*\alpha_y*q_y^2*\frac{dt^3}{3} 
-                        & 2*\alpha_y*q_y^2*\frac{dt^2}{2} \\
-                        0 & 0 & 0 & 2*\alpha_y*q_y^2*\frac{dt^3}{6} &
-                        2*\alpha_y*q_y^2*\frac{dt^2}{2} & 2*\alpha_y*q_y^2*dt 
-                      \end{bmatrix}
-    """
-
-    @property
-    def ndim_state(self):
-        """ndim_state getter method
-
-        Returns
-        -------
-        :class:`int`
-            :math:`6` -> The number of model state dimensions
-        """
-
-        return 6
-
-
-class SingerModel3D(SingerModel1D):
-    r"""This is a class implementation of a time-variant 3D Singer Transition 
-    Model.
-
-    The target acceleration in each dimension is modeled as a zero-mean
-    Gauss-Markov random process.
-
-    The model is described by the following SDEs:
-
-        .. math::
-            :nowrap:
-
-            \begin{eqnarray}
-                dx_{pos} & = & x_{vel}*d & | {Position \ on \
-                X-axis (m)} \\
-                dx_{vel} & = & x_{acc}*d & | {Speed \
-                on\ X-axis (m/s)} \\
-                dx_{acc} & = & -\alpha_x*x_{acc}*d + q_x*W1_t,\ W1_t \sim 
-                \mathcal{N}(0,q_x^2) & | {Acceleration \ on \ X-axis (m^2/s)}\\
-                dy_{pos} & = & y_{vel}*d & | {Position \ on \
-                Y-axis (m)} \\
-                dy_{vel} & = & y_{acc}*d & | {Speed \
-                on\ Y-axis (m/s)} \\
-                dy_{acc} & = & -\alpha_y*y_{acc}*d + q_y*W2_t,\ W2_t \sim 
-                \mathcal{N}(0,q_y^2) & | {Acceleration \ on \ X-axis (m^2/s)}\\
-                dz_{pos} & = & z_{vel}*d & | {Position \ on \
-                Z-axis (m)} \\
-                dz_{vel} & = & z_{acc}*d & | {Speed \
-                on\ X-axis (m/s)} \\
-                dz_{acc} & = & -\alpha_z*z_{acc}*d + q_z*W3_t,\ W3_t \sim 
-                \mathcal{N}(0,q_z^2) & | {Acceleration \ on \ X-axis (m^2/s)}
-
-                
-            \end{eqnarray}
-
-    Or equivalently:
-
-        .. math::
-            x_t = F_t*x_{t-1} + w_t,\ w_t \sim \mathcal{N}(0,Q_t)
-
-    where (using approximate Q_t):
-
-        .. math::
-            x & = & \begin{bmatrix}
-                        x_{pos} \\
-                        x_{vel} \\
-                        x_{acc} \\
-                        y_{pos} \\
-                        y_{vel} \\
-                        y_{acc} \\
-                        z_{pos} \\
-                        z_{vel} \\
-                        z_{acc}
-                    \end{bmatrix}
-
-        .. math::
-            F_t & = & \begin{bmatrix}
-                        1 & dt & (\alpha_x dt-1+e^{-\alpha_x dt})/\alpha_x^2 &
-                        0 & 0 & 0 & 0 & 0 & 0 \\
-                        0 & 1 & (1-e^{-\alpha_x dt})/\alpha_x &
-                        0 & 0 & 0 & 0 & 0 & 0\\
-                        0 & 0 & e^{-\alpha_x t} & 0 & 0 & 0 & 0 & 0 & 0\\
-                        0 & 0 & 0 & 1 & dt &
-                        (\alpha_y dt-1+e^{-\alpha_y dt})/\alpha_y^2 &
-                        0 & 0 & 0\\
-                        0 & 0 & 0 &  0 & 1 & (1-e^{-\alpha_y dt})/\alpha_y &
-                        0 & 0 & 0\\
-                        0 & 0 & 0 & 0 & 0 & e^{-\alpha_y t} & 0 & 0 & 0\\
-                        0 & 0 & 0 & 0 & 0 & 0 & 1 & dt &
-                        (\alpha_z dt-1+e^{-\alpha_z dt})/\alpha_z^2\\
-                        0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 &
-                        (1-e^{-\alpha_z dt})/\alpha_z\\
-                        0 & 0 & 0 & 0 & 0 & 0 &  0 & 0 & e^{-\alpha_z t}
-                      \end{bmatrix}
-
-        .. math::
-            Q_t & = & \begin{bmatrix}
-                        2*\alpha_x*q_x^2*\frac{dt^5}{20} &
-                        2*\alpha_x*q_x^2*\frac{dt^4}{8} &
-                        2*\alpha_x*q_x^2*\frac{dt^3}{6} &
-                        0 & 0 & 0 & 0 & 0 & 0\\
-                        2*\alpha_x*q_x^2*\frac{dt^4}{8} &
-                        2*\alpha_x*q_x^2*\frac{dt^3}{3} &
-                        2*\alpha_x*q_x^2*\frac{dt^2}{2} &
-                        0 & 0 & 0 & 0 & 0 & 0 \\
-                        2*\alpha_x*q_x^2*\frac{dt^3}{6} & 
-                        2*\alpha_x*q_x^2*\frac{dt^2}{2} &
-                        2*\alpha_x*q_x^2*dt & 0 & & 0 & 0 & 0 & 0\\
-                        0 & 0 & 0 & 2*\alpha_y*q_y^2*\frac{dt^5}{20} &
-                        2*\alpha_y*q_y^2*\frac{dt^4}{8} &
-                        2*\alpha_y*q_y^2*\frac{dt^3}{6} & 0 & 0 & 0\\
-                        0 & 0 & 0 & 2*\alpha_y*q_y^2*\frac{dt^4}{8} &
-                        2*\alpha_y*q_y^2*\frac{dt^3}{3} &
-                        2*\alpha_y*q_y^2*\frac{dt^2}{2} & 0 & 0 & 0\\
-                        0 & 0 & 0 & 2*\alpha_y*q_y^2*\frac{dt^3}{6} &
-                        2*\alpha_y*q_y^2*\frac{dt^2}{2} &
-                        2*\alpha_y*q_y^2*dt & 0 & 0 & 0\\
-                        0 & 0 & 0 & 0 & 0 & 0 &
-                        2*\alpha_z*q_z^2*\frac{dt^5}{20} &
-                        2*\alpha_z*q_z^2*\frac{dt^4}{8} &
-                        2*\alpha_z*q_z^2*\frac{dt^3}{6} \\
-                        0 & 0 & 0 & 0 & 0 & 0 &
-                        2*\alpha_z*q_z^2*\frac{dt^4}{8} &
-                        2*\alpha_z*q_z^2*\frac{dt^3}{3} &
-                        2*\alpha_z*q_z^2*\frac{dt^2}{2}\\
-                        0 & 0 & 0 & 0 & 0 & 0 &
-                        2*\alpha_z*q_z^2*\frac{dt^3}{6} &
-                        2*\alpha_z*q_z^2*\frac{dt^2}{2} & 2*\alpha_z*q_z^2*dt
-                      \end{bmatrix}
-    """
-
-    @property
-    def ndim_state(self):
-        """ndim_state getter method
-
-        Returns
-        -------
-        :class:`int`
-            :math:`9` -> The number of model state dimensions
-        """
-
-        return 9
-
-
 class ConstantTurn(LinearGaussianTransitionModel, TimeVariantModel):
-    r"""This is a class implementation of a time-variant 2D Constant Turn 
+    r"""This is a class implementation of a time-variant 2D Constant Turn
     Model.
 
-    The target is assumed to move with (nearly) constant velocity and also 
+    The target is assumed to move with (nearly) constant velocity and also
     known (nearly) constant turn rate.
 
     The model is described by the following SDEs:
@@ -986,7 +567,7 @@ class ConstantTurn(LinearGaussianTransitionModel, TimeVariantModel):
                 dy_{pos} & = & y_{vel}*d & | {Position \ on \
                 Y-axis (m)} \\
                 dy_{vel} & = & \omega x_{pos}*d & | {Speed \
-                on\ Y-axis (m/s)} 
+                on\ Y-axis (m/s)}
             \end{eqnarray}
 
     Or equivalently:
@@ -1029,7 +610,7 @@ class ConstantTurn(LinearGaussianTransitionModel, TimeVariantModel):
 
     noise_diff_coeffs = Property(
         sp.ndarray,
-        doc="The acceleration noise diffusion coefficient :math:`q`")
+        doc="The acceleration noise diffusion coefficients :math:`q`")
     omega = Property(
         float, doc=r"The turn rate :math:`\omega`")
 
@@ -1089,24 +670,12 @@ class ConstantTurn(LinearGaussianTransitionModel, TimeVariantModel):
         """
 
         time_interval_sec = time_interval.total_seconds()
-        qx = self.noise_diff_coeffs[0]
-        qy = self.noise_diff_coeffs[1]
-
-        covar = sp.array([[sp.power(qx, 2)*sp.power(time_interval_sec, 3) / 3,
-                           sp.power(qx, 2)*sp.power(time_interval_sec, 2) / 2,
-                           0,
-                           0],
-                          [sp.power(qx, 2)*sp.power(time_interval_sec, 2) / 2,
-                           sp.power(qx, 2)*time_interval_sec,
-                           0,
-                           0],
-                          [0,
-                           0,
-                           sp.power(qy, 2)*sp.power(time_interval_sec, 3) / 3,
-                           sp.power(qy, 2)*sp.power(time_interval_sec, 2) / 2],
-                          [0,
-                           0,
-                           sp.power(qy, 2)*sp.power(time_interval_sec, 2) / 2,
-                           sp.power(qy, 2)*time_interval_sec]])
+        base_covar = sp.array([[sp.power(time_interval_sec, 3) / 3,
+                                sp.power(time_interval_sec, 2) / 2],
+                               [sp.power(time_interval_sec, 2) / 2,
+                                time_interval_sec]])
+        covar_list = [base_covar*sp.power(self.noise_diff_coeffs[0], 2),
+                      base_covar*sp.power(self.noise_diff_coeffs[1], 2)]
+        covar = sp.linalg.block_diag(*covar_list)
 
         return CovarianceMatrix(covar)
