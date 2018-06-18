@@ -5,7 +5,8 @@ import numpy as np
 from stonesoup.types.detection import Detection
 from stonesoup.updater.kalman import KalmanUpdater, ExtendedKalmanUpdater
 from stonesoup.models.measurement.linear import LinearGaussian
-from stonesoup.types.state import GaussianState
+from stonesoup.types import GaussianState, GaussianStatePrediction,\
+    GaussianMeasurementPrediction
 
 
 def test_kalman():
@@ -15,17 +16,17 @@ def test_kalman():
                         noise_covar=np.array([[0.04]]))
 
     # Define predicted state
-    prediction = GaussianState(np.array([[-6.45], [0.7]]),
-                               np.array([[4.1123, 0.0013],
-                                         [0.0013, 0.0365]]))
+    prediction = GaussianStatePrediction(np.array([[-6.45], [0.7]]),
+                                         np.array([[4.1123, 0.0013],
+                                                   [0.0013, 0.0365]]))
     measurement = Detection(np.array([[-6.23]]))
 
     # Calculate evaluation variables
-    eval_measurement_prediction = GaussianState(
+    eval_measurement_prediction = GaussianMeasurementPrediction(
         lg.matrix()@prediction.mean,
-        lg.matrix()@prediction.covar@lg.matrix().T+lg.covar())
-    eval_cross_covar = prediction.covar@lg.matrix().T
-    kalman_gain = eval_cross_covar@np.linalg.inv(
+        lg.matrix()@prediction.covar@lg.matrix().T+lg.covar(),
+        cross_covar=prediction.covar@lg.matrix().T)
+    kalman_gain = eval_measurement_prediction.cross_covar@np.linalg.inv(
         eval_measurement_prediction.covar)
     eval_posterior = GaussianState(
         prediction.mean
@@ -38,13 +39,13 @@ def test_kalman():
     updater = KalmanUpdater(measurement_model=lg)
 
     # Get and assert measurement prediction
-    measurement_prediction, cross_covar =\
-        updater.get_measurement_prediction(prediction)
+    measurement_prediction = updater.get_measurement_prediction(prediction)
     assert(np.array_equal(measurement_prediction.mean,
                           eval_measurement_prediction.mean))
     assert(np.array_equal(measurement_prediction.covar,
                           eval_measurement_prediction.covar))
-    assert(np.array_equal(cross_covar, eval_cross_covar))
+    assert(np.array_equal(measurement_prediction.cross_covar,
+                          eval_measurement_prediction.cross_covar))
 
     # Perform and assert state update (without measurement prediction)
     posterior = updater.update(prediction=prediction,
@@ -69,17 +70,17 @@ def test_extendedkalman():
                         noise_covar=np.array([[0.04]]))
 
     # Define predicted state
-    prediction = GaussianState(np.array([[-6.45], [0.7]]),
-                               np.array([[4.1123, 0.0013],
-                                         [0.0013, 0.0365]]))
+    prediction = GaussianStatePrediction(np.array([[-6.45], [0.7]]),
+                                         np.array([[4.1123, 0.0013],
+                                                   [0.0013, 0.0365]]))
     measurement = Detection(np.array([[-6.23]]))
 
     # Calculate evaluation variables
-    eval_measurement_prediction = GaussianState(
+    eval_measurement_prediction = GaussianMeasurementPrediction(
         lg.matrix()@prediction.mean,
-        lg.matrix()@prediction.covar@lg.matrix().T+lg.covar())
-    eval_cross_covar = prediction.covar@lg.matrix().T
-    kalman_gain = eval_cross_covar@np.linalg.inv(
+        lg.matrix()@prediction.covar@lg.matrix().T+lg.covar(),
+        cross_covar=prediction.covar@lg.matrix().T)
+    kalman_gain = eval_measurement_prediction.cross_covar@np.linalg.inv(
         eval_measurement_prediction.covar)
     eval_posterior = GaussianState(
         prediction.mean
@@ -92,15 +93,15 @@ def test_extendedkalman():
     updater = ExtendedKalmanUpdater(measurement_model=lg)
 
     # Get and asser measurement prediction
-    measurement_prediction, cross_covar =\
-        updater.get_measurement_prediction(prediction)
+    measurement_prediction = updater.get_measurement_prediction(prediction)
     assert(np.array_equal(measurement_prediction.mean,
                           eval_measurement_prediction.mean))
     assert(np.array_equal(measurement_prediction.covar,
                           eval_measurement_prediction.covar))
-    assert(np.array_equal(cross_covar, eval_cross_covar))
+    assert(np.array_equal(measurement_prediction.cross_covar,
+                          eval_measurement_prediction.cross_covar))
 
-    # Perform and assert state update (without providing cross-covariance)
+    # Perform and assert state update (without measurement prediction)
     posterior = updater.update(prediction=prediction,
                                measurement=measurement)
     assert(np.array_equal(posterior.mean, eval_posterior.mean))

@@ -4,9 +4,8 @@ import datetime
 import numpy as np
 
 from stonesoup.models.transition.linear import ConstantVelocity
-from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.predictor.kalman import KalmanPredictor, ExtendedKalmanPredictor
-from stonesoup.types.state import GaussianState
+from stonesoup.types import GaussianState, GaussianStatePrediction
 
 
 def test_kalman():
@@ -27,7 +26,7 @@ def test_kalman():
                           timestamp=timestamp)
 
     # Calculate evaluation variables
-    eval_prediction = GaussianState(
+    eval_prediction = GaussianStatePrediction(
         cv.matrix(timestamp=new_timestamp,
                   time_interval=time_interval)@prior.mean,
         cv.matrix(timestamp=new_timestamp,
@@ -69,7 +68,7 @@ def test_extendedkalman():
                           timestamp=timestamp)
 
     # Calculate evaluation variables
-    eval_prediction = GaussianState(
+    eval_prediction = GaussianStatePrediction(
         cv.matrix(timestamp=new_timestamp,
                   time_interval=time_interval)@prior.mean,
         cv.matrix(timestamp=new_timestamp,

@@ -20,15 +20,13 @@ class Updater(Base):
 
         Parameters
         ----------
-        state_prediction : State
+        state_prediction : :class:`~.StatePrediction`
             The state prediction
 
         Returns
         -------
-        State
-            The state posterior
-        CovarianceMatrix
-            The calculated state-to-measurement cross covariance
+        : :class:`~.MeasurementPrediction`
+            The predicted measurement
         """
         raise NotImplemented
 
@@ -39,16 +37,16 @@ class Updater(Base):
 
         Parameters
         ----------
-        prediction : State
+        prediction : :class:`~.StatePrediction`
             The state prediction
-        measurement : Detection
+        measurement : :class:`~.Detection`
             The measurement
-        measurement_prediction : State
+        measurement_prediction : :class:`~.MeasurementPrediction`
             The measurement prediction
 
         Returns
         -------
-        State
+        : :class:`~.State`
             The state posterior
         """
         raise NotImplemented

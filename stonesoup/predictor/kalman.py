@@ -4,7 +4,7 @@ import numpy as np
 
 
 from .base import Predictor
-from ..types.state import GaussianState, State
+from ..types import State, GaussianStatePrediction
 
 
 class KalmanPredictor(Predictor):
@@ -19,9 +19,9 @@ class KalmanPredictor(Predictor):
 
         Parameters
         ----------
-        prior : :class:`stonesoup.types.state.GaussianState`
+        prior : :class:`~.GaussianState`
             The prior state
-        control_input : :class:`stonesoup.types.state.State`, optional
+        control_input : :class:`~.State`, optional
             The control input. It will only have an effect if
             :attr:`control_model` is not `None` (the default is `None`)
         timestamp: :class:`datetime.datetime`, optional
@@ -30,7 +30,7 @@ class KalmanPredictor(Predictor):
 
         Returns
         -------
-        :class:`stonesoup.types.state.GaussianState`
+        : :class:`~.GaussianStatePrediction`
             The predicted state
 
         """
@@ -82,7 +82,9 @@ class KalmanPredictor(Predictor):
             transition_noise_covar, control_input.state_vector,
             control_matrix, contol_noise_covar)
 
-        return GaussianState(prediction_mean, prediction_covar, timestamp)
+        return GaussianStatePrediction(prediction_mean,
+                                       prediction_covar,
+                                       timestamp)
 
     @staticmethod
     def predict_lowlevel(x, P, F, Q, u, B, Qu):
@@ -107,9 +109,9 @@ class KalmanPredictor(Predictor):
 
         Returns
         -------
-        :class:`numpy.ndarray` of shape (Ns,1)
+        : :class:`numpy.ndarray` of shape (Ns,1)
             The predicted state mean
-        :class:`numpy.ndarray` of shape (Ns,Ns)
+        : :class:`numpy.ndarray` of shape (Ns,Ns)
             The predicted state covariance
         """
 
@@ -129,9 +131,9 @@ class ExtendedKalmanPredictor(KalmanPredictor):
 
         Parameters
         ----------
-        prior : :class:`stonesoup.types.state.GaussianState`
+        prior : :class:`~.GaussianState`
             The prior state
-        control_input : :class:`stonesoup.types.state.State`, optional
+        control_input : :class:`~.State`, optional
             The control input. It will only have an effect if
             :attr:`control_model` is not `None` (the default is `None`)
         timestamp: :class:`datetime.datetime`, optional
@@ -140,7 +142,7 @@ class ExtendedKalmanPredictor(KalmanPredictor):
 
         Returns
         -------
-        :class:`stonesoup.types.state.GaussianState`
+        : :class:`~.GaussianStatePrediction`
             The predicted state
         """
 
@@ -209,4 +211,6 @@ class ExtendedKalmanPredictor(KalmanPredictor):
             transition_noise_covar, control_input.state_vector,
             control_matrix, contol_noise_covar)
 
-        return GaussianState(prediction_mean, prediction_covar, timestamp)
+        return GaussianStatePrediction(prediction_mean,
+                                       prediction_covar,
+                                       timestamp)

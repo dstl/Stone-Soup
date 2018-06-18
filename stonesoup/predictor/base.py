@@ -25,16 +25,16 @@ class Predictor(Base):
 
         Parameters
         ----------
-        prior : State
+        prior : :class:`~.State`
             State
-        control_input : State
+        control_input : :class:`~.State`
             State
-        timestamp : datetime.datetime
+        timestamp : :class:`datetime.datetime`
             Time which to predict to which will be passed to transition model
 
         Returns
         -------
-        State
+        : :class:`~.StatePrediction`
             State prediction
         """
         raise NotImplemented
