@@ -469,7 +469,7 @@ class Singer(LinearGaussianTransitionModel, TimeVariantModel):
 
     noise_diff_coeff = Property(
         float, doc="The acceleration noise diffusion coefficient :math:`q`")
-    alpha = Property(
+    recip_decorr_time = Property(
         float, doc=r"The reciprocal of the decorrelation time :math:`\alpha`")
 
     @property
@@ -500,19 +500,20 @@ class Singer(LinearGaussianTransitionModel, TimeVariantModel):
         """
 
         time_interval_sec = time_interval.total_seconds()
-        alpha = self.alpha
-        alphadt = alpha * time_interval_sec
+        recip_decorr_time = self.recip_decorr_time
+        recip_decorr_timedt = recip_decorr_time * time_interval_sec
 
         return sp.array(
             [[1,
               time_interval_sec,
-              (alphadt - 1 + sp.exp(-alphadt)) / sp.power(alpha, 2)],
+              (recip_decorr_timedt - 1 + sp.exp(-recip_decorr_timedt)) /
+              sp.power(recip_decorr_time, 2)],
              [0,
               1,
-              (1 - sp.exp(-alphadt)) / alpha],
+              (1 - sp.exp(-recip_decorr_timedt)) / recip_decorr_time],
              [0,
               0,
-              sp.exp(-alphadt)]])
+              sp.exp(-recip_decorr_timedt)]])
 
     def covar(self, time_interval, **kwargs):
         """Returns the transition model noise covariance matrix.
@@ -530,8 +531,10 @@ class Singer(LinearGaussianTransitionModel, TimeVariantModel):
         """
 
         time_interval_sec = time_interval.total_seconds()
-        alpha = self.alpha
+        recip_decorr_time = self.recip_decorr_time
         noise_diff_coeff = self.noise_diff_coeff
+        constant_multiplier = 2 * recip_decorr_time * \
+            sp.power(noise_diff_coeff, 2)
 
         covar = sp.array(
             [[sp.power(time_interval_sec, 5) / 20,
@@ -542,7 +545,7 @@ class Singer(LinearGaussianTransitionModel, TimeVariantModel):
               sp.power(time_interval_sec, 2) / 2],
              [sp.power(time_interval_sec, 3) / 6,
               sp.power(time_interval_sec, 2) / 2,
-              time_interval_sec]]) * 2 * alpha * sp.power(noise_diff_coeff, 2)
+              time_interval_sec]]) * constant_multiplier
 
         return CovarianceMatrix(covar)
 
