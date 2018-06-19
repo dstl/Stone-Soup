@@ -295,3 +295,390 @@ class ConstantVelocity(LinearGaussianTransitionModel, TimeVariantModel):
                            time_interval_sec]])*self.noise_diff_coeff
 
         return CovarianceMatrix(covar)
+
+
+class ConstantAcceleration(LinearGaussianTransitionModel, TimeVariantModel):
+    r"""This is a class implementation of a time-variant 1D Constant
+    Acceleration Transition Model.
+
+    The target acceleration is modeled as a zero-mean white noise random
+    process.
+
+    The model is described by the following SDEs:
+
+        .. math::
+            :nowrap:
+
+            \begin{eqnarray}
+                dx_{pos} & = & x_{vel}*d & | {Position \ on \
+                X-axis (m)} \\
+                dx_{vel} & = & x_{acc}*d & | {Speed \
+                on\ X-axis (m/s)} \\
+                dx_{acc} & = & q*W_t,\ W_t \sim
+                \mathcal{N}(0,q^2) & | {Acceleration \ on \ X-axis (m^2/s)}
+
+            \end{eqnarray}
+
+    Or equivalently:
+
+        .. math::
+            x_t = F_t*x_{t-1} + w_t,\ w_t \sim \mathcal{N}(0,Q_t)
+
+    where:
+
+        .. math::
+            x & = & \begin{bmatrix}
+                         x_{pos} \\
+                         x_{vel} \\
+                         x_{acc}
+                    \end{bmatrix}
+
+        .. math::
+            F_t & = & \begin{bmatrix}
+                           1 & dt & \frac{dt^2}{2} \\
+                           0 & 1 & dt \\
+                           0 & 0 & 1
+                      \end{bmatrix}
+
+        .. math::
+            Q_t & = & \begin{bmatrix}
+                        \frac{dt^5}{20} & \frac{dt^4}{8} & \frac{dt^3}{6} \\
+                        \frac{dt^4}{8} & \frac{dt^3}{3} & \frac{dt^2}{2} \\
+                        \frac{dt^3}{6} & \frac{dt^2}{2} & dt
+                      \end{bmatrix}*q^2
+    """
+
+    noise_diff_coeff = Property(
+        float, doc="The acceleration noise diffusion coefficient :math:`q`")
+
+    @property
+    def ndim_state(self):
+        """ndim_state getter method
+
+        Returns
+        -------
+        :class:`int`
+            :math:`3` -> The number of model state dimensions
+        """
+
+        return 3
+
+    def matrix(self, time_interval, **kwargs):
+        """Model matrix :math:`F(t)`
+
+        Parameters
+        ----------
+        time_interval: :class:`datetime.timedelta`
+            A time interval :math:`dt`
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The model matrix evaluated given the provided time interval.
+        """
+
+        time_interval_sec = time_interval.total_seconds()
+
+        return sp.array(
+                    [[1, time_interval_sec, sp.power(time_interval_sec, 2)],
+                     [0, 1, time_interval_sec],
+                     [0, 0, 1]])
+
+    def covar(self, time_interval, **kwargs):
+        """Returns the transition model noise covariance matrix.
+
+        Parameters
+        ----------
+        time_interval : :class:`datetime.timedelta`
+            A time interval :math:`dt`
+
+        Returns
+        -------
+        :class:`stonesoup.types.state.CovarianceMatrix` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The process noise covariance.
+        """
+
+        time_interval_sec = time_interval.total_seconds()
+
+        covar = sp.array(
+            [[sp.power(time_interval_sec, 5) / 20,
+              sp.power(time_interval_sec, 4) / 8,
+              sp.power(time_interval_sec, 3) / 6],
+             [sp.power(time_interval_sec, 4) / 8,
+              sp.power(time_interval_sec, 3) / 3,
+              sp.power(time_interval_sec, 2) / 2],
+             [sp.power(time_interval_sec, 3) / 6,
+              sp.power(time_interval_sec, 2) / 2,
+              time_interval_sec]]) * sp.power(self.noise_diff_coeff, 2)
+
+        return CovarianceMatrix(covar)
+
+
+class Singer(LinearGaussianTransitionModel, TimeVariantModel):
+    r"""This is a class implementation of a time-variant 1D Singer Transition
+    Model.
+
+    The target acceleration is modeled as a zero-mean Gauss-Markov random
+    process.
+
+    The model is described by the following SDEs:
+
+        .. math::
+            :nowrap:
+
+            \begin{eqnarray}
+                dx_{pos} & = & x_{vel}*d & | {Position \ on \
+                X-axis (m)} \\
+                dx_{vel} & = & x_{acc}*d & | {Speed \
+                on\ X-axis (m/s)} \\
+                dx_{acc} & = & -\alpha*x_{acc}*d + q*W_t,\ W_t \sim
+                \mathcal{N}(0,q^2) & | {Acceleration \ on \ X-axis (m^2/s)}
+
+            \end{eqnarray}
+
+    Or equivalently:
+
+        .. math::
+            x_t = F_t*x_{t-1} + w_t,\ w_t \sim \mathcal{N}(0,Q_t)
+
+    where:
+
+        .. math::
+            x & = & \begin{bmatrix}
+                        x_{pos} \\
+                        x_{vel} \\
+                        x_{acc}
+                    \end{bmatrix}
+
+        .. math::
+            F_t & = & \begin{bmatrix}
+                        1 & dt & (\alpha dt-1+e^{-\alpha dt})/\alpha^2 \\
+                        0 & 1 & (1-e^{-\alpha dt})/\alpha \\
+                        0 & 0 & e^{-\alpha t}
+                      \end{bmatrix}
+
+        .. math::
+            Q_t & = & 2*\alpha*q^2*\begin{bmatrix}
+                        \frac{dt^5}{20} & \frac{dt^4}{8} & \frac{dt^3}{6} \\
+                        \frac{dt^4}{8} & \frac{dt^3}{3} & \frac{dt^2}{2} \\
+                        \frac{dt^3}{6} & \frac{dt^2}{2} & dt
+                        \end{bmatrix}
+    """
+
+    noise_diff_coeff = Property(
+        float, doc="The acceleration noise diffusion coefficient :math:`q`")
+    recip_decorr_time = Property(
+        float, doc=r"The reciprocal of the decorrelation time :math:`\alpha`")
+
+    @property
+    def ndim_state(self):
+        """ndim_state getter method
+
+        Returns
+        -------
+        :class:`int`
+            :math:`3` -> The number of model state dimensions
+        """
+
+        return 3
+
+    def matrix(self, time_interval, **kwargs):
+        """Model matrix :math:`F(t)`
+
+        Parameters
+        ----------
+        time_interval: :class:`datetime.timedelta`
+            A time interval :math:`dt`
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The model matrix evaluated given the provided time interval.
+        """
+
+        time_interval_sec = time_interval.total_seconds()
+        recip_decorr_time = self.recip_decorr_time
+        recip_decorr_timedt = recip_decorr_time * time_interval_sec
+
+        return sp.array(
+            [[1,
+              time_interval_sec,
+              (recip_decorr_timedt - 1 + sp.exp(-recip_decorr_timedt)) /
+              sp.power(recip_decorr_time, 2)],
+             [0,
+              1,
+              (1 - sp.exp(-recip_decorr_timedt)) / recip_decorr_time],
+             [0,
+              0,
+              sp.exp(-recip_decorr_timedt)]])
+
+    def covar(self, time_interval, **kwargs):
+        """Returns the transition model noise covariance matrix.
+
+        Parameters
+        ----------
+        time_interval : :class:`datetime.timedelta`
+            A time interval :math:`dt`
+
+        Returns
+        -------
+        :class:`stonesoup.types.state.CovarianceMatrix` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The process noise covariance.
+        """
+
+        time_interval_sec = time_interval.total_seconds()
+        recip_decorr_time = self.recip_decorr_time
+        noise_diff_coeff = self.noise_diff_coeff
+        constant_multiplier = 2 * recip_decorr_time * \
+            sp.power(noise_diff_coeff, 2)
+
+        covar = sp.array(
+            [[sp.power(time_interval_sec, 5) / 20,
+              sp.power(time_interval_sec, 4) / 8,
+              sp.power(time_interval_sec, 3) / 6],
+             [sp.power(time_interval_sec, 4) / 8,
+              sp.power(time_interval_sec, 3) / 3,
+              sp.power(time_interval_sec, 2) / 2],
+             [sp.power(time_interval_sec, 3) / 6,
+              sp.power(time_interval_sec, 2) / 2,
+              time_interval_sec]]) * constant_multiplier
+
+        return CovarianceMatrix(covar)
+
+
+class ConstantTurn(LinearGaussianTransitionModel, TimeVariantModel):
+    r"""This is a class implementation of a time-variant 2D Constant Turn
+    Model.
+
+    The target is assumed to move with (nearly) constant velocity and also
+    known (nearly) constant turn rate.
+
+    The model is described by the following SDEs:
+
+        .. math::
+            :nowrap:
+
+            \begin{eqnarray}
+                dx_{pos} & = & x_{vel}*d & | {Position \ on \
+                X-axis (m)} \\
+                dx_{vel} & = &-\omega y_{pos}*d & | {Speed \
+                on\ X-axis (m/s)} \\
+                dy_{pos} & = & y_{vel}*d & | {Position \ on \
+                Y-axis (m)} \\
+                dy_{vel} & = & \omega x_{pos}*d & | {Speed \
+                on\ Y-axis (m/s)}
+            \end{eqnarray}
+
+    Or equivalently:
+
+        .. math::
+            x_t = F_t*x_{t-1} + w_t,\ w_t \sim \mathcal{N}(0,Q_t)
+
+    where:
+
+        .. math::
+            x & = & \begin{bmatrix}
+                        x_{pos} \\
+                        x_{vel} \\
+                        y_{pos} \\
+                        y_{vel}
+                    \end{bmatrix}
+
+        .. math::
+            F_t & = & \begin{bmatrix}
+                          1 & \frac{\sin\omega dt}{\omega} &
+                          0 &-\frac{1-\cos\omega dt}{\omega} \\
+                          0 & \cos\omega dt & 0 & -\sin\omega dt \\
+                          0 & \frac{1-\cos\omega dt}{\omega} &
+                          1 & \frac{\sin\omega dt}{\omega}\\
+                          0 & \sin\omega dt & 0 & \cos\omega dt
+                      \end{bmatrix}
+
+        .. math::
+            Q_t & = & \begin{bmatrix}
+                          q_x^2* \frac{dt^3}{3} & q_x^2* \frac{dt^2}{2} &
+                          0 & 0 \\
+                          q_x^2 \frac{dt^2}{2} & q_x^2  dt &
+                          0 & 0 \\
+                          0 & 0 &
+                          q_y^2* \frac{dt^3}{3} & q_y^2* \frac{dt^2}{2}\\
+                          0 & 0 &
+                          q_y^2 \frac{dt^2}{2} & q_y^2 dt
+                      \end{bmatrix}
+    """
+
+    noise_diff_coeffs = Property(
+        sp.ndarray,
+        doc="The acceleration noise diffusion coefficients :math:`q`")
+    turn_rate = Property(
+        float, doc=r"The turn rate :math:`\omega`")
+
+    @property
+    def ndim_state(self):
+        """ndim_state getter method
+
+        Returns
+        -------
+        :class:`int`
+            :math:`4` -> The number of model state dimensions
+        """
+
+        return 4
+
+    def matrix(self, time_interval, **kwargs):
+        """Model matrix :math:`F(t)`
+
+        Parameters
+        ----------
+        time_interval: :class:`datetime.timedelta`
+            A time interval :math:`dt`
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The model matrix evaluated given the provided time interval.
+        """
+
+        time_interval_sec = time_interval.total_seconds()
+        turn_ratedt = self.turn_rate * time_interval_sec
+
+        return sp.array(
+            [[1, sp.sin(turn_ratedt) / self.turn_rate,
+              0, -(1 - sp.cos(turn_ratedt)) / self.turn_rate],
+             [0, sp.cos(turn_ratedt),
+              0, -sp.sin(turn_ratedt)],
+             [0, (1 - sp.cos(turn_ratedt)) / self.turn_rate,
+              1, sp.sin(turn_ratedt) / self.turn_rate],
+             [0, sp.sin(turn_ratedt),
+              0, sp.cos(turn_ratedt)]])
+
+    def covar(self, time_interval, **kwargs):
+        """Returns the transition model noise covariance matrix.
+
+        Parameters
+        ----------
+        time_interval : :class:`datetime.timedelta`
+            A time interval :math:`dt`
+
+        Returns
+        -------
+        :class:`stonesoup.types.state.CovarianceMatrix` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The process noise covariance.
+        """
+
+        time_interval_sec = time_interval.total_seconds()
+        base_covar = sp.array([[sp.power(time_interval_sec, 3) / 3,
+                                sp.power(time_interval_sec, 2) / 2],
+                               [sp.power(time_interval_sec, 2) / 2,
+                                time_interval_sec]])
+        covar_list = [base_covar*sp.power(self.noise_diff_coeffs[0], 2),
+                      base_covar*sp.power(self.noise_diff_coeffs[1], 2)]
+        covar = sp.linalg.block_diag(*covar_list)
+
+        return CovarianceMatrix(covar)
