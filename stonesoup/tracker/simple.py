@@ -30,32 +30,37 @@ class SingleTargetTracker(Tracker):
         doc="Updater used to update the track object to the new state.")
 
     def __init__(self, *args, **kwargs):
-        self.tracks = set()
         super().__init__(*args, **kwargs)
+        self.track = None
+
+    @property
+    def tracks(self):
+        return {self.track}
 
     def tracks_gen(self):
-        track = None
+        self.track = None
 
         for time, detections in self.detector.detections_gen():
 
-            if track is not None:
+            if self.track is not None:
                 associations = self.data_associator.associate(
-                        {track}, detections, time)
-                if associations[track].detection is not None:
+                        self.tracks, detections, time)
+                if associations[self.track].detection is not None:
                     state_post = self.updater.update(
-                        associations[track].prediction,
-                        associations[track].detection,
-                        associations[track].innovation)
-                    track.states.append(state_post)
+                        associations[self.track].prediction,
+                        associations[self.track].detection,
+                        associations[self.track].innovation)
+                    self.track.states.append(state_post)
                 else:
-                    track.states.append(associations[track].prediction)
+                    self.track.states.append(
+                        associations[self.track].prediction)
 
-            if track is None or self.deletor.delete_tracks({track}):
+            if self.track is None or self.deletor.delete_tracks(self.tracks):
                 new_tracks = self.initiator.initiate(detections)
                 if new_tracks:
                     track = next(iter(new_tracks))
-                    self.tracks.add(track)
+                    self.track = track
                 else:
-                    track = None
+                    self.track = None
 
-            yield time, {track}
+            yield time, self.tracks

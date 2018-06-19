@@ -7,7 +7,9 @@ Stone Soup Framework.
 Enabling Components
 -------------------
 .. autoclass:: stonesoup.detector.Detector
+    :inherited-members:
 .. autoclass:: stonesoup.feeder.Feeder
+    :inherited-members:
 .. autoclass:: stonesoup.metricgenerator.MetricGenerator
 .. autoclass:: stonesoup.tracker.Tracker
 
@@ -25,8 +27,11 @@ Data Output
 Simulators
 ^^^^^^^^^^
 .. autoclass:: stonesoup.simulator.DetectionSimulator
+    :inherited-members:
 .. autoclass:: stonesoup.simulator.GroundTruthSimulator
+    :inherited-members:
 .. autoclass:: stonesoup.simulator.SensorSimulator
+    :inherited-members:
 
 
 Tracker Components

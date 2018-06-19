@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 """Base classes for Stone Soup feeder"""
-from abc import abstractmethod
-
 from ..base import Property
 from ..reader import DetectionReader
 
@@ -14,7 +12,3 @@ class Feeder(DetectionReader):
     """
 
     detector = Property(DetectionReader, doc="Source of detections")
-
-    @abstractmethod
-    def detections_gen(self):
-        raise NotImplemented
