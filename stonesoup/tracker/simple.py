@@ -45,7 +45,7 @@ class SingleTargetTracker(Tracker):
                     state_post = self.updater.update(
                         associations[track].prediction,
                         associations[track].detection,
-                        associations[track].innovation)
+                        associations[track].measurement_prediction)
                     track.states.append(state_post)
                 else:
                     track.states.append(associations[track].prediction)

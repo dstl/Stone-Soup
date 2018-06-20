@@ -3,7 +3,7 @@
 import numpy as np
 
 from .base import Updater
-from ..types.state import GaussianState
+from ..types import GaussianState, GaussianMeasurementPrediction
 
 
 class KalmanUpdater(Updater):
@@ -17,15 +17,13 @@ class KalmanUpdater(Updater):
 
         Parameters
         ----------
-        state_prediction : :class:`stonesoup.types.state.GaussianState`
+        state_prediction : :class:`~.GaussianStatePrediction`
             A predicted state object
 
         Returns
         -------
-        : :class:`stonesoup.types.state.GaussianState`
+        : :class:`~.GaussianMeasurementPrediction`
             The measurement prediction
-        : :class:`numpy.ndarray` of shape (Ns,Nm)
-            The state-to-measurement cross-covariance matrix
         """
 
         # Measurement model parameters
@@ -37,11 +35,10 @@ class KalmanUpdater(Updater):
                                                      state_prediction.covar,
                                                      measurement_matrix,
                                                      measurement_noise_covar)
-        meas_pred = GaussianState(meas_pred_mean,
-                                  meas_pred_covar,
-                                  state_prediction.timestamp)
 
-        return meas_pred, cross_covar
+        return GaussianMeasurementPrediction(meas_pred_mean, meas_pred_covar,
+                                             state_prediction.timestamp,
+                                             cross_covar)
 
     def update(self, prediction, measurement,
                measurement_prediction=None, **kwargs):
@@ -49,47 +46,37 @@ class KalmanUpdater(Updater):
 
         Parameters
         ----------
-        prediction : :class:`GaussianState`
+        prediction : :class:`~.GaussianStatePrediction`
             The state prediction
-        measurement : :class:`Detection`
+        measurement : :class:`~.Detection`
             The measurement
-        measurement_prediction : :class:`GaussianState`, optional
+        measurement_prediction : \
+        :class:`~.GaussianMeasurementPrediction`, optional
             A measurement prediction (the default is ``None``, in which case\
             it will be computed internally)
 
         Returns
         -------
-        : :class:`GaussianState`
+        : :class:`~.GaussianState`
             The computed state posterior
         """
 
-        # Measurement model parameters
-        measurement_matrix = self.measurement_model.matrix(**kwargs)
-        measurement_noise_covar = self.measurement_model.covar(**kwargs)
-
         if(measurement_prediction is None):
-            posterior_mean, posterior_covar, _ = \
-                self.update_lowlevel(prediction.mean,
-                                     prediction.covar,
-                                     measurement_matrix,
-                                     measurement_noise_covar,
-                                     measurement.state_vector)
-        else:
-            cross_covar = prediction.covar@measurement_matrix.T
-            posterior_mean, posterior_covar, _ = \
-                self._update_on_measurement_prediction(
-                    prediction.mean,
-                    prediction.covar,
-                    measurement.state_vector,
-                    measurement_prediction.mean,
-                    measurement_prediction.covar,
-                    cross_covar)
+            measurement_prediction = \
+                self.get_measurement_prediction(prediction)
 
-        posterior = GaussianState(posterior_mean,
-                                  posterior_covar,
-                                  prediction.timestamp)
+        posterior_mean, posterior_covar, _ = \
+            self._update_on_measurement_prediction(
+                prediction.mean,
+                prediction.covar,
+                measurement.state_vector,
+                measurement_prediction.mean,
+                measurement_prediction.covar,
+                measurement_prediction.cross_covar)
 
-        return posterior
+        return GaussianState(posterior_mean,
+                             posterior_covar,
+                             prediction.timestamp)
 
     @staticmethod
     def update_lowlevel(x_pred, P_pred, H, R, y):
@@ -206,15 +193,13 @@ class ExtendedKalmanUpdater(KalmanUpdater):
 
         Parameters
         ----------
-        state_prediction : :class:`stonesoup.types.state.GaussianState`
+        state_prediction : :class:`~.GaussianStatePrediction`
             A predicted state object
 
         Returns
         -------
-        : :class:`stonesoup.types.state.GaussianState`
+        : :class:`~.GaussianMeasurementPrediction`
             The measurement prediction
-        : :class:`numpy.ndarray` of shape (Ns,Nm)
-            The state-to-measurement cross-covariance matrix
         """
 
         # Measurement model parameters
@@ -231,11 +216,10 @@ class ExtendedKalmanUpdater(KalmanUpdater):
                                                      state_prediction.covar,
                                                      measurement_matrix,
                                                      measurement_noise_covar)
-        meas_pred = GaussianState(meas_pred_mean,
-                                  meas_pred_covar,
-                                  state_prediction.timestamp)
 
-        return meas_pred, cross_covar
+        return GaussianMeasurementPrediction(meas_pred_mean, meas_pred_covar,
+                                             state_prediction.timestamp,
+                                             cross_covar)
 
     def update(self, prediction, measurement,
                measurement_prediction=None, **kwargs):
@@ -243,52 +227,37 @@ class ExtendedKalmanUpdater(KalmanUpdater):
 
         Parameters
         ----------
-        prediction : :class:`GaussianState`
+        prediction : :class:`~.GaussianStatePrediction`
             The state prediction
-        measurement : :class:`Detection`
+        measurement : :class:`~.Detection`
             The measurement
-        measurement_prediction : :class:`GaussianState`, optional
+        measurement_prediction :\
+        :class:`~.GaussianMeasurementPrediction`, optional
             A measurement prediction (the default is ``None``, in which case\
             it will be computed internally)
 
         Returns
         -------
-        : :class:`GaussianState`
+        : :class:`~.GaussianState`
             The state posterior
         """
 
-        # Measurement model parameters
-        try:
-            # Attempt to extract matrix from a LinearModel
-            measurement_matrix = self.measurement_model.matrix(**kwargs)
-        except AttributeError:
-            # Else read jacobian from a NonLinearModel
-            measurement_matrix = self.measurement_model.jacobian(**kwargs)
-        measurement_noise_covar = self.measurement_model.covar(**kwargs)
-
         if(measurement_prediction is None):
-            posterior_mean, posterior_covar, _ = \
-                self.update_lowlevel(prediction.mean,
-                                     prediction.covar,
-                                     measurement_matrix,
-                                     measurement_noise_covar,
-                                     measurement.state_vector)
-        else:
-            cross_covar = prediction.covar@measurement_matrix.T
-            posterior_mean, posterior_covar, _ = \
-                self._update_on_measurement_prediction(
-                    prediction.mean,
-                    prediction.covar,
-                    measurement.state_vector,
-                    measurement_prediction.mean,
-                    measurement_prediction.covar,
-                    cross_covar)
+            measurement_prediction = \
+                self.get_measurement_prediction(prediction)
 
-        posterior = GaussianState(posterior_mean,
-                                  posterior_covar,
-                                  prediction.timestamp)
+        posterior_mean, posterior_covar, _ = \
+            self._update_on_measurement_prediction(
+                prediction.mean,
+                prediction.covar,
+                measurement.state_vector,
+                measurement_prediction.mean,
+                measurement_prediction.covar,
+                measurement_prediction.cross_covar)
 
-        return posterior
+        return GaussianState(posterior_mean,
+                             posterior_covar,
+                             prediction.timestamp)
 
     @staticmethod
     def update_lowlevel(x_pred, P_pred, H, R, y):
