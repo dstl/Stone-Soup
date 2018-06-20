@@ -9,16 +9,32 @@ from ..updater import Updater
 
 
 class SingleTargetTracker(Tracker):
-    """A simple tracker.
+    """A simple single target tracker.
 
-    Track an object using StoneSoup components.
+    Track a single object using Stone Soup components. The tracker works by
+    first calling the :attr:`data_associator` with the active track, and then
+    either updating the track state with the result of the :attr:`updater` if
+    a detection is associated, or with the prediction if no detection is
+    associated to the track. The track is then checked for deletion by the
+    :attr:`deletor`, and if deleted the :attr:`initiator` is called to generate
+    a new track. Similarly if no track is present (i.e. tracker is initialised
+    or deleted in previous iteration), only the :attr:`initiator` is called.
+
+    Parameters
+    ----------
+
+    Attributes
+    ----------
+    track : :class:`~.Track`
+        Current track being maintained. Also accessible as the sole item in
+        :attr:`tracks`
     """
     initiator = Property(
         Initiator,
         doc="Initiator used to initialise the track.")
     deletor = Property(
         Deletor,
-        doc="Initiator used to initialise the track.")
+        doc="Deletor used to delete the track")
     detector = Property(
         DetectionReader,
         doc="Detector used to generate detection objects.")
