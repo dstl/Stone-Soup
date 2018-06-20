@@ -7,9 +7,9 @@ Hypothesiser
 .. automodule:: stonesoup.hypothesiser.base
     :show-inheritance:
 
-Likelihood
-----------
+Distance
+--------
 
-.. automodule:: stonesoup.hypothesiser.likelihood
+.. automodule:: stonesoup.hypothesiser.distance
     :show-inheritance:
 
