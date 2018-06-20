@@ -18,6 +18,6 @@ def test_track():
     assert(not track.states)
 
     # Track initialisation with initial state
-    track = Track(state)
+    track = Track([state])
     assert(len(track.states) == 1)
     assert(track.state == state)

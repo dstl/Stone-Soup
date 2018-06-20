@@ -6,28 +6,31 @@ from ..types import State
 class Track(Type):
     """Track type
 
+    Parameters
+    ----------
+
     Attributes
     ----------
-    states : list of :class:`State`
-        Estimated state of the track
     state : State
-        Most recent estimate state
+        Most recent state
     state_vector : StateVector
-        Most recent estimate state vector
+        Most recent state vector
     covar : CovarianceMatrix
-        Most recent estimate state covariance
+        Most recent state covariance
+    timestamp : :class:`datetime.datetime`
+        Most recent state timestamp
     """
 
-    initial_state = Property(State,
-                             doc="The initial state of the track",
-                             default=None)
+    states = Property(
+        [State],
+        default=None,
+        doc="The initial states of the track. Default `None` which initialises"
+            "with empty list.")
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if(self.initial_state is not None):
-            self.states = [self.initial_state]
-        else:
-            self.states = []
+    def __init__(self, states=None, *args, **kwargs):
+        if states is None:
+            states = []
+        super().__init__(states, *args, **kwargs)
 
     @property
     def state(self):
