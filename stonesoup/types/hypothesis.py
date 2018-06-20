@@ -5,8 +5,8 @@ from collections import UserDict
 
 from .base import Type
 from ..base import Property
-from ..types import State
-from ..types import Detection
+from .detection import Detection
+from .prediction import MeasurementPrediction, Prediction
 
 
 class Hypothesis(Type):
@@ -15,10 +15,10 @@ class Hypothesis(Type):
     """
 
     prediction = Property(
-        State,
+        Prediction,
         doc="Predicted track state")
-    innovation = Property(
-        State,
+    measurement_prediction = Property(
+        MeasurementPrediction,
         doc="Track prediction in measurement space")
     detection = Property(
         Detection,
