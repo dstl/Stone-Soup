@@ -38,7 +38,7 @@ class ParticleUpdater(Updater):
 
         for particle in prediction.particles:
             particle.weight *= self.measurement_model.pdf(
-                measurement.state_vector, particle.state_vector)
+                measurement.state_vector, particle.state_vector, **kwargs)
 
         # Normalise the weights
         sum_w = sum(i.weight for i in prediction.particles)
@@ -58,11 +58,11 @@ class ParticleUpdater(Updater):
         return ParticleState(new_particles, timestamp=prediction.timestamp)
 
     @lru_cache()
-    def get_measurement_prediction(self, state_prediction):
+    def get_measurement_prediction(self, state_prediction, **kwargs):
         new_particles = []
         for particle in state_prediction.particles:
             new_state_vector = self.measurement_model.function(
-                particle.state_vector, noise=0)
+                particle.state_vector, noise=0, **kwargs)
             new_particles.append(
                 Particle(new_state_vector,
                          weight=particle.weight,
