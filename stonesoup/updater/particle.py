@@ -4,7 +4,8 @@ from functools import lru_cache
 from .base import Updater
 from ..base import Property
 from ..resampler import Resampler
-from ..types import Particle, ParticleState
+from ..types.particle import (
+    Particle, ParticleState, ParticleMeasurementPrediction)
 
 
 class ParticleUpdater(Updater):
@@ -22,16 +23,16 @@ class ParticleUpdater(Updater):
 
         Parameters
         ----------
-        prediction : :class:`ParticleState`
+        prediction : :class:`~.ParticleStatePrediction`
             The state prediction
-        measurement : :class:`Detection`
+        measurement : :class:`~.Detection`
             The measurement
         measurement_prediction : None
             Not required and ignored if passed.
 
         Returns
         -------
-        : :class:`ParticleState`
+        : :class:`~.ParticleState`
             The state posterior
         """
 
@@ -67,5 +68,5 @@ class ParticleUpdater(Updater):
                          weight=particle.weight,
                          parent=particle.parent))
 
-        return ParticleState(
+        return ParticleMeasurementPrediction(
             new_particles, timestamp=state_prediction.timestamp)

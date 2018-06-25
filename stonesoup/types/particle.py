@@ -52,3 +52,17 @@ class ParticleState(Type):
         if not cov.shape:
             cov = cov.reshape(1, 1)
         return cov
+
+
+class ParticleStatePrediction(ParticleState):
+    """ParticleStatePrediction type
+
+    This is a simple Particle state prediction object.
+    """
+
+
+class ParticleMeasurementPrediction(ParticleState):
+    """MeasurementStatePrediction type
+
+    This is a simple Particle measurement prediction object.
+    """

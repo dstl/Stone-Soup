@@ -2,7 +2,7 @@
 from functools import lru_cache
 
 from .base import Predictor
-from ..types.particle import Particle, ParticleState
+from ..types.particle import Particle, ParticleStatePrediction
 
 
 class ParticlePredictor(Predictor):
@@ -28,7 +28,7 @@ class ParticlePredictor(Predictor):
 
         Returns
         -------
-        : :class:`~.ParticleState`
+        : :class:`~.ParticleStatePrediction`
             The predicted state
         """
         # Compute time_interval
@@ -49,4 +49,4 @@ class ParticlePredictor(Predictor):
                          weight=particle.weight,
                          parent=particle.parent))
 
-        return ParticleState(new_particles, timestamp)
+        return ParticleStatePrediction(new_particles, timestamp=timestamp)

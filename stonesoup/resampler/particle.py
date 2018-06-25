@@ -2,7 +2,7 @@
 import numpy as np
 
 from .base import Resampler
-from ..types import Particle
+from ..types.particle import Particle
 
 
 class SystematicResampler(Resampler):
