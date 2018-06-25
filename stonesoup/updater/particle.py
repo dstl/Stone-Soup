@@ -65,7 +65,6 @@ class ParticleUpdater(Updater):
             new_particles.append(
                 Particle(new_state_vector,
                          weight=particle.weight,
-                         timestamp=state_prediction.timestamp,
                          parent=particle.parent))
 
         return ParticleState(

@@ -37,8 +37,7 @@ class SystematicResampler(Resampler):
             particle = particles_listed[np.argmax(u_j < cdf)]
             new_particles.append(
                 Particle(particle.state_vector,
-                         1 / n_particles,
-                         parent=particle,
-                         timestamp=particle.timestamp))
+                         weight=1 / n_particles,
+                         parent=particle))
 
         return new_particles
