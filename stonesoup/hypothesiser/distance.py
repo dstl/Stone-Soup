@@ -34,7 +34,7 @@ class MahalanobisDistanceHypothesiser(Hypothesiser):
 
         for detection in detections:
             prediction = self.predictor.predict(
-                track, timestamp=detection.timestamp)
+                track.state, timestamp=detection.timestamp)
             measurement_prediction = self.updater.get_measurement_prediction(
                 prediction)
             distance = mahalanobis(detection.state_vector,
@@ -46,7 +46,7 @@ class MahalanobisDistanceHypothesiser(Hypothesiser):
                     prediction, measurement_prediction, detection, distance))
 
         # Missed detection hypothesis with distance as 'missed_distance'
-        prediction = self.predictor.predict(track, timestamp=timestamp)
+        prediction = self.predictor.predict(track.state, timestamp=timestamp)
         hypotheses.append(
             DistanceHypothesis(prediction, None, None, self.missed_distance))
 
