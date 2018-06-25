@@ -1,4 +1,9 @@
 # .coveragerc to control coverage.py
+[run]
+branch = True
+source = stonesoup
+omit = */tests/*
+
 [report]
 # Regexes for lines to exclude from consideration
 exclude_lines =
@@ -7,3 +12,6 @@ exclude_lines =
 
     # Don't complain if tests don't hit defensive assertion code:
     raise NotImplementedError
+
+    # Ignore pass:
+    pass
