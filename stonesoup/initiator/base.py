@@ -24,4 +24,4 @@ class Initiator(Base):
         : set of :class:`~.Track`
             Tracks generated from detections
         """
-        raise NotImplemented
+        raise NotImplementedError

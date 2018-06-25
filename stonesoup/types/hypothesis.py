@@ -26,23 +26,23 @@ class Hypothesis(Type):
 
     @abstractclassmethod
     def __lt__(self, other):
-        raise NotImplemented
+        raise NotImplementedError
 
     @abstractclassmethod
     def __le__(self, other):
-        raise NotImplemented
+        raise NotImplementedError
 
     @abstractclassmethod
     def __eq__(self, other):
-        raise NotImplemented
+        raise NotImplementedError
 
     @abstractclassmethod
     def __gt__(self, other):
-        raise NotImplemented
+        raise NotImplementedError
 
     @abstractclassmethod
     def __ge__(self, other):
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class DistanceHypothesis(Hypothesis):
@@ -96,23 +96,23 @@ class JointHypothesis(Type, UserDict):
 
     @abstractclassmethod
     def __lt__(self, other):
-        raise NotImplemented
+        raise NotImplementedError
 
     @abstractclassmethod
     def __le__(self, other):
-        raise NotImplemented
+        raise NotImplementedError
 
     @abstractclassmethod
     def __eq__(self, other):
-        raise NotImplemented
+        raise NotImplementedError
 
     @abstractclassmethod
     def __gt__(self, other):
-        raise NotImplemented
+        raise NotImplementedError
 
     @abstractclassmethod
     def __ge__(self, other):
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class DistanceJointHypothesis(JointHypothesis):

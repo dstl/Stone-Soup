@@ -17,4 +17,4 @@ class Feeder(DetectionReader):
 
     @abstractmethod
     def detections_gen(self):
-        raise NotImplemented
+        raise NotImplementedError

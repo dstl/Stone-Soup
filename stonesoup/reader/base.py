@@ -22,7 +22,7 @@ class DetectionReader(Reader):
         : set of :class:`~.Detection`
             Detections generate in the time step
         """
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class GroundTruthReader(Reader):
@@ -38,7 +38,7 @@ class GroundTruthReader(Reader):
         : set of :class:`~.GroundTruthPath`
             Ground truth paths existing in the time step
         """
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class SensorDataReader(Reader):
@@ -54,4 +54,4 @@ class SensorDataReader(Reader):
         : set of :class:`~.SensorData`
             Sensor data generated in the time step
         """
-        raise NotImplemented
+        raise NotImplementedError

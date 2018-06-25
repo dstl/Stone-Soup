@@ -37,4 +37,4 @@ class Predictor(Base):
         : :class:`~.StatePrediction`
             State prediction
         """
-        raise NotImplemented
+        raise NotImplementedError

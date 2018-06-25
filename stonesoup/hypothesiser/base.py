@@ -23,4 +23,4 @@ class Hypothesiser(Base):
         : sequence of :class:`~.Hypothesis`
             Ordered sequence of "best" to "worse" hypothesis.
         """
-        raise NotImplemented
+        raise NotImplementedError

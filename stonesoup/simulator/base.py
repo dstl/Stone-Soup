@@ -13,7 +13,7 @@ class DetectionSimulator(Simulator, DetectionReader):
 
     @abstractmethod
     def detections_gen(self):
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class GroundTruthSimulator(Simulator, GroundTruthReader):
@@ -21,7 +21,7 @@ class GroundTruthSimulator(Simulator, GroundTruthReader):
 
     @abstractmethod
     def groundtruth_paths_gen(self):
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class SensorSimulator(Simulator, SensorDataReader):
@@ -29,4 +29,4 @@ class SensorSimulator(Simulator, SensorDataReader):
 
     @abstractmethod
     def sensordata_gen(self):
-        raise NotImplemented
+        raise NotImplementedError

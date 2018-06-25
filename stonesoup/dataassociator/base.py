@@ -38,7 +38,7 @@ class DataAssociator(Base):
         : mapping of :class:`~.Track` : :class:`~.Hypothesis`}
             Mapping of track to Hypothesis
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     @staticmethod
     def isvalid(joint_hypothesis):

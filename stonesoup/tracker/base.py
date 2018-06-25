@@ -18,4 +18,4 @@ class Tracker(Base):
         : set of :class:`~.Track`
             Tracks existing in the time step
         """
-        raise NotImplemented
+        raise NotImplementedError
