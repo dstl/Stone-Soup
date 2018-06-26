@@ -7,10 +7,14 @@ Updaters
 .. automodule:: stonesoup.updater.base
     :show-inheritance:
 
-Kalman Updaters
----------------
+Kalman
+------
 
 .. automodule:: stonesoup.updater.kalman
     :show-inheritance:
 
+Particle
+--------
 
+.. automodule:: stonesoup.updater.particle
+    :show-inheritance:

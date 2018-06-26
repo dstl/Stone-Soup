@@ -46,6 +46,12 @@ State Types
 .. automodule:: stonesoup.types.state
     :show-inheritance:
 
+Particle Types
+--------------
+
+.. automodule:: stonesoup.types.particle
+    :show-inheritance:
+
 Prediction Types
 ----------------
 
