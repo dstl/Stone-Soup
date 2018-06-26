@@ -9,9 +9,92 @@ from ..updater import Updater
 
 
 class SingleTargetTracker(Tracker):
-    """A simple tracker.
+    """A simple single target tracker.
 
-    Track an object using StoneSoup components.
+    Track a single object using Stone Soup components. The tracker works by
+    first calling the :attr:`data_associator` with the active track, and then
+    either updating the track state with the result of the :attr:`updater` if
+    a detection is associated, or with the prediction if no detection is
+    associated to the track. The track is then checked for deletion by the
+    :attr:`deletor`, and if deleted the :attr:`initiator` is called to generate
+    a new track. Similarly if no track is present (i.e. tracker is initialised
+    or deleted in previous iteration), only the :attr:`initiator` is called.
+
+    Parameters
+    ----------
+
+    Attributes
+    ----------
+    track : :class:`~.Track`
+        Current track being maintained. Also accessible as the sole item in
+        :attr:`tracks`
+    """
+    initiator = Property(
+        Initiator,
+        doc="Initiator used to initialise the track.")
+    deletor = Property(
+        Deletor,
+        doc="Deletor used to delete the track")
+    detector = Property(
+        DetectionReader,
+        doc="Detector used to generate detection objects.")
+    data_associator = Property(
+        DataAssociator,
+        doc="Association algorithm to pair predictions to detections")
+    updater = Property(
+        Updater,
+        doc="Updater used to update the track object to the new state.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.track = None
+
+    @property
+    def tracks(self):
+        return {self.track}
+
+    def tracks_gen(self):
+        self.track = None
+
+        for time, detections in self.detector.detections_gen():
+
+            if self.track is not None:
+                associations = self.data_associator.associate(
+                        self.tracks, detections, time)
+                if associations[self.track].detection is not None:
+                    state_post = self.updater.update(
+                        associations[self.track].prediction,
+                        associations[self.track].detection,
+                        associations[self.track].measurement_prediction)
+                    self.track.states.append(state_post)
+                else:
+                    self.track.states.append(
+                        associations[self.track].prediction)
+
+            if self.track is None or self.deletor.delete_tracks(self.tracks):
+                new_tracks = self.initiator.initiate(detections)
+                if new_tracks:
+                    track = next(iter(new_tracks))
+                    self.track = track
+                else:
+                    self.track = None
+
+            yield time, self.tracks
+
+
+class MultiTargetTracker(Tracker):
+    """A simple multi target tracker.
+
+    Track multiple objects using Stone Soup components. The tracker works by
+    first calling the :attr:`data_associator` with the active tracks, and then
+    either updating the track state with the result of the :attr:`updater` if
+    a detection is associated, or with the prediction if no detection is
+    associated to the track. Tracks are then checked for deletion by the
+    :attr:`deletor`, and remaining unassociated detections are passed to the
+    :attr:`initiator` to generate new tracks.
+
+    Parameters
+    ----------
     """
     initiator = Property(
         Initiator,
@@ -30,32 +113,34 @@ class SingleTargetTracker(Tracker):
         doc="Updater used to update the track object to the new state.")
 
     def __init__(self, *args, **kwargs):
-        self.tracks = set()
         super().__init__(*args, **kwargs)
+        self._tracks = set()
+
+    @property
+    def tracks(self):
+        return self._tracks.copy()
 
     def tracks_gen(self):
-        track = None
+        self._tracks = set()
 
         for time, detections in self.detector.detections_gen():
 
-            if track is not None:
-                associations = self.data_associator.associate(
-                        {track}, detections, time)
-                if associations[track].detection is not None:
+            associations = self.data_associator.associate(
+                self._tracks, detections, time)
+            associated_detections = set()
+            for track, hypothesis in associations.items():
+                if hypothesis.detection is not None:
                     state_post = self.updater.update(
-                        associations[track].prediction,
-                        associations[track].detection,
-                        associations[track].measurement_prediction)
+                        hypothesis.prediction,
+                        hypothesis.detection,
+                        hypothesis.measurement_prediction)
                     track.states.append(state_post)
+                    associated_detections.add(hypothesis.detection)
                 else:
-                    track.states.append(associations[track].prediction)
+                    track.states.append(hypothesis.prediction)
 
-            if track is None or self.deletor.delete_tracks({track}):
-                new_tracks = self.initiator.initiate(detections)
-                if new_tracks:
-                    track = next(iter(new_tracks))
-                    self.tracks.add(track)
-                else:
-                    track = None
+            self._tracks -= self.deletor.delete_tracks(self._tracks)
+            self._tracks |= self.initiator.initiate(
+                detections - associated_detections)
 
-            yield time, {track}
+            yield time, self.tracks

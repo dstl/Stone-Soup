@@ -36,6 +36,14 @@ class CSVDetectionReader(DetectionReader, TextFileReader):
     timestamp = Property(
         bool, default=False, doc='Treat time field as a timestamp from epoch')
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._detections = set()
+
+    @property
+    def detections(self):
+        return self._detections.copy()
+
     def detections_gen(self):
         with open(self.path, encoding=self.encoding, newline='') as csv_file:
             reader = csv.DictReader(csv_file)
@@ -52,4 +60,5 @@ class CSVDetectionReader(DetectionReader, TextFileReader):
                 detect = Detection(np.array(
                     [[row[col_name]] for col_name in self.state_vector_fields],
                     dtype=np.float32), time_field_value)
-                yield time_field_value, {detect}
+                self._detections = {detect}
+                yield time_field_value, self.detections

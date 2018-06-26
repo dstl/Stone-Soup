@@ -23,20 +23,27 @@ class SingleTargetGroundTruthSimulator(GroundTruthSimulator):
         datetime.timedelta,
         default=datetime.timedelta(seconds=1),
         doc="Time step between each state. Default one second.")
+    number_steps = Property(
+        int, default=100, doc="Number of time steps to run for")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.groundtruth_paths = set()
+        self._groundtruth_paths = set()
+
+    @property
+    def groundtruth_paths(self):
+        return self._groundtruth_paths.copy()
 
     def groundtruth_paths_gen(self):
+        self._groundtruth_paths = set()
         time = self.initial_state.timestamp or datetime.datetime.now()
 
         gttrack = GroundTruthPath([
             GroundTruthState(self.initial_state.state_vector, timestamp=time)])
-        self.groundtruth_paths.add(gttrack)
-        yield time, {gttrack}
+        self._groundtruth_paths.add(gttrack)
+        yield time, self.groundtruth_paths
 
-        while True:
+        for _ in range(self.number_steps - 1):
             time += self.timestep
             # Move track forward
             trans_state_vector = self.transition_model.function(
@@ -45,7 +52,7 @@ class SingleTargetGroundTruthSimulator(GroundTruthSimulator):
             gttrack.append(GroundTruthState(
                 trans_state_vector, timestamp=time))
 
-            yield time, {gttrack}
+            yield time, self.groundtruth_paths
 
 
 class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
@@ -64,19 +71,19 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
         doc="Probability of track dying in each time step. Default 0.1.")
 
     def groundtruth_paths_gen(self):
+        self._groundtruth_paths = set()
         time = self.initial_state.timestamp or datetime.datetime.now()
-        active_tracks = set()
 
-        while True:
+        for _ in range(self.number_steps):
             time += self.timestep
             # Random drop tracks
-            active_tracks -= set(
+            self._groundtruth_paths.difference_update(
                 gttrack
-                for gttrack in active_tracks
+                for gttrack in self.groundtruth_paths
                 if np.random.rand() <= self.death_probability)
 
             # Move tracks forward
-            for gttrack in active_tracks:
+            for gttrack in self.groundtruth_paths:
                 trans_state_vector = self.transition_model.function(
                     gttrack[-1].state_vector,
                     time_interval=self.timestep)
@@ -91,10 +98,9 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
                     np.sqrt(self.initial_state.covar) @
                     np.random.randn(self.initial_state.ndim, 1),
                     timestamp=time))
-                self.groundtruth_paths.add(gttrack)
-                active_tracks.add(gttrack)
+                self._groundtruth_paths.add(gttrack)
 
-            yield time, active_tracks
+            yield time, self.groundtruth_paths
 
 
 class SimpleDetectionSimulator(DetectionSimulator):
@@ -126,7 +132,9 @@ class SimpleDetectionSimulator(DetectionSimulator):
         H = self.measurement_model.matrix()
 
         for time, tracks in self.groundtruth.groundtruth_paths_gen():
-            detections = set()
+            self.real_detections.clear()
+            self.clutter_detections.clear()
+
             for track in tracks:
                 if np.random.rand() < self.probability_of_detect:
                     detection = Detection(
@@ -134,7 +142,6 @@ class SimpleDetectionSimulator(DetectionSimulator):
                         self.measurement_model.rvs(),
                         timestamp=track[-1].timestamp)
                     detection.clutter = False
-                    detections.add(detection)
                     self.real_detections.add(detection)
 
             # generate clutter
@@ -143,7 +150,6 @@ class SimpleDetectionSimulator(DetectionSimulator):
                     np.random.rand(H.shape[0], 1) *
                     np.diff(self.meas_range) + self.meas_range[:, :1],
                     timestamp=time)
-                detections.add(detection)
                 self.clutter_detections.add(detection)
 
-            yield time, detections
+            yield time, self.detections
