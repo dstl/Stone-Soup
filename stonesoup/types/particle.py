@@ -22,7 +22,7 @@ class Particle(Type):
         if parent:
             parent.parent = None
         super().__init__(state_vector, weight, parent, *args, **kwargs)
-Particle.parent.cls = Particle
+Particle.parent.cls = Particle  # noqa:E305
 
 
 class ParticleState(Type):
