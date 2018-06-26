@@ -1,24 +1,24 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-from ..config import YAMLConfigurationFile
+from ..serialise import YAML
 from ..base import Property
 
 
 @pytest.fixture()
-def conf_file():
-    return YAMLConfigurationFile()
+def serialised_file():
+    return YAML()
 
 
-def test_declarative(base, conf_file):
+def test_declarative(base, serialised_file):
     instance = base(2, "20")
     instance.new_property = True
 
-    conf_str = conf_file.dumps(instance)
+    serialised_str = serialised_file.dumps(instance)
 
-    assert 'property_c' not in conf_str  # Default, no need to store in config
+    assert 'property_c' not in serialised_str  # Default, no need to store
 
-    new_instance = conf_file.load(conf_str)
+    new_instance = serialised_file.load(serialised_str)
     assert isinstance(new_instance, base)
     assert new_instance.property_a == instance.property_a
     assert new_instance.property_b == instance.property_b
@@ -27,20 +27,20 @@ def test_declarative(base, conf_file):
         new_instance.new_property
 
 
-def test_nested_declarative(base, conf_file):
+def test_nested_declarative(base, serialised_file):
     nested_instance = base(1, "nested")
     instance = base(2, "primary", nested_instance)
 
-    conf_str = conf_file.dumps(instance)
+    serialised_str = serialised_file.dumps(instance)
 
-    new_instance = conf_file.load(conf_str)
+    new_instance = serialised_file.load(serialised_str)
     assert isinstance(new_instance, base)
     assert isinstance(new_instance.property_c, base)
     assert new_instance.property_b == "primary"
     assert new_instance.property_c.property_b == "nested"
 
 
-def test_duplicate_tag_warning(base, conf_file):
+def test_duplicate_tag_warning(base, serialised_file):
     class _TestDuplicateBase(base):
         pass
 
@@ -54,15 +54,15 @@ def test_duplicate_tag_warning(base, conf_file):
     instance = first_class(2, "20")
     instance.new_property = True
 
-    conf_str = conf_file.dumps(instance)
+    serialised_str = serialised_file.dumps(instance)
 
     with pytest.warns(UserWarning):
-        new_instance = conf_file.load(conf_str)
+        new_instance = serialised_file.load(serialised_str)
 
     assert isinstance(new_instance, (first_class, second_class))
 
 
-def test_numpy(base, conf_file):
+def test_numpy(base, serialised_file):
     import numpy as np
 
     class _TestNumpy(base):
@@ -71,14 +71,14 @@ def test_numpy(base, conf_file):
     instance = _TestNumpy(1, "two",
                           property_d=np.array([[1, 2], [3, 4], [5, 6]]))
 
-    conf_str = conf_file.dumps(instance)
+    serialised_str = serialised_file.dumps(instance)
 
-    new_instance = conf_file.load(conf_str)
+    new_instance = serialised_file.load(serialised_str)
     assert isinstance(new_instance.property_d, np.ndarray)
     assert np.allclose(instance.property_d, new_instance.property_d)
 
 
-def test_datetime(base, conf_file):
+def test_datetime(base, serialised_file):
     import datetime
 
     class _TestNumpy(base):
@@ -87,28 +87,28 @@ def test_datetime(base, conf_file):
     instance = _TestNumpy(1, "two",
                           property_d=datetime.timedelta(seconds=500))
 
-    conf_str = conf_file.dumps(instance)
+    serialised_str = serialised_file.dumps(instance)
 
-    new_instance = conf_file.load(conf_str)
+    new_instance = serialised_file.load(serialised_str)
     assert isinstance(new_instance.property_d, datetime.timedelta)
     assert instance.property_d == new_instance.property_d
 
 
-def test_path(conf_file):
+def test_path(serialised_file):
     import pathlib
     import tempfile
 
     with tempfile.NamedTemporaryFile() as file:
         path = pathlib.Path(file.name)
-        conf_str = conf_file.dumps(path)
-        assert file.name in conf_str
+        serialised_str = serialised_file.dumps(path)
+        assert file.name in serialised_str
 
-        new_path = conf_file.load(conf_str)
+        new_path = serialised_file.load(serialised_str)
         assert new_path == path
 
 
-def test_references(base, conf_file):
-    conf_str = """
+def test_references(base, serialised_file):
+    serialised_str = """
         property_b: &prop_b '20'
         test1: &id001 !stonesoup.tests.conftest.base.%3Clocals%3E._TestBase
             - property_a: 2
@@ -116,7 +116,7 @@ def test_references(base, conf_file):
         test2: *id001
         """
 
-    conf = conf_file.load(conf_str)
+    conf = serialised_file.load(serialised_str)
     new_instance = conf['test2']
     assert new_instance is conf['test1']
     assert isinstance(new_instance, base)
@@ -125,13 +125,14 @@ def test_references(base, conf_file):
     assert new_instance.property_c == base.property_c.default
 
 
-def test_anchor(base, conf_file):
+def test_anchor(base, serialised_file):
     instance = base(2, "20")
 
-    conf_str = conf_file.dumps([instance, instance,  {"key": instance}])
-    assert '&id001' in conf_str  # Anchor should be created
-    assert '*id001' in conf_str  # Reference should be created
+    serialised_str = serialised_file.dumps(
+        [instance, instance,  {"key": instance}])
+    assert '&id001' in serialised_str  # Anchor should be created
+    assert '*id001' in serialised_str  # Reference should be created
 
-    new_instances = conf_file.load(conf_str)
+    new_instances = serialised_file.load(serialised_str)
     assert new_instances[0] is new_instances[1]
     assert new_instances[0] is new_instances[2]['key']

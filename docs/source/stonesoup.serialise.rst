@@ -1,0 +1,5 @@
+Serialisation
+=============
+
+.. automodule:: stonesoup.serialise
+
