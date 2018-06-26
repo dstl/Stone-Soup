@@ -4,8 +4,8 @@ from abc import abstractmethod
 from ..base import Base
 
 
-class Deletor(Base):
-    """Deletor base class.
+class Deleter(Base):
+    """Deleter base class.
 
     Proposes tracks for deletion.
     """

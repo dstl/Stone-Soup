@@ -2,7 +2,7 @@
 from .base import Tracker
 from ..base import Property
 from ..dataassociator import DataAssociator
-from ..deletor import Deletor
+from ..deleter import Deleter
 from ..reader import DetectionReader
 from ..initiator import Initiator
 from ..updater import Updater
@@ -16,7 +16,7 @@ class SingleTargetTracker(Tracker):
     either updating the track state with the result of the :attr:`updater` if
     a detection is associated, or with the prediction if no detection is
     associated to the track. The track is then checked for deletion by the
-    :attr:`deletor`, and if deleted the :attr:`initiator` is called to generate
+    :attr:`deleter`, and if deleted the :attr:`initiator` is called to generate
     a new track. Similarly if no track is present (i.e. tracker is initialised
     or deleted in previous iteration), only the :attr:`initiator` is called.
 
@@ -32,9 +32,9 @@ class SingleTargetTracker(Tracker):
     initiator = Property(
         Initiator,
         doc="Initiator used to initialise the track.")
-    deletor = Property(
-        Deletor,
-        doc="Deletor used to delete the track")
+    deleter = Property(
+        Deleter,
+        doc="Deleter used to delete the track")
     detector = Property(
         DetectionReader,
         doc="Detector used to generate detection objects.")
@@ -71,7 +71,7 @@ class SingleTargetTracker(Tracker):
                     self.track.states.append(
                         associations[self.track].prediction)
 
-            if self.track is None or self.deletor.delete_tracks(self.tracks):
+            if self.track is None or self.deleter.delete_tracks(self.tracks):
                 new_tracks = self.initiator.initiate(detections)
                 if new_tracks:
                     track = next(iter(new_tracks))
@@ -90,7 +90,7 @@ class MultiTargetTracker(Tracker):
     either updating the track state with the result of the :attr:`updater` if
     a detection is associated, or with the prediction if no detection is
     associated to the track. Tracks are then checked for deletion by the
-    :attr:`deletor`, and remaining unassociated detections are passed to the
+    :attr:`deleter`, and remaining unassociated detections are passed to the
     :attr:`initiator` to generate new tracks.
 
     Parameters
@@ -99,8 +99,8 @@ class MultiTargetTracker(Tracker):
     initiator = Property(
         Initiator,
         doc="Initiator used to initialise the track.")
-    deletor = Property(
-        Deletor,
+    deleter = Property(
+        Deleter,
         doc="Initiator used to initialise the track.")
     detector = Property(
         DetectionReader,
@@ -139,7 +139,7 @@ class MultiTargetTracker(Tracker):
                 else:
                     track.states.append(hypothesis.prediction)
 
-            self._tracks -= self.deletor.delete_tracks(self._tracks)
+            self._tracks -= self.deleter.delete_tracks(self._tracks)
             self._tracks |= self.initiator.initiate(
                 detections - associated_detections)
 

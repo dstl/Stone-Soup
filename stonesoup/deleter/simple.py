@@ -1,11 +1,11 @@
 import numpy as np
 
 from ..base import Property
-from .base import Deletor
+from .base import Deleter
 
 
-class CovarianceBasedDeletor(Deletor):
-    """ Track deletor based on covariance matrix size.
+class CovarianceBasedDeleter(Deleter):
+    """ Track deleter based on covariance matrix size.
 
     Deletes tracks whose state covariance matrix (more specifically its trace)
     exceeds a given threshold.

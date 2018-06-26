@@ -37,7 +37,7 @@ Simulators
 Tracker Components
 ------------------
 .. autoclass:: stonesoup.dataassociator.DataAssociator
-.. autoclass:: stonesoup.deletor.Deletor
+.. autoclass:: stonesoup.deleter.Deleter
 .. autoclass:: stonesoup.hypothesiser.Hypothesiser
 .. autoclass:: stonesoup.initiator.Initiator
 .. autoclass:: stonesoup.mixturereducer.MixtureReducer

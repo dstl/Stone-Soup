@@ -25,7 +25,7 @@ Tracker Components
 .. toctree::
 
     stonesoup.dataassociator
-    stonesoup.deletor
+    stonesoup.deleter
     stonesoup.hypothesiser
     stonesoup.initiator
     stonesoup.mixturereducer
