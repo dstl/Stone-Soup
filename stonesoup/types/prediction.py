@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from .base import Property
 from .state import State, GaussianState, CovarianceMatrix
-from .particle import ParticleState
 
 
 class Prediction(State):
