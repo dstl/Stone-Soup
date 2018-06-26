@@ -22,6 +22,7 @@ class Particle(Type):
         if parent:
             parent.parent = None
         super().__init__(state_vector, weight, parent, *args, **kwargs)
+Particle.parent.cls = Particle
 
 
 class ParticleState(Type):
@@ -38,7 +39,8 @@ class ParticleState(Type):
     @property
     def mean(self):
         """The state mean, equivalent to state vector"""
-        return np.mean([p.state_vector for p in self.particles], axis=0)
+        return np.average([p.state_vector for p in self.particles], axis=0,
+                          weights=[p.weight for p in self.particles])
 
     @property
     def state_vector(self):
@@ -47,7 +49,8 @@ class ParticleState(Type):
 
     @property
     def covar(self):
-        cov = np.cov(np.hstack([p.state_vector for p in self.particles]))
+        cov = np.cov(np.hstack([p.state_vector for p in self.particles]),
+                     ddof=0, aweights=[p.weight for p in self.particles])
         # Fix one dimensional covariances being returned with zero dimension
         if not cov.shape:
             cov = cov.reshape(1, 1)
