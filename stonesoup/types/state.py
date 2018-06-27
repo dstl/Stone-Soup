@@ -18,14 +18,13 @@ class State(Type):
     state_vector = Property(StateVector, doc='State vector.')
 
     def __init__(self, state_vector, *args, **kwargs):
-        state_vector = state_vector.view(StateVector)
+        state_vector = StateVector(state_vector)
         super().__init__(state_vector, *args, **kwargs)
 
     @property
     def ndim(self):
         """The number of dimensions represented by the state."""
-        if self.state_vector is not None:
-            return self.state_vector.shape[0]
+        return self.state_vector.shape[0]
 
 
 class GaussianState(State):
@@ -37,7 +36,7 @@ class GaussianState(State):
     covar = Property(CovarianceMatrix, doc='Covariance matrix of state.')
 
     def __init__(self, state_vector, covar, *args, **kwargs):
-        covar = covar.view(CovarianceMatrix)
+        covar = CovarianceMatrix(covar)
         super().__init__(state_vector, covar, *args, **kwargs)
         if self.state_vector.shape[0] != self.covar.shape[0]:
             raise ValueError(
