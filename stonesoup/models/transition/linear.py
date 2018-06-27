@@ -27,7 +27,7 @@ class LinearGaussianTransitionModel(
         return self.matrix().shape[0]
 
     def rvs(self, num_samples=1, **kwargs):
-        """ Model noise/sample generation function
+        r""" Model noise/sample generation function
 
         Generates noisy samples from the transition model.
 
@@ -62,7 +62,7 @@ class LinearGaussianTransitionModel(
             return noise.T
 
     def pdf(self, state_vector_post, state_vector_prior, **kwargs):
-        """ Model pdf/likelihood evaluation function
+        r""" Model pdf/likelihood evaluation function
 
         Evaluates the pdf/likelihood of the transformed state ``state_post``,
         given the prior state ``state_prior``.
@@ -158,12 +158,12 @@ class LinearGaussianTimeInvariantTransitionModel(LinearGaussianTransitionModel,
     r"""Generic Linear Gaussian Time Invariant Transition Model."""
 
     transition_matrix = Property(
-        sp.ndarray, doc="Transition matrix :math:`\mathbf{F}`.")
+        sp.ndarray, doc="Transition matrix :math:`\\mathbf{F}`.")
     control_matrix = Property(
-        sp.ndarray, default=None, doc="Control matrix :math:`\mathbf{B}`.")
+        sp.ndarray, default=None, doc="Control matrix :math:`\\mathbf{B}`.")
     covariance_matrix = Property(
         sp.ndarray,
-        doc="Transition noise covariance matrix :math:`\mathbf{Q}`.")
+        doc="Transition noise covariance matrix :math:`\\mathbf{Q}`.")
 
     def matrix(self, **kwargs):
         """Model matrix :math:`F`

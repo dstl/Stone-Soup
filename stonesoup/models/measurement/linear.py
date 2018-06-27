@@ -10,7 +10,7 @@ from .base import MeasurementModel
 
 
 class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
-    """This is a class implementation of a time-invariant 1D
+    r"""This is a class implementation of a time-invariant 1D
     Linear-Gaussian Measurement Model.
 
     The model is described by the following equations:
@@ -89,7 +89,7 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
         return self.noise_covar
 
     def rvs(self, num_samples=1, **kwargs):
-        """ Model noise/sample generation function
+        r""" Model noise/sample generation function
 
         Generates noise samples from the measurement model.
 
@@ -122,7 +122,7 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
             return noise.T
 
     def pdf(self, meas_vec, state_vec, **kwargs):
-        """ Measurement pdf/likelihood evaluation function
+        r""" Measurement pdf/likelihood evaluation function
 
         Evaluates the pdf/likelihood of the (set of) measurement vector(s)
         ``meas_vec``, given the (set of) state vector(s) ``state_vec``.
