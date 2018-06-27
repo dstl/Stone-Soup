@@ -89,3 +89,18 @@ def test_distance_joint_hypothesis_comparison():
     assert j1 <= j1
     assert j1 >= j1
     assert j1 == j1
+
+
+def test_invalid_joint_hypothesis():
+    """Invalid Joint Hypothesis test"""
+
+    t1 = Track()
+    t2 = Track()
+
+    h1 = object()
+    h2 = object()
+
+    hypotheses = {t1: h1, t2: h2}
+
+    with pytest.raises(NotImplementedError):
+        JointHypothesis(hypotheses)
