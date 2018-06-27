@@ -51,3 +51,7 @@ class Track(Type):
     @property
     def mean(self):
         return self.state.mean
+
+    @property
+    def particles(self):
+        return self.state.particles
