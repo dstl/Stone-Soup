@@ -4,7 +4,7 @@ import scipy as sp
 from scipy.stats import multivariate_normal
 
 from ...base import Property
-from ...types import CovarianceMatrix
+from ...types.array import CovarianceMatrix
 from ..base import LinearModel, GaussianModel
 from .base import MeasurementModel
 
@@ -59,7 +59,7 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
 
         Parameters
         ----------
-        state_vector: :class:`stonesoup.types.state.StateVector`
+        state_vector: :class:`~.StateVector`
             An input state vector
         noise: :class:`numpy.ndarray`
             An externally generated random process noise sample (the default in
@@ -81,7 +81,7 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
 
         Returns
         -------
-        :class:`stonesoup.types.state.CovarianceMatrix` of shape\
+        :class:`~.CovarianceMatrix` of shape\
         (:py:attr:`~ndim_meas`, :py:attr:`~ndim_meas`)
             The measurement noise covariance.
         """
@@ -135,9 +135,9 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
 
         Parameters
         ----------
-        meas : :class:`stonesoup.types.state.StateVector`
+        meas : :class:`~.StateVector`
             A measurement
-        state : :class:`stonesoup.types.state.StateVector`
+        state : :class:`~.StateVector`
             A state
 
         Returns

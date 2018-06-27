@@ -5,7 +5,7 @@ from scipy.stats import multivariate_normal
 from scipy.linalg import block_diag
 
 from ...base import Property
-from ...types import CovarianceMatrix
+from ...types.array import CovarianceMatrix
 from ..base import (LinearModel, GaussianModel, TimeVariantModel,
                     TimeInvariantModel)
 from .base import TransitionModel
@@ -78,9 +78,9 @@ class LinearGaussianTransitionModel(
 
         Parameters
         ----------
-        state_vector_post : :class:`stonesoup.types.state.StateVector`
+        state_vector_post : :class:`~.StateVector`
             A predicted/posterior state
-        state_vector_prior : :class:`stonesoup.types.state.StateVector`
+        state_vector_prior : :class:`~.StateVector`
             A prior state
 
         Returns

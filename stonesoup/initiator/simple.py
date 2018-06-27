@@ -5,8 +5,8 @@ from ..base import Property
 from ..updater import KalmanUpdater
 from ..models.measurement import MeasurementModel
 from ..types.track import Track
-from ..types.state import GaussianState
-from ..types.particle import Particle, ParticleState
+from ..types.state import GaussianState, ParticleState
+from ..types.particle import Particle
 
 
 class SinglePointInitiator(Initiator):

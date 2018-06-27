@@ -4,8 +4,8 @@ from functools import lru_cache
 from .base import Updater
 from ..base import Property
 from ..resampler import Resampler
-from ..types.particle import (
-    Particle, ParticleState, ParticleMeasurementPrediction)
+from ..types.particle import Particle
+from ..types.prediction import ParticleState, ParticleMeasurementPrediction
 
 
 class ParticleUpdater(Updater):

@@ -40,7 +40,7 @@ class LinearModel(Model):
 
         Parameters
         ----------
-        state_vector: :class:`stonesoup.types.state.StateVector`
+        state_vector: :class:`~.StateVector`
             An input state vector
         noise: :class:`numpy.ndarray`
             An externally generated random process noise sample (the default in

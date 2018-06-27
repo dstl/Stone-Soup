@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
+from .array import CovarianceMatrix
 from .base import Property
-from .state import State, GaussianState, CovarianceMatrix
+from .state import State, GaussianState, ParticleState
 
 
 class Prediction(State):
@@ -51,3 +52,17 @@ class GaussianMeasurementPrediction(MeasurementPrediction, GaussianState):
                              columns as the number of rows in state_vector")
         super().__init__(state_vector, covar, timestamp,
                          cross_covar, *args, **kwargs)
+
+
+class ParticleStatePrediction(ParticleState):
+    """ParticleStatePrediction type
+
+    This is a simple Particle state prediction object.
+    """
+
+
+class ParticleMeasurementPrediction(ParticleState):
+    """MeasurementStatePrediction type
+
+    This is a simple Particle measurement prediction object.
+    """

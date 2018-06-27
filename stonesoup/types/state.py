@@ -4,46 +4,9 @@ import datetime
 import numpy as np
 
 from ..base import Property
+from .array import StateVector, CovarianceMatrix
 from .base import Type
-
-
-class StateVector(np.ndarray):
-    """State vector wrapper for :class:`numpy.ndarray`
-
-    This class returns a view to a :class:`numpy.ndarray`, but ensures that
-    its initialised at a *Nx1* vector. It's called same as to
-    :func:`numpy.asarray`.
-    """
-
-    def __new__(cls, *args, **kwargs):
-        array = np.asarray(*args, **kwargs)
-        if not (array.ndim == 2 and array.shape[1] == 1):
-            raise ValueError(
-                "state vector shape should be Nx1 dimensions: got {}".format(
-                    array.shape))
-        return array.view(cls)
-
-    def __array_wrap__(self, array):
-        return np.asarray(array)
-
-
-class CovarianceMatrix(np.ndarray):
-    """Covariance matrix wrapper for :class:`numpy.ndarray`.
-
-    This class returns a view to a :class:`numpy.ndarray`, but ensures that
-    its initialised at a *NxN* matrix. It's called similar to
-    :func:`numpy.asarray`.
-    """
-
-    def __new__(cls, *args, **kwargs):
-        array = np.asarray(*args, **kwargs)
-        if not array.ndim == 2:
-            raise ValueError("Covariance should have ndim of 2: got {}"
-                             "".format(array.ndim))
-        return array.view(cls)
-
-    def __array_wrap__(self, array):
-        return np.asarray(array)
+from .particle import Particle
 
 
 class State(Type):
@@ -84,3 +47,35 @@ class GaussianState(State):
     def mean(self):
         """The state mean, equivalent to state vector"""
         return self.state_vector
+
+
+class ParticleState(Type):
+    """Particle State type
+
+    This is a particle state object which describes the state as a
+    distribution of particles"""
+
+    timestamp = Property(datetime.datetime, default=None,
+                         doc="Timestamp of the state. Default None.")
+    particles = Property([Particle],
+                         doc='List of particles representing state')
+
+    @property
+    def mean(self):
+        """The state mean, equivalent to state vector"""
+        return np.average([p.state_vector for p in self.particles], axis=0,
+                          weights=[p.weight for p in self.particles])
+
+    @property
+    def state_vector(self):
+        """The mean value of the particle states"""
+        return self.mean
+
+    @property
+    def covar(self):
+        cov = np.cov(np.hstack([p.state_vector for p in self.particles]),
+                     ddof=0, aweights=[p.weight for p in self.particles])
+        # Fix one dimensional covariances being returned with zero dimension
+        if not cov.shape:
+            cov = cov.reshape(1, 1)
+        return cov

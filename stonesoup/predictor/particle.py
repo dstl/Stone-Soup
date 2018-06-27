@@ -2,7 +2,8 @@
 from functools import lru_cache
 
 from .base import Predictor
-from ..types.particle import Particle, ParticleStatePrediction
+from ..types.particle import Particle
+from ..types.prediction import ParticleStatePrediction
 
 
 class ParticlePredictor(Predictor):
