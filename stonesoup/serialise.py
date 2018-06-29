@@ -61,8 +61,14 @@ class YAML:
         self.dump(data, stream, *args, **kwargs)
         return stream.getvalue()
 
+    def dump_all(self, documents, stream, **kwargs):
+        return self._yaml.dump_all(self, documents, stream, **kwargs)
+
     def load(self, stream):
         return self._yaml.load(stream)
+
+    def load_all(self, stream):
+        yield from self._yaml.load_all(stream)
 
     @classmethod
     def yaml_tag(cls, class_):
