@@ -7,4 +7,7 @@ Writers
 .. automodule:: stonesoup.writer.base
     :show-inheritance:
 
-
+YAML
+----
+.. automodule:: stonesoup.writer.yaml
+    :show-inheritance:

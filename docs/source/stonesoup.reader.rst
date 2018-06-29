@@ -14,3 +14,8 @@ Generic
 -------
 .. automodule:: stonesoup.reader.generic
     :show-inheritance:
+
+YAML
+----
+.. automodule:: stonesoup.reader.yaml
+    :show-inheritance:

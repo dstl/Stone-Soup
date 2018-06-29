@@ -17,6 +17,7 @@ Enabling Components
     stonesoup.metricgenerator
     stonesoup.reader
     stonesoup.simulator
+    stonesoup.smoother
     stonesoup.tracker
     stonesoup.writer
 
@@ -31,7 +32,7 @@ Tracker Components
     stonesoup.mixturereducer
     stonesoup.models
     stonesoup.predictor
-    stonesoup.smoother
+    stonesoup.resampler
     stonesoup.updater
 
 Data Types
