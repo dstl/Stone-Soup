@@ -116,7 +116,7 @@ class SimpleDetectionSimulator(DetectionSimulator):
     groundtruth = Property(GroundTruthReader)
     measurement_model = Property(MeasurementModel)
     meas_range = Property(np.ndarray)
-    probability_of_detect = Property(Probability, default=0.9)
+    detection_probability = Property(Probability, default=0.9)
     clutter_rate = Property(float, default=2.0)
 
     def __init__(self, *args, **kwargs):
@@ -136,7 +136,7 @@ class SimpleDetectionSimulator(DetectionSimulator):
             self.clutter_detections.clear()
 
             for track in tracks:
-                if np.random.rand() < self.probability_of_detect:
+                if np.random.rand() < self.detection_probability:
                     detection = Detection(
                         H @ track[-1].state_vector +
                         self.measurement_model.rvs(),
