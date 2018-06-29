@@ -2,14 +2,14 @@
 import numpy as np
 import pytest
 
-from ..prediction import Prediction, MeasurementPrediction
+from ..prediction import StatePrediction, StateMeasurementPrediction
 from ..detection import Detection
 from ..track import Track
 from ..hypothesis import (
     Hypothesis, DistanceHypothesis, JointHypothesis, DistanceJointHypothesis)
 
-prediction = Prediction(np.array([[1], [0]]))
-measurement_prediction = MeasurementPrediction(np.array([[1], [0]]))
+prediction = StatePrediction(np.array([[1], [0]]))
+measurement_prediction = StateMeasurementPrediction(np.array([[1], [0]]))
 detection = Detection(np.array([[1], [0]]))
 distance = float(1)
 

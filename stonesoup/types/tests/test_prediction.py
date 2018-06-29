@@ -4,7 +4,7 @@ import datetime
 import numpy as np
 import pytest
 
-from stonesoup.types import StatePrediction, MeasurementPrediction, \
+from stonesoup.types import StatePrediction, StateMeasurementPrediction, \
     GaussianStatePrediction, GaussianMeasurementPrediction
 
 
@@ -22,16 +22,17 @@ def test_stateprediction():
     assert(timestamp == state_prediction.timestamp)
 
 
-def test_measurementprediction():
+def test_statemeasurementprediction():
     """ MeasurementPrediction test """
 
     with pytest.raises(TypeError):
-        MeasurementPrediction()
+        StateMeasurementPrediction()
 
     state_vector = np.array([[-1.8513], [0.9994], [0], [0]]) * 1e4
     timestamp = datetime.datetime.now()
 
-    measurement_prediction = MeasurementPrediction(state_vector, timestamp)
+    measurement_prediction = StateMeasurementPrediction(state_vector,
+                                                        timestamp)
     assert(np.array_equal(state_vector, measurement_prediction.state_vector))
     assert(timestamp == measurement_prediction.timestamp)
 

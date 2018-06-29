@@ -1,23 +1,29 @@
 # -*- coding: utf-8 -*-
 from .array import CovarianceMatrix
-from .base import Property
+from .base import Type, Property
 from .state import State, GaussianState, ParticleState
 
 
-class Prediction(State):
+class Prediction(Type):
     """ Prediction type
 
     This is the base prediction class. """
 
 
-class StatePrediction(Prediction):
+class MeasurementPrediction(Type):
+    """ Prediction type
+
+    This is the base measurement prediction class. """
+
+
+class StatePrediction(State, Prediction):
     """ StatePrediction type
 
     Most simple state prediction type, which only has time and a state vector.
     """
 
 
-class MeasurementPrediction(Prediction):
+class StateMeasurementPrediction(State, MeasurementPrediction):
     """ MeasurementPrediction type
 
     Most simple measurement prediction type, which only has time and a state
@@ -25,7 +31,7 @@ class MeasurementPrediction(Prediction):
     """
 
 
-class GaussianStatePrediction(StatePrediction, GaussianState):
+class GaussianStatePrediction(Prediction, GaussianState):
     """ GaussianStatePrediction type
 
     This is a simple Gaussian state prediction object, which, as the name
@@ -54,14 +60,14 @@ class GaussianMeasurementPrediction(MeasurementPrediction, GaussianState):
                          cross_covar, *args, **kwargs)
 
 
-class ParticleStatePrediction(ParticleState):
+class ParticleStatePrediction(Prediction, ParticleState):
     """ParticleStatePrediction type
 
     This is a simple Particle state prediction object.
     """
 
 
-class ParticleMeasurementPrediction(ParticleState):
+class ParticleMeasurementPrediction(MeasurementPrediction, ParticleState):
     """MeasurementStatePrediction type
 
     This is a simple Particle measurement prediction object.
