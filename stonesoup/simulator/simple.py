@@ -7,7 +7,7 @@ from ..base import Property
 from ..models import MeasurementModel
 from ..models import TransitionModel
 from ..reader import GroundTruthReader
-from ..types import (Detection, GaussianState, GroundTruthState,
+from ..types import (Detection, Clutter, GaussianState, GroundTruthState,
                      GroundTruthPath, Probability, State)
 from .base import DetectionSimulator, GroundTruthSimulator
 
@@ -146,7 +146,7 @@ class SimpleDetectionSimulator(DetectionSimulator):
 
             # generate clutter
             for _ in range(np.random.poisson(self.clutter_rate)):
-                detection = Detection(
+                detection = Clutter(
                     np.random.rand(H.shape[0], 1) *
                     np.diff(self.meas_range) + self.meas_range[:, :1],
                     timestamp=time)
