@@ -1,6 +1,6 @@
 from scipy.stats import multivariate_normal
 
-from .base import Initiator
+from .base import Initiator, GaussianInitiator
 from ..base import Property
 from ..updater import KalmanUpdater
 from ..models.measurement import MeasurementModel
@@ -9,7 +9,7 @@ from ..types.state import GaussianState, ParticleState
 from ..types.particle import Particle
 
 
-class SinglePointInitiator(Initiator):
+class SinglePointInitiator(GaussianInitiator):
     """ SinglePointInitiator class"""
 
     prior_state = Property(GaussianState, doc="Prior state information")
@@ -43,21 +43,23 @@ class SinglePointInitiator(Initiator):
                 post_state_vec,
                 post_state_covar,
                 timestamp=detection.timestamp)
-            track = Track()
-            track.states.append(track_state)
+            track = Track([track_state])
             tracks.add(track)
 
         return tracks
 
 
-class SinglePointParticleInitiator(SinglePointInitiator):
-    """SinglePointParticleInitiator class
+class GaussianParticleInitiator(Initiator):
+    """Gaussian Particle Initiator class
 
-    Utilising the SinglePointInitiator, sample from the resultant track's state
+    Utilising Gaussian Initiator, sample from the resultant track's state
     to generate a number of particles, overwriting with a
     :class:`~.ParticleState`.
     """
 
+    initiator = Property(
+        GaussianInitiator,
+        doc="Gaussian Initiator which will be used to generate tracks.")
     number_particles = Property(
         float, default=200, doc="Number of particles for initial track state")
 
@@ -74,7 +76,7 @@ class SinglePointParticleInitiator(SinglePointInitiator):
         : set of :class:`~.Track`
             A list of new tracks with a initial :class:`~.ParticleState`
         """
-        tracks = super().initiate(unassociated_detections, **kwargs)
+        tracks = self.initiator.initiate(unassociated_detections, **kwargs)
         for track in tracks:
             samples = multivariate_normal.rvs(track.state_vector.ravel(),
                                               track.covar,
