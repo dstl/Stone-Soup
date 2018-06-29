@@ -1,6 +1,15 @@
-# Sphinx documentation
-docs/build/
+# General Python
 build/
 dist/
 *.egg-info
 __pycache__/
+
+# Sphinx documentation
+docs/build/
+
+# coverage
+.coverage
+htmlcov/
+
+# pytest
+.pytest_cache/
