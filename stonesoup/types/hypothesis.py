@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from abc import abstractclassmethod
+from abc import abstractmethod
 from collections import UserDict
 
 from .base import Type
@@ -24,23 +24,23 @@ class Hypothesis(Type):
         Detection,
         doc="Detection used for hypothesis and updating")
 
-    @abstractclassmethod
+    @abstractmethod
     def __lt__(self, other):
         raise NotImplementedError
 
-    @abstractclassmethod
+    @abstractmethod
     def __le__(self, other):
         raise NotImplementedError
 
-    @abstractclassmethod
+    @abstractmethod
     def __eq__(self, other):
         raise NotImplementedError
 
-    @abstractclassmethod
+    @abstractmethod
     def __gt__(self, other):
         raise NotImplementedError
 
-    @abstractclassmethod
+    @abstractmethod
     def __ge__(self, other):
         raise NotImplementedError
 
@@ -94,23 +94,23 @@ class JointHypothesis(Type, UserDict):
         super().__init__(hypotheses)
         self.data = self.hypotheses
 
-    @abstractclassmethod
+    @abstractmethod
     def __lt__(self, other):
         raise NotImplementedError
 
-    @abstractclassmethod
+    @abstractmethod
     def __le__(self, other):
         raise NotImplementedError
 
-    @abstractclassmethod
+    @abstractmethod
     def __eq__(self, other):
         raise NotImplementedError
 
-    @abstractclassmethod
+    @abstractmethod
     def __gt__(self, other):
         raise NotImplementedError
 
-    @abstractclassmethod
+    @abstractmethod
     def __ge__(self, other):
         raise NotImplementedError
 
