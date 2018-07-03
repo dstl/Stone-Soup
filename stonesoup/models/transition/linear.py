@@ -136,12 +136,6 @@ class CombinedLinearGaussianTransitionModel(LinearGaussianTransitionModel):
     def covar(self, **kwargs):
         """Returns the transition model noise covariance matrix.
 
-        Parameters
-        ----------
-        noise_diff_coeff: :class:`float`, optional
-            The noise diffusion coefficient (the default is None, in which\
-            case the value of :py:attr:`~noise_diff_coeff` will be used)
-
         Returns
         -------
         : :class:`stonesoup.types.state.CovarianceMatrix` of shape\
@@ -179,12 +173,6 @@ class LinearGaussianTimeInvariantTransitionModel(LinearGaussianTransitionModel,
 
     def covar(self, **kwargs):
         """Returns the transition model noise covariance matrix.
-
-        Parameters
-        ----------
-        noise_diff_coeff: :class:`float`, optional
-            The noise diffusion coefficient (the default is None, in which\
-            case the value of :py:attr:`~noise_diff_coeff` will be used)
 
         Returns
         -------

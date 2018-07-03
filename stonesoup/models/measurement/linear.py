@@ -135,9 +135,9 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
 
         Parameters
         ----------
-        meas : :class:`~.StateVector`
+        meas_vec : :class:`~.StateVector`
             A measurement
-        state : :class:`~.StateVector`
+        state_vec : :class:`~.StateVector`
             A state
 
         Returns
