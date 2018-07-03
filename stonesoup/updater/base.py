@@ -16,7 +16,7 @@ class Updater(Base):
 
     @abstractmethod
     def get_measurement_prediction(self, state_prediction, **kwargs):
-        """Update state using prediction and measurement.
+        """Get measurement prediction from state prediction
 
         Parameters
         ----------
