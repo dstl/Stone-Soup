@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import pytest
+from ruamel.yaml.constructor import ConstructorError
 
 from ..serialise import YAML
 from ..base import Property
@@ -136,3 +137,41 @@ def test_anchor(base, serialised_file):
     new_instances = serialised_file.load(serialised_str)
     assert new_instances[0] is new_instances[1]
     assert new_instances[0] is new_instances[2]['key']
+
+
+def test_bad_tag(serialised_file):
+    # Invalid module
+    serialised_str = """
+        test1: &id001 !stonesoup.tests.this.does.not.exist
+            - property_a: 2
+            - property_b: "10"
+        """
+
+    with pytest.raises(ConstructorError, match="unable to find component"):
+        serialised_file.load(serialised_str)
+
+    # Invalid class in valid module
+    serialised_str = """
+        test1: &id001 !stonesoup.tests.conftest.nope
+            - property_a: 2
+            - property_b: "10"
+        """
+
+    with pytest.raises(ConstructorError, match="unable to find component"):
+        serialised_file.load(serialised_str)
+
+
+def test_missing_property(base, serialised_file):
+    instance = base(2, "20")
+    instance.new_property = True
+
+    # Pass over `property_b` line.
+    serialised_str = "\n".join(
+        line
+        for line in serialised_file.dumps(instance).split("\n")
+        if 'property_b' not in line)
+
+    assert 'property_b' not in serialised_str  # Default, no need to store
+
+    with pytest.raises(ConstructorError, match="missing a required argument"):
+        serialised_file.load(serialised_str)

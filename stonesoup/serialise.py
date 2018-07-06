@@ -16,6 +16,7 @@ from importlib import import_module
 
 import numpy as np
 import ruamel.yaml
+from ruamel.yaml.constructor import ConstructorError
 
 from .base import Base
 
@@ -92,11 +93,21 @@ class YAML:
     @classmethod
     def declarative_from_yaml(cls, constructor, tag_suffix, node):
         """Convert YAML to declarative class instances."""
-        class_ = cls._get_class(tag_suffix)
+        try:
+            class_ = cls._get_class(tag_suffix)
+        except ModuleNotFoundError:
+            raise ConstructorError(
+                "while constructing a Stone Soup component", node.start_mark,
+                "unable to find component {!r}".format(tag_suffix),
+                node.start_mark)
         properties = [
             data
             for data in constructor.construct_yaml_omap(node)][0]
-        return class_(**properties)
+        try:
+            return class_(**properties)
+        except Exception as e:
+            raise ConstructorError("while constructing Stone Soup component",
+                                   node.start_mark, str(e), node.start_mark)
 
     @classmethod
     @lru_cache(None)
@@ -114,6 +125,8 @@ class YAML:
             module_name, class_name = tag_suffix.rsplit(".", 1)
             module = import_module("..{}".format(module_name), __name__)
             classes = [getattr(module, class_name, None)]
+        if classes[0] is None:
+            raise ModuleNotFoundError("Unable to find {!r}".format(tag))
         return classes[0]
 
     def ndarray_to_yaml(self, representer, node):
