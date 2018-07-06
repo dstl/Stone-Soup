@@ -17,6 +17,7 @@ def test_groundtruthpath():
     state1 = GroundTruthState(np.array([[1]]))
     groundtruth_path.append(state1)
     assert groundtruth_path[-1] is state1
+    assert groundtruth_path.states[-1] is state1
 
     state2 = GroundTruthState(np.array([[2]]))
     groundtruth_path[0] = state2
