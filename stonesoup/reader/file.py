@@ -22,7 +22,7 @@ class FileReader(Reader):
         return self
 
     def __exit__(self, *args):
-        if getattr(self, '_file'):
+        if getattr(self, '_file', None):
             self._file.close()
 
     def __del__(self):
