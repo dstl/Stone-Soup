@@ -148,9 +148,9 @@ class MultiTargetTracker(Tracker):
 
             self._tracks -= self.deleter.delete_tracks(self._tracks)
 
-            if MetricGenerator:
-                self.metrics_generator.generate_realtime(self._tracks,
-                                                         associations)
+            # if MetricGenerator:
+            #     self.metrics_generator.generate_realtime(self._tracks,
+            #                                              associations)
 
             self._tracks |= self.initiator.initiate(
                 detections - associated_detections)

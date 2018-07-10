@@ -5,6 +5,12 @@ from ..types import Clutter
 
 class SingleDetectionBasedMetrics(MetricGenerator):
     # Will break if tracks are based on anything other than a single detection
+
+    # All functions assume that each track is the best guess for that object. If a track is deleted it's because that
+    # object has ceased to exist. If a track is tracked by multiple hypothesies then only the current best guess is ever
+    # returned. As the detections are compared with true detections in real time, any change in detections used in the
+    # past will not be accounted for unless as the result of merging (where the surviving track will keep its history)
+
     # Insert code here
     # Detections are split between clutter and not clutter by using isinstance(detection, Clutter)
 
@@ -39,13 +45,16 @@ class SingleDetectionBasedMetrics(MetricGenerator):
 
     def parse_associations(self,tracks,associations,detections):
         # All very much pseudocode
-        for track in tracks:
-            if track not in self.tracks:
-                self.tracks.append(track)
-            track.detection_history.append(associations[track].detection)
-            track.confusion_matrix = self.create_confusion_matrix(track)
+        # Idea is to keep a record of the detections used in each track, probably by keeping a parallel list of tracks
+        # with extra information being stored. There's probably some magic python way of doing this better with pointers
+        # or something.
+
+        '''Update the list of detections for each track with the new detection used'''
+        for track in self.tracks:
+            self.track.confusion_matrix = self.create_confusion_matrix(track,detections)
 
     def create_confusion_matrix(self,track):
+
 
 
 

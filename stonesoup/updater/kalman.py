@@ -3,7 +3,7 @@
 import numpy as np
 
 from .base import Updater
-from ..types import GaussianState, GaussianMeasurementPrediction
+from ..types import GaussianState, GaussianMeasurementPrediction, GaussianStateUpdate
 
 
 class KalmanUpdater(Updater):
@@ -74,9 +74,8 @@ class KalmanUpdater(Updater):
                 measurement_prediction.covar,
                 measurement_prediction.cross_covar)
 
-        return GaussianState(posterior_mean,
-                             posterior_covar,
-                             prediction.timestamp)
+        return GaussianStateUpdate(posterior_mean, posterior_covar, prediction,
+                                   measurement, timestamp=prediction.timestamp)
 
     @staticmethod
     def update_lowlevel(x_pred, P_pred, H, R, y):
