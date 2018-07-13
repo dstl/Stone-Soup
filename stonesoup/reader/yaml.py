@@ -9,12 +9,12 @@ from .base import DetectionReader, GroundTruthReader, SensorDataReader
 class YAMLReader(DetectionReader, GroundTruthReader, SensorDataReader):
     """YAML Detection Writer"""
     path = Property(Path, doc="File to read data from")
-    _yaml = YAML()
 
     def __init__(self, path, *args, **kwargs):
         if not isinstance(path, Path):
             path = Path(path)  # Ensure Path
         super().__init__(path, *args, **kwargs)
+        self._yaml = YAML()
         self._detections = set()
         self._groundtruth_paths = set()
         self._sensor_data = set()
