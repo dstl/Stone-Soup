@@ -55,6 +55,7 @@ This is equivalent to the following:
 
 """
 import inspect
+import sys
 from abc import ABCMeta
 from collections import OrderedDict
 from types import MappingProxyType
@@ -97,11 +98,28 @@ class Property:
         Alias to :class:`inspect.Parameter.empty`
     """
     empty = inspect.Parameter.empty
+    _property_name = None
 
     def __init__(self, cls, *, default=inspect.Parameter.empty, doc=None):
         self.cls = cls
         self.default = default
         self.doc = doc
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        return getattr(instance, self._property_name)
+
+    def __set__(self, instance, value):
+        setattr(instance, self._property_name, value)
+
+    def __delete__(self, instance):
+        delattr(instance, self._property_name)
+
+    def __set_name__(self, owner, name):
+        if not isinstance(owner, BaseMeta):
+            raise AttributeError("Cannot use Property on this class type")
+        self._property_name = "_property_{}".format(name)
 
 
 class BaseMeta(ABCMeta):
@@ -145,6 +163,10 @@ class BaseMeta(ABCMeta):
         for name in list(cls._properties):
             if cls._properties[name].default is not Property.empty:
                 cls._properties.move_to_end(name)
+
+        if sys.version_info <= (3, 6):  # pragma: no cover
+            for name, property_ in cls._properties.items():
+                property_.__set_name__(cls, name)
 
         cls._validate_init()
         cls._generate_signature()

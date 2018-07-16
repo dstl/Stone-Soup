@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytest
 
+from ..base import Property
+
 
 def test_properties(base):
     assert 'property_a' in base.properties
@@ -68,3 +70,9 @@ def test_init_new(base):
         def __init__(self, *args, property_d="default", **kwargs):
             pass
     assert not hasattr(_TestNew(1, "2", property_d="10"), 'property_d')
+
+
+def test_non_base_property():
+    with pytest.raises(RuntimeError):
+        class _TestNonBase:
+            property_a = Property(int)
