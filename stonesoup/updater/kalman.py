@@ -208,7 +208,9 @@ class ExtendedKalmanUpdater(KalmanUpdater):
             measurement_matrix = self.measurement_model.matrix(**kwargs)
         except AttributeError:
             # Else read jacobian from a NonLinearModel
-            measurement_matrix = self.measurement_model.jacobian(**kwargs)
+            measurement_matrix = \
+                self.measurement_model.jacobian(state_prediction.state_vector,
+                                                **kwargs)
         measurement_noise_covar = self.measurement_model.covar(**kwargs)
 
         meas_pred_mean, meas_pred_covar, cross_covar = \

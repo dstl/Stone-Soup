@@ -38,7 +38,7 @@ def jacobian(fun, x):
     Parameters
     ----------
     fun : function handle
-        A(non-linear) transition function
+        A (non-linear) transition function
         Must be of the form "y = fun(x)"
     x : :class:`numpy.ndarray` of shape (Ns,1)
         A state vector
