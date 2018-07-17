@@ -10,12 +10,50 @@ from .base import MeasurementModel
 from ...functions import jacobian as compute_jac
 
 
-class Polar2CartesianGaussian(MeasurementModel, NonLinearModel, GaussianModel):
-    r"""This is a class implementation of a time-invariant 2D Polar-to-Cartesian \
-    measurement model, where measurements are assumed to be received in the \
-    form of bearing (:math:`\theta`) and range (:math:`r`), with Gaussian \
-    noise in each dimension.
-    """
+class RangeBearingGaussianToCartesian(MeasurementModel,
+                                      NonLinearModel,
+                                      GaussianModel):
+    r"""This is a class implementation of a time-invariant measurement model, \
+    where measurements are assumed to be received in the form of bearing \
+    (:math:`\theta`) and range (:math:`r`), with Gaussian noise in each dimension.
+
+    The model is described by the following equations:
+
+    .. math::
+
+      \vec{y}_t = h(\vec{x}_t, \vec{v}_t)
+
+    where:
+
+    * :math:`\vec{y}_t` is a measurement vector of the form:
+
+    .. math::
+
+      \vec{y}_t = \begin{bmatrix}
+                \theta \\
+                r
+            \end{bmatrix}
+
+    * :math:`h` is a non-linear model function of the form:
+
+    .. math::
+
+      h(\vec{x}_t,\vec{v}_t) = \begin{bmatrix}
+                atan2(\mathcal{y},\mathcal{x}) \\
+                \sqrt{\mathcal{x}^2 + \mathcal{y}^2}
+                \end{bmatrix} + \vec{v}_t
+
+    * :math:`\vec{v}_t` is Gaussian distributed with covariance :math:`R`, i.e.: 
+
+    .. math::
+
+      \vec{v}_t \sim \mathcal{N}(0,R)
+
+    The :py:attr:`mapping` property of the model is a 2x1 column vector, \
+    whose first (i.e. :py:attr:`mapping[0][0]`) and second (i.e. \
+    :py:attr:`mapping[1][0]`) rows contain the state index of the :math:`x` \
+    and :math:`y` coordinates, respectively.
+    """  # noqa:E501
 
     noise_covar = Property(CovarianceMatrix, doc="Noise covariance")
 
@@ -32,7 +70,7 @@ class Polar2CartesianGaussian(MeasurementModel, NonLinearModel, GaussianModel):
         return 2
 
     def jacobian(self, state_vector, **kwargs):
-        """Model jacobian matrix :math:`H(t)`
+        """Model jacobian matrix :math:`H_{jac}`
 
         Parameters
         ----------
@@ -51,7 +89,7 @@ class Polar2CartesianGaussian(MeasurementModel, NonLinearModel, GaussianModel):
         return compute_jac(fun, state_vector)
 
     def function(self, state_vector, noise=None, **kwargs):
-        """Model function :math:`h(t,x(t),w(t))`
+        r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
 
         Parameters
         ----------
@@ -70,8 +108,8 @@ class Polar2CartesianGaussian(MeasurementModel, NonLinearModel, GaussianModel):
         if noise is None:
             noise = self.rvs()
 
-        x = state_vector[self.mapping[0]]
-        y = state_vector[self.mapping[1]]
+        x = state_vector[self.mapping[0]][0]
+        y = state_vector[self.mapping[1]][0]
 
         rho = sp.sqrt(x**2 + y**2)
         phi = sp.arctan2(y, x)
@@ -99,9 +137,7 @@ class Polar2CartesianGaussian(MeasurementModel, NonLinearModel, GaussianModel):
 
         .. math::
 
-            v_t \sim \mathcal{N}(0,R_t)
-
-        where :math:`v_t =` ``noise``.
+            \vec{v}_t \sim \mathcal{N}(0,R)
 
         Parameters
         ----------
@@ -110,7 +146,7 @@ class Polar2CartesianGaussian(MeasurementModel, NonLinearModel, GaussianModel):
 
         Returns
         -------
-        noise : 2-D array of shape (:py:attr:`~ndim_meas`, ``num_samples``)
+        2-D array of shape (:py:attr:`~ndim_meas`, ``num_samples``)
             A set of Np samples, generated from the model's noise
             distribution.
         """
@@ -133,7 +169,7 @@ class Polar2CartesianGaussian(MeasurementModel, NonLinearModel, GaussianModel):
 
         .. math::
 
-            p(y_t | x_t) = \mathcal{N}(y_t; x_t, R_t)
+            p(\vec{y}_t | \vec{x}_t) = \mathcal{N}(\vec{y}_t; \vec{x}_t, R)
 
         Parameters
         ----------

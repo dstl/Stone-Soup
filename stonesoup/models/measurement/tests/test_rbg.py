@@ -3,13 +3,14 @@ import pytest
 import numpy as np
 from scipy.stats import multivariate_normal
 
-from stonesoup.models.measurement.nonlinear import Polar2CartesianGaussian
+from stonesoup.models.measurement.nonlinear \
+    import RangeBearingGaussianToCartesian
 from stonesoup.functions import jacobian as compute_jac
 
 
 def h(state_vector):
-    x = state_vector[0]
-    y = state_vector[1]
+    x = state_vector[0][0]
+    y = state_vector[1][0]
 
     rho = np.sqrt(x**2 + y**2)
     phi = np.arctan2(y, x)
@@ -30,16 +31,16 @@ def h(state_vector):
     ],
     ids=["standard"]
 )
-def test_p2cgmodel(h, R, ndim_state, mapping):
-    """ Polar2CartGaussian Measurement Model test """
+def test_rbgmodel(h, R, ndim_state, mapping):
+    """ RangeBearingGaussianToCartesian Measurement Model test """
 
     # State related variables
     state_vec = np.array([[0], [1]])
 
     # Create and a measurement model object
-    model = Polar2CartesianGaussian(ndim_state=ndim_state,
-                                    mapping=mapping,
-                                    noise_covar=R)
+    model = RangeBearingGaussianToCartesian(ndim_state=ndim_state,
+                                            mapping=mapping,
+                                            noise_covar=R)
 
     # Project a state throught the model
     # (without noise)
@@ -71,7 +72,6 @@ def test_p2cgmodel(h, R, ndim_state, mapping):
     # Propagate a state vector throught the model
     # (with internal noise)
     meas_pred_w_inoise = model.function(state_vec)
-    print(meas_pred_w_inoise)
     assert not np.array_equal(meas_pred_w_inoise, h(state_vec))
 
     # Evaluate the likelihood of the predicted state, given the prior
