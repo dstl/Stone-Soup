@@ -1,11 +1,13 @@
 import datetime
 
 import numpy as np
+import pytest
 
 from stonesoup.models import LinearGaussian
 from stonesoup.updater import KalmanUpdater
-from stonesoup.types import GaussianState, Detection
-from stonesoup.initiator import SinglePointInitiator
+from stonesoup.types.state import GaussianState, ParticleState
+from stonesoup.types.detection import Detection
+from stonesoup.initiator import SinglePointInitiator, GaussianParticleInitiator
 
 
 def test_spi():
@@ -61,3 +63,28 @@ def test_spi():
 
     # Ensure both tracks have been evaluated
     assert(all(evaluated_tracks))
+
+
+@pytest.mark.parametrize("gaussian_initiator", [
+    SinglePointInitiator(
+        GaussianState(np.array([[0]]), np.array([[100]])),
+        LinearGaussian(1, [0], np.array([[1]])))
+])
+def test_gaussian_particle(gaussian_initiator):
+    particle_initiator = GaussianParticleInitiator(gaussian_initiator)
+
+    timestamp = datetime.datetime.now()
+    detections = [Detection(np.array([[5]]), timestamp),
+                  Detection(np.array([[-5]]), timestamp)]
+
+    tracks = particle_initiator.initiate(detections)
+
+    for track in tracks:
+        assert isinstance(track.state, ParticleState)
+        if track.state_vector > 0:
+            assert track.state_vector == pytest.approx(5, 0.2)
+        else:
+            assert track.state_vector == pytest.approx(-5, 0.2)
+        assert track.timestamp == timestamp
+
+        assert track.covar == pytest.approx(1, 0.2)
