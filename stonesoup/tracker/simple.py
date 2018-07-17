@@ -51,7 +51,10 @@ class SingleTargetTracker(Tracker):
 
     @property
     def tracks(self):
-        return {self.track}
+        if self.track is not None:
+            return {self.track}
+        else:
+            return set()
 
     def tracks_gen(self):
         self.track = None
