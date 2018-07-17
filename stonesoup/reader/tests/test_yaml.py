@@ -181,8 +181,8 @@ def test_tracks_yaml(tmpdir):
             assert time.minute == n
             assert time.date() == datetime.date(2018, 1, 1)
             assert track.timestamp == time
-            if len(track.states) > 1:
-                assert track.states[-2].timestamp == ptime
+            if len(track) > 1:
+                assert track[-2].timestamp == ptime
         assert not reader.groundtruth_paths
         assert not reader.sensor_data
         assert not reader.detections

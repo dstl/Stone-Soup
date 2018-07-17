@@ -12,7 +12,7 @@ from ..track import Track
 def test_track_empty():
     # Track initialisation without initial state
     track = Track()
-    assert len(track.states) == 0
+    assert len(track) == 0
 
 
 @pytest.mark.parametrize('state', [
@@ -24,7 +24,7 @@ def test_track_empty():
 def test_track_state(state):
     # Track initialisation with initial state
     track = Track([state])
-    assert len(track.states) == 1
+    assert len(track) == 1
     assert track.state is state
 
     # All
