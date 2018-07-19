@@ -670,3 +670,195 @@ class ConstantTurn(LinearGaussianTransitionModel, TimeVariantModel):
         covar = sp.linalg.block_diag(*covar_list)
 
         return CovarianceMatrix(covar)
+
+
+class ConstantVelocityDiscreteTime(LinearGaussianTransitionModel,
+                                   TimeVariantModel):
+    r"""This is a class implementation of a time-variant 1D Constant
+    Acceleration Discrete Time Transition Model. It is assumed that the
+    velocity increment is an independent (white noise) process.
+
+    The model is described by the following:
+
+        .. math::
+            x_t = F_t*x_{t-1} + w_t,\ w_t \sim \mathcal{N}(0,Q_t)
+
+    where:
+
+        .. math::
+            x & = & \begin{bmatrix}
+                        x_{pos} \\
+                        x_{vel}
+                    \end{bmatrix}
+
+        .. math::
+            F_t & = & \begin{bmatrix}
+                        1 & dt \\
+                        0 & 1
+                      \end{bmatrix}
+
+        .. math::
+            Q_t & = & \begin{bmatrix}
+                       q_x^2* \frac{dt^4}{4} & q_x^2* \frac{dt^3}{2} \\
+                       q_x^2* \frac{dt^3}{2} & q_x^2* dt^2
+                      \end{bmatrix}
+    """
+
+    noise_diff_coeff = Property(
+        sp.ndarray,
+        doc="The velocity noise diffusion coefficient :math:`q`")
+
+    @property
+    def ndim_state(self):
+        """ndim_state getter method
+
+        Returns
+        -------
+        :class:`int`
+            :math:`2` -> The number of model state dimensions
+        """
+
+        return 2
+
+    def matrix(self, time_interval, **kwargs):
+        """Model matrix :math:`F(t)`
+
+        Parameters
+        ----------
+        time_interval: :class:`datetime.timedelta`
+            A time interval :math:`dt`
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The model matrix evaluated given the provided time interval.
+        """
+
+        time_interval_sec = time_interval.total_seconds()
+        return sp.array(
+            [[1, time_interval_sec],
+             [0, 1]])
+
+    def covar(self, time_interval, **kwargs):
+        """Returns the transition model noise covariance matrix.
+
+        Parameters
+        ----------
+        time_interval : :class:`datetime.timedelta`
+            A time interval :math:`dt`
+
+        Returns
+        -------
+        :class:`stonesoup.types.state.CovarianceMatrix` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The process noise covariance.
+        """
+
+        time_interval_sec = time_interval.total_seconds()
+        covar = sp.array([[sp.power(time_interval_sec, 4) / 4,
+                           sp.power(time_interval_sec, 3) / 2],
+                          [sp.power(time_interval_sec, 3) / 2,
+                           sp.power(time_interval_sec, 2)]]) * sp.power(
+            self.noise_diff_coeff, 2)
+        return CovarianceMatrix(covar)
+
+
+class ConstantAccelerationDiscreteTime(LinearGaussianTransitionModel,
+                                       TimeVariantModel):
+    r"""This is a class implementation of a time-variant 1D Constant
+    Acceleration Discrete Time Transition Model. It is assumed that the
+    acceleration increment is an independent (white noise) process.
+
+    The model is described by the following:
+
+        .. math::
+            x_t = F_t*x_{t-1} + w_t,\ w_t \sim \mathcal{N}(0,Q_t)
+
+    where:
+
+        .. math::
+            x & = & \begin{bmatrix}
+                        x_{pos} \\
+                        x_{vel} \\
+                        x_{acc}
+                    \end{bmatrix}
+
+        .. math::
+            F_t & = & \begin{bmatrix}
+                        1 & dt & \frac{dt^2}{2} \\
+                        0 & 1 & dt \\
+                        0 & 0 & 1
+                      \end{bmatrix}
+
+        .. math::
+            Q_t & = & q^2*\begin{bmatrix}
+                        \frac{dt^4}{4} & \frac{dt^3}{2} & \frac{dt^2}{2} \\
+                        \frac{dt^3}{2} & \frac{dt^2}{2} & dt \\
+                        \frac{dt^2}{2} & dt & 1
+                        \end{bmatrix}
+    """
+
+    noise_diff_coeff = Property(
+        sp.ndarray,
+        doc="The acceleration noise diffusion coefficient :math:`q`")
+
+    @property
+    def ndim_state(self):
+        """ndim_state getter method
+
+        Returns
+        -------
+        :class:`int`
+            :math:`3` -> The number of model state dimensions
+        """
+
+        return 3
+
+    def matrix(self, time_interval, **kwargs):
+        """Model matrix :math:`F(t)`
+
+        Parameters
+        ----------
+        time_interval: :class:`datetime.timedelta`
+            A time interval :math:`dt`
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The model matrix evaluated given the provided time interval.
+        """
+
+        time_interval_sec = time_interval.total_seconds()
+        return sp.array(
+            [[1, time_interval_sec, sp.power(time_interval_sec, 2)],
+             [0, 1, time_interval_sec],
+             [0, 0, 1]])
+
+    def covar(self, time_interval, **kwargs):
+        """Returns the transition model noise covariance matrix.
+
+        Parameters
+        ----------
+        time_interval : :class:`datetime.timedelta`
+            A time interval :math:`dt`
+
+        Returns
+        -------
+        :class:`stonesoup.types.state.CovarianceMatrix` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The process noise covariance.
+        """
+
+        time_interval_sec = time_interval.total_seconds()
+        covar = sp.array([[sp.power(time_interval_sec, 4) / 4,
+                           sp.power(time_interval_sec, 3) / 2,
+                           sp.power(time_interval_sec, 2) / 2],
+                          [sp.power(time_interval_sec, 3) / 2,
+                           sp.power(time_interval_sec, 2) / 2,
+                           time_interval_sec],
+                          [sp.power(time_interval_sec, 2) / 2,
+                           time_interval_sec,
+                           1]]) * sp.power(self.noise_diff_coeff, 2)
+        return CovarianceMatrix(covar)
