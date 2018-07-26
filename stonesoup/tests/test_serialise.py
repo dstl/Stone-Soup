@@ -147,7 +147,7 @@ def test_bad_tag(serialised_file):
             - property_b: "10"
         """
 
-    with pytest.raises(ConstructorError, match="unable to find component"):
+    with pytest.raises(ConstructorError, match="unable to import component"):
         serialised_file.load(serialised_str)
 
     # Invalid class in valid module
@@ -157,7 +157,7 @@ def test_bad_tag(serialised_file):
             - property_b: "10"
         """
 
-    with pytest.raises(ConstructorError, match="unable to find component"):
+    with pytest.raises(ConstructorError, match="unable to import component"):
         serialised_file.load(serialised_str)
 
 
