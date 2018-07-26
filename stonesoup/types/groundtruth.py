@@ -38,3 +38,13 @@ class GroundTruthPath(Type, MutableSequence):
 
     def __getitem__(self, index):
         return self.states.__getitem__(index)
+
+    def state_at_timestamp(self,timestamp):
+        # Returns the state at a given timestamp
+        '''Terrible code, write better'''
+
+        state_at_time = [a for a in self.states if a.timestamp == timestamp]
+        if state_at_time:
+            state_at_time = state_at_time[0]
+
+        return state_at_time

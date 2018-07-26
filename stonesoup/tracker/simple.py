@@ -6,7 +6,6 @@ from ..deleter import Deleter
 from ..reader import DetectionReader
 from ..initiator import Initiator
 from ..updater import Updater
-from ..metricgenerator import MetricGenerator
 
 
 class SingleTargetTracker(Tracker):
@@ -115,9 +114,6 @@ class MultiTargetTracker(Tracker):
     updater = Property(
         Updater,
         doc="Updater used to update the track object to the new state.")
-    metrics_generator = Property(
-        MetricGenerator, default=None,
-        doc="Metric generator used during multi target tracking.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -147,11 +143,6 @@ class MultiTargetTracker(Tracker):
                     track.states.append(hypothesis.prediction)
 
             self._tracks -= self.deleter.delete_tracks(self._tracks)
-
-            # if MetricGenerator:
-            #     self.metrics_generator.generate_realtime(self._tracks,
-            #                                              associations)
-
             self._tracks |= self.initiator.initiate(
                 detections - associated_detections)
 
