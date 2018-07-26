@@ -45,7 +45,7 @@ class CSVDetectionReader(DetectionReader, TextFileReader):
         return self._detections.copy()
 
     def detections_gen(self):
-        with open(self.path, encoding=self.encoding, newline='') as csv_file:
+        with self.path.open(encoding=self.encoding, newline='') as csv_file:
             reader = csv.DictReader(csv_file)
             for row in reader:
                 if self.time_field_format is not None:

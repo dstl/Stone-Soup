@@ -12,7 +12,7 @@ def test_detections_yaml(detection_reader, tmpdir):
     with YAMLWriter(filename, detections_source=detection_reader) as writer:
         writer.write()
 
-    with open(filename, 'r') as yaml_file:
+    with filename.open('r') as yaml_file:
         generated_yaml = yaml_file.read()
 
     expected_yaml = dedent("""\
@@ -54,7 +54,7 @@ def test_groundtruth_paths_yaml(groundtruth_reader, tmpdir):
     with YAMLWriter(filename, groundtruth_source=groundtruth_reader) as writer:
         writer.write()
 
-    with open(filename, 'r') as yaml_file:
+    with filename.open('r') as yaml_file:
         generated_yaml = yaml_file.read()
 
     expected_yaml = dedent("""\
@@ -110,7 +110,7 @@ def test_tracks_yaml(tracker, tmpdir):
     with YAMLWriter(filename, tracks_source=tracker) as writer:
         writer.write()
 
-    with open(filename, 'r') as yaml_file:
+    with filename.open('r') as yaml_file:
         generated_yaml = yaml_file.read()
 
     expected_yaml = dedent("""\

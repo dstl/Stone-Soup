@@ -9,7 +9,7 @@ from ..yaml import YAMLReader
 
 def test_detections_yaml(tmpdir):
     filename = tmpdir.join("detections.yaml")
-    with open(filename, 'w') as file:
+    with filename.open('w') as file:
         file.write(dedent("""\
             ---
             time: &id001 2018-01-01 14:00:00
@@ -61,7 +61,7 @@ def test_detections_yaml(tmpdir):
 
 def test_groundtruth_paths_yaml(tmpdir):
     filename = tmpdir.join("groundtruth_paths.yaml")
-    with open(filename, 'w') as file:
+    with filename.open('w') as file:
         file.write(dedent("""\
             ---
             time: &id001 2018-01-01 14:00:00
@@ -126,7 +126,7 @@ def test_groundtruth_paths_yaml(tmpdir):
 
 def test_tracks_yaml(tmpdir):
     filename = tmpdir.join("tracks.yaml")
-    with open(filename, 'w') as file:
+    with filename.open('w') as file:
         file.write(dedent("""\
             ---
             time: &id001 2018-01-01 14:00:00

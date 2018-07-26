@@ -10,19 +10,22 @@ from .base import Writer
 
 class YAMLWriter(Writer):
     """YAML Writer"""
-    path = Property(Path, doc="File to save data to")
+    path = Property(Path,
+                    doc="File to save data to. Str will be converted to Path")
     groundtruth_source = Property(GroundTruthReader, default=None)
     sensor_data_source = Property(SensorDataReader, default=None)
     detections_source = Property(DetectionReader, default=None)
     tracks_source = Property(Tracker, default=None)
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, path, *args, **kwargs):
+        if not isinstance(path, Path):
+            path = Path(path)  # Ensure Path
+        super().__init__(path, *args, **kwargs)
         if not any((self.groundtruth_source, self.sensor_data_source,
                    self.detections_source, self.tracks_source)):
             raise ValueError("At least one source required")
 
-        self._file = open(self.path, 'w')
+        self._file = self.path.open('w')
 
         yaml = YAML()
         # Required as will be writing multiple documents to file
