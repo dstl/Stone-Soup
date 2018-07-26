@@ -13,6 +13,6 @@ setup(name='stonesoup',
       install_requires=['ruamel.yaml', 'scipy', 'matplotlib'],
       extras_require={
           'dev': [
-              'pytest', 'Sphinx', 'sphinx_rtd_theme', 'flake8', 'coverage'],
+              'pytest-flake8', 'Sphinx', 'sphinx_rtd_theme', 'coverage'],
       },
       )
