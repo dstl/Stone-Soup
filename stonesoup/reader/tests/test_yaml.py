@@ -42,7 +42,7 @@ def test_detections_yaml(tmpdir):
               :
             """))
 
-    reader = YAMLReader(filename)
+    reader = YAMLReader(filename.strpath)
 
     for n, (time, detections) in enumerate(reader.detections_gen()):
         assert len(detections) == n
@@ -106,7 +106,7 @@ def test_groundtruth_paths_yaml(tmpdir):
             ...
             """))
 
-    reader = YAMLReader(filename)
+    reader = YAMLReader(filename.strpath)
 
     ptime = None
     for n, (time, paths) in enumerate(reader.groundtruth_paths_gen()):
@@ -171,7 +171,7 @@ def test_tracks_yaml(tmpdir):
             ...
             """))
 
-    reader = YAMLReader(filename)
+    reader = YAMLReader(filename.strpath)
 
     ptime = None
     for n, (time, tracks) in enumerate(reader.tracks_gen()):

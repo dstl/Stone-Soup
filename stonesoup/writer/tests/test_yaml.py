@@ -9,7 +9,8 @@ from ..yaml import YAMLWriter
 def test_detections_yaml(detection_reader, tmpdir):
     filename = tmpdir.join("detections.yaml")
 
-    with YAMLWriter(filename, detections_source=detection_reader) as writer:
+    with YAMLWriter(filename.strpath,
+                    detections_source=detection_reader) as writer:
         writer.write()
 
     with filename.open('r') as yaml_file:
@@ -51,7 +52,8 @@ def test_detections_yaml(detection_reader, tmpdir):
 def test_groundtruth_paths_yaml(groundtruth_reader, tmpdir):
     filename = tmpdir.join("groundtruth_paths.yaml")
 
-    with YAMLWriter(filename, groundtruth_source=groundtruth_reader) as writer:
+    with YAMLWriter(filename.strpath,
+                    groundtruth_source=groundtruth_reader) as writer:
         writer.write()
 
     with filename.open('r') as yaml_file:
@@ -107,7 +109,7 @@ def test_groundtruth_paths_yaml(groundtruth_reader, tmpdir):
 def test_tracks_yaml(tracker, tmpdir):
     filename = tmpdir.join("tracks.yaml")
 
-    with YAMLWriter(filename, tracks_source=tracker) as writer:
+    with YAMLWriter(filename.strpath, tracks_source=tracker) as writer:
         writer.write()
 
     with filename.open('r') as yaml_file:
@@ -163,4 +165,4 @@ def test_tracks_yaml(tracker, tmpdir):
 def test_yaml_bad_init(tmpdir):
     filename = tmpdir.join("bad_init.yaml")
     with pytest.raises(ValueError, match="At least one source required"):
-        YAMLWriter(filename)
+        YAMLWriter(filename.strpath)

@@ -17,7 +17,7 @@ def test_csv(tmpdir):
             12,22,32,2018-01-01T14:02:00Z
             """))
 
-    csv_reader = CSVDetectionReader(csv_filename, ["x", "y"], "t")
+    csv_reader = CSVDetectionReader(csv_filename.strpath, ["x", "y"], "t")
     detections = [
         detection
         for _, detections in csv_reader.detections_gen()

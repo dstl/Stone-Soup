@@ -87,4 +87,4 @@ def test_gaussian_particle(gaussian_initiator):
             assert track.state_vector == pytest.approx(-5, 0.2)
         assert track.timestamp == timestamp
 
-        assert track.covar == pytest.approx(1, 0.2)
+        assert track.covar == pytest.approx(1, 0.4)
