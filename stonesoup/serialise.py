@@ -95,10 +95,10 @@ class YAML:
         """Convert YAML to declarative class instances."""
         try:
             class_ = cls._get_class(tag_suffix)
-        except ModuleNotFoundError:
+        except ImportError:
             raise ConstructorError(
                 "while constructing a Stone Soup component", node.start_mark,
-                "unable to find component {!r}".format(tag_suffix),
+                "unable to import component {!r}".format(tag_suffix),
                 node.start_mark)
         properties = [
             data
@@ -126,7 +126,7 @@ class YAML:
             module = import_module("..{}".format(module_name), __name__)
             classes = [getattr(module, class_name, None)]
         if classes[0] is None:
-            raise ModuleNotFoundError("Unable to find {!r}".format(tag))
+            raise ImportError("Unable to find {!r}".format(tag))
         return classes[0]
 
     def ndarray_to_yaml(self, representer, node):
