@@ -84,7 +84,7 @@ class GaussianParticleInitiator(Initiator):
             particles = [
                 Particle(sample.reshape(-1, 1), weight=1/self.number_particles)
                 for sample in samples]
-            track.states[-1] = ParticleState(particles,
-                                             timestamp=track.timestamp)
+            track[-1] = ParticleState(particles,
+                                      timestamp=track.timestamp)
 
         return tracks

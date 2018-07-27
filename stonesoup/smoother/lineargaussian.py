@@ -27,10 +27,10 @@ class Backward(Smoother):
         smoothed_track : :class:`Track`
             Track object containing smoothed GaussianStates.
         """
-        track_length = len(filtered_track.states)
+        track_length = len(filtered_track)
         if track_length != len(estimates):
             raise ValueError(
-                "filtered_track.states and estimates should have the same "
+                "filtered_track and estimates should have the same "
                 "length")
 
         penultimate_index = track_length - 2
@@ -39,9 +39,9 @@ class Backward(Smoother):
 
         # Iterating backwards from the penultimate state, to the first state.
         for t in range(penultimate_index, -1, -1):
-            smoothed_track.states[t] = self.smooth(filtered_track.states[t],
-                                                   estimates[t+1],
-                                                   smoothed_track.states[t+1])
+            smoothed_track[t] = self.smooth(filtered_track[t],
+                                            estimates[t+1],
+                                            smoothed_track[t+1])
 
         return smoothed_track
 
