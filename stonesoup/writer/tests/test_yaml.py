@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import sys
 from textwrap import dedent
 
 import pytest
@@ -6,6 +7,11 @@ import pytest
 from ..yaml import YAMLWriter
 
 
+dict_order_skip = pytest.mark.skipif(
+    sys.version_info < (3, 6), reason="requires Python >= 3.6 for dict order")
+
+
+@dict_order_skip
 def test_detections_yaml(detection_reader, tmpdir):
     filename = tmpdir.join("detections.yaml")
 
@@ -49,6 +55,7 @@ def test_detections_yaml(detection_reader, tmpdir):
     assert generated_yaml == expected_yaml
 
 
+@dict_order_skip
 def test_groundtruth_paths_yaml(groundtruth_reader, tmpdir):
     filename = tmpdir.join("groundtruth_paths.yaml")
 
@@ -106,6 +113,7 @@ def test_groundtruth_paths_yaml(groundtruth_reader, tmpdir):
     assert generated_yaml == expected_yaml
 
 
+@dict_order_skip
 def test_tracks_yaml(tracker, tmpdir):
     filename = tmpdir.join("tracks.yaml")
 
