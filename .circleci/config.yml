@@ -29,11 +29,13 @@ jobs:
           command: |
             . venv/bin/activate
             mkdir test-reports
-            pytest --junitxml=test-reports/junit.xml --flake8
+            pytest --junitxml=test-reports/junit.xml --flake8 --cov --cov-report=html:test-coverage stonesoup
       - store_test_results:
           path: test-reports
       - store_artifacts:
           path: test-reports 
+      - store_artifacts:
+          path: test-coverage
   test-3.6:
     <<: *test-template
     docker:
