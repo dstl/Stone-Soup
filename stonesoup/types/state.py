@@ -31,9 +31,22 @@ class State(Type):
 class StateMutableSequence(Type, MutableSequence):
     """A mutable sequence for :class:`~.State` instances
 
-    This sequence acts like a regular list object, as well as proxying
-    state attributes to the last state in the sequence. This sequence can also
-    be indexed/sliced by :class:`datetime.datetime` instances.
+    This sequence acts like a regular list object for States, as well as
+    proxying state attributes to the last state in the sequence. This sequence
+    can also be indexed/sliced by :class:`datetime.datetime` instances.
+
+    Example
+    -------
+    >>> t0 = datetime.datetime(2018, 1, 1, 14, 00)
+    >>> t1 = t0 + datetime.timedelta(minutes=1)
+    >>> state0 = State([[0]], t0)
+    >>> sequence = StateMutableSequence([state0])
+    >>> print(sequence.state_vector, sequence.timestamp)
+    [[0]] 2018-01-01 14:00:00
+    >>> sequence.append(State([[1]], t1))
+    >>> for state in sequence[t1:]:
+    ...     print(state.state_vector, state.timestamp)
+    [[1]] 2018-01-01 14:01:00
     """
 
     states = Property(
@@ -72,13 +85,15 @@ class StateMutableSequence(Type, MutableSequence):
                         'both indices must be `datetime.datetime` objects for'
                         'time slice') from exc
                 items.append(state)
-            return items[::index.step]
+            return StateMutableSequence(items[::index.step])
         elif isinstance(index, datetime.datetime):
             for state in self.states:
                 if state.timestamp == index:
                     return state
             else:
                 raise IndexError('timestamp not found in states')
+        elif isinstance(index, slice):
+            return StateMutableSequence(self.states.__getitem__(index))
         else:
             return self.states.__getitem__(index)
 

@@ -154,12 +154,18 @@ def test_state_mutable_sequence_slice():
         [State(state_vector, timestamp=timestamp+delta*n)
          for n in range(10)])
 
+    assert isinstance(sequence[timestamp:], StateMutableSequence)
+    assert isinstance(sequence[5:], StateMutableSequence)
+    assert isinstance(sequence[timestamp], State)
+    assert isinstance(sequence[5], State)
+
     assert len(sequence[timestamp:]) == 10
     assert len(sequence[:timestamp]) == 0
     assert len(sequence[timestamp+delta*5:]) == 5
     assert len(sequence[:timestamp+delta*5]) == 5
     assert len(sequence[timestamp+delta*4:timestamp+delta*6]) == 2
     assert len(sequence[timestamp+delta*2:timestamp+delta*8:3]) == 2
+    assert len(sequence[timestamp+delta*1:][:timestamp+delta*2]) == 1
 
     assert sequence[timestamp] == sequence.states[0]
 
