@@ -2,6 +2,7 @@
 import numpy as np
 
 from .base import Resampler
+from ..types.numeric import Probability
 from ..types.particle import Particle
 
 
@@ -22,6 +23,7 @@ class SystematicResampler(Resampler):
         """
 
         n_particles = len(particles)
+        weight = Probability(1/n_particles)
         cdf = np.cumsum([p.weight for p in particles])
         particles_listed = list(particles)
         # Pick random starting point
@@ -37,7 +39,7 @@ class SystematicResampler(Resampler):
             particle = particles_listed[np.argmax(u_j < cdf)]
             new_particles.append(
                 Particle(particle.state_vector,
-                         weight=1 / n_particles,
+                         weight=weight,
                          parent=particle))
 
         return new_particles
