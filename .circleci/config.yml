@@ -13,7 +13,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: dependencies-{{ checksum "setup.py" }}
+          key: v1-dependencies-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
       - run:
           name: install dependencies
           command: |
@@ -23,7 +23,7 @@ jobs:
       - save_cache:
           paths:
             - ./venv
-          key: dependencies-{{ checksum "setup.py" }}
+          key: v1-dependencies-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
       - run:
           name: run tests
           command: |
