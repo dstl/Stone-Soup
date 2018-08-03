@@ -10,5 +10,6 @@ class MetricGenerator(Base):
     Consumes :class:`.Track` data and optionally :py:class:`.GroundTruth` data.
     """
 
-    tracker = Property(
-        Tracker, doc="Tracks which metrics will be generated for")
+    # tracker = Property(
+    #     Tracker, doc="Tracks which metrics will be generated for")
+
