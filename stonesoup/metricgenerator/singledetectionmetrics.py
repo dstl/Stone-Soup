@@ -78,7 +78,8 @@ class BasicMetrics(MetricGenerator):
 class OSPAMetric(MetricGenerator):
     c = Property(float, doc='Maximum distance for possible association')
     p = Property(float, doc='norm associated to distance')
-    measurement_matrix = Property(np.ndarray, doc='Measurement matrix to extract parameters to calculate distance over')
+    measurement_matrix_truth = Property(np.ndarray, doc='Measurement matrix for the truth states to extract parameters to calculate distance over')
+    measurement_matrix_track = Property(np.ndarray, doc='Measurement matrix for the track states to extract parameters to calculate distance over')
 
     def compute_metric(self, tracks, groundtruth_paths, detections):
         """
@@ -135,13 +136,21 @@ class OSPAMetric(MetricGenerator):
             if st.timestamp != tstamp:
                 raise ValueError('All states must be from the same time to perform OSPA')
 
-        cost_matrix = self.compute_cost_matrix(track_states, truth_states)
+        if len(track_states) == 0 or len(truth_states) == 0:
+            distance = 0
+        else:
 
-        # Solve cost matrix with Hungarian/Munkres using scipy.optimize.linear_sum_assignemnt
-        n = max([len(track_states), len(truth_states)])  # Length of longest set of states
-        row_ind, col_ind = linear_sum_assignment(cost_matrix)
-        # Calculate metric following Vo's paper or python code online.
-        distance = ((1 / n) * cost_matrix[row_ind, col_ind].sum()) ** (1 / self.p)
+            cost_matrix = self.compute_cost_matrix(track_states, truth_states)
+
+            # Solve cost matrix with Hungarian/Munkres using scipy.optimize.linear_sum_assignemnt
+            n = max([len(track_states), len(truth_states)])  # Length of longest set of states
+
+            # If there are either no tracks or no truth to compare then the distance is zero
+
+            row_ind, col_ind = linear_sum_assignment(cost_matrix)
+            # Calculate metric following Vo's paper or python code online.
+            distance = ((1 / n) * cost_matrix[row_ind, col_ind].sum()) ** (1 / self.p)
+
         return SingleTimeMetric(title='OSPA distance', value=distance, timestamp=tstamp, generator=self)
 
     def compute_cost_matrix(self, track_states, truth_states):
@@ -152,7 +161,7 @@ class OSPAMetric(MetricGenerator):
             for i_truth, truth_state in enumerate(truth_states):
 
                 euc_distance = np.linalg.norm(
-                    self.measurement_matrix.matrix() @ track_state.state_vector.__array__() - self.measurement_matrix.matrix() @ truth_state.state_vector.__array__())
+                    self.measurement_matrix_track.matrix() @ track_state.state_vector.__array__() - self.measurement_matrix_truth.matrix() @ truth_state.state_vector.__array__())
 
                 if euc_distance < self.c:
                     cost_matrix[i_track, i_truth] = euc_distance
