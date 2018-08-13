@@ -21,10 +21,10 @@ class SingleDetectionBasedMetrics(MetricGenerator):
         :return: set of Metric objects (or objects that inherit from metric)
         """
 
-        metrics = set()
+        metrics = []
 
         for generator in self.generators:
-            metrics.add(generator.compute_metric(tracks, groundtruth_paths, detections))
+            metrics += generator.compute_metric(tracks, groundtruth_paths, detections)
 
         return metrics
 
@@ -79,44 +79,50 @@ class OSPAMetric(MetricGenerator):
     c = Property(float, doc='Maximum distance for possible association')
     p = Property(float, doc='norm associated to distance')
     measurement_matrix_truth = Property(np.ndarray, doc='Measurement matrix for the truth states to extract parameters to calculate distance over')
-    measurement_matrix_track = Property(np.ndarray, doc='Measurement matrix for the track states to extract parameters to calculate distance over')
+    measurement_matrix_meas = Property(np.ndarray, doc='Measurement matrix for the track states to extract parameters to calculate distance over')
 
-    def compute_metric(self, tracks, groundtruth_paths, detections):
+    def compute_metric(self,tracks, groundtruth_paths, detections):
+
+        measured_states = []
+        for track in tracks:
+            for state in track.states:
+                measured_states.append(state)
+
+        truth_states = []
+        for path in groundtruth_paths:
+            for state in path:
+                truth_states.append(state)
+
+        return self.compute_over_time(measured_states, truth_states)
+
+    def compute_over_time(self, measured_states, truth_states):
         """
-        Compute the OSPA metric at every timestep
-        :param tracks:
-        :param groundtruth_paths:
-        :param detections:
+        Compute the OSPA metric at every timestep from a list of measured states and truth states
+        :param measured_states: List of states created by a filter
+        :param truth_states: List of truth states to compare against
         :return:
         """
 
         # Make a list of all the unique timestamps used
         timestamps = []
-        for track in tracks:
-            for state in track.states:
-                if state.timestamp not in timestamps:
-                    timestamps.append(state.timestamp)
-        for path in groundtruth_paths:
-            for state in path:
-                if state.timestamp not in timestamps:
-                    timestamps.append(state.timestamp)
+        for state in measured_states + truth_states:
+            if state.timestamp not in timestamps:
+                timestamps.append(state.timestamp)
 
         ospa_distances = []
 
         for timestamp in timestamps:
-            track_points = [i[0] for i in [[s for s in x.states if s.timestamp == timestamp] for x in tracks] if
-                            i != []]
+            meas_points = [state for state in measured_states if state.timestamp == timestamp]
 
-            truth_points = [i[0] for i in [[s for s in x.states if s.timestamp == timestamp] for x in groundtruth_paths]
-                            if i != []]
+            truth_points = [state for state in truth_states if state.timestamp == timestamp]
 
-            ospa_distances.append(self.compute_OSPA_distance(track_points, truth_points, timestamp))
+            ospa_distances.append(self.compute_OSPA_distance(meas_points, truth_points, timestamp))
 
-        return TimePeriodMetric(title='OSPA distances',
+        return [TimePeriodMetric(title='OSPA distances',
                                 value=ospa_distances,
                                 start_timestamp=min(timestamps),
                                 end_timestamp=max(timestamps),
-                                generator=self)
+                                generator=self)]
 
     def compute_OSPA_distance(self, track_states, truth_states, tstamp=None):
 
@@ -151,7 +157,7 @@ class OSPAMetric(MetricGenerator):
             # Calculate metric following Vo's paper or python code online.
             distance = ((1 / n) * cost_matrix[row_ind, col_ind].sum()) ** (1 / self.p)
 
-        return SingleTimeMetric(title='OSPA distance', value=distance, timestamp=tstamp, generator=self)
+        return [SingleTimeMetric(title='OSPA distance', value=distance, timestamp=tstamp, generator=self)]
 
     def compute_cost_matrix(self, track_states, truth_states):
 
@@ -161,7 +167,7 @@ class OSPAMetric(MetricGenerator):
             for i_truth, truth_state in enumerate(truth_states):
 
                 euc_distance = np.linalg.norm(
-                    self.measurement_matrix_track.matrix() @ track_state.state_vector.__array__() - self.measurement_matrix_truth.matrix() @ truth_state.state_vector.__array__())
+                    self.measurement_matrix_meas.matrix() @ track_state.state_vector.__array__() - self.measurement_matrix_truth.matrix() @ truth_state.state_vector.__array__())
 
                 if euc_distance < self.c:
                     cost_matrix[i_track, i_truth] = euc_distance
