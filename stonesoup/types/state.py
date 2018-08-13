@@ -149,8 +149,10 @@ class ParticleState(Type):
     @property
     def mean(self):
         """The state mean, equivalent to state vector"""
-        return np.average([p.state_vector for p in self.particles], axis=0,
-                          weights=[p.weight for p in self.particles])
+        result = np.average([p.state_vector for p in self.particles], axis=0,
+                            weights=[p.weight for p in self.particles])
+        # Convert type as may have type of weights
+        return result.astype(np.float, copy=False)
 
     @property
     def state_vector(self):

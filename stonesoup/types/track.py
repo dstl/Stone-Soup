@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from .base import Property
+from ..base import Property
 from ..types import State, StateMutableSequence
 
 

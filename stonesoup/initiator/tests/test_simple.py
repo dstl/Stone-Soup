@@ -82,9 +82,9 @@ def test_gaussian_particle(gaussian_initiator):
     for track in tracks:
         assert isinstance(track.state, ParticleState)
         if track.state_vector > 0:
-            assert track.state_vector == pytest.approx(5, 0.2)
+            assert np.allclose(track.state_vector, np.array([[5]]), atol=0.4)
         else:
-            assert track.state_vector == pytest.approx(-5, 0.2)
+            assert np.allclose(track.state_vector, np.array([[-5]]), atol=0.4)
         assert track.timestamp == timestamp
 
-        assert track.covar == pytest.approx(1, 0.4)
+        assert np.allclose(track.covar, np.array([[1]]), atol=0.4)
