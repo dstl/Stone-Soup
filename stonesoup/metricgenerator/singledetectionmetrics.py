@@ -2,7 +2,7 @@ import numpy as np
 
 from .base import MetricGenerator
 from ..base import Property
-from ..types import Clutter, TrueDetection, Metric, SingleTimeMetric, TimePeriodMetric
+from ..types import Clutter, TrueDetection, Metric, SingleTimeMetric, TimePeriodMetric, Detection, GroundTruthPath, Track
 
 
 class SingleDetectionBasedMetrics(MetricGenerator):
@@ -35,7 +35,6 @@ class BasicMetrics(MetricGenerator):
         metrics = []
 
         # Make a list of all the unique timestamps used
-        # THIS IS REPEATED IN VARIOUS PLACES SO SHOULD PROBABLY BE DONE BETTER
         timestamps = []
         for track in tracks:
             for state in track.states:
@@ -81,19 +80,37 @@ class OSPAMetric(MetricGenerator):
     measurement_matrix_truth = Property(np.ndarray, doc='Measurement matrix for the truth states to extract parameters to calculate distance over')
     measurement_matrix_meas = Property(np.ndarray, doc='Measurement matrix for the track states to extract parameters to calculate distance over')
 
-    def compute_metric(self,tracks, groundtruth_paths, detections):
+    def compute_metric(self, dataset_1, dataset_2):
 
-        measured_states = []
-        for track in tracks:
-            for state in track.states:
-                measured_states.append(state)
+        states_1 = self.extract_states(dataset_1)
+        states_2 = self.extract_states(dataset_2)
+        return self.compute_over_time(states_1, states_2)
 
-        truth_states = []
-        for path in groundtruth_paths:
-            for state in path:
-                truth_states.append(state)
+    def extract_states(self, object_with_states):
+        """
+        Extracts a list of states from a list of (or single) object containing states
+        :param object_with_states:
+        :return:
+        """
 
-        return self.compute_over_time(measured_states, truth_states)
+        state_list = []
+        for element in list(object_with_states):
+
+            if isinstance(element, Track):
+                for state in element.states:
+                    state_list.append(state)
+
+            elif isinstance(element, GroundTruthPath):
+                for state in element.states:
+                    state_list.append(state)
+
+            elif isinstance(element, Detection):
+                state_list.append(element)
+
+            else:
+                raise ValueError(type(element), ' has no state extraction method')
+
+        return state_list
 
     def compute_over_time(self, measured_states, truth_states):
         """
@@ -118,11 +135,11 @@ class OSPAMetric(MetricGenerator):
 
             ospa_distances.append(self.compute_OSPA_distance(meas_points, truth_points, timestamp))
 
-        return [TimePeriodMetric(title='OSPA distances',
+        return TimePeriodMetric(title='OSPA distances',
                                 value=ospa_distances,
                                 start_timestamp=min(timestamps),
                                 end_timestamp=max(timestamps),
-                                generator=self)]
+                                generator=self)
 
     def compute_OSPA_distance(self, track_states, truth_states, tstamp=None):
 
