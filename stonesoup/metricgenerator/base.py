@@ -13,3 +13,12 @@ class MetricGenerator(Base):
     # tracker = Property(
     #     Tracker, doc="Tracks which metrics will be generated for")
 
+class MetricManager(Base):
+    """Metric Manager base class
+        Holds the data and manages the production of Metrics through MetricGenerator classes
+    """
+
+class PlotGenerator(MetricGenerator):
+    """
+    PlotGenerator base class. For metrics that are plots. Should return a PlotMetric
+    """

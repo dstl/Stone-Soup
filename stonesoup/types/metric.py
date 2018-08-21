@@ -11,6 +11,9 @@ class Metric(Type):
     value = Property(any, doc = 'Value of the metric')
     generator = Property(None, doc = 'Generator used to create the metric')
 
+class PlottingMetric(Metric):
+    """Metric which is a plot, value should be a pyplot figure"""
+
 class SingleTimeMetric(Metric):
     """ Metric for a specific timestamp"""
 
@@ -22,3 +25,9 @@ class TimePeriodMetric(Metric):
 
     start_timestamp = Property(datetime.datetime, doc = 'Start of the time period that the metric covers')
     end_timestamp = Property(datetime.datetime, doc = 'End of the time period that the metric covers')
+
+class TimePeriodPlottingMetric(TimePeriodMetric, PlottingMetric):
+    """Plotting metric covering a period of time"""
+
+class SingleTimePlottingMetric(SingleTimeMetric, PlottingMetric):
+    """Plotting metric covering a specific timestamp"""

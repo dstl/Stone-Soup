@@ -1,46 +1,25 @@
 import numpy as np
 
-from .base import MetricGenerator
+from .base import MetricGenerator, MetricManager
 from ..base import Property
 from ..types import Clutter, TrueDetection, Metric, SingleTimeMetric, TimePeriodMetric, Detection, GroundTruthPath, Track
 
 
-class SingleDetectionBasedMetrics(MetricGenerator):
-    # Will break if tracks are based on anything other than a single detection
 
-    # Assumes tracks is a list of one track per every object tracked and can contain tracks on objects that no longer exist
-
-    generators = Property(list, doc='List of generators to use')
-
-    def generate_metrics(self, tracks, groundtruth_paths, detections):
-        """
-
-        :param tracks: set of Track objects created by the tracker
-        :param groundtruth_paths:  set of GroundTruthPath objects
-        :param detections: set of list of Detection objects
-        :return: set of Metric objects (or objects that inherit from metric)
-        """
-
-        metrics = []
-
-        for generator in self.generators:
-            metrics += generator.compute_metric(tracks, groundtruth_paths, detections)
-
-        return metrics
 
 class BasicMetrics(MetricGenerator):
     """Calculated simeple metrics like number of tracks, truth and """
-    def compute_metric(self, tracks, groundtruth_paths, detections):
+    def compute_metric(self, manager):
 
         metrics = []
 
         # Make a list of all the unique timestamps used
         timestamps = []
-        for track in tracks:
+        for track in manager.tracks:
             for state in track.states:
                 if state.timestamp not in timestamps:
                     timestamps.append(state.timestamp)
-        for path in groundtruth_paths:
+        for path in manager.groundtruth_paths:
             for state in path:
                 if state.timestamp not in timestamps:
                     timestamps.append(state.timestamp)
@@ -48,21 +27,21 @@ class BasicMetrics(MetricGenerator):
         # Number of tracks
         metrics.append(TimePeriodMetric(
                     title='Number of targets',
-                    value=len(groundtruth_paths),
+                    value=len(manager.groundtruth_paths),
                     start_timestamp=min(timestamps),
                     end_timestamp=max(timestamps),
                     generator=self))
 
         metrics.append(TimePeriodMetric(
             title='Number of tracks',
-            value=len(tracks),
+            value=len(manager.tracks),
             start_timestamp=min(timestamps),
             end_timestamp=max(timestamps),
             generator=self))
 
         metrics.append(TimePeriodMetric(
             title='Track-to-target ratio',
-            value=len(tracks)/len(groundtruth_paths),
+            value=len(manager.tracks)/len(manager.groundtruth_paths),
             start_timestamp=min(timestamps),
             end_timestamp=max(timestamps),
             generator=self))
@@ -70,17 +49,19 @@ class BasicMetrics(MetricGenerator):
         return metrics
 
 
-
-
-
-
 class OSPAMetric(MetricGenerator):
+
     c = Property(float, doc='Maximum distance for possible association')
     p = Property(float, doc='norm associated to distance')
     measurement_matrix_truth = Property(np.ndarray, doc='Measurement matrix for the truth states to extract parameters to calculate distance over')
     measurement_matrix_meas = Property(np.ndarray, doc='Measurement matrix for the track states to extract parameters to calculate distance over')
 
-    def compute_metric(self, dataset_1, dataset_2):
+    def compute_metric(self, manager):
+
+        metric = self.process_datasets(manager.tracks, manager.groundtruth_paths)
+        return metric
+
+    def process_datasets(self, dataset_1, dataset_2):
 
         states_1 = self.extract_states(dataset_1)
         states_2 = self.extract_states(dataset_2)
@@ -135,11 +116,15 @@ class OSPAMetric(MetricGenerator):
 
             ospa_distances.append(self.compute_OSPA_distance(meas_points, truth_points, timestamp))
 
-        return TimePeriodMetric(title='OSPA distances',
-                                value=ospa_distances,
-                                start_timestamp=min(timestamps),
-                                end_timestamp=max(timestamps),
-                                generator=self)
+        # If only one timestamp is present then return a SingleTimeMetric
+        if len(timestamps) == 1:
+            return ospa_distances[0]
+        else:
+            return TimePeriodMetric(title='OSPA distances',
+                                    value=ospa_distances,
+                                    start_timestamp=min(timestamps),
+                                    end_timestamp=max(timestamps),
+                                    generator=self)
 
     def compute_OSPA_distance(self, track_states, truth_states, tstamp=None):
 
@@ -174,7 +159,7 @@ class OSPAMetric(MetricGenerator):
             # Calculate metric following Vo's paper or python code online.
             distance = ((1 / n) * cost_matrix[row_ind, col_ind].sum()) ** (1 / self.p)
 
-        return [SingleTimeMetric(title='OSPA distance', value=distance, timestamp=tstamp, generator=self)]
+        return SingleTimeMetric(title='OSPA distance', value=distance, timestamp=tstamp, generator=self)
 
     def compute_cost_matrix(self, track_states, truth_states):
 
@@ -184,7 +169,7 @@ class OSPAMetric(MetricGenerator):
             for i_truth, truth_state in enumerate(truth_states):
 
                 euc_distance = np.linalg.norm(
-                    self.measurement_matrix_meas.matrix() @ track_state.state_vector.__array__() - self.measurement_matrix_truth.matrix() @ truth_state.state_vector.__array__())
+                    self.measurement_matrix_meas @ track_state.state_vector.__array__() - self.measurement_matrix_truth @ truth_state.state_vector.__array__())
 
                 if euc_distance < self.c:
                     cost_matrix[i_track, i_truth] = euc_distance
