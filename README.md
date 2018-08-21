@@ -12,7 +12,8 @@ Stone Soup uses the following dependencies:
 | ---- | ------- |
 | [Python](https://www.python.org/) (v3.5+) | PSFL |
 | [SciPy](https://www.scipy.org/) | BSD |
-| [ruamel.yaml](https://yaml.readthedocs.io/) | MIT |
+| [SciPy](https://matplotlib.org/) | PSFL |
+| [ruamel.yaml](https://yaml.readthedocs.io/) (v0.15.45+) | MIT |
 
 ### Development
 For development the following libraries are also recommended:
