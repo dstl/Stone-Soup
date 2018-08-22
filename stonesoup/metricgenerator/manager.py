@@ -12,15 +12,17 @@ class SimpleManager(MetricManager):
 
     def __init__(self, generators, *args, **kwargs):
         super().__init__(generators, *args, **kwargs)
-        self.tracks = None
-        self.groundtruth_paths = None
-        self.detections = None
+        self.tracks = []
+        self.groundtruth_paths = []
+        self.detections = []
 
-    def add_data(self, input_objects):
+    def add_data(self, input_objects, overwrite = True):
         """
         Adds data to the metric generator
         :param input_objects: list, set or tuple of objects to be added. The objects are lists or sets of Tracks,
          GroundTruthPaths or Detections. e.g. manager.add_data((tracks,detections))
+        :param overwrite: If true then the existing data is overwritten with the new, if False then any elemts of the new
+        list not existing in the old are added
         :return:
         """
         for in_obj in input_objects:
@@ -29,10 +31,11 @@ class SimpleManager(MetricManager):
             else:
                 if all(isinstance(x, Track) or issubclass(x, Track) for x in in_obj):
 
-                    if not self.tracks:
-                        self.tracks = in_obj
+                    if overwrite:
+                        self.tracks = set(in_obj)
                     else:
-                        raise ValueError('Only one list or set of Track objects expected')
+                        self.tracks = self.tracks.union(set(in_obj))
+
 
                 elif all(isinstance(x, GroundTruthPath) or issubclass(x, GroundTruthPath) for x in in_obj):
 
