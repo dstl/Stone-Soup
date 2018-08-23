@@ -14,14 +14,14 @@ def test_cbd():
         np.array([[0], [0]]),
         np.array([[100, 0], [0, 1]]), timestamp)
     track = Track()
-    track.states.append(state)
+    track.append(state)
     tracks = {track}
 
     state = GaussianState(
         np.array([[0], [0]]),
         np.array([[1, 0], [0, 1]]), timestamp)
     track = Track()
-    track.states.append(state)
+    track.append(state)
 
     tracks.add(track)
 

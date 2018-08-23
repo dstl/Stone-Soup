@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import sys
+
 import pytest
 
 from ..base import Property
@@ -72,6 +74,7 @@ def test_init_new(base):
     assert not hasattr(_TestNew(1, "2", property_d="10"), 'property_d')
 
 
+@pytest.mark.skipif(sys.version_info < (3, 6), reason="Requires Python >= 3.6")
 def test_non_base_property():
     with pytest.raises(RuntimeError):
         class _TestNonBase:

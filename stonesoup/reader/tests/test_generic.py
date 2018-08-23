@@ -9,7 +9,7 @@ from ..generic import CSVDetectionReader
 
 def test_csv(tmpdir):
     csv_filename = tmpdir.join("test.csv")
-    with open(csv_filename, 'w') as csv_file:
+    with csv_filename.open('w') as csv_file:
         csv_file.write(dedent("""\
             x,y,z,t
             10,20,30,2018-01-01T14:00:00Z
@@ -17,7 +17,7 @@ def test_csv(tmpdir):
             12,22,32,2018-01-01T14:02:00Z
             """))
 
-    csv_reader = CSVDetectionReader(csv_filename, ["x", "y"], "t")
+    csv_reader = CSVDetectionReader(csv_filename.strpath, ["x", "y"], "t")
     detections = [
         detection
         for _, detections in csv_reader.detections_gen()

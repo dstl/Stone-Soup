@@ -45,6 +45,7 @@ State Types
 
 .. automodule:: stonesoup.types.state
     :show-inheritance:
+    :inherited-members: stonesoup.types.state.StateMutableSequence
 
 Particle Types
 --------------

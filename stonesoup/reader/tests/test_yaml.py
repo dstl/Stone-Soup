@@ -9,7 +9,7 @@ from ..yaml import YAMLReader
 
 def test_detections_yaml(tmpdir):
     filename = tmpdir.join("detections.yaml")
-    with open(filename, 'w') as file:
+    with filename.open('w') as file:
         file.write(dedent("""\
             ---
             time: &id001 2018-01-01 14:00:00
@@ -42,7 +42,7 @@ def test_detections_yaml(tmpdir):
               :
             """))
 
-    reader = YAMLReader(filename)
+    reader = YAMLReader(filename.strpath)
 
     for n, (time, detections) in enumerate(reader.detections_gen()):
         assert len(detections) == n
@@ -61,7 +61,7 @@ def test_detections_yaml(tmpdir):
 
 def test_groundtruth_paths_yaml(tmpdir):
     filename = tmpdir.join("groundtruth_paths.yaml")
-    with open(filename, 'w') as file:
+    with filename.open('w') as file:
         file.write(dedent("""\
             ---
             time: &id001 2018-01-01 14:00:00
@@ -106,7 +106,7 @@ def test_groundtruth_paths_yaml(tmpdir):
             ...
             """))
 
-    reader = YAMLReader(filename)
+    reader = YAMLReader(filename.strpath)
 
     ptime = None
     for n, (time, paths) in enumerate(reader.groundtruth_paths_gen()):
@@ -126,7 +126,7 @@ def test_groundtruth_paths_yaml(tmpdir):
 
 def test_tracks_yaml(tmpdir):
     filename = tmpdir.join("tracks.yaml")
-    with open(filename, 'w') as file:
+    with filename.open('w') as file:
         file.write(dedent("""\
             ---
             time: &id001 2018-01-01 14:00:00
@@ -171,7 +171,7 @@ def test_tracks_yaml(tmpdir):
             ...
             """))
 
-    reader = YAMLReader(filename)
+    reader = YAMLReader(filename.strpath)
 
     ptime = None
     for n, (time, tracks) in enumerate(reader.tracks_gen()):
@@ -181,8 +181,8 @@ def test_tracks_yaml(tmpdir):
             assert time.minute == n
             assert time.date() == datetime.date(2018, 1, 1)
             assert track.timestamp == time
-            if len(track.states) > 1:
-                assert track.states[-2].timestamp == ptime
+            if len(track) > 1:
+                assert track[-2].timestamp == ptime
         assert not reader.groundtruth_paths
         assert not reader.sensor_data
         assert not reader.detections

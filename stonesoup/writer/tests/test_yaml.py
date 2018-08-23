@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import sys
 from textwrap import dedent
 
 import pytest
@@ -6,13 +7,19 @@ import pytest
 from ..yaml import YAMLWriter
 
 
+dict_order_skip = pytest.mark.skipif(
+    sys.version_info < (3, 6), reason="requires Python >= 3.6 for dict order")
+
+
+@dict_order_skip
 def test_detections_yaml(detection_reader, tmpdir):
     filename = tmpdir.join("detections.yaml")
 
-    with YAMLWriter(filename, detections_source=detection_reader) as writer:
+    with YAMLWriter(filename.strpath,
+                    detections_source=detection_reader) as writer:
         writer.write()
 
-    with open(filename, 'r') as yaml_file:
+    with filename.open('r') as yaml_file:
         generated_yaml = yaml_file.read()
 
     expected_yaml = dedent("""\
@@ -48,13 +55,15 @@ def test_detections_yaml(detection_reader, tmpdir):
     assert generated_yaml == expected_yaml
 
 
+@dict_order_skip
 def test_groundtruth_paths_yaml(groundtruth_reader, tmpdir):
     filename = tmpdir.join("groundtruth_paths.yaml")
 
-    with YAMLWriter(filename, groundtruth_source=groundtruth_reader) as writer:
+    with YAMLWriter(filename.strpath,
+                    groundtruth_source=groundtruth_reader) as writer:
         writer.write()
 
-    with open(filename, 'r') as yaml_file:
+    with filename.open('r') as yaml_file:
         generated_yaml = yaml_file.read()
 
     expected_yaml = dedent("""\
@@ -104,13 +113,14 @@ def test_groundtruth_paths_yaml(groundtruth_reader, tmpdir):
     assert generated_yaml == expected_yaml
 
 
+@dict_order_skip
 def test_tracks_yaml(tracker, tmpdir):
     filename = tmpdir.join("tracks.yaml")
 
-    with YAMLWriter(filename, tracks_source=tracker) as writer:
+    with YAMLWriter(filename.strpath, tracks_source=tracker) as writer:
         writer.write()
 
-    with open(filename, 'r') as yaml_file:
+    with filename.open('r') as yaml_file:
         generated_yaml = yaml_file.read()
 
     expected_yaml = dedent("""\
@@ -163,4 +173,4 @@ def test_tracks_yaml(tracker, tmpdir):
 def test_yaml_bad_init(tmpdir):
     filename = tmpdir.join("bad_init.yaml")
     with pytest.raises(ValueError, match="At least one source required"):
-        YAMLWriter(filename)
+        YAMLWriter(filename.strpath)

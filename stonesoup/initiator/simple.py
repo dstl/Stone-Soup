@@ -4,9 +4,10 @@ from .base import Initiator, GaussianInitiator
 from ..base import Property
 from ..updater import KalmanUpdater
 from ..models.measurement import MeasurementModel
-from ..types.track import Track
-from ..types.state import GaussianState, ParticleState
+from ..types.numeric import Probability
 from ..types.particle import Particle
+from ..types.state import GaussianState, ParticleState
+from ..types.track import Track
 
 
 class SinglePointInitiator(GaussianInitiator):
@@ -77,14 +78,15 @@ class GaussianParticleInitiator(Initiator):
             A list of new tracks with a initial :class:`~.ParticleState`
         """
         tracks = self.initiator.initiate(unassociated_detections, **kwargs)
+        weight = Probability(1/self.number_particles)
         for track in tracks:
             samples = multivariate_normal.rvs(track.state_vector.ravel(),
                                               track.covar,
                                               size=self.number_particles)
             particles = [
-                Particle(sample.reshape(-1, 1), weight=1/self.number_particles)
+                Particle(sample.reshape(-1, 1), weight=weight)
                 for sample in samples]
-            track.states[-1] = ParticleState(particles,
-                                             timestamp=track.timestamp)
+            track[-1] = ParticleState(particles,
+                                      timestamp=track.timestamp)
 
         return tracks

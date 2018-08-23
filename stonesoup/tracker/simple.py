@@ -69,9 +69,9 @@ class SingleTargetTracker(Tracker):
                         associations[self.track].prediction,
                         associations[self.track].detection,
                         associations[self.track].measurement_prediction)
-                    self.track.states.append(state_post)
+                    self.track.append(state_post)
                 else:
-                    self.track.states.append(
+                    self.track.append(
                         associations[self.track].prediction)
 
             if self.track is None or self.deleter.delete_tracks(self.tracks):
@@ -137,10 +137,10 @@ class MultiTargetTracker(Tracker):
                         hypothesis.prediction,
                         hypothesis.detection,
                         hypothesis.measurement_prediction)
-                    track.states.append(state_post)
+                    track.append(state_post)
                     associated_detections.add(hypothesis.detection)
                 else:
-                    track.states.append(hypothesis.prediction)
+                    track.append(hypothesis.prediction)
 
             self._tracks -= self.deleter.delete_tracks(self._tracks)
             self._tracks |= self.initiator.initiate(

@@ -1,0 +1,46 @@
+version: 2
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test-3.5
+      - test-3.6
+      - test-3.7
+jobs:
+  test-3.5: &test-template
+    docker:
+      - image: circleci/python:3.5.5
+    steps:
+      - checkout
+      - restore_cache:
+          key: v1-dependencies-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
+      - run:
+          name: install dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -e .[dev]
+      - save_cache:
+          paths:
+            - ./venv
+          key: v1-dependencies-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
+      - run:
+          name: run tests
+          command: |
+            . venv/bin/activate
+            mkdir test-reports
+            pytest --junitxml=test-reports/junit.xml --flake8 --cov --cov-report=html:test-coverage stonesoup
+      - store_test_results:
+          path: test-reports
+      - store_artifacts:
+          path: test-reports 
+      - store_artifacts:
+          path: test-coverage
+  test-3.6:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.6.6
+  test-3.7:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.7.0

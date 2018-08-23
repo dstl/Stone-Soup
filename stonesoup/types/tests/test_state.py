@@ -4,8 +4,9 @@ import datetime
 import numpy as np
 import pytest
 
+from ..numeric import Probability
 from ..particle import Particle
-from ..state import State, GaussianState, ParticleState
+from ..state import State, GaussianState, ParticleState, StateMutableSequence
 
 
 def test_state():
@@ -71,7 +72,7 @@ def test_particlestate():
     num_particles = 10
     state_vector1 = np.array([[0]])
     state_vector2 = np.array([[100]])
-    weight = 1/num_particles
+    weight = Probability(1/num_particles)
     particles = []
     particles.extend(Particle(
         state_vector1, weight=weight) for _ in range(num_particles//2))
@@ -80,14 +81,14 @@ def test_particlestate():
 
     # Test state without timestamp
     state = ParticleState(particles)
-    assert np.array_equal(state.state_vector, np.array([[50]]))
-    assert np.array_equal(state.covar, np.array([[2500]]))
+    assert np.allclose(state.state_vector, np.array([[50]]))
+    assert np.allclose(state.covar, np.array([[2500]]))
 
     # Test state with timestamp
     timestamp = datetime.datetime.now()
     state = ParticleState(particles, timestamp=timestamp)
-    assert np.array_equal(state.state_vector, np.array([[50]]))
-    assert np.array_equal(state.covar, np.array([[2500]]))
+    assert np.allclose(state.state_vector, np.array([[50]]))
+    assert np.allclose(state.covar, np.array([[2500]]))
     assert state.timestamp == timestamp
 
     # 2D
@@ -100,8 +101,8 @@ def test_particlestate():
         state_vector2, weight=weight) for _ in range(num_particles//2))
 
     state = ParticleState(particles)
-    assert np.array_equal(state.state_vector, np.array([[50], [100]]))
-    assert np.array_equal(state.covar, np.array([[2500, 5000], [5000, 10000]]))
+    assert np.allclose(state.state_vector, np.array([[50], [100]]))
+    assert np.allclose(state.covar, np.array([[2500, 5000], [5000, 10000]]))
 
 
 def test_particlestate_weighted():
@@ -109,11 +110,11 @@ def test_particlestate_weighted():
 
     # Half particles at high weight at 0
     state_vector1 = np.array([[0]])
-    weight1 = 0.75 / (num_particles / 2)
+    weight1 = Probability(0.75 / (num_particles / 2))
 
     # Other half of particles low weight at 100
     state_vector2 = np.array([[100]])
-    weight2 = 0.25 / (num_particles / 2)
+    weight2 = Probability(0.25 / (num_particles / 2))
 
     particles = []
     particles.extend(Particle(
@@ -122,9 +123,55 @@ def test_particlestate_weighted():
         state_vector2, weight=weight2) for _ in range(num_particles//2))
 
     # Check particles sum to 1 still
-    assert sum(particle.weight for particle in particles) == pytest.approx(1)
+    assert pytest.approx(1) == sum(particle.weight for particle in particles)
 
     # Test state vector is now weighted towards 0 from 50 (non-weighted mean)
     state = ParticleState(particles)
-    assert np.array_equal(state.state_vector, np.array([[25]]))
-    assert np.array_equal(state.covar, np.array([[1875]]))
+    assert np.allclose(state.state_vector, np.array([[25]]))
+    assert np.allclose(state.covar, np.array([[1875]]))
+
+
+def test_state_mutable_sequence_state():
+    state_vector = np.array([[0]])
+    timestamp = datetime.datetime(2018, 1, 1, 14)
+    delta = datetime.timedelta(minutes=1)
+    sequence = StateMutableSequence(
+        [State(state_vector, timestamp=timestamp+delta*n)
+         for n in range(10)])
+
+    assert sequence.state is sequence.states[-1]
+    assert np.array_equal(sequence.state_vector, state_vector)
+    assert sequence.timestamp == timestamp + delta*9
+
+    del sequence[-1]
+    assert sequence.timestamp == timestamp + delta*8
+
+
+def test_state_mutable_sequence_slice():
+    state_vector = np.array([[0]])
+    timestamp = datetime.datetime(2018, 1, 1, 14)
+    delta = datetime.timedelta(minutes=1)
+    sequence = StateMutableSequence(
+        [State(state_vector, timestamp=timestamp+delta*n)
+         for n in range(10)])
+
+    assert isinstance(sequence[timestamp:], StateMutableSequence)
+    assert isinstance(sequence[5:], StateMutableSequence)
+    assert isinstance(sequence[timestamp], State)
+    assert isinstance(sequence[5], State)
+
+    assert len(sequence[timestamp:]) == 10
+    assert len(sequence[:timestamp]) == 0
+    assert len(sequence[timestamp+delta*5:]) == 5
+    assert len(sequence[:timestamp+delta*5]) == 5
+    assert len(sequence[timestamp+delta*4:timestamp+delta*6]) == 2
+    assert len(sequence[timestamp+delta*2:timestamp+delta*8:3]) == 2
+    assert len(sequence[timestamp+delta*1:][:timestamp+delta*2]) == 1
+
+    assert sequence[timestamp] == sequence.states[0]
+
+    with pytest.raises(TypeError):
+        sequence[timestamp:1]
+
+    with pytest.raises(IndexError):
+        sequence[timestamp-delta]
