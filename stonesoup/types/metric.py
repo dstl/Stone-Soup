@@ -2,7 +2,7 @@
 import datetime
 
 from .base import Type
-from .base import Property
+from ..base import Property
 
 class Metric(Type):
     """Metric type"""

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from .array import CovarianceMatrix
-from .base import Type, Property
+from .base import Type
+from ..base import Property
 from .state import State, GaussianState, ParticleState
 from ..types import Detection, Prediction
 
