@@ -54,3 +54,46 @@ def jacobian(fun, x):
     jac = np.divide(np.imag(fun(np.tile(x, ndim)+np.eye(ndim)*h*1j)), h)
 
     return jac
+
+
+def cart2pol(x, y):
+    """Convert Cartesian coordinates to Polar
+
+    Parameters
+    ----------
+    x : float
+        The x coordinate
+    y : float
+        the y coordinate
+
+    Returns
+    -------
+    (float,float)
+        A tuple of the form `(range,bearing)`
+
+    """
+
+    rho = np.sqrt(x**2 + y**2)
+    phi = np.arctan2(y, x)
+    return (rho, phi)
+
+
+def pol2cart(rho, phi):
+    """Convert Polar coordinates to Cartesian
+
+    Parameters
+    ----------
+    rho : float
+        Range (a.k.a. radial distance)
+    phi : float
+        Bearing, expressed in radians
+
+    Returns
+    -------
+    (float,float)
+        A tuple of the form `(x,y)`
+    """
+
+    x = rho * np.cos(phi)
+    y = rho * np.sin(phi)
+    return (x, y)

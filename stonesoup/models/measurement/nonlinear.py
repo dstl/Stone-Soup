@@ -4,9 +4,10 @@ import scipy as sp
 from scipy.stats import multivariate_normal
 
 from ...base import Property
-from ...types.array import CovarianceMatrix
+from ...types.array import StateVector, CovarianceMatrix
 from ..base import NonLinearModel, GaussianModel
 from .base import MeasurementModel
+from ...functions import cart2pol
 from ...functions import jacobian as compute_jac
 
 
@@ -56,6 +57,10 @@ class RangeBearingGaussianToCartesian(MeasurementModel,
     """  # noqa:E501
 
     noise_covar = Property(CovarianceMatrix, doc="Noise covariance")
+    origin_offset = Property(
+        StateVector, default=StateVector(sp.array([[0], [0]])),
+        doc="A 2x1 array specifying the origin offset in terms of :math:`x,y`\
+            coordinates.")
 
     @property
     def ndim_meas(self):
@@ -108,11 +113,10 @@ class RangeBearingGaussianToCartesian(MeasurementModel,
         if noise is None:
             noise = self.rvs()
 
-        x = state_vector[self.mapping[0]][0]
-        y = state_vector[self.mapping[1]][0]
+        x = state_vector[self.mapping[0]][0] - self.origin_offset[0][0]
+        y = state_vector[self.mapping[1]][0] - self.origin_offset[1][0]
 
-        rho = sp.sqrt(x**2 + y**2)
-        phi = sp.arctan2(y, x)
+        rho, phi = cart2pol(x, y)
 
         return sp.array([[phi], [rho]]) + noise
 
