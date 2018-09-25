@@ -7,7 +7,7 @@ from ..base import Property
 from ..models import MeasurementModel
 from ..models import TransitionModel
 from ..reader import GroundTruthReader
-from ..types import (Detection, Clutter, TrueDetection, GaussianState, GroundTruthState,
+from ..types import (TrueDetection, Clutter, GaussianState, GroundTruthState,
                      GroundTruthPath, Probability, State)
 from .base import DetectionSimulator, GroundTruthSimulator
 
@@ -129,26 +129,24 @@ class SimpleDetectionSimulator(DetectionSimulator):
         return self.real_detections | self.clutter_detections
 
     def detections_gen(self):
-        H = self.measurement_model.matrix()
-
         for time, tracks in self.groundtruth.groundtruth_paths_gen():
             self.real_detections.clear()
             self.clutter_detections.clear()
 
             for track in tracks:
                 if np.random.rand() < self.detection_probability:
-                    detection = TrueDetection(
-                        H @ track[-1].state_vector +
-                        self.measurement_model.rvs(),
+                    detection = Detection(
+                        self.measurement_model.function(
+                            track[-1].state_vector),
                         timestamp=track[-1].timestamp,
-                        groundtruth_path=track)
+                        groundtruth_path = track)
                     detection.clutter = False
-                    self.real_detections.add(detection),
+                    self.real_detections.add(detection)
 
             # generate clutter
             for _ in range(np.random.poisson(self.clutter_rate)):
                 detection = Clutter(
-                    np.random.rand(H.shape[0], 1) *
+                    np.random.rand(self.measurement_model.ndim_meas, 1) *
                     np.diff(self.meas_range) + self.meas_range[:, :1],
                     timestamp=time)
                 self.clutter_detections.add(detection)
