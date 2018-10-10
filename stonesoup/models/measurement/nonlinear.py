@@ -54,6 +54,12 @@ class RangeBearingGaussianToCartesian(MeasurementModel,
     whose first (i.e. :py:attr:`mapping[0][0]`) and second (i.e. \
     :py:attr:`mapping[1][0]`) rows contain the state index of the :math:`x` \
     and :math:`y` coordinates, respectively.
+
+    Note
+    ----
+    The current implementation of this class assumes a 2D Cartesian plane.
+
+    TODO: Extend to nD state space
     """  # noqa:E501
 
     noise_covar = Property(CovarianceMatrix, doc="Noise covariance")
@@ -107,7 +113,7 @@ class RangeBearingGaussianToCartesian(MeasurementModel,
         Returns
         -------
         :class:`numpy.ndarray` of shape (1, :py:attr:`~ndim_state`)
-            The model fumction evaluated given the provided time interval.
+            The model function evaluated given the provided time interval.
         """
 
         if noise is None:

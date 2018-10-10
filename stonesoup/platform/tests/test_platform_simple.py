@@ -31,6 +31,7 @@ def test_sensor_platform():
     timestamp = datetime.datetime.now()
     timediff = 2  # 2sec
     new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
+    new_timestamp2 = new_timestamp + datetime.timedelta(seconds=timediff)
 
     # Define transition model and position
     model_1d = ConstantVelocity(0.5)
@@ -58,6 +59,15 @@ def test_sensor_platform():
     platform_position = StateVector([[platform.state.state_vector[0][0]],
                                      [platform.state.state_vector[2][0]]])
     assert(np.equal(platform_position, radar.position).all())
+
+    # Add mounting offset, move platform and assert correctness
+    new_mounting_offset = np.array([[0.25], [5]])
+    platform.mounting_offsets = new_mounting_offset
+    platform.move(new_timestamp2)
+    platform_position = StateVector([[platform.state.state_vector[0][0]],
+                                     [platform.state.state_vector[2][0]]])
+    assert(np.equal(platform_position+new_mounting_offset,
+                    radar.position).all())
 
     # Generate a noiseless measurement for the given target
     measurement = radar.gen_measurement(target_state, noise=0)

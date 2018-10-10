@@ -10,6 +10,11 @@ from .base import Platform
 class SensorPlatform(Platform):
     """A simple Platform that can carry a number of different sensors
 
+    Note
+    ----
+    The current implementation of this class assumes a 2D Cartesian plane.
+
+    TODO: Extend to nD state space
     """
 
     sensors = Property([Sensor], doc="A list of mounted sensors")
@@ -39,6 +44,6 @@ class SensorPlatform(Platform):
         for i in range(0, len(self.sensors)):
             self.sensors[i].set_position(StateVector(
                 [[self.state.state_vector[self.mounting_mappings[0][i]][0]
-                  + self.mounting_offsets[i][0]],
+                  + self.mounting_offsets[0][i]],
                  [self.state.state_vector[self.mounting_mappings[1][i]][0]
-                  + self.mounting_offsets[i][0]]]))
+                  + self.mounting_offsets[1][i]]]))

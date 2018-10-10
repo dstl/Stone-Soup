@@ -13,6 +13,12 @@ from ..models.measurement.nonlinear\
 class SimpleRadar(Sensor):
     """A simple radar sensor that generates measurements of targets, using a
     :class:`~.RangeBearingGaussianToCartesian` model, relative to its position.
+
+    Note
+    ----
+    The current implementation of this class assumes a 2D Cartesian plane.
+
+    TODO: Extend to nD state space
     """
 
     position = Property(StateVector,
