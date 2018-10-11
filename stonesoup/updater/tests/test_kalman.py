@@ -52,6 +52,12 @@ def test_kalman():
                                measurement=measurement)
     assert(np.array_equal(posterior.mean, eval_posterior.mean))
     assert(np.array_equal(posterior.covar, eval_posterior.covar))
+    assert(np.array_equal(posterior.prediction, prediction))
+    assert(np.array_equal(posterior.measurement_prediction.state_vector,
+                          measurement_prediction.state_vector))
+    assert(np.array_equal(posterior.measurement_prediction.covar,
+                          measurement_prediction.covar))
+    assert(np.array_equal(posterior.measurement, measurement))
     assert(posterior.timestamp == prediction.timestamp)
 
     # Perform and assert state update (with measurement prediction)
@@ -60,6 +66,12 @@ def test_kalman():
                                measurement_prediction=measurement_prediction)
     assert(np.array_equal(posterior.mean, eval_posterior.mean))
     assert(np.array_equal(posterior.covar, eval_posterior.covar))
+    assert(np.array_equal(posterior.prediction, prediction))
+    assert (np.array_equal(posterior.measurement_prediction.state_vector,
+                           measurement_prediction.state_vector))
+    assert (np.array_equal(posterior.measurement_prediction.covar,
+                           measurement_prediction.covar))
+    assert(np.array_equal(posterior.measurement, measurement))
     assert(posterior.timestamp == prediction.timestamp)
 
 
@@ -106,6 +118,12 @@ def test_extendedkalman():
                                measurement=measurement)
     assert(np.array_equal(posterior.mean, eval_posterior.mean))
     assert(np.array_equal(posterior.covar, eval_posterior.covar))
+    assert(np.array_equal(posterior.prediction, prediction))
+    assert (np.array_equal(posterior.measurement_prediction.state_vector,
+                           measurement_prediction.state_vector))
+    assert (np.array_equal(posterior.measurement_prediction.covar,
+                           measurement_prediction.covar))
+    assert(np.array_equal(posterior.measurement, measurement))
     assert(posterior.timestamp == prediction.timestamp)
 
     # Perform and assert state update (with measurement prediction)
@@ -114,4 +132,10 @@ def test_extendedkalman():
                                measurement_prediction=measurement_prediction)
     assert(np.array_equal(posterior.mean, eval_posterior.mean))
     assert(np.array_equal(posterior.covar, eval_posterior.covar))
+    assert(np.array_equal(posterior.prediction, prediction))
+    assert (np.array_equal(posterior.measurement_prediction.state_vector,
+                           measurement_prediction.state_vector))
+    assert (np.array_equal(posterior.measurement_prediction.covar,
+                           measurement_prediction.covar))
+    assert(np.array_equal(posterior.measurement, measurement))
     assert(posterior.timestamp == prediction.timestamp)
