@@ -2,6 +2,7 @@
 from .base import Type
 
 from .array import *  # noqa:F401,F403
+from .association import *  # noqa:F401,F403
 from .detection import *  # noqa:F401,F403
 from .groundtruth import *  # noqa:F401,F403
 from .hypothesis import *  # noqa:F401,F403
