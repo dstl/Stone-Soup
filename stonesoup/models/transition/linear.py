@@ -447,12 +447,34 @@ class Singer(LinearGaussianTransitionModel, TimeVariantModel):
                         0 & 0 & e^{-\alpha t}
                       \end{bmatrix}
 
+        For small dt:
+
         .. math::
             Q_t & = & 2 \alpha q^2 \begin{bmatrix}
                         \frac{dt^5}{20} & \frac{dt^4}{8} & \frac{dt^3}{6} \\
                         \frac{dt^4}{8} & \frac{dt^3}{3} & \frac{dt^2}{2} \\
                         \frac{dt^3}{6} & \frac{dt^2}{2} & dt
                         \end{bmatrix}
+
+        For larger dt:
+
+        .. math::
+            Q_t & = & q \begin{bmatrix}
+                    \frac{[1-e^{-2\alpha dt}] + 2\alpha dt +
+                    \frac{2\alpha^3 dt^3}{3}- 2\alpha^2 dt^2 -
+                    4\alpha dt e^{-\alpha dt} }{2\alpha^5} &
+                    \frac{(\alpha dt - [1-e^{-\alpha dt}])^2}{2\alpha^4} &
+                    \frac{[1-e^{-2\alpha dt}]-2\alpha dt e^{-\alpha dt}}
+                    {2\alpha^3} \\
+                    \frac{(\alpha dt - [1 - e^{-\alpha dt}])^2}{2\alpha^4} &
+                    \frac{2\alpha dt - 4[1-e^{-\alpha dt}] +
+                    [1-e^{-2\alpha dt}]}{2\alpha^3} &
+                    \frac{[1-e^{-\alpha dt}]^2}{2\alpha^2} \\
+                    \frac{[1- e^{-2\alpha dt}]-2\alpha dt e^{-\alpha dt}}
+                    {2\alpha^3} &
+                    \frac{[1-e^{-\alpha dt}]^2}{2\alpha^2} &
+                    \frac{1-e^{-2\alpha dt}}{2\alpha}
+                    \end{bmatrix}
     """
 
     noise_diff_coeff = Property(
@@ -518,22 +540,53 @@ class Singer(LinearGaussianTransitionModel, TimeVariantModel):
             The process noise covariance.
         """
 
+        # time_interval_threshold is currently set arbitrarily.
+        time_interval_threshold = 0.5
         time_interval_sec = time_interval.total_seconds()
-        recip_decorr_time = self.recip_decorr_time
-        noise_diff_coeff = self.noise_diff_coeff
-        constant_multiplier = 2 * recip_decorr_time * \
-            sp.power(noise_diff_coeff, 2)
 
-        covar = sp.array(
-            [[sp.power(time_interval_sec, 5) / 20,
-              sp.power(time_interval_sec, 4) / 8,
-              sp.power(time_interval_sec, 3) / 6],
-             [sp.power(time_interval_sec, 4) / 8,
-              sp.power(time_interval_sec, 3) / 3,
-              sp.power(time_interval_sec, 2) / 2],
-             [sp.power(time_interval_sec, 3) / 6,
-              sp.power(time_interval_sec, 2) / 2,
-              time_interval_sec]]) * constant_multiplier
+        # Only leading terms get calculated for speed.
+        if time_interval_sec < time_interval_threshold:
+            constant_multiplier = 2 * self.recip_decorr_time * \
+                sp.power(self.noise_diff_coeff, 2)
+            covar = sp.array(
+                [[sp.power(time_interval_sec, 5) / 20,
+                  sp.power(time_interval_sec, 4) / 8,
+                  sp.power(time_interval_sec, 3) / 6],
+                 [sp.power(time_interval_sec, 4) / 8,
+                  sp.power(time_interval_sec, 3) / 3,
+                  sp.power(time_interval_sec, 2) / 2],
+                 [sp.power(time_interval_sec, 3) / 6,
+                  sp.power(time_interval_sec, 2) / 2,
+                  time_interval_sec]]
+            ) * constant_multiplier
+        # Full Singer Model covariance calculation.
+        else:
+            alpha_time = self.recip_decorr_time * time_interval_sec
+            e_neg_at = sp.exp(-alpha_time)
+            e_neg2_at = sp.exp(-2 * alpha_time)
+            covar = sp.array(
+                [[((1 - e_neg2_at) +
+                   2 * alpha_time +
+                   (2 * sp.power(alpha_time, 3)) / 3 -
+                   2 * sp.power(alpha_time, 2) -
+                   4 * alpha_time * e_neg_at) /
+                  (2 * sp.power(self.recip_decorr_time, 5)),
+                  sp.power(alpha_time - (1 - e_neg_at), 2) /
+                  (2 * sp.power(self.recip_decorr_time, 4)),
+                  ((1 - e_neg2_at) - 2 * alpha_time * e_neg_at) /
+                  (2 * sp.power(self.recip_decorr_time, 3))],
+                 [sp.power(alpha_time - (1 - e_neg_at), 2) /
+                  (2 * sp.power(self.recip_decorr_time, 4)),
+                  (2 * alpha_time - 4 * (1 - e_neg_at) + (1 - e_neg2_at)) /
+                  (2 * sp.power(self.recip_decorr_time, 3)),
+                  sp.power(1 - e_neg_at, 2) /
+                  (2 * sp.power(self.recip_decorr_time, 2))],
+                 [((1 - e_neg2_at) - 2 * alpha_time * e_neg_at) /
+                  (2 * sp.power(self.recip_decorr_time, 3)),
+                  sp.asscalar(sp.power(1 - e_neg_at, 2) /
+                  (2 * sp.power(self.recip_decorr_time, 2))),
+                 (1 - e_neg2_at) / (2 * self.recip_decorr_time)]]
+            ) * self.noise_diff_coeff
 
         return CovarianceMatrix(covar)
 
