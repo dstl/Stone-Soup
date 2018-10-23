@@ -7,8 +7,7 @@ class Detection(State):
     """Detection type"""
 
     metadata = Property(dict, default=None,
-                        doc='Non-standard metadata items for Detections. '
-                            'Default to empty dictionary.')
+                        doc='Dictionary of metadata items for Detections.')
 
     def __init__(self, state_vector, *args, **kwargs):
         super().__init__(state_vector, *args, **kwargs)
