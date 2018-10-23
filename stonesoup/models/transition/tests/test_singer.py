@@ -1,7 +1,6 @@
 # coding: utf-8
 
 import datetime
-
 import scipy as sp
 from scipy.stats import multivariate_normal
 
@@ -12,18 +11,37 @@ from stonesoup.models.transition.linear import \
 def test_singer1dmodel():
     """ ConstantAcceleration1D Transition Model test """
     state_vec = sp.array([[3.0], [1.0], [0.1]])
-    noise_diff_coeffs = sp.array([[0.01]])
-    recips_decorr_times = sp.array([[0.1]])
+    noise_diff_coeffs = sp.array([0.01])
+    recips_decorr_times = sp.array([0.1])
     base(state_vec, noise_diff_coeffs, recips_decorr_times)
+
+
+def test_singer1dmodel_small_time_difference():
+    """ ConstantAcceleration1D Transition Model test for small timediff """
+    state_vec = sp.array([[3.0], [1.0], [0.1]])
+    noise_diff_coeffs = sp.array([0.01])
+    recips_decorr_times = sp.array([0.1])
+    base(state_vec, noise_diff_coeffs, recips_decorr_times, timediff=0.4)
 
 
 def test_singer2dmodel():
     """ ConstantAcceleration2D Transition Model test """
     state_vec = sp.array([[3.0], [1.0], [0.1],
                           [2.0], [2.0], [0.2]])
-    noise_diff_coeffs = sp.array([[0.01], [0.02]])
-    recips_decorr_times = sp.array([[0.1], [0.1]])
+    noise_diff_coeffs = sp.array([0.01, 0.02])
+    recips_decorr_times = sp.array([0.1, 0.1])
+
     base(state_vec, noise_diff_coeffs, recips_decorr_times)
+
+
+def test_singer2dmodel_small_time_difference():
+    """ ConstantAcceleration2D Transition Model test for small timediff """
+    state_vec = sp.array([[3.0], [1.0], [0.1],
+                          [2.0], [2.0], [0.2]])
+    noise_diff_coeffs = sp.array([0.01, 0.02])
+    recips_decorr_times = sp.array([0.1, 0.1])
+
+    base(state_vec, noise_diff_coeffs, recips_decorr_times, timediff=0.4)
 
 
 def test_singer3dmodel():
@@ -31,12 +49,22 @@ def test_singer3dmodel():
     state_vec = sp.array([[3.0], [1.0], [0.1],
                           [2.0], [2.0], [0.2],
                           [4.0], [0.5], [0.05]])
-    noise_diff_coeffs = sp.array([[0.01], [0.02], [0.005]])
-    recips_decorr_times = sp.array([[0.1], [0.1], [0.1]])
+    noise_diff_coeffs = sp.array([0.01, 0.02, 0.005])
+    recips_decorr_times = sp.array([0.1, 0.1, 0.1])
     base(state_vec, noise_diff_coeffs, recips_decorr_times)
 
 
-def base(state_vec, noise_diff_coeffs, recips_decorr_times):
+def test_singer3dmodel_small_time_difference():
+    """ ConstantAcceleration3D Transition Model test for small timediff """
+    state_vec = sp.array([[3.0], [1.0], [0.1],
+                          [2.0], [2.0], [0.2],
+                          [4.0], [0.5], [0.05]])
+    noise_diff_coeffs = sp.array([0.01, 0.02, 0.005])
+    recips_decorr_times = sp.array([0.1, 0.1, 0.1])
+    base(state_vec, noise_diff_coeffs, recips_decorr_times, timediff=0.4)
+
+
+def base(state_vec, noise_diff_coeffs, recips_decorr_times, timediff=1.0):
     """ Base test for n-dimensional ConstantAcceleration Transition Models """
 
     # Create a 1D Singer or an n-dimensional
@@ -54,7 +82,7 @@ def base(state_vec, noise_diff_coeffs, recips_decorr_times):
     # State related variables
     state_vec = state_vec
     old_timestamp = datetime.datetime.now()
-    timediff = 1  # 1sec
+    timediff_threshold = 0.5  # Arbitrarily set as 0.5sec in the model
     new_timestamp = old_timestamp + datetime.timedelta(seconds=timediff)
     time_interval = new_timestamp - old_timestamp
 
@@ -82,17 +110,46 @@ def base(state_vec, noise_diff_coeffs, recips_decorr_times):
               0,
               sp.exp(-recip_decorr_timedt)]]))
 
-        covar_list.append(sp.array(
-            [[sp.power(timediff, 5) / 20,
-              sp.power(timediff, 4) / 8,
-              sp.power(timediff, 3) / 6],
-             [sp.power(timediff, 4) / 8,
-              sp.power(timediff, 3) / 3,
-              sp.power(timediff, 2) / 2],
-             [sp.power(timediff, 3) / 6,
-              sp.power(timediff, 2) / 2,
-              timediff]]) * constant_multiplier)
+        if timediff < timediff_threshold:
+            covar_list.append(sp.array(
+                [[sp.power(timediff, 5) / 20,
+                  sp.power(timediff, 4) / 8,
+                  sp.power(timediff, 3) / 6],
+                 [sp.power(timediff, 4) / 8,
+                  sp.power(timediff, 3) / 3,
+                  sp.power(timediff, 2) / 2],
+                 [sp.power(timediff, 3) / 6,
+                  sp.power(timediff, 2) / 2,
+                  timediff]]) * constant_multiplier)
+        else:
+            alpha_time = recip_decorr_time * timediff
+            e_neg_at = sp.exp(-alpha_time)
+            e_neg2_at = sp.exp(-2 * alpha_time)
+            covar_list.append(sp.array(
+                [[((1 - e_neg2_at) +
+                   2 * alpha_time +
+                   (2 * sp.power(alpha_time, 3)) / 3 -
+                   2 * sp.power(alpha_time, 2) -
+                   4 * alpha_time * e_neg_at) /
+                  (2 * sp.power(recip_decorr_time, 5)),
+                  sp.power(alpha_time - (1 - e_neg_at), 2) /
+                  (2 * sp.power(recip_decorr_time, 4)),
+                  ((1 - e_neg2_at) - 2 * alpha_time * e_neg_at) /
+                  (2 * sp.power(recip_decorr_time, 3))],
+                 [sp.power(alpha_time - (1 - e_neg_at), 2) /
+                  (2 * sp.power(recip_decorr_time, 4)),
+                  (2 * alpha_time - 4 * (1 - e_neg_at) + (1 - e_neg2_at)) /
+                  (2 * sp.power(recip_decorr_time, 3)),
+                  sp.power(1 - e_neg_at, 2) /
+                  (2 * sp.power(recip_decorr_time, 2))],
+                 [((1 - e_neg2_at) - 2 * alpha_time * e_neg_at) /
+                  (2 * sp.power(recip_decorr_time, 3)),
+                  sp.power(1 - e_neg_at, 2) /
+                  (2 * sp.power(recip_decorr_time, 2)),
+                  (1 - e_neg2_at) / (2 * recip_decorr_time)]]
+            ) * noise_diff_coeff)
 
+    print(covar_list)
     F = sp.linalg.block_diag(*mat_list)
     Q = sp.linalg.block_diag(*covar_list)
 

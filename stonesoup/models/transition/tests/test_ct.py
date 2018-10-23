@@ -11,7 +11,7 @@ from stonesoup.models.transition.linear import ConstantTurn
 def test_ctmodel():
     """ ConstantTurn Transition Model test """
     state_vec = sp.array([[3.0], [1.0], [2.0], [1.0]])
-    noise_diff_coeffs = sp.array([[0.01], [0.01]])
+    noise_diff_coeffs = sp.array([0.01, 0.01])
     turn_rate = 0.1
     base(ConstantTurn, state_vec, noise_diff_coeffs, turn_rate)
 
