@@ -7,7 +7,9 @@ from stonesoup.models import LinearGaussian
 from stonesoup.updater import KalmanUpdater
 from stonesoup.types.state import GaussianState, ParticleState
 from stonesoup.types.detection import Detection
-from stonesoup.initiator import SinglePointInitiator, GaussianParticleInitiator
+from stonesoup.initiator import (
+    SinglePointInitiator, LinearMeasurementInitiator, GaussianParticleInitiator
+)
 
 
 def test_spi():
@@ -65,11 +67,38 @@ def test_spi():
     assert(all(evaluated_tracks))
 
 
+def test_linear_measurement():
+    measurement_initiator = LinearMeasurementInitiator(
+        GaussianState(np.array([[0], [0]]), np.diag([100, 10])),
+        LinearGaussian(2, [0], np.array([[50]]))
+    )
+
+    timestamp = datetime.datetime.now()
+    detections = [Detection(np.array([[5]]), timestamp),
+                  Detection(np.array([[-5]]), timestamp)]
+
+    tracks = measurement_initiator.initiate(detections)
+
+    for track in tracks:
+        if track.state_vector[0, 0] > 0:
+            assert np.array_equal(track.state_vector, np.array([[5], [0]]))
+        else:
+            assert np.array_equal(track.state_vector, np.array([[-5], [0]]))
+        assert track.timestamp == timestamp
+
+        assert np.array_equal(track.covar, np.diag([50, 10]))
+
+
 @pytest.mark.parametrize("gaussian_initiator", [
     SinglePointInitiator(
         GaussianState(np.array([[0]]), np.array([[100]])),
-        LinearGaussian(1, [0], np.array([[1]])))
-])
+        LinearGaussian(1, [0], np.array([[1]]))
+    ),
+    LinearMeasurementInitiator(
+        GaussianState(np.array([[0]]), np.array([[100]])),
+        LinearGaussian(1, [0], np.array([[1]]))
+    ),
+], ids=['SinglePoint', 'LinearMeasurement'])
 def test_gaussian_particle(gaussian_initiator):
     particle_initiator = GaussianParticleInitiator(gaussian_initiator)
 
