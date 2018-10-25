@@ -4,6 +4,7 @@ import datetime
 from ..base import Property
 from .base import Type
 
+
 class Association(Type):
     """Association type
 
@@ -12,13 +13,14 @@ class Association(Type):
 
     objects = Property(set,
                        doc="Set of objects being associated")
+    # Should probably add a link to the associator that produced it
 
 class AssociationPair(Association):
     """AssociationPair type
 
     An :class:`~.Association` representing the association of two objects"""
 
-    def __init__(self, *args, *kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if len(self.objects) != 2:
             raise ValueError("Only two objects can be associated in one "

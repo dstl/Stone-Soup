@@ -135,7 +135,7 @@ class SimpleDetectionSimulator(DetectionSimulator):
 
             for track in tracks:
                 if np.random.rand() < self.detection_probability:
-                    detection = Detection(
+                    detection = TrueDetection(
                         self.measurement_model.function(
                             track[-1].state_vector),
                         timestamp=track[-1].timestamp,
