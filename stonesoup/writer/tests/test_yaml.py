@@ -137,32 +137,7 @@ def test_tracks_yaml(tracker, tmpdir):
               - state_vector: !numpy.ndarray
                 - [1]
               - timestamp: *id001
-          :
-        ...
-        ---
-        time: &id001 2018-01-01 14:02:00
-        tracks: !!set
-          ? !stonesoup.types.track.Track
-          - states:
-            - !stonesoup.types.state.State
-              - state_vector: !numpy.ndarray
-                - [2]
-              - timestamp: *id001
-            - !stonesoup.types.state.State
-              - state_vector: !numpy.ndarray
-                - [12]
-              - timestamp: *id001
-          :
-          ? !stonesoup.types.track.Track
-          - states:
-            - !stonesoup.types.state.State
-              - state_vector: !numpy.ndarray
-                - [2]
-              - timestamp: *id001
-            - !stonesoup.types.state.State
-              - state_vector: !numpy.ndarray
-                - [12]
-              - timestamp: *id001
+          - id: '0'
           :
         ...
         """)
