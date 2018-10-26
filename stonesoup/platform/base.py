@@ -8,8 +8,8 @@ from ..models.transition import TransitionModel
 class Platform(Base):
     """Platform base class
 
-    A platform represents a random object that moves according to a given
-    :class:`~.TransitionModel`.
+    A platform represents a random object defined as a :class:`~.State`
+    that moves according to a given :class:`~.TransitionModel`.
     """
 
     state = Property(State, doc="The platform state at any given point")
@@ -27,21 +27,26 @@ class Platform(Base):
 
         Notes
         -----
-        This methods also updates the value of :attr:`position`.
+        This methods updates the value of :attr:`position`.
 
         Any provided `kwargs` are forwarded to the :attr:`transition_model`.
 
-        If :attr:`transition_model` is `None`, the method has no effect, but
-        will return successfully.
+        If :attr:`transition_model` or `timestamp` is `None`, the method has
+        no effect, but will return successfully.
 
         """
-
         # Compute time_interval
         try:
             time_interval = timestamp - self.state.timestamp
         except TypeError as e:
             # TypeError: (timestamp or prior.timestamp) is None
             time_interval = None
+
+        # Return without moving static platforms
+        if self.transition_model is None:
+            self.state.timestamp = timestamp
+            return self
+
         self.state = State(
             state_vector=self.transition_model.function(
                 state_vector=self.state.state_vector,
