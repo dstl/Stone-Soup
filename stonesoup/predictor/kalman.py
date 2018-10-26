@@ -163,6 +163,7 @@ class ExtendedKalmanPredictor(KalmanPredictor):
         except AttributeError:
             # Else read jacobian from a NonLinearModel
             transition_matrix = self.transition_model.jacobian(
+                state_vec=prior.state_vector,
                 timestamp=timestamp,
                 time_interval=time_interval,
                 **kwargs)
