@@ -35,6 +35,9 @@ class CSVDetectionReader(DetectionReader, TextFileReader):
         str, default=None, doc='Optional datetime format')
     timestamp = Property(
         bool, default=False, doc='Treat time field as a timestamp from epoch')
+    metadata_field = Property(
+        [str], default=None, doc='List of columns to be saved as metadata, '
+                                 'default all')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -51,14 +54,27 @@ class CSVDetectionReader(DetectionReader, TextFileReader):
                 if self.time_field_format is not None:
                     time_field_value = datetime.strptime(
                         row[self.time_field], self.time_field_format)
-                elif self.time_field is True:
-                    time_field_value = datetime.fromtimestamp(
-                        row[self.time_field])
+                elif self.timestamp is True:
+                    time_field_value = datetime.utcfromtimestamp(
+                        int(row[self.time_field]))
                 else:
                     time_field_value = parse(row[self.time_field])
 
+                if self.metadata_field is None:
+                    local_metadata = dict(row)
+                    copy_local_metadata = dict(local_metadata)
+                    for (key, value) in copy_local_metadata.items():
+                        if (key == self.time_field) or\
+                                (key in self.state_vector_fields):
+                            del local_metadata[key]
+                else:
+                    local_metadata = {k: row[k]
+                                      for k in self.metadata_field
+                                      if k in row}
+
                 detect = Detection(np.array(
                     [[row[col_name]] for col_name in self.state_vector_fields],
-                    dtype=np.float32), time_field_value)
+                    dtype=np.float32), time_field_value,
+                    metadata=local_metadata)
                 self._detections = {detect}
                 yield time_field_value, self.detections
