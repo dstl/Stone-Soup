@@ -143,7 +143,10 @@ class MultiTargetTracker(Tracker):
                     track.append(hypothesis.prediction)
 
             self._tracks -= self.deleter.delete_tracks(self._tracks)
+
+            yield time, self.tracks
+
             self._tracks |= self.initiator.initiate(
                 detections - associated_detections)
 
-            yield time, self.tracks
+
