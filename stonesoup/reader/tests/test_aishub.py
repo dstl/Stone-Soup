@@ -9,7 +9,7 @@ def test_aishub(tmpdir):
 
     # create test JSON file
     json_filename = tmpdir.join("test.json")
-    json_file = open(json_filename, 'w')
+    json_file = json_filename.open('w')
     json_file.write("""[{"ERROR": "false"},
             [{"NAME": "DETTIFOSS", "MMSI": 304159000, "LONGITUDE": 15000000,
                      "TIME": "1527689580", "LATITUDE": 30000000},
@@ -18,7 +18,7 @@ def test_aishub(tmpdir):
     json_file.close()
 
     # read the JSON file with a "JSON_AISDetectionReader()"
-    JSON_reader = JSON_AISDetectionReader(path=json_filename)
+    JSON_reader = JSON_AISDetectionReader(json_filename.strpath)
     detections = [
         detection
         for _, detections in JSON_reader.detections_gen()
