@@ -175,3 +175,7 @@ class OSPAMetric(MetricGenerator):
                     cost_matrix[i_track, i_truth] = euc_distance
 
         return cost_matrix
+
+
+class GOSPAMetric(OSPAMetric):
+    pass

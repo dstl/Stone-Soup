@@ -27,3 +27,4 @@ class TrueDetection(Detection):
 
     groundtruth_path = Property(GroundTruthPath,
                                 doc = 'Ground truth path that this detection came from')
+
