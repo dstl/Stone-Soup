@@ -23,3 +23,5 @@ Stone Soup base data types.
     :noindex:
 .. autoclass:: stonesoup.types.Track
     :noindex:
+.. autoclass:: stonesoup.types.Update
+    :noindex:

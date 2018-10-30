@@ -3,7 +3,8 @@
 import numpy as np
 
 from .base import Updater
-from ..types import GaussianState, GaussianMeasurementPrediction
+from ..types import (GaussianMeasurementPrediction,
+                     GaussianStateUpdate)
 
 
 class KalmanUpdater(Updater):
@@ -61,7 +62,7 @@ class KalmanUpdater(Updater):
             The computed state posterior
         """
 
-        if(measurement_prediction is None):
+        if (measurement_prediction is None):
             measurement_prediction = \
                 self.get_measurement_prediction(prediction)
 
@@ -74,9 +75,12 @@ class KalmanUpdater(Updater):
                 measurement_prediction.covar,
                 measurement_prediction.cross_covar)
 
-        return GaussianState(posterior_mean,
-                             posterior_covar,
-                             prediction.timestamp)
+        return GaussianStateUpdate(posterior_mean,
+                                   posterior_covar,
+                                   prediction,
+                                   measurement_prediction,
+                                   measurement,
+                                   prediction.timestamp)
 
     @staticmethod
     def update_lowlevel(x_pred, P_pred, H, R, y):
@@ -208,7 +212,9 @@ class ExtendedKalmanUpdater(KalmanUpdater):
             measurement_matrix = self.measurement_model.matrix(**kwargs)
         except AttributeError:
             # Else read jacobian from a NonLinearModel
-            measurement_matrix = self.measurement_model.jacobian(**kwargs)
+            measurement_matrix = \
+                self.measurement_model.jacobian(state_prediction.state_vector,
+                                                **kwargs)
         measurement_noise_covar = self.measurement_model.covar(**kwargs)
 
         meas_pred_mean, meas_pred_covar, cross_covar = \
@@ -242,7 +248,7 @@ class ExtendedKalmanUpdater(KalmanUpdater):
             The state posterior
         """
 
-        if(measurement_prediction is None):
+        if (measurement_prediction is None):
             measurement_prediction = \
                 self.get_measurement_prediction(prediction)
 
@@ -255,9 +261,12 @@ class ExtendedKalmanUpdater(KalmanUpdater):
                 measurement_prediction.covar,
                 measurement_prediction.cross_covar)
 
-        return GaussianState(posterior_mean,
-                             posterior_covar,
-                             prediction.timestamp)
+        return GaussianStateUpdate(posterior_mean,
+                                   posterior_covar,
+                                   prediction,
+                                   measurement_prediction,
+                                   measurement,
+                                   prediction.timestamp)
 
     @staticmethod
     def update_lowlevel(x_pred, P_pred, H, R, y):

@@ -12,6 +12,7 @@ from .state import *  # noqa:F401,F403
 from .track import *  # noqa:F401,F403
 from .particle import *  # noqa:F401,F403
 from .prediction import *  # noqa:F401,F403
+from .update import *  # noqa:F401,F403
 
 
 __all__ = ['Type', 'StateVector', 'CovarianceMatrix', 'Probability']

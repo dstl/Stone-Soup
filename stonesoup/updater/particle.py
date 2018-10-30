@@ -6,7 +6,8 @@ from ..base import Property
 from ..resampler import Resampler
 from ..types.numeric import Probability
 from ..types.particle import Particle
-from ..types.prediction import ParticleState, ParticleMeasurementPrediction
+from ..types.prediction import ParticleMeasurementPrediction
+from ..types.update import ParticleStateUpdate
 
 
 class ParticleUpdater(Updater):
@@ -49,7 +50,11 @@ class ParticleUpdater(Updater):
         # Resample
         new_particles = self.resampler.resample(prediction.particles)
 
-        return ParticleState(new_particles, timestamp=prediction.timestamp)
+        return ParticleStateUpdate(new_particles,
+                                   prediction,
+                                   measurement_prediction,
+                                   measurement,
+                                   prediction.timestamp)
 
     @lru_cache()
     def get_measurement_prediction(self, state_prediction, **kwargs):

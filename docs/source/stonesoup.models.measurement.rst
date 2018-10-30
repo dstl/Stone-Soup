@@ -12,3 +12,9 @@ Linear
 .. automodule:: stonesoup.models.measurement.linear
     :show-inheritance:
     :inherited-members:
+
+NonLinear
+---------
+.. automodule:: stonesoup.models.measurement.nonlinear
+    :show-inheritance:
+    :inherited-members:

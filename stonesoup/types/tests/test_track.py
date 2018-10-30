@@ -44,3 +44,13 @@ def test_track_state(state):
     else:
         with pytest.raises(AttributeError):
             track.particles
+
+
+def test_track_id():
+    state = State(np.array([[0]]), datetime.datetime.now())
+    track = Track([state])
+    assert isinstance(track.id, str)
+
+    track = Track([state], 'abc')
+    assert isinstance(track.id, str)
+    assert track.id == 'abc'
