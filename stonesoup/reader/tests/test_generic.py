@@ -18,7 +18,7 @@ def test_csv(tmpdir):
             """))
 
     # run test with:
-    #   - 'metadata_field' for 'CSVDetectionReader' == default
+    #   - 'metadata_fields' for 'CSVDetectionReader' == default
     #   - copy all metadata items
     csv_reader = CSVDetectionReader(csv_filename.strpath, ["x", "y"], "t")
     detections = [
@@ -40,12 +40,12 @@ def test_csv(tmpdir):
         assert detection.metadata['identifier'] == '22018332'
 
     # run test with:
-    #   - 'metadata_field' for 'CSVDetectionReader' contains
+    #   - 'metadata_fields' for 'CSVDetectionReader' contains
     #       'z' but not 'identifier'
     #   - 'time_field_format' is specified
     csv_reader = CSVDetectionReader(csv_filename.strpath, ["x", "y"], "t",
                                     time_field_format="%Y-%m-%dT%H:%M:%SZ",
-                                    metadata_field=["z"])
+                                    metadata_fields=["z"])
     detections = [
         detection
         for _, detections in csv_reader.detections_gen()
@@ -63,7 +63,7 @@ def test_csv(tmpdir):
         assert int(detection.metadata['z']) == 30 + n
 
     # run test with:
-    #   - 'metadata_field' for 'CSVDetectionReader' contains
+    #   - 'metadata_fields' for 'CSVDetectionReader' contains
     #       column names that do not exist in CSV file
     #   - 'time' field represented as a Unix epoch timestamp
     with csv_filename.open('w') as csv_file:
@@ -75,7 +75,8 @@ def test_csv(tmpdir):
             """))
 
     csv_reader = CSVDetectionReader(csv_filename.strpath, ["x", "y"], "t",
-                                    metadata_field=["heading"], timestamp=True)
+                                    metadata_fields=["heading"],
+                                    timestamp=True)
     detections = [
         detection
         for _, detections in csv_reader.detections_gen()
