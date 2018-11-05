@@ -19,3 +19,8 @@ YAML
 ----
 .. automodule:: stonesoup.reader.yaml
     :show-inheritance:
+
+AISHub
+------
+.. automodule:: stonesoup.reader.aishub
+    :show-inheritance:

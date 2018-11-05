@@ -1,9 +1,18 @@
 # -*- coding: utf-8 -*-
+from ..base import Property
 from .state import State, GaussianState
 
 
 class Detection(State):
     """Detection type"""
+
+    metadata = Property(dict, default=None,
+                        doc='Dictionary of metadata items for Detections.')
+
+    def __init__(self, state_vector, *args, **kwargs):
+        super().__init__(state_vector, *args, **kwargs)
+        if self.metadata is None:
+            self.metadata = {}
 
 
 class GaussianDetection(Detection, GaussianState):

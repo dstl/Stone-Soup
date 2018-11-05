@@ -34,6 +34,7 @@ def test_detections_yaml(detection_reader, tmpdir):
            - state_vector: !numpy.ndarray
              - [1]
            - timestamp: *id001
+           - metadata: {}
            :
          ...
          ---
@@ -43,11 +44,13 @@ def test_detections_yaml(detection_reader, tmpdir):
            - state_vector: !numpy.ndarray
              - [2]
            - timestamp: *id001
+           - metadata: {}
            :
            ? !stonesoup.types.detection.Detection
            - state_vector: !numpy.ndarray
              - [2]
            - timestamp: *id001
+           - metadata: {}
            :
          ...
          """)
