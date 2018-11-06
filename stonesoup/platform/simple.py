@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+from scipy.linalg import expm, norm
+from math import cos, sin
 
 from ..base import Property
 from ..types import StateVector
@@ -8,7 +10,11 @@ from .base import Platform
 
 
 class SensorPlatform(Platform):
-    """A simple Platform that can carry a number of different sensors
+    """A simple Platform that can carry a number of different sensors and is\
+    capable of moving based upon the :class:`~.TransitionModel`.
+
+    The location of platform mounted sensors will be maintained relative to \
+    the sensor position. Simple platforms move within a cartesian space.
 
     Notes
     -----
@@ -16,21 +22,18 @@ class SensorPlatform(Platform):
 
     """
 
-    # TODO: Offset sensors relative to platform orientation
-
-    # TODO: Determine where a platform coordinate frame should be maintained
-
-    sensors = Property([Sensor], doc="A list of mounted sensors")
+    sensors = Property([Sensor], doc="A list of N mounted sensors")
     mounting_offsets = Property(
         [np.array], doc="A list of sensor offsets (For now expressed\
-                            as a nxN array of nD Cartesian coordinates)")
-    # TODO: determine if mappings are per-sensor or per-platform
+                            as a Nxn array of nD Cartesian coordinates)")
     mounting_mappings = Property(
-        [np.array], doc="Mappings between the platform state vector and each\
-                            individuals sensors mouting offset")
-    coordinate_reference_system = Property(str, default="NEU",
-                                           doc="Coordinate reference system,\
-                                           default is North, East Up")
+        [np.array], doc="Mappings between the platform state vector and the\
+                            individuals sensors mounting offset (For now\
+                            expressed as a nxN array of nD Cartesian\
+                            coordinates or a 1xN array where a single\
+                            mapping will be applied to all sensors)")
+
+    # TODO: Determine where a platform coordinate frame should be maintained
 
     def __init__(self, *args, **kwargs):
         """
@@ -38,13 +41,40 @@ class SensorPlatform(Platform):
         consistent at initialisation.
         """
         super().__init__(*args, **kwargs)
+        if self.mounting_mappings.max() > len(self.state.state_vector):
+            raise IndexError(
+                "Platform state vector length and sensor mounting mapping "
+                "are incompatible")
+
+        if len(self.sensors) != self.mounting_offsets.shape[0]:
+            raise IndexError(
+                "Number of sensors associated with the platform does not "
+                "match the number of sensor mounting offsets specified")
+
+        if ((len(self.sensors) != self.mounting_mappings.shape[0]) and
+                (self.mounting_mappings.shape[0] != 1)):
+            raise IndexError(
+                "Number of sensors associated with the platform does not "
+                "match the number of mounting mappings specified")
+
+        if ((self.mounting_mappings.shape[0] == 1) and
+                len(self.sensors) > 1):
+            mapping_array = np.empty((0, self.mounting_mappings.shape[1]), int)
+            for i in range(len(self.sensors)):
+                mapping_array = np.append(mapping_array,
+                                          self.mounting_mappings,
+                                          axis=0)
+            self.mounting_mappings = mapping_array
+
         self._move_sensors()
 
     # TODO: create add_sensor method
 
     def move(self, timestamp=None, **kwargs):
         """Propagate the platform position using the :attr:`transition_model`,\
-        and use _move_sensors method to update sensor positions
+        and use _move_sensors method to update sensor positions, this in turn \
+        calls _get_rotated_offset to modify sensor offsets relative to the \
+        platforms velocity vector
 
         Parameters
         ----------
@@ -53,25 +83,93 @@ class SensorPlatform(Platform):
             (the default is `None`)
 
         """
-
         # Call superclass method to update platform state
         super().move(timestamp=timestamp, **kwargs)
-        # Move the platforms sensors
+        # Move the platforms sensors relative to the platform
         self._move_sensors()
 
     def _move_sensors(self):
-        """  Propogste the Sensor positions based upon the mounting
+        """ Propogate the Sensor positions based upon the mounting
         offsets and the platform position and heading post manoeuvre.
-        TODO -  handle heading information
-        x' = x.cos[theta] + y.sin[theta]
-        y' = y.cos[theta] + x.sin[theta]
-        z' =
+
+        Notes
+        -----
+        Method assumes that if a platform has a transition model it will have
+        velocity components. A sensor offset will therefore be rotated based
+        upon the platforms velocity (i.e. direction of motion)
         """
         # Update the positions of all sensors relative to the platform
         for i in range(len(self.sensors)):
-            new_sensor_pos = np.zeros([self.mounting_offsets.shape[1], 1])
-            for j in range(self.mounting_offsets.shape[1]):
-                new_sensor_pos[j, 0] = (self.state.state_vector
-                                        [self.mounting_mappings[i, j]]
-                                        + self.mounting_offsets[i, j])
+            if (hasattr(self, 'transition_model') &
+                    (self.state.state_vector[
+                             self.mounting_mappings[0]+1].max() > 0)):
+                print("hiho")
+                new_sensor_pos = self._get_rotated_offset(i)
+                for j in range(self.mounting_offsets.shape[1]):
+                    new_sensor_pos[j] = new_sensor_pos[j] + \
+                                           (self.state.state_vector[
+                                                self.mounting_mappings[i, j]])
+            else:
+                print("Static platform case, updating sensor position")
+                new_sensor_pos = np.zeros([self.mounting_offsets.shape[1], 1])
+                for j in range(self.mounting_offsets.shape[1]):
+                    new_sensor_pos[j] = (self.state.state_vector[
+                                            self.mounting_mappings[i, j]] +
+                                         self.mounting_offsets[i, j])
+            print("Sensor number ", i)
+            print("New sensor position ", new_sensor_pos)
             self.sensors[i].set_position(StateVector(new_sensor_pos))
+            print("Position updated to ", self.sensors[i].position)
+
+    def _get_rotated_offset(self, i):
+        """ _get_rotated_offset - determines the sensor mounting offset for the
+        platforms relative orientation.
+
+        :param self: Platform object
+        :param i: Sensor index within Platform object
+        :return: Sensor mounting offset rotated relative to platform motion
+        """
+        axis = np.zeros([self.mounting_offsets.shape[1], 1])
+        axis[0] = 1
+        axis = np.transpose(axis)
+        # vel = self.state.state_vector[self.mounting_mappings[0] + 1]
+        vel = np.zeros([self.mounting_mappings.shape[1], 1])
+        for j in range(self.mounting_mappings.shape[1]):
+            vel[j, 0] = self.state.state_vector[
+                self.mounting_mappings[i, j] + 1]
+        theta = _get_angle(axis, vel)
+        rot = _get_rotation_matrix(vel, theta)
+        return np.transpose(np.dot(rot, self.mounting_offsets[i])[np.newaxis])
+
+
+def _get_rotation_matrix(vel, theta):
+    """ Generates a rotation matrix which can be used to determine the
+    corrected sensor offsets.
+
+    In the 2d case this returns the following rotation matrix
+    [cos[theta] - sin[theta]]
+    [cos[theta] + sin[theta]]
+
+    :param vel: 1xD vector denoting platform velocity in D dimensions
+    :param theta: rotation angle in radians
+    :return: DxD rotation matrix
+    """
+    if len(vel) == 3:
+        return expm(np.cross(np.eye(3), vel / norm(vel) * theta))
+    elif len(vel) == 2:
+        return np.array([[cos(theta), -sin(theta)],
+                         [sin(theta), cos(theta)]])
+
+
+def _get_angle(vel, axis):
+    """ Returns the angle between two vectors, used to rotate the sensor offset
+    relative to the platform velocity vector.
+
+    :param vel: 1xD array denoting platform velocity
+    :param axis: Dx1 array denoting sensor offset relative to platform
+    :return: Angle between the two vectors in radians
+    """
+    vel_norm = vel / np.linalg.norm(vel)
+    axis_norm = axis / np.linalg.norm(axis)
+
+    return np.arccos(np.clip(np.dot(vel_norm, axis_norm), -1.0, 1.0))
