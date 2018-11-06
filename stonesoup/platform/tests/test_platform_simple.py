@@ -16,7 +16,7 @@ from stonesoup.sensor.radar import SimpleRadar
 
 
 def test_sensor_platform():
-    # Create a pair of radars
+    # Create four radars to test 2d motion
     noise_covar = CovarianceMatrix(np.array([[0.015, 0],
                                              [0, 0.1]]))
     radar_position = StateVector(
@@ -24,6 +24,8 @@ def test_sensor_platform():
 
     radar1 = SimpleRadar(radar_position, noise_covar)
     radar2 = SimpleRadar(radar_position, noise_covar)
+    radar3 = SimpleRadar(radar_position, noise_covar)
+    radar4 = SimpleRadar(radar_position, noise_covar)
 
     # Define time related variables
     timestamp = datetime.datetime.now()
@@ -33,27 +35,29 @@ def test_sensor_platform():
 
     # Define transition model and position
     model_1d = ConstantVelocity(0.0)
-    model_3d = CombinedLinearGaussianTransitionModel(
-        [model_1d, model_1d, model_1d])
+    model_2d = CombinedLinearGaussianTransitionModel(
+        [model_1d, model_1d])
 
     # Define a new platform
     platform_state = State(np.array([[0],
                                      [1],
                                      [0],
-                                     [0],
-                                     [0],
                                      [0]]),
                            timestamp)
     # define a mounting offset which is different from the sensor position
-    mounting_offsets = np.array([[0, 0, 0],
-                                 [1, 1, 1]])
-    mounting_mappings = np.array([[0, 2, 4],
-                                  [0, 2, 4]])
+    mounting_offsets = np.array([[0, 0],
+                                 [1, 1]])
+
+    mounting_mappings = np.array([[0, 2]])
+
     platform = SensorPlatform(platform_state,
-                              model_3d,
-                              [radar1, radar2],
+                              model_2d,
+                              [radar1, radar2, radar3, radar4],
                               mounting_offsets,
                               mounting_mappings)
+
+    # Check that mounting_mappings has been modified to match number of sensor
+    assert(platform.mounting_mappings.shape[0] == 4)
 
     # Check that the sensor position has been modified to reflect the offset
     for i in range(len(platform.sensors)):
