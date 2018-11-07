@@ -1,3 +1,4 @@
+import numpy as np
 from scipy.stats import multivariate_normal
 
 from .base import Initiator, GaussianInitiator
@@ -47,6 +48,39 @@ class SinglePointInitiator(GaussianInitiator):
             track = Track([track_state])
             tracks.add(track)
 
+        return tracks
+
+
+class LinearMeasurementInitiator(Initiator):
+    """Initiator that maps measurement space to state space
+
+    This initiator utilises the :class:`~.MeasurementModel` matrix to convert
+    :class:`~.Detection` state vector and model covariance into state space.
+    This then replaces mapped values in the :attr:`prior_state` to form the
+    initial :class:`~.GaussianState` of the :class:`~.Track`.
+    """
+    prior_state = Property(GaussianState, doc="Prior state information")
+    measurement_model = Property(MeasurementModel, doc="Measurement model")
+
+    def initiate(self, detections, **kwargs):
+        tracks = set()
+
+        model_matrix = self.measurement_model.matrix()
+        model_covar = self.measurement_model.covar()
+
+        # Zero out elements of prior state that will be replaced by measurement
+        # (1 - matrix) to flip 0->1 and 1->0
+        prior_state_vector = self.prior_state.state_vector * (
+            1 - model_matrix.T@np.ones((model_matrix.shape[0], 1)))
+        prior_covar = self.prior_state.covar * (
+            1 - model_matrix.T@np.ones(model_covar.shape)@model_matrix)
+
+        for detection in detections:
+            tracks.add(Track([GaussianState(
+                prior_state_vector + model_matrix.T@detection.state_vector,
+                prior_covar + model_matrix.T@model_covar@model_matrix,
+                timestamp=detection.timestamp)
+            ]))
         return tracks
 
 
