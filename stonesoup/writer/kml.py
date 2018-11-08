@@ -37,12 +37,8 @@ class KMLTrackWriter(TrackWriter):
         super().__init__(tracker, path, *args, **kwargs)
         if (type(self.coordinate_system) is not CoordinateSystems):
             raise TypeError("Invalid track coordinate system provided.")
-        # if (type(self.reference_point) is not type([])):
-        #     raise TypeError("Invalid track reference coordinate provide.")
-        # if (len(self.reference_point) != 3):
-        #     raise ValueError("Track coordinate reference point must be a tuple of length 3.")
         self._kml = SSKML()
-        #self._file = self.path.open('w')
+       
 
     def write(self):
         
@@ -95,23 +91,6 @@ class KMLTrackWriter(TrackWriter):
         self._kml.appendTracks(tks_pos_matrix_lla, tks_ids, tks_time_matrix)
         self._kml.appendDetections(det_pos_array_lla, det_time_array)
         self._kml.write(self.path)
-
-
-
-
-        # for time, _ in gen:
-        #     data = {'time': time}
-        #     if self.tracks_source:
-        #         data['tracks'] = self.tracks_source.tracks
-        #     if self.detections_source:
-        #         data['detections'] = self.detections_source.detections
-        #     if self.sensor_data_source:
-        #         data['sensor_data'] = self.sensor_data_source.sensor_data
-        #     if self.groundtruth_source:
-        #         data['groundtruth_paths'] = \
-        #             self.groundtruth_source.groundtruth_paths
- 
-
 
 
 class KMLWriter(Writer):
