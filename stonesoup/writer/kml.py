@@ -13,8 +13,7 @@ from enum import Enum
 
 import numpy as np
 
-# I don't like this way of doing things!
-# Coordinate transformations should happen somewhere else!
+
 class CoordinateSystems(Enum):
     LLA = 1
     ECEF = 2
@@ -41,8 +40,6 @@ class KMLTrackWriter(TrackWriter):
        
 
     def write(self):
-        
-
         measurement_model = self.tracker.updater.measurement_model
         tracks = set()
         detections = set()
