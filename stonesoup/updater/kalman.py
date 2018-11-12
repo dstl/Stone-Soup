@@ -80,7 +80,7 @@ class KalmanUpdater(Updater):
                                    prediction,
                                    measurement_prediction,
                                    measurement,
-                                   prediction.timestamp)
+                                   measurement.timestamp)
 
     @staticmethod
     def update_lowlevel(x_pred, P_pred, H, R, y):
@@ -264,7 +264,7 @@ class ExtendedKalmanUpdater(KalmanUpdater):
                                    prediction,
                                    measurement_prediction,
                                    measurement,
-                                   prediction.timestamp)
+                                   measurement.timestamp)
 
     @staticmethod
     def update_lowlevel(x_pred, P_pred, H, R, y):
