@@ -12,3 +12,9 @@ Linear
 .. automodule:: stonesoup.models.transition.linear
     :show-inheritance:
     :inherited-members:
+
+Orbital
+-------
+.. automodule:: stonesoup.models.transition.orbital
+    :show-inheritance:
+    :inherited-members:
