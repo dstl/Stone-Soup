@@ -100,26 +100,25 @@ class SensorPlatform(Platform):
         """
         # Update the positions of all sensors relative to the platform
         for i in range(len(self.sensors)):
+            print("Sensor number ", i)
+            # if False:
             if (hasattr(self, 'transition_model') &
                     (self.state.state_vector[
                              self.mounting_mappings[0]+1].max() > 0)):
-                print("hiho")
                 new_sensor_pos = self._get_rotated_offset(i)
                 for j in range(self.mounting_offsets.shape[1]):
                     new_sensor_pos[j] = new_sensor_pos[j] + \
                                            (self.state.state_vector[
                                                 self.mounting_mappings[i, j]])
             else:
-                print("Static platform case, updating sensor position")
                 new_sensor_pos = np.zeros([self.mounting_offsets.shape[1], 1])
                 for j in range(self.mounting_offsets.shape[1]):
                     new_sensor_pos[j] = (self.state.state_vector[
                                             self.mounting_mappings[i, j]] +
                                          self.mounting_offsets[i, j])
-            print("Sensor number ", i)
-            print("New sensor position ", new_sensor_pos)
+            print("Initial sensor position: ", self.mounting_offsets[i])
             self.sensors[i].set_position(StateVector(new_sensor_pos))
-            print("Position updated to ", self.sensors[i].position)
+            print("Sensor position updated to: ", self.sensors[i].position)
 
     def _get_rotated_offset(self, i):
         """ _get_rotated_offset - determines the sensor mounting offset for the
@@ -137,8 +136,12 @@ class SensorPlatform(Platform):
         for j in range(self.mounting_mappings.shape[1]):
             vel[j, 0] = self.state.state_vector[
                 self.mounting_mappings[i, j] + 1]
-        theta = _get_angle(axis, vel)
+        print("Platform velocity:", vel)
+        print("Default axis:", axis)
+        theta = _get_angle(vel, axis)
+        print("Calculated angle:", theta)
         rot = _get_rotation_matrix(vel, theta)
+        print("Calculated rotation matrix:", rot)
         return np.transpose(np.dot(rot, self.mounting_offsets[i])[np.newaxis])
 
 
@@ -147,15 +150,17 @@ def _get_rotation_matrix(vel, theta):
     corrected sensor offsets.
 
     In the 2d case this returns the following rotation matrix
-    [cos[theta] - sin[theta]]
-    [cos[theta] + sin[theta]]
+    [cos[theta] -sin[theta]]
+    [cos[theta]  sin[theta]]
 
     :param vel: 1xD vector denoting platform velocity in D dimensions
     :param theta: rotation angle in radians
     :return: DxD rotation matrix
     """
+    print("Platform velocity:", vel)
+    print("length:", len(vel))
     if len(vel) == 3:
-        return expm(np.cross(np.eye(3), vel / norm(vel) * theta))
+        return expm(np.cross(np.eye(3), np.transpose(vel / norm(vel) * theta)))
     elif len(vel) == 2:
         return np.array([[cos(theta), -sin(theta)],
                          [sin(theta), cos(theta)]])
@@ -169,7 +174,7 @@ def _get_angle(vel, axis):
     :param axis: Dx1 array denoting sensor offset relative to platform
     :return: Angle between the two vectors in radians
     """
-    vel_norm = vel / np.linalg.norm(vel)
-    axis_norm = axis / np.linalg.norm(axis)
+    vel_norm = vel / norm(vel)
+    axis_norm = axis / norm(axis)
 
-    return np.arccos(np.clip(np.dot(vel_norm, axis_norm), -1.0, 1.0))
+    return np.arccos(np.clip(np.dot(axis_norm, vel_norm), -1.0, 1.0))

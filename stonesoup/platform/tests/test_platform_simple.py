@@ -40,13 +40,15 @@ def test_sensor_platform():
 
     # Define a new platform
     platform_state = State(np.array([[0],
-                                     [1],
+                                     [0],
                                      [0],
                                      [0]]),
                            timestamp)
     # define a mounting offset which is different from the sensor position
-    mounting_offsets = np.array([[0, 0],
-                                 [1, 1]])
+    mounting_offsets = np.array([[0, 1],
+                                 [1, 0],
+                                 [0, -1],
+                                 [-1, 0]])
 
     mounting_mappings = np.array([[0, 2]])
 
