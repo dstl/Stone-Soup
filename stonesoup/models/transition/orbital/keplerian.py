@@ -11,7 +11,6 @@ from .base import OrbitalModel
 from ..linear import LinearGaussianTransitionModel
 
 
-#class KeplerianTransitionModel(OrbitalModel, LinearGaussianTransitionModel):
 class KeplerianTransitionModel(OrbitalModel):
 
     r""" This class will execute a simple Keplerian transition model on orbital elements. Input is an
@@ -53,10 +52,17 @@ class KeplerianTransitionModel(OrbitalModel):
         sp.ndarray, default=None, doc="Control matrix :math:`\\mathbf{B}`")
 
     def function(self, o_e, t_i):
-        print("There shouldn't be function called function. Use :attr:`transition` instead.")
+        print("There shouldn't be function called function. Use self.transition instead.\r"
+              "But doing it for the moment anyway.")
         self.transition(orbital_elements=o_e, time_interval=t_i)
 
     def rvs(self, num_samples):
+        """
+
+        :param num_samples: Number of samples, :math:`N`
+        :return: N random samples drawn from multivariate normal distribution defined by the covariance matrix
+
+        """
 
         noise = np.array(sp.stats.multivariate_normal.rvs(
             sp.zeros(self.ndim_state()), self.covariance_matrix, num_samples)).transpose()
@@ -64,6 +70,13 @@ class KeplerianTransitionModel(OrbitalModel):
         return noise
 
     def pdf(self,o_e,t_i):
+        """
+
+        :param o_e: Orbital element state vector
+        :param t_i: Time interval
+        :return: Not sure, this is a transition model, so p(x_{t+t_i}|x_t)?
+
+        """
         print("No pdf function at present")
 
     def ndim_state(self):
@@ -73,7 +86,7 @@ class KeplerianTransitionModel(OrbitalModel):
         """Construct the covariance matrix"""
         return self.covariance_matrix
 
-    def matrix(self):
+    '''def matrix(self):
 
         """
         :param time_interval:
@@ -92,8 +105,10 @@ class KeplerianTransitionModel(OrbitalModel):
             The process noise covariance.
 
         """
-        print("Returns the covariance matrix at present. TB improved to create the appropriate matrix for time "
+        print("Designed to return the transition matrix at present. TB improved to create the appropriate matrix for time "
               "interval.")
+              
+              '''
 
     def transition(self, orbital_elements, time_interval):
 
@@ -150,6 +165,7 @@ class KeplerianTransitionModel(OrbitalModel):
         :param eccentricity: Orbital eccentricity
         :param tolerance:
         :return: the eccentric anomaly
+
         """
         if mean_anomaly < np.pi:
             ecc_anomaly = mean_anomaly + eccentricity/2
