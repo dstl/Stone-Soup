@@ -33,9 +33,13 @@ class ParticleUpdater(Updater):
         : :class:`~.ParticleState`
             The state posterior
         """
+        if hypothesis.measurement.measurement_model is None:
+            measurement_model = self.measurement_model
+        else:
+            measurement_model = hypothesis.measurement.measurement_model
 
         for particle in hypothesis.prediction.particles:
-            particle.weight *= self.measurement_model.pdf(
+            particle.weight *= measurement_model.pdf(
                 hypothesis.measurement.state_vector, particle.state_vector,
                 **kwargs)
 
@@ -54,10 +58,15 @@ class ParticleUpdater(Updater):
                                    timestamp=hypothesis.measurement.timestamp)
 
     @lru_cache()
-    def get_measurement_prediction(self, state_prediction, **kwargs):
+    def get_measurement_prediction(self, state_prediction,
+                                   measurement_model=None, **kwargs):
+
+        if measurement_model is None:
+            measurement_model = self.measurement_model
+
         new_particles = []
         for particle in state_prediction.particles:
-            new_state_vector = self.measurement_model.function(
+            new_state_vector = measurement_model.function(
                 particle.state_vector, noise=0, **kwargs)
             new_particles.append(
                 Particle(new_state_vector,
