@@ -28,14 +28,17 @@ class SimpleRadar(Sensor):
                                 by (and follow in format) the underlying\
                                 :class:`~.RangeBearingGaussianToCartesian`\
                                 model")
+    measurement_mapping = Property(
+        [np.array], doc="Mapping between the targets state space and the\
+                        sensors measurement capability")
 
-    def __init__(self, position, noise_covar, *args, **kwargs):
+    def __init__(self, position, noise_covar, measurement_mapping, *args, **kwargs):
 
         measurement_model = RangeBearingGaussianToCartesian(
-            ndim_state=2, mapping=np.array([0, 1]),
+            ndim_state=2, mapping=measurement_mapping,
             noise_covar=noise_covar,
             origin_offset=position)
-        super().__init__(position, noise_covar, measurement_model,
+        super().__init__(position, noise_covar, measurement_mapping, measurement_model,
                          *args, **kwargs)
 
     def set_position(self, position):
