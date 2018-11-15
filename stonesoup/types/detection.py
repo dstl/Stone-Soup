@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 from ..base import Property
 from .state import State, GaussianState
+from ..models.measurement import MeasurementModel
 
 
 class Detection(State):
     """Detection type"""
+    measurement_model = Property(MeasurementModel, default=None,
+                                 doc="The measurement model used to generate the detection\
+                         (the default is ``None``)")
 
     metadata = Property(dict, default=None,
                         doc='Dictionary of metadata items for Detections.')
