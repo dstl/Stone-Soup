@@ -54,7 +54,7 @@ class KeplerianTransitionModel(OrbitalModel):
     def function(self, o_e, t_i):
         print("There shouldn't be function called function. Use self.transition instead.\r"
               "But doing it for the moment anyway.")
-        self.transition(orbital_elements=o_e, time_interval=t_i)
+        return self.transition(orbital_elements=o_e, time_interval=t_i)
 
     def rvs(self, num_samples):
         """
@@ -166,6 +166,7 @@ class KeplerianTransitionModel(OrbitalModel):
         :param tolerance:
         :return: the eccentric anomaly
 
+
         """
         if mean_anomaly < np.pi:
             ecc_anomaly = mean_anomaly + eccentricity/2
@@ -175,8 +176,8 @@ class KeplerianTransitionModel(OrbitalModel):
         ratio = 1
 
         while ratio > tolerance:
-            f = ecc_anomaly - eccentricity*np.sin(ecc_anomaly)
-            fp = 1 - np.cos(ecc_anomaly)
+            f = ecc_anomaly - eccentricity*np.sin(ecc_anomaly) - mean_anomaly
+            fp = 1 - eccentricity*np.cos(ecc_anomaly)
             ratio = f/fp # Need to check conditioning
             ecc_anomaly = ecc_anomaly - ratio
 

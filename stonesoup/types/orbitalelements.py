@@ -147,7 +147,7 @@ class OrbitalElements(State):
         """
 
         ecc_anom = 2 * np.arctan(np.sqrt((1-self.eccentricity())/(1+self.eccentricity())) *
-                                         np.tan(self.true_anomaly()/2))
+                                 np.tan(self.true_anomaly()/2))
         return ecc_anom - self.eccentricity() * np.sin(ecc_anom) # Kepler's equation
 
     def position_vector(self):
