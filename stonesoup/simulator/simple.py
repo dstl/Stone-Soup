@@ -58,7 +58,7 @@ class SingleTargetGroundTruthSimulator(GroundTruthSimulator):
 class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
     """Target simulator that produces multiple targets.
 
-    Targets are created and destroyed randomly, as defined by the biirth rate
+    Targets are created and destroyed randomly, as defined by the birth rate
     and death probability."""
     initial_state = Property(
         GaussianState,

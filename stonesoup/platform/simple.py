@@ -100,7 +100,7 @@ class SensorPlatform(Platform):
         """
         # Update the positions of all sensors relative to the platform
         for i in range(len(self.sensors)):
-            print("Sensor number ", i)
+            #print("Sensor number ", i)
             # if False:
             if (hasattr(self, 'transition_model') &
                     (self.state.state_vector[
@@ -116,9 +116,9 @@ class SensorPlatform(Platform):
                     new_sensor_pos[j] = (self.state.state_vector[
                                             self.mounting_mappings[i, j]] +
                                          self.mounting_offsets[i, j])
-            print("Initial sensor position: ", self.mounting_offsets[i])
+            # print("Initial sensor position: ", self.mounting_offsets[i])
             self.sensors[i].set_position(StateVector(new_sensor_pos))
-            print("Sensor position updated to: ", self.sensors[i].position)
+            # print("Sensor position updated to: ", self.sensors[i].position)
 
     def _get_rotated_offset(self, i):
         """ _get_rotated_offset - determines the sensor mounting offset for the
@@ -136,12 +136,12 @@ class SensorPlatform(Platform):
         for j in range(self.mounting_mappings.shape[1]):
             vel[j, 0] = self.state.state_vector[
                 self.mounting_mappings[i, j] + 1]
-        print("Platform velocity:", vel)
-        print("Default axis:", axis)
+        # print("Platform velocity:", vel)
+        # print("Default axis:", axis)
         theta = _get_angle(vel, axis)
-        print("Calculated angle:", theta)
+        # print("Calculated angle:", theta)
         rot = _get_rotation_matrix(vel, theta)
-        print("Calculated rotation matrix:", rot)
+        # print("Calculated rotation matrix:", rot)
         return np.transpose(np.dot(rot, self.mounting_offsets[i])[np.newaxis])
 
 
@@ -157,8 +157,8 @@ def _get_rotation_matrix(vel, theta):
     :param theta: rotation angle in radians
     :return: DxD rotation matrix
     """
-    print("Platform velocity:", vel)
-    print("length:", len(vel))
+    #print("Platform velocity:", vel)
+    #print("length:", len(vel))
     if len(vel) == 3:
         return expm(np.cross(np.eye(3), np.transpose(vel / norm(vel) * theta)))
     elif len(vel) == 2:
