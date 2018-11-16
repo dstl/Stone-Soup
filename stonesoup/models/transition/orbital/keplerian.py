@@ -128,10 +128,15 @@ class KeplerianTransitionModel(OrbitalModel):
         # Use the mean motion to find the new mean anomaly
         mean_motion = 2*np.pi/orbital_elements.period()
         new_mean_anomaly = orbital_elements.mean_anomaly() + mean_motion*time_interval.total_seconds()
-        # Get the new true anomaly from the new mean anomaly
-        new_tru_anomaly = self.itr_eccentric_anomaly(new_mean_anomaly, orbital_elements.eccentricity())
 
-        # Put in the true anomaly
+        # Get the new eccentric anomaly from the new mean anomaly
+        eccentric_anomaly = self.itr_eccentric_anomaly(new_mean_anomaly, orbital_elements.eccentricity())
+
+        # And use that to find the new true anomaly
+        new_tru_anomaly = 2 * np.arctan(np.sqrt((1+orbital_elements.eccentricity()) /
+                                                (1-orbital_elements.eccentricity()))*np.tan(eccentric_anomaly/2))
+
+        # Put the true anomaly into the new state vector
         orbital_elements_out.state_vector[5] = new_tru_anomaly
         orbital_elements_out.timestamp = orbital_elements.timestamp + time_interval
 
@@ -158,8 +163,8 @@ class KeplerianTransitionModel(OrbitalModel):
     def itr_eccentric_anomaly(self, mean_anomaly, eccentricity, tolerance=1e-8):
         r"""
 
-        Solve the transcendental equation :math:`E - e sin E = M_e` for E. This is an iterative process using
-        Newton's method.
+        Approximately solve the transcendental equation :math:`E - e sin E = M_e` for E. This is an iterative process
+        using Newton's method.
 
         :param mean_anomaly: Current mean anomaly
         :param eccentricity: Orbital eccentricity
