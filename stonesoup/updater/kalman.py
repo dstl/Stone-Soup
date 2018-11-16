@@ -188,6 +188,8 @@ class KalmanUpdater(Updater):
         x_post = x_pred + K@(y-y_pred)
         P_post = P_pred - K@S@K.T
 
+        P_post = (P_post + P_post.T)/2
+
         return x_post, P_post, K
 
 
@@ -230,14 +232,18 @@ class ExtendedKalmanUpdater(KalmanUpdater):
             measurement_matrix = \
                 measurement_model.jacobian(state_prediction.state_vector,
                                            **kwargs)
+
+        def measurement_function(x):
+            return measurement_model.function(x, **kwargs)
+
         measurement_noise_covar = measurement_model.covar(**kwargs)
 
         meas_pred_mean, meas_pred_covar, cross_covar = \
             self.get_measurement_prediction_lowlevel(state_prediction.mean,
                                                      state_prediction.covar,
+                                                     measurement_function,
                                                      measurement_matrix,
                                                      measurement_noise_covar)
-
         return GaussianMeasurementPrediction(meas_pred_mean, meas_pred_covar,
                                              state_prediction.timestamp,
                                              cross_covar)
@@ -278,7 +284,7 @@ class ExtendedKalmanUpdater(KalmanUpdater):
                                    hypothesis.measurement.timestamp)
 
     @staticmethod
-    def update_lowlevel(x_pred, P_pred, H, R, y):
+    def update_lowlevel(x_pred, P_pred, h, H, R, y):
         """Low level Extended Kalman Filter update
 
         Parameters
@@ -287,6 +293,9 @@ class ExtendedKalmanUpdater(KalmanUpdater):
             The predicted state mean
         P_pred: :class:`numpy.ndarray` of shape (Ns,Ns)
             The predicted state covariance
+        h : function handle
+            The (non-linear) measurement model function
+            Must be of the form "y = fun(x)"
         H : :class:`numpy.ndarray` of shape (Nm,Ns)
             The measurement model jacobian matrix
         R : :class:`numpy.ndarray` of shape (Nm,Nm)
@@ -304,10 +313,22 @@ class ExtendedKalmanUpdater(KalmanUpdater):
             The computed Kalman gain
         """
 
-        return KalmanUpdater.update_lowlevel(x_pred, P_pred, H, R, y)
+        y_pred, S, Pxy = \
+            ExtendedKalmanUpdater.get_measurement_prediction_lowlevel(x_pred,
+                                                                      P_pred,
+                                                                      h,
+                                                                      H,
+                                                                      R)
+
+        return ExtendedKalmanUpdater._update_on_measurement_prediction(x_pred,
+                                                                       P_pred,
+                                                                       y,
+                                                                       y_pred,
+                                                                       S,
+                                                                       Pxy)
 
     @staticmethod
-    def get_measurement_prediction_lowlevel(x_pred, P_pred, H, R):
+    def get_measurement_prediction_lowlevel(x_pred, P_pred, h, H, R):
         """Low level Extended Kalman Filter measurement prediction
 
         Parameters
@@ -316,6 +337,9 @@ class ExtendedKalmanUpdater(KalmanUpdater):
             The predicted state mean
         P_pred: :class:`numpy.ndarray` of shape (Ns,Ns)
             The predicted state covariance
+        h : function handle
+            The (non-linear) measurement model function
+            Must be of the form "y = fun(x)"
         H : :class:`numpy.ndarray` of shape (Nm,Ns)
             The measurement model jacobian matrix
         R : :class:`numpy.ndarray` of shape (Nm,Nm)
@@ -330,10 +354,11 @@ class ExtendedKalmanUpdater(KalmanUpdater):
         : :class:`numpy.ndarray` of shape (Ns,Nm), optional
             The state-to-measurement cross covariance
         """
+        y_pred = h(x_pred)
+        S = H@P_pred@H.T + R
+        Pxy = P_pred@H.T
 
-        return KalmanUpdater.get_measurement_prediction_lowlevel(x_pred,
-                                                                 P_pred,
-                                                                 H, R)
+        return y_pred, S, Pxy
 
     @staticmethod
     def _update_on_measurement_prediction(x_pred, P_pred, y,

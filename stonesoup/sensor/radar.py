@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import copy
 import numpy as np
 
 from .base import Sensor
@@ -23,23 +24,29 @@ class SimpleRadar(Sensor):
 
     position = Property(StateVector,
                         doc="The radar position on a 2D Cartesian plane")
+    ndim_state = Property(
+        int,
+        doc="Number of state dimensions. This is utilised by (and follows in\
+            format) the underlying :class:`~.RangeBearingGaussianToCartesian`\
+            model")
+    mapping = Property(
+        [np.array], doc="Mapping between the targets state space and the\
+                        sensors measurement capability")
     noise_covar = Property(CovarianceMatrix,
                            doc="The sensor noise covariance matrix. This is utilised\
                                 by (and follow in format) the underlying\
                                 :class:`~.RangeBearingGaussianToCartesian`\
                                 model")
-    measurement_mapping = Property(
-        [np.array], doc="Mapping between the targets state space and the\
-                        sensors measurement capability")
 
-    def __init__(self, position, noise_covar, measurement_mapping, *args, **kwargs):
-
+    def __init__(self, position, ndim_state, mapping, noise_covar,
+                 *args, **kwargs):
         measurement_model = RangeBearingGaussianToCartesian(
-            ndim_state=2, mapping=measurement_mapping,
+            ndim_state=ndim_state,
+            mapping=mapping,
             noise_covar=noise_covar,
             origin_offset=position)
-        super().__init__(position, noise_covar, measurement_mapping, measurement_model,
-                         *args, **kwargs)
+        super().__init__(position, ndim_state, mapping, noise_covar,
+                         measurement_model, *args, **kwargs)
 
     def set_position(self, position):
         self.position = position
@@ -63,4 +70,8 @@ class SimpleRadar(Sensor):
         measurement_vector = self.measurement_model.function(
             ground_truth.state_vector, **kwargs)
 
-        return Detection(measurement_vector, timestamp=ground_truth.timestamp)
+        model_copy = copy.copy(self.measurement_model)
+
+        return Detection(measurement_vector,
+                         measurement_model=model_copy,
+                         timestamp=ground_truth.timestamp)
