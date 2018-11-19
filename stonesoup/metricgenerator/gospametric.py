@@ -261,17 +261,16 @@ class GOSPAMetric(MetricGenerator):
 					self.missed = opt_cost
 
 			else:
-				# print(cost_matrix)
 				# Use auction algorithm when both truth_states and measured_states are non-empty
 				cost_matrix = -1.*np.power(cost_matrix, self.p)
 				truth_to_measured_assignment, measured_to_truth_assignment, opt_cost_tmp = \
 				self._compute_assignments(cost_matrix, 10*(num_truth_states * num_measured_states))
 
 				# Initialize outputs.
-				# gospa_metric['localisation'] = 0
-				# gospa_metric['missed'] = 0
-				# gospa_metric['false'] = 0
-				# gospa_metric['distance'] = 0
+				gospa_metric['localisation'] = 0.0
+				gospa_metric['missed'] = 0.0
+				gospa_metric['false'] = 0.0
+				gospa_metric['distance'] = 0.0
 				# Now use assignments to compute costs
 				
 				for i in range(num_truth_states):
