@@ -116,3 +116,34 @@ def test_filtereddetections_no_track_metadata(predictor, updater):
 
     # The hypotheses are sorted correctly
     assert min(hypotheses, key=attrgetter('distance')) is hypotheses[0]
+
+
+def test_filtereddetections_no_matching_metadata(predictor, updater):
+    # CASE 4
+    # there is one track with associated metadata,
+    # two detections where neither has matching metadata
+
+    timestamp = datetime.datetime.now()
+    hypothesiser = MahalanobisDistanceHypothesiser(
+        predictor, updater, missed_distance=0.2)
+    hypothesiser_wrapper = FilteredDetectionsHypothesiser(
+        hypothesiser, "MMSI", match_missing=True)
+
+    track = Track([GaussianStateUpdate(
+                    np.array([[0]]),
+                    np.array([[1]]),
+                    None,
+                    None,
+                    Detection(np.array([[0]]), metadata={"MMSI": 12345}),
+                    timestamp=timestamp)])
+    detection1 = Detection(np.array([[2]]), metadata={"MMSI": 45678})
+    detection2 = Detection(np.array([[3]]), metadata={"MMSI": 99999})
+    detections = {detection1, detection2}
+
+    hypotheses = hypothesiser_wrapper.hypothesise(track, detections, timestamp)
+
+    # one hypothesis - Missed Detection
+    assert len(hypotheses) == 1
+
+    # There is a missed detection hypothesis
+    assert any(hypothesis.detection is None for hypothesis in hypotheses)
