@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-from scipy.linalg import expm, norm
 from math import cos, sin
 
 from ..base import Property
@@ -153,17 +152,86 @@ def _get_rotation_matrix(vel, theta):
     [cos[theta] -sin[theta]]
     [cos[theta]  sin[theta]]
 
+    In the 2d case this will be a 3x3 matrix which rotates around the Z axis
+    followed by a rotation about the new Y axis.
+
     :param vel: 1xD vector denoting platform velocity in D dimensions
     :param theta: rotation angle in radians
     :return: DxD rotation matrix
     """
-    #print("Platform velocity:", vel)
-    #print("length:", len(vel))
     if len(vel) == 3:
-        return expm(np.cross(np.eye(3), np.transpose(vel / norm(vel) * theta)))
+        return _rot3d(vel)
     elif len(vel) == 2:
         return np.array([[cos(theta), -sin(theta)],
                          [sin(theta), cos(theta)]])
+
+
+def _rot3d(vel):
+    """
+    This approach determines the platforms attitude based upon its velocity
+    component. It does not take into account potential platform roll, nor
+    are the components calculated to account for physical artifacts such as
+    platform trim (e.g. aircraft).
+
+    This involves specifying its rotation about the vertical (Z) and forward
+    (Y) axis. These are captured as Yaw, measured as a counter-clockwise
+    rotation in the X-Y plane around the Z axis, and Pitch, measured as the
+    angle that the platfrom intersects makes with the X-Y plane and applied as
+    a rotation to the post rotated Y axis.
+
+    Notes
+    -----
+    numpys Arccos output is only defined over range [0:pi], therefore sign of
+    input must be considered
+
+    :param vel:
+    :return:
+    """
+    if np.absolute(vel[[1, 2]]).sum() == 0:
+        # Static or all velocity in primary axis
+        return np.eye(3)
+    elif ((np.absolute(vel[[0, 2]]).sum() == 0) or
+            ((vel[[0]] != 0) and (vel[[1]] != 0) and (vel[[2]] == 0)) or
+            ((np.absolute(vel[[1, 2]]).sum() == 0) and vel[[0]] < 0)):
+        # Velocity in [x,y] plane or [y] axis
+        #  vel_norm = vel[[0, 1]] / np.linalg.norm(vel[[0, 1]])
+        gamma = _get_angle(np.array([[1, 0]]),
+                           vel[[0, 1]] / np.linalg.norm(vel[[0, 1]]))
+        # gamma = np.arccos(
+        #     np.clip(np.dot(np.array([[1, 0]]), vel_norm), -1.0, 1.0))
+        if vel[[1]] < 0:
+            gamma *= -1
+        return _rotZ(gamma)
+    elif ((np.absolute(vel[[0,1]]).sum() == 0) or
+            ((vel[[0]] != 0) and (vel[[1]] == 0) and (vel[[2]] != 0))):
+        # Velocity in [x,z] plane or [z] axis
+        # vel_norm = vel[[0, 2]] / np.linalg.norm(vel[[0, 2]])
+        #  beta = np.arccos(
+        #    np.clip(np.dot(np.array([[1, 0]]), vel_norm), -1.0, 1.0))
+        beta = _get_angle(np.array([[1, 0]]),
+                        vel[[0, 2]] / np.linalg.norm(vel[[0, 2]]))
+        if vel[[2]] > 0:
+            beta *= -1
+        return _rotY(beta)
+    else:
+        # Velocity in [y,z] plane or all axis
+        #  vel_norm = vel[[0, 1]] / np.linalg.norm(vel[[0, 1]])
+        #  gamma = np.arccos(
+        #      np.clip(np.dot(np.array([[1, 0]]), vel_norm), -1.0, 1.0))
+        gamma = _get_angle(np.array([[1, 0]]),
+                           vel[[0, 1]] / np.linalg.norm(vel[[0, 1]]))
+        vel_norm = vel / np.linalg.norm(vel)
+        interim = np.arround(np.transpose(
+            np.dot(_rotZ(gamma), vel_norm))[0], 16)
+        #  beta = np.arccos(np.clip(np.dot(interim, vel_norm), -1.0, 1.0))
+        beta = _get_angle(interim, vel_norm)
+        if vel[[2]] > 0:
+            beta *= -1
+        if vel[[1]] < 0:
+            gamma *= -1
+            if vel[[2]] > 0:
+                beta += (np.pi / 2)
+        return np.dot(np.around(_rotZ(gamma), 16), np.around(_rotY(beta), 16))
 
 
 def _get_angle(vel, axis):
@@ -174,7 +242,33 @@ def _get_angle(vel, axis):
     :param axis: Dx1 array denoting sensor offset relative to platform
     :return: Angle between the two vectors in radians
     """
-    vel_norm = vel / norm(vel)
-    axis_norm = axis / norm(axis)
+    vel_norm = vel / np.linalg.norm(vel)
+    axis_norm = axis / np.linalg.norm(axis)
 
     return np.arccos(np.clip(np.dot(axis_norm, vel_norm), -1.0, 1.0))
+
+
+def _rotY(theta):
+    """ Returns a rotation matrix which will rotate a vector around the Y axis
+    in a counter clockwise direction by theta radians
+
+    :param theta:
+    :return: 3x3 rotation matrix
+    """
+    return np.array([[cos(theta), 0, sin(theta)],
+                     [0, 1, 0],
+                     [-sin(theta), 0, cos(theta)]])
+
+
+def _rotZ(theta):
+    """ Returns a rotation matrix which will rotate a vector around the Z axis
+    in a counter clockwise direction by theta radians.
+
+    :param theta:
+    :return: 3x3 rotation matrix
+    """
+    return np.array([[cos(theta), -sin(theta), 0],
+                     [sin(theta), cos(theta), 0],
+                     [0, 0, 1]])
+
+

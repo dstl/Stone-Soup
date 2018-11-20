@@ -27,12 +27,14 @@ def test_sensor_platform():
     radar4_position = StateVector(np.array(([[100], [100]])))
     radar5_position = StateVector(np.array(([[100], [100]])))
 
+    measurement_mapping = np.array([0, 2])
+
     # Create 5 simple radar
-    radar1 = SimpleRadar(radar1_position, noise_covar)
-    radar2 = SimpleRadar(radar2_position, noise_covar)
-    radar3 = SimpleRadar(radar3_position, noise_covar)
-    radar4 = SimpleRadar(radar4_position, noise_covar)
-    radar5 = SimpleRadar(radar5_position, noise_covar)
+    radar1 = SimpleRadar(radar1_position, noise_covar, measurement_mapping)
+    radar2 = SimpleRadar(radar2_position, noise_covar, measurement_mapping)
+    radar3 = SimpleRadar(radar3_position, noise_covar, measurement_mapping)
+    radar4 = SimpleRadar(radar4_position, noise_covar, measurement_mapping)
+    radar5 = SimpleRadar(radar5_position, noise_covar, measurement_mapping)
 
     # Define time related variables
     timestamp = datetime.datetime.now()

@@ -20,9 +20,10 @@ def test_simple_radar():
     target_state = State(radar_position +
                          np.array([[1], [1]]),
                          timestamp=datetime.datetime.now())
+    measurement_mapping = np.array([0, 2])
 
     # Create a radar object
-    radar = SimpleRadar(radar_position, noise_covar)
+    radar = SimpleRadar(radar_position, noise_covar, measurement_mapping)
 
     # Assert that the object has been correctly initialised
     assert(np.equal(radar.position, radar_position).all())

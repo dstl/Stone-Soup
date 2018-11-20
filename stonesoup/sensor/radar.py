@@ -33,8 +33,9 @@ class SimpleRadar(Sensor):
         [np.array], doc="Mapping between the targets state space and the\
                         sensors measurement capability")
     noise_covar = Property(CovarianceMatrix,
-                           doc="The sensor noise covariance matrix. This is utilised\
-                                by (and follow in format) the underlying\
+                           doc="The sensor noise covariance matrix. This is \
+                                utilised by (and follow in format) the \
+                                underlying \
                                 :class:`~.RangeBearingGaussianToCartesian`\
                                 model")
 
@@ -45,6 +46,7 @@ class SimpleRadar(Sensor):
             mapping=mapping,
             noise_covar=noise_covar,
             origin_offset=position)
+
         super().__init__(position, ndim_state, mapping, noise_covar,
                          measurement_model, *args, **kwargs)
 
