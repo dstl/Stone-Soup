@@ -30,10 +30,10 @@ def test_nearest_neighbour(associator):
     assert len(associations) == 2
 
     # Each track should associate with a unique detection
-    associated_detections = [hypothesis.detection
-                             for hypothesis in associations.values()
-                             if hypothesis.detection is not None]
-    assert len(associated_detections) == len(set(associated_detections))
+    associated_measurements = [hypothesis.measurement
+                               for hypothesis in associations.values()
+                               if hypothesis.measurement is not None]
+    assert len(associated_measurements) == len(set(associated_measurements))
 
 
 def test_missed_detection_nearest_neighbour(associator):
@@ -49,5 +49,5 @@ def test_missed_detection_nearest_neighbour(associator):
     associations = associator.associate(tracks, detections, timestamp)
 
     # Best hypothesis should be missed detection hypothesis
-    assert all(hypothesis.detection is None
+    assert all(hypothesis.measurement is None
                for hypothesis in associations.values())

@@ -20,29 +20,24 @@ class Hypothesis(Type):
     measurement_prediction = Property(
         MeasurementPrediction,
         doc="Track prediction in measurement space")
-    detection = Property(
+    measurement = Property(
         Detection,
         doc="Detection used for hypothesis and updating")
 
-    @abstractmethod
     def __lt__(self, other):
-        raise NotImplementedError
+        return NotImplemented
 
-    @abstractmethod
     def __le__(self, other):
-        raise NotImplementedError
+        return NotImplemented
 
-    @abstractmethod
     def __eq__(self, other):
-        raise NotImplementedError
+        return NotImplemented
 
-    @abstractmethod
     def __gt__(self, other):
-        raise NotImplementedError
+        return NotImplemented
 
-    @abstractmethod
     def __ge__(self, other):
-        raise NotImplementedError
+        return NotImplemented
 
 
 class DistanceHypothesis(Hypothesis):

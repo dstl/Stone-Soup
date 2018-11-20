@@ -17,8 +17,10 @@ distance = float(1)
 def test_hypothesis():
     """Hypothesis type test"""
 
-    with pytest.raises(TypeError):
-        Hypothesis(prediction, measurement_prediction, detection)
+    hypothesis = Hypothesis(prediction, measurement_prediction, detection)
+    assert hypothesis.prediction is prediction
+    assert hypothesis.measurement_prediction is measurement_prediction
+    assert hypothesis.measurement is detection
 
 
 def test_distance_hypothesis():
@@ -29,7 +31,7 @@ def test_distance_hypothesis():
 
     assert hypothesis.prediction is prediction
     assert hypothesis.measurement_prediction is measurement_prediction
-    assert hypothesis.detection is detection
+    assert hypothesis.measurement is detection
     assert hypothesis.distance is distance
 
 

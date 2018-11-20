@@ -31,18 +31,14 @@ class Updater(Base):
         raise NotImplementedError
 
     @abstractmethod
-    def update(self, prediction, measurement,
-               measurement_prediction=None, **kwargs):
+    def update(self, hypothesis, **kwargs):
         """Update state using prediction and measurement.
 
         Parameters
         ----------
-        prediction : :class:`~.StatePrediction`
-            The state prediction
-        measurement : :class:`~.Detection`
-            The measurement
-        measurement_prediction : :class:`~.MeasurementPrediction`
-            The measurement prediction
+        hypothesis : :class:`~.Hypothesis`
+            Hypothesis with predicted state and associated detection used for
+            updating.
 
         Returns
         -------

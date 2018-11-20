@@ -41,46 +41,34 @@ class KalmanUpdater(Updater):
                                              state_prediction.timestamp,
                                              cross_covar)
 
-    def update(self, prediction, measurement,
-               measurement_prediction=None, **kwargs):
+    def update(self, hypothesis):
         """Kalman Filter update step
 
         Parameters
         ----------
-        prediction : :class:`~.GaussianStatePrediction`
-            The state prediction
-        measurement : :class:`~.Detection`
-            The measurement
-        measurement_prediction : \
-        :class:`~.GaussianMeasurementPrediction`, optional
-            A measurement prediction (the default is ``None``, in which case\
-            it will be computed internally)
+        hypothesis : :class:`~.Hypothesis`
+            Hypothesis with predicted state and associated detection used for
+            updating.
 
         Returns
         -------
-        : :class:`~.GaussianState`
+        : :class:`~.GaussianStateUpaate`
             The computed state posterior
         """
 
-        if (measurement_prediction is None):
-            measurement_prediction = \
-                self.get_measurement_prediction(prediction)
-
         posterior_mean, posterior_covar, _ = \
             self._update_on_measurement_prediction(
-                prediction.mean,
-                prediction.covar,
-                measurement.state_vector,
-                measurement_prediction.mean,
-                measurement_prediction.covar,
-                measurement_prediction.cross_covar)
+                hypothesis.prediction.mean,
+                hypothesis.prediction.covar,
+                hypothesis.measurement.state_vector,
+                hypothesis.measurement_prediction.mean,
+                hypothesis.measurement_prediction.covar,
+                hypothesis.measurement_prediction.cross_covar)
 
         return GaussianStateUpdate(posterior_mean,
                                    posterior_covar,
-                                   prediction,
-                                   measurement_prediction,
-                                   measurement,
-                                   measurement.timestamp)
+                                   hypothesis,
+                                   hypothesis.measurement.timestamp)
 
     @staticmethod
     def update_lowlevel(x_pred, P_pred, H, R, y):
@@ -227,20 +215,14 @@ class ExtendedKalmanUpdater(KalmanUpdater):
                                              state_prediction.timestamp,
                                              cross_covar)
 
-    def update(self, prediction, measurement,
-               measurement_prediction=None, **kwargs):
+    def update(self, hypothesis, **kwargs):
         """ Extended Kalman Filter update step
 
         Parameters
         ----------
-        prediction : :class:`~.GaussianStatePrediction`
-            The state prediction
-        measurement : :class:`~.Detection`
-            The measurement
-        measurement_prediction :\
-        :class:`~.GaussianMeasurementPrediction`, optional
-            A measurement prediction (the default is ``None``, in which case\
-            it will be computed internally)
+        hypothesis : :class:`~.Hypothesis`
+            Hypothesis with predicted state and associated detection used for
+            updating.
 
         Returns
         -------
@@ -248,25 +230,19 @@ class ExtendedKalmanUpdater(KalmanUpdater):
             The state posterior
         """
 
-        if (measurement_prediction is None):
-            measurement_prediction = \
-                self.get_measurement_prediction(prediction)
-
         posterior_mean, posterior_covar, _ = \
             self._update_on_measurement_prediction(
-                prediction.mean,
-                prediction.covar,
-                measurement.state_vector,
-                measurement_prediction.mean,
-                measurement_prediction.covar,
-                measurement_prediction.cross_covar)
+                hypothesis.prediction.mean,
+                hypothesis.prediction.covar,
+                hypothesis.measurement.state_vector,
+                hypothesis.measurement_prediction.mean,
+                hypothesis.measurement_prediction.covar,
+                hypothesis.measurement_prediction.cross_covar)
 
         return GaussianStateUpdate(posterior_mean,
                                    posterior_covar,
-                                   prediction,
-                                   measurement_prediction,
-                                   measurement,
-                                   measurement.timestamp)
+                                   hypothesis,
+                                   hypothesis.measurement.timestamp)
 
     @staticmethod
     def update_lowlevel(x_pred, P_pred, H, R, y):

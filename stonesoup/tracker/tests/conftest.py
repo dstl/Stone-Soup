@@ -72,6 +72,6 @@ def data_associator():
 @pytest.fixture()
 def updater():
     class TestUpdater:
-        def update(self, prediction, measurement, measurement_prediction):
-            return State(measurement.state_vector)
+        def update(self, hypothesis):
+            return State(hypothesis.measurement.state_vector)
     return TestUpdater()
