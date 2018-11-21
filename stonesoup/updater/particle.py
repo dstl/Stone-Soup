@@ -36,7 +36,8 @@ class ParticleUpdater(Updater):
 
         for particle in hypothesis.prediction.particles:
             particle.weight *= self.measurement_model.pdf(
-                hypothesis.measurement.state_vector, particle.state_vector)
+                hypothesis.measurement.state_vector, particle.state_vector,
+                **kwargs)
 
         # Normalise the weights
         sum_w = Probability.sum(
