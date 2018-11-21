@@ -16,9 +16,10 @@ from stonesoup.sensor.radar import SimpleRadar
 
 
 def test_sensor_platform():
-    # Generate 4 radar model
+    # Generate 5 radar model
     noise_covar = CovarianceMatrix(np.array([[0.015, 0],
                                              [0, 0.1]]))
+
     # Note 1 - the radar position is irrelevant once mounted
     radar1_position = StateVector(np.array(([[100],
                                              [100]])))
@@ -30,11 +31,39 @@ def test_sensor_platform():
     measurement_mapping = np.array([0, 2])
 
     # Create 5 simple radar
-    radar1 = SimpleRadar(radar1_position, noise_covar, measurement_mapping)
-    radar2 = SimpleRadar(radar2_position, noise_covar, measurement_mapping)
-    radar3 = SimpleRadar(radar3_position, noise_covar, measurement_mapping)
-    radar4 = SimpleRadar(radar4_position, noise_covar, measurement_mapping)
-    radar5 = SimpleRadar(radar5_position, noise_covar, measurement_mapping)
+    # Create a radar object
+    radar1 = SimpleRadar(
+        position=radar1_position,
+        ndim_state=4,
+        mapping=measurement_mapping,
+        noise_covar=noise_covar
+    )
+
+    radar2 = SimpleRadar(
+        position=radar2_position,
+        ndim_state=4,
+        mapping=measurement_mapping,
+        noise_covar=noise_covar
+    )
+    radar3 = SimpleRadar(
+        position=radar3_position,
+        ndim_state=4,
+        mapping=measurement_mapping,
+        noise_covar=noise_covar
+    )
+
+    radar4 = SimpleRadar(
+        position=radar4_position,
+        ndim_state=4,
+        mapping=measurement_mapping,
+        noise_covar=noise_covar
+    )
+    radar5 = SimpleRadar(
+        position=radar5_position,
+        ndim_state=4,
+        mapping=measurement_mapping,
+        noise_covar=noise_covar
+    )
 
     # Define time related variables
     timestamp = datetime.datetime.now()

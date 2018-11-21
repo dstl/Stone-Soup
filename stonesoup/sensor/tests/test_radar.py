@@ -23,7 +23,11 @@ def test_simple_radar():
     measurement_mapping = np.array([0, 2])
 
     # Create a radar object
-    radar = SimpleRadar(radar_position, noise_covar, measurement_mapping)
+    radar = SimpleRadar(
+        position=radar_position,
+        ndims=2,
+        mapping=measurement_mapping,
+        noise_covar=noise_covar)
 
     # Assert that the object has been correctly initialised
     assert(np.equal(radar.position, radar_position).all())
