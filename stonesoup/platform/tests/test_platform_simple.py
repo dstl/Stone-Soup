@@ -21,8 +21,7 @@ def test_sensor_platform():
                                              [0, 0.1]]))
 
     # Note 1 - the radar position is irrelevant once mounted
-    radar1_position = StateVector(np.array(([[100],
-                                             [100]])))
+    radar1_position = StateVector(np.array(([[100], [100]])))
     radar2_position = StateVector(np.array(([[100], [100]])))
     radar3_position = StateVector(np.array(([[100], [100]])))
     radar4_position = StateVector(np.array(([[100], [100]])))
@@ -30,8 +29,7 @@ def test_sensor_platform():
 
     measurement_mapping = np.array([0, 2])
 
-    # Create 5 simple radar
-    # Create a radar object
+    # Create 5 simple radar sensor objects
     radar1 = SimpleRadar(
         position=radar1_position,
         ndim_state=4,
@@ -89,15 +87,18 @@ def test_sensor_platform():
                                  [0, 1],
                                  [-1, 0],
                                  [0, -1]])
+
     # This defines the mapping to the platforms state vector (i.e. x and y)
     mounting_mappings = np.array([[0, 2]])
 
     # create a platform with the simple radar mounted
-    platform1 = SensorPlatform(platform_state,
-                               model_2d,
-                               [radar1, radar2, radar3, radar4, radar5],
-                               mounting_offsets,
-                               mounting_mappings)
+    platform1 = SensorPlatform(
+        state=platform_state,
+        transition_model=model_2d,
+        sensors=[radar1, radar2, radar3, radar4, radar5],
+        mounting_offsets=mounting_offsets,
+        mounting_mappings=mounting_mappings
+    )
 
     # Check that mounting_mappings has been modified to match number of sensor
     assert(platform1.mounting_mappings.shape[0] == len(platform1.sensors))
@@ -114,31 +115,27 @@ def test_sensor_platform():
                                                      i, j]])
         assert (np.equal(expected_radar_position, radar_position).all())
 
-    # Define a 2d platform with a simple velocity [0, 1] starting at the origin
-    platform_state2 = State(np.array([[10],
+    # Define a 2d platform with a simple velocity [1, 0] starting at the origin
+    platform_state2 = State(np.array([[0],
+                                      [1],
                                       [0],
-                                      [0],
-                                      [1]]),
+                                      [0]]),
                             timestamp)
     # create a platform with the simple radar mounted
-    platform2 = SensorPlatform(platform_state2,
-                               model_2d,
-                               [radar1, radar2, radar3, radar4, radar5],
-                               mounting_offsets,
-                               mounting_mappings)
+    platform2 = SensorPlatform(
+        state=platform_state2,
+        transition_model=model_2d,
+        sensors=[radar1, radar2, radar3, radar4, radar5],
+        mounting_offsets=mounting_offsets,
+        mounting_mappings=mounting_mappings
+    )
 
     # Define the expected radar position
     rotated_radar_positions = np.array([[0, 0],
                                         [0, 1],
                                         [-1, 0],
                                         [0, -1],
-                                        [1, 0]])  # 0, +1, +1, +1, -3
-
-    # mounting_offsets = np.array([[0, 0], -> [0. 0], index
-    #                             [1, 0],  -> [0, 1], index +1
-    #                             [0, 1],  -> [-1, 0], index +1
-    #                             [-1, 0], -> [0, -1], index +1
-    #                             [0, -1]])-> [1, 0], index -3
+                                        [1, 0]])
 
     # This will match each sensor location to the mounting offsets provided
     expected_radar_position = np.zeros(
