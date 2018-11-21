@@ -104,9 +104,7 @@ class SensorPlatform(Platform):
             if (hasattr(self, 'transition_model') &
                     (np.absolute(self.state.state_vector[
                              self.mounting_mappings[0]+1]).max() > 0)):
-                # print("Sensor id: ", i)
                 new_sensor_pos = self._get_rotated_offset(i)
-                # print("calculated sensor pos: ", new_sensor_pos)
                 for j in range(self.mounting_offsets.shape[1]):
                     new_sensor_pos[j] = new_sensor_pos[j] + \
                                            (self.state.state_vector[
@@ -117,9 +115,7 @@ class SensorPlatform(Platform):
                     new_sensor_pos[j] = (self.state.state_vector[
                                             self.mounting_mappings[i, j]] +
                                          self.mounting_offsets[i, j])
-            # print("Initial sensor position: ", self.mounting_offsets[i])
             self.sensors[i].set_position(StateVector(new_sensor_pos))
-            # print("Sensor position updated to: ", self.sensors[i].position)
 
     def _get_rotated_offset(self, i):
         """ _get_rotated_offset - determines the sensor mounting offset for the
@@ -163,21 +159,22 @@ def _get_rotation_matrix(vel):
                          [sin(theta), cos(theta)]])
 
 
-def _get_angle(vel, axis):
-    """ Returns the angle between two vectors, used to rotate the sensor offset
-    relative to the platform velocity vector.
+def _get_angle(vec, axis):
+    """ Returns the angle between a pair of vectors. Used to determine the
+    angle of rotation required between relative rectangular cartesian
+    coordinate frame of reference and platform inertial frame of reference.
 
-    :param vel: 1xD array denoting platform velocity
+    :param vec: 1xD array denoting platform velocity
     :param axis: Dx1 array denoting sensor offset relative to platform
     :return: Angle between the two vectors in radians
     """
-    vel_norm = vel / np.linalg.norm(vel)
+    vel_norm = vec / np.linalg.norm(vec)
     axis_norm = axis / np.linalg.norm(axis)
 
     return np.arccos(np.clip(np.dot(axis_norm, vel_norm), -1.0, 1.0))
 
 
-def _rot3d(vector):
+def _rot3d(vec):
     """
     This approach determines the platforms attitude based upon its velocity
     component. It does not take into account potential platform roll, nor
@@ -189,13 +186,13 @@ def _rot3d(vector):
     calculated, the rotated Y axis is then determined and used to calculate the
     rotation matrix which takes into account the platform pitch
 
-    :param vector: platform velocity
+    :param vec: platform velocity
     :return: np.array 3x3 rotation matrix
     """
-    # TODO handle roll
-    yaw = np.arctan2(vector[[1]], vector[[0]])
-    pitch = np.arctan2(vector[[2]],
-                       np.sqrt(vector[[0]] ** 2 + vector[[1]] ** 2)) * -1
+    # TODO handle platform roll
+    yaw = np.arctan2(vec[[1]], vec[[0]])
+    pitch = np.arctan2(vec[[2]],
+                       np.sqrt(vec[[0]] ** 2 + vec[[1]] ** 2)) * -1
     rot_z = _rot_z(yaw)
     # Modify to correct for new y axis
     y_axis = np.array([0, 1, 0])
@@ -204,13 +201,14 @@ def _rot3d(vector):
     return np.dot(rot_y, rot_z)
 
 
-def _perpendicular_vector(v):
-    if v[1] == 0 and v[2] == 0:
-        if v[0] == 0:
+def _perpendicular_vector(vec):
+    # TODO delete this method, no longer required
+    if vec[1] == 0 and vec[2] == 0:
+        if vec[0] == 0:
             raise ValueError('zero vector')
         else:
-            return np.cross(np.transpose(v), [0, 1, 0])
-    return np.cross(np.transpose(v), [1, 0, 0])
+            return np.cross(np.transpose(vec), [0, 1, 0])
+    return np.cross(np.transpose(vec), [1, 0, 0])
 
 
 def _rot_y(theta):

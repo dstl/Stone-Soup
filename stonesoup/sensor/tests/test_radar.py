@@ -25,7 +25,7 @@ def test_simple_radar():
     # Create a radar object
     radar = SimpleRadar(
         position=radar_position,
-        ndims=2,
+        ndim_state=2,
         mapping=measurement_mapping,
         noise_covar=noise_covar)
 
