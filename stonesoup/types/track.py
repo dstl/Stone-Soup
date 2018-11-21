@@ -26,3 +26,26 @@ class Track(StateMutableSequence):
         super().__init__(*args, **kwargs)
         if self.id is None:
             self.id = str(uuid.uuid4())
+
+    @property
+    def metadata(self):
+        """Returns metadata associated with a track.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        : :class:`dict` of variable size
+            All metadata associate with this track.
+        """
+
+        metadata = {}
+
+        for state in self:
+            if hasattr(state, "measurement") \
+                    and state.measurement.metadata is not None:
+                metadata.update(state.measurement.metadata)
+
+        return metadata
