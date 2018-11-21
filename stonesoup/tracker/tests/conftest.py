@@ -60,7 +60,7 @@ def data_associator():
                     if np.array_equal(measurement_prediction.state_vector,
                                       detection.state_vector):
                         associations[track] = DistanceHypothesis(
-                            prediction, measurement_prediction, detection, 0)
+                            prediction, detection, 0, measurement_prediction)
                         break
                 else:
                     associations[track] = DistanceHypothesis(

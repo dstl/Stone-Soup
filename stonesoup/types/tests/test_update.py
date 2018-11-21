@@ -32,8 +32,8 @@ def test_stateupdate():
         state_vector,
         Hypothesis(
             prediction=prediction,
-            measurement_prediction=measurement_prediction,
-            measurement=measurement),
+            measurement=measurement,
+            measurement_prediction=measurement_prediction),
         timestamp=timestamp)
 
     assert np.array_equal(state_vector, state_update.state_vector)
@@ -67,8 +67,8 @@ def test_gaussianstateupdate():
                                        covar,
                                        Hypothesis(
                                            prediction=prediction,
-                                           measurement_prediction=meas_pred,
-                                           measurement=measurement),
+                                           measurement=measurement,
+                                           measurement_prediction=meas_pred),
                                        timestamp=timestamp)
 
     assert np.array_equal(state_vector, state_update.state_vector)
@@ -113,8 +113,8 @@ def test_particlestateupdate():
     state_update = ParticleStateUpdate(particles,
                                        Hypothesis(
                                            prediction=prediction,
-                                           measurement_prediction=meas_pred,
-                                           measurement=measurement),
+                                           measurement=measurement,
+                                           measurement_prediction=meas_pred),
                                        timestamp=timestamp)
 
     eval_mean = np.mean(np.hstack((i.state_vector for i in particles)),

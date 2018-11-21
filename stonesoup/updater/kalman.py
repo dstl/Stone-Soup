@@ -41,7 +41,7 @@ class KalmanUpdater(Updater):
                                              state_prediction.timestamp,
                                              cross_covar)
 
-    def update(self, hypothesis):
+    def update(self, hypothesis, **kwargs):
         """Kalman Filter update step
 
         Parameters
@@ -55,6 +55,11 @@ class KalmanUpdater(Updater):
         : :class:`~.GaussianStateUpaate`
             The computed state posterior
         """
+
+        if hypothesis.measurement_prediction is None:
+            hypothesis.measurement_prediction = \
+                self.get_measurement_prediction(hypothesis.prediction,
+                                                **kwargs)
 
         posterior_mean, posterior_covar, _ = \
             self._update_on_measurement_prediction(
@@ -229,6 +234,11 @@ class ExtendedKalmanUpdater(KalmanUpdater):
         : :class:`~.GaussianState`
             The state posterior
         """
+
+        if hypothesis.measurement_prediction is None:
+            hypothesis.measurement_prediction = \
+                self.get_measurement_prediction(hypothesis.prediction,
+                                                **kwargs)
 
         posterior_mean, posterior_covar, _ = \
             self._update_on_measurement_prediction(

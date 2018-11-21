@@ -51,11 +51,7 @@ def test_backwards_smoother():
     track.append(initial_state)
     predictor = KalmanPredictor(transition_model=trans_model)
     updater = KalmanUpdater(measurement_model=meas_model)
-    hypothesis = Hypothesis(
-        track.state,
-        updater.get_measurement_prediction(track.state),
-        detections[0]
-    )
+    hypothesis = Hypothesis(track.state, detections[0])
     new_state = updater.update(hypothesis)
     track[0] = new_state
 
@@ -64,11 +60,7 @@ def test_backwards_smoother():
         time = detections[t].timestamp
         state_pred = predictor.predict(track.state, timestamp=time)
         estimates.append(state_pred)
-        hypothesis = Hypothesis(
-            state_pred,
-            updater.get_measurement_prediction(state_pred),
-            detections[t]
-        )
+        hypothesis = Hypothesis(state_pred, detections[t])
         state_post = updater.update(hypothesis)
         track.append(state_post)
 

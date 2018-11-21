@@ -54,7 +54,7 @@ def test_particle():
     assert measurement_prediction.timestamp == timestamp
 
     updated_state = updater.update(Hypothesis(
-        prediction, measurement_prediction, measurement))
+        prediction, measurement, measurement_prediction))
 
     # Don't know what the particles will exactly be due to randomness so check
     # some obvious properties

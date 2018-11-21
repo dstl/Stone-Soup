@@ -17,12 +17,13 @@ class Hypothesis(Type):
     prediction = Property(
         Prediction,
         doc="Predicted track state")
-    measurement_prediction = Property(
-        MeasurementPrediction,
-        doc="Track prediction in measurement space")
     measurement = Property(
         Detection,
         doc="Detection used for hypothesis and updating")
+    measurement_prediction = Property(
+        MeasurementPrediction,
+        default=None,
+        doc="Optional track prediction in measurement space")
 
     def __lt__(self, other):
         return NotImplemented
