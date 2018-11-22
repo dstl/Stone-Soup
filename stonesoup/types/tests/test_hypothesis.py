@@ -21,11 +21,19 @@ def test_hypothesis():
     assert hypothesis.prediction is prediction
     assert hypothesis.measurement is detection
     assert hypothesis.measurement_prediction is None
+    assert hypothesis
 
     hypothesis = Hypothesis(prediction, detection, measurement_prediction)
     assert hypothesis.prediction is prediction
     assert hypothesis.measurement is detection
     assert hypothesis.measurement_prediction is measurement_prediction
+    assert hypothesis
+
+    hypothesis = Hypothesis(prediction, None)
+    assert hypothesis.prediction is prediction
+    assert hypothesis.measurement is None
+    assert hypothesis.measurement_prediction is None
+    assert not hypothesis
 
 
 def test_distance_hypothesis():
