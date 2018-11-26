@@ -1,5 +1,7 @@
+import numpy as np
 import ephem
 
+from ...base import Property
 from .base import MeasurementModel
 
 class SimpleObservatory(MeasurementModel):
@@ -15,6 +17,14 @@ class SimpleObservatory(MeasurementModel):
     
     
     """
+    latitude = Property(float, default=0.0, doc="Observatory latitude (radians)")
+    longitude = Property(float, default=0.0, doc="Observatory longitude (radians)")
+    elevation = Property(float, default=0.9, doc="Observatory elevation (m)")
+
+    p_fa = Property(float, default=1e-10, doc="Probability of false alarm")
+    p_d = Property(float, default=0.999999, doc="Probability of target detection")
+
+    noise = Property(np.array, default=None, doc="Covariance of the noise")
 
     @property
     def ndim_meas(self):
@@ -30,7 +40,7 @@ class SimpleObservatory(MeasurementModel):
     def pdf(self):
         pass
 
-    def observe(self,target):
+    def observe(self, target):
         """
 
         :param target: a target - with a location defined in orbital elements that may be in the field of view
@@ -38,3 +48,11 @@ class SimpleObservatory(MeasurementModel):
 
 
         """
+        # Decide whether a false alarm is to be returned
+
+
+        # Check to see if the target is above horizon
+
+        # If so, detect the target
+
+        # Return the
