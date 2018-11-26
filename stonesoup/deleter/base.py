@@ -11,7 +11,7 @@ class Deleter(Base):
     """
 
     @abstractmethod
-    def check_for_deletion(self):
+    def check_for_deletion(self, track, **kwargs):
         """Abstract method to check if a given track should be deleted"""
         pass
 
