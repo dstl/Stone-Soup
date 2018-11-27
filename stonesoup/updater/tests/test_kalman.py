@@ -108,7 +108,7 @@ def test_extendedkalman():
     # Initialise a kalman updater
     updater = ExtendedKalmanUpdater(measurement_model=lg)
 
-    # Get and asser measurement prediction
+    # Get and assert measurement prediction
     measurement_prediction = updater.get_measurement_prediction(prediction)
     assert(np.array_equal(measurement_prediction.mean,
                           eval_measurement_prediction.mean))

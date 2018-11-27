@@ -1,7 +1,8 @@
 # coding: utf-8
-# import pytest
 import datetime
+
 import numpy as np
+import pytest
 
 from stonesoup.types.state import State
 from stonesoup.platform.simple import SensorPlatform
@@ -15,12 +16,135 @@ from stonesoup.sensor.radar import SimpleRadar
 # TODO: pytest parametarization
 
 
-def test_sensor_platform():
-    # Generate 5 radar model
+def get_3d_expected(i):
+    if i == 0:
+        # static platform or X velocity
+        return np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [-1, 0, 0],
+                         [0, -1, 0], [0, 0, 1], [0, 0, -1]])
+    elif i == 1:
+        # y-axis motion
+        return np.array([[0, 0, 0], [0, 1, 0], [-1, 0, 0], [0, -1, 0],
+                         [1, 0, 0], [0, 0, 1], [0, 0, -1]])
+    elif i == 2:
+        # negative x-axis motion
+        return np.array([[0, 0, 0], [-1, 0, 0], [0, -1, 0], [1, 0, 0],
+                         [0, 1, 0], [0, 0, 1], [0, 0, -1]])
+    elif i == 3:
+        # negative y-axis motion
+        return np.array([[0, 0, 0], [0, -1, 0], [1, 0, 0], [0, 1, 0],
+                         [-1, 0, 0], [0, 0, 1], [0, 0, -1]])
+    elif i == 4:
+        # x-y motion
+        return np.array([[0, 0, 0], [1/np.sqrt(2), 1/np.sqrt(2), 0],
+                         [-1/np.sqrt(2), 1/np.sqrt(2), 0],
+                         [-1/np.sqrt(2), -1/np.sqrt(2), 0],
+                         [1/np.sqrt(2), -1/np.sqrt(2), 0], [0, 0, 1],
+                         [0, 0, -1]])
+    elif i == 5:
+        # neg x- neg y motion
+        return np.array([[0, 0, 0], [-1/np.sqrt(2), -1/np.sqrt(2), 0],
+                         [1/np.sqrt(2), -1/np.sqrt(2), 0],
+                         [1/np.sqrt(2), 1/np.sqrt(2), 0],
+                         [-1/np.sqrt(2), 1/np.sqrt(2), 0], [0, 0, 1],
+                         [0, 0, -1]])
+    elif i == 6:
+        # pos x- neg y motion
+        return np.array([[0, 0, 0], [1/np.sqrt(2), -1/np.sqrt(2), 0],
+                         [1/np.sqrt(2), 1/np.sqrt(2), 0],
+                         [-1/np.sqrt(2), 1/np.sqrt(2), 0],
+                         [-1/np.sqrt(2), -1/np.sqrt(2), 0], [0, 0, 1],
+                         [0, 0, -1]])
+    elif i == 7:
+        # neg x- pos y motion
+        return np.array([[0, 0, 0], [-1/np.sqrt(2), 1/np.sqrt(2), 0],
+                         [-1/np.sqrt(2), -1/np.sqrt(2), 0],
+                         [1/np.sqrt(2), -1/np.sqrt(2), 0],
+                         [1/np.sqrt(2), 1/np.sqrt(2), 0], [0, 0, 1],
+                         [0, 0, -1]])
+    elif i == 8:
+        # "z vel"
+        return np.array([[0, 0, 0], [0, 0, 1], [0, 1, 0], [0, 0, -1],
+                         [0, -1, 0], [-1, 0, 0], [1, 0, 0]])
+    elif i == 9:
+        # "-z vel"
+        return np.array([[0, 0, 0], [0, 0, -1], [0, 1, 0], [0, 0, 1],
+                         [0, -1, 0], [1, 0, 0], [-1, 0, 0]])
+    elif i == 10:
+        # "y.z vel"
+        return np.array([[0, 0, 0], [0, 1/np.sqrt(2), 1/np.sqrt(2)],
+                         [-1, 0, 0], [0, -1/np.sqrt(2), -1/np.sqrt(2)],
+                         [1, 0, 0], [0, -1/np.sqrt(2), 1/np.sqrt(2)],
+                         [0, 1/np.sqrt(2), -1/np.sqrt(2)]])
+    elif i == 11:
+        # "y.-z vel"
+        return np.array([[0, 0, 0], [0,  1/np.sqrt(2), -1/np.sqrt(2)],
+                         [-1, 0, 0], [0, -1/np.sqrt(2), 1/np.sqrt(2)],
+                         [1, 0, 0], [0, 1/np.sqrt(2), 1/np.sqrt(2)],
+                         [0, -1/np.sqrt(2), -1/np.sqrt(2)]])
+    elif i == 12:
+        # "-y.z vel"
+        return np.array([[0, 0, 0], [0, -1/np.sqrt(2), 1/np.sqrt(2)],
+                         [1, 0, 0], [0, 1/np.sqrt(2), -1/np.sqrt(2)],
+                         [-1, 0, 0], [0, 1/np.sqrt(2), 1/np.sqrt(2)],
+                         [0, -1/np.sqrt(2), -1/np.sqrt(2)]])
+    elif i == 13:
+        # "-y.-z vel"
+        return np.array([[0, 0, 0], [0, -1/np.sqrt(2), -1/np.sqrt(2)],
+                         [1, 0, 0], [0, 1/np.sqrt(2), 1/np.sqrt(2)],
+                         [-1, 0, 0], [0, -1/np.sqrt(2), 1/np.sqrt(2)],
+                         [0, 1/np.sqrt(2), -1/np.sqrt(2)]])
+    elif i == 14:
+        # x.z vel
+        return np.array([[0, 0, 0], [0, 1/np.sqrt(2), 1/np.sqrt(2)],
+                         [-1, 0, 0], [0, -1/np.sqrt(2), -1/np.sqrt(2)],
+                         [1, 0, 0], [0, -1/np.sqrt(2), 1/np.sqrt(2)],
+                         [0, 1/np.sqrt(2), -1/np.sqrt(2)]])
+    elif i == 15:
+        # -x.z vel
+        return np.array([[0, 0, 0], [0, -1/np.sqrt(2), 1/np.sqrt(2)],
+                         [1, 0, 0], [0, 1/np.sqrt(2), -1/np.sqrt(2)],
+                         [-1, 0, 0], [0, 1/np.sqrt(2), 1/np.sqrt(2)],
+                         [0, -1/np.sqrt(2), -1/np.sqrt(2)]])
+    elif i == 16:
+        # x.-z vel
+        return np.array([[0, 0, 0], [0, 1/np.sqrt(2), -1/np.sqrt(2)],
+                         [-1, 0, 0], [0, -1/np.sqrt(2), 1/np.sqrt(2)],
+                         [1, 0, 0], [0, 1/np.sqrt(2), 1/np.sqrt(2)],
+                         [0, -1/np.sqrt(2), -1/np.sqrt(2)]])
+    elif i == 17:
+        # -x,-z vel
+        return np.array([[0, 0, 0], [0, -1/np.sqrt(2), -1/np.sqrt(2)],
+                         [1, 0, 0], [0, 1/np.sqrt(2), 1/np.sqrt(2)],
+                         [-1, 0, 0], [0, -1/np.sqrt(2), 1/np.sqrt(2)],
+                         [0, 1/np.sqrt(2), -1/np.sqrt(2)]])
+    elif i == 18:
+        # x.y.z vel
+        a = np.cos(np.arctan2(1, np.sqrt(2)) * -1)
+        b = np.sin(np.arctan2(1, np.sqrt(2)) * -1) / np.sqrt(2)
+        return np.array([[0, 0, 0], [1/np.sqrt(3), 1/np.sqrt(3), 1/np.sqrt(3)],
+                         [-1/np.sqrt(2), 1/np.sqrt(2), 0],
+                         [-1/np.sqrt(3), -1/np.sqrt(3), -1/np.sqrt(3)],
+                         [1/np.sqrt(2), -1/np.sqrt(2), 0],
+                         [b, b, a], [-b, -b, -a]])
+    elif i == 19:
+        # -x.-y.-z vel
+        a = np.cos(np.arctan2(-1, np.sqrt(2)) * -1)
+        b = np.sin(np.arctan2(-1, np.sqrt(2)) * -1) / np.sqrt(2)
+        return np.array([[0, 0, 0],
+                         [-1/np.sqrt(3), -1/np.sqrt(3), -1/np.sqrt(3)],
+                         [1/np.sqrt(2), -1/np.sqrt(2), 0],
+                         [1/np.sqrt(3), 1/np.sqrt(3), 1/np.sqrt(3)],
+                         [-1/np.sqrt(2), 1/np.sqrt(2), 0],
+                         [-b, -b, a], [b, b, -a]])
+
+
+@pytest.fixture
+def radars_2d():
+    # Generate 5 radar models for testing purposes
     noise_covar = CovarianceMatrix(np.array([[0.015, 0],
                                              [0, 0.1]]))
 
-    # Note 1 - the radar position is irrelevant once mounted
+    # define arbitrary sensor origin
     radar1_position = StateVector(np.array(([[100], [100]])))
     radar2_position = StateVector(np.array(([[100], [100]])))
     radar3_position = StateVector(np.array(([[100], [100]])))
@@ -63,127 +187,249 @@ def test_sensor_platform():
         noise_covar=noise_covar
     )
 
+    return [radar1, radar2, radar3, radar4, radar5]
+
+
+@pytest.fixture
+def radars_3d():
+    # Generate 7 radar models for testing purposes
+    noise_covar = CovarianceMatrix(np.array([[0.015, 0],
+                                             [0, 0.1]]))
+
+    # Note 1 - the radar position is irrelevant once mounted
+    radar1_position = StateVector(np.array(([[100], [100], [100]])))
+    radar2_position = StateVector(np.array(([[100], [100], [100]])))
+    radar3_position = StateVector(np.array(([[100], [100], [100]])))
+    radar4_position = StateVector(np.array(([[100], [100], [100]])))
+    radar5_position = StateVector(np.array(([[100], [100], [100]])))
+    radar6_position = StateVector(np.array(([[100], [100], [100]])))
+    radar7_position = StateVector(np.array(([[100], [100], [100]])))
+
+    measurement_mapping = np.array([0, 2, 4])
+
+    # Create 5 simple radar sensor objects
+    radar1 = SimpleRadar(
+        position=radar1_position,
+        ndim_state=6,
+        mapping=measurement_mapping,
+        noise_covar=noise_covar
+    )
+
+    radar2 = SimpleRadar(
+        position=radar2_position,
+        ndim_state=6,
+        mapping=measurement_mapping,
+        noise_covar=noise_covar
+    )
+    radar3 = SimpleRadar(
+        position=radar3_position,
+        ndim_state=6,
+        mapping=measurement_mapping,
+        noise_covar=noise_covar
+    )
+
+    radar4 = SimpleRadar(
+        position=radar4_position,
+        ndim_state=6,
+        mapping=measurement_mapping,
+        noise_covar=noise_covar
+    )
+    radar5 = SimpleRadar(
+        position=radar5_position,
+        ndim_state=6,
+        mapping=measurement_mapping,
+        noise_covar=noise_covar
+    )
+    radar6 = SimpleRadar(
+        position=radar6_position,
+        ndim_state=6,
+        mapping=measurement_mapping,
+        noise_covar=noise_covar
+    )
+    radar7 = SimpleRadar(
+        position=radar7_position,
+        ndim_state=6,
+        mapping=measurement_mapping,
+        noise_covar=noise_covar
+    )
+    return [radar1, radar2, radar3, radar4, radar5, radar6, radar7]
+
+
+@pytest.fixture(scope='session')
+def mounting_offsets_2d():
+    # Generate sensor mounting offsets for testing purposes
+    return np.array([[0, 0],
+                    [1, 0],
+                    [0, 1],
+                    [-1, 0],
+                    [0, -1]])
+
+
+@pytest.fixture(scope='session')
+def mounting_offsets_3d():
+    # Generate sensor mounting offsets for testing purposes
+    return np.array([[0, 0, 0],
+                    [1, 0, 0],
+                    [0, 1, 0],
+                    [-1, 0, 0],
+                    [0, -1, 0],
+                    [0, 0, 1],
+                    [0, 0, -1]])
+
+
+@pytest.fixture(params=[True, False], ids=["Moving", "Static"])
+def move(request):
+    return request.param
+
+
+testdata_2d = [
+    np.array([[0], [0], [0], [0]]),
+    np.array([[10], [0], [0], [0]]),
+    np.array([[0], [1], [0], [0]]),
+    np.array([[0], [0], [0], [1]]),
+    np.array([[0], [-1], [0], [0]]),
+    np.array([[0], [0], [0], [-1]]),
+    np.array([[0], [1], [0], [1]]),
+    np.array([[0], [-1], [0], [-1]]),
+    np.array([[0], [1], [0], [-1]]),
+    np.array([[0], [-1], [0], [1]])
+]
+
+expected_2d = [
+    # static platform or X velocity
+    np.array([[0, 0], [1, 0], [0, 1], [-1, 0], [0, -1]]),
+    # static platform or X velocity
+    np.array([[0, 0], [1, 0], [0, 1], [-1, 0], [0, -1]]),
+    # static platform or X velocity
+    np.array([[0, 0], [1, 0], [0, 1], [-1, 0], [0, -1]]),
+    # y-axis motion
+    np.array([[0, 0], [0, 1], [-1, 0], [0, -1], [1, 0]]),
+    # negative x-axis motion
+    np.array([[0, 0], [-1, 0], [0, -1], [1, 0], [0, 1]]),
+    # negative y-axis motion
+    np.array([[0, 0], [0, -1], [1, 0], [0, 1], [-1, 0]]),
+    # x-y motion
+    np.array([[0, 0], [1/np.sqrt(2), 1/np.sqrt(2)],
+              [-1/np.sqrt(2), 1/np.sqrt(2)], [-1/np.sqrt(2), -1/np.sqrt(2)],
+              [1/np.sqrt(2), -1/np.sqrt(2)]]),
+    # neg x- neg y motion
+    np.array([[0, 0], [-1/np.sqrt(2), -1/np.sqrt(2)],
+              [1/np.sqrt(2), -1/np.sqrt(2)], [1/np.sqrt(2), 1/np.sqrt(2)],
+              [-1/np.sqrt(2), 1/np.sqrt(2)]]),
+    # pos x- neg y motion
+    np.array([[0, 0], [1/np.sqrt(2), -1/np.sqrt(2)],
+              [1/np.sqrt(2), 1/np.sqrt(2)], [-1/np.sqrt(2), 1/np.sqrt(2)],
+              [-1/np.sqrt(2), -1/np.sqrt(2)]]),
+    # neg x- pos y motion
+    np.array([[0, 0], [-1/np.sqrt(2), 1/np.sqrt(2)],
+              [-1/np.sqrt(2), -1/np.sqrt(2)], [1/np.sqrt(2), -1/np.sqrt(2)],
+              [1/np.sqrt(2), 1/np.sqrt(2)]])
+]
+
+
+@pytest.mark.parametrize(
+    'state, expected', zip(testdata_2d, expected_2d),
+    ids=["Static", "pos offset", "x vel", "y vel", "-x vel", "-y vel",
+         "x,y vel", "-x,-y vel", "x,-y vel", "-x,y vel"])
+def test_2d_platform(state, expected, move, radars_2d, mounting_offsets_2d):
     # Define time related variables
     timestamp = datetime.datetime.now()
-    timediff = 2  # 2sec
-    new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
-    # new_timestamp2 = new_timestamp + datetime.timedelta(seconds=timediff)
-
     # Define transition model and position for platform
     model_1d = ConstantVelocity(0.0)  # zero noise so pure movement
-    model_2d = CombinedLinearGaussianTransitionModel([model_1d, model_1d])
-
-    # Define a 2d platform with a simple velocity [1,0] starting at the origin
-    platform_state = State(np.array([[0],
-                                     [1],
-                                     [0],
-                                     [0]]),
-                           timestamp)
-
-    # Define a mounting offset for a sensor relative to the platform -
-    #  0,0 offset
-    mounting_offsets = np.array([[0, 0],
-                                 [1, 0],
-                                 [0, 1],
-                                 [-1, 0],
-                                 [0, -1]])
+    trans_model = CombinedLinearGaussianTransitionModel(
+        [model_1d] * (radars_2d[0].ndim_state // 2))
+    platform_state = State(state, timestamp)
 
     # This defines the mapping to the platforms state vector (i.e. x and y)
     mounting_mappings = np.array([[0, 2]])
-
     # create a platform with the simple radar mounted
-    platform1 = SensorPlatform(
+    platform = SensorPlatform(
         state=platform_state,
-        transition_model=model_2d,
-        sensors=[radar1, radar2, radar3, radar4, radar5],
-        mounting_offsets=mounting_offsets,
+        transition_model=trans_model,
+        sensors=radars_2d,
+        mounting_offsets=mounting_offsets_2d,
         mounting_mappings=mounting_mappings
     )
+    if move:
+        # Move the platform
+        platform.move(timestamp + datetime.timedelta(seconds=2))
+    sensor_positions_test(expected, platform)
 
-    # Check that mounting_mappings has been modified to match number of sensor
-    assert(platform1.mounting_mappings.shape[0] == len(platform1.sensors))
 
-    # Check that the sensor position has been modified to reflect the offset
-    for i in range(len(platform1.sensors)):
-        radar_position = platform1.sensors[i].position
-        expected_radar_position = np.zeros(
-            [platform1.mounting_offsets.shape[1], 1])
-        for j in range(platform1.mounting_offsets.shape[1]):
-            expected_radar_position[j, 0] = (platform1.mounting_offsets[i, j] +
-                                             platform1.state.state_vector[
-                                                 platform1.mounting_mappings[
-                                                     i, j]])
-        assert (np.equal(expected_radar_position, radar_position).all())
+testdata_3d = [
+    (np.array([[0], [0], [0], [0], [0], [0]]), get_3d_expected(0)),
+    (np.array([[10], [0], [0], [0], [0], [0]]), get_3d_expected(0)),
+    (np.array([[0], [1], [0], [0], [0], [0]]), get_3d_expected(0)),
+    (np.array([[0], [0], [0], [1], [0], [0]]), get_3d_expected(1)),
+    (np.array([[0], [-1], [0], [0], [0], [0]]), get_3d_expected(2)),
+    (np.array([[0], [0], [0], [-1], [0], [0]]), get_3d_expected(3)),
+    (np.array([[0], [1], [0], [1], [0], [0]]), get_3d_expected(4)),
+    (np.array([[0], [-1], [0], [-1], [0], [0]]), get_3d_expected(5)),
+    (np.array([[0], [1], [0], [-1], [0], [0]]), get_3d_expected(6)),
+    (np.array([[0], [-1], [0], [1], [0], [0]]), get_3d_expected(7)),
+    (np.array([[0], [0], [0], [0], [0], [1]]), get_3d_expected(8)),
+    (np.array([[0], [0], [0], [0], [0], [-1]]), get_3d_expected(9)),
+    (np.array([[0], [0], [0], [1], [0], [1]]), get_3d_expected(10)),
+    (np.array([[0], [0], [0], [1], [0], [-1]]), get_3d_expected(11)),
+    (np.array([[0], [0], [0], [-1], [0], [1]]), get_3d_expected(12)),
+    (np.array([[0], [0], [0], [-1], [0], [-1]]), get_3d_expected(13)),
+    (np.array([[0], [1], [0], [0], [0], [1]]), get_3d_expected(14)),
+    (np.array([[0], [-1], [0], [0], [0], [1]]), get_3d_expected(15)),
+    (np.array([[0], [1], [0], [0], [0], [-1]]), get_3d_expected(16)),
+    (np.array([[0], [-1], [0], [0], [0], [-1]]), get_3d_expected(17)),
+    (np.array([[0], [1], [0], [1], [0], [1]]), get_3d_expected(18)),
+    (np.array([[0], [-1], [0], [-1], [0], [-1]]), get_3d_expected(19))
+]
 
-    # Define a 2d platform with a simple velocity [1, 0] starting at the origin
-    platform_state2 = State(np.array([[0],
-                                      [1],
-                                      [0],
-                                      [0]]),
-                            timestamp)
+
+@pytest.mark.parametrize('state, expected', testdata_3d, ids=[
+    "Static", "pos offset", "x vel", "y vel", "-x vel", "-y vel", "x,y vel",
+    "-x,-y vel", "x,-y vel", "-x,y vel", "z vel", "-z vel", "y.z vel",
+    "y.-z vel", "-y.z vel", "-y.-z vel", "x.z vel", "-x.z vel", "x.-z vel",
+    "-x,-z vel", "x,y,z vel", "-x,-y,-z vel"
+])
+def test_3d_platform(state, expected, move, radars_3d, mounting_offsets_3d):
+    # Define time related variables
+    timestamp = datetime.datetime.now()
+    # Define transition model and position for platform
+    model_1d = ConstantVelocity(0.0)  # zero noise so pure movement
+    trans_model = CombinedLinearGaussianTransitionModel(
+        [model_1d] * (radars_3d[0].ndim_state // 2))
+    platform_state = State(state, timestamp)
+
+    # This defines the mapping to the platforms state vector (i.e. x and y)
+    mounting_mappings = np.array([[0, 2, 4]])
     # create a platform with the simple radar mounted
-    platform2 = SensorPlatform(
-        state=platform_state2,
-        transition_model=model_2d,
-        sensors=[radar1, radar2, radar3, radar4, radar5],
-        mounting_offsets=mounting_offsets,
+    platform = SensorPlatform(
+        state=platform_state,
+        transition_model=trans_model,
+        sensors=radars_3d,
+        mounting_offsets=mounting_offsets_3d,
         mounting_mappings=mounting_mappings
     )
+    if move:
+        # Move the platform
+        platform.move(timestamp + datetime.timedelta(seconds=2))
+    sensor_positions_test(expected, platform)
 
-    # Define the expected radar position
-    rotated_radar_positions = np.array([[0, 0],
-                                        [0, 1],
-                                        [-1, 0],
-                                        [0, -1],
-                                        [1, 0]])
 
-    # This will match each sensor location to the mounting offsets provided
+def sensor_positions_test(expected, platform):
+    """
+    This function asserts that the sensor positions on the platform have been
+    correctly updated when the platform has been moved or sensor mounted on the
+    platform.
+
+    :param expected: nD array of expected sensor position post rotation
+    :param platform: platform object
+    :return:
+    """
     expected_radar_position = np.zeros(
-        [len(platform2.sensors), platform2.mounting_offsets.shape[1]])
-    for i in range(len(platform2.sensors)):
-        radar_position = platform2.sensors[i].position
-        for j in range(mounting_offsets.shape[1]):
-            expected_radar_position[i, j] = (rotated_radar_positions[i, j] +
-                                             platform2.state.state_vector[
-                                                 platform2.mounting_mappings[
+        [len(platform.sensors), platform.mounting_offsets.shape[1]])
+    for i in range(len(platform.sensors)):
+        radar_position = platform.sensors[i].position
+        for j in range(platform.mounting_offsets.shape[1]):
+            expected_radar_position[i, j] = (expected[i, j] +
+                                             platform.state.state_vector[
+                                                 platform.mounting_mappings[
                                                      i, j]])
-            # check that outputs are close (allowing for rounding errors in
-            # floating point maths)
-            assert (np.isclose(expected_radar_position[i, j],
-                               radar_position[j], atol=1e-8))
-
-    # Move the unrotated platform... does not work?
-    platform1.move(new_timestamp)
-
-    # This will match each sensor location to the mounting offsets provided
-    expected_radar_position = np.zeros(
-        [len(platform1.sensors), platform1.mounting_offsets.shape[1]])
-    for i in range(len(platform1.sensors)):
-        radar_position = platform1.sensors[i].position
-        for j in range(platform1.mounting_offsets.shape[1]):
-            expected_radar_position[i, j] = (platform1.mounting_offsets[i, j] +
-                                             platform1.state.state_vector[
-                                                 platform1.mounting_mappings[
-                                                     i, j]])
-            # check that outputs are close (allowing for rounding errors in
-            # floating point maths
-            assert (np.isclose(expected_radar_position[i, j],
-                               radar_position[j], atol=1e-8))
-
-    # Move the platform which has rotated sensors
-    platform2.move(new_timestamp)
-
-    # This will match each sensor location to the mounting offsets provided
-    expected_radar_position = np.zeros(
-        [len(platform2.sensors), platform2.mounting_offsets.shape[1]])
-    for i in range(len(platform2.sensors)):
-        radar_position = platform2.sensors[i].position
-        for j in range(platform2.mounting_offsets.shape[1]):
-            expected_radar_position[i, j] = (rotated_radar_positions[i, j] +
-                                             platform2.state.state_vector[
-                                                 platform2.mounting_mappings[
-                                                     i, j]])
-            # check that outputs are close (allowing for rounding errors in
-            # floating point maths
-            assert (np.isclose(expected_radar_position[i, j],
-                               radar_position[j], atol=1e-8))
+        assert (np.allclose(expected_radar_position[i, j], radar_position[j]))

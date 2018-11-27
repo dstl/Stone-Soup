@@ -14,11 +14,8 @@ class SensorPlatform(Platform):
     capable of moving based upon the :class:`~.TransitionModel`.
 
     The location of platform mounted sensors will be maintained relative to \
-    the sensor position. Simple platforms move within a cartesian space.
-
-    Notes
-    -----
-    The current implementation of this class assumes an 2D Cartesian plane.
+    the sensor position. Simple platforms move within a 2 or 3 dimensional \
+    rectangular cartesian space.
 
     """
 
@@ -179,7 +176,7 @@ def _rot3d(vec):
     This approach determines the platforms attitude based upon its velocity
     component. It does not take into account potential platform roll, nor
     are the components calculated to account for physical artifacts such as
-    platform trim (e.g. aircraft yaw when flying forwards).
+    platform trim (e.g. aircraft yaw whilst flying forwards).
 
     The process determines the yaw (x-y) and pitch (z to x-y plane) angles.
     The rotation matrix for a rotation by yaw around the Z-axis is then
@@ -199,28 +196,6 @@ def _rot3d(vec):
     rot_y = expm(np.cross(np.eye(3), np.dot(rot_z, y_axis) * pitch))
 
     return np.dot(rot_y, rot_z)
-
-
-def _perpendicular_vector(vec):
-    # TODO delete this method, no longer required
-    if vec[1] == 0 and vec[2] == 0:
-        if vec[0] == 0:
-            raise ValueError('zero vector')
-        else:
-            return np.cross(np.transpose(vec), [0, 1, 0])
-    return np.cross(np.transpose(vec), [1, 0, 0])
-
-
-def _rot_y(theta):
-    """ Returns a rotation matrix which will rotate a vector around the Y axis
-    in a counter clockwise direction by theta radians
-
-    :param theta:
-    :return: 3x3 rotation matrix
-    """
-    return np.array([[cos(theta), 0, sin(theta)],
-                     [0, 1, 0],
-                     [-sin(theta), 0, cos(theta)]])
 
 
 def _rot_z(theta):

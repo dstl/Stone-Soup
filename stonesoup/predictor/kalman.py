@@ -171,7 +171,7 @@ class ExtendedKalmanPredictor(KalmanPredictor):
         def transition_function(x):
             return self.transition_model.function(x, timestamp=timestamp,
                                                   time_interval=time_interval,
-                                                  **kwargs)
+                                                  noise=0, **kwargs)
 
         transition_noise_covar = self.transition_model.covar(
             timestamp=timestamp,
