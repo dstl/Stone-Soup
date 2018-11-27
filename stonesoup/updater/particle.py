@@ -19,18 +19,14 @@ class ParticleUpdater(Updater):
     resampler = Property(Resampler,
                          doc='Resampler to prevent particle degeneracy')
 
-    def update(self, prediction, measurement,
-               measurement_prediction=None, **kwargs):
+    def update(self, hypothesis, **kwargs):
         """Particle Filter update step
 
         Parameters
         ----------
-        prediction : :class:`~.ParticleStatePrediction`
-            The state prediction
-        measurement : :class:`~.Detection`
-            The measurement
-        measurement_prediction : None
-            Not required and ignored if passed.
+        hypothesis : :class:`~.Hypothesis`
+            Hypothesis with predicted state and associated detection used for
+            updating.
 
         Returns
         -------
@@ -38,23 +34,24 @@ class ParticleUpdater(Updater):
             The state posterior
         """
 
-        for particle in prediction.particles:
+        for particle in hypothesis.prediction.particles:
             particle.weight *= self.measurement_model.pdf(
-                measurement.state_vector, particle.state_vector, **kwargs)
+                hypothesis.measurement.state_vector, particle.state_vector,
+                **kwargs)
 
         # Normalise the weights
-        sum_w = Probability.sum(i.weight for i in prediction.particles)
-        for particle in prediction.particles:
+        sum_w = Probability.sum(
+            i.weight for i in hypothesis.prediction.particles)
+        for particle in hypothesis.prediction.particles:
             particle.weight /= sum_w
 
         # Resample
-        new_particles = self.resampler.resample(prediction.particles)
+        new_particles = self.resampler.resample(
+            hypothesis.prediction.particles)
 
         return ParticleStateUpdate(new_particles,
-                                   prediction,
-                                   measurement_prediction,
-                                   measurement,
-                                   prediction.timestamp)
+                                   hypothesis,
+                                   timestamp=hypothesis.measurement.timestamp)
 
     @lru_cache()
     def get_measurement_prediction(self, state_prediction, **kwargs):

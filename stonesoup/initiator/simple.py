@@ -5,6 +5,7 @@ from .base import Initiator, GaussianInitiator
 from ..base import Property
 from ..updater import KalmanUpdater
 from ..models.measurement import MeasurementModel
+from ..types.hypothesis import Hypothesis
 from ..types.numeric import Probability
 from ..types.particle import Particle
 from ..types.state import GaussianState
@@ -39,8 +40,8 @@ class SinglePointInitiator(GaussianInitiator):
 
         tracks = set()
         for detection in unassociated_detections:
-            track_state = updater.update(
-                self.prior_state, detection, measurement_prediction)
+            track_state = updater.update(Hypothesis(
+                self.prior_state, detection, measurement_prediction))
             track = Track([track_state])
             tracks.add(track)
 
@@ -80,9 +81,7 @@ class LinearMeasurementInitiator(GaussianInitiator):
                 prior_state_vector + inv_model_matrix@detection.state_vector,
                 prior_covar
                 + inv_model_matrix@model_covar@model_matrix.astype(bool),
-                None,
-                None,
-                detection,
+                Hypothesis(None, detection),
                 timestamp=detection.timestamp)
             ]))
         return tracks
@@ -126,9 +125,7 @@ class GaussianParticleInitiator(Initiator):
                 for sample in samples]
             track[-1] = ParticleStateUpdate(
                 particles,
-                track.state.prediction,
-                track.state.measurement_prediction,
-                track.state.measurement,
+                track.hypothesis,
                 timestamp=track.timestamp)
 
         return tracks

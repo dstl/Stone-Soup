@@ -43,11 +43,11 @@ class MahalanobisDistanceHypothesiser(Hypothesiser):
 
             hypotheses.append(
                 DistanceHypothesis(
-                    prediction, measurement_prediction, detection, distance))
+                    prediction, detection, distance, measurement_prediction))
 
         # Missed detection hypothesis with distance as 'missed_distance'
         prediction = self.predictor.predict(track.state, timestamp=timestamp)
         hypotheses.append(
-            DistanceHypothesis(prediction, None, None, self.missed_distance))
+            DistanceHypothesis(prediction, None, self.missed_distance))
 
         return sorted(hypotheses, reverse=True)

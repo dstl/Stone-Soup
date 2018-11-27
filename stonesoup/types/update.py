@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from ..base import Property
 from .base import Type
+from .hypothesis import Hypothesis
 from .state import State, GaussianState, ParticleState
-from ..types import MeasurementPrediction, Detection
 
 
 class Update(Type):
@@ -11,12 +11,8 @@ class Update(Type):
     The base update class. Updates are returned by :class:'~Updater' objects
      and contain the information that was used to perform the updating"""
 
-    prediction = Property(State,
-                          doc="Prior state before updating")
-    measurement_prediction = Property(MeasurementPrediction,
-                                      doc="Prediction in measurement space")
-    measurement = Property(Detection,
-                           doc="Detection used to update state")
+    hypothesis = Property(Hypothesis,
+                          doc="Hypothesis used for updating")
 
 
 class StateUpdate(Update, State):
@@ -24,8 +20,7 @@ class StateUpdate(Update, State):
 
     Most simple state update type, where everything only has time
     and a state vector. Requires a prior state that was updated,
-    the prediction of the measurement and the measurement
-    used to update the prior.
+    and the hypothesis used to update the prior.
     """
 
 

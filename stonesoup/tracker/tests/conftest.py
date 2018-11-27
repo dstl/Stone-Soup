@@ -60,7 +60,7 @@ def data_associator():
                     if np.array_equal(measurement_prediction.state_vector,
                                       detection.state_vector):
                         associations[track] = DistanceHypothesis(
-                            prediction, measurement_prediction, detection, 0)
+                            prediction, detection, 0, measurement_prediction)
                         break
                 else:
                     associations[track] = DistanceHypothesis(
@@ -72,6 +72,6 @@ def data_associator():
 @pytest.fixture()
 def updater():
     class TestUpdater:
-        def update(self, prediction, measurement, measurement_prediction):
-            return State(measurement.state_vector)
+        def update(self, hypothesis):
+            return State(hypothesis.measurement.state_vector)
     return TestUpdater()

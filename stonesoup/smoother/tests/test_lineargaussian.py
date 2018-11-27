@@ -5,6 +5,7 @@ import datetime
 import numpy as np
 
 from stonesoup.types.detection import Detection
+from stonesoup.types.hypothesis import Hypothesis
 from stonesoup.types.state import GaussianState
 from stonesoup.types.track import Track
 from stonesoup.models.transition.linear import ConstantVelocity
@@ -50,7 +51,8 @@ def test_backwards_smoother():
     track.append(initial_state)
     predictor = KalmanPredictor(transition_model=trans_model)
     updater = KalmanUpdater(measurement_model=meas_model)
-    new_state = updater.update(track.state, detections[0])
+    hypothesis = Hypothesis(track.state, detections[0])
+    new_state = updater.update(hypothesis)
     track[0] = new_state
 
     # Filter Remaining Detections.
@@ -58,7 +60,8 @@ def test_backwards_smoother():
         time = detections[t].timestamp
         state_pred = predictor.predict(track.state, timestamp=time)
         estimates.append(state_pred)
-        state_post = updater.update(state_pred, detections[t])
+        hypothesis = Hypothesis(state_pred, detections[t])
+        state_post = updater.update(hypothesis)
         track.append(state_post)
 
     # Smooth Track

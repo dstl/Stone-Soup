@@ -20,13 +20,11 @@ def hypothesiser():
                                                   prediction.timestamp)
                 distance = abs(track.state_vector - detection.state_vector)
 
-                hypotheses.append(DistanceHypothesis(prediction,
-                                                     measurement_prediction,
-                                                     detection, distance))
+                hypotheses.append(DistanceHypothesis(
+                    prediction, detection, distance, measurement_prediction))
 
             prediction = GaussianStatePrediction(track.state_vector + 1,
                                                  track.covar * 2, timestamp)
-            hypotheses.append(DistanceHypothesis(prediction, None, None,
-                                                 distance=10))
+            hypotheses.append(DistanceHypothesis(prediction, None, 10))
             return hypotheses
     return TestGaussianHypothesiser()
