@@ -5,7 +5,7 @@ import numpy as np
 
 from ..distance import MahalanobisDistanceHypothesiser
 from ..filtered import FilteredDetectionsHypothesiser
-from stonesoup.types import Track, GaussianStateUpdate, Detection
+from stonesoup.types import Track, GaussianStateUpdate, Detection, Hypothesis
 
 
 def test_filtereddetections(predictor, updater):
@@ -22,9 +22,9 @@ def test_filtereddetections(predictor, updater):
     track = Track([GaussianStateUpdate(
                     np.array([[0]]),
                     np.array([[1]]),
-                    None,
-                    None,
-                    Detection(np.array([[0]]), metadata={"MMSI": 12345}),
+                    Hypothesis(
+                        None,
+                        Detection(np.array([[0]]), metadata={"MMSI": 12345})),
                     timestamp=timestamp)])
     detection1 = Detection(np.array([[2]]), metadata={"MMSI": 12345})
     detection2 = Detection(np.array([[3]]), metadata={"MMSI": 99999})
@@ -35,12 +35,12 @@ def test_filtereddetections(predictor, updater):
     # There are 2 hypotheses - Detection 1,  Missed Dectection
     # - Detection 2 has different metadata, so no hypothesis
     assert len(hypotheses) == 2
-    assert all((hypothesis.detection is None) or
-               (hypothesis.detection.metadata['MMSI'] == 12345)
+    assert all((hypothesis.measurement is None) or
+               (hypothesis.measurement.metadata['MMSI'] == 12345)
                for hypothesis in hypotheses)
 
     # There is a missed detection hypothesis
-    assert any(hypothesis.detection is None for hypothesis in hypotheses)
+    assert any(hypothesis.measurement is None for hypothesis in hypotheses)
 
     # Each hypothesis has a distance attribute
     assert all(hypothesis.distance >= 0 for hypothesis in hypotheses)
@@ -61,9 +61,9 @@ def test_filtereddetections_empty_detections(predictor, updater):
     track = Track([GaussianStateUpdate(
         np.array([[0]]),
         np.array([[1]]),
-        None,
-        None,
-        Detection(np.array([[0]]), metadata={"MMSI": 12345}),
+        Hypothesis(
+            None,
+            Detection(np.array([[0]]), metadata={"MMSI": 12345})),
         timestamp=timestamp)])
     detections = {}
 
@@ -73,7 +73,7 @@ def test_filtereddetections_empty_detections(predictor, updater):
     assert len(hypotheses) == 1
 
     # There is a missed detection hypothesis
-    assert any(hypothesis.detection is None for hypothesis in hypotheses)
+    assert any(hypothesis.measurement is None for hypothesis in hypotheses)
 
 
 def test_filtereddetections_no_track_metadata(predictor, updater):
@@ -91,9 +91,9 @@ def test_filtereddetections_no_track_metadata(predictor, updater):
     track = Track([GaussianStateUpdate(
         np.array([[0]]),
         np.array([[1]]),
-        None,
-        None,
-        Detection(np.array([[0]]), metadata={}),
+        Hypothesis(
+            None,
+            Detection(np.array([[0]]), metadata={})),
         timestamp=timestamp)])
     detection1 = Detection(np.array([[2]]), metadata={"MMSI": 12345})
     detection2 = Detection(np.array([[3]]), metadata={"MMSI": 99999})
@@ -103,13 +103,13 @@ def test_filtereddetections_no_track_metadata(predictor, updater):
 
     # There are 3 hypotheses - Detection 1, Detection 2, Missed Detection
     assert len(hypotheses) == 3
-    assert all((hypothesis.detection is None) or
-               (hypothesis.detection.metadata['MMSI'] == 12345) or
-               (hypothesis.detection.metadata['MMSI'] == 99999)
+    assert all((hypothesis.measurement is None) or
+               (hypothesis.measurement.metadata['MMSI'] == 12345) or
+               (hypothesis.measurement.metadata['MMSI'] == 99999)
                for hypothesis in hypotheses)
 
     # There is a missed detection hypothesis
-    assert any(hypothesis.detection is None for hypothesis in hypotheses)
+    assert any(hypothesis.measurement is None for hypothesis in hypotheses)
 
     # Each hypothesis has a distance attribute
     assert all(hypothesis.distance >= 0 for hypothesis in hypotheses)
@@ -132,9 +132,9 @@ def test_filtereddetections_no_matching_metadata(predictor, updater):
     track = Track([GaussianStateUpdate(
                     np.array([[0]]),
                     np.array([[1]]),
-                    None,
-                    None,
-                    Detection(np.array([[0]]), metadata={"MMSI": 12345}),
+                    Hypothesis(
+                        None,
+                        Detection(np.array([[0]]), metadata={"MMSI": 12345})),
                     timestamp=timestamp)])
     detection1 = Detection(np.array([[2]]), metadata={"MMSI": 45678})
     detection2 = Detection(np.array([[3]]), metadata={"MMSI": 99999})
@@ -146,4 +146,4 @@ def test_filtereddetections_no_matching_metadata(predictor, updater):
     assert len(hypotheses) == 1
 
     # There is a missed detection hypothesis
-    assert any(hypothesis.detection is None for hypothesis in hypotheses)
+    assert any(hypothesis.measurement is None for hypothesis in hypotheses)

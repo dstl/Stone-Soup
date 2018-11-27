@@ -2,7 +2,8 @@
 import uuid
 
 from ..base import Property
-from ..types import State, StateMutableSequence
+from .state import State, StateMutableSequence
+from .update import Update
 
 
 class Track(StateMutableSequence):
@@ -44,8 +45,8 @@ class Track(StateMutableSequence):
         metadata = {}
 
         for state in self:
-            if hasattr(state, "measurement") \
-                    and state.measurement.metadata is not None:
-                metadata.update(state.measurement.metadata)
+            if isinstance(state, Update) \
+                    and state.hypothesis.measurement.metadata is not None:
+                metadata.update(state.hypothesis.measurement.metadata)
 
         return metadata
