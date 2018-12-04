@@ -3,6 +3,8 @@
 
 import numpy as np
 
+# from .types.state import StateVector
+
 
 def tria(matrix):
     """Square Root Matrix Triangularization
@@ -78,15 +80,15 @@ def cart2pol(x, y):
 
     Parameters
     ----------
-    x : float
+    x: float
         The x coordinate
-    y : float
+    y: float
         the y coordinate
 
     Returns
     -------
-    (float,float)
-        A tuple of the form `(range,bearing)`
+    (float, float)
+        A tuple of the form `(range, bearing)`
 
     """
 
@@ -100,18 +102,18 @@ def cart2sphere(x, y, z):
 
     Parameters
     ----------
-    x : float
+    x: float
         The x coordinate
-    y : float
+    y: float
         the y coordinate
-    z : float
+    z: float
         the z coordinate
 
     Returns
     -------
-    (float,float, float)
-        A tuple of the form `(range,bearing, elevation)`
-        bearing and elevation in radians. Elevation is measured from x,y plane
+    (float, float, float)
+        A tuple of the form `(range, bearing, elevation)`
+        bearing and elevation in radians. Elevation is measured from x, y plane
 
     """
 
@@ -126,18 +128,18 @@ def cart2angles(x, y, z):
 
     Parameters
     ----------
-    x : float
+    x: float
         The x coordinate
-    y : float
+    y: float
         the y coordinate
-    z : float
+    z: float
         the z coordinate
 
     Returns
     -------
     (float, float)
         A tuple of the form `(bearing, elevation)`
-        bearing and elevation in radians. Elevation is measured from x,y plane
+        bearing and elevation in radians. Elevation is measured from x, y plane
 
     """
     _, phi, theta = cart2sphere(x, y, z)
@@ -149,15 +151,15 @@ def pol2cart(rho, phi):
 
     Parameters
     ----------
-    rho : float
-        Range (a.k.a. radial distance)
-    phi : float
+    rho: float
+        Range(a.k.a. radial distance)
+    phi: float
         Bearing, expressed in radians
 
     Returns
     -------
-    (float,float)
-        A tuple of the form `(x,y)`
+    (float, float)
+        A tuple of the form `(x, y)`
     """
 
     x = rho * np.cos(phi)
@@ -170,20 +172,125 @@ def sphere2cart(rho, phi, theta):
 
     Parameters
     ----------
-    rho : float
-        Range (a.k.a. radial distance)
-    phi : float
+    rho: float
+        Range(a.k.a. radial distance)
+    phi: float
         Bearing, expressed in radians
-    theta : float
-        Elevation expressed in radians, measured from x,y plane
+    theta: float
+        Elevation expressed in radians, measured from x, y plane
 
     Returns
     -------
-    (float,float,float)
-        A tuple of the form `(x,y,z)`
+    (float, float, float)
+        A tuple of the form `(x, y, z)`
     """
 
     x = rho * np.cos(phi) * np.cos(theta)
     y = rho * np.sin(phi) * np.cos(theta)
     z = rho * np.sin(theta)
     return (x, y, z)
+
+
+def rotx(theta):
+    r"""Rotation matrix for rotations around x-axis
+
+    For a given rotation angle: math: `\theta`, this function evaluates\
+    and returns the rotation matrix:
+
+    .. math: :
+        : label: Rx
+        R_{x}(\theta) = \begin{bmatrix}
+                        1 & 0 & 0 \\
+                        0 & cos(\theta) & -sin(\theta) \\
+                        0 & sin(\theta) & cos(\theta)
+                        \end{bmatrix}
+
+    Parameters
+    ----------
+    theta: float
+        Rotation angle specified as a real-valued number. The rotation angle\
+        is positive if the rotation is in the clockwise direction\
+        when viewed by an observer looking down the x-axis towards the\
+        origin. Angle units are in radians.
+
+    Returns
+    -------
+    : : class: `numpy.ndarray` of shape (3, 3)
+        Rotation matrix around x-axis of the form eq: `Rx`
+    """
+
+    c, s = np.cos(theta), np.sin(theta)
+
+    return np.array([[1, 0, 0],
+                     [0, c, -s],
+                     [0, s, c]])
+
+
+def roty(theta):
+    r"""Rotation matrix for rotations around y-axis
+
+    For a given rotation angle: math: `\theta`, this function evaluates\
+    and returns the rotation matrix:
+
+    .. math: :
+        : label: Ry
+        R_{y}(\theta) = \begin{bmatrix}
+                        cos(\theta) & 0 & sin(\theta) \\
+                        0 & 1 & 0 \\
+                        - sin(\theta) & 0 & cos(\theta)
+                        \end{bmatrix}
+
+    Parameters
+    ----------
+    theta: float
+        Rotation angle specified as a real-valued number. The rotation angle\
+        is positive if the rotation is in the clockwise direction\
+        when viewed by an observer looking down the y-axis towards the\
+        origin. Angle units are in radians.
+
+    Returns
+    -------
+    : : class: `numpy.ndarray` of shape (3, 3)
+        Rotation matrix around y-axis of the form eq: `Ry`
+    """
+
+    c, s = np.cos(theta), np.sin(theta)
+
+    return np.array([[c, 0, s],
+                     [0, 1, 0],
+                     [-s, 0, c]])
+
+
+def rotz(theta):
+    r"""Rotation matrix for rotations around z-axis
+
+    For a given rotation angle: math: `\theta`, this function evaluates\
+    and returns the rotation matrix:
+
+    .. math: :
+        : label: Rz
+        R_{z}(\theta) = \begin{bmatrix}
+                        cos(\theta) & -sin(\theta) & 0 \\
+                        sin(\theta) & cos(\theta) & 0 \\
+                        0 & 0 & 1
+                        \end{bmatrix}
+
+    Parameters
+    ----------
+    theta: float
+        Rotation angle specified as a real-valued number. The rotation angle\
+        is positive if the rotation is in the clockwise direction\
+        when viewed by an observer looking down the z-axis towards the\
+        origin. Angle units are in radians.
+
+    Returns
+    -------
+    : : class: `numpy.ndarray` of shape (3, 3)
+        Rotation matrix around z-axis of the form eq: `Rz`
+    """
+
+    c, s = np.cos(theta), np.sin(theta)
+
+    return np.array([[c, -s, 0],
+                     [s, c, 0],
+                     [0, 0, 1]])
