@@ -146,29 +146,37 @@ def radars_2d():
 
     # define arbitrary sensor origin
     radar1_position = StateVector(np.array(([[100], [100]])))
+    radar1_orientation = StateVector(np.array(([[0], [0], [0]])))
     radar2_position = StateVector(np.array(([[100], [100]])))
+    radar2_orientation = StateVector(np.array(([[0], [0], [0]])))
     radar3_position = StateVector(np.array(([[100], [100]])))
+    radar3_orientation = StateVector(np.array(([[0], [0], [0]])))
     radar4_position = StateVector(np.array(([[100], [100]])))
+    radar4_orientation = StateVector(np.array(([[0], [0], [0]])))
     radar5_position = StateVector(np.array(([[100], [100]])))
+    radar5_orientation = StateVector(np.array(([[0], [0], [0]])))
 
     measurement_mapping = np.array([0, 2])
 
     # Create 5 simple radar sensor objects
     radar1 = SimpleRadar(
         position=radar1_position,
+        orientation=radar1_orientation,
         ndim_state=4,
         mapping=measurement_mapping,
-        noise_covar=noise_covar
+        noise_covar=noise_covar,
     )
 
     radar2 = SimpleRadar(
         position=radar2_position,
+        orientation=radar2_orientation,
         ndim_state=4,
         mapping=measurement_mapping,
         noise_covar=noise_covar
     )
     radar3 = SimpleRadar(
         position=radar3_position,
+        orientation=radar3_orientation,
         ndim_state=4,
         mapping=measurement_mapping,
         noise_covar=noise_covar
@@ -176,12 +184,14 @@ def radars_2d():
 
     radar4 = SimpleRadar(
         position=radar4_position,
+        orientation=radar4_orientation,
         ndim_state=4,
         mapping=measurement_mapping,
         noise_covar=noise_covar
     )
     radar5 = SimpleRadar(
         position=radar5_position,
+        orientation=radar5_orientation,
         ndim_state=4,
         mapping=measurement_mapping,
         noise_covar=noise_covar
@@ -198,18 +208,26 @@ def radars_3d():
 
     # Note 1 - the radar position is irrelevant once mounted
     radar1_position = StateVector(np.array(([[100], [100], [100]])))
+    radar1_orientation = StateVector(np.array(([[0], [0], [0]])))
     radar2_position = StateVector(np.array(([[100], [100], [100]])))
+    radar2_orientation = StateVector(np.array(([[0], [0], [0]])))
     radar3_position = StateVector(np.array(([[100], [100], [100]])))
+    radar3_orientation = StateVector(np.array(([[0], [0], [0]])))
     radar4_position = StateVector(np.array(([[100], [100], [100]])))
+    radar4_orientation = StateVector(np.array(([[0], [0], [0]])))
     radar5_position = StateVector(np.array(([[100], [100], [100]])))
+    radar5_orientation = StateVector(np.array(([[0], [0], [0]])))
     radar6_position = StateVector(np.array(([[100], [100], [100]])))
+    radar6_orientation = StateVector(np.array(([[0], [0], [0]])))
     radar7_position = StateVector(np.array(([[100], [100], [100]])))
+    radar7_orientation = StateVector(np.array(([[0], [0], [0]])))
 
     measurement_mapping = np.array([0, 2, 4])
 
     # Create 5 simple radar sensor objects
     radar1 = SimpleRadar(
         position=radar1_position,
+        orientation=radar1_orientation,
         ndim_state=6,
         mapping=measurement_mapping,
         noise_covar=noise_covar
@@ -217,12 +235,14 @@ def radars_3d():
 
     radar2 = SimpleRadar(
         position=radar2_position,
+        orientation=radar2_orientation,
         ndim_state=6,
         mapping=measurement_mapping,
         noise_covar=noise_covar
     )
     radar3 = SimpleRadar(
         position=radar3_position,
+        orientation=radar3_orientation,
         ndim_state=6,
         mapping=measurement_mapping,
         noise_covar=noise_covar
@@ -230,24 +250,28 @@ def radars_3d():
 
     radar4 = SimpleRadar(
         position=radar4_position,
+        orientation=radar4_orientation,
         ndim_state=6,
         mapping=measurement_mapping,
         noise_covar=noise_covar
     )
     radar5 = SimpleRadar(
         position=radar5_position,
+        orientation=radar5_orientation,
         ndim_state=6,
         mapping=measurement_mapping,
         noise_covar=noise_covar
     )
     radar6 = SimpleRadar(
         position=radar6_position,
+        orientation=radar6_orientation,
         ndim_state=6,
         mapping=measurement_mapping,
         noise_covar=noise_covar
     )
     radar7 = SimpleRadar(
         position=radar7_position,
+        orientation=radar7_orientation,
         ndim_state=6,
         mapping=measurement_mapping,
         noise_covar=noise_covar
@@ -259,22 +283,22 @@ def radars_3d():
 def mounting_offsets_2d():
     # Generate sensor mounting offsets for testing purposes
     return np.array([[0, 0],
-                    [1, 0],
-                    [0, 1],
-                    [-1, 0],
-                    [0, -1]])
+                     [1, 0],
+                     [0, 1],
+                     [-1, 0],
+                     [0, -1]])
 
 
 @pytest.fixture(scope='session')
 def mounting_offsets_3d():
     # Generate sensor mounting offsets for testing purposes
     return np.array([[0, 0, 0],
-                    [1, 0, 0],
-                    [0, 1, 0],
-                    [-1, 0, 0],
-                    [0, -1, 0],
-                    [0, 0, 1],
-                    [0, 0, -1]])
+                     [1, 0, 0],
+                     [0, 1, 0],
+                     [-1, 0, 0],
+                     [0, -1, 0],
+                     [0, 0, 1],
+                     [0, 0, -1]])
 
 
 @pytest.fixture(params=[True, False], ids=["Moving", "Static"])
