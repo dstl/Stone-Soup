@@ -7,7 +7,7 @@ from ...base import Property
 from ...types.array import StateVector, CovarianceMatrix
 from ..base import NonLinearModel, GaussianModel
 from .base import MeasurementModel
-from ...functions import cart2pol, cart2sphere, cart2angles
+from ...functions import cart2pol, cart2sphere, cart2angles, rotx, roty, rotz
 
 
 class RangeBearingElevationGaussianToCartesian(MeasurementModel,
@@ -65,10 +65,17 @@ class RangeBearingElevationGaussianToCartesian(MeasurementModel,
     """  # noqa:E501
 
     noise_covar = Property(CovarianceMatrix, doc="Noise covariance")
-    origin_offset = Property(
+    translation_offset = Property(
         StateVector, default=StateVector(sp.array([[0], [0], [0]])),
-        doc="A 3x1 array specifying the origin offset in terms of :math:`x,y,z`\
+        doc="A 3x1 array specifying the Cartesian origin offset in terms of :math:`x,y,z`\
             coordinates.")
+    rotation_offset = Property(
+        StateVector, default=StateVector(sp.array([[0], [0], [0]])),
+        doc="A 3x1 array of angles (rad), specifying the clockwise rotation\
+            around each Cartesian axis in the order :math:`z,y,x`.\
+            The rotation angles are positive if the rotation is in the \
+            clockwise direction when viewed by an observer looking\
+            along the respective rotation axis, towards the origin.")
 
     @property
     def ndim_meas(self):
@@ -81,6 +88,24 @@ class RangeBearingElevationGaussianToCartesian(MeasurementModel,
         """
 
         return 3
+
+    @property
+    def _rotation_matrix(self):
+        """_rotation_matrix getter method
+
+        Calculates and returns the (3D) axis rotation matrix.
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape (3, 3)
+            The model (3D) rotation matrix.
+        """
+
+        theta_z = -self.rotation_offset[0, 0]
+        theta_y = -self.rotation_offset[1, 0]
+        theta_x = -self.rotation_offset[2, 0]
+
+        return rotz(theta_z)@roty(theta_y)@rotx(theta_x)
 
     def function(self, state_vector, noise=None, **kwargs):
         r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
@@ -102,13 +127,28 @@ class RangeBearingElevationGaussianToCartesian(MeasurementModel,
         if noise is None:
             noise = self.rvs()
 
-        x = state_vector[self.mapping[0]][0] - self.origin_offset[0][0]
-        y = state_vector[self.mapping[1]][0] - self.origin_offset[1][0]
-        z = state_vector[self.mapping[2]][0] - self.origin_offset[2][0]
+        # Account for origin offset
+        xyz = [[state_vector[self.mapping[0], 0]
+                - self.translation_offset[0, 0]],
+               [state_vector[self.mapping[1], 0]
+                - self.translation_offset[1, 0]],
+               [state_vector[self.mapping[2], 0]
+                - self.translation_offset[2, 0]]]
 
+        # Rotate coordinates
+        xyz_rot = self._rotation_matrix @ xyz
+
+        # Extract transformed points
+        x = xyz_rot[0, 0]
+        y = xyz_rot[1, 0]
+        z = xyz_rot[2, 0]
+
+        # Convert to Spherical
         rho, phi, theta = cart2sphere(x, y, z)
 
-        return sp.array([[theta], [phi], [rho]]) + noise
+        return sp.array([[theta],
+                         [phi],
+                         [rho]]) + noise
 
     def covar(self, **kwargs):
         """Returns the measurement model noise covariance matrix.
@@ -236,7 +276,7 @@ class RangeBearingGaussianToCartesian(
     """  # noqa:E501
 
     noise_covar = Property(CovarianceMatrix, doc="Noise covariance")
-    origin_offset = Property(
+    translation_offset = Property(
         StateVector, default=StateVector(sp.array([[0], [0]])),
         doc="A 2x1 array specifying the origin offset in terms of :math:`x,y`\
             coordinates.")
@@ -273,9 +313,21 @@ class RangeBearingGaussianToCartesian(
         if noise is None:
             noise = self.rvs()
 
-        x = state_vector[self.mapping[0]][0] - self.origin_offset[0][0]
-        y = state_vector[self.mapping[1]][0] - self.origin_offset[1][0]
+        # Account for origin offset
+        xyz = [[state_vector[self.mapping[0], 0]
+                - self.translation_offset[0, 0]],
+               [state_vector[self.mapping[1], 0]
+                - self.translation_offset[1, 0]],
+               [0]]
 
+        # Rotate coordinates
+        xyz_rot = self._rotation_matrix @ xyz
+
+        # Extract transformed points
+        x = xyz_rot[0, 0]
+        y = xyz_rot[1, 0]
+
+        # Covert to polar
         rho, phi = cart2pol(x, y)
 
         return sp.array([[phi], [rho]]) + noise
@@ -332,7 +384,7 @@ class BearingElevationGaussianToCartesian(RangeBearingGaussianToCartesian):
     """  # noqa:E501
 
     noise_covar = Property(CovarianceMatrix, doc="Noise covariance")
-    origin_offset = Property(
+    translation_offset = Property(
         StateVector, default=StateVector(sp.array([[0], [0], [0]])),
         doc="A 3x1 array specifying the origin offset in terms of :math:`x,y,z`\
             coordinates.")
@@ -369,10 +421,24 @@ class BearingElevationGaussianToCartesian(RangeBearingGaussianToCartesian):
         if noise is None:
             noise = self.rvs()
 
-        x = state_vector[self.mapping[0]][0] - self.origin_offset[0][0]
-        y = state_vector[self.mapping[1]][0] - self.origin_offset[1][0]
-        z = state_vector[self.mapping[2]][0] - self.origin_offset[2][0]
+        # Account for origin offset
+        xyz = [[state_vector[self.mapping[0], 0]
+                - self.translation_offset[0, 0]],
+               [state_vector[self.mapping[1], 0]
+                - self.translation_offset[1, 0]],
+               [state_vector[self.mapping[2], 0]
+                - self.translation_offset[2, 0]]]
 
+        # Rotate coordinates
+        xyz_rot = self._rotation_matrix @ xyz
+
+        # Extract transformed points
+        x = xyz_rot[0, 0]
+        y = xyz_rot[1, 0]
+        z = xyz_rot[2, 0]
+
+        # Convert to Angles
         phi, theta = cart2angles(x, y, z)
 
-        return sp.array([[theta], [phi]]) + noise
+        return sp.array([[theta],
+                         [phi]]) + noise
