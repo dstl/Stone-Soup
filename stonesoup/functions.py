@@ -75,6 +75,174 @@ def jacobian(fun, x):
     return jac
 
 
+def gauss2sigma(mean, covar, alpha=None, beta=None, kappa=None):
+    """Approximate a given distribution to a Gaussian, using a
+    deterministically selected set of sigma points.
+
+    Parameters
+    ----------
+    mean : :class:`numpy.ndarray` of shape `(Ns, 1)`
+        Mean of the Gaussian
+    covar : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`
+        Covariance of the Gaussian
+    alpha : float, optional
+        Spread of the sigma points. Typically 1e-3.
+        (default is 1e-3)
+    beta : float, optional
+        Used to incorporate prior knowledge of the distribution
+        2 is optimal is the state is normally distributed.
+        (default is 2)
+    kappa : float, optional
+        Secondary spread scaling parameter
+        (default is calculated as `3-Ns`)
+
+    Returns
+    -------
+    : :class:`numpy.ndarray` of shape `(Ns, 2*Ns+1)`
+        An array containing the locations of the sigma points
+    : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
+        An array containing the sigma point mean weights
+    : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
+        An array containing the sigma point covariance weights
+    """
+
+    ndim_state = np.shape(mean)[0]
+
+    if alpha is None:
+        alpha = 1.0
+    if beta is None:
+        beta = 0.0
+    if kappa is None:
+        kappa = 3.0 - ndim_state
+
+    # Compute Square Root matrix via Colesky decomp.
+    sqrt_sigma = np.linalg.cholesky(covar)
+
+    # Calculate scaling factor for all off-center points
+    alpha2 = np.power(alpha, 2)
+    lamda = alpha2 * (ndim_state + kappa) - ndim_state
+    c = ndim_state + lamda
+
+    # Calculate sigma point locations
+    sigma_points = np.tile(mean, (1, 2 * ndim_state + 1))
+    sigma_points[:, 1:(ndim_state + 1)] += sqrt_sigma * np.sqrt(c)
+    sigma_points[:, (ndim_state + 1):] -= sqrt_sigma * np.sqrt(c)
+
+    # Calculate weights
+    mean_weights = np.ones(2 * ndim_state + 1)
+    mean_weights[0] = lamda / c
+    mean_weights[1:] = 0.5 / c
+    covar_weights = np.copy(mean_weights)
+    covar_weights[0] = lamda / c + (1 - alpha2 + beta)
+
+    return sigma_points, mean_weights, covar_weights
+
+
+def sigma2gauss(sigma_points, mean_weights, covar_weights, covar_noise=None):
+    """Calculate estimated mean and covariance from a given set of sigma points
+
+    Parameters
+    ----------
+    sigma_points : :class:`numpy.ndarray` of shape `(Ns, 2*Ns+1)`
+        An array containing the locations of the sigma points
+    mean_weights : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
+        An array containing the sigma point mean weights
+    covar_weights : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
+        An array containing the sigma point covariance weights
+    covar_noise : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`, optional
+        Additive noise covariance matrix
+        (default is 0)
+
+    Returns
+    -------
+    : :class:`numpy.ndarray` of shape `(Ns, 1)`
+        Calculated mean
+    : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`
+        Calculated covariance
+    """
+
+    mean = sigma_points@mean_weights[:, np.newaxis]
+
+    points_diff = sigma_points - mean
+
+    covar = points_diff@(np.diag(covar_weights))@(points_diff.T)
+    if covar_noise is not None:
+        covar = covar + covar_noise
+    return mean, covar
+
+
+def unscented_transform(sigma_points, mean_weights, covar_weights,
+                        fun, points_noise=None, covar_noise=None):
+    """ Apply the Unscented Transform to a set of sigma points
+
+    Apply f to points (with secondary argument points_noise, if available),
+    then approximate the resulting mean and covariance. If sigma_noise is
+    available, treat it as additional variance due to additive noise.
+
+    Parameters
+    ----------
+    sigma_points : :class:`numpy.ndarray` of shape `(Ns, 2*Ns+1)`
+        An array containing the locations of the sigma points
+    mean_weights : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
+        An array containing the sigma point mean weights
+    covar_weights : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
+        An array containing the sigma point covariance weights
+    fun : function handle
+        A (non-linear) transition function
+        Must be of the form "y = fun(x,w)", where y can be a scalar or \
+        :class:`numpy.ndarray` of shape (Ns, 1) or (Ns,)
+    covar_noise : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`, optional
+        Additive noise covariance matrix
+        (default is 0)
+    points_noise : :class:`numpy.ndarray` of shape `(Ns, 2*Ns+1,)`, optional
+        points to pass into f's second argument
+        (default is 0)
+
+    Returns
+    -------
+    : :class:`numpy.ndarray` of shape `(Ns, 1)`
+        Transformed mean
+    : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`
+        Transformed covariance
+    : :class:`~.CovarianceMatrix` of shape `(Ns,Nm)`
+        Calculated cross-covariance matrix
+    : :class:`numpy.ndarray` of shape `(Ns, 2*Ns+1)`
+        An array containing the locations of the transformed sigma points
+    : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
+        An array containing the transformed sigma point mean weights
+    : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
+        An array containing the transformed sigma point covariance weights
+    """
+
+    ndim_state, n_points = sigma_points.shape
+
+    # Transform points through f
+    sigma_points_t = np.zeros((ndim_state, n_points))
+    if points_noise is None:
+        sigma_points_t = np.asarray(
+            [fun(sigma_points[:, i:i+1]) for i in range(n_points)]).squeeze().T
+    else:
+        sigma_points_t = np.asarray(
+            [fun(sigma_points[:, i:i+1], points_noise[:, i:i+1])
+             for i in range(n_points)]).squeeze().T
+
+    # Calculate mean and covariance approximation
+    mean, covar = sigma2gauss(
+        sigma_points_t, mean_weights, covar_weights, covar_noise)
+
+    # Calculate cross-covariance
+    X = sigma_points[:, 1:] - sigma_points[:, 0:1]
+    cross_covar = X @ sigma_points_t[:, 1:].T*covar_weights[1]
+
+    cross_covar = (
+        (sigma_points - sigma_points[:, 0:1])@np.diag(mean_weights)
+        @ (sigma_points_t - mean).T
+    )
+
+    return mean, covar, cross_covar,\
+        sigma_points_t, mean_weights, covar_weights
+
+
 def cart2pol(x, y):
     """Convert Cartesian coordinates to Polar
 
