@@ -1,14 +1,18 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 import pytest
 import numpy as np
 from scipy.stats import multivariate_normal
 
 from stonesoup.models.measurement.nonlinear \
     import RangeBearingGaussianToCartesian
+from stonesoup.models.measurement.nonlinear \
+    import RangeBearingElevationGaussianToCartesian
+from stonesoup.models.measurement.nonlinear \
+    import BearingElevationGaussianToCartesian
 from stonesoup.functions import jacobian as compute_jac
 
 
-def h(state_vector):
+def h2d(state_vector):
     x = state_vector[0][0]
     y = state_vector[1][0]
 
@@ -18,29 +22,70 @@ def h(state_vector):
     return np.array([[phi], [rho]])
 
 
+def h3d(state_vector):
+    x = state_vector[0][0]
+    y = state_vector[1][0]
+    z = state_vector[2][0]
+
+    rho = np.sqrt(x**2 + y**2 + z**2)
+    phi = np.arctan2(y, x)
+    theta = np.arcsin(z/rho)
+
+    return np.array([[theta], [phi], [rho]])
+
+
+def hbearing(state_vector):
+    x = state_vector[0][0]
+    y = state_vector[1][0]
+    z = state_vector[2][0]
+
+    rho = np.sqrt(x**2 + y**2 + z**2)
+    phi = np.arctan2(y, x)
+    theta = np.arcsin(z/rho)
+
+    return np.array([[theta], [phi]])
+
+
 @pytest.mark.parametrize(
-    "h, R, ndim_state, mapping",
+    "h, ModelClass, state_vec, R , mapping",
     [
-        (   # 1D meas, 2D state
-            h,
+        (   # 2D meas, 2D state
+            h2d,
+            RangeBearingGaussianToCartesian,
+            np.array([[0], [1]]),
             np.array([[0.015, 0],
                       [0, 0.1]]),
-            2,
             np.array([0, 1]),
+        ),
+        (   # 3D meas, 3D state
+            h3d,
+            RangeBearingElevationGaussianToCartesian,
+            np.array([[1], [2], [2]]),
+            np.array([[0.05, 0, 0],
+                      [0, 0.015, 0],
+                      [0, 0, 0.1]]),
+            np.array([0, 1, 2]),
+        ),
+        (   # 2D meas, 3D state
+            hbearing,
+            BearingElevationGaussianToCartesian,
+            np.array([[1], [2], [3]]),
+            np.array([[0.05, 0],
+                      [0, 0.015]]),
+            np.array([0, 1, 2]),
         )
     ],
-    ids=["standard"]
+    ids=["standard", "RBE", "BearingsOnly"]
 )
-def test_rbgmodel(h, R, ndim_state, mapping):
+def test_models(h, ModelClass, state_vec, R, mapping):
     """ RangeBearingGaussianToCartesian Measurement Model test """
 
-    # State related variables
-    state_vec = np.array([[0], [1]])
+    ndim_state = state_vec.size
 
     # Create and a measurement model object
-    model = RangeBearingGaussianToCartesian(ndim_state=ndim_state,
-                                            mapping=mapping,
-                                            noise_covar=R)
+    model = ModelClass(ndim_state=ndim_state,
+                       mapping=mapping,
+                       noise_covar=R)
 
     # Project a state throught the model
     # (without noise)
@@ -49,9 +94,11 @@ def test_rbgmodel(h, R, ndim_state, mapping):
 
     # Ensure ```lg.transfer_function()``` returns H
     def fun(x):
-        return model.function(state_vec, noise=0)
+        return model.function(x, noise=0)
     H = compute_jac(fun, state_vec)
     assert np.array_equal(H, model.jacobian(state_vec))
+    # Check Jacobian has proper dimensions
+    assert H.shape == (model.ndim_meas, ndim_state)
 
     # Ensure ```lg.covar()``` returns R
     assert np.array_equal(R, model.covar())
@@ -69,7 +116,7 @@ def test_rbgmodel(h, R, ndim_state, mapping):
         mean=np.array(h(state_vec)).ravel(),
         cov=R).T)
 
-    # Propagate a state vector throught the model
+    # Propagate a state vector through the model
     # (with internal noise)
     meas_pred_w_inoise = model.function(state_vec)
     assert not np.array_equal(meas_pred_w_inoise, h(state_vec))

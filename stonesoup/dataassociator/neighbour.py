@@ -40,14 +40,14 @@ class NearestNeighbour(DataAssociator):
             for track in tracks}
 
         associations = {}
-        associated_detections = set()
+        associated_measurements = set()
         while tracks > associations.keys():
             # Define a 'greedy' association
             best_hypothesis = None
             for track in tracks - associations.keys():
                 for hypothesis in hypotheses[track]:
-                    # A detection may only be associated with a single track
-                    if hypothesis.detection in associated_detections:
+                    # A measurement may only be associated with a single track
+                    if hypothesis.measurement in associated_measurements:
                         continue
                     # best_hypothesis is 'greater than' other
                     if (best_hypothesis is None
@@ -56,8 +56,8 @@ class NearestNeighbour(DataAssociator):
                         best_hypothesis_track = track
 
             associations[best_hypothesis_track] = best_hypothesis
-            if best_hypothesis.detection is not None:
-                associated_detections.add(best_hypothesis.detection)
+            if best_hypothesis.measurement is not None:
+                associated_measurements.add(best_hypothesis.measurement)
 
         return associations
 

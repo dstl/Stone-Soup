@@ -19,8 +19,8 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
 
       y_t = H_k*x_t + v_k,\ \ \ \   v(k)\sim \mathcal{N}(0,R)
 
-    where ``H_k`` is a (1, py:attr:`~ndim_state`) matrix and ``v_k`` is\
-    Gaussian distributed.
+    where ``H_k`` is a (:py:attr:`~ndim_meas`, :py:attr:`~ndim_state`) \
+    matrix and ``v_k`` is Gaussian distributed.
 
     """
 
@@ -43,7 +43,8 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
 
         Returns
         -------
-        :class:`numpy.ndarray` of shape (1, py:attr:`~ndim_state`)
+        :class:`numpy.ndarray` of shape \
+        (:py:attr:`~ndim_meas`, :py:attr:`~ndim_state`)
             The model matrix evaluated given the provided time interval.
         """
 
@@ -67,7 +68,7 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
 
         Returns
         -------
-        :class:`numpy.ndarray` of shape (1, :py:attr:`~ndim_state`)
+        :class:`numpy.ndarray` of shape (:py:attr:`~ndim_meas`, 1)
             The model fumction evaluated given the provided time interval.
         """
 
