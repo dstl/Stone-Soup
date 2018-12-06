@@ -3,7 +3,17 @@ import os
 import functools
 
 from datetime import datetime, date, time, timedelta
-
+"""
+Whereas the raw AIS message format is (mostly) standardised,
+different providers/sources can prepend/append other fields to the data
+and organise their files in any manner as they see fit. For example,
+various providers of space-based AIS like to prepend multiple timestamps
+and other ancilliary information as the data passes through their system.
+Maritime Safety & Security Information System (MSSIS) provides data in time
+ascending or geo-sorted manner. Therefore, we need slightly parsers depending
+on the source. That said, most AIS data can be parsed using either MSSIS (MSSISParser)
+or ExactEarth (EAParser) parser.
+"""
 
 class NMEA(object):
 	"""
@@ -21,9 +31,9 @@ class NMEA(object):
 	def __init__(self, filepath='', reference_time=datetime.combine(date(1970,1,1),time(0,0,0)),
 			max_number=-1, time_span=[-1,-1]):
 		self.max_number = max_number
-		self.time_span = time_span
 		self.reference_utc = reference_time
 		self.ais_file = None
+		self.setTimeSpan(time_span)
 		self.open(filepath)
 
 	def __iter__(self):
@@ -31,14 +41,14 @@ class NMEA(object):
 
 	def open(self, filepath):
 		try:
-			self.ais_file = os.open(filepath, os.O_RDONLY)
+			self.ais_file = open(filepath, 'r')
 		except Exception as e:
 			# Log?
 			print("Error! Unable to open file at {}".format(filepath))
 			print(type(e))
 			raise
 
-	def next(self):
+	def __next__(self):
 		# Read a line from the file
 		ln = self.ais_file.readline()
 		#Check if a line was read
@@ -64,7 +74,7 @@ class NMEA(object):
 
 
 	def close(self):
-		os.close(self.ais_file)
+		self.ais_file.close()
 
 	def checkSum(self, src):
 		"""
@@ -87,21 +97,21 @@ class NMEA(object):
 		Inputs: 1. fields: Array of fields parsed from a line.
 		"""
 		if (int(fields[1]) > int(fields[2])):
-			dummy = self.next()
+			dummy = self.__next__()
 			if (int(dummy[2]) - int(fields[2]) == 1):
 				fields[5] = fields[5] + dummy[5]
 				self.count -= 1
 			else:
-				return self.next()
+				return self.__next__()
 			if (len(dummy) > len(fields)):
 				fields.append(dummy[-1])
 		return fields
 
-	def setTimeSpan(self, t_span):
+	def setTimeSpan(self, time_span, advance_time=False):
 		self.time_span = [-1, -1]
-		if (t_span[0] > 0):
+		if (time_span[0] > 0 and advance_time):
 			self.advanceToTime(time_span[0])
-		self.time_span = t_span
+		self.time_span = time_span
 
 	def advanceToTime(self, t_advance):
 		"""
@@ -116,7 +126,7 @@ class NMEA(object):
 
 		# Fet the time of the first line.
 		self.ais_file.seek(0)
-		first_line = self.next()
+		first_line = self.__next__()
 		self.count = 0
 
 		max_msg_size = 82*10
@@ -125,7 +135,7 @@ class NMEA(object):
 
 		while True:
 			try:
-				last_line = self.next()
+				last_line = self.__next__()
 				self.count = 0
 			except StopIteration:
 				break
@@ -150,7 +160,7 @@ class NMEA(object):
 				file_pos = self.ais_file.tell()
 				while target_time < t_advance:
 					file_pos = self.ais_file.tell()
-					target_time = self.nextRecordTime()
+					target_time = self.__next__RecordTime()
 				self.ais_file.seek(file_pos)
 
 
@@ -161,14 +171,14 @@ class NMEA(object):
 		"""
 		offset = int(float(filesize)*fraction)
 		self.ais_file.seek(offset)
-		return self.nextRecordTime()
+		return self.__next__RecordTime()
 
 	def nextRecordTime(self):
 		"""
 		Get the time of the next message.
 		"""
 		try: 
-			target_line = self.next()
+			target_line = self.__next__()
 			self.count = 0
 			return int(target_line[-1])
 		except StopIteration:
@@ -182,28 +192,70 @@ class NMEA(object):
 
 
 class MSSISParser(NMEA):
+
+	def __init__(self, filepath='', reference_time=datetime.combine(date(1970,1,1),time(0,0,0)),
+			max_number=-1, time_span=[-1,-1]):
+		super().__init__(filepath, reference_time, max_number, time_span)
+
+
 	def splitLine(self, line):
-		fields = ln.split(',')
+		fields = line.split(',')
 
 		# Check for the right kind of message.
 		if fields[0] not in self.valid_types:
-			return self.next()
+			return self.__next__()
 
 
 		# Do a checksum on the data. 
 		# Go to next item upon failure.
 		chksum = '*{:2X}'.format(self.checkSum(line))
 		if chksum in "*FF":
-			return self.next()
+			return self.__next__()
 		if chksum not in fields[6]:
-			return self.next()
+			return self.__next__()
 		# Check if this is a multiline message.
 		return self.checkForMultiLine(fields)
 
 class EAParser(NMEA):
-	def splitLine(self, line):
-		pass
+	def __init__(self, filepath='', reference_time=datetime.combine(date(1970,1,1),time(0,0,0)),
+			max_number=-1, time_span=[-1,-1]):
+		super().__init__(filepath, reference_time, max_number, time_span)
 
-class MiscParser(NMEA):
 	def splitLine(self, line):
-		pass
+		# Split the line into fields.
+		# First get rid of the stuff at the front
+		tmp_fields = ln.split('\\')
+		fields = tmp_fields[-1].split(',')
+
+		# Check for the right kind of message.
+		if fields[0] not in self.valid_types:
+			return self.__next__()
+
+		# See if we can get a time-string
+		time_str = "0"
+		if (len(tmp_fields) > 1):
+			time_idx = tmp_fields[1].find('c:')
+			if (time_idx):
+				time_str = tmp_fields[1][(time_idx+2):]
+				time_str = time_str[0:time_str.find('*')]
+
+		# Append the time string twice so we have the same format as MSSIS
+		fields.append(time_str)
+		fields.append(time_str)
+
+		# Do a checksum on the data. 
+		# Go to next item upon failure.
+		chksum = '*{:2X}'.format(self.checkSum(line))
+		if chksum in "*FF":
+			return self.__next__()
+		if chksum not in fields[6]:
+			return self.__next__()
+		# Check if this is a multiline message.
+		return self.checkForMultiLine(fields)
+
+
+
+class MiscParser(EAParser):
+	def __init__(self, filepath='', reference_time=datetime.combine(date(1970,1,1),time(0,0,0)),
+			max_number=-1, time_span=[-1,-1]):
+		super().__init__(filepath, reference_time, max_number, time_span)

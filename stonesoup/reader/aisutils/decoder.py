@@ -75,13 +75,13 @@ class NMEADecoder(object):
 			scale = float(element['scale'])
 		return float(self.decodeInt(source, element))/scale
 
-	def decodeField(self, source, element):
+	def decodeField(self, field):
 		"""
 		Decode a field
 		"""
 		return [self.decodeElement(element) for element in field.elements]
 
-	def decodeElement(self, source, element):
+	def decodeElement(self, element):
 		"""
 		Decode an element of the field.
 		"""

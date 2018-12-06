@@ -103,19 +103,19 @@ class NMEAReader(DetectionReader):
 			print("Unable to parse AIS types definition file at {}".format(self.ais_types_defs))
 			raise Exception(e)
 
-		ais_fields = [[AISField(field) for field in ais_type] for ais_type in types_list]
-		return ais_fields
+		ais_types = [[AISField(field) for field in ais_type] for ais_type in types_list]
+		return ais_types
 
 	def bboxContains(self, lat, lon):
-		if (self.bbox is None):
+		if (self.bbox_geom is None):
 			return True
 
 		counter = 0
 		xinters = 0.0
-		p1 = [self.bbox_geom[0]]
+		p1 = self.bbox_geom[0]
 		N = len(self.bbox_geom)
 		for i in range(1, N+1):
-			p2 = geom[(i%N)]
+			p2 = self.bbox_geom[(i%N)]
 			if (lat > min(p1[0], p2[0])):
 				if (lat <= max(p1[0], p2[0])):
 					if (lon <= max(p1[1], p2[1])):
@@ -123,18 +123,20 @@ class NMEAReader(DetectionReader):
 							xinters = ((lat - p1[0])*((p2[1] - p1[1])/(p2[0] - p1[0]))) + p1[1]
 							if (p1[1] == p2[1] or lon <= xinters):
 								counter += 1
-			p1 = p2[:]
-			if ((count % 2) == 0 or counter == 0):
-				return False
-			else:
-				return True
+			p1 = p2
+		if ((counter % 2) == 0 or counter == 0):
+			return False
+		else:
+			return True
 
+	@property
 	def detections(self):
 		return self._detections.copy()
 
 	def detections_gen(self):
 		ship_mmsi = []
 		hits = []
+		ais_types = self.loadAISTypes()
 		for record in self._aLog:
 			fields = record[5]
 			self._detections = set()
@@ -143,40 +145,45 @@ class NMEAReader(DetectionReader):
 				utc_time = self.reference_utc + timedelta(seconds=ts_time)
 			except ValueError:
 				continue
-			msgType = self.decoder.joinFields(fields[0:1], [0x3F], [0])
+			msg_type = self.decoder.joinFields(fields[0:1], [0x3F], [0])
 			self.decoder.setPayload(fields)
 			try:
-				ais_dict = {fld.name: self.decoder.decodeField(fld) for fld in AISTypes[msgType-1]}
+				ais_dict = {fld.name: self.decoder.decodeField(fld) for fld in ais_types[msg_type-1]}
 			except IndexError:
-				print("Message type {} not defined. Skipping message.".format(msgType))
+				# Undefined messages (message type > 27) are surprisingly quite common.
 				continue
 			except InvalidMessage as e:
-				print("Found an invalid message {}. Skipping message.".format(e.value))
+				# Invalid messages (invalid payload) are also quite common.
 				continue
-			# Message type 8.
-			if (msgType == 8):
-				print("Found message type 8. Skipping.")
-				continue
-
-			# Message type is 1, 2, or 3.
-			if (msgType < 4):
+			if (msg_type < 4):
+				# Message type is 1, 2, or 3.
 				if (('Latitude' in ais_dict) and ('Longitude' in ais_dict)):
 					coords =[float(ais_dict['Latitude'][0]), float(ais_dict['Longitude'][0])]
 					# Check if the coordinate is inside the polygon.
 					if (self.bboxContains(coords[0], coords[1])):
-						# Append to detections.
-						msg_meta = {
-								'mmsi': ais_dict['MMSI'][0],
-								'cog': ais_dict['CourseOverGround'][0],
-								'nav_stat':ais_dict['NavigationStatus'][0]
-								}
-						det =  Detection(StateVector([coords[0]], [coords[1]]),
-							timestamp=utc_time,
-							metadata=msg_meta)
-						self._detections.add(det)
+						if ((utc_time >= self.start_time) and (utc_time <= self.end_time)):
+							# Append to detections.
+							msg_meta = {
+									'mmsi': ais_dict['MMSI'][0],
+									'sog': ais_dict['SpeedOverGround'][0]
+									'cog': ais_dict['CourseOverGround'][0],
+									'nav_stat':ais_dict['NavigationStatus'][0]
+
+									}
+							det =  Detection(StateVector([[coords[1]], [coords[0]], [0.0]]),
+								timestamp=utc_time,
+								metadata=msg_meta)
+							self._detections.add(det)
+					else:
+						# Message not in bounding box or tim span.
+						continue
+
 				else:
-					print("Message type 1,2, or 3 found without latitude and longitude. Skipping.")
+					# Message type 1,2, or 3 found without latitude and longitude. Skipping.
 					continue
-			yield time, self.detections
+			else:
+				# Skip other message types.
+				continue
+			yield utc_time, self.detections
 		self._aLog.close()
 
