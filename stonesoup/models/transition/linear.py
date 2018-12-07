@@ -447,17 +447,6 @@ class Singer(LinearGaussianTransitionModel, TimeVariantModel):
                         0 & 0 & e^{-\alpha t}
                       \end{bmatrix}
 
-        For small dt:
-
-        .. math::
-            Q_t & = & 2 \alpha q^2 \begin{bmatrix}
-                        \frac{dt^5}{20} & \frac{dt^4}{8} & \frac{dt^3}{6} \\
-                        \frac{dt^4}{8} & \frac{dt^3}{3} & \frac{dt^2}{2} \\
-                        \frac{dt^3}{6} & \frac{dt^2}{2} & dt
-                        \end{bmatrix}
-
-        For larger dt:
-
         .. math::
             Q_t & = & q \begin{bmatrix}
                     \frac{[1-e^{-2\alpha dt}] + 2\alpha dt +
@@ -541,52 +530,123 @@ class Singer(LinearGaussianTransitionModel, TimeVariantModel):
         """
 
         # time_interval_threshold is currently set arbitrarily.
-        time_interval_threshold = 0.5
+        time_interval_sec = time_interval.total_seconds()
+
+        alpha_time = self.recip_decorr_time * time_interval_sec
+        e_neg_at = sp.exp(-alpha_time)
+        e_neg2_at = sp.exp(-2 * alpha_time)
+        covar = sp.array(
+            [[((1 - e_neg2_at) +
+               2 * alpha_time +
+               (2 * sp.power(alpha_time, 3)) / 3 -
+               2 * sp.power(alpha_time, 2) -
+               4 * alpha_time * e_neg_at) /
+              (2 * sp.power(self.recip_decorr_time, 5)),
+              sp.power(alpha_time - (1 - e_neg_at), 2) /
+              (2 * sp.power(self.recip_decorr_time, 4)),
+              ((1 - e_neg2_at) - 2 * alpha_time * e_neg_at) /
+              (2 * sp.power(self.recip_decorr_time, 3))],
+             [sp.power(alpha_time - (1 - e_neg_at), 2) /
+              (2 * sp.power(self.recip_decorr_time, 4)),
+              (2 * alpha_time - 4 * (1 - e_neg_at) + (1 - e_neg2_at)) /
+              (2 * sp.power(self.recip_decorr_time, 3)),
+              sp.power(1 - e_neg_at, 2) /
+              (2 * sp.power(self.recip_decorr_time, 2))],
+             [((1 - e_neg2_at) - 2 * alpha_time * e_neg_at) /
+              (2 * sp.power(self.recip_decorr_time, 3)),
+              sp.asscalar(sp.power(1 - e_neg_at, 2) /
+              (2 * sp.power(self.recip_decorr_time, 2))),
+             (1 - e_neg2_at) / (2 * self.recip_decorr_time)]]
+        ) * self.noise_diff_coeff
+
+        return CovarianceMatrix(covar)
+
+
+class SingerApproximate(Singer):
+    r"""This is a class implementation of a time-variant 1D Singer Transition
+    Model, with covariance approximation applicable for smaller time
+    intervals.
+
+    The target acceleration is modeled as a zero-mean Gauss-Markov random
+    process.
+
+    The model is described by the following SDEs:
+
+        .. math::
+            :nowrap:
+
+            \begin{eqnarray}
+                dx_{pos} & = & x_{vel} d & | {Position \ on \
+                X-axis (m)} \\
+                dx_{vel} & = & x_{acc} d & | {Speed \
+                on\ X-axis (m/s)} \\
+                dx_{acc} & = & -\alpha x_{acc} d + q W_t,\ W_t \sim
+                \mathcal{N}(0,q^2) & | {Acceleration \ on \ X-axis (m^2/s)}
+
+            \end{eqnarray}
+
+    Or equivalently:
+
+        .. math::
+            x_t = F_t x_{t-1} + w_t,\ w_t \sim \mathcal{N}(0,Q_t)
+
+    where:
+
+        .. math::
+            x & = & \begin{bmatrix}
+                        x_{pos} \\
+                        x_{vel} \\
+                        x_{acc}
+                    \end{bmatrix}
+
+        .. math::
+            F_t & = & \begin{bmatrix}
+                        1 & dt & (\alpha dt-1+e^{-\alpha dt})/\alpha^2 \\
+                        0 & 1 & (1-e^{-\alpha dt})/\alpha \\
+                        0 & 0 & e^{-\alpha t}
+                      \end{bmatrix}
+
+        For small dt:
+
+        .. math::
+            Q_t & = & 2 \alpha q^2 \begin{bmatrix}
+                        \frac{dt^5}{20} & \frac{dt^4}{8} & \frac{dt^3}{6} \\
+                        \frac{dt^4}{8} & \frac{dt^3}{3} & \frac{dt^2}{2} \\
+                        \frac{dt^3}{6} & \frac{dt^2}{2} & dt
+                        \end{bmatrix}
+    """
+    def covar(self, time_interval, **kwargs):
+        """Returns the transition model noise covariance matrix.
+
+        Parameters
+        ----------
+        time_interval : :class:`datetime.timedelta`
+            A time interval :math:`dt`
+
+        Returns
+        -------
+        :class:`stonesoup.types.state.CovarianceMatrix` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The process noise covariance.
+        """
+
+        # time_interval_threshold is currently set arbitrarily.
         time_interval_sec = time_interval.total_seconds()
 
         # Only leading terms get calculated for speed.
-        if time_interval_sec < time_interval_threshold:
-            constant_multiplier = 2 * self.recip_decorr_time * \
-                sp.power(self.noise_diff_coeff, 2)
-            covar = sp.array(
-                [[sp.power(time_interval_sec, 5) / 20,
-                  sp.power(time_interval_sec, 4) / 8,
-                  sp.power(time_interval_sec, 3) / 6],
-                 [sp.power(time_interval_sec, 4) / 8,
-                  sp.power(time_interval_sec, 3) / 3,
-                  sp.power(time_interval_sec, 2) / 2],
-                 [sp.power(time_interval_sec, 3) / 6,
-                  sp.power(time_interval_sec, 2) / 2,
-                  time_interval_sec]]
-            ) * constant_multiplier
-        # Full Singer Model covariance calculation.
-        else:
-            alpha_time = self.recip_decorr_time * time_interval_sec
-            e_neg_at = sp.exp(-alpha_time)
-            e_neg2_at = sp.exp(-2 * alpha_time)
-            covar = sp.array(
-                [[((1 - e_neg2_at) +
-                   2 * alpha_time +
-                   (2 * sp.power(alpha_time, 3)) / 3 -
-                   2 * sp.power(alpha_time, 2) -
-                   4 * alpha_time * e_neg_at) /
-                  (2 * sp.power(self.recip_decorr_time, 5)),
-                  sp.power(alpha_time - (1 - e_neg_at), 2) /
-                  (2 * sp.power(self.recip_decorr_time, 4)),
-                  ((1 - e_neg2_at) - 2 * alpha_time * e_neg_at) /
-                  (2 * sp.power(self.recip_decorr_time, 3))],
-                 [sp.power(alpha_time - (1 - e_neg_at), 2) /
-                  (2 * sp.power(self.recip_decorr_time, 4)),
-                  (2 * alpha_time - 4 * (1 - e_neg_at) + (1 - e_neg2_at)) /
-                  (2 * sp.power(self.recip_decorr_time, 3)),
-                  sp.power(1 - e_neg_at, 2) /
-                  (2 * sp.power(self.recip_decorr_time, 2))],
-                 [((1 - e_neg2_at) - 2 * alpha_time * e_neg_at) /
-                  (2 * sp.power(self.recip_decorr_time, 3)),
-                  sp.asscalar(sp.power(1 - e_neg_at, 2) /
-                  (2 * sp.power(self.recip_decorr_time, 2))),
-                 (1 - e_neg2_at) / (2 * self.recip_decorr_time)]]
-            ) * self.noise_diff_coeff
+        constant_multiplier = 2 * self.recip_decorr_time * \
+                              self.noise_diff_coeff
+        covar = sp.array(
+            [[sp.power(time_interval_sec, 5) / 20,
+              sp.power(time_interval_sec, 4) / 8,
+              sp.power(time_interval_sec, 3) / 6],
+             [sp.power(time_interval_sec, 4) / 8,
+              sp.power(time_interval_sec, 3) / 3,
+              sp.power(time_interval_sec, 2) / 2],
+             [sp.power(time_interval_sec, 3) / 6,
+              sp.power(time_interval_sec, 2) / 2,
+              time_interval_sec]]
+        ) * constant_multiplier
 
         return CovarianceMatrix(covar)
 
