@@ -8,7 +8,7 @@ from stonesoup.types import StateUpdate, \
     GaussianStateUpdate, GaussianMeasurementPrediction, ParticleStateUpdate, \
     StatePrediction, StateMeasurementPrediction, Detection, \
     GaussianStatePrediction, ParticleStatePrediction, \
-    ParticleMeasurementPrediction, Particle, Hypothesis
+    ParticleMeasurementPrediction, Particle, SingleMeasurementHypothesis
 
 
 def test_stateupdate():
@@ -30,7 +30,7 @@ def test_stateupdate():
 
     state_update = StateUpdate(
         state_vector,
-        Hypothesis(
+        SingleMeasurementHypothesis(
             prediction=prediction,
             measurement=measurement,
             measurement_prediction=measurement_prediction),
@@ -65,7 +65,7 @@ def test_gaussianstateupdate():
                             timestamp=timestamp)
     state_update = GaussianStateUpdate(state_vector,
                                        covar,
-                                       Hypothesis(
+                                       SingleMeasurementHypothesis(
                                            prediction=prediction,
                                            measurement=measurement,
                                            measurement_prediction=meas_pred),
@@ -111,7 +111,7 @@ def test_particlestateupdate():
     measurement = Detection(state_vector=np.array([[5], [7]]),
                             timestamp=timestamp)
     state_update = ParticleStateUpdate(particles,
-                                       Hypothesis(
+                                       SingleMeasurementHypothesis(
                                            prediction=prediction,
                                            measurement=measurement,
                                            measurement_prediction=meas_pred),

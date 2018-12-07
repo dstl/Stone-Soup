@@ -8,7 +8,7 @@ from stonesoup.updater.particle import ParticleUpdater
 from stonesoup.resampler.particle import SystematicResampler
 from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.types import ParticleStatePrediction, \
-    ParticleMeasurementPrediction, Particle, Hypothesis
+    ParticleMeasurementPrediction, Particle, SingleMeasurementHypothesis
 
 
 def test_particle():
@@ -53,7 +53,7 @@ def test_particle():
                    for i in range(9)])
     assert measurement_prediction.timestamp == timestamp
 
-    updated_state = updater.update(Hypothesis(
+    updated_state = updater.update(SingleMeasurementHypothesis(
         prediction, measurement, measurement_prediction))
 
     # Don't know what the particles will exactly be due to randomness so check

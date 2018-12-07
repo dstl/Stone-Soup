@@ -4,7 +4,7 @@ from scipy.spatial.distance import mahalanobis
 
 from .base import Hypothesiser
 from ..base import Property
-from ..types import DistanceHypothesis
+from ..types import SingleMeasurementDistanceHypothesis
 from ..predictor import Predictor
 from ..updater import Updater
 
@@ -42,12 +42,12 @@ class MahalanobisDistanceHypothesiser(Hypothesiser):
                                    np.linalg.inv(measurement_prediction.covar))
 
             hypotheses.append(
-                DistanceHypothesis(
+                SingleMeasurementDistanceHypothesis(
                     prediction, detection, distance, measurement_prediction))
 
         # Missed detection hypothesis with distance as 'missed_distance'
         prediction = self.predictor.predict(track.state, timestamp=timestamp)
-        hypotheses.append(
-            DistanceHypothesis(prediction, None, self.missed_distance))
+        hypotheses.append(SingleMeasurementDistanceHypothesis(
+            prediction, None, self.missed_distance))
 
         return sorted(hypotheses, reverse=True)

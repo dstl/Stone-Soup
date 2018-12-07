@@ -13,3 +13,9 @@ Distance
 .. automodule:: stonesoup.hypothesiser.distance
     :show-inheritance:
 
+Probability
+-----------
+
+.. automodule:: stonesoup.hypothesiser.probability
+    :show-inheritance:
+

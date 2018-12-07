@@ -6,7 +6,7 @@ import pytest
 
 from ...types.array import StateVector
 from ...types.detection import Detection
-from ...types.hypothesis import DistanceHypothesis
+from ...types.hypothesis import SingleMeasurementDistanceHypothesis
 from ...types.prediction import StatePrediction, StateMeasurementPrediction
 from ...types.state import State
 from ...types.track import Track
@@ -59,11 +59,12 @@ def data_associator():
                 for detection in detections:
                     if np.array_equal(measurement_prediction.state_vector,
                                       detection.state_vector):
-                        associations[track] = DistanceHypothesis(
+                        associations[track] = \
+                            SingleMeasurementDistanceHypothesis(
                             prediction, detection, 0, measurement_prediction)
                         break
                 else:
-                    associations[track] = DistanceHypothesis(
+                    associations[track] = SingleMeasurementDistanceHypothesis(
                         prediction, None, None, 1)
             return associations
     return TestDataAssociator()
