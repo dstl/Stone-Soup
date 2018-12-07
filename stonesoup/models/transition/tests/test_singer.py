@@ -66,8 +66,6 @@ def base(state_vec, noise_diff_coeffs, recips_decorr_times, timediff=1.0):
         recip_decorr_time = recips_decorr_times[i]
         recip_decorr_timedt = recip_decorr_time * timediff
         noise_diff_coeff = noise_diff_coeffs[i]
-        constant_multiplier = 2 * recip_decorr_time *\
-            sp.power(noise_diff_coeff, 2)
 
         mat_list.append(sp.array(
             [[1,
@@ -80,7 +78,6 @@ def base(state_vec, noise_diff_coeffs, recips_decorr_times, timediff=1.0):
              [0,
               0,
               sp.exp(-recip_decorr_timedt)]]))
-
 
         alpha_time = recip_decorr_time * timediff
         e_neg_at = sp.exp(-alpha_time)

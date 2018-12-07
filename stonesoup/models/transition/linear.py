@@ -635,7 +635,7 @@ class SingerApproximate(Singer):
 
         # Only leading terms get calculated for speed.
         constant_multiplier = 2 * self.recip_decorr_time * \
-                              self.noise_diff_coeff
+            self.noise_diff_coeff
         covar = sp.array(
             [[sp.power(time_interval_sec, 5) / 20,
               sp.power(time_interval_sec, 4) / 8,

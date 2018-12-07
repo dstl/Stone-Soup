@@ -44,11 +44,14 @@ def base(state_vec, noise_diff_coeffs, recips_decorr_times, timediff=1.0):
     dim = len(state_vec) // 3  # pos, vel, acc for each dimension
     if dim == 1:
         model_obj = SingerApproximate(noise_diff_coeff=noise_diff_coeffs,
-                           recip_decorr_time=recips_decorr_times)
+                                      recip_decorr_time=recips_decorr_times)
     else:
-        model_list = [SingerApproximate(noise_diff_coeff=noise_diff_coeffs[i],
-                             recip_decorr_time=recips_decorr_times[i])
-                      for i in range(0, dim)]
+        model_list = [
+            SingerApproximate(
+                noise_diff_coeff=noise_diff_coeffs[i],
+                recip_decorr_time=recips_decorr_times[i])
+            for i in range(0, dim)
+        ]
         model_obj = CombinedLinearGaussianTransitionModel(model_list)
 
     # State related variables
