@@ -600,7 +600,9 @@ class UnscentedKalmanUpdater(KalmanUpdater):
             self.get_measurement_prediction_lowlevel(state_prediction.mean,
                                                      state_prediction.covar,
                                                      measurement_function,
-                                                     measurement_noise_covar)
+                                                     measurement_noise_covar,
+                                                     self.alpha, self.beta,
+                                                     self.kappa)
 
         return GaussianMeasurementPrediction(meas_pred_mean, meas_pred_covar,
                                              state_prediction.timestamp,
@@ -610,7 +612,9 @@ class UnscentedKalmanUpdater(KalmanUpdater):
             self.get_measurement_prediction_lowlevel(state_prediction.mean,
                                                      state_prediction.covar,
                                                      measurement_function,
-                                                     measurement_noise_covar)
+                                                     measurement_noise_covar,
+                                                     self.alpha, self.beta,
+                                                     self.kappa)
         return GaussianMeasurementPrediction(meas_pred_mean, meas_pred_covar,
                                              state_prediction.timestamp,
                                              cross_covar)
@@ -664,8 +668,7 @@ class UnscentedKalmanUpdater(KalmanUpdater):
                     hypothesis.measurement.state_vector,
                     hypothesis.measurement_prediction.mean,
                     hypothesis.measurement_prediction.covar,
-                    hypothesis.measurement_prediction.cross_covar,
-                    measurement_noise_covar
+                    hypothesis.measurement_prediction.cross_covar
                 )
 
         return GaussianStateUpdate(posterior_mean,
