@@ -219,11 +219,13 @@ def unscented_transform(sigma_points, mean_weights, covar_weights,
     # Transform points through f
     sigma_points_t = np.zeros((ndim_state, n_points))
     if points_noise is None:
-        points_noise = np.zeros((ndim_state, n_points))
-
-    sigma_points_t = np.asarray(
-        [fun(sigma_points[:, i:i+1], points_noise[:, i:i+1])
-            for i in range(n_points)]).squeeze(2).T
+        sigma_points_t = np.asarray(
+            [fun(sigma_points[:, i:i+1])
+             for i in range(n_points)]).squeeze(2).T
+    else:
+        sigma_points_t = np.asarray(
+            [fun(sigma_points[:, i:i+1], points_noise[:, i:i+1])
+             for i in range(n_points)]).squeeze(2).T
 
     # Calculate mean and covariance approximation
     mean, covar = sigma2gauss(
