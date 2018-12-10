@@ -73,7 +73,7 @@ class SimpleObservatory(MeasurementModel):
             # And then Poissonian with parameter noise[2][2]?
             z = [z, np.array([[np.random.uniform(0, 2*np.pi)],
                           [np.random.uniform(self.minAlt, np.pi)],
-                          [np.random.poisson(self.r_fa)]]) ]
+                          [np.random.poisson(self.r_fa)]])]
 
         # Compute the relative position in ECI
         rp = target.position_vector() - self.position_vector()
@@ -96,8 +96,11 @@ class SimpleObservatory(MeasurementModel):
             # If so, detect the target with a probability pd
             if np.random.uniform() < self.p_d:
                 #
-                z = [z, np.random.multivariate_normal(np.array([[azi], [alt], [rmag]]), self.noise)]
+                zz = np.random.multivariate_normal(np.array([azi[0], alt[0], rmag[0]]), self.noise)
+                print(zz)
+                z = [z, zz.transpose()]
 
+        return z
 
     def position_vector(self):
         """
