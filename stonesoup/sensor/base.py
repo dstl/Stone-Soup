@@ -2,7 +2,6 @@
 from abc import abstractmethod
 
 from ..base import Base, Property
-from ..types.array import StateVector
 from ..models import MeasurementModel
 
 
@@ -20,15 +19,3 @@ class Sensor(Base):
     def gen_measurement(**kwargs):
         """Generate a measurement"""
         raise NotImplementedError
-
-
-class MountableSensor(Sensor):
-    """MountableSensor base class
-
-    A sensor that can be mounted on a platform.
-    """
-
-    platform_offset = Property(
-        StateVector, default=None,
-        doc="A state vector describing the mounting offset of the sensor,\
-            relative to the platform on which it is mounted")

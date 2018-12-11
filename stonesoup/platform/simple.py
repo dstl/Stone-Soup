@@ -120,7 +120,7 @@ class SensorPlatform(Platform):
                     self.mounting_mappings[i, j] + 1]
             abs_vel, heading = cart2pol(vel[0, 0], vel[1, 0])
             self.sensors[i].set_orientation(
-                StateVector([[heading], [0], [0]]))
+                StateVector([[0], [0], [heading]]))
 
     def _get_rotated_offset(self, i):
         """ _get_rotated_offset - determines the sensor mounting offset for the
