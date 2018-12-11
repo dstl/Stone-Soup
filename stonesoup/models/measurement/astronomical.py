@@ -34,7 +34,7 @@ class SimpleObservatory(MeasurementModel):
     p_d = Property(float, default=0.999999, doc="Probability of target detection")
     r_fa = Property(float, default=300000, doc="Expected false alarm range (m)")
 
-    noise = Property(np.array, default=np.diag(np.array([np.pi/10, np.pi/10, 10])), doc="Covariance of the noise")
+    noise = Property(np.array, default=np.diag(np.array([np.pi/100, np.pi/100, 1e3])), doc="Covariance of the noise")
 
     minAlt = Property(float, default=np.pi/8, doc="Minimum altitude above the horizon for an observation")
 
@@ -98,7 +98,7 @@ class SimpleObservatory(MeasurementModel):
                 #
                 zz = np.random.multivariate_normal(np.array([azi[0], alt[0], rmag[0]]), self.noise)
                 print(zz)
-                z = [z, zz.transpose()]
+                z = np.append(z, zz.transpose())
 
         return z
 
