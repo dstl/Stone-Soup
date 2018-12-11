@@ -19,7 +19,7 @@ def h2d(state_vector, translation_offset, rotation_offset):
            [0]]
 
     # Get rotation matrix
-    theta_z = - rotation_offset[0, 0]
+    theta_z = - rotation_offset[2, 0]
     cos_z, sin_z = np.cos(theta_z), np.sin(theta_z)
     rot_z = np.array([[cos_z, -sin_z, 0],
                       [sin_z, cos_z, 0],
@@ -31,7 +31,7 @@ def h2d(state_vector, translation_offset, rotation_offset):
                       [0, 1, 0],
                       [-sin_y, 0, cos_y]])
 
-    theta_x = - rotation_offset[2, 0]
+    theta_x = - rotation_offset[0, 0]
     cos_x, sin_x = np.cos(theta_x), np.sin(theta_x)
     rot_x = np.array([[1, 0, 0],
                       [0, cos_x, -sin_x],
@@ -57,7 +57,7 @@ def h3d(state_vector,  translation_offset, rotation_offset):
            [state_vector[2, 0] - translation_offset[2, 0]]]
 
     # Get rotation matrix
-    theta_z = - rotation_offset[0, 0]
+    theta_z = - rotation_offset[2, 0]
     cos_z, sin_z = np.cos(theta_z), np.sin(theta_z)
     rot_z = np.array([[cos_z, -sin_z, 0],
                       [sin_z, cos_z, 0],
@@ -69,7 +69,7 @@ def h3d(state_vector,  translation_offset, rotation_offset):
                       [0, 1, 0],
                       [-sin_y, 0, cos_y]])
 
-    theta_x = - rotation_offset[2, 0]
+    theta_x = - rotation_offset[0, 0]
     cos_x, sin_x = np.cos(theta_x), np.sin(theta_x)
     rot_x = np.array([[1, 0, 0],
                       [0, cos_x, -sin_x],
@@ -95,7 +95,7 @@ def hbearing(state_vector, translation_offset, rotation_offset):
            [state_vector[2, 0] - translation_offset[2, 0]]]
 
     # Get rotation matrix
-    theta_z = - rotation_offset[0, 0]
+    theta_z = - rotation_offset[2, 0]
     cos_z, sin_z = np.cos(theta_z), np.sin(theta_z)
     rot_z = np.array([[cos_z, -sin_z, 0],
                       [sin_z, cos_z, 0],
@@ -107,7 +107,7 @@ def hbearing(state_vector, translation_offset, rotation_offset):
                       [0, 1, 0],
                       [-sin_y, 0, cos_y]])
 
-    theta_x = - rotation_offset[2, 0]
+    theta_x = - rotation_offset[0, 0]
     cos_x, sin_x = np.cos(theta_x), np.sin(theta_x)
     rot_x = np.array([[1, 0, 0],
                       [0, cos_x, -sin_x],

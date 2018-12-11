@@ -72,9 +72,9 @@ class RangeBearingElevationGaussianToCartesian(MeasurementModel,
     rotation_offset = Property(
         StateVector, default=StateVector(sp.array([[0], [0], [0]])),
         doc="A 3x1 array of angles (rad), specifying the clockwise rotation\
-            around each Cartesian axis in the order :math:`z,y,x`.\
+            around each Cartesian axis in the order :math:`x,y,z`.\
             The rotation angles are positive if the rotation is in the \
-            clockwise direction when viewed by an observer looking\
+            counter-clockwise direction when viewed by an observer looking\
             along the respective rotation axis, towards the origin.")
 
     @property
@@ -101,9 +101,9 @@ class RangeBearingElevationGaussianToCartesian(MeasurementModel,
             The model (3D) rotation matrix.
         """
 
-        theta_z = -self.rotation_offset[0, 0]
+        theta_x = -self.rotation_offset[0, 0]
         theta_y = -self.rotation_offset[1, 0]
-        theta_x = -self.rotation_offset[2, 0]
+        theta_z = -self.rotation_offset[2, 0]
 
         return rotz(theta_z)@roty(theta_y)@rotx(theta_x)
 

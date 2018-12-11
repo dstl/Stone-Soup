@@ -16,7 +16,7 @@ def h2d(state_vector, translation_offset, rotation_offset):
            [0]]
 
     # Get rotation matrix
-    theta_z = - rotation_offset[0, 0]
+    theta_z = - rotation_offset[2, 0]
     cos_z, sin_z = np.cos(theta_z), np.sin(theta_z)
     rot_z = np.array([[cos_z, -sin_z, 0],
                       [sin_z, cos_z, 0],
@@ -28,7 +28,7 @@ def h2d(state_vector, translation_offset, rotation_offset):
                       [0, 1, 0],
                       [-sin_y, 0, cos_y]])
 
-    theta_x = - rotation_offset[2, 0]
+    theta_x = - rotation_offset[0, 0]
     cos_x, sin_x = np.cos(theta_x), np.sin(theta_x)
     rot_x = np.array([[1, 0, 0],
                       [0, cos_x, -sin_x],
@@ -99,13 +99,13 @@ def test_rotating_radar():
     radar_position = StateVector(
         np.array(([[1], [1]])))
     # The radar is facing left/east
-    radar_orientation = StateVector([[np.pi], [0], [0]])
+    radar_orientation = StateVector([[0], [0], [np.pi]])
     # The radar antenna is facing opposite the radar orientation
     dwell_center = State(StateVector([[-np.pi]]),
                          timestamp=timestamp)
-    rpm = 20  # 20 Rotations Per Minute
-    max_range = 100  # Max range of 100m
-    fov = np.pi/3  # FOV angle of pi/3
+    rpm = 20            # 20 Rotations Per Minute
+    max_range = 100     # Max range of 100m
+    fov_angle = np.pi/3       # FOV angle of pi/3
 
     target_state = State(radar_position +
                          np.array([[5], [5]]),
@@ -122,7 +122,7 @@ def test_rotating_radar():
         dwell_center=dwell_center,
         rpm=rpm,
         max_range=max_range,
-        fov=fov)
+        fov_angle=fov_angle)
 
     # Assert that the object has been correctly initialised
     assert(np.equal(radar.position, radar_position).all())
@@ -143,10 +143,12 @@ def test_rotating_radar():
     measurement = radar.gen_measurement(target_state, noise=0)
     eval_m = h2d(target_state.state_vector,
                  radar.position,
-                 radar.orientation+[[radar.dwell_center.state_vector[0, 0]],
+                 radar.orientation+[[0],
                                     [0],
-                                    [0]])
+                                    [radar.dwell_center.state_vector[0, 0]]])
 
+    print(measurement.state_vector)
+    print(eval_m)
     # Assert correction of generated measurement
     assert(measurement.timestamp == target_state.timestamp)
     assert(np.equal(measurement.state_vector, eval_m).all())

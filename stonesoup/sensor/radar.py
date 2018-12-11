@@ -17,20 +17,21 @@ class SimpleRadar(Sensor):
 
     Note
     ----
-    The current implementation of this class assumes a 2D Cartesian plane.
+    The current implementation of this class assumes a 3D Cartesian plane.
 
-    TODO: Extend to nD state space
     """
 
     position = Property(StateVector,
-                        doc="The radar position on a 2D Cartesian plane")
+                        doc="The radar position on a 3D Cartesian plane,\
+                             expressed as a 3x1 array of Cartesian coordinates\
+                             in the order :math:`x,y,z`")
     orientation = Property(StateVector,
                            doc="A 3x1 array of angles (rad), specifying the\
                                 radar orientation in terms of the\
-                                clockwise rotation around each\
-                                Cartesian axis in the order :math:`z,y,x`.\
+                                counter-clockwise rotation around each\
+                                Cartesian axis in the order :math:`x,y,z`.\
                                 The rotation angles are positive if the\
-                                rotation is in the clockwise direction\
+                                rotation is in the counter-clockwise direction\
                                 when viewed by an observer looking along the\
                                 respective rotation axis, towards the origin")
     ndim_state = Property(
@@ -94,15 +95,15 @@ class SimpleRadar(Sensor):
 
 
 class SimpleRotatingRadar(SimpleRadar):
-    """A simple rotating radar, with set FOV, range and rotations per minute\
-    (RPM), that generates measurements of targets, using a\
-    :class:`~.RangeBearingGaussianToCartesian` model, relative to its position.
+    """A simple rotating radar, with set field-of-view (FOV) angle, range and\
+     rotations per minute (RPM), that generates measurements of targets, using\
+     a :class:`~.RangeBearingGaussianToCartesian` model, relative to its\
+     position.
 
     Note
     ----
-    * The current implementation of this class assumes a 2D Cartesian plane.
+    * The current implementation of this class assumes a 3D Cartesian plane.
 
-    TODO: Extend to nD state space
     """
 
     dwell_center = Property(
@@ -117,17 +118,16 @@ class SimpleRotatingRadar(SimpleRadar):
     rpm = Property(
         float, doc="The number of antenna rotations per minute (RPM)")
     max_range = Property(
-        float, doc="The maximum detection range of the radar")
-    fov = Property(
-        int, doc="The radar field of view (FOV) angle. Angle units are in\
-                 radians.")
+        float, doc="The maximum detection range of the radar (in meters)")
+    fov_angle = Property(
+        float, doc="The radar field of view (FOV) angle (in radians).")
 
     def __init__(self, position, orientation, ndim_state, mapping, noise_covar,
-                 dwell_center, rpm, max_range, fov, *args, **kwargs):
+                 dwell_center, rpm, max_range, fov_angle, *args, **kwargs):
 
         super().__init__(position, orientation, ndim_state, mapping,
                          noise_covar, dwell_center, rpm, max_range,
-                         fov, *args, **kwargs)
+                         fov_angle, *args, **kwargs)
 
     def gen_measurement(self, ground_truth, noise=None, **kwargs):
         """Generate a measurement for a given state
@@ -139,10 +139,11 @@ class SimpleRotatingRadar(SimpleRadar):
 
         Returns
         -------
-        :class:`~.Detection` or `None`
+        :class:`~.Detection` or ``None``
             A measurement generated from the given state, if the state falls\
-            in the sensor's field of view, or `None`, otherwise. The timestamp\
-            of the measurement is set equal to that of the provided state.
+            in the sensor's field of view, or ``None``, otherwise. The\
+            timestamp of the measurement is set equal to that of the provided\
+            state.
         """
 
         # Read timestamp from ground truth
@@ -150,15 +151,15 @@ class SimpleRotatingRadar(SimpleRadar):
 
         # Rotate the radar antenna and compute new heading
         self.rotate(timestamp)
-        antenna_heading = self.orientation[0, 0] + \
+        antenna_heading = self.orientation[2, 0] + \
             self.dwell_center.state_vector[0, 0]
 
         # Set rotation offset of underlying measurement model
         rot_offset =\
             StateVector(
-                [[antenna_heading],
+                [[self.orientation[0, 0]],
                  [self.orientation[1, 0]],
-                 [self.orientation[2, 0]]])
+                 [antenna_heading]])
         self.measurement_model.rotation_offset = rot_offset
 
         # Transform state to measurement space and generate
@@ -171,8 +172,8 @@ class SimpleRotatingRadar(SimpleRadar):
             measurement_noise = noise
 
         # Check if state falls within sensor's FOV
-        fov_min = -self.fov/2
-        fov_max = +self.fov/2
+        fov_min = -self.fov_angle/2
+        fov_max = +self.fov_angle/2
         bearing_t = measurement_vector[0, 0]
         range_t = measurement_vector[1, 0]
 
