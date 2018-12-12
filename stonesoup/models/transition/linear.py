@@ -609,7 +609,7 @@ class SingerApproximate(Singer):
         For small dt:
 
         .. math::
-            Q_t & = & 2 \alpha q^2 \begin{bmatrix}
+            Q_t & = & 2 \alpha q \begin{bmatrix}
                         \frac{dt^5}{20} & \frac{dt^4}{8} & \frac{dt^3}{6} \\
                         \frac{dt^4}{8} & \frac{dt^3}{3} & \frac{dt^2}{2} \\
                         \frac{dt^3}{6} & \frac{dt^2}{2} & dt
