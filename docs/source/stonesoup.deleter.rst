@@ -13,4 +13,8 @@ Error Based
     :show-inheritance:
     :inherited-members:
 
-
+Time Based
+-----------
+.. automodule:: stonesoup.deleter.time
+    :show-inheritance:
+    :inherited-members:
