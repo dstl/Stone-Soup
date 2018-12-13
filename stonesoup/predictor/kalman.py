@@ -38,7 +38,7 @@ class KalmanPredictor(Predictor):
         # Compute time_interval
         try:
             time_interval = timestamp - prior.timestamp
-        except TypeError as e:
+        except TypeError:
             # TypeError: (timestamp or prior.timestamp) is None
             time_interval = None
 
@@ -70,7 +70,7 @@ class KalmanPredictor(Predictor):
                     timestamp=timestamp,
                     time_interval=time_interval,
                     **kwargs)
-            except AttributeError as e:
+            except AttributeError:
                 # covar() is NOT implemented for control_model
                 contol_noise_covar = np.zeros(self.control_model.ndim_ctrl)
             if control_input is None:
@@ -149,7 +149,7 @@ class ExtendedKalmanPredictor(KalmanPredictor):
         # Compute time_interval
         try:
             time_interval = timestamp - prior.timestamp
-        except TypeError as e:
+        except TypeError:
             # TypeError: (timestamp or prior.timestamp) is None
             time_interval = None
 
@@ -199,7 +199,7 @@ class ExtendedKalmanPredictor(KalmanPredictor):
                     timestamp=timestamp,
                     time_interval=time_interval,
                     **kwargs)
-            except AttributeError as e:
+            except AttributeError:
                 # covar() is NOT implemented for control_model
                 contol_noise_covar = np.zeros((self.control_model.ndim_ctrl,
                                                self.control_model.ndim_ctrl))

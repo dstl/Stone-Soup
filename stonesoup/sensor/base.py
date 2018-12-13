@@ -19,7 +19,7 @@ class Sensor(Base):
     @abstractmethod
     def gen_measurement(**kwargs):
         """Generate a measurement"""
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class MountableSensor(Sensor):

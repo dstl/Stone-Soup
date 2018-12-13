@@ -39,7 +39,7 @@ class Platform(Base):
         # Compute time_interval
         try:
             time_interval = timestamp - self.state.timestamp
-        except TypeError as e:
+        except TypeError:
             # TypeError: (timestamp or prior.timestamp) is None
             time_interval = None
         self.state = State(

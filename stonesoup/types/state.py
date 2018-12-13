@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
-from collections import MutableSequence
+from collections.abc import MutableSequence
 
 import numpy as np
 
