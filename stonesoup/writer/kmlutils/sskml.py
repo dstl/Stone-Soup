@@ -44,7 +44,7 @@ class SSKMLTrack(object):
 		# Track Line
 		self.appendSSLinePlacemark(tks_position_array, track_color)
 
-	def appendSSPointPlacemark(lat, lon, alt, track_color, timestamp=None,\
+	def appendSSPointPlacemark(self, lat, lon, alt, track_color, timestamp=None,\
 		altitude_mode=AltitudeModes.relativeToGround):
 		point_placemark = self.points_folder.newpoint()
 		if (timestamp):
@@ -58,9 +58,9 @@ class SSKMLTrack(object):
 		point_placemark.stylemap.normalstyle.iconstyle.scale = settings.TRACK_POINT_NORMAL_ICON_SCALE
 		point_placemark.stylemap.normalstyle.iconstyle.icon.href = settings.TRACK_POINT_HIGHLIGHT_ICON_HREF
 		point_placemark.stylemap.normalstyle.iconstyle.color = track_color
-		point_placemark.coords = "{},{},{}".format(lon, lat, alt)
+		point_placemark.coords = [[lon, lat, alt]]
 
-	def appendSSLinePlacemark(lla_ordered_list, track_color, altitude_mode=AltitudeModes.relativeToGround):
+	def appendSSLinePlacemark(self, lla_ordered_list, track_color, altitude_mode=AltitudeModes.relativeToGround):
 		line_placemark = self.track_folder.newlinestring()
 		# Add line style
 		line_placemark.style.linestyle.color = track_color
@@ -69,10 +69,9 @@ class SSKMLTrack(object):
 		line_placemark.extrude = "0"
 		line_placemark.altitudemode = altitude_mode.value
 		# Add line coordinates
-		coord_str = ''.join(["{},{},{} ".format(lla_pnt.ravel()[1], lla_pnt.ravel()[0],\
-			lla_pnt.ravel()[2]) for lla_pnt in lla_ordered_list])
-		coord_str = coord_str.rstrip()
-		line_placemark.coords = coord_str
+		coord_list = [[lla_pnt.ravel()[1], lla_pnt.ravel()[0],\
+			lla_pnt.ravel()[2]] for lla_pnt in lla_ordered_list]
+		line_placemark.coords = coord_list
 
 class SSKML(object):
 
@@ -90,7 +89,7 @@ class SSKML(object):
 
 	def _getDetColor(self):
 		self._det_style_idx += 1
-		color_rgba = cm.jet(self._det_cmap_norm(self._tksStyleIndex))
+		color_rgba = cm.jet(self._det_cmap_norm(self._det_style_idx))
 		color_hex = matplotlib.colors.rgb2hex(color_rgba)
 		# Matplotlib HEX -> #RGBA, KML HEX -> #ABGR
 		color_hex_kml = "#ff{}".format(color_hex[6:0:-1])
@@ -98,7 +97,7 @@ class SSKML(object):
 
 	def _getTrackColor(self):
 		self._tks_style_idx += 1
-		color_rgba = cm.jet(self._tks_cmap_norm(self._det_style_idx))
+		color_rgba = cm.jet(self._tks_cmap_norm(self._tks_style_idx))
 		color_hex = matplotlib.colors.rgb2hex(color_rgba)
 		# Matplotlib HEX -> #RGBA, KML HEX -> #ABGR
 		color_hex_kml = "#ff{}".format(color_hex[6:0:-1])
@@ -146,7 +145,7 @@ class SSKML(object):
 				det_placemark.stylemap.normalstyle.iconstyle.color = det_color_str
 
 				# Update coordinates
-				det_placemark.coords = "{},{},{}".format(det_position[1], det_position[0], det_position[2])
+				det_placemark.coords = [[det_position[1], det_position[0], det_position[2]]]
 				k += 1
 		else:
 			k = 1
@@ -166,15 +165,11 @@ class SSKML(object):
 				det_placemark.stylemap.normalstyle.iconstyle.color = det_color_str
 
 				# Update coordinates
-				det_placemark.coords = "{},{},{}".format(det_position[1], det_position[0], det_position[2])
+				det_placemark.coords = [[det_position[1], det_position[0], det_position[2]]]
 				k += 1
-
-
-
-
+	
 	def write(self, output_path):
-		self._kmlRoot.save(str(output_path)
-
+		self._kmlRoot.save(str(output_path))
 
 	def validate(self):
 		pass
