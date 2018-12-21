@@ -44,6 +44,28 @@ class SSKMLTrack(object):
 		# Track Line
 		self.appendSSLinePlacemark(tks_position_array, track_color)
 
+	@staticmethod
+	def updatePlacemarkStyle(simplekml_placemark, color_str, is_track=False):
+		if (is_track):
+			# Placemark is a track
+			simplekml_placemark.stylemap.highlightstyle.iconstyle.scale = settings.TRACK_POINT_HIGHLIGHT_ICON_SCALE
+			simplekml_placemark.stylemap.highlightstyle.iconstyle.icon.href = settings.TRACK_POINT_NORMAL_ICON_HREF
+			simplekml_placemark.stylemap.highlightstyle.iconstyle.color  = color_str
+			simplekml_placemark.stylemap.normalstyle.iconstyle.scale = settings.TRACK_POINT_NORMAL_ICON_SCALE
+			simplekml_placemark.stylemap.normalstyle.iconstyle.icon.href = settings.TRACK_POINT_HIGHLIGHT_ICON_HREF
+			simplekml_placemark.stylemap.normalstyle.iconstyle.color = color_str
+			return simplekml_placemark
+		simplekml_placemark.stylemap.highlightstyle.iconstyle.scale = settings.DETECTION_HIGHLIGHT_ICON_SCALE
+		simplekml_placemark.stylemap.highlightstyle.iconstyle.icon.href = settings.DETECTION_HIGHLIGHT_ICON_HREF
+		simplekml_placemark.stylemap.highlightstyle.iconstyle.color  = color_str
+		simplekml_placemark.stylemap.normalstyle.iconstyle.scale = settings.DETECTION_NORMAL_ICON_SCALE
+		simplekml_placemark.stylemap.normalstyle.iconstyle.icon.href = settings.DETECTION_NORMAL_ICON_HREF
+		simplekml_placemark.stylemap.normalstyle.iconstyle.color = color_str
+
+		return simplekml_placemark
+
+
+
 	def appendSSPointPlacemark(self, lat, lon, alt, track_color, timestamp=None,\
 		altitude_mode=AltitudeModes.relativeToGround):
 		point_placemark = self.points_folder.newpoint()
@@ -52,12 +74,7 @@ class SSKMLTrack(object):
 		point_placemark.extrude = "0"
 		point_placemark.altitudemode = altitude_mode.value
 		# Add styles
-		point_placemark.stylemap.highlightstyle.iconstyle.scale = settings.TRACK_POINT_HIGHLIGHT_ICON_SCALE
-		point_placemark.stylemap.highlightstyle.iconstyle.icon.href = settings.TRACK_POINT_NORMAL_ICON_HREF
-		point_placemark.stylemap.highlightstyle.iconstyle.color  = track_color
-		point_placemark.stylemap.normalstyle.iconstyle.scale = settings.TRACK_POINT_NORMAL_ICON_SCALE
-		point_placemark.stylemap.normalstyle.iconstyle.icon.href = settings.TRACK_POINT_HIGHLIGHT_ICON_HREF
-		point_placemark.stylemap.normalstyle.iconstyle.color = track_color
+		point_placemark = SSKMLTrack.updatePlacemarkStyle(point_placemark, track_color, True)
 		point_placemark.coords = [[lon, lat, alt]]
 
 	def appendSSLinePlacemark(self, lla_ordered_list, track_color, altitude_mode=AltitudeModes.relativeToGround):
@@ -137,13 +154,7 @@ class SSKML(object):
 				det_placemark.extrude = "0"
 				det_placemark.altitudemode = AltitudeModes.relativeToGround.value
 				# Add styles
-				det_placemark.stylemap.highlightstyle.iconstyle.scale = settings.DETECTION_HIGHLIGHT_ICON_SCALE
-				det_placemark.stylemap.highlightstyle.iconstyle.icon.href = settings.DETECTION_HIGHLIGHT_ICON_HREF
-				det_placemark.stylemap.highlightstyle.iconstyle.color  = det_color_str
-				det_placemark.stylemap.normalstyle.iconstyle.scale = settings.DETECTION_NORMAL_ICON_SCALE
-				det_placemark.stylemap.normalstyle.iconstyle.icon.href = settings.DETECTION_NORMAL_ICON_HREF
-				det_placemark.stylemap.normalstyle.iconstyle.color = det_color_str
-
+				det_placemark = SSKMLTrack.updatePlacemarkStyle(det_placemark, det_color_str, False)
 				# Update coordinates
 				det_placemark.coords = [[det_position[1], det_position[0], det_position[2]]]
 				k += 1
@@ -157,13 +168,7 @@ class SSKML(object):
 				det_placemark.extrude = "0"
 				det_placemark.altitudemode = AltitudeModes.relativeToGround.value
 				# Add styles
-				det_placemark.stylemap.highlightstyle.iconstyle.scale = settings.DETECTION_HIGHLIGHT_ICON_SCALE
-				det_placemark.stylemap.highlightstyle.iconstyle.icon.href = settings.DETECTION_HIGHLIGHT_ICON_HREF
-				det_placemark.stylemap.highlightstyle.iconstyle.color  = det_color_str
-				det_placemark.stylemap.normalstyle.iconstyle.scale = settings.DETECTION_NORMAL_ICON_SCALE
-				det_placemark.stylemap.normalstyle.iconstyle.icon.href = settings.DETECTION_NORMAL_ICON_HREF
-				det_placemark.stylemap.normalstyle.iconstyle.color = det_color_str
-
+				det_placemark = SSKMLTrack.updatePlacemarkStyle(det_placemark, det_color_str, False)
 				# Update coordinates
 				det_placemark.coords = [[det_position[1], det_position[0], det_position[2]]]
 				k += 1
