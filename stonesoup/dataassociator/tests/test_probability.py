@@ -4,11 +4,11 @@ import datetime
 import pytest
 import numpy as np
 
-from ..probability import SimplePDA
+from ..probability import SimplePDA, JPDA
 from ...types import Track, Detection, GaussianState, MissedDetection
 
 
-@pytest.fixture(params=[SimplePDA])
+@pytest.fixture(params=[SimplePDA, JPDA])
 def associator(request, proabability_hypothesiser):
     return request.param(proabability_hypothesiser)
 
@@ -45,6 +45,22 @@ def test_missed_detection_probability(associator):
 
     tracks = {t1, t2}
     detections = {d1}
+
+    associations = associator.associate(tracks, detections, timestamp)
+
+    # Best hypothesis should be missed detection hypothesis
+    assert all(isinstance(hypothesis.measurement, MissedDetection)
+               for hypothesis in associations.values())
+
+
+def test_no_detections_probability(associator):
+
+    timestamp = datetime.datetime.now()
+    t1 = Track([GaussianState(np.array([[0]]), np.array([[1]]), timestamp)])
+    t2 = Track([GaussianState(np.array([[3]]), np.array([[1]]), timestamp)])
+
+    tracks = {t1, t2}
+    detections = {}
 
     associations = associator.associate(tracks, detections, timestamp)
 

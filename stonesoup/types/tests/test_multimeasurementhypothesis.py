@@ -46,6 +46,9 @@ def test_multiplemeasurementhypothesis():
     # check that the MultipleDetectionHypothesis selected_measurement cannot
     # be returned, as it has not been set yet
     with pytest.raises(Exception):
+        if hypothesis:
+            assert hypothesis.get_selected_measurement() is not None
+    with pytest.raises(Exception):
         hypothesis.get_selected_measurement()
     with pytest.raises(Exception):
         a = hypothesis.measurement
@@ -59,6 +62,8 @@ def test_multiplemeasurementhypothesis():
     hypothesis.set_selected_measurement(weighted_detections[1])
     assert hypothesis.get_selected_measurement() is weighted_detections[1]
     assert hypothesis.measurement is weighted_detections[1]
+    if hypothesis:
+        assert True
 
     # create MultipleMeasurementHypothesis with incorrect length/type of
     # weighted_detections and weights
@@ -123,15 +128,17 @@ def test_probabilitymultiplemeasurementhypothesis():
         weighted_detections[1]
     assert hypothesis.weighted_measurements[1]["weight"] == \
         (probabilities[1]/sum(probabilities))
+    assert hypothesis.get_missed_detection_probability() is None
 
     # create MultipleMeasurementHypothesis with incorrect length/type of
     # weighted_detections and weights
-    hypothesis = MultipleMeasurementHypothesis(prediction,
-                                               measurement_prediction)
+    hypothesis = ProbabilityMultipleMeasurementHypothesis(
+        prediction, measurement_prediction)
 
     # incorrect types in 'weighted_detections'
     weighted_detections = [Detection([[2.26], [3.03]], timestamp=timestamp),
                            None]
+    probabilities = [Probability(6), Probability(14)]
     with pytest.raises(Exception):
         hypothesis.add_weighted_detections(weighted_detections,
                                            probabilities, normalize=True)
@@ -139,7 +146,7 @@ def test_probabilitymultiplemeasurementhypothesis():
     # incorrect types in 'probabilities'
     weighted_detections = [Detection([[2.26], [3.03]], timestamp=timestamp),
                            Detection([[1.21], [0.95]], timestamp=timestamp)]
-    probabilities = [Probability(6), 14]
+    probabilities = [Probability(6), 'g']
     with pytest.raises(Exception):
         hypothesis.add_weighted_detections(weighted_detections,
                                            probabilities, normalize=True)

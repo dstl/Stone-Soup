@@ -2,6 +2,7 @@
 
 from abc import abstractmethod
 from collections import UserDict
+import numpy as np
 
 from .base import Type
 from ..base import Property
@@ -13,22 +14,15 @@ from ..types.numeric import Probability
 class Hypothesis(Type):
     """Hypothesis base type
 
+    A Hypothesis has sub-types:
+
+    'SingleMeasurementHypothesis', which consists of a prediction for a single
+    Track and a single Measurement that *might* be associated with it
+
+    'MultipleMeasurementHypothesis', which consists of a prediction for a
+    single Track and multiple Measurements of which one *might* be associated
+    with it
     """
-
-    def __lt__(self, other):
-        return NotImplemented
-
-    def __le__(self, other):
-        return NotImplemented
-
-    def __eq__(self, other):
-        return NotImplemented
-
-    def __gt__(self, other):
-        return NotImplemented
-
-    def __ge__(self, other):
-        return NotImplemented
 
 
 class SingleMeasurementHypothesis(Hypothesis):
@@ -79,7 +73,7 @@ class SingleMeasurementDistanceHypothesis(SingleMeasurementHypothesis):
         return self.distance <= other.distance
 
 
-class SingleMeasurementProbabilityHypothesis(Hypothesis):
+class SingleMeasurementProbabilityHypothesis(SingleMeasurementHypothesis):
     """Single Measurement Probability scored hypothesis subclass.
 
     """
@@ -104,9 +98,20 @@ class SingleMeasurementProbabilityHypothesis(Hypothesis):
         return self.probability >= other.probability
 
 
-class SingleMeasurementJointHypothesis(Type, UserDict):
+class JointHypothesis(Type, UserDict):
     """Joint Hypothesis base type
 
+    A Joint Hypothesis consists of multiple Hypothesese, each with a single
+    Track and a single Prediction.  A Joint Hypothesis can be a
+    'ProbabilityJointHypothesis' or a 'DistanceJointHypothesis', with a
+    probability or distance that is a function of the Hypothesis
+    probabilities.  Multiple Joint Hypotheses can be compared to see which is
+    most likely to be the "correct" hypothesis.
+
+    Note: In reality, the property 'hypotheses' is a dictionary where the
+    entries have the form 'Track: Hypothesis'.  However, we cannot define
+    it this way because then Hypothesis imports Track, and Track imports
+    Update, and Update imports Hypothesis, which is a circular import.
     """
 
     hypotheses = Property(
@@ -116,7 +121,10 @@ class SingleMeasurementJointHypothesis(Type, UserDict):
     def __new__(cls, hypotheses):
         if all(isinstance(hypothesis, SingleMeasurementDistanceHypothesis)
                for hypothesis in hypotheses.values()):
-            return super().__new__(SingleMeasurementDistanceJointHypothesis)
+            return super().__new__(DistanceJointHypothesis)
+        elif all(isinstance(hypothesis, SingleMeasurementProbabilityHypothesis)
+                 for hypothesis in hypotheses.values()):
+            return super().__new__(ProbabilityJointHypothesis)
         else:
             raise NotImplementedError
 
@@ -145,9 +153,46 @@ class SingleMeasurementJointHypothesis(Type, UserDict):
         raise NotImplementedError
 
 
-class SingleMeasurementDistanceJointHypothesis(
-   SingleMeasurementJointHypothesis):
-    """Distance scored hypothesis subclass.
+class ProbabilityJointHypothesis(JointHypothesis):
+    """Probability-scored Joint Hypothesis subclass.
+
+    """
+
+    probability = Property(
+        Probability,
+        default=None,
+        doc='Probability of the Joint Hypothesis')
+
+    def __init__(self, hypotheses, *args, **kwargs):
+        super().__init__(hypotheses, *args, **kwargs)
+        self.probability = Probability(np.prod(
+            [hypothesis.probability for hypothesis in hypotheses.values()]))
+
+    def normalize(self):
+        sum_probability = sum(hypothesis.probability
+                              for hypothesis in self.hypotheses.values())
+        for hypothesis in self.hypotheses.values():
+            hypothesis.probability /= sum_probability
+
+    def __lt__(self, other):
+        return self.probability < other.probability
+
+    def __le__(self, other):
+        return self.probability <= other.probability
+
+    def __eq__(self, other):
+        return self.probability == other.probability
+
+    def __gt__(self, other):
+        return self.probability > other.probability
+
+    def __ge__(self, other):
+        return self.probability >= other.probability
+
+
+class DistanceJointHypothesis(
+   JointHypothesis):
+    """Distance scored Joint Hypothesis subclass.
 
     Notes
     -----

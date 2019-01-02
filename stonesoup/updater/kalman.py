@@ -237,21 +237,21 @@ class PDAKalmanUpdater(Updater):
                                                 **kwargs)
 
         measurements = \
-            np.hstack(measurement["measurement"].state_vector
-                      for measurement in multihypothesis.weighted_measurements
+            np.hstack(hypothesis.measurement.state_vector
+                      for hypothesis in multihypothesis.single_measurement_hypotheses
                       if not isinstance(
-                        measurement["measurement"], MissedDetection))
+                        hypothesis.measurement, MissedDetection))
         weights = np.concatenate(
-            (np.hstack([float(measurement["weight"])
-                       for measurement in
-                        multihypothesis.weighted_measurements
+            (np.hstack([float(hypothesis.probability)
+                       for hypothesis in
+                        multihypothesis.single_measurement_hypotheses
                        if isinstance(
-                        measurement["measurement"], MissedDetection)]),
-                np.hstack([float(measurement["weight"])
-                          for measurement in
-                           multihypothesis.weighted_measurements
+                            hypothesis.measurement, MissedDetection)]),
+                np.hstack([float(hypothesis.probability)
+                          for hypothesis in
+                           multihypothesis.single_measurement_hypotheses
                           if not isinstance(
-                           measurement["measurement"], MissedDetection)])))
+                        hypothesis.measurement, MissedDetection)])))
         posterior_mean, posterior_covar, _ = \
             self._update_on_measurement_prediction(
                 multihypothesis.prediction.mean,
@@ -266,8 +266,7 @@ class PDAKalmanUpdater(Updater):
             GaussianStateUpdate(posterior_mean,
                                 posterior_covar,
                                 multihypothesis,
-                                multihypothesis.weighted_measurements[-1]
-                                ["measurement"].timestamp
+                                multihypothesis.timestamp
                                 )
 
     @staticmethod

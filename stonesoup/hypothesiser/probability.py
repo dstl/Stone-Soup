@@ -5,9 +5,11 @@ from ..base import Property
 from ..types import MissedDetection
 from ..types.multimeasurementhypothesis import \
     ProbabilityMultipleMeasurementHypothesis
+from ..types import SingleMeasurementProbabilityHypothesis
 from ..types.numeric import Probability
 from ..predictor import Predictor
 from ..updater import Updater
+import copy
 
 
 class PDAHypothesiser(Hypothesiser):
@@ -96,36 +98,31 @@ class PDAHypothesiser(Hypothesiser):
 
         """
 
-        weighted_detections = list()
-        probabilities = list()
+        probability_hypotheses = list()
 
-        # top-level items for the MultipleMeasurementHypothesis
+        # items common to all SingleMeasurementHypotheses that compose MultipleMeasurementHypothesis
         prediction = self.predictor.predict(track.state, timestamp=timestamp)
         measurement_prediction = self.updater.get_measurement_prediction(
             prediction)
 
         # Missed detection hypothesis
-        # probability = (1 - prob_detect) * prob_false_alarm
-        probabilities.append(
-            Probability(1-(self.prob_detect * self.prob_gate)))
-        weighted_detections.append(MissedDetection(timestamp=timestamp))
+        probability = Probability(1-(self.prob_detect * self.prob_gate))
+        detection = MissedDetection(timestamp=timestamp)
+        probability_hypotheses.append(SingleMeasurementProbabilityHypothesis(prediction, detection, measurement_prediction=measurement_prediction, probability=probability))
 
         for detection in detections:
 
             # hypothesis that track and given detection are associated
-            # probability = (prob associated)* prob_detect
             log_pdf = mn.logpdf(detection.state_vector.ravel(),
                                 measurement_prediction.state_vector.ravel(),
                                 measurement_prediction.covar)
             pdf = Probability(log_pdf, log_value=True)
             probability = (pdf * self.prob_detect)/self.clutter_spatial_density
 
-            probabilities.append(probability)
-            weighted_detections.append(detection)
+            probability_hypotheses.append(SingleMeasurementProbabilityHypothesis(prediction, detection,
+                                                                                 measurement_prediction=measurement_prediction,
+                                                                                 probability=probability))
 
-        result = ProbabilityMultipleMeasurementHypothesis(
-            prediction, measurement_prediction)
-        result.add_weighted_detections(
-            weighted_detections, probabilities, normalize=True)
-
+        result = ProbabilityMultipleMeasurementHypothesis(probability_hypotheses)
+        result.normalize_probabilities()
         return result
