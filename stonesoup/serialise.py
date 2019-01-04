@@ -17,6 +17,7 @@ from importlib import import_module
 import numpy as np
 import ruamel.yaml
 from ruamel.yaml.constructor import ConstructorError
+import pytimeparse
 
 from .base import Base
 
@@ -25,9 +26,8 @@ class YAML:
     """Class for YAML serialisation."""
     tag_prefix = '!{}.'.format(__name__.split('.', 1)[0])
 
-    def __init__(self):
-        self._yaml = ruamel.yaml.YAML()
-        self._yaml.default_flow_style = False
+    def __init__(self, typ='rt'):
+        self._yaml = ruamel.yaml.YAML(typ=typ)
 
         # NumPy
         self._yaml.representer.add_multi_representer(
@@ -131,7 +131,7 @@ class YAML:
 
     def ndarray_to_yaml(self, representer, node):
         """Convert numpy.ndarray to YAML."""
-        if node.ndim > 1:
+        if self._yaml.typ == 'rt' and node.ndim > 1:
             array = [self._yaml.seq(row) for row in node.tolist()]
             [seq.fa.set_flow_style() for seq in array]
         else:
@@ -150,7 +150,7 @@ class YAML:
 
         Value is total number of seconds."""
         return representer.represent_scalar(
-            "!datetime.timedelta", str(node.total_seconds()))
+            "!datetime.timedelta", str(node))
 
     @staticmethod
     def timedelta_from_yaml(constructor, node):
@@ -158,7 +158,7 @@ class YAML:
 
         Value should be total number of seconds."""
         return datetime.timedelta(
-            seconds=float(constructor.construct_scalar(node)))
+            seconds=pytimeparse.parse(constructor.construct_scalar(node)))
 
     @staticmethod
     def path_to_yaml(representer, node):

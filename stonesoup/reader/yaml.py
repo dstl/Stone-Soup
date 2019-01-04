@@ -14,7 +14,7 @@ class YAMLReader(DetectionReader, GroundTruthReader, SensorDataReader):
         if not isinstance(path, Path):
             path = Path(path)  # Ensure Path
         super().__init__(path, *args, **kwargs)
-        self._yaml = YAML()
+        self._yaml = YAML(typ="safe")
         self._detections = set()
         self._groundtruth_paths = set()
         self._sensor_data = set()

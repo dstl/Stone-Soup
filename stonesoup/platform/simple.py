@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-from ..base import Property
+from ..base import ListProperty
 from ..types import StateVector
 from ..sensor import Sensor
 from .base import Platform
@@ -17,12 +17,12 @@ class SensorPlatform(Platform):
     TODO: Extend to nD state space
     """
 
-    sensors = Property([Sensor], doc="A list of mounted sensors")
-    mounting_offsets = Property(
-        [np.array], doc="A list of sensor offsets (For now expressed\
+    sensors = ListProperty(Sensor, doc="A list of mounted sensors")
+    mounting_offsets = ListProperty(
+        np.array, doc="A list of sensor offsets (For now expressed\
                             as a 2xN array of 2D Cartesian coordinates)")
-    mounting_mappings = Property(
-        [np.array], doc="Mappings between the platform state vector and the\
+    mounting_mappings = ListProperty(
+        np.array, doc="Mappings between the platform state vector and the\
                          respective sensor positions")
 
     def move(self, timestamp=None, **kwargs):

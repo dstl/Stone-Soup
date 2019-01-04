@@ -4,7 +4,7 @@ import scipy as sp
 from scipy.stats import multivariate_normal
 from scipy.linalg import block_diag
 
-from ...base import Property
+from ...base import Property, ListProperty
 from ...types.array import CovarianceMatrix
 from ..base import (LinearModel, GaussianModel, TimeVariantModel,
                     TimeInvariantModel)
@@ -106,8 +106,8 @@ class CombinedLinearGaussianTransitionModel(LinearGaussianTransitionModel):
     must be supplied to all methods
     """
 
-    model_list = Property(
-        [LinearGaussianTransitionModel], doc="List of Transition Models.")
+    model_list = ListProperty(
+        LinearGaussianTransitionModel, doc="List of Transition Models.")
 
     @property
     def ndim_state(self):

@@ -1,0 +1,70 @@
+{% macro _input(uid, prefix, name, doc, type, data_type, default, item=None, feedback="Required property", instance=None) %}
+  <div class="input-group mb-3" id="{{ uid }}">
+    <div class="input-group-prepend">
+      <span class="input-group-text" id="prepend_{{ uid }}">{{ type.__name__|title }}</span>
+    </div>
+    <input id="input_{{ uid }}" class="form-control" aria-describedby="prepend_{{ uid }}"
+           name="{{ prefix }}[{{ name }}]{% if item is not none %}[{{ item }}]{% endif %}"
+           data-value-type="{{ data_type }}"
+           type="{%- if type is numbertype %}number{% else %}text{% endif %}"
+        {%- if default is not empty and default is not none %} placeholder="{{ default|e }}"{% endif %}
+        {%- if default is empty %} required{% else %} data-skip-falsy="true"{% endif %}
+        {%- if instance is not sameas(default) and instance is not none %} value="{{ instance|e }}"{% endif %}>
+    <div class="invalid-feedback">
+      {{ feedback }}
+    </div>
+  </div>
+{% endmacro %}
+{% macro Base(name, property, prefix, item=None, instance=None) %}
+  {% set uid = uuid.uuid4() %}
+  <div class="input-group mb-3" id="{{ uid }}"{% if instance is defined and instance is not none %} style="display: none;"{% endif %}>
+    {% if property is not none %}
+    <div class="input-group-prepend">
+      <span class="input-group-text" id="prepend_{{ uid }}">{{ property.cls.__name__|title }}</span>
+    </div>
+    {% endif %}
+    <input type="hidden" name="{{ prefix }}[{{ name }}]{% if item is not none %}[{{ item }}]{% endif %}[__id__]" value="{{ uid }}">
+    <select id="input_{{ uid }}" class="form-control" aria-describedby="prepend_{{ uid }}" name="{{ prefix }}[{{ name }}]{% if item is not none %}[{{ item }}]{% endif %}[__class__]"
+        {%- if property.default is sameas(property.empty) %} required{% else %} data-skip-falsy="true"{% endif %}>
+      <option value="">Select component...</option>
+      {%- for group in components|reject('abstract')|select('subclass', property.cls)|groupby('__module__') %}
+        {% for component in group.list|sort(attribute='__qualname__') %}
+          {% set full_name = '{0.__module__}.{0.__qualname__}'.format(component)  %}
+          <option data-toggle="tooltip" title="{{ component.__doc__|e }}" value="{{ full_name }}"
+              {%- if instance is defined and instance is not none %}
+                {%- set instance_full_name = '{0.__module__}.{0.__qualname__}'.format(instance.__class__)  %}
+                {%- if instance_full_name == full_name %} selected{% endif %}
+              {%- endif -%}>{{ component.__qualname__ }}</option>
+        {% endfor %}
+      {%-endfor %}
+    </select>
+    <div class="invalid-feedback">
+      Required component
+    </div>
+  </div>
+{% endmacro %}
+{% macro object(name, property, prefix, item=None, instance=None) -%}
+  {% set uid = uuid.uuid4() %}
+  {% if property.cls is numbertype %}
+    {% set data_type="number" %}
+  {% else %}
+    {% set data_type="string" %}
+  {% endif %}
+  {{ _input(uid, prefix, name, property.doc, property.cls, data_type, property.default, item, instance=instance) }}
+{% endmacro %}
+{% macro ndarray(name, property, prefix, item=None, instance=None) %}
+  {% set uid = uuid.uuid4() %}
+  {% if instance is ndarray %}
+    {% set instance = instance.tolist() %}
+  {% endif %}
+  {% if property.default is ndarray %}
+    {% set default = property.default.tolist() %}
+  {% else %}
+    {% set default = property.default %}
+  {% endif %}
+  {{ _input(uid, prefix, name, property.doc, property.cls, "array", default, item, instance=instance) }}
+{% endmacro %}
+{% macro Probability(name, property, prefix, item=None, instance=None) %}
+  {% set uid = uuid.uuid4() %}
+  {{ _input(uid, prefix, name, property.doc, property.cls, "number", property.default, item, "Must be between 0 and 1", instance) }}
+{% endmacro %}

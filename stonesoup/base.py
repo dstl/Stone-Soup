@@ -122,6 +122,13 @@ class Property:
         self._property_name = "_property_{}".format(name)
 
 
+class ListProperty(Property):
+    def __set__(self, instance, value):
+        if value is None:
+            value = []
+        super().__set__(instance, value)
+
+
 class BaseMeta(ABCMeta):
     """Base metaclass for Stone Soup components.
 

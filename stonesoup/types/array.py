@@ -2,7 +2,12 @@
 import numpy as np
 
 
-class StateVector(np.ndarray):
+class Array(np.ndarray):
+    def __array_wrap__(self, array):
+        return np.asarray(array)
+
+
+class StateVector(Array):
     """State vector wrapper for :class:`numpy.ndarray`
 
     This class returns a view to a :class:`numpy.ndarray`, but ensures that
@@ -18,11 +23,8 @@ class StateVector(np.ndarray):
                     array.shape))
         return array.view(cls)
 
-    def __array_wrap__(self, array):
-        return np.asarray(array)
 
-
-class CovarianceMatrix(np.ndarray):
+class CovarianceMatrix(Array):
     """Covariance matrix wrapper for :class:`numpy.ndarray`.
 
     This class returns a view to a :class:`numpy.ndarray`, but ensures that
@@ -36,6 +38,3 @@ class CovarianceMatrix(np.ndarray):
             raise ValueError("Covariance should have ndim of 2: got {}"
                              "".format(array.ndim))
         return array.view(cls)
-
-    def __array_wrap__(self, array):
-        return np.asarray(array)

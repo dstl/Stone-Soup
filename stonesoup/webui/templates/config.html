@@ -1,0 +1,45 @@
+{% import "types.html" as types %}
+{% macro component_form(component, prefix=None, instance=None) %}
+  {% set uid = uuid.uuid4() %}
+  <div class="card mb-2" id="{{ uid }}">
+    <div class="card-header py-0" id="heading_{{ uid }}">
+      <h5 class="mb-0">
+        <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapse_{{ uid }}" aria-expanded="true" aria-controls="collapse_{{ uid }}">
+          {{ component.__name__ }}
+        </button>
+      </h5>
+    </div>
+    <div id="collapse_{{ uid }}" class="collapse show" aria-labelledby="heading_{{ uid }}" >
+      <div class="card-body">
+        {% for name, property in component.properties.items() %}
+          <label for="input_{{ uid }}">{{ name|replace("_", " ")|title }}{% if property.doc is not none %} <small class="text-muted">{{ property.doc|e }}</small>{% endif %}</label>
+          {% set property_instance = instance|attr(name) %}
+          {% set property_macro = get_class_macro(types, property.cls) %}
+          {% if property is listproperty %}
+            {# Extra undefined instance as placeholder for additional items in the list #}
+            {% for item_instance in chain(property_instance, [undefined]) %}
+              {{ property_macro(name, property, prefix, loop.index0, item_instance) }}
+              {%- if property.cls is component or property.cls.properties|length > 1 %}
+                {% if item_instance is defined and item_instance is not none %}
+                  {{ component_form(item_instance.__class__, "{}[{}][{}]".format(prefix, name, loop.index0), item_instance) }}
+                {% endif %}
+              {%- endif %}
+            {% endfor %}
+          {% else %}
+            {{ property_macro(name, property, prefix, None, property_instance) }}
+          {%- if property.cls is component or property.cls is type %}
+            {%- if property_instance is defined and property_instance is not none %}
+              {{ component_form(property_instance.__class__, "{}[{}]".format(prefix, name), property_instance) }}
+            {% endif %}
+          {%- endif %}
+          {% endif %}
+        {%- endfor %}
+      </div>
+    </div>
+  </div>
+{%- endmacro %}
+{% if prefix == "config[tracker]" %}
+  {# Used when loading in a config file, so need the initial selection input #}
+  {{ types.Base("tracker", None, "config", None, instance) }}
+{% endif %}
+{{ component_form(component, prefix, instance) }}

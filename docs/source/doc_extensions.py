@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-from collections.abc import Sequence
-
-from stonesoup.base import Base
+from stonesoup.base import Base, ListProperty
 
 
 def _headings(heading, lines):
@@ -24,19 +22,15 @@ def declarative_class(app, what, name, obj, options, lines):
         param_index = _headings("Parameters", lines)
         attr_index = _headings("Attributes", lines)
         for name, property_ in obj.properties.items():
-            is_sequence = isinstance(property_.cls, Sequence)
-            if is_sequence:
-                cls = property_.cls[0]
-            else:
-                cls = property_.cls
+            is_list = isinstance(property_, ListProperty)
             class_name = "{}.{}".format(
-                cls.__module__, cls.__name__)
+                property_.cls.__module__, property_.cls.__name__)
             # To shorten names for builtins and also stonesoup components
             tild = class_name.split(".")[0] in ("stonesoup", "builtins")
             # To add optional if default value is defined.
             is_optional = property_.default is not property_.empty
             doc_type = "{}:class:`{}{}`{}".format(
-                is_sequence and "sequence of " or "",
+                is_list and "list of " or "",
                 tild and "~" or "",
                 class_name,
                 is_optional and ", optional" or "",

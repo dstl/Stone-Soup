@@ -4,7 +4,7 @@ from collections.abc import MutableSequence
 
 import numpy as np
 
-from ..base import Property
+from ..base import Property, ListProperty
 from .array import StateVector, CovarianceMatrix
 from .base import Type
 from .particle import Particle
@@ -49,16 +49,11 @@ class StateMutableSequence(Type, MutableSequence):
     [[1]] 2018-01-01 14:01:00
     """
 
-    states = Property(
-        [State],
+    states = ListProperty(
+        State,
         default=None,
         doc="The initial list of states. Default `None` which initialises"
             "with empty list.")
-
-    def __init__(self, states=None, *args, **kwargs):
-        if states is None:
-            states = []
-        super().__init__(states, *args, **kwargs)
 
     def __len__(self):
         return self.states.__len__()
@@ -143,8 +138,8 @@ class ParticleState(Type):
 
     timestamp = Property(datetime.datetime, default=None,
                          doc="Timestamp of the state. Default None.")
-    particles = Property([Particle],
-                         doc='List of particles representing state')
+    particles = ListProperty(Particle,
+                             doc='List of particles representing state')
 
     @property
     def mean(self):

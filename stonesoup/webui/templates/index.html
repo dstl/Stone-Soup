@@ -1,0 +1,104 @@
+{%-  extends "base.html" %}
+{% import "types.html" as types %}
+{%- block title %}Stone Soup{% endblock title %}
+{%- block content %}
+  <div class="container-fluid">
+  <form id="config" class="needs-validation" novalidate>
+    {{ types['Base']("tracker", None, "config", None) }}
+    <button class="btn btn-primary" type="submit">Validate</button>
+    <button class="btn btn-primary" type="button" id="download-config">Download</button>
+  </form>
+  <div class="custom-file mt-2">
+    <input type="file" class="custom-file-input" id="config-file" hidden>
+    <label class="btn btn-primary" for="config-file">Upload</label>
+  </div>
+  </div>
+{%- endblock content %}
+{%- block script %}
+  {{ super() }}
+  <script type="text/javascript" charset="utf-8">
+    $(document).ready(function() {
+      const socket = io.connect('http://' + document.domain + ':' + location.port);
+      var navbar = document.getElementById('navbar');
+      socket.on('connect', function () {
+          navbar.classList.add('bg-light');
+          navbar.classList.remove('bg-danger');
+      });
+      socket.on('disconnect', function () {
+          navbar.classList.add('bg-danger');
+          navbar.classList.remove('bg-light');
+      });
+      socket.on('message', function (level, message) {
+        if(level >= 40) {
+          alert(message);
+        }
+        //TODO: Log messages
+      });
+      $(document).on('change', 'select', function(e) {
+        e.preventDefault();
+        var component_name = e.target.value;
+        if (component_name) {
+          var prefix = e.target.name.replace("[__class__]", '');
+          socket.emit('get_component_form', component_name, prefix, function (result){
+            if (result) {
+              $('#config').removeClass('was-validated');
+              var input_group = $(e.target).closest('.input-group');
+              input_group.hide();
+              input_group.after(result);
+              var res = prefix.match(/^(.+)(?:\[(\d+)\])$/);
+              if (res) {
+                var pre_prefix = res[0];
+                var index = res[1] + 1;
+                if (pre_prefix) {
+                    var new_input_group = input_group.clone();
+                    //TODO: Fix me
+                    new_input_group.children("select").prop("required", false);
+                    new_input_group.appendTo(input_group.closest('.card-body')).show();
+                }
+              }
+            }
+          });
+        }
+      });
+      $('#config').submit(function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var form = e.target;
+        form.classList.remove('was-validated');
+        $(form).find('input:invalid').each(function() {
+            this.setCustomValidity("");
+        });
+        if (form.checkValidity() === true) {
+          socket.emit('submit_config', $(e.target).serializeJSON({useIntKeysAsArrayIndex: true}), //TODO: Hanel bad array
+            function (yaml) {
+              if(yaml.status === "success") {
+                  alert(yaml.config)
+              } else {
+                  var bad_input = $("[name='" + yaml.name + "']").first();
+                  bad_input.siblings(".invalid-feedback").text(yaml.message);
+                  bad_input[0].setCustomValidity(yaml.message);
+              }
+          });
+        }
+        form.classList.add('was-validated');
+      });
+      $('#config-file').on('change', function(event) {
+        event.preventDefault();
+        var reader = new FileReader();
+        reader.onload = function() {
+          socket.emit("load_config", reader.result, function(result) {
+            if (result) {
+              var config_form = $('#config');
+              config_form.removeClass('was-validated');
+              config_form.children('.input-group').replaceWith(result)
+            }
+          })
+        };
+        var file = $('#config-file')[0].files[0];
+        // Null value in case trying to load same file again
+        event.target.value = null;
+        reader.readAsText(file)
+      });
+    });
+  </script>
+{%- endblock script %}

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import uuid
 
-from ..base import Property
+from ..base import Property, ListProperty
 from .state import State, StateMutableSequence
 from .update import Update
 
@@ -12,8 +12,8 @@ class Track(StateMutableSequence):
     A :class:`~.StateMutableSequence` representing a track.
     """
 
-    states = Property(
-        [State],
+    states = ListProperty(
+        State,
         default=None,
         doc="The initial states of the track. Default `None` which initialises"
             "with empty list.")
