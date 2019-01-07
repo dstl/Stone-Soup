@@ -6,5 +6,6 @@ from .generic import *  # noqa:F401,F403
 from .file import *  # noqa:F401,F403
 from .yaml import *  # noqa:F401,F403
 
-__all__ = ['DetectionReader', 'GroundTruthReader', 'SensorDataReader', 'NMEASources', 'NMEAReader']
+__all__ = ['DetectionReader', 'GroundTruthReader',
+           'SensorDataReader', 'NMEASources', 'NMEAReader']
 __all__.extend(subclass_.__name__ for subclass_ in Reader.subclasses)
