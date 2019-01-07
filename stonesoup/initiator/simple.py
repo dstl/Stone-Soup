@@ -5,10 +5,12 @@ from .base import Initiator, GaussianInitiator
 from ..base import Property
 from ..updater import KalmanUpdater
 from ..models.measurement import MeasurementModel
+from ..types.hypothesis import Hypothesis
 from ..types.numeric import Probability
 from ..types.particle import Particle
-from ..types.state import GaussianState, ParticleState
+from ..types.state import GaussianState
 from ..types.track import Track
+from ..types.update import GaussianStateUpdate, ParticleStateUpdate
 
 
 class SinglePointInitiator(GaussianInitiator):
@@ -32,26 +34,21 @@ class SinglePointInitiator(GaussianInitiator):
             A list of new tracks with an initial :class:`~.GaussianState`
         """
 
+        updater = KalmanUpdater(self.measurement_model)
+        measurement_prediction = updater.get_measurement_prediction(
+            self.prior_state)
+
         tracks = set()
         for detection in unassociated_detections:
-            post_state_vec, post_state_covar, _ = \
-                KalmanUpdater.update_lowlevel(self.prior_state.state_vector,
-                                              self.prior_state.covar,
-                                              self.measurement_model.matrix(),
-                                              self.measurement_model.covar(),
-                                              detection.state_vector)
-
-            track_state = GaussianState(
-                post_state_vec,
-                post_state_covar,
-                timestamp=detection.timestamp)
+            track_state = updater.update(Hypothesis(
+                self.prior_state, detection, measurement_prediction))
             track = Track([track_state])
             tracks.add(track)
 
         return tracks
 
 
-class LinearMeasurementInitiator(Initiator):
+class LinearMeasurementInitiator(GaussianInitiator):
     """Initiator that maps measurement space to state space
 
     This initiator utilises the :class:`~.MeasurementModel` matrix to convert
@@ -68,17 +65,23 @@ class LinearMeasurementInitiator(Initiator):
         model_matrix = self.measurement_model.matrix()
         model_covar = self.measurement_model.covar()
 
+        prior_state_vector = self.prior_state.state_vector.copy()
+        prior_covar = self.prior_state.covar.copy()
+
         # Zero out elements of prior state that will be replaced by measurement
-        # (1 - matrix) to flip 0->1 and 1->0
-        prior_state_vector = self.prior_state.state_vector * (
-            1 - model_matrix.T@np.ones((model_matrix.shape[0], 1)))
-        prior_covar = self.prior_state.covar * (
-            1 - model_matrix.T@np.ones(model_covar.shape)@model_matrix)
+        mapped_dimensions, _ = np.nonzero(
+            model_matrix.T@np.ones((model_matrix.shape[0], 1)))
+        prior_state_vector[mapped_dimensions, :] = 0
+        prior_covar[mapped_dimensions, :] = 0
+
+        inv_model_matrix = np.linalg.pinv(model_matrix)
 
         for detection in detections:
-            tracks.add(Track([GaussianState(
-                prior_state_vector + model_matrix.T@detection.state_vector,
-                prior_covar + model_matrix.T@model_covar@model_matrix,
+            tracks.add(Track([GaussianStateUpdate(
+                prior_state_vector + inv_model_matrix@detection.state_vector,
+                prior_covar
+                + inv_model_matrix@model_covar@model_matrix.astype(bool),
+                Hypothesis(None, detection),
                 timestamp=detection.timestamp)
             ]))
         return tracks
@@ -120,7 +123,9 @@ class GaussianParticleInitiator(Initiator):
             particles = [
                 Particle(sample.reshape(-1, 1), weight=weight)
                 for sample in samples]
-            track[-1] = ParticleState(particles,
-                                      timestamp=track.timestamp)
+            track[-1] = ParticleStateUpdate(
+                particles,
+                track.hypothesis,
+                timestamp=track.timestamp)
 
         return tracks

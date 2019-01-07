@@ -1,0 +1,1113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<aisMessageList>
+    <aisMessage type="1">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="repeatIndicator">
+	  <element type="uint">
+	    <bytes>1:2</bytes>
+	    <bitMasks>0x30</bitMasks>
+	    <bitShifts>-4</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+	<field name="NavigationStatus">
+	  <element type="uint">
+	    <bytes>6:7</bytes>
+	    <bitMasks>0x0F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="SpeedOverGround">
+	  <element type="float" signBit="0x00000000" scale="10.0">
+	    <bytes>8:10</bytes>
+	    <bitMasks>0x0F,0x3F</bitMasks>
+	    <bitShifts>6,0</bitShifts>
+	  </element>
+	</field>
+	<field name="PositionAccuracy">
+	  <element type="uint">
+	    <bytes>10:11</bytes>
+	    <bitMasks>0x20</bitMasks>
+	    <bitShifts>-5</bitShifts>
+	  </element>
+	</field>
+	<field name="Longitude">
+	  <element type="float" signBit="0x08000000" scale="600000.0">
+	    <bytes>10:15</bytes>
+	    <bitMasks>0x1F,0x3F,0x3F,0x3F,0x3E</bitMasks>
+	    <bitShifts>23,17,11,5,-1</bitShifts>
+	  </element>
+	</field>
+	<field name="Latitude">
+	  <element type="float" signBit="0x04000000" scale="600000.0">
+	    <bytes>14:20</bytes>
+	    <bitMasks>0x01,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+	<field name="CourseOverGround">
+	  <element type="float" signBit="0x00000000" scale="10.0">
+	    <bytes>19:22</bytes>
+	    <bitMasks>0x0F,0x3F,0x30</bitMasks>
+	    <bitShifts>8,2,-4</bitShifts>
+	  </element>
+	</field>
+	<field name="UTCSecond">
+	  <element type="uint">
+	    <bytes>22:24</bytes>
+	    <bitMasks>0x01,0x3E</bitMasks>
+	    <bitShifts>5,-1</bitShifts>
+	  </element>
+	</field>
+    </aisMessage>    
+
+    <aisMessage type="2">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="repeatIndicator">
+	  <element type="uint">
+	    <bytes>1:2</bytes>
+	    <bitMasks>0x30</bitMasks>
+	    <bitShifts>-4</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+	<field name="NavigationStatus">
+	  <element type="uint">
+	    <bytes>6:7</bytes>
+	    <bitMasks>0x0F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="SpeedOverGround">
+	  <element type="float" signBit="0x00000000" scale="10.0">
+	    <bytes>8:10</bytes>
+	    <bitMasks>0x0F,0x3F</bitMasks>
+	    <bitShifts>6,0</bitShifts>
+	  </element>
+	</field>
+	<field name="PositionAccuracy">
+	  <element type="uint">
+	    <bytes>10:11</bytes>
+	    <bitMasks>0x20</bitMasks>
+	    <bitShifts>-5</bitShifts>
+	  </element>
+	</field>
+	<field name="Longitude">
+	  <element type="float" signBit="0x08000000" scale="600000.0">
+	    <bytes>10:15</bytes>
+	    <bitMasks>0x1F,0x3F,0x3F,0x3F,0x3E</bitMasks>
+	    <bitShifts>23,17,11,5,-1</bitShifts>
+	  </element>
+	</field>
+	<field name="Latitude">
+	  <element type="float" signBit="0x04000000" scale="600000.0">
+	    <bytes>14:20</bytes>
+	    <bitMasks>0x01,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+	<field name="CourseOverGround">
+	  <element type="float" signBit="0x00000000" scale="10.0">
+	    <bytes>19:22</bytes>
+	    <bitMasks>0x0F,0x3F,0x30</bitMasks>
+	    <bitShifts>8,2,-4</bitShifts>
+	  </element>
+	</field>
+	<field name="UTCSecond">
+	  <element type="uint">
+	    <bytes>22:24</bytes>
+	    <bitMasks>0x01,0x3E</bitMasks>
+	    <bitShifts>5,-1</bitShifts>
+	  </element>
+	</field>
+    </aisMessage>    
+
+    <aisMessage type="3">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="repeatIndicator">
+	  <element type="uint">
+	    <bytes>1:2</bytes>
+	    <bitMasks>0x30</bitMasks>
+	    <bitShifts>-4</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+	<field name="NavigationStatus">
+	  <element type="uint">
+	    <bytes>6:7</bytes>
+	    <bitMasks>0x0F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="SpeedOverGround">
+	  <element type="float" signBit="0x00000000" scale="10.0">
+	    <bytes>8:10</bytes>
+	    <bitMasks>0x0F,0x3F</bitMasks>
+	    <bitShifts>6,0</bitShifts>
+	  </element>
+	</field>
+	<field name="PositionAccuracy">
+	  <element type="uint">
+	    <bytes>10:11</bytes>
+	    <bitMasks>0x20</bitMasks>
+	    <bitShifts>-5</bitShifts>
+	  </element>
+	</field>
+	<field name="Longitude">
+	  <element type="float" signBit="0x08000000" scale="600000.0">
+	    <bytes>10:15</bytes>
+	    <bitMasks>0x1F,0x3F,0x3F,0x3F,0x3E</bitMasks>
+	    <bitShifts>23,17,11,5,-1</bitShifts>
+	  </element>
+	</field>
+	<field name="Latitude">
+	  <element type="float" signBit="0x04000000" scale="600000.0">
+	    <bytes>14:20</bytes>
+	    <bitMasks>0x01,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+	<field name="CourseOverGround">
+	  <element type="float" signBit="0x00000000" scale="10.0">
+	    <bytes>19:22</bytes>
+	    <bitMasks>0x0F,0x3F,0x30</bitMasks>
+	    <bitShifts>8,2,-4</bitShifts>
+	  </element>
+	</field>
+	<field name="UTCSecond">
+	  <element type="uint">
+	    <bytes>22:24</bytes>
+	    <bitMasks>0x01,0x3E</bitMasks>
+	    <bitShifts>5,-1</bitShifts>
+	  </element>
+	</field>
+    </aisMessage>    
+
+    <aisMessage type="4">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+	<field name="UTC">
+	  <element type="uint">
+	    <bytes>6:9</bytes>
+	    <bitMasks>0x0F,0x3F,0x3C</bitMasks>
+	    <bitShifts>10,4,-2</bitShifts>
+	  </element>
+	  <element type="uint">
+	    <bytes>8:10</bytes>
+	    <bitMasks>0x03,0x30</bitMasks>
+	    <bitShifts>2,-4</bitShifts>
+	  </element>
+	  <element type="uint">
+	    <bytes>9:11</bytes>
+	    <bitMasks>0x0f,0x20</bitMasks>
+	    <bitShifts>1,-5</bitShifts>
+	  </element>
+	  <element type="uint">
+	    <bytes>10:11</bytes>
+	    <bitMasks>0x1f</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	  <element type="uint">
+	    <bytes>11:12</bytes>
+	    <bitMasks>0x3f</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	  <element type="uint">
+	    <bytes>12:13</bytes>
+	    <bitMasks>0x3f</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="PositionAccuracy">
+	  <element type="uint">
+	    <bytes>13:14</bytes>
+	    <bitMasks>0x20</bitMasks>
+	    <bitShifts>-5</bitShifts>
+	  </element>
+	</field>
+	<field name="Longitude">
+	  <element type="float" signBit="0x08000000" scale="600000.0">
+	    <bytes>13:18</bytes>
+	    <bitMasks>0x1F,0x3F,0x3F,0x3F,0x3E</bitMasks>
+	    <bitShifts>23,17,11,5,-1</bitShifts>
+	  </element>
+	</field>
+	<field name="Latitude">
+	  <element type="float" signBit="0x04000000" scale="600000.0">
+	    <bytes>17:23</bytes>
+	    <bitMasks>0x01,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+    </aisMessage>    
+    
+    <aisMessage type="5">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+	<field name="CallSign">
+	  <element type="hexbits">
+	    <bytes>11:13</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>12:14</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>13:15</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>14:16</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>15:17</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>16:18</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>17:19</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	</field>
+	<field name="ShipName">
+	  <element type="hexbits">
+	    <bytes>18:20</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>19:21</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>20:22</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>21:23</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>22:24</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>23:25</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>24:26</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>25:27</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>26:28</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>27:29</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>28:30</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>29:31</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>30:32</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>31:33</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>32:34</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>33:35</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>34:36</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>35:37</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>36:38</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>37:39</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	</field>
+	<field name="ShipType">
+	  <element type="uint">
+	    <bytes>38:40</bytes>
+	    <bitMasks>0x03,0x3F</bitMasks>
+	    <bitShifts>6,0</bitShifts>
+	  </element>
+	</field>
+	<field name="DimensionToBow">
+	  <element type="uint">
+	    <bytes>40:42</bytes>
+	    <bitMasks>0x3F,0x38</bitMasks>
+	    <bitShifts>3,-3</bitShifts>
+	  </element>
+	</field>
+	<field name="DimensionToStern">
+	  <element type="uint">
+	    <bytes>41:43</bytes>
+	    <bitMasks>0x07,0x3F</bitMasks>
+	    <bitShifts>6,0</bitShifts>
+	  </element>
+	</field>
+	<field name="DimensionToPort">
+	  <element type="uint">
+	    <bytes>43:44</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="DimensionToStarboard">
+	  <element type="uint">
+	    <bytes>44:45</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+    </aisMessage>
+    
+    <aisMessage type="6">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+    </aisMessage>
+    
+    <aisMessage type="7">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+    </aisMessage>    
+    
+    <aisMessage type="8">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+        <field name="dac">
+	  <element type="uint">
+            <bytes>6:9</bytes>
+            <bitMasks>0x03,0x3F,0x30</bitMasks>
+            <bitShifts>8,2,-4</bitShifts>
+	  </element>
+        </field>
+        <field name="fid">
+	  <element type="uint">
+            <bytes>8:10</bytes>
+            <bitMasks>0x0F,0x30</bitMasks>
+            <bitShifts>2,-4</bitShifts>
+	  </element>
+        </field>
+    </aisMessage>
+    
+    <aisMessage type="9">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+    </aisMessage> 
+	
+    <aisMessage type="10">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+    </aisMessage>
+    
+    <aisMessage type="11">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+    </aisMessage> 
+	
+    <aisMessage type="12">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+    </aisMessage>
+    
+    <aisMessage type="13">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+    </aisMessage> 
+	
+    <aisMessage type="14">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+    </aisMessage>
+    
+    <aisMessage type="15">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+    </aisMessage> 
+	
+    <aisMessage type="16">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+    </aisMessage>
+    
+    <aisMessage type="17">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+    </aisMessage> 
+	
+    <aisMessage type="18">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+	<field name="SpeedOverGround">
+	  <element type="float" signBit="0x00000000" scale="10.0">
+	    <bytes>7:10</bytes>
+	    <bitMasks>0x03,0x3F,0x30</bitMasks>
+	    <bitShifts>8,2,-4</bitShifts>
+	  </element>
+	</field>
+	<field name="PositionAccuracy">
+	  <element type="uint">
+	    <bytes>9:10</bytes>
+	    <bitMasks>0x08</bitMasks>
+	    <bitShifts>-3</bitShifts>
+	  </element>
+	</field>
+	<field name="Longitude">
+	  <element type="float" signBit="0x08000000" scale="600000.0">
+	    <bytes>9:15</bytes>
+	    <bitMasks>0x07,0x3F,0x3F,0x3F,0x3F,0x20</bitMasks>
+	    <bitShifts>25,19,13,7,1,-5</bitShifts>
+	  </element>
+	</field>
+	<field name="Latitude">
+	  <element type="float" signBit="0x04000000" scale="600000.0">
+	    <bytes>14:19</bytes>
+	    <bitMasks>0x1F,0x3F,0x3F,0x3F,0x3C</bitMasks>
+	    <bitShifts>22,16,10,4,-2</bitShifts>
+	  </element>
+	</field>
+	<field name="CourseOverGround">
+	  <element type="float" signBit="0x00000000" scale="10.0">
+	    <bytes>18:21</bytes>
+	    <bitMasks>0x03,0x3F,0x3C</bitMasks>
+	    <bitShifts>10,4,-2</bitShifts>
+	  </element>
+	</field>
+	<field name="UTCSecond">
+	  <element type="uint">
+	    <bytes>22:24</bytes>
+	    <bitMasks>0x1F,0x20</bitMasks>
+	    <bitShifts>1,-5</bitShifts>
+	  </element>
+	</field>
+    </aisMessage>
+    
+    <aisMessage type="19">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+    </aisMessage> 
+	
+    <aisMessage type="20">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+    </aisMessage>
+    
+    <aisMessage type="21">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+    </aisMessage> 
+	
+    <aisMessage type="22">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+    </aisMessage>
+    
+    <aisMessage type="23">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+    </aisMessage> 
+	
+    <aisMessage type="24">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field> 
+	<field name="PartNumber">
+	  <element type="uint">
+	    <bytes>6:7</bytes>
+	    <bitMasks>0x0C</bitMasks>
+	    <bitShifts>-2</bitShifts>
+	  </element>
+	</field>       
+	<field name="ShipName">
+	  <element type="hexbits">
+	    <bytes>6:8</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>7:9</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>8:10</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>9:11</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>10:12</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>11:13</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>12:14</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>13:15</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>14:16</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>15:17</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>16:18</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>17:19</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>18:20</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>19:21</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>20:22</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>21:23</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>22:24</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>23:25</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>24:26</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>25:27</bytes>
+	    <bitMasks>0x03,0x3C</bitMasks>
+	    <bitShifts>4,-2</bitShifts>
+	  </element>
+	</field>
+	<field name="ShipType">
+	  <element type="uint">
+	    <bytes>6:8</bytes>
+	    <bitMasks>0x03,0x3F</bitMasks>
+	    <bitShifts>6,0</bitShifts>
+	  </element>
+	</field>
+	<field name="VendorID">
+	  <element type="hexbits">
+	    <bytes>8:9</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>9:10</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>10:11</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>11:12</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>12:13</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>13:14</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>14:15</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="CallSign">
+	  <element type="hexbits">
+	    <bytes>15:16</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>16:17</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>17:18</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>18:19</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>19:20</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>20:21</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	  <element type="hexbits">
+	    <bytes>21:22</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="DimensionToBow">
+	  <element type="uint">
+	    <bytes>22:24</bytes>
+	    <bitMasks>0x3F,0x38</bitMasks>
+	    <bitShifts>3,-3</bitShifts>
+	  </element>
+	</field>
+	<field name="DimensionToStern">
+	  <element type="uint">
+	    <bytes>23:25</bytes>
+	    <bitMasks>0x07,0x3F</bitMasks>
+	    <bitShifts>6,0</bitShifts>
+	  </element>
+	</field>
+	<field name="DimensionToPort">
+	  <element type="uint">
+	    <bytes>25:26</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="DimensionToStarboard">
+	  <element type="uint">
+	    <bytes>26:27</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+    </aisMessage>
+    
+    <aisMessage type="25">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+    </aisMessage> 
+	
+    <aisMessage type="26">
+	<field name="messageType">
+	  <element type="uint">
+	    <bytes>0:1</bytes>
+	    <bitMasks>0x3F</bitMasks>
+	    <bitShifts>0</bitShifts>
+	  </element>
+	</field>
+	<field name="MMSI">
+	  <element type="uint">
+	    <bytes>1:7</bytes>
+	    <bitMasks>0x0F,0x3F,0x3F,0x3F,0x3F,0x30</bitMasks>
+	    <bitShifts>26,20,14,8,2,-4</bitShifts>
+	  </element>
+	</field>
+    </aisMessage>
+</aisMessageList>

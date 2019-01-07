@@ -8,7 +8,7 @@ from stonesoup.types import StateUpdate, \
     GaussianStateUpdate, GaussianMeasurementPrediction, ParticleStateUpdate, \
     StatePrediction, StateMeasurementPrediction, Detection, \
     GaussianStatePrediction, ParticleStatePrediction, \
-    ParticleMeasurementPrediction, Particle
+    ParticleMeasurementPrediction, Particle, Hypothesis
 
 
 def test_stateupdate():
@@ -28,17 +28,19 @@ def test_stateupdate():
     measurement = Detection(state_vector=np.array([[5], [7]]),
                             timestamp=timestamp)
 
-    state_update = StateUpdate(state_vector=state_vector,
-                               prediction=prediction,
-                               measurement_prediction=measurement_prediction,
-                               measurement=measurement,
-                               timestamp=timestamp)
+    state_update = StateUpdate(
+        state_vector,
+        Hypothesis(
+            prediction=prediction,
+            measurement=measurement,
+            measurement_prediction=measurement_prediction),
+        timestamp=timestamp)
 
     assert np.array_equal(state_vector, state_update.state_vector)
-    assert np.array_equal(prediction, state_update.prediction)
+    assert np.array_equal(prediction, state_update.hypothesis.prediction)
     assert np.array_equal(measurement_prediction,
-                          state_update.measurement_prediction)
-    assert np.array_equal(measurement, state_update.measurement)
+                          state_update.hypothesis.measurement_prediction)
+    assert np.array_equal(measurement, state_update.hypothesis.measurement)
     assert timestamp == state_update.timestamp
 
 
@@ -61,19 +63,20 @@ def test_gaussianstateupdate():
         timestamp=timestamp)
     measurement = Detection(state_vector=np.array([[5], [7]]),
                             timestamp=timestamp)
-    state_update = GaussianStateUpdate(state_vector=state_vector,
-                                       covar=covar,
-                                       prediction=prediction,
-                                       measurement_prediction=meas_pred,
-                                       measurement=measurement,
+    state_update = GaussianStateUpdate(state_vector,
+                                       covar,
+                                       Hypothesis(
+                                           prediction=prediction,
+                                           measurement=measurement,
+                                           measurement_prediction=meas_pred),
                                        timestamp=timestamp)
 
     assert np.array_equal(state_vector, state_update.state_vector)
     assert np.array_equal(covar, state_update.covar)
-    assert np.array_equal(prediction, state_update.prediction)
+    assert np.array_equal(prediction, state_update.hypothesis.prediction)
     assert np.array_equal(meas_pred,
-                          state_update.measurement_prediction)
-    assert np.array_equal(measurement, state_update.measurement)
+                          state_update.hypothesis.measurement_prediction)
+    assert np.array_equal(measurement, state_update.hypothesis.measurement)
     assert np.array_equal(timestamp, state_update.timestamp)
 
 
@@ -107,10 +110,11 @@ def test_particlestateupdate():
         timestamp=timestamp)
     measurement = Detection(state_vector=np.array([[5], [7]]),
                             timestamp=timestamp)
-    state_update = ParticleStateUpdate(particles=particles,
-                                       prediction=prediction,
-                                       measurement_prediction=meas_pred,
-                                       measurement=measurement,
+    state_update = ParticleStateUpdate(particles,
+                                       Hypothesis(
+                                           prediction=prediction,
+                                           measurement=measurement,
+                                           measurement_prediction=meas_pred),
                                        timestamp=timestamp)
 
     eval_mean = np.mean(np.hstack((i.state_vector for i in particles)),
@@ -118,8 +122,8 @@ def test_particlestateupdate():
     assert np.allclose(eval_mean, state_update.mean)
     assert np.all([particles[i].state_vector ==
                    state_update.particles[i].state_vector for i in range(9)])
-    assert np.array_equal(prediction, state_update.prediction)
+    assert np.array_equal(prediction, state_update.hypothesis.prediction)
     assert np.array_equal(meas_pred,
-                          state_update.measurement_prediction)
-    assert np.array_equal(measurement, state_update.measurement)
+                          state_update.hypothesis.measurement_prediction)
+    assert np.array_equal(measurement, state_update.hypothesis.measurement)
     assert np.array_equal(timestamp, state_update.timestamp)

@@ -64,11 +64,8 @@ class SingleTargetTracker(Tracker):
             if self.track is not None:
                 associations = self.data_associator.associate(
                         self.tracks, detections, time)
-                if associations[self.track].detection is not None:
-                    state_post = self.updater.update(
-                        associations[self.track].prediction,
-                        associations[self.track].detection,
-                        associations[self.track].measurement_prediction)
+                if associations[self.track]:
+                    state_post = self.updater.update(associations[self.track])
                     self.track.append(state_post)
                 else:
                     self.track.append(
@@ -132,18 +129,18 @@ class MultiTargetTracker(Tracker):
                 self._tracks, detections, time)
             associated_detections = set()
             for track, hypothesis in associations.items():
-                if hypothesis.detection is not None:
-                    state_post = self.updater.update(
-                        hypothesis.prediction,
-                        hypothesis.detection,
-                        hypothesis.measurement_prediction)
+                if hypothesis:
+                    state_post = self.updater.update(hypothesis)
                     track.append(state_post)
-                    associated_detections.add(hypothesis.detection)
+                    associated_detections.add(hypothesis.measurement)
                 else:
                     track.append(hypothesis.prediction)
 
             self._tracks -= self.deleter.delete_tracks(self._tracks)
+
+            yield time, self.tracks
+
             self._tracks |= self.initiator.initiate(
                 detections - associated_detections)
 
-            yield time, self.tracks
+

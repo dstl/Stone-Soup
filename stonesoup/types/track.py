@@ -2,7 +2,8 @@
 import uuid
 
 from ..base import Property
-from ..types import State, StateMutableSequence
+from .state import State, StateMutableSequence
+from .update import Update
 
 
 class Track(StateMutableSequence):
@@ -26,3 +27,26 @@ class Track(StateMutableSequence):
         super().__init__(*args, **kwargs)
         if self.id is None:
             self.id = str(uuid.uuid4())
+
+    @property
+    def metadata(self):
+        """Returns metadata associated with a track.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        : :class:`dict` of variable size
+            All metadata associate with this track.
+        """
+
+        metadata = {}
+
+        for state in self:
+            if isinstance(state, Update) \
+                    and state.hypothesis.measurement.metadata is not None:
+                metadata.update(state.hypothesis.measurement.metadata)
+
+        return metadata
