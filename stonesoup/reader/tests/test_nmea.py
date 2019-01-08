@@ -92,7 +92,7 @@ def test_nmea_mssis(tmpdir):
     # Read the MSSIS file with a "NMEAReader()" to extract data.
     mssis_reader = NMEAReader(start_time=START_TIME,
                               end_time=END_TIME,
-                              path=mssis_filename,
+                              path=str(mssis_filename),
                               src=NMEASources.MSSIS)
     detections = [detection
                   for _, detections in mssis_reader.detections_gen()
@@ -113,7 +113,7 @@ def test_nmea_ealog(tmpdir):
     # Read the Exact Earth file with a "NMEAReader()" to extract data.
     mssis_reader = NMEAReader(start_time=START_TIME,
                               end_time=END_TIME,
-                              path=ealog_filename,
+                              path=str(ealog_filename),
                               src=NMEASources.ExactEarth)
     detections = [detection
                   for _, detections in mssis_reader.detections_gen()
