@@ -34,12 +34,12 @@ class NMEADecoder(object):
         six_bit = [(ord(x) - 48 - int(ord(x) > 88) * 8) & y
                    for x, y in zip(source, masks)]
         try:
-            return
-            functools.reduce(lambda x, y: x | y,
-                             [x << y
-                              for x, y in zip(six_bit, shifts) if y >= 0] +
-                             [x >> abs(y)
-                              for x, y in zip(six_bit, shifts) if y < 0])
+            return (
+                functools.reduce(lambda x, y: x | y,
+                                 [x << y
+                                  for x, y in zip(six_bit, shifts) if y >= 0] +
+                                 [x >> abs(y)
+                                  for x, y in zip(six_bit, shifts) if y < 0]))
         except TypeError:
             raise InvalidMessage(self.payload)
 

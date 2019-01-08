@@ -21,7 +21,7 @@ class NMEA(object):
     Do not instantiate from this class. Instead, use one of the sub-classes.
     """
 
-    valid_types = ['!AIVDM', '!ANVDM', '!ASVDM', '!ABVDM', '!BSVDM']
+    valid_types = ['VDM']
     reference_utc = datetime.combine(date(1970, 1, 1), time(0, 0, 0))
     count = 0
     max_number = -1
@@ -42,7 +42,7 @@ class NMEA(object):
 
     def open(self, filepath):
         try:
-            self.ais_file = open(filepath, 'r')
+            self.ais_file = filepath.open('r')
         except Exception as e:
             # Log?
             print("Error! Unable to open file at {}".format(filepath))
@@ -61,10 +61,9 @@ class NMEA(object):
 
         # Parse the line
         target_line = self.splitLine(ln)
-
         # Check if time is within the time_span.
         if (self.time_span[-1] > 0 and
-                int(target_line[-1]) > self.time_span[-1]):
+                int(float(target_line[-1])) > self.time_span[-1]):
             raise StopIteration
         # Update the count
         self.updateCount()
@@ -207,9 +206,8 @@ class MSSISParser(NMEA):
 
     def splitLine(self, line):
         fields = line.split(',')
-
         # Check for the right kind of message.
-        if fields[0] not in self.valid_types:
+        if fields[0][-3::] not in self.valid_types:
             return self.__next__()
         # Do a checksum on the data.
         # Go to next item upon failure.
@@ -239,27 +237,25 @@ class EAParser(NMEA):
         # Split the line into fields.
         # First get rid of the stuff at the front
         tmp_fields = line.split('\\')
-        fields = tmp_fields[-1].split(',')
-
+        fields = tmp_fields[-1].rstrip().split(',')
         # Check for the right kind of message.
-        if fields[0] not in self.valid_types:
+        if fields[0][-3::] not in self.valid_types:
             return self.__next__()
-
+        # Following is legacy code.
+        # Is this even necessary?
         # See if we can get a time-string
         time_str = "0"
         if (len(tmp_fields) > 1):
             time_idx = tmp_fields[1].find('c:')
-            if (time_idx):
+            if (time_idx >= 0):
                 time_str = tmp_fields[1][(time_idx + 2):]
                 time_str = time_str[0:time_str.find('*')]
-
-        # Append the time string twice so we have the same format as MSSIS
-        fields.append(time_str)
-        fields.append(time_str)
-
-        # Do a checksum on the data.
+                # Append the time string twice so we have the same format
+                # as MSSIS
+                fields.append(time_str)
+        # Do checksum on the data.
         # Go to next item upon failure.
-        chksum = '*{:2X}'.format(self.checkSum(line))
+        chksum = '*{:2X}'.format(self.checkSum(tmp_fields[-1]))
         if chksum in "*FF":
             return self.__next__()
         if chksum not in fields[6]:

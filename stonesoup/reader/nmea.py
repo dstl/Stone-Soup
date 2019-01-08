@@ -50,6 +50,7 @@ class NMEAReader(DetectionReader):
 
     [3] https://mssis.volpe.dot.gov/Main/
     """
+
     bbox = Property(
         (float, float, float, float),
         default=None,
@@ -166,7 +167,7 @@ class NMEAReader(DetectionReader):
             fields = record[5]
             self._detections = set()
             try:
-                ts_time = int(record[-1])
+                ts_time = (float(record[-1]))
                 utc_time = self.reference_utc + timedelta(seconds=ts_time)
             except ValueError:
                 continue
