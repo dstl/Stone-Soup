@@ -10,7 +10,8 @@ setup(name='stonesoup',
       description='A target tracking development/testing framework',
       url='https://github.com/dstl/Stone-Soup',
       packages=find_packages(exclude=('docs', '*.tests')),
-      install_requires=['ruamel.yaml>=0.15.45', 'scipy', 'matplotlib'],
+      install_requires=['ruamel.yaml>=0.15.45', 'scipy', 'matplotlib',
+                        'lxml', 'simplekml>=1.3.1'],
       extras_require={
           'dev': [
               'pytest-flake8', 'pytest-cov', 'Sphinx', 'sphinx_rtd_theme',
