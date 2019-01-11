@@ -609,7 +609,7 @@ class SingerApproximate(Singer):
         For small dt:
 
         .. math::
-            Q_t & = & 2 \alpha q \begin{bmatrix}
+            Q_t & = & q \begin{bmatrix}
                         \frac{dt^5}{20} & \frac{dt^4}{8} & \frac{dt^3}{6} \\
                         \frac{dt^4}{8} & \frac{dt^3}{3} & \frac{dt^2}{2} \\
                         \frac{dt^3}{6} & \frac{dt^2}{2} & dt
@@ -634,8 +634,6 @@ class SingerApproximate(Singer):
         time_interval_sec = time_interval.total_seconds()
 
         # Only leading terms get calculated for speed.
-        constant_multiplier = 2 * self.recip_decorr_time * \
-            self.noise_diff_coeff
         covar = sp.array(
             [[sp.power(time_interval_sec, 5) / 20,
               sp.power(time_interval_sec, 4) / 8,
@@ -646,7 +644,7 @@ class SingerApproximate(Singer):
              [sp.power(time_interval_sec, 3) / 6,
               sp.power(time_interval_sec, 2) / 2,
               time_interval_sec]]
-        ) * constant_multiplier
+        ) * self.noise_diff_coeff
 
         return CovarianceMatrix(covar)
 

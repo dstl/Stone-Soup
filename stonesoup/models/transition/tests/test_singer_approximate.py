@@ -69,7 +69,6 @@ def base(state_vec, noise_diff_coeffs, recips_decorr_times, timediff=1.0):
         recip_decorr_time = recips_decorr_times[i]
         recip_decorr_timedt = recip_decorr_time * timediff
         noise_diff_coeff = noise_diff_coeffs[i]
-        constant_multiplier = 2 * recip_decorr_time * noise_diff_coeff
 
         mat_list.append(sp.array(
             [[1,
@@ -92,7 +91,7 @@ def base(state_vec, noise_diff_coeffs, recips_decorr_times, timediff=1.0):
               sp.power(timediff, 2) / 2],
              [sp.power(timediff, 3) / 6,
               sp.power(timediff, 2) / 2,
-              timediff]]) * constant_multiplier)
+              timediff]]) * noise_diff_coeff)
 
     print(covar_list)
     F = sp.linalg.block_diag(*mat_list)
