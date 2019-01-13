@@ -41,7 +41,7 @@ def test_jacobian2():
 
     x = np.array([[1], [2]])
     # Tolerance value to use to test if arrays are equal
-    tol = 1.0e-9
+    tol = 1.0e-2
 
     jac = jacobian(fun1d, x)
     T = np.array([2.0, 3.0])
