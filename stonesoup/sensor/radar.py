@@ -11,7 +11,7 @@ from ..models.measurement.nonlinear\
     import RangeBearingGaussianToCartesian
 
 
-class SimpleRadar(Sensor):
+class RadarRangeBearing(Sensor):
     """A simple radar sensor that generates measurements of targets, using a
     :class:`~.RangeBearingGaussianToCartesian` model, relative to its position.
 
@@ -94,7 +94,7 @@ class SimpleRadar(Sensor):
                          timestamp=ground_truth.timestamp)
 
 
-class SimpleRotatingRadar(SimpleRadar):
+class RadarRotatingRangeBearing(RadarRangeBearing):
     """A simple rotating radar, with set field-of-view (FOV) angle, range and\
      rotations per minute (RPM), that generates measurements of targets, using\
      a :class:`~.RangeBearingGaussianToCartesian` model, relative to its\

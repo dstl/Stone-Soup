@@ -10,7 +10,7 @@ from stonesoup.models.transition.linear import ConstantVelocity,\
     CombinedLinearGaussianTransitionModel
 # from stonesoup.functions import cart2pol
 from stonesoup.types.array import StateVector, CovarianceMatrix
-from stonesoup.sensor.radar import SimpleRadar
+from stonesoup.sensor.radar import RadarRangeBearing
 
 # Input arguments
 # TODO: pytest parametarization
@@ -159,7 +159,7 @@ def radars_2d():
     measurement_mapping = np.array([0, 2])
 
     # Create 5 simple radar sensor objects
-    radar1 = SimpleRadar(
+    radar1 = RadarRangeBearing(
         position=radar1_position,
         orientation=radar1_orientation,
         ndim_state=4,
@@ -167,14 +167,14 @@ def radars_2d():
         noise_covar=noise_covar,
     )
 
-    radar2 = SimpleRadar(
+    radar2 = RadarRangeBearing(
         position=radar2_position,
         orientation=radar2_orientation,
         ndim_state=4,
         mapping=measurement_mapping,
         noise_covar=noise_covar
     )
-    radar3 = SimpleRadar(
+    radar3 = RadarRangeBearing(
         position=radar3_position,
         orientation=radar3_orientation,
         ndim_state=4,
@@ -182,14 +182,14 @@ def radars_2d():
         noise_covar=noise_covar
     )
 
-    radar4 = SimpleRadar(
+    radar4 = RadarRangeBearing(
         position=radar4_position,
         orientation=radar4_orientation,
         ndim_state=4,
         mapping=measurement_mapping,
         noise_covar=noise_covar
     )
-    radar5 = SimpleRadar(
+    radar5 = RadarRangeBearing(
         position=radar5_position,
         orientation=radar5_orientation,
         ndim_state=4,
@@ -225,7 +225,7 @@ def radars_3d():
     measurement_mapping = np.array([0, 2, 4])
 
     # Create 5 simple radar sensor objects
-    radar1 = SimpleRadar(
+    radar1 = RadarRangeBearing(
         position=radar1_position,
         orientation=radar1_orientation,
         ndim_state=6,
@@ -233,14 +233,14 @@ def radars_3d():
         noise_covar=noise_covar
     )
 
-    radar2 = SimpleRadar(
+    radar2 = RadarRangeBearing(
         position=radar2_position,
         orientation=radar2_orientation,
         ndim_state=6,
         mapping=measurement_mapping,
         noise_covar=noise_covar
     )
-    radar3 = SimpleRadar(
+    radar3 = RadarRangeBearing(
         position=radar3_position,
         orientation=radar3_orientation,
         ndim_state=6,
@@ -248,28 +248,28 @@ def radars_3d():
         noise_covar=noise_covar
     )
 
-    radar4 = SimpleRadar(
+    radar4 = RadarRangeBearing(
         position=radar4_position,
         orientation=radar4_orientation,
         ndim_state=6,
         mapping=measurement_mapping,
         noise_covar=noise_covar
     )
-    radar5 = SimpleRadar(
+    radar5 = RadarRangeBearing(
         position=radar5_position,
         orientation=radar5_orientation,
         ndim_state=6,
         mapping=measurement_mapping,
         noise_covar=noise_covar
     )
-    radar6 = SimpleRadar(
+    radar6 = RadarRangeBearing(
         position=radar6_position,
         orientation=radar6_orientation,
         ndim_state=6,
         mapping=measurement_mapping,
         noise_covar=noise_covar
     )
-    radar7 = SimpleRadar(
+    radar7 = RadarRangeBearing(
         position=radar7_position,
         orientation=radar7_orientation,
         ndim_state=6,
