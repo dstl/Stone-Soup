@@ -305,7 +305,8 @@ class ExtendedKalmanUpdater(KalmanUpdater):
         if measurement_model is None:
             measurement_model = self.measurement_model
         measurement_matrix, measurement_noise_covar, measurement_function = \
-            self._extract_model_parameters(measurement_model)
+            self._extract_model_parameters(measurement_model,
+                                           state_prediction.state_vector)
 
         meas_pred_mean, meas_pred_covar, cross_covar = \
             self.get_measurement_prediction_lowlevel(state_prediction.mean,
@@ -314,16 +315,6 @@ class ExtendedKalmanUpdater(KalmanUpdater):
                                                      measurement_matrix,
                                                      measurement_noise_covar)
 
-        return GaussianMeasurementPrediction(meas_pred_mean, meas_pred_covar,
-                                             state_prediction.timestamp,
-                                             cross_covar)
-
-        meas_pred_mean, meas_pred_covar, cross_covar = \
-            self.get_measurement_prediction_lowlevel(state_prediction.mean,
-                                                     state_prediction.covar,
-                                                     measurement_function,
-                                                     measurement_matrix,
-                                                     measurement_noise_covar)
         return GaussianMeasurementPrediction(meas_pred_mean, meas_pred_covar,
                                              state_prediction.timestamp,
                                              cross_covar)
