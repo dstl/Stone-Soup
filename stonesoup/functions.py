@@ -58,7 +58,7 @@ def jacobian(fun, x):
         ndim = np.shape(x)[0]
 
     # For numerical reasons the step size needs to large enough
-    delta = 100*ndim*np.finfo(float).eps
+    delta = 1.e-8  # 100*ndim*np.finfo(float).eps
 
     f1 = fun(x)
     if isinstance(f1, (int, float)):
