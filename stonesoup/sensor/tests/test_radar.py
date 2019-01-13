@@ -6,7 +6,7 @@ import datetime
 from stonesoup.functions import cart2pol
 from stonesoup.types.state import State
 from stonesoup.types.array import StateVector, CovarianceMatrix
-from stonesoup.sensor.radar import SimpleRadar, SimpleRotatingRadar
+from stonesoup.sensor.radar import RadarRangeBearing, RadarRotatingRangeBearing
 
 
 def h2d(state_vector, translation_offset, rotation_offset):
@@ -62,7 +62,7 @@ def test_simple_radar():
     measurement_mapping = np.array([0, 1])
 
     # Create a radar object
-    radar = SimpleRadar(
+    radar = RadarRangeBearing(
         position=radar_position,
         orientation=radar_orientation,
         ndim_state=2,
@@ -113,7 +113,7 @@ def test_rotating_radar():
     measurement_mapping = np.array([0, 1])
 
     # Create a radar object
-    radar = SimpleRotatingRadar(
+    radar = RadarRotatingRangeBearing(
         position=radar_position,
         orientation=radar_orientation,
         ndim_state=2,
