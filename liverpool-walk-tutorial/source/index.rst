@@ -21,6 +21,8 @@ This is a step-by-step tutorial/guide to setting up Stone Soup for development p
 .. note::
     This installation tutorial is aimed for Windows 10 (both Generic and MWS) systems. However, the described process should be mostly identical for machines running on Windows 7 or 8.x. 
 
+    In the context of this document, the term MWS will be used to refer to MWS machines for which the user does NOT have administrative priviledges, e.g. the lab/library computers.
+    
 .. toctree::
    :maxdepth: 5
    :caption: Contents:

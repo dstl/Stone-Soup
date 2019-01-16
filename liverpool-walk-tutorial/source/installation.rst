@@ -1,6 +1,13 @@
 Installation
 ============
 
+.. note::
+    This installation tutorial is aimed for Windows 10 (both Generic and MWS) systems. However, the described process should be mostly identical for machines running on Windows 7 or 8.x. 
+
+    In the context of this document, the term MWS will be used to refer to MWS machines for which the user does NOT have administrative priviledges, e.g. the lab/library computers.
+
+    For MWS machines with administrative priviledges, e.g. Staff personal computers, the same process as for non-MWS machines can be followed.
+
 Prerequisites
 -------------
 
@@ -13,8 +20,8 @@ Python
 
 Stone-Soup is a Python-based framework and thus a working Python installation is a mandatory requirement for one to work with and develop in Stone-Soup. 
 
-Installation
-************
+Installation for non-MWS machines
+*********************************
 
 1. Go to `<https://www.python.org/downloads/>`_
 2. Search for and download the latest Python 3.7.x version. Alternatively, simply click on the yellow "Download Python 3.7.x" button 
@@ -22,12 +29,58 @@ Installation
 4. To confirm that Python 3 is correctly installed and configured, open a Windows Powershell/Command Promp window, type ```python -V``` and press Enter. This should print out something similar to ```Python 3.7.2```.
 5. If instead you get a ```‘python’ is not recognized as an internal or external command``` error, it is very likely that you forgot to check the "Add Python 3.7 to PATH" checkbox (as instructed above) during the installation process. In this case simply uninstall and reinstall Python as per the above instructions.
 
+Installation for MWS machines
+*****************************
+
+1. Open the "Install University Applications" Desktop App.
+2. Search for and select "Python 3.7.0".
+3. Click the "Install" button and wait for the installation to complete.
+4. To confirm that Python 3 is correctly installed and configured, open a Windows Powershell/Command Promp window, type ```python -V``` and press Enter. This should print out something similar to ```Python 3.7.0```.
+
+.. _Warning:
+
+.. warning::
+
+    Due to the lack of administrative proviledges in MWS, Python packages cannot be installed using the standard ``pip install ...`` command. Instead it is necessary to add the ``--user`` argument (thus the command becomes ``pip install --user ...``), in which case packages will be placed under the directory ```C:\Users\<YOUR_MWS_USERNAME>\AppData\Roaming\Python\Python37\site-packages```. 
+
+    Normally, this would not be an issue as one would be able to add the new path to the Windows ``PATH`` environmental variable. However, once again, because of the lack of admin rights, this again is not an option.
+
+    To overcome this issue, the variables need to be set every time a new Command Prompt/Powershell window is opened, by executing the following command in the window:
+
+    - Command Prompt:
+        .. code::
+
+            set PATH=%PATH%;c:\users\sglvladi\appdata\roaming\python\python37; c:\users\sglvladi\appdata\roaming\python\python37\Scripts"
+
+    - Powershell:
+        .. code::
+
+            $Env:path += ";c:\users\<YOUR_MWS_USERNAME>\appdata\roaming\python\python37; c:\users\<YOUR_MWS_USERNAME>\appdata\roaming\python\python37\Scripts"
+
+    where you should substitue ``<YOUR_MWS_USERNAME>`` with your MWS username (e.g. ``sglvladi``).
+
+    To check the contents of the ``PATH`` environmental variable, you can run the following commands:
+
+    - Command Prompt:
+        .. code::
+
+            @echo %PATH%
+
+    - Powershell:
+        .. code::
+
+            $Env:path
+
+    If configured correctly, the added paths should appear at the end of the print-out, e.g.:
+
+        .. code::
+
+            C:\Program Files\Python37\Scripts\;C:\Program Files\Python37\;C:\Program Files (x86)\Cuminas\Document Express DjVu Plug-in\;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Program Files\IBM\SPSS\Statistics\24\JRE\bin;C:\Program Files (x86)\Common Files\Roxio Shared\DLLShared\;C:\Program Files (x86)\Common Files\Roxio Shared\9.0\DLLShared\;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Microsoft Emulator Manager\1.0\;C:\Program Files (x86)\ESRIUK\ProductivitySuite\bin\;C:\Windows\gnu;C:\MATLAB2018\runtime\win64;C:\MATLAB2018\bin;C:\Program Files\Git219\cmd;V:\Batch;C:\Users\sglvladi\AppData\Local\Microsoft\WindowsApps;V:\Batch;c:\users\sglvladi\appdata\roaming\python\python37; c:\users\sglvladi\appdata\roaming\python\python37\Scripts
+
 .. note::
     It is worth noting that, aside from the official CPython distribution, there exist a number of other Python distributions that one can use (e.g. `Anaconda <https://www.anaconda.com/download/>`_, `Intel <https://software.intel.com/en-us/distribution-for-python>`_, etc.), each providing benefits in specific use-cases. 
 
     For the sake of ease and speed of installation, in this tutorial we will be installing the official Python distribution. However, any distribution of a Stone-Soup compatible Python version should work just as well. 
-
-
 
 Git
 ~~~
@@ -37,12 +90,19 @@ One notable feature of Git, and one that is vital to Stone-Soup development, is 
     
 This allows developers (i.e. us) to seamlessly and concurrently create, develop and colaborate on seperate branches (copies) of the main code (or other branches), which can be merged (a.k.a. applied) at a later time, through an intuitive merging process. 
 
-Installation
-************
+Installation for non-MWS machines
+*********************************
 1. Go to `<https://git-scm.com/>`_ and download the latest version of Git.
 2. Execute the downloaded installation file and advance the process until the "Select Components" window is shown. 
 3. In this window, the default selections under the "Windows Explorer Integration" group will result in the options being added to the context window the appears when you right-click on/inside a given directory in the Windows File Explorer. However, as explained further down, in this tutorial we will be using a 3rd party Git GUI Client. Thus, these options become obsolete and can be unselected.
 4. Progress through the rest of the installation process using the provided defauls settings (unless otherwise desireable) and begin the installation. 
+
+Installation for MWS machines
+*****************************
+
+1. Open the "Install University Applications" Desktop App.
+2. Search for and select "GIT 2.19.0".
+3. Click the "Install" button and wait for the installation to complete.
 
 Developement tools
 ------------------
@@ -65,12 +125,20 @@ The text Editor/IDE selected for the purposes of this tutorial is `Microsoft Vis
 
 .. _Installation:
 
-Installation
-************
+Installation for non-MWS machines
+*********************************
+
 1. Go to `<https://code.visualstudio.com/>`_ and download a version of VS Code for your OS.
 2. Execute the downloaded installation file and advance the process until the "Select Additional Tasks" window is shown.
 3. In this window, selecting the checkboxes under the "Other:" section will enable you to open specific files/directories in VS Code by simply right-clicking on them and selecting the "Open with Code" option that is added to the context menu. From experience, this has proven as a very convenient alternative to the process of opening the editor and following the standard ```File > Open...``` sequence. Thus it is advisable that you select these options. 
 4. Proceed to the next step and click "Install" to begin the installation.
+
+Installation for MWS machines
+*****************************
+
+1. Open the "Install University Applications" Desktop App.
+2. Search for and select "Visual Studio Code 1.23.1".
+3. Click the "Install" button and wait for the installation to complete.
 
 .. note::
     There exist various popular alternative IDEs, such as `PyCharm <https://www.jetbrains.com/pycharm/>`_, `Sublime Text <https://www.sublimetext.com/>`_ and `Visual Studio <https://visualstudio.microsoft.com/vs/>`_ (not to be mistaken with VS Code), which developers may also use if desireable, however the extensions and configuration process documented below does not apply to these editors.
@@ -112,10 +180,11 @@ Configuration
 *************
 Once installed, extensions must be configured to operate in the desired manner. This can be done as follows:
 
-1. Go to ```File > Preferences > Settings```. This opens up a GUI based Settings editor. 
-2. VS Code settings are stored in JSON files. In the top-right corner of the Settings tab, click on the button depicting a ```{}``` symbol to view the underlying JSON files.
-3. On the right half of tab that opens up, make sure that the "USER SETTINGS" tab is selected.
-4. Copy and paste the following settings in the provided editor window:
+1. Go to ```File > Preferences > Settings```. 
+2. In newer versions of VS Code, this opens up a GUI based ``Settings`` editor tab. If this is the case go to Step 3. For MWS machines, skip to Step 4.
+3. In the top-right corner of the Settings tab, click on the button depicting a ```{}``` symbol to view the underlying JSON files.
+4. On the right half of tab that opens up, make sure that the "USER SETTINGS" tab is selected.
+5. Copy and paste the following settings in the provided editor window:
 
     .. code::
 
@@ -167,8 +236,8 @@ The Git GUI Client selected for the purposes of this tutorial is `SmartGit <http
 
     .. [#f3] `<https://www.syntevo.com/smartgit/purchase/>`_
     
-Installation
-************
+Installation for non-MWS machines
+*********************************
 1. Go to `<https://www.syntevo.com/smartgit/download/>`_ and download a version of SmartGit for Windows.
 2. Extract the contents of the downloaded folder and proceed to execute the contained "\*.exe" installation file.
 3. Progress through the installation process using the provided defauls settings (unless otherwise desireable) and begin the installation.
@@ -177,6 +246,11 @@ Installation
 6. On the next window, set up your `Git Credentials <https://git-scm.com/docs/gitcredentials>`_ by inserting a User Name of you choice and the email address of your GitHub account (that has access to Stone-Soup).
 7. Progress through the rest of the setup steps using the default settings.
 8. SmartGit should open automatically once the setup is finished.
+
+Installation for MWS machines
+*****************************
+
+Unfortunately, the "Install University Applications" app does not provide students/staff with SmartGit. Thus, SmartGit cannot be installed on MWS machines.
 
 Stone-Soup
 ----------
