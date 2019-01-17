@@ -1,12 +1,7 @@
 import numpy as np
 
-<<<<<<< HEAD
 from stonesoup.functions import jacobian, dayOfTheWeek
 
-=======
-from stonesoup.functions import jacobian
-from stonesoup.functions import dayOfTheWeek
->>>>>>> 0302b8024abadc032c3e9964b5d0fe87153a04f5
 
 def test_jacobian():
     """ jacobian function test """
