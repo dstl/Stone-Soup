@@ -60,6 +60,11 @@ def test_jacobian2():
     return
 
 
-def testDayOfTheWeek():
+def test_Friday():
     day = dayOfTheWeek(5)
     assert day == "Friday"
+
+
+def test_Wednesday():
+    """ Test comment """
+    assert dayOfTheWeek(3) == "Wednesday"

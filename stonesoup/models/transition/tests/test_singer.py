@@ -9,31 +9,31 @@ from stonesoup.models.transition.linear import \
     (Singer, CombinedLinearGaussianTransitionModel)
 
 
-def test_singer1dmodel():
-    """ ConstantAcceleration1D Transition Model test """
-    state_vec = sp.array([[3.0], [1.0], [0.1]])
-    noise_diff_coeffs = sp.array([[0.01]])
-    recips_decorr_times = sp.array([[0.1]])
-    base(state_vec, noise_diff_coeffs, recips_decorr_times)
+# def test_singer1dmodel():
+#     """ ConstantAcceleration1D Transition Model test """
+#     state_vec = sp.array([[3.0], [1.0], [0.1]])
+#     noise_diff_coeffs = sp.array([[0.01]])
+#     recips_decorr_times = sp.array([[0.1]])
+#     base(state_vec, noise_diff_coeffs, recips_decorr_times)
 
 
-def test_singer2dmodel():
-    """ ConstantAcceleration2D Transition Model test """
-    state_vec = sp.array([[3.0], [1.0], [0.1],
-                          [2.0], [2.0], [0.2]])
-    noise_diff_coeffs = sp.array([[0.01], [0.02]])
-    recips_decorr_times = sp.array([[0.1], [0.1]])
-    base(state_vec, noise_diff_coeffs, recips_decorr_times)
+# def test_singer2dmodel():
+#     """ ConstantAcceleration2D Transition Model test """
+#     state_vec = sp.array([[3.0], [1.0], [0.1],
+#                           [2.0], [2.0], [0.2]])
+#     noise_diff_coeffs = sp.array([[0.01], [0.02]])
+#     recips_decorr_times = sp.array([[0.1], [0.1]])
+#     base(state_vec, noise_diff_coeffs, recips_decorr_times)
 
 
-def test_singer3dmodel():
-    """ ConstantAcceleration3D Transition Model test """
-    state_vec = sp.array([[3.0], [1.0], [0.1],
-                          [2.0], [2.0], [0.2],
-                          [4.0], [0.5], [0.05]])
-    noise_diff_coeffs = sp.array([[0.01], [0.02], [0.005]])
-    recips_decorr_times = sp.array([[0.1], [0.1], [0.1]])
-    base(state_vec, noise_diff_coeffs, recips_decorr_times)
+# def test_singer3dmodel():
+#     """ ConstantAcceleration3D Transition Model test """
+#     state_vec = sp.array([[3.0], [1.0], [0.1],
+#                           [2.0], [2.0], [0.2],
+#                           [4.0], [0.5], [0.05]])
+#     noise_diff_coeffs = sp.array([[0.01], [0.02], [0.005]])
+#     recips_decorr_times = sp.array([[0.1], [0.1], [0.1]])
+#     base(state_vec, noise_diff_coeffs, recips_decorr_times)
 
 
 def base(state_vec, noise_diff_coeffs, recips_decorr_times):
