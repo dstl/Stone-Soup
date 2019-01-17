@@ -1,6 +1,6 @@
 import numpy as np
 
-from stonesoup.functions import jacobian
+from stonesoup.functions import jacobian, dayOfTheWeek
 
 
 def test_jacobian():
@@ -58,3 +58,7 @@ def test_jacobian2():
     assert len(FOM[0]) == 0
 
     return
+
+
+def test_daysoftheweek():
+    assert dayOfTheWeek(4.5) == "funday"
