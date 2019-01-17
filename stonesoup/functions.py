@@ -485,4 +485,7 @@ def dayOfTheWeek(number):
     #   Add your code below, possibly starting with "else if....."
     elif(number == 3):
         day = "Wednesday"
+    elif number == 1:
+        day = "Monday"
+
     return day
