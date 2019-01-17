@@ -1,13 +1,7 @@
 import numpy as np
 
-<<<<<<< HEAD
 from stonesoup.functions import jacobian, dayOfTheWeek
-=======
-from stonesoup.functions import jacobian, dayofTheWeek
->>>>>>> c813f782c327d784cf4555eb1401d6552cfec6b1
 
-def testdayoftheweek(number):
-   assert dayOfTheWeek(4) == "Thursday"
 
 def test_jacobian():
     """ jacobian function test """
@@ -66,6 +60,11 @@ def test_jacobian2():
     return
 
 
+def test_Friday():
+    day = dayOfTheWeek(5)
+    assert day == "Friday"
+
+
 def test_Wednesday():
     """ Test comment """
     assert dayOfTheWeek(3) == "Wednesday"
@@ -80,3 +79,7 @@ def test_dayOfTheWeek():
     number = 1
     day = dayOfTheWeek(number)
     assert day == "Monday"
+
+
+def testdayoftheweek():
+    assert dayOfTheWeek(4) == "Thursday"
