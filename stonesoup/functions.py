@@ -484,4 +484,7 @@ def dayOfTheWeek(number):
     # TODO:
     #   Add your code below, possibly starting with "else if....."
 
+    if(number == 4.5):
+        day = "funday"
+
     return day
