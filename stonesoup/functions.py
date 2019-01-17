@@ -481,6 +481,9 @@ def dayOfTheWeek(number):
 
     if(number < 1 or number > 7):
         day = "Nope"
+    elif(number == 5):
+        day = "Friday"
+
     # TODO:
     #   Add your code below, possibly starting with "else if....."
 
