@@ -482,6 +482,6 @@ def dayOfTheWeek(number):
     if(number < 1 or number > 7):
         day = "Nope"
     # TODO:
-    if number == 6:
+    elif number == 6:
         day = "Saturday"
     return day
