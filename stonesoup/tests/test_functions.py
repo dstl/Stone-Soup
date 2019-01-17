@@ -60,5 +60,38 @@ def test_jacobian2():
     return
 
 
+def test_Friday():
+    day = dayOfTheWeek(5)
+    assert day == "Friday"
+
+
+def test_Wednesday():
+    """ Test comment """
+    assert dayOfTheWeek(3) == "Wednesday"
+
+
+def test_tuesday():
+    assert dayOfTheWeek(2) == "Tuesday"
+
+
+def test_dayOfTheWeek():
+    """ Tests the day of the week liverpool-walk tutorial """
+    number = 1
+    day = dayOfTheWeek(number)
+    assert day == "Monday"
+
+
+def testdayoftheweek():
+    assert dayOfTheWeek(4) == "Thursday"
+
+
+def test_Saturday(input=None):
+    day = dayOfTheWeek(6)
+    assert day == "Saturday"
+
+
+def test_dayOfTheWeek():
+
+
 def test_daysoftheweek():
     assert dayOfTheWeek(4.5) == "funday"
