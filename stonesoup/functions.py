@@ -495,4 +495,6 @@ def dayOfTheWeek(number):
         day = "Friday"
     elif number == 6:
         day = "Saturday"
+    elif number == 7:
+        day = "Sunday"
     return day
