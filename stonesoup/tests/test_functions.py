@@ -1,6 +1,6 @@
 import numpy as np
 
-from stonesoup.functions import jacobian
+from stonesoup.functions import jacobian, dayOfTheWeek
 
 
 def test_jacobian():
@@ -56,5 +56,11 @@ def test_jacobian2():
     FOM = np.where(np.abs(jac - T) > tol)
     # Check # of array elements bigger than tol
     assert len(FOM[0]) == 0
+
+    return
+
+
+def test_tuesday():
+    assert dayOfTheWeek(2) == "Tuesday"
 
     return
