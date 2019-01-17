@@ -28,6 +28,7 @@ This is a step-by-step tutorial/guide to setting up Stone Soup for development p
    :caption: Contents:
 
    installation
+   contributing
 
 
 
