@@ -489,5 +489,11 @@ def dayOfTheWeek(number):
         day = "Tuesday"
     elif number == 1:
         day = "Monday"
-
+    elif number == 4:
+        day = "Thursday"
     return day
+
+
+
+
+
