@@ -461,3 +461,25 @@ def rotz(theta):
     return np.array([[c, -s, 0],
                      [s, c, 0],
                      [0, 0, 1]])
+
+
+def dayOfTheWeek(number):
+    """Returns a string with the day of the week, given a number.
+
+    Parameters
+    ----------
+    number : int
+        The number, by order of precedence Mon-Sun, of the day to print out.
+
+    Returns
+    -------
+    string
+        The day of the week that corresponds to the given number.
+    """
+
+    day = ""
+
+    if(number < 1 or number > 7):
+        day = "Nope"
+
+    return day
