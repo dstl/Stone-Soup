@@ -83,3 +83,9 @@ def test_dayOfTheWeek():
 
 def testdayoftheweek():
     assert dayOfTheWeek(4) == "Thursday"
+
+
+def test_Saturday(input=None):
+
+    day = dayOfTheWeek(6)
+    assert day == "Saturday"
