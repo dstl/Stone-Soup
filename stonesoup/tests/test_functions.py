@@ -60,7 +60,16 @@ def test_jacobian2():
     return
 
 
+<<<<<<< HEAD
 def test_tuesday():
     assert dayOfTheWeek(2) == "Tuesday"
 
     return
+=======
+def test_dayOfTheWeek():
+    """ Tests the day of the week liverpool-walk tutorial """
+
+    number = 1
+    day = dayOfTheWeek(number)
+    assert day == "Monday"
+>>>>>>> monday
