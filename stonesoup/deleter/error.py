@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+"""Contains collection of error based deleters"""
 import numpy as np
 
 from ..base import Property

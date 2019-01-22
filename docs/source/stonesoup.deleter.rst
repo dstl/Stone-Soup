@@ -7,8 +7,14 @@ Deleters
 .. automodule:: stonesoup.deleter.base
     :show-inheritance:
 
-.. automodule:: stonesoup.deleter.simple
+Error Based
+-----------
+.. automodule:: stonesoup.deleter.error
     :show-inheritance:
     :inherited-members:
 
-
+Time Based
+-----------
+.. automodule:: stonesoup.deleter.time
+    :show-inheritance:
+    :inherited-members:
