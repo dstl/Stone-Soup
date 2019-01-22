@@ -20,7 +20,7 @@ def test_ca2dmodel():
     """ ConstantAcceleration2D Transition Model test """
     state_vec = sp.array([[3.0], [1.0], [0.1],
                           [2.0], [2.0], [0.2]])
-    noise_diff_coeffs = sp.array([[0.01], [0.02]])
+    noise_diff_coeffs = sp.array([0.01, 0.02])
     base(state_vec, noise_diff_coeffs)
 
 
@@ -29,7 +29,7 @@ def test_ca3dmodel():
     state_vec = sp.array([[3.0], [1.0], [0.1],
                           [2.0], [2.0], [0.2],
                           [4.0], [0.5], [0.05]])
-    noise_diff_coeffs = sp.array([[0.01], [0.02], [0.005]])
+    noise_diff_coeffs = sp.array([0.01, 0.02, 0.005])
     base(state_vec, noise_diff_coeffs)
 
 

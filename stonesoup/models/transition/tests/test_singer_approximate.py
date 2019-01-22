@@ -5,35 +5,35 @@ import scipy as sp
 from scipy.stats import multivariate_normal
 
 from stonesoup.models.transition.linear import \
-    (Singer, CombinedLinearGaussianTransitionModel)
+    (SingerApproximate, CombinedLinearGaussianTransitionModel)
 
 
-def test_singer1dmodel():
-    """ Singer 1D Transition Model test """
+def test_singer1dmodel_approximate():
+    """ SingerApproximate 1D Transition Model test for small timediff """
     state_vec = sp.array([[3.0], [1.0], [0.1]])
     noise_diff_coeffs = sp.array([0.01])
     recips_decorr_times = sp.array([0.1])
-    base(state_vec, noise_diff_coeffs, recips_decorr_times)
+    base(state_vec, noise_diff_coeffs, recips_decorr_times, timediff=0.4)
 
 
-def test_singer2dmodel():
-    """ Singer 2D Transition Model test """
+def test_singer2dmodel_approximate():
+    """ SingerApproximate 2D Transition Model test for small timediff """
     state_vec = sp.array([[3.0], [1.0], [0.1],
                           [2.0], [2.0], [0.2]])
     noise_diff_coeffs = sp.array([0.01, 0.02])
     recips_decorr_times = sp.array([0.1, 0.1])
 
-    base(state_vec, noise_diff_coeffs, recips_decorr_times)
+    base(state_vec, noise_diff_coeffs, recips_decorr_times, timediff=0.4)
 
 
-def test_singer3dmodel():
-    """ Singer 3D Transition Model test """
+def test_singer3dmodel_approximate():
+    """ SingerApproximate 3D Transition Model test for small timediff """
     state_vec = sp.array([[3.0], [1.0], [0.1],
                           [2.0], [2.0], [0.2],
                           [4.0], [0.5], [0.05]])
     noise_diff_coeffs = sp.array([0.01, 0.02, 0.005])
     recips_decorr_times = sp.array([0.1, 0.1, 0.1])
-    base(state_vec, noise_diff_coeffs, recips_decorr_times)
+    base(state_vec, noise_diff_coeffs, recips_decorr_times, timediff=0.4)
 
 
 def base(state_vec, noise_diff_coeffs, recips_decorr_times, timediff=1.0):
@@ -43,12 +43,15 @@ def base(state_vec, noise_diff_coeffs, recips_decorr_times, timediff=1.0):
     # CombinedLinearGaussianTransitionModel object
     dim = len(state_vec) // 3  # pos, vel, acc for each dimension
     if dim == 1:
-        model_obj = Singer(noise_diff_coeff=noise_diff_coeffs,
-                           recip_decorr_time=recips_decorr_times)
+        model_obj = SingerApproximate(noise_diff_coeff=noise_diff_coeffs,
+                                      recip_decorr_time=recips_decorr_times)
     else:
-        model_list = [Singer(noise_diff_coeff=noise_diff_coeffs[i],
-                             recip_decorr_time=recips_decorr_times[i])
-                      for i in range(0, dim)]
+        model_list = [
+            SingerApproximate(
+                noise_diff_coeff=noise_diff_coeffs[i],
+                recip_decorr_time=recips_decorr_times[i])
+            for i in range(0, dim)
+        ]
         model_obj = CombinedLinearGaussianTransitionModel(model_list)
 
     # State related variables
@@ -79,32 +82,16 @@ def base(state_vec, noise_diff_coeffs, recips_decorr_times, timediff=1.0):
               0,
               sp.exp(-recip_decorr_timedt)]]))
 
-        alpha_time = recip_decorr_time * timediff
-        e_neg_at = sp.exp(-alpha_time)
-        e_neg2_at = sp.exp(-2 * alpha_time)
         covar_list.append(sp.array(
-            [[((1 - e_neg2_at) +
-               2 * alpha_time +
-               (2 * sp.power(alpha_time, 3)) / 3 -
-               2 * sp.power(alpha_time, 2) -
-               4 * alpha_time * e_neg_at) /
-              (2 * sp.power(recip_decorr_time, 5)),
-              sp.power(alpha_time - (1 - e_neg_at), 2) /
-              (2 * sp.power(recip_decorr_time, 4)),
-              ((1 - e_neg2_at) - 2 * alpha_time * e_neg_at) /
-              (2 * sp.power(recip_decorr_time, 3))],
-             [sp.power(alpha_time - (1 - e_neg_at), 2) /
-              (2 * sp.power(recip_decorr_time, 4)),
-              (2 * alpha_time - 4 * (1 - e_neg_at) + (1 - e_neg2_at)) /
-              (2 * sp.power(recip_decorr_time, 3)),
-              sp.power(1 - e_neg_at, 2) /
-              (2 * sp.power(recip_decorr_time, 2))],
-             [((1 - e_neg2_at) - 2 * alpha_time * e_neg_at) /
-              (2 * sp.power(recip_decorr_time, 3)),
-              sp.power(1 - e_neg_at, 2) /
-              (2 * sp.power(recip_decorr_time, 2)),
-              (1 - e_neg2_at) / (2 * recip_decorr_time)]]
-        ) * noise_diff_coeff)
+            [[sp.power(timediff, 5) / 20,
+              sp.power(timediff, 4) / 8,
+              sp.power(timediff, 3) / 6],
+             [sp.power(timediff, 4) / 8,
+              sp.power(timediff, 3) / 3,
+              sp.power(timediff, 2) / 2],
+             [sp.power(timediff, 3) / 6,
+              sp.power(timediff, 2) / 2,
+              timediff]]) * noise_diff_coeff)
 
     print(covar_list)
     F = sp.linalg.block_diag(*mat_list)
