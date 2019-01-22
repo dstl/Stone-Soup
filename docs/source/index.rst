@@ -32,6 +32,7 @@ Contents:
     stonesoup.functions
     stonesoup.serialise
     stonesoup
+    ext_interface
     contributing
 
 Indices and tables
