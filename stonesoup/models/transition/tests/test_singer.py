@@ -10,7 +10,7 @@ from stonesoup.models.transition.linear import \
 
 def test_singer1dmodel():
     """ Singer 1D Transition Model test """
-    state_vec = sp.array([[3.0], [1.0], [0.1]])
+    state_vec = sp.array([3.0, 1.0, 0.1])
     noise_diff_coeffs = sp.array([0.01])
     recips_decorr_times = sp.array([0.1])
     base(state_vec, noise_diff_coeffs, recips_decorr_times)
@@ -43,8 +43,8 @@ def base(state_vec, noise_diff_coeffs, recips_decorr_times, timediff=1.0):
     # CombinedLinearGaussianTransitionModel object
     dim = len(state_vec) // 3  # pos, vel, acc for each dimension
     if dim == 1:
-        model_obj = Singer(noise_diff_coeff=noise_diff_coeffs,
-                           recip_decorr_time=recips_decorr_times)
+        model_obj = Singer(noise_diff_coeff=noise_diff_coeffs[0],
+                           recip_decorr_time=recips_decorr_times[0])
     else:
         model_list = [Singer(noise_diff_coeff=noise_diff_coeffs[i],
                              recip_decorr_time=recips_decorr_times[i])
