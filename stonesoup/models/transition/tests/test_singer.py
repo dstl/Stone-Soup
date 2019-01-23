@@ -10,7 +10,7 @@ from stonesoup.models.transition.linear import \
 
 def test_singer1dmodel():
     """ Singer 1D Transition Model test """
-    state_vec = sp.array([3.0, 1.0, 0.1])
+    state_vec = sp.array([[3.0], [1.0], [0.1]])
     noise_diff_coeffs = sp.array([0.01])
     recips_decorr_times = sp.array([0.1])
     base(state_vec, noise_diff_coeffs, recips_decorr_times)
