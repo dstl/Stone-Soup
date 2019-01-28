@@ -36,6 +36,9 @@ class OrbitalElements(State):
         float, default=3.986004418e14,
         doc="Standard gravitational parameter :math:`\\mu = G M`")
 
+    def __init__(self, state_vector, *args, **kwargs):
+        super().__init__(state_vector, *args, **kwargs)
+
     # Could replace with getters and setters
     def semimajor_axis(self):
         """
