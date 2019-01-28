@@ -14,13 +14,14 @@ from .file import FileReader
 
 
 class FITSReader(FileReader):
-    """A simple reader for FITS files. Returns a list of
-    Header Data Units (HDUs) contained within the file
+    """A simple reader for FITS files. Reads a FITS file and sets the contents
+    as the data and header attributes. Uses the Astropy library for reading files.
 
     FITS file must be valid i.e. have at least one Header Data Unit (HDU)
 
     Parameters
     ----------
+    Requires a String path to the file to be read
     """
 
     def __init__(self, *args, **kwargs):
@@ -41,3 +42,13 @@ class FITSReader(FileReader):
     @property
     def header(self):
         return self._header
+
+
+class TLEReader(FileReader):
+    """A simple reader for text files containing a list of Two Line Elements (TLEs).
+
+    Parameters
+    ----------
+    """
+
+    

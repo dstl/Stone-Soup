@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+import os
 
 from ..astronomical import FITSReader
 from astropy.io import fits
@@ -19,9 +20,6 @@ def test_fits():
     image_data = fits_reader.data[0]
     header = fits_reader.header[0]
     assert np.array_equal(image_data, n)
-    assert header['OBSERVER'] == 'Edwin Huble'
+    assert header['OBSERVER'] == 'Edwin Hubble'
     assert header['COMMENT'] == "Here's some commentary about this FITS file."
-
-
-if __name__ == '__main__':
-    test_fits()
+    os.remove(fits_filename)
