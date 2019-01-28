@@ -168,6 +168,11 @@ class ExtendedKalmanPredictor(KalmanPredictor):
                 time_interval=time_interval,
                 **kwargs)
 
+        def transition_function(x):
+            return self.transition_model.function(x, timestamp=timestamp,
+                                                  time_interval=time_interval,
+                                                  noise=0, **kwargs)
+
         transition_noise_covar = self.transition_model.covar(
             timestamp=timestamp,
             time_interval=time_interval,
@@ -207,11 +212,48 @@ class ExtendedKalmanPredictor(KalmanPredictor):
                 control_input = np.zeros((self.control_model.ndim_ctrl, 1))
 
         # Perform state prediction
-        prediction_mean, prediction_covar = super().predict_lowlevel(
-            prior.mean, prior.covar, transition_matrix,
+        prediction_mean, prediction_covar = self.predict_lowlevel(
+            prior.mean, prior.covar, transition_function, transition_matrix,
             transition_noise_covar, control_input.state_vector,
             control_matrix, contol_noise_covar)
 
         return GaussianStatePrediction(prediction_mean,
                                        prediction_covar,
                                        timestamp)
+
+    @staticmethod
+    def predict_lowlevel(x, P, f, F, Q, u, B, Qu):
+        """Low-level Extended Kalman Filter state prediction
+
+        Parameters
+        ----------
+        x : :class:`numpy.ndarray` of shape (Ns,1)
+            The prior state mean
+        P : :class:`numpy.ndarray` of shape (Ns,Ns)
+            The prior state covariance
+        f : function handle
+            The (non-linear) transition model function
+            Must be of the form "xk = fun(xkm1)"
+        F : :class:`numpy.ndarray` of shape (Ns,Ns)
+            The state transition/jacobian matrix
+        Q : :class:`numpy.ndarray` of shape (Ns,Ns)
+            The process noise covariance matrix
+        u : :class:`numpy.ndarray` of shape (Nu,1)
+            The control input
+        B : :class:`numpy.ndarray` of shape (Ns,Nu)
+            The control gain matrix
+        Qu : :class:`numpy.ndarray` of shape (Ns,Ns)
+            The control process covariance matrix
+
+        Returns
+        -------
+        : :class:`numpy.ndarray` of shape (Ns,1)
+            The predicted state mean
+        : :class:`numpy.ndarray` of shape (Ns,Ns)
+            The predicted state covariance
+        """
+
+        x_pred = f(x) + B@u
+        P_pred = F@P@F.T + Q + B@Qu@B.T
+
+        return x_pred, P_pred

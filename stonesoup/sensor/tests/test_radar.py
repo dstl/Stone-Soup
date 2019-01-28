@@ -20,9 +20,14 @@ def test_simple_radar():
     target_state = State(radar_position +
                          np.array([[1], [1]]),
                          timestamp=datetime.datetime.now())
+    measurement_mapping = np.array([0, 1])
 
     # Create a radar object
-    radar = SimpleRadar(radar_position, noise_covar)
+    radar = SimpleRadar(
+        position=radar_position,
+        ndim_state=2,
+        mapping=measurement_mapping,
+        noise_covar=noise_covar)
 
     # Assert that the object has been correctly initialised
     assert(np.equal(radar.position, radar_position).all())
@@ -31,10 +36,10 @@ def test_simple_radar():
 
     # Generate a noiseless measurement for the given target
     measurement = radar.gen_measurement(target_state, noise=0)
-    rho, phi = cart2pol(target_state.state_vector[0][0]
-                        - radar_position[0][0],
-                        target_state.state_vector[1][0]
-                        - radar_position[1][0])
+    rho, phi = cart2pol(target_state.state_vector[0, 0]
+                        - radar_position[0, 0],
+                        target_state.state_vector[1, 0]
+                        - radar_position[1, 0])
 
     # Assert correction of generated measurement
     assert(measurement.timestamp == target_state.timestamp)

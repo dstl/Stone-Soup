@@ -52,7 +52,7 @@ def test_kalman():
         prediction=prediction,
         measurement=measurement))
     assert(np.array_equal(posterior.mean, eval_posterior.mean))
-    assert(np.array_equal(posterior.covar, eval_posterior.covar))
+    assert(np.allclose(posterior.covar, eval_posterior.covar))
     assert(np.array_equal(posterior.hypothesis.prediction, prediction))
     assert (np.array_equal(
         posterior.hypothesis.measurement_prediction.state_vector,
@@ -68,7 +68,7 @@ def test_kalman():
         measurement=measurement,
         measurement_prediction=measurement_prediction))
     assert(np.array_equal(posterior.mean, eval_posterior.mean))
-    assert(np.array_equal(posterior.covar, eval_posterior.covar))
+    assert(np.allclose(posterior.covar, eval_posterior.covar))
     assert(np.array_equal(posterior.hypothesis.prediction, prediction))
     assert (np.array_equal(
         posterior.hypothesis.measurement_prediction.state_vector,
@@ -108,7 +108,7 @@ def test_extendedkalman():
     # Initialise a kalman updater
     updater = ExtendedKalmanUpdater(measurement_model=lg)
 
-    # Get and asser measurement prediction
+    # Get and assert measurement prediction
     measurement_prediction = updater.get_measurement_prediction(prediction)
     assert(np.array_equal(measurement_prediction.mean,
                           eval_measurement_prediction.mean))
@@ -122,7 +122,7 @@ def test_extendedkalman():
         prediction=prediction,
         measurement=measurement))
     assert(np.array_equal(posterior.mean, eval_posterior.mean))
-    assert(np.array_equal(posterior.covar, eval_posterior.covar))
+    assert(np.allclose(posterior.covar, eval_posterior.covar))
     assert(np.array_equal(posterior.hypothesis.prediction, prediction))
     assert (np.array_equal(
         posterior.hypothesis.measurement_prediction.state_vector,
@@ -138,7 +138,7 @@ def test_extendedkalman():
         measurement=measurement,
         measurement_prediction=measurement_prediction))
     assert(np.array_equal(posterior.mean, eval_posterior.mean))
-    assert(np.array_equal(posterior.covar, eval_posterior.covar))
+    assert(np.allclose(posterior.covar, eval_posterior.covar))
     assert(np.array_equal(posterior.hypothesis.prediction, prediction))
     assert (np.array_equal(
         posterior.hypothesis.measurement_prediction.state_vector,

@@ -20,6 +20,8 @@ Enabling Components
     stonesoup.smoother
     stonesoup.tracker
     stonesoup.writer
+    stonesoup.platform
+    stonesoup.sensor
 
 Tracker Components
 ^^^^^^^^^^^^^^^^^^
