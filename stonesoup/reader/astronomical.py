@@ -9,10 +9,7 @@ Readers include:
     TLE
     SATCAT
 """
-
 from astropy.io import fits
-
-from ..base import Property
 from .file import FileReader
 
 
@@ -26,14 +23,21 @@ class FITSReader(FileReader):
     ----------
     """
 
-    hdu_list = Property(
-        fits.HDUList, doc='List of Header Data Units (HDUs) contained in the FITS file')
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         with fits.open(self.path) as hdu_list:
-            self._hdu_list = hdu_list
+            # self._hdu_list = hdu_list
+            # self._hdu_list = hdu_list.copy()
+            self._data = []
+            self._header = []
+            for index, hdu in enumerate(hdu_list):
+                self._data.append(hdu_list[index].data)
+                self._header.append(hdu_list[index].header)
 
     @property
-    def hdu_list(self):
-        return self._hdu_list.copy()
+    def data(self):
+        return self._data
+
+    @property
+    def header(self):
+        return self._header
