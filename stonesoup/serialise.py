@@ -25,8 +25,8 @@ class YAML:
     """Class for YAML serialisation."""
     tag_prefix = '!{}.'.format(__name__.split('.', 1)[0])
 
-    def __init__(self):
-        self._yaml = ruamel.yaml.YAML()
+    def __init__(self, **kwargs):
+        self._yaml = ruamel.yaml.YAML(**kwargs)
         self._yaml.default_flow_style = False
 
         # NumPy
