@@ -187,3 +187,44 @@ def sphere2cart(rho, phi, theta):
     y = rho * np.sin(phi) * np.cos(theta)
     z = rho * np.sin(theta)
     return (x, y, z)
+
+
+def gm_reduce_single(means, covars, weights):
+    """Reduce mixture of multi-variate Gaussians to single Gaussian
+
+    Parameters
+    ----------
+    means : np.array of shape (num_components, num_dims)
+        The means of the GM components
+    covars : np.array of shape (num_components, num_dims, num_dims)
+        The covariance matrices of the GM components
+    weights : np.array of shape (num_components,)
+        The weights of the GM components
+
+    Returns
+    -------
+    np.array of shape (num_dims, 1)
+        The mean of the reduced/single Gaussian
+    np.array of shape (num_dims, num_dims)
+        The covariance of the reduced/single Gaussian
+    """
+
+    # Compute dimensionality variables
+    num_components, num_dims = np.shape(means)
+
+    # Normalise weights such that they sum to 1
+    weights = weights/np.sum(weights)
+
+    # Calculate mean
+    mean = np.average(means, axis=0, weights=weights)
+    mean.shape = (1, num_dims)
+
+    # Calculate covar
+    covar = np.zeros((num_dims, num_dims))
+    for i in range(num_components):
+        v = means[i, :] - mean
+        a = np.add(covars[i], v@v.T)
+        b = weights[i]
+        covar = np.add(covar, b*a)
+
+    return mean.transpose(), covar

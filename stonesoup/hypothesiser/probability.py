@@ -3,13 +3,12 @@ from scipy.stats import multivariate_normal as mn
 from .base import Hypothesiser
 from ..base import Property
 from ..types import MissedDetection
-from ..types.multimeasurementhypothesis import \
-    ProbabilityMultipleMeasurementHypothesis
-from ..types import SingleMeasurementProbabilityHypothesis
+from ..types.multihypothesis import \
+    MultipleHypothesis
+from ..types import SingleProbabilityHypothesis
 from ..types.numeric import Probability
 from ..predictor import Predictor
 from ..updater import Updater
-import copy
 
 
 class PDAHypothesiser(Hypothesiser):
@@ -44,7 +43,7 @@ class PDAHypothesiser(Hypothesiser):
         r"""Hypothesise track and detection association
 
         For a given track and a set of N detections, return a
-        MultipleMeasurementHypothesis with N+1 detections (first detection is
+        MultipleHypothesis with N+1 detections (first detection is
         a 'MissedDetection'), each with an associated probability.
         Probabilities are assumed to be exhaustive (sum to 1) and mutually
         exclusive (two detections cannot be the correct association at the
@@ -100,7 +99,8 @@ class PDAHypothesiser(Hypothesiser):
 
         probability_hypotheses = list()
 
-        # items common to all SingleMeasurementHypotheses that compose MultipleMeasurementHypothesis
+        # items common to all SingleMeasurementHypotheses that compose
+        # MultipleHypothesis
         prediction = self.predictor.predict(track.state, timestamp=timestamp)
         measurement_prediction = self.updater.get_measurement_prediction(
             prediction)
@@ -108,7 +108,11 @@ class PDAHypothesiser(Hypothesiser):
         # Missed detection hypothesis
         probability = Probability(1-(self.prob_detect * self.prob_gate))
         detection = MissedDetection(timestamp=timestamp)
-        probability_hypotheses.append(SingleMeasurementProbabilityHypothesis(prediction, detection, measurement_prediction=measurement_prediction, probability=probability))
+        probability_hypotheses.append(
+            SingleProbabilityHypothesis(
+                prediction, detection,
+                measurement_prediction=measurement_prediction,
+                probability=probability))
 
         for detection in detections:
 
@@ -119,10 +123,13 @@ class PDAHypothesiser(Hypothesiser):
             pdf = Probability(log_pdf, log_value=True)
             probability = (pdf * self.prob_detect)/self.clutter_spatial_density
 
-            probability_hypotheses.append(SingleMeasurementProbabilityHypothesis(prediction, detection,
-                                                                                 measurement_prediction=measurement_prediction,
-                                                                                 probability=probability))
+            probability_hypotheses.append(
+                SingleProbabilityHypothesis(
+                    prediction, detection,
+                    measurement_prediction=measurement_prediction,
+                    probability=probability))
 
-        result = ProbabilityMultipleMeasurementHypothesis(probability_hypotheses)
-        result.normalize_probabilities()
+        result = MultipleHypothesis(probability_hypotheses,
+                                    normalise=True, total_weight=1)
+
         return result

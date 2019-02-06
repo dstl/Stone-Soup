@@ -6,7 +6,8 @@ import pytest
 
 from ..numeric import Probability
 from ..particle import Particle
-from ..state import State, GaussianState, ParticleState, StateMutableSequence
+from ..state import State, GaussianState, ParticleState, \
+    StateMutableSequence, WeightedGaussianState
 
 
 def test_state():
@@ -62,6 +63,15 @@ def test_gaussianstate_invalid_covar():
     covar = np.diag([1, 2, 3])  # 3D
     with pytest.raises(ValueError):
         GaussianState(mean, covar)
+
+
+def test_weighted_gaussian_state():
+    mean = np.array([[1], [2], [3], [4]])  # 4D
+    covar = np.diag([1, 2, 3])  # 3D
+    weight = 0.3
+    with pytest.raises(ValueError):
+        a = WeightedGaussianState(mean, covar, weight)
+        assert a.weight == weight
 
 
 def test_particlestate():

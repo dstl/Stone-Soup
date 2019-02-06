@@ -129,9 +129,9 @@ class SimpleDetectionSimulator(DetectionSimulator):
         return self.real_detections | self.clutter_detections
 
     @property
-    # returns the clutter spatial density of the measurement space - num
-    # clutter detections per unit volume per timestep
     def clutter_spatial_density(self):
+        """returns the clutter spatial density of the measurement space - num
+        clutter detections per unit volume per timestep"""
         meas_volume = float(1)
         for dim in range(self.meas_range.ndim):
             meas_volume *= abs(float(self.meas_range[dim][0] *

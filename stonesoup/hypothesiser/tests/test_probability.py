@@ -20,21 +20,23 @@ def test_pda(predictor, updater):
                                    clutter_spatial_density=1.2e-2,
                                    prob_detect=0.9, prob_gate=0.99)
 
-    mulltimeasurehypothesis = \
+    mulltihypothesis = \
         hypothesiser.hypothesise(track, detections, timestamp)
 
-    # There are 3 weighted detections - Detections 1 and 2, MissedDectection
-    assert len(mulltimeasurehypothesis.weighted_measurements) == 3
+    # There are 3 weighted hypotheses - Detections 1 and 2, MissedDectection
+    assert len(mulltihypothesis) == 3
 
-    # Each measurements has a probability/weight attribute
-    assert all(detection["weight"] >= 0 and
-               isinstance(detection["weight"], Probability)
-               for detection in mulltimeasurehypothesis.weighted_measurements)
+    # Each hypothesis has a probability/weight attribute
+    assert all(hypothesis.probability >= 0 and
+               isinstance(hypothesis.probability, Probability)
+               for hypothesis in
+               mulltihypothesis)
 
     #  Detection 1, 2 and MissedDetection are present
-    assert any(detection["measurement"] is detection1 for detection in
-               mulltimeasurehypothesis.weighted_measurements)
-    assert any(detection["measurement"] is detection2 for detection in
-               mulltimeasurehypothesis.weighted_measurements)
-    assert any(isinstance(detection["measurement"], MissedDetection)
-               for detection in mulltimeasurehypothesis.weighted_measurements)
+    assert any(hypothesis.measurement is detection1 for hypothesis in
+               mulltihypothesis)
+    assert any(hypothesis.measurement is detection2 for hypothesis in
+               mulltihypothesis)
+    assert any(isinstance(hypothesis.measurement, MissedDetection)
+               for hypothesis in
+               mulltihypothesis)

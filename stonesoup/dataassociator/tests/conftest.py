@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-from ...types import SingleMeasurementDistanceHypothesis, \
+from ...types import SingleDistanceHypothesis, \
     GaussianStatePrediction, GaussianMeasurementPrediction
 from ...hypothesiser.probability import PDAHypothesiser
 
@@ -21,18 +21,19 @@ def hypothesiser():
                                                   prediction.timestamp)
                 distance = abs(track.state_vector - detection.state_vector)
 
-                hypotheses.append(SingleMeasurementDistanceHypothesis(
+                hypotheses.append(SingleDistanceHypothesis(
                     prediction, detection, distance, measurement_prediction))
 
             prediction = GaussianStatePrediction(track.state_vector + 1,
                                                  track.covar * 2, timestamp)
             hypotheses.append(
-                SingleMeasurementDistanceHypothesis(prediction, None, 10))
+                SingleDistanceHypothesis(prediction, None, 10))
             return hypotheses
     return TestGaussianHypothesiser()
 
 
-def proabability_predictor():
+@pytest.fixture()
+def probability_predictor():
     class TestGaussianPredictor:
         def predict(self, prior, control_input=None, timestamp=None, **kwargs):
             return GaussianStatePrediction(prior.state_vector + 1,
@@ -40,7 +41,8 @@ def proabability_predictor():
     return TestGaussianPredictor()
 
 
-def proabability_updater():
+@pytest.fixture()
+def probability_updater():
     class TestGaussianUpdater:
         def get_measurement_prediction(self, state_prediction, **kwargs):
             return GaussianMeasurementPrediction(state_prediction.state_vector,
@@ -50,8 +52,8 @@ def proabability_updater():
 
 
 @pytest.fixture()
-def proabability_hypothesiser():
+def probability_hypothesiser(probability_predictor, probability_updater):
 
-    return PDAHypothesiser(proabability_predictor(), proabability_updater(),
+    return PDAHypothesiser(probability_predictor, probability_updater,
                            clutter_spatial_density=1.2e-2,
                            prob_detect=0.9, prob_gate=0.99)

@@ -31,10 +31,13 @@ class MissedDetection(Detection):
     """Detection type for a missed detection
 
     This is same as :class:`~.Detection`, but it is used in
-    MultipleMeasurementHypothesis to indicate the null hypothesis (no
+    MultipleHypothesis to indicate the null hypothesis (no
     detections are associated with the specified track).
     """
 
     def __init__(self, state_vector=[[0], [0]], timestamp=0, metadata=None):
         super().__init__(state_vector=state_vector, timestamp=timestamp,
                          metadata={})
+
+    def __bool__(self):
+        return False
