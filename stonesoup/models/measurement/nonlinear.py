@@ -52,6 +52,14 @@ class RangeBearingElevationGaussianToCartesian(MeasurementModel,
 
       \vec{v}_t \sim \mathcal{N}(0,R)
 
+    .. math::
+
+      R = \begin{bmatrix}
+            \sigma_{\theta}^2 & 0 & 0 \\
+            0 & \sigma_{\phi}^2 & 0 \\
+            0 & 0 & \sigma_{r}^2 
+            \end{bmatrix}
+
     The :py:attr:`mapping` property of the model is a 3 element vector, \
     whose first (i.e. :py:attr:`mapping[0]`), second (i.e. \
     :py:attr:`mapping[1]`) and third (i.e. :py:attr:`mapping[2`) elements \
@@ -128,23 +136,13 @@ class RangeBearingElevationGaussianToCartesian(MeasurementModel,
             noise = self.rvs()
 
         # Account for origin offset
-        xyz = [[state_vector[self.mapping[0], 0]
-                - self.translation_offset[0, 0]],
-               [state_vector[self.mapping[1], 0]
-                - self.translation_offset[1, 0]],
-               [state_vector[self.mapping[2], 0]
-                - self.translation_offset[2, 0]]]
+        xyz = state_vector[self.mapping] - self.translation_offset
 
         # Rotate coordinates
         xyz_rot = self._rotation_matrix @ xyz
 
-        # Extract transformed points
-        x = xyz_rot[0, 0]
-        y = xyz_rot[1, 0]
-        z = xyz_rot[2, 0]
-
         # Convert to Spherical
-        rho, phi, theta = cart2sphere(x, y, z)
+        rho, phi, theta = cart2sphere(*xyz_rot[:, 0])
 
         return sp.array([[theta],
                          [phi],
@@ -264,6 +262,13 @@ class RangeBearingGaussianToCartesian(
 
       \vec{v}_t \sim \mathcal{N}(0,R)
 
+    .. math::
+
+      R = \begin{bmatrix}
+            \sigma_{\phi}^2 & 0 \\
+            0 & \sigma_{r}^2 
+            \end{bmatrix}
+
     The :py:attr:`mapping` property of the model is a 2 element vector, \
     whose first (i.e. :py:attr:`mapping[0]`) and second (i.e. \
     :py:attr:`mapping[0]`) elements contain the state index of the \
@@ -323,12 +328,8 @@ class RangeBearingGaussianToCartesian(
         # Rotate coordinates
         xyz_rot = self._rotation_matrix @ xyz
 
-        # Extract transformed points
-        x = xyz_rot[0, 0]
-        y = xyz_rot[1, 0]
-
         # Covert to polar
-        rho, phi = cart2pol(x, y)
+        rho, phi = cart2pol(*xyz_rot[:2, 0])
 
         return sp.array([[phi], [rho]]) + noise
 
@@ -370,6 +371,13 @@ class BearingElevationGaussianToCartesian(RangeBearingGaussianToCartesian):
     .. math::
 
       \vec{v}_t \sim \mathcal{N}(0,R)
+
+    .. math::
+
+      R = \begin{bmatrix}
+            \sigma_{\theta}^2 & 0 \\
+            0 & \sigma_{\phi}^2\\
+            \end{bmatrix}
 
     The :py:attr:`mapping` property of the model is a 3 element vector, \
     whose first (i.e. :py:attr:`mapping[0]`), second (i.e. \
@@ -422,23 +430,13 @@ class BearingElevationGaussianToCartesian(RangeBearingGaussianToCartesian):
             noise = self.rvs()
 
         # Account for origin offset
-        xyz = [[state_vector[self.mapping[0], 0]
-                - self.translation_offset[0, 0]],
-               [state_vector[self.mapping[1], 0]
-                - self.translation_offset[1, 0]],
-               [state_vector[self.mapping[2], 0]
-                - self.translation_offset[2, 0]]]
+        xyz = state_vector[self.mapping] - self.translation_offset
 
         # Rotate coordinates
         xyz_rot = self._rotation_matrix @ xyz
 
-        # Extract transformed points
-        x = xyz_rot[0, 0]
-        y = xyz_rot[1, 0]
-        z = xyz_rot[2, 0]
-
         # Convert to Angles
-        phi, theta = cart2angles(x, y, z)
+        phi, theta = cart2angles(*xyz_rot[:, 0])
 
         return sp.array([[theta],
                          [phi]]) + noise

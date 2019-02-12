@@ -147,8 +147,6 @@ def test_rotating_radar():
                                     [0],
                                     [radar.dwell_center.state_vector[0, 0]]])
 
-    print(measurement.state_vector)
-    print(eval_m)
     # Assert correction of generated measurement
     assert(measurement.timestamp == target_state.timestamp)
     assert(np.equal(measurement.state_vector, eval_m).all())

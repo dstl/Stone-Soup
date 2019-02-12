@@ -684,16 +684,13 @@ class UnscentedKalmanUpdater(KalmanUpdater):
             The measurement noise covariance matrix
         y : :class:`numpy.ndarray` of shape (Nm,1)
             The measurement vector
-        alpha : float, optional
-            Spread of the sigma points. Typically 1e-3.
-            (default is 1e-3)
-        beta : float, optional
+        alpha : float
+            Spread of the sigma points.
+        beta : float
             Used to incorporate prior knowledge of the distribution
             2 is optimal is the state is normally distributed.
-            (default is 2)
-        kappa : float, optional
+        kappa : float
             Secondary spread scaling parameter
-            (default is calculated as `3-Ns`)
 
         Returns
         -------
@@ -732,16 +729,13 @@ class UnscentedKalmanUpdater(KalmanUpdater):
             Must be of the form "y = fun(x,w)"
         R : :class:`numpy.ndarray` of shape (Nm,Nm)
             The measurement noise covariance matrix
-        alpha : float, optional
-            Spread of the sigma points. Typically 1e-3.
-            (default is 1e-3)
-        beta : float, optional
+        alpha : float
+            Spread of the sigma points.
+        beta : float
             Used to incorporate prior knowledge of the distribution
             2 is optimal is the state is normally distributed.
-            (default is 2)
-        kappa : float, optional
+        kappa : float
             Secondary spread scaling parameter
-            (default is calculated as `3-Ns`)
 
         Returns
         -------

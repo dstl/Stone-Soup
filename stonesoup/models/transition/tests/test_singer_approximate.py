@@ -93,7 +93,6 @@ def base(state_vec, noise_diff_coeffs, recips_decorr_times, timediff=1.0):
               sp.power(timediff, 2) / 2,
               timediff]]) * noise_diff_coeff)
 
-    print(covar_list)
     F = sp.linalg.block_diag(*mat_list)
     Q = sp.linalg.block_diag(*covar_list)
 

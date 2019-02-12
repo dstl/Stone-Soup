@@ -379,16 +379,13 @@ class UnscentedKalmanPredictor(KalmanPredictor):
             The control gain matrix
         Qu : :class:`numpy.ndarray` of shape (Ns,Ns)
             The control process covariance matrix
-        alpha : float, optional
-            Spread of the sigma points. Typically 0.5.
-            (default is 1e-3)
-        beta : float, optional
+        alpha : float
+            Spread of the sigma points.
+        beta : float
             Used to incorporate prior knowledge of the distribution
-            2 is optimal is the state is normally distributed.
-            (default is 2)
-        kappa : float, optional
+            2 is optimal if the state is normally distributed.
+        kappa : float
             Secondary spread scaling parameter
-            (default is calculated as `3-Ns`)
 
         Returns
         -------

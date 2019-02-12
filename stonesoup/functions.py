@@ -3,8 +3,6 @@
 
 import numpy as np
 
-# from .types.state import StateVector
-
 
 def tria(matrix):
     """Square Root Matrix Triangularization
@@ -42,13 +40,13 @@ def jacobian(fun, x):
     fun : function handle
         A (non-linear) transition function
         Must be of the form "y = fun(x)", where y can be a scalar or \
-        :class:`numpy.ndarray` of shape (Nd, 1) or (Nd,)
-    x : :class:`numpy.ndarray` of shape (Ns, 1)
+        :class:`numpy.ndarray` of shape `(Nd, 1)` or `(Nd,)`
+    x : :class:`numpy.ndarray` of shape `(Ns, 1)`
         A state vector
 
     Returns
     -------
-    jac: :class:`numpy.ndarray` of shape (Nd, Ns)
+    jac: :class:`numpy.ndarray` of shape `(Nd, Ns)`
         The computed Jacobian
     """
 
@@ -75,7 +73,7 @@ def jacobian(fun, x):
     return jac
 
 
-def gauss2sigma(mean, covar, alpha=None, beta=None, kappa=None):
+def gauss2sigma(mean, covar, alpha=1.0, beta=2.0, kappa=None):
     """Approximate a given distribution to a Gaussian, using a
     deterministically selected set of sigma points.
 
@@ -86,8 +84,8 @@ def gauss2sigma(mean, covar, alpha=None, beta=None, kappa=None):
     covar : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`
         Covariance of the Gaussian
     alpha : float, optional
-        Spread of the sigma points. Typically 1e-3.
-        (default is 1e-3)
+        Spread of the sigma points. Typically `1e-3`.
+        (default is 1)
     beta : float, optional
         Used to incorporate prior knowledge of the distribution
         2 is optimal is the state is normally distributed.
@@ -108,10 +106,6 @@ def gauss2sigma(mean, covar, alpha=None, beta=None, kappa=None):
 
     ndim_state = np.shape(mean)[0]
 
-    if alpha is None:
-        alpha = 1.0
-    if beta is None:
-        beta = 0.0
     if kappa is None:
         kappa = 3.0 - ndim_state
 
@@ -151,7 +145,7 @@ def sigma2gauss(sigma_points, mean_weights, covar_weights, covar_noise=None):
         An array containing the sigma point covariance weights
     covar_noise : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`, optional
         Additive noise covariance matrix
-        (default is 0)
+        (default is `None`)
 
     Returns
     -------
@@ -190,13 +184,13 @@ def unscented_transform(sigma_points, mean_weights, covar_weights,
     fun : function handle
         A (non-linear) transition function
         Must be of the form "y = fun(x,w)", where y can be a scalar or \
-        :class:`numpy.ndarray` of shape (Ns, 1) or (Ns,)
+        :class:`numpy.ndarray` of shape `(Ns, 1)` or `(Ns,)`
     covar_noise : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`, optional
         Additive noise covariance matrix
-        (default is 0)
+        (default is `None`)
     points_noise : :class:`numpy.ndarray` of shape `(Ns, 2*Ns+1,)`, optional
         points to pass into f's second argument
-        (default is 0)
+        (default is `None`)
 
     Returns
     -------

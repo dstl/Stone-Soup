@@ -25,15 +25,14 @@ class RadarRangeBearing(Sensor):
                         doc="The radar position on a 3D Cartesian plane,\
                              expressed as a 3x1 array of Cartesian coordinates\
                              in the order :math:`x,y,z`")
-    orientation = Property(StateVector,
-                           doc="A 3x1 array of angles (rad), specifying the\
-                                radar orientation in terms of the\
-                                counter-clockwise rotation around each\
-                                Cartesian axis in the order :math:`x,y,z`.\
-                                The rotation angles are positive if the\
-                                rotation is in the counter-clockwise direction\
-                                when viewed by an observer looking along the\
-                                respective rotation axis, towards the origin")
+    orientation = Property(
+        StateVector,
+        doc="A 3x1 array of angles (rad), specifying the radar orientation in \
+            terms of the counter-clockwise rotation around each Cartesian \
+            axis in the order :math:`x,y,z`. The rotation angles are positive \
+            if the rotation is in the counter-clockwise direction when viewed \
+            by an observer looking along the respective rotation axis, \
+            towards the origin")
     ndim_state = Property(
         int,
         doc="Number of state dimensions. This is utilised by (and follows in\
