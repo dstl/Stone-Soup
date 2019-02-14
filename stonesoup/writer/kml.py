@@ -107,8 +107,8 @@ class KMLTrackWriter(TrackWriter):
             det_pos_array_lla = det_pos_array
             tks_pos_matrix_lla = tks_pos_matrix
         # Now write to kml.
-        self._kml.appendTracks(tks_pos_matrix_lla, tks_ids, tks_time_matrix)
-        self._kml.appendDetections(det_pos_array_lla, det_time_array)
+        self._kml.append_tracks(tks_pos_matrix_lla, tks_ids, tks_time_matrix)
+        self._kml.append_detections(det_pos_array_lla, det_time_array)
         self._kml.write(self.path)
 
 
