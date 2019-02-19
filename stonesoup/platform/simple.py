@@ -6,6 +6,7 @@ from scipy.linalg import expm
 from ..base import Property
 from ..types import StateVector
 from ..sensor import Sensor
+from ..functions import cart2pol
 from .base import Platform
 
 
@@ -100,19 +101,26 @@ class SensorPlatform(Platform):
         for i in range(len(self.sensors)):
             if (hasattr(self, 'transition_model') &
                     (np.absolute(self.state.state_vector[
-                             self.mounting_mappings[0]+1]).max() > 0)):
+                        self.mounting_mappings[0]+1]).max() > 0)):
                 new_sensor_pos = self._get_rotated_offset(i)
                 for j in range(self.mounting_offsets.shape[1]):
                     new_sensor_pos[j] = new_sensor_pos[j] + \
-                                           (self.state.state_vector[
-                                                self.mounting_mappings[i, j]])
+                        (self.state.state_vector[
+                            self.mounting_mappings[i, j]])
             else:
                 new_sensor_pos = np.zeros([self.mounting_offsets.shape[1], 1])
                 for j in range(self.mounting_offsets.shape[1]):
                     new_sensor_pos[j] = (self.state.state_vector[
-                                            self.mounting_mappings[i, j]] +
-                                         self.mounting_offsets[i, j])
+                        self.mounting_mappings[i, j]] +
+                        self.mounting_offsets[i, j])
             self.sensors[i].set_position(StateVector(new_sensor_pos))
+            vel = np.zeros([self.mounting_mappings.shape[1], 1])
+            for j in range(self.mounting_mappings.shape[1]):
+                vel[j, 0] = self.state.state_vector[
+                    self.mounting_mappings[i, j] + 1]
+            abs_vel, heading = cart2pol(vel[0, 0], vel[1, 0])
+            self.sensors[i].set_orientation(
+                StateVector([[0], [0], [heading]]))
 
     def _get_rotated_offset(self, i):
         """ _get_rotated_offset - determines the sensor mounting offset for the

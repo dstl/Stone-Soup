@@ -7,7 +7,7 @@ from ...base import Property
 from ...types.array import StateVector, CovarianceMatrix
 from ..base import NonLinearModel, GaussianModel
 from .base import MeasurementModel
-from ...functions import cart2pol, cart2sphere, cart2angles
+from ...functions import cart2pol, cart2sphere, cart2angles, rotx, roty, rotz
 
 
 class RangeBearingElevationGaussianToCartesian(MeasurementModel,
@@ -52,6 +52,14 @@ class RangeBearingElevationGaussianToCartesian(MeasurementModel,
 
       \vec{v}_t \sim \mathcal{N}(0,R)
 
+    .. math::
+
+      R = \begin{bmatrix}
+            \sigma_{\theta}^2 & 0 & 0 \\
+            0 & \sigma_{\phi}^2 & 0 \\
+            0 & 0 & \sigma_{r}^2 
+            \end{bmatrix}
+
     The :py:attr:`mapping` property of the model is a 3 element vector, \
     whose first (i.e. :py:attr:`mapping[0]`), second (i.e. \
     :py:attr:`mapping[1]`) and third (i.e. :py:attr:`mapping[2`) elements \
@@ -65,10 +73,17 @@ class RangeBearingElevationGaussianToCartesian(MeasurementModel,
     """  # noqa:E501
 
     noise_covar = Property(CovarianceMatrix, doc="Noise covariance")
-    origin_offset = Property(
+    translation_offset = Property(
         StateVector, default=StateVector(sp.array([[0], [0], [0]])),
-        doc="A 3x1 array specifying the origin offset in terms of :math:`x,y,z`\
+        doc="A 3x1 array specifying the Cartesian origin offset in terms of :math:`x,y,z`\
             coordinates.")
+    rotation_offset = Property(
+        StateVector, default=StateVector(sp.array([[0], [0], [0]])),
+        doc="A 3x1 array of angles (rad), specifying the clockwise rotation\
+            around each Cartesian axis in the order :math:`x,y,z`.\
+            The rotation angles are positive if the rotation is in the \
+            counter-clockwise direction when viewed by an observer looking\
+            along the respective rotation axis, towards the origin.")
 
     @property
     def ndim_meas(self):
@@ -81,6 +96,24 @@ class RangeBearingElevationGaussianToCartesian(MeasurementModel,
         """
 
         return 3
+
+    @property
+    def _rotation_matrix(self):
+        """_rotation_matrix getter method
+
+        Calculates and returns the (3D) axis rotation matrix.
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape (3, 3)
+            The model (3D) rotation matrix.
+        """
+
+        theta_x = -self.rotation_offset[0, 0]
+        theta_y = -self.rotation_offset[1, 0]
+        theta_z = -self.rotation_offset[2, 0]
+
+        return rotz(theta_z)@roty(theta_y)@rotx(theta_x)
 
     def function(self, state_vector, noise=None, **kwargs):
         r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
@@ -102,13 +135,18 @@ class RangeBearingElevationGaussianToCartesian(MeasurementModel,
         if noise is None:
             noise = self.rvs()
 
-        x = state_vector[self.mapping[0]][0] - self.origin_offset[0][0]
-        y = state_vector[self.mapping[1]][0] - self.origin_offset[1][0]
-        z = state_vector[self.mapping[2]][0] - self.origin_offset[2][0]
+        # Account for origin offset
+        xyz = state_vector[self.mapping] - self.translation_offset
 
-        rho, phi, theta = cart2sphere(x, y, z)
+        # Rotate coordinates
+        xyz_rot = self._rotation_matrix @ xyz
 
-        return sp.array([[theta], [phi], [rho]]) + noise
+        # Convert to Spherical
+        rho, phi, theta = cart2sphere(*xyz_rot[:, 0])
+
+        return sp.array([[theta],
+                         [phi],
+                         [rho]]) + noise
 
     def covar(self, **kwargs):
         """Returns the measurement model noise covariance matrix.
@@ -224,6 +262,13 @@ class RangeBearingGaussianToCartesian(
 
       \vec{v}_t \sim \mathcal{N}(0,R)
 
+    .. math::
+
+      R = \begin{bmatrix}
+            \sigma_{\phi}^2 & 0 \\
+            0 & \sigma_{r}^2 
+            \end{bmatrix}
+
     The :py:attr:`mapping` property of the model is a 2 element vector, \
     whose first (i.e. :py:attr:`mapping[0]`) and second (i.e. \
     :py:attr:`mapping[0]`) elements contain the state index of the \
@@ -236,7 +281,7 @@ class RangeBearingGaussianToCartesian(
     """  # noqa:E501
 
     noise_covar = Property(CovarianceMatrix, doc="Noise covariance")
-    origin_offset = Property(
+    translation_offset = Property(
         StateVector, default=StateVector(sp.array([[0], [0]])),
         doc="A 2x1 array specifying the origin offset in terms of :math:`x,y`\
             coordinates.")
@@ -273,10 +318,18 @@ class RangeBearingGaussianToCartesian(
         if noise is None:
             noise = self.rvs()
 
-        x = state_vector[self.mapping[0]][0] - self.origin_offset[0][0]
-        y = state_vector[self.mapping[1]][0] - self.origin_offset[1][0]
+        # Account for origin offset
+        xyz = [[state_vector[self.mapping[0], 0]
+                - self.translation_offset[0, 0]],
+               [state_vector[self.mapping[1], 0]
+                - self.translation_offset[1, 0]],
+               [0]]
 
-        rho, phi = cart2pol(x, y)
+        # Rotate coordinates
+        xyz_rot = self._rotation_matrix @ xyz
+
+        # Covert to polar
+        rho, phi = cart2pol(*xyz_rot[:2, 0])
 
         return sp.array([[phi], [rho]]) + noise
 
@@ -319,6 +372,13 @@ class BearingElevationGaussianToCartesian(RangeBearingGaussianToCartesian):
 
       \vec{v}_t \sim \mathcal{N}(0,R)
 
+    .. math::
+
+      R = \begin{bmatrix}
+            \sigma_{\theta}^2 & 0 \\
+            0 & \sigma_{\phi}^2\\
+            \end{bmatrix}
+
     The :py:attr:`mapping` property of the model is a 3 element vector, \
     whose first (i.e. :py:attr:`mapping[0]`), second (i.e. \
     :py:attr:`mapping[1]`) and third (i.e. :py:attr:`mapping[2]`) elements  \
@@ -332,7 +392,7 @@ class BearingElevationGaussianToCartesian(RangeBearingGaussianToCartesian):
     """  # noqa:E501
 
     noise_covar = Property(CovarianceMatrix, doc="Noise covariance")
-    origin_offset = Property(
+    translation_offset = Property(
         StateVector, default=StateVector(sp.array([[0], [0], [0]])),
         doc="A 3x1 array specifying the origin offset in terms of :math:`x,y,z`\
             coordinates.")
@@ -369,10 +429,14 @@ class BearingElevationGaussianToCartesian(RangeBearingGaussianToCartesian):
         if noise is None:
             noise = self.rvs()
 
-        x = state_vector[self.mapping[0]][0] - self.origin_offset[0][0]
-        y = state_vector[self.mapping[1]][0] - self.origin_offset[1][0]
-        z = state_vector[self.mapping[2]][0] - self.origin_offset[2][0]
+        # Account for origin offset
+        xyz = state_vector[self.mapping] - self.translation_offset
 
-        phi, theta = cart2angles(x, y, z)
+        # Rotate coordinates
+        xyz_rot = self._rotation_matrix @ xyz
 
-        return sp.array([[theta], [phi]]) + noise
+        # Convert to Angles
+        phi, theta = cart2angles(*xyz_rot[:, 0])
+
+        return sp.array([[theta],
+                         [phi]]) + noise
