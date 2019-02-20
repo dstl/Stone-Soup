@@ -66,7 +66,7 @@ Track Types
     :show-inheritance:
 
 Update Types
-----------------
+------------
 
 .. automodule:: stonesoup.types.update
     :show-inheritance:
