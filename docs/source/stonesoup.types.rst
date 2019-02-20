@@ -65,6 +65,11 @@ Track Types
 .. automodule:: stonesoup.types.track
     :show-inheritance:
 
+Measure Types
+-------------
+.. automodule:: stonesoup.types.measure
+    :show-inheritance:
+
 Update Types
 ----------------
 
