@@ -95,16 +95,19 @@ class Mahalanobis(Measure):
         :param y::class:'~.State'
         :return: distance
         """
-        if self.mapping is None:
+        if self.mapping is not None:
             d = x.state_vector[self.mapping] - y.state_vector[self.mapping]
-            # TODO modify covariance to reflect mapping
-            cov = x.covar
+            # extract the mapped covariance data
+            rows = np.array(self.mapping, dtype=np.intp)
+            columns = np.array(self.mapping, dtype=np.intp)
+            cov = x.covar[rows[:, np.newaxis], columns]
         else:
             d = x.state_vector - y.state_vector
             cov = x.covar
 
-        cov_inv = np.linalg.inv(x.covar)
-        dist = np.sqrt(np.einsum('nj,jk,nk->n', d, cov_inv, d))
+        cov_inv = np.linalg.inv(cov)
+
+        dist = np.sqrt(np.sum(np.dot(d.T, cov_inv) * d.T, axis=1))
 
         return dist
 
