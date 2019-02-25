@@ -37,7 +37,7 @@ class SingleTimeAssociation(Association):
     """
 
     timestamp = Property(datetime.datetime, default=None,
-                         doc="Timestamp of the association. Default None.")
+                         doc="Timestamp of the association. Default is None.")
 
 
 class TimeRangeAssociation(Association):
@@ -48,7 +48,8 @@ class TimeRangeAssociation(Association):
     """
 
     time_range = Property(TimeRange, default=None,
-                          doc="Range of times that association exists over")
+                          doc="Range of times that association exists over. "
+                              "Default is None")
 
 
 class AssociationSet(Type):
@@ -68,7 +69,21 @@ class AssociationSet(Type):
         super().__init__(associations, *args, **kwargs)
 
     def associations_at_timestamp(self, timestamp):
-        """Return the associations that exist at a given timestamp"""
+        """Return the associations that exist at a given timestamp
+
+        Method will return a set of all the  :class:`~.Association` type
+        objects which occur at the specified time stamp.
+
+        Parameters
+        ----------
+        timestamp: datetime.datetime
+            Timestamp at which associations should be identified
+
+        Returns
+        -------
+        : set of :class:`~.Association`
+            Associations which occur at specified timestamp
+        """
         ret_associations = set()
         for association in self.associations:
             # If the association is at a single time
@@ -81,7 +96,20 @@ class AssociationSet(Type):
         return ret_associations
 
     def associations_including_objects(self, objects):
-        """Return associations that include all the given objects"""
+        """Return associations that include all the given objects
+
+        Method will return the set of all the :class:`~.Association` type
+        objects which contain an association with the provided object
+
+        Paramters
+        ---------
+        : objects:
+            Set of objects
+        Returns
+        -------
+        : set of :class:`~.Association`
+            A set of objects which have been associated
+        """
 
         # Ensure objects is iterable
         if not isinstance(objects, list) and not isinstance(objects, set):

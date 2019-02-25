@@ -15,21 +15,23 @@ class Metric(Type):
 
 
 class PlottingMetric(Metric):
-    """Metric which is a plot, value should be a pyplot figure"""
+    """Metric which is to be visualised as plot, value should be a pyplot
+     figure"""
 
 
 class SingleTimeMetric(Metric):
-    """ Metric for a specific timestamp"""
+    """Metric for a specific timestamp"""
 
     timestamp = Property(datetime.datetime, default=None,
                          doc="Timestamp of the state. Default None.")
 
 
 class TimeRangeMetric(Metric):
-    """ Metric for a range of times (for example an entire run)"""
+    """ Metric for a range of times (e.g. for example an entire run)"""
 
     time_range = Property(TimeRange, default=None,
-                          doc="Range of times that metric measures over")
+                          doc="Time range over which metric assessment will be"
+                              "conducted over. Default is None")
 
 
 class TimeRangePlottingMetric(TimeRangeMetric, PlottingMetric):
