@@ -2,347 +2,103 @@
 
 import numpy as np
 
+from ..base import Property
 from .base import Updater
-from ..types import (GaussianMeasurementPrediction,
-                     GaussianStateUpdate)
+from ..types import GaussianMeasurementPrediction, GaussianStateUpdate
+from ..models import LinearGaussian
+from ..models.measurement import MeasurementModel, NonLinearModel
 
 
-class KalmanUpdater(Updater):
-    """Simple Kalman Updater
+class AbstractKalmanUpdater(Updater):
+    """
+    An abstract class which embodies much of the functional infrastructure inherent in Kalman-type updaters;
+    will allow daughter classes merely to specify the measurement model h(x)
 
-    Perform measurement update step in the standard Kalman Filter.
+    Note that this isn't an abstract class as such. It will execute the functions
     """
 
-    def get_measurement_prediction(self, state_prediction, **kwargs):
-        """Kalman Filter measurement prediction step
+    # TODO at present this will throw an error if a measurement model is not specified. Either remove default=None
+    # TODO or specify some sort of behaviour if default is none.
+    measurement_model = Property(MeasurementModel, default=None, doc="The measurement model to be used")
 
-        Parameters
-        ----------
-        state_prediction : :class:`~.GaussianStatePrediction`
-            A predicted state object
+    def measurement_matrix(self, predicted_state=None, **kwargs):
+        pass
 
-        Returns
-        -------
-        : :class:`~.GaussianMeasurementPrediction`
-            The measurement prediction
+    def predict_measurement(self, predicted_state, **kwargs):
         """
 
-        # Measurement model parameters
-        measurement_matrix = self.measurement_model.matrix(**kwargs)
-        measurement_noise_covar = self.measurement_model.covar(**kwargs)
-
-        meas_pred_mean, meas_pred_covar, cross_covar = \
-            self.get_measurement_prediction_lowlevel(state_prediction.mean,
-                                                     state_prediction.covar,
-                                                     measurement_matrix,
-                                                     measurement_noise_covar)
-
-        return GaussianMeasurementPrediction(meas_pred_mean, meas_pred_covar,
-                                             state_prediction.timestamp,
-                                             cross_covar)
-
-    def update(self, hypothesis, **kwargs):
-        """Kalman Filter update step
-
-        Parameters
-        ----------
-        hypothesis : :class:`~.Hypothesis`
-            Hypothesis with predicted state and associated detection used for
-            updating.
-
-        Returns
-        -------
-        : :class:`~.GaussianStateUpaate`
-            The computed state posterior
+        :param predicted_state: The predicted state :math:`\hat{\mathbf{x}}_{k|k-1}`
+        :param kwargs:
+        :return: A Gaussian measurement prediction, :math:`\hat{\mathbf{z}}_{k}`
         """
 
-        if hypothesis.measurement_prediction is None:
-            hypothesis.measurement_prediction = \
-                self.get_measurement_prediction(hypothesis.prediction,
-                                                **kwargs)
+        pred_meas = self.measurement_model.function(predicted_state.state_vector) # I'd prefer to pass `State`
 
-        posterior_mean, posterior_covar, _ = \
-            self._update_on_measurement_prediction(
-                hypothesis.prediction.mean,
-                hypothesis.prediction.covar,
-                hypothesis.measurement.state_vector,
-                hypothesis.measurement_prediction.mean,
-                hypothesis.measurement_prediction.covar,
-                hypothesis.measurement_prediction.cross_covar)
+        hh = self.measurement_matrix(predicted_state)
 
-        return GaussianStateUpdate(posterior_mean,
-                                   posterior_covar,
-                                   hypothesis,
-                                   hypothesis.measurement.timestamp)
+        innov_cov = hh @ predicted_state.covariance() @ hh.T + self.measurement_model.noise_covar
+        meas_cross_cov = predicted_state.covariance() @ hh.T
 
-    @staticmethod
-    def update_lowlevel(x_pred, P_pred, H, R, y):
-        """Low level Kalman Filter update
+        return GaussianMeasurementPrediction(pred_meas, innov_cov, predicted_state.timestamp, meas_cross_cov)
 
-        Parameters
-        ----------
-        x_pred: :class:`numpy.ndarray` of shape (Ns,1)
-            The predicted state mean
-        P_pred: :class:`numpy.ndarray` of shape (Ns,Ns)
-            The predicted state covariance
-        H : :class:`numpy.ndarray` of shape (Nm,Ns)
-            The measurement model matrix
-        R : :class:`numpy.ndarray` of shape (Nm,Nm)
-            The measurement noise covariance matrix
-        y : :class:`numpy.ndarray` of shape (Nm,1)
-            The measurement vector
+    def update(self, predicted_state, hypothesis, **kwargs):
+        """
+        The Kalman-type update method
 
-        Returns
-        -------
-        : :class:`numpy.ndarray` of shape (Ns,1)
-            The computed posterior state mean
-        : :class:`numpy.ndarray` of shape (Ns,Ns)
-            The computed posterior state covariance
-        : :class:`numpy.ndarray` of shape (Ns,Nm)
-            The computed Kalman gain
+        :param predicted_state: the predicted state, :math:`\hat{\mathbf{x}}_{k|k-1}`
+        :param hypothesis: the predicted measurement-measurement association hypothesis
+        :param kwargs:
+        :return: Posterior state, :math:`\mathbf{x}_{k|k}`
         """
 
-        y_pred, S, Pxy = \
-            KalmanUpdater.get_measurement_prediction_lowlevel(x_pred,
-                                                              P_pred,
-                                                              H, R)
+        gmp = self.predict_measurement(predicted_state, **kwargs)
 
-        return KalmanUpdater._update_on_measurement_prediction(x_pred, P_pred,
-                                                               y, y_pred, S,
-                                                               Pxy)
+        pred_meas = gmp.state_vector
+        innov_cov = gmp.covar
+        m_cross_cov = gmp.cross_cov
 
-    @staticmethod
-    def get_measurement_prediction_lowlevel(x_pred, P_pred, H, R):
-        """Low level Kalman Filter measurement prediction
+        kalman_gain = m_cross_cov @ np.linalg.inv(innov_cov)
+        posterior_mean = predicted_state.state_vector + kalman_gain @ (hypothesis.measurement.state_vector - pred_meas)
+        posterior_covariance = predicted_state.covariance() - kalman_gain @ innov_cov @ kalman_gain.T
 
-        Parameters
-        ----------
-        x_pred: :class:`numpy.ndarray` of shape (Ns,1)
-            The predicted state mean
-        P_pred: :class:`numpy.ndarray` of shape (Ns,Ns)
-            The predicted state covariance
-        H : :class:`numpy.ndarray` of shape (Nm,Ns)
-            The measurement model matrix
-        R : :class:`numpy.ndarray` of shape (Nm,Nm)
-            The measurement noise covariance matrix
+        #posterior_state_covariance = (P_post + P_post.T) / 2 # !!! kludge
 
-        Returns
-        -------
-        : :class:`numpy.ndarray` of shape (Nm,1)
-            The predicted measurement mean
-        : :class:`numpy.ndarray` of shape (Nm,Nm)
-            The predicted measurement noise (innovation) covariance matrix
-        : :class:`numpy.ndarray` of shape (Ns,Nm), optional
-            The state-to-measurement cross covariance
-        """
-
-        y_pred = H@x_pred
-        S = H@P_pred@H.T + R
-        Pxy = P_pred@H.T
-
-        return y_pred, S, Pxy
-
-    @staticmethod
-    def _update_on_measurement_prediction(x_pred, P_pred, y,
-                                          y_pred, S, Pxy):
-        """Low level Kalman Filter update, based on a measurement prediction
-        Parameters
-        ----------
-        x_pred: :class:`numpy.ndarray` of shape (Ns,1)
-            The predicted state mean
-        P_pred: :class:`numpy.ndarray` of shape (Ns,Ns)
-            The predicted state covariance
-        y : :class:`numpy.ndarray` of shape (Nm,1)
-            The measurement vector
-        y_pred: :class:`numpy.ndarray` of shape (Nm,1)
-            The predicted measurement mean
-        S: :class:`numpy.ndarray` of shape (Nm,Nm)
-            The predicted measurement noise (innovation) covariance matrix
-        Pxy: :class:`numpy.ndarray` of shape (Ns,Nm), optional
-            The state-to-measurement cross covariance
-
-        Returns
-        -------
-        : :class:`numpy.ndarray` of shape (Ns,1)
-            The computed posterior state mean
-        : :class:`numpy.ndarray` of shape (Ns,Ns)
-            The computed posterior state covariance
-        : :class:`numpy.ndarray` of shape (Ns,Nm)
-            The computed Kalman gain
-        """
-
-        K = Pxy@np.linalg.inv(S)
-
-        x_post = x_pred + K@(y-y_pred)
-        P_post = P_pred - K@S@K.T
-
-        return x_post, P_post, K
+        return GaussianStateUpdate(posterior_mean, posterior_covariance, hypothesis, hypothesis.measurement.timestamp)
 
 
-class ExtendedKalmanUpdater(KalmanUpdater):
-    """Extended Kalman Updater
+class KalmanUpdater(AbstractKalmanUpdater):
+    """
+    Kalman Updater
 
-    Perform measurement update step in the Extended Kalman Filter.
+    Perform measurement update step as in the standard Kalman Filter. Assumes the measurement matrix function of the
+    measurement_model returns a matrix (H).
+
     """
 
-    def get_measurement_prediction(self, state_prediction, **kwargs):
-        """Extended Kalman Filter measurement prediction step
+    measurement_model = Property(LinearGaussian, default=None, doc="A linear Gaussian measurement model")
 
-        Parameters
-        ----------
-        state_prediction : :class:`~.GaussianStatePrediction`
-            A predicted state object
+    def measurement_matrix(self):
+        """
+        This is straightforward Kalman so just get the Matrix from the measurement model
+        :return: the measurement matrix, :math:`H_k`
+        """
+        return self.measurement_model.matrix()
 
-        Returns
-        -------
-        : :class:`~.GaussianMeasurementPrediction`
-            The measurement prediction
+
+class ExtendedKalmanUpdater(AbstractKalmanUpdater):
+    """
+    The EKF version of the Kalman Updater
+
+    The measurement model must be non-linear and return the linearisation of h() via the jacobian matrix H
+
+    """
+
+    measurement_model = Property(NonLinearModel, default=None, doc="A non-linear differentiable measurement model")
+
+    def measurement_matrix(self, predicted_state):
         """
 
-        # Measurement model parameters
-        try:
-            # Attempt to extract matrix from a LinearModel
-            measurement_matrix = self.measurement_model.matrix(**kwargs)
-        except AttributeError:
-            # Else read jacobian from a NonLinearModel
-            measurement_matrix = \
-                self.measurement_model.jacobian(state_prediction.state_vector,
-                                                **kwargs)
-        measurement_noise_covar = self.measurement_model.covar(**kwargs)
-
-        meas_pred_mean, meas_pred_covar, cross_covar = \
-            self.get_measurement_prediction_lowlevel(state_prediction.mean,
-                                                     state_prediction.covar,
-                                                     measurement_matrix,
-                                                     measurement_noise_covar)
-
-        return GaussianMeasurementPrediction(meas_pred_mean, meas_pred_covar,
-                                             state_prediction.timestamp,
-                                             cross_covar)
-
-    def update(self, hypothesis, **kwargs):
-        """ Extended Kalman Filter update step
-
-        Parameters
-        ----------
-        hypothesis : :class:`~.Hypothesis`
-            Hypothesis with predicted state and associated detection used for
-            updating.
-
-        Returns
-        -------
-        : :class:`~.GaussianState`
-            The state posterior
+        :param predicted_state: the predicted state, :math:`\hat{\mathbf{x}}_{k|k-1}`
+        :return: the measurement matrix, :math:`H_k`
         """
-
-        if hypothesis.measurement_prediction is None:
-            hypothesis.measurement_prediction = \
-                self.get_measurement_prediction(hypothesis.prediction,
-                                                **kwargs)
-
-        posterior_mean, posterior_covar, _ = \
-            self._update_on_measurement_prediction(
-                hypothesis.prediction.mean,
-                hypothesis.prediction.covar,
-                hypothesis.measurement.state_vector,
-                hypothesis.measurement_prediction.mean,
-                hypothesis.measurement_prediction.covar,
-                hypothesis.measurement_prediction.cross_covar)
-
-        return GaussianStateUpdate(posterior_mean,
-                                   posterior_covar,
-                                   hypothesis,
-                                   hypothesis.measurement.timestamp)
-
-    @staticmethod
-    def update_lowlevel(x_pred, P_pred, H, R, y):
-        """Low level Extended Kalman Filter update
-
-        Parameters
-        ----------
-        x_pred: :class:`numpy.ndarray` of shape (Ns,1)
-            The predicted state mean
-        P_pred: :class:`numpy.ndarray` of shape (Ns,Ns)
-            The predicted state covariance
-        H : :class:`numpy.ndarray` of shape (Nm,Ns)
-            The measurement model jacobian matrix
-        R : :class:`numpy.ndarray` of shape (Nm,Nm)
-            The measurement noise covariance matrix
-        y : :class:`numpy.ndarray` of shape (Nm,1)
-            The measurement vector
-
-        Returns
-        -------
-        : :class:`numpy.ndarray` of shape (Ns,1)
-            The computed posterior state mean
-        : :class:`numpy.ndarray` of shape (Ns,Ns)
-            The computed posterior state covariance
-        : :class:`numpy.ndarray` of shape (Ns,Nm)
-            The computed Kalman gain
-        """
-
-        return KalmanUpdater.update_lowlevel(x_pred, P_pred, H, R, y)
-
-    @staticmethod
-    def get_measurement_prediction_lowlevel(x_pred, P_pred, H, R):
-        """Low level Extended Kalman Filter measurement prediction
-
-        Parameters
-        ----------
-        x_pred: :class:`numpy.ndarray` of shape (Ns,1)
-            The predicted state mean
-        P_pred: :class:`numpy.ndarray` of shape (Ns,Ns)
-            The predicted state covariance
-        H : :class:`numpy.ndarray` of shape (Nm,Ns)
-            The measurement model jacobian matrix
-        R : :class:`numpy.ndarray` of shape (Nm,Nm)
-            The measurement noise covariance matrix
-
-        Returns
-        -------
-        : :class:`numpy.ndarray` of shape (Nm,1)
-            The predicted measurement mean
-        : :class:`numpy.ndarray` of shape (Nm,Nm)
-            The predicted measurement noise (innovation) covariance matrix
-        : :class:`numpy.ndarray` of shape (Ns,Nm), optional
-            The state-to-measurement cross covariance
-        """
-
-        return KalmanUpdater.get_measurement_prediction_lowlevel(x_pred,
-                                                                 P_pred,
-                                                                 H, R)
-
-    @staticmethod
-    def _update_on_measurement_prediction(x_pred, P_pred, y,
-                                          y_pred, S, Pxy):
-        """Low level Extended Kalman Filter update, based on a measurement\
-        prediction
-
-        Parameters
-        ----------
-        x_pred: :class:`numpy.ndarray` of shape (Ns,1)
-            The predicted state mean
-        P_pred: :class:`numpy.ndarray` of shape (Ns,Ns)
-            The predicted state covariance
-        y : :class:`numpy.ndarray` of shape (Nm,1)
-            The measurement vector
-        y_pred: :class:`numpy.ndarray` of shape (Nm,1)
-            The predicted measurement mean
-        S: :class:`numpy.ndarray` of shape (Nm,Nm)
-            The predicted measurement noise (innovation) covariance matrix
-        Pxy: :class:`numpy.ndarray` of shape (Ns,Nm), optional
-            The state-to-measurement cross covariance
-
-        Returns
-        -------
-        : :class:`numpy.ndarray` of shape (Ns,1)
-            The computed posterior state mean
-        : :class:`numpy.ndarray` of shape (Ns,Ns)
-            The computed posterior state covariance
-        : :class:`numpy.ndarray` of shape (Ns,Nm)
-            The computed Kalman gain
-        """
-
-        return KalmanUpdater._update_on_measurement_prediction(x_pred, P_pred,
-                                                               y, y_pred, S,
-                                                               Pxy)
+        return self.measurement_model.jacobian(predicted_state.state_vector)

@@ -2,216 +2,110 @@
 
 import numpy as np
 
-
+from ..base import Property
 from .base import Predictor
-from ..types import State, GaussianStatePrediction
+from ..types import GaussianStatePrediction
+from ..models import TransitionModel, ControlModel
+from ..models.control.linear import LinearControlModel
 
 
-class KalmanPredictor(Predictor):
+class AbstractKalmanPredictor(Predictor):
+    """
+    A predictor class which follows the family of Kalman predictors.
+
+    Generally:
+        :math:`\hat{x}_k = f_k(x_{k-1}) + b_k(u_k) + \nu_k`
+
+    where :math:`x_{k-1}` is the prior state, :math:`f_k(\dot)` is the transition function, :math:`u_k` the control
+    vector, :math:`b_k(\dot)` the control input and :math:`\nu_k` the noise.
+
+    """
+
+    transition_model = Property(TransitionModel, default=None, doc="The transition model to be used")
+    control_model = Property(ControlModel, default=None, doc="The control model to be used")
+
+    def transition_matrix(self, time_interval):
+        pass
+
+    def transition_function(self, prior, timestamp):
+        pass
+
+    def control_matrix(self):
+        pass
+
+    def control_function(self):
+        pass
+
+    def predict(self, prior, timestamp=None, **kwargs):
+        """
+
+        :param prior: :math:`x_{t-1}`
+        :param timestamp: :math:`t`
+        :param kwargs:
+        :return: :math:`\hat{x}_k`, the predicted state
+        """
+
+        if self.control_model is None:
+            """Make a 0-effect control input"""
+            self.control_model = LinearControlModel(np.zeros(prior.state_vector.shape), np.zeros(prior.covar.shape),
+                                                    np.zeros(prior.covar.shape))
+
+        # TODO time interval in the control model?
+        x_pred = self.transition_function(prior.state_vector, timestamp=timestamp) + \
+                 self.control_function(self.control_model.control_vector)
+
+        # As this is Kalman-like, the control model must be capable of returning a control matrix (B)
+        P_pred = self.transition_matrix(time_interval=timestamp-prior.timestamp) @ prior.covariance @ \
+                 self.transition_matrix(time_interval=timestamp-prior.timestamp).T + \
+                 self.transition_model.covar() + \
+                 self.control_matrix() @ self.control_model.control_noise @ self.control_matrix().T
+
+        return GaussianStatePrediction(x_pred, P_pred)
+
+
+class KalmanPredictor(AbstractKalmanPredictor):
+
     """KalmanPredictor class
 
     An implementation of a standard Kalman Filter predictor.
 
     """
 
-    def predict(self, prior, control_input=None, timestamp=None, **kwargs):
-        """Kalman Filter state prediction step
+    # TODO specify that transition and control models must be linear
 
-        Parameters
-        ----------
-        prior : :class:`~.GaussianState`
-            The prior state
-        control_input : :class:`~.State`, optional
-            The control input. It will only have an effect if
-            :attr:`control_model` is not `None` (the default is `None`)
-        timestamp: :class:`datetime.datetime`, optional
-            A timestamp signifying when the prediction is performed \
-            (the default is `None`)
+    def transition_matrix(self, time_interval):
+        return self.transition_model.matrix(time_interval)
 
-        Returns
-        -------
-        : :class:`~.GaussianStatePrediction`
-            The predicted state
+    def transition_function(self, prior, time_interval):
+        return self.transition_model.matrix(time_interval) @ prior.state_vector
 
-        """
+    def control_matrix(self):
+        return self.control_model.control_matrix
 
-        # Compute time_interval
-        try:
-            time_interval = timestamp - prior.timestamp
-        except TypeError:
-            # TypeError: (timestamp or prior.timestamp) is None
-            time_interval = None
-
-        # Transition model parameters
-        transition_matrix = self.transition_model.matrix(
-            timestamp=timestamp,
-            time_interval=time_interval,
-            **kwargs)
-        transition_noise_covar = self.transition_model.covar(
-            timestamp=timestamp,
-            time_interval=time_interval,
-            **kwargs)
-
-        # Control model parameters
-        if self.control_model is None:
-            control_matrix = np.zeros(prior.covar.shape)
-            contol_noise_covar = np.zeros(prior.covar.shape)
-            control_input = State(np.zeros(prior.state_vector.shape))
-        else:
-            # Extract control matrix
-            control_matrix = self.control_model.matrix(
-                timestamp=timestamp,
-                time_interval=time_interval,
-                **kwargs)
-            # Extract control noise covariance
-            try:
-                # covar() is implemented for control_model
-                contol_noise_covar = self.control_model.covar(
-                    timestamp=timestamp,
-                    time_interval=time_interval,
-                    **kwargs)
-            except AttributeError:
-                # covar() is NOT implemented for control_model
-                contol_noise_covar = np.zeros(self.control_model.ndim_ctrl)
-            if control_input is None:
-                control_input = np.zeros((self.control_model.ndim_ctrl, 1))
-
-        # Perform prediction
-        prediction_mean, prediction_covar = self.predict_lowlevel(
-            prior.mean, prior.covar, transition_matrix,
-            transition_noise_covar, control_input.state_vector,
-            control_matrix, contol_noise_covar)
-
-        return GaussianStatePrediction(prediction_mean,
-                                       prediction_covar,
-                                       timestamp)
-
-    @staticmethod
-    def predict_lowlevel(x, P, F, Q, u, B, Qu):
-        """Low-level Kalman Filter state prediction
-
-        Parameters
-        ----------
-        x : :class:`numpy.ndarray` of shape (Ns,1)
-            The prior state mean
-        P : :class:`numpy.ndarray` of shape (Ns,Ns)
-            The prior state covariance
-        F : :class:`numpy.ndarray` of shape (Ns,Ns)
-            The state transition matrix
-        Q : :class:`numpy.ndarray` of shape (Ns,Ns)
-            The process noise covariance matrix
-        u : :class:`numpy.ndarray` of shape (Nu,1)
-            The control input
-        B : :class:`numpy.ndarray` of shape (Ns,Nu)
-            The control gain matrix
-        Qu : :class:`numpy.ndarray` of shape (Ns,Ns)
-            The control process covariance matrix
-
-        Returns
-        -------
-        : :class:`numpy.ndarray` of shape (Ns,1)
-            The predicted state mean
-        : :class:`numpy.ndarray` of shape (Ns,Ns)
-            The predicted state covariance
-        """
-
-        x_pred = F@x + B@u
-        P_pred = F@P@F.T + Q + B@Qu@B.T
-
-        return x_pred, P_pred
+    def control_function(self):
+        return self.control_input()
 
 
-class ExtendedKalmanPredictor(KalmanPredictor):
+class ExtendedKalmanPredictor(AbstractKalmanPredictor):
     """ExtendedKalmanPredictor class
 
-    An implementation of an Extended Kalman Filter predictor"""
+    An implementation of the Extended Kalman Filter predictor.
 
-    def predict(self, prior, control_input=None, timestamp=None, **kwargs):
-        """ Extended Kalman Filter state prediction step
+    """
 
-        Parameters
-        ----------
-        prior : :class:`~.GaussianState`
-            The prior state
-        control_input : :class:`~.State`, optional
-            The control input. It will only have an effect if
-            :attr:`control_model` is not `None` (the default is `None`)
-        timestamp: :class:`datetime.datetime`, optional
-            A timestamp signifying when the prediction is performed \
-            (the default is `None`)
+    # TODO specify that transition and control models must be 'linearisable' via Jacobians
 
-        Returns
-        -------
-        : :class:`~.GaussianStatePrediction`
-            The predicted state
-        """
+    def transition_matrix(self, prior, time_interval):
+        return self.transition_model.jacobian(prior.state_vector, time_interval)
 
-        # Compute time_interval
-        try:
-            time_interval = timestamp - prior.timestamp
-        except TypeError:
-            # TypeError: (timestamp or prior.timestamp) is None
-            time_interval = None
+    def transition_function(self, prior, time_interval):
+        return self.transition_model.transition(prior.state_vector, time_interval)
 
-        # Transition model parameters
-        try:
-            # Attempt to extract matrix from a LinearModel
-            transition_matrix = self.transition_model.matrix(
-                timestamp=timestamp,
-                time_interval=time_interval,
-                **kwargs)
-        except AttributeError:
-            # Else read jacobian from a NonLinearModel
-            transition_matrix = self.transition_model.jacobian(
-                state_vec=prior.state_vector,
-                timestamp=timestamp,
-                time_interval=time_interval,
-                **kwargs)
+    # TODO work out how these incorporate time intervals
+    # TODO there may also be compelling reason to keep these linear
+    def control_matrix(self):
+        return self.control_model.jacobian(self.control_model.control_vector)
 
-        transition_noise_covar = self.transition_model.covar(
-            timestamp=timestamp,
-            time_interval=time_interval,
-            **kwargs)
+    def control_function(self):
+        return self.control_input()
 
-        # Control model parameters
-        if self.control_model is None:
-            control_matrix = np.zeros(prior.covar.shape)
-            contol_noise_covar = np.zeros(prior.covar.shape)
-            control_input = State(np.zeros(prior.state_vector.shape))
-        else:
-            # Extract control matrix
-            try:
-                # Attempt to extract matrix from a LinearModel
-                control_matrix = self.control_model.matrix(
-                    timestamp=timestamp,
-                    time_interval=time_interval,
-                    **kwargs)
-            except AttributeError:
-                # Else read jacobian from a NonLinearModel
-                control_matrix = self.control_model.jacobian(
-                    timestamp=timestamp,
-                    time_interval=time_interval,
-                    **kwargs)
-            # Extract control noise covariance
-            try:
-                # covar() is implemented for control_model
-                contol_noise_covar = self.control_model.covar(
-                    timestamp=timestamp,
-                    time_interval=time_interval,
-                    **kwargs)
-            except AttributeError:
-                # covar() is NOT implemented for control_model
-                contol_noise_covar = np.zeros((self.control_model.ndim_ctrl,
-                                               self.control_model.ndim_ctrl))
-            if control_input is None:
-                control_input = np.zeros((self.control_model.ndim_ctrl, 1))
-
-        # Perform state prediction
-        prediction_mean, prediction_covar = super().predict_lowlevel(
-            prior.mean, prior.covar, transition_matrix,
-            transition_noise_covar, control_input.state_vector,
-            control_matrix, contol_noise_covar)
-
-        return GaussianStatePrediction(prediction_mean,
-                                       prediction_covar,
-                                       timestamp)

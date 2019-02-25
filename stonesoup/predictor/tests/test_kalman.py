@@ -3,9 +3,9 @@ import datetime
 
 import numpy as np
 
-from stonesoup.models.transition.linear import ConstantVelocity
-from stonesoup.predictor.kalman import KalmanPredictor, ExtendedKalmanPredictor
-from stonesoup.types import GaussianState, GaussianStatePrediction
+from ...models.transition.linear import ConstantVelocity
+from ...predictor.kalman import KalmanPredictor, ExtendedKalmanPredictor
+from ...types import GaussianState, GaussianStatePrediction
 
 
 def test_kalman():
