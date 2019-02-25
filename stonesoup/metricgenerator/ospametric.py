@@ -76,7 +76,8 @@ class OSPAMetric(MetricGenerator):
         states_2 = self.extract_states(dataset_2)
         return self.compute_over_time(states_1, states_2)
 
-    def extract_states(self, object_with_states):
+    @staticmethod
+    def extract_states(object_with_states):
         """
         Extracts a list of :class:`~states` from a list of (or single) objects
         containing states. This method is defined to handle :class:`~track`,
@@ -155,10 +156,20 @@ class OSPAMetric(MetricGenerator):
         time step between two point patterns. Each point pattern consisting of
         a list of :class:`~.State` objects.
 
-        The OSPA metric is defined as:
+        The function :math:`\bar{d}_{p}^{(c)}` is the OSPA metric of order
+        :math:`p` with cut-off :math:`c`. The OSPA metric is defined as:
 
-        .. math::
-            \overline{D}_{p}^{(c)}({X},{Y}) = (frac{1}{n}(\sum))^{p}
+            .. math::
+                \begin{equation*}
+                    \bar{d}_{p}^{(c)}({X},{Y}) :=
+                    \Biggl( \frac{1}{n}
+                    \Bigl({min}_{\substack{
+                        \pi\in\Pi_{n}}}
+                            \sum_{i=1}^{m}
+                                d^{(c)}(x_{i},y_{\pi(i)})^{p}+
+                                c^{p}(n-m)\Bigr)
+                        \Biggr)^{ \frac{1}{p} }
+                \end{equation*}
 
         Parameters
         ----------
@@ -167,6 +178,7 @@ class OSPAMetric(MetricGenerator):
 
         Returns
         -------
+
         SingleTimeMetric
             The OSPA distance
 

@@ -1,5 +1,5 @@
-Optimal Sub-Pattern Assignment Metric
-=====================================
+Optimal Sub-Pattern Assignment (OSPA) Metric
+============================================
 
-.. automodule:: stonesoup.metricgenerator.ospa
+.. automodule:: stonesoup.metricgenerator.ospametric
     :show-inheritance:
