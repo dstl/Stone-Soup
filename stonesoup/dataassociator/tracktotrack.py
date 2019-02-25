@@ -13,28 +13,39 @@ from ..types.time import TimeRange
 class EuclideanTrackToTrack(TrackToTrackAssociator):
     """Euclidean track to track associator
 
-    Compares two sets of tracks, each formed of a sequence of :class:`~.State`
-    and returns an association for each time a track from one set is
-    associated with a track from the other. Associations are triggered by track
-    states being within a threshold for a given number of timestamps and ended
-    by one track ending or the states being outside of the threshold for a
-    given number of timestamps.
+    Compares two sets of :class:`~.tracks`, each formed of a sequence of
+    :class:`~.State` objects and returns an :class:`~.Association` object for
+    each time at which a the two :class:`~.State` within the :class:`~.tracks`
+    are assessed to be associated.
 
-    No prioritisation of tracks is performed. If one track is near two tracks
-    from the other set then associations will be created for both
+    Associations are triggered by track states being within a threshold
+    distance for a given number of timestamps. Associations are terminated when
+    either the two :class:`~.tracks` end or the two :class:`~.State` are
+    separated by a distance greater than the threshold at the next time step.
+
+    Note
+    ----
+    Association is not prioritised based on historic associations or distance.
+    If, at a specific time step, the :class:`~.State` of one of the
+    :class:`~.tracks` is assessed as close to more than one track then an
+    :class:`~.Association` object will be return for all possible association
+    combinations
     """
 
     association_threshold = Property(
         float, default=10,
-        doc="Distance between states within which an association occurs")
+        doc="Threshold distance measure which states must be within for an "
+            "association to be recorded.Default is 10")
     consec_pairs_confirm = Property(
         int, default=3,
-        doc="Number of consecutive track-truth states within threshold to "
-            "confirm association of track to truth")
+        doc="Number of consecutive time instances which track pairs are "
+            "required to be within a specified threshold in order for an "
+            "association to be formed. Default is 3")
     consec_misses_end = Property(
         int, default=2,
-        doc="Number of consecutive track-truth states ouside threshold to end "
-            "association of track to truth")
+        doc="Number of consecutive time instances which track pairs are "
+            "required to exceed a specified threshold in order for an "
+            "association to be ended. Default is 2")
     measurement_model_track1 = Property(
         MeasurementModel,
         doc="Measurement model which specifies which elements within the "
@@ -58,6 +69,7 @@ class EuclideanTrackToTrack(TrackToTrackAssociator):
         -------
         AssociationSet
             Contains a set of :class:`~.Association` objects
+
         """
         associations = set()
         for track2 in tracks_set_2:
@@ -131,57 +143,72 @@ class EuclideanTrackToTrack(TrackToTrackAssociator):
 class EuclideanTrackToTruth(TrackToTrackAssociator):
     """Euclidean track to truth associator
 
-    Returns an association for each track that is following a truth path.
-    Tracks are assumed to be following a truth if the truth is the closest
-    state to the track (and within a threshold) for a given number of
-    consecutive timestamps. Associations end if the truth is not the closest
-    to the track (or the distance is outside the threshold) for a given number
-    of consecutive tracks. Each track can only be associated to one truth at
-    a given timestamp but truths may have multiple tracks associated to them.
+    Compares two sets of :class:`~.tracks`, each formed of a sequence of
+    :class:`~.State` objects and returns an :class:`~.Association` object for
+    each time at which a the two :class:`~.State` within the :class:`~.tracks`
+    are assessed to be associated. Tracks are considered to be associated with
+    the Truth if the true :class:`~.State` is the closest to the track and
+    within the specified distance for a specified number of time steps.
 
-    Associates will be ended by attr:`consec_misses_end` before any new
-    associations are considered even if :attr:`consec_pairs_confirm` <
-    :attr:`consec_misses_end`
+    Associations between Truth and Track if the Truth is no longer the
+    'closest' to the track or the distance exceeds the specified threshold for
+    a specified number of consecutive time steps.
+
+    Associates will be ended by consec_misses_end before any new associations
+    are considered even if consec_pairs_confirm < consec_misses_end
+
+    Note
+    ----
+    Tracks can only be associated with one Truth (one-2-one relationship) at a
+    given time step however a Truth track can be associated with multiple
+    Tracks (one-2-many relationship).
     """
 
     association_threshold = Property(
-        float, default=10,
-        doc="Distance between states within which an association occurs")
-
+        float,
+        default=10,
+        doc="Threshold distance measure which states must be within for an "
+            "association to be recorded.Default is 10")
     consec_pairs_confirm = Property(
-        int, default=3,
-        doc="Number of consecutive track-truth states within threshold to "
-            "confirm association of track to truth")
-
+        int,
+        default=3,
+        doc="Number of consecutive time instances which track-truth pairs are "
+            "required to be within a specified threshold in order for an "
+            "association to be formed. Default is 3")
     consec_misses_end = Property(
-        int, default=2,
-        doc="Number of consecutive track-truth states ouside threshold to end "
-            "association of track to truth")
+        int,
+        default=2,
+        doc="Number of consecutive time instances which track-truth pairs are "
+            "required to exceed a specified threshold in order for an "
+            "association to be ended. Default is 2")
     measurement_model_track = Property(
         MeasurementModel,
         doc="Measurement model which specifies which elements within the "
             "track state are to be used to calculate distance over")
-
     measurement_model_truth = Property(
         MeasurementModel,
         doc="Measurement model which specifies which elements within the "
             "truth state are to be used to calculate distance over")
 
     def associate_tracks(self, tracks_set, truth_set):
-        """Associate two sets of tracks together.
+        """Associate Tracks
+
+        Method compares to sets of :class:`~.Track` objects and will determine
+        associations between the two sets.
 
         Parameters
         ----------
         tracks_set : list of :class:`~.Track` objects
             Tracks to associate to truth
         truth_set : list of :class:`~.Track` objects
-            Truth to associated tracks to
+            Truth to associate to tracks
 
         Returns
         -------
         AssociationSet
             Contains a set of :class:`~.Association` objects
         """
+
         associations = set()
 
         for track in tracks_set:
