@@ -45,6 +45,8 @@ class AbstractKalmanPredictor(Predictor):
         :return: :math:`\hat{x}_k`, the predicted state
         """
 
+        # WARNING - this won't work with an undefined timestamp
+
         if self.control_model is None:
             """Make a 0-effect control input"""
             self.control_model = LinearControlModel(prior.ndim, [], np.zeros(prior.state_vector.shape),
@@ -52,12 +54,12 @@ class AbstractKalmanPredictor(Predictor):
                                                     np.zeros(prior.covar.shape))
 
         # TODO time interval in the control model?
-        x_pred = self.transition_function(prior.state_vector, time_interval=self.timestamp-prior.timestamp) + \
+        x_pred = self.transition_function(prior.state_vector, time_interval=timestamp-prior.timestamp) + \
                  self.control_function(self.control_model.control_vector)
 
         # As this is Kalman-like, the control model must be capable of returning a control matrix (B)
-        P_pred = self.transition_matrix(time_interval=self.timestamp-prior.timestamp) @ prior.covariance @ \
-                 self.transition_matrix(time_interval=self.timestamp-prior.timestamp).T + \
+        P_pred = self.transition_matrix(time_interval=timestamp-prior.timestamp) @ prior.covariance @ \
+                 self.transition_matrix(time_interval=timestamp-prior.timestamp).T + \
                  self.transition_model.covar() + \
                  self.control_matrix() @ self.control_model.control_noise @ self.control_matrix().T
 
