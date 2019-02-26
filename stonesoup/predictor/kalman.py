@@ -47,7 +47,8 @@ class AbstractKalmanPredictor(Predictor):
 
         if self.control_model is None:
             """Make a 0-effect control input"""
-            self.control_model = LinearControlModel(np.zeros(prior.state_vector.shape), np.zeros(prior.covar.shape),
+            self.control_model = LinearControlModel(prior.ndim, [], np.zeros(prior.state_vector.shape),
+                                                    np.zeros(prior.covar.shape),
                                                     np.zeros(prior.covar.shape))
 
         # TODO time interval in the control model?
