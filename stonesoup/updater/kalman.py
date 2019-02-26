@@ -32,34 +32,35 @@ class AbstractKalmanUpdater(Updater):
         :return: A Gaussian measurement prediction, :math:`\hat{\mathbf{z}}_{k}`
         """
 
-        pred_meas = self.measurement_model.function(predicted_state.state_vector) # I'd prefer to pass `State`
+        pred_meas = self.measurement_model.function(predicted_state.state_vector, noise=[0]) # I'd prefer to pass `State`
 
         hh = self.measurement_matrix(predicted_state)
 
-        innov_cov = hh @ predicted_state.covariance() @ hh.T + self.measurement_model.noise_covar
-        meas_cross_cov = predicted_state.covariance() @ hh.T
+        innov_cov = hh @ predicted_state.covar @ hh.T + self.measurement_model.noise_covar
+        meas_cross_cov = predicted_state.covar @ hh.T
 
         return GaussianMeasurementPrediction(pred_meas, innov_cov, predicted_state.timestamp, meas_cross_cov)
 
-    def update(self, predicted_state, hypothesis, **kwargs):
+    def update(self, hypothesis, **kwargs):
         """
         The Kalman-type update method
 
-        :param predicted_state: the predicted state, :math:`\hat{\mathbf{x}}_{k|k-1}`
         :param hypothesis: the predicted measurement-measurement association hypothesis
         :param kwargs:
         :return: Posterior state, :math:`\mathbf{x}_{k|k}`
         """
 
-        gmp = self.predict_measurement(predicted_state, **kwargs)
+        predicted_state = hypothesis.prediction # Get the predicted state out of the hypothesis
 
+        gmp = self.predict_measurement(predicted_state, **kwargs) # Get the measurement prediction
         pred_meas = gmp.state_vector
         innov_cov = gmp.covar
-        m_cross_cov = gmp.cross_cov
+        m_cross_cov = gmp.cross_covar
 
-        kalman_gain = m_cross_cov @ np.linalg.inv(innov_cov)
+        # Complete the calculation of the posterior
+        kalman_gain = m_cross_cov @ np.linalg.inv(innov_cov) # This isn't optimised
         posterior_mean = predicted_state.state_vector + kalman_gain @ (hypothesis.measurement.state_vector - pred_meas)
-        posterior_covariance = predicted_state.covariance() - kalman_gain @ innov_cov @ kalman_gain.T
+        posterior_covariance = predicted_state.covar - kalman_gain @ innov_cov @ kalman_gain.T
 
         #posterior_state_covariance = (P_post + P_post.T) / 2 # !!! kludge
 
@@ -77,7 +78,7 @@ class KalmanUpdater(AbstractKalmanUpdater):
 
     measurement_model = Property(LinearGaussian, default=None, doc="A linear Gaussian measurement model")
 
-    def measurement_matrix(self):
+    def measurement_matrix(self, predicted_state):
         """
         This is straightforward Kalman so just get the Matrix from the measurement model
         :return: the measurement matrix, :math:`H_k`

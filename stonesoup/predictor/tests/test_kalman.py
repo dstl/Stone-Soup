@@ -3,9 +3,9 @@ import datetime
 
 import numpy as np
 
-from ...models.transition.linear import ConstantVelocity
-from ...predictor.kalman import KalmanPredictor, ExtendedKalmanPredictor
-from ...types import GaussianState, GaussianStatePrediction
+from stonesoup.models.transition.linear import ConstantVelocity
+from stonesoup.predictor.kalman import KalmanPredictor, ExtendedKalmanPredictor
+from stonesoup.types import GaussianState, GaussianStatePrediction
 
 
 def test_kalman():
@@ -52,6 +52,8 @@ def test_kalman():
 
 def test_extendedkalman():
 
+
+    # TODO This isn't going to work because a non-linear model is required to invoke the .~jacobian() function
     # Initialise a transition model
     cv = ConstantVelocity(noise_diff_coeff=0.1)
 
