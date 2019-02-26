@@ -98,11 +98,11 @@ class ExtendedKalmanPredictor(AbstractKalmanPredictor):
 
     # TODO specify that transition and control models must be 'linearisable' via Jacobians
 
-    def transition_matrix(self, prior):
-        return self.transition_model.jacobian(prior.state_vector)
+    def transition_matrix(self, prior, **kwargs):
+        return self.transition_model.jacobian(prior.state_vector, **kwargs)
 
-    def transition_function(self, prior):
-        return self.transition_model.transition(prior.state_vector)
+    def transition_function(self, prior, **kwargs):
+        return self.transition_matrix(prior, **kwargs) @ prior.state_vector
 
     # TODO work out how these incorporate time intervals
     # TODO there may also be compelling reason to keep these linear
