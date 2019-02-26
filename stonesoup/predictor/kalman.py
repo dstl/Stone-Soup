@@ -52,12 +52,12 @@ class AbstractKalmanPredictor(Predictor):
                                                     np.zeros(prior.covar.shape))
 
         # TODO time interval in the control model?
-        x_pred = self.transition_function(prior.state_vector, timestamp=timestamp) + \
+        x_pred = self.transition_function(prior.state_vector, time_interval=self.timestamp-prior.timestamp) + \
                  self.control_function(self.control_model.control_vector)
 
         # As this is Kalman-like, the control model must be capable of returning a control matrix (B)
-        P_pred = self.transition_matrix(time_interval=timestamp-prior.timestamp) @ prior.covariance @ \
-                 self.transition_matrix(time_interval=timestamp-prior.timestamp).T + \
+        P_pred = self.transition_matrix(time_interval=self.timestamp-prior.timestamp) @ prior.covariance @ \
+                 self.transition_matrix(time_interval=self.timestamp-prior.timestamp).T + \
                  self.transition_model.covar() + \
                  self.control_matrix() @ self.control_model.control_noise @ self.control_matrix().T
 
