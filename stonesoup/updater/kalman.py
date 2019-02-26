@@ -26,7 +26,6 @@ class AbstractKalmanUpdater(Updater):
 
     def predict_measurement(self, predicted_state, **kwargs):
         """
-
         :param predicted_state: The predicted state :math:`\hat{\mathbf{x}}_{k|k-1}`
         :param kwargs:
         :return: A Gaussian measurement prediction, :math:`\hat{\mathbf{z}}_{k}`
