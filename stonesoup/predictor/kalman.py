@@ -53,13 +53,13 @@ class AbstractKalmanPredictor(Predictor):
                                                     np.zeros(prior.covar.shape),
                                                     np.zeros(prior.covar.shape))
 
-        # TODO time interval in the control model?
-        x_pred = self.transition_function(prior.state_vector, time_interval=timestamp-prior.timestamp) + \
+        # TODO time interval not currently correctly handled - specified externally.
+        x_pred = self.transition_function(prior.state_vector) + \
                  self.control_function(self.control_model.control_vector)
 
         # As this is Kalman-like, the control model must be capable of returning a control matrix (B)
-        P_pred = self.transition_matrix(time_interval=timestamp-prior.timestamp) @ prior.covariance @ \
-                 self.transition_matrix(time_interval=timestamp-prior.timestamp).T + \
+        P_pred = self.transition_matrix() @ prior.covariance @ \
+                 self.transition_matrix().T + \
                  self.transition_model.covar() + \
                  self.control_matrix() @ self.control_model.control_noise @ self.control_matrix().T
 
@@ -76,11 +76,11 @@ class KalmanPredictor(AbstractKalmanPredictor):
 
     # TODO specify that transition and control models must be linear
 
-    def transition_matrix(self, time_interval):
-        return self.transition_model.matrix(time_interval)
+    def transition_matrix(self):
+        return self.transition_model.matrix()
 
     def transition_function(self, prior, time_interval):
-        return self.transition_model.matrix(time_interval) @ prior.state_vector
+        return self.transition_model.matrix() @ prior.state_vector
 
     def control_matrix(self):
         return self.control_model.control_matrix
@@ -98,11 +98,11 @@ class ExtendedKalmanPredictor(AbstractKalmanPredictor):
 
     # TODO specify that transition and control models must be 'linearisable' via Jacobians
 
-    def transition_matrix(self, prior, time_interval):
-        return self.transition_model.jacobian(prior.state_vector, time_interval)
+    def transition_matrix(self, prior):
+        return self.transition_model.jacobian(prior.state_vector)
 
-    def transition_function(self, prior, time_interval):
-        return self.transition_model.transition(prior.state_vector, time_interval)
+    def transition_function(self, prior):
+        return self.transition_model.transition(prior.state_vector)
 
     # TODO work out how these incorporate time intervals
     # TODO there may also be compelling reason to keep these linear
