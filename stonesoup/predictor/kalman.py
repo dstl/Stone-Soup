@@ -54,16 +54,16 @@ class AbstractKalmanPredictor(Predictor):
                                                     np.zeros(prior.covar.shape))
 
         # TODO time interval not currently handled in-class - specified externally.
-        x_pred = self.transition_function(prior.state_vector) + \
-                 self.control_function(self.control_model.control_vector)
+        x_pred = self.transition_function(prior, time_interval=timestamp-prior.timestamp) + \
+                 self.control_function()
 
         # As this is Kalman-like, the control model must be capable of returning a control matrix (B)
-        P_pred = self.transition_matrix(time_interval=timestamp-prior.timestamp) @ prior.covariance @ \
+        P_pred = self.transition_matrix(time_interval=timestamp-prior.timestamp) @ prior.covar @ \
                  self.transition_matrix(time_interval=timestamp-prior.timestamp).T + \
-                 self.transition_model.covar() + \
+                 self.transition_model.covar(time_interval=timestamp-prior.timestamp) + \
                  self.control_matrix() @ self.control_model.control_noise @ self.control_matrix().T
 
-        return GaussianStatePrediction(x_pred, P_pred)
+        return GaussianStatePrediction(x_pred, P_pred, timestamp=timestamp)
 
 
 class KalmanPredictor(AbstractKalmanPredictor):
@@ -76,17 +76,17 @@ class KalmanPredictor(AbstractKalmanPredictor):
 
     # TODO specify that transition and control models must be linear
 
-    def transition_matrix(self):
-        return self.transition_model.matrix()
+    def transition_matrix(self, **kwargs):
+        return self.transition_model.matrix(**kwargs)
 
-    def transition_function(self, prior):
-        return self.transition_model.matrix() @ prior.state_vector
+    def transition_function(self, prior, **kwargs):
+        return self.transition_model.matrix(**kwargs) @ prior.state_vector
 
     def control_matrix(self):
         return self.control_model.control_matrix
 
     def control_function(self):
-        return self.control_input()
+        return self.control_model.control_input()
 
 
 class ExtendedKalmanPredictor(AbstractKalmanPredictor):
