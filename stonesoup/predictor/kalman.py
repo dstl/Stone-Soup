@@ -79,7 +79,7 @@ class KalmanPredictor(AbstractKalmanPredictor):
     def transition_matrix(self):
         return self.transition_model.matrix()
 
-    def transition_function(self, prior, time_interval):
+    def transition_function(self, prior):
         return self.transition_model.matrix() @ prior.state_vector
 
     def control_matrix(self):
