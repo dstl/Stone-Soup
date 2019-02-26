@@ -53,13 +53,13 @@ class AbstractKalmanPredictor(Predictor):
                                                     np.zeros(prior.covar.shape),
                                                     np.zeros(prior.covar.shape))
 
-        # TODO time interval not currently correctly handled - specified externally.
-        x_pred = self.transition_function(prior.state_vector) + \
+        # TODO time interval not currently handled in-class - specified externally.
+        x_pred = self.transition_function(prior.state_vector, time_interval=timestamp-prior.timestamp) + \
                  self.control_function(self.control_model.control_vector)
 
         # As this is Kalman-like, the control model must be capable of returning a control matrix (B)
-        P_pred = self.transition_matrix() @ prior.covariance @ \
-                 self.transition_matrix().T + \
+        P_pred = self.transition_matrix(time_interval=timestamp-prior.timestamp) @ prior.covariance @ \
+                 self.transition_matrix(time_interval=timestamp-prior.timestamp).T + \
                  self.transition_model.covar() + \
                  self.control_matrix() @ self.control_model.control_noise @ self.control_matrix().T
 
