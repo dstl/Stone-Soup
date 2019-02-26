@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 from .base import Hypothesiser
 from ..base import Property
-from ..measures import Measure
-from ..predictor import Predictor
-from ..types.multihypothesis import \
-    MultipleHypothesis
 from ..types.hypothesis import SingleDistanceHypothesis
+from ..predictor import Predictor
 from ..types.detection import MissedDetection
 from ..updater import Updater
+from ..measures import Measure
 
 
 class DistanceHypothesiser(Hypothesiser):
@@ -66,7 +64,8 @@ class DistanceHypothesiser(Hypothesiser):
         hypotheses = list()
 
         # Common state & measurement prediction
-        prediction = self.predictor.predict(track.state, timestamp=timestamp)
+        prediction = self.predictor.predict(track, timestamp=timestamp)
+
         measurement_prediction = self.updater.predict_measurement(
             prediction)
 
@@ -80,11 +79,6 @@ class DistanceHypothesiser(Hypothesiser):
 
         # True detection hypotheses
         for detection in detections:
-
-            # Re-evaluate prediction
-            prediction = self.predictor.predict(
-                track.state, timestamp=detection.timestamp)
-
             # Compute measurement prediction and distance measure
             measurement_prediction = self.updater.predict_measurement(
                 prediction, detection.measurement_model)
@@ -99,4 +93,4 @@ class DistanceHypothesiser(Hypothesiser):
                         distance,
                         measurement_prediction))
 
-        return MultipleHypothesis(sorted(hypotheses, reverse=True))
+        return sorted(hypotheses, reverse=True)

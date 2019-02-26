@@ -41,29 +41,3 @@ def test_mahalanobis(predictor, updater):
 
     # The hypotheses are sorted correctly
     assert min(hypotheses, key=attrgetter('distance')) is hypotheses[0]
-
-
-def test_distance_include_all(predictor, updater):
-
-    timestamp = datetime.datetime.now()
-    track = Track([GaussianState(np.array([[0]]), np.array([[1]]), timestamp)])
-    detection1 = Detection(np.array([[2]]))
-    detection2 = Detection(np.array([[3]]))
-    detection3 = Detection(np.array([[10]]))
-    detections = {detection1, detection2, detection3}
-
-    measure = measures.Mahalanobis()
-    hypothesiser = DistanceHypothesiser(
-        predictor, updater, measure=measure, missed_distance=1,
-        include_all=True)
-
-    hypotheses = hypothesiser.hypothesise(track, detections, timestamp)
-
-    # There are 4 hypotheses - Detections and Missed Detection
-    assert len(hypotheses) == 4
-
-    # detection3 is beyond missed distance and largest distance (last
-    # hypothesis in list)
-    last_hypothesis = hypotheses[-1]
-    assert last_hypothesis.measurement is detection3
-    assert last_hypothesis.distance > hypothesiser.missed_distance

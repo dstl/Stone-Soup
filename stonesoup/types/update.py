@@ -3,6 +3,7 @@ from ..base import Property
 from .base import Type
 from .hypothesis import Hypothesis
 from .state import State, GaussianState, ParticleState
+from .mixture import GaussianMixture
 
 
 class Update(Type):
@@ -29,6 +30,14 @@ class GaussianStateUpdate(Update, GaussianState):
 
     This is a simple Gaussian state update object, which, as the name
     suggests, is described by a Gaussian distribution.
+    """
+
+
+class GaussianMixtureUpdate(Update, GaussianMixture):
+    """ GaussianMixtureUpdate type
+
+    This is a Gaussian mixture update object, which, as the name
+    suggests, is described by a Gaussian mixture.
     """
 
 

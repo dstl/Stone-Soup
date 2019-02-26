@@ -123,7 +123,7 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
                 gttrack = GroundTruthPath()
                 gttrack.append(GroundTruthState(
                     self.initial_state.state_vector +
-                    np.sqrt(self.initial_state.covar) @
+                    self.initial_state.covar @
                     np.random.randn(self.initial_state.ndim, 1),
                     timestamp=time, metadata={"index": self.index}))
                 groundtruth_paths.add(gttrack)
@@ -183,12 +183,23 @@ class SimpleDetectionSimulator(DetectionSimulator):
         clutter detections per unit volume per timestep"""
         return self.clutter_rate/np.prod(np.diff(self.meas_range))
 
+    def in_state_space(self, detection):
+        """
+        Checks if a measurement is in the state space
+        """
+        is_valid = True
+        for dim in range(self.meas_range.ndim):
+            if not self.meas_range[dim][0] <= detection.state_vector[dim] \
+                                            <= self.meas_range[dim][-1]:
+                is_valid = False
+        return is_valid
+
     @BufferedGenerator.generator_method
     def detections_gen(self):
         for time, tracks in self.groundtruth:
             self.real_detections.clear()
             self.clutter_detections.clear()
-
+            self.number_of_active_targets = 0
             for track in tracks:
                 self.index = track[-1].metadata.get("index")
                 if np.random.rand() < self.detection_probability:
@@ -206,7 +217,8 @@ class SimpleDetectionSimulator(DetectionSimulator):
                     np.random.rand(self.measurement_model.ndim_meas, 1) *
                     np.diff(self.meas_range) + self.meas_range[:, :1],
                     timestamp=time)
-                self.clutter_detections.add(detection)
+                if self.in_state_space(detection):
+                    self.clutter_detections.add(detection)
 
             yield time, self.real_detections | self.clutter_detections
 
