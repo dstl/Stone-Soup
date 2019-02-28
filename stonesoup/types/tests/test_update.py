@@ -117,7 +117,7 @@ def test_particlestateupdate():
                                            measurement_prediction=meas_pred),
                                        timestamp=timestamp)
 
-    eval_mean = np.mean(np.hstack((i.state_vector for i in particles)),
+    eval_mean = np.mean(np.hstack([i.state_vector for i in particles]),
                         axis=1).reshape(2, 1)
     assert np.allclose(eval_mean, state_update.mean)
     assert np.all([particles[i].state_vector ==

@@ -57,7 +57,7 @@ class LinearGaussianTransitionModel(
             num_samples)])
 
         if num_samples == 1:
-                return noise.reshape((-1, 1))
+            return noise.reshape((-1, 1))
         else:
             return noise.T
 
@@ -554,8 +554,8 @@ class Singer(LinearGaussianTransitionModel, TimeVariantModel):
               (2 * sp.power(self.recip_decorr_time, 2))],
              [((1 - e_neg2_at) - 2 * alpha_time * e_neg_at) /
               (2 * sp.power(self.recip_decorr_time, 3)),
-              sp.asscalar(sp.power(1 - e_neg_at, 2) /
-              (2 * sp.power(self.recip_decorr_time, 2))),
+              sp.power(1 - e_neg_at, 2) /
+              (2 * sp.power(self.recip_decorr_time, 2)),
              (1 - e_neg2_at) / (2 * self.recip_decorr_time)]]
         ) * self.noise_diff_coeff
 

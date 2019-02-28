@@ -57,7 +57,7 @@ class RangeBearingElevationGaussianToCartesian(MeasurementModel,
       R = \begin{bmatrix}
             \sigma_{\theta}^2 & 0 & 0 \\
             0 & \sigma_{\phi}^2 & 0 \\
-            0 & 0 & \sigma_{r}^2 
+            0 & 0 & \sigma_{r}^2
             \end{bmatrix}
 
     The :py:attr:`mapping` property of the model is a 3 element vector, \
@@ -266,7 +266,7 @@ class RangeBearingGaussianToCartesian(
 
       R = \begin{bmatrix}
             \sigma_{\phi}^2 & 0 \\
-            0 & \sigma_{r}^2 
+            0 & \sigma_{r}^2
             \end{bmatrix}
 
     The :py:attr:`mapping` property of the model is a 2 element vector, \
