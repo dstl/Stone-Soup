@@ -185,6 +185,7 @@ class KalmanUpdater(Updater):
     def update_on_measurement_prediction(x_pred, P_pred, y,
                                          y_pred, S, Pxy, H=None, R=None):
         """Low level Kalman Filter update, based on a measurement prediction
+
         Parameters
         ----------
         x_pred: :class:`numpy.ndarray` of shape (Ns,1)
@@ -202,9 +203,8 @@ class KalmanUpdater(Updater):
         H: :class:`numpy.ndarray` of shape (Nm,Nm), optional
             The measurement model matrix. If both `H` and `R` are provided
             then the update will be performed based on the slower, but more
-            numerically stable, "Joseph form" update equation:\
-            ..:math:
-                P_{k|k} = (I-K_kH_k)P_{k|k-1}(I-K_kH_k)^T + K_kR_kK_k^T
+            numerically stable, "Joseph form" update equation:
+            :math:`P_{k|k} = (I-K_kH_k)P_{k|k-1}(I-K_kH_k)^T + K_kR_kK_k^T`
             (default is `None`)
         R: :class:`numpy.ndarray` of shape (Nm,Nm), optional
             The measurement model matrix. See information for `H` above.
