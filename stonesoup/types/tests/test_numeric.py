@@ -181,3 +181,18 @@ def test_probability_numpy_methods():
 
     assert approx(sqrt(0.2)) == probability.sqrt()
     assert approx(log(0.2)) == probability.log()
+
+
+def test_probability_hash():
+    probability = Probability(0.2)
+
+    assert hash(probability) == hash(0.2)
+
+    probability = Probability(1E-100)**10
+    # Float value zero, but should use custom hash method now
+    assert hash(probability) != hash(0)
+    # But equally, shouldn't match raw log value either.
+    assert hash(probability) != hash(log(1E-100)*10)
+
+    # Actual zero should match
+    assert hash(Probability(0)) == hash(0)

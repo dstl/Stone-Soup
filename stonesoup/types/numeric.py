@@ -33,6 +33,14 @@ class Probability(Real):
         else:
             return log(other)
 
+    def __hash__(self):
+        value = float(self)
+        if value == 0 and self.log_value != float("-inf"):  # Too close to zero
+            # Add string so doesn't have same hash as the log value itself.
+            return hash(('log', self._log_value))
+        else:
+            return hash(value)
+
     def __eq__(self, other):
         if other < 0:
             return False
