@@ -88,12 +88,10 @@ def test_kml_trackwriter(tmpdir):
                                  data_associator=data_associator,
                                  updater=updater)
     # Now write KML Output.
-    tracker_coord_system = CoordinateSystems.LLA,
-    coord_ref_point = (0.0, 0.0, 0.0)
+    tracker_coord_system = CoordinateSystems.LLA
     output_filename = tmpdir.join("kmltrackwriter_test.kml")
     kml_track_writer = KMLTrackWriter(tracker, str(output_filename),
-                                      coordinate_system=tracker_coord_system,
-                                      reference_point=coord_ref_point)
+                                      coordinate_system=tracker_coord_system)
     kml_track_writer.write()
     # Check if the file was created.
     assert os.path.isfile(str(output_filename))
