@@ -88,7 +88,7 @@ def test_kml_trackwriter(tmpdir):
                                  data_associator=data_associator,
                                  updater=updater)
     # Now write KML Output.
-    tracker_coord_system = CoordinateSystems.LLA
+    tracker_coord_system = CoordinateSystems.LONLAT
     output_filename = tmpdir.join("kmltrackwriter_test.kml")
     kml_track_writer = KMLTrackWriter(tracker, str(output_filename),
                                       coordinate_system=tracker_coord_system)
