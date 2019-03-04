@@ -142,7 +142,7 @@ class GOSPAMetric(MetricGenerator):
                                  if state.timestamp == timestamp]
 
             metric, truth_to_measured_assignment = self.compute_gospa_metric(
-                meas_states_inst, truth_states_inst, timestamp)
+                meas_states_inst, truth_states_inst)
             single_time_gospa_metric = SingleTimeMetric(
                 title='GOSPA Metric', value=metric,
                 timestamp=timestamp, generator=self)
@@ -265,53 +265,34 @@ class GOSPAMetric(MetricGenerator):
 
         return truth_to_measured, measured_to_truth, opt_cost
 
-    def compute_base_distance(self, truth_state, measured_state):
-        """Computes euclidean distance between truth state and measured_state.
+    def compute_cost_matrix(self, track_states, truth_states):
+        """
+        Creates the cost matrix between two lists of states
 
         Parameters
         ----------
-        truth_state: State vector of ground truth
-        measured_state: State vector of measured stated
-
+        track_states: list of states
+        truth_states: list of states
 
         Returns
-        -------
-        float:
-            Euclidean distance between states
-        """
-
-        return np.linalg.norm(
-            self.measurement_model_truth.function(
-                truth_state.state_vector, noise=0)
-            - self.measurement_model_track.function(
-                measured_state.state_vector, noise=0))
-
-    def compute_cost_matrix(self, measured_states, truth_states):
-        """Computes GOSPA cost matrix.
-
-        Parameters
         ----------
-        measured_states: List containing states.
-        truth_states: List containing states.
-
-        Returns
-        -------
-        numpy.ndarray: Cost matrix between measured_obj states and
-                       truth_obj states. Matrix is computed by calling
-                       self.compute_base_distance, which computes the
-                       Euclidean norm between states.
-
+        cost_matrix: Matrix of euclidian distance between each element in each
+        list of states
         """
 
-        num_truth_states = len(truth_states)
-        num_measured_states = len(measured_states)
-        cost_matrix = np.zeros([num_truth_states, num_measured_states])
+        cost_matrix = np.ones([len(track_states), len(truth_states)]) * self.c
 
-        # Compute cost matrix.
-        for i in range(num_truth_states):
-            for j in range(num_measured_states):
-                cost_matrix[i, j] = np.min([self.compute_base_distance(
-                    truth_states[i], measured_states[j]), self.c])
+        for i_track, track_state, in enumerate(track_states):
+            for i_truth, truth_state in enumerate(truth_states):
+
+                euc_distance = np.linalg.norm(
+                    self.measurement_model_track.function(
+                        track_state.state_vector, noise=0)
+                    - self.measurement_model_truth.function(
+                        truth_state.state_vector, noise=0))
+
+                if euc_distance < self.c:
+                    cost_matrix[i_track, i_truth] = euc_distance
 
         return cost_matrix
 
@@ -538,33 +519,3 @@ class OSPAMetric(GOSPAMetric):
 
         return SingleTimeMetric(title='OSPA distance', value=distance,
                                 timestamp=timestamps.pop(), generator=self)
-
-    def compute_cost_matrix(self, track_states, truth_states):
-        """Creates the cost matrix between two lists of states
-
-        Parameters
-        ----------
-        track_states: list of :class:`State`
-        truth_states: list of :class:`State`
-
-        Returns
-        ----------
-        np.ndarry
-            Matrix of euclidian distance between each element in each list of
-            states
-        """
-
-        cost_matrix = np.ones([len(track_states), len(truth_states)]) * self.c
-
-        for i_track, track_state, in enumerate(track_states):
-            for i_truth, truth_state in enumerate(truth_states):
-                euc_distance = np.linalg.norm(
-                    self.measurement_model_track.function(
-                        track_state.state_vector, noise=0)
-                    - self.measurement_model_truth.function(
-                        truth_state.state_vector, noise=0))
-
-                if euc_distance < self.c:
-                    cost_matrix[i_track, i_truth] = euc_distance
-
-        return cost_matrix
