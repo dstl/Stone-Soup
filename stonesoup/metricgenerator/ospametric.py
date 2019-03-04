@@ -11,22 +11,26 @@ from ..types.time import TimeRange
 from ..types.metric import SingleTimeMetric, TimeRangeMetric
 
 
-class OSPAMetric(MetricGenerator):
+class GOSPAMetric(MetricGenerator):
     """
-    Computes the Optimal SubPattern Assignment (OPSA) distance [1] for two sets
-    of :class:`~.Track` objects. The OSPA distance is measured between two
-    point patterns.
+    Computes the Generalized Optimal SubPattern Assignment (GOPSA) metric
+    for two sets of :class:`~.Track` objects. This implementation of GOSPA
+    is based on the auction algorithm.
 
-    The OPSA metric is calculated at each time step in which a :class:`~.Track`
-    object is present
+    The GOPSA metric is calculated at each time step in which a
+    :class:`~.Track` object is present
 
     Reference:
-        [1] A Consistent Metric for Performance Evaluation of Multi-Object
-        Filters, D. Schuhmacher, B. Vo and B. Vo, IEEE Trans. Signal Processing
-        2008
+        [1] A. S. Rahmathullah, A. F. García-Fernández, L. Svensson,
+        Generalized optimal sub-pattern assignment metric, 2016,
+        [online] Available: http://arxiv.org/abs/1601.05585.
     """
-    c = Property(float, doc="Maximum distance for possible association")
-    p = Property(float, doc="norm associated to distance")
+    p = Property(float, doc="1<=p<infty, exponent.")
+    c = Property(float, doc="c>0, cutoff distance.")
+    alpha = Property(
+        float,
+        doc="0<alpha<=2, factor for the cardinality penalty. Recommended value"
+            " 2 => Penalty on missed & false targets", default=2)
     measurement_model_truth = Property(
         MeasurementModel,
         doc="Measurement model which specifies which elements within the"
@@ -37,17 +41,16 @@ class OSPAMetric(MetricGenerator):
             "the truth state are to be used to calculate distance over")
 
     def compute_metric(self, manager):
-        """
-        Compute the metric using the data in the metric manager
+        """Compute the metric using the data in the metric manager
 
         Parameters
         ----------
-        manager : MetricManager
-            containing the data to be used to create the metric(s)
+        manager : :class:`~.MetricManager`
+            contains the data to be used to create the metric(s)
 
         Returns
         -------
-        : list of :class:`~.Metric`
+        metric : list :class:`~.Metric`
             Containing the metric information. The value of the metric is a
             list of metrics at each timestamp
 
@@ -58,8 +61,7 @@ class OSPAMetric(MetricGenerator):
         return metric
 
     def process_datasets(self, dataset_1, dataset_2):
-        """
-        Process a dataset of point patterns to provide OPSA distances over time
+        """Process a dataset of point patterns to provide metric over time
 
         Parameters
         ----------
@@ -68,8 +70,9 @@ class OSPAMetric(MetricGenerator):
 
         Returns
         -------
-        : list of :class:`~.Metric`
-            Contains the OSPA distance at each timestamp
+        metrics: :class:`~.Metric`
+            Containing the metric at each timestamp in the form of a list of
+            :class:`~.Metric` objects
         """
 
         states_1 = self.extract_states(dataset_1)
@@ -89,9 +92,10 @@ class OSPAMetric(MetricGenerator):
             Method of state extraction depends on the type of the object
 
         Returns
-        ----------
+        -------
         : list of :class:`~.State`
         """
+
         state_list = StateMutableSequence()
         for element in list(object_with_states):
             if isinstance(element, StateMutableSequence):
@@ -103,6 +107,333 @@ class OSPAMetric(MetricGenerator):
                     "{!r} has no state extraction method".format(element))
 
         return state_list
+
+    def compute_over_time(self, measured_states, truth_states):
+        """
+        Compute the GOSPA metric at every timestep from a list of measured
+        states and truth states.
+
+        Parameters
+        ----------
+
+        measured_states: List of states created by a filter
+        truth_states: List of truth states to compare against
+
+        Returns
+        -------
+        metric: :class:`~.TimeRangeMetric` covering the duration that states
+        exist for in the parameters. metric.value contains a list of metrics
+        for the GOSPA metric at each timestamp
+        """
+
+        # Make a list of all the unique timestamps used
+        timestamps = []
+        for state in (measured_states + truth_states):
+            if state.timestamp not in timestamps:
+                timestamps.append(state.timestamp)
+        timestamps.sort()
+
+        gospa_metrics = []
+
+        for timestamp in timestamps:
+            meas_states_inst = [state for state in measured_states
+                                if state.timestamp == timestamp]
+            truth_states_inst = [state for state in truth_states
+                                 if state.timestamp == timestamp]
+
+            metric, truth_to_measured_assignment = self.compute_gospa_metric(
+                meas_states_inst, truth_states_inst, timestamp)
+            single_time_gospa_metric = SingleTimeMetric(
+                title='GOSPA Metric', value=metric,
+                timestamp=timestamp, generator=self)
+            gospa_metrics.append(single_time_gospa_metric)
+
+        # If only one timestamp is present then return a SingleTimeMetric
+        if len(timestamps) == 1:
+            return gospa_metrics[0]
+
+        return TimeRangeMetric(title='GOSPA Metric',
+                               value=gospa_metrics,
+                               start_timestamp=min(timestamps),
+                               end_timestamp=max(timestamps),
+                               generator=self)
+
+    def compute_assignments(self, cost_matrix, max_iter):
+        """Compute assignments using Auction Algorithm.
+
+        Parameters
+        ----------
+        cost_matrix: Matrix (size mxn) that denotes the cost of assigning
+                            mth truth state to each of the n measured states.
+        max_iter: Maximum number of iterations to perform
+
+        Returns
+        ---------
+        measured_to_truth: Vector of size 1xn, which has indices of the
+                            truth objects or '-1' if unassigned.
+        truth_to_measured: Vector of size 1xm, which has indices of the
+                            measured objects or '-1' if unassigned.
+        opt_cost: Scalar value of the optimal assignment
+        """
+
+        m_truth, n_measured = cost_matrix.shape
+        # Index for objects that will be left un-assigned.
+        unassigned_idx = -1
+
+        opt_cost = 0.0
+        measured_to_truth = -1 * np.ones([1, m_truth], dtype=np.int64)
+        truth_to_measured = -1 * np.ones([1, n_measured], dtype=np.int64)
+
+        if m_truth == 1:
+            # Corner case 1: if there is only one truth state.
+            opt_cost = np.max(cost_matrix)
+            truth_to_measured[0, 0] = np.where(cost_matrix == opt_cost)[1]
+            measured_to_truth[0, truth_to_measured[0, 0]] = 1
+
+            return truth_to_measured, measured_to_truth, opt_cost
+
+        if n_measured == 1:
+            # Corner case 1: if there is only one measured state.
+            opt_cost = np.max(cost_matrix)
+            measured_to_truth[0, 0] = np.where(cost_matrix == opt_cost)[1]
+            truth_to_measured[0, measured_to_truth[0, 0]] = 1
+
+            return truth_to_measured, measured_to_truth, opt_cost
+
+        swap_dim_flag = False
+        epsil = 1. / np.max([m_truth, n_measured])
+
+        if n_measured < m_truth:
+            # The implementation only works when
+            # m_truth <= n_measured
+            # So swap cost matrix
+            cost_matrix = cost_matrix.transpose()
+            m_truth, n_measured = cost_matrix.shape
+            swap_dim_flag = True
+
+        # Initial cost for each measured state
+        c_measured = np.zeros([1, n_measured])
+        k_iter = 0
+
+        while not np.all(truth_to_measured != unassigned_idx):
+            if k_iter > max_iter:
+                # Raise max iterations reached warning.
+                break
+            for i in range(m_truth):
+                if truth_to_measured[0, i] == unassigned_idx:
+                    # Unassigned truth object 'i' bids for the best
+                    # measured object j_star
+
+                    # Value for each measured object for truth 'i'
+                    tmp_mat = cost_matrix[i, :] - c_measured
+                    val_i_j = np.sort(tmp_mat[0, :])[::-1]
+                    j = np.argsort(tmp_mat[0, :])[::-1]
+
+                    # Best measurement for truth 'i'
+                    j_star = j[0]
+
+                    # 1st and 2nd best value for truth 'i'
+                    v_i_j_star = val_i_j[0]
+                    w_i_j_star = val_i_j[1]
+                    # Bid for measured j_star
+                    if w_i_j_star != (-1. * np.inf):
+                        c_measured[0, j_star] = c_measured[
+                            0, j_star] + v_i_j_star - w_i_j_star + epsil
+                    else:
+                        c_measured[0, j_star] = c_measured[
+                            0, j_star] + v_i_j_star + epsil
+
+                    # If j_star is unassigned
+                    if measured_to_truth[0, j_star] != unassigned_idx:
+
+                        opt_cost = opt_cost - \
+                            cost_matrix[measured_to_truth[0, j_star], j_star]
+                        truth_to_measured[0, measured_to_truth[
+                            0, j_star]] = unassigned_idx
+
+                    measured_to_truth[0, j_star] = i
+                    truth_to_measured[0, i] = j_star
+
+                    # update the cost of new assignment
+                    opt_cost = opt_cost + cost_matrix[i, j_star]
+            k_iter += 1
+
+        if swap_dim_flag:
+            tmp = measured_to_truth
+            measured_to_truth = truth_to_measured
+            truth_to_measured = tmp
+
+        return truth_to_measured, measured_to_truth, opt_cost
+
+    def compute_base_distance(self, truth_state, measured_state):
+        """Computes euclidean distance between truth state and measured_state.
+
+        Parameters
+        ----------
+        truth_state: State vector of ground truth
+        measured_state: State vector of measured stated
+
+
+        Returns
+        -------
+        float:
+            Euclidean distance between states
+        """
+
+        return np.linalg.norm(
+            self.measurement_model_truth.function(
+                truth_state.state_vector, noise=0)
+            - self.measurement_model_track.function(
+                measured_state.state_vector, noise=0))
+
+    def compute_cost_matrix(self, measured_states, truth_states):
+        """Computes GOSPA cost matrix.
+
+        Parameters
+        ----------
+        measured_states: List containing states.
+        truth_states: List containing states.
+
+        Returns
+        -------
+        numpy.ndarray: Cost matrix between measured_obj states and
+                       truth_obj states. Matrix is computed by calling
+                       self.compute_base_distance, which computes the
+                       Euclidean norm between states.
+
+        """
+
+        num_truth_states = len(truth_states)
+        num_measured_states = len(measured_states)
+        cost_matrix = np.zeros([num_truth_states, num_measured_states])
+
+        # Compute cost matrix.
+        for i in range(num_truth_states):
+            for j in range(num_measured_states):
+                cost_matrix[i, j] = np.min([self.compute_base_distance(
+                    truth_states[i], measured_states[j]), self.c])
+
+        return cost_matrix
+
+    def compute_gospa_metric(self, measured_states, truth_states):
+        """Computes GOSPA metric between measured and truth states.
+
+        Parameters
+        ----------
+        measured_states: list of :class:`~.State`
+            list of state objects to be assigned to the truth
+        truth_states: list of :class:`~.State`
+            list of state objects for the truth points
+
+        Returns
+        -------
+        gospa_metric: Dictionary containing GOSPA metric for alpha = 2.
+                      GOSPA metric is divided into four components:
+                      1. distance, 2. localisation, 3. missed, and 4. false.
+                      Note that distance = (localisation + missed + false)^1/p
+        truth_to_measured_assignment: Assignment matrix.
+        """
+
+        gospa_metric = {'distance': 0.0,
+                        'localisation': 0.0,
+                        'missed': 0,
+                        'false': 0}
+        num_truth_states = len(truth_states)
+        num_measured_states = len(measured_states)
+        truth_to_measured_assignment = []
+
+        cost_matrix = self.compute_cost_matrix(measured_states, truth_states)
+
+        # Initialise output values
+        # num_missed = 0
+        # num_false = 0
+        # localisation = 0.0
+
+        # truth_to_track_assignment = []
+        opt_cost = 0.0
+
+        dummy_cost = (self.c ** self.p) / self.alpha
+
+        if num_truth_states == 0:
+            # When truth states are empty all measured states are false
+            opt_cost = -1.0 * num_measured_states * dummy_cost
+            # num_false = opt_cost
+        else:
+            if num_measured_states == 0:
+                # When measured states are empty all truth
+                # states are missed
+                opt_cost = -1. * num_truth_states * dummy_cost
+                if self.alpha == 2:
+                    self.missed = opt_cost
+            else:
+                # Use auction algorithm when both truth_states
+                # and measured_states are non-empty
+                cost_matrix = -1. * np.power(cost_matrix, self.p)
+                truth_to_measured_assignment, measured_to_truth_assignment,\
+                    opt_cost_tmp =\
+                    self.compute_assignments(cost_matrix,
+                                             10 * num_truth_states *
+                                             num_measured_states)
+                # Now use assignments to compute bids
+                for i in range(num_truth_states):
+                    if truth_to_measured_assignment[0, i] != -1:
+                        opt_cost = opt_cost +\
+                            cost_matrix[i, truth_to_measured_assignment[0, i]]
+
+                        if self.alpha == 2:
+                            const_assign = \
+                                truth_to_measured_assignment[0, i]
+                            const_cmp = (-1 * self.c**self.p)
+
+                            gospa_metric['localisation'] = \
+                                gospa_metric['localisation'] +\
+                                cost_matrix[i, const_assign] *\
+                                np.double(
+                                    cost_matrix[i, const_assign] > const_cmp)
+
+                            gospa_metric['missed'] = gospa_metric['missed'] -\
+                                dummy_cost * np.double(
+                                    cost_matrix[i, const_assign] == const_cmp)
+
+                            gospa_metric['false'] = gospa_metric['false'] -\
+                                dummy_cost * np.double(
+                                    cost_matrix[i, const_assign] == const_cmp)
+                    else:
+                        opt_cost = opt_cost - dummy_cost
+                        if self.alpha == 2:
+                            gospa_metric['missed'] = gospa_metric[
+                                'missed'] - dummy_cost
+
+                opt_cost = opt_cost - \
+                    np.sum(measured_to_truth_assignment == -1) * dummy_cost
+                if self.alpha == 2:
+                    gospa_metric['false'] = gospa_metric['false'] - \
+                        np.sum(measured_to_truth_assignment == -1) * dummy_cost
+        gospa_metric['distance'] = np.power((-1. * opt_cost), 1 / self.p)
+        gospa_metric['localisation'] = -1. * gospa_metric['localisation']
+        gospa_metric['missed'] = -1 * gospa_metric['missed']
+        gospa_metric['false'] = -1 * gospa_metric['false']
+
+        return gospa_metric, truth_to_measured_assignment
+
+
+class OSPAMetric(GOSPAMetric):
+    """
+    Computes the Optimal SubPattern Assignment (OPSA) distance [1] for two sets
+    of :class:`~.Track` objects. The OSPA distance is measured between two
+    point patterns.
+
+    The OPSA metric is calculated at each time step in which a :class:`~.Track`
+    object is present
+
+    Reference:
+        [1] A Consistent Metric for Performance Evaluation of Multi-Object
+        Filters, D. Schuhmacher, B. Vo and B. Vo, IEEE Trans. Signal Processing
+        2008
+    """
+
+    c = Property(float, doc='Maximum distance for possible association')
+    p = Property(float, doc='norm associated to distance')
 
     def compute_over_time(self, measured_states, truth_states):
         """Compute the OSPA metric at every timestep from a list of measured
@@ -209,8 +540,7 @@ class OSPAMetric(MetricGenerator):
                                 timestamp=timestamps.pop(), generator=self)
 
     def compute_cost_matrix(self, track_states, truth_states):
-        """
-        Creates the cost matrix between two lists of states
+        """Creates the cost matrix between two lists of states
 
         Parameters
         ----------
