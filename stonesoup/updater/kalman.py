@@ -101,4 +101,7 @@ class ExtendedKalmanUpdater(AbstractKalmanUpdater):
         :param predicted_state: the predicted state, :math:`\hat{\mathbf{x}}_{k|k-1}`
         :return: the measurement matrix, :math:`H_k`
         """
-        return self.measurement_model.jacobian(predicted_state.state_vector)
+        if hasattr( self.measurement_model, 'matrix' ):
+            return self.measurement_model.matrix()
+        else:
+            return self.measurement_model.jacobian(predicted_state.state_vector)
