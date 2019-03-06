@@ -10,6 +10,7 @@ from stonesoup.models.measurement.nonlinear \
 from stonesoup.models.measurement.nonlinear \
     import BearingElevationGaussianToCartesian
 from stonesoup.functions import jacobian as compute_jac
+from stonesoup.types.angle import Bearing, Elevation
 
 
 def h2d(state_vector, translation_offset, rotation_offset):
@@ -47,7 +48,7 @@ def h2d(state_vector, translation_offset, rotation_offset):
     rho = np.sqrt(x**2 + y**2)
     phi = np.arctan2(y, x)
 
-    return np.array([[phi], [rho]])
+    return np.array([[Bearing(phi)], [rho]])
 
 
 def h3d(state_vector,  translation_offset, rotation_offset):
@@ -86,7 +87,7 @@ def h3d(state_vector,  translation_offset, rotation_offset):
     phi = np.arctan2(y, x)
     theta = np.arcsin(z/rho)
 
-    return np.array([[theta], [phi], [rho]])
+    return np.array([[Elevation(theta)], [Bearing(phi)], [rho]])
 
 
 def hbearing(state_vector, translation_offset, rotation_offset):
@@ -124,7 +125,7 @@ def hbearing(state_vector, translation_offset, rotation_offset):
     phi = np.arctan2(y, x)
     theta = np.arcsin(z/rho)
 
-    return np.array([[theta], [phi]])
+    return np.array([[Elevation(theta)], [Bearing(phi)]])
 
 
 @pytest.mark.parametrize(

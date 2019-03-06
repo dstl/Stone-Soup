@@ -65,11 +65,13 @@ def jacobian(fun, x):
         nrows = f1.size
 
     F2 = np.empty((nrows, ndim))
+    jac = np.empty((nrows, ndim))
     X1 = np.tile(x, ndim)+np.eye(ndim)*delta
+
     for col in range(0, X1.shape[1]):
         F2[:, [col]] = fun(X1[:, [col]])
-    jac = np.divide(F2-f1, delta)
 
+    jac = np.divide(F2-f1, delta)
     return jac
 
 
@@ -355,29 +357,28 @@ def sphere2cart(rho, phi, theta):
 def rotx(theta):
     r"""Rotation matrix for rotations around x-axis
 
-    For a given rotation angle: math: `\theta`, this function evaluates\
+    For a given rotation angle: :math:`\theta`, this function evaluates \
     and returns the rotation matrix:
 
-    .. math: :
-        : label: Rx
-        R_{x}(\theta) = \begin{bmatrix}
+    .. math:: R_{x}(\theta) = \begin{bmatrix}
                         1 & 0 & 0 \\
                         0 & cos(\theta) & -sin(\theta) \\
                         0 & sin(\theta) & cos(\theta)
                         \end{bmatrix}
+       :label: Rx
 
     Parameters
     ----------
     theta: float
-        Rotation angle specified as a real-valued number. The rotation angle\
-        is positive if the rotation is in the clockwise direction\
-        when viewed by an observer looking down the x-axis towards the\
+        Rotation angle specified as a real-valued number. The rotation angle \
+        is positive if the rotation is in the clockwise direction \
+        when viewed by an observer looking down the x-axis towards the \
         origin. Angle units are in radians.
 
     Returns
     -------
-    : : class: `numpy.ndarray` of shape (3, 3)
-        Rotation matrix around x-axis of the form eq: `Rx`
+    : :class:`numpy.ndarray` of shape (3, 3)
+        Rotation matrix around x-axis of the form :eq:`Rx`.
     """
 
     c, s = np.cos(theta), np.sin(theta)
@@ -390,29 +391,29 @@ def rotx(theta):
 def roty(theta):
     r"""Rotation matrix for rotations around y-axis
 
-    For a given rotation angle: math: `\theta`, this function evaluates\
+    For a given rotation angle: :math:`\theta`, this function evaluates \
     and returns the rotation matrix:
 
-    .. math: :
-        : label: Ry
+    .. math::
         R_{y}(\theta) = \begin{bmatrix}
                         cos(\theta) & 0 & sin(\theta) \\
                         0 & 1 & 0 \\
                         - sin(\theta) & 0 & cos(\theta)
                         \end{bmatrix}
+       :label: Ry
 
     Parameters
     ----------
     theta: float
-        Rotation angle specified as a real-valued number. The rotation angle\
-        is positive if the rotation is in the clockwise direction\
-        when viewed by an observer looking down the y-axis towards the\
+        Rotation angle specified as a real-valued number. The rotation angle \
+        is positive if the rotation is in the clockwise direction \
+        when viewed by an observer looking down the y-axis towards the \
         origin. Angle units are in radians.
 
     Returns
     -------
-    : : class: `numpy.ndarray` of shape (3, 3)
-        Rotation matrix around y-axis of the form eq: `Ry`
+    : :class:`numpy.ndarray` of shape (3, 3)
+        Rotation matrix around y-axis of the form :eq:`Ry`.
     """
 
     c, s = np.cos(theta), np.sin(theta)
@@ -425,29 +426,29 @@ def roty(theta):
 def rotz(theta):
     r"""Rotation matrix for rotations around z-axis
 
-    For a given rotation angle: math: `\theta`, this function evaluates\
+    For a given rotation angle: :math:`\theta`, this function evaluates \
     and returns the rotation matrix:
 
-    .. math: :
-        : label: Rz
+    .. math::
         R_{z}(\theta) = \begin{bmatrix}
                         cos(\theta) & -sin(\theta) & 0 \\
                         sin(\theta) & cos(\theta) & 0 \\
                         0 & 0 & 1
                         \end{bmatrix}
+       :label: Rz
 
     Parameters
     ----------
     theta: float
-        Rotation angle specified as a real-valued number. The rotation angle\
-        is positive if the rotation is in the clockwise direction\
-        when viewed by an observer looking down the z-axis towards the\
+        Rotation angle specified as a real-valued number. The rotation angle \
+        is positive if the rotation is in the clockwise direction \
+        when viewed by an observer looking down the z-axis towards the \
         origin. Angle units are in radians.
 
     Returns
     -------
-    : : class: `numpy.ndarray` of shape (3, 3)
-        Rotation matrix around z-axis of the form eq: `Rz`
+    : :class:`numpy.ndarray` of shape (3, 3)
+        Rotation matrix around z-axis of the form :eq:`Rz`.
     """
 
     c, s = np.cos(theta), np.sin(theta)
@@ -455,3 +456,48 @@ def rotz(theta):
     return np.array([[c, -s, 0],
                      [s, c, 0],
                      [0, 0, 1]])
+
+
+def mod_bearing(x):
+    r"""Calculates the modulus of a bearing. Bearing angles are within the \
+    range :math:`-\pi` to :math:`\pi`.
+
+    Parameters
+    ----------
+    x: float
+        bearing angle in radians
+
+    Returns
+    -------
+    float
+        Angle in radians in the range math: :math:`-\pi` to :math:`+\pi`
+    """
+
+    x = (x+np.pi) % (2.0*np.pi)-np.pi
+
+    return x
+
+
+def mod_elevation(x):
+    r"""Calculates the modulus of an elevation angle. Elevation angles \
+    are within the range :math:`-\pi/2` to :math:`\pi/2`.
+
+    Parameters
+    ----------
+    x: float
+        elevation angle in radians
+
+    Returns
+    -------
+    float
+        Angle in radians in the range math: :math:`-\pi/2` to :math:`+\pi/2`
+    """
+    x = x % (2*np.pi)  # limit to 2*pi
+    N = x//(np.pi/2)   # Count # of 90 deg multiples
+    if N == 1:
+        x = np.pi - x
+    elif N == 2:
+        x = np.pi - x
+    elif N == 3:
+        x = x - 2.0 * np.pi
+    return x

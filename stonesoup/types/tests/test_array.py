@@ -28,3 +28,18 @@ def test_covariancematrix():
 
     covar_matrix = CovarianceMatrix(covar_nparray)
     assert(np.array_equal(covar_matrix, covar_nparray))
+
+
+def test_multiplication():
+    vector = np.array([[1, 1, 1, 1]]).T
+    state_vector = StateVector(vector)
+    array = np.array([[1., 2., 3., 4.],
+                      [5., 6., 7., 8.]])
+    covar = CovarianceMatrix(array)
+
+    assert np.array_equal(covar@state_vector, array@vector)
+    assert np.array_equal(covar@vector, array@vector)
+    assert np.array_equal(array@state_vector, array@vector)
+    assert np.array_equal(state_vector.T@covar.T, vector.T@array.T)
+    assert np.array_equal(vector.T@covar.T, vector.T@array.T)
+    assert np.array_equal(state_vector.T@array.T, vector.T@array.T)
