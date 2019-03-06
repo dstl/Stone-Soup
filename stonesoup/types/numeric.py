@@ -239,3 +239,4 @@ class Probability(Real):
                         for log_value in log_values)
 
         return Probability(cls._log(value_sum) + max_log_value, log_value=True)
+
