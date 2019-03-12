@@ -9,7 +9,7 @@ from stonesoup.updater.kalman import (KalmanUpdater,
                                       UnscentedKalmanUpdater)
 from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.types import GaussianState, GaussianStatePrediction,\
-    GaussianMeasurementPrediction, Hypothesis
+    GaussianMeasurementPrediction, SingleHypothesis
 
 
 @pytest.mark.parametrize(
@@ -79,7 +79,7 @@ def test_kalman(UpdaterClass, measurement_model, prediction, measurement):
                        0, atol=1.e-14))
 
     # Perform and assert state update (without measurement prediction)
-    posterior = updater.update(Hypothesis(
+    posterior = updater.update(SingleHypothesis(
         prediction=prediction,
         measurement=measurement))
     assert(np.allclose(posterior.mean, eval_posterior.mean, 0, atol=1.e-14))
@@ -94,7 +94,7 @@ def test_kalman(UpdaterClass, measurement_model, prediction, measurement):
     assert(posterior.timestamp == prediction.timestamp)
 
     # Perform and assert state update
-    posterior = updater.update(Hypothesis(
+    posterior = updater.update(SingleHypothesis(
         prediction=prediction,
         measurement=measurement,
         measurement_prediction=measurement_prediction))

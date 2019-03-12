@@ -2,18 +2,33 @@
 
 from abc import abstractmethod
 from collections import UserDict
+import numpy as np
 
 from .base import Type
 from ..base import Property
-from .detection import Detection
+from .detection import Detection, MissedDetection
 from .prediction import MeasurementPrediction, Prediction
+from ..types.numeric import Probability
 
 
 class Hypothesis(Type):
     """Hypothesis base type
 
+    A Hypothesis has sub-types:
+
+    'SingleHypothesis', which consists of a prediction for a single
+    Track and a single Measurement that *might* be associated with it
+
+    'MultipleHypothesis', which consists of a prediction for a
+    single Track and multiple Measurements of which one *might* be associated
+    with it
     """
 
+
+class SingleHypothesis(Hypothesis):
+    """A hypothesis based on a single measurement.
+
+    """
     prediction = Property(
         Prediction,
         doc="Predicted track state")
@@ -26,25 +41,11 @@ class Hypothesis(Type):
         doc="Optional track prediction in measurement space")
 
     def __bool__(self):
-        return self.measurement is not None
-
-    def __lt__(self, other):
-        return NotImplemented
-
-    def __le__(self, other):
-        return NotImplemented
-
-    def __eq__(self, other):
-        return NotImplemented
-
-    def __gt__(self, other):
-        return NotImplemented
-
-    def __ge__(self, other):
-        return NotImplemented
+        return (not isinstance(self.measurement, MissedDetection)) and \
+               (self.measurement is not None)
 
 
-class DistanceHypothesis(Hypothesis):
+class SingleDistanceHypothesis(SingleHypothesis):
     """Distance scored hypothesis subclass.
 
     Notes
@@ -72,10 +73,57 @@ class DistanceHypothesis(Hypothesis):
     def __ge__(self, other):
         return self.distance <= other.distance
 
+    @property
+    def weight(self):
+        try:
+            return 1 / self.distance
+        except ZeroDivisionError:
+            return float('inf')
+
+
+class SingleProbabilityHypothesis(SingleHypothesis):
+    """Single Measurement Probability scored hypothesis subclass.
+
+    """
+
+    probability = Property(
+        Probability,
+        doc="Probability that detection is true location of prediction")
+
+    def __lt__(self, other):
+        return self.probability < other.probability
+
+    def __le__(self, other):
+        return self.probability <= other.probability
+
+    def __eq__(self, other):
+        return self.probability == other.probability
+
+    def __gt__(self, other):
+        return self.probability > other.probability
+
+    def __ge__(self, other):
+        return self.probability >= other.probability
+
+    @property
+    def weight(self):
+        return self.probability
+
 
 class JointHypothesis(Type, UserDict):
     """Joint Hypothesis base type
 
+    A Joint Hypothesis consists of multiple Hypothesese, each with a single
+    Track and a single Prediction.  A Joint Hypothesis can be a
+    'ProbabilityJointHypothesis' or a 'DistanceJointHypothesis', with a
+    probability or distance that is a function of the Hypothesis
+    probabilities.  Multiple Joint Hypotheses can be compared to see which is
+    most likely to be the "correct" hypothesis.
+
+    Note: In reality, the property 'hypotheses' is a dictionary where the
+    entries have the form 'Track: Hypothesis'.  However, we cannot define
+    it this way because then Hypothesis imports Track, and Track imports
+    Update, and Update imports Hypothesis, which is a circular import.
     """
 
     hypotheses = Property(
@@ -83,9 +131,12 @@ class JointHypothesis(Type, UserDict):
         doc='Association hypotheses')
 
     def __new__(cls, hypotheses):
-        if all(isinstance(hypothesis, DistanceHypothesis)
+        if all(isinstance(hypothesis, SingleDistanceHypothesis)
                for hypothesis in hypotheses.values()):
             return super().__new__(DistanceJointHypothesis)
+        elif all(isinstance(hypothesis, SingleProbabilityHypothesis)
+                 for hypothesis in hypotheses.values()):
+            return super().__new__(ProbabilityJointHypothesis)
         else:
             raise NotImplementedError
 
@@ -114,8 +165,46 @@ class JointHypothesis(Type, UserDict):
         raise NotImplementedError
 
 
-class DistanceJointHypothesis(JointHypothesis):
-    """Distance scored hypothesis subclass.
+class ProbabilityJointHypothesis(JointHypothesis):
+    """Probability-scored Joint Hypothesis subclass.
+
+    """
+
+    probability = Property(
+        Probability,
+        default=None,
+        doc='Probability of the Joint Hypothesis')
+
+    def __init__(self, hypotheses, *args, **kwargs):
+        super().__init__(hypotheses, *args, **kwargs)
+        self.probability = Probability(np.prod(
+            [hypothesis.probability for hypothesis in hypotheses.values()]))
+
+    def normalise(self):
+        sum_probability = Probability.sum(
+            hypothesis.probability for hypothesis in self.hypotheses.values())
+        for hypothesis in self.hypotheses.values():
+            hypothesis.probability /= sum_probability
+
+    def __lt__(self, other):
+        return self.probability < other.probability
+
+    def __le__(self, other):
+        return self.probability <= other.probability
+
+    def __eq__(self, other):
+        return self.probability == other.probability
+
+    def __gt__(self, other):
+        return self.probability > other.probability
+
+    def __ge__(self, other):
+        return self.probability >= other.probability
+
+
+class DistanceJointHypothesis(
+   JointHypothesis):
+    """Distance scored Joint Hypothesis subclass.
 
     Notes
     -----

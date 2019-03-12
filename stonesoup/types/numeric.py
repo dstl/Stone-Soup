@@ -232,6 +232,8 @@ class Probability(Real):
     def sum(cls, values):
         """Carry out LogSumExp"""
         log_values = [cls._log(value) for value in values]
+        if not log_values:
+            return Probability(0)
         max_log_value = max(log_values)
         value_sum = sum(exp(log_value - max_log_value)
                         for log_value in log_values)

@@ -5,7 +5,7 @@ import numpy as np
 from .base import Updater
 from ..base import Property
 from ..types import (GaussianMeasurementPrediction,
-                     GaussianStateUpdate, Hypothesis)
+                     GaussianStateUpdate, SingleHypothesis)
 from ..functions import gauss2sigma, unscented_transform
 
 
@@ -85,13 +85,13 @@ class KalmanUpdater(Updater):
                     hypothesis.measurement.state_vector
                 )
             # Augment hypothesis with measurement prediction
-            hypothesis = Hypothesis(hypothesis.prediction,
-                                    hypothesis.measurement,
-                                    GaussianMeasurementPrediction(
-                                        meas_pred_mean, meas_pred_covar,
-                                        hypothesis.prediction.timestamp,
-                                        cross_covar)
-                                    )
+            hypothesis = SingleHypothesis(hypothesis.prediction,
+                                          hypothesis.measurement,
+                                          GaussianMeasurementPrediction(
+                                              meas_pred_mean, meas_pred_covar,
+                                              hypothesis.prediction.timestamp,
+                                              cross_covar)
+                                          )
         else:
             # Otherwise, utilise the provided measurement prediction
             posterior_mean, posterior_covar, _ = \
@@ -354,13 +354,13 @@ class ExtendedKalmanUpdater(KalmanUpdater):
                     hypothesis.measurement.state_vector
                 )
             # Augment hypothesis with measurement prediction
-            hypothesis = Hypothesis(hypothesis.prediction,
-                                    hypothesis.measurement,
-                                    GaussianMeasurementPrediction(
-                                        meas_pred_mean, meas_pred_covar,
-                                        hypothesis.prediction.timestamp,
-                                        cross_covar)
-                                    )
+            hypothesis = SingleHypothesis(hypothesis.prediction,
+                                          hypothesis.measurement,
+                                          GaussianMeasurementPrediction(
+                                              meas_pred_mean, meas_pred_covar,
+                                              hypothesis.prediction.timestamp,
+                                              cross_covar)
+                                          )
         else:
             posterior_mean, posterior_covar, _ = \
                 self.update_on_measurement_prediction(
@@ -644,13 +644,13 @@ class UnscentedKalmanUpdater(KalmanUpdater):
                     self.alpha, self.beta, self.kappa
                 )
             # Augment hypothesis with measurement prediction
-            hypothesis = Hypothesis(hypothesis.prediction,
-                                    hypothesis.measurement,
-                                    GaussianMeasurementPrediction(
-                                        meas_pred_mean, meas_pred_covar,
-                                        hypothesis.prediction.timestamp,
-                                        cross_covar)
-                                    )
+            hypothesis = SingleHypothesis(hypothesis.prediction,
+                                          hypothesis.measurement,
+                                          GaussianMeasurementPrediction(
+                                              meas_pred_mean, meas_pred_covar,
+                                              hypothesis.prediction.timestamp,
+                                              cross_covar)
+                                          )
         else:
             posterior_mean, posterior_covar, _ =\
                 self.update_on_measurement_prediction(

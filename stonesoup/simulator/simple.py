@@ -128,6 +128,16 @@ class SimpleDetectionSimulator(DetectionSimulator):
     def detections(self):
         return self.real_detections | self.clutter_detections
 
+    @property
+    def clutter_spatial_density(self):
+        """returns the clutter spatial density of the measurement space - num
+        clutter detections per unit volume per timestep"""
+        meas_volume = float(1)
+        for dim in range(self.meas_range.ndim):
+            meas_volume *= abs(float(self.meas_range[dim][0] *
+                                     self.meas_range[dim][-1]))
+        return self.clutter_rate/meas_volume
+
     def detections_gen(self):
         for time, tracks in self.groundtruth.groundtruth_paths_gen():
             self.real_detections.clear()
