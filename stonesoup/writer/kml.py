@@ -17,7 +17,8 @@ class CoordinateSystems(Enum):
     """
     Class of type enum that lists coordinate systems
     supported by KML writers classes.
-    Note: LONLAT is used by AISHUB Reader.
+    
+    Note: LONLAT is used by AISHUB Reader
     """
     LLA = 1
     ECEF = 2
