@@ -3,30 +3,80 @@ import matlab
 import matlab.engine
 
 from .base import Wrapper
+from ..base import Property
 
 
 class MatlabWrapper(Wrapper):
     """
-    Wrapper for running MATLAB code and converting the inputs and outputs into
-    suitable formats
+    Wrapper for creating/connecting to matlab sessions, running MATLAB code \
+    and converting the output.
+
+    Notes
+    =====
+    * Python compatibility:
+        - Only MATLAB 2016b and later releases can be used with Stone Soup.
+        - MATLAB 2017a and earlier versions only support up to Python 3.5.
+        - MATLAB 2017b and later versions include support for Python 3.6. 
+        - Support for Python 3.7 may potentially be added in MATLAB 2019a.
+    * General remarks:
+        - The currect version of the class is only intended for use with \
+            synchronous MATLAB engine creation.
     """
 
-    def __init__(self, *args, **kwargs):
+    matlab_engine = Property(
+        matlab.engine.MatlabEngine, default=None,
+        doc="The underlying Matlab engine to be used by the wrapper. Use the \
+             static class methods MatlabWrapper.start_engine() or \
+             MatlabWrapper.connect_engine() to generate a compatible input. If\
+             set to None on initialisation, the Wrapper will initiate a new \
+             Matlab session with the default settings.")
 
-        super().__init__(*args, **kwargs)
-        self.matlab_engine = self.start_engine()
-        # Add the location of the files to be run
+    def __init__(self, dir_path, matlab_engine, *args, **kwargs):
+        super().__init__(dir_path, *args, **kwargs)
+        if(matlab_engine is None):
+            self.matlab_engine = self.start_engine()
+        else:
+            self.matlab_engine = matlab_engine
         self.matlab_engine.addpath(self.matlab_engine.genpath(
-            self.directory_path, nargout=1), nargout=0)
+            self.dir_path, nargout=1), nargout=0)
 
-    def start_engine(self):
-        """
-        Start the MATLAB engine for this object. By default engine is started
-        on object creation
-        """
+    @staticmethod
+    def start_engine(*args, **kwargs):
+        """Start a new MATLAB session and return handle to an engine connected to it.
 
-        eng = matlab.engine.start_matlab()
-        eng.addpath(self.directory_path, nargout=0)
+        Returns
+        -------
+        MatlabEngine
+            Python object for communicating with MATLAB.
+        """
+        eng = matlab.engine.start_matlab(*args, *kwargs)
+        return eng
+
+    @staticmethod
+    def connect_engine(session_name=None, *args, **kwargs):
+        """Connect new engine to a running MATLAB shared session.
+
+        Parameters
+        ----------
+        session_name : str, optional
+            Name of the shared session. To find the name of a shared session, \
+            call MatlabWrapper.find_sessions(). (the default is None, in \
+            which case the new engine will connect to the first session \
+            named in the tuple returned by MatlabWrapper.find_sessions())
+
+        Returns
+        -------
+        MatlabEngine
+            Python object for communicating with MATLAB.
+
+        Note
+        ----
+        - Connecting to a shared session requires some initial setup to \
+          initialise the shared connection in MATLAB. See \
+          `here <https://uk.mathworks.com/help/matlab/ref/matlab.engine.shareengine.html>`_ \
+          for more information.
+        """
+        eng = matlab.engine.connect_matlab(session_name, *args, *kwargs)
         return eng
 
     def stop_engine(self):

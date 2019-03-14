@@ -9,7 +9,11 @@ class Wrapper(Base):
     the outputs back into Stone Soup objects.
     """
 
-    directory_path = Property(str,
-                              doc='Top level location of module. Defaults'
-                                  ' to Stone Soup install location',
-                              default=stonesoup.__file__.strip('__init__.py'))
+    dir_path = Property(
+        str, default=None,
+        doc='Top level location of module. Defaults to Stone Soup install location')
+
+    def __init__(self, dir_path, *args, **kwargs):
+        if(dir_path is None):
+            dir_path = stonesoup.__file__.strip('__init__.py')
+        return super().__init__(dir_path, *args, **kwargs)
