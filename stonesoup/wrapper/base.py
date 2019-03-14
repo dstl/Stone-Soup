@@ -11,7 +11,8 @@ class Wrapper(Base):
 
     dir_path = Property(
         str, default=None,
-        doc='Top level location of module. Defaults to Stone Soup install location')
+        doc='Top level location of module. Defaults to Stone Soup \
+             install location')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -16,7 +16,7 @@ class MatlabWrapper(Wrapper):
     * Python compatibility:
         - Only MATLAB 2016b and later releases can be used with Stone Soup.
         - MATLAB 2017a and earlier versions only support up to Python 3.5.
-        - MATLAB 2017b and later versions include support for Python 3.6. 
+        - MATLAB 2017b and later versions include support for Python 3.6.
         - Support for Python 3.7 may potentially be added in MATLAB 2019a.
     * General remarks:
         - The currect version of the class is only intended for use with \
@@ -52,7 +52,8 @@ class MatlabWrapper(Wrapper):
 
     @staticmethod
     def connect_engine(session_name=None, *args, **kwargs):
-        """Connect new engine to a running MATLAB shared session.
+        """Connect new engine to a running MATLAB shared session and return engine\
+            handle.
 
         Parameters
         ----------
@@ -65,17 +66,31 @@ class MatlabWrapper(Wrapper):
         Returns
         -------
         MatlabEngine
-            Python object for communicating with MATLAB.
+            Matlab engine object for communicating with MATLAB.
 
         Note
         ----
         - Connecting to a shared session requires some initial setup to \
           initialise the shared connection in MATLAB. See \
-          `here <https://uk.mathworks.com/help/matlab/ref/matlab.engine.shareengine.html>`_ \
+          `here <https://uk.mathworks.com/help/matlab/ref/matlab.engine.shareengine.html>`_ # noqa: E501
           for more information.
         """
         eng = matlab.engine.connect_matlab(session_name, *args, *kwargs)
         return eng
+
+    @staticmethod
+    def find_sessions(*args, **kwargs):
+        """Discover all shared MATLAB sessions on the local machine.
+
+        This function returns the names of all shared MATLAB sessions.
+
+        Returns
+        -------
+        tuple
+            the names of all shared MATLAB sessions running locally.
+        """
+
+        return matlab.engine.find_matlab()
 
     def stop_engine(self):
         """
