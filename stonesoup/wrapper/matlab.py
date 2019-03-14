@@ -31,12 +31,10 @@ class MatlabWrapper(Wrapper):
              set to None on initialisation, the Wrapper will initiate a new \
              Matlab session with the default settings.")
 
-    def __init__(self, dir_path, matlab_engine, *args, **kwargs):
-        super().__init__(dir_path, *args, **kwargs)
-        if(matlab_engine is None):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if(self.matlab_engine is None):
             self.matlab_engine = self.start_engine()
-        else:
-            self.matlab_engine = matlab_engine
         self.matlab_engine.addpath(self.matlab_engine.genpath(
             self.dir_path, nargout=1), nargout=0)
 
@@ -87,7 +85,8 @@ class MatlabWrapper(Wrapper):
         self.matlab_engine.quit()
         return
 
-    def matlab_array(self, array):
+    @classmethod
+    def matlab_array(cls, array):
         """Converts a numpy array to a MATLAB array attempting to maintain the
         variable type. If the array has mixed types then array defaults to
         doubles"""
@@ -103,22 +102,23 @@ class MatlabWrapper(Wrapper):
         elems = np.array(array).flatten().tolist()
 
         if all([type(i) == bool for i in elems]):
-            mat_array = self.matlab_logical_array(array)
+            mat_array = cls.matlab_logical_array(array)
 
         elif all([type(i) == int for i in elems]):
             # Defaulting to 32bit because matlab cannot return
             #  64bit ints to python
-            mat_array = self.matlab_int32_array(array)
+            mat_array = cls.matlab_int32_array(array)
 
         elif all([type(i) == float for i in elems]):
-            mat_array = self.matlab_double_array(array)
+            mat_array = cls.matlab_double_array(array)
 
         else:
             # When all else fails, try doubles
-            mat_array = self.matlab_double_array(array)
+            mat_array = cls.matlab_double_array(array)
 
         return mat_array
 
+    @classmethod
     def matlab_double_array(self, array):
         """"Converts an array or list of lists to a MATLAB double array
         """
@@ -128,6 +128,7 @@ class MatlabWrapper(Wrapper):
 
         return matlab.double(array)
 
+    @classmethod
     def matlab_single_array(self, array):
         """"Converts an array or list of lists to a MATLAB single array
         """
@@ -136,6 +137,7 @@ class MatlabWrapper(Wrapper):
 
         return matlab.single(array)
 
+    @classmethod
     def matlab_int32_array(self, array):
         """
         Converts an array or list of lists to a MATLAB int32 array
@@ -146,6 +148,7 @@ class MatlabWrapper(Wrapper):
 
         return matlab.int32(array)
 
+    @classmethod
     def matlab_uint32_array(self, array):
         """
         Converts an array or list of lists to a MATLAB uint32 array
@@ -155,6 +158,7 @@ class MatlabWrapper(Wrapper):
 
         return matlab.uint32(array)
 
+    @classmethod
     def matlab_logical_array(self, array):
         """
         Converts an array or list of lists to a MATLAB logical array

@@ -13,7 +13,7 @@ class Wrapper(Base):
         str, default=None,
         doc='Top level location of module. Defaults to Stone Soup install location')
 
-    def __init__(self, dir_path, *args, **kwargs):
-        if(dir_path is None):
-            dir_path = stonesoup.__file__.strip('__init__.py')
-        return super().__init__(dir_path, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if(self.dir_path is None):
+            self.dir_path = stonesoup.__file__.strip('__init__.py')
