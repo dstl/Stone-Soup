@@ -13,6 +13,12 @@ Filter
 .. automodule:: stonesoup.feeder.filter
     :show-inheritance:
 
+Geo
+===
+
+.. automodule:: stonesoup.feeder.geo
+    :show-inheritance:
+
 Time Based
 ==========
 
