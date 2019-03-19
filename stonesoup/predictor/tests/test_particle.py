@@ -45,7 +45,7 @@ def test_particle():
                                @ particle.state_vector,
                                1 / 9)
                       for particle in prior_particles]
-    eval_mean = np.mean(np.hstack((i.state_vector for i in eval_particles)),
+    eval_mean = np.mean(np.hstack([i.state_vector for i in eval_particles]),
                         axis=1).reshape(2, 1)
 
     eval_prediction = ParticleStatePrediction(eval_particles, new_timestamp)

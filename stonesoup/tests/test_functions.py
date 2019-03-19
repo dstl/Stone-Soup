@@ -1,6 +1,6 @@
 import numpy as np
 
-from stonesoup.functions import jacobian
+from stonesoup.functions import jacobian, gm_reduce_single
 
 
 def test_jacobian():
@@ -41,7 +41,7 @@ def test_jacobian2():
 
     x = np.array([[1], [2]])
     # Tolerance value to use to test if arrays are equal
-    tol = 1.0e-9
+    tol = 1.0e-2
 
     jac = jacobian(fun1d, x)
     T = np.array([2.0, 3.0])
@@ -58,3 +58,17 @@ def test_jacobian2():
     assert len(FOM[0]) == 0
 
     return
+
+
+def test_gm_reduce_single():
+
+    means = np.array([[1, 2], [3, 4], [5, 6]], np.float)
+    covars = np.array([[[1, 1], [1, 0.7]], [[1.2, 1.4], [1.3, 2]],
+                       [[2, 1.4], [1.2, 1.2]]], np.float)
+    weights = np.array([1, 2, 5], np.float)
+
+    mean, covar = gm_reduce_single(means, covars, weights)
+
+    assert np.array_equal(mean, np.array([[4], [5]], np.float))
+    assert np.array_equal(covar, np.array([[5.675, 5.35], [5.2, 5.3375]],
+                                          np.float))

@@ -8,7 +8,7 @@ from stonesoup.types import StateUpdate, \
     GaussianStateUpdate, GaussianMeasurementPrediction, ParticleStateUpdate, \
     StatePrediction, StateMeasurementPrediction, Detection, \
     GaussianStatePrediction, ParticleStatePrediction, \
-    ParticleMeasurementPrediction, Particle, Hypothesis
+    ParticleMeasurementPrediction, Particle, SingleHypothesis
 
 
 def test_stateupdate():
@@ -30,7 +30,7 @@ def test_stateupdate():
 
     state_update = StateUpdate(
         state_vector,
-        Hypothesis(
+        SingleHypothesis(
             prediction=prediction,
             measurement=measurement,
             measurement_prediction=measurement_prediction),
@@ -65,7 +65,7 @@ def test_gaussianstateupdate():
                             timestamp=timestamp)
     state_update = GaussianStateUpdate(state_vector,
                                        covar,
-                                       Hypothesis(
+                                       SingleHypothesis(
                                            prediction=prediction,
                                            measurement=measurement,
                                            measurement_prediction=meas_pred),
@@ -111,13 +111,13 @@ def test_particlestateupdate():
     measurement = Detection(state_vector=np.array([[5], [7]]),
                             timestamp=timestamp)
     state_update = ParticleStateUpdate(particles,
-                                       Hypothesis(
+                                       SingleHypothesis(
                                            prediction=prediction,
                                            measurement=measurement,
                                            measurement_prediction=meas_pred),
                                        timestamp=timestamp)
 
-    eval_mean = np.mean(np.hstack((i.state_vector for i in particles)),
+    eval_mean = np.mean(np.hstack([i.state_vector for i in particles]),
                         axis=1).reshape(2, 1)
     assert np.allclose(eval_mean, state_update.mean)
     assert np.all([particles[i].state_vector ==

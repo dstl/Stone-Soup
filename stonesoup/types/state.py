@@ -19,7 +19,8 @@ class State(Type):
     state_vector = Property(StateVector, doc='State vector.')
 
     def __init__(self, state_vector, *args, **kwargs):
-        state_vector = StateVector(state_vector)
+        if state_vector is not None:
+            state_vector = StateVector(state_vector)
         super().__init__(state_vector, *args, **kwargs)
 
     @property
@@ -133,6 +134,15 @@ class GaussianState(State):
     def mean(self):
         """The state mean, equivalent to state vector"""
         return self.state_vector
+
+
+class WeightedGaussianState(GaussianState):
+    """Weighted Gaussian State Type
+
+    Gaussian State object with an associated weight.  Used as components
+    for a GaussianMixtureState.
+    """
+    weight = Property(float, default=0, doc="Weight of the Gaussian State.")
 
 
 class ParticleState(Type):

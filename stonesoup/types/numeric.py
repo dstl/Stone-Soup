@@ -33,6 +33,14 @@ class Probability(Real):
         else:
             return log(other)
 
+    def __hash__(self):
+        value = float(self)
+        if value == 0 and self.log_value != float("-inf"):  # Too close to zero
+            # Add string so doesn't have same hash as the log value itself.
+            return hash(('log', self._log_value))
+        else:
+            return hash(value)
+
     def __eq__(self, other):
         if other < 0:
             return False
@@ -224,6 +232,8 @@ class Probability(Real):
     def sum(cls, values):
         """Carry out LogSumExp"""
         log_values = [cls._log(value) for value in values]
+        if not log_values:
+            return Probability(0)
         max_log_value = max(log_values)
         value_sum = sum(exp(log_value - max_log_value)
                         for log_value in log_values)

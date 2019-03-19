@@ -23,7 +23,7 @@ def test_simple_detection_simulator(
         transition_model, initial_state, timestep)
     meas_range = np.array([[-1, 1], [-1, 1]]) * 5000
     detector = SimpleDetectionSimulator(
-        groundtruth, measurement_model, meas_range)
+        groundtruth, measurement_model, meas_range, clutter_rate=3)
 
     total_detections = set()
     clutter_detections = set()
@@ -41,3 +41,5 @@ def test_simple_detection_simulator(
     for clutter in clutter_detections:
         assert (meas_range[:, 0] <= clutter.state_vector.ravel()).all()
         assert (meas_range[:, 1] >= clutter.state_vector.ravel()).all()
+
+    assert detector.clutter_spatial_density == 4.8e-15

@@ -106,7 +106,6 @@ def base(state_vec, noise_diff_coeffs, recips_decorr_times, timediff=1.0):
               (1 - e_neg2_at) / (2 * recip_decorr_time)]]
         ) * noise_diff_coeff)
 
-    print(covar_list)
     F = sp.linalg.block_diag(*mat_list)
     Q = sp.linalg.block_diag(*covar_list)
 

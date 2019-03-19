@@ -5,7 +5,8 @@ import numpy as np
 
 from ..distance import MahalanobisDistanceHypothesiser
 from ..filtered import FilteredDetectionsHypothesiser
-from stonesoup.types import Track, GaussianStateUpdate, Detection, Hypothesis
+from stonesoup.types import Track, GaussianStateUpdate, Detection, \
+    SingleHypothesis
 
 
 def test_filtereddetections(predictor, updater):
@@ -22,7 +23,7 @@ def test_filtereddetections(predictor, updater):
     track = Track([GaussianStateUpdate(
                     np.array([[0]]),
                     np.array([[1]]),
-                    Hypothesis(
+                    SingleHypothesis(
                         None,
                         Detection(np.array([[0]]), metadata={"MMSI": 12345})),
                     timestamp=timestamp)])
@@ -61,7 +62,7 @@ def test_filtereddetections_empty_detections(predictor, updater):
     track = Track([GaussianStateUpdate(
         np.array([[0]]),
         np.array([[1]]),
-        Hypothesis(
+        SingleHypothesis(
             None,
             Detection(np.array([[0]]), metadata={"MMSI": 12345})),
         timestamp=timestamp)])
@@ -91,7 +92,7 @@ def test_filtereddetections_no_track_metadata(predictor, updater):
     track = Track([GaussianStateUpdate(
         np.array([[0]]),
         np.array([[1]]),
-        Hypothesis(
+        SingleHypothesis(
             None,
             Detection(np.array([[0]]), metadata={})),
         timestamp=timestamp)])
@@ -132,7 +133,7 @@ def test_filtereddetections_no_matching_metadata(predictor, updater):
     track = Track([GaussianStateUpdate(
                     np.array([[0]]),
                     np.array([[1]]),
-                    Hypothesis(
+                    SingleHypothesis(
                         None,
                         Detection(np.array([[0]]), metadata={"MMSI": 12345})),
                     timestamp=timestamp)])

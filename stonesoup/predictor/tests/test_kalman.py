@@ -1,59 +1,44 @@
 # coding: utf-8
 import datetime
-
+import pytest
 import numpy as np
 
-from ...models.transition.linear import ConstantVelocity
-from ...predictor.kalman import KalmanPredictor, ExtendedKalmanPredictor
-from ...types import GaussianState, GaussianStatePrediction
+from stonesoup.models.transition.linear import ConstantVelocity
+from stonesoup.predictor.kalman import (KalmanPredictor,
+                                        ExtendedKalmanPredictor,
+                                        UnscentedKalmanPredictor)
+from stonesoup.types import GaussianState, GaussianStatePrediction
 
 
-def test_kalman():
-
-    # Initialise a transition model
-    cv = ConstantVelocity(noise_diff_coeff=0.1)
-
-    # Define time related variables
-    timestamp = datetime.datetime.now()
-    timediff = 2  # 2sec
-    new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
-    time_interval = new_timestamp - timestamp
-
-    # Define prior state
-    prior = GaussianState(np.array([[-6.45], [0.7]]),
-                          np.array([[4.1123, 0.0013],
-                                    [0.0013, 0.0365]]),
-                          timestamp=timestamp)
-
-    # Calculate evaluation variables
-    eval_prediction = GaussianStatePrediction(
-        cv.matrix(timestamp=new_timestamp,
-                  time_interval=time_interval)@prior.mean,
-        cv.matrix(timestamp=new_timestamp,
-                  time_interval=time_interval)
-        @prior.covar
-        @cv.matrix(timestamp=new_timestamp,
-                   time_interval=time_interval).T
-        + cv.covar(timestamp=new_timestamp,
-                   time_interval=time_interval))
-
-    # Initialise a kalman predictor
-    kp = KalmanPredictor(transition_model=cv)
-
-    # Perform and assert state prediction
-    prediction = kp.predict(prior=prior,
-                            timestamp=new_timestamp)
-    assert(np.array_equal(prediction.mean, eval_prediction.mean))
-    assert(np.array_equal(prediction.covar, eval_prediction.covar))
-    assert(prediction.timestamp == new_timestamp)
-
-    # TODO: Test with Control Model
-
-
-def test_extendedkalman():
-
-    # Initialise a transition model
-    cv = ConstantVelocity(noise_diff_coeff=0.1)
+@pytest.mark.parametrize(
+    "PredictorClass, transition_model, prior_mean, prior_covar",
+    [
+        (   # Standard Kalman
+            KalmanPredictor,
+            ConstantVelocity(noise_diff_coeff=0.1),
+            np.array([[-6.45], [0.7]]),
+            np.array([[4.1123, 0.0013],
+                      [0.0013, 0.0365]])
+        ),
+        (   # Extended Kalman
+            ExtendedKalmanPredictor,
+            ConstantVelocity(noise_diff_coeff=0.1),
+            np.array([[-6.45], [0.7]]),
+            np.array([[4.1123, 0.0013],
+                      [0.0013, 0.0365]])
+        ),
+        (   # Unscented Kalman
+            UnscentedKalmanPredictor,
+            ConstantVelocity(noise_diff_coeff=0.1),
+            np.array([[-6.45], [0.7]]),
+            np.array([[4.1123, 0.0013],
+                      [0.0013, 0.0365]])
+        )
+    ],
+    ids=["standard", "extended", "unscented"]
+)
+def test_kalman(PredictorClass, transition_model,
+                prior_mean, prior_covar):
 
     # Define time related variables
     timestamp = datetime.datetime.now()
@@ -62,31 +47,33 @@ def test_extendedkalman():
     time_interval = new_timestamp - timestamp
 
     # Define prior state
-    prior = GaussianState(np.array([[-6.45], [0.7]]),
-                          np.array([[4.1123, 0.0013],
-                                    [0.0013, 0.0365]]),
+    prior = GaussianState(prior_mean,
+                          prior_covar,
                           timestamp=timestamp)
 
     # Calculate evaluation variables
     eval_prediction = GaussianStatePrediction(
-        cv.matrix(timestamp=new_timestamp,
-                  time_interval=time_interval)@prior.mean,
-        cv.matrix(timestamp=new_timestamp,
-                  time_interval=time_interval)
+        transition_model.matrix(timestamp=new_timestamp,
+                                time_interval=time_interval)@prior.mean,
+        transition_model.matrix(timestamp=new_timestamp,
+                                time_interval=time_interval)
         @prior.covar
-        @cv.matrix(timestamp=new_timestamp,
-                   time_interval=time_interval).T
-        + cv.covar(timestamp=new_timestamp,
-                   time_interval=time_interval))
+        @transition_model.matrix(timestamp=new_timestamp,
+                                 time_interval=time_interval).T
+        + transition_model.covar(timestamp=new_timestamp,
+                                 time_interval=time_interval))
 
     # Initialise a kalman predictor
-    kp = ExtendedKalmanPredictor(transition_model=cv)
+    predictor = PredictorClass(transition_model=transition_model)
 
     # Perform and assert state prediction
-    prediction = kp.predict(prior=prior,
-                            timestamp=new_timestamp)
-    assert(np.array_equal(prediction.mean, eval_prediction.mean))
-    assert(np.array_equal(prediction.covar, eval_prediction.covar))
+    prediction = predictor.predict(prior=prior,
+                                   timestamp=new_timestamp)
+
+    assert(np.allclose(prediction.mean,
+                       eval_prediction.mean, 0, atol=1.e-14))
+    assert(np.allclose(prediction.covar,
+                       eval_prediction.covar, 0, atol=1.e-14))
     assert(prediction.timestamp == new_timestamp)
 
     # TODO: Test with Control Model
