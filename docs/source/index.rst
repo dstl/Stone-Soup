@@ -30,6 +30,7 @@ Contents:
     stonesoup.config
     stonesoup.base
     stonesoup.functions
+    stonesoup.measures
     stonesoup.serialise
     stonesoup
     contributing
