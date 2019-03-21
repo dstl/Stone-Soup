@@ -18,11 +18,11 @@ class AbstractKalmanUpdater(Updater):
     Note that this isn't an abstract class as such. It will execute the functions
     """
 
-    # TODO at present this will throw an error if a measurement model is not specified. Either remove default=None
-    # TODO or specify some sort of behaviour if default is none.
+    # TODO at present this will throw an error if a measurement model is not specified in either individual
+    # TODO measurements or the Updater object
     measurement_model = Property(MeasurementModel, default=None, doc="The measurement model to be used")
 
-    def measurement_matrix(self, predicted_state=None, measurement_model=None, **kwargs):
+    def measurement_matrix(self, predicted_state, measurement_model=None, **kwargs):
         pass
 
     def predict_measurement(self, predicted_state, measurement_model=None, **kwargs):
@@ -55,9 +55,10 @@ class AbstractKalmanUpdater(Updater):
         :return: Posterior state, :math:`\mathbf{x}_{k|k}` as :class:`~.GaussianMeasurementPrediction`
         """
 
-        predicted_state = hypothesis.prediction # Get the predicted state out of the hypothesis
+        predicted_state = hypothesis.prediction  # Get the predicted state out of the hypothesis
 
         # Get the measurement model out of the measurement if it's there. If not, use the one native to the updater
+        # (which might still be none)
         measurement_model = hypothesis.measurement.measurement_model
         if measurement_model is None:
             measurement_model = self.measurement_model
@@ -69,11 +70,11 @@ class AbstractKalmanUpdater(Updater):
         m_cross_cov = gmp.cross_covar
 
         # Complete the calculation of the posterior
-        kalman_gain = m_cross_cov @ np.linalg.inv(innov_cov) # This isn't optimised
+        kalman_gain = m_cross_cov @ np.linalg.inv(innov_cov)  # This isn't optimised
         posterior_mean = predicted_state.state_vector + kalman_gain @ (hypothesis.measurement.state_vector - pred_meas)
         posterior_covariance = predicted_state.covar - kalman_gain @ innov_cov @ kalman_gain.T
 
-        #posterior_state_covariance = (P_post + P_post.T) / 2 # !!! kludge
+        # posterior_state_covariance = (P_post + P_post.T) / 2 # !!! kludge
 
         return GaussianStateUpdate(posterior_mean, posterior_covariance, hypothesis, hypothesis.measurement.timestamp)
 
@@ -106,10 +107,11 @@ class ExtendedKalmanUpdater(AbstractKalmanUpdater):
 
     """
 
-    def measurement_matrix(self, predicted_state, measurement_model, **kwargs):
+    def measurement_matrix(self, predicted_state, measurement_model=None, **kwargs):
         """
 
         :param predicted_state: the predicted state, :math:`\hat{\mathbf{x}}_{k|k-1}`
+        :param measurement_model: the measurement model. If `None` defaults to the model defined in updater
         :return: the measurement matrix, :math:`H_k`
         """
         if measurement_model is None:
@@ -124,7 +126,9 @@ class ExtendedKalmanUpdater(AbstractKalmanUpdater):
 class UnscentedKalmanUpdater(AbstractKalmanUpdater):
     """Unscented Kalman Updater
 
-    Perform measurement update step in the Unscented Kalman Filter.
+    Perform measurement update step in the Unscented Kalman Filter. The predict measurement step uses the unscented
+    transform to estimate a Gauss-distributed predicted measurement. This is then updated via the standard Kalman
+    updater.
     """
 
     alpha = Property(float, default=0.5,
