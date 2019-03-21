@@ -7,6 +7,8 @@ from .base import Predictor
 from ..types import GaussianStatePrediction
 from ..models import TransitionModel, ControlModel
 from ..models.control.linear import LinearControlModel
+from ..functions import gauss2sigma, unscented_transform
+
 
 
 class AbstractKalmanPredictor(Predictor):
@@ -24,20 +26,60 @@ class AbstractKalmanPredictor(Predictor):
     transition_model = Property(TransitionModel, default=None, doc="The transition model to be used")
     control_model = Property(ControlModel, default=None, doc="The control model to be used")
 
-    def transition_matrix(self, time_interval):
+    def transition_matrix(self, **kwargs):
         pass
 
-    def transition_function(self, prior, timestamp):
+    def transition_function(self, prior, **kwargs):
+        """
+        This is :math:`f_k(x_{k-1})`, the transition function, non-linear in general.
+        :param prior:
+        :param kwargs: might include time stamp or time interval
+        :return:
+        """
+        return self.transition_model.function(prior, **kwargs)
+
+    def control_matrix(self, **kwargs):
         pass
 
-    def control_matrix(self):
-        pass
+    def control_function(self, **kwargs):
+        return self.control_model.control_input()
 
-    def control_function(self):
-        pass
+    def _predict_over_interval(self, prior, timestamp):
+        """
+        Private function to get the prediction interval (or None)
+
+        :param prior: the prior state
+        :param timestamp: (current) timestamp
+        :return: time interval to predict over
+        """
+
+        # Deal with undefined timestamps
+        if (timestamp is None) or (prior.timestamp is None):
+            predict_over_interval = None
+        else:
+            predict_over_interval = timestamp - prior.timestamp
+
+        return predict_over_interval
+
+    def _control_model(self, prior):
+        """
+        If the control model doesn't exist, create it
+        :param prior:
+        :return:
+        """
+        # Deal with undefined control model
+        if self.control_model is None:
+            """Make a 0-effect control input"""
+            control_model = LinearControlModel(prior.ndim, [], np.zeros(prior.state_vector.shape),
+                                                     np.zeros(prior.covar.shape), np.zeros(prior.covar.shape))
+        else:
+            control_model = self.control_model
+
+        return control_model
 
     def predict(self, prior, timestamp=None, **kwargs):
         """
+        The predict step,
 
         :param prior: :math:`x_{t-1}`
         :param timestamp: :math:`t`
@@ -45,75 +87,143 @@ class AbstractKalmanPredictor(Predictor):
         :return: :math:`\hat{x}_k`, the predicted state
         """
 
-        # WARNING - this won't work with an undefined timestamp
+        # Get the prediction interval
+        predict_over_interval = self._predict_over_interval(prior, timestamp)
 
-        if self.control_model is None:
-            """Make a 0-effect control input"""
-            self.control_model = LinearControlModel(prior.ndim, [], np.zeros(prior.state_vector.shape),
-                                                    np.zeros(prior.covar.shape),
-                                                    np.zeros(prior.covar.shape))
+        control_model = self._control_model(prior)
 
-        # TODO time interval not currently handled in-class - specified externally.
-        x_pred = self.transition_function(prior, time_interval=timestamp-prior.timestamp) + \
-                 self.control_function()
+        # Prediction of the mean
+        x_pred = self.transition_function(prior, time_interval=predict_over_interval) + \
+                 control_model.control_input()
 
         # As this is Kalman-like, the control model must be capable of returning a control matrix (B)
-        P_pred = self.transition_matrix(time_interval=timestamp-prior.timestamp) @ prior.covar @ \
-                 self.transition_matrix(time_interval=timestamp-prior.timestamp).T + \
-                 self.transition_model.covar(time_interval=timestamp-prior.timestamp) + \
-                 self.control_matrix() @ self.control_model.control_noise @ self.control_matrix().T
+        p_pred = self.transition_matrix(time_interval=predict_over_interval) @ prior.covar @ \
+                 self.transition_matrix(time_interval=predict_over_interval).T + \
+                 self.transition_model.covar(time_interval=predict_over_interval) + \
+                 control_model.matrix() @ control_model.control_noise @ control_model.matrix().T
 
-        return GaussianStatePrediction(x_pred, P_pred, timestamp=timestamp)
+        return GaussianStatePrediction(x_pred, p_pred, timestamp=timestamp)
 
 
 class KalmanPredictor(AbstractKalmanPredictor):
+    """
+    KalmanPredictor class
 
-    """KalmanPredictor class
+    An implementation of a standard Kalman Filter predictor. Here:
 
-    An implementation of a standard Kalman Filter predictor.
+    :math:`f_k(x_{k-1}) = F_k x_{k-1}`
 
     """
 
-    # TODO specify that transition and control models must be linear
+    # TODO specify that transition and control models _must_ be linear
 
     def transition_matrix(self, **kwargs):
+        """
+        Return the transition matrix
+
+        :param kwargs:
+        :return: the transition matrix
+        """
         return self.transition_model.matrix(**kwargs)
 
     def transition_function(self, prior, **kwargs):
+        """
+        Applies the linear transition function, returns the predicted state, :math:`\hat{x}_{k|k-1}`
+        :param prior: the prior state, :math:`x_{k-1}`
+        :param kwargs:
+        :return: the predicted state, :math:`\hat{x}_{k|k-1}`
+        """
         return self.transition_model.matrix(**kwargs) @ prior.state_vector
-
-    def control_matrix(self):
-        return self.control_model.control_matrix
-
-    def control_function(self):
-        return self.control_model.control_input()
 
 
 class ExtendedKalmanPredictor(AbstractKalmanPredictor):
-    """ExtendedKalmanPredictor class
+    """
+    ExtendedKalmanPredictor class
 
-    An implementation of the Extended Kalman Filter predictor.
+    An implementation of the Extended Kalman Filter predictor. Here the transition and control functions may be
+    non-linear, their transition and control matrices are approximated via Jacobian matrices.
 
     """
 
     # TODO specify that transition and control models must be 'linearisable' via Jacobians
     def transition_matrix(self, prior, **kwargs):
+        """
+
+        :param prior: the prior state, :math:`x_{k-1}`
+        :param kwargs:
+        :return: the predicted state, :math:`\hat{x}_{k|k-1}`
+        """
         if hasattr(self.transition_model, 'matrix'):
             return self.transition_model.matrix(**kwargs)
         else:
             return self.transition_model.jacobian(prior.state_vector, **kwargs)
 
-    def transition_function(self, prior, **kwargs):
-        return self.transition_matrix(prior, **kwargs) @ prior.state_vector
-
     # TODO work out how these incorporate time intervals
     # TODO there may also be compelling reason to keep these linear
     def control_matrix(self):
         if hasattr(self.control_model, 'matrix'):
-           return self.control_model.matrix
+            return self.control_model.matrix()
         else:
             return self.control_model.jacobian(self.control_model.control_vector)
 
-    def control_function(self):
-        return self.control_input()
 
+class UnscentedKalmanPredictor(AbstractKalmanPredictor):
+    """
+    UnscentedKalmanFilter class
+
+    The predict is accomplished by calculating the sigma points from the Gaussian mean and covariance, then putting
+    these through the (in general non-linear) transition function, then reconstructing the Gaussian.
+
+    """
+    alpha = Property(float, default=0.5, doc="Primary sigma point spread scaling parameter. Typically 0.5.")
+    beta = Property(float, default=2, doc="Used to incorporate prior knowledge of the distribution.\
+                            If the true distribution is Gaussian, the value of 2 is optimal.")
+    kappa = Property(float, default=0, doc="Secondary spread scaling parameter (default is calculated as 3-Ns)" )
+
+    def transition_and_control_function(self, prior, **kwargs):
+        """
+        Returns the result of applying the transition and control functions for the unscented transform
+
+        :param prior: Prior state
+        :param kwargs:
+        :return:
+        """
+
+        return self.transition_function(prior, **kwargs) + self._control_model(prior).control_input()
+
+    def predict(self, prior, timestamp=None, **kwargs):
+        """
+        The unscented version of the predict step
+
+        :param prior: Prior state
+        :param timestamp: time to transit to
+        :param kwargs:
+        :return:
+        """
+
+        # Get the prediction interval
+        predict_over_interval = self._get_predict_over_interval(prior, timestamp )
+
+        # The control model
+        control_model = self._control_model(prior)
+
+        # The covariance on the transition model + the control model
+        # TODO Note that I'm not sure you can actually do this with the covariances, i.e. sum them before calculating
+        # TODO the sigma points and then just sticking them into the unscented transform, and I haven't checked the
+        # TODO statistics.
+        total_noise_covar = self.transition_model.covar(timestamp=timestamp, time_interval=predict_over_interval,
+                                                        **kwargs) + control_model.control_noise
+
+        # Get the sigma points from the prior mean and covariance.
+        sigma_points, mean_weights, covar_weights = gauss2sigma(prior.state_vector,
+                                                                prior.covar ,
+                                                                self.alpha, self.beta, self.kappa)
+
+        # Put these through the unscented transform, together with the total covariance to get the parameters of the
+        # Gaussian
+        x_pred, p_pred, _, _, _, _ = unscented_transform(sigma_points, mean_weights, covar_weights,
+                                                         self.transition_and_control_function,
+                                                         covar_noise=total_noise_covar)
+
+        # and return a Gaussian state based on these parameters
+        return GaussianStatePrediction(x_pred, p_pred, timestamp=timestamp)

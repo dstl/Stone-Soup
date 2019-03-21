@@ -69,7 +69,7 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
         Returns
         -------
         :class:`numpy.ndarray` of shape (:py:attr:`~ndim_meas`, 1)
-            The model fumction evaluated given the provided time interval.
+            The model function evaluated given the provided time interval.
         """
 
         model_out = self.matrix(**kwargs)@state_vector

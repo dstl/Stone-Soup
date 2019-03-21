@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from abc import abstractmethod
+import scipy as sp
 
 from ..base import Base
 from ..functions import jacobian as compute_jac
@@ -37,7 +38,7 @@ class LinearModel(Model):
         pass
 
     def function(self, state_vector, noise=None, **kwargs):
-        """Model function :math:`f(t,x(t),w(t))`
+        """Model linear function :math:`f_k(x(k),w(k)) = F_k(x_k) + w_k`
 
         Parameters
         ----------
@@ -54,7 +55,8 @@ class LinearModel(Model):
         """
 
         if noise is None:
-            noise = self.rvs(**kwargs)
+            noise = sp.zeros(state_vector.shape)
+            # noise = self.rvs(**kwargs) # TODO find and expunge all instances of noise=None generating noise!
 
         return self.matrix(**kwargs)@state_vector + noise
 
