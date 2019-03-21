@@ -3,10 +3,13 @@ from operator import attrgetter
 
 import numpy as np
 
-from ..distance import MahalanobisDistanceHypothesiser
+from ..distance import DistanceHypothesiser
 from ..filtered import FilteredDetectionsHypothesiser
 from stonesoup.types import Track, GaussianStateUpdate, Detection, \
     SingleHypothesis
+from ... import measures as measures
+
+measure = measures.Mahalanobis()
 
 
 def test_filtereddetections(predictor, updater):
@@ -15,8 +18,9 @@ def test_filtereddetections(predictor, updater):
     # two detections where one has matching metadata and one does not
 
     timestamp = datetime.datetime.now()
-    hypothesiser = MahalanobisDistanceHypothesiser(
-        predictor, updater, missed_distance=0.2)
+
+    hypothesiser = DistanceHypothesiser(predictor, updater,
+                                        measure=measure, missed_distance=0.2)
     hypothesiser_wrapper = FilteredDetectionsHypothesiser(
         hypothesiser, "MMSI", match_missing=True)
 
@@ -54,8 +58,8 @@ def test_filtereddetections_empty_detections(predictor, updater):
     # CASE 3
     # 'detections' is empty
     timestamp = datetime.datetime.now()
-    hypothesiser = MahalanobisDistanceHypothesiser(
-        predictor, updater, missed_distance=0.2)
+    hypothesiser = DistanceHypothesiser(predictor, updater,
+                                        measure=measure, missed_distance=0.2)
     hypothesiser_wrapper = FilteredDetectionsHypothesiser(
         hypothesiser, "MMSI", match_missing=False)
 
@@ -84,8 +88,8 @@ def test_filtereddetections_no_track_metadata(predictor, updater):
     # detections with any metadata can be associated with the track
 
     timestamp = datetime.datetime.now()
-    hypothesiser = MahalanobisDistanceHypothesiser(
-        predictor, updater, missed_distance=0.2)
+    hypothesiser = DistanceHypothesiser(predictor, updater,
+                                        measure=measure, missed_distance=0.2)
     hypothesiser_wrapper = FilteredDetectionsHypothesiser(
         hypothesiser, "MMSI", match_missing=True)
 
@@ -125,8 +129,8 @@ def test_filtereddetections_no_matching_metadata(predictor, updater):
     # two detections where neither has matching metadata
 
     timestamp = datetime.datetime.now()
-    hypothesiser = MahalanobisDistanceHypothesiser(
-        predictor, updater, missed_distance=0.2)
+    hypothesiser = DistanceHypothesiser(predictor, updater,
+                                        measure=measure, missed_distance=0.2)
     hypothesiser_wrapper = FilteredDetectionsHypothesiser(
         hypothesiser, "MMSI", match_missing=True)
 

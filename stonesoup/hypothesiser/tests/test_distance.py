@@ -4,8 +4,9 @@ import datetime
 
 import numpy as np
 
-from ..distance import MahalanobisDistanceHypothesiser
+from ..distance import DistanceHypothesiser
 from ...types import Track, Detection, GaussianState
+from ... import measures as measures
 
 
 def test_mahalanobis(predictor, updater):
@@ -16,7 +17,8 @@ def test_mahalanobis(predictor, updater):
     detection2 = Detection(np.array([[3]]))
     detections = {detection1, detection2}
 
-    hypothesiser = MahalanobisDistanceHypothesiser(predictor, updater)
+    measure = measures.Mahalanobis()
+    hypothesiser = DistanceHypothesiser(predictor, updater, measure=measure)
 
     hypotheses = hypothesiser.hypothesise(track, detections, timestamp)
 

@@ -44,13 +44,13 @@ def test_mahalanobis():
 
 
 def test_hellinger():
-    measure = measures.Hellinger()
+    measure = measures.GaussianHellinger()
     # Distance value obtained from MATLAB
     assert np.isclose(measure(state_u, state_v), 0.665, atol=1e-3)
 
 
 def test_zero_hellinger():
-    measure = measures.Hellinger()
+    measure = measures.GaussianHellinger()
     # Set target ground truth prior
     u = StateVector([[10], [1], [10], [1]])
     ui = CovarianceMatrix(np.diag([0, 0, 0, 0]))
@@ -65,24 +65,24 @@ def test_zero_hellinger():
 
 
 def test_squared_hellinger():
-    measure = measures.SquaredHellinger()
+    measure = measures.SquaredGaussianHellinger()
     # Distance value obtained from MATLAB
     assert np.isclose(measure(state_u, state_v), 0.444, atol=1e-3)
 
 
 def test_hellinger_full_mapping():
     mapping = np.arange(len(u))
-    measure = measures.Hellinger(mapping=mapping)
+    measure = measures.GaussianHellinger(mapping=mapping)
     assert np.isclose(measure(state_u, state_v), 0.665, atol=1e-3)
 
 
 def test_hellinger_partial_mapping():
     # Distance value obtained from MATLAB
     mapping = np.array([0, 1])
-    measure = measures.Hellinger(mapping=mapping)
+    measure = measures.GaussianHellinger(mapping=mapping)
     assert np.isclose(measure(state_u, state_v), 0.4555, atol=1e-3)
     mapping = np.array([0, 3])
-    measure = measures.Hellinger(mapping=mapping)
+    measure = measures.GaussianHellinger(mapping=mapping)
     assert np.isclose(measure(state_u, state_v), 0.3701, atol=1e-3)
 
 

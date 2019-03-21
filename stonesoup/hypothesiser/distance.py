@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
-import numpy as np
-from scipy.spatial.distance import mahalanobis
-
 from .base import Hypothesiser
 from ..base import Property
 from ..types import SingleDistanceHypothesis
 from ..predictor import Predictor
 from ..updater import Updater
+from ..measures import Measure
 
 
-class MahalanobisDistanceHypothesiser(Hypothesiser):
-    """Prediction Hypothesiser based on Mahalanobis Distance
+class DistanceHypothesiser(Hypothesiser):
+    """Prediction Hypothesiser based on a Measure
 
     Generate track predictions at detection times and score each hypothesised
-    prediction-detection pair using the mahalanobis distance.
+    prediction-detection pair using the distance of the supplied
+    :class:`Measure` class.
     """
 
     predictor = Property(
@@ -23,10 +22,13 @@ class MahalanobisDistanceHypothesiser(Hypothesiser):
         Updater,
         doc="Updater used to get measurement prediction")
     missed_distance = Property(
-        int,
-        default=4,
-        doc="Distance in standard deviations at which a missed detection is"
-            "considered more likely. Default is 4 standard deviations.")
+        float,
+        default=float('inf'),
+        doc="Distance for a missed detection. Default is set to infinity")
+    measure = Property(
+        Measure,
+        default=None,
+        doc="Measure class used to calculate the distance between two states.")
 
     def hypothesise(self, track, detections, timestamp):
 
@@ -37,9 +39,7 @@ class MahalanobisDistanceHypothesiser(Hypothesiser):
                 track.state, timestamp=detection.timestamp)
             measurement_prediction = self.updater.get_measurement_prediction(
                 prediction)
-            distance = mahalanobis(detection.state_vector,
-                                   measurement_prediction.state_vector,
-                                   np.linalg.inv(measurement_prediction.covar))
+            distance = self.measure(measurement_prediction, detection)
 
             hypotheses.append(
                 SingleDistanceHypothesis(
