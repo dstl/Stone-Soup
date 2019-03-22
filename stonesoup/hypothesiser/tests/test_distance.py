@@ -26,7 +26,7 @@ def test_mahalanobis(predictor, updater):
     assert len(hypotheses) == 3
 
     # There is a missed detection hypothesis
-    assert any(hypothesis.measurement is None for hypothesis in hypotheses)
+    assert any(not hypothesis.measurement for hypothesis in hypotheses)
 
     # Each hypothesis has a distance attribute
     assert all(hypothesis.distance >= 0 for hypothesis in hypotheses)

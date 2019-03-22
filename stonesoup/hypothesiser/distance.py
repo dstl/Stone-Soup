@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from .base import Hypothesiser
 from ..base import Property
-from ..types import SingleDistanceHypothesis
-from ..predictor import Predictor
-from ..updater import Updater
 from ..measures import Measure
+from ..predictor import Predictor
+from ..types.hypothesis import SingleDistanceHypothesis
+from ..types.detection import MissedDetection
+from ..updater import Updater
 
 
 class DistanceHypothesiser(Hypothesiser):
@@ -21,14 +22,13 @@ class DistanceHypothesiser(Hypothesiser):
     updater = Property(
         Updater,
         doc="Updater used to get measurement prediction")
+    measure = Property(
+        Measure,
+        doc="Measure class used to calculate the distance between two states.")
     missed_distance = Property(
         float,
         default=float('inf'),
         doc="Distance for a missed detection. Default is set to infinity")
-    measure = Property(
-        Measure,
-        default=None,
-        doc="Measure class used to calculate the distance between two states.")
 
     def hypothesise(self, track, detections, timestamp):
 
@@ -48,6 +48,8 @@ class DistanceHypothesiser(Hypothesiser):
         # Missed detection hypothesis with distance as 'missed_distance'
         prediction = self.predictor.predict(track.state, timestamp=timestamp)
         hypotheses.append(SingleDistanceHypothesis(
-            prediction, None, self.missed_distance))
+            prediction,
+            MissedDetection(timestamp=timestamp),
+            self.missed_distance))
 
         return sorted(hypotheses, reverse=True)

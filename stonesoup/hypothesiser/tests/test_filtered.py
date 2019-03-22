@@ -40,12 +40,12 @@ def test_filtereddetections(predictor, updater):
     # There are 2 hypotheses - Detection 1,  Missed Dectection
     # - Detection 2 has different metadata, so no hypothesis
     assert len(hypotheses) == 2
-    assert all((hypothesis.measurement is None) or
-               (hypothesis.measurement.metadata['MMSI'] == 12345)
+    assert all(not hypothesis.measurement or
+               hypothesis.measurement.metadata['MMSI'] == 12345
                for hypothesis in hypotheses)
 
     # There is a missed detection hypothesis
-    assert any(hypothesis.measurement is None for hypothesis in hypotheses)
+    assert any(not hypothesis.measurement for hypothesis in hypotheses)
 
     # Each hypothesis has a distance attribute
     assert all(hypothesis.distance >= 0 for hypothesis in hypotheses)
@@ -78,7 +78,7 @@ def test_filtereddetections_empty_detections(predictor, updater):
     assert len(hypotheses) == 1
 
     # There is a missed detection hypothesis
-    assert any(hypothesis.measurement is None for hypothesis in hypotheses)
+    assert any(not hypothesis.measurement for hypothesis in hypotheses)
 
 
 def test_filtereddetections_no_track_metadata(predictor, updater):
@@ -108,13 +108,13 @@ def test_filtereddetections_no_track_metadata(predictor, updater):
 
     # There are 3 hypotheses - Detection 1, Detection 2, Missed Detection
     assert len(hypotheses) == 3
-    assert all((hypothesis.measurement is None) or
-               (hypothesis.measurement.metadata['MMSI'] == 12345) or
-               (hypothesis.measurement.metadata['MMSI'] == 99999)
+    assert all(not hypothesis.measurement or
+               hypothesis.measurement.metadata['MMSI'] == 12345 or
+               hypothesis.measurement.metadata['MMSI'] == 99999
                for hypothesis in hypotheses)
 
     # There is a missed detection hypothesis
-    assert any(hypothesis.measurement is None for hypothesis in hypotheses)
+    assert any(not hypothesis.measurement for hypothesis in hypotheses)
 
     # Each hypothesis has a distance attribute
     assert all(hypothesis.distance >= 0 for hypothesis in hypotheses)
@@ -151,4 +151,4 @@ def test_filtereddetections_no_matching_metadata(predictor, updater):
     assert len(hypotheses) == 1
 
     # There is a missed detection hypothesis
-    assert any(hypothesis.measurement is None for hypothesis in hypotheses)
+    assert any(not hypothesis.measurement for hypothesis in hypotheses)
