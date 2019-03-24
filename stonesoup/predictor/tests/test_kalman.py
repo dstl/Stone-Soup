@@ -128,9 +128,8 @@ def test_unscentedkalman():
     prediction = kp.predict(prior=prior,
                              timestamp=new_timestamp )
 
-
-    assert (np.array_equal(prediction.mean, eval_prediction.mean ))
-    assert (np.array_equal(prediction.covar, eval_prediction.covar ))
+    assert (np.allclose(prediction.mean, eval_prediction.mean ))
+    assert (np.allclose(prediction.covar, eval_prediction.covar ))
     assert (prediction.timestamp == new_timestamp)
 
     # TODO: Test with Control Model
