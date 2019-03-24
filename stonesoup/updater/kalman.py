@@ -4,7 +4,7 @@ import numpy as np
 
 from ..base import Property
 from .base import Updater
-from ..types import GaussianMeasurementPrediction, GaussianStateUpdate
+from ..types import GaussianMeasurementPrediction, GaussianStateUpdate, CovarianceMatrix
 from ..models import LinearGaussian
 from ..models.measurement import MeasurementModel
 from ..functions import gauss2sigma, unscented_transform
@@ -39,12 +39,13 @@ class AbstractKalmanUpdater(Updater):
         pred_meas = measurement_model.function(predicted_state.state_vector, measurement_model=measurement_model,
                                                noise=[0])
 
-        hh = self.measurement_matrix(predicted_state, measurement_model)
+        hh = self.measurement_matrix(predicted_state=predicted_state, measurement_model=measurement_model)
 
         innov_cov = hh @ predicted_state.covar @ hh.T + measurement_model.covar()
         meas_cross_cov = predicted_state.covar @ hh.T
 
-        return GaussianMeasurementPrediction(pred_meas, innov_cov, predicted_state.timestamp, meas_cross_cov)
+        return GaussianMeasurementPrediction(pred_meas, innov_cov, predicted_state.timestamp,
+                                             cross_covar=meas_cross_cov)
 
     def update(self, hypothesis, **kwargs):
         """
@@ -90,7 +91,7 @@ class KalmanUpdater(AbstractKalmanUpdater):
 
     measurement_model = Property(LinearGaussian, default=None, doc="A linear Gaussian measurement model")
 
-    def measurement_matrix(self, **kwargs):
+    def measurement_matrix(self, predicted_state=None, measurement_model=None, **kwargs):
         """
         This is straightforward Kalman so just get the Matrix from the measurement model
         :return: the measurement matrix, :math:`H_k`

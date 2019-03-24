@@ -67,7 +67,7 @@ def test_kalman(UpdaterClass, measurement_model, prediction, measurement):
     updater = UpdaterClass(measurement_model=measurement_model)
 
     # Get and assert measurement prediction
-    measurement_prediction = updater.get_measurement_prediction(prediction)
+    measurement_prediction = updater.predict_measurement(prediction)
     assert(np.allclose(measurement_prediction.mean,
                        eval_measurement_prediction.mean,
                        0, atol=1.e-14))

@@ -125,10 +125,16 @@ def test_unscentedkalman():
     kp = UnscentedKalmanPredictor(transition_model=cv )
 
     # Perform and assert state prediction
-    prediction = kp.predict( prior=prior,
+    prediction = kp.predict(prior=prior,
                              timestamp=new_timestamp )
-    assert (np.array_equal( prediction.mean, eval_prediction.mean ))
-    assert (np.array_equal( prediction.covar, eval_prediction.covar ))
+
+
+    assert (np.array_equal(prediction.mean, eval_prediction.mean ))
+    assert (np.array_equal(prediction.covar, eval_prediction.covar ))
     assert (prediction.timestamp == new_timestamp)
 
     # TODO: Test with Control Model
+
+test_kalman()
+test_extendedkalman()
+test_unscentedkalman()
