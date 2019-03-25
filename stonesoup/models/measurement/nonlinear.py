@@ -5,14 +5,123 @@ from scipy.stats import multivariate_normal
 
 from ...base import Property
 from ...types.array import StateVector, CovarianceMatrix
+from ...types.angle import Bearing, Elevation
 from ..base import NonLinearModel, GaussianModel
 from .base import MeasurementModel
 from ...functions import cart2pol, cart2sphere, cart2angles, rotx, roty, rotz
 
 
-class RangeBearingElevationGaussianToCartesian(MeasurementModel,
-                                               NonLinearModel,
-                                               GaussianModel):
+class NonLinearGaussianMeasurement(MeasurementModel,
+                                   NonLinearModel,
+                                   GaussianModel):
+    r"""This class combines the MeasurementModel, NonLinearModel and \
+    GaussianModel classes. It is not meant to be instantiated directly \
+    but subclasses should be derived from this class.
+    """
+    noise_covar = Property(CovarianceMatrix, doc="Noise covariance")
+    rotation_offset = Property(
+        StateVector, default=StateVector(sp.array([[0], [0], [0]])),
+        doc="A 3x1 array of angles (rad), specifying the clockwise rotation\
+            around each Cartesian axis in the order :math:`x,y,z`.\
+            The rotation angles are positive if the rotation is in the \
+            counter-clockwise direction when viewed by an observer looking\
+            along the respective rotation axis, towards the origin.")
+
+    def covar(self, **kwargs):
+        """Returns the measurement model noise covariance matrix.
+
+        Returns
+        -------
+        :class:`~.CovarianceMatrix` of shape\
+        (:py:attr:`~ndim_meas`, :py:attr:`~ndim_meas`)
+            The measurement noise covariance.
+        """
+
+        return self.noise_covar
+
+    def pdf(self, meas_vec, state_vec, **kwargs):
+        r""" Measurement pdf/likelihood evaluation function
+
+        Evaluates the pdf/likelihood of the (set of) measurement vector(s)
+        ``meas_vec``, given the (set of) state vector(s) ``state_vec``.
+
+        In mathematical terms, this can be written as:
+
+        .. math::
+
+            p(\vec{y}_t | \vec{x}_t) = \mathcal{N}(\vec{y}_t; \vec{x}_t, R)
+
+        Parameters
+        ----------
+        meas_vec : :class:`~.StateVector`
+            A measurement
+        state_vec : :class:`~.StateVector`
+            A state
+
+        Returns
+        -------
+        :class:`float`
+            The likelihood of ``meas``, given ``state``
+        """
+
+        likelihood = multivariate_normal.pdf(
+            meas_vec.T,
+            mean=(self.function(state_vec, 0)).ravel(),
+            cov=self.covar()
+        )
+        return likelihood
+
+    def rvs(self, num_samples=1, **kwargs):
+        r""" Model noise/sample generation function
+
+        Generates noise samples from the measurement model.
+
+        In mathematical terms, this can be written as:
+
+        .. math::
+
+            \vec{v}_t \sim \mathcal{N}(0,R)
+
+        Parameters
+        ----------
+        num_samples: scalar, optional
+            The number of samples to be generated (the default is 1)
+
+        Returns
+        -------
+        2-D array of shape (:py:attr:`~ndim_meas`, ``num_samples``)
+            A set of Np samples, generated from the model's noise
+            distribution.
+        """
+
+        noise = multivariate_normal.rvs(
+            sp.zeros(self.ndim_meas), self.covar(), num_samples)
+
+        if num_samples == 1:
+            return noise.reshape((-1, 1))
+        else:
+            return noise.T
+
+    @property
+    def _rotation_matrix(self):
+        """_rotation_matrix getter method
+
+        Calculates and returns the (3D) axis rotation matrix.
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape (3, 3)
+            The model (3D) rotation matrix.
+        """
+
+        theta_x = -self.rotation_offset[0, 0]
+        theta_y = -self.rotation_offset[1, 0]
+        theta_z = -self.rotation_offset[2, 0]
+
+        return rotz(theta_z)@roty(theta_y)@rotx(theta_x)
+
+
+class RangeBearingElevationGaussianToCartesian(NonLinearGaussianMeasurement):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of bearing \
     (:math:`\phi`), elevation (:math:`\theta`) and range (:math:`r`), with \
@@ -72,18 +181,10 @@ class RangeBearingElevationGaussianToCartesian(MeasurementModel,
 
     """  # noqa:E501
 
-    noise_covar = Property(CovarianceMatrix, doc="Noise covariance")
     translation_offset = Property(
         StateVector, default=StateVector(sp.array([[0], [0], [0]])),
         doc="A 3x1 array specifying the Cartesian origin offset in terms of :math:`x,y,z`\
             coordinates.")
-    rotation_offset = Property(
-        StateVector, default=StateVector(sp.array([[0], [0], [0]])),
-        doc="A 3x1 array of angles (rad), specifying the clockwise rotation\
-            around each Cartesian axis in the order :math:`x,y,z`.\
-            The rotation angles are positive if the rotation is in the \
-            counter-clockwise direction when viewed by an observer looking\
-            along the respective rotation axis, towards the origin.")
 
     @property
     def ndim_meas(self):
@@ -96,24 +197,6 @@ class RangeBearingElevationGaussianToCartesian(MeasurementModel,
         """
 
         return 3
-
-    @property
-    def _rotation_matrix(self):
-        """_rotation_matrix getter method
-
-        Calculates and returns the (3D) axis rotation matrix.
-
-        Returns
-        -------
-        :class:`numpy.ndarray` of shape (3, 3)
-            The model (3D) rotation matrix.
-        """
-
-        theta_x = -self.rotation_offset[0, 0]
-        theta_y = -self.rotation_offset[1, 0]
-        theta_z = -self.rotation_offset[2, 0]
-
-        return rotz(theta_z)@roty(theta_y)@rotx(theta_x)
 
     def function(self, state_vector, noise=None, **kwargs):
         r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
@@ -144,88 +227,18 @@ class RangeBearingElevationGaussianToCartesian(MeasurementModel,
         # Convert to Spherical
         rho, phi, theta = cart2sphere(*xyz_rot[:, 0])
 
-        return sp.array([[theta],
-                         [phi],
+        return sp.array([[Elevation(theta)],
+                         [Bearing(phi)],
                          [rho]]) + noise
 
-    def covar(self, **kwargs):
-        """Returns the measurement model noise covariance matrix.
-
-        Returns
-        -------
-        :class:`~.CovarianceMatrix` of shape\
-        (:py:attr:`~ndim_meas`, :py:attr:`~ndim_meas`)
-            The measurement noise covariance.
-        """
-
-        return self.noise_covar
-
     def rvs(self, num_samples=1, **kwargs):
-        r""" Model noise/sample generation function
-
-        Generates noise samples from the measurement model.
-
-        In mathematical terms, this can be written as:
-
-        .. math::
-
-            \vec{v}_t \sim \mathcal{N}(0,R)
-
-        Parameters
-        ----------
-        num_samples: scalar, optional
-            The number of samples to be generated (the default is 1)
-
-        Returns
-        -------
-        2-D array of shape (:py:attr:`~ndim_meas`, ``num_samples``)
-            A set of Np samples, generated from the model's noise
-            distribution.
-        """
-
-        noise = multivariate_normal.rvs(
-            sp.zeros(self.ndim_meas), self.covar(), num_samples)
-
-        if num_samples == 1:
-            return noise.reshape((-1, 1))
-        else:
-            return noise.T
-
-    def pdf(self, meas_vec, state_vec, **kwargs):
-        r""" Measurement pdf/likelihood evaluation function
-
-        Evaluates the pdf/likelihood of the (set of) measurement vector(s)
-        ``meas_vec``, given the (set of) state vector(s) ``state_vec``.
-
-        In mathematical terms, this can be written as:
-
-        .. math::
-
-            p(\vec{y}_t | \vec{x}_t) = \mathcal{N}(\vec{y}_t; \vec{x}_t, R)
-
-        Parameters
-        ----------
-        meas_vec : :class:`~.StateVector`
-            A measurement
-        state_vec : :class:`~.StateVector`
-            A state
-
-        Returns
-        -------
-        :class:`float`
-            The likelihood of ``meas``, given ``state``
-        """
-
-        likelihood = multivariate_normal.pdf(
-            meas_vec.T,
-            mean=(self.function(state_vec, 0)).ravel(),
-            cov=self.covar()
-        )
-        return likelihood
+        out = super().rvs(num_samples, **kwargs)
+        out = sp.array([[Elevation(0.)], [Bearing(0.)], [0.]]) + out
+        return out
 
 
 class RangeBearingGaussianToCartesian(
-        RangeBearingElevationGaussianToCartesian):
+        NonLinearGaussianMeasurement):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of bearing \
     (:math:`\phi`) and range (:math:`r`), with Gaussian noise in each dimension.
@@ -280,7 +293,6 @@ class RangeBearingGaussianToCartesian(
 
     """  # noqa:E501
 
-    noise_covar = Property(CovarianceMatrix, doc="Noise covariance")
     translation_offset = Property(
         StateVector, default=StateVector(sp.array([[0], [0]])),
         doc="A 2x1 array specifying the origin offset in terms of :math:`x,y`\
@@ -331,10 +343,15 @@ class RangeBearingGaussianToCartesian(
         # Covert to polar
         rho, phi = cart2pol(*xyz_rot[:2, 0])
 
-        return sp.array([[phi], [rho]]) + noise
+        return sp.array([[Bearing(phi)], [rho]]) + noise
+
+    def rvs(self, num_samples=1, **kwargs):
+        out = super().rvs(num_samples, **kwargs)
+        out = sp.array([[Bearing(0)], [0.]]) + out
+        return out
 
 
-class BearingElevationGaussianToCartesian(RangeBearingGaussianToCartesian):
+class BearingElevationGaussianToCartesian(NonLinearGaussianMeasurement):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of bearing \
     (:math:`\phi`) and elevation (:math:`\theta`) and with \
@@ -391,7 +408,6 @@ class BearingElevationGaussianToCartesian(RangeBearingGaussianToCartesian):
 
     """  # noqa:E501
 
-    noise_covar = Property(CovarianceMatrix, doc="Noise covariance")
     translation_offset = Property(
         StateVector, default=StateVector(sp.array([[0], [0], [0]])),
         doc="A 3x1 array specifying the origin offset in terms of :math:`x,y,z`\
@@ -438,5 +454,10 @@ class BearingElevationGaussianToCartesian(RangeBearingGaussianToCartesian):
         # Convert to Angles
         phi, theta = cart2angles(*xyz_rot[:, 0])
 
-        return sp.array([[theta],
-                         [phi]]) + noise
+        return sp.array([[Elevation(theta)],
+                         [Bearing(phi)]]) + noise
+
+    def rvs(self, num_samples=1, **kwargs):
+        out = super().rvs(num_samples, **kwargs)
+        out = sp.array([[Elevation(0.)], [Bearing(0.)]]) + out
+        return out

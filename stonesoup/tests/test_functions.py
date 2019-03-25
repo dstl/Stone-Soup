@@ -1,6 +1,9 @@
 import numpy as np
+from numpy import deg2rad
+from pytest import approx
 
-from stonesoup.functions import jacobian, gm_reduce_single
+from ..functions import (
+    jacobian, gm_reduce_single, mod_bearing, mod_elevation)
 
 
 def test_jacobian():
@@ -41,7 +44,7 @@ def test_jacobian2():
 
     x = np.array([[1], [2]])
     # Tolerance value to use to test if arrays are equal
-    tol = 1.0e-2
+    tol = 1.0e-5
 
     jac = jacobian(fun1d, x)
     T = np.array([2.0, 3.0])
@@ -72,3 +75,25 @@ def test_gm_reduce_single():
     assert np.array_equal(mean, np.array([[4], [5]], np.float))
     assert np.array_equal(covar, np.array([[5.675, 5.35], [5.2, 5.3375]],
                                           np.float))
+
+
+def test_bearing():
+    bearing_in = [10., 170., 190., 260., 280., 350., 705]
+    rad_in = deg2rad(bearing_in)
+
+    bearing_out = [10., 170., -170., -100., -80., -10., -15.]
+    rad_out = deg2rad(bearing_out)
+
+    for ind, val in enumerate(rad_in):
+        assert rad_out[ind] == approx(mod_bearing(val))
+
+
+def test_elevation():
+    elev_in = [10., 80., 110., 170., 190., 260., 280]
+    rad_in = deg2rad(elev_in)
+
+    elev_out = [10., 80., 70., 10., -10., -80., -80.]
+    rad_out = deg2rad(elev_out)
+
+    for ind, val in enumerate(rad_in):
+        assert rad_out[ind] == approx(mod_elevation(val))
