@@ -39,15 +39,13 @@ class KMLTrackWriter(TrackWriter):
     """
     path = Property(
         Path, doc="File to save data to. Str will be converted to Path")
-    coordinate_system = Property(CoordinateSystems, default=None)
+    coordinate_system = Property(CoordinateSystems)
     reference_point = Property([float, float, float], default=(0.0, 0.0, 0.0))
 
     def __init__(self, tracker, path, *args, **kwargs):
         if not isinstance(path, Path):
             path = Path(path)  # Ensure Path
         super().__init__(tracker, path, *args, **kwargs)
-        if (type(self.coordinate_system) is not CoordinateSystems):
-            raise TypeError("Invalid track coordinate system provided.")
         self._kml = SSKML()
 
     def write(self):
@@ -76,31 +74,29 @@ class KMLTrackWriter(TrackWriter):
 
         if (self.coordinate_system is CoordinateSystems.ENU):
             det_pos_array_lla = np.array(
-                [enu2geodetic(
-                    enu_pos[0], enu_pos[1], enu_pos[2],
-                    self.reference_point[1], self.reference_point[0],
-                    self.reference_point[2])
+                [enu2geodetic(*enu_pos, self.reference_point[1],
+                              self.reference_point[0],
+                              self.reference_point[2])
                     for enu_pos in det_pos_array])
             tks_pos_matrix_lla = []
             for tks_pos in tks_pos_matrix:
                 tks_pos_lla = np.array(
-                    [enu2geodetic(enu_pos[0], enu_pos[1],
-                                  enu_pos[2], self.reference_point[1],
+                    [enu2geodetic(*enu_pos, self.reference_point[1],
                                   self.reference_point[0],
                                   self.reference_point[2])
                      for enu_pos in tks_pos])
                 tks_pos_matrix_lla.append(tks_pos_lla)
         elif (self.coordinate_system is CoordinateSystems.ECEF):
             det_pos_array_lla = np.array(
-                [ecef2geodetic(
-                    ecef_pos[0], ecef_pos[1], ecef_pos[2],
-                    self.reference_point[1], self.reference_point[0],
-                    self.reference_point[2]) for ecef_pos in det_pos_array])
+                [ecef2geodetic(*ecef_pos, self.reference_point[1],
+                               self.reference_point[0],
+                               self.reference_point[2])
+                    for ecef_pos in det_pos_array])
             tks_pos_matrix_lla = []
             for tks_pos in tks_pos_matrix:
                 tks_pos_lla = np.array(
                     [ecef2geodetic(
-                        ecef_pos[0], ecef_pos[1], ecef_pos[2],
+                        *ecef_pos,
                         self.reference_point[1], self.reference_point[0],
                         self.reference_point[2]) for ecef_pos in tks_pos])
                 tks_pos_matrix_lla.append(tks_pos_lla)
