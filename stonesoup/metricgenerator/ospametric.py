@@ -27,10 +27,6 @@ class GOSPAMetric(MetricGenerator):
     """
     p = Property(float, doc="1<=p<infty, exponent.")
     c = Property(float, doc="c>0, cutoff distance.")
-    alpha = Property(
-        float,
-        doc="0<alpha<=2, factor for the cardinality penalty. Recommended value"
-            " 2 => Penalty on missed & false targets", default=2)
     measurement_model_truth = Property(
         MeasurementModel,
         doc="Measurement model which specifies which elements within the"
@@ -39,6 +35,10 @@ class GOSPAMetric(MetricGenerator):
         MeasurementModel,
         doc="Measurement model which specifies which elements within"
             "the truth state are to be used to calculate distance over")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.alpha = 2
 
     def compute_metric(self, manager):
         """Compute the metric using the data in the metric manager
@@ -127,36 +127,33 @@ class GOSPAMetric(MetricGenerator):
         """
 
         # Make a list of all the unique timestamps used
-        timestamps = []
-        for state in (measured_states + truth_states):
-            if state.timestamp not in timestamps:
-                timestamps.append(state.timestamp)
-        timestamps.sort()
+        # Make a sorted list of all the unique timestamps used
+        timestamps = sorted({
+            state.timestamp
+            for state in chain(measured_states, truth_states)})
 
         gospa_metrics = []
 
         for timestamp in timestamps:
-            meas_states_inst = [state for state in measured_states
-                                if state.timestamp == timestamp]
-            truth_states_inst = [state for state in truth_states
-                                 if state.timestamp == timestamp]
-
+            meas_points = [state
+                           for state in measured_states
+                           if state.timestamp == timestamp]
+            truth_points = [state
+                            for state in truth_states
+                            if state.timestamp == timestamp]
             metric, truth_to_measured_assignment = self.compute_gospa_metric(
-                meas_states_inst, truth_states_inst)
-            single_time_gospa_metric = SingleTimeMetric(
-                title='GOSPA Metric', value=metric,
-                timestamp=timestamp, generator=self)
-            gospa_metrics.append(single_time_gospa_metric)
+                    meas_points, truth_points)
+            gospa_metrics.append(metric)
 
         # If only one timestamp is present then return a SingleTimeMetric
         if len(timestamps) == 1:
             return gospa_metrics[0]
-
-        return TimeRangeMetric(title='GOSPA Metric',
-                               value=gospa_metrics,
-                               start_timestamp=min(timestamps),
-                               end_timestamp=max(timestamps),
-                               generator=self)
+        else:
+            return TimeRangeMetric(
+                title='GOSPA Metrics',
+                value=gospa_metrics,
+                time_range=TimeRange(min(timestamps), max(timestamps)),
+                generator=self)
 
     def compute_assignments(self, cost_matrix, max_iter):
         """Compute assignments using Auction Algorithm.
@@ -187,7 +184,8 @@ class GOSPAMetric(MetricGenerator):
         if m_truth == 1:
             # Corner case 1: if there is only one truth state.
             opt_cost = np.max(cost_matrix)
-            truth_to_measured[0, 0] = np.where(cost_matrix == opt_cost)[1]
+            max_cost_idx = np.where(cost_matrix == opt_cost)[1]
+            truth_to_measured[0, 0] = max_cost_idx[0]
             measured_to_truth[0, truth_to_measured[0, 0]] = 1
 
             return truth_to_measured, measured_to_truth, opt_cost
@@ -195,7 +193,8 @@ class GOSPAMetric(MetricGenerator):
         if n_measured == 1:
             # Corner case 1: if there is only one measured state.
             opt_cost = np.max(cost_matrix)
-            measured_to_truth[0, 0] = np.where(cost_matrix == opt_cost)[1]
+            max_cost_idx = np.where(cost_matrix == opt_cost)[1]
+            measured_to_truth[0, 0] = max_cost_idx[0]
             truth_to_measured[0, measured_to_truth[0, 0]] = 1
 
             return truth_to_measured, measured_to_truth, opt_cost
@@ -314,6 +313,12 @@ class GOSPAMetric(MetricGenerator):
                       Note that distance = (localisation + missed + false)^1/p
         truth_to_measured_assignment: Assignment matrix.
         """
+        timestamps = {
+            state.timestamp
+            for state in chain(truth_states, measured_states)}
+        if len(timestamps) != 1:
+            raise ValueError(
+                'All states must be from the same time to compute GOSPA')
 
         gospa_metric = {'distance': 0.0,
                         'localisation': 0.0,
@@ -395,7 +400,11 @@ class GOSPAMetric(MetricGenerator):
         gospa_metric['missed'] = -1 * gospa_metric['missed']
         gospa_metric['false'] = -1 * gospa_metric['false']
 
-        return gospa_metric, truth_to_measured_assignment
+        single_time_gospa_metric = SingleTimeMetric(
+                title='GOSPA Metric', value=gospa_metric,
+                timestamp=timestamps.pop(), generator=self)
+
+        return single_time_gospa_metric, truth_to_measured_assignment
 
 
 class OSPAMetric(GOSPAMetric):

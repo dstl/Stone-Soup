@@ -1,3 +1,4 @@
+"""GOSPA/OSPA tests."""
 import datetime
 
 import numpy as np
@@ -87,8 +88,8 @@ def test_gospametric_cost_matrix():
     assert np.array_equal(cost_matrix, test_matrix)
 
 
-def test_gospametric_compute_metric():
-    """Test GOSPA metric."""
+def test_gospametric_compute_gospa_metric():
+    """Test compute GOSPA metric."""
     num_states = 5
     generator = GOSPAMetric(
         c=10.0,
@@ -100,16 +101,64 @@ def test_gospametric_compute_metric():
                       for i in range(num_states)])
     truth_obj = GroundTruthPath([State(state_vector=[[i]], timestamp=time_now)
                                 for i in range(num_states)])
-    gospa_metric, assignment_matrix =\
+    single_time_metric, assignment_matrix =\
         generator.compute_gospa_metric(track_obj.states,
                                        truth_obj.states)
+    gospa_metric = single_time_metric.value
     assert (gospa_metric['distance'] == 0.0)
     assert (gospa_metric['localisation'] == 0.0)
     assert (gospa_metric['missed'] == 0.0)
     assert (gospa_metric['false'] == 0.0)
 
 
+def test_gospametric_computemetric():
+    """Test GOSPA compute metric."""
+    generator = GOSPAMetric(
+        c=10.0,
+        p=1,
+        measurement_model_truth=LinearGaussian(1, [0], None),
+        measurement_model_track=LinearGaussian(1, [0], None))
+    time = datetime.datetime.now()
+    # Multiple tracks and truths present at two timesteps
+    tracks = {Track(states=[State(state_vector=[[i + 0.5]], timestamp=time),
+                            State(state_vector=[[i + 1]],
+                                  timestamp=time + datetime.timedelta(
+                                  seconds=1))])
+              for i in range(5)}
+    truths = {GroundTruthPath(
+        states=[State(state_vector=[[i]], timestamp=time),
+                GroundTruthState(state_vector=[[i]],
+                                 timestamp=time + datetime.timedelta(
+                                     seconds=1))])
+              for i in range(5)}
+
+    manager = SimpleManager([generator])
+    manager.add_data([tracks, truths])
+    main_metric = generator.compute_metric(manager)
+
+    assert main_metric.title == "GOSPA Metrics"
+    assert main_metric.time_range.start_timestamp == time
+    assert main_metric.time_range.end_timestamp == time + datetime.timedelta(
+        seconds=1)
+    first_association = [i for i in main_metric.value
+                         if i.timestamp == time][0]
+    assert first_association.title == "GOSPA Metric"
+    assert first_association.timestamp == time
+    assert first_association.generator == generator
+    # In the following, distance is divided by the cardinality of
+    # of the set since GOSPA is not normalized.
+    assert first_association.value['distance'] / 5. == 0.5
+    second_association = [
+        i for i in main_metric.value if
+        i.timestamp == time + datetime.timedelta(seconds=1)][0]
+    assert second_association.title == "GOSPA Metric"
+    assert second_association.timestamp == time + datetime.timedelta(seconds=1)
+    assert second_association.generator == generator
+    assert second_association.value['distance'] / 5. == 1
+
+
 def test_ospametric_extractstates():
+    """Test OSPA metric extract states."""
     generator = OSPAMetric(
         c=10,
         p=1,
@@ -135,6 +184,7 @@ def test_ospametric_extractstates():
 
 
 def test_ospametric_computecostmatrix():
+    """Test OSPA metric compute cost matrix."""
     generator = OSPAMetric(
         c=10,
         p=1,
@@ -159,6 +209,7 @@ def test_ospametric_computecostmatrix():
 
 
 def test_ospametric_computeospadistance():
+    """Test OSPA metric compute OSPA distance."""
     generator = OSPAMetric(
         c=10,
         p=1,
@@ -182,6 +233,7 @@ def test_ospametric_computeospadistance():
 
 
 def test_ospametric_computemetric():
+    """Test OSPA compute metric."""
     generator = OSPAMetric(
         c=10,
         p=1,
