@@ -71,7 +71,7 @@ def jacobian(fun, x):
         F2[:, [col]] = fun(X1[:, [col]])
 
     jac = np.divide(F2-f1, delta)
-    return jac
+    return jac.astype(np.float_)
 
 
 def gauss2sigma(mean, covar, alpha=1.0, beta=2.0, kappa=None):
