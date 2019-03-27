@@ -38,7 +38,7 @@ class DistanceHypothesiser(Hypothesiser):
             prediction = self.predictor.predict(
                 track.state, timestamp=detection.timestamp)
             measurement_prediction = self.updater.get_measurement_prediction(
-                prediction)
+                prediction, detection.measurement_model)
             distance = self.measure(measurement_prediction, detection)
 
             hypotheses.append(

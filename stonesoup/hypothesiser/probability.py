@@ -115,6 +115,8 @@ class PDAHypothesiser(Hypothesiser):
                 probability=probability))
 
         for detection in detections:
+            measurement_prediction = self.updater.get_measurement_prediction(
+                prediction, detection.measurement_model)
 
             # hypothesis that track and given detection are associated
             log_pdf = mn.logpdf(detection.state_vector.ravel(),

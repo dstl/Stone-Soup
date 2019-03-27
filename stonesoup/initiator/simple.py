@@ -35,11 +35,11 @@ class SinglePointInitiator(GaussianInitiator):
         """
 
         updater = KalmanUpdater(self.measurement_model)
-        measurement_prediction = updater.get_measurement_prediction(
-            self.prior_state)
 
         tracks = set()
         for detection in unassociated_detections:
+            measurement_prediction = updater.get_measurement_prediction(
+                self.prior_state, detection.measurement_model)
             track_state = updater.update(SingleHypothesis(
                 self.prior_state, detection, measurement_prediction))
             track = Track([track_state])
