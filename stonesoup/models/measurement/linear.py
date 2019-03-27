@@ -9,6 +9,7 @@ from ..base import LinearModel, GaussianModel
 from .base import MeasurementModel
 
 
+# TODO Probably should call this LinearGaussianMeasurementModel
 class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
     r"""This is a class implementation of a time-invariant 1D
     Linear-Gaussian Measurement Model.
@@ -76,7 +77,6 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
 
         if noise is None:
             noise = sp.zeros(model_out.shape)
-            #noise = self.rvs() # AAAAAAGHHHH!
 
         return model_out + noise
 

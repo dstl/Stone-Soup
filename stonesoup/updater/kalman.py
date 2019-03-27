@@ -10,20 +10,24 @@ from ..models.measurement import MeasurementModel
 from ..functions import gauss2sigma, unscented_transform
 
 
-class AbstractKalmanUpdater(Updater):
+class KalmanUpdater(Updater):
     """
-    An abstract class which embodies much of the functional infrastructure inherent in Kalman-type updaters;
-    will allow daughter classes merely to specify the measurement model h(x)
+    An class which embodies Kalman-type updaters; also a class which performs measurement update step as in the
+    standard Kalman Filter. Therefore assumes the measurement matrix function of the measurement_model returns a
+    matrix (H). Daughter classes can overwrite to specify the measurement model h(x)
 
-    Note that this isn't an abstract class as such. It will execute the functions
     """
 
     # TODO at present this will throw an error if a measurement model is not specified in either individual
     # TODO measurements or the Updater object
-    measurement_model = Property(MeasurementModel, default=None, doc="The measurement model to be used")
+    measurement_model = Property(LinearGaussian, default=None, doc="A linear Gaussian measurement model" )
 
-    def measurement_matrix(self, predicted_state, measurement_model=None, **kwargs):
-        pass
+    def measurement_matrix(self, predicted_state=None, measurement_model=None, **kwargs):
+        """
+        This is straightforward Kalman so just get the Matrix from the measurement model
+        :return: the measurement matrix, :math:`H_k`
+        """
+        return self.measurement_model.matrix()
 
     def predict_measurement(self, predicted_state, measurement_model=None, **kwargs):
         """
@@ -36,8 +40,7 @@ class AbstractKalmanUpdater(Updater):
         if measurement_model is None:
             measurement_model = self.measurement_model
 
-        pred_meas = measurement_model.function(predicted_state.state_vector, measurement_model=measurement_model,
-                                               noise=[0])
+        pred_meas = measurement_model.function(predicted_state.state_vector, noise=[0])
 
         hh = self.measurement_matrix(predicted_state=predicted_state, measurement_model=measurement_model)
 
@@ -80,26 +83,7 @@ class AbstractKalmanUpdater(Updater):
         return GaussianStateUpdate(posterior_mean, posterior_covariance, hypothesis, hypothesis.measurement.timestamp)
 
 
-class KalmanUpdater(AbstractKalmanUpdater):
-    """
-    Kalman Updater
-
-    Perform measurement update step as in the standard Kalman Filter. Assumes the measurement matrix function of the
-    measurement_model returns a matrix (H).
-
-    """
-
-    measurement_model = Property(LinearGaussian, default=None, doc="A linear Gaussian measurement model")
-
-    def measurement_matrix(self, predicted_state=None, measurement_model=None, **kwargs):
-        """
-        This is straightforward Kalman so just get the Matrix from the measurement model
-        :return: the measurement matrix, :math:`H_k`
-        """
-        return self.measurement_model.matrix()
-
-
-class ExtendedKalmanUpdater(AbstractKalmanUpdater):
+class ExtendedKalmanUpdater(KalmanUpdater):
     """
     The EKF version of the Kalman Updater
 
@@ -107,6 +91,8 @@ class ExtendedKalmanUpdater(AbstractKalmanUpdater):
     matrix H accessible via the :attr:`jacobian()` function.
 
     """
+    # TODO Enforce the fact that this version of MeasurementModel must be capable of executing :attr:`jacobian()`
+    measurement_model = Property(MeasurementModel, default=None, doc="The measurement model to be used" )
 
     def measurement_matrix(self, predicted_state, measurement_model=None, **kwargs):
         """
@@ -124,13 +110,15 @@ class ExtendedKalmanUpdater(AbstractKalmanUpdater):
             return measurement_model.jacobian(predicted_state.state_vector)
 
 
-class UnscentedKalmanUpdater(AbstractKalmanUpdater):
+class UnscentedKalmanUpdater(KalmanUpdater):
     """Unscented Kalman Updater
 
     Perform measurement update step in the Unscented Kalman Filter. The predict measurement step uses the unscented
     transform to estimate a Gauss-distributed predicted measurement. This is then updated via the standard Kalman
     updater.
     """
+    # Can be linear and non-differentiable
+    measurement_model = Property( MeasurementModel, default=None, doc="The measurement model to be used" )
 
     alpha = Property(float, default=0.5,
                      doc="Primary sigma point spread scalling parameter.\
