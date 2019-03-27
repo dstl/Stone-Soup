@@ -8,7 +8,7 @@ from stonesoup.base import Property
 from .base import Base
 
 
-class Measures(Base):
+class Measure(Base):
     """Measure base type
 
     A measure provides a means to assess the seperation between two
@@ -17,14 +17,14 @@ class Measures(Base):
     mapping = Property(
         np.array,
         default=None,
-        doc="Mapping array which specifies which elements within the state \
-             vectors are to be assessed as part of the measure"
+        doc="Mapping array which specifies which elements within the"
+            " state vectors are to be assessed as part of the measure"
     )
 
     @abstractmethod
     def __call__(self, state1, state2):
         r"""
-        Compute the distance between a pair of :class:`~.State`
+        Compute the distance between a pair of :class:`~.State` objects
 
         Parameters
         ----------
@@ -34,28 +34,27 @@ class Measures(Base):
         Returns
         -------
         float
-            distance measure between input :class:`~.State`
+            distance measure between a pair of input :class:`~.State` objects
 
         """
         return NotImplementedError
 
 
-class Euclidean(Measures):
-    r"""Euclidean distance measure\
+class Euclidean(Measure):
+    r"""Euclidean distance measure
 
-    This measure returns the euclidean distance between a pair of
-    :class:`~StateVector` information within a pair of :class:`~.State`\
-    objects. \
+    This measure returns the Euclidean distance between a pair of
+    :class:`~.State` objects.
 
-    The Euclidean distance is defined as:
+    The Euclidean distance between a pair of state vectors :math:`u` and
+    :math:`v` is defined as:
 
     .. math::
-         \sqrt{\sum_{n=1}^{N}{(u_i - v_i)^2}}
+         \sqrt{\sum_{i=1}^{N}{(u_i - v_i)^2}}
 
     """
     def __call__(self, state1, state2):
-        r"""Calculate the Euclidean distance between state vector elements
-        indicated by the mapping.
+        r"""Calculate the Euclidean distance between a pair of state vectors
 
         Parameters
         ----------
@@ -76,34 +75,33 @@ class Euclidean(Measures):
             return distance.euclidean(state1.state_vector, state2.state_vector)
 
 
-class EuclideanWeighted(Measures):
-    r"""Weighted Euclidean distance measure\
+class EuclideanWeighted(Measure):
+    r"""Weighted Euclidean distance measure
 
-    This measure returns the euclidean distance between\
-    the :class:`~StateVector` information within a pair of :class:`~.State`\
-    objects, taking into account a specified weighting for the elements under\
-    consideration.
+    This measure returns the Euclidean distance between a pair of
+    :class:`~.State` objects, taking into account a specified weighting.
 
-    The Weighted Euclidean distance is defined as:
+    The Weighted Euclidean distance between a pair of state vectors :math:`u`
+    and :math:`v` with weighting :math:`w` is defined as:
 
     .. math::
-       \sqrt{\sum_{n=1}^{N}{w_i|(u_i - v_i)^2}}
+       \sqrt{\sum_{i=1}^{N}{w_i|(u_i - v_i)^2}}
 
     Note
     ----
-    The EuclideanWeighted object has a property called weighting which allows \
-    the method to be called repeatably on different pairs of state vectors. If\
-    different weightings need to be used then currently multiple objects must\
-    be specified
+    The EuclideanWeighted object has a property called weighting, which
+    allows the method to be called on different pairs of states.
+    If different weightings need to be used then multiple
+    :class:`Measure` objects must be created with the specific weighting
 
     """
     weighting = Property(
         [np.array],
-        doc="Weighting vector for the euclidean calculation")
+        doc="Weighting vector for the Euclidean calculation")
 
     def __call__(self, state1, state2):
-        r"""Calculate the weighted Euclidean distance between state vector
-        elements indicated by the mapping
+        r"""Calculate the weighted Euclidean distance between a pair of state
+        objects
 
         Parameters
         ----------
@@ -113,7 +111,8 @@ class EuclideanWeighted(Measures):
         Returns
         -------
         dist : float
-            Weighted euclidean distance between two input :class:`~.State`
+            Weighted euclidean distance between two input
+            :class:`~.State` objects
 
         """
         if self.mapping is not None:
@@ -126,25 +125,23 @@ class EuclideanWeighted(Measures):
                                       self.weighting)
 
 
-class Mahalanobis(Measures):
+class Mahalanobis(Measure):
     r"""Mahalanobis distance measure
 
     This measure returns the Mahalanobis distance between a pair of
-     :class:`~.State` objects taking into account the distribution (i.e. the
-     :class:`~.CovarianceMatrix`) of the first :class:`.State`
+    :class:`~.State` objects taking into account the distribution (i.e.
+    the :class:`~.CovarianceMatrix`) of the first :class:`.State` object
 
-    The Mahalanobis distance is defined as:
+    The Mahalanobis distance between a distribution with mean :math:`\mu` and
+    Covariance matrix :math:`\Sigma` and a point :math:`x` is defined as:
 
     .. math::
-        D_{M}({x}) = \sqrt{( {x - y} * \Sigma^{-1} * {x - y}^T )}
+            \sqrt{( {\mu - x})  \Sigma^{-1}  ({\mu - x}^T )}
 
-    Note
-    ----
-    The Covariance used in this calculation is taken from the first state
 
     """
     def __call__(self, state1, state2):
-        r"""Calculate the Mahalanobis distance between 2 state elements
+        r"""Calculate the Mahalanobis distance between a pair of state objects
 
         Parameters
         ----------
@@ -154,7 +151,8 @@ class Mahalanobis(Measures):
         Returns
         -------
         float
-            Mahalanobis distance between two input :class:`~.State`
+            Mahalanobis distance between a pair of input :class:`~.State`
+            objects
 
         """
         if self.mapping is not None:
@@ -174,21 +172,25 @@ class Mahalanobis(Measures):
         return distance.mahalanobis(u, v, vi)
 
 
-class SquaredHellinger(Measures):
-    r"""Squared Hellinger distance measure
+class SquaredGaussianHellinger(Measure):
+    r"""Squared Gaussian Hellinger distance measure
 
     This measure returns the Squared Hellinger distance between a pair of
-     :class:`~.GaussianState` multivariate objects.
+    :class:`~.GaussianState` multivariate objects.
 
     The Squared Hellinger distance between two multivariate normal
-    distributions :math:`P ~ N(\mu_1,\Sigma_1)` and
-    :math:`Q ~ N(\mu_2,\Sigma_2)` is defined as:
+    distributions :math:`P \sim N(\mu_1,\Sigma_1)` and
+    :math:`Q \sim N(\mu_2,\Sigma_2)` is defined as:
 
     .. math::
-        H^2(P,Q) = 1 - \sqrt{det(\Sigma_1)^{1/4}det(\Sigma_2)^{1/4}
-        /det(\Sigma_1+\Sigma_2/2)^{1/2}}
-        exp{-1/8(\mu_1-\mu_2)^T(\Sigma_1+\Sigma_2/2)^-1(\mu_1-\mu_2)}
+            1 - \sqrt{\frac{det(\Sigma_1)^{1/4}det(\Sigma_2)^{1/4}}
+            {det(\Sigma_1+\Sigma_2/2)^{1/2}}}
+            exp\bigg(\frac{-1}{8}(\mu_1-\mu_2)^T
+            (\frac{\Sigma_1+\Sigma_2}{2})^{-1}(\mu_1-\mu_2)\bigg)
 
+    Note
+    ----
+    This distance is bounded between 0 and :math:`\sqrt{2}`
     """
     def __call__(self, state1, state2):
         r""" Calculate the Squared Hellinger distance multivariate normal
@@ -205,9 +207,7 @@ class SquaredHellinger(Measures):
             Squared Hellinger distance between two input
             :class:`~.GaussianState`
 
-        Note
-        ----
-        This distance is bounded between 0 and :math:`\sqrt{2}`
+
 
         """
         if self.mapping is not None:
@@ -243,21 +243,25 @@ class SquaredHellinger(Measures):
         return squared_hellinger
 
 
-class Hellinger(SquaredHellinger):
-    r"""Hellinger distance measure
+class GaussianHellinger(SquaredGaussianHellinger):
+    r"""Gaussian Hellinger distance measure
 
     This measure returns the Hellinger distance between a pair of
-     :class:`~.GaussianState` multivariate objects.
+    :class:`~.GaussianState` multivariate objects.
 
     The Hellinger distance between two multivariate normal distributions
-    :math:`P ~ N(\mu_1,\Sigma_1)` and :math:`Q ~ N(\mu_2,\Sigma_2)` is defined
-    as:
+    :math:`P \sim N(\mu_1,\Sigma_1)` and :math:`Q \sim N(\mu_2,\Sigma_2)`
+    is defined as:
 
     .. math::
-        H(P,Q) = \sqrt{1 - \sqrt{det(\Sigma_1)^{1/4}det(\Sigma_2)^{1/4}
-        /det(\Sigma_1+\Sigma_2/2)^{1/2}}
-        exp{-1/8(\mu_1-\mu_2)^T(\Sigma_1+\Sigma_2/2)^-1(\mu_1-\mu_2)}}
+            \sqrt{1 - \sqrt{\frac{det(\Sigma_1)^{1/4}det(\Sigma_2)^{1/4}}
+            {det(\Sigma_1+\Sigma_2/2)^{1/2}}}
+            exp\bigg(\frac{-1}{8}(\mu_1-\mu_2)^T
+            (\frac{\Sigma_1+\Sigma_2}{2})^{-1}(\mu_1-\mu_2)\bigg)}
 
+    Note
+    ----
+    This distance is bounded between 0 and 1
     """
     def __call__(self, state1, state2):
         r""" Calculate the Hellinger distance between 2 state elements
@@ -272,9 +276,6 @@ class Hellinger(SquaredHellinger):
         float
             Hellinger distance between two input :class:`~.GaussianState`
 
-        Note
-        ----
-        This distance is bounded between 0 and 1
 
         """
         return np.sqrt(super().__call__(state1, state2))
