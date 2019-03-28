@@ -14,27 +14,42 @@ class KalmanUpdater(Updater):
     """
     An class which embodies Kalman-type updaters; also a class which performs measurement update step as in the
     standard Kalman Filter. Therefore assumes the measurement matrix function of the measurement_model returns a
-    matrix (H). Daughter classes can overwrite to specify the measurement model h(x)
+    matrix (:math:`H_k`). Daughter classes can overwrite to specify the measurement model :math:`h(\mathbf{x})`.
+    The observation model assumes
+
+    .. math::
+
+        \mathbf{z} = h_k(\mathbf{x}) + \sigma_k
+
+    with the specific case of the Kalman updater having :math:`h_k(\mathbf{x}) = H_k \mathbf{x}` and
+    :math:`\sigma_k = \mathcal{N}(0,R_k)`.
 
     """
 
     # TODO at present this will throw an error if a measurement model is not specified in either individual
     # TODO measurements or the Updater object
-    measurement_model = Property(LinearGaussian, default=None, doc="A linear Gaussian measurement model" )
+    measurement_model = Property(LinearGaussian, default=None, doc="A linear Gaussian measurement model. This need not "
+                                                                   "be defined if a measurement model is provided in "
+                                                                   "the measurement. If no model specified on "
+                                                                   "construction, or in the measurement, then error "
+                                                                   "will be thrown.")
 
     def measurement_matrix(self, predicted_state=None, measurement_model=None, **kwargs):
         """
         This is straightforward Kalman so just get the Matrix from the measurement model
+
         :return: the measurement matrix, :math:`H_k`
         """
         return self.measurement_model.matrix()
 
     def predict_measurement(self, predicted_state, measurement_model=None, **kwargs):
         """
-        :param predicted_state: The predicted state :math:`\hat{\mathbf{x}}_{k|k-1}`
+        Predict the mean measurement implied by the predicted state
+
+        :param predicted_state: The predicted state :math:`\mathbf{x}_{k|k-1}`
         :param measurement_model: The measurement model. If omitted the model in the updater object is used
         :param kwargs:
-        :return: A Gaussian measurement prediction, :math:`\hat{\mathbf{z}}_{k}`
+        :return: A Gaussian measurement prediction, :math:`\mathbf{z}_{k|k-1}`
         """
         # If a measurement model is not specified then use the one that's native to the updater
         if measurement_model is None:
@@ -52,7 +67,7 @@ class KalmanUpdater(Updater):
 
     def update(self, hypothesis, **kwargs):
         """
-        The Kalman-type update method
+        The Kalman update method
 
         :param hypothesis: the predicted measurement-measurement association hypothesis
         :param kwargs:
@@ -87,20 +102,27 @@ class ExtendedKalmanUpdater(KalmanUpdater):
     """
     The EKF version of the Kalman Updater
 
-    The measurement model may be non-linear but must be differentiable and return the linearisation of h() via the
-    matrix H accessible via the :attr:`jacobian()` function.
+    The measurement model may be non-linear but must be differentiable and return the linearisation of
+    :math:`h(\mathbf{x})` via the matrix :math:`H` accessible via the :attr:`jacobian()` function.
 
     """
     # TODO Enforce the fact that this version of MeasurementModel must be capable of executing :attr:`jacobian()`
-    measurement_model = Property(MeasurementModel, default=None, doc="The measurement model to be used" )
+    measurement_model = Property(MeasurementModel, default=None, doc="A measurement model. This need not be defined, "
+                                                                     "if a measurement model is provided in the "
+                                                                     "measurement. If no model specified on "
+                                                                     "construction, or in the measurement, then error "
+                                                                     "will be thrown. Must possess :attr:`jacobian()` "
+                                                                     "function.")
 
     def measurement_matrix(self, predicted_state, measurement_model=None, **kwargs):
         """
+        Return the (approximate via :attr:`jacobian()`) measurement matrix
 
-        :param predicted_state: the predicted state, :math:`\hat{\mathbf{x}}_{k|k-1}`
-        :param measurement_model: the measurement model. If `None` defaults to the model defined in updater
+        :param predicted_state: the predicted state, :math:`\mathbf{x}_{k|k-1}`
+        :param measurement_model: the measurement model. If :attr:`None` defaults to the model defined in updater
         :return: the measurement matrix, :math:`H_k`
         """
+
         if measurement_model is None:
             measurement_model = self.measurement_model
 
@@ -113,15 +135,19 @@ class ExtendedKalmanUpdater(KalmanUpdater):
 class UnscentedKalmanUpdater(KalmanUpdater):
     """Unscented Kalman Updater
 
-    Perform measurement update step in the Unscented Kalman Filter. The predict measurement step uses the unscented
-    transform to estimate a Gauss-distributed predicted measurement. This is then updated via the standard Kalman
-    updater.
+    Perform measurement update step in the Unscented Kalman Filter. The :attr:`predict_measurement` function uses the
+    unscented transform to estimate a Gauss-distributed predicted measurement. This is then updated via the standard
+    Kalman update equations.
     """
     # Can be linear and non-differentiable
-    measurement_model = Property( MeasurementModel, default=None, doc="The measurement model to be used" )
+    measurement_model = Property(MeasurementModel, default=None, doc="The measurement model to be used. This need not "
+                                                                      "be defined, if a measurement model is provided "
+                                                                      "in the measurement. If no model specified on "
+                                                                      "construction, or in the measurement, then error "
+                                                                      "will be thrown." )
 
     alpha = Property(float, default=0.5,
-                     doc="Primary sigma point spread scalling parameter.\
+                     doc="Primary sigma point spread scaling parameter.\
                          Typically 1e-3.")
     beta = Property(float, default=2,
                     doc="Used to incorporate prior knowledge of the distribution.\
