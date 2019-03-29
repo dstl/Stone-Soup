@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-from ...types import GaussianStatePrediction, GaussianMeasurementPrediction
+from ...types.prediction import (
+    GaussianMeasurementPrediction, GaussianStatePrediction)
 
 
 @pytest.fixture()

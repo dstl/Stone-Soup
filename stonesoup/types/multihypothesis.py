@@ -3,7 +3,10 @@ from collections.abc import Sized, Iterable, Container
 import numbers
 
 from ..base import Property
-from ..types import Type, SingleHypothesis, Detection, Prediction
+from ..types import Type
+from ..types.detection import Detection
+from ..types.hypothesis import SingleHypothesis
+from ..types.prediction import Prediction
 from .numeric import Probability
 from .detection import MissedDetection
 

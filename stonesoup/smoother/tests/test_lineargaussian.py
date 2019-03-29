@@ -4,15 +4,15 @@ import datetime
 
 import numpy as np
 
-from stonesoup.types.detection import Detection
-from stonesoup.types.hypothesis import SingleHypothesis
-from stonesoup.types.state import GaussianState
-from stonesoup.types.track import Track
-from stonesoup.models.transition.linear import ConstantVelocity
-from stonesoup.models.measurement.linear import LinearGaussian
-from stonesoup.predictor.kalman import KalmanPredictor
-from stonesoup.updater.kalman import KalmanUpdater
-from stonesoup.smoother.lineargaussian import Backward
+from ...types.detection import Detection
+from ...types.hypothesis import SingleHypothesis
+from ...types.state import GaussianState
+from ...types.track import Track
+from ...models.transition.linear import ConstantVelocity
+from ...models.measurement.linear import LinearGaussian
+from ...predictor.kalman import KalmanPredictor
+from ...updater.kalman import KalmanUpdater
+from ...smoother.lineargaussian import Backward
 
 
 def test_backwards_smoother():

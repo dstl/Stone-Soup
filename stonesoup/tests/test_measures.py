@@ -4,10 +4,10 @@ import datetime
 import numpy as np
 from scipy.spatial import distance
 
-import stonesoup.measures as measures
+from .. import measures
 
-from stonesoup.types.array import StateVector, CovarianceMatrix
-from stonesoup.types.state import GaussianState
+from ..types.array import StateVector, CovarianceMatrix
+from ..types.state import GaussianState
 
 # Create a time stamp to use for both states
 t = datetime.datetime.now()

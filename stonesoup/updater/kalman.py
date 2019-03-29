@@ -4,8 +4,9 @@ import numpy as np
 
 from .base import Updater
 from ..base import Property
-from ..types import (GaussianMeasurementPrediction,
-                     GaussianStateUpdate, SingleHypothesis)
+from ..types.hypothesis import SingleHypothesis
+from ..types.prediction import GaussianMeasurementPrediction
+from ..types.update import GaussianStateUpdate
 from ..functions import gauss2sigma, unscented_transform
 
 

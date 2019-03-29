@@ -3,7 +3,6 @@ from scipy.stats import multivariate_normal
 
 from .base import Initiator, GaussianInitiator
 from ..base import Property
-from ..updater import KalmanUpdater
 from ..models.measurement import MeasurementModel
 from ..types.hypothesis import SingleHypothesis
 from ..types.numeric import Probability
@@ -11,6 +10,7 @@ from ..types.particle import Particle
 from ..types.state import GaussianState
 from ..types.track import Track
 from ..types.update import GaussianStateUpdate, ParticleStateUpdate
+from ..updater.kalman import KalmanUpdater
 
 
 class SinglePointInitiator(GaussianInitiator):

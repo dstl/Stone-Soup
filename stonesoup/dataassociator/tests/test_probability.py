@@ -5,7 +5,9 @@ import pytest
 import numpy as np
 
 from ..probability import SimplePDA, JPDA
-from ...types import Track, Detection, GaussianState, MissedDetection
+from ...types.detection import Detection, MissedDetection
+from ...types.state import GaussianState
+from ...types.track import Track
 
 
 @pytest.fixture(params=[SimplePDA, JPDA])

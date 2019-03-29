@@ -3,8 +3,9 @@ import datetime
 
 import numpy as np
 
-from stonesoup.types import Track, GaussianState
-from stonesoup.deleter import CovarianceBasedDeleter
+from ...types.state import GaussianState
+from ...types.track import Track
+from ..error import CovarianceBasedDeleter
 
 
 def test_cbd():

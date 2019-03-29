@@ -7,9 +7,8 @@ generated, rather than read from a file, etc. They should come with various
 configuration options to allow customisation of the simulation.
 """
 
-from .base import (  # noqa:F401
+from .base import (
     Simulator, DetectionSimulator, GroundTruthSimulator, SensorSimulator)
-from .simple import *  # noqa:F401,F403
 
-__all__ = ['Simulator']
-__all__.extend(subclass_.__name__ for subclass_ in Simulator.subclasses)
+__all__ = ['Simulator', 'DetectionSimulator', 'GroundTruthSimulator',
+           'SensorSimulator']

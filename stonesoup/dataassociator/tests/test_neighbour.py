@@ -5,7 +5,9 @@ import pytest
 import numpy as np
 
 from ..neighbour import NearestNeighbour, GlobalNearestNeighbour
-from ...types import Track, Detection, GaussianState
+from ...types.detection import Detection
+from ...types.state import GaussianState
+from ...types.track import Track
 
 
 @pytest.fixture(params=[NearestNeighbour, GlobalNearestNeighbour])

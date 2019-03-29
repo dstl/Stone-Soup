@@ -4,8 +4,9 @@ import datetime
 import numpy as np
 import pytest
 
-from stonesoup.types import StatePrediction, StateMeasurementPrediction, \
-    GaussianStatePrediction, GaussianMeasurementPrediction
+from ...types.prediction import (
+    StatePrediction, StateMeasurementPrediction,
+    GaussianStatePrediction, GaussianMeasurementPrediction)
 
 
 def test_stateprediction():

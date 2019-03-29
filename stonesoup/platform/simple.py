@@ -4,7 +4,7 @@ from math import cos, sin
 from scipy.linalg import expm
 
 from ..base import Property
-from ..types import StateVector
+from ..types.state import StateVector
 from ..sensor import Sensor
 from ..functions import cart2pol
 from .base import Platform

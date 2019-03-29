@@ -5,9 +5,11 @@ from ..base import Property
 from ..hypothesiser import Hypothesiser
 from ..hypothesiser.probability import PDAHypothesiser
 from ..updater import Updater
-from ..types import Probability, MissedDetection, \
-    SingleProbabilityHypothesis, ProbabilityJointHypothesis
+from ..types.detection import MissedDetection
+from ..types.hypothesis import (
+    SingleProbabilityHypothesis, ProbabilityJointHypothesis)
 from ..types.multihypothesis import MultipleHypothesis
+from ..types.numeric import Probability
 import itertools
 
 

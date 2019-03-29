@@ -4,7 +4,7 @@ import copy
 import numpy as np
 
 from .base import Smoother
-from ..types import GaussianState
+from ..types.state import GaussianState
 
 
 class Backward(Smoother):

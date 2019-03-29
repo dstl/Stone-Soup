@@ -3,11 +3,11 @@ import datetime
 import numpy as np
 import pytest
 
-from stonesoup.models import LinearGaussian
-from stonesoup.updater import KalmanUpdater
-from stonesoup.types.state import GaussianState, ParticleState
-from stonesoup.types.detection import Detection
-from stonesoup.initiator import (
+from ...models.measurement.linear import LinearGaussian
+from ...updater.kalman import KalmanUpdater
+from ...types.detection import Detection
+from ...types.state import GaussianState, ParticleState
+from ..simple import (
     SinglePointInitiator, LinearMeasurementInitiator, GaussianParticleInitiator
 )
 

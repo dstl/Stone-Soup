@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-from ...types import SingleDistanceHypothesis, \
-    GaussianStatePrediction, GaussianMeasurementPrediction
+from ...types.hypothesis import SingleDistanceHypothesis
+from ...types.prediction import (
+    GaussianMeasurementPrediction, GaussianStatePrediction)
 from ...hypothesiser.probability import PDAHypothesiser
 
 
