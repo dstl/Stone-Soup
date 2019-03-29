@@ -39,6 +39,25 @@ class KalmanPredictor(Predictor):
                                                                    "this is undefined the predictor will create a "
                                                                    "zero-effect linear :class:`~.ControlModel`." )
 
+    def __init__(self, transition_model, control_model=None, *args, **kwargs):
+        """
+        Explicitly initialise the models and check for existence of transition model, and throw an error if not
+        specified.
+        """
+        self.transition_model = transition_model
+        self.control_model = control_model
+
+        # Chuck an error if there's no transition model
+        if self.transition_model is None:
+            raise ValueError("A Predictor requires a transition model")
+
+        # If no control model insert a linear zero-effect one
+        ndims = self.transition_model.ndim_state
+        if self.control_model is None:
+            """Make a 0-effect control input"""
+            self.control_model = LinearControlModel(ndims, [], np.zeros([ndims, 1]), np.zeros([ndims, ndims]),
+                                                    np.zeros([ndims, ndims]))
+
     def transition_matrix(self, **kwargs):
         """
         Return the transition matrix
@@ -59,25 +78,7 @@ class KalmanPredictor(Predictor):
         """
         return self.transition_model.matrix(**kwargs) @ prior.state_vector
 
-    def _control_model(self):
-        """
-        Private. If the control model doesn't exist, create it as 0-effect control (warning - this may be inefficient)
-
-        :return: :class:`~.ControlModel`
-        """
-
-        ndims = self.transition_model.ndim_state
-
-        # Deal with undefined control model
-        if self.control_model is None:
-            """Make a 0-effect control input"""
-            control_model = LinearControlModel(ndims, [], np.zeros([ndims, 1]), np.zeros([ndims, ndims]),
-                                               np.zeros([ndims, ndims]))
-        else:
-            control_model = self.control_model
-
-        return control_model
-
+    @property
     def control_matrix(self, **kwargs):
         """
         Convenience function which returns the control matrix
@@ -85,7 +86,7 @@ class KalmanPredictor(Predictor):
         :param kwargs:
         :return: control matrix, :math:`B_k`
         """
-        return self._control_model().matrix()
+        return self.control_model.matrix()
 
     def _predict_over_interval(self, prior, timestamp):
         """
@@ -119,13 +120,13 @@ class KalmanPredictor(Predictor):
 
         # Prediction of the mean
         x_pred = self.transition_function(prior, time_interval=predict_over_interval) + \
-                 self._control_model().control_input()
+                 self.control_model.control_input()
 
         # As this is Kalman-like, the control model must be capable of returning a control matrix (B)
         p_pred = self.transition_matrix(prior=prior, time_interval=predict_over_interval) @ prior.covar @ \
                  self.transition_matrix(prior=prior, time_interval=predict_over_interval).T + \
                  self.transition_model.covar(time_interval=predict_over_interval) + \
-                 self.control_matrix() @ self._control_model().control_noise @ self.control_matrix().T
+                 self.control_matrix @ self.control_model.control_noise @ self.control_matrix.T
 
         return GaussianStatePrediction(x_pred, p_pred, timestamp=timestamp)
 
@@ -148,12 +149,14 @@ class ExtendedKalmanPredictor(KalmanPredictor):
                                                              "undefined the predictor will create a "
                                                              "zero-effect linear :class:`~.ControlModel`.")
 
+    # TODO Confirm that this inherits the __init__() function
+
     def transition_matrix(self, prior, **kwargs):
         """
 
         :param prior: the prior state, :math:`\mathbf{x}_{k-1}`
         :param kwargs:
-        :return: the predicted state, :math:`\mathbf{x}_{k|k-1}`
+        :return:  the transition matrix, :math:`F_k` if linear, or its Jacobian if non-linear
         """
         if hasattr(self.transition_model, 'matrix'):
             return self.transition_model.matrix(**kwargs)
@@ -162,19 +165,20 @@ class ExtendedKalmanPredictor(KalmanPredictor):
 
     def transition_function(self, prior, **kwargs):
         """
-        This is :math:`f_k(\mathbf{x}_{k-1})`, the transition function, non-linear in general
+        This is the application of :math:`f_k(\mathbf{x}_{k-1})`, the transition function, non-linear in general
 
-        :param prior:
+        :param prior: the prior state, :math:`\mathbf{x}_{k-1}`
         :param kwargs: might include time stamp or time interval
         :return: the predicted state, :math:`\mathbf{x}_{k|k-1}`
         """
         return self.transition_model.function(prior.state_vector, **kwargs)
 
+    @property
     def control_matrix(self):
-        if hasattr(self._control_model(), 'matrix'):
-            return self._control_model().matrix()
+        if hasattr(self.control_model, 'matrix'):
+            return self.control_model.matrix()
         else:
-            return self._control_model().jacobian(self._control_model().control_vector)
+            return self.control_model.jacobian(self.control_model.control_vector)
 
 
 class UnscentedKalmanPredictor(KalmanPredictor):
@@ -200,6 +204,29 @@ class UnscentedKalmanPredictor(KalmanPredictor):
     _time_interval = Property(datetime.timedelta, default=None, doc="Hidden variable where time interval is optionally "
                                                                     "stored")
 
+    def __init__(self, transition_model, control_model=None, alpha=0.5, beta=2, kappa=0, *args, **kwargs):
+        """
+        This is required because the :class:`~.KalmanFilter` was explicitly initiated.
+
+        """
+
+        # TODO This is repeated code. Find a way of using the parent __init__() function
+        self.transition_model = transition_model
+        self.control_model = control_model
+        self.alpha = alpha
+        self.beta = beta
+        self.kappa = kappa
+
+        if self.transition_model is None:
+            raise ValueError("A Predictor requires a transition model")
+
+        # If no control model insert a linear zero-effect one
+        ndims = self.transition_model.ndim_state
+        if self.control_model is None:
+            """Make a 0-effect control input"""
+            self.control_model = LinearControlModel(ndims, [], np.zeros([ndims, 1]), np.zeros([ndims, ndims]),
+                                                    np.zeros([ndims, ndims]))
+
     def transition_and_control_function(self, prior_state_vector, **kwargs):
         """
         Returns the result of applying the transition and control functions for the unscented transform
@@ -212,7 +239,7 @@ class UnscentedKalmanPredictor(KalmanPredictor):
 
         predict_over_interval = self._time_interval
         return self.transition_model.function(prior_state_vector, time_interval=predict_over_interval, **kwargs) + \
-               self._control_model().control_input()
+               self.control_model.control_input()
 
     def predict(self, prior, timestamp=None, **kwargs):
         """
@@ -225,7 +252,7 @@ class UnscentedKalmanPredictor(KalmanPredictor):
         """
 
         # Get the prediction interval
-        predict_over_interval = self._predict_over_interval(prior, timestamp )
+        predict_over_interval = self._predict_over_interval(prior, timestamp)
         self._time_interval = predict_over_interval  # This ensures that function passed to unscented transform has the
                                                      # correct time interval
 
@@ -234,7 +261,7 @@ class UnscentedKalmanPredictor(KalmanPredictor):
         # TODO the sigma points and then just sticking them into the unscented transform, and I haven't checked the
         # TODO statistics.
         total_noise_covar = self.transition_model.covar(timestamp=timestamp, time_interval=predict_over_interval,
-                                                        **kwargs) + self._control_model().control_noise
+                                                        **kwargs) + self.control_model.control_noise
 
         # Get the sigma points from the prior mean and covariance.
         sigma_points, mean_weights, covar_weights = gauss2sigma(prior.state_vector, prior.covar,

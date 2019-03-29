@@ -234,21 +234,3 @@ class DistanceJointHypothesis(
     def __ge__(self, other):
         return self.distance <= other.distance
 
-
-class SingleMeasurementHypothesis(Hypothesis):
-    """A hypothesis based on a single measurement.
-
-    """
-    prediction = Property(
-        Prediction,
-        doc="Predicted track state")
-    measurement = Property(
-        Detection,
-        doc="Detection used for hypothesis and updating")
-    measurement_prediction = Property(
-        MeasurementPrediction,
-        default=None,
-        doc="Optional track prediction in measurement space")
-
-    def __bool__(self):
-        return self.measurement is not None

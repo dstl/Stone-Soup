@@ -45,8 +45,8 @@ class LinearModel(Model):
         state_vector: :class:`~.StateVector`
             An input state vector
         noise: :class:`numpy.ndarray`
-            An externally generated random process noise sample (the default in
-            `None`, in which case process noise will be generated internally)
+            An externally generated random process noise sample (the default is
+            `None`, in which case no process noise will be generated)
 
         Returns
         -------
