@@ -10,7 +10,22 @@ from ..types.time import TimeRange
 
 
 class SIAPMetrics(MetricGenerator):
-    """Computes the SIAP metrics
+    """SIAP Metrics
+
+    Computes the Single Integrated Air Picture (SAIP) metrics as defined by the
+    Systems Engineering Task Force. The implementation provided here is
+    derived from [1] and focuses on providing the SIAP attribute measures.
+
+    The SIAP metrics provided require provision of ground truth information.
+
+    In the original paper the calculations are dependent upon :math:`m` which
+    corresponds to the identifying number of the sense capability which is
+    being assessed. This is not used in this implementation, with the
+    assumption being that the fused sensor set is being assessed.
+
+    Reference
+        [1] Single Integrated Air Picture (SIAP) Metrics Implementation,
+        Votruba et al, 29-10-2001
     """
 
     def compute_metric(self, manager, *args, **kwargs):
@@ -34,9 +49,23 @@ class SIAPMetrics(MetricGenerator):
         return metrics
 
     def C_single_time(self, manager, timestamp):
-        """SIAP metric C at a time
+        r"""SIAP metric C at a specific time
 
-        Number of truth tracked at timestamp / number of truth at timestamp
+        Returns an assessment of the number of targets currently being tracked
+        compared to the number of true targets at a specific timestamp,
+        :math:`{t}`. The output is a percentage, range 0:1, with a score of 1
+
+        .. math::
+
+              C_{t} = \frac{J{T_m}({t})}{J({t})}
+
+        where
+            :math:`J{T_m}({t})` is the number of objects being tracked at
+            timestamp :math:`{t}`.
+        and
+            :math:`J({t})` is the number of true objects at timestamp
+            :math:`{t}`.
+
 
         Parameters
         ----------
@@ -66,10 +95,23 @@ class SIAPMetrics(MetricGenerator):
                                 generator=self)
 
     def C_time_range(self, manager):
-        """SIAP metric C over time
+        r"""SIAP metric C over time
 
-        Sum(number of truth tracked at timestamp)/sum(number of truth
-         at timestamp). Both over all timestamps
+        Returns an assessment of the number of targets currently being tracked
+        compared to the number of true targets over the time range of the
+        dataset. The output is a percentage, range 0:1, with a score of 1
+
+        .. math::
+
+              C = \frac{\sum_{t_{start}}^{t_{end}}J{T_m}({t})}
+              {\sum_{t_{start}}^{t_{end}}J({t})}
+
+        where
+            :math:`J{T_m}({t})` is the number of objects being tracked at
+            timestamp :math:`{t}`.
+        and
+            :math:`J({t})` is the number of true objects at timestamp
+            :math:`{t}`.
 
         Parameters
         ----------
@@ -93,9 +135,23 @@ class SIAPMetrics(MetricGenerator):
             generator=self)
 
     def A_time_range(self, manager):
-        """SIAP metric A over time
+        r"""SIAP metric A over time
 
-        Number of assigned tracks / number of truth objects
+        Returns a percentage value which assesses the number of tracks which
+        are assigned to true objects against the total number of tracks. The
+        target score is 1.
+
+        .. math::
+
+              A = \frac{\sum_{t_{start}}^{t_{end}}N{A}({t})}
+              {\sum_{t_{start}}^{t_{end}}J{T_m}({t})}
+
+        where
+            :math:`N{A}({t})` is the number of tracks assigned to true
+            objects at timestamp :math:`{t}`.
+        and
+            :math:`J{T_m}({t})` is the number of objects being tracked at
+            timestamp :math:`{t}`.
 
         Parameters
         ----------
@@ -118,9 +174,23 @@ class SIAPMetrics(MetricGenerator):
             generator=self)
 
     def S_time_range(self, manager):
-        """SIAP metric S over time
+        r"""SIAP metric S over time
 
-        Average percentage of tracks that are spurious (unassigned)
+        The average percentage of tracks that are deemed to be spurious, i.e.
+        unassigned to true objects.
+
+        .. math::
+
+              S = \frac{\sum_{t_{start}}^{t_{end}}[N({t}) - N{A}({t})]}
+              {\sum_{t_{start}}^{t_{end}}N({t})}
+
+        where
+            :math:`N{A}({t})` is the number of tracks assigned to true
+            objects at timestamp :math:`{t}`.
+        and
+            :math:`N({t})` is the number of tracks timestamp :math:`{t}`.
+
+
 
         Parameters
         ----------
@@ -145,9 +215,10 @@ class SIAPMetrics(MetricGenerator):
             generator=self)
 
     def LT(self, manager):
-        """SIAP metric LT over time
+        r"""SIAP metric LT over time
 
-        1/ Average number of excess trackes
+        Returns :math:`1/{R}` where :math:`{R}` is the average number of excess
+        tracks assigned. Target score is :math:`LT = \infty`
 
         Parameters
         ----------
@@ -174,9 +245,21 @@ class SIAPMetrics(MetricGenerator):
             generator=self)
 
     def LS(self, manager):
-        """SIAP metric LS over time
+        r"""SIAP metric LS over time
 
-        Percentage of truth successfully tracked
+        Returns the percentage of time that true objects have been tracked
+        across the dataset
+
+        .. math::
+
+            LS = \frac{\sum_{j=1}^{J}T{L}_{j}}{\sum_{j=1}^{J}T_{j}}
+
+        where
+            :math:`\sum_{j=1}^{J}T{L}_{j}` is the total time of the longest
+            track on object :math:`j`.
+        and
+            :math:`\sum_{j=1}^{J}T_{j}` is the total duration of true object
+            :math:`j`
 
         Parameters
         ----------
@@ -506,3 +589,5 @@ class SIAPMetrics(MetricGenerator):
 
         timestamps = [s.timestamp for s in truth.states]
         return max(timestamps) - min(timestamps)
+
+    # TODO add methods to calculate Position Accuracy and Velocity Accuracy
