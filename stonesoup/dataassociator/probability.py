@@ -14,7 +14,7 @@ import itertools
 
 
 class SimplePDA(DataAssociator):
-    """Simple Probabilistic Data Associatoion (PDA)
+    """Simple Probabilistic Data Association (PDA)
 
     Given a set of detections and a set of tracks, each detection has a
     probability that it is associated each specific track.  For each track,
@@ -57,7 +57,7 @@ class SimplePDA(DataAssociator):
 
 
 class JPDA(DataAssociator):
-    """Joint Probabilistic Data Associatoion (JPDA)
+    r"""Joint Probabilistic Data Association (JPDA)
 
     Given a set of Detections and a set of Tracks, each Detection has a
     probability that it is associated with each specific Track.  Rather than
@@ -68,12 +68,12 @@ class JPDA(DataAssociator):
 
     .. math::
 
-          prob_association(Detection, Track) <
-          \frac{prob_association(MissedDetection, Track); self.gate_ratio}
+          prob_{association(Detection, Track)} <
+          \frac{prob_{association(MissedDetection, Track)}}{gate\ ratio}
 
     then Detection is assumed to be outside Track's gate, and the probability
     of association is dropped from the Gaussian Mixture.  This calculation
-    takes place in the function 'enumerate_JPDA_hypotheses()'.
+    takes place in the function :meth:`enumerate_JPDA_hypotheses`.
     """
 
     hypothesiser = Property(
