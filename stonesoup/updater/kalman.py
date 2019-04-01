@@ -11,7 +11,7 @@ from ..functions import gauss2sigma, unscented_transform
 
 
 class KalmanUpdater(Updater):
-    """
+    r"""
     An class which embodies Kalman-type updaters; also a class which performs measurement update step as in the
     standard Kalman Filter. Therefore assumes the measurement matrix function of the measurement_model returns a
     matrix (:math:`H_k`). Daughter classes can overwrite to specify the measurement model :math:`h(\mathbf{x})`.
@@ -23,6 +23,28 @@ class KalmanUpdater(Updater):
 
     with the specific case of the Kalman updater having :math:`h_k(\mathbf{x}) = H_k \mathbf{x}` and
     :math:`\sigma_k = \mathcal{N}(0,R_k)`.
+
+    The update proceeds by calculating the innovation covariance and measurement cross-covariance,
+
+    .. math::
+
+        S_k = H_k P_{k|k-1} H_k^T + R_k
+
+        \Upsilon_k = P_{k|k-1} H_k^T
+
+    where :math:`P_{k|k-1}` is the predicted state covariance. The Kalman gain is,
+
+    .. math::
+
+        K_k = \Upsilon_k S_k^{-1}
+
+    and the posterior state mean and covariance are,
+
+    .. math::
+
+        \mathbf{x}_{k|k} = \mathbf{x}_{k|k-1} + K_k (\mathbf{z}_k - H_k \mathbf{x}_{k|k-1})
+
+        P_{k|k} = P_{k|k-1} - K_k S_k K_k^T
 
     """
 
@@ -38,9 +60,13 @@ class KalmanUpdater(Updater):
         """
         This is straightforward Kalman so just get the Matrix from the measurement model
 
+        :param predicted_state: The predicted state :math:`\mathbf{x}_{k|k-1}`
+        :param measurement_model: The measurement model. If omitted the model in the updater object is used
+        :param kwargs: passed to :class:`~.MeasurementModel`. :attr:`matrix()`
+
         :return: the measurement matrix, :math:`H_k`
         """
-        return self.measurement_model.matrix()
+        return self.measurement_model.matrix(**kwargs)
 
     def predict_measurement(self, predicted_state, measurement_model=None, **kwargs):
         """
@@ -48,16 +74,18 @@ class KalmanUpdater(Updater):
 
         :param predicted_state: The predicted state :math:`\mathbf{x}_{k|k-1}`
         :param measurement_model: The measurement model. If omitted the model in the updater object is used
-        :param kwargs:
+        :param kwargs: passed to :class:`~.MeasurementModel`. :attr:`function()` and :class:`~.MeasurementModel`.
+                       :attr:`matrix()`
+
         :return: A Gaussian measurement prediction, :math:`\mathbf{z}_{k|k-1}`
         """
         # If a measurement model is not specified then use the one that's native to the updater
         if measurement_model is None:
             measurement_model = self.measurement_model
 
-        pred_meas = measurement_model.function(predicted_state.state_vector, noise=[0])
+        pred_meas = measurement_model.function(predicted_state.state_vector, noise=[0], **kwargs)
 
-        hh = self.measurement_matrix(predicted_state=predicted_state, measurement_model=measurement_model)
+        hh = self.measurement_matrix(predicted_state=predicted_state, measurement_model=measurement_model, **kwargs)
 
         innov_cov = hh @ predicted_state.covar @ hh.T + measurement_model.covar()
         meas_cross_cov = predicted_state.covar @ hh.T
@@ -70,7 +98,8 @@ class KalmanUpdater(Updater):
         The Kalman update method
 
         :param hypothesis: the predicted measurement-measurement association hypothesis
-        :param kwargs:
+        :param kwargs: passed to :attr:`predict_measurement()` of :class:`~.KalmanUpdater` or its daughter classes
+
         :return: Posterior state, :math:`\mathbf{x}_{k|k}` as :class:`~.GaussianMeasurementPrediction`
         """
 
@@ -120,6 +149,9 @@ class ExtendedKalmanUpdater(KalmanUpdater):
 
         :param predicted_state: the predicted state, :math:`\mathbf{x}_{k|k-1}`
         :param measurement_model: the measurement model. If :attr:`None` defaults to the model defined in updater
+        :param kwargs: passed to :class:`~.MeasurementModel`. :attr:`matrix()` if linear or
+                       :class:`~.MeasurementModel`. :attr:`jacobian()` if not
+
         :return: the measurement matrix, :math:`H_k`
         """
 
@@ -127,9 +159,9 @@ class ExtendedKalmanUpdater(KalmanUpdater):
             measurement_model = self.measurement_model
 
         if hasattr(measurement_model, 'matrix'):
-            return measurement_model.matrix()
+            return measurement_model.matrix(**kwargs)
         else:
-            return measurement_model.jacobian(predicted_state.state_vector)
+            return measurement_model.jacobian(predicted_state.state_vector, **kwargs)
 
 
 class UnscentedKalmanUpdater(KalmanUpdater):
@@ -147,33 +179,27 @@ class UnscentedKalmanUpdater(KalmanUpdater):
                                                                       "will be thrown." )
 
     alpha = Property(float, default=0.5,
-                     doc="Primary sigma point spread scaling parameter.\
-                         Typically 1e-3.")
+                     doc="Primary sigma point spread scaling parameter, typically :math:`10^{-3}`")
     beta = Property(float, default=2,
                     doc="Used to incorporate prior knowledge of the distribution.\
                         If the true distribution is Gaussian, the value of 2\
                         is optimal.")
     kappa = Property(float, default=0,
                      doc="Secondary spread scaling parameter\
-                        (default is calculated as 3-Ns)")
+                        (default is calculated as :math:`3-Ns`)")
 
-    def predict_measurement(self, predicted_state, measurement_model=None, **kwargs):
+    def predict_measurement(self, predicted_state, measurement_model=None):
+        """Unscented Kalman Filter measurement prediction step. Uses the unscented transform to estimate a
+        Gauss-distributed predicted measurement.
 
-        """Unscented Kalman Filter measurement prediction step
+        :param predicted_state: :class:`~.GaussianStatePrediction`, a predicted state object
+        :param measurement_model: :class:`~.MeasurementModel`, the measurement model used to generate the measurement
+                                  prediction.Should be used in cases where the measurement model is dependent on the
+                                  received measurement (the default is ``None``, in which case the updater will use the
+                                  measurement model specified on initialisation)
 
-        Parameters
-        ----------
-        predicted_state : :class:`~.GaussianStatePrediction`
-            A predicted state object
-        measurement_model: :class:`~.MeasurementModel`, optional
-            The measurement model used to generate the measurement prediction.Should be used in cases where the
-            measurement model is dependent on the received measurement (the default is ``None``, in which case the
-            updater will use the measurement model specified on initialisation)
+        :return: :class:`~.GaussianMeasurementPrediction`, the measurement prediction
 
-        Returns
-        -------
-        : :class:`~.GaussianMeasurementPrediction`
-            The measurement prediction
         """
         # If a measurement model is not specified then use the one that's native to the updater
         if measurement_model is None:
