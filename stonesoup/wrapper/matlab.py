@@ -17,7 +17,7 @@ class MatlabWrapper(Wrapper):
         - Only MATLAB 2016b and later releases can be used with Stone Soup.
         - MATLAB 2017a and earlier versions only support up to Python 3.5.
         - MATLAB 2017b and later versions include support for Python 3.6.
-        - Support for Python 3.7 may potentially be added in MATLAB 2019a.
+        - MATLAB 2019a and later versions include support for Python 3.7.
     * General remarks:
         - The currect version of the class is only intended for use with \
             synchronous MATLAB engine creation.
@@ -133,8 +133,8 @@ class MatlabWrapper(Wrapper):
 
         return mat_array
 
-    @classmethod
-    def matlab_double_array(self, array):
+    @staticmethod
+    def matlab_double_array(array):
         """"Converts an array or list of lists to a MATLAB double array
         """
 
@@ -143,8 +143,8 @@ class MatlabWrapper(Wrapper):
 
         return matlab.double(array)
 
-    @classmethod
-    def matlab_single_array(self, array):
+    @staticmethod
+    def matlab_single_array(array):
         """"Converts an array or list of lists to a MATLAB single array
         """
         if isinstance(array, np.ndarray):
@@ -152,8 +152,8 @@ class MatlabWrapper(Wrapper):
 
         return matlab.single(array)
 
-    @classmethod
-    def matlab_int32_array(self, array):
+    @staticmethod
+    def matlab_int32_array(array):
         """
         Converts an array or list of lists to a MATLAB int32 array
         """
@@ -163,8 +163,8 @@ class MatlabWrapper(Wrapper):
 
         return matlab.int32(array)
 
-    @classmethod
-    def matlab_uint32_array(self, array):
+    @staticmethod
+    def matlab_uint32_array(array):
         """
         Converts an array or list of lists to a MATLAB uint32 array
         """
@@ -173,8 +173,8 @@ class MatlabWrapper(Wrapper):
 
         return matlab.uint32(array)
 
-    @classmethod
-    def matlab_logical_array(self, array):
+    @staticmethod
+    def matlab_logical_array(array):
         """
         Converts an array or list of lists to a MATLAB logical array
         """

@@ -1,5 +1,8 @@
+import pytest
+
 import stonesoup
-from stonesoup.wrapper.matlab import MatlabWrapper
+
+matlab = pytest.importorskip("stonesoup.wrapper.matlab")
 
 ###############################
 # TODO: Write up more testing #
@@ -16,16 +19,16 @@ def test_wrapper_init():
     """
 
     # 1) No init args
-    wrapper = MatlabWrapper()
+    wrapper = matlab.MatlabWrapper()
     assert(wrapper.dir_path == stonesoup.__file__.strip('__init__.py'))
 
     # 2) ONLY dir_path
     dir_path = "./"
-    wrapper = MatlabWrapper(dir_path)
+    wrapper = matlab.MatlabWrapper(dir_path)
     assert(wrapper.dir_path == dir_path)
 
     # 3) Both dir_path and external engine
-    engine = MatlabWrapper.start_engine()
-    wrapper = MatlabWrapper(dir_path, engine)
+    engine = matlab.MatlabWrapper.start_engine()
+    wrapper = matlab.MatlabWrapper(dir_path, engine)
     assert(wrapper.dir_path == dir_path)
     assert(wrapper.matlab_engine == engine)
