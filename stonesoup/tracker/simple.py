@@ -210,7 +210,7 @@ class MultiTargetMixtureTracker(Tracker):
                         posterior_states.append(
                             self.updater.update(hypothesis))
                     posterior_state_weights.append(
-                        float(hypothesis.probability))
+                        hypothesis.probability)
 
                 means = np.array([state.state_vector for state
                                   in posterior_states])

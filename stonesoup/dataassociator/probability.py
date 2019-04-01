@@ -127,11 +127,12 @@ class JPDA(DataAssociator):
             single_measurement_hypotheses = list()
 
             # record the MissedDetection hypothesis for this track
-            prob_misdetect = Probability(
-                sum([joint_hypothesis.probability
-                     for joint_hypothesis in joint_hypotheses
-                     if isinstance(joint_hypothesis.hypotheses[track].
-                                   measurement, MissedDetection)]))
+            prob_misdetect = Probability.sum(
+                joint_hypothesis.probability
+                for joint_hypothesis in joint_hypotheses
+                if isinstance(
+                    joint_hypothesis.hypotheses[track].measurement,
+                    MissedDetection))
 
             single_measurement_hypotheses.append(
                 SingleProbabilityHypothesis(

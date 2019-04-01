@@ -3,6 +3,8 @@
 
 import numpy as np
 
+from .types.numeric import Probability
+
 
 def tria(matrix):
     """Square Root Matrix Triangularization
@@ -481,10 +483,10 @@ def gm_reduce_single(means, covars, weights):
     num_components, num_dims = np.shape(means)
 
     # Normalise weights such that they sum to 1
-    weights = weights/np.sum(weights)
+    weights = weights/Probability.sum(weights)
 
     # Calculate mean
-    mean = np.average(means, axis=0, weights=weights)
+    mean = np.average(means, axis=0, weights=weights).astype(np.float_)
     mean.shape = (1, num_dims)
 
     # Calculate covar
