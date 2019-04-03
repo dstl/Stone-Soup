@@ -130,9 +130,7 @@ class JPDA(DataAssociator):
             prob_misdetect = Probability.sum(
                 joint_hypothesis.probability
                 for joint_hypothesis in joint_hypotheses
-                if isinstance(
-                    joint_hypothesis.hypotheses[track].measurement,
-                    MissedDetection))
+                if not joint_hypothesis.hypotheses[track].measurement)
 
             single_measurement_hypotheses.append(
                 SingleProbabilityHypothesis(
@@ -186,8 +184,7 @@ class JPDA(DataAssociator):
             missed_gate = missed_probability/gate_ratio
             for hypothesis in multihypths[track]:
                 # Always include missed detection (gate ratio < 1)
-                if isinstance(hypothesis.measurement, MissedDetection) \
-                        or hypothesis.probability >= missed_gate:
+                if not hypothesis or hypothesis.probability >= missed_gate:
                     track_possible_assoc.append(hypothesis)
             possible_assoc.append(track_possible_assoc)
 
@@ -225,7 +222,7 @@ class JPDA(DataAssociator):
         measurements = set()
         for hypothesis in joint_hypothesis:
             measurement = hypothesis.measurement
-            if isinstance(measurement, MissedDetection):
+            if not measurement:
                 pass
             elif measurement in measurements:
                 return False
@@ -284,8 +281,7 @@ def associate_highest_probability_hypotheses(tracks, hypotheses):
 
         associations[highest_probability_track] = \
             hypotheses[highest_probability_track]
-        if not isinstance(
-                highest_probability_hypothesis.measurement, MissedDetection):
+        if highest_probability_hypothesis:
             associated_measurements.add(
                 highest_probability_hypothesis.measurement)
 
