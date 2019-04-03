@@ -76,9 +76,12 @@ class DistanceHypothesiser(Hypothesiser):
         # True detection hypotheses
         for detection in detections:
 
-            # Re-evaluate prediction if detection timestamp does not match default
-            if detection.timestamp != timestamp:
-                state_prediction = self.predictor.predict(track.state, timestamp=detection.timestamp)
+            # Re-evaluate prediction ONLY if detection timestamp
+            # does not match default
+            if (detection.timestamp is not None
+                    and detection.timestamp != timestamp):
+                state_prediction = self.predictor.predict(
+                    track.state, timestamp=detection.timestamp)
             else:
                 state_prediction = prediction
 
