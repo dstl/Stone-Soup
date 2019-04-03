@@ -5,8 +5,8 @@ import datetime
 import scipy as sp
 from scipy.stats import multivariate_normal
 
-from stonesoup.models.transition.linear import \
-    (ConstantAcceleration, CombinedLinearGaussianTransitionModel)
+from ..linear import (
+    ConstantAcceleration, CombinedLinearGaussianTransitionModel)
 
 
 def test_cam1dodel():

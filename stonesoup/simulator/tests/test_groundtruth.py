@@ -4,9 +4,9 @@ import datetime
 import pytest
 import numpy as np
 
-from ...types import State, GaussianState
-from ..simple import SingleTargetGroundTruthSimulator,\
-    MultiTargetGroundTruthSimulator
+from ...types.state import GaussianState, State
+from ..simple import (
+    SingleTargetGroundTruthSimulator, MultiTargetGroundTruthSimulator)
 
 
 @pytest.fixture(params=[datetime.timedelta(seconds=1),

@@ -2,7 +2,7 @@
 from abc import abstractmethod
 
 from ..base import Base, Property
-from ..models import MeasurementModel
+from ..models.measurement import MeasurementModel
 
 
 class Sensor(Base):

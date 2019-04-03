@@ -4,11 +4,11 @@ import scipy as sp
 from scipy.stats import multivariate_normal
 
 from ...base import Property
+from ...functions import cart2pol, cart2sphere, cart2angles, rotx, roty, rotz
 from ...types.array import StateVector, CovarianceMatrix
 from ...types.angle import Bearing, Elevation
 from ..base import NonLinearModel, GaussianModel
 from .base import MeasurementModel
-from ...functions import cart2pol, cart2sphere, cart2angles, rotx, roty, rotz
 
 
 class NonLinearGaussianMeasurement(MeasurementModel,

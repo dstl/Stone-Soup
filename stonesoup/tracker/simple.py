@@ -8,7 +8,8 @@ from ..deleter import Deleter
 from ..reader import DetectionReader
 from ..initiator import Initiator
 from ..updater import Updater
-from ..types import GaussianStateUpdate, MissedDetection
+from ..types.detection import MissedDetection
+from ..types.update import GaussianStateUpdate
 from ..functions import gm_reduce_single
 
 

@@ -3,7 +3,7 @@ import itertools
 from abc import abstractmethod
 
 from ..base import Base, Property
-from ..types import JointHypothesis
+from ..types.hypothesis import JointHypothesis
 from ..hypothesiser import Hypothesiser
 
 

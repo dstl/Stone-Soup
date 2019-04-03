@@ -5,8 +5,10 @@ import numpy as np
 
 from ..distance import DistanceHypothesiser
 from ..filtered import FilteredDetectionsHypothesiser
-from stonesoup.types import Track, GaussianStateUpdate, Detection, \
-    SingleHypothesis
+from ...types.detection import Detection
+from ...types.hypothesis import SingleHypothesis
+from ...types.track import Track
+from ...types.update import GaussianStateUpdate
 from ... import measures as measures
 
 measure = measures.Mahalanobis()

@@ -5,7 +5,8 @@ import numpy as np
 from .base import Predictor
 from ..base import Property
 from ..functions import gauss2sigma, unscented_transform
-from ..types import State, GaussianStatePrediction
+from ..types.prediction import GaussianStatePrediction
+from ..types.state import State
 
 
 class KalmanPredictor(Predictor):

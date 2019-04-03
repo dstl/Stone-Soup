@@ -2,10 +2,9 @@ from scipy.stats import multivariate_normal as mn
 
 from .base import Hypothesiser
 from ..base import Property
-from ..types import MissedDetection
-from ..types.multihypothesis import \
-    MultipleHypothesis
-from ..types import SingleProbabilityHypothesis
+from ..types.detection import MissedDetection
+from ..types.hypothesis import SingleProbabilityHypothesis
+from ..types.multihypothesis import MultipleHypothesis
 from ..types.numeric import Probability
 from ..predictor import Predictor
 from ..updater import Updater

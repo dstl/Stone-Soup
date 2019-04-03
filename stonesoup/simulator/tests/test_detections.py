@@ -4,7 +4,7 @@ import datetime
 import pytest
 import numpy as np
 
-from ...types import State
+from ...types.state import State
 from ..simple import SimpleDetectionSimulator, SingleTargetGroundTruthSimulator
 
 

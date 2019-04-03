@@ -3,9 +3,11 @@ import datetime
 
 import numpy as np
 
-from stonesoup.models.transition.linear import ConstantVelocity
-from stonesoup.predictor.particle import ParticlePredictor
-from stonesoup.types import ParticleState, ParticleStatePrediction, Particle
+from ...models.transition.linear import ConstantVelocity
+from ...predictor.particle import ParticlePredictor
+from ...types.particle import Particle
+from ...types.prediction import ParticleStatePrediction
+from ...types.state import ParticleState
 
 
 def test_particle():

@@ -3,14 +3,11 @@ import pytest
 import numpy as np
 from scipy.stats import multivariate_normal
 
-from stonesoup.models.measurement.nonlinear \
-    import RangeBearingGaussianToCartesian
-from stonesoup.models.measurement.nonlinear \
-    import RangeBearingElevationGaussianToCartesian
-from stonesoup.models.measurement.nonlinear \
-    import BearingElevationGaussianToCartesian
-from stonesoup.functions import jacobian as compute_jac
-from stonesoup.types.angle import Bearing, Elevation
+from ..nonlinear import (
+    BearingElevationGaussianToCartesian, RangeBearingGaussianToCartesian,
+    RangeBearingElevationGaussianToCartesian)
+from ....functions import jacobian as compute_jac
+from ....types.angle import Bearing, Elevation
 
 
 def h2d(state_vector, translation_offset, rotation_offset):

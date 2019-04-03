@@ -4,8 +4,7 @@ from abc import abstractmethod
 import numpy as np
 from scipy.spatial import distance
 
-from stonesoup.base import Property
-from .base import Base
+from .base import Base, Property
 
 
 class Measure(Base):

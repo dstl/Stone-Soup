@@ -4,13 +4,12 @@ import datetime
 import numpy as np
 import pytest
 
-from stonesoup.types.state import State
-from stonesoup.platform.simple import SensorPlatform
-from stonesoup.models.transition.linear import ConstantVelocity,\
-    CombinedLinearGaussianTransitionModel
-# from stonesoup.functions import cart2pol
-from stonesoup.types.array import StateVector, CovarianceMatrix
-from stonesoup.sensor.radar import RadarRangeBearing
+from ...types.state import State
+from ...platform.simple import SensorPlatform
+from ...models.transition.linear import (
+    ConstantVelocity, CombinedLinearGaussianTransitionModel)
+from ...sensor.radar import RadarRangeBearing
+from ...types.array import StateVector, CovarianceMatrix
 
 # Input arguments
 # TODO: pytest parametarization

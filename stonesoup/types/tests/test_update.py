@@ -4,11 +4,15 @@ import datetime
 import numpy as np
 import pytest
 
-from stonesoup.types import StateUpdate, \
-    GaussianStateUpdate, GaussianMeasurementPrediction, ParticleStateUpdate, \
-    StatePrediction, StateMeasurementPrediction, Detection, \
-    GaussianStatePrediction, ParticleStatePrediction, \
-    ParticleMeasurementPrediction, Particle, SingleHypothesis
+from ...types.detection import Detection
+from ...types.hypothesis import SingleHypothesis
+from ...types.particle import Particle
+from ...types.prediction import (
+    GaussianStatePrediction, GaussianMeasurementPrediction,
+    StatePrediction, StateMeasurementPrediction,
+    ParticleStatePrediction, ParticleMeasurementPrediction)
+from ...types.update import (
+    StateUpdate, GaussianStateUpdate, ParticleStateUpdate)
 
 
 def test_stateupdate():

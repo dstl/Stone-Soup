@@ -5,8 +5,10 @@ import datetime
 import numpy as np
 
 from ..distance import DistanceHypothesiser
-from ...types import Track, Detection, GaussianState
-from ... import measures as measures
+from ...types.detection import Detection
+from ...types.state import GaussianState
+from ...types.track import Track
+from ... import measures
 
 
 def test_mahalanobis(predictor, updater):
