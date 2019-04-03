@@ -3,6 +3,8 @@ from .base import Hypothesiser
 from ..base import Property
 from ..measures import Measure
 from ..predictor import Predictor
+from ..types.multihypothesis import \
+    MultipleHypothesis
 from ..types.hypothesis import SingleDistanceHypothesis
 from ..types.detection import MissedDetection
 from ..updater import Updater
@@ -31,7 +33,31 @@ class DistanceHypothesiser(Hypothesiser):
         doc="Distance for a missed detection. Default is set to infinity")
 
     def hypothesise(self, track, detections, timestamp):
+        """ Evaluate and return all track association hypotheses.
 
+        For a given track and a set of N available detections, return a
+        MultipleHypothesis object with N+1 detections (first detection is
+        a 'MissedDetection'), each with an associated distance measure..
+
+        Parameters
+        ----------
+        track: :class:`~.Track`
+            The track object to hypothesise on
+        detections: :class:`list`
+            A list of :class:`~Detection` objects, representing the available
+            detections.
+        timestamp: :class:`datetime.datetime`
+            A timestamp used when evaluating the state and measurement
+            predictions. Note that if a given detection has a non empty
+            timestamp, then prediction will be performed according to
+            the timestamp of the detection.
+
+        Returns
+        -------
+        : :class:`~.MultipleHypothesis`
+            A container of :class:`~SingleDistanceHypothesis` objects
+
+        """
         hypotheses = list()
 
         # Common state & measurement prediction
@@ -69,4 +95,4 @@ class DistanceHypothesiser(Hypothesiser):
                     distance,
                     measurement_prediction))
 
-        return sorted(hypotheses, reverse=True)
+        return MultipleHypothesis(sorted(hypotheses, reverse=True))

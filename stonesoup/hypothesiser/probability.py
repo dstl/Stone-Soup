@@ -39,7 +39,7 @@ class PDAHypothesiser(Hypothesiser):
             "if detected")
 
     def hypothesise(self, track, detections, timestamp):
-        r"""Hypothesise track and detection association
+        r"""Evaluate and return all track association hypotheses.
 
         For a given track and a set of N detections, return a
         MultipleHypothesis with N+1 detections (first detection is
@@ -50,7 +50,7 @@ class PDAHypothesiser(Hypothesiser):
 
         Detection 0: missed detection, none of the detections are associated
         with the track.
-        Detection :math:`m, m\epsilon{1...N}`: detection m is associated
+        Detection :math:`i, i \in {1...N}`: detection i is associated
         with the track.
 
         The probabilities for these detections are calculated as follow:
@@ -91,8 +91,25 @@ class PDAHypothesiser(Hypothesiser):
         https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=5338565
 
         [2] "Robotics 2 Data Association" (Lecture notes) -
-        http://ais.informatik.uni-freiburg.de/teaching/ws10/robotics2/
-        pdfs/rob2-15-dataassociation.pdf
+        http://ais.informatik.uni-freiburg.de/teaching/ws10/robotics2/pdfs/rob2-15-dataassociation.pdf
+
+        Parameters
+        ----------
+        track: :class:`~.Track`
+            The track object to hypothesise on
+        detections: :class:`list`
+            A list of :class:`~Detection` objects, representing the available
+            detections.
+        timestamp: :class:`datetime.datetime`
+            A timestamp used when evaluating the state and measurement
+            predictions. Note that if a given detection has a non empty
+            timestamp, then prediction will be performed according to
+            the timestamp of the detection.
+
+        Returns
+        -------
+        : :class:`~.MultipleHypothesis`
+            A container of :class:`~SingleProbabilityHypothesis` objects
 
         """
 
