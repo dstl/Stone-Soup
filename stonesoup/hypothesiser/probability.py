@@ -96,41 +96,46 @@ class PDAHypothesiser(Hypothesiser):
 
         """
 
-        probability_hypotheses = list()
+        hypotheses = list()
 
-        # items common to all SingleMeasurementHypotheses that compose
-        # MultipleHypothesis
+        # Common state & measurement prediction
         prediction = self.predictor.predict(track.state, timestamp=timestamp)
         measurement_prediction = self.updater.get_measurement_prediction(
             prediction)
 
         # Missed detection hypothesis
-        probability = Probability(1-(self.prob_detect * self.prob_gate))
-        detection = MissedDetection(timestamp=timestamp)
-        probability_hypotheses.append(
+        probability = Probability(1 - self.prob_detect*self.prob_gate)
+        hypotheses.append(
             SingleProbabilityHypothesis(
-                prediction, detection,
-                measurement_prediction=measurement_prediction,
-                probability=probability))
+                prediction,
+                MissedDetection(timestamp=timestamp),
+                probability,
+                measurement_prediction))
 
+        # True detection hypotheses
         for detection in detections:
-            measurement_prediction = self.updater.get_measurement_prediction(
-                prediction, detection.measurement_model)
 
-            # hypothesis that track and given detection are associated
+            # Re-evaluate prediction if detection timestamp does not match default
+            if detection.timestamp != timestamp:
+                state_prediction = self.predictor.predict(track.state, timestamp=detection.timestamp)
+            else:
+                state_prediction = prediction
+
+            # Compute measurement prediction and probability measure
+            measurement_prediction = self.updater.get_measurement_prediction(
+                state_prediction, detection.measurement_model)
             log_pdf = mn.logpdf(detection.state_vector.ravel(),
                                 measurement_prediction.state_vector.ravel(),
                                 measurement_prediction.covar)
             pdf = Probability(log_pdf, log_value=True)
             probability = (pdf * self.prob_detect)/self.clutter_spatial_density
 
-            probability_hypotheses.append(
+            # True detection hypothesis
+            hypotheses.append(
                 SingleProbabilityHypothesis(
-                    prediction, detection,
-                    measurement_prediction=measurement_prediction,
-                    probability=probability))
+                    state_prediction,
+                    detection,
+                    probability,
+                    measurement_prediction))
 
-        result = MultipleHypothesis(probability_hypotheses,
-                                    normalise=True, total_weight=1)
-
-        return result
+        return MultipleHypothesis(hypotheses, normalise=True, total_weight=1)

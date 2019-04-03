@@ -34,22 +34,39 @@ class DistanceHypothesiser(Hypothesiser):
 
         hypotheses = list()
 
-        for detection in detections:
-            prediction = self.predictor.predict(
-                track.state, timestamp=detection.timestamp)
-            measurement_prediction = self.updater.get_measurement_prediction(
-                prediction, detection.measurement_model)
-            distance = self.measure(measurement_prediction, detection)
-
-            hypotheses.append(
-                SingleDistanceHypothesis(
-                    prediction, detection, distance, measurement_prediction))
+        # Common state & measurement prediction
+        prediction = self.predictor.predict(track.state, timestamp=timestamp)
+        measurement_prediction = self.updater.get_measurement_prediction(
+            prediction)
 
         # Missed detection hypothesis with distance as 'missed_distance'
-        prediction = self.predictor.predict(track.state, timestamp=timestamp)
-        hypotheses.append(SingleDistanceHypothesis(
-            prediction,
-            MissedDetection(timestamp=timestamp),
-            self.missed_distance))
+        hypotheses.append(
+            SingleDistanceHypothesis(
+                prediction,
+                MissedDetection(timestamp=timestamp),
+                self.missed_distance,
+                measurement_prediction))
+
+        # True detection hypotheses
+        for detection in detections:
+
+            # Re-evaluate prediction if detection timestamp does not match default
+            if detection.timestamp != timestamp:
+                state_prediction = self.predictor.predict(track.state, timestamp=detection.timestamp)
+            else:
+                state_prediction = prediction
+
+            # Compute measurement prediction and distance measure
+            measurement_prediction = self.updater.get_measurement_prediction(
+                state_prediction, detection.measurement_model)
+            distance = self.measure(measurement_prediction, detection)
+
+            # True detection hypothesis
+            hypotheses.append(
+                SingleDistanceHypothesis(
+                    state_prediction,
+                    detection,
+                    distance,
+                    measurement_prediction))
 
         return sorted(hypotheses, reverse=True)
