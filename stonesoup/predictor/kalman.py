@@ -136,7 +136,7 @@ class ExtendedKalmanPredictor(KalmanPredictor):
 
     An implementation of the Extended Kalman Filter predictor. Here the transition and control functions may be
     non-linear, their transition and control matrices are approximated via Jacobian matrices. To this end the
-    transition and control models must return the :attr:`jacobian()` function.
+    transition and control models, if non-linear, must possess return the :attr:`jacobian()` function.
 
     """
 
@@ -199,7 +199,7 @@ class UnscentedKalmanPredictor(KalmanPredictor):
     """
     # The models may be non-linear and non-differentiable
     transition_model = Property(TransitionModel, doc="The transition model to be used. Functions will "
-                                                     "likely throw an error if not specified.")
+                                                     "throw a :class:`~.ValueError` if not specified.")
     control_model = Property(ControlModel, default=None, doc="The control model to be used. If "
                                                              "undefined the predictor will create a "
                                                              "zero-effect linear :class:~.`ControlModel`.")
