@@ -61,8 +61,7 @@ class DataAssociator(Base):
         number_hypotheses = len(joint_hypothesis)
         unique_hypotheses = len(
             {hyp.measurement for hyp in joint_hypothesis} - {None})
-        number_null_hypotheses = sum(
-            hyp.measurement is None for hyp in joint_hypothesis)
+        number_null_hypotheses = sum(not hyp for hyp in joint_hypothesis)
 
         # joint_hypothesis is invalid if one detection is assigned to more than
         # one prediction. Multiple missed detections are valid.

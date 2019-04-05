@@ -109,7 +109,7 @@ def test_multiplehypothesis_edge_cases():
 
     # test case where 'normalise' is called with 'total_weight'
     # not equal to a number
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         multihypothesis = MultipleHypothesis(
             [probability_hypothesis_1, probability_hypothesis_2],
             normalise=True, total_weight='a')

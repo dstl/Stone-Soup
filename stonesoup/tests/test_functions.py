@@ -65,16 +65,16 @@ def test_jacobian2():
 
 def test_gm_reduce_single():
 
-    means = np.array([[1, 2], [3, 4], [5, 6]], np.float)
-    covars = np.array([[[1, 1], [1, 0.7]], [[1.2, 1.4], [1.3, 2]],
-                       [[2, 1.4], [1.2, 1.2]]], np.float)
-    weights = np.array([1, 2, 5], np.float)
+    means = np.array([[1, 2], [3, 4], [5, 6]])
+    covars = np.array([[[1, 1], [1, 0.7]],
+                       [[1.2, 1.4], [1.3, 2]],
+                       [[2, 1.4], [1.2, 1.2]]])
+    weights = np.array([1, 2, 5])
 
     mean, covar = gm_reduce_single(means, covars, weights)
 
-    assert np.array_equal(mean, np.array([[4], [5]], np.float))
-    assert np.array_equal(covar, np.array([[5.675, 5.35], [5.2, 5.3375]],
-                                          np.float))
+    assert np.allclose(mean, np.array([[4], [5]]))
+    assert np.allclose(covar, np.array([[5.675, 5.35], [5.2, 5.3375]]))
 
 
 def test_bearing():

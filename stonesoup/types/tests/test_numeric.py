@@ -175,6 +175,11 @@ def test_probability_sum():
     assert approx(0.5) == Probability.sum((probability1, 0.3))
     assert approx(0.5) == Probability.sum((probability1, probability2, 0))
 
+    assert approx(0.2) == Probability.sum((Probability(0), probability1))
+    assert 0 == Probability.sum((Probability(0), ))
+
+    assert 0 == Probability.sum([])
+
 
 def test_probability_numpy_methods():
     probability = Probability(0.2)

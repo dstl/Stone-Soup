@@ -8,7 +8,6 @@ from ..deleter import Deleter
 from ..reader import DetectionReader
 from ..initiator import Initiator
 from ..updater import Updater
-from ..types.detection import MissedDetection
 from ..types.update import GaussianStateUpdate
 from ..functions import gm_reduce_single
 
@@ -204,13 +203,13 @@ class MultiTargetMixtureTracker(Tracker):
                 posterior_states = []
                 posterior_state_weights = []
                 for hypothesis in multihypothesis:
-                    if isinstance(hypothesis.measurement, MissedDetection):
+                    if not hypothesis:
                         posterior_states.append(hypothesis.prediction)
                     else:
                         posterior_states.append(
                             self.updater.update(hypothesis))
                     posterior_state_weights.append(
-                        float(hypothesis.probability))
+                        hypothesis.probability)
 
                 means = np.array([state.state_vector for state
                                   in posterior_states])
@@ -235,8 +234,7 @@ class MultiTargetMixtureTracker(Tracker):
                 # association score of "MissedDetection" is considered
                 # unassociated - candidate for initiating a new Track
                 missed_detection_weight = next(
-                    hyp.weight for hyp in multihypothesis
-                    if isinstance(hyp.measurement, MissedDetection))
+                    hyp.weight for hyp in multihypothesis if not hyp)
 
                 for hyp in multihypothesis:
                     if hyp.weight > missed_detection_weight:

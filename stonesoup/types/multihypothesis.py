@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from collections.abc import Sized, Iterable, Container
-import numbers
 
 from ..base import Property
 from ..types import Type
@@ -15,21 +14,22 @@ class MultipleHypothesis(Type, Sized, Iterable, Container):
     """Multiple Hypothesis base type
 
     A Multiple Hypothesis is a container to store a collection of hypotheses.
-
-    Optional inputs to 'init' function:
-    -----------------------------------
-    normalise - if True, normalise probabilities of 'single_hypotheses'
-    total_weight - when normalising, all weights on SingleHypotheses should
-                    add up to this
     """
 
     single_hypotheses = Property(
-        [SingleHypothesis],
-        default=None,
-        doc="The initial list of SingleHypotheses. Default `None` which"
-            " initialises with empty list.")
+        [SingleHypothesis], default=None,
+        doc="The initial list of :class:`~.SingleHypothesis`. Default `None`"
+            "which initialises with empty list.")
+    normalise = Property(
+        bool, default=False,
+        doc="Normalise probabilities of :class:`~.SingleHypothesis`. Default"
+            "is `False`.")
+    total_weight = Property(
+        float, default=1,
+        doc="When normalising, weights will sum to this. Default is 1.")
 
-    def __init__(self, single_hypotheses=None, *args, **kwargs):
+    def __init__(self, single_hypotheses=None, normalise=False, *args,
+                 **kwargs):
         if single_hypotheses is None:
             single_hypotheses = []
 
@@ -38,19 +38,11 @@ class MultipleHypothesis(Type, Sized, Iterable, Container):
             raise ValueError("Cannot form MultipleHypothesis out of "
                              "non-SingleHypothesis inputs!")
 
-        self.single_hypotheses = single_hypotheses
+        super().__init__(single_hypotheses, normalise, *args, **kwargs)
 
         # normalise the weights of 'single_hypotheses', if indicated
-        if 'normalise' in kwargs:
-            if kwargs['normalise'] is True:
-                weight = 1
-                if 'total_weight' in kwargs:
-                    if isinstance(kwargs['total_weight'], numbers.Integral):
-                        weight = kwargs['total_weight']
-                    else:
-                        raise ValueError('Cannot normalise weights to a '
-                                         'non-number value!')
-                self.normalise_probabilities(weight)
+        if self.normalise:
+            self.normalise_probabilities()
 
     def __len__(self):
         return self.single_hypotheses.__len__()
@@ -101,7 +93,10 @@ class MultipleHypothesis(Type, Sized, Iterable, Container):
                     return hypothesis
             return None
 
-    def normalise_probabilities(self, total_weight):
+    def normalise_probabilities(self, total_weight=None):
+        if total_weight is None:
+            total_weight = self.total_weight
+
         # verify that SingleHypotheses composing this MultipleHypothesis
         # all have Probabilities
         if any(not hasattr(hypothesis, 'probability')

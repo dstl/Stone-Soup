@@ -234,7 +234,12 @@ class Probability(Real):
         log_values = [cls._log(value) for value in values]
         if not log_values:
             return Probability(0)
+
         max_log_value = max(log_values)
+        # Check if all values are zero
+        if max_log_value == float('-inf'):
+            return Probability(0)
+
         value_sum = sum(exp(log_value - max_log_value)
                         for log_value in log_values)
 
