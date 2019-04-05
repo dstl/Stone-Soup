@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 
+from ...types.detection import MissedDetection
 from ...types.hypothesis import SingleDistanceHypothesis
 from ...types.prediction import (
     GaussianMeasurementPrediction, GaussianStatePrediction)
@@ -28,7 +29,8 @@ def hypothesiser():
             prediction = GaussianStatePrediction(track.state_vector + 1,
                                                  track.covar * 2, timestamp)
             hypotheses.append(
-                SingleDistanceHypothesis(prediction, None, 10))
+                SingleDistanceHypothesis(
+                    prediction, MissedDetection(timestamp=timestamp), 10))
             return hypotheses
     return TestGaussianHypothesiser()
 
