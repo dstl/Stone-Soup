@@ -13,6 +13,8 @@ Stone Soup uses the following dependencies:
 | [Python](https://www.python.org/) (v3.5+) | PSFL |
 | [SciPy](https://www.scipy.org/) | BSD |
 | [ruamel.yaml](https://yaml.readthedocs.io/) | MIT |
+| [pymap3d](https://github.com/scivision/pymap3d) | MIT |
+| [utm](https://https://github.com/Turbo87/utm) | MIT |
 
 ### Development
 For development the following libraries are also recommended:
@@ -23,3 +25,6 @@ For development the following libraries are also recommended:
 | [pytest](https://docs.pytest.org/) | MIT |
 | [Flake8](https://flake8.pycqa.org/) | MIT |
 | [Coverage.py](https://coverage.readthedocs.io/) | Apache 2.0 |
+
+## License
+Stone Soup is released under MIT License. Please see [License](LICENSE) for details.
