@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+from functools import lru_cache
 
 from .base import Updater
 from ..base import Property
@@ -16,6 +17,7 @@ class KalmanUpdater(Updater):
     Perform measurement update step in the standard Kalman Filter.
     """
 
+    @lru_cache()
     def get_measurement_prediction(self, state_prediction,
                                    measurement_model=None, **kwargs):
         """Kalman Filter measurement prediction step
@@ -281,6 +283,7 @@ class ExtendedKalmanUpdater(KalmanUpdater):
     Perform measurement update step in the Extended Kalman Filter.
     """
 
+    @lru_cache()
     def get_measurement_prediction(self, state_prediction,
                                    measurement_model=None, **kwargs):
         """Extended Kalman Filter measurement prediction step
@@ -560,6 +563,7 @@ class UnscentedKalmanUpdater(KalmanUpdater):
                      doc="Secondary spread scaling parameter\
                         (default is calculated as 3-Ns)")
 
+    @lru_cache()
     def get_measurement_prediction(self, state_prediction,
                                    measurement_model=None, **kwargs):
         """Unscented Kalman Filter measurement prediction step
