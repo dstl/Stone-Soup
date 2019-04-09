@@ -76,24 +76,19 @@ class DistanceHypothesiser(Hypothesiser):
         # True detection hypotheses
         for detection in detections:
 
-            # Re-evaluate prediction ONLY if detection timestamp
-            # does not match default
-            if (detection.timestamp is not None
-                    and detection.timestamp != timestamp):
-                state_prediction = self.predictor.predict(
-                    track.state, timestamp=detection.timestamp)
-            else:
-                state_prediction = prediction
+            # Re-evaluate prediction
+            prediction = self.predictor.predict(
+                track.state, timestamp=detection.timestamp)
 
             # Compute measurement prediction and distance measure
             measurement_prediction = self.updater.get_measurement_prediction(
-                state_prediction, detection.measurement_model)
+                prediction, detection.measurement_model)
             distance = self.measure(measurement_prediction, detection)
 
             # True detection hypothesis
             hypotheses.append(
                 SingleDistanceHypothesis(
-                    state_prediction,
+                    prediction,
                     detection,
                     distance,
                     measurement_prediction))

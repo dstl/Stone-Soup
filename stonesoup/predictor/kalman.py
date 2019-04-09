@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+from functools import lru_cache
 
 from .base import Predictor
 from ..base import Property
@@ -16,6 +17,7 @@ class KalmanPredictor(Predictor):
 
     """
 
+    @lru_cache()
     def predict(self, prior, control_input=None, timestamp=None, **kwargs):
         """Kalman Filter state prediction step
 
@@ -128,6 +130,7 @@ class ExtendedKalmanPredictor(KalmanPredictor):
 
     An implementation of an Extended Kalman Filter predictor"""
 
+    @lru_cache()
     def predict(self, prior, control_input=None, timestamp=None, **kwargs):
         """ Extended Kalman Filter state prediction step
 
@@ -278,6 +281,7 @@ class UnscentedKalmanPredictor(KalmanPredictor):
                      doc="Secondary spread scaling parameter\
                         (default is calculated as 3-Ns)")
 
+    @lru_cache()
     def predict(self, prior, control_input=None, timestamp=None, **kwargs):
         """ Unscented Kalman Filter state prediction step
 
