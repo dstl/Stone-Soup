@@ -1,4 +1,4 @@
 # -*- coding: utf-8 -*-
-from .base import DataAssociator
+from .base import DataAssociator, Associator, TrackToTrackAssociator
 
-__all__ = ['DataAssociator']
+__all__ = ['DataAssociator', 'Associator', 'TrackToTrackAssociator']

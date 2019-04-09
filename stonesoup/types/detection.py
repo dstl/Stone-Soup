@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from ..base import Property
+from .groundtruth import GroundTruthPath
 from .state import State, GaussianState, StateVector
 from ..models.measurement import MeasurementModel
 
@@ -29,6 +30,18 @@ class Clutter(Detection):
     This is same as :class:`~.Detection`, but can be used to identify clutter
     for metrics and analysis purposes.
     """
+
+
+class TrueDetection(Detection):
+    """TrueDetection type for detections that come from ground truth
+
+    This is same as :class:`~.Detection`, but can be used to identify true
+    detections for metrics and analysis purposes.
+    """
+
+    groundtruth_path = Property(
+        GroundTruthPath,
+        doc="Ground truth path that this detection came from")
 
 
 class MissedDetection(Detection):

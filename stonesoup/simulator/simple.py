@@ -7,7 +7,7 @@ from ..base import Property
 from ..models.measurement import MeasurementModel
 from ..models.transition import TransitionModel
 from ..reader import GroundTruthReader
-from ..types.detection import Detection, Clutter
+from ..types.detection import TrueDetection, Clutter
 from ..types.groundtruth import GroundTruthPath, GroundTruthState
 from ..types.numeric import Probability
 from ..types.state import GaussianState, State
@@ -147,10 +147,11 @@ class SimpleDetectionSimulator(DetectionSimulator):
 
             for track in tracks:
                 if np.random.rand() < self.detection_probability:
-                    detection = Detection(
+                    detection = TrueDetection(
                         self.measurement_model.function(
                             track[-1].state_vector),
-                        timestamp=track[-1].timestamp)
+                        timestamp=track[-1].timestamp,
+                        groundtruth_path=track)
                     detection.clutter = False
                     self.real_detections.add(detection)
 

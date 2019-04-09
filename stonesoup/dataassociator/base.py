@@ -98,3 +98,17 @@ class DataAssociator(Base):
             if cls.isvalid(joint_hypothesis)]
 
         return joint_hypotheses
+
+
+class Associator(Base):
+    """Associator base class
+
+    An associator is used to associate objects for the generation of
+    metrics. It returns a :class:`~.AssociationSet` containing
+    a set of :class:`~.Association`
+    objects.
+    """
+
+
+class TrackToTrackAssociator(Associator):
+    """Associates two sets of :class:`~.Track` objects together"""
