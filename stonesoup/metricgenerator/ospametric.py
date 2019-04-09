@@ -166,10 +166,10 @@ class GOSPAMetric(MetricGenerator):
 
         Returns
         ---------
+        truth_to_measured: Vector of size 1xm, which has indices of the
+                    measured objects or '-1' if unassigned.
         measured_to_truth: Vector of size 1xn, which has indices of the
                             truth objects or '-1' if unassigned.
-        truth_to_measured: Vector of size 1xm, which has indices of the
-                            measured objects or '-1' if unassigned.
         opt_cost: Scalar value of the optimal assignment
         """
 
@@ -178,8 +178,8 @@ class GOSPAMetric(MetricGenerator):
         unassigned_idx = -1
 
         opt_cost = 0.0
-        measured_to_truth = -1 * np.ones([1, m_truth], dtype=np.int64)
-        truth_to_measured = -1 * np.ones([1, n_measured], dtype=np.int64)
+        measured_to_truth = -1 * np.ones([1, n_measured], dtype=np.int64)
+        truth_to_measured = -1 * np.ones([1, m_truth], dtype=np.int64)
 
         if m_truth == 1:
             # Corner case 1: if there is only one truth state.
@@ -208,6 +208,9 @@ class GOSPAMetric(MetricGenerator):
             # So swap cost matrix
             cost_matrix = cost_matrix.transpose()
             m_truth, n_measured = cost_matrix.shape
+            tmp = measured_to_truth
+            measured_to_truth = truth_to_measured
+            truth_to_measured = tmp
             swap_dim_flag = True
 
         # Initial cost for each measured state
@@ -327,17 +330,10 @@ class GOSPAMetric(MetricGenerator):
         num_truth_states = len(truth_states)
         num_measured_states = len(measured_states)
         truth_to_measured_assignment = []
-
         cost_matrix = self.compute_cost_matrix(measured_states, truth_states)
+        cost_matrix = cost_matrix.transpose()
 
-        # Initialise output values
-        # num_missed = 0
-        # num_false = 0
-        # localisation = 0.0
-
-        # truth_to_track_assignment = []
         opt_cost = 0.0
-
         dummy_cost = (self.c ** self.p) / self.alpha
 
         if num_truth_states == 0:
