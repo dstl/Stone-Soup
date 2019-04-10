@@ -25,5 +25,6 @@ functionality and also ensuring exceptions are raised or managed appropriately.
 
 License
 -------
-Any contributions submitted are to be under the MIT License and will be assumed
-to be unless otherwise stated on the pull request.
+Any contributions submitted are to be under the MIT or similar non-copyleft
+license. MIT License will be assumed to be unless otherwise stated on the pull
+request.
