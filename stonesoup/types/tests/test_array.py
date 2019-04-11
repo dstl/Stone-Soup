@@ -48,3 +48,44 @@ def test_multiplication():
     assert type(state_vector.T@array.T) == type(state_vector)
     assert type(covar@vector) == type(covar)
     assert type(vector.T@covar.T) == type(vector)
+
+
+def test_array_ops():
+    vector = np.array([[1, 1, 1, 1]]).T
+    vector2 = vector + 2.
+    sv = StateVector(vector)
+    array = np.array([[1., 2., 3., 4.], [2., 3., 4., 5.]]).T
+    covar = CovarianceMatrix(array)
+    Mtype = type(covar)
+    Vtype = type(sv)
+
+    assert np.array_equal(covar - vector, array - vector)
+    assert type(covar-vector) == Mtype
+    assert np.array_equal(covar + vector, array + vector)
+    assert type(covar+vector) == Mtype
+    assert np.array_equal(vector - covar, vector - array)
+    assert type(vector - covar) == Mtype
+    assert np.array_equal(vector + covar, vector + array)
+    assert type(vector + covar) == Mtype
+
+    assert np.array_equal(vector2 - sv, vector2 - vector)
+    assert type(vector2 - sv) == Vtype
+    assert np.array_equal(sv - vector2, vector - vector2)
+    assert type(sv - vector2) == Vtype
+    assert np.array_equal(vector2 + sv, vector2 + vector)
+    assert type(vector2 + sv) == Vtype
+    assert np.array_equal(sv + vector2, vector + vector2)
+    assert type(sv + vector2) == Vtype
+    assert type(sv+2.) == Vtype
+    assert type(sv*2.) == Vtype
+
+    assert np.array_equal(array - sv, array - vector)
+    assert type(array - sv) == Mtype
+    assert np.array_equal(sv - array, vector - array)
+    assert type(sv - array) == Mtype
+    assert np.array_equal(array + sv, array + vector)
+    assert type(array + sv) == Mtype
+    assert np.array_equal(sv + array, vector + array)
+    assert type(sv + array) == Mtype
+    assert type(covar+2.) == Mtype
+    assert type(covar*2.) == Mtype
