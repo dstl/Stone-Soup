@@ -4,6 +4,7 @@
 import numpy as np
 
 from .types.numeric import Probability
+from .types.array import CovarianceMatrix
 
 
 def tria(matrix):
@@ -223,6 +224,7 @@ def unscented_transform(sigma_points, mean_weights, covar_weights,
         sigma_points_t = np.asarray(
             [fun(sigma_points[:, i:i+1], points_noise[:, i:i+1])
              for i in range(n_points)]).squeeze(2).T
+    sigma_points_t = CovarianceMatrix(sigma_points_t)
 
     # Calculate mean and covariance approximation
     mean, covar = sigma2gauss(
