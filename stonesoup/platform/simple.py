@@ -11,12 +11,16 @@ from .base import Platform
 
 
 class SensorPlatform(Platform):
-    """A simple Platform that can carry a number of different sensors and is\
+    """A simple Platform that can carry a number of different sensors and is
     capable of moving based upon the :class:`~.TransitionModel`.
 
-    The location of platform mounted sensors will be maintained relative to \
-    the sensor position. Simple platforms move within a 2 or 3 dimensional \
+    The location of platform mounted sensors will be maintained relative to
+    the sensor position. Simple platforms move within a 2 or 3 dimensional
     rectangular cartesian space.
+
+    A simple platform is considered to always be aligned with its principle
+    velocity. It does not take into account issues such as bank angle or body
+    deformation (e.g. flex).
 
     """
 
@@ -69,17 +73,20 @@ class SensorPlatform(Platform):
     # TODO: create add_sensor method
 
     def move(self, timestamp=None, **kwargs):
-        """Propagate the platform position using the :attr:`transition_model`,\
-        and use _move_sensors method to update sensor positions, this in turn \
-        calls _get_rotated_offset to modify sensor offsets relative to the \
+        """Propagate the platform position using the :attr:`transition_model`,
+        and use _move_sensors method to update sensor positions, this in turn
+        calls _get_rotated_offset to modify sensor offsets relative to the
         platforms velocity vector
 
         Parameters
         ----------
         timestamp: :class:`datetime.datetime`, optional
-            A timestamp signifying when the maneuver completes \
+            A timestamp signifying when the maneuver completes
             (the default is `None`)
 
+        Notes
+        -----
+        This methods updates the value of :attr:`position` and :attr:`sensors`
         """
         # Call superclass method to update platform state
         super().move(timestamp=timestamp, **kwargs)
@@ -123,12 +130,18 @@ class SensorPlatform(Platform):
                 StateVector([[0], [0], [heading]]))
 
     def _get_rotated_offset(self, i):
-        """ _get_rotated_offset - determines the sensor mounting offset for the
-        platforms relative orientation.
+        """ Determine the sensor mounting offset for the platforms relative
+        orientation.
 
-        :param self: Platform object
-        :param i: Sensor index within Platform object
-        :return: Sensor mounting offset rotated relative to platform motion
+        Parameters
+        ----------
+        i : int
+            Integer reference to the sensor index
+
+        Returns
+        -------
+        np.array
+            Sensor mounting offset rotated relative to platform motion
         """
 
         vel = np.zeros([self.mounting_mappings.shape[1], 1])
@@ -151,8 +164,15 @@ def _get_rotation_matrix(vel):
     In the 2d case this will be a 3x3 matrix which rotates around the Z axis
     followed by a rotation about the new Y axis.
 
-    :param vel: 1xD vector denoting platform velocity in D dimensions
-    :return: DxD rotation matrix
+    Parameters
+    ----------
+    vel : np.arrary
+        1xD vector denoting platform velocity in D dimensions
+
+    Returns
+    -------
+    np.array
+        DxD rotation matrix
     """
     if len(vel) == 3:
         return _rot3d(vel)
@@ -169,9 +189,17 @@ def _get_angle(vec, axis):
     angle of rotation required between relative rectangular cartesian
     coordinate frame of reference and platform inertial frame of reference.
 
-    :param vec: 1xD array denoting platform velocity
-    :param axis: Dx1 array denoting sensor offset relative to platform
-    :return: Angle between the two vectors in radians
+    Parameters
+    ----------
+    vec : np.array
+        1xD array denoting platform velocity
+    axis : np.array
+        Dx1 array denoting sensor offset relative to platform
+
+    Returns
+    -------
+    Angle : float
+        Angle, in radians, between the two vectors
     """
     vel_norm = vec / np.linalg.norm(vec)
     axis_norm = axis / np.linalg.norm(axis)
@@ -191,8 +219,15 @@ def _rot3d(vec):
     calculated, the rotated Y axis is then determined and used to calculate the
     rotation matrix which takes into account the platform pitch
 
-    :param vec: platform velocity
-    :return: np.array 3x3 rotation matrix
+    Parameters
+    ----------
+    vec: np.array
+        platform velocity
+
+    Returns
+    -------
+    np.array
+        3x3 rotation matrix
     """
     # TODO handle platform roll
     yaw = np.arctan2(vec[[1]], vec[[0]])
@@ -210,8 +245,15 @@ def _rot_z(theta):
     """ Returns a rotation matrix which will rotate a vector around the Z axis
     in a counter clockwise direction by theta radians.
 
-    :param theta:
-    :return: 3x3 rotation matrix
+    Parameters
+    ----------
+    theta : float
+        Required rotation angle in radians
+
+    Returns
+    -------
+    np.array
+        3x3 rotation matrix
     """
     return np.array([[cos(theta), -sin(theta), 0],
                      [sin(theta), cos(theta), 0],
