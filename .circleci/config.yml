@@ -1,16 +1,16 @@
-version: 2
+version: 2.1
 workflows:
   version: 2
   test:
     jobs:
-      - test-3.5
-      - test-3.6
-      - test-3.7
+      - test-35
+      - test-36
+      - test-37
   docs:
     jobs:
       - docs
 jobs:
-  test-3.5: &test-template
+  test-35: &test-template
     docker:
       - image: circleci/python:3.5
     steps:
@@ -18,7 +18,7 @@ jobs:
       - restore_cache:
           key: v1-dependencies-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
       - run:
-          name: install dependencies
+          name: Install Dependencies
           command: |
             python3 -m venv venv
             . venv/bin/activate
@@ -28,22 +28,26 @@ jobs:
             - ./venv
           key: v1-dependencies-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
       - run:
-          name: run tests
+          name: Run Tests
           command: |
             . venv/bin/activate
             mkdir test-reports
-            pytest --junitxml=test-reports/junit.xml --flake8 --cov --cov-report=html:test-coverage stonesoup
+            pytest --junitxml=test-reports/junit.xml --flake8 --cov --cov-report=xml:test-reports/coverage.xml stonesoup
       - store_test_results:
           path: test-reports
       - store_artifacts:
           path: test-reports 
-      - store_artifacts:
-          path: test-coverage
-  test-3.6:
+      - run:
+          name: Upload Coverage Results
+          command: |
+            bash <(curl -s https://codecov.io/bash) \
+              -f test-reports/coverage.xml \
+              -n ${CIRCLE_BUILD_NUM}
+  test-36:
     <<: *test-template
     docker:
       - image: circleci/python:3.6
-  test-3.7:
+  test-37:
     <<: *test-template
     docker:
       - image: circleci/python:3.7
@@ -53,9 +57,9 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: v1-dependencies-test-3.7-{{ checksum "setup.py" }}
+          key: v1-dependencies-test-37-{{ checksum "setup.py" }}
       - run:
-          name: install dependencies
+          name: Install Dependencies
           command: |
             python3 -m venv venv
             . venv/bin/activate
@@ -63,9 +67,9 @@ jobs:
       - save_cache:
           paths:
             - ./venv
-          key: v1-dependencies-test-3.7-{{ checksum "setup.py" }}
+          key: v1-dependencies-test-37-{{ checksum "setup.py" }}
       - run:
-          name: build docs
+          name: Build Docs
           command: |
             . venv/bin/activate
             cd docs
