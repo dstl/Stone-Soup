@@ -74,7 +74,8 @@ def test_gm_reduce_single():
     mean, covar = gm_reduce_single(means, covars, weights)
 
     assert np.allclose(mean, np.array([[4], [5]]))
-    assert np.allclose(covar, np.array([[5.675, 5.35], [5.2, 5.3375]]))
+    assert np.allclose(covar, np.array([[3.675, 3.35],
+                                        [3.2, 3.3375]]))
 
 
 def test_bearing():
