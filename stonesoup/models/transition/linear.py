@@ -184,6 +184,129 @@ class LinearGaussianTimeInvariantTransitionModel(LinearGaussianTransitionModel,
         return self.covariance_matrix
 
 
+class OrnsteinUhlenbeck(LinearGaussianTransitionModel, TimeVariantModel):
+    r"""This is a class implementation of a time-variant 1D Linear-Gaussian
+    Ornstein Uhlenbeck Transition Model.
+
+    The target is assumed to move with (nearly) constant velocity, which
+    exponentially decays to zero over time, and target acceleration is
+    modeled as white noise.
+
+    The model is described by the following SDEs:
+
+        .. math::
+            :nowrap:
+
+            \begin{eqnarray}
+                dx_{pos} & = & x_{vel} dt & | {Position \ on \
+                X-axis (m)} \\
+                dx_{vel} & = & -K x_{vel} dt + q dW_t,
+                W_t \sim \mathcal{N}(0,q) & | {Speed\ on \
+                X-axis (m/s)}
+            \end{eqnarray}
+
+    Or equivalently:
+
+        .. math::
+            x_t = F_t x_{t-1} + w_t,\ w_t \sim \mathcal{N}(0,Q_t)
+
+    where:
+
+        .. math::
+            x & = & \begin{bmatrix}
+                        x_{pos} \\
+                        x_{vel}
+                \end{bmatrix}
+
+        .. math::
+            F_t & = & \begin{bmatrix}
+                        1 & \frac{1}{K}(1 - e^{-Kdt})\\
+                        0 & e^{-Kdt}
+                \end{bmatrix}
+
+        .. math::
+            Q_t & = & \begin{bmatrix}
+                        \frac{dt - \frac{2}{K}(1 - e^{-Kdt})
+                              + \frac{1}{2K}(1 - e^{-2Kdt})}{K^2} &
+                        \frac{\frac{1}{K}(1 - e^{-Kdt})
+                              - \frac{1}{2K}(1 - e^{-2Kdt})}{K} \\
+                        \frac{\frac{1}{K}(1 - e^{-Kdt})
+                              - \frac{1}{2K}(1 - e^{-2Kdt})}{K} &
+                        \frac{1 - e^{-2Kdt}}{2K}
+                \end{bmatrix} q
+    """
+
+    noise_diff_coeff = Property(
+        float, doc="The velocity noise diffusion coefficient :math:`q`")
+    damping_coeff = Property(
+        float, doc="The velocity damping coefficient :math:`K`")
+
+    @property
+    def ndim_state(self):
+        """ndim_state getter method
+
+        Returns
+        -------
+        :class:`int`
+            :math:`2` -> The number of model state dimensions
+        """
+
+        return 2
+
+    def matrix(self, time_interval, **kwargs):
+        """Model matrix :math:`F(t)`
+
+        Parameters
+        ----------
+        time_interval: :class:`datetime.timedelta`
+            A time interval :math:`dt`
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The model matrix evaluated given the provided time interval.
+        """
+
+        k = self.damping_coeff
+        dt = time_interval.total_seconds()
+
+        exp_kdt = sp.exp(-k*dt)
+
+        return sp.array([[1, (1 - exp_kdt)/k],
+                         [0, exp_kdt]])
+
+    def covar(self, time_interval, **kwargs):
+        """Returns the transition model noise covariance matrix.
+
+        Parameters
+        ----------
+        time_interval : :class:`datetime.timedelta`
+            A time interval :math:`dt`
+        Returns
+        -------
+        :class:`stonesoup.types.state.CovarianceMatrix` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The process noise covariance.
+        """
+
+        k = self.damping_coeff
+        q = self.noise_diff_coeff
+        dt = time_interval.total_seconds()
+
+        exp_kdt = sp.exp(-k*dt)
+        exp_2kdt = sp.exp(-2*k*dt)
+
+        q11 = q*(dt - 2/k*(1 - exp_kdt) + 1/(2*k)*(1 - exp_2kdt))/(k**2)
+        q12 = q*((1 - exp_kdt)/k - 1/(2*k)*(1 - exp_2kdt))/k
+        q22 = q*(1 - exp_2kdt)/(2*k)
+
+        covar = sp.array([[q11, q12],
+                          [q12, q22]])
+
+        return CovarianceMatrix(covar)
+
+
 class ConstantVelocity(LinearGaussianTransitionModel, TimeVariantModel):
     r"""This is a class implementation of a time-variant 1D Linear-Gaussian
     Constant Velocity Transition Model.
