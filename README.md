@@ -15,6 +15,10 @@ Please see the
 [Stone Soup documentation](https://stonesoup.readthedocs.org/) for more
 information.
 
+Please see the
+[Stone Soup Notebooks repository](https://github.com/dstl/Stone-Soup-Notebooks)
+for examples.
+
 ## Dependencies
 Stone Soup uses the following dependencies:
 
