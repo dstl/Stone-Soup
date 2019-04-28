@@ -136,7 +136,7 @@ class SimpleDetectionSimulator(DetectionSimulator):
         clutter detections per unit volume per timestep"""
         meas_volume = float(1)
         for dim in range(self.meas_range.ndim):
-            meas_volume *= abs(float(self.meas_range[dim][0] *
+            meas_volume *= abs(float(self.meas_range[dim][0] -
                                      self.meas_range[dim][-1]))
         return self.clutter_rate/meas_volume
 
