@@ -33,11 +33,14 @@ class StateVector(np.ndarray):
     def _cast(cls, val):
         # This tries to cast the result as either a StateVector or
         # CovarianceMatrix if applicable.
-        if val.ndim == 2:
-            if val.shape[1] == 1:
-                return cls(val)
+        if isinstance(val, np.ndarray):
+            if val.ndim == 2:
+                if val.shape[1] == 1:
+                    return cls(val)
+                else:
+                    return CovarianceMatrix(val)
             else:
-                return CovarianceMatrix(val)
+                return val
         else:
             return val
 

@@ -76,6 +76,7 @@ def test_array_ops():
     assert type(vector2 + sv) == Vtype
     assert np.array_equal(sv + vector2, vector + vector2)
     assert type(sv + vector2) == Vtype
+
     assert type(sv+2.) == Vtype
     assert type(sv*2.) == Vtype
 
@@ -87,5 +88,6 @@ def test_array_ops():
     assert type(array + sv) == Mtype
     assert np.array_equal(sv + array, vector + array)
     assert type(sv + array) == Mtype
+
     assert type(covar+2.) == Mtype
     assert type(covar*2.) == Mtype
