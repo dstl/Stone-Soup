@@ -41,7 +41,7 @@ class SimpleManager(MetricManager):
         for in_obj in input_objects:
             if not isinstance(in_obj, (list, set)):
                 raise TypeError('Inputs are expected as lists or sets only')
-            else:
+            elif in_obj:
                 if all(isinstance(x, Track) for x in in_obj):
                     if overwrite:
                         self.tracks = set(in_obj)
@@ -64,6 +64,9 @@ class SimpleManager(MetricManager):
                         'Object of type {!r} not expected'.format(type()))
                     # This error doesn't work if the first element of the list
                     # is a sensible one but the later ones aren't.
+            # 'in_obj' is not a non-empty set or list
+            else:
+                pass
 
     def associate_tracks(self):
         """Associate tracks to truth using the associator
