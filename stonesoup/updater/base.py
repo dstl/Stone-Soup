@@ -15,13 +15,21 @@ class Updater(Base):
     measurement_model = Property(MeasurementModel, doc="measurement model")
 
     @abstractmethod
-    def predict_measurement(self, state_prediction, **kwargs):
+    def get_measurement_prediction(
+            self, state_prediction, measurement_model=None, **kwargs):
         """Get measurement prediction from state prediction
 
         Parameters
         ----------
         state_prediction : :class:`~.StatePrediction`
             The state prediction
+        measurement_model: :class:`~.MeasurementModel`, optional
+            The measurement model used to generate the measurement prediction.
+            Should be used in cases where the measurement model is dependent
+            on the received measurement. The default is `None`, in which case
+            the updater will use the measurement model specified on
+            initialisation
+
 
         Returns
         -------

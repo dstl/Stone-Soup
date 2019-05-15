@@ -2,7 +2,7 @@ import datetime
 
 import numpy as np
 
-from stonesoup.reader.aishub import JSON_AISDetectionReader
+from ..aishub import JSON_AISDetectionReader
 
 
 def test_aishub(tmpdir):

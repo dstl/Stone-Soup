@@ -11,7 +11,8 @@ from ...types.hypothesis import SingleDistanceHypothesis, \
 from ...types.multihypothesis import MultipleHypothesis
 from ...types.prediction import StateMeasurementPrediction, \
     GaussianStatePrediction
-from ...types import Track, GaussianStateUpdate
+from ...types.track import Track
+from ...types.update import GaussianStateUpdate
 
 
 @pytest.fixture()

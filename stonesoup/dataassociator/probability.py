@@ -5,14 +5,16 @@ from ..base import Property
 from ..hypothesiser import Hypothesiser
 from ..hypothesiser.probability import PDAHypothesiser
 from ..updater import Updater
-from ..types import Probability, MissedDetection, \
-    SingleProbabilityHypothesis, ProbabilityJointHypothesis
+from ..types.detection import MissedDetection
+from ..types.hypothesis import (
+    SingleProbabilityHypothesis, ProbabilityJointHypothesis)
 from ..types.multihypothesis import MultipleHypothesis
+from ..types.numeric import Probability
 import itertools
 
 
 class SimplePDA(DataAssociator):
-    """Simple Probabilistic Data Associatoion (PDA)
+    """Simple Probabilistic Data Association (PDA)
 
     Given a set of detections and a set of tracks, each detection has a
     probability that it is associated each specific track.  For each track,
@@ -55,7 +57,7 @@ class SimplePDA(DataAssociator):
 
 
 class JPDA(DataAssociator):
-    """Joint Probabilistic Data Associatoion (JPDA)
+    r"""Joint Probabilistic Data Association (JPDA)
 
     Given a set of Detections and a set of Tracks, each Detection has a
     probability that it is associated with each specific Track.  Rather than
@@ -66,12 +68,12 @@ class JPDA(DataAssociator):
 
     .. math::
 
-          prob_association(Detection, Track) <
-          \frac{prob_association(MissedDetection, Track); self.gate_ratio}
+          prob_{association(Detection, Track)} <
+          \frac{prob_{association(MissedDetection, Track)}}{gate\ ratio}
 
     then Detection is assumed to be outside Track's gate, and the probability
     of association is dropped from the Gaussian Mixture.  This calculation
-    takes place in the function 'enumerate_JPDA_hypotheses()'.
+    takes place in the function :meth:`enumerate_JPDA_hypotheses`.
     """
 
     hypothesiser = Property(
@@ -125,11 +127,10 @@ class JPDA(DataAssociator):
             single_measurement_hypotheses = list()
 
             # record the MissedDetection hypothesis for this track
-            prob_misdetect = Probability(
-                sum([joint_hypothesis.probability
-                     for joint_hypothesis in joint_hypotheses
-                     if isinstance(joint_hypothesis.hypotheses[track].
-                                   measurement, MissedDetection)]))
+            prob_misdetect = Probability.sum(
+                joint_hypothesis.probability
+                for joint_hypothesis in joint_hypotheses
+                if not joint_hypothesis.hypotheses[track].measurement)
 
             single_measurement_hypotheses.append(
                 SingleProbabilityHypothesis(
@@ -177,33 +178,29 @@ class JPDA(DataAssociator):
         possible_assoc = list()
 
         for track in tracks:
-            this_track_possible_assoc = list()
-            this_track_missed_detection_probability = multihypths[track].\
-                get_missed_detection_probability()
-            for hypothesis_index, hypothesis in enumerate(multihypths[track]):
-                if this_track_missed_detection_probability / \
-                        hypothesis.probability <= gate_ratio:
-                    this_track_possible_assoc.append(hypothesis_index)
-            possible_assoc.append(tuple(this_track_possible_assoc))
+            track_possible_assoc = list()
+            missed_probability = \
+                multihypths[track].get_missed_detection_probability()
+            missed_gate = missed_probability/gate_ratio
+            for hypothesis in multihypths[track]:
+                # Always include missed detection (gate ratio < 1)
+                if not hypothesis or hypothesis.probability >= missed_gate:
+                    track_possible_assoc.append(hypothesis)
+            possible_assoc.append(track_possible_assoc)
 
-        # enumerate all valid JPDA joint hypotheses: position in character
-        # string is the track, digit is the assigned detection
-        # (0 is missed detection)
+        # enumerate all valid JPDA joint hypotheses
         enum_JPDA_hypotheses = (
             joint_hypothesis
             for joint_hypothesis in itertools.product(*possible_assoc)
             if cls.isvalid(joint_hypothesis))
 
         # turn the valid JPDA joint hypotheses into 'JointHypothesis'
-        for elem in enum_JPDA_hypotheses:
+        for joint_hypothesis in enum_JPDA_hypotheses:
             local_hypotheses = {}
 
-            for detection, track in zip(elem, tracks):
-                source_multihypothesis = multihypths[track]
-
-                local_hypothesis = source_multihypothesis[detection]
-
-                local_hypotheses[track] = local_hypothesis
+            for track, hypothesis in zip(tracks, joint_hypothesis):
+                local_hypotheses[track] = \
+                    multihypths[track][hypothesis.measurement]
 
             joint_hypotheses.append(
                 ProbabilityJointHypothesis(local_hypotheses))
@@ -219,16 +216,18 @@ class JPDA(DataAssociator):
     @staticmethod
     def isvalid(joint_hypothesis):
 
-        # 'joint_hypothesis' represents a valid joint hypothesis if:
-        #   1) no digit is repeated (except 0)
+        # 'joint_hypothesis' represents a valid joint hypothesis if
+        # no measurement is repeated (ignoring missed detections)
 
-        # check condition #1
-        unique_set = set()
-        for elem in joint_hypothesis:
-            if elem in unique_set and elem != 0:
+        measurements = set()
+        for hypothesis in joint_hypothesis:
+            measurement = hypothesis.measurement
+            if not measurement:
+                pass
+            elif measurement in measurements:
                 return False
             else:
-                unique_set.add(elem)
+                measurements.add(measurement)
 
         return True
 
@@ -282,8 +281,7 @@ def associate_highest_probability_hypotheses(tracks, hypotheses):
 
         associations[highest_probability_track] = \
             hypotheses[highest_probability_track]
-        if not isinstance(
-                highest_probability_hypothesis.measurement, MissedDetection):
+        if highest_probability_hypothesis:
             associated_measurements.add(
                 highest_probability_hypothesis.measurement)
 

@@ -3,25 +3,35 @@ Base Data Types
 
 Stone Soup base data types.
 
-.. autoclass:: stonesoup.types.Detection
+.. autoclass:: stonesoup.types.detection.Detection
     :noindex:
-.. autoclass:: stonesoup.types.GroundTruthState
+
+.. autoclass:: stonesoup.types.groundtruth.GroundTruthState
     :noindex:
-.. autoclass:: stonesoup.types.GroundTruthPath
+
+.. autoclass:: stonesoup.types.groundtruth.GroundTruthPath
     :noindex:
-.. autoclass:: stonesoup.types.Hypothesis
+
+.. autoclass:: stonesoup.types.hypothesis.Hypothesis
     :noindex:
-.. autoclass:: stonesoup.types.Metric
+
+.. autoclass:: stonesoup.types.metric.Metric
     :noindex:
-.. autoclass:: stonesoup.types.Particle
+
+.. autoclass:: stonesoup.types.particle.Particle
     :noindex:
-.. autoclass:: stonesoup.types.Prediction
+
+.. autoclass:: stonesoup.types.prediction.Prediction
     :noindex:
-.. autoclass:: stonesoup.types.SensorData
+
+.. autoclass:: stonesoup.types.sensordata.SensorData
     :noindex:
-.. autoclass:: stonesoup.types.State
+
+.. autoclass:: stonesoup.types.state.State
     :noindex:
-.. autoclass:: stonesoup.types.Track
+
+.. autoclass:: stonesoup.types.track.Track
     :noindex:
-.. autoclass:: stonesoup.types.Update
+
+.. autoclass:: stonesoup.types.update.Update
     :noindex:

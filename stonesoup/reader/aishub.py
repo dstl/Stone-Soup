@@ -3,8 +3,9 @@ from datetime import datetime
 
 import numpy as np
 
-from stonesoup.reader import DetectionReader, TextFileReader
-from stonesoup.types import Detection
+from .base import DetectionReader
+from .file import TextFileReader
+from ..types.detection import Detection
 
 
 class JSON_AISDetectionReader(DetectionReader, TextFileReader):

@@ -8,8 +8,8 @@ from .state import State, GaussianState, ParticleState
 class Update(Type):
     """ Update type
 
-    The base update class. Updates are returned by :class:'~Updater' objects
-     and contain the information that was used to perform the updating"""
+    The base update class. Updates are returned by :class:'~.Updater' objects
+    and contain the information that was used to perform the updating"""
 
     hypothesis = Property(Hypothesis,
                           doc="Hypothesis used for updating")

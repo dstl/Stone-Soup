@@ -3,8 +3,9 @@ import datetime
 
 import numpy as np
 
-from ..linear import (LinearGaussianTimeInvariantTransitionModel,
-                      ConstantVelocity, CombinedLinearGaussianTransitionModel)
+from ..linear import (
+    LinearGaussianTimeInvariantTransitionModel, ConstantVelocity,
+    CombinedLinearGaussianTransitionModel)
 
 
 def test_combined():

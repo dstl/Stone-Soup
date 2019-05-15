@@ -12,7 +12,7 @@ import numpy as np
 from dateutil.parser import parse
 
 from ..base import Property
-from ..types import Detection
+from ..types.detection import Detection
 from .base import DetectionReader
 from .file import TextFileReader
 

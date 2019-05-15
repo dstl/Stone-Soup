@@ -4,11 +4,10 @@ import numpy as np
 
 from .base import Sensor
 from ..base import Property
-from ..types.state import State, StateVector
-from ..types.detection import Detection
+from ..models.measurement.nonlinear import RangeBearingGaussianToCartesian
 from ..types.array import CovarianceMatrix
-from ..models.measurement.nonlinear\
-    import RangeBearingGaussianToCartesian
+from ..types.detection import Detection
+from ..types.state import State, StateVector
 
 
 class RadarRangeBearing(Sensor):

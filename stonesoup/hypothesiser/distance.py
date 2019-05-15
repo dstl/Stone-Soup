@@ -1,19 +1,21 @@
 # -*- coding: utf-8 -*-
-import numpy as np
-from scipy.spatial.distance import mahalanobis
-
 from .base import Hypothesiser
 from ..base import Property
-from ..types import SingleDistanceHypothesis
+from ..measures import Measure
 from ..predictor import Predictor
+from ..types.multihypothesis import \
+    MultipleHypothesis
+from ..types.hypothesis import SingleDistanceHypothesis
+from ..types.detection import MissedDetection
 from ..updater import Updater
 
 
-class MahalanobisDistanceHypothesiser(Hypothesiser):
-    """Prediction Hypothesiser based on Mahalanobis Distance
+class DistanceHypothesiser(Hypothesiser):
+    """Prediction Hypothesiser based on a Measure
 
     Generate track predictions at detection times and score each hypothesised
-    prediction-detection pair using the mahalanobis distance.
+    prediction-detection pair using the distance of the supplied
+    :class:`Measure` class.
     """
 
     predictor = Property(
@@ -22,32 +24,73 @@ class MahalanobisDistanceHypothesiser(Hypothesiser):
     updater = Property(
         Updater,
         doc="Updater used to get measurement prediction")
+    measure = Property(
+        Measure,
+        doc="Measure class used to calculate the distance between two states.")
     missed_distance = Property(
-        int,
-        default=4,
-        doc="Distance in standard deviations at which a missed detection is"
-            "considered more likely. Default is 4 standard deviations.")
+        float,
+        default=float('inf'),
+        doc="Distance for a missed detection. Default is set to infinity")
 
     def hypothesise(self, track, detections, timestamp):
+        """ Evaluate and return all track association hypotheses.
 
+        For a given track and a set of N available detections, return a
+        MultipleHypothesis object with N+1 detections (first detection is
+        a 'MissedDetection'), each with an associated distance measure..
+
+        Parameters
+        ----------
+        track: :class:`~.Track`
+            The track object to hypothesise on
+        detections: :class:`list`
+            A list of :class:`~Detection` objects, representing the available
+            detections.
+        timestamp: :class:`datetime.datetime`
+            A timestamp used when evaluating the state and measurement
+            predictions. Note that if a given detection has a non empty
+            timestamp, then prediction will be performed according to
+            the timestamp of the detection.
+
+        Returns
+        -------
+        : :class:`~.MultipleHypothesis`
+            A container of :class:`~SingleDistanceHypothesis` objects
+
+        """
         hypotheses = list()
 
-        for detection in detections:
-            prediction = self.predictor.predict(
-                track.state, timestamp=detection.timestamp)
-            measurement_prediction = self.updater.get_measurement_prediction(
-                prediction)
-            distance = mahalanobis(detection.state_vector,
-                                   measurement_prediction.state_vector,
-                                   np.linalg.inv(measurement_prediction.covar))
-
-            hypotheses.append(
-                SingleDistanceHypothesis(
-                    prediction, detection, distance, measurement_prediction))
+        # Common state & measurement prediction
+        prediction = self.predictor.predict(track.state, timestamp=timestamp)
+        measurement_prediction = self.updater.get_measurement_prediction(
+            prediction)
 
         # Missed detection hypothesis with distance as 'missed_distance'
-        prediction = self.predictor.predict(track.state, timestamp=timestamp)
-        hypotheses.append(SingleDistanceHypothesis(
-            prediction, None, self.missed_distance))
+        hypotheses.append(
+            SingleDistanceHypothesis(
+                prediction,
+                MissedDetection(timestamp=timestamp),
+                self.missed_distance,
+                measurement_prediction))
 
-        return sorted(hypotheses, reverse=True)
+        # True detection hypotheses
+        for detection in detections:
+
+            # Re-evaluate prediction
+            prediction = self.predictor.predict(
+                track.state, timestamp=detection.timestamp)
+
+            # Compute measurement prediction and distance measure
+            measurement_prediction = self.updater.get_measurement_prediction(
+                prediction, detection.measurement_model)
+            distance = self.measure(measurement_prediction, detection)
+
+            # True detection hypothesis
+            hypotheses.append(
+                SingleDistanceHypothesis(
+                    prediction,
+                    detection,
+                    distance,
+                    measurement_prediction))
+
+        return MultipleHypothesis(sorted(hypotheses, reverse=True))

@@ -10,6 +10,12 @@ Base Types
 .. automodule:: stonesoup.types.base
     :show-inheritance:
 
+Array Types
+-----------
+
+.. automodule:: stonesoup.types.array
+    :show-inheritance:
+
 Detection Types
 ---------------
 
@@ -28,10 +34,31 @@ Hypothesis Types
 .. automodule:: stonesoup.types.hypothesis
     :show-inheritance:
 
+.. automodule:: stonesoup.types.multihypothesis
+    :show-inheritance:
+
 Metric Types
 ------------
 
 .. automodule:: stonesoup.types.metric
+    :show-inheritance:
+
+Numeric Types
+-------------
+
+.. automodule:: stonesoup.types.numeric
+    :show-inheritance:
+
+Particle Types
+--------------
+
+.. automodule:: stonesoup.types.particle
+    :show-inheritance:
+
+Prediction Types
+----------------
+
+.. automodule:: stonesoup.types.prediction
     :show-inheritance:
 
 Sensor Data Types
@@ -47,16 +74,10 @@ State Types
     :show-inheritance:
     :inherited-members: stonesoup.types.state.StateMutableSequence
 
-Particle Types
---------------
-
-.. automodule:: stonesoup.types.particle
-    :show-inheritance:
-
-Prediction Types
+Time Types
 ----------------
 
-.. automodule:: stonesoup.types.prediction
+.. automodule:: stonesoup.types.time
     :show-inheritance:
 
 Track Types
@@ -66,7 +87,7 @@ Track Types
     :show-inheritance:
 
 Update Types
-----------------
+------------
 
 .. automodule:: stonesoup.types.update
     :show-inheritance:

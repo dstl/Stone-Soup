@@ -4,8 +4,11 @@ import datetime
 
 import numpy as np
 
-from ..distance import MahalanobisDistanceHypothesiser
-from ...types import Track, Detection, GaussianState
+from ..distance import DistanceHypothesiser
+from ...types.detection import Detection
+from ...types.state import GaussianState
+from ...types.track import Track
+from ... import measures
 
 
 def test_mahalanobis(predictor, updater):
@@ -16,7 +19,8 @@ def test_mahalanobis(predictor, updater):
     detection2 = Detection(np.array([[3]]))
     detections = {detection1, detection2}
 
-    hypothesiser = MahalanobisDistanceHypothesiser(predictor, updater)
+    measure = measures.Mahalanobis()
+    hypothesiser = DistanceHypothesiser(predictor, updater, measure=measure)
 
     hypotheses = hypothesiser.hypothesise(track, detections, timestamp)
 
@@ -24,7 +28,7 @@ def test_mahalanobis(predictor, updater):
     assert len(hypotheses) == 3
 
     # There is a missed detection hypothesis
-    assert any(hypothesis.measurement is None for hypothesis in hypotheses)
+    assert any(not hypothesis.measurement for hypothesis in hypotheses)
 
     # Each hypothesis has a distance attribute
     assert all(hypothesis.distance >= 0 for hypothesis in hypotheses)

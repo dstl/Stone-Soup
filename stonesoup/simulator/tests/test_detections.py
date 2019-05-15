@@ -4,7 +4,7 @@ import datetime
 import pytest
 import numpy as np
 
-from ...types import State
+from ...types.state import State
 from ..simple import SimpleDetectionSimulator, SingleTargetGroundTruthSimulator
 
 
@@ -42,4 +42,4 @@ def test_simple_detection_simulator(
         assert (meas_range[:, 0] <= clutter.state_vector.ravel()).all()
         assert (meas_range[:, 1] >= clutter.state_vector.ravel()).all()
 
-    assert detector.clutter_spatial_density == 4.8e-15
+    assert detector.clutter_spatial_density == 3e-8

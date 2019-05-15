@@ -3,12 +3,14 @@
 import numpy as np
 import datetime
 
-from stonesoup.types.detection import Detection
-from stonesoup.updater.particle import ParticleUpdater
-from stonesoup.resampler.particle import SystematicResampler
-from stonesoup.models.measurement.linear import LinearGaussian
-from stonesoup.types import ParticleStatePrediction, \
-    ParticleMeasurementPrediction, Particle, SingleHypothesis
+from ...models.measurement.linear import LinearGaussian
+from ...resampler.particle import SystematicResampler
+from ...types.detection import Detection
+from ...types.hypothesis import SingleHypothesis
+from ...types.particle import Particle
+from ...types.prediction import (
+    ParticleStatePrediction, ParticleMeasurementPrediction)
+from ...updater.particle import ParticleUpdater
 
 
 def test_particle():

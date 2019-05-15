@@ -21,6 +21,14 @@ class StateVector(np.ndarray):
     def __array_wrap__(self, array):
         return np.asarray(array)
 
+    def __matmul__(self, other):
+        out = np.matmul(np.asfarray(self), np.asfarray(other))
+        return out.view(type=type(self))
+
+    def __rmatmul__(self, other):
+        out = np.matmul(np.asfarray(other), np.asfarray(self))
+        return out.view(type=type(other))
+
 
 class CovarianceMatrix(np.ndarray):
     """Covariance matrix wrapper for :class:`numpy.ndarray`.
@@ -39,3 +47,11 @@ class CovarianceMatrix(np.ndarray):
 
     def __array_wrap__(self, array):
         return np.asarray(array)
+
+    def __matmul__(self, other):
+        out = np.matmul(self, np.asfarray(other))
+        return out.view(type=type(self))
+
+    def __rmatmul__(self, other):
+        out = np.matmul(np.asfarray(other), self)
+        return out.view(type=type(other))
