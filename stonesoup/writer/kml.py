@@ -88,26 +88,20 @@ class KMLTrackWriter(TrackWriter):
                 tks_pos_matrix_lla.append(tks_pos_lla)
         elif (self.coordinate_system is CoordinateSystems.ECEF):
             det_pos_array_lla = np.array(
-                [ecef2geodetic(*ecef_pos, self.reference_point[1],
-                               self.reference_point[0],
-                               self.reference_point[2])
-                    for ecef_pos in det_pos_array])
+                [ecef2geodetic(*ecef_pos) for ecef_pos in det_pos_array])
             tks_pos_matrix_lla = []
             for tks_pos in tks_pos_matrix:
                 tks_pos_lla = np.array(
-                    [ecef2geodetic(
-                        *ecef_pos,
-                        self.reference_point[1], self.reference_point[0],
-                        self.reference_point[2]) for ecef_pos in tks_pos])
+                    [ecef2geodetic(*ecef_pos) for ecef_pos in tks_pos])
                 tks_pos_matrix_lla.append(tks_pos_lla)
         elif (self.coordinate_system is CoordinateSystems.LONLAT):
             det_pos_array_lla = np.array(
-                [(lonlat_pos[1], lonlat_pos[0], 0.0)
+                [(lonlat_pos[1][0], lonlat_pos[0][0], 0.0)
                  for lonlat_pos in det_pos_array])
             tks_pos_matrix_lla = []
             for tks_pos in tks_pos_matrix:
                 tks_pos_lla = np.array(
-                    [(lonlat_pos[1], lonlat_pos[0], 0.0)
+                    [(lonlat_pos[1][0], lonlat_pos[0][0], 0.0)
                      for lonlat_pos in tks_pos])
                 tks_pos_matrix_lla.append(tks_pos_lla)
         elif (self.coordinate_system is CoordinateSystems.LLA):
