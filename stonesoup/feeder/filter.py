@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from operator import attrgetter
+import numpy as np
 
 from ..base import Property
 from .base import Feeder
@@ -41,3 +42,146 @@ class MetadataReducer(Feeder):
                         meta_values.add(meta_value)
                 self._detections = unique_detections
             yield time, unique_detections
+
+
+class MetadataValueFilter(MetadataReducer):
+    """ Reduce detections by filtering out detections when the value of a
+        particular metadata field does not satisfy a given condition.
+
+        The MetadataValueFilter provides an easy way of reducing detections in
+        cases where an informative metadata field exists (e.g. object type or
+        existence probability), that allows us to identify and filter out
+        unwanted detections.
+
+        Once provided with a :py:attr:`~metadata_field` name and a suitable
+        a suitable :py:attr:`~operator` function, the feeder will filter the
+        incoming detections by evaluating the :py:attr:`~metadata_field` field
+        value using the desired :py:attr:`~operator` function. Only detections
+        that satisfy the operator condition (i.e. cause the
+        :py:attr:`~operator` to return `True`) are allowed through the filter.
+    """
+
+    operator = Property(
+        object,
+        doc="A binary condition operator/function of the form `b = f(val)`, "
+            "where `val` is the value of the selected `metadata_field`. The "
+            "function MUST return a `bool` type is evaluated to `True` when a "
+            "particular object satisfies the condition(s) set by the operator,"
+            " and thus should be allowed through the filter. Any detections "
+            "causing the operator to return `False` will be filtered out. "
+            "`See here <https://docs.python.org/3/library/operator.html#module-operator>`_ "  # noqa(E504)
+            "for a list of all the supported built-in Python operators. If a "
+            "suitable off-the-shelf operator does not exist, any function that"
+            " satisfies the above interface can also be used.")
+    keep_unmatched = Property(
+        bool,
+        doc="If set to `True`, any detections that do not have a metadata "
+            "field matching the name :py:attr:`~metadata_field` (meaning they "
+            "also cannot be processed by the :py:attr:`~operator`, will be"
+            "allowed through the filter.",
+        default=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._detections = set()
+
+    @property
+    def detections(self):
+        return self._detections.copy()
+
+    def detections_gen(self):
+        for time, detections in self.detector.detections_gen():
+            filtered_detections = set()
+            for detection in detections:
+                value = detection.metadata.get(self.metadata_field)
+                if value is None:
+                    if self.keep_unmatched:
+                        filtered_detections.add(detection)
+                    else:
+                        continue
+                else:
+                    if self.operator(value):
+                        filtered_detections.add(detection)
+
+            self._detections = filtered_detections
+            yield time, self.detections
+
+
+class BoundingBoxDetectionReducer(Feeder):
+    """ Reduce detections by selecting only ones placed within the limits of a
+        n-dimensional bounding box, defined on the detection coordinate space.
+
+        When provided with the limit coordinates of a given n-dimensional
+        bounding box (expressed in the form of min/max bounds on each
+        dimension), the feeder will apply a filter to the incoming data,
+        allowing to pass through only detections that fall within the desired
+        limits, and discarding the rest.
+
+        Assuming a 2D Cartesian detection space, the feeder operation is
+        equivalent to drawing an imaginary bounding box tangential to the plane
+        defined by the XY axes, and only feeding detections whose state vector
+        falls within the bounds of the box.
+
+        Note
+        ====
+        * For the time being, the bounding box limits must be defined on
+          the same coordinate axes as the received detections, which are in
+          turn assumed to all share a common coordinate frame.
+        * For example, assume we are tracking some targets in Lat/Lon, but
+          receive detections in the form of polar coordinates (e.g. relative to
+          a single Radar sensor), then the bounding box MUST be defined
+          on (a subset of) the polar coordinate system, and NOT the geo-spatial
+        * Thus, it is worth noting that in its current version the feeder is
+          not recommended for use in filtering data coming from multiple
+          sources/sensors, unless a common coordinate frame is guaranteed.
+        * Finally, for simplicity purposes, the bounding box is not allowed to
+          rotate around any axis.
+
+    """
+
+    limits = Property(
+        np.ndarray,
+        doc="Array of points that define the bounds of the desired bounding "
+            "box. Expressed as an 2D array of min/max coordinate pairs (e.g."
+            " limits = [[x_min, x_max], [y_min, y_max], ...]), where the "
+            "n-th row corresponds to the n-th bounding box dimension limits. "
+            "Points that fall ON or WITHIN the box's bounds are considered as "
+            "valid and are thus forwarded through the feeder, whereas points "
+            "that fall OUTSIDE the box will be filtered out.")
+    mapping = Property(
+        np.ndarray,
+        doc="Mapping between the detection and bounding box coordinates. "
+            "Should be specified as a vector of length equal to the number of "
+            "bounding box dimensions, whose elements correspond to row indices"
+            " in the detection vector. E.g. :py:code:`mapping = [2, 0]` "
+            "dictates that the first bounding box dimension (i.e. row 0 in "
+            ":py:attr:`~limits`), defines the limits that correspond to the "
+            "element with (row) index 2 in the detection state vector, while "
+            "the second row (i.e. row 1) in :py:attr:`~limits` relates to the "
+            "element with index 0."
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._detections = set()
+
+    @property
+    def detections(self):
+        return self._detections.copy()
+
+    def detections_gen(self):
+        num_dims = len(self.limits)
+        for time, detections in self.detector.detections_gen():
+            outlier_detections = set()
+            for detection in detections:
+                state_vector = detection.state_vector
+                for i in range(num_dims):
+                    print(self.limits)
+                    min = self.limits[i, 0]
+                    max = self.limits[i, 1]
+                    value = state_vector[self.mapping[i]]
+                    if value < min or value > max:
+                        outlier_detections.add(detection)
+                        break
+            self._detections = detections - outlier_detections
+            yield time, self.detections
