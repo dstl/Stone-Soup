@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from operator import attrgetter
+from types import FunctionType
+
 import numpy as np
 
 from ..base import Property
@@ -17,7 +19,7 @@ class MetadataReducer(Feeder):
 
     metadata_field = Property(
         str,
-        doc="Field used to reduce unique set of detections")
+        doc="Field used to reduce set of detections")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -45,40 +47,41 @@ class MetadataReducer(Feeder):
 
 
 class MetadataValueFilter(MetadataReducer):
-    """ Reduce detections by filtering out detections when the value of a
-        particular metadata field does not satisfy a given condition.
+    """ Reduce detections by filtering out objects based on whether the value
+        of a particular metadata field conforms to a given condition.
 
         The MetadataValueFilter provides an easy way of reducing detections in
-        cases where an informative metadata field exists (e.g. object type or
-        existence probability), that allows us to identify and filter out
-        unwanted detections.
+        cases where an informative metadata field exists (e.g. MMSI, SNR, etc.)
+        , that can be used to identify and filter out unwanted detections.
 
         Once provided with a :py:attr:`~metadata_field` name and a suitable
-        a suitable :py:attr:`~operator` function, the feeder will filter the
-        incoming detections by evaluating the :py:attr:`~metadata_field` field
-        value using the desired :py:attr:`~operator` function. Only detections
+        :py:attr:`~operator` function, the feeder will filter the incoming
+        detections by evaluating the :py:attr:`~metadata_field` field value
+        using the desired :py:attr:`~operator` function. Only detections
         that satisfy the operator condition (i.e. cause the
-        :py:attr:`~operator` to return `True`) are allowed through the filter.
+        :py:attr:`~operator` to return :code:`True`) are allowed through the
+        filter.
     """
 
     operator = Property(
-        object,
-        doc="A binary condition operator/function of the form `b = f(val)`, "
-            "where `val` is the value of the selected `metadata_field`. The "
-            "function MUST return a `bool` type is evaluated to `True` when a "
+        FunctionType,
+        doc="A unary operator/function of the form :code:`b = f(val)`, "
+            "where :code:`val` is the value of the selected "
+            ":py:attr:`~metadata_field`. The function MUST return a "
+            ":py:class:`~bool` type that evaluates to :code:`True` when a "
             "particular object satisfies the condition(s) set by the operator,"
-            " and thus should be allowed through the filter. Any detections "
-            "causing the operator to return `False` will be filtered out. "
-            "`See here <https://docs.python.org/3/library/operator.html#module-operator>`_ "  # noqa(E504)
-            "for a list of all the supported built-in Python operators. If a "
-            "suitable off-the-shelf operator does not exist, any function that"
-            " satisfies the above interface can also be used.")
+            " and thus should be allowed through the filter. Detections that "
+            "cause the operator to return :code:`False` will be filtered out. "
+            "Any custom function that conforms to the above specifications can"
+            " be used as an operator, e.g. :code:`operator=lambda x: x < 0.1`")
+
     keep_unmatched = Property(
         bool,
-        doc="If set to `True`, any detections that do not have a metadata "
-            "field matching the name :py:attr:`~metadata_field` (meaning they "
-            "also cannot be processed by the :py:attr:`~operator`, will be"
-            "allowed through the filter.",
+        doc="If set to :code:`True`, any detections that do not have a "
+            "metadata field matching the name :py:attr:`~metadata_field` "
+            "(meaning they also cannot be processed by the "
+            ":py:attr:`~operator`), will be allowed through the filter. The "
+            "default is :code:`False`.",
         default=False)
 
     def __init__(self, *args, **kwargs):
@@ -94,14 +97,10 @@ class MetadataValueFilter(MetadataReducer):
             filtered_detections = set()
             for detection in detections:
                 value = detection.metadata.get(self.metadata_field)
-                if value is None:
-                    if self.keep_unmatched:
-                        filtered_detections.add(detection)
-                    else:
-                        continue
-                else:
-                    if self.operator(value):
-                        filtered_detections.add(detection)
+                if value is None and self.keep_unmatched:
+                    filtered_detections.add(detection)
+                elif value is not None and self.operator(value):
+                    filtered_detections.add(detection)
 
             self._detections = filtered_detections
             yield time, self.detections
@@ -130,7 +129,8 @@ class BoundingBoxDetectionReducer(Feeder):
         * For example, assume we are tracking some targets in Lat/Lon, but
           receive detections in the form of polar coordinates (e.g. relative to
           a single Radar sensor), then the bounding box MUST be defined
-          on (a subset of) the polar coordinate system, and NOT the geo-spatial
+          on (a subset of) the polar coordinate system, and NOT the
+          geo-spatial.
         * Thus, it is worth noting that in its current version the feeder is
           not recommended for use in filtering data coming from multiple
           sources/sensors, unless a common coordinate frame is guaranteed.
@@ -142,18 +142,18 @@ class BoundingBoxDetectionReducer(Feeder):
     limits = Property(
         np.ndarray,
         doc="Array of points that define the bounds of the desired bounding "
-            "box. Expressed as an 2D array of min/max coordinate pairs (e.g."
-            " limits = [[x_min, x_max], [y_min, y_max], ...]), where the "
-            "n-th row corresponds to the n-th bounding box dimension limits. "
-            "Points that fall ON or WITHIN the box's bounds are considered as "
-            "valid and are thus forwarded through the feeder, whereas points "
-            "that fall OUTSIDE the box will be filtered out.")
+            "box. Expressed as a 2D array of min/max coordinate pairs (e.g. "
+            ":code:`limits = [[x_min, x_max], [y_min, y_max], ...]`), where "
+            "the n-th row corresponds to the n-th bounding box dimension "
+            "limits. Points that fall ON or WITHIN the box's bounds are "
+            "considered as valid and are thus forwarded through the feeder, "
+            "whereas points that fall OUTSIDE the box will be filtered out.")
     mapping = Property(
         np.ndarray,
         doc="Mapping between the detection and bounding box coordinates. "
             "Should be specified as a vector of length equal to the number of "
             "bounding box dimensions, whose elements correspond to row indices"
-            " in the detection vector. E.g. :py:code:`mapping = [2, 0]` "
+            " in the detection vector. E.g. :code:`mapping = [2, 0]` "
             "dictates that the first bounding box dimension (i.e. row 0 in "
             ":py:attr:`~limits`), defines the limits that correspond to the "
             "element with (row) index 2 in the detection state vector, while "
@@ -176,7 +176,6 @@ class BoundingBoxDetectionReducer(Feeder):
             for detection in detections:
                 state_vector = detection.state_vector
                 for i in range(num_dims):
-                    print(self.limits)
                     min = self.limits[i, 0]
                     max = self.limits[i, 1]
                     value = state_vector[self.mapping[i]]

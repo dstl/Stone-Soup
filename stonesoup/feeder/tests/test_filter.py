@@ -38,7 +38,7 @@ def test_metadata_reducer(detector):
 def test_metadata_value_filter(detector):
     feeder = MetadataValueFilter(detector,
                                  metadata_field="score",
-                                 operator=lambda x: operator.ge(x, 0.1))
+                                 operator=lambda x: x >= 0.1)
     # Discard unmatched
     nones = False
     for time, detections in feeder.detections_gen():
@@ -60,7 +60,6 @@ def test_metadata_value_filter(detector):
     for time, detections in feeder.detections_gen():
         all_scores = [detection.metadata.get('score')
                       for detection in detections]
-        print(all_scores)
         nones = nones | (len([score for score in all_scores
                               if score is None]) > 0)
         scores = [score for score in all_scores if score is not None]
