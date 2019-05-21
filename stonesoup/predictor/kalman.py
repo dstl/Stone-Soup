@@ -42,8 +42,7 @@ class KalmanPredictor(Predictor):
         Explicitly initialise the models and check for existence of transition model, and throw an error if not
         specified.
         """
-        self.transition_model = transition_model
-        self.control_model = control_model
+        super().__init__(transition_model, control_model=None, *args, **kwargs)
 
         # Chuck an error if there's no transition model
         if self.transition_model is None:
@@ -211,29 +210,6 @@ class UnscentedKalmanPredictor(KalmanPredictor):
 
     _time_interval = Property(datetime.timedelta, default=None, doc="Hidden variable where time interval is optionally "
                                                                     "stored")
-
-    def __init__(self, transition_model, control_model=None, alpha=0.5, beta=2, kappa=0, *args, **kwargs):
-        """
-        This is required because the :class:`~.KalmanFilter` was explicitly initiated.
-
-        """
-
-        # TODO This is repeated code. Find a way of using the parent __init__() function
-        self.transition_model = transition_model
-        self.control_model = control_model
-        self.alpha = alpha
-        self.beta = beta
-        self.kappa = kappa
-
-        if self.transition_model is None:
-            raise ValueError("A Predictor requires a transition model")
-
-        # If no control model insert a linear zero-effect one
-        ndims = self.transition_model.ndim_state
-        if self.control_model is None:
-            """Make a 0-effect control input"""
-            self.control_model = LinearControlModel(ndims, [], np.zeros([ndims, 1]), np.zeros([ndims, ndims]),
-                                                    np.zeros([ndims, ndims]))
 
     def transition_and_control_function(self, prior_state_vector, **kwargs):
         """
