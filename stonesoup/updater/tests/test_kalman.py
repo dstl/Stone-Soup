@@ -108,3 +108,4 @@ def test_kalman(UpdaterClass, measurement_model, prediction, measurement):
                         measurement_prediction.covar, 0, atol=1.e-14))
     assert(np.array_equal(posterior.hypothesis.measurement, measurement))
     assert(posterior.timestamp == prediction.timestamp)
+
