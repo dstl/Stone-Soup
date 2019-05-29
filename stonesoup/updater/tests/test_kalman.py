@@ -3,13 +3,13 @@
 import pytest
 import numpy as np
 
-from ...models.measurement.linear import LinearGaussian
-from ...types.detection import Detection
-from ...types.hypothesis import SingleHypothesis
-from ...types.prediction import (
+from stonesoup.models.measurement.linear import LinearGaussian
+from stonesoup.types.detection import Detection
+from stonesoup.types.hypothesis import SingleHypothesis
+from stonesoup.types.prediction import (
     GaussianStatePrediction, GaussianMeasurementPrediction)
-from ...types.state import GaussianState
-from ...updater.kalman import (
+from stonesoup.types.state import GaussianState
+from stonesoup.updater.kalman import (
     KalmanUpdater, ExtendedKalmanUpdater, UnscentedKalmanUpdater)
 
 

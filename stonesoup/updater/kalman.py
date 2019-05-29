@@ -90,7 +90,7 @@ class KalmanUpdater(Updater):
         """
         return self.measurement_model.matrix(**kwargs)
 
-    @lru_cache()
+    #@lru_cache()
     def predict_measurement(self, predicted_state, measurement_model=None, **kwargs):
         """
         Predict the mean measurement implied by the predicted state
@@ -127,16 +127,22 @@ class KalmanUpdater(Updater):
 
         predicted_state = hypothesis.prediction  # Get the predicted state out of the hypothesis
 
-        # Get the measurement model out of the measurement if it's there. If not, use the one native to the updater
-        # (which might still be none)
-        measurement_model = hypothesis.measurement.measurement_model
-        measurement_model = self._check_measurement_model(measurement_model)
+        # If there is no measurement prediction in the hypothesis then do the measurement prediction (and attach it back
+        # to the hypothesis).
+        if hypothesis.measurement_prediction is None:
+            # Get the measurement model out of the measurement if it's there. If not, use the one native to the updater
+            # (which might still be none)
+            measurement_model = hypothesis.measurement.measurement_model
+            measurement_model = self._check_measurement_model(measurement_model)
 
-        # Get the measurement prediction
-        gmp = self.predict_measurement(predicted_state, measurement_model=measurement_model, **kwargs)
-        pred_meas = gmp.state_vector
-        innov_cov = gmp.covar
-        m_cross_cov = gmp.cross_covar
+            # Attach the measurement prediction to the hypothesis
+            hypothesis.measurement_prediction = self.predict_measurement(predicted_state,
+                                                                         measurement_model=measurement_model, **kwargs)
+
+        # Get the predicted measurement mean, innovation covariance and measurement cross-covariance
+        pred_meas = hypothesis.measurement_prediction.state_vector
+        innov_cov = hypothesis.measurement_prediction.covar
+        m_cross_cov = hypothesis.measurement_prediction.cross_covar
 
         # Complete the calculation of the posterior
         kalman_gain = m_cross_cov @ np.linalg.inv(innov_cov)  # This isn't optimised
