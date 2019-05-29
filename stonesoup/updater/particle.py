@@ -58,8 +58,7 @@ class ParticleUpdater(Updater):
                                    timestamp=hypothesis.measurement.timestamp)
 
     @lru_cache()
-    def get_measurement_prediction(self, state_prediction,
-                                   measurement_model=None, **kwargs):
+    def predict_measurement(self, state_prediction, measurement_model=None, **kwargs):
 
         if measurement_model is None:
             measurement_model = self.measurement_model

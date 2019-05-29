@@ -17,7 +17,7 @@ def predictor():
 @pytest.fixture()
 def updater():
     class TestGaussianUpdater:
-        def get_measurement_prediction(self, state_prediction,
+        def predict_measurement(self, state_prediction,
                                        measurement_model=None, **kwargs):
             return GaussianMeasurementPrediction(state_prediction.state_vector,
                                                  state_prediction.covar,
