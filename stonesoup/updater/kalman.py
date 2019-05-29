@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+from functools import lru_cache
 
 from ..base import Property
 from .base import Updater
@@ -71,7 +72,7 @@ class KalmanUpdater(Updater):
         """
         if measurement_model is None:
             if self.measurement_model is None:
-                raise ValueError ( "No measurement model specified" )
+                raise ValueError("No measurement model specified" )
             else:
                 measurement_model = self.measurement_model
 
@@ -89,6 +90,7 @@ class KalmanUpdater(Updater):
         """
         return self.measurement_model.matrix(**kwargs)
 
+    @lru_cache()
     def predict_measurement(self, predicted_state, measurement_model=None, **kwargs):
         """
         Predict the mean measurement implied by the predicted state
@@ -207,6 +209,7 @@ class UnscentedKalmanUpdater(KalmanUpdater):
                      doc="Secondary spread scaling parameter\
                         (default is calculated as :math:`3-Ns`)")
 
+    @lru_cache()
     def predict_measurement(self, predicted_state, measurement_model=None):
         """Unscented Kalman Filter measurement prediction step. Uses the unscented transform to estimate a
         Gauss-distributed predicted measurement.

@@ -2,6 +2,7 @@
 
 import numpy as np
 import datetime as datetime
+from functools import lru_cache
 
 from ..base import Property
 from .base import Predictor
@@ -102,6 +103,7 @@ class KalmanPredictor(Predictor):
 
         return predict_over_interval
 
+    @lru_cache()
     def predict(self, prior, timestamp=None, **kwargs):
         """
         The predict step,
@@ -226,6 +228,7 @@ class UnscentedKalmanPredictor(KalmanPredictor):
         return self.transition_model.function(prior_state_vector, time_interval=predict_over_interval, **kwargs) + \
                self.control_model.control_input()
 
+    @lru_cache()
     def predict(self, prior, timestamp=None, **kwargs):
         """
         The unscented version of the predict step

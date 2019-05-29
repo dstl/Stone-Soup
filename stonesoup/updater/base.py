@@ -15,7 +15,7 @@ class Updater(Base):
     measurement_model = Property(MeasurementModel, doc="measurement model")
 
     @abstractmethod
-    def get_measurement_prediction(
+    def predict_measurement(
             self, state_prediction, measurement_model=None, **kwargs):
         """Get measurement prediction from state prediction
 
