@@ -22,6 +22,9 @@ design and grow the number components available.
 Please see the example
 `Stone Soup Notebooks <https://github.com/dstl/Stone-Soup-Notebooks>`_.
 
+For community support, head over to the
+`Stone Soup room on Gitter <https://gitter.im/dstl/Stone-Soup>`_.
+
 Installation
 ------------
 To install Stone Soup from PyPI execute:

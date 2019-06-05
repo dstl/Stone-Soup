@@ -493,7 +493,7 @@ def gm_reduce_single(means, covars, weights):
     covar = np.zeros((num_dims, num_dims))
     for i in range(num_components):
         v = means[i, :] - mean
-        a = np.add(covars[i], v@v.T)
+        a = np.add(covars[i], v.T@v)
         b = weights[i]
         covar = np.add(covar, b*a)
 

@@ -369,9 +369,9 @@ class ConstantAcceleration(LinearGaussianTransitionModel, TimeVariantModel):
         time_interval_sec = time_interval.total_seconds()
 
         return sp.array(
-                    [[1, time_interval_sec, sp.power(time_interval_sec, 2)],
-                     [0, 1, time_interval_sec],
-                     [0, 0, 1]])
+            [[1, time_interval_sec, sp.power(time_interval_sec, 2) / 2],
+             [0, 1, time_interval_sec],
+             [0, 0, 1]])
 
     def covar(self, time_interval, **kwargs):
         """Returns the transition model noise covariance matrix.

@@ -1,4 +1,8 @@
 # Stone Soup
+[![CircleCI branch](https://img.shields.io/circleci/project/github/dstl/Stone-Soup/master.svg?label=tests&style=flat)](https://circleci.com/gh/dstl/Stone-Soup)
+[![Codecov](https://img.shields.io/codecov/c/github/dstl/Stone-Soup.svg)](https://codecov.io/gh/dstl/Stone-Soup)
+[![Read the Docs](https://img.shields.io/readthedocs/stonesoup.svg?style=flat)](https://stonesoup.readthedocs.io/en/latest/?badge=latest)
+[![Gitter](https://img.shields.io/gitter/room/dstl/Stone-Soup.svg?color=informational&style=flat)](https://gitter.im/dstl/Stone-Soup?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ## Background
 Stone Soup is a software project to provide the target tracking and state estimation
@@ -10,6 +14,10 @@ Stone Soup is currently in *beta*.
 Please see the
 [Stone Soup documentation](https://stonesoup.readthedocs.org/) for more
 information.
+
+Please see the
+[Stone Soup Notebooks repository](https://github.com/dstl/Stone-Soup-Notebooks)
+for examples.
 
 ## Dependencies
 Stone Soup uses the following dependencies:
