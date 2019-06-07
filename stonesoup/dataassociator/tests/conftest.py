@@ -47,8 +47,7 @@ def probability_predictor():
 @pytest.fixture()
 def probability_updater():
     class TestGaussianUpdater:
-        def predict_measurement(self, state_prediction,
-                                       measurement_model=None, **kwargs):
+        def predict_measurement(self, state_prediction, measurement_model=None, **kwargs):
             return GaussianMeasurementPrediction(state_prediction.state_vector,
                                                  state_prediction.covar,
                                                  state_prediction.timestamp)

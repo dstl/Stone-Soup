@@ -36,7 +36,7 @@ def test_cvmodel():
     assert sp.array_equal(Q, cv.covar(
         timestamp=new_timestamp, time_interval=time_interval))
 
-    # Propagate a state vector throught the model
+    # Propagate a state vector through the model
     # (without noise)
     new_state_vec_wo_noise = cv.function(
         state_vec,
@@ -56,7 +56,7 @@ def test_cvmodel():
         mean=sp.array(F@state_vec).ravel(),
         cov=Q).T)
 
-    ''''# Propagate a state vector throught the model
+    # Propagate a state vector throught the model
     # (with internal noise)
     new_state_vec_w_inoise = cv.function(
         state_vec,
@@ -73,7 +73,7 @@ def test_cvmodel():
     assert sp.array_equal(prob, multivariate_normal.pdf(
         new_state_vec_w_inoise.T,
         mean=sp.array(F@state_vec).ravel(),
-        cov=Q).T)'''
+        cov=Q).T)
 
     # Propagate a state vector throught the model
     # (with external noise)

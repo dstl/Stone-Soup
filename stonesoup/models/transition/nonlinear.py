@@ -3,9 +3,12 @@
 from ...base import Property
 from ..base import NonLinearModel
 
+
 class SimpleHarmonicMotion(NonLinearModel):
     """
     A simple harmonic transition model. For details of the simple harmonic oscillator, see XX
+
+    TODO: Implement this
 
     """
 

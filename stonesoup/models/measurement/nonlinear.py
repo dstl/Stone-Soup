@@ -216,7 +216,8 @@ class RangeBearingElevationGaussianToCartesian(NonLinearGaussianMeasurement):
         """
 
         if noise is None:
-            noise = self.rvs()
+            noise = self.rvs() # TODO resolve noise=None issue
+
 
         # Account for origin offset
         xyz = state_vector[self.mapping] - self.translation_offset

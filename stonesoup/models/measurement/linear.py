@@ -73,12 +73,11 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
             The model function evaluated given the provided time interval.
         """
 
-        model_out = self.matrix(**kwargs)@state_vector
-
         if noise is None:
-            noise = sp.zeros(model_out.shape)
+            #noise = sp.zeros(state_vector.shape)
+            noise = self.rvs() # TODO noise=None genereates noise!
 
-        return model_out + noise
+        return self.matrix(**kwargs)@state_vector + noise
 
     def covar(self, **kwargs):
         """Returns the measurement model noise covariance matrix.

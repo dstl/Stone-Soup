@@ -105,7 +105,7 @@ class KalmanUpdater(Updater):
         # If a measurement model is not specified then use the one that's native to the updater
         measurement_model = self._check_measurement_model(measurement_model)
 
-        pred_meas = measurement_model.function(predicted_state.state_vector, noise=[0], **kwargs)
+        pred_meas = measurement_model.function(predicted_state.state_vector, noise=0, **kwargs)
 
         hh = self.measurement_matrix(predicted_state=predicted_state, measurement_model=measurement_model, **kwargs)
 
@@ -215,6 +215,12 @@ class UnscentedKalmanUpdater(KalmanUpdater):
                      doc="Secondary spread scaling parameter\
                         (default is calculated as :math:`3-Ns`)")
 
+    # This to ensure that no noise is added to the measurement in the unscented transform (below).
+    # Would resolve if the default was to add no noise...
+    def measurement_function_nonoise(self, x, w=0, **kwargs):
+
+        return self.measurement_model.function(x, w, **kwargs)
+
     @lru_cache()
     def predict_measurement(self, predicted_state, measurement_model=None):
         """Unscented Kalman Filter measurement prediction step. Uses the unscented transform to estimate a
@@ -236,7 +242,7 @@ class UnscentedKalmanUpdater(KalmanUpdater):
             gauss2sigma(predicted_state.state_vector, predicted_state.covar, self.alpha, self.beta, self.kappa)
 
         meas_pred_mean, meas_pred_covar, cross_covar, _, _, _ = \
-            unscented_transform(sigma_points, mean_weights, covar_weights, measurement_model.function,
+            unscented_transform(sigma_points, mean_weights, covar_weights, self.measurement_function_nonoise,
                                 covar_noise=measurement_model.covar())
 
         return GaussianMeasurementPrediction(meas_pred_mean, meas_pred_covar, predicted_state.timestamp, cross_covar)

@@ -22,14 +22,17 @@ class KalmanPredictor(Predictor):
 
     .. math::
 
-        \mathbf{x}_{k|k-1} = f_k(\mathbf{x}_{k-1}) + b_k(\mathbf{u}_k) + \mathbf{\nu}_k
+        \mathbf{x}_{k|k-1} = f_k(\mathbf{x}_{k-1}) + b_k(\mathbf{u}_k) +
+        \mathbf{\nu}_k
 
-    where :math:`\mathbf{x}_{k-1}` is the prior state, :math:`f_k(\mathbf{x}_{k-1})` is the transition function,
-    :math:`\mathbf{u}_k` the control vector, :math:`b_k(\mathbf{u}_k)` the control input and
-    :math:`\mathbf{\nu}_k` the noise.
+    where :math:`\mathbf{x}_{k-1}` is the prior state,
+    :math:`f_k(\mathbf{x}_{k-1})` is the transition function,
+    :math:`\mathbf{u}_k` the control vector, :math:`b_k(\mathbf{u}_k)` the
+    control input and :math:`\mathbf{\nu}_k` the noise.
 
-    This class also serves as the (specific) Kalman Filter :class:`~.Predictor` Class. Here
-    :math:`f_k(\mathbf{x}_{k-1}) = F_k \mathbf{x}_{k-1}` and :math:`\mathbf{\nu}_k \sim \mathcal{N}(0,Q_k)`
+    This class also serves as the (specific) Kalman Filter
+    :class:`~.Predictor` Class. Here :math:`f_k(\mathbf{x}_{k-1}) = F_k
+    \mathbf{x}_{k-1}` and :math:`\mathbf{\nu}_k \sim \mathcal{N}(0,Q_k)`
     """
 
     # In the Kalman filter transition and control models must be linear
@@ -174,7 +177,7 @@ class ExtendedKalmanPredictor(KalmanPredictor):
         :param kwargs: these are passed to :class:`~.ExtendedKalmanFilter`. :attr:`function()`
         :return: the predicted state, :math:`\mathbf{x}_{k|k-1}`
         """
-        return self.transition_model.function(prior.state_vector, **kwargs)
+        return self.transition_model.function(prior.state_vector, noise=0, **kwargs)
 
     @property
     def control_matrix(self):
@@ -225,8 +228,8 @@ class UnscentedKalmanPredictor(KalmanPredictor):
         """
 
         predict_over_interval = self._time_interval
-        return self.transition_model.function(prior_state_vector, time_interval=predict_over_interval, **kwargs) + \
-               self.control_model.control_input()
+        return self.transition_model.function(prior_state_vector, time_interval=predict_over_interval, noise=0,
+                                              **kwargs) + self.control_model.control_input()
 
     @lru_cache()
     def predict(self, prior, timestamp=None, **kwargs):

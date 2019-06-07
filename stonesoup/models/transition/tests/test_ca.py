@@ -82,7 +82,7 @@ def base(state_vec, noise_diff_coeffs):
     assert sp.array_equal(Q, model_obj.covar(
         timestamp=new_timestamp, time_interval=time_interval))
 
-    # Propagate a state vector throught the model
+    # Propagate a state vector through the model
     # (without noise)
     new_state_vec_wo_noise = model_obj.function(
         state_vec,
@@ -105,7 +105,7 @@ def base(state_vec, noise_diff_coeffs):
     # Propagate a state vector throughout the model
     # (with internal noise)
     new_state_vec_w_inoise = model_obj.function(
-        state_vec, noise=model_obj.rvs(timestamp=new_timestamp, time_interval=time_interval),
+        state_vec,
         timestamp=new_timestamp,
         time_interval=time_interval)
     assert not sp.array_equal(new_state_vec_w_inoise, F@state_vec)
@@ -121,7 +121,7 @@ def base(state_vec, noise_diff_coeffs):
         mean=sp.array(F@state_vec).ravel(),
         cov=Q).T)
 
-    # Propagate a state vector throught the model
+    # Propagate a state vector through the model
     # (with external noise)
     noise = model_obj.rvs(timestamp=new_timestamp, time_interval=time_interval)
     new_state_vec_w_enoise = model_obj.function(

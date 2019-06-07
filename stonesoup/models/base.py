@@ -55,8 +55,8 @@ class LinearModel(Model):
         """
 
         if noise is None:
-            noise = sp.zeros(state_vector.shape)
-            # noise = self.rvs(**kwargs) # TODO find and expunge all instances of noise=None generating noise!
+            # noise = sp.zeros(state_vector.shape)
+            noise = self.rvs(**kwargs) # TODO resolve the noise=None generating noise issue
 
         return self.matrix(**kwargs)@state_vector + noise
 
