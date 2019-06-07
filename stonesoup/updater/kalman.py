@@ -126,7 +126,8 @@ class KalmanUpdater(Updater):
                                      measurement_model=measurement_model,
                                      **kwargs)
 
-        innov_cov = hh @ predicted_state.covar @ hh.T + measurement_model.covar()
+        innov_cov = hh @ predicted_state.covar @ hh.T + \
+            measurement_model.covar()
         meas_cross_cov = predicted_state.covar @ hh.T
 
         return GaussianMeasurementPrediction(pred_meas, innov_cov,
@@ -173,8 +174,7 @@ class KalmanUpdater(Updater):
         kalman_gain = m_cross_cov @ np.linalg.inv(innov_cov)  # This isn't
         # optimised
         posterior_mean = predicted_state.state_vector + \
-                         kalman_gain @ (hypothesis.measurement.state_vector -
-                                        pred_meas)
+            kalman_gain @ (hypothesis.measurement.state_vector - pred_meas)
         posterior_covariance = \
             predicted_state.covar - kalman_gain @ innov_cov @ kalman_gain.T
 

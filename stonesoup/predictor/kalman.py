@@ -135,21 +135,21 @@ class KalmanPredictor(Predictor):
         # Prediction of the mean
         x_pred = self.transition_function(
             prior, time_interval=predict_over_interval, **kwargs) + \
-                 self.control_model.control_input()
+            self.control_model.control_input()
 
         # As this is Kalman-like, the control model must be capable of
         # returning a control matrix (B)
         p_pred = self.transition_matrix(prior=prior,
                                         time_interval=predict_over_interval,
                                         **kwargs) @ \
-                 prior.covar @ \
-                 self.transition_matrix(prior=prior,
-                                        time_interval=predict_over_interval,
-                                        **kwargs).T + \
-                 self.transition_model.covar(
+            prior.covar @ \
+            self.transition_matrix(prior=prior,
+                                   time_interval=predict_over_interval,
+                                   **kwargs).T + \
+            self.transition_model.covar(
                      time_interval=predict_over_interval, **kwargs) + \
-                 self.control_matrix @ self.control_model.control_noise @ \
-                 self.control_matrix.T
+            self.control_matrix @ self.control_model.control_noise @ \
+            self.control_matrix.T
 
         return GaussianStatePrediction(x_pred, p_pred, timestamp=timestamp)
 
