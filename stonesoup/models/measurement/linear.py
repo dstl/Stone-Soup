@@ -74,8 +74,8 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
         """
 
         if noise is None:
-            #noise = sp.zeros(state_vector.shape)
-            noise = self.rvs() # TODO noise=None genereates noise!
+            # noise = sp.zeros(state_vector.shape)
+            noise = self.rvs()  # TODO noise=None generates noise!
 
         return self.matrix(**kwargs)@state_vector + noise
 

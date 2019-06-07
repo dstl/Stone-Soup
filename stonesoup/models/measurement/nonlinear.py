@@ -11,8 +11,7 @@ from ..base import NonLinearModel, GaussianModel
 from .base import MeasurementModel
 
 
-class NonLinearGaussianMeasurement(MeasurementModel,
-                                   NonLinearModel,
+class NonLinearGaussianMeasurement(MeasurementModel, NonLinearModel,
                                    GaussianModel):
     r"""This class combines the MeasurementModel, NonLinearModel and \
     GaussianModel classes. It is not meant to be instantiated directly \
@@ -118,7 +117,7 @@ class NonLinearGaussianMeasurement(MeasurementModel,
         theta_y = -self.rotation_offset[1, 0]
         theta_z = -self.rotation_offset[2, 0]
 
-        return rotz(theta_z)@roty(theta_y)@rotx(theta_x)
+        return rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
 
 
 class RangeBearingElevationGaussianToCartesian(NonLinearGaussianMeasurement):
@@ -183,8 +182,8 @@ class RangeBearingElevationGaussianToCartesian(NonLinearGaussianMeasurement):
 
     translation_offset = Property(
         StateVector, default=StateVector(sp.array([[0], [0], [0]])),
-        doc="A 3x1 array specifying the Cartesian origin offset in terms of :math:`x,y,z`\
-            coordinates.")
+        doc="A 3x1 array specifying the Cartesian origin offset in terms of "
+            ":math:`x,y,z` coordinates.")
 
     @property
     def ndim_meas(self):
@@ -216,8 +215,7 @@ class RangeBearingElevationGaussianToCartesian(NonLinearGaussianMeasurement):
         """
 
         if noise is None:
-            noise = self.rvs() # TODO resolve noise=None issue
-
+            noise = self.rvs()  #  TODO: resolve noise=None issue
 
         # Account for origin offset
         xyz = state_vector[self.mapping] - self.translation_offset
@@ -228,9 +226,7 @@ class RangeBearingElevationGaussianToCartesian(NonLinearGaussianMeasurement):
         # Convert to Spherical
         rho, phi, theta = cart2sphere(*xyz_rot[:, 0])
 
-        return sp.array([[Elevation(theta)],
-                         [Bearing(phi)],
-                         [rho]]) + noise
+        return sp.array([[Elevation(theta)], [Bearing(phi)], [rho]]) + noise
 
     def rvs(self, num_samples=1, **kwargs):
         out = super().rvs(num_samples, **kwargs)
@@ -238,8 +234,7 @@ class RangeBearingElevationGaussianToCartesian(NonLinearGaussianMeasurement):
         return out
 
 
-class RangeBearingGaussianToCartesian(
-        NonLinearGaussianMeasurement):
+class RangeBearingGaussianToCartesian(NonLinearGaussianMeasurement):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of bearing \
     (:math:`\phi`) and range (:math:`r`), with Gaussian noise in each dimension.
@@ -352,7 +347,7 @@ class RangeBearingGaussianToCartesian(
         return out
 
 
-class BearingElevationGaussianToCartesian(NonLinearGaussianMeasurement):
+class BearingElevationGaussianToCartesian (NonLinearGaussianMeasurement):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of bearing \
     (:math:`\phi`) and elevation (:math:`\theta`) and with \
@@ -455,8 +450,7 @@ class BearingElevationGaussianToCartesian(NonLinearGaussianMeasurement):
         # Convert to Angles
         phi, theta = cart2angles(*xyz_rot[:, 0])
 
-        return sp.array([[Elevation(theta)],
-                         [Bearing(phi)]]) + noise
+        return sp.array([[Elevation(theta)], [Bearing(phi)]]) + noise
 
     def rvs(self, num_samples=1, **kwargs):
         out = super().rvs(num_samples, **kwargs)

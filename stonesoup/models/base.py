@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from abc import abstractmethod
-import scipy as sp
 
 from ..base import Base
 from ..functions import jacobian as compute_jac
@@ -56,7 +55,8 @@ class LinearModel(Model):
 
         if noise is None:
             # noise = sp.zeros(state_vector.shape)
-            noise = self.rvs(**kwargs) # TODO resolve the noise=None generating noise issue
+            # TODO resolve the noise=None generating noise issue
+            noise = self.rvs(**kwargs)
 
         return self.matrix(**kwargs)@state_vector + noise
 
