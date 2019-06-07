@@ -233,4 +233,3 @@ class DistanceJointHypothesis(
 
     def __ge__(self, other):
         return self.distance <= other.distance
-
