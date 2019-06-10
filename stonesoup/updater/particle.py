@@ -46,8 +46,9 @@ class ParticleUpdater(Updater):
         # Normalise the weights
         sum_w = Probability.sum(
             i.weight for i in hypothesis.prediction.particles)
-        for particle in hypothesis.prediction.particles:
-            particle.weight /= sum_w
+        if sum_w != 0:
+            for particle in hypothesis.prediction.particles:
+                particle.weight /= sum_w
 
         # Resample
         new_particles = self.resampler.resample(

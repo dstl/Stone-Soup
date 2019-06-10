@@ -47,6 +47,12 @@ class YAML:
         self._yaml.constructor.add_constructor(
             "!pathlib.Path", self.path_from_yaml)
 
+        # numpy.float64
+        self._yaml.representer.add_representer(
+            np.float64, self.float64_to_yaml)
+        self._yaml.constructor.add_constructor(
+            "!numpy.float64", self.float64_from_yaml)
+
         # Declarative classes
         self._yaml.representer.add_multi_representer(
             Base, self.declarative_to_yaml)
@@ -174,3 +180,15 @@ class YAML:
 
         Value should be total number of seconds."""
         return Path(constructor.construct_scalar(node))
+
+    @staticmethod
+    def float64_to_yaml(representer, node):
+        """Convert numpy.float64 to YAML."""
+        return representer.represent_scalar(
+            "!numpy.float64", str(float(node)))
+
+    @staticmethod
+    def float64_from_yaml(constructor, node):
+        """Convert YAML to numpy.float64."""
+        return np.float64(
+            constructor.construct_scalar(node))

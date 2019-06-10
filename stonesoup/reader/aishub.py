@@ -78,3 +78,5 @@ class JSON_AISDetectionReader(DetectionReader, TextFileReader):
                             time_value, metadata=record)
                 self._detections = {detect}
                 yield time_value, self.detections
+
+            json_file.close()

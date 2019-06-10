@@ -5,6 +5,7 @@ from ..dataassociator import Associator
 from ..types.detection import Detection
 from ..types.groundtruth import GroundTruthPath
 from ..types.track import Track
+from ruamel.yaml.comments import CommentedSet
 
 
 class SimpleManager(MetricManager):
@@ -39,7 +40,7 @@ class SimpleManager(MetricManager):
             overwriting one field (e.g. tracks) does not affect the others
         """
         for in_obj in input_objects:
-            if not isinstance(in_obj, (list, set)):
+            if not isinstance(in_obj, (list, set, CommentedSet)):
                 raise TypeError('Inputs are expected as lists or sets only')
             elif in_obj:
                 if all(isinstance(x, Track) for x in in_obj):

@@ -130,10 +130,10 @@ class SIAPMetrics(MetricGenerator):
         if not manager.groundtruth_paths:
             timestamps = manager.list_timestamps()
             return TimeRangeMetric(
-            title="SIAP C",
-            value="No groundtruth paths, SIAP C cannot be calculated.",
-            time_range=TimeRange(min(timestamps), max(timestamps)),
-            generator=self)
+                title="SIAP C",
+                value="No groundtruth paths, SIAP C cannot be calculated.",
+                time_range=TimeRange(min(timestamps), max(timestamps)),
+                generator=self)
 
         timestamps = manager.list_timestamps()
         C = self._jt_sum(manager, timestamps) / self._j_sum(
@@ -179,10 +179,10 @@ class SIAPMetrics(MetricGenerator):
         if not manager.groundtruth_paths:
             timestamps = manager.list_timestamps()
             return TimeRangeMetric(
-            title="SIAP A",
-            value="No groundtruth paths, SIAP A cannot be calculated.",
-            time_range=TimeRange(min(timestamps), max(timestamps)),
-            generator=self)
+                title="SIAP A",
+                value="No groundtruth paths, SIAP A cannot be calculated.",
+                time_range=TimeRange(min(timestamps), max(timestamps)),
+                generator=self)
 
         timestamps = manager.list_timestamps()
         A = self._na_sum(manager, timestamps) / self._jt_sum(
@@ -256,10 +256,10 @@ class SIAPMetrics(MetricGenerator):
         if not manager.groundtruth_paths:
             timestamps = manager.list_timestamps()
             return TimeRangeMetric(
-            title="SIAP LT",
-            value="No groundtruth paths, SIAP LT cannot be calculated.",
-            time_range=TimeRange(min(timestamps), max(timestamps)),
-            generator=self)
+                title="SIAP LT",
+                value="No groundtruth paths, SIAP LT cannot be calculated.",
+                time_range=TimeRange(min(timestamps), max(timestamps)),
+                generator=self)
 
         r = self._r(manager)
         if r == 0:
@@ -307,10 +307,10 @@ class SIAPMetrics(MetricGenerator):
         if not manager.groundtruth_paths:
             timestamps = manager.list_timestamps()
             return TimeRangeMetric(
-            title="SIAP LS",
-            value="No groundtruth paths, SIAP LS cannot be calculated.",
-            time_range=TimeRange(min(timestamps), max(timestamps)),
-            generator=self)
+                title="SIAP LS",
+                value="No groundtruth paths, SIAP LS cannot be calculated.",
+                time_range=TimeRange(min(timestamps), max(timestamps)),
+                generator=self)
 
         numerator = sum(self._tl_j(manager, truth).total_seconds()
                         for truth in manager.groundtruth_paths)

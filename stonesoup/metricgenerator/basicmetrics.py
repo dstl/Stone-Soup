@@ -50,7 +50,8 @@ class BasicMetrics(MetricGenerator):
 
         metrics.append(TimeRangeMetric(
             title='Track-to-target ratio',
-            value=len(manager.tracks) / len(manager.groundtruth_paths),
+            value=len(manager.tracks) / len(manager.groundtruth_paths)
+            if len(manager.groundtruth_paths) > 0 else 'NaN',
             time_range=TimeRange(
                 start_timestamp=min(timestamps),
                 end_timestamp=max(timestamps)),
