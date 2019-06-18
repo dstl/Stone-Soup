@@ -29,3 +29,8 @@ Video
 ------
 .. automodule:: stonesoup.reader.video
     :show-inheritance:
+
+OpenSky Network
+---------------
+.. automodule:: stonesoup.reader.opensky
+    :show-inheritance:
