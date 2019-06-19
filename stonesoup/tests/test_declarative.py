@@ -18,6 +18,12 @@ def test_subclass(base):
     assert _TestSubclass in base.subclasses
 
 
+def test_subclass_remove_property(base):
+    class _TestSubclassRemoveProperty(base):
+        property_a = 2
+    assert _TestSubclassRemoveProperty("2").property_a == 2
+
+
 def test_init_unordered(base):
     with pytest.raises(TypeError):
         class _TestUnordered(base):
