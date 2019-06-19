@@ -3,11 +3,11 @@ import datetime
 import pytest
 import numpy as np
 
-from stonesoup.models.transition.linear import ConstantVelocity
-from stonesoup.predictor.kalman import (
+from ...models.transition.linear import ConstantVelocity
+from ...predictor.kalman import (
     KalmanPredictor, ExtendedKalmanPredictor, UnscentedKalmanPredictor)
-from stonesoup.types.prediction import GaussianStatePrediction
-from stonesoup.types.state import GaussianState
+from ...types.prediction import GaussianStatePrediction
+from ...types.state import GaussianState
 
 
 @pytest.mark.parametrize(

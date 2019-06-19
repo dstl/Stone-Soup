@@ -45,7 +45,8 @@ class LinearModel(Model):
             An input state vector
         noise: :class:`numpy.ndarray`
             An externally generated random process noise sample (the default is
-            `None`, in which case no process noise will be generated)
+            `None`, in which case process noise will be generated via the
+            :attr:`rvs()` function)
 
         Returns
         -------
@@ -54,8 +55,7 @@ class LinearModel(Model):
         """
 
         if noise is None:
-            # noise = sp.zeros(state_vector.shape)
-            # TODO resolve the noise=None generating noise issue
+            # TODO: doesn't make sense for noise=None to generate noise
             noise = self.rvs(**kwargs)
 
         return self.matrix(**kwargs)@state_vector + noise
