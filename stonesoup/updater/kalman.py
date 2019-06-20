@@ -134,7 +134,7 @@ class KalmanUpdater(Updater):
                                              predicted_state.timestamp,
                                              cross_covar=meas_cross_cov)
 
-    def update(self, hypothesis, symmetric_covariance=False, **kwargs):
+    def update(self, hypothesis, force_symmetric_covariance=False, **kwargs):
         r"""
         The Kalman update method
 
@@ -180,7 +180,7 @@ class KalmanUpdater(Updater):
         posterior_covariance = \
             predicted_state.covar - kalman_gain @ innov_cov @ kalman_gain.T
 
-        if symmetric_covariance:
+        if force_symmetric_covariance:
             posterior_covariance = (posterior_covariance +
                                     posterior_covariance.T) / 2
 
