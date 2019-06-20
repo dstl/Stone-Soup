@@ -134,12 +134,14 @@ class KalmanUpdater(Updater):
                                              predicted_state.timestamp,
                                              cross_covar=meas_cross_cov)
 
-    def update(self, hypothesis, **kwargs):
+    def update(self, hypothesis, symmetric_covariance=False, **kwargs):
         r"""
         The Kalman update method
 
         :param hypothesis: the predicted measurement-measurement association
         hypothesis
+        :param symmetric_covariance: force the output covariance
+        matrix to be symmetric
         :param kwargs: passed to :attr:`predict_measurement()` of
         :class:`~.KalmanUpdater` or its daughter classes
 
@@ -178,8 +180,9 @@ class KalmanUpdater(Updater):
         posterior_covariance = \
             predicted_state.covar - kalman_gain @ innov_cov @ kalman_gain.T
 
-        # TODO: check and remove this line
-        # posterior_state_covariance = (P_post + P_post.T) / 2 # !!! kludge
+        if symmetric_covariance:
+            posterior_covariance = (posterior_covariance +
+                                    posterior_covariance.T) / 2
 
         return GaussianStateUpdate(posterior_mean, posterior_covariance,
                                    hypothesis,
