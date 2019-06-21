@@ -373,6 +373,21 @@ class ConstantNthDerivative(LinearGaussianTransitionModel, TimeVariantModel):
         return CovarianceMatrix(covar)
 
 
+class RandomWalk(ConstantNthDerivative):
+    r"""This is a class implementation of a time-variant 1D Linear-Gaussian
+        Random Walk Transition Model.
+
+        The target is assumed to be (almost) stationary, where
+        target velocity is modelled as white noise.
+        """
+    noise_diff_coeff = Property(
+        float, doc="The position noise diffusion coefficient :math:`q`")
+
+    @property
+    def constant_derivative(self):
+        return 0
+
+
 class ConstantVelocity(ConstantNthDerivative):
     r"""This is a class implementation of a time-variant 1D Linear-Gaussian
     Constant Velocity Transition Model.
