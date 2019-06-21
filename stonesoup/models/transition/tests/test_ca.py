@@ -70,7 +70,7 @@ def base(state_vec, noise_diff_coeffs):
                            [sp.power(timediff, 3) / 6,
                             sp.power(timediff, 2) / 2,
                             timediff]])
-    covar_list = [base_covar*sp.power(noise_diff_coeffs[i], 2)
+    covar_list = [base_covar*noise_diff_coeffs[i]
                   for i in range(0, dim)]
     Q = sp.linalg.block_diag(*covar_list)
 
