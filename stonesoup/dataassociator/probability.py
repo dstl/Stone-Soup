@@ -4,7 +4,6 @@ from .base import DataAssociator
 from ..base import Property
 from ..hypothesiser import Hypothesiser
 from ..hypothesiser.probability import PDAHypothesiser
-from ..updater import Updater
 from ..types.detection import MissedDetection
 from ..types.hypothesis import (
     SingleProbabilityHypothesis, ProbabilityJointHypothesis)
@@ -79,10 +78,6 @@ class JPDA(DataAssociator):
     hypothesiser = Property(
         PDAHypothesiser,
         doc="Generate a set of hypotheses for each prediction-detection pair")
-    updater = Property(
-        Updater,
-        doc="Used to generate components of Gaussian Mixture Model "
-            "multi-target state.")
     gate_ratio = Property(
         float,
         doc="If probability of Detection/Track association is less than this "
