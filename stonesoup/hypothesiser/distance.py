@@ -31,6 +31,11 @@ class DistanceHypothesiser(Hypothesiser):
         float,
         default=float('inf'),
         doc="Distance for a missed detection. Default is set to infinity")
+    include_all = Property(
+        bool,
+        default=False,
+        doc="If `True`, hypotheses beyond missed distance will be returned. "
+            "Default `False`")
 
     def hypothesise(self, track, detections, timestamp):
         """ Evaluate and return all track association hypotheses.
@@ -85,12 +90,13 @@ class DistanceHypothesiser(Hypothesiser):
                 prediction, detection.measurement_model)
             distance = self.measure(measurement_prediction, detection)
 
-            # True detection hypothesis
-            hypotheses.append(
-                SingleDistanceHypothesis(
-                    prediction,
-                    detection,
-                    distance,
-                    measurement_prediction))
+            if self.include_all or distance < self.missed_distance:
+                # True detection hypothesis
+                hypotheses.append(
+                    SingleDistanceHypothesis(
+                        prediction,
+                        detection,
+                        distance,
+                        measurement_prediction))
 
         return MultipleHypothesis(sorted(hypotheses, reverse=True))
