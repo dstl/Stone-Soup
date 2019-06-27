@@ -12,6 +12,7 @@ from ..types.groundtruth import GroundTruthPath, GroundTruthState
 from ..types.numeric import Probability
 from ..types.state import GaussianState, State
 from .base import DetectionSimulator, GroundTruthSimulator
+from stonesoup.buffered_generator import BufferedGenerator
 
 
 class SingleTargetGroundTruthSimulator(GroundTruthSimulator):
@@ -127,15 +128,12 @@ class SimpleDetectionSimulator(DetectionSimulator):
         self.clutter_detections = set()
 
     @property
-    def detections(self):
-        return self.real_detections | self.clutter_detections
-
-    @property
     def clutter_spatial_density(self):
         """returns the clutter spatial density of the measurement space - num
         clutter detections per unit volume per timestep"""
         return self.clutter_rate/np.prod(np.diff(self.meas_range))
 
+    @BufferedGenerator.generator_method
     def detections_gen(self):
         for time, tracks in self.groundtruth.groundtruth_paths_gen():
             self.real_detections.clear()
@@ -159,4 +157,4 @@ class SimpleDetectionSimulator(DetectionSimulator):
                     timestamp=time)
                 self.clutter_detections.add(detection)
 
-            yield time, self.detections
+            yield time, self.real_detections | self.clutter_detections
