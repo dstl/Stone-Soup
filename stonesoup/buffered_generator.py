@@ -45,6 +45,7 @@ class BufferedGenerator:
             if hasattr(method, 'is_generator'):
                 self._gen = method()
                 return self
+        raise AttributeError('Generator method undefined!')
 
     def __next__(self):
         self.current = next(self._gen)
