@@ -6,6 +6,7 @@ import numpy as np
 from .base import DetectionReader
 from .file import TextFileReader
 from ..types.detection import Detection
+from stonesoup.buffered_generator import BufferedGenerator
 
 
 class JSON_AISDetectionReader(DetectionReader, TextFileReader):
@@ -39,12 +40,8 @@ class JSON_AISDetectionReader(DetectionReader, TextFileReader):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._detections = set()
 
-    @property
-    def detections(self):
-        return self._detections.copy()
-
+    @BufferedGenerator.generator_method
     def detections_gen(self):
 
         # read data from the JSON file
@@ -76,5 +73,4 @@ class JSON_AISDetectionReader(DetectionReader, TextFileReader):
                             np.array([[lon_value], [lat_value]],
                                      dtype=np.float32),
                             time_value, metadata=record)
-                self._detections = {detect}
-                yield time_value, self.detections
+                yield time_value, {detect}

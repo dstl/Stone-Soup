@@ -15,6 +15,7 @@ from ..base import Property
 from ..types.detection import Detection
 from .base import DetectionReader
 from .file import TextFileReader
+from stonesoup.buffered_generator import BufferedGenerator
 
 
 class CSVDetectionReader(DetectionReader, TextFileReader):
@@ -41,12 +42,8 @@ class CSVDetectionReader(DetectionReader, TextFileReader):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._detections = set()
 
-    @property
-    def detections(self):
-        return self._detections.copy()
-
+    @BufferedGenerator.generator_method
     def detections_gen(self):
         with self.path.open(encoding=self.encoding, newline='') as csv_file:
             reader = csv.DictReader(csv_file)
@@ -76,5 +73,4 @@ class CSVDetectionReader(DetectionReader, TextFileReader):
                     [[row[col_name]] for col_name in self.state_vector_fields],
                     dtype=np.float32), time_field_value,
                     metadata=local_metadata)
-                self._detections = {detect}
-                yield time_field_value, self.detections
+                yield time_field_value, {detect}

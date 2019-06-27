@@ -47,17 +47,6 @@ class GroundTruthReader(Reader):
 class SensorDataReader(Reader):
     """Sensor Data Reader base class"""
 
-    @property
-    @abstractmethod
-    def sensor_data(self):
-        """The sensor data at the current time step.
-
-        This is the set of sensor data last returned by the
-        :meth:`sensor_data_gen` generator, to allow other components, like
-        metrics, to access the data.
-        """
-        raise NotImplementedError
-
     @abstractmethod
     def sensor_data_gen(self):
         """Returns a generator of sensor data for each time step.

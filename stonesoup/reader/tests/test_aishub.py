@@ -21,7 +21,7 @@ def test_aishub(tmpdir):
     JSON_reader = JSON_AISDetectionReader(json_filename.strpath)
     detections = [
         detection
-        for _, detections in JSON_reader.detections_gen()
+        for _, detections in JSON_reader
         for detection in detections]
 
     # verify that all of the AIS records from the JSON file were read correctly
