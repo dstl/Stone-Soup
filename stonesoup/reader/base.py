@@ -30,17 +30,6 @@ class DetectionReader(Reader):
 class GroundTruthReader(Reader):
     """Ground Truth Reader base class"""
 
-    @property
-    @abstractmethod
-    def groundtruth_paths(self):
-        """The groundtruth paths at the current time step.
-
-        This is the set of groundtruth paths last returned by the
-        :meth:`groundtruth_paths_gen` generator, to allow other components,
-        like metrics, to access the data.
-        """
-        raise NotImplementedError
-
     @abstractmethod
     def groundtruth_paths_gen(self):
         """Returns a generator of ground truth paths for each time step.
