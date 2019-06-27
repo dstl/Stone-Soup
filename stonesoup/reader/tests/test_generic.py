@@ -91,6 +91,7 @@ def test_csv(tmpdir):
         assert isinstance(detection.metadata, dict)
         assert len(detection.metadata) == 0
 
+
 def test_tsv(tmpdir):
     csv_filename = tmpdir.join("test.csv")
     with csv_filename.open('w') as csv_file:
@@ -104,7 +105,9 @@ def test_tsv(tmpdir):
     # run test with:
     #   - 'metadata_fields' for 'CSVDetectionReader' == default
     #   - copy all metadata items
-    csv_reader = CSVDetectionReader(csv_filename.strpath, ["x", "y"], "t", csv_options={'dialect': 'excel-tab'})
+    csv_reader = CSVDetectionReader(csv_filename.strpath,
+                                    ["x", "y"], "t",
+                                    csv_options={'dialect': 'excel-tab'})
     detections = [
         detection
         for _, detections in csv_reader.detections_gen()

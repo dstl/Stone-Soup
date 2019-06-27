@@ -38,7 +38,9 @@ class CSVDetectionReader(DetectionReader, TextFileReader):
     metadata_fields = Property(
         [str], default=None, doc='List of columns to be saved as metadata, '
                                  'default all')
-    csv_options = Property(dict, default={}, doc='Keyword arguments for the underlying csv reader')
+    csv_options = Property(
+        dict, default={},
+        doc='Keyword arguments for the underlying csv reader')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
