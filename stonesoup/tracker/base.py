@@ -2,21 +2,11 @@
 from abc import abstractmethod
 
 from ..base import Base
+from stonesoup.buffered_generator import BufferedGenerator
 
 
-class Tracker(Base):
+class Tracker(Base, BufferedGenerator):
     """Tracker base class"""
-
-    @property
-    @abstractmethod
-    def tracks(self):
-        """The tracks at the current time step.
-
-        This is the set of tracks last returned by the
-        :meth:`tracks_gen` generator, to allow other components, like
-        metrics, to access the data.
-        """
-        raise NotImplementedError
 
     @abstractmethod
     def tracks_gen(self):
