@@ -150,6 +150,7 @@ class BoundingBoxDetectionReducer(Feeder):
             "whereas points that fall OUTSIDE the box will be filtered out.")
     mapping = Property(
         np.ndarray,
+        default=None,
         doc="Mapping between the detection and bounding box coordinates. "
             "Should be specified as a vector of length equal to the number of "
             "bounding box dimensions, whose elements correspond to row indices"
@@ -158,12 +159,15 @@ class BoundingBoxDetectionReducer(Feeder):
             ":py:attr:`~limits`), defines the limits that correspond to the "
             "element with (row) index 2 in the detection state vector, while "
             "the second row (i.e. row 1) in :py:attr:`~limits` relates to the "
-            "element with index 0."
+            "element with index 0. Default is `None`, where the dimensions of "
+            "the state vector will be used in order, up to length to limits."
     )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._detections = set()
+        if self.mapping is None:
+            self.mapping = tuple(range(len(self.limits)))
 
     @property
     def detections(self):
