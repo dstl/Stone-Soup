@@ -180,8 +180,8 @@ class BoundingBoxDetectionReducer(Feeder):
             for detection in detections:
                 state_vector = detection.state_vector
                 for i in range(num_dims):
-                    min = self.limits[i, 0]
-                    max = self.limits[i, 1]
+                    min = self.limits[i][0]
+                    max = self.limits[i][1]
                     value = state_vector[self.mapping[i]]
                     if value < min or value > max:
                         outlier_detections.add(detection)
