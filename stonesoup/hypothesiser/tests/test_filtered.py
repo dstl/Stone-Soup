@@ -21,8 +21,9 @@ def test_filtereddetections(predictor, updater):
 
     timestamp = datetime.datetime.now()
 
-    hypothesiser = DistanceHypothesiser(predictor, updater,
-                                        measure=measure, missed_distance=0.2)
+    hypothesiser = DistanceHypothesiser(
+        predictor, updater, measure=measure, missed_distance=0.2,
+        include_all=True)
     hypothesiser_wrapper = FilteredDetectionsHypothesiser(
         hypothesiser, "MMSI", match_missing=True)
 
@@ -90,8 +91,9 @@ def test_filtereddetections_no_track_metadata(predictor, updater):
     # detections with any metadata can be associated with the track
 
     timestamp = datetime.datetime.now()
-    hypothesiser = DistanceHypothesiser(predictor, updater,
-                                        measure=measure, missed_distance=0.2)
+    hypothesiser = DistanceHypothesiser(
+        predictor, updater, measure=measure, missed_distance=0.2,
+        include_all=True)
     hypothesiser_wrapper = FilteredDetectionsHypothesiser(
         hypothesiser, "MMSI", match_missing=True)
 
