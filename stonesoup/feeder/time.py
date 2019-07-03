@@ -75,6 +75,8 @@ class TimeSyncFeeder(Feeder):
         prev_time, detections = next(detections_iter)
         detections_buffer = set(detections)
 
+        prev_time -= self.time_window
+
         for time, detections in detections_iter:
             if time > prev_time + self.time_window:
                 self._detections = detections_buffer

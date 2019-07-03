@@ -83,8 +83,6 @@ def test_boundingbox_reducer(detector):
         BoundingBoxDetectionReducer()
     with pytest.raises(TypeError):
         BoundingBoxDetectionReducer(detector)
-    with pytest.raises(TypeError):
-        BoundingBoxDetectionReducer(detector, limits)
 
     feeder = BoundingBoxDetectionReducer(detector, limits, mapping)
 
@@ -112,3 +110,13 @@ def test_boundingbox_reducer(detector):
         assert all(time == detection.timestamp for detection in detections)
 
     assert multi_check
+
+
+def test_boundingbox_reducer_default_mapping(detector):
+    # Simple 2D rectangle/bounding box
+    limits = np.array([[-1, 1],
+                       [-2, 2]])
+
+    feeder = BoundingBoxDetectionReducer(detector, limits)
+
+    assert feeder.mapping == (0, 1)
