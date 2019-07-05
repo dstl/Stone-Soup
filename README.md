@@ -31,7 +31,7 @@ Stone Soup uses the following dependencies:
 | [matplotlib](https://matplotlib.org/) | [PSF/BSD-compatible](https://matplotlib.org/users/license.html) |
 | [ruamel.yaml](https://yaml.readthedocs.io/) | MIT |
 | [pymap3d](https://github.com/scivision/pymap3d) | MIT |
-| [utm](https://https://github.com/Turbo87/utm) | MIT |
+| [utm](https://github.com/Turbo87/utm) | MIT |
 
 ### Development
 For development the following libraries are also recommended:
