@@ -150,10 +150,10 @@ class RadarRotatingRangeBearing(RadarRangeBearing):
         # Rotate the radar antenna and compute new heading
         self.rotate(timestamp)
         antenna_heading = self.orientation[2, 0] + \
-            self.dwell_center.state_vector[0, 0]
+                          self.dwell_center.state_vector[0, 0]
 
         # Set rotation offset of underlying measurement model
-        rot_offset =\
+        rot_offset = \
             StateVector(
                 [[self.orientation[0, 0]],
                  [self.orientation[1, 0]],
@@ -164,20 +164,20 @@ class RadarRotatingRangeBearing(RadarRangeBearing):
         # random noise
         measurement_vector = self.measurement_model.function(
             ground_truth.state_vector, noise=0, **kwargs)
-        if(noise is None):
+        if (noise is None):
             measurement_noise = self.measurement_model.rvs()
         else:
             measurement_noise = noise
 
         # Check if state falls within sensor's FOV
-        fov_min = -self.fov_angle/2
-        fov_max = +self.fov_angle/2
+        fov_min = -self.fov_angle / 2
+        fov_max = +self.fov_angle / 2
         bearing_t = measurement_vector[0, 0]
         range_t = measurement_vector[1, 0]
 
         # Return None if state not in FOV
-        if(bearing_t > fov_max or bearing_t < fov_min
-           or range_t > self.max_range):
+        if (bearing_t > fov_max or bearing_t < fov_min
+                or range_t > self.max_range):
             return None
 
         # Else return measurement
@@ -202,22 +202,23 @@ class RadarRotatingRangeBearing(RadarRangeBearing):
         duration = timestamp - self.dwell_center.timestamp
 
         # Update dwell center
-        rps = self.rpm/60  # rotations per sec
+        rps = self.rpm / 60  # rotations per sec
         self.dwell_center = State(
             StateVector([[self.dwell_center.state_vector[0, 0]
-                          + duration.total_seconds()*rps*2*np.pi]]),
+                          + duration.total_seconds() * rps * 2 * np.pi]]),
             timestamp
         )
 
 
 class RadarRasterScanRangeBearing(RadarRotatingRangeBearing):
-    """A simple raster scan radar, with set field-of-regard (FoR) angle, field-of-view (FoV) angle, range and\
-     rotations per minute (RPM), that generates measurements of targets, using\
-     a :class:`~.RangeBearingGaussianToCartesian` model, relative to its\
-     position.
+    """A simple raster scan radar, with set field-of-regard (FoR) angle, \
+     field-of-view (FoV) angle, range and rotations per minute (RPM), that \
+     generates measurements of targets, using a \
+     :class:`~.RangeBearingGaussianToCartesian` model, relative to its position
 
-     This is a simple extension of the RadarRotatingRangeBearing class with the rotate function changed to restrict \
-     the  dwell-center to within the field of regard.
+     This is a simple extension of the RadarRotatingRangeBearing class with \
+     the rotate function changed to restrict the  dwell-center to within the \
+     field of regard.
 
     Note
     ----
@@ -229,7 +230,8 @@ class RadarRasterScanRangeBearing(RadarRotatingRangeBearing):
         float, doc="The radar field of regard (FoR) angle (in radians).")
 
     def __init__(self, position, orientation, ndim_state, mapping, noise_covar,
-                 dwell_center, rpm, max_range, fov_angle, for_angle, *args, **kwargs):
+                 dwell_center, rpm, max_range, fov_angle, for_angle, *args,
+                 **kwargs):
 
         super().__init__(position, orientation, ndim_state, mapping,
                          noise_covar, dwell_center, rpm, max_range,
@@ -248,17 +250,24 @@ class RadarRasterScanRangeBearing(RadarRotatingRangeBearing):
 
         super().rotate(timestamp)
 
-        dwell_center_max = self.for_angle/2.0 - self.fov_angle / 2.0
-        dwell_center_min = -self.for_angle/2.0 + self.fov_angle / 2.0
+        dwell_center_max = self.for_angle / 2.0 - self.fov_angle / 2.0
+        dwell_center_min = -self.for_angle / 2.0 + self.fov_angle / 2.0
 
         # If the FoV is outside of the FoR:
         #   Correct the dwell_center
         #   Reverse the direction of the scan pattern
-        if self.dwell_center.state_vector[0, 0] > dwell_center_max :
-            self.dwell_center = State( StateVector([[ (2.0*dwell_center_max) - self.dwell_center.state_vector[0, 0] ]])
-                                       , timestamp)
+        if self.dwell_center.state_vector[0, 0] > dwell_center_max:
+            self.dwell_center = State(
+                StateVector([[(2.0 * dwell_center_max) -
+                              self.dwell_center.state_vector[0, 0]
+                              ]]), timestamp)
+
             self.rpm = -self.rpm
-        elif self.dwell_center.state_vector[0, 0] < dwell_center_min :
-            self.dwell_center = State( StateVector([[ (2.0*dwell_center_min) - self.dwell_center.state_vector[0, 0] ]])
-                                       , timestamp)
+
+        elif self.dwell_center.state_vector[0, 0] < dwell_center_min:
+            self.dwell_center = State(
+                StateVector([[(2.0 * dwell_center_min) -
+                              self.dwell_center.state_vector[0, 0]
+                              ]]), timestamp)
+
             self.rpm = -self.rpm
