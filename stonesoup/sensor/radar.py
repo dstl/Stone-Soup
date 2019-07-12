@@ -209,3 +209,57 @@ class RadarRotatingRangeBearing(RadarRangeBearing):
                           + duration.total_seconds()*rps*2*np.pi]]),
             timestamp
         )
+
+
+class RadarRasterScanRangeBearing(RadarRotatingRangeBearing):
+    """A simple raster scan radar, with set field-of-regard (FoR) angle, field-of-view (FoV) angle, range and\
+     rotations per minute (RPM), that generates measurements of targets, using\
+     a :class:`~.RangeBearingGaussianToCartesian` model, relative to its\
+     position.
+
+     This is a simple extension of the RadarRotatingRangeBearing class with the rotate function changed to restrict \
+     the  dwell-center to within the field of regard.
+
+    Note
+    ----
+    * The current implementation of this class assumes a 3D Cartesian plane.
+
+    """
+
+    for_angle = Property(
+        float, doc="The radar field of regard (FoR) angle (in radians).")
+
+    def __init__(self, position, orientation, ndim_state, mapping, noise_covar,
+                 dwell_center, rpm, max_range, fov_angle, for_angle, *args, **kwargs):
+
+        super().__init__(position, orientation, ndim_state, mapping,
+                         noise_covar, dwell_center, rpm, max_range,
+                         fov_angle, for_angle, *args, **kwargs)
+
+    def rotate(self, timestamp):
+        """Rotate the sensor's antenna
+
+        This method computes and updates the sensor's `dwell_center` property.
+
+        Parameters
+        ----------
+        timestamp: :class:`datetime.datetime`
+            A timestamp signifying when the rotation completes
+        """
+
+        super().rotate(timestamp)
+
+        dwell_center_max = self.for_angle/2.0 - self.fov_angle / 2.0
+        dwell_center_min = -self.for_angle/2.0 + self.fov_angle / 2.0
+
+        # If the FoV is outside of the FoR:
+        #   Correct the dwell_center
+        #   Reverse the direction of the scan pattern
+        if self.dwell_center.state_vector[0, 0] > dwell_center_max :
+            self.dwell_center = State( StateVector([[ (2.0*dwell_center_max) - self.dwell_center.state_vector[0, 0] ]])
+                                       , timestamp)
+            self.rpm = -self.rpm
+        elif self.dwell_center.state_vector[0, 0] < dwell_center_min :
+            self.dwell_center = State( StateVector([[ (2.0*dwell_center_min) - self.dwell_center.state_vector[0, 0] ]])
+                                       , timestamp)
+            self.rpm = -self.rpm
