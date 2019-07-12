@@ -150,7 +150,7 @@ class RadarRotatingRangeBearing(RadarRangeBearing):
         # Rotate the radar antenna and compute new heading
         self.rotate(timestamp)
         antenna_heading = self.orientation[2, 0] + \
-                          self.dwell_center.state_vector[0, 0]
+            self.dwell_center.state_vector[0, 0]
 
         # Set rotation offset of underlying measurement model
         rot_offset = \
