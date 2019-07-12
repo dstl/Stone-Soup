@@ -4,8 +4,11 @@ import datetime
 
 import numpy as np
 
-from ..distance import MahalanobisDistanceHypothesiser
-from ...types import Track, Detection, GaussianState
+from ..distance import DistanceHypothesiser
+from ...types.detection import Detection
+from ...types.state import GaussianState
+from ...types.track import Track
+from ... import measures
 
 
 def test_mahalanobis(predictor, updater):
@@ -14,20 +17,53 @@ def test_mahalanobis(predictor, updater):
     track = Track([GaussianState(np.array([[0]]), np.array([[1]]), timestamp)])
     detection1 = Detection(np.array([[2]]))
     detection2 = Detection(np.array([[3]]))
-    detections = {detection1, detection2}
+    detection3 = Detection(np.array([[10]]))
+    detections = {detection1, detection2, detection3}
 
-    hypothesiser = MahalanobisDistanceHypothesiser(predictor, updater)
+    measure = measures.Mahalanobis()
+    hypothesiser = DistanceHypothesiser(
+        predictor, updater, measure=measure, missed_distance=3)
 
     hypotheses = hypothesiser.hypothesise(track, detections, timestamp)
 
-    # There are 3 hypotheses - Detection 1, Detection 2, Missed Dectection
+    # There are 3 hypotheses - Detection 1, Detection 2, Missed Detection
     assert len(hypotheses) == 3
 
+    # And not detection3
+    assert detection3 not in {hypothesis.measurement
+                              for hypothesis in hypotheses}
+
     # There is a missed detection hypothesis
-    assert any(hypothesis.measurement is None for hypothesis in hypotheses)
+    assert any(not hypothesis.measurement for hypothesis in hypotheses)
 
     # Each hypothesis has a distance attribute
     assert all(hypothesis.distance >= 0 for hypothesis in hypotheses)
 
     # The hypotheses are sorted correctly
     assert min(hypotheses, key=attrgetter('distance')) is hypotheses[0]
+
+
+def test_distance_include_all(predictor, updater):
+
+    timestamp = datetime.datetime.now()
+    track = Track([GaussianState(np.array([[0]]), np.array([[1]]), timestamp)])
+    detection1 = Detection(np.array([[2]]))
+    detection2 = Detection(np.array([[3]]))
+    detection3 = Detection(np.array([[10]]))
+    detections = {detection1, detection2, detection3}
+
+    measure = measures.Mahalanobis()
+    hypothesiser = DistanceHypothesiser(
+        predictor, updater, measure=measure, missed_distance=1,
+        include_all=True)
+
+    hypotheses = hypothesiser.hypothesise(track, detections, timestamp)
+
+    # There are 4 hypotheses - Detections and Missed Detection
+    assert len(hypotheses) == 4
+
+    # detection3 is beyond missed distance and largest distance (last
+    # hypothesis in list)
+    last_hypothesis = hypotheses[-1]
+    assert last_hypothesis.measurement is detection3
+    assert last_hypothesis.distance > hypothesiser.missed_distance

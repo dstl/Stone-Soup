@@ -1,6 +1,9 @@
 import numpy as np
+from numpy import deg2rad
+from pytest import approx
 
-from stonesoup.functions import jacobian, gm_reduce_single
+from ..functions import (
+    jacobian, gm_reduce_single, mod_bearing, mod_elevation)
 
 
 def test_jacobian():
@@ -41,7 +44,7 @@ def test_jacobian2():
 
     x = np.array([[1], [2]])
     # Tolerance value to use to test if arrays are equal
-    tol = 1.0e-2
+    tol = 1.0e-5
 
     jac = jacobian(fun1d, x)
     T = np.array([2.0, 3.0])
@@ -62,13 +65,36 @@ def test_jacobian2():
 
 def test_gm_reduce_single():
 
-    means = np.array([[1, 2], [3, 4], [5, 6]], np.float)
-    covars = np.array([[[1, 1], [1, 0.7]], [[1.2, 1.4], [1.3, 2]],
-                       [[2, 1.4], [1.2, 1.2]]], np.float)
-    weights = np.array([1, 2, 5], np.float)
+    means = np.array([[1, 2], [3, 4], [5, 6]])
+    covars = np.array([[[1, 1], [1, 0.7]],
+                       [[1.2, 1.4], [1.3, 2]],
+                       [[2, 1.4], [1.2, 1.2]]])
+    weights = np.array([1, 2, 5])
 
     mean, covar = gm_reduce_single(means, covars, weights)
 
-    assert np.array_equal(mean, np.array([[4], [5]], np.float))
-    assert np.array_equal(covar, np.array([[5.675, 5.35], [5.2, 5.3375]],
-                                          np.float))
+    assert np.allclose(mean, np.array([[4], [5]]))
+    assert np.allclose(covar, np.array([[3.675, 3.35],
+                                        [3.2, 3.3375]]))
+
+
+def test_bearing():
+    bearing_in = [10., 170., 190., 260., 280., 350., 705]
+    rad_in = deg2rad(bearing_in)
+
+    bearing_out = [10., 170., -170., -100., -80., -10., -15.]
+    rad_out = deg2rad(bearing_out)
+
+    for ind, val in enumerate(rad_in):
+        assert rad_out[ind] == approx(mod_bearing(val))
+
+
+def test_elevation():
+    elev_in = [10., 80., 110., 170., 190., 260., 280]
+    rad_in = deg2rad(elev_in)
+
+    elev_out = [10., 80., 70., 10., -10., -80., -80.]
+    rad_out = deg2rad(elev_out)
+
+    for ind, val in enumerate(rad_in):
+        assert rad_out[ind] == approx(mod_elevation(val))

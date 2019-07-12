@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
-
-import numpy as np
 import datetime
 
-from stonesoup.functions import cart2pol
-from stonesoup.types.state import State
-from stonesoup.types.array import StateVector, CovarianceMatrix
-from stonesoup.sensor.radar import RadarRangeBearing, RadarRotatingRangeBearing
+import numpy as np
+
+from ...functions import cart2pol
+from ...types.angle import Bearing
+from ...types.array import StateVector, CovarianceMatrix
+from ...types.state import State
+from ..radar import RadarRangeBearing, RadarRotatingRangeBearing
 
 
 def h2d(state_vector, translation_offset, rotation_offset):
@@ -44,7 +45,7 @@ def h2d(state_vector, translation_offset, rotation_offset):
     rho = np.sqrt(x**2 + y**2)
     phi = np.arctan2(y, x)
 
-    return np.array([[phi], [rho]])
+    return np.array([[Bearing(phi)], [rho]])
 
 
 def test_simple_radar():

@@ -1,0 +1,11 @@
+# General
+include LICENSE
+
+# Tests
+recursive-include stonesoup *.py
+include .coveragerc
+
+# Docs
+recursive-include docs/source *.py *.rst
+include docs/make.bat docs/Makefile
+graft docs/source/_static

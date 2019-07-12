@@ -5,8 +5,8 @@ import datetime
 import scipy as sp
 from scipy.stats import multivariate_normal
 
-from stonesoup.models.transition.linear import \
-    (ConstantAcceleration, CombinedLinearGaussianTransitionModel)
+from ..linear import (
+    ConstantAcceleration, CombinedLinearGaussianTransitionModel)
 
 
 def test_cam1dodel():
@@ -55,7 +55,7 @@ def base(state_vec, noise_diff_coeffs):
 
     # Model-related components
     noise_diff_coeffs = noise_diff_coeffs  # m/s^3
-    base_mat = sp.array([[1, timediff, sp.power(timediff, 2)],
+    base_mat = sp.array([[1, timediff, sp.power(timediff, 2) / 2],
                          [0, 1, timediff],
                          [0, 0, 1]])
     mat_list = [base_mat for num in range(0, dim)]

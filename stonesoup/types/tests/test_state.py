@@ -27,7 +27,7 @@ def test_state():
 
 def test_state_invalid_vector():
     with pytest.raises(ValueError):
-        State(np.array([1, 2, 3, 4]))
+        State(np.array([[[1, 2, 3, 4]]]))
 
 
 def test_gaussianstate():

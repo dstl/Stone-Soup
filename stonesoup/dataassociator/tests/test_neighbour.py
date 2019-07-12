@@ -5,7 +5,9 @@ import pytest
 import numpy as np
 
 from ..neighbour import NearestNeighbour, GlobalNearestNeighbour
-from ...types import Track, Detection, GaussianState
+from ...types.detection import Detection
+from ...types.state import GaussianState
+from ...types.track import Track
 
 
 @pytest.fixture(params=[NearestNeighbour, GlobalNearestNeighbour])
@@ -32,7 +34,7 @@ def test_nearest_neighbour(associator):
     # Each track should associate with a unique detection
     associated_measurements = [hypothesis.measurement
                                for hypothesis in associations.values()
-                               if hypothesis.measurement is not None]
+                               if hypothesis.measurement]
     assert len(associated_measurements) == len(set(associated_measurements))
 
 
@@ -49,5 +51,5 @@ def test_missed_detection_nearest_neighbour(associator):
     associations = associator.associate(tracks, detections, timestamp)
 
     # Best hypothesis should be missed detection hypothesis
-    assert all(hypothesis.measurement is None
+    assert all(not hypothesis.measurement
                for hypothesis in associations.values())

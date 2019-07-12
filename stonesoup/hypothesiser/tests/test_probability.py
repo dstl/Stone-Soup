@@ -4,8 +4,10 @@ import datetime
 import numpy as np
 
 from ..probability import PDAHypothesiser
-from ...types import Track, Detection, GaussianState, Probability, \
-    MissedDetection
+from ...types.detection import Detection, MissedDetection
+from ...types.numeric import Probability
+from ...types.state import GaussianState
+from ...types.track import Track
 
 
 def test_pda(predictor, updater):

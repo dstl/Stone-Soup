@@ -4,11 +4,13 @@ import datetime
 import numpy as np
 
 from ..base import Property
-from ..models import MeasurementModel
-from ..models import TransitionModel
+from ..models.measurement import MeasurementModel
+from ..models.transition import TransitionModel
 from ..reader import GroundTruthReader
-from ..types import (Detection, Clutter, GaussianState, GroundTruthState,
-                     GroundTruthPath, Probability, State)
+from ..types.detection import TrueDetection, Clutter
+from ..types.groundtruth import GroundTruthPath, GroundTruthState
+from ..types.numeric import Probability
+from ..types.state import GaussianState, State
 from .base import DetectionSimulator, GroundTruthSimulator
 
 
@@ -132,11 +134,7 @@ class SimpleDetectionSimulator(DetectionSimulator):
     def clutter_spatial_density(self):
         """returns the clutter spatial density of the measurement space - num
         clutter detections per unit volume per timestep"""
-        meas_volume = float(1)
-        for dim in range(self.meas_range.ndim):
-            meas_volume *= abs(float(self.meas_range[dim][0] *
-                                     self.meas_range[dim][-1]))
-        return self.clutter_rate/meas_volume
+        return self.clutter_rate/np.prod(np.diff(self.meas_range))
 
     def detections_gen(self):
         for time, tracks in self.groundtruth.groundtruth_paths_gen():
@@ -145,10 +143,11 @@ class SimpleDetectionSimulator(DetectionSimulator):
 
             for track in tracks:
                 if np.random.rand() < self.detection_probability:
-                    detection = Detection(
+                    detection = TrueDetection(
                         self.measurement_model.function(
                             track[-1].state_vector),
-                        timestamp=track[-1].timestamp)
+                        timestamp=track[-1].timestamp,
+                        groundtruth_path=track)
                     detection.clutter = False
                     self.real_detections.add(detection)
 

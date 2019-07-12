@@ -3,13 +3,14 @@
 import pytest
 import numpy as np
 
-from stonesoup.types.detection import Detection
-from stonesoup.updater.kalman import (KalmanUpdater,
-                                      ExtendedKalmanUpdater,
-                                      UnscentedKalmanUpdater)
-from stonesoup.models.measurement.linear import LinearGaussian
-from stonesoup.types import GaussianState, GaussianStatePrediction,\
-    GaussianMeasurementPrediction, SingleHypothesis
+from ...models.measurement.linear import LinearGaussian
+from ...types.detection import Detection
+from ...types.hypothesis import SingleHypothesis
+from ...types.prediction import (
+    GaussianStatePrediction, GaussianMeasurementPrediction)
+from ...types.state import GaussianState
+from ...updater.kalman import (
+    KalmanUpdater, ExtendedKalmanUpdater, UnscentedKalmanUpdater)
 
 
 @pytest.mark.parametrize(

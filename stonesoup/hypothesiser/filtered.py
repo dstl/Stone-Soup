@@ -21,6 +21,24 @@ class FilteredDetectionsHypothesiser(Hypothesiser):
         doc="Match detections with missing metadata. Default 'True'.")
 
     def hypothesise(self, track, detections, *args, **kwargs):
+        """
+        Parameters
+        ==========
+        track : :class:`Track`
+            A track that contains the target's state
+        detections : list of :class:`Detection`
+            Retrieved measurements
+
+        Returns
+        =======
+        : :class:`MultipleHypothesis`
+            A list containing the hypotheses between each prediction-detections
+            pair.
+
+        Note:   The specific subclass of :class:`SingleHypothesis` returned
+                depends on the :class:`Hypothesiser` used.
+
+        """
         track_metadata = track.metadata.get(self.metadata_filter)
 
         if (track_metadata is None) and self.match_missing:

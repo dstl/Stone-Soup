@@ -31,11 +31,11 @@ def test_time_buffered_feeder_buffer_size(detector):
 def test_time_sync_feeder(detector):
     feeder = TimeSyncFeeder(detector, datetime.timedelta(seconds=2))
 
-    prev_time = datetime.datetime(2019, 4, 1, 14)
+    prev_time = datetime.datetime(2019, 4, 1, 14) - feeder.time_window
     for steps, (time, detections) in enumerate(feeder.detections_gen(), 1):
         assert time == prev_time + feeder.time_window
         assert all(detection.timestamp >= prev_time
                    for detection in detections)
         prev_time = time
 
-    assert steps == 3
+    assert steps == 4

@@ -3,7 +3,7 @@ import itertools
 from abc import abstractmethod
 
 from ..base import Base, Property
-from ..types import JointHypothesis
+from ..types.hypothesis import JointHypothesis
 from ..hypothesiser import Hypothesiser
 
 
@@ -60,9 +60,8 @@ class DataAssociator(Base):
 
         number_hypotheses = len(joint_hypothesis)
         unique_hypotheses = len(
-            {hyp.measurement for hyp in joint_hypothesis} - {None})
-        number_null_hypotheses = sum(
-            hyp.measurement is None for hyp in joint_hypothesis)
+            {hyp.measurement for hyp in joint_hypothesis if hyp})
+        number_null_hypotheses = sum(not hyp for hyp in joint_hypothesis)
 
         # joint_hypothesis is invalid if one detection is assigned to more than
         # one prediction. Multiple missed detections are valid.
@@ -99,3 +98,17 @@ class DataAssociator(Base):
             if cls.isvalid(joint_hypothesis)]
 
         return joint_hypotheses
+
+
+class Associator(Base):
+    """Associator base class
+
+    An associator is used to associate objects for the generation of
+    metrics. It returns a :class:`~.AssociationSet` containing
+    a set of :class:`~.Association`
+    objects.
+    """
+
+
+class TrackToTrackAssociator(Associator):
+    """Associates two sets of :class:`~.Track` objects together"""

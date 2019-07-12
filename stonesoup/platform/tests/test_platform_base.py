@@ -1,12 +1,12 @@
 # coding: utf-8
-# import pytest
 import datetime
+
 import numpy as np
 
-from stonesoup.types.state import State
-from stonesoup.platform import Platform
-from stonesoup.models.transition.linear import ConstantVelocity, \
-    CombinedLinearGaussianTransitionModel
+from ...types.state import State
+from ...models.transition.linear import (
+    ConstantVelocity, CombinedLinearGaussianTransitionModel)
+from ..base import Platform
 
 
 def test_base():

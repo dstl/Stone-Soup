@@ -2,13 +2,13 @@
 from abc import abstractmethod
 
 from ..base import Base, Property
-from ..models import MeasurementModel
+from ..models.measurement import MeasurementModel
 
 
 class Sensor(Base):
     """Sensor base class
 
-    A sensor object that opperates according to a given
+    A sensor object that operates according to a given
     :class:`~.MeasurementModel`.
     """
 

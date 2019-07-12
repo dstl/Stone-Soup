@@ -8,7 +8,8 @@ from ..deleter import Deleter
 from ..reader import DetectionReader
 from ..initiator import Initiator
 from ..updater import Updater
-from ..types import GaussianStateUpdate, MissedDetection
+from ..types.prediction import GaussianStatePrediction
+from ..types.update import GaussianStateUpdate
 from ..functions import gm_reduce_single
 
 
@@ -203,13 +204,13 @@ class MultiTargetMixtureTracker(Tracker):
                 posterior_states = []
                 posterior_state_weights = []
                 for hypothesis in multihypothesis:
-                    if isinstance(hypothesis.measurement, MissedDetection):
+                    if not hypothesis:
                         posterior_states.append(hypothesis.prediction)
                     else:
                         posterior_states.append(
                             self.updater.update(hypothesis))
                     posterior_state_weights.append(
-                        float(hypothesis.probability))
+                        hypothesis.probability)
 
                 means = np.array([state.state_vector for state
                                   in posterior_states])
@@ -224,19 +225,27 @@ class MultiTargetMixtureTracker(Tracker):
                 post_mean, post_covar = gm_reduce_single(means,
                                                          covars, weights)
 
-                track.append(GaussianStateUpdate(
-                    np.array(post_mean), np.array(post_covar),
-                    multihypothesis,
-                    multihypothesis[0].measurement.timestamp))
+                missed_detection_weight = next(
+                    hyp.weight for hyp in multihypothesis if not hyp)
+
+                # Check if at least one reasonable measurement...
+                if any(hypothesis.weight > missed_detection_weight
+                       for hypothesis in multihypothesis):
+                    # ...and if so use update type
+                    track.append(GaussianStateUpdate(
+                        np.array(post_mean), np.array(post_covar),
+                        multihypothesis,
+                        multihypothesis[0].measurement.timestamp))
+                else:
+                    # ...and if not, treat as a prediction
+                    track.append(GaussianStatePrediction(
+                        np.array(post_mean), np.array(post_covar),
+                        multihypothesis[0].prediction.timestamp))
 
                 # any detections in multihypothesis that had an
                 # association score (weight) lower than or equal to the
                 # association score of "MissedDetection" is considered
                 # unassociated - candidate for initiating a new Track
-                missed_detection_weight = next(
-                    hyp.weight for hyp in multihypothesis
-                    if isinstance(hyp.measurement, MissedDetection))
-
                 for hyp in multihypothesis:
                     if hyp.weight > missed_detection_weight:
                         if hyp.measurement in unassociated_detections:

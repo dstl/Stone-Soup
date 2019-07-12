@@ -1,11 +1,10 @@
 # coding: utf-8
-
 import datetime
+
 import scipy as sp
 from scipy.stats import multivariate_normal
 
-from stonesoup.models.transition.linear import \
-    (Singer, CombinedLinearGaussianTransitionModel)
+from ..linear import Singer, CombinedLinearGaussianTransitionModel
 
 
 def test_singer1dmodel():
