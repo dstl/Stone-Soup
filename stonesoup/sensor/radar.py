@@ -271,4 +271,3 @@ class RadarRasterScanRangeBearing(RadarRotatingRangeBearing):
                               ]]), timestamp)
 
             self.rpm = -self.rpm
-
