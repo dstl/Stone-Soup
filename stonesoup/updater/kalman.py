@@ -14,7 +14,7 @@ from ..functions import gauss2sigma, unscented_transform
 
 class KalmanUpdater(Updater):
     r"""
-    An class which embodies Kalman-type updaters; also a class which performs
+    A class which embodies Kalman-type updaters; also a class which performs
     measurement update step as in the standard Kalman Filter. The observation
     model assumes
 

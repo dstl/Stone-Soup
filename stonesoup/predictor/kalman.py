@@ -15,27 +15,29 @@ from ..functions import gauss2sigma, unscented_transform
 
 
 class KalmanPredictor(Predictor):
-    r"""
-    A predictor class which follows the family of Kalman predictors.
-
-    Generally,
+    r"""A predictor class which forms the basis for the family of Kalman
+    predictors. This class also serves as the (specific) Kalman Filter
+    :class:`~.Predictor` class. Here
 
     .. math::
 
-        \mathbf{x}_{k|k-1} = f_k(\mathbf{x}_{k-1}) + b_k(\mathbf{u}_k) +
-        \mathbf{\nu}_k
+      f_k( \mathbf{x}_{k-1}) = F_k \mathbf{x}_{k-1} \ \mathrm{and}
+      \ \mathbf{\nu}_k \sim \mathcal{N}(0,Q_k)
 
-    where :math:`\mathbf{x}_{k-1}` is the prior state,
-    :math:`f_k(\mathbf{x}_{k-1})` is the transition function,
-    :math:`\mathbf{u}_k` the control vector, :math:`b_k(\mathbf{u}_k)` the
-    control input and :math:`\mathbf{\nu}_k` the noise.
 
-    This class also serves as the (specific) Kalman Filter
-    :class:`~.Predictor` Class. Here :math:`f_k(\mathbf{x}_{k-1}) = F_k
-    \mathbf{x}_{k-1}` and :math:`\mathbf{\nu}_k \sim \mathcal{N}(0,Q_k)`
+    Notes
+    -----
+    In the Kalman filter transition and control models must be linear.
+
+
+    Raises
+    ------
+    ValueError
+        If no :class:`~.TransitionModel` is specified.
+
+
     """
 
-    # In the Kalman filter transition and control models must be linear
     transition_model = Property(LinearGaussianTransitionModel,
                                 doc="The transition model to be used. "
                                     "Functions will throw a "
@@ -47,9 +49,8 @@ class KalmanPredictor(Predictor):
                                  ":class:`~.ControlModel`.")
 
     def __init__(self, transition_model, control_model=None, *args, **kwargs):
-        """
-        Explicitly initialise the models and check for existence of transition
-        model, and throw an error if not specified.
+        """Explicitly initialise the models and check for existence of
+        transition model, and throw an error if not specified.
         """
         super().__init__(transition_model, control_model=None, *args, **kwargs)
 
@@ -60,50 +61,77 @@ class KalmanPredictor(Predictor):
         # If no control model insert a linear zero-effect one
         ndims = self.transition_model.ndim_state
         if self.control_model is None:
-            """Make a 0-effect control input"""
             self.control_model = LinearControlModel(ndims, [],
                                                     np.zeros([ndims, 1]),
                                                     np.zeros([ndims, ndims]),
                                                     np.zeros([ndims, ndims]))
 
     def transition_matrix(self, **kwargs):
-        """
-        Return the transition matrix
+        """Return the transition matrix
 
-        :param kwargs: these are passed to
-        :class:`~.LinearGaussianTransitionModel`. :attr:`.matrix()`
-        :return: the transition matrix, :math:`F_k`
+        Parameters
+        ----------
+        **kwargs : various, optional
+            these are passed to :class:`~.LinearGaussianTransitionModel`.
+            :obj:`matrix()`
+
+        Returns
+        -------
+        :class:`~.ndarray`
+            the transition matrix, :math:`F_k`
+
         """
         return self.transition_model.matrix(**kwargs)
 
     def transition_function(self, prior, **kwargs):
-        r"""
-        Applies the linear transition function, returns the predicted state,
+        r"""Applies the linear transition function, returns the predicted state,
         :math:`\mathbf{x}_{k|k-1}`
 
-        :param prior: the prior state, :math:`\mathbf{x}_{k-1}`
-        :param kwargs: these are passed to
-        :class:`~.LinearGaussianTransitionModel`. :attr:`.matrix()`
-        :return: the predicted state, :math:`\mathbf{x}_{k|k-1}`
+        Parameters
+        ----------
+        prior : :class:`~.State`
+            the prior state, :math:`\mathbf{x}_{k-1}`
+
+        **kwargs : various, optional
+            these are passed to
+            :class:`~.LinearGaussianTransitionModel`. :attr:`matrix()`
+
+        Returns
+        -------
+        :class:`~.State`
+            the predicted state, :math:`\mathbf{x}_{k|k-1}`
+
         """
         return self.transition_model.matrix(**kwargs) @ prior.state_vector
 
     @property
     def control_matrix(self):
-        """
-        Convenience function which returns the control matrix
+        r"""Convenience function which returns the control matrix
 
-        :return: control matrix, :math:`B_k`
+        Returns
+        -------
+        :class:`~.ndarray`
+            control matrix, :math:`B_k`
+
         """
         return self.control_model.matrix()
 
     def _predict_over_interval(self, prior, timestamp):
-        """
-        Private function to get the prediction interval (or None)
+        """Private function to get the prediction interval (or None)
 
-        :param prior: the prior state
-        :param timestamp: (current) timestamp
-        :return: time interval to predict over
+        Parameters
+        ----------
+        prior : :class:`~.State`
+            the prior state
+
+        timestamp : :class:`~.datetime`. :attr:`datetime`, optional
+            (current) timestamp
+
+        Returns
+        -------
+        :class:`~.datetime`. :attr:`time_interval`
+            time interval to predict over
+
         """
 
         # Deal with undefined timestamps
@@ -116,17 +144,25 @@ class KalmanPredictor(Predictor):
 
     @lru_cache()
     def predict(self, prior, timestamp=None, **kwargs):
-        r"""
-        The predict step,
+        r"""The predict function
 
-        :param prior: :math:`\mathbf{x}_{k-1}`
-        :param timestamp: :math:`k`
-        :param kwargs: these are passed, via :class:`~.KalmanFilter`.
-        :attr:`transition_function()` to
-        :class:`~.LinearGaussianTransitionModel`. :attr:`.matrix()`
+        Parameters
+        ----------
+        prior : :class:`~.State`
+            :math:`\mathbf{x}_{k-1}`
+        timestamp : :class:`~.datetime`. :attr:`datetime`, optional
+            :math:`k`
+        **kwargs :
+            these are passed, via :class:`~.KalmanFilter`.
+            :attr:`transition_function()` to
+            :class:`~.LinearGaussianTransitionModel`. :attr:`matrix()`
 
-        :return: :math:`\mathbf{x}_{k|k-1}`, the predicted state and the
-        predicted state covariance :math:`P_{k|k-1}`
+        Returns
+        -------
+        :class:`~.State`
+            :math:`\mathbf{x}_{k|k-1}`, the predicted state and the predicted
+            state covariance :math:`P_{k|k-1}`
+
         """
 
         # Get the prediction interval
@@ -155,8 +191,7 @@ class KalmanPredictor(Predictor):
 
 
 class ExtendedKalmanPredictor(KalmanPredictor):
-    """
-    ExtendedKalmanPredictor class
+    """ExtendedKalmanPredictor class
 
     An implementation of the Extended Kalman Filter predictor. Here the
     transition and control functions may be non-linear, their transition and
@@ -181,15 +216,24 @@ class ExtendedKalmanPredictor(KalmanPredictor):
     # TODO Confirm that this inherits the __init__() function
 
     def transition_matrix(self, prior, **kwargs):
-        r"""
+        r"""Returns the transition matrix. Which is a matrix if the model is
+        linear, or approximated as Jacobian otherwise.
 
-        :param prior: the prior state, :math:`\mathbf{x}_{k-1}`
-        :param kwargs: these are passed to :class:`~.TransitionModel`.
-        :attr:`matrix()` if linear (i.e. the :attr:`matrix()` function exists),
-         or :class:`~.TransitionModel`. :attr:`.jacobian()` if not
+        Parameters
+        ----------
+        prior : :class:`~.State`
+            :math:`\mathbf{x}_{k-1}`
 
-        :return:  the transition matrix, :math:`F_k` if linear, or its Jacobian
-         if non-linear
+        **kwargs : various, optional
+            these are passed to :class:`~.TransitionModel`. :obj:`jacobian()`
+
+        Returns
+        -------
+        transition matrix : :obj:`ndarray`
+            The transition matrix, :math:`F_k`, if linear (i.e. the
+            :attr:`matrix()` function exists), or
+            :class:`~.TransitionModel`. :attr:`jacobian()` if not
+
         """
         if hasattr(self.transition_model, 'matrix'):
             return self.transition_model.matrix(**kwargs)
@@ -197,27 +241,38 @@ class ExtendedKalmanPredictor(KalmanPredictor):
             return self.transition_model.jacobian(prior.state_vector, **kwargs)
 
     def transition_function(self, prior, **kwargs):
-        r"""
-        This is the application of :math:`f_k(\mathbf{x}_{k-1})`, the
+        r"""This is the application of :math:`f_k(\mathbf{x}_{k-1})`, the
         transition function, non-linear in general
 
-        :param prior: the prior state, :math:`\mathbf{x}_{k-1}`
-        :param kwargs: these are passed to :class:`~.ExtendedKalmanFilter`.
-        :attr:`function()`
-        :return: the predicted state, :math:`\mathbf{x}_{k|k-1}`
+        Parameters
+        ----------
+        prior : :class:`~.State`
+            the prior state, :math:`\mathbf{x}_{k-1}`
+
+        **kwargs : various, optional
+            these are passed to :class:`~.ExtendedKalmanFilter`.
+            :attr:`function()`
+
+        Returns
+        -------
+        :class:`~.State`
+            the predicted state, :math:`\mathbf{x}_{k|k-1}`
+
         """
         return self.transition_model.function(prior.state_vector, noise=0,
                                               **kwargs)
 
     @property
     def control_matrix(self):
-        r"""
-        Returns the control model control matrix, `B_k(\mathrm{u}_k)`, or its
-        linear approximation via a Jacobian  approximation. The
-        :class:`~.ControlModel` used must therefore be capable of returning a
-        :attr:`jacobian()` function.
+        r"""Returns the control model control matrix,
+        :math:`B_k(\mathbf{u}_k)`, or its linear approximation via a Jacobian
+        approximation. The :class:`~.ControlModel` used must therefore be
+        capable of returning a :obj:`jacobian()` function.
 
-        :return: The control model matrix, or its linear approximation
+        Returns
+        -------
+        :obj:`numpy.ndarray`
+            The control model matrix, or its linear approximation
         """
         if hasattr(self.control_model, 'matrix'):
             return self.control_model.matrix()
@@ -227,8 +282,7 @@ class ExtendedKalmanPredictor(KalmanPredictor):
 
 
 class UnscentedKalmanPredictor(KalmanPredictor):
-    """
-    UnscentedKalmanFilter class
+    """UnscentedKalmanFilter class
 
     The predict is accomplished by calculating the sigma points from the
     Gaussian mean and covariance, then putting these through the (in general
@@ -261,16 +315,22 @@ class UnscentedKalmanPredictor(KalmanPredictor):
                                   "optionally stored")
 
     def transition_and_control_function(self, prior_state_vector, **kwargs):
-        r"""
-        Returns the result of applying the transition and control functions for
-         the unscented transform
+        r"""Returns the result of applying the transition and control functions
+        for the unscented transform
 
-        :param prior_state_vector: Prior state vector (Requires some
-        unsatisfactory fudges because unscented transform operates on the state
-         vector rather than state).
-        :param kwargs: these are passed to :class:`~.UnscentedKalmanFilter`.
-        :attr:`function()`
-        :return: the predicted state at :math:`k`, :math:`\mathbf{x}_{k|k-1}`
+        Parameters
+        ----------
+        prior_state_vector : :class:`~.State`
+            Prior state vector
+        **kwargs : various, optional
+            These are passed to :class:`~.TransitionModel`.
+            :attr:`function()`
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            The combined, noiseless, effect of applying the transition and control
+
         """
 
         predict_over_interval = self._time_interval
@@ -280,15 +340,23 @@ class UnscentedKalmanPredictor(KalmanPredictor):
 
     @lru_cache()
     def predict(self, prior, timestamp=None, **kwargs):
-        r"""
-        The unscented version of the predict step
+        r"""The unscented version of the predict step
 
-        :param prior: Prior state, :math:`\mathbf{x}_{k-1}`
-        :param timestamp: time to transit to (:math:`k`)
-        :param kwargs: these are passed to :class:`~.TransitionModel`.
-        :attr:`covar()`
-        :return: the predicted state :math:`\mathbf{x}_{k|k-1}` and the
-        predicted state covariance :math:`P_{k|k-1}`
+        Parameters
+        ----------
+        prior : :class:`~.Class`
+            Prior state, :math:`\mathbf{x}_{k-1}`
+        timestamp : :class:`~.datetime`. :obj:`datetime`
+            Time to transit to (:math:`k`)
+        **kwargs : various, optional
+            These are passed to :class:`~.TransitionModel`. :attr:`covar()`
+
+        Returns
+        -------
+        :class:`~.GaussianStatePrediction`
+            the predicted state :math:`\mathbf{x}_{k|k-1}` and the predicted
+            state covariance :math:`P_{k|k-1}`
+
         """
 
         # Get the prediction interval

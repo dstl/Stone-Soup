@@ -8,12 +8,23 @@ from ..models.control import ControlModel
 
 
 class Predictor(Base):
-    """Predictor base class
+    r"""Predictor base class
 
-    A predictor is used to advance a state to another point in time, by
-    utilising a specified :class:`~.TransitionModel`. In addition a
-    :class:`~.ControlModel` may be used to model an external influence to the
+    A predictor is used to predict a new :class:`~.State` given a prior
+    :class:`~.State` and a :class:`~.TransitionModel`. In addition, a
+    :class:`~.ControlModel` may be used to model an external influence on the
     state.
+
+    .. math::
+
+        \mathbf{x}_{k|k-1} = f_k(\mathbf{x}_{k-1}) + b_k(\mathbf{u}_k) +
+        \mathbf{\nu}_k
+
+    where :math:`\mathbf{x}_{k-1}` is the prior state,
+    :math:`f_k(\mathbf{x}_{k-1})` is the transition function,
+    :math:`\mathbf{u}_k` the control vector, :math:`b_k(\mathbf{u}_k)` the
+    control input and :math:`\mathbf{\nu}_k` the noise.
+
     """
 
     transition_model = Property(TransitionModel, doc="transition model")
@@ -21,16 +32,17 @@ class Predictor(Base):
 
     @abstractmethod
     def predict(self, prior, control_input=None, timestamp=None, **kwargs):
-        """Predict state
+        """The prediction function itself
 
         Parameters
         ----------
         prior : :class:`~.State`
-            State
-        control_input : :class:`~.State`
-            State
-        timestamp : :class:`datetime.datetime`
-            Time which to predict to which will be passed to transition model
+            The prior state
+        control_input : :class:`~.ControlModel`. :attr:`control_input()`, optional
+            The control input
+        timestamp : :class:`datetime.datetime`, optional
+            Time at which the prediction is made (used by the transition
+            model)
 
         Returns
         -------
