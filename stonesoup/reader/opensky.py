@@ -32,6 +32,7 @@ class OpenSkyNetworkReader(DetectionReader):
         0: "ADS-B",
         1: "ASTERIX",
         2: "MLAT",
+        3: "FLARM",
     }
 
     bbox = Property(
