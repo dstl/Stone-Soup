@@ -10,6 +10,7 @@ from ..base import (LinearModel, GaussianModel, TimeVariantModel,
                     TimeInvariantModel)
 from .base import TransitionModel
 
+
 class LinearGaussianTransitionModel(
         TransitionModel, LinearModel, GaussianModel):
 
