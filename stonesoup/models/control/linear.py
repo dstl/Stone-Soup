@@ -36,6 +36,13 @@ class LinearControlModel(ControlModel, LinearModel):
         return self.control_vector.shape[0]
 
     def matrix(self):
+        """
+
+        Returns
+        -------
+        :obj:`ndarray`
+            the control-input model matrix, :math:`B_k`
+        """
         return self.control_matrix
 
     def control_input(self):
@@ -63,7 +70,7 @@ class LinearControlModel(ControlModel, LinearModel):
                                        self.control_noise)
 
     def pdf(self, control_vec):
-        """The value of the probability density function at a test point
+        """The value of the probability density function (pdf) at a test point
 
         Parameters
         ----------

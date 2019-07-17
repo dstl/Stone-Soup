@@ -17,13 +17,15 @@ class Predictor(Base):
 
     .. math::
 
-        \mathbf{x}_{k|k-1} = f_k(\mathbf{x}_{k-1}) + b_k(\mathbf{u}_k) +
-        \mathbf{\nu}_k
+        \mathbf{x}_{k|k-1} = f_k(\mathbf{x}_{k-1}, \mathbf{\nu}_k) +
+        b_k(\mathbf{u}_k, \mathbf{\eta}_k)
+
 
     where :math:`\mathbf{x}_{k-1}` is the prior state,
     :math:`f_k(\mathbf{x}_{k-1})` is the transition function,
     :math:`\mathbf{u}_k` the control vector, :math:`b_k(\mathbf{u}_k)` the
-    control input and :math:`\mathbf{\nu}_k` the noise.
+    control input and :math:`\mathbf{\nu}_k` and :math:`\mathbf{\eta}_k` the
+    transition and control model noise respectively.
 
     """
 

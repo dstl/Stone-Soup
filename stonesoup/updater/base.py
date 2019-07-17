@@ -8,8 +8,16 @@ from ..models.measurement import MeasurementModel
 class Updater(Base):
     """Updater base class
 
-    An updater is used to update the state, utilising a
-    :class:`~.MeasurementModel`.
+    An updater is used to update the predicted state, utilising a measurement
+    and a :class:`~.MeasurementModel`.  The general observation model is
+
+    .. math::
+
+        \mathbf{z} = h(\mathbf{x}, \mathbf{\sigma})
+
+    where :math:`\mathbf{x}` is the state, :math:`\mathbf{\sigma}`, the
+    measurement noise and :math:`\mathbf{z}` the resulting measurement.
+
     """
 
     measurement_model = Property(MeasurementModel, doc="measurement model")
