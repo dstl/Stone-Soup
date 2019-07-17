@@ -11,7 +11,9 @@ from ...base import Property
 class LinearControlModel(ControlModel, LinearModel):
     r"""Implements a linear effect to the state vector via,
 
-        :math:`\hat{x}_k = B_k \mathbf{u}_k + \gamma_k`
+    .. math::
+
+        \hat{x}_k = B_k \mathbf{u}_k + \gamma_k
 
     where :math:`B_k` is the control-input model matrix (i.e. control matrix),
     :math:`\mathbf{u}_k` is the control vector and :math:`\gamma_k` is
@@ -20,16 +22,14 @@ class LinearControlModel(ControlModel, LinearModel):
 
     """
 
-    control_vector = Property(ndarray, doc="Control vector at time :math:`k`, "
-                                           ":math:`\mathbf{u}_k`")
+    control_vector = Property(ndarray, doc="Control vector at time :math:`k`")
 
     control_matrix = Property(ndarray, doc="Control input model matrix at time"
                                            " :math:`k`, :math:`B_k`")
 
     control_noise = Property(ndarray, default=None, doc="Control input noise "
                                                         "covariance at time "
-                                                        ":math:`k`, "
-                                                        ":math:`\Gamma_k`")
+                                                        ":math:`k`, ")
 
     @property
     def ndim_ctrl(self):
