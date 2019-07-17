@@ -46,7 +46,7 @@ class LinearControlModel(ControlModel, LinearModel):
         return self.control_matrix
 
     def control_input(self):
-        """The mean control input
+        r"""The mean control input
 
         Returns
         -------
@@ -57,7 +57,7 @@ class LinearControlModel(ControlModel, LinearModel):
         return self.control_matrix @ self.control_vector
 
     def rvs(self):
-        """Sample (once) from the multivariate normal distribution determined
+        r"""Sample (once) from the multivariate normal distribution determined
         from the mean and covariance control parameters
 
         Returns

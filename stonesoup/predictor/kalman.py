@@ -329,7 +329,8 @@ class UnscentedKalmanPredictor(KalmanPredictor):
         Returns
         -------
         :class:`numpy.ndarray`
-            The combined, noiseless, effect of applying the transition and control
+            The combined, noiseless, effect of applying the transition and
+            control
 
         """
 

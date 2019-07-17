@@ -6,7 +6,7 @@ from ..models.measurement import MeasurementModel
 
 
 class Updater(Base):
-    """Updater base class
+    r"""Updater base class
 
     An updater is used to update the predicted state, utilising a measurement
     and a :class:`~.MeasurementModel`.  The general observation model is

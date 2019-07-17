@@ -121,10 +121,11 @@ class KalmanUpdater(Updater):
         predicted_state : :class:`~.State`
             The predicted state :math:`\mathbf{x}_{k|k-1}`
         measurement_model : :class:`~.MeasurementModel`
-            The measurement model. If omitted, the model in the updater object is used
+            The measurement model. If omitted, the model in the updater object
+            is used
         **kwargs : various
-            These are passed to :class:`~.MeasurementModel`. :attr:`function()` and
-            :class:`~.MeasurementModel`. :attr:`matrix()`
+            These are passed to :class:`~.MeasurementModel`. :attr:`function()`
+            and :class:`~.MeasurementModel`. :attr:`matrix()`
 
         Returns
         -------

@@ -40,7 +40,8 @@ class Predictor(Base):
         ----------
         prior : :class:`~.State`
             The prior state
-        control_input : :class:`~.ControlModel`. :attr:`control_input()`, optional
+        control_input :
+        :class:`~.ControlModel`. :attr:`control_input()`, optional
             The control input
         timestamp : :class:`datetime.datetime`, optional
             Time at which the prediction is made (used by the transition
