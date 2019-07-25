@@ -2,9 +2,10 @@
 
 import scipy as sp
 from scipy.stats import multivariate_normal
+from numpy.linalg import inv
 
 from ...base import Property
-from ...functions import cart2pol, cart2sphere, cart2angles, rotx, roty, rotz
+from ...functions import cart2pol, pol2cart, cart2sphere, cart2angles, rotx, roty, rotz
 from ...types.array import StateVector, CovarianceMatrix
 from ...types.angle import Bearing, Elevation
 from ..base import NonLinearModel, GaussianModel
@@ -121,7 +122,7 @@ class NonLinearGaussianMeasurement(MeasurementModel,
         return rotz(theta_z)@roty(theta_y)@rotx(theta_x)
 
 
-class RangeBearingElevationGaussianToCartesian(NonLinearGaussianMeasurement):
+class CartesianToElevationBearingRange(NonLinearGaussianMeasurement):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of bearing \
     (:math:`\phi`), elevation (:math:`\theta`) and range (:math:`r`), with \
@@ -237,7 +238,7 @@ class RangeBearingElevationGaussianToCartesian(NonLinearGaussianMeasurement):
         return out
 
 
-class RangeBearingGaussianToCartesian(
+class CartesianToBearingRange(
         NonLinearGaussianMeasurement):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of bearing \
@@ -309,6 +310,22 @@ class RangeBearingGaussianToCartesian(
         """
 
         return 2
+    
+    def inversefunction(self, state_vector, **kwargs):
+        
+        phi, rho = state_vector[:, 0]
+        x, y = pol2cart(rho, phi)
+        
+        xyz = [[x],[y],[0]]
+        inv_rotation_matrix = inv(self._rotation_matrix)
+        xyz_rot = inv_rotation_matrix @ xyz
+        xy = [xyz_rot[0][0], xyz_rot[1][0]]
+        x, y = xy + self.translation_offset[:, 0]
+        
+        res = sp.zeros((self.ndim_state, 1))
+        res[self.mapping, 0] = x, y
+        
+        return res
 
     def function(self, state_vector, noise=None, **kwargs):
         r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
@@ -351,7 +368,7 @@ class RangeBearingGaussianToCartesian(
         return out
 
 
-class BearingElevationGaussianToCartesian(NonLinearGaussianMeasurement):
+class CartesianToElevationBearing(NonLinearGaussianMeasurement):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of bearing \
     (:math:`\phi`) and elevation (:math:`\theta`) and with \
