@@ -4,8 +4,9 @@ import numpy as np
 from scipy.stats import multivariate_normal
 
 from ..nonlinear import (
-    BearingElevationGaussianToCartesian, RangeBearingGaussianToCartesian,
-    RangeBearingElevationGaussianToCartesian)
+    CartesianToElevationBearingRange, CartesianToBearingRange,
+    CartesianToElevationBearing)
+from ...base import ReversibleModel
 from ....functions import jacobian as compute_jac
 from ....types.angle import Bearing, Elevation
 
@@ -131,18 +132,18 @@ def hbearing(state_vector, translation_offset, rotation_offset):
     [
         (   # 2D meas, 2D state
             h2d,
-            RangeBearingGaussianToCartesian,
+            CartesianToBearingRange,
             np.array([[0], [1]]),
             np.array([[0.015, 0],
                       [0, 0.1]]),
             np.array([0, 1]),
             np.array([[1], [-1]]),
-            np.array([[0.2], [-.5], [1]])
+            np.array([[0], [0], [1]])
 
         ),
         (   # 3D meas, 3D state
             h3d,
-            RangeBearingElevationGaussianToCartesian,
+            CartesianToElevationBearingRange,
             np.array([[1], [2], [2]]),
             np.array([[0.05, 0, 0],
                       [0, 0.015, 0],
@@ -153,7 +154,7 @@ def hbearing(state_vector, translation_offset, rotation_offset):
         ),
         (   # 2D meas, 3D state
             hbearing,
-            BearingElevationGaussianToCartesian,
+            CartesianToElevationBearing,
             np.array([[1], [2], [3]]),
             np.array([[0.05, 0],
                       [0, 0.015]]),
@@ -166,7 +167,7 @@ def hbearing(state_vector, translation_offset, rotation_offset):
 )
 def test_models(h, ModelClass, state_vec, R,
                 mapping, translation_offset, rotation_offset):
-    """ RangeBearingGaussianToCartesian Measurement Model test """
+    """ CartesianToBearingRange Measurement Model test """
 
     ndim_state = state_vec.size
 
@@ -188,8 +189,14 @@ def test_models(h, ModelClass, state_vec, R,
         return model.function(x, noise=0)
     H = compute_jac(fun, state_vec)
     assert np.array_equal(H, model.jacobian(state_vec))
+
     # Check Jacobian has proper dimensions
     assert H.shape == (model.ndim_meas, ndim_state)
+
+    # Ensure inverse function returns original
+    if isinstance(model, ReversibleModel):
+        J = model.inversefunction(meas_pred_wo_noise)
+        assert np.allclose(J, state_vec)
 
     # Ensure ```lg.covar()``` returns R
     assert np.array_equal(R, model.covar())

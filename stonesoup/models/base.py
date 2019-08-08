@@ -56,7 +56,7 @@ class LinearModel(Model):
         if noise is None:
             noise = self.rvs(**kwargs)
 
-        return self.matrix(**kwargs)@state_vector + noise
+        return self.matrix(**kwargs) @ state_vector + noise
 
 
 class NonLinearModel(Model):
@@ -100,6 +100,32 @@ class NonLinearModel(Model):
         -------
         : :class:`numpy.ndarray`
             The model function evaluated.
+        """
+        pass
+
+
+class ReversibleModel(NonLinearModel):
+    """Non-linear model containing sufficient co-ordinate
+    information such that the linear co-ordinate conversions
+    can be calculated from the non-linear counterparts.
+
+    Contains an inverse function which computes the reverse
+    of the relevant linear-to-non-linear function"""
+
+    def inversefunction(self, state_vector, **kwargs):
+        """Takes in the result of the functionr and
+        computes the inverse function, returning the initial
+        input of the function.
+
+        Parameters
+        ----------
+        state_vector: :class:`~.StateVector`
+            Input state vector (non-linear format)
+
+        Returns
+        -------
+        : :class:`numpy.ndarray`
+            The linear co-ordinates
         """
         pass
 
