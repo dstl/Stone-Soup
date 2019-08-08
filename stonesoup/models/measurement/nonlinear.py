@@ -5,6 +5,7 @@ from scipy.stats import multivariate_normal
 from numpy.linalg import inv
 
 from ...base import Property
+
 from ...functions import cart2pol, pol2cart, \
     cart2sphere, sphere2cart, cart2angles, \
     rotx, roty, rotz
@@ -329,6 +330,22 @@ class CartesianToBearingRange(
         """
 
         return 2
+    
+    def inversefunction(self, state_vector, **kwargs):
+        
+        phi, rho = state_vector[:, 0]
+        x, y = pol2cart(rho, phi)
+        
+        xyz = [[x],[y],[0]]
+        inv_rotation_matrix = inv(self._rotation_matrix)
+        xyz_rot = inv_rotation_matrix @ xyz
+        xy = [xyz_rot[0][0], xyz_rot[1][0]]
+        x, y = xy + self.translation_offset[:, 0]
+        
+        res = sp.zeros((self.ndim_state, 1))
+        res[self.mapping, 0] = x, y
+        
+        return res
 
     def inversefunction(self, state_vector, **kwargs):
         if not ((self.rotation_offset[0][0] == 0)
