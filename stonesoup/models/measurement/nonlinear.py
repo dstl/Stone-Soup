@@ -330,7 +330,7 @@ class CartesianToBearingRange(
         """
 
         return 2
-    
+
     def inversefunction(self, state_vector, **kwargs):
         
         phi, rho = state_vector[:, 0]
