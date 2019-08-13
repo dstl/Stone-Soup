@@ -112,7 +112,8 @@ class ReversibleModel(NonLinearModel):
     Contains an inverse function which computes the reverse
     of the relevant linear-to-non-linear function"""
 
-    def inversefunction(self, state_vector, **kwargs):
+    @abstractmethod
+    def inverse_function(self, state_vector, **kwargs):
         """Takes in the result of the functionr and
         computes the inverse function, returning the initial
         input of the function.

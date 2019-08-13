@@ -236,7 +236,7 @@ class CartesianToElevationBearingRange(
                          [Bearing(phi)],
                          [rho]]) + noise
 
-    def inversefunction(self, state_vector, **kwargs):
+    def inverse_function(self, state_vector, **kwargs):
 
         theta, phi, rho = state_vector[:, 0]
         x, y, z = sphere2cart(rho, phi, theta)
@@ -331,7 +331,7 @@ class CartesianToBearingRange(
 
         return 2
 
-    def inversefunction(self, state_vector, **kwargs):
+    def inverse_function(self, state_vector, **kwargs):
         if not ((self.rotation_offset[0][0] == 0)
                 and (self.rotation_offset[1][0] == 0)):
             raise RuntimeError(

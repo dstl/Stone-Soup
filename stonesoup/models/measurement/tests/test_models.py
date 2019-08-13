@@ -195,7 +195,7 @@ def test_models(h, ModelClass, state_vec, R,
 
     # Ensure inverse function returns original
     if isinstance(model, ReversibleModel):
-        J = model.inversefunction(meas_pred_wo_noise)
+        J = model.inverse_function(meas_pred_wo_noise)
         assert np.allclose(J, state_vec)
 
     # Ensure ```lg.covar()``` returns R
