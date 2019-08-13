@@ -36,7 +36,7 @@ def test_cvmodel():
     assert sp.array_equal(Q, cv.covar(
         timestamp=new_timestamp, time_interval=time_interval))
 
-    # Propagate a state vector throught the model
+    # Propagate a state vector through the model
     # (without noise)
     new_state_vec_wo_noise = cv.function(
         state_vec,

@@ -37,15 +37,16 @@ class LinearModel(Model):
         pass
 
     def function(self, state_vector, noise=None, **kwargs):
-        """Model function :math:`f(t,x(t),w(t))`
+        """Model linear function :math:`f_k(x(k),w(k)) = F_k(x_k) + w_k`
 
         Parameters
         ----------
         state_vector: :class:`~.StateVector`
             An input state vector
         noise: :class:`numpy.ndarray`
-            An externally generated random process noise sample (the default in
-            `None`, in which case process noise will be generated internally)
+            An externally generated random process noise sample (the default is
+            `None`, in which case process noise will be generated via
+            :meth:`~.Model.rvs`)
 
         Returns
         -------
@@ -54,6 +55,7 @@ class LinearModel(Model):
         """
 
         if noise is None:
+            # TODO: doesn't make sense for noise=None to generate noise
             noise = self.rvs(**kwargs)
 
         return self.matrix(**kwargs)@state_vector + noise

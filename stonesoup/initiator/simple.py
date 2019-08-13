@@ -38,7 +38,7 @@ class SinglePointInitiator(GaussianInitiator):
 
         tracks = set()
         for detection in unassociated_detections:
-            measurement_prediction = updater.get_measurement_prediction(
+            measurement_prediction = updater.predict_measurement(
                 self.prior_state, detection.measurement_model)
             track_state = updater.update(SingleHypothesis(
                 self.prior_state, detection, measurement_prediction))

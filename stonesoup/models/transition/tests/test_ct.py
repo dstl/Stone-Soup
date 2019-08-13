@@ -70,13 +70,13 @@ def base(model, state_vec, noise_diff_coeffs, turn_rate):
     assert sp.array_equal(Q, model_obj.covar(
         timestamp=new_timestamp, time_interval=time_interval))
 
-    # Propagate a state vector throught the model
+    # Propagate a state vector through the model
     # (without noise)
     new_state_vec_wo_noise = model_obj.function(
-        state_vec,
+        state_vec, noise=0,
         timestamp=new_timestamp,
-        time_interval=time_interval,
-        noise=0)
+        time_interval=time_interval)
+
     assert sp.array_equal(new_state_vec_wo_noise, F@state_vec)
 
     # Evaluate the likelihood of the predicted state, given the prior
@@ -109,7 +109,7 @@ def base(model, state_vec, noise_diff_coeffs, turn_rate):
         mean=sp.array(F@state_vec).ravel(),
         cov=Q).T)
 
-    # Propagate a state vector throught the model
+    # Propagate a state vector through the model
     # (with external noise)
     noise = model_obj.rvs(timestamp=new_timestamp, time_interval=time_interval)
     new_state_vec_w_enoise = model_obj.function(

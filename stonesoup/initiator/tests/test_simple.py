@@ -6,6 +6,7 @@ import pytest
 from ...models.measurement.linear import LinearGaussian
 from ...updater.kalman import KalmanUpdater
 from ...types.detection import Detection
+from ...types.hypothesis import SingleHypothesis
 from ...types.state import GaussianState, ParticleState
 from ..simple import (
     SinglePointInitiator, LinearMeasurementInitiator, GaussianParticleInitiator
@@ -22,6 +23,9 @@ def test_spi():
 
     # Define a measurement model
     measurement_model = LinearGaussian(2, [0], np.array([[1]]))
+
+    # Create the Kalman updater
+    kup = KalmanUpdater(measurement_model)
 
     # Define the Initiator
     initiator = SinglePointInitiator(
@@ -44,17 +48,8 @@ def test_spi():
     evaluated_tracks = [False, False]
     for detection in detections:
 
-        post_state_vec, post_state_covar, _, _, _, _ =\
-            KalmanUpdater.update_lowlevel(prior_state.state_vector,
-                                          prior_state.covar,
-                                          measurement_model.matrix(),
-                                          measurement_model.covar(),
-                                          detection.state_vector)
-
-        eval_track_state = GaussianState(
-            post_state_vec,
-            post_state_covar,
-            timestamp=detection.timestamp)
+        hypo = SingleHypothesis(prediction=prior_state, measurement=detection)
+        eval_track_state = kup.update(hypo)
 
         # Compare against both tracks
         for track_idx, track in enumerate(tracks):
