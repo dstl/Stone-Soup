@@ -15,6 +15,55 @@ from ..base import Property
 from ..types.detection import Detection
 from .base import DetectionReader
 from .file import TextFileReader
+from ..types.groundtruth import GroundTruthPath, GroundTruthState
+
+
+class CSVGroundTruthReader(TextFileReader):
+    state_vector_fields = Property(
+        [str], doc='List of columns names to be used in state vector')
+    time_field = Property(
+        str, doc='Name of column to be used as time field')
+    time_field_format = Property(
+        str, default=None, doc='Optional datetime format')
+    timestamp = Property(
+        bool, default=False, doc='Treat time field as a timestamp from epoch')
+    path_id_field = Property(
+        str, doc='Name of column to be used as path ID')
+    csv_options = Property(
+        dict, default={},
+        doc='Keyword arguments for the underlying csv reader')
+
+    def ground_truth_gen(self):
+        with self.path.open(encoding=self.encoding, newline='') as csv_file:
+            ground_truth_paths = []
+            paths_with_states = {}
+
+            reader = csv.DictReader(csv_file, **self.csv_options)
+            for row in reader:
+                if self.time_field_format is not None:
+                    time_field_value = datetime.strptime(
+                        row[self.time_field], self.time_field_format)
+                elif self.timestamp is True:
+                    time_field_value = datetime.utcfromtimestamp(
+                        int(float(row[self.time_field])))
+                else:
+                    time_field_value = parse(row[self.time_field])
+
+                state = GroundTruthState(np.array(
+                    [[row[col_name]] for col_name in self.state_vector_fields],
+                    dtype=np.float32), time_field_value)
+
+                try:
+                    paths_with_states[row[self.path_id_field]].append(state)
+                except KeyError:
+                    paths_with_states[row[self.path_id_field]] = [state]
+
+            for path in paths_with_states:
+                print("path")
+                ground_truth_paths.append(
+                    GroundTruthPath(paths_with_states.get(path)))
+
+            return ground_truth_paths
 
 
 class CSVDetectionReader(DetectionReader, TextFileReader):
@@ -67,7 +116,7 @@ class CSVDetectionReader(DetectionReader, TextFileReader):
                     local_metadata = dict(row)
                     copy_local_metadata = dict(local_metadata)
                     for (key, value) in copy_local_metadata.items():
-                        if (key == self.time_field) or\
+                        if (key == self.time_field) or \
                                 (key in self.state_vector_fields):
                             del local_metadata[key]
                 else:
