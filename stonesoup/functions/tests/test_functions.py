@@ -1,13 +1,37 @@
 import pytest
 import numpy as np
 from numpy import deg2rad
-from pytest import approx
+from scipy.linalg import cholesky, LinAlgError
+from pytest import approx, raises
 
 from .. import (
-    jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma,
+    cholesky_eps, jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma,
     rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart, dotproduct)
 from ...types.array import StateVector, StateVectors, Matrix
 from ...types.state import State, GaussianState
+
+
+def test_cholesky_eps():
+    matrix = np.array([[0.4, -0.2, 0.1],
+                       [0.3, 0.1, -0.2],
+                       [-0.3, 0.0, 0.4]])
+    matrix = matrix@matrix.T
+
+    cholesky_matrix = cholesky(matrix)
+
+    assert cholesky_eps(matrix) == approx(cholesky_matrix)
+    assert cholesky_eps(matrix, True) == approx(cholesky_matrix.T)
+
+
+def test_cholesky_eps_bad():
+    matrix = np.array(
+        [[ 0.05201447,  0.02882126, -0.00569971, -0.00733617],  # noqa: E201
+         [ 0.02882126,  0.01642966, -0.00862847, -0.00673035],  # noqa: E201
+         [-0.00569971, -0.00862847,  0.06570757,  0.03251551],
+         [-0.00733617, -0.00673035,  0.03251551,  0.01648615]])
+    with raises(LinAlgError):
+        cholesky(matrix)
+    cholesky_eps(matrix)
 
 
 def test_jacobian():
