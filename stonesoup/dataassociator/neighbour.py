@@ -2,7 +2,7 @@
 import numpy as np
 
 from .base import DataAssociator
-from ._assignment import AssignAlgs
+from ._assignment import assign2D
 from ..base import Property
 from ..hypothesiser import Hypothesiser
 from ..types.detection import MissedDetection
@@ -196,7 +196,7 @@ class GNNWith2DAssignment(DataAssociator):
         # to assign tracks to nearest detection
         # Maximise flag = true for probability instance
         # (converts minimisation problem to maximisation problem)
-        gain, col4row, row4col = AssignAlgs.assign2D(
+        gain, col4row, row4col = assign2D(
             distance_matrix, probability_flag)
 
         # Ensure the problem was feasible
