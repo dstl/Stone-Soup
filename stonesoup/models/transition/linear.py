@@ -683,7 +683,85 @@ class SingerApproximate(Singer):
         return CovarianceMatrix(covar)
 
 
-class ConstantTurn(LinearGaussianTransitionModel, TimeVariantModel):
+class ConstantTurnSandwich(LinearGaussianTransitionModel, TimeVariantModel):
+    r"""This is a class implementation of a time-variant 2D Constant Turn
+    Model. This model is used, as opposed to the normal :class:`~.ConstantTurn`
+    model, when the turn occurs in 2 dimensions that are not adjacent in the
+    state vector, eg if the turn occurs in the x-z plane but the state vector
+    is of the form :math:`(x,y,z)`. The list of transition models are to be
+    applied to any state variables that lie in between, eg if for the above
+    example you wanted the y component to move with constant velocity, you
+    would put a :class:`~.ConstantVelocity` model in the list.
+
+    The target is assumed to move with (nearly) constant velocity and also
+    known (nearly) constant turn rate.
+    """
+
+    turn_noise_diff_coeffs = Property(
+        sp.ndarray,
+        doc="The acceleration noise diffusion coefficients :math:`q`")
+    turn_rate = Property(
+        float, doc=r"The turn rate :math:`\omega`")
+    model_list = Property(
+        [LinearGaussianTransitionModel], doc="List of Transition Models.")
+
+    @property
+    def ndim_state(self):
+        """ndim_state getter method
+
+        Returns
+        -------
+        : :class:`int`
+            The number of combined model state dimensions.
+        """
+        return sum(model.ndim_state for model in self.model_list)+4
+
+    def matrix(self, time_interval, **kwargs):
+        """Model matrix :math:`F`
+
+        Returns
+        -------
+        : :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+        """
+        time_interval_sec = time_interval.total_seconds()
+        turn_ratedt = self.turn_rate * time_interval_sec
+        z = sp.zeros([2, 2])
+        transition_matrices = [
+            model.matrix(time_interval) for model in self.model_list]
+        sandwich = block_diag(z, *transition_matrices, z)
+        sandwich[0:2, 0:2] = sp.array([[1, sp.sin(turn_ratedt)/self.turn_rate],
+                                      [0, sp.cos(turn_ratedt)]])
+        sandwich[0:2, -2:] = sp.array(
+            [[0, (sp.cos(turn_ratedt)-1)/self.turn_rate],
+             [0, -sp.sin(turn_ratedt)]])
+        sandwich[-2:, 0:2] = sp.array(
+            [[0, (1-sp.cos(turn_ratedt))/self.turn_rate],
+             [0, sp.sin(turn_ratedt)]])
+        sandwich[-2:, -2:] = sp.array([[1, sp.sin(turn_ratedt)/self.turn_rate],
+                                       [0, sp.cos(turn_ratedt)]])
+        return sandwich
+
+    def covar(self, time_interval, **kwargs):
+        """Returns the transition model noise covariance matrix.
+
+        Returns
+        -------
+        : :class:`stonesoup.types.state.CovarianceMatrix` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The process noise covariance.
+        """
+        q1, q2 = self.turn_noise_diff_coeffs
+        dt = time_interval.total_seconds()
+        covar_list = [model.covar(time_interval) for model in self.model_list]
+        ctc1 = sp.array([[q1*dt**3/3, q1*dt**2/2],
+                         [q1*dt**2/2, q1*dt]])
+        ctc2 = sp.array([[q1*dt**3/3, q1*dt**2/2],
+                         [q1*dt**2/2, q1*dt]])
+        return CovarianceMatrix(block_diag(ctc1, *covar_list, ctc2))
+
+
+class ConstantTurn(ConstantTurnSandwich):
     r"""This is a class implementation of a time-variant 2D Constant Turn
     Model.
 
@@ -744,74 +822,14 @@ class ConstantTurn(LinearGaussianTransitionModel, TimeVariantModel):
                       \end{bmatrix}
     """
 
-    noise_diff_coeffs = Property(
+    turn_noise_diff_coeffs = Property(
         sp.ndarray,
         doc="The acceleration noise diffusion coefficients :math:`q`")
     turn_rate = Property(
         float, doc=r"The turn rate :math:`\omega`")
 
     @property
-    def ndim_state(self):
-        """ndim_state getter method
-
-        Returns
-        -------
-        :class:`int`
-            :math:`4` -> The number of model state dimensions
-        """
-
-        return 4
-
-    def matrix(self, time_interval, **kwargs):
-        """Model matrix :math:`F(t)`
-
-        Parameters
-        ----------
-        time_interval: :class:`datetime.timedelta`
-            A time interval :math:`dt`
-
-        Returns
-        -------
-        :class:`numpy.ndarray` of shape\
-        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
-            The model matrix evaluated given the provided time interval.
-        """
-
-        time_interval_sec = time_interval.total_seconds()
-        turn_ratedt = self.turn_rate * time_interval_sec
-
-        return sp.array(
-            [[1, sp.sin(turn_ratedt) / self.turn_rate,
-              0, -(1 - sp.cos(turn_ratedt)) / self.turn_rate],
-             [0, sp.cos(turn_ratedt),
-              0, -sp.sin(turn_ratedt)],
-             [0, (1 - sp.cos(turn_ratedt)) / self.turn_rate,
-              1, sp.sin(turn_ratedt) / self.turn_rate],
-             [0, sp.sin(turn_ratedt),
-              0, sp.cos(turn_ratedt)]])
-
-    def covar(self, time_interval, **kwargs):
-        """Returns the transition model noise covariance matrix.
-
-        Parameters
-        ----------
-        time_interval : :class:`datetime.timedelta`
-            A time interval :math:`dt`
-
-        Returns
-        -------
-        :class:`stonesoup.types.state.CovarianceMatrix` of shape\
-        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
-            The process noise covariance.
-        """
-
-        time_interval_sec = time_interval.total_seconds()
-        base_covar = sp.array([[sp.power(time_interval_sec, 3) / 3,
-                                sp.power(time_interval_sec, 2) / 2],
-                               [sp.power(time_interval_sec, 2) / 2,
-                                time_interval_sec]])
-        covar_list = [base_covar*sp.power(self.noise_diff_coeffs[0], 2),
-                      base_covar*sp.power(self.noise_diff_coeffs[1], 2)]
-        covar = sp.linalg.block_diag(*covar_list)
-
-        return CovarianceMatrix(covar)
+    def model_list(self):
+        """For a turn in adjacent state vectors,
+         no transition models go in between"""
+        return []
