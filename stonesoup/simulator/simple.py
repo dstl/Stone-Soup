@@ -2,7 +2,6 @@
 import datetime
 
 import numpy as np
-
 from ..base import Property
 from ..models.measurement import MeasurementModel
 from ..models.transition import TransitionModel
@@ -31,6 +30,7 @@ class SingleTargetGroundTruthSimulator(GroundTruthSimulator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._groundtruth_paths = set()
+        self.index = 0
 
     @property
     def groundtruth_paths(self):
@@ -41,7 +41,8 @@ class SingleTargetGroundTruthSimulator(GroundTruthSimulator):
         time = self.initial_state.timestamp or datetime.datetime.now()
 
         gttrack = GroundTruthPath([
-            GroundTruthState(self.initial_state.state_vector, timestamp=time)])
+            GroundTruthState(self.initial_state.state_vector, timestamp=time,
+                             metadata={"index": self.index})])
         self._groundtruth_paths.add(gttrack)
         yield time, self.groundtruth_paths
 
@@ -52,9 +53,33 @@ class SingleTargetGroundTruthSimulator(GroundTruthSimulator):
                 gttrack[-1].state_vector,
                 time_interval=self.timestep)
             gttrack.append(GroundTruthState(
-                trans_state_vector, timestamp=time))
+                trans_state_vector, timestamp=time,
+                metadata={"index": self.index}))
 
             yield time, self.groundtruth_paths
+
+
+class SwitchOneTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
+    """Target simulator that produces a single target. This target switches
+    between multiple transition models based on a markov matrix
+    (:attr:`model_probs`)"""
+    transition_models = Property(
+        [TransitionModel], doc="List of transition models to be used, ensure\
+        that they all have the same dimensions.")
+    model_probs = Property([float], doc="A matrix of probabilities.\
+    The element in the ith row and the jth column is the probability of\
+     switching from the ith transition model in :attr:`transition_models`\
+     to the jth")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index = 0
+
+    @property
+    def transition_model(self):
+        self.index = np.random.choice(range(0, len(self.transition_models)),
+                                      p=self.model_probs[self.index])
+        return self.transition_models[self.index]
 
 
 class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
@@ -62,6 +87,9 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
 
     Targets are created and destroyed randomly, as defined by the birth rate
     and death probability."""
+    transition_model = Property(
+        TransitionModel, doc="Transition Model used as propagator for track.")
+
     initial_state = Property(
         GaussianState,
         doc="Initial state to use to generate states")
@@ -85,24 +113,50 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
 
             # Move tracks forward
             for gttrack in self.groundtruth_paths:
+                self.index = gttrack[-1].metadata.get("index")
                 trans_state_vector = self.transition_model.function(
                     gttrack[-1].state_vector,
                     time_interval=self.timestep)
                 gttrack.append(GroundTruthState(
-                    trans_state_vector, timestamp=time))
+                    trans_state_vector, timestamp=time,
+                    metadata={"index": self.index}))
 
             # Random create
             for _ in range(np.random.poisson(self.birth_rate)):
+                self.index = 0
                 gttrack = GroundTruthPath()
                 gttrack.append(GroundTruthState(
                     self.initial_state.state_vector +
                     np.sqrt(self.initial_state.covar) @
                     np.random.randn(self.initial_state.ndim, 1),
-                    timestamp=time))
+                    timestamp=time, metadata={"index": self.index}))
                 self._groundtruth_paths.add(gttrack)
 
             yield time, self.groundtruth_paths
             time += self.timestep
+
+
+class SwitchMultiTargetGroundTruthSimulator(MultiTargetGroundTruthSimulator):
+    """Functions identically to :class:`~.MultiTargetGroundTruthSimulator`,
+    but has the transition model switching ability from
+    :class:`.SwitchOneTargetGroundTruthSimulator`"""
+    transition_models = Property(
+        [TransitionModel], doc="List of transition models to be used, ensure\
+            that they all have the same dimensions.")
+    model_probs = Property([float], doc="A matrix of probabilities.\
+        The element in the ith row and the jth column is the probability of\
+         switching from the ith transition model in :attr:`transition_models`\
+         to the jth")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index = 0
+
+    @property
+    def transition_model(self):
+        self.index = np.random.choice(range(0, len(self.transition_models)),
+                                      p=self.model_probs[self.index])
+        return self.transition_models[self.index]
 
 
 class SimpleDetectionSimulator(DetectionSimulator):
@@ -125,6 +179,7 @@ class SimpleDetectionSimulator(DetectionSimulator):
         super().__init__(*args, **kwargs)
         self.real_detections = set()
         self.clutter_detections = set()
+        self.index = None
 
     @property
     def detections(self):
@@ -142,6 +197,7 @@ class SimpleDetectionSimulator(DetectionSimulator):
             self.clutter_detections.clear()
 
             for track in tracks:
+                self.index = track[-1].metadata.get("index")
                 if np.random.rand() < self.detection_probability:
                     detection = TrueDetection(
                         self.measurement_model.function(
@@ -160,3 +216,20 @@ class SimpleDetectionSimulator(DetectionSimulator):
                 self.clutter_detections.add(detection)
 
             yield time, self.detections
+
+
+class SwitchDetectionSimulator(SimpleDetectionSimulator):
+
+    """Functions identically as the :class:`SimpleDetectionSimulator`, but for
+    ground truth paths formed using multiple transition models it allows the
+    user to assign a detection probability to each transition models.
+    For example, if you wanted a higher detection probability when the
+    simulated object makes a turn"""
+
+    detection_probabilities = Property([Probability], doc="List of\
+     probabilities that correspond to the detection probability of the\
+     simulated object while undergoing each transition model")
+
+    @property
+    def detection_probability(self):
+        return self.detection_probabilities[self.index]
