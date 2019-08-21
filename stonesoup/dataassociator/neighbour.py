@@ -2,12 +2,11 @@
 import numpy as np
 
 from .base import DataAssociator
+from ._assignment import AssignAlgs
 from ..base import Property
-from ..hypothesiser.probability import PDAHypothesiser
 from ..hypothesiser import Hypothesiser
-from ..assignment import assignAlgs
 from ..types.detection import MissedDetection
-from ..types.hypothesis import SingleDistanceHypothesis
+from ..types.hypothesis import SingleHypothesis, SingleProbabilityHypothesis
 
 
 class NearestNeighbour(DataAssociator):
@@ -150,10 +149,10 @@ class GNNWith2DAssignment(DataAssociator):
         # Generate 2d array "matrix" of hypotheses mapping track to detection
         hypothesis_matrix = np.empty(
             [len(tracks), len(detections) + len(tracks)],
-            SingleDistanceHypothesis)
+            SingleHypothesis)
         for i in range(len(tracks)):
             row = np.empty(
-                [len(detections) + len(tracks)], SingleDistanceHypothesis)
+                [len(detections) + len(tracks)], SingleHypothesis)
             track_hypotheses = self.hypothesiser.hypothesise(
                 tracks[i], detections, time)
             for hypothesis in track_hypotheses:
@@ -164,7 +163,17 @@ class GNNWith2DAssignment(DataAssociator):
                         hypothesis.measurement))] = hypothesis
             hypothesis_matrix[i] = row
 
-        probability_flag = isinstance(self.hypothesiser, PDAHypothesiser)
+        # Determine type of hypothesis used, probability or distance
+        # Probability is maximise problem, distance is minimise problem
+        # Mixed hypotheses cannot be computed at this time
+        hypothesis_types = {
+            isinstance(hypothesis, SingleProbabilityHypothesis)
+            for row in hypothesis_matrix for hypothesis in row
+            if hypothesis is not None}
+        if len(hypothesis_types) > 1:
+            raise RuntimeError(
+                "2d assignment does not support mixed hypothesis types")
+        probability_flag = hypothesis_types.pop()
 
         # Generate 2d array "matrix" of distances
         # Use probabilities instead for probability based hypotheses
@@ -187,7 +196,7 @@ class GNNWith2DAssignment(DataAssociator):
         # to assign tracks to nearest detection
         # Maximise flag = true for probability instance
         # (converts minimisation problem to maximisation problem)
-        gain, col4row, row4col = assignAlgs.assign2D(
+        gain, col4row, row4col = AssignAlgs.assign2D(
             distance_matrix, probability_flag)
 
         # Ensure the problem was feasible
