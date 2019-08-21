@@ -110,11 +110,11 @@ def base(state_vec, noise_diff_coeffs, damping_coeffs, timediff=1.0):
 
     # Ensure ```model_obj.transfer_function(time_interval)``` returns F
     assert sp.allclose(F, model_obj.matrix(
-        timestamp=new_timestamp, time_interval=time_interval), rtol=1e-10)
+        timestamp=new_timestamp, time_interval=time_interval), rtol=1e-6)
 
     # Ensure ```model_obj.covar(time_interval)``` returns Q
     assert sp.allclose(Q, model_obj.covar(
-        timestamp=new_timestamp, time_interval=time_interval), rtol=1e-10)
+        timestamp=new_timestamp, time_interval=time_interval), rtol=1e-6)
 
     # Propagate a state vector through the model
     # (without noise)
@@ -123,7 +123,7 @@ def base(state_vec, noise_diff_coeffs, damping_coeffs, timediff=1.0):
         timestamp=new_timestamp,
         time_interval=time_interval,
         noise=0)
-    assert sp.allclose(new_state_vec_wo_noise, F@state_vec, rtol=1e-10)
+    assert sp.allclose(new_state_vec_wo_noise, F@state_vec, rtol=1e-6)
 
     # Evaluate the likelihood of the predicted state, given the prior
     # (without noise)
@@ -134,7 +134,7 @@ def base(state_vec, noise_diff_coeffs, damping_coeffs, timediff=1.0):
     assert sp.allclose(prob, multivariate_normal.pdf(
         new_state_vec_wo_noise.T,
         mean=sp.array(F@state_vec).ravel(),
-        cov=Q).T, rtol=1e-8)
+        cov=Q).T, rtol=1e-6)
 
     # Propagate a state vector throughout the model
     # (with internal noise)
@@ -142,7 +142,7 @@ def base(state_vec, noise_diff_coeffs, damping_coeffs, timediff=1.0):
         state_vec,
         timestamp=new_timestamp,
         time_interval=time_interval)
-    assert not sp.allclose(new_state_vec_w_inoise, F@state_vec, rtol=1e-10)
+    assert not sp.allclose(new_state_vec_w_inoise, F@state_vec, rtol=1e-6)
 
     # Evaluate the likelihood of the predicted state, given the prior
     # (with noise)
@@ -154,7 +154,7 @@ def base(state_vec, noise_diff_coeffs, damping_coeffs, timediff=1.0):
     assert sp.allclose(prob, multivariate_normal.pdf(
         new_state_vec_w_inoise.T,
         mean=sp.array(F@state_vec).ravel(),
-        cov=Q).T, rtol=1e-10)
+        cov=Q).T, rtol=1e-6)
 
     # Propagate a state vector throught the model
     # (with external noise)
@@ -164,7 +164,7 @@ def base(state_vec, noise_diff_coeffs, damping_coeffs, timediff=1.0):
         timestamp=new_timestamp,
         time_interval=time_interval,
         noise=noise)
-    assert sp.allclose(new_state_vec_w_enoise, F@state_vec+noise, rtol=1e-10)
+    assert sp.allclose(new_state_vec_w_enoise, F@state_vec+noise, rtol=1e-6)
 
     # Evaluate the likelihood of the predicted state, given the prior
     # (with noise)
@@ -173,4 +173,4 @@ def base(state_vec, noise_diff_coeffs, damping_coeffs, timediff=1.0):
     assert sp.allclose(prob, multivariate_normal.pdf(
         new_state_vec_w_enoise.T,
         mean=sp.array(F@state_vec).ravel(),
-        cov=Q).T, rtol=1e-10)
+        cov=Q).T, rtol=1e-6)

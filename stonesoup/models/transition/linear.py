@@ -187,216 +187,6 @@ class LinearGaussianTimeInvariantTransitionModel(LinearGaussianTransitionModel,
         return self.covariance_matrix
 
 
-class NthDerivativeDecay(LinearGaussianTransitionModel, TimeVariantModel):
-    r"""Model based on the Nth derivative of position decaying to 0
-    exponentially, to set derivative use keyword argument
-    :attr:`decay_derivative`
-
-        The model is described by the following SDEs:
-
-        .. math::
-            :nowrap:
-
-            \begin{eqnarray}
-                dx^{(N-1)} & = & x^{(N)} dt & | {(N-1)th derivative \ on \
-                X-axis (m)} \\
-                dx^{(N)} & = & -K x^{N} dt + q\cdot dW_t,\ W_t \sim
-                \mathcal{N}(0,q^2) & | \ Nth\ derivative\ on\ X-axis (m/s^{N})
-            \end{eqnarray}
-
-    The transition and covarience matrices are very difficult to express
-    simply, but examples for N=1 and N=2 are given in
-    :class:`~.OrnsteinUhlenbeck` and :class:`~.Singer` respectively.
-        """
-    decay_derivative = Property(
-        int, doc="The position derivative to decay exponentially, "
-                 "eg if 2 identical to singer")
-    noise_diff_coeff = Property(
-        float, doc="The noise diffusion coefficient :math:`q`")
-    damping_coeff = Property(
-        float, doc="The Nth derivative damping coefficient :math:`K`")
-
-    @property
-    def ndim_state(self):
-        return self.decay_derivative + 1
-
-    @lru_cache(128)
-    def _continoustransitionmatrix(self, t, N, K):
-        FCont = sp.zeros((N + 1, N + 1))
-        for i in range(0, N + 1):
-            FCont[i, N] = sp.exp(-K * t) * (-1) ** (N - i) / K ** (N - i)
-            for n in range(1, N - i + 1):
-                FCont[i, N] -= (-1) ** n * t ** (N - i - n) /\
-                               (math.factorial(N - i - n) * K ** n)
-            for j in range(i, N):
-                FCont[i, j] = (t ** (j - i)) / math.factorial(j - i)
-        return FCont
-
-    def matrix(self, time_interval, **kwargs):
-        dt = time_interval.total_seconds()
-        N = self.decay_derivative
-        K = self.damping_coeff
-        return self._continoustransitionmatrix(dt, N, K)
-
-    def _continouscovar(self, t, k, l):
-        N = self.decay_derivative
-        K = self.damping_coeff
-        FcCont = self._continoustransitionmatrix(t, N, K)
-        Q = sp.zeros((N + 1, N + 1))
-        Q[N, N] = 1
-        CovarCont = FcCont @ Q @ FcCont.T
-        return CovarCont[k, l]
-
-    @lru_cache(128)
-    def _covardiscrete(self, N, q, dt):
-        covar = sp.zeros((N + 1, N + 1))
-        for k in range(0, N + 1):
-            for l in range(0, N + 1):
-                covar[k, l] = quad(self._continouscovar, 0,
-                                   dt, args=(k, l))[0]
-        return covar * q
-
-    def covar(self, time_interval, **kwargs):
-        N = self.decay_derivative
-        q = self.noise_diff_coeff
-        dt = time_interval.total_seconds()
-        return self._covardiscrete(N, q, dt)
-
-
-class OrnsteinUhlenbeck(NthDerivativeDecay):
-    r"""This is a class implementation of a time-variant 1D Linear-Gaussian
-    Ornstein Uhlenbeck Transition Model.
-
-    The target is assumed to move with (nearly) constant velocity, which
-    exponentially decays to zero over time, and target acceleration is
-    modeled as white noise.
-
-    The model is described by the following SDEs:
-
-        .. math::
-            :nowrap:
-
-            \begin{eqnarray}
-                dx_{pos} & = & x_{vel} dt & | {Position \ on \
-                X-axis (m)} \\
-                dx_{vel} & = & -K x_{vel} dt + q dW_t,
-                W_t \sim \mathcal{N}(0,q) & | {Speed\ on \
-                X-axis (m/s)}
-            \end{eqnarray}
-
-    Or equivalently:
-
-        .. math::
-            x_t = F_t x_{t-1} + w_t,\ w_t \sim \mathcal{N}(0,Q_t)
-
-    where:
-
-        .. math::
-            x & = & \begin{bmatrix}
-                        x_{pos} \\
-                        x_{vel}
-                \end{bmatrix}
-
-        .. math::
-            F_t & = & \begin{bmatrix}
-                        1 & \frac{1}{K}(1 - e^{-Kdt})\\
-                        0 & e^{-Kdt}
-                \end{bmatrix}
-
-        .. math::
-            Q_t & = & \begin{bmatrix}
-                        \frac{dt - \frac{2}{K}(1 - e^{-Kdt})
-                              + \frac{1}{2K}(1 - e^{-2Kdt})}{K^2} &
-                        \frac{\frac{1}{K}(1 - e^{-Kdt})
-                              - \frac{1}{2K}(1 - e^{-2Kdt})}{K} \\
-                        \frac{\frac{1}{K}(1 - e^{-Kdt})
-                              - \frac{1}{2K}(1 - e^{-2Kdt})}{K} &
-                        \frac{1 - e^{-2Kdt}}{2K}
-                \end{bmatrix} q
-    """
-
-    noise_diff_coeff = Property(
-        float, doc="The velocity noise diffusion coefficient :math:`q`")
-    damping_coeff = Property(
-        float, doc="The velocity damping coefficient :math:`K`")
-
-    @property
-    def decay_derivative(self):
-        return 1
-
-
-class Singer(NthDerivativeDecay):
-    r"""This is a class implementation of a time-variant 1D Singer Transition
-    Model.
-
-    The target acceleration is modeled as a zero-mean Gauss-Markov random
-    process.
-
-    The model is described by the following SDEs:
-
-        .. math::
-            :nowrap:
-
-            \begin{eqnarray}
-                dx_{pos} & = & x_{vel} dt & | {Position \ on \
-                X-axis (m)} \\
-                dx_{vel} & = & x_{acc} dt & | {Speed \
-                on\ X-axis (m/s)} \\
-                dx_{acc} & = & -K x_{acc} dt + q W_t,\ W_t \sim
-                \mathcal{N}(0,q^2) & | {Acceleration \ on \ X-axis (m^2/s)}
-
-            \end{eqnarray}
-
-    Or equivalently:
-
-        .. math::
-            x_t = F_t x_{t-1} + w_t,\ w_t \sim \mathcal{N}(0,Q_t)
-
-    where:
-
-        .. math::
-            x & = & \begin{bmatrix}
-                        x_{pos} \\
-                        x_{vel} \\
-                        x_{acc}
-                    \end{bmatrix}
-
-        .. math::
-            F_t & = & \begin{bmatrix}
-                        1 & dt & (K dt-1+e^{-K dt})/K^2 \\
-                        0 & 1 & (1-e^{-K dt})/K \\
-                        0 & 0 & e^{-K t}
-                      \end{bmatrix}
-
-        .. math::
-            Q_t & = & q \begin{bmatrix}
-                    \frac{[1-e^{-2K dt}] + 2K dt +
-                    \frac{2K^3 dt^3}{3}- 2K^2 dt^2 -
-                    4K dt e^{-K dt} }{2K^5} &
-                    \frac{(K dt - [1-e^{-K dt}])^2}{2K^4} &
-                    \frac{[1-e^{-2K dt}]-2K dt e^{-K dt}}
-                    {2K^3} \\
-                    \frac{(K dt - [1 - e^{-K dt}])^2}{2K^4} &
-                    \frac{2K dt - 4[1-e^{-K dt}] +
-                    [1-e^{-2K dt}]}{2K^3} &
-                    \frac{[1-e^{-K dt}]^2}{2K^2} \\
-                    \frac{[1- e^{-2K dt}]-2K dt e^{-K dt}}
-                    {2K^3} &
-                    \frac{[1-e^{-K dt}]^2}{2K^2} &
-                    \frac{1-e^{-2K dt}}{2K}
-                    \end{bmatrix}
-    """
-
-    noise_diff_coeff = Property(
-        float, doc="The acceleration noise diffusion coefficient :math:`q`")
-    damping_coeff = Property(
-        float, doc=r"The reciprocal of the decorrelation time :math:`\alpha`")
-
-    @property
-    def decay_derivative(self):
-        return 2
-
-
 class ConstantNthDerivative(LinearGaussianTransitionModel, TimeVariantModel):
     r"""Model based on the Nth derivative with respect to time being constant,
     to set derivative use keyword argument :attr:`constant_derivative`
@@ -587,6 +377,218 @@ class ConstantAcceleration(ConstantNthDerivative):
     @property
     def constant_derivative(self):
         """For constant acceleration, this is 2."""
+        return 2
+
+
+class NthDerivativeDecay(LinearGaussianTransitionModel, TimeVariantModel):
+    r"""Model based on the Nth derivative with respect to time decaying to 0
+    exponentially, to set derivative use keyword argument
+    :attr:`decay_derivative`
+
+        The model is described by the following SDEs:
+
+        .. math::
+            :nowrap:
+
+            \begin{eqnarray}
+                dx^{(N-1)} & = & x^{(N)} dt & | {(N-1)th derivative \ on \
+                X-axis (m)} \\
+                dx^{(N)} & = & -K x^{N} dt + q\cdot dW_t,\ W_t \sim
+                \mathcal{N}(0,q^2) & | \ Nth\ derivative\ on\ X-axis (m/s^{N})
+            \end{eqnarray}
+
+    The transition and covarience matrices are very difficult to express
+    simply, but examples for N=1 and N=2 are given in
+    :class:`~.OrnsteinUhlenbeck` and :class:`~.Singer` respectively.
+        """
+    decay_derivative = Property(
+        int, doc="The derivative with respect to time to decay exponentially, "
+                 "eg if 2 identical to singer")
+    noise_diff_coeff = Property(
+        float, doc="The noise diffusion coefficient :math:`q`")
+    damping_coeff = Property(
+        float, doc="The Nth derivative damping coefficient :math:`K`")
+
+    @property
+    def ndim_state(self):
+        return self.decay_derivative + 1
+
+    @staticmethod
+    @lru_cache()
+    def _continoustransitionmatrix(t, N, K):
+        FCont = sp.zeros((N + 1, N + 1))
+        for i in range(0, N + 1):
+            FCont[i, N] = sp.exp(-K * t) * (-1) ** (N - i) / K ** (N - i)
+            for n in range(1, N - i + 1):
+                FCont[i, N] -= (-1) ** n * t ** (N - i - n) /\
+                               (math.factorial(N - i - n) * K ** n)
+            for j in range(i, N):
+                FCont[i, j] = (t ** (j - i)) / math.factorial(j - i)
+        return FCont
+
+    def matrix(self, time_interval, **kwargs):
+        dt = time_interval.total_seconds()
+        N = self.decay_derivative
+        K = self.damping_coeff
+        return self._continoustransitionmatrix(dt, N, K)
+
+    @classmethod
+    def _continouscovar(cls, t, N, K, k, l):
+        FcCont = cls._continoustransitionmatrix(t, N, K)
+        Q = sp.zeros((N + 1, N + 1))
+        Q[N, N] = 1
+        CovarCont = FcCont @ Q @ FcCont.T
+        return CovarCont[k, l]
+
+    @classmethod
+    @lru_cache()
+    def _covardiscrete(cls, N, q, K, dt):
+        covar = sp.zeros((N + 1, N + 1))
+        for k in range(0, N + 1):
+            for l in range(0, N + 1):
+                covar[k, l] = quad(cls._continouscovar, 0,
+                                   dt, args=(N, K, k, l))[0]
+        return covar * q
+
+    def covar(self, time_interval, **kwargs):
+        N = self.decay_derivative
+        q = self.noise_diff_coeff
+        K = self.damping_coeff
+        dt = time_interval.total_seconds()
+        return self._covardiscrete(N, q, K, dt)
+
+
+class OrnsteinUhlenbeck(NthDerivativeDecay):
+    r"""This is a class implementation of a time-variant 1D Linear-Gaussian
+    Ornstein Uhlenbeck Transition Model.
+
+    The target is assumed to move with (nearly) constant velocity, which
+    exponentially decays to zero over time, and target acceleration is
+    modeled as white noise.
+
+    The model is described by the following SDEs:
+
+        .. math::
+            :nowrap:
+
+            \begin{eqnarray}
+                dx_{pos} & = & x_{vel} dt & | {Position \ on \
+                X-axis (m)} \\
+                dx_{vel} & = & -K x_{vel} dt + q dW_t,
+                W_t \sim \mathcal{N}(0,q) & | {Speed\ on \
+                X-axis (m/s)}
+            \end{eqnarray}
+
+    Or equivalently:
+
+        .. math::
+            x_t = F_t x_{t-1} + w_t,\ w_t \sim \mathcal{N}(0,Q_t)
+
+    where:
+
+        .. math::
+            x & = & \begin{bmatrix}
+                        x_{pos} \\
+                        x_{vel}
+                \end{bmatrix}
+
+        .. math::
+            F_t & = & \begin{bmatrix}
+                        1 & \frac{1}{K}(1 - e^{-Kdt})\\
+                        0 & e^{-Kdt}
+                \end{bmatrix}
+
+        .. math::
+            Q_t & = & \begin{bmatrix}
+                        \frac{dt - \frac{2}{K}(1 - e^{-Kdt})
+                              + \frac{1}{2K}(1 - e^{-2Kdt})}{K^2} &
+                        \frac{\frac{1}{K}(1 - e^{-Kdt})
+                              - \frac{1}{2K}(1 - e^{-2Kdt})}{K} \\
+                        \frac{\frac{1}{K}(1 - e^{-Kdt})
+                              - \frac{1}{2K}(1 - e^{-2Kdt})}{K} &
+                        \frac{1 - e^{-2Kdt}}{2K}
+                \end{bmatrix} q
+    """
+
+    noise_diff_coeff = Property(
+        float, doc="The velocity noise diffusion coefficient :math:`q`")
+    damping_coeff = Property(
+        float, doc="The velocity damping coefficient :math:`K`")
+
+    @property
+    def decay_derivative(self):
+        return 1
+
+
+class Singer(NthDerivativeDecay):
+    r"""This is a class implementation of a time-variant 1D Singer Transition
+    Model.
+
+    The target acceleration is modeled as a zero-mean Gauss-Markov random
+    process.
+
+    The model is described by the following SDEs:
+
+        .. math::
+            :nowrap:
+
+            \begin{eqnarray}
+                dx_{pos} & = & x_{vel} dt & | {Position \ on \
+                X-axis (m)} \\
+                dx_{vel} & = & x_{acc} dt & | {Speed \
+                on\ X-axis (m/s)} \\
+                dx_{acc} & = & -K x_{acc} dt + q W_t,\ W_t \sim
+                \mathcal{N}(0,q^2) & | {Acceleration \ on \ X-axis (m^2/s)}
+
+            \end{eqnarray}
+
+    Or equivalently:
+
+        .. math::
+            x_t = F_t x_{t-1} + w_t,\ w_t \sim \mathcal{N}(0,Q_t)
+
+    where:
+
+        .. math::
+            x & = & \begin{bmatrix}
+                        x_{pos} \\
+                        x_{vel} \\
+                        x_{acc}
+                    \end{bmatrix}
+
+        .. math::
+            F_t & = & \begin{bmatrix}
+                        1 & dt & (K dt-1+e^{-K dt})/K^2 \\
+                        0 & 1 & (1-e^{-K dt})/K \\
+                        0 & 0 & e^{-K t}
+                      \end{bmatrix}
+
+        .. math::
+            Q_t & = & q \begin{bmatrix}
+                    \frac{[1-e^{-2K dt}] + 2K dt +
+                    \frac{2K^3 dt^3}{3}- 2K^2 dt^2 -
+                    4K dt e^{-K dt} }{2K^5} &
+                    \frac{(K dt - [1-e^{-K dt}])^2}{2K^4} &
+                    \frac{[1-e^{-2K dt}]-2K dt e^{-K dt}}
+                    {2K^3} \\
+                    \frac{(K dt - [1 - e^{-K dt}])^2}{2K^4} &
+                    \frac{2K dt - 4[1-e^{-K dt}] +
+                    [1-e^{-2K dt}]}{2K^3} &
+                    \frac{[1-e^{-K dt}]^2}{2K^2} \\
+                    \frac{[1- e^{-2K dt}]-2K dt e^{-K dt}}
+                    {2K^3} &
+                    \frac{[1-e^{-K dt}]^2}{2K^2} &
+                    \frac{1-e^{-2K dt}}{2K}
+                    \end{bmatrix}
+    """
+
+    noise_diff_coeff = Property(
+        float, doc="The acceleration noise diffusion coefficient :math:`q`")
+    damping_coeff = Property(
+        float, doc=r"The reciprocal of the decorrelation time :math:`\alpha`")
+
+    @property
+    def decay_derivative(self):
         return 2
 
 
