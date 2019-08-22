@@ -3,12 +3,15 @@ import datetime
 
 import pytest
 
+from ...buffered_generator import BufferedGenerator
+from ...reader import DetectionReader
 from ...types.detection import Detection
 
 
 @pytest.fixture()
 def detector():
-    class Detector:
+    class Detector(DetectionReader):
+        @BufferedGenerator.generator_method
         def detections_gen(self):
             time = datetime.datetime(2019, 4, 1, 14)
             time_step = datetime.timedelta(seconds=1)

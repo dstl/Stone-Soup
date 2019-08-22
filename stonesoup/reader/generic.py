@@ -43,9 +43,6 @@ class CSVDetectionReader(DetectionReader, TextFileReader):
         dict, default={},
         doc='Keyword arguments for the underlying csv reader')
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     @BufferedGenerator.generator_method
     def detections_gen(self):
         with self.path.open(encoding=self.encoding, newline='') as csv_file:

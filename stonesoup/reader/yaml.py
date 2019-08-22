@@ -2,6 +2,7 @@
 from pathlib import Path
 
 from ..base import Property
+from ..buffered_generator import BufferedGenerator
 from ..serialise import YAML
 from .base import DetectionReader, GroundTruthReader, SensorDataReader
 
@@ -52,6 +53,7 @@ class YAMLReader(DetectionReader, GroundTruthReader, SensorDataReader):
         for time, _ in self.data_gen():
             yield time, self.tracks
 
+    @BufferedGenerator.generator_method
     def data_gen(self):
         for document in self._yaml.load_all(self.path):
             self._detections = document.get('detections', set())

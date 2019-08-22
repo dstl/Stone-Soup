@@ -129,7 +129,7 @@ class SimpleDetectionSimulator(DetectionSimulator):
 
     @BufferedGenerator.generator_method
     def detections_gen(self):
-        for time, tracks in self.groundtruth.groundtruth_paths_gen():
+        for time, tracks in self.groundtruth:
             self.real_detections.clear()
             self.clutter_detections.clear()
 
