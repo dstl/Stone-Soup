@@ -6,16 +6,24 @@ from ..models.measurement import MeasurementModel
 
 
 class Updater(Base):
-    """Updater base class
+    r"""Updater base class
 
-    An updater is used to update the state, utilising a
-    :class:`~.MeasurementModel`.
+    An updater is used to update the predicted state, utilising a measurement
+    and a :class:`~.MeasurementModel`.  The general observation model is
+
+    .. math::
+
+        \mathbf{z} = h(\mathbf{x}, \mathbf{\sigma})
+
+    where :math:`\mathbf{x}` is the state, :math:`\mathbf{\sigma}`, the
+    measurement noise and :math:`\mathbf{z}` the resulting measurement.
+
     """
 
     measurement_model = Property(MeasurementModel, doc="measurement model")
 
     @abstractmethod
-    def get_measurement_prediction(
+    def predict_measurement(
             self, state_prediction, measurement_model=None, **kwargs):
         """Get measurement prediction from state prediction
 
@@ -29,7 +37,6 @@ class Updater(Base):
             on the received measurement. The default is `None`, in which case
             the updater will use the measurement model specified on
             initialisation
-
 
         Returns
         -------

@@ -48,7 +48,7 @@ def test_particle():
                                             for i in particles],
                                             timestamp=timestamp)
 
-    measurement_prediction = updater.get_measurement_prediction(prediction)
+    measurement_prediction = updater.predict_measurement(prediction)
 
     assert np.all([eval_measurement_prediction.particles[i].state_vector ==
                    measurement_prediction.particles[i].state_vector

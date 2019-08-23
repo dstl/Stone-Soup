@@ -12,6 +12,7 @@ from ..types.groundtruth import GroundTruthPath, GroundTruthState
 from ..types.numeric import Probability
 from ..types.state import GaussianState, State
 from .base import DetectionSimulator, GroundTruthSimulator
+from stonesoup.buffered_generator import BufferedGenerator
 
 
 class SingleTargetGroundTruthSimulator(GroundTruthSimulator):
@@ -30,20 +31,14 @@ class SingleTargetGroundTruthSimulator(GroundTruthSimulator):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._groundtruth_paths = set()
 
-    @property
-    def groundtruth_paths(self):
-        return self._groundtruth_paths.copy()
-
+    @BufferedGenerator.generator_method
     def groundtruth_paths_gen(self):
-        self._groundtruth_paths = set()
         time = self.initial_state.timestamp or datetime.datetime.now()
 
         gttrack = GroundTruthPath([
             GroundTruthState(self.initial_state.state_vector, timestamp=time)])
-        self._groundtruth_paths.add(gttrack)
-        yield time, self.groundtruth_paths
+        yield time, {gttrack}
 
         for _ in range(self.number_steps - 1):
             time += self.timestep
@@ -53,8 +48,7 @@ class SingleTargetGroundTruthSimulator(GroundTruthSimulator):
                 time_interval=self.timestep)
             gttrack.append(GroundTruthState(
                 trans_state_vector, timestamp=time))
-
-            yield time, self.groundtruth_paths
+            yield time, {gttrack}
 
 
 class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
@@ -72,19 +66,20 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
         Probability, default=0.1,
         doc="Probability of track dying in each time step. Default 0.1.")
 
+    @BufferedGenerator.generator_method
     def groundtruth_paths_gen(self):
-        self._groundtruth_paths = set()
+        groundtruth_paths = set()
         time = self.initial_state.timestamp or datetime.datetime.now()
 
         for _ in range(self.number_steps):
             # Random drop tracks
-            self._groundtruth_paths.difference_update(
+            groundtruth_paths.difference_update(
                 gttrack
-                for gttrack in self.groundtruth_paths
+                for gttrack in groundtruth_paths.copy()
                 if np.random.rand() <= self.death_probability)
 
             # Move tracks forward
-            for gttrack in self.groundtruth_paths:
+            for gttrack in groundtruth_paths.copy():
                 trans_state_vector = self.transition_model.function(
                     gttrack[-1].state_vector,
                     time_interval=self.timestep)
@@ -99,9 +94,9 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
                     np.sqrt(self.initial_state.covar) @
                     np.random.randn(self.initial_state.ndim, 1),
                     timestamp=time))
-                self._groundtruth_paths.add(gttrack)
+                groundtruth_paths.add(gttrack)
 
-            yield time, self.groundtruth_paths
+            yield time, groundtruth_paths
             time += self.timestep
 
 
@@ -127,15 +122,12 @@ class SimpleDetectionSimulator(DetectionSimulator):
         self.clutter_detections = set()
 
     @property
-    def detections(self):
-        return self.real_detections | self.clutter_detections
-
-    @property
     def clutter_spatial_density(self):
         """returns the clutter spatial density of the measurement space - num
         clutter detections per unit volume per timestep"""
         return self.clutter_rate/np.prod(np.diff(self.meas_range))
 
+    @BufferedGenerator.generator_method
     def detections_gen(self):
         for time, tracks in self.groundtruth.groundtruth_paths_gen():
             self.real_detections.clear()
@@ -159,4 +151,4 @@ class SimpleDetectionSimulator(DetectionSimulator):
                     timestamp=time)
                 self.clutter_detections.add(detection)
 
-            yield time, self.detections
+            yield time, self.real_detections | self.clutter_detections

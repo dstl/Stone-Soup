@@ -159,8 +159,12 @@ class BaseMeta(ABCMeta):
         cls._properties.update(
             (key, value) for key, value in namespace.items()
             if isinstance(value, Property))
-        # Optional arguments must follow mandatory
         for name in list(cls._properties):
+            # Remove items which are no longer properties
+            if name in namespace and not isinstance(namespace[name], Property):
+                del cls._properties[name]
+                continue
+            # Optional arguments must follow mandatory
             if cls._properties[name].default is not Property.empty:
                 cls._properties.move_to_end(name)
 

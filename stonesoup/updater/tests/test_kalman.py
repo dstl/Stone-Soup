@@ -3,13 +3,13 @@
 import pytest
 import numpy as np
 
-from ...models.measurement.linear import LinearGaussian
-from ...types.detection import Detection
-from ...types.hypothesis import SingleHypothesis
-from ...types.prediction import (
+from stonesoup.models.measurement.linear import LinearGaussian
+from stonesoup.types.detection import Detection
+from stonesoup.types.hypothesis import SingleHypothesis
+from stonesoup.types.prediction import (
     GaussianStatePrediction, GaussianMeasurementPrediction)
-from ...types.state import GaussianState
-from ...updater.kalman import (
+from stonesoup.types.state import GaussianState
+from stonesoup.updater.kalman import (
     KalmanUpdater, ExtendedKalmanUpdater, UnscentedKalmanUpdater)
 
 
@@ -68,7 +68,7 @@ def test_kalman(UpdaterClass, measurement_model, prediction, measurement):
     updater = UpdaterClass(measurement_model=measurement_model)
 
     # Get and assert measurement prediction
-    measurement_prediction = updater.get_measurement_prediction(prediction)
+    measurement_prediction = updater.predict_measurement(prediction)
     assert(np.allclose(measurement_prediction.mean,
                        eval_measurement_prediction.mean,
                        0, atol=1.e-14))
