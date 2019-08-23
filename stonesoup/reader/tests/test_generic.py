@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
+from operator import attrgetter
 from textwrap import dedent
 
 import numpy as np
@@ -43,7 +44,8 @@ def test_csv_gt(tmpdir):
         for gt_path in final_gt_paths
         for gt_state in gt_path]
 
-    for n, gt_state in enumerate(ground_truth_states):
+    for n, gt_state in enumerate(
+            sorted(ground_truth_states, key=attrgetter('timestamp'))):
         assert np.array_equal(
             gt_state.state_vector, np.array([[10 + n], [20 + n]]))
         assert gt_state.timestamp.hour == 14
@@ -74,7 +76,8 @@ def test_csv_gt(tmpdir):
         for gt_path in final_gt_paths
         for gt_state in gt_path]
 
-    for n, gt_state in enumerate(ground_truth_states):
+    for n, gt_state in enumerate(
+            sorted(ground_truth_states, key=attrgetter('timestamp'))):
         assert np.array_equal(
             gt_state.state_vector, np.array([[10 + n], [20 + n], [30 + n]]))
         assert gt_state.timestamp.hour == 14
@@ -117,7 +120,8 @@ def test_csv_gt(tmpdir):
         for gt_path in final_gt_paths
         for gt_state in gt_path]
 
-    for n, gt_state in enumerate(ground_truth_states):
+    for n, gt_state in enumerate(
+            sorted(ground_truth_states, key=attrgetter('timestamp'))):
         assert np.array_equal(
             gt_state.state_vector, np.array([[10 + n], [20 + n], [30 + n]]))
         assert gt_state.timestamp.hour == 14

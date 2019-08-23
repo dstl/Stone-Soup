@@ -64,7 +64,7 @@ class CSVGroundTruthReader(GroundTruthReader, TextFileReader):
                     dtype=np.float32), time_field_value)
 
                 groundtruth_dict[row[self.path_id_field]].append(state)
-                self._groundtruth_paths = groundtruth_dict.values()
+                self._groundtruth_paths = set(groundtruth_dict.values())
 
                 yield time_field_value, self._groundtruth_paths
 
