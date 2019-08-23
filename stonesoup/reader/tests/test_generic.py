@@ -28,11 +28,19 @@ def test_csv_gt(tmpdir):
                                       time_field="t",
                                       path_id_field="identifier")
 
-    ground_truth_paths = csv_reader.ground_truth_gen()
-    assert len(ground_truth_paths) == 2
+    all_gt_paths = [
+        gt_paths_at_timestep
+        for timestep, gt_paths_at_timestep
+        in csv_reader.groundtruth_paths_gen()]
+
+    final_gt_paths = [
+        gt_path
+        for gt_path in all_gt_paths[len(all_gt_paths) - 1]]
+    assert len(final_gt_paths) == 2
 
     ground_truth_states = [
-        gt_state for gt_path in ground_truth_paths
+        gt_state
+        for gt_path in final_gt_paths
         for gt_state in gt_path]
 
     for n, gt_state in enumerate(ground_truth_states):
@@ -51,11 +59,19 @@ def test_csv_gt(tmpdir):
                                       time_field_format="%Y-%m-%dT%H:%M:%SZ",
                                       path_id_field="identifier")
 
-    ground_truth_paths = csv_reader.ground_truth_gen()
-    assert len(ground_truth_paths) == 2
+    all_gt_paths = [
+        gt_paths_at_timestep
+        for timestep, gt_paths_at_timestep
+        in csv_reader.groundtruth_paths_gen()]
+
+    final_gt_paths = [
+        gt_path
+        for gt_path in all_gt_paths[len(all_gt_paths) - 1]]
+    assert len(final_gt_paths) == 2
 
     ground_truth_states = [
-        gt_state for gt_path in ground_truth_paths
+        gt_state
+        for gt_path in final_gt_paths
         for gt_state in gt_path]
 
     for n, gt_state in enumerate(ground_truth_states):
@@ -86,11 +102,19 @@ def test_csv_gt(tmpdir):
                                                     ['x', 'y', 'z',
                                                         'identifier', 't']})
 
-    ground_truth_paths = csv_reader.ground_truth_gen()
-    assert len(ground_truth_paths) == 2
+    all_gt_paths = [
+        gt_paths_at_timestep
+        for timestep, gt_paths_at_timestep
+        in csv_reader.groundtruth_paths_gen()]
+
+    final_gt_paths = [
+        gt_path
+        for gt_path in all_gt_paths[len(all_gt_paths) - 1]]
+    assert len(final_gt_paths) == 2
 
     ground_truth_states = [
-        gt_state for gt_path in ground_truth_paths
+        gt_state
+        for gt_path in final_gt_paths
         for gt_state in gt_path]
 
     for n, gt_state in enumerate(ground_truth_states):

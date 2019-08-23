@@ -6,6 +6,7 @@ of data that is in common formats.
 """
 
 import csv
+from collections import defaultdict
 from datetime import datetime
 
 import numpy as np
@@ -13,12 +14,13 @@ from dateutil.parser import parse
 
 from ..base import Property
 from ..types.detection import Detection
-from .base import DetectionReader
+from .base import GroundTruthReader, DetectionReader
 from .file import TextFileReader
 from ..types.groundtruth import GroundTruthPath, GroundTruthState
+from stonesoup.buffered_generator import BufferedGenerator
 
 
-class CSVGroundTruthReader(TextFileReader):
+class CSVGroundTruthReader(GroundTruthReader, TextFileReader):
     state_vector_fields = Property(
         [str], doc='List of columns names to be used in state vector')
     time_field = Property(
@@ -33,10 +35,18 @@ class CSVGroundTruthReader(TextFileReader):
         dict, default={},
         doc='Keyword arguments for the underlying csv reader')
 
-    def ground_truth_gen(self):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._groundtruth_paths = set()
+
+    @property
+    def groundtruth_paths(self):
+        return self._groundtruth_paths.copy()
+
+    @BufferedGenerator.generator_method
+    def groundtruth_paths_gen(self):
         with self.path.open(encoding=self.encoding, newline='') as csv_file:
-            ground_truth_paths = []
-            paths_with_states = {}
+            groundtruth_dict = defaultdict(GroundTruthPath)
 
             reader = csv.DictReader(csv_file, **self.csv_options)
             for row in reader:
@@ -53,17 +63,10 @@ class CSVGroundTruthReader(TextFileReader):
                     [[row[col_name]] for col_name in self.state_vector_fields],
                     dtype=np.float32), time_field_value)
 
-                try:
-                    paths_with_states[row[self.path_id_field]].append(state)
-                except KeyError:
-                    paths_with_states[row[self.path_id_field]] = [state]
+                groundtruth_dict[row[self.path_id_field]].append(state)
+                self._groundtruth_paths = groundtruth_dict.values()
 
-            for path in paths_with_states:
-                print("path")
-                ground_truth_paths.append(
-                    GroundTruthPath(paths_with_states.get(path)))
-
-            return ground_truth_paths
+                yield time_field_value, self._groundtruth_paths
 
 
 class CSVDetectionReader(DetectionReader, TextFileReader):
