@@ -61,6 +61,9 @@ class StateMutableSequence(Type, MutableSequence):
     def __init__(self, states=None, *args, **kwargs):
         if states is None:
             states = []
+        elif not isinstance(states, list):
+            # Ensure states is a list
+            states = [states]
         super().__init__(states, *args, **kwargs)
 
     def __len__(self):
