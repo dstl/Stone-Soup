@@ -142,6 +142,8 @@ class GNNWith2DAssignment(DataAssociator):
             Key value pair of tracks with associated detection
         """
 
+        associations = {}
+
         # Convert sets to indexable lists
         tracks = list(tracks)
         detections = list(detections)
@@ -162,6 +164,11 @@ class GNNWith2DAssignment(DataAssociator):
                     row[int(detections.index(
                         hypothesis.measurement))] = hypothesis
             hypothesis_matrix[i] = row
+
+        # Check some hypotheses were returned, if not return no associations
+        if all(hypothesis is None
+               for row in hypothesis_matrix for hypothesis in row):
+            return associations
 
         # Determine type of hypothesis used, probability or distance
         # Probability is maximise problem, distance is minimise problem
@@ -204,7 +211,6 @@ class GNNWith2DAssignment(DataAssociator):
             raise RuntimeError("Assignment was not feasible")
 
         # Generate dict of key/value pairs
-        associations = {}
         for j in range(len(col4row)):
             associations[tracks[j]] = hypothesis_matrix[j][int(col4row[j])]
 
