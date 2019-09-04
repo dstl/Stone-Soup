@@ -2,12 +2,16 @@
 
 import scipy as sp
 from scipy.stats import multivariate_normal
+from numpy.linalg import inv
 
 from ...base import Property
-from ...functions import cart2pol, cart2sphere, cart2angles, rotx, roty, rotz
+
+from ...functions import cart2pol, pol2cart, \
+    cart2sphere, sphere2cart, cart2angles, \
+    rotx, roty, rotz
 from ...types.array import StateVector, CovarianceMatrix
 from ...types.angle import Bearing, Elevation
-from ..base import NonLinearModel, GaussianModel
+from ..base import NonLinearModel, GaussianModel, ReversibleModel
 from .base import MeasurementModel
 
 
@@ -121,7 +125,8 @@ class NonLinearGaussianMeasurement(MeasurementModel,
         return rotz(theta_z)@roty(theta_y)@rotx(theta_x)
 
 
-class RangeBearingElevationGaussianToCartesian(NonLinearGaussianMeasurement):
+class CartesianToElevationBearingRange(
+        NonLinearGaussianMeasurement, ReversibleModel):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of bearing \
     (:math:`\phi`), elevation (:math:`\theta`) and range (:math:`r`), with \
@@ -231,14 +236,30 @@ class RangeBearingElevationGaussianToCartesian(NonLinearGaussianMeasurement):
                          [Bearing(phi)],
                          [rho]]) + noise
 
+    def inverse_function(self, state_vector, **kwargs):
+
+        theta, phi, rho = state_vector[:, 0]
+        x, y, z = sphere2cart(rho, phi, theta)
+
+        xyz = [[x], [y], [z]]
+        inv_rotation_matrix = inv(self._rotation_matrix)
+        xyz_rot = inv_rotation_matrix @ xyz
+        xyz = [xyz_rot[0][0], xyz_rot[1][0], xyz_rot[2][0]]
+        x, y, z = xyz + self.translation_offset[:, 0]
+
+        res = sp.zeros((self.ndim_state, 1))
+        res[self.mapping, 0] = x, y, z
+
+        return res
+
     def rvs(self, num_samples=1, **kwargs):
         out = super().rvs(num_samples, **kwargs)
         out = sp.array([[Elevation(0.)], [Bearing(0.)], [0.]]) + out
         return out
 
 
-class RangeBearingGaussianToCartesian(
-        NonLinearGaussianMeasurement):
+class CartesianToBearingRange(
+        NonLinearGaussianMeasurement, ReversibleModel):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of bearing \
     (:math:`\phi`) and range (:math:`r`), with Gaussian noise in each dimension.
@@ -310,6 +331,27 @@ class RangeBearingGaussianToCartesian(
 
         return 2
 
+    def inverse_function(self, state_vector, **kwargs):
+        if not ((self.rotation_offset[0][0] == 0)
+                and (self.rotation_offset[1][0] == 0)):
+            raise RuntimeError(
+                "Measurement model assumes 2D space. \
+                Rotation in 3D space is unsupported at this time.")
+
+        phi, rho = state_vector[:, 0]
+        x, y = pol2cart(rho, phi)
+
+        xyz = [[x], [y], [0]]
+        inv_rotation_matrix = inv(self._rotation_matrix)
+        xyz_rot = inv_rotation_matrix @ xyz
+        xy = [xyz_rot[0][0], xyz_rot[1][0]]
+        x, y = xy + self.translation_offset[:, 0]
+
+        res = sp.zeros((self.ndim_state, 1))
+        res[self.mapping, 0] = x, y
+
+        return res
+
     def function(self, state_vector, noise=None, **kwargs):
         r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
 
@@ -351,7 +393,7 @@ class RangeBearingGaussianToCartesian(
         return out
 
 
-class BearingElevationGaussianToCartesian(NonLinearGaussianMeasurement):
+class CartesianToElevationBearing(NonLinearGaussianMeasurement):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of bearing \
     (:math:`\phi`) and elevation (:math:`\theta`) and with \
