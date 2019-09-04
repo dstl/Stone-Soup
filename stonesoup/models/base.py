@@ -114,7 +114,7 @@ class ReversibleModel(NonLinearModel):
 
     @abstractmethod
     def inverse_function(self, state_vector, **kwargs):
-        """Takes in the result of the functionr and
+        """Takes in the result of the function and
         computes the inverse function, returning the initial
         input of the function.
 
