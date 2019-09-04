@@ -60,8 +60,8 @@ class SimpleMeasurementInitiator(GaussianInitiator):
     This initiator utilises the :class:`~.MeasurementModel` matrix to convert
     :class:`~.Detection` state vector and model covariance into state space.
 
-    Utilises the CartesianToBearingRange inverse function to convert
-    non-linear bearing/range co-ordinates into Cartesian x/y co-ordinates
+    Utilises the ReversibleModel inverse function to convert
+    non-linear spherical co-ordinates into Cartesian x/y co-ordinates
     for use in predictions and mapping.
 
     This then replaces mapped values in the :attr:`prior_state` to form the
@@ -81,7 +81,7 @@ class SimpleMeasurementInitiator(GaussianInitiator):
 
             if isinstance(measurement_model, NonLinearModel):
                 if isinstance(measurement_model, ReversibleModel):
-                    state_vector = measurement_model.inversefunction(
+                    state_vector = measurement_model.inverse_function(
                         detection.state_vector)
                     model_matrix = measurement_model.jacobian(state_vector)
                     inv_model_matrix = np.linalg.pinv(model_matrix)
