@@ -1,4 +1,4 @@
-import matplotlib
+from matplotlib.table import Table
 
 from ...types.metric import TimeRangeMetric
 from ...types.time import TimeRange
@@ -33,4 +33,4 @@ def test_siaptable():
     # Generate table
     table_generator = SIAPTableGenerator(metrics)
     table = table_generator.generate_table()
-    assert isinstance(table, matplotlib.table.Table())
+    assert isinstance(table, Table)
