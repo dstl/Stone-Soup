@@ -188,8 +188,9 @@ class LinearGaussianTimeInvariantTransitionModel(LinearGaussianTransitionModel,
 
 
 class ConstantNthDerivative(LinearGaussianTransitionModel, TimeVariantModel):
-    r"""Discrete model based on the Nth derivative with respect to time being constant,
-    to set derivative use keyword argument :attr:`constant_derivative`
+    r"""Discrete model based on the Nth derivative with respect to time being
+    constant, to set derivative use keyword argument
+    :attr:`constant_derivative`
 
      The model is described by the following SDEs:
 
@@ -381,8 +382,8 @@ class ConstantAcceleration(ConstantNthDerivative):
 
 
 class NthDerivativeDecay(LinearGaussianTransitionModel, TimeVariantModel):
-    r"""Discrete model based on the Nth derivative with respect to time decaying to 0
-    exponentially, to set derivative use keyword argument
+    r"""Discrete model based on the Nth derivative with respect to time
+    decaying to 0 exponentially, to set derivative use keyword argument
     :attr:`decay_derivative`
 
         The model is described by the following SDEs:
