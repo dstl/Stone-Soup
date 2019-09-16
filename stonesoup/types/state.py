@@ -251,6 +251,9 @@ class ParticleState(Type):
     distribution of particles"""
 
     particles: Particles = Property(doc='All particles.')
+    fixed_covar: CovarianceMatrix = Property(default=None,
+                                             doc='Fixed covariance value. Default `None`, where'
+                                                 'weighted sample covariance is then used.')
     timestamp: datetime.datetime = Property(default=None,
                                             doc="Timestamp of the state. Default None.")
 
@@ -279,6 +282,8 @@ class ParticleState(Type):
 
     @property
     def covar(self):
+        if self.fixed_covar is not None:
+            return self.fixed_covar
         cov = np.cov(self.particles.state_vector, ddof=0, aweights=np.array(self.particles.weight))
         # Fix one dimensional covariances being returned with zero dimension
         return cov

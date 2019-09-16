@@ -165,6 +165,7 @@ def test_particlestate():
         state_vector2, weight=weight) for _ in range(num_particles//2))
 
     state = ParticleState(particles)
+    assert isinstance(state, State)
     assert np.allclose(state.state_vector, StateVector([[50], [100]]))
     assert np.allclose(state.covar, CovarianceMatrix([[2500, 5000], [5000, 10000]]))
 
