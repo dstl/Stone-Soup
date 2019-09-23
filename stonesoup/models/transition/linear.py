@@ -3,7 +3,6 @@ import math
 from functools import lru_cache
 
 import scipy as sp
-from scipy.stats import multivariate_normal
 from scipy.linalg import block_diag
 from scipy.integrate import quad
 
@@ -28,76 +27,6 @@ class LinearGaussianTransitionModel(
         """
 
         return self.matrix().shape[0]
-
-    def rvs(self, num_samples=1, **kwargs):
-        r""" Model noise/sample generation function
-
-        Generates noisy samples from the transition model.
-
-        In mathematical terms, this can be written as:
-
-        .. math::
-
-            w_t \sim \mathcal{N}(0,Q)
-
-        where :math:`w_t =` ``noise``.
-
-        Parameters
-        ----------
-        num_samples: :class:`int`, optional
-            The number of samples to be generated (the default is 1)
-
-        Returns
-        -------
-        noise : :class:`numpy.ndarray` of shape\
-        (:py:attr:`~ndim_state`, ``num_samples``)
-            A set of Np samples, generated from the model's noise distribution.
-        """
-
-        noise = sp.array([multivariate_normal.rvs(
-            sp.zeros(self.ndim_state),
-            self.covar(**kwargs),
-            num_samples)])
-
-        if num_samples == 1:
-            return noise.reshape((-1, 1))
-        else:
-            return noise.T
-
-    def pdf(self, state_vector_post, state_vector_prior, **kwargs):
-        r""" Model pdf/likelihood evaluation function
-
-        Evaluates the pdf/likelihood of the transformed state ``state_post``,
-        given the prior state ``state_prior``.
-
-        In mathematical terms, this can be written as:
-
-        .. math::
-
-            p = p(x_t | x_{t-1}) = \mathcal{N}(x_t; x_{t-1}, Q)
-
-        where :math:`x_t` = ``state_post``, :math:`x_{t-1}` = ``state_prior``
-        and :math:`Q` = :py:attr:`~covar`.
-
-        Parameters
-        ----------
-        state_vector_post : :class:`~.StateVector`
-            A predicted/posterior state
-        state_vector_prior : :class:`~.StateVector`
-            A prior state
-
-        Returns
-        -------
-        : :class:`float`
-            The likelihood of ``state_vec_post``, given ``state_vec_prior``
-        """
-
-        likelihood = multivariate_normal.pdf(
-            state_vector_post.T,
-            mean=self.function(state_vector_prior, noise=0, **kwargs).ravel(),
-            cov=self.covar(**kwargs)
-        )
-        return likelihood
 
 
 class CombinedLinearGaussianTransitionModel(LinearGaussianTransitionModel):
