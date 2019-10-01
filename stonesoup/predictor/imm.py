@@ -11,6 +11,21 @@ from ..types.state import (State, GaussianMixtureState, GaussianState,
                            WeightedGaussianState)
 
 
+def null_convert(state):
+    """
+    Routine to do a null conversion on the Gaussian state
+    Parameters
+    ----------
+    state: :class:'~GaussianState'
+        The input state.
+
+    Returns
+    -------
+    :class:'~GaussianState'
+    """
+    return state
+
+
 class IMMPredictor(Base):
     predictors = Property([Predictor],
                           doc="A bank of predictors each parameterised with "
@@ -60,8 +75,14 @@ class IMMPredictor(Base):
             prior_i = GaussianState(means_k[:, [i]],
                                     np.squeeze(covars_k[[i], :, :]),
                                     timestamp=prior.timestamp)
+            # Convert the state from the Gaussian mixture format to the format
+            # needed by the predictor
+            prior_i2 = self.predictors[i].convert2local_state(prior_i)
             prediction = self.predictors[i].predict(prior_i,
                                                     timestamp=timestamp)
+            # Convert the prediction format to the format need for the
+            # Gaussian mixture
+            #prediction = self.predictors[i].convert2common_state(prediction)
             predictions.append(
                 WeightedGaussianStatePrediction(
                       prediction.mean,

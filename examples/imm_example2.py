@@ -4,11 +4,10 @@ from matplotlib import pyplot as plt
 from copy import copy
 from datetime import datetime, timedelta
 
+
 from stonesoup.predictor.kalman import KalmanPredictor
-
-from stonesoup.predictor.mixturemodelproxy import add_mixture_capability
-
 from stonesoup.updater.kalman import KalmanUpdater
+from stonesoup.predictor.mixturemodelproxy import add_mixture_capability
 
 from stonesoup.predictor.imm import IMMPredictor
 from stonesoup.updater.imm import IMMUpdater
@@ -23,7 +22,8 @@ from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.types.detection import Detection
 from stonesoup.types.state import GaussianMixtureState, WeightedGaussianState
 from stonesoup.types.track import Track
-from stonesoup.types.prediction import MeasurementPrediction
+from stonesoup.types.prediction import GaussianStatePrediction, \
+    GaussianMeasurementPrediction,  MeasurementPrediction
 from stonesoup.types.array import StateVector, CovarianceMatrix
 
 from stonesoup.simulator.simple import SingleTargetGroundTruthSimulator
@@ -31,7 +31,7 @@ from stonesoup.simulator.simple import SingleTargetGroundTruthSimulator
 from matplotlib.patches import Ellipse
 
 #######################################################################
-# This uses a CV and CA IMM. Inside the IMM uses the CV model
+# This uses a CV and CA IMM. Inside the IMM uses the CA model
 # The taarget simulator uses a CV model.
 #######################################################################
 
@@ -176,22 +176,20 @@ model_transition_matrix = np.array([[0.95, 0.05],
                                     [0.3, 0.7]])
 
 KalmanPredictorMM = add_mixture_capability(KalmanPredictor)
-
 predictor_1 = KalmanPredictor(transition_model_1)
 predictor_2 = KalmanPredictor(transition_model_2)
-predictor_cv = KalmanPredictorMM(trans_1, convert2common_state=null_convert,
+predictor_cv = KalmanPredictorMM(trans_1, convert2common_state=cv2ca,
+                                 convert2local_state=ca2cv)
+predictor_ca = KalmanPredictorMM(trans_2, convert2common_state=null_convert,
                                  convert2local_state=null_convert)
-predictor_ca = KalmanPredictorMM(trans_2, convert2common_state=ca2cv,
-                                 convert2local_state=cv2ca)
-
 imm_predictor = IMMPredictor([predictor_cv, predictor_ca],
                              model_transition_matrix)
 
 KalmanUpdaterMM = add_mixture_capability(KalmanUpdater)
-updater_cv = KalmanUpdaterMM(measurement_model)
-updater_ca = KalmanUpdaterMM(measurement_model2,
-                             convert2common_state=ca2cv,
-                             convert2local_state=cv2ca)
+updater_cv = KalmanUpdaterMM(measurement_model,
+                             convert2common_state=cv2ca,
+                             convert2local_state=ca2cv)
+updater_ca = KalmanUpdaterMM(measurement_model2)
 imm_updater = IMMUpdater([updater_cv, updater_ca], model_transition_matrix)
 
 
@@ -204,6 +202,13 @@ state_init = WeightedGaussianState(StateVector([[1], [0], [0], [0]]),
                                    CovarianceMatrix(
                                        np.diag([10 ** 2, 20 ** 2,
                                                 10 ** 2, 20 ** 2])),
+                                   timestamp=timestamp_init,
+                                   weight=0.5)
+# Use 6 dim state - i.e. CA model
+state_init = WeightedGaussianState(StateVector([[1], [0], [0], [0], [0], [0]]),
+                                   CovarianceMatrix(
+                                       np.diag([10 ** 2, 20 ** 2, 5 ** 2,
+                                                10 ** 2, 20 ** 2, 5 ** 2])),
                                    timestamp=timestamp_init,
                                    weight=0.5)
 

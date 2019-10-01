@@ -13,6 +13,7 @@ from ..types.update import (WeightedGaussianStateUpdate,
                             GaussianMixtureStateUpdate)
 from ..types.state import WeightedGaussianState
 
+
 class IMMUpdater(Base):
 
     updaters = Property([Updater],
@@ -23,6 +24,7 @@ class IMMUpdater(Base):
                  doc="The square transition probability "
                      "matrix of size equal to the number of "
                      "updaters")
+
     @lru_cache()
     def predict_measurement(self, predicted_state, measurement_model=None,
                             **kwargs):
@@ -50,14 +52,17 @@ class IMMUpdater(Base):
             pred = WeightedGaussianState(means[:, [i]],
                                          np.squeeze(covars[[i], :, :]),
                                          timestamp=predicted_state.timestamp)
+            #pred = self.updaters[i].convert2local_state(pred)
             meas_prediction = self.updaters[i].predict_measurement(pred)
+            #meas_prediction = self.updaters[i].convert2common_state(
+            #        meas_prediction)
             meas_predictions.append(
                 WeightedGaussianMeasurementPrediction(
                     meas_prediction.mean,
                     meas_prediction.covar,
                     cross_covar=meas_prediction.cross_covar,
                     timestamp=meas_prediction.timestamp,
-                    weight = weights[i,0]))
+                    weight=weights[i, 0]))
         return GaussianMixtureMeasurementPrediction(meas_predictions)
 
     def update(self, hypothesis, **kwargs):
@@ -84,14 +89,26 @@ class IMMUpdater(Base):
         posteriors = []
         for i in range(nm):
             pred = hypothesis.prediction.components[i]
+            pred_orig = pred
+            #pred = self.updaters[i].convert2local_state(pred)
             meas_prediction = self.updaters[i].predict_measurement(pred)
+
+            # Both the meas_prediction and pred need to be in the same format
+            # i.e. local or common
+            #meas_prediction = self.updaters[i].convert2common_state(
+            #        meas_prediction)
+            #pred = pred_orig #Saves call to convert
             hyp = SingleHypothesis(pred, hypothesis.measurement,
                                    meas_prediction)
             posterior = self.updaters[i].update(hyp)
-            posteriors.append(posterior)
             Lj.append(mvn.pdf(posterior.hypothesis.measurement.state_vector.T,
-                              posterior.hypothesis.measurement_prediction.mean.ravel(),
+                              posterior.hypothesis.
+                              measurement_prediction.mean.ravel(),
                               meas_prediction.covar))
+            # If meas_prediction & pred are in common then we don't need to
+            # convert the posterior
+            # posterior = self.updaters[i].convert2common_state(posterior)
+            posteriors.append(posterior)
 
         # Step 4) Mode Probability update
         c_j = self.model_transition_matrix.T @ weights  # (11.6.6-8)
