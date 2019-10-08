@@ -188,8 +188,9 @@ class LinearGaussianTimeInvariantTransitionModel(LinearGaussianTransitionModel,
 
 
 class ConstantNthDerivative(LinearGaussianTransitionModel, TimeVariantModel):
-    r"""Model based on the Nth derivative with respect to time being constant,
-    to set derivative use keyword argument :attr:`constant_derivative`
+    r"""Discrete model based on the Nth derivative with respect to time being
+    constant, to set derivative use keyword argument
+    :attr:`constant_derivative`
 
      The model is described by the following SDEs:
 
@@ -253,8 +254,8 @@ class ConstantNthDerivative(LinearGaussianTransitionModel, TimeVariantModel):
 
 
 class RandomWalk(ConstantNthDerivative):
-    r"""This is a class implementation of a time-variant 1D Linear-Gaussian
-        Random Walk Transition Model.
+    r"""This is a class implementation of a discrete, time-variant 1D
+    Linear-Gaussian Random Walk Transition Model.
 
         The target is assumed to be (almost) stationary, where
         target velocity is modelled as white noise.
@@ -269,8 +270,8 @@ class RandomWalk(ConstantNthDerivative):
 
 
 class ConstantVelocity(ConstantNthDerivative):
-    r"""This is a class implementation of a time-variant 1D Linear-Gaussian
-    Constant Velocity Transition Model.
+    r"""This is a class implementation of a discrete, time-variant 1D
+    Linear-Gaussian Constant Velocity Transition Model.
 
     The target is assumed to move with (nearly) constant velocity, where
     target acceleration is modelled as white noise.
@@ -322,7 +323,7 @@ class ConstantVelocity(ConstantNthDerivative):
 
 
 class ConstantAcceleration(ConstantNthDerivative):
-    r"""This is a class implementation of a time-variant 1D Constant
+    r"""This is a class implementation of a discrete, time-variant 1D Constant
     Acceleration Transition Model.
 
     The target acceleration is modeled as a zero-mean white noise random
@@ -381,8 +382,8 @@ class ConstantAcceleration(ConstantNthDerivative):
 
 
 class NthDerivativeDecay(LinearGaussianTransitionModel, TimeVariantModel):
-    r"""Model based on the Nth derivative with respect to time decaying to 0
-    exponentially, to set derivative use keyword argument
+    r"""Discrete model based on the Nth derivative with respect to time
+    decaying to 0 exponentially, to set derivative use keyword argument
     :attr:`decay_derivative`
 
         The model is described by the following SDEs:
@@ -397,7 +398,7 @@ class NthDerivativeDecay(LinearGaussianTransitionModel, TimeVariantModel):
                 \mathcal{N}(0,q^2) & | \ Nth\ derivative\ on\ X-axis (m/s^{N})
             \end{eqnarray}
 
-    The transition and covarience matrices are very difficult to express
+    The transition and covariance matrices are very difficult to express
     simply, but examples for N=1 and N=2 are given in
     :class:`~.OrnsteinUhlenbeck` and :class:`~.Singer` respectively.
         """
@@ -459,8 +460,8 @@ class NthDerivativeDecay(LinearGaussianTransitionModel, TimeVariantModel):
 
 
 class OrnsteinUhlenbeck(NthDerivativeDecay):
-    r"""This is a class implementation of a time-variant 1D Linear-Gaussian
-    Ornstein Uhlenbeck Transition Model.
+    r"""This is a class implementation of a discrete, time-variant 1D
+    Linear-Gaussian Ornstein Uhlenbeck Transition Model.
 
     The target is assumed to move with (nearly) constant velocity, which
     exponentially decays to zero over time, and target acceleration is
@@ -521,8 +522,8 @@ class OrnsteinUhlenbeck(NthDerivativeDecay):
 
 
 class Singer(NthDerivativeDecay):
-    r"""This is a class implementation of a time-variant 1D Singer Transition
-    Model.
+    r"""This is a class implementation of a discrete, time-variant 1D Singer
+    Transition Model.
 
     The target acceleration is modeled as a zero-mean Gauss-Markov random
     process.
@@ -597,8 +598,8 @@ class SingerApproximate(Singer):
     @property
     def decay_derivative(self):
         return 2
-    r"""This is a class implementation of a time-variant 1D Singer Transition
-    Model, with covariance approximation applicable for smaller time
+    r"""This is a class implementation of a discrete, time-variant 1D Singer
+    Transition Model, with covariance approximation applicable for smaller time
     intervals.
 
     The target acceleration is modeled as a zero-mean Gauss-Markov random
@@ -684,8 +685,8 @@ class SingerApproximate(Singer):
 
 
 class ConstantTurn(LinearGaussianTransitionModel, TimeVariantModel):
-    r"""This is a class implementation of a time-variant 2D Constant Turn
-    Model.
+    r"""This is a class implementation of a discrete, time-variant 2D Constant
+    Turn Model.
 
     The target is assumed to move with (nearly) constant velocity and also
     known (nearly) constant turn rate.
