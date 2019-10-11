@@ -141,7 +141,9 @@ class MultiMeasurementInitiator(GaussianInitiator):
         int, default=2,
         doc="Minimum number of track points required to confirm a track.")
 
-    holding_tracks = set()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.holding_tracks = set()
 
     def initiate(self, detections, **kwargs):
         sure_tracks = set()
