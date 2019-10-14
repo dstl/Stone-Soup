@@ -21,8 +21,7 @@ def test_single_target_ground_truth_simulator(transition_model, timestep):
     simulator = SingleTargetGroundTruthSimulator(transition_model,
                                                  initial_state, timestep)
 
-    for step, (time, groundtruth_paths) in \
-            enumerate(simulator.groundtruth_paths_gen()):
+    for step, (time, groundtruth_paths) in enumerate(simulator):
         # Check single ground truth track
         assert len(groundtruth_paths) == 1
 
@@ -49,8 +48,7 @@ def test_multitarget_ground_truth_simulator(transition_model, timestep):
                                                 initial_state, timestep)
 
     total_paths = set()
-    for step, (time, groundtruth_paths) in\
-            enumerate(simulator.groundtruth_paths_gen()):
+    for step, (time, groundtruth_paths) in enumerate(simulator):
         total_paths |= groundtruth_paths
 
         # Check time is now + steps

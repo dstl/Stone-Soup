@@ -11,11 +11,11 @@ from ...types.track import Track
 
 
 @pytest.fixture(params=[SimplePDA, JPDA])
-def associator(request, probability_hypothesiser, probability_updater):
+def associator(request, probability_hypothesiser):
     if request.param is SimplePDA:
         return request.param(probability_hypothesiser)
     elif request.param is JPDA:
-        return request.param(probability_hypothesiser, probability_updater, 5)
+        return request.param(probability_hypothesiser, 5)
 
 
 def test_probability(associator):

@@ -55,7 +55,7 @@ def base(state_vec, noise_diff_coeffs):
 
     # Model-related components
     noise_diff_coeffs = noise_diff_coeffs  # m/s^3
-    base_mat = sp.array([[1, timediff, sp.power(timediff, 2)],
+    base_mat = sp.array([[1, timediff, sp.power(timediff, 2) / 2],
                          [0, 1, timediff],
                          [0, 0, 1]])
     mat_list = [base_mat for num in range(0, dim)]
@@ -70,7 +70,7 @@ def base(state_vec, noise_diff_coeffs):
                            [sp.power(timediff, 3) / 6,
                             sp.power(timediff, 2) / 2,
                             timediff]])
-    covar_list = [base_covar*sp.power(noise_diff_coeffs[i], 2)
+    covar_list = [base_covar*noise_diff_coeffs[i]
                   for i in range(0, dim)]
     Q = sp.linalg.block_diag(*covar_list)
 

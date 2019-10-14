@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 from ..base import Base
 from ..reader.base import DetectionReader, GroundTruthReader, SensorDataReader
+from stonesoup.buffered_generator import BufferedGenerator
 
 
-class Simulator(Base):
+class Simulator(Base, BufferedGenerator):
     """Simulator base class"""
 
 

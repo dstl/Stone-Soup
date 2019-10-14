@@ -11,7 +11,7 @@ def test_single_target_tracker(
 
     previous_time = datetime.datetime(2018, 1, 1, 13, 59)
     total_tracks = set()
-    for time, tracks in tracker.tracks_gen():
+    for time, tracks in tracker:
         assert time == previous_time + datetime.timedelta(minutes=1)
         assert len(tracks) <= 1  # Shouldn't have more than one track
         for track in tracks:
@@ -31,7 +31,7 @@ def test_multi_target_tracker(
     previous_time = datetime.datetime(2018, 1, 1, 13, 59)
     max_tracks = 0
     total_tracks = set()
-    for time, tracks in tracker.tracks_gen():
+    for time, tracks in tracker:
         assert time == previous_time + datetime.timedelta(minutes=1)
         assert len(tracks) <= 3  # Shouldn't have more than three tracks
         for track in tracks:
@@ -58,7 +58,7 @@ def test_multi_target_mixture_tracker(
     previous_time = datetime.datetime(2018, 1, 1, 13, 59)
     max_tracks = 0
     total_tracks = set()
-    for time, tracks in tracker.tracks_gen():
+    for time, tracks in tracker:
         assert time == previous_time + datetime.timedelta(minutes=1)
         # assert len(tracks) <= 3  # Shouldn't have more than three tracks
         for track in tracks:
