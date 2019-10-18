@@ -37,15 +37,16 @@ class LinearModel(Model):
         pass
 
     def function(self, state_vector, noise=None, **kwargs):
-        """Model function :math:`f(t,x(t),w(t))`
+        """Model linear function :math:`f_k(x(k),w(k)) = F_k(x_k) + w_k`
 
         Parameters
         ----------
         state_vector: :class:`~.StateVector`
             An input state vector
         noise: :class:`numpy.ndarray`
-            An externally generated random process noise sample (the default in
-            `None`, in which case process noise will be generated internally)
+            An externally generated random process noise sample (the default is
+            `None`, in which case process noise will be generated via
+            :meth:`~.Model.rvs`)
 
         Returns
         -------
@@ -54,9 +55,10 @@ class LinearModel(Model):
         """
 
         if noise is None:
+            # TODO: doesn't make sense for noise=None to generate noise
             noise = self.rvs(**kwargs)
 
-        return self.matrix(**kwargs)@state_vector + noise
+        return self.matrix(**kwargs) @ state_vector + noise
 
 
 class NonLinearModel(Model):
@@ -100,6 +102,33 @@ class NonLinearModel(Model):
         -------
         : :class:`numpy.ndarray`
             The model function evaluated.
+        """
+        pass
+
+
+class ReversibleModel(NonLinearModel):
+    """Non-linear model containing sufficient co-ordinate
+    information such that the linear co-ordinate conversions
+    can be calculated from the non-linear counterparts.
+
+    Contains an inverse function which computes the reverse
+    of the relevant linear-to-non-linear function"""
+
+    @abstractmethod
+    def inverse_function(self, state_vector, **kwargs):
+        """Takes in the result of the function and
+        computes the inverse function, returning the initial
+        input of the function.
+
+        Parameters
+        ----------
+        state_vector: :class:`~.StateVector`
+            Input state vector (non-linear format)
+
+        Returns
+        -------
+        : :class:`numpy.ndarray`
+            The linear co-ordinates
         """
         pass
 

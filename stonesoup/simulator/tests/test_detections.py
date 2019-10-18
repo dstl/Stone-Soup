@@ -22,14 +22,14 @@ def test_simple_detection_simulator(
     groundtruth = SingleTargetGroundTruthSimulator(
         transition_model, initial_state, timestep)
     meas_range = np.array([[-1, 1], [-1, 1]]) * 5000
-    detector = SimpleDetectionSimulator(
+    simulate_detections = SimpleDetectionSimulator(
         groundtruth, measurement_model, meas_range, clutter_rate=3)
 
     total_detections = set()
     clutter_detections = set()
-    for step, (time, detections) in enumerate(detector.detections_gen()):
+    for step, (time, detections) in enumerate(simulate_detections):
         total_detections |= detections
-        clutter_detections |= detector.clutter_detections
+        clutter_detections |= simulate_detections.clutter_detections
 
         # Check time increments correctly
         assert time == initial_state.timestamp + step * timestep
@@ -42,4 +42,4 @@ def test_simple_detection_simulator(
         assert (meas_range[:, 0] <= clutter.state_vector.ravel()).all()
         assert (meas_range[:, 1] >= clutter.state_vector.ravel()).all()
 
-    assert detector.clutter_spatial_density == 3e-8
+    assert simulate_detections.clutter_spatial_density == 3e-8

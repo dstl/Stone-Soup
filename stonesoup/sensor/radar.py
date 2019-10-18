@@ -4,7 +4,7 @@ import numpy as np
 
 from .base import Sensor
 from ..base import Property
-from ..models.measurement.nonlinear import RangeBearingGaussianToCartesian
+from ..models.measurement.nonlinear import CartesianToBearingRange
 from ..types.array import CovarianceMatrix
 from ..types.detection import Detection
 from ..types.state import State, StateVector
@@ -49,7 +49,7 @@ class RadarRangeBearing(Sensor):
 
     def __init__(self, position, orientation, ndim_state, mapping, noise_covar,
                  *args, **kwargs):
-        measurement_model = RangeBearingGaussianToCartesian(
+        measurement_model = CartesianToBearingRange(
             ndim_state=ndim_state,
             mapping=mapping,
             noise_covar=noise_covar,

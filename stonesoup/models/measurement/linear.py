@@ -9,6 +9,7 @@ from ..base import LinearModel, GaussianModel
 from .base import MeasurementModel
 
 
+# TODO: Probably should call this LinearGaussianMeasurementModel
 class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
     r"""This is a class implementation of a time-invariant 1D
     Linear-Gaussian Measurement Model.
@@ -64,7 +65,7 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
             An input state vector
         noise: :class:`numpy.ndarray`
             An externally generated random process noise sample (the default in
-            `None`, in which case process noise will be generated internally)
+            `None`, in which case process noise will be added via :meth:`rvs`)
 
         Returns
         -------
@@ -73,7 +74,7 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
         """
 
         if noise is None:
-            noise = self.rvs()
+            noise = self.rvs()  # TODO: change noise=None generates noise!
 
         return self.matrix(**kwargs)@state_vector + noise
 
