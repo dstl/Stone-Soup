@@ -10,6 +10,7 @@ from ..nonlinear import (
 from ...base import ReversibleModel
 from ....functions import jacobian as compute_jac
 from ....types.angle import Bearing, Elevation
+from ....types.array import StateVector, Matrix
 
 
 def h2d(state_vector, translation_offset, rotation_offset):
@@ -201,6 +202,16 @@ def test_models(h, ModelClass, state_vec, R,
 
     # Ensure ```lg.covar()``` returns R
     assert np.array_equal(R, model.covar())
+
+    # Ensure model creates noise
+    rvs = model.rvs()
+    assert rvs.shape == (model.ndim_meas, 1)
+    assert isinstance(rvs, StateVector)
+    rvs = model.rvs(10)
+    assert rvs.shape == (model.ndim_meas, 10)
+    assert isinstance(rvs, Matrix)
+    # StateVector is subclass of Matrix, so need to check explicitly.
+    assert not isinstance(rvs, StateVector)
 
     # Project a state throught the model
     # (without noise)

@@ -168,9 +168,7 @@ class CartesianToElevationBearingRange(
         # Convert to Spherical
         rho, phi, theta = cart2sphere(*xyz_rot[:, 0])
 
-        return np.array([[Elevation(theta)],
-                         [Bearing(phi)],
-                         [rho]]) + noise
+        return StateVector([[Elevation(theta)], [Bearing(phi)], [rho]]) + noise
 
     def inverse_function(self, state_vector, **kwargs):
 
@@ -183,7 +181,7 @@ class CartesianToElevationBearingRange(
         xyz = [xyz_rot[0][0], xyz_rot[1][0], xyz_rot[2][0]]
         x, y, z = xyz + self.translation_offset[:, 0]
 
-        res = np.zeros((self.ndim_state, 1))
+        res = np.zeros((self.ndim_state, 1)).view(StateVector)
         res[self.mapping, 0] = x, y, z
 
         return res
@@ -283,7 +281,7 @@ class CartesianToBearingRange(
         xy = [xyz_rot[0][0], xyz_rot[1][0]]
         x, y = xy + self.translation_offset[:, 0]
 
-        res = np.zeros((self.ndim_state, 1))
+        res = np.zeros((self.ndim_state, 1)).view(StateVector)
         res[self.mapping, 0] = x, y
 
         return res
@@ -321,7 +319,7 @@ class CartesianToBearingRange(
         # Covert to polar
         rho, phi = cart2pol(*xyz_rot[:2, 0])
 
-        return np.array([[Bearing(phi)], [rho]]) + noise
+        return StateVector([[Bearing(phi)], [rho]]) + noise
 
     def rvs(self, num_samples=1, **kwargs):
         out = super().rvs(num_samples, **kwargs)
@@ -432,8 +430,7 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
         # Convert to Angles
         phi, theta = cart2angles(*xyz_rot[:, 0])
 
-        return np.array([[Elevation(theta)],
-                         [Bearing(phi)]]) + noise
+        return StateVector([[Elevation(theta)], [Bearing(phi)]]) + noise
 
     def rvs(self, num_samples=1, **kwargs):
         out = super().rvs(num_samples, **kwargs)
