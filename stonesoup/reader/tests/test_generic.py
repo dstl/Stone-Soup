@@ -232,7 +232,7 @@ def test_tsv(tmpdir):
                                     csv_options={'dialect': 'excel-tab'})
     detections = [
         detection
-        for _, detections in csv_reader.detections_gen()
+        for _, detections in csv_reader
         for detection in detections]
 
     for n, detection in enumerate(detections):
