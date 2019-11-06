@@ -12,7 +12,7 @@ from ..types.state import State, StateVector
 
 class RadarRangeBearing(Sensor):
     """A simple radar sensor that generates measurements of targets, using a
-    :class:`~.RangeBearingGaussianToCartesian` model, relative to its position.
+    :class:`~.CartesianToBearingRange` model, relative to its position.
 
     Note
     ----
@@ -95,7 +95,7 @@ class RadarRangeBearing(Sensor):
 class RadarRotatingRangeBearing(RadarRangeBearing):
     """A simple rotating radar, with set field-of-view (FOV) angle, range and\
      rotations per minute (RPM), that generates measurements of targets, using\
-     a :class:`~.RangeBearingGaussianToCartesian` model, relative to its\
+     a :class:`~.CartesianToBearingRange` model, relative to its\
      position.
 
     Note
