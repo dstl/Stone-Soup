@@ -2,7 +2,7 @@
 import copy
 import numpy as np
 
-from .base import Sensor
+from .base import Sensor3DCartesian
 from ..base import Property
 from ..models.measurement.nonlinear import CartesianToBearingRange
 from ..types.array import CovarianceMatrix
@@ -10,7 +10,7 @@ from ..types.detection import Detection
 from ..types.state import State, StateVector
 
 
-class RadarRangeBearing(Sensor):
+class RadarRangeBearing(Sensor3DCartesian):
     """A simple radar sensor that generates measurements of targets, using a
     :class:`~.CartesianToBearingRange` model, relative to its position.
 
@@ -20,18 +20,8 @@ class RadarRangeBearing(Sensor):
 
     """
 
-    position = Property(StateVector,
-                        doc="The radar position on a 3D Cartesian plane,\
-                             expressed as a 3x1 array of Cartesian coordinates\
-                             in the order :math:`x,y,z`")
-    orientation = Property(
-        StateVector,
-        doc="A 3x1 array of angles (rad), specifying the radar orientation in \
-            terms of the counter-clockwise rotation around each Cartesian \
-            axis in the order :math:`x,y,z`. The rotation angles are positive \
-            if the rotation is in the counter-clockwise direction when viewed \
-            by an observer looking along the respective rotation axis, \
-            towards the origin")
+    measurement_model = None
+
     ndim_state = Property(
         int,
         doc="Number of state dimensions. This is utilised by (and follows in\
@@ -47,25 +37,16 @@ class RadarRangeBearing(Sensor):
                                 :class:`~.RangeBearingGaussianToCartesian`\
                                 model")
 
-    def __init__(self, position, orientation, ndim_state, mapping, noise_covar,
-                 *args, **kwargs):
-        measurement_model = CartesianToBearingRange(
-            ndim_state=ndim_state,
-            mapping=mapping,
-            noise_covar=noise_covar,
-            translation_offset=position,
-            rotation_offset=orientation)
+    def __init__(self, *args, **kwargs):
 
-        super().__init__(position, orientation, ndim_state, mapping,
-                         noise_covar, *args, measurement_model, **kwargs)
+        super().__init__(*args, **kwargs)
 
-    def set_position(self, position):
-        self.position = position
-        self.measurement_model.translation_offset = position
-
-    def set_orientation(self, orientation):
-        self.orientation = orientation
-        self.measurement_model.rotation_offset = orientation
+        self.measurement_model = CartesianToBearingRange(
+            ndim_state=self.ndim_state,
+            mapping=self.mapping,
+            noise_covar=self.noise_covar,
+            translation_offset=self.position,
+            rotation_offset=self.orientation)
 
     def gen_measurement(self, ground_truth, noise=None, **kwargs):
         """Generate a measurement for a given state
@@ -120,12 +101,9 @@ class RadarRotatingRangeBearing(RadarRangeBearing):
     fov_angle = Property(
         float, doc="The radar field of view (FOV) angle (in radians).")
 
-    def __init__(self, position, orientation, ndim_state, mapping, noise_covar,
-                 dwell_center, rpm, max_range, fov_angle, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
 
-        super().__init__(position, orientation, ndim_state, mapping,
-                         noise_covar, dwell_center, rpm, max_range,
-                         fov_angle, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def gen_measurement(self, ground_truth, noise=None, **kwargs):
         """Generate a measurement for a given state
