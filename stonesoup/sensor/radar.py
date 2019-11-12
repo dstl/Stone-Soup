@@ -25,7 +25,7 @@ class RadarRangeBearing(Sensor3DCartesian):
     ndim_state = Property(
         int,
         doc="Number of state dimensions. This is utilised by (and follows in\
-            format) the underlying :class:`~.RangeBearingGaussianToCartesian`\
+            format) the underlying :class:`~.CartesianToBearingRange`\
             model")
     mapping = Property(
         [np.array], doc="Mapping between the targets state space and the\
@@ -34,7 +34,7 @@ class RadarRangeBearing(Sensor3DCartesian):
                            doc="The sensor noise covariance matrix. This is \
                                 utilised by (and follow in format) the \
                                 underlying \
-                                :class:`~.RangeBearingGaussianToCartesian`\
+                                :class:`~.CartesianToBearingRange`\
                                 model")
 
     def __init__(self, *args, **kwargs):
