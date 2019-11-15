@@ -71,12 +71,12 @@ class KalmanUpdater(Updater):
 
         Parameters
         ----------
-        measurement_model : :class`~.MeasurementModel`
+        measurement_model : :class:`~.MeasurementModel`
             A measurement model to be checked
 
         Returns
         -------
-        : :class`~.MeasurementModel`
+        : :class:`~.MeasurementModel`
             The measurement model to be used
 
         """
