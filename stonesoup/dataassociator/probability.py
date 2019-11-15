@@ -25,9 +25,7 @@ class PDA(DataAssociator):
     def associate(self, tracks, detections, timestamp, **kwargs):
 
         # Generate a set of hypotheses for each track on each detection
-        hypotheses = {
-            track: self.hypothesiser.hypothesise(track, detections, timestamp, **kwargs)
-            for track in tracks}
+        hypotheses = self.generate_hypotheses(tracks, detections, timestamp, **kwargs)
 
         # Ensure association probabilities are normalised
         for track, hypothesis in hypotheses.items():
@@ -63,9 +61,7 @@ class JPDA(DataAssociator):
 
         # Calculate MultipleHypothesis for each Track over all
         # available Detections
-        hypotheses = {
-            track: self.hypothesiser.hypothesise(track, detections, timestamp)
-            for track in tracks}
+        hypotheses = self.generate_hypotheses(tracks, detections, timestamp, **kwargs)
 
         # enumerate the Joint Hypotheses of track/detection associations
         joint_hypotheses = \

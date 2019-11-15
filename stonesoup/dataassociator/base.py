@@ -22,6 +22,11 @@ class DataAssociator(Base):
     hypothesiser: Hypothesiser = Property(
         doc="Generate a set of hypotheses for each track-detection pair")
 
+    def generate_hypotheses(self, tracks, detections, timestamp, **kwargs):
+        return {track: self.hypothesiser.hypothesise(
+                    track, detections, timestamp, **kwargs)
+                for track in tracks}
+
     @abstractmethod
     def associate(self, tracks: Set[Track], detections: Set[Detection],
                   timestamp: datetime.datetime, **kwargs) -> Mapping[Track, Hypothesis]:
