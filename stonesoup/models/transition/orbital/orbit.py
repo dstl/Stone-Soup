@@ -5,17 +5,17 @@ import numpy as np
 import scipy as sp
 
 from ....base import Property
-from .base import OrbitalModel
+from ..base import TransitionModel
 from ....astro_functions import calculate_itr_eccentric_anomaly
 
 
-class OrbitalTransitionModel(OrbitalModel):
+class OrbitalTransitionModel(TransitionModel):
 
-    r""" This class will execute a simple transition model on orbital elements.
-    Input is an :class:`OrbitalState`. How the transistion occurs is depenedent
-    upon the underlying :class:`OrbitalState` type.
+    r""" This class will execute a simple transition model on orbital
+    elements. Input is an :class:~`OrbitalState`. How the transition
+    occurs is dependent upon the underlying :class:`OrbitalState` type.
 
-    For the :class:`KeplerianOrbitalState`, transition proceeds as,
+    For the :class:~`KeplerianOrbitalState`, transition proceeds as,
 
         .. math::
 
