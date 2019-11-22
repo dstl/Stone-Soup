@@ -252,13 +252,13 @@ class OrbitalState(State):
 
         ratio = 1
 
-        while ratio > self._eanom_precision:
+        while np.abs(ratio) > self._eanom_precision:
             f = ecc_anomaly - eccentricity * np.sin(ecc_anomaly) - mean_anomaly
             fp = 1 - eccentricity * np.cos(ecc_anomaly)
             ratio = f / fp  # Need to check conditioning
             ecc_anomaly = ecc_anomaly - ratio
 
-        return ecc_anomaly
+        return ecc_anomaly # Check whether this ever goes outside 0 < 2pi
 
     def _tru_anom_from_mean_anom(self, mean_anomaly, eccentricity):
         r"""Get the true anomaly from the mean anomaly via the eccentric
@@ -279,9 +279,16 @@ class OrbitalState(State):
         """
         cos_ecc_anom = np.cos(self._eccentric_anomaly_from_mean_anomaly(
             mean_anomaly, eccentricity))
+        sin_ecc_anom = np.sin(self._eccentric_anomaly_from_mean_anomaly(
+            mean_anomaly, eccentricity))
 
-        return np.arccos((eccentricity - cos_ecc_anom) /
-                         (eccentricity*cos_ecc_anom - 1))
+        # This only works for M_e < \pi
+        # return np.arccos(np.clip((eccentricity - cos_ecc_anom) /
+        #                 (eccentricity*cos_ecc_anom - 1), -1, 1))
+
+        return np.remainder(np.arctan2(np.sqrt(1 - eccentricity**2) *
+                                       sin_ecc_anom,
+                                       cos_ecc_anom - eccentricity), 2*np.pi)
 
     @staticmethod
     def _perifocal_position(eccentricity, semimajor_axis, true_anomaly):
@@ -580,7 +587,7 @@ class OrbitalState(State):
 
     @property
     def eccentricity(self):
-        """Return the eccentricity (uses the form that depends only on scalars
+        r"""Return the eccentricity (uses the form that depends only on scalars
 
         Parameters
         ----------
@@ -601,7 +608,7 @@ class OrbitalState(State):
 
     @property
     def inclination(self):
-        """Return the orbital inclination
+        r"""Return the orbital inclination
 
         Parameters
         ----------
@@ -616,14 +623,14 @@ class OrbitalState(State):
         h = self.mag_specific_angular_momentum
 
         # Note no quadrant ambiguity
-        return np.arccos(boldh[2].item()/h)
+        return np.arccos(np.clip(boldh[2].item()/h, -1, 1))
 
         # TODO: Will the output limit need to be checked?
         # Logically not, but it might be worth plotting to check
 
     @property
     def longitude_ascending_node(self):
-        """Return the longitude (or right ascension in the case of the Earth)
+        r"""Return the longitude (or right ascension in the case of the Earth)
         of the ascending node
 
         Parameters
@@ -642,9 +649,9 @@ class OrbitalState(State):
 
         # Quadrant ambiguity
         if boldn[1].item() >= 0:
-            return np.arccos(boldn[0].item()/n)
+            return np.arccos(np.clip(boldn[0].item()/n, -1, 1))
         elif boldn[1].item() < 0:
-            return 2*np.pi - np.arccos(boldn[0].item()/n)
+            return 2*np.pi - np.arccos(np.clip(boldn[0].item()/n, -1, 1))
         else:
             raise ValueError("Really shouldn't be able to arrive here")
 
@@ -667,19 +674,22 @@ class OrbitalState(State):
         n = np.sqrt(np.dot(boldn.T, boldn).item())
         bolde = self._eccentricity_vector
 
-        # Quadrant ambiguity
+        # Quadrant ambiguity. The clip function is required to mitigate against
+        # the occasional floating-point errors which push the ratio outside the
+        # -1,1 region.
         if bolde[2].item() >= 0:
-            return np.arccos(np.dot(boldn.T, bolde).item()/
-                             (n * self.eccentricity))
+            return np.arccos(np.clip(np.dot(boldn.T, bolde).item() /
+                             (n * self.eccentricity), -1, 1))
         elif bolde[2].item() < 0:
-            return 2*np.pi - np.arccos(np.dot(boldn, bolde)/
-                                       (n * self.eccentricity))
+            aa = np.dot(boldn.T, bolde).item()/(n * self.eccentricity)
+            return 2*np.pi - np.arccos(np.clip(np.dot(boldn.T, bolde).item() /
+                                       (n * self.eccentricity), -1, 1))
         else:
             raise ValueError("This shouldn't ever happen")
 
     @property
     def true_anomaly(self):
-        """Return the true anomaly
+        r"""Return the true anomaly
 
         Parameters
         ----------
@@ -690,24 +700,26 @@ class OrbitalState(State):
             The true anomaly, :math:`\theta, \, (0 \le \theta \le 2\pi)`
 
         """
-        # Resolve the quadrant ambiguity
+        # Resolve the quadrant ambiguity.The clip function is required to
+        # mitigate against floating-point errors which push the ratio outside
+        # the -1,1 region.
         radial_velocity = np.dot(self.state_vector[0:3].T,
                                  self.state_vector[3:6]).item() / self.speed
 
         if radial_velocity >= 0:
-            return np.arccos(
+            return np.arccos(np.clip(
                 np.dot(self._eccentricity_vector.T / self.eccentricity,
-                       self.state_vector[0:3] / self.range).item())
+                       self.state_vector[0:3] / self.range).item(), -1, 1))
         elif radial_velocity < 0:
-            return 2*np.pi - np.arccos(
+            return 2*np.pi - np.arccos(np.clip(
                 np.dot(self._eccentricity_vector.T / self.eccentricity,
-                       self.state_vector[0:3] / self.range).item())
+                       self.state_vector[0:3] / self.range).item(), -1, 1))
         else:
             raise ValueError("Shouldn't arrive at this point")
 
     @property
     def eccentric_anomaly(self):
-        """Return the eccentric anomaly. Note that this computes the quantity
+        r"""Return the eccentric anomaly. Note that this computes the quantity
         exactly via the Keplerian eccentricity and true anomaly rather than via
         the mean anomaly using an iterative procedure.
 
@@ -717,19 +729,17 @@ class OrbitalState(State):
         Returns
         -------
         : float
-            The eccentric anomaly, :math:`E, \, (-\frac{\pi}{2} \le E \le
-            \frac{\pi}{2}` radians)
+            The eccentric anomaly, :math:`E, \, \[0 \le E \le 2\pi\]` radians)
 
         """
-
-        return 2 * np.arctan(np.sqrt((1 - self.eccentricity) /
-                                     (1 + self.eccentricity)) *
-                             np.tan(self.true_anomaly / 2))
-
+        return np.remainder(2 * np.arctan(np.sqrt((1 - self.eccentricity) /
+                                                  (1 + self.eccentricity)) *
+                                          np.tan(self.true_anomaly / 2)),
+                            2*np.pi)
 
     @property
     def mean_anomaly(self):
-        """Return the mean anomaly. Uses the eccentric anomaly and Kepler's
+        r"""Return the mean anomaly. Uses the eccentric anomaly and Kepler's
         equation to get mean anomaly from true anomaly and eccentricity
 
         Parameters
@@ -794,7 +804,7 @@ class OrbitalState(State):
 
     @property
     def specific_orbital_energy(self):
-        """
+        r"""
         Parameters
         ----------
 
@@ -1080,7 +1090,7 @@ class TLEOrbitalState(OrbitalState):
 
 
 class EquinoctialOrbitalState(OrbitalState):
-    """
+    r"""
     For the Equinoctial state vector:
 
         .. math::
