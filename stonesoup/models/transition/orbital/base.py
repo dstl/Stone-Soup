@@ -3,8 +3,11 @@ from abc import abstractmethod
 from ..base import TransitionModel
 
 
-class OrbitalModel(TransitionModel):
-    """Orbital Transition Model base class"""
+class OrbitalTransitionModel(TransitionModel):
+    """Orbital Transition Model base class. This class will execute a
+    transition model on an orbital element state vector. Input is an
+    :class:~`OrbitalState`, and the various daughter classes will
+    implement their chosen state transitions."""
 
     @property
     @abstractmethod
