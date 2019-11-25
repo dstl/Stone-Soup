@@ -83,7 +83,7 @@ class VideoClipReader(FileReader, FrameReader):
             return image[:, :, [2, 1, 0]]
 
         reader = VideoClipReader("path_to_file")
-        reader.clip = reader.clip.fl_image(arrange_rgb)
+        reader.clip = reader.clip.fl_image(arrange_bgr)
 
         for timestamp, frame in reader:
             # The generated frame.pixels will now
@@ -112,9 +112,9 @@ class VideoClipReader(FileReader, FrameReader):
     @BufferedGenerator.generator_method
     def frames_gen(self):
         start_time = datetime.datetime.now()
-        for timestamp_sec, frame in self.clip.iter_frames(with_times=True):
+        for timestamp_sec, pixels in self.clip.iter_frames(with_times=True):
             timestamp = start_time + datetime.timedelta(seconds=timestamp_sec)
-            frame = ImageFrame(frame, timestamp)
+            frame = ImageFrame(pixels, timestamp)
             yield timestamp, frame
 
 
