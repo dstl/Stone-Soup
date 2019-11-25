@@ -92,7 +92,7 @@ class VideoClipReader(FileReader, FrameReader):
 
     .. _MoviePy: https://zulko.github.io/moviepy/index.html
     .. _documentation: https://zulko.github.io/moviepy/getting_started/effects.html
-     """
+     """  # noqa:E501
     start_time = Property(datetime.timedelta,
                           doc="Start time expressed as duration "
                               "from the start of the clip",
@@ -129,9 +129,9 @@ class FFmpegVideoStreamReader(UrlReader, FrameReader):
     -----
     - Use of this class requires that FFmpeg_ is installed on the host machine.
     - By default, FFmpeg performs internal buffering of frames leading to a \
-    slight delay in the incoming frames (0.5-1 sec). To remove the delay it is \
-    recommended to set ``input_opts={'threads': 1, 'fflags': 'nobuffer'}`` when \
-    instantiating a reader, e.g: .
+    slight delay in the incoming frames (0.5-1 sec). To remove the delay it \
+    is recommended to set ``input_opts={'threads': 1, 'fflags': 'nobuffer'}`` \
+    when instantiating a reader, e.g: .
 
     .. code-block:: python
 
@@ -143,7 +143,7 @@ class FFmpegVideoStreamReader(UrlReader, FrameReader):
     .. _ffmpeg-python: https://github.com/kkroening/ffmpeg-python
     .. _FFmpeg: https://www.ffmpeg.org/download.html
 
-    """
+    """  # noqa:E501
 
     buffer_size = Property(int,
                            doc="Size of the frame buffer. The frame "
@@ -175,15 +175,17 @@ class FFmpegVideoStreamReader(UrlReader, FrameReader):
         # Initialise stream
         self.stream = (
             ffmpeg
-                .input(self.url.geturl(), **self.input_opts)
-                .output('pipe:', **self.output_opts)
-                .global_args('-y', '-loglevel', 'panic')
-                .run_async(pipe_stdout=True)
+            .input(self.url.geturl(), **self.input_opts)
+            .output('pipe:', **self.output_opts)
+            .global_args('-y', '-loglevel', 'panic')
+            .run_async(pipe_stdout=True)
         )
 
         # Probe stream information
         self._stream_info = next(
-            s for s in ffmpeg.probe(self.url.geturl())['streams'] if s['codec_type'] == 'video')
+            s for s
+            in ffmpeg.probe(self.url.geturl())['streams']
+            if s['codec_type'] == 'video')
 
         # Initialise capture thread
         self._capture_thread = threading.Thread(target=self._run)
@@ -210,7 +212,7 @@ class FFmpegVideoStreamReader(UrlReader, FrameReader):
                 # Transform bytes to pixels
                 frame_np = (
                     np.frombuffer(in_bytes, np.uint8)
-                        .reshape([height, width, 3])
+                    .reshape([height, width, 3])
                 )
                 frame = ImageFrame(frame_np, datetime.datetime.now())
 
