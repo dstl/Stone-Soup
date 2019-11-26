@@ -135,19 +135,20 @@ class JPDA(DataAssociator):
 
             # record hypothesis for any given Detection being associated with
             # this track
-            for detection in detections:
+            for hypothesis in hypotheses[track]:
+                if not hypothesis:
+                    continue
                 pro_detect_assoc = Probability.sum(
                     joint_hypothesis.probability
                     for joint_hypothesis in joint_hypotheses
                     if joint_hypothesis.
-                    hypotheses[track].measurement is detection)
+                        hypotheses[track].measurement is hypothesis.measurement)
 
                 single_measurement_hypotheses.append(
                     SingleProbabilityHypothesis(
-                        hypotheses[track][0].prediction,
-                        detection,
-                        measurement_prediction=hypotheses[track][0].
-                        measurement_prediction,
+                        hypothesis.prediction,
+                        hypothesis.measurement,
+                        measurement_prediction=hypothesis.measurement_prediction,
                         probability=pro_detect_assoc))
 
             result = MultipleHypothesis(single_measurement_hypotheses, True, 1)
