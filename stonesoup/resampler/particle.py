@@ -24,6 +24,7 @@ class SystematicResampler(Resampler):
 
         n_particles = len(particles)
         weight = Probability(1/n_particles)
+        particles = sorted(particles, key=lambda x: x.weight, reverse=False)
         cdf = np.cumsum([p.weight for p in particles])
         particles_listed = list(particles)
         # Pick random starting point
