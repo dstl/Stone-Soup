@@ -109,8 +109,6 @@ def assign2D(C, maximize=False):
     # This work was supported by the Office of Naval Research through the
     # Naval Research Laboratory 6.1 Base Program
 
-    C = numpy.matrix(C)  # In case a multidimensional array was passed.
-
     numRow = C.shape[0]
     numCol = C.shape[1]
     totalNumElsInC = C.size
