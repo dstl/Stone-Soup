@@ -5,7 +5,6 @@ from .base import DataAssociator
 from ._assignment import assign2D
 from ..base import Property
 from ..hypothesiser import Hypothesiser
-from ..types.detection import MissedDetection
 from ..types.hypothesis import SingleHypothesis, SingleProbabilityHypothesis
 
 
@@ -142,33 +141,46 @@ class GNNWith2DAssignment(DataAssociator):
             Key value pair of tracks with associated detection
         """
 
+        # Generate a set of hypotheses for each track on each detection
+        hypotheses = {
+            track: self.hypothesiser.hypothesise(track, detections, time)
+            for track in tracks}
+
+        # Create dictionary for associations
         associations = {}
 
+        # Extract detected tracks
+        detected_tracks = [track
+                           for track, track_hypotheses in hypotheses.items()
+                           if any(track_hypotheses)]
+
+        # Store associations for undetected/missed tracks
+        # NOTE: It is assumed that if a track is undetected/missed, then it
+        #       will only have a single missed detection hypothesis
+        for track in hypotheses.keys() - set(detected_tracks):
+            if hypotheses[track]:
+                associations[track] = hypotheses[track][0]
+
+        # No need to perform data association if all tracks are missed
+        if not detected_tracks:
+            return associations
+
         # Convert sets to indexable lists
-        tracks = list(tracks)
         detections = list(detections)
 
         # Generate 2d array "matrix" of hypotheses mapping track to detection
         hypothesis_matrix = np.empty(
-            [len(tracks), len(detections) + len(tracks)],
+            (len(detected_tracks), len(detections) + len(detected_tracks)),
             SingleHypothesis)
-        for i in range(len(tracks)):
+        for i, track in enumerate(detected_tracks):
             row = np.empty(
-                [len(detections) + len(tracks)], SingleHypothesis)
-            track_hypotheses = self.hypothesiser.hypothesise(
-                tracks[i], detections, time)
-            for hypothesis in track_hypotheses:
-                if isinstance(hypothesis.measurement, MissedDetection):
+                (hypothesis_matrix.shape[1]), SingleHypothesis)
+            for hypothesis in hypotheses[track]:
+                if not hypothesis:
                     row[len(detections) + i] = hypothesis
                 else:
-                    row[int(detections.index(
-                        hypothesis.measurement))] = hypothesis
+                    row[detections.index(hypothesis.measurement)] = hypothesis
             hypothesis_matrix[i] = row
-
-        # Check some hypotheses were returned, if not return no associations
-        if all(hypothesis is None
-               for row in hypothesis_matrix for hypothesis in row):
-            return associations
 
         # Determine type of hypothesis used, probability or distance
         # Probability is maximise problem, distance is minimise problem
@@ -184,8 +196,7 @@ class GNNWith2DAssignment(DataAssociator):
 
         # Generate 2d array "matrix" of distances
         # Use probabilities instead for probability based hypotheses
-        distance_matrix = np.empty(
-            [len(tracks), len(detections) + len(tracks)])
+        distance_matrix = np.empty(hypothesis_matrix.shape)
         for x in range(hypothesis_matrix.shape[0]):
             for y in range(hypothesis_matrix.shape[1]):
                 if hypothesis_matrix[x][y] is None:
@@ -211,7 +222,7 @@ class GNNWith2DAssignment(DataAssociator):
             raise RuntimeError("Assignment was not feasible")
 
         # Generate dict of key/value pairs
-        for j in range(len(col4row)):
-            associations[tracks[j]] = hypothesis_matrix[j][int(col4row[j])]
+        for j, track in enumerate(detected_tracks):
+            associations[track] = hypothesis_matrix[j][col4row[j]]
 
         return associations
