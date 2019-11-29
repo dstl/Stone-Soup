@@ -7,6 +7,7 @@ from scipy.stats import norm
 
 from ....base import Property
 from ....types.orbitalstate import OrbitalState, TLEOrbitalState
+from ....types.array import CovarianceMatrix
 #from ....astro_functions import calculate_itr_eccentric_anomaly
 from ...base import LinearModel
 from .base import OrbitalTransitionModel
@@ -59,7 +60,7 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
     """
 
     transition_noise = Property(
-        float, default=1.0, doc=r"Transition noise :math:`\epsilon`")
+        float, default=0.0, doc=r"Transition noise :math:`\epsilon`")
 
     def matrix(self):
         pass
@@ -69,7 +70,14 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
         return 6
 
     def rvs(self, num_samples, orbital_state, time_interval):
-        r"""Sample from the transition function
+        r"""Generate samples from the transition function. Assume that the
+        noise is additive and Gauss-distributed in mean anomaly only. So,
+
+        .. math::
+
+            M_{t_1} = M_{t_0} + n(t_1 - t_0) + \epsilon, (\mathrm(mod) \, 2\pi)
+
+            \epsilon ~ \mathcal{N}(0, \sigma_{M_0})
 
         Parameters
         ----------
@@ -87,6 +95,10 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
             distribution defined by the transited mean anomaly,
             :math:`M_{t_1}` and the standard deviation :math:`\epsilon`.
 
+        Note
+        ----
+        Units of mean motion must be in :math:`\mathrm{rad} s^{-1}`
+
         """
         mean_anomalies = np.random.normal(0, self.transition_noise,
                                           num_samples)
@@ -95,12 +107,12 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
         outlist = []
         for index in range(num_samples):
             # Noise is additive so we can do this first...
-            new_mean_anomaly = np.remainder(orbital_state.mean_anomaly +
+            new_mean_anomaly = np.remainder(self.transition(
+                orbital_state.mean_anomaly, time_interval) +
                                             mean_anomalies[index], 2*np.pi)
             new_tle_state = np.insert(np.delete(orbital_state.two_line_element,
                                                 4, 0), 4, new_mean_anomaly,
                                       axis=0)
-
             outlist.append(TLEOrbitalState(new_tle_state,
                                            timestamp=orbital_state.timestamp +
                                                      time_interval))
@@ -131,11 +143,12 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
 
         """
         return norm.pdf(test_state.mean_anomaly,
-                        loc=self.transition(orbital_state, time_interval),
+                        loc=self.transition(orbital_state,
+                                            time_interval).mean_anomaly,
                         scale=self.transition_noise)
 
-    def function(self, state_vector, time_interval):
-        self.transition(state_vector, time_interval)
+    def function(self, orbital_state, time_interval):
+        self.transition(orbital_state, time_interval)
 
     def transition(self, orbital_state, time_interval):
         r"""Execute the transition function
@@ -176,12 +189,208 @@ class CartesianTransitionModel(OrbitalTransitionModel):
     """This class invokes a transition model in Cartesian coordinates
     assuming a Keplerian orbit. A calculation of the ''universal
     anomaly'' is used which relies on an approximate method (much like
-    the eccentric anomaly) but the repeated trans"""
+    the eccentric anomaly) but repeated calls to a constructor (as in
+    mean-anomaly-based method are avoided.
+
+    Follows algorithm 3.4 in [1].
+
+    Reference
+    ---------
+    Curtis, H.D 2010, Orbital Mechanics for Engineering Students (3rd
+    Ed.), Elsevier Publishing
 
 
+    """
+    transition_noise = Property(
+        CovarianceMatrix, default=CovarianceMatrix(np.zeros([6, 6])),
+        doc=r"Transition noise :math:`\epsilon`")
 
+    @property
+    def ndim_state(self):
+        """Dimension of the state vector is 6
 
+        Returns
+        -------
+        : int
+            The dimension of the state vector, i.e. 6
 
+        """
+        return 6
+
+    def function(self, orbital_state, time_interval):
+        """Just the transition function
+        """
+        self.transition(self, orbital_state, time_interval)
+
+    def transition(self, orbital_state, time_interval):
+        """The transition proceeds as
+
+        """
+        # Reused variables
+        root_mu = np.sqrt(orbital_state.grav_parameter)
+        inv_sma = 1. / orbital_state.semimajor_axis
+
+        # Some helpful functions
+        def calculate_universal_anomaly(mag_r_0, v_rad_0, delta_t,
+                                        tolerance=1e-8):
+            """Algorithm 3.3 in [1]"""
+
+            # Initial estimate of Chi
+            chi_i = root_mu * np.abs(inv_sma) * delta_t.total_seconds()
+            ratio = 1
+
+            # Do Newton's method
+            while np.abs(ratio) > tolerance:
+                z_i = inv_sma * chi_i**2
+                f_chi_i = mag_r_0 * v_rad_0/root_mu * chi_i**2 * stumpf_c(z_i)\
+                          + (1 - inv_sma * mag_r_0) * chi_i**3 * stumpf_s(z_i) \
+                          + mag_r_0 * chi_i - root_mu * delta_t.total_seconds()
+                fp_chi_i = mag_r_0 * v_rad_0/root_mu * chi_i * \
+                           (1 - inv_sma * chi_i**2 * stumpf_s(z_i)) + \
+                           (1 - inv_sma * mag_r_0) * chi_i**2 * stumpf_c(z_i) \
+                           + mag_r_0
+                ratio = f_chi_i/fp_chi_i
+                chi_i = chi_i - ratio
+
+            return chi_i
+
+        def stumpf_s(z):
+            """The Stumpf S function"""
+            if z > 0:
+                sqz = np.sqrt(z)
+                return (sqz - np.sin(sqz))/sqz**3
+            elif z < 0:
+                sqz = np.sqrt(-z)
+                return (np.sinh(sqz) - sqz)/sqz**3
+            elif z == 0:
+                return 1/6
+            else:
+                raise ValueError("Shouldn't get to this point")
+
+        def stumpf_c(z):
+            """The Stumpf C function"""
+            if z > 0:
+                sqz = np.sqrt(z)
+                return (1 - np.cos(sqz))/sqz**2
+            elif z < 0:
+                sqz = np.sqrt(-z)
+                return (np.cosh(sqz) - 1)/sqz**2
+            elif z == 0:
+                return 1/2
+            else:
+                raise ValueError("Shouldn't get to this point")
+
+        # Calculate the magnitude of the position and velocity vectors
+        bold_r_0 = orbital_state.cartesian_state_vector[0:3]
+        bold_v_0 = orbital_state.cartesian_state_vector[3:6]
+
+        r_0 = np.sqrt(np.dot(bold_r_0.T, bold_r_0).item())
+        v_0 = np.sqrt(np.dot(bold_v_0.T, bold_v_0).item()) # Don't need this as we get this from the orbital state
+
+        # Find the radial component of the velocity by projecting v_0 onto
+        # direction of r_0
+        v_r_0 = np.dot(bold_r_0.T, bold_v_0).item()/r_0
+
+        # Get the universal anomaly
+        u_anom = calculate_universal_anomaly(r_0, v_r_0, time_interval,
+                                             tolerance=
+                                             orbital_state._eanom_precision)
+
+        # For convenience
+        z = inv_sma * u_anom**2
+
+        # Get the Lagrange coefficients
+        f = 1 - u_anom**2 / r_0 * stumpf_c(z)
+        g = time_interval.total_seconds() - 1/root_mu * u_anom**3 * stumpf_s(z)
+
+        # Get the position vector and magnitude of that vector
+        bold_r = f * bold_r_0 + g * bold_v_0
+        r = np.sqrt(np.dot(bold_r.T, bold_r).item())
+
+        # and the Lagrange (time) derivatives
+        f_dot = root_mu/(r * r_0) * (inv_sma * u_anom**3 * stumpf_s(z) -
+                                     u_anom)
+        g_dot = 1 - (u_anom**2 / r) * stumpf_c(z)
+
+        # The velocity vector
+        bold_v = f_dot * bold_r_0 + g_dot * bold_v_0
+
+        # And put them together
+        return OrbitalState(np.concatenate((bold_r, bold_v), axis=0),
+                            coordinates='Cartesian',
+                            timestamp=orbital_state.timestamp + time_interval)
+
+    def rvs(self, num_samples, orbital_state, time_interval):
+        r"""Sample from the transited state. Do this in a fairly simple-minded
+        way by way of additive white noise in Cartesian coordinates.
+
+        .. math::
+
+            \mathbf{x}_t = f(\mathbf{x}_{t-1}) + \mathbf{\zeta},
+            \mathbf{\zeta} ~ \mathcal{N}(\mathbf{0}, \Sigma_s)
+
+        where
+
+        Parameters
+        ----------
+        num_samples : int
+            Number of samples, :math:`N`
+        orbital_state: :class:~`OrbitalState`
+            The orbital state class
+        time_interval : :class:~`datetime.timedelta`
+            The time over which the transition occurs
+
+        Returns
+        -------
+        : list
+            N random samples of the state vector drawn from a normal
+            distribution defined by the transited mean anomaly,
+            :math:`M_{t_1}` and the standard deviation :math:`\epsilon`.
+
+        """
+        mean_anomalies = np.random.normal(np.zeros(6, 1),
+                                          self.transition_noise, num_samples)
+
+        # Iterate to create a list. May be a better way?
+        outlist = []
+        for index in range(num_samples):
+            new_cstate_vector = self.transition(
+                orbital_state).cartesian_state_vector + mean_anomalies[index]
+
+            outlist.append(OrbitalState(new_cstate_vector,
+                                        coordinates="Cartesian",
+                                        timestamp=orbital_state.timestamp +
+                                        time_interval))
+
+        return outlist
+
+    def pdf(self, test_state, orbital_state, time_interval):
+        r"""Return the value of the pdf at :math:`\Delta t` for a given test
+        orbital state. Assumes constancy in all terms except the mean anomaly
+        which is Gauss distributed according to :math:`\epsilon`.
+
+        Parameters
+        ----------
+        test_state: :class:~`OrbitalState`
+            The orbital state vector to test
+        orbital_state: :class:~`OrbitalState`
+            The 'mean' orbital state class
+        time_interval: :math:`dt` :attr:`datetime.timedelta`
+            The time interval over which to test the new state
+
+        Returns
+        -------
+        : float
+
+        Note
+        ----
+        Units of mean motion must be in :math:`\mathrm{rad} s^{-1}`
+
+        """
+        return norm.pdf(test_state.cartesian_state_vector,
+                        loc=self.transition(orbital_state,
+                                            time_interval).cartesian_state_vector,
+                        scale=self.transition_noise)
 
 
 '''orbit_out = copy.deepcopy(orbit)

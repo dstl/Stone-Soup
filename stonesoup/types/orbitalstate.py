@@ -4,6 +4,7 @@ import numpy as np
 import string as strg
 
 from ..base import Property
+from .array import CovarianceMatrix
 from .state import State
 
 
@@ -49,6 +50,13 @@ class OrbitalState(State):
         float, default=3.986004418e14,
         doc=r"Standard gravitational parameter :math:`\mu = G M` in units of "
             r":math:`\mathrm{m}^3 \mathrm{s}^{-2}`")
+
+    covar = Property(
+        CovarianceMatrix, default=None,
+        doc="The covariance matrix. Care should be exercised in that its coordinate"
+            "frame isn't defined, and output will be highly dependant on which"
+            "parameterisation is chosen."
+    )
 
     _eanom_precision = Property(
         float, default=1e-8,
@@ -570,6 +578,28 @@ class OrbitalState(State):
                               self.state_vector[3:6]).item())
 
     @property
+    def eccentricity(self):
+        r"""Return the eccentricity (uses the form that depends only on
+        scalars)
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        : float
+            The orbital eccentricity, :math:`e, \, (0 \le e \le 1)`
+
+        """
+        # TODO Check to see which of the following is quicker/better
+
+        # Either
+        # return np.sqrt(np.dot(self._eccentricity_vector.T, self._eccentricity_vector).item())
+        # or
+        return np.sqrt(1 + (self.mag_specific_angular_momentum ** 2 / self.grav_parameter ** 2) *
+                       (self.speed ** 2 - 2 * self.grav_parameter / self.range))
+
+    @property
     def semimajor_axis(self):
         """return the Semi-major axis
 
@@ -582,29 +612,11 @@ class OrbitalState(State):
             The orbit semi-major axis
 
         """
-        return 1/((2/self.range) - (self.speed**2)/self.grav_parameter)
+        return (self.mag_specific_angular_momentum**2 / self.grav_parameter) *\
+               (1 / (1 - self.eccentricity**2))
 
-
-    @property
-    def eccentricity(self):
-        r"""Return the eccentricity (uses the form that depends only on scalars
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        : float
-            The orbital eccentricity, :math:`e, \, (0 \le e \le 1)`
-
-        """
-        #TODO Check to see which of the following is quicker/better
-
-        # Either
-        #return np.sqrt(np.dot(self._eccentricity_vector.T, self._eccentricity_vector).item())
-        # or
-        return np.sqrt(1 + (self.mag_specific_angular_momentum**2/self.grav_parameter**2) *
-                       (self.speed**2 - 2*self.grav_parameter/self.range))
+        # Used to be this
+        #return 1/((2/self.range) - (self.speed**2)/self.grav_parameter)
 
     @property
     def inclination(self):
