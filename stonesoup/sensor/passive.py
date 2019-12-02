@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import copy
 import numpy as np
 
 from .base import Sensor3DCartesian
@@ -65,8 +64,6 @@ class PassiveElevationBearing(Sensor3DCartesian):
         measurement_vector = self.measurement_model.function(
             ground_truth.state_vector, noise=noise, **kwargs)
 
-        model_copy = copy.copy(self.measurement_model)
-
         return Detection(measurement_vector,
-                         measurement_model=model_copy,
+                         measurement_model=self.measurement_model,
                          timestamp=ground_truth.timestamp)
