@@ -465,7 +465,18 @@ class OrbitalState(State):
         k = np.array([0, 0, 1])
         boldh = self.specific_angular_momentum
 
-        return np.cross(k, boldh, axis=0)
+        boldn = np.cross(k, boldh, axis=0)
+        n = np.sqrt(np.dot(boldn.T, boldn).item())
+
+        # If inclination is 0, the node line is [0] and has 0 magnitude. By
+        # convention in these situations, we set the node line as a unit vector
+        # pointing along x. Note that the magnitude of the vector is not
+        # consistent with that produced by the cross product. (But we assume
+        # that the node line is only used for directional information.
+        if n < np.finfo(n).eps:
+            return np.array([1, 0, 0])
+        else:
+            return boldn
 
     @property
     def _eccentricity_vector(self):
@@ -637,9 +648,6 @@ class OrbitalState(State):
         # Note no quadrant ambiguity
         return np.arccos(np.clip(boldh[2].item()/h, -1, 1))
 
-        # TODO: Will the output limit need to be checked?
-        # Logically not, but it might be worth plotting to check
-
     @property
     def longitude_ascending_node(self):
         r"""Return the longitude (or right ascension in the case of the Earth)
@@ -658,13 +666,6 @@ class OrbitalState(State):
 
         boldn = self._nodeline
         n = np.sqrt(np.dot(boldn.T, boldn).item())
-
-        # There are situations (inclination = 0) where the magnitude of the
-        # node line is 0. This results in a 0/0 below and should be avoided.
-        # The advice is to set the RAAN to 0. Do this where n can't be
-        # distinguished from the machine precision.
-        if n < np.finfo(n).eps:
-            return 0
 
         # Quadrant ambiguity
         if boldn[1].item() >= 0:
@@ -698,14 +699,6 @@ class OrbitalState(State):
         # 0.
         if self.eccentricity < np.finfo(self.eccentricity).eps:
             return 0
-
-        # If inclination is 0, the node line is [0] and has 0 magnitude. So the
-        # calculation below becomes 0/0. By convention in these situations, the
-        # longitude of the ascending node is set = 0 (i.e. along the x-axis)
-        # and so we can set the node line as a unit vector pointing along x.
-        if n < np.finfo(n).eps:
-            boldn = np.array([1, 0, 0])
-            n = 1
 
         # Quadrant ambiguity. The clip function is required to mitigate against
         # the occasional floating-point errors which push the ratio outside the
