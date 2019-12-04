@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import numpy as np
+from copy import copy, deepcopy
 from datetime import datetime, timedelta
 from ....types.orbitalstate import TLEOrbitalState, OrbitalState
 from ..orbital.orbit import SimpleMeanMotionTransitionModel, CartesianTransitionModel
@@ -58,15 +59,39 @@ def test_cartesiantransitionmodel():
     initial_state = OrbitalState(ini_cart, coordinates="Cartesian", timestamp=time1)
     initial_state.grav_parameter = 398600
 
-    print(initial_state.keplerian_elements)
     propagator = CartesianTransitionModel()
     final_state = propagator.transition(initial_state, deltat)
 
-
-
     # Check something's happened
     assert not np.all(initial_state.keplerian_elements == final_state.keplerian_elements)
-    print(final_state.cartesian_state_vector)
 
     # Check the elements match the book. But beware rounding
     assert np.allclose(final_state.cartesian_state_vector, fin_cart, rtol=1e-3)
+
+
+def test_meanm_cart_ransition():
+    """Test two transition models against each other"""
+
+    # Set the times up
+    time = datetime(2011, 11, 12, 13, 45, 31)  # Just a time
+    deltat = timedelta(minutes=3)
+
+    # Initialise the state vector
+    ini_cart = np.array([[7000], [-12124], [0], [2.6679], [4.621], [0]])
+    initial_state = OrbitalState(ini_cart, coordinates="Cartesian", timestamp=time)
+    initial_state.grav_parameter = 398600
+
+    # Define some propagators
+    propagator1 = CartesianTransitionModel()
+    propagator2 = SimpleMeanMotionTransitionModel()
+    state1 = initial_state
+    state2 = deepcopy(state1)
+
+    assert (np.allclose(state1.cartesian_state_vector, state2.cartesian_state_vector, rtol=1e-8))
+
+    # Dumb way to do things
+    while time < datetime(2011, 11, 12, 13, 45, 31) + timedelta(hours=10):
+        state1 = propagator1.transition(state1, deltat)
+        state2 = propagator2.transition(state2, deltat)
+        assert (np.allclose(state1.cartesian_state_vector, state2.cartesian_state_vector, rtol=1e-8))
+        time = time + deltat
