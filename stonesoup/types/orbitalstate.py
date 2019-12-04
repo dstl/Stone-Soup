@@ -659,6 +659,13 @@ class OrbitalState(State):
         boldn = self._nodeline
         n = np.sqrt(np.dot(boldn.T, boldn).item())
 
+        # There are situations (inclination = 0) where the magnitude of the
+        # node line is 0. This results in a 0/0 below and should be avoided.
+        # The advice is to set the RAAN to 0. Do this where n can't be
+        # distinguished from the machine precision.
+        if n < np.finfo(n).eps:
+            return 0
+
         # Quadrant ambiguity
         if boldn[1].item() >= 0:
             return np.arccos(np.clip(boldn[0].item()/n, -1, 1))
@@ -685,6 +692,20 @@ class OrbitalState(State):
         boldn = self._nodeline
         n = np.sqrt(np.dot(boldn.T, boldn).item())
         bolde = self._eccentricity_vector
+
+        # If eccentricity is 0 then there's no unambiguous longitude of
+        # periapsis. In these situations we set the argument of periapsis to
+        # 0.
+        if self.eccentricity < np.finfo(self.eccentricity).eps:
+            return 0
+
+        # If inclination is 0, the node line is [0] and has 0 magnitude. So the
+        # calculation below becomes 0/0. By convention in these situations, the
+        # longitude of the ascending node is set = 0 (i.e. along the x-axis)
+        # and so we can set the node line as a unit vector pointing along x.
+        if n < np.finfo(n).eps:
+            boldn = np.array([1, 0, 0])
+            n = 1
 
         # Quadrant ambiguity. The clip function is required to mitigate against
         # the occasional floating-point errors which push the ratio outside the

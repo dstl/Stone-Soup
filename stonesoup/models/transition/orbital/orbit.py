@@ -55,6 +55,7 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
 
             \mathcal{N}(M_{t_1},\epsilon)
 
+
     TODO: test the efficiency of this method
 
     """
@@ -113,9 +114,11 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
             new_tle_state = np.insert(np.delete(orbital_state.two_line_element,
                                                 4, 0), 4, new_mean_anomaly,
                                       axis=0)
-            outlist.append(TLEOrbitalState(new_tle_state,
-                                           timestamp=orbital_state.timestamp +
-                                                     time_interval))
+            outlist.append(OrbitalState(new_tle_state,  coordinates="TLE",
+                                        timestamp=orbital_state.timestamp +
+                                                  time_interval,
+                                        grav_parameter=
+                                        orbital_state.grav_parameter))
 
         return outlist
 
@@ -182,7 +185,8 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
                                   new_mean_anomaly, axis=0)
 
         return OrbitalState(new_tle_state, coordinates='TLE',
-                               timestamp=orbital_state.timestamp + time_interval)
+                            timestamp=orbital_state.timestamp + time_interval,
+                            grav_parameter=orbital_state.grav_parameter)
 
 
 class CartesianTransitionModel(OrbitalTransitionModel):
@@ -318,7 +322,8 @@ class CartesianTransitionModel(OrbitalTransitionModel):
         # And put them together
         return OrbitalState(np.concatenate((bold_r, bold_v), axis=0),
                             coordinates='Cartesian',
-                            timestamp=orbital_state.timestamp + time_interval)
+                            timestamp=orbital_state.timestamp + time_interval,
+                            grav_parameter=orbital_state.grav_parameter)
 
     def rvs(self, num_samples, orbital_state, time_interval):
         r"""Sample from the transited state. Do this in a fairly simple-minded
@@ -360,7 +365,9 @@ class CartesianTransitionModel(OrbitalTransitionModel):
             outlist.append(OrbitalState(new_cstate_vector,
                                         coordinates="Cartesian",
                                         timestamp=orbital_state.timestamp +
-                                        time_interval))
+                                        time_interval,
+                                        grav_parameter=
+                                        orbital_state.grav_parameter))
 
         return outlist
 
