@@ -140,7 +140,7 @@ def test_rotating_radar():
     target_state = State(radar_position +
                          np.array([[5], [5]]),
                          timestamp=timestamp)
-    measurement = radar.gen_measurement(target_state, noise=0)
+    measurement = radar.measure(target_state, noise=0)
     eval_m = h2d(target_state.state_vector,
                  radar.position,
                  radar.orientation+[[0],
