@@ -17,7 +17,7 @@ class Sensor(Base):
         MeasurementModel, default=None, doc="Measurement model")
 
     @abstractmethod
-    def gen_measurement(**kwargs):
+    def measure(**kwargs):
         """Generate a measurement"""
         raise NotImplementedError
 
@@ -42,7 +42,7 @@ class Sensor3DCartesian(Sensor):
             origin")
 
     @abstractmethod
-    def gen_measurement(**kwargs):
+    def measure(**kwargs):
         """Generate a measurement"""
         raise NotImplementedError
 

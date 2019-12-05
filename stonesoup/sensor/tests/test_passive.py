@@ -12,11 +12,10 @@ from ..passive import PassiveElevationBearing
 def test_passive_sensor():
     # Input arguments
     # TODO: pytest parametarization
-    noise_covar = CovarianceMatrix(np.array([[np.deg2rad(0.015), 0],
-                                             [0, np.deg2rad(0.1)]]))
-    detector_position = StateVector(
-        np.array(([[1], [1], [0]])))
-    detector_orientation = StateVector([[0], [0], [0]])
+    noise_covar = CovarianceMatrix([[np.deg2rad(0.015), 0],
+                                   [0, np.deg2rad(0.1)]])
+    detector_position = StateVector([1, 1, 0])
+    detector_orientation = StateVector([0, 0, 0])
     target_state = State(detector_position +
                          np.array([[1], [1], [0]]),
                          timestamp=datetime.datetime.now())
@@ -36,7 +35,7 @@ def test_passive_sensor():
                      detector_position).all())
 
     # Generate a noiseless measurement for the given target
-    measurement = detector.gen_measurement(target_state, noise=0)
+    measurement = detector.measure(target_state, noise=0)
 
     # Account
     xyz = target_state.state_vector - detector_position
@@ -56,4 +55,4 @@ def test_passive_sensor():
     # Assert correction of generated measurement
     assert (measurement.timestamp == target_state.timestamp)
     assert (np.equal(measurement.state_vector,
-                     StateVector(np.array([[theta], [phi]]))).all())
+                     StateVector([theta, phi])).all())

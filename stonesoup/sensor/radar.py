@@ -48,7 +48,7 @@ class RadarRangeBearing(Sensor3DCartesian):
             translation_offset=self.position,
             rotation_offset=self.orientation)
 
-    def gen_measurement(self, ground_truth, noise=None, **kwargs):
+    def measure(self, ground_truth, noise=None, **kwargs):
         """Generate a measurement for a given state
 
         Parameters
@@ -105,7 +105,7 @@ class RadarRotatingRangeBearing(RadarRangeBearing):
 
         super().__init__(*args, **kwargs)
 
-    def gen_measurement(self, ground_truth, noise=None, **kwargs):
+    def measure(self, ground_truth, noise=None, **kwargs):
         """Generate a measurement for a given state
 
         Parameters
