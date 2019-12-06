@@ -71,8 +71,6 @@ def test_simple_radar():
 
     # Assert that the object has been correctly initialised
     assert(np.equal(radar.position, radar_position).all())
-    assert(np.equal(radar.measurement_model.translation_offset,
-                    radar_position).all())
 
     # Generate a noiseless measurement for the given target
     measurement = radar.measure(target_state, noise=0)
@@ -126,8 +124,6 @@ def test_rotating_radar():
 
     # Assert that the object has been correctly initialised
     assert(np.equal(radar.position, radar_position).all())
-    assert(np.equal(radar.measurement_model.translation_offset,
-                    radar_position).all())
 
     # Generate a noiseless measurement for the given target
     measurement = radar.measure(target_state, noise=0)

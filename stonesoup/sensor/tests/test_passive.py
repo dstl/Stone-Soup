@@ -31,8 +31,6 @@ def test_passive_sensor():
 
     # Assert that the object has been correctly initialised
     assert (np.equal(detector.position, detector_position).all())
-    assert (np.equal(detector.measurement_model.translation_offset,
-                     detector_position).all())
 
     # Generate a noiseless measurement for the given target
     measurement = detector.measure(target_state, noise=0)

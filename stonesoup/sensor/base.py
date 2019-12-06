@@ -2,7 +2,6 @@
 from abc import abstractmethod
 
 from ..base import Base, Property
-from ..models.measurement import MeasurementModel
 from ..types.state import StateVector
 
 
@@ -12,9 +11,6 @@ class Sensor(Base):
     A sensor object that operates according to a given
     :class:`~.MeasurementModel`.
     """
-
-    measurement_model = Property(
-        MeasurementModel, default=None, doc="Measurement model")
 
     @abstractmethod
     def measure(**kwargs):
@@ -45,11 +41,3 @@ class Sensor3DCartesian(Sensor):
     def measure(**kwargs):
         """Generate a measurement"""
         raise NotImplementedError
-
-    def set_position(self, position):
-        self.position = position
-        self.measurement_model.translation_offset = position
-
-    def set_orientation(self, orientation):
-        self.orientation = orientation
-        self.measurement_model.rotation_offset = orientation

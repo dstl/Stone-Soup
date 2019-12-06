@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import copy
 import numpy as np
 
 from .base import Sensor3DCartesian
@@ -20,8 +19,6 @@ class RadarRangeBearing(Sensor3DCartesian):
 
     """
 
-    measurement_model = None
-
     ndim_state = Property(
         int,
         doc="Number of state dimensions. This is utilised by (and follows in\
@@ -37,17 +34,6 @@ class RadarRangeBearing(Sensor3DCartesian):
                                 :class:`~.CartesianToBearingRange`\
                                 model")
 
-    def __init__(self, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
-
-        self.measurement_model = CartesianToBearingRange(
-            ndim_state=self.ndim_state,
-            mapping=self.mapping,
-            noise_covar=self.noise_covar,
-            translation_offset=self.position,
-            rotation_offset=self.orientation)
-
     def measure(self, ground_truth, noise=None, **kwargs):
         """Generate a measurement for a given state
 
@@ -62,14 +48,18 @@ class RadarRangeBearing(Sensor3DCartesian):
             A measurement generated from the given state. The timestamp of the\
             measurement is set equal to that of the provided state.
         """
+        measurement_model = CartesianToBearingRange(
+            ndim_state=self.ndim_state,
+            mapping=self.mapping,
+            noise_covar=self.noise_covar,
+            translation_offset=self.position,
+            rotation_offset=self.orientation)
 
-        measurement_vector = self.measurement_model.function(
+        measurement_vector = measurement_model.function(
             ground_truth.state_vector, noise=noise, **kwargs)
 
-        model_copy = copy.copy(self.measurement_model)
-
         return Detection(measurement_vector,
-                         measurement_model=model_copy,
+                         measurement_model=measurement_model,
                          timestamp=ground_truth.timestamp)
 
 
@@ -131,38 +121,43 @@ class RadarRotatingRangeBearing(RadarRangeBearing):
             self.dwell_center.state_vector[0, 0]
 
         # Set rotation offset of underlying measurement model
-        rot_offset =\
+        rot_offset = \
             StateVector(
                 [[self.orientation[0, 0]],
                  [self.orientation[1, 0]],
                  [antenna_heading]])
-        self.measurement_model.rotation_offset = rot_offset
+
+        measurement_model = CartesianToBearingRange(
+            ndim_state=self.ndim_state,
+            mapping=self.mapping,
+            noise_covar=self.noise_covar,
+            translation_offset=self.position,
+            rotation_offset=rot_offset)
 
         # Transform state to measurement space and generate
         # random noise
-        measurement_vector = self.measurement_model.function(
+        measurement_vector = measurement_model.function(
             ground_truth.state_vector, noise=0, **kwargs)
-        if(noise is None):
-            measurement_noise = self.measurement_model.rvs()
+        if (noise is None):
+            measurement_noise = measurement_model.rvs()
         else:
             measurement_noise = noise
 
         # Check if state falls within sensor's FOV
-        fov_min = -self.fov_angle/2
-        fov_max = +self.fov_angle/2
+        fov_min = -self.fov_angle / 2
+        fov_max = +self.fov_angle / 2
         bearing_t = measurement_vector[0, 0]
         range_t = measurement_vector[1, 0]
 
         # Return None if state not in FOV
-        if(bearing_t > fov_max or bearing_t < fov_min
-           or range_t > self.max_range):
+        if (bearing_t > fov_max or bearing_t < fov_min
+                or range_t > self.max_range):
             return None
 
         # Else return measurement
-        model_copy = copy.copy(self.measurement_model)
         measurement_vector += measurement_noise  # Add noise
         return Detection(measurement_vector,
-                         measurement_model=model_copy,
+                         measurement_model=measurement_model,
                          timestamp=timestamp)
 
     def rotate(self, timestamp):
@@ -180,9 +175,9 @@ class RadarRotatingRangeBearing(RadarRangeBearing):
         duration = timestamp - self.dwell_center.timestamp
 
         # Update dwell center
-        rps = self.rpm/60  # rotations per sec
+        rps = self.rpm / 60  # rotations per sec
         self.dwell_center = State(
             StateVector([[self.dwell_center.state_vector[0, 0]
-                          + duration.total_seconds()*rps*2*np.pi]]),
+                          + duration.total_seconds() * rps * 2 * np.pi]]),
             timestamp
         )

@@ -18,8 +18,6 @@ class PassiveElevationBearing(Sensor3DCartesian):
 
     """
 
-    measurement_model = None
-
     ndim_state = Property(
         int,
         doc="Number of state dimensions. This is utilised by (and follows in\
@@ -34,17 +32,6 @@ class PassiveElevationBearing(Sensor3DCartesian):
                                 underlying \
                                 :class:`~.CartesianToElevationBearing`\
                                 model")
-
-    def __init__(self, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
-
-        self.measurement_model = CartesianToElevationBearing(
-            ndim_state=self.ndim_state,
-            mapping=self.mapping,
-            noise_covar=self.noise_covar,
-            translation_offset=self.position,
-            rotation_offset=self.orientation)
 
     def measure(self, ground_truth, noise=None, **kwargs):
         """Generate a measurement for a given state
@@ -61,9 +48,16 @@ class PassiveElevationBearing(Sensor3DCartesian):
             measurement is set equal to that of the provided state.
         """
 
-        measurement_vector = self.measurement_model.function(
+        measurement_model = CartesianToElevationBearing(
+            ndim_state=self.ndim_state,
+            mapping=self.mapping,
+            noise_covar=self.noise_covar,
+            translation_offset=self.position,
+            rotation_offset=self.orientation)
+
+        measurement_vector = measurement_model.function(
             ground_truth.state_vector, noise=noise, **kwargs)
 
         return Detection(measurement_vector,
-                         measurement_model=self.measurement_model,
+                         measurement_model=measurement_model,
                          timestamp=ground_truth.timestamp)
