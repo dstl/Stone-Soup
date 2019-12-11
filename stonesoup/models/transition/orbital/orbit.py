@@ -4,6 +4,8 @@ import copy
 import numpy as np
 import scipy as sp
 from scipy.stats import norm
+from scipy.stats import multivariate_normal
+from datetime import timedelta
 
 from ....base import Property
 from ....types.orbitalstate import OrbitalState, TLEOrbitalState
@@ -106,11 +108,11 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
 
         # Iterate to create a list. May be a better way?
         outlist = []
-        for index in range(num_samples):
+        for a_mean_anomaly in mean_anomalies:
             # Noise is additive so we can do this first...
-            new_mean_anomaly = np.remainder(self.transition(
-                orbital_state.mean_anomaly, time_interval) +
-                                            mean_anomalies[index], 2*np.pi)
+            new_mean_anomaly = self.transition(orbital_state,
+                                               time_interval).mean_anomaly + \
+                               a_mean_anomaly
             new_tle_state = np.insert(np.delete(orbital_state.two_line_element,
                                                 4, 0), 4, new_mean_anomaly,
                                       axis=0)
@@ -150,10 +152,12 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
                                             time_interval).mean_anomaly,
                         scale=self.transition_noise)
 
-    def function(self, orbital_state, time_interval):
+    def function(self, orbital_state, noise=0,
+                 time_interval=timedelta(seconds=0)):
         self.transition(orbital_state, time_interval)
 
-    def transition(self, orbital_state, time_interval):
+    def transition(self, orbital_state,
+                   time_interval=timedelta(seconds=0)):
         r"""Execute the transition function
 
         Parameters
@@ -170,6 +174,11 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
         Note
         ----
         Units of mean motion must be :math:`\mathbf{rad} \, s^{-1}`
+
+        Warning
+        -------
+        Doesn't do the addition of noise. Use the sampling (rvs) function
+        instead.
 
         """
         mean_anomaly = orbital_state.mean_anomaly
@@ -205,7 +214,7 @@ class CartesianTransitionModel(OrbitalTransitionModel):
 
 
     """
-    transition_noise = Property(
+    noise = Property(
         CovarianceMatrix, default=CovarianceMatrix(np.zeros([6, 6])),
         doc=r"Transition noise :math:`\epsilon`")
 
@@ -221,13 +230,19 @@ class CartesianTransitionModel(OrbitalTransitionModel):
         """
         return 6
 
-    def function(self, orbital_state, time_interval):
+    def function(self, state, time_interval):
         """Just the transition function
         """
-        self.transition(self, orbital_state, time_interval)
+        self.transition(state, time_interval)
 
     def transition(self, orbital_state, time_interval):
         """The transition proceeds as
+
+        Warning
+        -------
+        Note that the noise keyword is retained for backward compatibility but
+        is not actually used. If noisy samples from the transition function
+        are required, use the rvs method.
 
         """
         # Reused variables
@@ -353,14 +368,18 @@ class CartesianTransitionModel(OrbitalTransitionModel):
             :math:`M_{t_1}` and the standard deviation :math:`\epsilon`.
 
         """
-        mean_anomalies = np.random.normal(np.zeros(6, 1),
-                                          self.transition_noise, num_samples)
+        samples = multivariate_normal.rvs(mean=np.zeros(np.shape(
+            self.noise)[0]), cov=self.noise, size=num_samples)
 
-        # Iterate to create a list. May be a better way?
+        # rvs does stupid in the case of a single sample so we have to put this back
+        if num_samples == 1:
+            samples = np.array([samples])
+
         outlist = []
-        for index in range(num_samples):
+        for sample in samples:
             new_cstate_vector = self.transition(
-                orbital_state).cartesian_state_vector + mean_anomalies[index]
+                orbital_state, time_interval).cartesian_state_vector + \
+                                np.array([sample]).T
 
             outlist.append(OrbitalState(new_cstate_vector,
                                         coordinates="Cartesian",
@@ -373,15 +392,16 @@ class CartesianTransitionModel(OrbitalTransitionModel):
 
     def pdf(self, test_state, orbital_state, time_interval):
         r"""Return the value of the pdf at :math:`\Delta t` for a given test
-        orbital state. Assumes constancy in all terms except the mean anomaly
-        which is Gauss distributed according to :math:`\epsilon`.
+        orbital state. Assumes multi-variate normal distribution in Cartesian
+        position and velocity coordinates.
 
         Parameters
         ----------
         test_state: :class:~`OrbitalState`
-            The orbital state vector to test
+            The orbital state vector to test.
         orbital_state: :class:~`OrbitalState`
-            The 'mean' orbital state class
+            The 'mean' orbital state class. This undergoes the state transition
+            before comparison with the test state.
         time_interval: :math:`dt` :attr:`datetime.timedelta`
             The time interval over which to test the new state
 
@@ -394,10 +414,12 @@ class CartesianTransitionModel(OrbitalTransitionModel):
         Units of mean motion must be in :math:`\mathrm{rad} s^{-1}`
 
         """
-        return norm.pdf(test_state.cartesian_state_vector,
-                        loc=self.transition(orbital_state,
-                                            time_interval).cartesian_state_vector,
-                        scale=self.transition_noise)
+
+        return multivariate_normal.pdf(test_state.cartesian_state_vector.T,
+                                       mean=self.transition(orbital_state,
+                                                            time_interval).
+                                       cartesian_state_vector.ravel(), # ravel appears to be necessary here.
+                                       cov=self.noise)
 
 
 '''orbit_out = copy.deepcopy(orbit)

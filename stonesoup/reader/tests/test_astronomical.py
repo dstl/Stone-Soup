@@ -19,7 +19,7 @@ def test_fits():
     image_data = fits_reader.data[0]
     header = fits_reader.header[0]
     assert np.array_equal(image_data, n)
-    assert header['OBSERVER'] == 'Edwin Huble'
+    assert header['OBSERVER'] == 'Edwin Hubble'
     assert header['COMMENT'] == "Here's some commentary about this FITS file."
 
 
