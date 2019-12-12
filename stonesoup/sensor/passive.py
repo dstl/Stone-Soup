@@ -24,14 +24,14 @@ class PassiveElevationBearing(Sensor3DCartesian):
             format) the underlying :class:`~.CartesianToElevationBearing`\
             model")
     mapping = Property(
-        [np.array], doc="Mapping between the targets state space and the\
-                        sensors measurement capability")
-    noise_covar = Property(CovarianceMatrix,
-                           doc="The sensor noise covariance matrix. This is \
-                                utilised by (and follow in format) the \
-                                underlying \
-                                :class:`~.CartesianToElevationBearing`\
-                                model")
+        [np.array],
+        doc="Mapping between the targets state space and the sensors\
+            measurement capability")
+    noise_covar = Property(
+        CovarianceMatrix,
+        doc="The sensor noise covariance matrix. This is utilised by\
+            (and follow in format) the underlying \
+            :class:`~.CartesianToElevationBearing` model")
 
     def measure(self, ground_truth, noise=None, **kwargs):
         """Generate a measurement for a given state

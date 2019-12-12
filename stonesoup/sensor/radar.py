@@ -25,14 +25,14 @@ class RadarRangeBearing(Sensor3DCartesian):
             format) the underlying :class:`~.CartesianToBearingRange`\
             model")
     mapping = Property(
-        [np.array], doc="Mapping between the targets state space and the\
-                        sensors measurement capability")
-    noise_covar = Property(CovarianceMatrix,
-                           doc="The sensor noise covariance matrix. This is \
-                                utilised by (and follow in format) the \
-                                underlying \
-                                :class:`~.CartesianToBearingRange`\
-                                model")
+        [np.array],
+        doc="Mapping between the targets state space and the sensors\
+            measurement capability")
+    noise_covar = Property(
+        CovarianceMatrix,
+        doc="The sensor noise covariance matrix. This is utilised by\
+            (and follow in format) the underlying \
+            :class:`~.CartesianToBearingRange` model")
 
     def measure(self, ground_truth, noise=None, **kwargs):
         """Generate a measurement for a given state
@@ -85,15 +85,14 @@ class RadarRotatingRangeBearing(RadarRangeBearing):
         Angle units are in radians"
     )
     rpm = Property(
-        float, doc="The number of antenna rotations per minute (RPM)")
+        float,
+        doc="The number of antenna rotations per minute (RPM)")
     max_range = Property(
-        float, doc="The maximum detection range of the radar (in meters)")
+        float,
+        doc="The maximum detection range of the radar (in meters)")
     fov_angle = Property(
-        float, doc="The radar field of view (FOV) angle (in radians).")
-
-    def __init__(self, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
+        float,
+        doc="The radar field of view (FOV) angle (in radians).")
 
     def measure(self, ground_truth, noise=None, **kwargs):
         """Generate a measurement for a given state
