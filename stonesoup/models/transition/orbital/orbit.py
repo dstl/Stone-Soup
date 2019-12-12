@@ -11,7 +11,7 @@ from ....base import Property
 from ....types.orbitalstate import OrbitalState, TLEOrbitalState
 from ....types.array import CovarianceMatrix
 #from ....astro_functions import calculate_itr_eccentric_anomaly
-from ...base import LinearModel
+from ...base import LinearModel, NonLinearModel
 from .base import OrbitalTransitionModel
 
 
@@ -198,7 +198,7 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
                             grav_parameter=orbital_state.grav_parameter)
 
 
-class CartesianTransitionModel(OrbitalTransitionModel):
+class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
     """This class invokes a transition model in Cartesian coordinates
     assuming a Keplerian orbit. A calculation of the ''universal
     anomaly'' is used which relies on an approximate method (much like
@@ -230,10 +230,10 @@ class CartesianTransitionModel(OrbitalTransitionModel):
         """
         return 6
 
-    def function(self, state, time_interval):
+    def function(self, orbital_state, time_interval, noise=0):
         """Just the transition function
         """
-        self.transition(state, time_interval)
+        return self.transition(orbital_state, time_interval)
 
     def transition(self, orbital_state, time_interval):
         """The transition proceeds as
