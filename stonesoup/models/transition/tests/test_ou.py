@@ -7,13 +7,14 @@ import scipy as sp
 from scipy.stats import multivariate_normal
 
 from stonesoup.models.transition.linear import OrnsteinUhlenbeck
+from ....types.state import State
 
 
 def test_oumodel():
     """ OrnsteinUhlenbeck Transition Model test """
 
     # State related variables
-    state_vec = sp.array([[3.0], [1.0]])
+    state = State(sp.array([[3.0], [1.0]]))
     old_timestamp = datetime.datetime.now()
     timediff = 1  # 1sec
     new_timestamp = old_timestamp + datetime.timedelta(seconds=timediff)
@@ -52,58 +53,58 @@ def test_oumodel():
     # Propagate a state vector throught the model
     # (without noise)
     new_state_vec_wo_noise = ou.function(
-        state_vec,
+        state,
         timestamp=new_timestamp,
         time_interval=time_interval,
         noise=0)
-    assert sp.allclose(new_state_vec_wo_noise, F @ state_vec, rtol=1e-10)
+    assert sp.allclose(new_state_vec_wo_noise, F @ state.state_vector, rtol=1e-10)
 
     # Evaluate the likelihood of the predicted state, given the prior
     # (without noise)
-    prob = ou.pdf(new_state_vec_wo_noise,
-                  state_vec,
+    prob = ou.pdf(State(new_state_vec_wo_noise),
+                  state,
                   timestamp=new_timestamp,
                   time_interval=time_interval)
     assert approx(prob) == multivariate_normal.pdf(
         new_state_vec_wo_noise.T,
-        mean=sp.array(F @ state_vec).ravel(),
+        mean=sp.array(F @ state.state_vector).ravel(),
         cov=Q)
 
-    # Propagate a state vector throught the model
+    # Propagate a state vector through the model
     # (with internal noise)
     new_state_vec_w_inoise = ou.function(
-        state_vec,
+        state,
         timestamp=new_timestamp,
         time_interval=time_interval)
-    assert not sp.allclose(new_state_vec_w_inoise, F @ state_vec, rtol=1e-10)
+    assert not sp.allclose(new_state_vec_w_inoise, F @ state.state_vector, rtol=1e-10)
 
     # Evaluate the likelihood of the predicted state, given the prior
     # (with noise)
-    prob = ou.pdf(new_state_vec_w_inoise,
-                  state_vec,
+    prob = ou.pdf(State(new_state_vec_w_inoise),
+                  state,
                   timestamp=new_timestamp,
                   time_interval=time_interval)
     assert approx(prob) == multivariate_normal.pdf(
         new_state_vec_w_inoise.T,
-        mean=sp.array(F @ state_vec).ravel(),
+        mean=sp.array(F @ state.state_vector).ravel(),
         cov=Q)
 
-    # Propagate a state vector throught the model
+    # Propagate a state vector through the model
     # (with external noise)
     noise = ou.rvs(timestamp=new_timestamp, time_interval=time_interval)
     new_state_vec_w_enoise = ou.function(
-        state_vec,
+        state,
         timestamp=new_timestamp,
         time_interval=time_interval,
         noise=noise)
-    assert sp.allclose(new_state_vec_w_enoise, F @ state_vec + noise,
+    assert sp.allclose(new_state_vec_w_enoise, F @ state.state_vector + noise,
                        rtol=1e-10)
 
     # Evaluate the likelihood of the predicted state, given the prior
     # (with noise)
-    prob = ou.pdf(new_state_vec_w_enoise, state_vec,
+    prob = ou.pdf(State(new_state_vec_w_enoise), state,
                   timestamp=new_timestamp, time_interval=time_interval)
     assert approx(prob) == multivariate_normal.pdf(
         new_state_vec_w_enoise.T,
-        mean=sp.array(F @ state_vec).ravel(),
+        mean=sp.array(F @ state.state_vector).ravel(),
         cov=Q)

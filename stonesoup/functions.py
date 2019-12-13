@@ -5,6 +5,7 @@ import numpy as np
 
 from .types.numeric import Probability
 from .types.array import Matrix
+from .types.state import State
 
 
 def tria(matrix):
@@ -44,8 +45,8 @@ def jacobian(fun, x):
         A (non-linear) transition function
         Must be of the form "y = fun(x)", where y can be a scalar or \
         :class:`numpy.ndarray` of shape `(Nd, 1)` or `(Nd,)`
-    x : :class:`numpy.ndarray` of shape `(Ns, 1)`
-        A state vector
+    x : :class:`State`
+        A state with state vector of shape `(Ns, 1)`
 
     Returns
     -------
@@ -53,10 +54,10 @@ def jacobian(fun, x):
         The computed Jacobian
     """
 
-    if isinstance(x, (int, float)):
+    if isinstance(x.state_vector, (int, float)):
         ndim = 1
     else:
-        ndim = np.shape(x)[0]
+        ndim = np.shape(x.state_vector)[0]
 
     # For numerical reasons the step size needs to large enough
     delta = 1.e-8  # 100*ndim*np.finfo(float).eps
@@ -68,10 +69,10 @@ def jacobian(fun, x):
         nrows = f1.size
 
     F2 = np.empty((nrows, ndim))
-    X1 = np.tile(x, ndim)+np.eye(ndim)*delta
+    X1 = np.tile(x.state_vector, ndim)+np.eye(ndim)*delta
 
     for col in range(0, X1.shape[1]):
-        F2[:, [col]] = fun(X1[:, [col]])
+        F2[:, [col]] = fun(State(X1[:, [col]]))
 
     jac = np.divide(F2-f1, delta)
     return jac.astype(np.float_)

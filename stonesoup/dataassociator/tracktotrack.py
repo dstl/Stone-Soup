@@ -104,9 +104,9 @@ class EuclideanTrackToTrack(TrackToTrackAssociator):
 
                     distance = np.linalg.norm(
                         self.measurement_model_track1.function(
-                            state1.state_vector, noise=0)
+                            state1, noise=0)
                         - self.measurement_model_track2.function(
-                            state2.state_vector, noise=0))
+                            state2, noise=0))
 
                     if distance <= self.association_threshold:
                         n_succesful += 1
@@ -235,9 +235,9 @@ class EuclideanTrackToTruth(TrackToTrackAssociator):
 
                     distance = np.linalg.norm(
                         self.measurement_model_track.function(
-                            track_state.state_vector, noise=0)
+                            track_state, noise=0)
                         - self.measurement_model_truth.function(
-                            truth_state.state_vector, noise=0))
+                            truth_state, noise=0))
                     if min_dist and distance < min_dist:
                         min_dist = distance
                         min_truth = truth

@@ -5,6 +5,7 @@ import numpy as np
 from scipy.stats import multivariate_normal
 
 from ..linear import LinearGaussian
+from ....types.state import State
 
 
 @pytest.mark.parametrize(
@@ -36,6 +37,7 @@ def test_lgmodel(H, R, ndim_state, mapping):
 
     # State related variables
     state_vec = np.array([[n] for n in range(ndim_state)])
+    state = State(state_vec)
 
     # Create and a Constant Velocity model object
     lg = LinearGaussian(ndim_state=ndim_state,
@@ -48,14 +50,14 @@ def test_lgmodel(H, R, ndim_state, mapping):
     # Ensure ```lg.covar()``` returns R
     assert np.array_equal(R, lg.covar())
 
-    # Project a state throught the model
+    # Project a state through the model
     # (without noise)
-    meas_pred_wo_noise = lg.function(state_vec, noise=0)
+    meas_pred_wo_noise = lg.function(state, noise=0)
     assert np.array_equal(meas_pred_wo_noise, H@state_vec)
 
     # Evaluate the likelihood of the predicted measurement, given the state
     # (without noise)
-    prob = lg.pdf(meas_pred_wo_noise, state_vec)
+    prob = lg.pdf(State(meas_pred_wo_noise), state)
     assert approx(prob), multivariate_normal.pdf(
         meas_pred_wo_noise.T,
         mean=np.array(H@state_vec).ravel(),
@@ -63,12 +65,12 @@ def test_lgmodel(H, R, ndim_state, mapping):
 
     # Propagate a state vector through the model
     # (with internal noise)
-    meas_pred_w_inoise = lg.function(state_vec, noise=lg.rvs())
+    meas_pred_w_inoise = lg.function(state, noise=lg.rvs())
     assert not np.array_equal(meas_pred_w_inoise, H@state_vec)
 
     # Evaluate the likelihood of the predicted state, given the prior
     # (with noise)
-    prob = lg.pdf(meas_pred_w_inoise, state_vec)
+    prob = lg.pdf(State(meas_pred_w_inoise), state)
     assert approx(prob) == multivariate_normal.pdf(
         meas_pred_w_inoise.T,
         mean=np.array(H@state_vec).ravel(),
@@ -77,13 +79,13 @@ def test_lgmodel(H, R, ndim_state, mapping):
     # Propagate a state vector through the model
     # (with external noise)
     noise = lg.rvs()
-    meas_pred_w_enoise = lg.function(state_vec,
+    meas_pred_w_enoise = lg.function(state,
                                      noise=noise)
     assert np.array_equal(meas_pred_w_enoise, H@state_vec+noise)
 
     # Evaluate the likelihood of the predicted state, given the prior
     # (with noise)
-    prob = lg.pdf(meas_pred_w_enoise, state_vec)
+    prob = lg.pdf(State(meas_pred_w_enoise), state)
     assert approx(prob) == multivariate_normal.pdf(
         meas_pred_w_enoise.T,
         mean=np.array(H@state_vec).ravel(),

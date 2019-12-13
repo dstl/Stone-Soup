@@ -81,9 +81,9 @@ class SimpleMeasurementInitiator(GaussianInitiator):
 
             if isinstance(measurement_model, NonLinearModel):
                 if isinstance(measurement_model, ReversibleModel):
-                    state_vector = measurement_model.inverse_function(
-                        detection.state_vector)
-                    model_matrix = measurement_model.jacobian(state_vector)
+                    state = measurement_model.inverse_function(
+                        detection)
+                    model_matrix = measurement_model.jacobian(state)
                     inv_model_matrix = np.linalg.pinv(model_matrix)
                 else:
                     raise Exception("Invalid measurement model used.\
