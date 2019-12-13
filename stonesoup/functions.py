@@ -219,11 +219,11 @@ def unscented_transform(sigma_points, mean_weights, covar_weights,
     sigma_points_t = np.zeros((ndim_state, n_points))
     if points_noise is None:
         sigma_points_t = np.asarray(
-            [fun(sigma_points[:, i:i+1])
+            [fun(State(sigma_points[:, i:i+1]))
              for i in range(n_points)]).squeeze(2).T
     else:
         sigma_points_t = np.asarray(
-            [fun(sigma_points[:, i:i+1], points_noise[:, i:i+1])
+            [fun(State(sigma_points[:, i:i+1]), points_noise[:, i:i+1])
              for i in range(n_points)]).squeeze(2).T
     sigma_points_t = sigma_points_t.view(Matrix)
 

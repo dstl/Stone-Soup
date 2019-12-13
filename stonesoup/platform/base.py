@@ -49,7 +49,7 @@ class Platform(Base):
 
         self.state = State(
             state_vector=self.transition_model.function(
-                state_vector=self.state.state_vector,
+                state=self.state,
                 timestamp=timestamp,
                 time_interval=time_interval,
                 **kwargs),

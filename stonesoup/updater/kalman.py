@@ -137,7 +137,7 @@ class KalmanUpdater(Updater):
         # native to the updater
         measurement_model = self._check_measurement_model(measurement_model)
 
-        pred_meas = measurement_model.function(predicted_state.state_vector,
+        pred_meas = measurement_model.function(predicted_state,
                                                noise=0, **kwargs)
 
         hh = self._measurement_matrix(predicted_state=predicted_state,
@@ -264,7 +264,7 @@ class ExtendedKalmanUpdater(KalmanUpdater):
         if isinstance(measurement_model, LinearModel):
             return measurement_model.matrix(**kwargs)
         else:
-            return measurement_model.jacobian(predicted_state.state_vector,
+            return measurement_model.jacobian(predicted_state,
                                               **kwargs)
 
 
