@@ -8,6 +8,7 @@ from scipy.stats import multivariate_normal
 from ..linear import Singer, CombinedLinearGaussianTransitionModel
 from ....types.state import State
 
+
 def test_singer1dmodel():
     """ Singer 1D Transition Model test """
     state = State(sp.array([[3.0], [1.0], [0.1]]))
@@ -18,8 +19,7 @@ def test_singer1dmodel():
 
 def test_singer2dmodel():
     """ Singer 2D Transition Model test """
-    state = State(sp.array([[3.0], [1.0], [0.1],
-                          [2.0], [2.0], [0.2]]))
+    state = State(sp.array([[3.0], [1.0], [0.1], [2.0], [2.0], [0.2]]))
     noise_diff_coeffs = sp.array([0.01, 0.02])
     damping_coeffs = sp.array([0.1, 0.1])
 
@@ -28,9 +28,8 @@ def test_singer2dmodel():
 
 def test_singer3dmodel():
     """ Singer 3D Transition Model test """
-    state = State(sp.array([[3.0], [1.0], [0.1],
-                          [2.0], [2.0], [0.2],
-                          [4.0], [0.5], [0.05]]))
+    state = State(sp.array([[3.0], [1.0], [0.1], [2.0], [2.0], [0.2], [4.0],
+                            [0.5], [0.05]]))
     noise_diff_coeffs = sp.array([0.01, 0.02, 0.005])
     damping_coeffs = sp.array([0.1, 0.1, 0.1])
     base(state, noise_diff_coeffs, damping_coeffs)

@@ -217,7 +217,8 @@ class GaussianModel(Model):
         Returns
         -------
         : :class:`~.Probability`
-            The likelihood of ``state1``, given ``state2`` # (given "prior" state2 I think)
+            The likelihood of ``state1``, given ``state2`` # (given "prior"
+            state2 in fact)
         """
 
         likelihood = multivariate_normal.logpdf(

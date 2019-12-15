@@ -57,7 +57,8 @@ def test_oumodel():
         timestamp=new_timestamp,
         time_interval=time_interval,
         noise=0)
-    assert sp.allclose(new_state_vec_wo_noise, F @ state.state_vector, rtol=1e-10)
+    assert sp.allclose(new_state_vec_wo_noise, F @ state.state_vector,
+                       rtol=1e-10)
 
     # Evaluate the likelihood of the predicted state, given the prior
     # (without noise)
@@ -76,7 +77,8 @@ def test_oumodel():
         state,
         timestamp=new_timestamp,
         time_interval=time_interval)
-    assert not sp.allclose(new_state_vec_w_inoise, F @ state.state_vector, rtol=1e-10)
+    assert not sp.allclose(new_state_vec_w_inoise, F @ state.state_vector,
+                           rtol=1e-10)
 
     # Evaluate the likelihood of the predicted state, given the prior
     # (with noise)

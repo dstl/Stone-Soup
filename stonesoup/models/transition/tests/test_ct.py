@@ -8,6 +8,7 @@ from scipy.stats import multivariate_normal
 from ..linear import ConstantTurn
 from ....types.state import State
 
+
 def test_ctmodel():
     """ ConstantTurn Transition Model test """
     state = State(sp.array([[3.0], [1.0], [2.0], [1.0]]))
