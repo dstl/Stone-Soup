@@ -5,7 +5,7 @@ import numpy as np
 import scipy as sp
 from scipy.stats import norm
 from scipy.stats import multivariate_normal
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from ....base import Property
 from ....types.orbitalstate import OrbitalState, TLEOrbitalState
@@ -57,7 +57,6 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
 
             \mathcal{N}(M_{t_1},\epsilon)
 
-
     TODO: test the efficiency of this method
 
     """
@@ -69,10 +68,18 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
         pass
 
     def ndim_state(self):
-        """The transition operates on the 6-dimensional orbital state vector"""
+        """The transition operates on the 6-dimensional orbital state vector
+
+        Returns
+        -------
+        : int
+            6
+
+        """
         return 6
 
-    def rvs(self, num_samples, orbital_state, time_interval):
+    def rvs(self, num_samples=1, orbital_state=None,
+            time_interval=timedelta(seconds=0)):
         r"""Generate samples from the transition function. Assume that the
         noise is additive and Gauss-distributed in mean anomaly only. So,
 
@@ -84,16 +91,17 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
 
         Parameters
         ----------
-        num_samples : int
-            Number of samples, :math:`N`
-        orbital_state: :class:~`OrbitalState`
-            The orbital state class
-        time_interval : :class:~`datetime.timedelta`
+        num_samples : int, optional
+            Number of samples, (default is 1)
+        orbital_state: :class:~`OrbitalState`, optional
+            The orbital state class, (default is None, in which case the state
+            is created with a mean anomaly of 0)
+        time_interval : :class:~`datetime.timedelta`, optional
             The time over which the transition occurs
 
         Returns
         -------
-        : list
+        : numpy.array, (of dimension 6 x num_samples)
             N random samples of the state vector drawn from a normal
             distribution defined by the transited mean anomaly,
             :math:`M_{t_1}` and the standard deviation :math:`\epsilon`.
@@ -103,11 +111,15 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
         Units of mean motion must be in :math:`\mathrm{rad} s^{-1}`
 
         """
+        if orbital_state is None:
+            orbital_state = OrbitalState(np.zeros((6,1)), coordinates="TLE",
+                                         timestamp=datetime(1970, 1, 1))
+
         mean_anomalies = np.random.normal(0, self.transition_noise,
                                           num_samples)
 
-        # Iterate to create a list. May be a better way?
-        outlist = []
+        # Iterate to create a list. May be a better way.
+        out = np.array((0, 6)) # empty 6-d array
         for a_mean_anomaly in mean_anomalies:
             # Noise is additive so we can do this first...
             new_mean_anomaly = self.transition(orbital_state,
@@ -116,15 +128,19 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
             new_tle_state = np.insert(np.delete(orbital_state.two_line_element,
                                                 4, 0), 4, new_mean_anomaly,
                                       axis=0)
-            outlist.append(OrbitalState(new_tle_state,  coordinates="TLE",
-                                        timestamp=orbital_state.timestamp +
-                                                  time_interval,
-                                        grav_parameter=
-                                        orbital_state.grav_parameter))
 
-        return outlist
+            outstate = OrbitalState(new_tle_state,  coordinates="TLE",
+                                    timestamp=orbital_state.timestamp +
+                                              time_interval,
+                                    grav_parameter=
+                                    orbital_state.grav_parameter)
 
-    def pdf(self, test_state, orbital_state, time_interval):
+            out = np.append(out, outstate.cartesian_state_vector)
+
+        return out.T # to return an array of dimension 6xNDim
+
+    def pdf(self, test_state, orbital_state,
+            time_interval=timedelta(seconds=0)):
         r"""Return the value of the pdf at :math:`\Delta t` for a given test
         orbital state. Assumes constancy in all terms except the mean anomaly
         which is Gauss distributed according to :math:`\epsilon`.
@@ -134,9 +150,9 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
         test_state: :class:~`OrbitalState`
             The orbital state vector to test
         orbital_state: :class:~`OrbitalState`
-            The 'mean' orbital state class
-        time_interval: :math:`dt` :attr:`datetime.timedelta`
-            The time interval over which to test the new state
+            The prior orbital state class
+        time_interval: :math:`dt` :attr:`datetime.timedelta`, optional
+            The time interval over which to test the new state (default is 0)
 
         Returns
         -------
@@ -154,6 +170,32 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
 
     def function(self, orbital_state, noise=0,
                  time_interval=timedelta(seconds=0)):
+        r"""Execute the transition function
+
+        Parameters
+        ----------
+        orbital_state : :class:~`OrbitalState`
+            The prior orbital state
+        noise : float, optional
+            The nominal standard deviation function parameter. This isn't
+            passed to the transition function though, so can be left out.
+        time_interval: :math:`dt` :attr:`datetime.timedelta`, optional
+            The time interval over which to test the new state, (default is 0
+            seconds)
+
+        Returns
+        -------
+        : StateVector
+            The orbital state vector returned by the transition function
+
+        Notes
+        -----
+            This merely passes the parameters to the :attr:`.transition()`
+            function. The noise parameter has no effect, is included merely
+            for compatibility with parent classes.  Units of mean motion must
+            be :math:`\mathbf{rad} \, s^{-1}`
+
+        """
         self.transition(orbital_state, time_interval)
 
     def transition(self, orbital_state,
@@ -163,13 +205,15 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
         Parameters
         ----------
         orbital_state: :class:~`OrbitalState`
-            The orbital state class
-        time_interval: :math:`dt` :attr:`datetime.timedelta`
-            The time interval over which to calculate the new state
+            The prior orbital state
+        time_interval: :math:`dt` :attr:`datetime.timedelta`, optional
+            The time interval over which to calculate the new state (default is
+            0 seconds)
 
         Returns
         -------
-        : :class:~`OrbitalState`
+        : :class:~`StateVector`
+            The orbital state vector returned by the transition function
 
         Note
         ----
@@ -195,7 +239,8 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
 
         return OrbitalState(new_tle_state, coordinates='TLE',
                             timestamp=orbital_state.timestamp + time_interval,
-                            grav_parameter=orbital_state.grav_parameter)
+                            grav_parameter=orbital_state.grav_parameter).\
+            cartesian_state_vector
 
 
 class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
@@ -211,7 +256,6 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
     ---------
     Curtis, H.D 2010, Orbital Mechanics for Engineering Students (3rd
     Ed.), Elsevier Publishing
-
 
     """
     noise = Property(
@@ -230,19 +274,55 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
         """
         return 6
 
-    def function(self, orbital_state, time_interval, noise=0):
-        """Just the transition function
+    def function(self, orbital_state, noise=0,
+                 time_interval=timedelta(seconds=0)):
+        r"""Just passes parameters to the transition function
+
+        Parameters
+        ----------
+        orbital_state : :class:~`OrbitalState`
+            The prior orbital state
+        noise : CovarianceMatrix, optional
+            The nominal covariance matrix. This isn't passed to the transition
+            function though, so can be left out.
+        time_interval: :math:`dt` :attr:`datetime.timedelta`, optional
+            The time interval over which to test the new state (default is 0
+            seconds)
+
+        Returns
+        -------
+        : StateVector
+            The orbital state vector returned by the transition function
+
+        Notes
+        -----
+            This merely passes the parameters to the :attr:`.transition()`
+            function. The noise parameter has no effect, is included merely
+            for compatibility with parent classes.  Units of mean motion must
+            be :math:`\mathbf{rad} \, s^{-1}`
         """
         return self.transition(orbital_state, time_interval)
 
-    def transition(self, orbital_state, time_interval):
-        """The transition proceeds as
+    def transition(self, orbital_state, time_interval=timedelta(seconds=0)):
+        r"""The transition proceeds as algorithm 3.4 in [1]
+
+        Parameters
+        ----------
+        orbital_state : :class:~`OrbitalState`
+            The prior orbital state
+        time_interval: :math:`dt` :attr:`datetime.timedelta`, optional
+            The time interval over which to test the new state (default is 0
+            seconds)
+
+        Returns
+        -------
+        : StateVector
+            The orbital state vector returned by the transition function
 
         Warning
         -------
-        Note that the noise keyword is retained for backward compatibility but
-        is not actually used. If noisy samples from the transition function
-        are required, use the rvs method.
+        If noisy samples from the transition function are required, use the rvs
+        method. Units of mean motion must be :math:`\mathbf{rad} \, s^{-1}`
 
         """
         # Reused variables
@@ -335,12 +415,10 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
         bold_v = f_dot * bold_r_0 + g_dot * bold_v_0
 
         # And put them together
-        return OrbitalState(np.concatenate((bold_r, bold_v), axis=0),
-                            coordinates='Cartesian',
-                            timestamp=orbital_state.timestamp + time_interval,
-                            grav_parameter=orbital_state.grav_parameter)
+        return np.concatenate((bold_r, bold_v), axis=0)
 
-    def rvs(self, num_samples, orbital_state, time_interval):
+    def rvs(self, num_samples=1, orbital_state=None,
+            time_interval=timedelta(seconds=0)):
         r"""Sample from the transited state. Do this in a fairly simple-minded
         way by way of additive white noise in Cartesian coordinates.
 
@@ -353,44 +431,47 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
 
         Parameters
         ----------
-        num_samples : int
-            Number of samples, :math:`N`
-        orbital_state: :class:~`OrbitalState`
-            The orbital state class
-        time_interval : :class:~`datetime.timedelta`
-            The time over which the transition occurs
+        num_samples : int, optional
+            Number of samples, (default is 1)
+        orbital_state: :class:~`OrbitalState`, optional
+            The orbital state class (default is None, in which case a
+            0-position, 0-velocity vector is created)
+        time_interval : :class:~`datetime.timedelta`, optional
+            The time over which the transition occurs, (default is 0)
 
         Returns
         -------
-        : list
+        : numpy.array, dimension (6, num_samples)
             N random samples of the state vector drawn from a normal
             distribution defined by the transited mean anomaly,
             :math:`M_{t_1}` and the standard deviation :math:`\epsilon`.
 
         """
+        if orbital_state is None:
+            orbital_state = OrbitalState(np.zeros((6, 1)),
+                                         coordinates="Cartesian",
+                                         timestamp=datetime(1970, 1, 1))
+
         samples = multivariate_normal.rvs(mean=np.zeros(np.shape(
             self.noise)[0]), cov=self.noise, size=num_samples)
 
-        # rvs does stupid in the case of a single sample so we have to put this back
+        # multivariate_normal.rvs() does stupid in the case of a single sample
+        # so we have to put this back
         if num_samples == 1:
             samples = np.array([samples])
 
-        outlist = []
+        out = np.array((0, 6))
         for sample in samples:
             new_cstate_vector = self.transition(
                 orbital_state, time_interval).cartesian_state_vector + \
                                 np.array([sample]).T
 
-            outlist.append(OrbitalState(new_cstate_vector,
-                                        coordinates="Cartesian",
-                                        timestamp=orbital_state.timestamp +
-                                        time_interval,
-                                        grav_parameter=
-                                        orbital_state.grav_parameter))
+            out = np.append(out, new_cstate_vector, axis=0)
 
-        return outlist
+        return out.T
 
-    def pdf(self, test_state, orbital_state, time_interval):
+    def pdf(self, test_state, orbital_state,
+            time_interval=timedelta(seconds=0)):
         r"""Return the value of the pdf at :math:`\Delta t` for a given test
         orbital state. Assumes multi-variate normal distribution in Cartesian
         position and velocity coordinates.
@@ -418,177 +499,8 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
         return multivariate_normal.pdf(test_state.cartesian_state_vector.T,
                                        mean=self.transition(orbital_state,
                                                             time_interval).
-                                       cartesian_state_vector.ravel(), # ravel appears to be necessary here.
+                                       cartesian_state_vector.ravel(),
                                        cov=self.noise)
+                                       # ravel appears to be necessary here.
 
 
-'''orbit_out = copy.deepcopy(orbit)
-        if type(orbit) == "KeplerianOrbitState":
-            mean_motion = 2*np.pi/orbit.period()
-            new_mean_anomaly = orbit.mean_anomaly() + mean_motion*time_interval.total_seconds()
-            # Use the mean motion to find the new mean anomaly
-            # Get the new eccentric anomaly from the new mean anomaly
-            eccentric_anomaly = calculate_itr_eccentric_anomaly(new_mean_anomaly, orbit.eccentricity())
-            # And use that to find the new true anomaly
-            new_true_anomaly = 2 * np.arctan(np.sqrt((1+orbit.eccentricity()) /
-                                                    (1-orbit.eccentricity()))*np.tan(eccentric_anomaly/2))
-            # Put the true anomaly into the new state vector
-            orbit_out.state_vector[5] = new_true_anomaly
-        elif type(orbit) == "TLEOrbitState":
-            new_mean_anomaly = orbit.mean_anomaly() + orbit.mean_motion()*time_interval.total_seconds()
-            orbit_out.state_vector[5] = new_mean_anomaly
-        elif type(orbit) == "EquinoctialOrbitState":
-            mean_motion = 2*np.pi/orbit.period()
-            new_mean_anomaly = orbit.mean_anomaly() + mean_motion*time_interval.total_seconds()
-            orbit_out.state_vector[5] = new_mean_anomaly
-        elif type(orbit) == "CartesianOrbitState":
-            raise NotImplementedError
-        else:
-            raise ValueError("Orbit format not recognised")
-        orbit_out.timestamp = orbit.timestamp + time_interval
-
-        # Add some noise, if that's what you want
-        # if self.covariance_matrix is not None:
-        #     orbit_out = self.sample(orbit_out)
-
-        return orbit_out'''
-
-'''def sample(self, o_e):
-
-        """
-
-        Sample from the un-transited state in a multi-variate normal sense according to the covariance matrix.
-
-        Problem is no quantities are actually mvn distributed. So how to guard against unphysical values?
-
-        """
-        # return OrbitalState(np.array([np.random.multivariate_normal(o_e.state_vector.flatten(),
-        #                                                               self.covariance_matrix)]).transpose(),
-        #                        timestamp=o_e.timestamp)'''
-
-
-'''
-
-    class OrbitalTransitionModel(TransitionModel):
-
-    r""" This class will execute a simple transition model on orbital
-    elements. Input is an :class:~`OrbitalState`. How the transition
-    occurs is dependent upon the underlying :class:`OrbitalState` type.
-    For the :class:~`KeplerianOrbitalState`, transition proceeds as,
-        .. math::
-            X_{t_1} = X_{t_0} + [0, 0, 0, 0, 0, n \delta t]^{T}\\
-    at Epoch :attr:`OrbitalState.timestamp` :math:`t_0` for :attr:`OrbitalElements.state_vector` state :math:`X_{t_0}` and where
-    :math:`n` is the mean motion, computed as:
-        .. math::
-           n = \sqrt{ \frac{\mu}{a^3} }
-    and
-        .. math::
-            X_{t_0} = [e, a, i, \Omega, \omega, M]^{T} \\
-    where :math:`e` is the orbital eccentricity (unitless), :math:`a` the semi-major axis (m), :math:`i` the
-    inclination (rad), :math:`\Omega` is the longitude of the ascending node (rad), :math:`\omega` the argument of
-    periapsis (rad), and :math:`M` the mean anomaly (rad) and :math:`\mu` is the product of the gravitational constant
-    and the mass of the primary.
-    """
-
-    transition_matrix = Property(
-        sp.ndarray, default=None, doc="Transition matrix :math:`\\mathbf{F}`")
-    covariance_matrix = Property(
-        sp.ndarray, default=None, doc="Transition noise covariance matrix :math:`\\mathbf{Q}`")
-    control_matrix = Property(
-        sp.ndarray, default=None, doc="Control matrix :math:`\\mathbf{B}`")
-
-    def rvs(self, num_samples):
-        """
-        :param num_samples: Number of samples, :math:`N`
-        :return: N random samples drawn from multivariate normal distribution
-        defined by the covariance matrix
-        """
-
-        noise = np.array(sp.stats.multivariate_normal.rvs(
-            sp.zeros(self.ndim_state()), self.covariance_matrix, num_samples)).transpose()
-
-        return noise
-
-    def pdf(self,o_e,t_i):
-        """
-        :param o_e: Orbital element state vector
-        :param t_i: Time interval
-        :return: Not sure, this is a transition model, so p(x_{t+t_i}|x_t)?
-        """
-        print("No pdf function at present")
-
-    def ndim_state(self):
-        return 6
-
-    def covar(self):
-        """Construct the covariance matrix"""
-        return self.covariance_matrix
-
-    def matrix(self):
-        """
-        :param time_interval:
-        :return:
-        Parameters
-        ----------
-        time_interval:: class: `datetime.timedelta`
-            A time interval: math:`dt`
-        Returns
-        -------
-        :class:`stonesoup.types.state.CovarianceMatrix` of shape\
-        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
-            The process noise covariance.
-        """
-        print("Designed to return the transition matrix at present. TB improved to create the appropriate matrix for time "
-              "interval.")
-              
-
-    def transition(self, orbit, time_interval):
-
-        """
-        Parameters
-        ----------
-        orbital_elements: :attr:`OrbitalElements`
-        time_interval: :math:`dt` :attr:`datetime.timedelta`
-        """
-        orbit_out = copy.deepcopy(orbit)
-        if type(orbit) == "KeplerianOrbitState":
-            mean_motion = 2*np.pi/orbit.period()
-            new_mean_anomaly = orbit.mean_anomaly() + mean_motion*time_interval.total_seconds()
-            # Use the mean motion to find the new mean anomaly
-            # Get the new eccentric anomaly from the new mean anomaly
-            eccentric_anomaly = calculate_itr_eccentric_anomaly(new_mean_anomaly, orbit.eccentricity())
-            # And use that to find the new true anomaly
-            new_true_anomaly = 2 * np.arctan(np.sqrt((1+orbit.eccentricity()) /
-                                                    (1-orbit.eccentricity()))*np.tan(eccentric_anomaly/2))
-            # Put the true anomaly into the new state vector
-            orbit_out.state_vector[5] = new_true_anomaly
-        elif type(orbit) == "TLEOrbitState":
-            new_mean_anomaly = orbit.mean_anomaly() + orbit.mean_motion()*time_interval.total_seconds()
-            orbit_out.state_vector[5] = new_mean_anomaly
-        elif type(orbit) == "EquinoctialOrbitState":
-            mean_motion = 2*np.pi/orbit.period()
-            new_mean_anomaly = orbit.mean_anomaly() + mean_motion*time_interval.total_seconds()
-            orbit_out.state_vector[5] = new_mean_anomaly
-        elif type(orbit) == "CartesianOrbitState":
-            raise NotImplementedError
-        else:
-            raise ValueError("Orbit format not recognised")
-        orbit_out.timestamp = orbit.timestamp + time_interval
-
-        # Add some noise, if that's what you want
-        # if self.covariance_matrix is not None:
-        #     orbit_out = self.sample(orbit_out)
-
-        return orbit_out
-
-    def sample(self, o_e):
-
-        """
-        Sample from the un-transited state in a multi-variate normal sense according to the covariance matrix.
-        Problem is no quantities are actually mvn distributed. So how to guard against unphysical values?
-        """
-        # return OrbitalState(np.array([np.random.multivariate_normal(o_e.state_vector.flatten(),
-        #                                                               self.covariance_matrix)]).transpose(),
-        #                        timestamp=o_e.timestamp)
-
-'''
