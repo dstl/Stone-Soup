@@ -3,12 +3,13 @@ import datetime
 
 import numpy as np
 
+from ..radar import (
+    RadarRangeBearing, RadarRotatingRangeBearing, RadarRasterScanRangeBearing)
 from ....functions import cart2pol
 from ....types.angle import Bearing
 from ....types.array import StateVector, CovarianceMatrix
 from ....types.state import State
-from ..radar import (
-    RadarRangeBearing, RadarRotatingRangeBearing, RadarRasterScanRangeBearing)
+from ..radar import RadarRangeBearing, RadarRotatingRangeBearing
 
 
 def h2d(state_vector, translation_offset, rotation_offset):

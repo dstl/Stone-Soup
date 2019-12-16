@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-from ..base import Sensor3DCartesian
-from ..base import Property
+from ..base import Property, Sensor3DCartesian
 from ...models.measurement.nonlinear import CartesianToBearingRange
 from ...types.array import CovarianceMatrix
 from ...types.detection import Detection
