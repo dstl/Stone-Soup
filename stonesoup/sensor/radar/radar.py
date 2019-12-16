@@ -1,11 +1,20 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
+from math import erfc
+from ...functions import cart2sphere, rotx, roty, rotz
+from ..base import Sensor
 from ..base import Property, Sensor3DCartesian
+
 from ...models.measurement.nonlinear import CartesianToBearingRange
 from ...types.array import CovarianceMatrix
 from ...types.detection import Detection
 from ...types.state import State, StateVector
+from .beam_shape import BeamShape
+from .beam_pattern import BeamTransitionModel
+from ...models.measurement.base import MeasurementModel
+from ...types.numeric import Probability
+import scipy.constants as const
 
 
 class RadarRangeBearing(Sensor3DCartesian):
@@ -136,8 +145,9 @@ class RadarRotatingRangeBearing(RadarRangeBearing):
         # random noise
         measurement_vector = measurement_model.function(
             ground_truth.state_vector, noise=0, **kwargs)
-        if (noise is None):
-            measurement_noise = measurement_model.rvs()
+
+        if noise is None:
+            measurement_noise = self.measurement_model.rvs()
         else:
             measurement_noise = noise
 
@@ -236,3 +246,159 @@ class RadarRasterScanRangeBearing(RadarRotatingRangeBearing):
                               ]]), timestamp)
 
             self.rpm = -self.rpm
+
+
+class AESARadar(Sensor):
+    """An AESA (Active electronically scanned array) radar model that
+    calculates the signal to noise ratio(SNR) from a target and the subsequent
+    probability of detection (PD) using the north's approximation. The SNR is
+    calculated using:
+    .. math::
+     SNR = \dfrac{c^2 n_p \beta}{64\pi^3 kT_0 B F f^2 L} \times
+     \dfrac{\sigma G_a^2 P_t}{R^4}
+    The SNR is then used to calculate the PD:
+    .. math:: P_d = 0.5 erfc \left( \sqrt{-\ln(P_{fa})} =
+    \sqrt{SNR + 0.5}\right).
+    In this model the AESA scan angle effects the gain by:
+    :math: 'G_a = G_a \cos{\theta}\cos{phi}'.
+    And the effect on the beam width follows:
+    :math: '\Delta\theta = \dfrac{\Delta\theta}{\cos{\theta}\cos{phi}}'
+    This class uses cart2sphere to convert from cartesian to spherical, so
+    follows it's coordinate system"""
+
+    rotation_offset = Property(StateVector, default=StateVector([0, 0, 0]),
+                               doc="""A 3x1 array of angles (rad), specifying 
+                               the radar orientation in terms of the 
+                               counter-clockwise rotation around the 
+                               :math:`x,y,z` axis. i.e Roll, Pitch, Yaw""")
+
+    translation_offset = Property(StateVector,
+                                  default=StateVector([0, 0, 0]),
+                                  doc="The radar position and velocity in 3D "
+                                      "Cartesian space.[x,Vx,y,Vy,z,Vz]")
+
+    mapping = Property(np.array, default=[0, 1, 2],
+                       doc="Mapping between or positions/velocities and state "
+                           "dimensions. [x,Vx,y,Vy,z,Vz]")
+
+    measurement_model = Property(MeasurementModel, default=None,
+                                 doc="Measurement model")
+
+    beam_shape = Property(BeamShape,
+                          doc="Object describing the shape of the beam")
+
+    beam_transition_model = Property(BeamTransitionModel,
+                                     doc="Object describing the "
+                                         "movement of the beam ")
+    # SNR variables
+    number_pulses = Property(int, default=1)
+    duty_cycle = Property(float)
+    band_width = Property(float, doc="hertz")
+    receiver_noise = Property(float, doc="decibels")
+    frequency = Property(float, doc="hertz")
+    antenna_gain = Property(float, doc="decibels")
+    beam_width = Property(float, doc="radians")
+    loss = Property(float, default=0, doc="decibels")
+
+    swerling_on = Property(bool, default=False,
+                           doc="is the Swerling 1 type target")
+    rcs = Property(float, default=None, doc="radar cross section of targets")
+
+    probability_false_alarm = Property(Probability, default=1e-6)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        temp = 290  # noise reference temperature (room temperature kelvin)
+        # convert from dB
+        noise_figure = 10 ** (self.receiver_noise / 10)
+        loss = 10 ** (self.loss / 10)
+        # calculate part of snr that is independent of:
+        #   rcs, transmitted power, gain and range
+        self.snr_constant = (const.c ** 2 * self.number_pulses *
+                             self.duty_cycle) / (64 * np.pi ** 3 * const.k *
+                             temp * self.band_width * noise_figure *
+                             self.frequency ** 2 * loss)
+        # calculate range resolution for compressed pulse
+
+    def swerling_1(self, rcs):
+        # swerling random distribution function
+        return -rcs * np.log(np.random.rand())
+
+    @property
+    def _rotation_matrix(self):
+        """_rotation_matrix getter method
+
+        Calculates and returns the (3D) axis rotation matrix.
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape (3, 3)
+            The model (3D) rotation matrix.
+        """
+
+        theta_x = -self.rotation_offset[0, 0]  # roll
+        theta_y = -self.rotation_offset[1, 0]  # pitch#elevation
+        theta_z = -self.rotation_offset[2, 0]  # yaw#azimuth
+
+        return rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
+
+    def prob_gen(self, sky_state):
+        """generates the probability of detection (det_prob) of a Target State and also
+        outputs: the signal to noise ratio (snr), the radar cross section
+        (swer_rcs), the power transmitted in the direction of the target
+        (directed_power), the gain after beam spoiling (spoiled_gain) and, the
+        beam width after beam spoiling (spoiled_width)"""
+        if hasattr(sky_state, 'rcs') and sky_state.rcs is not None:
+            # use state's rcs if it has one
+            rcs = sky_state.rcs
+        else:
+            rcs = self.rcs
+        # apply swerling 1 case?
+        if self.swerling_on:
+            rcs = self.swerling_1(rcs)
+
+        # e-scan beam steer
+        [beam_az, beam_el] = self.beam_transition_model.move_beam(
+            sky_state.timestamp)  # [az,el]
+
+        # effects of e-scan on gain and beam width
+        spoiled_gain = 10 ** (self.antenna_gain / 10) * \
+                       np.cos(beam_az) * np.cos(beam_el)
+        spoiled_width = self.beam_width / (np.cos(beam_az) * np.cos(beam_el))
+        # state relative to radar (in cartesian space)
+        relative_vector = sky_state.state_vector[
+                              self.mapping] - self.translation_offset
+        relative_vector = self._rotation_matrix @ relative_vector
+
+        # calculate target position in spherical coordinates
+        [r, pos_az, pos_el] = cart2sphere(*relative_vector[self.mapping])
+
+        # target position relative to beam position
+        relative_az = pos_az[0] - beam_az
+        relative_el = pos_el[0] - beam_el
+        # calculate power directed towards target
+        self.beam_shape.beam_width = spoiled_width  # beam spoiling to width
+        directed_power = self.beam_shape.beam_power(relative_az, relative_el)
+        # calculate signal to noise ratio
+        snr = self.snr_constant * rcs * spoiled_gain ** 2 * \
+              directed_power / (r[0] ** 4)
+        # calculate probability of detection using the North's approximation
+        det_prob = 0.5 * erfc(
+            (-np.log(self.probability_false_alarm)) ** 0.5 - (
+                    snr + 1 / 2) ** 0.5)
+        return det_prob, snr, rcs, directed_power, \
+               10 * np.log10(spoiled_gain), spoiled_width
+
+    def gen_measurement(self, sky_state, **kwargs):
+        """Generates detections of Target State with errors"""
+
+        det_prob = self.prob_gen(sky_state)[0]
+
+        if np.random.rand() <= det_prob:
+            self.measurement_model.translation_offset = self.translation_offset
+            self.measurement_model.rotation_offset = self.rotation_offset
+            measured_pos = self.measurement_model.function(
+                sky_state.state_vector)
+
+            return Detection(measured_pos, timestamp=sky_state.timestamp,
+                             measurement_model=self.measurement_model)
