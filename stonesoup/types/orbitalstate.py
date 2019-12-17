@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import datetime
 import numpy as np
 import string as strg
 
@@ -53,9 +52,9 @@ class OrbitalState(State):
 
     covar = Property(
         CovarianceMatrix, default=None,
-        doc="The covariance matrix. Care should be exercised in that its coordinate"
-            "frame isn't defined, and output will be highly dependant on which"
-            "parameterisation is chosen."
+        doc="The covariance matrix. Care should be exercised in that its "
+            "coordinate frame isn't defined, and output will be highly "
+            "dependant on which parameterisation is chosen"
     )
 
     _eanom_precision = Property(
@@ -90,42 +89,41 @@ class OrbitalState(State):
 
         """
         if len(state_vector) != 6:
-            raise ValueError("State vector shape should be 6x1 : got {}".format(
-                state_vector.shape))
+            raise ValueError("State vector shape should be 6x1 : got {}"
+                             .format(state_vector.shape))
 
         super().__init__(state_vector, *args, **kwargs)
 
         # Query the coordinates
         if self.coordinates.lower() == 'cartesian':
             r"""The orbital state vector.
-            
+
             Parameters
             ----------
             state_vector : numpy.array
-            
-                .. math::
-            
-                    X_{t_0} = [r_x, r_y, r_z, \odot{r}_x, \odot{r}_y, 
-                    \odot{r}_z]
-        
-                where:
-                :math:`r_x, r_y, r_z` is the Cartesian position coordinate in 
-                Earth Centered Inertial (ECI) coordinates
-                :math:`\odot{r}_x, \odot{r}_y, \odot{r}_z` is the velocity 
-                coordinate in ECI coordinates
-                
-            """
 
+                .. math::
+
+                    X_{t_0} = [r_x, r_y, r_z, \odot{r}_x, \odot{r}_y,
+                    \odot{r}_z]
+
+                where:
+                :math:`r_x, r_y, r_z` is the Cartesian position coordinate in
+                Earth Centered Inertial (ECI) coordinates
+                :math:`\odot{r}_x, \odot{r}_y, \odot{r}_z` is the velocity
+                coordinate in ECI coordinates
+
+            """
             #  No need to do any conversions here
             self.state_vector = state_vector
 
         elif self.coordinates.lower() == 'keplerian':
-            r"""The state vector input should have the following input: 
-            
+            r"""The state vector input should have the following input:
+
             Parameters
             ----------
             state_vector : numpy.array
-            
+
                 .. math::
 
                     X_{t_0} = [e, a, i, \Omega, \omega, \\theta]^{T} \\
@@ -137,19 +135,18 @@ class OrbitalState(State):
                 :math:`\Omega` is the longitude of the ascending node (rad),
                 :math:`\omega` the argument of periapsis (rad), and
                 :math:`\\theta` the true anomaly (rad).
-                
-            """
 
+            """
             self.state_vector = self._keplerian_to_rv(state_vector)
 
         elif self.coordinates.upper() == 'TLE':
-            r"""For the TLE state vector, the structure reflects the data 
+            r"""For the TLE state vector, the structure reflects the data
                 format that's been in use since the 1960s:
-                
+
             Parameters
             ----------
             state_vector : numpy.array()
-            
+
                 The two line element input vector
 
                 .. math::
@@ -162,19 +159,20 @@ class OrbitalState(State):
                 :math:`\omega` the argument of perigee (rad),
                 :math:'M_0' the mean anomaly (rad)
                 :math:`n` the mean motion (rad/unit time)
-            
+
             Reference
             ---------
             https://spaceflight.nasa.gov/realdata/sightings/SSapplications/
             Post/JavaSSOP/SSOP_Help/tle_def.html
-            
+
             """
             # TODO: ensure this works for parabolas and hyperbolas
             # Get the semi-major axis from the mean motion
             semimajor_axis = np.cbrt(self.grav_parameter/state_vector[5][0]**2)
 
             # True anomaly from mean anomaly
-            tru_anom = self._tru_anom_from_mean_anom(state_vector[4][0], state_vector[2][0])
+            tru_anom = self._tru_anom_from_mean_anom(state_vector[4][0],
+                                                     state_vector[2][0])
 
             self.state_vector = self._keplerian_to_rv(
                 np.array([[state_vector[2][0]],
@@ -186,7 +184,7 @@ class OrbitalState(State):
 
         elif self.coordinates.lower() == 'equinoctial':
             r"""A version of the Equinoctial state vector as input:
-            
+
             Parameters
             ----------
             state_vector : numpy.array
@@ -196,22 +194,26 @@ class OrbitalState(State):
                     X_{t_0} = [a, h, k, p, q, \lambda]^{T} \\
 
                 where :math:`a` the semi-major axis (m),
-                :math:`h` is the horizontal component of the eccentricity :math:`e`,
-                :math:`k` is the vertical component of the eccentricity :math:`e`,
-                :math:`p` is the horizontal component of the inclination :math:`i`,
-                :math:`q` is the vertical component of the inclination :math:`i` and
+                :math:`h` is the horizontal component of the eccentricity
+                :math:`e`,
+                :math:`k` is the vertical component of the eccentricity
+                :math:`e`,
+                :math:`p` is the horizontal component of the inclination
+                :math:`i`,
+                :math:`q` is the vertical component of the inclination
+                :math:`i` and
                 :math:'lambda' is the mean longitude
-                
-            Returns 
+
+            Returns
             -------
             Initialises the state vector
-                
+
             Reference
             ---------
-            Broucke, R. A. & Cefola, P. J. 1972, Celestial Mechanics, Volume 5, Issue 3, pp.303-310
-                
-            """
+            Broucke, R. A. & Cefola, P. J. 1972, Celestial Mechanics, Volume 5,
+            Issue 3, pp.303-310
 
+            """
             semimajor_axis = state_vector[0][0]
             raan = np.arctan2(state_vector[3][0], state_vector[4][0])
             inclination = 2*np.arctan(state_vector[3][0]/np.sin(raan))
@@ -266,7 +268,7 @@ class OrbitalState(State):
             ratio = f / fp  # Need to check conditioning
             ecc_anomaly = ecc_anomaly - ratio
 
-        return ecc_anomaly # Check whether this ever goes outside 0 < 2pi
+        return ecc_anomaly  # Check whether this ever goes outside 0 < 2pi
 
     def _tru_anom_from_mean_anom(self, mean_anomaly, eccentricity):
         r"""Get the true anomaly from the mean anomaly via the eccentric
@@ -323,8 +325,9 @@ class OrbitalState(State):
         c_tran = np.cos(true_anomaly)
         s_tran = np.sin(true_anomaly)
 
-        return semimajor_axis * (1 - eccentricity ** 2) / (1 + eccentricity * c_tran) * \
-               np.array([[c_tran], [s_tran], [0]])
+        return semimajor_axis * (1 - eccentricity ** 2) / \
+            (1 + eccentricity * c_tran) * np.array([[c_tran], [s_tran],
+                                                    [0]])
 
     def _perifocal_velocity(self, eccentricity, semimajor_axis, true_anomaly):
         r"""The velocity vector in perifocal coordinates calculated from the
@@ -350,10 +353,11 @@ class OrbitalState(State):
         c_tran = np.cos(true_anomaly)
         s_tran = np.sin(true_anomaly)
 
-        return np.sqrt(self.grav_parameter / (semimajor_axis * (1 - eccentricity**2))) * \
-               np.array([[-s_tran],
-                         [eccentricity + c_tran],
-                         [0]])
+        return np.sqrt(self.grav_parameter / (semimajor_axis *
+                                              (1 - eccentricity**2))) * \
+            np.array([[-s_tran],
+                      [eccentricity + c_tran],
+                      [0]])
 
     @staticmethod
     def _perifocal_to_geocentric_matrix(inclination, raan, argp):
@@ -390,11 +394,11 @@ class OrbitalState(State):
         # Build the matrix
         return np.array([[-s_raan * c_incl * s_aper + c_raan * c_aper,
                           -s_raan * c_incl * c_aper - c_raan * s_aper,
-                           s_raan * s_incl],
-                          [c_raan * c_incl * s_aper + s_raan * c_aper,
-                           c_raan * c_incl * c_aper - s_raan * s_aper,
-                           -c_raan * s_incl],
-                           [s_incl * s_aper, s_incl * c_aper, c_incl]])
+                        s_raan * s_incl],
+                        [c_raan * c_incl * s_aper + s_raan * c_aper,
+                        c_raan * c_incl * c_aper - s_raan * s_aper,
+                        -c_raan * s_incl],
+                        [s_incl * s_aper, s_incl * c_aper, c_incl]])
 
     def _keplerian_to_rv(self, state_vector):
         r"""Convert the Keplarian orbital elements to position, velocity
@@ -446,7 +450,7 @@ class OrbitalState(State):
                                                  state_vector[4][0]) @ vx
 
         # And put them into the state vector
-        return np.concatenate((r, v), axis=0) # Don't really need the keyword...
+        return np.concatenate((r, v), axis=0)
 
     '''Some vector quantities'''
     @property
@@ -497,9 +501,9 @@ class OrbitalState(State):
                                  self.state_vector[3:6]).item()/rang
 
         return (1/self.grav_parameter) * ((speed**2 - self.grav_parameter/rang)
-                                        * self.state_vector[0:3] - rang *
-                                        radial_velocity *
-                                        self.state_vector[3:6])
+                                          * self.state_vector[0:3] - rang *
+                                          radial_velocity *
+                                          self.state_vector[3:6])
 
     @property
     def specific_angular_momentum(self):
@@ -605,10 +609,13 @@ class OrbitalState(State):
         # TODO Check to see which of the following is quicker/better
 
         # Either
-        # return np.sqrt(np.dot(self._eccentricity_vector.T, self._eccentricity_vector).item())
+        # return np.sqrt(np.dot(self._eccentricity_vector.T,
+        # self._eccentricity_vector).item())
         # or
-        return np.sqrt(1 + (self.mag_specific_angular_momentum ** 2 / self.grav_parameter ** 2) *
-                       (self.speed ** 2 - 2 * self.grav_parameter / self.range))
+        return np.sqrt(1 + (self.mag_specific_angular_momentum ** 2 /
+                            self.grav_parameter ** 2) *
+                       (self.speed ** 2 - 2 * self.grav_parameter /
+                        self.range))
 
     @property
     def semimajor_axis(self):
@@ -627,7 +634,7 @@ class OrbitalState(State):
                (1 / (1 - self.eccentricity**2))
 
         # Used to be this
-        #return 1/((2/self.range) - (self.speed**2)/self.grav_parameter)
+        # return 1/((2/self.range) - (self.speed**2)/self.grav_parameter)
 
     @property
     def inclination(self):
@@ -707,7 +714,6 @@ class OrbitalState(State):
             return np.arccos(np.clip(np.dot(boldn.T, bolde).item() /
                              (n * self.eccentricity), -1, 1))
         elif bolde[2].item() < 0:
-            aa = np.dot(boldn.T, bolde).item()/(n * self.eccentricity)
             return 2*np.pi - np.arccos(np.clip(np.dot(boldn.T, bolde).item() /
                                        (n * self.eccentricity), -1, 1))
         else:
@@ -779,7 +785,7 @@ class OrbitalState(State):
         """
 
         return self.eccentric_anomaly - self.eccentricity * \
-               np.sin(self.eccentric_anomaly)  # Kepler's equation
+            np.sin(self.eccentric_anomaly)  # Kepler's equation
 
     @property
     def period(self):
@@ -793,7 +799,8 @@ class OrbitalState(State):
             Orbital period, :math:`T`
 
         """
-        return ((2 * np.pi) / np.sqrt(self.grav_parameter)) * np.power(self.semimajor_axis, 3 / 2)
+        return ((2 * np.pi) / np.sqrt(self.grav_parameter)) * \
+            np.power(self.semimajor_axis, 3 / 2)
 
     @property
     def mean_motion(self):
@@ -826,7 +833,8 @@ class OrbitalState(State):
         return np.sqrt(np.dot(boldh.T, boldh).item())
 
         # Alternative via scalars
-        # return np.sqrt(self.grav_parameter * self.semimajor_axis * (1 - self.eccentricity ** 2))
+        # return np.sqrt(self.grav_parameter * self.semimajor_axis *
+        # (1 - self.eccentricity ** 2))
 
     @property
     def specific_orbital_energy(self):
@@ -897,7 +905,7 @@ class OrbitalState(State):
         """
 
         return np.tan(self.inclination/2) * \
-               np.sin(self.longitude_ascending_node)
+            np.sin(self.longitude_ascending_node)
 
     @property
     def equinocital_q(self):
@@ -916,7 +924,7 @@ class OrbitalState(State):
         """
 
         return np.tan(self.inclination / 2) * \
-               np.cos(self.longitude_ascending_node)
+            np.cos(self.longitude_ascending_node)
 
     @property
     def mean_longitude(self):
@@ -933,7 +941,7 @@ class OrbitalState(State):
 
         """
         return self.mean_anomaly + self.argument_periapsis + \
-               self.longitude_ascending_node
+            self.longitude_ascending_node
 
     '''The following return vectors of complete sets of elements'''
     @property
@@ -1027,7 +1035,8 @@ class OrbitalState(State):
 
         Reference
         ---------
-        Broucke, R. A. & Cefola, P. J. 1972, Celestial Mechanics, Volume 5, Issue 3, pp.303-310
+        Broucke, R. A. & Cefola, P. J. 1972, Celestial Mechanics, Volume 5,
+        Issue 3, pp.303-310
 
         """
         return StateVector(np.array([[self.semimajor_axis],
@@ -1059,24 +1068,33 @@ class KeplerianOrbitalState(OrbitalState):
         # Ensure that the coordinates keyword is set to 'Keplerian' and do some
         # additional checks.
 
-        if np.less(state_vector[0][0], 0.0) | np.greater(state_vector[0][0], 1.0):
+        if np.less(state_vector[0][0], 0.0) | np.greater(state_vector[0][0],
+                                                         1.0):
             raise ValueError("Eccentricity should be between 0 and 1: got {}"
                              .format(state_vector[0][0]))
-        if np.less(state_vector[2][0], 0.0) | np.greater(state_vector[2][0], np.pi):
+        if np.less(state_vector[2][0], 0.0) | np.greater(state_vector[2][0],
+                                                         np.pi):
             raise ValueError("Inclination should be between 0 and pi: got {}"
                              .format(state_vector[2][0]))
-        if np.less(state_vector[3][0], 0.0) | np.greater(state_vector[3][0], 2 * np.pi):
-            raise ValueError("Longitude of Ascending Node should be between 0 and 2*pi: got {}"
+        if np.less(state_vector[3][0], 0.0) | np.greater(state_vector[3][0],
+                                                         2 * np.pi):
+            raise ValueError("Longitude of Ascending Node should be between 0 "
+                             "and 2*pi: got {}"
                              .format(state_vector[3][0]))
-        if np.less(state_vector[4][0], 0.0) | np.greater(state_vector[4][0], 2 * np.pi):
-            raise ValueError("Argument of Periapsis should be between 0 and 2*pi: got {}"
+        if np.less(state_vector[4][0], 0.0) | np.greater(state_vector[4][0],
+                                                         2 * np.pi):
+            raise ValueError("Argument of Periapsis should be between 0 and "
+                             "2*pi: got {}"
                              .format(state_vector[4][0]))
-        if np.less(state_vector[5][0], 0.0) | np.greater(state_vector[5][0], 2 * np.pi):
-            raise ValueError("True Anomaly should be between 0 and 2*pi: got {}"
+        if np.less(state_vector[5][0], 0.0) | np.greater(state_vector[5][0],
+                                                         2 * np.pi):
+            raise ValueError("True Anomaly should be between 0 and 2*pi: got "
+                             "{}"
                              .format(state_vector[5][0]))
 
         # And go ahead and initialise as previously
-        super().__init__(state_vector, coordinates='keplerian', *args, **kwargs)
+        super().__init__(state_vector, coordinates='keplerian', *args,
+                         **kwargs)
 
 
 class TLEOrbitalState(OrbitalState):
@@ -1096,21 +1114,29 @@ class TLEOrbitalState(OrbitalState):
 
     """
     def __init__(self, state_vector, *args, **kwargs):
-        if np.less(state_vector[2][0], 0.0) | np.greater(state_vector[2][0], 1.0):
+        if np.less(state_vector[2][0], 0.0) | np.greater(state_vector[2][0],
+                                                         1.0):
             raise ValueError("Eccentricity should be between 0 and 1: got {}"
                              .format(state_vector[0][0]))
-        if np.less(state_vector[0][0], 0.0) | np.greater(state_vector[0][0], np.pi):
+        if np.less(state_vector[0][0], 0.0) | np.greater(state_vector[0][0],
+                                                         np.pi):
             raise ValueError("Inclination should be between 0 and pi: got {}"
                              .format(state_vector[1][0]))
-        if np.less(state_vector[1][0], 0.0) | np.greater(state_vector[1][0], 2*np.pi):
-            raise ValueError("Longitude of Ascending Node should be between 0 and 2*pi: got {}"
+        if np.less(state_vector[1][0], 0.0) | np.greater(state_vector[1][0],
+                                                         2*np.pi):
+            raise ValueError("Longitude of Ascending Node should be between 0 "
+                             "and 2*pi: got {}"
                              .format(state_vector[2][0]))
-        if np.less(state_vector[3][0], 0.0) | np.greater(state_vector[3][0], 2*np.pi):
-            raise ValueError("Argument of Periapsis should be between 0 and 2*pi: got {}"
+        if np.less(state_vector[3][0], 0.0) | np.greater(state_vector[3][0],
+                                                         2*np.pi):
+            raise ValueError("Argument of Periapsis should be between 0 and "
+                             "2*pi: got {}"
                              .format(state_vector[3][0]))
-        if np.less(state_vector[4][0], 0.0) | np.greater(state_vector[4][0], 2*np.pi):
-            raise ValueError("Mean Anomaly should be between 0 and 2*pi: got {}"
-                             .format(state_vector[5][0]))
+        if np.less(state_vector[4][0], 0.0) | np.greater(state_vector[4][0],
+                                                         2*np.pi):
+            raise ValueError("Mean Anomaly should be between 0 and 2*pi: got "
+                             "{}"
+                             .format(state_vector[4][0]))
 
         super().__init__(state_vector, coordinates='TLE', *args, **kwargs)
 
@@ -1131,21 +1157,32 @@ class EquinoctialOrbitalState(OrbitalState):
     :math:'lambda' is the mean longitude
     """
     def __init__(self, state_vector, *args, **kwargs):
-        if np.less(state_vector[1][0], -1.0) | np.greater(state_vector[1][0], 1.0):
-            raise ValueError("Horizontal Eccentricity should be between -1 and 1: got {}"
+        if np.less(state_vector[1][0], -1.0) | np.greater(state_vector[1][0],
+                                                          1.0):
+            raise ValueError("Horizontal Eccentricity should be between -1 "
+                             "and 1: got {}"
                              .format(state_vector[1][0]))
-        if np.less(state_vector[2][0], -1.0) | np.greater(state_vector[2][0], 1.0):
-            raise ValueError("Vertical Eccentricity should be between -1 and 1: got {}"
+        if np.less(state_vector[2][0], -1.0) | np.greater(state_vector[2][0],
+                                                          1.0):
+            raise ValueError("Vertical Eccentricity should be between -1 and "
+                             "1: got {}"
                              .format(state_vector[2][0]))
         """Don't know where these next few lines came from. They're wrong.
-        #if np.less(state_vector[3][0], -1.0) | np.greater(state_vector[3][0], 1.0):
-            raise ValueError("Horizontal Inclination should be between -1 and 1: got {}"
+        #if np.less(state_vector[3][0], -1.0) | np.greater(state_vector[3][0],
+        1.0):
+            raise ValueError("Horizontal Inclination should be between -1 and
+            1: got {}"
                              .format(state_vector[3][0]))
-        if np.less(state_vector[4][0], -1.0) | np.greater(state_vector[4][0], 1.0):
-            raise ValueError("Vertical Inclination should be between -1 and -1: got {}"
+        if np.less(state_vector[4][0], -1.0) | np.greater(state_vector[4][0],
+        1.0):
+            raise ValueError("Vertical Inclination should be between -1 and -1:
+            got {}"
                              .format(state_vector[4][0]))"""
-        if np.less(state_vector[5][0], 0.0) | np.greater(state_vector[5][0], 2*np.pi):
-            raise ValueError("Mean Longitude should be between 0 and 2*pi: got {}"
+        if np.less(state_vector[5][0], 0.0) | np.greater(state_vector[5][0],
+                                                         2*np.pi):
+            raise ValueError("Mean Longitude should be between 0 and 2*pi: got"
+                             " {}"
                              .format(state_vector[5][0]))
 
-        super().__init__(state_vector, coordinates='Equinoctial', *args, **kwargs)
+        super().__init__(state_vector, coordinates='Equinoctial', *args,
+                         **kwargs)

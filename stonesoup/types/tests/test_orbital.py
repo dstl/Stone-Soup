@@ -53,7 +53,6 @@ Equinoctial
 
 """
 import numpy as np
-import pytest
 from ..orbitalstate import OrbitalState
 from ..orbitalstate import KeplerianOrbitalState, TLEOrbitalState, \
     EquinoctialOrbitalState
@@ -70,7 +69,8 @@ keplerian_s = OrbitalState(out_kep, coordinates='Keplerian',
                            grav_parameter=cartesian_s.grav_parameter)
 
 # The TLE should be (to 4sf)
-out_tle = np.array([[2.674], [4.456], [0.1712], [0.3503], [0.3504], [0.0007662]])
+out_tle = np.array([[2.674], [4.456], [0.1712], [0.3503], [0.3504],
+                    [0.0007662]])
 
 # Equinoctial elements are (again, 4sf)
 out_equ = np.array([[8788], [-0.1704], [0.01605], [-4.062], [-1.065], [5.157]])
@@ -125,7 +125,8 @@ def test_cart_tle():
 def test_keplerian_init():
     """Keplerian elements"""
 
-    k = KeplerianOrbitalState(out_kep, grav_parameter=cartesian_s.grav_parameter)
+    k = KeplerianOrbitalState(out_kep,
+                              grav_parameter=cartesian_s.grav_parameter)
     assert(np.allclose(k.state_vector, orb_st_vec, rtol=1e-2))
 
 
@@ -139,5 +140,6 @@ def test_tle_init():
 def test_equ_init():
     """Init Equinoctial derived class"""
 
-    equ = EquinoctialOrbitalState(out_equ, grav_parameter=cartesian_s.grav_parameter)
+    equ = EquinoctialOrbitalState(out_equ,
+                                  grav_parameter=cartesian_s.grav_parameter)
     assert(np.allclose(equ.state_vector, orb_st_vec, rtol=1e-2))

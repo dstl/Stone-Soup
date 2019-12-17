@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-from ..orbitalstate import KeplerianOrbitalState, TLEOrbitalState, EquinoctialOrbitalState
+from ..orbitalstate import KeplerianOrbitalState, TLEOrbitalState, \
+    EquinoctialOrbitalState
 import pytest
 
 
@@ -44,8 +45,8 @@ def test_tle_orbit():
                                     [0.0*(np.pi/180)],
                                     [325*(np.pi/180)],
                                     [0.00157*(np.pi/180)]])
-    #orbital_state_vector = np.array([[2.674], [4.456], [0.1712], [0.0], [5.3504],
-     #                                [0.0007662]])
+    # orbital_state_vector = np.array([[2.674], [4.456], [0.1712], [0.0],
+    # [5.3504], [0.0007662]])
     tle_orbit = TLEOrbitalState(orbital_state_vector, metadata={})
     print(tle_orbit.argument_periapsis)
     tle_orbit = tle_orbit
