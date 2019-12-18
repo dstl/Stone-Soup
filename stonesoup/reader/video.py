@@ -62,7 +62,7 @@ class FrameReader(SensorDataReader):
         : set of :class:`~.ImageFrame`
             Generated frame in the time step
         """
-        return self.frames_gen()
+        yield self.frames_gen()
 
 
 class VideoClipReader(FileReader, FrameReader):
