@@ -2,6 +2,7 @@
 import math
 from functools import lru_cache
 
+import numpy as np
 import scipy as sp
 from scipy.stats import multivariate_normal
 from scipy.linalg import block_diag

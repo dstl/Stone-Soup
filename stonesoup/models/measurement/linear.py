@@ -49,6 +49,8 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
             The model matrix evaluated given the provided time interval.
         """
 
+        """if the state has acceleration too, need to account for that. Need 1's where there are state dimensions"""
+
         model_matrix = sp.zeros((self.ndim_meas, self.ndim_state))
         for dim_meas, dim_state in enumerate(self.mapping):
             if dim_state is not None:
@@ -148,9 +150,27 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
             The likelihood of ``meas``, given ``state``
         """
 
-        likelihood = multivariate_normal.pdf(
-            meas_vec.T,
-            mean=(self.matrix()@state_vec).ravel(),
-            cov=self.covar()
-        )
+        if len(state_vec) == 6:
+            """model_matrix = sp.zeros((self.ndim_meas, self.ndim_state))
+            for dim_meas, dim_state in enumerate(self.mapping):
+                if dim_state is not None:
+                    model_matrix[dim_meas, dim_state] = 1"""
+
+            likelihood = multivariate_normal.pdf(
+                meas_vec.T,
+                mean=(self.matrix()@state_vec).ravel(),
+                cov=self.covar()
+            )
+        else:
+            model_matrix = sp.zeros((self.ndim_meas, len(state_vec)))
+            for dim_meas, dim_state in enumerate((0, 3, 6)):
+                if dim_state is not None:
+                    model_matrix[dim_meas, dim_state] = 1
+
+            likelihood = multivariate_normal.pdf(
+                meas_vec.T,
+                mean=(model_matrix @ state_vec).ravel(),
+                cov=self.covar()
+            )
+
         return likelihood

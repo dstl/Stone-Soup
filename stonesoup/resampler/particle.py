@@ -40,6 +40,8 @@ class SystematicResampler(Resampler):
             new_particles.append(
                 Particle(particle.state_vector,
                          weight=weight,
-                         parent=particle))
+                         parent=particle,
+                         dynamic_model=particle.dynamic_model,
+                         prior_state=particle.prior_state))
 
         return new_particles
