@@ -7,7 +7,10 @@ from ....functions import cart2pol
 from ....types.angle import Bearing
 from ....types.array import StateVector, CovarianceMatrix
 from ....types.state import State
-from ..radar import RadarRangeBearing, RadarRotatingRangeBearing
+from ..radar import RadarRangeBearing, RadarRotatingRangeBearing, AESARadar
+from ..beam_pattern import StationaryBeam, BeamSweep
+from ..beam_shape import Beam2DGaussian
+from ....models.measurement.linear import LinearGaussian
 
 
 def h2d(state_vector, translation_offset, rotation_offset):
@@ -151,3 +154,86 @@ def test_rotating_radar():
     # Assert correction of generated measurement
     assert(measurement.timestamp == target_state.timestamp)
     assert(np.equal(measurement.state_vector, eval_m).all())
+
+
+def test_AESARadar():
+    target = State([75e3, 0, 10e3, 0, 20e3, 0], timestamp=datetime.datetime.now())
+
+    radar = AESARadar(antenna_gain=30,
+                      mapping=[0, 2, 4],
+                      translation_offset=StateVector([0.0] * 6),
+                      frequency=100e6,
+                      number_pulses=5,
+                      duty_cycle=0.1,
+                      band_width=30e6,
+                      beam_width=np.deg2rad(10),
+                      probability_false_alarm=1e-6,
+                      rcs=10,
+                      receiver_noise=3,
+                      swerling_on=False,
+                      beam_shape=Beam2DGaussian(peak_power=50e3),
+                      beam_transition_model=StationaryBeam(
+                          centre=[np.deg2rad(15), np.deg2rad(20)]),
+                      measurement_model=None)
+
+    [prob_detection, snr, swer_rcs, tran_power, spoil_gain,
+     spoil_width] = radar.prob_gen(target)
+    assert round(swer_rcs, 1) == 10.0
+    assert round(prob_detection, 3) == 0.688
+    assert round(spoil_width, 2) == 0.19
+    assert round(spoil_gain, 2) == 29.58
+    assert round(tran_power, 2) == 7715.00
+    assert round(snr, 2) == 16.01
+
+
+def test_swer(repeats=10000):
+    list_rcs = np.zeros(repeats)
+    target = State([75e3, 0, 10e3, 0, 20e3, 0], timestamp=datetime.datetime.now())
+    radar = AESARadar(antenna_gain=30,
+                      frequency=100e6,
+                      number_pulses=5,
+                      duty_cycle=0.1,
+                      band_width=30e6,
+                      beam_width=np.deg2rad(10),
+                      probability_false_alarm=1e-6,
+                      rcs=10,
+                      receiver_noise=3,
+                      swerling_on=True,
+                      beam_shape=Beam2DGaussian(peak_power=50e3),
+                      beam_transition_model=StationaryBeam(
+                          centre=[np.deg2rad(15), np.deg2rad(20)]),
+                      measurement_model=None)
+    for i in range(0, repeats):
+        list_rcs[i] = radar.prob_gen(target)[2]
+
+    bin_height, bin_edge = np.histogram(list_rcs, 20, normed=True)
+    x = (bin_edge[:-1] + bin_edge[1:]) / 2
+    height = 1 / (float(radar.rcs)) * np.exp(-x / float(radar.rcs))
+
+    assert np.allclose(height, bin_height, rtol=0.05,
+                       atol=0.01 * np.max(bin_height))
+
+
+def test_detection():
+    radar = AESARadar(antenna_gain=30,
+                      translation_offset=StateVector([0.0] * 3),
+                      frequency=100e6,
+                      number_pulses=5,
+                      duty_cycle=0.1,
+                      band_width=30e6,
+                      beam_width=np.deg2rad(10),
+                      probability_false_alarm=1e-6,
+                      rcs=10,
+                      receiver_noise=3,
+                      swerling_on=False,
+                      beam_shape=Beam2DGaussian(peak_power=50e3),
+                      beam_transition_model=StationaryBeam(
+                          centre=[np.deg2rad(15), np.deg2rad(20)]),
+                      measurement_model=LinearGaussian(
+                          noise_covar=np.diag([1, 1, 1]),
+                          mapping=[0, 1, 2],
+                          ndim_state=3))
+
+    target = State([50e3, 10e3, 20e3], timestamp=datetime.datetime.now())
+    measurement = radar.gen_measurement(target)
+    assert np.allclose(measurement.state_vector, StateVector([50e3, 10e3, 20e3]), atol=5)

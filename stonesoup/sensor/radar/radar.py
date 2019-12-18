@@ -334,12 +334,12 @@ class AESARadar(Sensor):
                        np.cos(beam_az) * np.cos(beam_el)
         spoiled_width = self.beam_width / (np.cos(beam_az) * np.cos(beam_el))
         # state relative to radar (in cartesian space)
-        relative_vector = sky_state.state_vector[
-                              self.mapping] - self.translation_offset
+        relative_vector = sky_state.state_vector[self.mapping] - \
+                          self.translation_offset[self.mapping]
         relative_vector = self._rotation_matrix @ relative_vector
 
         # calculate target position in spherical coordinates
-        [r, pos_az, pos_el] = cart2sphere(*relative_vector[self.mapping])
+        [r, pos_az, pos_el] = cart2sphere(*relative_vector)
 
         # target position relative to beam position
         relative_az = pos_az[0] - beam_az
