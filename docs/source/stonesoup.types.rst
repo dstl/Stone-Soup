@@ -49,6 +49,12 @@ Numeric Types
 .. automodule:: stonesoup.types.numeric
     :show-inheritance:
 
+OrbitalState Types
+------------------
+
+.. automodule:: stonesoup.types.orbitalstate
+   :show-inheritance:
+   
 Particle Types
 --------------
 

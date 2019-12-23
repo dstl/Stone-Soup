@@ -23,19 +23,19 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
 
         .. math::
 
-            M_{t_1} = M_{t_0} + n(t_1 - t_0), (\mathrm(mod) \, 2\pi)
+            M_{t_1} = M_{t_0} + n(t_1 - t_0), (\mathrm{mod} \, 2\pi)
 
 
-    for the interval :attr:`OrbitalState.timestamp` :math:`t_1 > t_0`
-    where :math:`n` is the mean motion, computed as:
+    for the interval :math:`t_0 \rightarrow t_1` where :math:`n` is the
+    mean motion, computed as:
 
         .. math::
 
            n = \sqrt{ \frac{\mu}{a^3} }
 
-    which is in units of :math:`\mathbf{\mathrm{rad} \, s^{-1}}`. The
-    state vector is then recreated from the TLE parameterisation of
-    the orbital state vector:
+    which is in units of :math:`\mathrm{rad} \, s^{-1}}`. The state
+    vector is then recreated from the TLE parameterisation of the
+    orbital state vector:
 
         .. math::
 
