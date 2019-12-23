@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
+
 import numpy as np
-import string as strg
 
 from ..base import Property
 from .array import CovarianceMatrix, StateVector
@@ -8,7 +8,6 @@ from .state import State
 
 
 class OrbitalState(State):
-
     r"""The orbital state base type. This is the building block of the
     orbital branch and follows the principle that you shouldn't have to
     worry too much what parameterisation you're using, the object
@@ -34,12 +33,15 @@ class OrbitalState(State):
     undefined it defaults to that of the Earth, :math:`3.986004418
     (\pm 0.000000008) \\times 10^{14} \mathrm{m}^3 \mathrm{s}^{−2}`.
 
-    :reference: Curtis, H.D. 2010, Orbital Mechanics for Engineering
+    Reference
+    ---------
+    1. Curtis, H.D. 2010, Orbital Mechanics for Engineering
     Students (3rd Ed), Elsevier Aerospace Engineering Series
+
     """
 
     coordinates = Property(
-        strg, default="cartesian",
+        str, default='cartesian',
         doc="The parameterisation used on initiation. Acceptable values "
             "are 'Cartesian', 'Keplerian', 'TLE', or 'Equinoctial'. All"
             "other inputs will return errors"
@@ -64,11 +66,12 @@ class OrbitalState(State):
     )
 
     metadata = Property(
-        {}, default={}, doc="Dictionary containing metadata about orbit")
+        dict, default={}, doc="Dictionary containing metadata about orbit"
+    )
 
     def __init__(self, state_vector, *args, **kwargs):
         r"""Can be initialised in a number of different ways according to
-        preference.
+        preference
 
         Parameters
         ----------
@@ -236,9 +239,9 @@ class OrbitalState(State):
         else:
             raise TypeError("Coordinate keyword not recognised")
 
-    '''A few helper functions compute intermediate quantities'''
+    # A few helper functions compute intermediate quantities
     def _eccentric_anomaly_from_mean_anomaly(self, mean_anomaly, eccentricity):
-        """Approximately solve the transcendental equation
+        r"""Approximately solve the transcendental equation
         :math:`E - e sin E = M_e` for E. This is an iterative process using
         Newton's method.
 
@@ -452,14 +455,11 @@ class OrbitalState(State):
         # And put them into the state vector
         return np.concatenate((r, v), axis=0)
 
-    '''Some vector quantities'''
+    # Some vector quantities
     @property
     def _nodeline(self):
         """The vector node line (defines the longitude of the ascending node
         in the Primary-centered inertial frame)
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -486,9 +486,6 @@ class OrbitalState(State):
     def _eccentricity_vector(self):
         r""" The eccentricity vector
 
-        Parameters
-        ----------
-
         Returns
         -------
         : numpy.array
@@ -509,9 +506,6 @@ class OrbitalState(State):
     def specific_angular_momentum(self):
         r"""Specific angular momentum
 
-        Parameters
-        ----------
-
         Returns
         -------
         : numpy.array
@@ -523,9 +517,6 @@ class OrbitalState(State):
     @property
     def cartesian_state_vector(self):
         r"""Returns the orbital state vector
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -544,13 +535,10 @@ class OrbitalState(State):
         """
         return StateVector(self.state_vector)
 
-    '''Some scalar quantities'''
+    # Some scalar quantities
     @property
     def epoch(self):
         """Return the epoch (timestamp)
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -563,9 +551,6 @@ class OrbitalState(State):
     @property
     def range(self):
         """The current distance
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -580,9 +565,6 @@ class OrbitalState(State):
     def speed(self):
         """The current speed (scalar)
 
-        Parameters
-        ----------
-
         Returns
         -------
         : float
@@ -596,9 +578,6 @@ class OrbitalState(State):
     def eccentricity(self):
         r"""Return the eccentricity (uses the form that depends only on
         scalars)
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -621,9 +600,6 @@ class OrbitalState(State):
     def semimajor_axis(self):
         """return the Semi-major axis
 
-        Parameters
-        ----------
-
         Returns
         -------
         : float
@@ -639,9 +615,6 @@ class OrbitalState(State):
     @property
     def inclination(self):
         r"""Return the orbital inclination
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -659,9 +632,6 @@ class OrbitalState(State):
     def longitude_ascending_node(self):
         r"""Return the longitude (or right ascension in the case of the Earth)
         of the ascending node
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -685,9 +655,6 @@ class OrbitalState(State):
     @property
     def argument_periapsis(self):
         r"""Return the Argument of Periapsis
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -723,8 +690,6 @@ class OrbitalState(State):
     def true_anomaly(self):
         r"""Return the true anomaly
 
-        Parameters
-        ----------
 
         Returns
         -------
@@ -755,9 +720,6 @@ class OrbitalState(State):
         exactly via the Keplerian eccentricity and true anomaly rather than via
         the mean anomaly using an iterative procedure.
 
-        Parameters
-        ----------
-
         Returns
         -------
         : float
@@ -772,10 +734,7 @@ class OrbitalState(State):
     @property
     def mean_anomaly(self):
         r"""Return the mean anomaly. Uses the eccentric anomaly and Kepler's
-        equation to get mean anomaly from true anomaly and eccentricity
-
-        Parameters
-        ----------
+        equation to get mean anomaly from true anomaly and eccentricity.
 
         Returns
         -------
@@ -789,9 +748,7 @@ class OrbitalState(State):
 
     @property
     def period(self):
-        """
-        Parameters
-        ----------
+        """The orbital period
 
         Returns
         -------
@@ -804,9 +761,7 @@ class OrbitalState(State):
 
     @property
     def mean_motion(self):
-        r"""
-        Parameters
-        ----------
+        r"""The orbital mean motion
 
         Returns
         -------
@@ -819,9 +774,7 @@ class OrbitalState(State):
 
     @property
     def mag_specific_angular_momentum(self):
-        """
-        Parameters
-        ----------
+        """The magnitude of the specific angular momentum
 
         Returns
         -------
@@ -838,9 +791,7 @@ class OrbitalState(State):
 
     @property
     def specific_orbital_energy(self):
-        r"""
-        Parameters
-        ----------
+        r"""The specific orbital energy
 
         Returns
         -------
@@ -854,9 +805,6 @@ class OrbitalState(State):
     def equinocital_h(self):
         r"""The horizontal component of the eccentricity in the equinoctial
         parameterisation
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -874,9 +822,6 @@ class OrbitalState(State):
         r"""The vertical component of the eccentricity in the equinoctial
         parameterisation
 
-        Parameters
-        ----------
-
         Returns
         -------
         : float
@@ -892,9 +837,6 @@ class OrbitalState(State):
     def equinocital_p(self):
         r"""The horizontal component of the inclination in the equinoctial
         parameterisation
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -912,9 +854,6 @@ class OrbitalState(State):
         r"""The vertical component of the inclination in the equinoctial
         parameterisation
 
-        Parameters
-        ----------
-
         Returns
         -------
         : float
@@ -930,9 +869,6 @@ class OrbitalState(State):
     def mean_longitude(self):
         r"""The mean longitude
 
-        Parameters
-        ----------
-
         Returns
         -------
         : float
@@ -943,14 +879,10 @@ class OrbitalState(State):
         return self.mean_anomaly + self.argument_periapsis + \
             self.longitude_ascending_node
 
-    '''The following return vectors of complete sets of elements'''
+    # The following return vectors of complete sets of elements
     @property
     def keplerian_elements(self):
-        r"""
-        Return the vector of Keplerian elements
-
-        Parameters
-        ----------
+        r"""Return the vector of Keplerian elements
 
         Returns
         -------
@@ -981,9 +913,6 @@ class OrbitalState(State):
     def two_line_element(self):
         r"""Return the state vector in the form of the NASA Two-Line Element
 
-        Parameters
-        ----------
-
         Returns
         -------
         : numpy.array
@@ -1010,9 +939,6 @@ class OrbitalState(State):
     @property
     def equinoctial_elements(self):
         r"""Return the equinoctial element state vector
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -1098,8 +1024,7 @@ class KeplerianOrbitalState(OrbitalState):
 
 
 class TLEOrbitalState(OrbitalState):
-    r"""
-    For the TLE state vector:
+    r"""For the TLE state vector:
 
         .. math::
 
@@ -1142,8 +1067,7 @@ class TLEOrbitalState(OrbitalState):
 
 
 class EquinoctialOrbitalState(OrbitalState):
-    r"""
-    For the Equinoctial state vector:
+    r"""For the Equinoctial state vector:
 
         .. math::
 
@@ -1186,3 +1110,5 @@ class EquinoctialOrbitalState(OrbitalState):
 
         super().__init__(state_vector, coordinates='Equinoctial', *args,
                          **kwargs)
+
+
