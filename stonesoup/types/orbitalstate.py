@@ -8,61 +8,116 @@ from .state import State
 
 
 class OrbitalState(State):
-    r"""The orbital state base type. This is the building block of the
-    orbital branch and follows the principle that you shouldn't have to
-    worry too much what parameterisation you're using, the object
-    stores the relevant information internally and can cope with
+    r"""The orbital state base type. This is the building block of
+    Stone Soup's orbital inference routines and follows the principle
+    that you shouldn't have to care which parameterisation you use. The
+    class stores relevant information internally and undertakes
     whatever conversions are necessary.
 
-    The :attr:`State.state_vector` is held as :math:`[\mathbf{r},
-    \mathbf{v}]`, the "Orbital State Vector" as traditionally
-    understood in orbital mechanics, where :math:`\mathbf{r}` is the
-    Cartesian position in the primary-centered inertial frame while
-    :math:`\mathbf{v}` is the corresponding velocity vector. All other
-    parameters are accessed via functions.
+    The :attr:`state_vector` is held as :math:`[\mathbf{r},
+    \mathbf{v}]`, the "Orbital State Vector" (as traditionally
+    understood in orbital mechanics), where :math:`\mathbf{r}` is the
+    (3D) Cartesian position in the primary-centered inertial frame,
+    while :math:`\mathbf{v}` is the corresponding velocity vector. All
+    other parameters are accessed via functions. Formulae for
+    conversions are generally found in, or derived from, [1].
 
-    Construct using the appropriate :attr:`State.state_vector`
-    :math:`X_{t_{0}}` at epoch :attr:`State.timestamp` :math:`t_0` and
-    by way of keywords, via:
+    The object is constructed from the input vector :math:`X_{t_{0}}`
+    at epoch :attr:`State.timestamp` :math:`t_0` in the appropriate
+    coordinates indicated via the keyword:
+
         coordinates = "Cartesian" (the orbital state vector),
+
+             .. math::
+
+                X_{t_0} = [r_x, r_y, r_z, \dot{r}_x, \dot{r}_y,
+                    \dot{r}_z]^{T}
+
+            where :math:`r_x, r_y, r_z` are the Cartesian position
+            coordinates in the Earth Centered Inertial (ECI) frame and
+            :math:`\dot{r}_x, \dot{r}_y, \dot{r}_z` are the
+            corresponding velocity coordinates.
+
         coordinates = "Keplerian" (Keplarian elements),
-        coordinates = "TLE" (Two-Line elements) or
-        coordinates = "Equinoctial" (equinoctial elements).
 
-    The gravitational parameter :math:`GM` can be defined. If left
-    undefined it defaults to that of the Earth, :math:`3.986004418
-    (\pm 0.000000008) \\times 10^{14} \mathrm{m}^3 \mathrm{s}^{−2}`.
+            .. math::
 
-    Reference
-    ---------
+                X_{t_0} = [e, a, i, \Omega, \omega, \theta]^{T}
+
+            where :math:`e` is the orbital eccentricity (unitless),
+            :math:`a` the semi-major axis ([length]), :math:`i` the
+            inclination (radian), :math:`\Omega` is the longitude of the
+            ascending node (radian), :math:`\omega` the argument of
+            periapsis (radian), and :math:`\theta` the true anomaly
+            (radian).
+
+        coordinates = "TLE" (Two-Line elements, [2]),
+
+            .. math::
+
+                X_{t_0} = [i, \Omega, e, \omega, M_0, n]^{T}
+
+            where :math:`i` the inclination (radians), :math:`\Omega`
+            is the longitude of the ascending node (radian), :math:`e`
+            is the orbital eccentricity (unitless), :math:`\omega` the
+            argument of perigee (radian), :math:`M_0` the mean anomaly
+            (radian) :math:`n` the mean motion (radian
+            [time] :math:`^{-1}`)
+
+        coordinates = "Equinoctial" (equinoctial elements, [3])
+
+            .. math::
+
+                X_{t_0} = [a, h, k, p, q, \lambda]^{T}
+
+            where :math:`a` the semi-major axis ([length]),
+            :math:`h` is the horizontal component of the
+            eccentricity, :math:`k` is the vertical component of the
+            eccentricity, :math:`p` is the horizontal component of the
+            inclination, :math:`q` is the vertical component of the
+            inclination and :math:`\lambda` is the mean longitude
+
+    The gravitational parameter :math:`\mu = GM` can be defined. If
+    left undefined it defaults to that of the Earth, :math:`3.986004418
+    \, (\pm \, 0.000000008) \times 10^{14} \mathrm{m}^3 \mathrm{s}^{−2}`
+
+    References
+    ----------
     1. Curtis, H.D. 2010, Orbital Mechanics for Engineering
     Students (3rd Ed), Elsevier Aerospace Engineering Series
+
+    2. https://spaceflight.nasa.gov/realdata/sightings/SSapplications/\
+    Post/JavaSSOP/SSOP_Help/tle_def.html
+
+    3. Broucke, R. A. & Cefola, P. J. 1972, Celestial Mechanics, Volume
+    5, Issue 3, pp. 303-310
 
     """
 
     coordinates = Property(
-        str, default='cartesian',
+        str, default='Cartesian',
         doc="The parameterisation used on initiation. Acceptable values "
-            "are 'Cartesian', 'Keplerian', 'TLE', or 'Equinoctial'. All"
-            "other inputs will return errors"
+            "are 'Cartesian' (default), 'Keplerian', 'TLE', or 'Equinoctial'. "
+            "All other inputs will return errors."
     )
 
     grav_parameter = Property(
         float, default=3.986004418e14,
-        doc=r"Standard gravitational parameter :math:`\mu = G M` in units of "
-            r":math:`\mathrm{m}^3 \mathrm{s}^{-2}`")
+        doc=r"Standard gravitational parameter :math:`\mu = G M`. The default "
+            r"is :math:`3.986004418 \times 10^{14} \,` "
+            r":math:`\mathrm{m}^3 \mathrm{s}^{-2}`.")
 
     covar = Property(
         CovarianceMatrix, default=None,
         doc="The covariance matrix. Care should be exercised in that its "
             "coordinate frame isn't defined, and output will be highly "
-            "dependant on which parameterisation is chosen"
+            "dependant on which parameterisation is chosen."
     )
 
     _eanom_precision = Property(
         float, default=1e-8,
         doc="Precision used for the stopping point in determining eccentric "
-            "anomaly from mean anomaly"
+            "anomaly from mean anomaly, (default: :math:`10^{-8}`)"
     )
 
     metadata = Property(
@@ -99,76 +154,14 @@ class OrbitalState(State):
 
         # Query the coordinates
         if self.coordinates.lower() == 'cartesian':
-            r"""The orbital state vector.
-
-            Parameters
-            ----------
-            state_vector : numpy.array
-
-                .. math::
-
-                    X_{t_0} = [r_x, r_y, r_z, \odot{r}_x, \odot{r}_y,
-                    \odot{r}_z]
-
-                where:
-                :math:`r_x, r_y, r_z` is the Cartesian position coordinate in
-                Earth Centered Inertial (ECI) coordinates
-                :math:`\odot{r}_x, \odot{r}_y, \odot{r}_z` is the velocity
-                coordinate in ECI coordinates
-
-            """
             #  No need to do any conversions here
             self.state_vector = state_vector
 
         elif self.coordinates.lower() == 'keplerian':
-            r"""The state vector input should have the following input:
-
-            Parameters
-            ----------
-            state_vector : numpy.array
-
-                .. math::
-
-                    X_{t_0} = [e, a, i, \Omega, \omega, \\theta]^{T} \\
-
-                where:
-                :math:`e` is the orbital eccentricity (unitless),
-                :math:`a` the semi-major axis (m),
-                :math:`i` the inclination (rad),
-                :math:`\Omega` is the longitude of the ascending node (rad),
-                :math:`\omega` the argument of periapsis (rad), and
-                :math:`\\theta` the true anomaly (rad).
-
-            """
+            # Convert Keplerian elements to Cartesian
             self.state_vector = self._keplerian_to_rv(state_vector)
 
         elif self.coordinates.upper() == 'TLE':
-            r"""For the TLE state vector, the structure reflects the data
-                format that's been in use since the 1960s:
-
-            Parameters
-            ----------
-            state_vector : numpy.array()
-
-                The two line element input vector
-
-                .. math::
-
-                    X_{t_0} = [i, \Omega, e, \omega, M_0, n]^{T} \\
-
-                where :math:`i` the inclination (rad),
-                :math:`\Omega` is the longitude of the ascending node (rad),
-                :math:`e` is the orbital eccentricity (unitless),
-                :math:`\omega` the argument of perigee (rad),
-                :math:'M_0' the mean anomaly (rad)
-                :math:`n` the mean motion (rad/unit time)
-
-            Reference
-            ---------
-            https://spaceflight.nasa.gov/realdata/sightings/SSapplications/
-            Post/JavaSSOP/SSOP_Help/tle_def.html
-
-            """
             # TODO: ensure this works for parabolas and hyperbolas
             # Get the semi-major axis from the mean motion
             semimajor_axis = np.cbrt(self.grav_parameter/state_vector[5][0]**2)
@@ -177,6 +170,8 @@ class OrbitalState(State):
             tru_anom = self._tru_anom_from_mean_anom(state_vector[4][0],
                                                      state_vector[2][0])
 
+            # Use given and derived quantities to convert from Keplarian to
+            # Cartesian
             self.state_vector = self._keplerian_to_rv(
                 np.array([[state_vector[2][0]],
                          [semimajor_axis],
@@ -186,37 +181,7 @@ class OrbitalState(State):
                          [tru_anom]]))
 
         elif self.coordinates.lower() == 'equinoctial':
-            r"""A version of the Equinoctial state vector as input:
-
-            Parameters
-            ----------
-            state_vector : numpy.array
-
-                .. math::
-
-                    X_{t_0} = [a, h, k, p, q, \lambda]^{T} \\
-
-                where :math:`a` the semi-major axis (m),
-                :math:`h` is the horizontal component of the eccentricity
-                :math:`e`,
-                :math:`k` is the vertical component of the eccentricity
-                :math:`e`,
-                :math:`p` is the horizontal component of the inclination
-                :math:`i`,
-                :math:`q` is the vertical component of the inclination
-                :math:`i` and
-                :math:'lambda' is the mean longitude
-
-            Returns
-            -------
-            Initialises the state vector
-
-            Reference
-            ---------
-            Broucke, R. A. & Cefola, P. J. 1972, Celestial Mechanics, Volume 5,
-            Issue 3, pp.303-310
-
-            """
+            # Calculate the Keplarian element quantities
             semimajor_axis = state_vector[0][0]
             raan = np.arctan2(state_vector[3][0], state_vector[4][0])
             inclination = 2*np.arctan(state_vector[3][0]/np.sin(raan))
@@ -228,6 +193,7 @@ class OrbitalState(State):
             tru_anom = self._tru_anom_from_mean_anom(mean_anomaly,
                                                      eccentricity)
 
+            # Convert from Keplarian to Cartesian
             self.state_vector = self._keplerian_to_rv(
                 np.array([[eccentricity],
                          [semimajor_axis],
@@ -504,8 +470,7 @@ class OrbitalState(State):
 
     @property
     def specific_angular_momentum(self):
-        r"""Specific angular momentum
-
+        r"""
         Returns
         -------
         : numpy.array
@@ -516,21 +481,19 @@ class OrbitalState(State):
 
     @property
     def cartesian_state_vector(self):
-        r"""Returns the orbital state vector
-
+        r"""
         Returns
         -------
-        : :class:~`StateVector`
+        : :class:`~.StateVector`
+            The state vector
 
-            .. math::
+                .. math::
 
-                X_{t_0} = [r_x, r_y, r_z, \odot{r}_x, \odot{r}_y, \odot{r}_z]
+                    X_{t_0} = [r_x, r_y, r_z, \dot{r}_x, \dot{r}_y,
+                    \dot{r}_z]^{T}
 
-            where:
-            :math:`r_x, r_y, r_z` is the Cartesian position coordinate in Earth
-            Centered Inertial (ECI) coordinates
-            :math:`\odot{r}_x, \odot{r}_y, \odot{r}_z` is the velocity
-            coordinate in ECI coordinates
+            in ECI coordinates (or more properly, 'Primary-centred'
+            inertial coordinates)
 
         """
         return StateVector(self.state_vector)
@@ -538,8 +501,7 @@ class OrbitalState(State):
     # Some scalar quantities
     @property
     def epoch(self):
-        """Return the epoch (timestamp)
-
+        """
         Returns
         -------
         : :class:`~.datetime.datetime`
@@ -550,12 +512,12 @@ class OrbitalState(State):
 
     @property
     def range(self):
-        """The current distance
-
+        """
         Returns
         -------
         : float
-            The current distance to object
+            The distance to object (from gravitational centre of
+            primary)
 
         """
         return np.sqrt(np.dot(self.state_vector[0:3].T,
@@ -563,8 +525,7 @@ class OrbitalState(State):
 
     @property
     def speed(self):
-        """The current speed (scalar)
-
+        """
         Returns
         -------
         : float
@@ -576,13 +537,15 @@ class OrbitalState(State):
 
     @property
     def eccentricity(self):
-        r"""Return the eccentricity (uses the form that depends only on
-        scalars)
-
+        r"""
         Returns
         -------
         : float
-            The orbital eccentricity, :math:`e, \, (0 \le e \le 1)`
+            The orbital eccentricity, :math:`e \, (0 \le e \le 1)`
+
+        Note
+        ----
+        This version of the calculation uses a form dependent only on scalars
 
         """
         # TODO Check to see which of the following is quicker/better
@@ -598,12 +561,11 @@ class OrbitalState(State):
 
     @property
     def semimajor_axis(self):
-        """return the Semi-major axis
-
+        """
         Returns
         -------
         : float
-            The orbit semi-major axis
+            The orbital semi-major axis
 
         """
         return (self.mag_specific_angular_momentum**2 / self.grav_parameter) *\
@@ -614,12 +576,11 @@ class OrbitalState(State):
 
     @property
     def inclination(self):
-        r"""Return the orbital inclination
-
+        r"""
         Returns
         -------
         : float
-            Orbital inclination, :math:`i, \, (0 \le i \le \pi)`
+            Orbital inclination, :math:`i \, (0 \le i \le \pi)`
 
         """
         boldh = self.specific_angular_momentum
@@ -630,14 +591,12 @@ class OrbitalState(State):
 
     @property
     def longitude_ascending_node(self):
-        r"""Return the longitude (or right ascension in the case of the Earth)
-        of the ascending node
-
+        r"""
         Returns
         -------
         : float
-            The longitude (or right ascension) of ascending node, :math:`Omega,
-            \, (0 \le \Omega \le 2\pi)`
+            The longitude (or right ascension) of ascending node,
+            :math:`\Omega \, (0 \le \Omega \le 2\pi)`
 
         """
 
@@ -654,13 +613,12 @@ class OrbitalState(State):
 
     @property
     def argument_periapsis(self):
-        r"""Return the Argument of Periapsis
-
+        r"""
         Returns
         -------
         : float
-            The argument of periapsis, :math:`\omega, \, (0 \le \omega \le
-            2\pi)`
+            The argument of periapsis, :math:`\omega \, (0 \le \omega
+            \le 2\pi)`
 
         """
 
@@ -688,13 +646,11 @@ class OrbitalState(State):
 
     @property
     def true_anomaly(self):
-        r"""Return the true anomaly
-
-
+        r"""
         Returns
         -------
         : float
-            The true anomaly, :math:`\theta, \, (0 \le \theta \le 2\pi)`
+            The true anomaly, :math:`\theta \, (0 \le \theta \le 2\pi)`
 
         """
         # Resolve the quadrant ambiguity.The clip function is required to
@@ -716,14 +672,17 @@ class OrbitalState(State):
 
     @property
     def eccentric_anomaly(self):
-        r"""Return the eccentric anomaly. Note that this computes the quantity
-        exactly via the Keplerian eccentricity and true anomaly rather than via
-        the mean anomaly using an iterative procedure.
-
+        r"""
         Returns
         -------
         : float
-            The eccentric anomaly, :math:`E, \, \[0 \le E \le 2\pi\]` radians)
+            The eccentric anomaly, :math:`E \, (0 \le E \le 2\pi)`
+
+        Note
+        ----
+            This computes the quantity exactly via the Keplerian
+            eccentricity and true anomaly rather than via the mean
+            anomaly using an iterative procedure.
 
         """
         return np.remainder(2 * np.arctan(np.sqrt((1 - self.eccentricity) /
@@ -733,13 +692,16 @@ class OrbitalState(State):
 
     @property
     def mean_anomaly(self):
-        r"""Return the mean anomaly. Uses the eccentric anomaly and Kepler's
-        equation to get mean anomaly from true anomaly and eccentricity.
-
+        r"""
         Returns
         -------
         : float
-            Mean anomaly, :math:`M` (radians; :math:`0 \le M \le 2\pi`)
+            Mean anomaly, :math:`M \, (0 \le M \le 2\pi`)
+
+        Note
+        ----
+            Uses the eccentric anomaly and Kepler's equation to get
+            mean anomaly from true anomaly and eccentricity.
 
         """
 
@@ -748,12 +710,11 @@ class OrbitalState(State):
 
     @property
     def period(self):
-        """The orbital period
-
+        """
         Returns
         -------
         : float
-            Orbital period, :math:`T`
+            Orbital period, :math:`T` ([time])
 
         """
         return ((2 * np.pi) / np.sqrt(self.grav_parameter)) * \
@@ -761,25 +722,23 @@ class OrbitalState(State):
 
     @property
     def mean_motion(self):
-        r"""The orbital mean motion
-
+        r"""
         Returns
         -------
         : float
             The mean motion, :math:`\frac{2 \pi}{T}`, where :math:`T` is the
-            period (rad / unit time)
+            period, (rad / [time])
 
         """
         return 2 * np.pi / self.period
 
     @property
     def mag_specific_angular_momentum(self):
-        """The magnitude of the specific angular momentum
-
+        """
         Returns
         -------
         : float
-            The magnitude of the specific angular momentum, :math:'h'
+            The magnitude of the specific angular momentum, :math:`h`
 
         """
         boldh = self.specific_angular_momentum
@@ -791,8 +750,7 @@ class OrbitalState(State):
 
     @property
     def specific_orbital_energy(self):
-        r"""The specific orbital energy
-
+        r"""
         Returns
         -------
         : float
@@ -802,15 +760,13 @@ class OrbitalState(State):
         return -self.grav_parameter / (2 * self.semimajor_axis)
 
     @property
-    def equinocital_h(self):
-        r"""The horizontal component of the eccentricity in the equinoctial
-        parameterisation
-
+    def equinoctial_h(self):
+        r"""
         Returns
         -------
         : float
             The horizontal component of the eccentricity in equinoctial
-            coordinates is :math:`h = e \sin (\omega + \Omega)
+            coordinates is :math:`h = e \sin (\omega + \Omega)`
 
         """
 
@@ -818,15 +774,13 @@ class OrbitalState(State):
                                           self.longitude_ascending_node)
 
     @property
-    def equinocital_k(self):
-        r"""The vertical component of the eccentricity in the equinoctial
-        parameterisation
-
+    def equinoctial_k(self):
+        r"""
         Returns
         -------
         : float
             The vertical component of the eccentricity in equinoctial
-            coordinates is :math:`k = e \cos (\omega + \Omega)
+            coordinates is :math:`k = e \cos (\omega + \Omega)`
 
         """
 
@@ -834,15 +788,13 @@ class OrbitalState(State):
                                           self.longitude_ascending_node)
 
     @property
-    def equinocital_p(self):
-        r"""The horizontal component of the inclination in the equinoctial
-        parameterisation
-
+    def equinoctial_p(self):
+        r"""
         Returns
         -------
         : float
             The horizontal component of the inclination in equinoctial
-            coordinates is :math:`p = \tan (i/2) \sin \Omega
+            coordinates is :math:`p = \tan (i/2) \sin \Omega`
 
         """
 
@@ -850,15 +802,13 @@ class OrbitalState(State):
             np.sin(self.longitude_ascending_node)
 
     @property
-    def equinocital_q(self):
-        r"""The vertical component of the inclination in the equinoctial
-        parameterisation
-
+    def equinoctial_q(self):
+        r"""
         Returns
         -------
         : float
             The vertical component of the inclination in equinoctial
-            coordinates is :math:`q = \tan (i/2) \cos \Omega
+            coordinates is :math:`q = \tan (i/2) \cos \Omega`
 
         """
 
@@ -867,8 +817,7 @@ class OrbitalState(State):
 
     @property
     def mean_longitude(self):
-        r"""The mean longitude
-
+        r"""
         Returns
         -------
         : float
@@ -882,23 +831,23 @@ class OrbitalState(State):
     # The following return vectors of complete sets of elements
     @property
     def keplerian_elements(self):
-        r"""Return the vector of Keplerian elements
-
+        r"""
         Returns
         -------
-        : numpy.array
+        : StateVector
+
+            The vector of Keplerian elements
 
             .. math::
 
-                    X = [e, a, i, \Omega, \omega, \\theta]^{T} \\
+                    X = [e, a, i, \Omega, \omega, \theta]^{T}
 
-                where:
-                :math:`e` is the orbital eccentricity (unitless),
-                :math:`a` the semi-major axis ([length]),
-                :math:`i` the inclination (rad),
-                :math:`\Omega` is the longitude of the ascending node (rad),
-                :math:`\omega` the argument of periapsis (rad), and
-                :math:`\theta` the true anomaly (rad)
+            where :math:`e` is the orbital eccentricity (unitless),
+            :math:`a` the semi-major axis ([length]), :math:`i` the
+            inclination (radian), :math:`\Omega` is the longitude of
+            the ascending node (radian), :math:`\omega` the argument of
+            periapsis (radian), and :math:`\theta` the true anomaly
+            (radian)
 
         """
 
@@ -911,23 +860,22 @@ class OrbitalState(State):
 
     @property
     def two_line_element(self):
-        r"""Return the state vector in the form of the NASA Two-Line Element
-
+        r"""
         Returns
         -------
-        : numpy.array
-            The two line element input vector
+        : StateVector
+
+            The Two-Line Element vector
 
                 .. math::
 
-                    X_{t_0} = [i, \Omega, e, \omega, M_0, n]^{T} \\
+                    X = [i, \Omega, e, \omega, M_0, n]^{T}
 
-                where :math:`i` the inclination (rad),
-                :math:`\Omega` is the longitude of the ascending node (rad),
-                :math:`e` is the orbital eccentricity (unitless),
-                :math:`\omega` the argument of periapsis (rad),
-                :math:'M_0' the mean anomaly (rad)
-                :math:`n` the mean motion (rad/[time])
+            where :math:`i` the inclination (radian) :math:`\Omega` is
+            the longitude of the ascending node (radian), :math:`e` is
+            the orbital eccentricity (unitless), :math:`\omega` the
+            argument of periapsis (radian), :math:`M_0` the mean
+            anomaly (radian) :math:`n` the mean motion (rad/[time]) [2]
         """
         return StateVector(np.array([[self.inclination],
                            [self.longitude_ascending_node],
@@ -938,58 +886,52 @@ class OrbitalState(State):
 
     @property
     def equinoctial_elements(self):
-        r"""Return the equinoctial element state vector
-
+        r"""
         Returns
         -------
-        : numpy.array
+        : StateVector
 
             .. math::
 
-                    X_{t_0} = [a, h, k, p, q, \lambda]^{T} \\
+                    X = [a, h, k, p, q, \lambda]^{T}
 
-                where :math:`a` the semi-major axis ([length]),
-                :math:`h` is the horizontal component of the eccentricity
-                :math:`e` (unitless),
-                :math:`k` is the vertical component of the eccentricity
-                :math:`e` (unitless),
-                :math:`p` is the horizontal component of the inclination
-                :math:`i` (unitless),
-                :math:`q` is the vertical component of the inclination
-                :math:`i` (unitless) and
-                :math:'lambda' is the mean longitude (rad)
-
-        Reference
-        ---------
-        Broucke, R. A. & Cefola, P. J. 1972, Celestial Mechanics, Volume 5,
-        Issue 3, pp.303-310
+            where :math:`a` the semi-major axis ([length]), :math:`h`
+            and :math:`k` are the horizontal and vertical components of
+            the eccentricity respectively (unitless), :math:`p` and
+            :math:`q` are the horizontal and vertical components of the
+            inclination respectively (radian) and :math:`\lambda` is the
+            mean longitude (radian) [3]
 
         """
         return StateVector(np.array([[self.semimajor_axis],
-                           [self.equinocital_h],
-                           [self.equinocital_k],
-                           [self.equinocital_p],
-                           [self.equinocital_q],
+                           [self.equinoctial_h],
+                           [self.equinoctial_k],
+                           [self.equinoctial_p],
+                           [self.equinoctial_q],
                            [self.mean_longitude]]))
 
 
 class KeplerianOrbitalState(OrbitalState):
-    r"""Merely a shell for the OrbitalState(coordinates='Keplerian') class, but
-    includes some boundary checking. As a reminder:
+    r"""Merely a shell for the OrbitalState(coordinates='Keplerian')
+    class, but includes some boundary checking. Construct via:
 
         .. math::
 
-            X_{t_0} = [e, a, i, \Omega, \omega, \\theta]^{T} \\
+            X_{t_0} = [e, a, i, \Omega, \omega, \theta]^{T} \\
 
-        where:
-        :math:`e` is the orbital eccentricity (unitless),
-        :math:`a` the semi-major axis (m),
-        :math:`i` the inclination (rad),
-        :math:`\Omega` is the longitude of the ascending node (rad),
-        :math:`\omega` the argument of periapsis (rad), and
-        :math:`\\theta` the true anomaly (rad).
+    where:
+    :math:`e` is the orbital eccentricity (unitless),
+    :math:`a` the semi-major axis ([length]),
+    :math:`i` the inclination (radian),
+    :math:`\Omega` is the longitude of the ascending node (radian),
+    :math:`\omega` the argument of periapsis (radian), and
+    :math:`\theta` the true anomaly (radian)
 
     """
+    coordinates = Property(
+        str, default='Keplerian', doc="Fixed as Keplerian coordinates"
+    )
+
     def __init__(self, state_vector, *args, **kwargs):
         # Ensure that the coordinates keyword is set to 'Keplerian' and do some
         # additional checks.
@@ -1028,16 +970,20 @@ class TLEOrbitalState(OrbitalState):
 
         .. math::
 
-            X_{t_0} = [i, \Omega, e, \omega, n, M_0]^{T} \\
+            X_{t_0} = [i, \Omega, e, \omega, M_0, n]^{T}
 
-    where :math:`i` the inclination (rad),
-    :math:`\Omega` is the longitude of the ascending node (rad),
+    where :math:`i` the inclination (radian),
+    :math:`\Omega` is the longitude of the ascending node (radian),
     :math:`e` is the orbital eccentricity (unitless),
-    :math:`\omega` the argument of perigee (rad),
-    :math:'M_0' the mean anomaly (rad) and
-    :math:`n` the mean motion (rad/[time]).
+    :math:`\omega` the argument of perigee (radian),
+    :math:`M_0` the mean anomaly (radian) and
+    :math:`n` the mean motion (radian / [time]).
 
     """
+    coordinates = Property(
+        str, default='TLE', doc="Fixed as TLE coordinates"
+    )
+
     def __init__(self, state_vector, *args, **kwargs):
         if np.less(state_vector[2][0], 0.0) | np.greater(state_vector[2][0],
                                                          1.0):
@@ -1073,13 +1019,19 @@ class EquinoctialOrbitalState(OrbitalState):
 
             X_{t_0} = [a, h, k, p, q, \lambda]^{T} \\
 
-    where :math:`a` the semi-major axis (m),
-    :math:`h` is the horizontal component of the eccentricity :math:`e`,
-    :math:`k` is the vertical component of the eccentricity :math:`e`,
-    :math:`q` is the horizontal component of the inclination :math:`i`,
-    :math:`k` is the vertical component of the inclination :math:`i` and
-    :math:'lambda' is the mean longitude
+    where :math:`a` the semi-major axis ([length]),
+    :math:`h` is the horizontal component of the eccentricity
+    (unitless),
+    :math:`k` is the vertical component of the eccentricity (unitless),
+    :math:`q` is the horizontal component of the inclination (radian),
+    :math:`k` is the vertical component of the inclination (radian),
+    :math:'\lambda' is the mean longitude (radian)
     """
+
+    coordinates = Property(
+        str, default='Equinoctial', doc="Fixed as equinoctial coordinates"
+    )
+
     def __init__(self, state_vector, *args, **kwargs):
         if np.less(state_vector[1][0], -1.0) | np.greater(state_vector[1][0],
                                                           1.0):
@@ -1110,5 +1062,3 @@ class EquinoctialOrbitalState(OrbitalState):
 
         super().__init__(state_vector, coordinates='Equinoctial', *args,
                          **kwargs)
-
-
