@@ -48,12 +48,6 @@ Numeric Types
 
 .. automodule:: stonesoup.types.numeric
     :show-inheritance:
-
-OrbitalState Types
-------------------
-
-.. automodule:: stonesoup.types.orbitalstate
-   :show-inheritance:
    
 Particle Types
 --------------
@@ -77,8 +71,11 @@ State Types
 -----------
 
 .. automodule:: stonesoup.types.state
-    :show-inheritance:
-    :inherited-members: stonesoup.types.state.StateMutableSequence
+   :show-inheritance:
+   :inherited-members: stonesoup.types.state.StateMutableSequence
+
+.. automodule:: stonesoup.types.orbitalstate
+   :show-inheritance:
 
 Time Types
 ----------------
