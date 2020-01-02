@@ -220,7 +220,8 @@ class RadarRasterScanRangeBearing(RadarRotatingRangeBearing):
      the rotate function changed to restrict the  dwell-center to within the \
      field of regard.
      
-     It's important to note that this only works (has  been tested) in an 2D environment
+     It's important to note that this only works (has  been tested) in an 2D \
+     environment
 
     Note
     ----
