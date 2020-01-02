@@ -1,6 +1,7 @@
 # coding: utf-8
 import datetime
 
+from pytest import approx
 import scipy as sp
 from scipy.stats import multivariate_normal
 
@@ -48,10 +49,10 @@ def test_rwodel():
                   state_vec,
                   timestamp=new_timestamp,
                   time_interval=time_interval)
-    assert sp.array_equal(prob, multivariate_normal.pdf(
+    assert approx(prob) == multivariate_normal.pdf(
         new_state_vec_wo_noise.T,
         mean=sp.array(F@state_vec).ravel(),
-        cov=Q).T)
+        cov=Q)
 
     # Propagate a state vector throught the model
     # (with internal noise)
@@ -67,10 +68,10 @@ def test_rwodel():
                   state_vec,
                   timestamp=new_timestamp,
                   time_interval=time_interval)
-    assert sp.array_equal(prob, multivariate_normal.pdf(
+    assert approx(prob) == multivariate_normal.pdf(
         new_state_vec_w_inoise.T,
         mean=sp.array(F@state_vec).ravel(),
-        cov=Q).T)
+        cov=Q)
 
     # Propagate a state vector throught the model
     # (with external noise)
@@ -86,7 +87,7 @@ def test_rwodel():
     # (with noise)
     prob = rw.pdf(new_state_vec_w_enoise, state_vec,
                   timestamp=new_timestamp, time_interval=time_interval)
-    assert sp.array_equal(prob, multivariate_normal.pdf(
+    assert approx(prob) == multivariate_normal.pdf(
         new_state_vec_w_enoise.T,
         mean=sp.array(F@state_vec).ravel(),
-        cov=Q).T)
+        cov=Q)

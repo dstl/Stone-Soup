@@ -5,6 +5,7 @@ from types import FunctionType
 import numpy as np
 
 from ..base import Property
+from ..buffered_generator import BufferedGenerator
 from .base import Feeder
 
 
@@ -21,16 +22,9 @@ class MetadataReducer(Feeder):
         str,
         doc="Field used to reduce set of detections")
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._detections = set()
-
-    @property
-    def detections(self):
-        return self._detections
-
+    @BufferedGenerator.generator_method
     def detections_gen(self):
-        for time, detections in self.detector.detections_gen():
+        for time, detections in self.detector:
             unique_detections = set()
             sorted_detections = sorted(
                 detections, key=attrgetter('timestamp'), reverse=True)
@@ -42,7 +36,6 @@ class MetadataReducer(Feeder):
                     # Ignore those without meta data value
                     if meta_value is not None:
                         meta_values.add(meta_value)
-                self._detections = unique_detections
             yield time, unique_detections
 
 
@@ -84,16 +77,9 @@ class MetadataValueFilter(MetadataReducer):
             "default is :code:`False`.",
         default=False)
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._detections = set()
-
-    @property
-    def detections(self):
-        return self._detections.copy()
-
+    @BufferedGenerator.generator_method
     def detections_gen(self):
-        for time, detections in self.detector.detections_gen():
+        for time, detections in self.detector:
             filtered_detections = set()
             for detection in detections:
                 value = detection.metadata.get(self.metadata_field)
@@ -102,8 +88,7 @@ class MetadataValueFilter(MetadataReducer):
                 elif value is not None and self.operator(value):
                     filtered_detections.add(detection)
 
-            self._detections = filtered_detections
-            yield time, self.detections
+            yield time, filtered_detections
 
 
 class BoundingBoxDetectionReducer(Feeder):
@@ -165,17 +150,13 @@ class BoundingBoxDetectionReducer(Feeder):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._detections = set()
         if self.mapping is None:
             self.mapping = tuple(range(len(self.limits)))
 
-    @property
-    def detections(self):
-        return self._detections.copy()
-
+    @BufferedGenerator.generator_method
     def detections_gen(self):
         num_dims = len(self.limits)
-        for time, detections in self.detector.detections_gen():
+        for time, detections in self.detector:
             outlier_detections = set()
             for detection in detections:
                 state_vector = detection.state_vector
@@ -186,5 +167,4 @@ class BoundingBoxDetectionReducer(Feeder):
                     if value < min or value > max:
                         outlier_detections.add(detection)
                         break
-            self._detections = detections - outlier_detections
-            yield time, self.detections
+            yield time, detections - outlier_detections

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import scipy as sp
-from scipy.stats import multivariate_normal
 
 from ...base import Property
 from ...types.array import CovarianceMatrix
@@ -89,68 +88,3 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
         """
 
         return self.noise_covar
-
-    def rvs(self, num_samples=1, **kwargs):
-        r""" Model noise/sample generation function
-
-        Generates noise samples from the measurement model.
-
-        In mathematical terms, this can be written as:
-
-        .. math::
-
-            v_t \sim \mathcal{N}(0,R_t)
-
-        where :math:`v_t =` ``noise``.
-
-        Parameters
-        ----------
-        num_samples: scalar, optional
-            The number of samples to be generated (the default is 1)
-
-        Returns
-        -------
-        noise : 2-D array of shape (:py:attr:`~ndim_meas`, ``num_samples``)
-            A set of Np samples, generated from the model's noise
-            distribution.
-        """
-
-        noise = multivariate_normal.rvs(
-            sp.zeros(self.ndim_meas), self.covar(), num_samples)
-
-        if num_samples == 1:
-            return noise.reshape((-1, 1))
-        else:
-            return noise.T
-
-    def pdf(self, meas_vec, state_vec, **kwargs):
-        r""" Measurement pdf/likelihood evaluation function
-
-        Evaluates the pdf/likelihood of the (set of) measurement vector(s)
-        ``meas_vec``, given the (set of) state vector(s) ``state_vec``.
-
-        In mathematical terms, this can be written as:
-
-        .. math::
-
-            p(y_t | x_t) = \mathcal{N}(y_t; x_t, R_t)
-
-        Parameters
-        ----------
-        meas_vec : :class:`~.StateVector`
-            A measurement
-        state_vec : :class:`~.StateVector`
-            A state
-
-        Returns
-        -------
-        :class:`float`
-            The likelihood of ``meas``, given ``state``
-        """
-
-        likelihood = multivariate_normal.pdf(
-            meas_vec.T,
-            mean=(self.matrix()@state_vec).ravel(),
-            cov=self.covar()
-        )
-        return likelihood

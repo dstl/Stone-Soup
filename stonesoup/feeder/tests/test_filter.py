@@ -13,7 +13,7 @@ def test_metadata_reducer(detector):
     feeder = MetadataReducer(detector, metadata_field="colour")
 
     multi_none = False
-    for time, detections in feeder.detections_gen():
+    for time, detections in feeder:
         all_colours = [detection.metadata.get('colour')
                        for detection in detections]
         if not multi_none:
@@ -41,7 +41,7 @@ def test_metadata_value_filter(detector):
                                  operator=lambda x: x >= 0.1)
     # Discard unmatched
     nones = False
-    for time, detections in feeder.detections_gen():
+    for time, detections in feeder:
         all_scores = [detection.metadata.get('score')
                       for detection in detections]
         nones = nones | (len([score for score in all_scores
@@ -57,7 +57,7 @@ def test_metadata_value_filter(detector):
     # Keep unmatched
     feeder.keep_unmatched = True
     nones = False
-    for time, detections in feeder.detections_gen():
+    for time, detections in feeder:
         all_scores = [detection.metadata.get('score')
                       for detection in detections]
         nones = nones | (len([score for score in all_scores
@@ -92,7 +92,7 @@ def test_boundingbox_reducer(detector):
 
     # Ensure only measurements within box are returned
     multi_check = True
-    for time, detections in feeder.detections_gen():
+    for time, detections in feeder:
 
         for detection in detections:
             num_dims = len(limits)
