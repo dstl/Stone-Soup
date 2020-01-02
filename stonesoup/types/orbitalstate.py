@@ -34,7 +34,7 @@ class OrbitalState(State):
                     \dot{r}_z]^{T}
 
             where :math:`r_x, r_y, r_z` are the Cartesian position
-            coordinates in the Earth Centered Inertial (ECI) frame and
+            coordinates in the Primary-Centered Inertial frame and
             :math:`\dot{r}_x, \dot{r}_y, \dot{r}_z` are the
             corresponding velocity coordinates.
 
@@ -138,7 +138,7 @@ class OrbitalState(State):
         --------
         coordinates
             The chosen input coordinate frame. Can be 'Cartesian', 'Keplerian',
-            'TLE' or 'Equinoctal'.
+            'TLE' or 'Equinoctial'.
 
 
         Returns
@@ -492,8 +492,8 @@ class OrbitalState(State):
                     X_{t_0} = [r_x, r_y, r_z, \dot{r}_x, \dot{r}_y,
                     \dot{r}_z]^{T}
 
-            in ECI coordinates (or more properly, 'Primary-centred'
-            inertial coordinates)
+            in Primary-Centred' Inertial coordinates, equivalent to ECI
+            in the case of the Earth
 
         """
         return StateVector(self.state_vector)
@@ -541,7 +541,7 @@ class OrbitalState(State):
         Returns
         -------
         : float
-            The orbital eccentricity, :math:`e \, (0 \le e \le 1)`
+            The orbital eccentricity, :math:`e \; (0 \le e \le 1)`
 
         Note
         ----
@@ -580,7 +580,7 @@ class OrbitalState(State):
         Returns
         -------
         : float
-            Orbital inclination, :math:`i \, (0 \le i \le \pi)`
+            Orbital inclination, :math:`i \; (0 \le i < \pi)`
 
         """
         boldh = self.specific_angular_momentum
@@ -596,7 +596,7 @@ class OrbitalState(State):
         -------
         : float
             The longitude (or right ascension) of ascending node,
-            :math:`\Omega \, (0 \le \Omega \le 2\pi)`
+            :math:`\Omega \; (0 \le \Omega < 2\pi)`
 
         """
 
@@ -617,8 +617,8 @@ class OrbitalState(State):
         Returns
         -------
         : float
-            The argument of periapsis, :math:`\omega \, (0 \le \omega
-            \le 2\pi)`
+            The argument of periapsis, :math:`\omega \; (0 \le \omega
+            < 2\pi)`
 
         """
 
@@ -650,7 +650,7 @@ class OrbitalState(State):
         Returns
         -------
         : float
-            The true anomaly, :math:`\theta \, (0 \le \theta \le 2\pi)`
+            The true anomaly, :math:`\theta \; (0 \le \theta < 2\pi)`
 
         """
         # Resolve the quadrant ambiguity.The clip function is required to
@@ -676,7 +676,7 @@ class OrbitalState(State):
         Returns
         -------
         : float
-            The eccentric anomaly, :math:`E \, (0 \le E \le 2\pi)`
+            The eccentric anomaly, :math:`E \; (0 \le E < 2\pi)`
 
         Note
         ----
@@ -696,7 +696,7 @@ class OrbitalState(State):
         Returns
         -------
         : float
-            Mean anomaly, :math:`M \, (0 \le M \le 2\pi`)
+            Mean anomaly, :math:`M \; (0 \le M < 2\pi`)
 
         Note
         ----
@@ -1025,7 +1025,7 @@ class EquinoctialOrbitalState(OrbitalState):
     :math:`k` is the vertical component of the eccentricity (unitless),
     :math:`q` is the horizontal component of the inclination (radian),
     :math:`k` is the vertical component of the inclination (radian),
-    :math:'\lambda' is the mean longitude (radian)
+    :math:`\lambda` is the mean longitude (radian)
     """
 
     coordinates = Property(
