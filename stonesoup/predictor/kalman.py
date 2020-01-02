@@ -226,7 +226,7 @@ class ExtendedKalmanPredictor(KalmanPredictor):
         if isinstance(self.transition_model, LinearModel):
             return self.transition_model.matrix(**kwargs)
         else:
-            return self.transition_model.jacobian(prior.state_vector, **kwargs)
+            return self.transition_model.jacobian(prior, **kwargs)
 
     def _transition_function(self, prior, **kwargs):
         r"""This is the application of :math:`f_k(\mathbf{x}_{k-1})`, the
