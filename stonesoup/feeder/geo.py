@@ -7,6 +7,7 @@ from pymap3d import geodetic2enu, geodetic2ned
 
 from .base import Feeder
 from ..base import Property
+from ..buffered_generator import BufferedGenerator
 from ..types.detection import Detection
 
 
@@ -22,14 +23,11 @@ class _LLARefConverter(Feeder):
     def _converter(self):
         raise NotImplementedError
 
-    @property
-    def detections(self):
-        return self._detections.copy()
-
+    @BufferedGenerator.generator_method
     def detections_gen(self):
-        for time, detections in self.detector.detections_gen():
+        for time, detections in self.detector:
 
-            self._detections = set()
+            new_detections = set()
             for detection in detections:
                 new_coord = self._converter(
                     detection.state_vector[self.mapping[1], 0],  # Lat
@@ -41,14 +39,14 @@ class _LLARefConverter(Feeder):
                 )
                 state_vector = detection.state_vector.copy()
                 state_vector[self.mapping, 0] = new_coord
-                self._detections.add(
+                new_detections.add(
                     Detection(
                         state_vector,
                         timestamp=detection.timestamp,
                         measurement_model=detection.measurement_model,
                         metadata=detection.metadata))
 
-            yield time, self.detections
+            yield time, new_detections
 
 
 class LLAtoENUConverter(_LLARefConverter):
@@ -104,14 +102,11 @@ class LongLatToUTMConverter(Feeder):
         doc="UTM northern for northern or southern grid. Default `None`, where"
             "it will be base on the first detection.")
 
-    @property
-    def detections(self):
-        return self._detections.copy()
-
+    @BufferedGenerator.generator_method
     def detections_gen(self):
-        for time, detections in self.detector.detections_gen():
+        for time, detections in self.detector:
 
-            self._detections = set()
+            utm_detections = set()
             for detection in detections:
                 easting, northing, zone_num, northern = utm.from_latlon(
                     *detection.state_vector[self.mapping[::-1], 0],
@@ -127,11 +122,11 @@ class LongLatToUTMConverter(Feeder):
 
                 state_vector = detection.state_vector.copy()
                 state_vector[self.mapping, 0] = easting, northing
-                self._detections.add(
+                utm_detections.add(
                     Detection(
                         state_vector,
                         timestamp=detection.timestamp,
                         measurement_model=detection.measurement_model,
                         metadata=detection.metadata))
 
-            yield time, self.detections
+            yield time, utm_detections

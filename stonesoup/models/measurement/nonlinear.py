@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import scipy as sp
-from scipy.stats import multivariate_normal
 from numpy.linalg import inv
 
 from ...base import Property
@@ -42,69 +41,6 @@ class NonLinearGaussianMeasurement(MeasurementModel,
         """
 
         return self.noise_covar
-
-    def pdf(self, meas_vec, state_vec, **kwargs):
-        r""" Measurement pdf/likelihood evaluation function
-
-        Evaluates the pdf/likelihood of the (set of) measurement vector(s)
-        ``meas_vec``, given the (set of) state vector(s) ``state_vec``.
-
-        In mathematical terms, this can be written as:
-
-        .. math::
-
-            p(\vec{y}_t | \vec{x}_t) = \mathcal{N}(\vec{y}_t; \vec{x}_t, R)
-
-        Parameters
-        ----------
-        meas_vec : :class:`~.StateVector`
-            A measurement
-        state_vec : :class:`~.StateVector`
-            A state
-
-        Returns
-        -------
-        :class:`float`
-            The likelihood of ``meas``, given ``state``
-        """
-
-        likelihood = multivariate_normal.pdf(
-            meas_vec.T,
-            mean=(self.function(state_vec, 0)).ravel(),
-            cov=self.covar()
-        )
-        return likelihood
-
-    def rvs(self, num_samples=1, **kwargs):
-        r""" Model noise/sample generation function
-
-        Generates noise samples from the measurement model.
-
-        In mathematical terms, this can be written as:
-
-        .. math::
-
-            \vec{v}_t \sim \mathcal{N}(0,R)
-
-        Parameters
-        ----------
-        num_samples: scalar, optional
-            The number of samples to be generated (the default is 1)
-
-        Returns
-        -------
-        2-D array of shape (:py:attr:`~ndim_meas`, ``num_samples``)
-            A set of Np samples, generated from the model's noise
-            distribution.
-        """
-
-        noise = multivariate_normal.rvs(
-            sp.zeros(self.ndim_meas), self.covar(), num_samples)
-
-        if num_samples == 1:
-            return noise.reshape((-1, 1))
-        else:
-            return noise.T
 
     @property
     def _rotation_matrix(self):
@@ -203,13 +139,13 @@ class CartesianToElevationBearingRange(
 
         return 3
 
-    def function(self, state_vector, noise=None, **kwargs):
+    def function(self, state, noise=None, **kwargs):
         r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
 
         Parameters
         ----------
-        state_vector: :class:`~.StateVector`
-            An input state vector
+        state: :class:`~.State`
+            An input state
         noise: :class:`numpy.ndarray`
             An externally generated random process noise sample (the default in
             `None`, in which case process noise will be generated internally)
@@ -224,7 +160,7 @@ class CartesianToElevationBearingRange(
             noise = self.rvs()
 
         # Account for origin offset
-        xyz = state_vector[self.mapping] - self.translation_offset
+        xyz = state.state_vector[self.mapping] - self.translation_offset
 
         # Rotate coordinates
         xyz_rot = self._rotation_matrix @ xyz
@@ -236,9 +172,9 @@ class CartesianToElevationBearingRange(
                          [Bearing(phi)],
                          [rho]]) + noise
 
-    def inverse_function(self, state_vector, **kwargs):
+    def inverse_function(self, state, **kwargs):
 
-        theta, phi, rho = state_vector[:, 0]
+        theta, phi, rho = state.state_vector[:, 0]
         x, y, z = sphere2cart(rho, phi, theta)
 
         xyz = [[x], [y], [z]]
@@ -331,14 +267,14 @@ class CartesianToBearingRange(
 
         return 2
 
-    def inverse_function(self, state_vector, **kwargs):
+    def inverse_function(self, state, **kwargs):
         if not ((self.rotation_offset[0][0] == 0)
                 and (self.rotation_offset[1][0] == 0)):
             raise RuntimeError(
                 "Measurement model assumes 2D space. \
                 Rotation in 3D space is unsupported at this time.")
 
-        phi, rho = state_vector[:, 0]
+        phi, rho = state.state_vector[:, 0]
         x, y = pol2cart(rho, phi)
 
         xyz = [[x], [y], [0]]
@@ -352,7 +288,7 @@ class CartesianToBearingRange(
 
         return res
 
-    def function(self, state_vector, noise=None, **kwargs):
+    def function(self, state, noise=None, **kwargs):
         r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
 
         Parameters
@@ -373,9 +309,9 @@ class CartesianToBearingRange(
             noise = self.rvs()
 
         # Account for origin offset
-        xyz = [[state_vector[self.mapping[0], 0]
+        xyz = [[state.state_vector[self.mapping[0], 0]
                 - self.translation_offset[0, 0]],
-               [state_vector[self.mapping[1], 0]
+               [state.state_vector[self.mapping[1], 0]
                 - self.translation_offset[1, 0]],
                [0]]
 
@@ -467,7 +403,7 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
 
         return 2
 
-    def function(self, state_vector, noise=None, **kwargs):
+    def function(self, state, noise=None, **kwargs):
         r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
 
         Parameters
@@ -488,7 +424,7 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
             noise = self.rvs()
 
         # Account for origin offset
-        xyz = state_vector[self.mapping] - self.translation_offset
+        xyz = state.state_vector[self.mapping] - self.translation_offset
 
         # Rotate coordinates
         xyz_rot = self._rotation_matrix @ xyz

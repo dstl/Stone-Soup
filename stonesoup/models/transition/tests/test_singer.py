@@ -1,42 +1,44 @@
 # coding: utf-8
 import datetime
 
+from pytest import approx
 import scipy as sp
 from scipy.stats import multivariate_normal
 
 from ..linear import Singer, CombinedLinearGaussianTransitionModel
+from ....types.state import State
 
 
 def test_singer1dmodel():
     """ Singer 1D Transition Model test """
-    state_vec = sp.array([[3.0], [1.0], [0.1]])
+    state = State(sp.array([[3.0], [1.0], [0.1]]))
     noise_diff_coeffs = sp.array([0.01])
     damping_coeffs = sp.array([0.1])
-    base(state_vec, noise_diff_coeffs, damping_coeffs)
+    base(state, noise_diff_coeffs, damping_coeffs)
 
 
 def test_singer2dmodel():
     """ Singer 2D Transition Model test """
-    state_vec = sp.array([[3.0], [1.0], [0.1],
-                          [2.0], [2.0], [0.2]])
+    state = State(sp.array([[3.0], [1.0], [0.1], [2.0], [2.0], [0.2]]))
     noise_diff_coeffs = sp.array([0.01, 0.02])
     damping_coeffs = sp.array([0.1, 0.1])
 
-    base(state_vec, noise_diff_coeffs, damping_coeffs)
+    base(state, noise_diff_coeffs, damping_coeffs)
 
 
 def test_singer3dmodel():
     """ Singer 3D Transition Model test """
-    state_vec = sp.array([[3.0], [1.0], [0.1],
-                          [2.0], [2.0], [0.2],
-                          [4.0], [0.5], [0.05]])
+    state = State(sp.array([[3.0], [1.0], [0.1], [2.0], [2.0], [0.2], [4.0],
+                            [0.5], [0.05]]))
     noise_diff_coeffs = sp.array([0.01, 0.02, 0.005])
     damping_coeffs = sp.array([0.1, 0.1, 0.1])
-    base(state_vec, noise_diff_coeffs, damping_coeffs)
+    base(state, noise_diff_coeffs, damping_coeffs)
 
 
-def base(state_vec, noise_diff_coeffs, damping_coeffs, timediff=1.0):
+def base(state, noise_diff_coeffs, damping_coeffs, timediff=1.0):
     """ Base test for n-dimensional ConstantAcceleration Transition Models """
+
+    state_vec = state.state_vector
 
     # Create a 1D Singer or an n-dimensional
     # CombinedLinearGaussianTransitionModel object
@@ -119,7 +121,7 @@ def base(state_vec, noise_diff_coeffs, damping_coeffs, timediff=1.0):
     # Propagate a state vector through the model
     # (without noise)
     new_state_vec_wo_noise = model_obj.function(
-        state_vec,
+        state,
         timestamp=new_timestamp,
         time_interval=time_interval,
         noise=0)
@@ -127,19 +129,19 @@ def base(state_vec, noise_diff_coeffs, damping_coeffs, timediff=1.0):
 
     # Evaluate the likelihood of the predicted state, given the prior
     # (without noise)
-    prob = model_obj.pdf(new_state_vec_wo_noise,
-                         state_vec,
+    prob = model_obj.pdf(State(new_state_vec_wo_noise),
+                         state,
                          timestamp=new_timestamp,
                          time_interval=time_interval)
-    assert sp.allclose(prob, multivariate_normal.pdf(
+    assert approx(prob) == multivariate_normal.pdf(
         new_state_vec_wo_noise.T,
         mean=sp.array(F@state_vec).ravel(),
-        cov=Q).T, rtol=1e-6)
+        cov=Q)
 
     # Propagate a state vector throughout the model
     # (with internal noise)
     new_state_vec_w_inoise = model_obj.function(
-        state_vec,
+        state,
         timestamp=new_timestamp,
         time_interval=time_interval)
     assert not sp.allclose(new_state_vec_w_inoise, F@state_vec, rtol=1e-6)
@@ -147,20 +149,20 @@ def base(state_vec, noise_diff_coeffs, damping_coeffs, timediff=1.0):
     # Evaluate the likelihood of the predicted state, given the prior
     # (with noise)
     # (with noise)
-    prob = model_obj.pdf(new_state_vec_w_inoise,
-                         state_vec,
+    prob = model_obj.pdf(State(new_state_vec_w_inoise),
+                         state,
                          timestamp=new_timestamp,
                          time_interval=time_interval)
-    assert sp.allclose(prob, multivariate_normal.pdf(
+    assert approx(prob) == multivariate_normal.pdf(
         new_state_vec_w_inoise.T,
         mean=sp.array(F@state_vec).ravel(),
-        cov=Q).T, rtol=1e-6)
+        cov=Q)
 
     # Propagate a state vector throught the model
     # (with external noise)
     noise = model_obj.rvs(timestamp=new_timestamp, time_interval=time_interval)
     new_state_vec_w_enoise = model_obj.function(
-        state_vec,
+        state,
         timestamp=new_timestamp,
         time_interval=time_interval,
         noise=noise)
@@ -168,9 +170,9 @@ def base(state_vec, noise_diff_coeffs, damping_coeffs, timediff=1.0):
 
     # Evaluate the likelihood of the predicted state, given the prior
     # (with noise)
-    prob = model_obj.pdf(new_state_vec_w_enoise, state_vec,
+    prob = model_obj.pdf(State(new_state_vec_w_enoise), state,
                          timestamp=new_timestamp, time_interval=time_interval)
-    assert sp.allclose(prob, multivariate_normal.pdf(
+    assert approx(prob) == multivariate_normal.pdf(
         new_state_vec_w_enoise.T,
         mean=sp.array(F@state_vec).ravel(),
-        cov=Q).T, rtol=1e-6)
+        cov=Q)

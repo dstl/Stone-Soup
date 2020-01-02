@@ -289,9 +289,9 @@ class GOSPAMetric(MetricGenerator):
 
                 euc_distance = np.linalg.norm(
                     self.measurement_model_track.function(
-                        track_state.state_vector, noise=0)
+                        track_state, noise=0)
                     - self.measurement_model_truth.function(
-                        truth_state.state_vector, noise=0))
+                        truth_state, noise=0))
 
                 if euc_distance < self.c:
                     cost_matrix[i_track, i_truth] = euc_distance

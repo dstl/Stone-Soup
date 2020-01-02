@@ -4,13 +4,17 @@ from scipy.stats import multivariate_normal
 from .base import Initiator, GaussianInitiator
 from ..base import Property
 from ..models.measurement import MeasurementModel
+from ..models.base import NonLinearModel, ReversibleModel
 from ..types.hypothesis import SingleHypothesis
 from ..types.numeric import Probability
 from ..types.particle import Particle
-from ..types.state import GaussianState
+from ..types.state import State, GaussianState
 from ..types.track import Track
 from ..types.update import GaussianStateUpdate, ParticleStateUpdate
 from ..updater.kalman import KalmanUpdater
+from ..dataassociator import DataAssociator
+from ..deleter import Deleter
+from ..updater import Updater
 
 
 class SinglePointInitiator(GaussianInitiator):
@@ -48,11 +52,18 @@ class SinglePointInitiator(GaussianInitiator):
         return tracks
 
 
-class LinearMeasurementInitiator(GaussianInitiator):
+class SimpleMeasurementInitiator(GaussianInitiator):
     """Initiator that maps measurement space to state space
+
+    Works for both linear and non-linear co-ordinate input
 
     This initiator utilises the :class:`~.MeasurementModel` matrix to convert
     :class:`~.Detection` state vector and model covariance into state space.
+
+    Utilises the ReversibleModel inverse function to convert
+    non-linear spherical co-ordinates into Cartesian x/y co-ordinates
+    for use in predictions and mapping.
+
     This then replaces mapped values in the :attr:`prior_state` to form the
     initial :class:`~.GaussianState` of the :class:`~.Track`.
     """
@@ -62,29 +73,112 @@ class LinearMeasurementInitiator(GaussianInitiator):
     def initiate(self, detections, **kwargs):
         tracks = set()
 
-        model_matrix = self.measurement_model.matrix()
-        model_covar = self.measurement_model.covar()
-
-        prior_state_vector = self.prior_state.state_vector.copy()
-        prior_covar = self.prior_state.covar.copy()
-
-        # Zero out elements of prior state that will be replaced by measurement
-        mapped_dimensions, _ = np.nonzero(
-            model_matrix.T@np.ones((model_matrix.shape[0], 1)))
-        prior_state_vector[mapped_dimensions, :] = 0
-        prior_covar[mapped_dimensions, :] = 0
-
-        inv_model_matrix = np.linalg.pinv(model_matrix)
-
         for detection in detections:
+            if detection.measurement_model is not None:
+                measurement_model = detection.measurement_model
+            else:
+                measurement_model = self.measurement_model
+
+            if isinstance(measurement_model, NonLinearModel):
+                if isinstance(measurement_model, ReversibleModel):
+                    state_vector = measurement_model.inverse_function(
+                        detection)
+                    model_matrix = measurement_model.jacobian(State(
+                        state_vector))
+                    inv_model_matrix = np.linalg.pinv(model_matrix)
+                else:
+                    raise Exception("Invalid measurement model used.\
+                                    Must be instance of linear or reversible.")
+            else:
+                model_matrix = measurement_model.matrix()
+                inv_model_matrix = np.linalg.pinv(model_matrix)
+                state_vector = inv_model_matrix @ detection.state_vector
+
+            model_covar = measurement_model.covar()
+
+            prior_state_vector = self.prior_state.state_vector.copy()
+            prior_covar = self.prior_state.covar.copy()
+
+            mapped_dimensions, _ = np.nonzero(
+                model_matrix.T @ np.ones((model_matrix.shape[0], 1)))
+            prior_state_vector[mapped_dimensions, :] = 0
+            prior_covar[mapped_dimensions, :] = 0
+
             tracks.add(Track([GaussianStateUpdate(
-                prior_state_vector + inv_model_matrix@detection.state_vector,
+                prior_state_vector + state_vector,
                 prior_covar
-                + inv_model_matrix@model_covar@model_matrix.astype(bool),
+                + inv_model_matrix @ model_covar @ model_matrix.astype(bool),
                 SingleHypothesis(None, detection),
                 timestamp=detection.timestamp)
             ]))
         return tracks
+
+
+class MultiMeasurementInitiator(GaussianInitiator):
+    """Multi-measurement initiator.
+
+    Utilises features of the tracker to initiate and hold tracks
+    temporarily within the initiator itself, releasing them to the
+    tracker once there are multiple detections associated with them
+    enough to determine that they are 'sure' tracks.
+
+    Utilises simple initiator to initiate tracks to hold ->
+    prevents code duplication.
+
+    Solves issue of short-lived single detection tracks being
+    initiated only to then be removed shortly after.
+    Does cause slight delay in initiation to tracker."""
+
+    prior_state = Property(GaussianState, doc="Prior state information")
+    measurement_model = Property(MeasurementModel, doc="Measurement model")
+    deleter = Property(Deleter, doc="Deleter used to delete the track.")
+    data_associator = Property(
+        DataAssociator,
+        doc="Association algorithm to pair predictions to detections.")
+    updater = Property(
+        Updater,
+        doc="Updater used to update the track object to the new state.")
+    min_points = Property(
+        int, default=2,
+        doc="Minimum number of track points required to confirm a track.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.holding_tracks = set()
+
+    def initiate(self, detections, **kwargs):
+        sure_tracks = set()
+        if len(detections) == 0:
+            return sure_tracks
+
+        detections_list = list(detections)
+        detections_set = set(detections)
+        associated_detections = set()
+
+        if not len(self.holding_tracks) == 0:
+            associations = self.data_associator.associate(
+                self.holding_tracks, detections, detections_list[0].timestamp)
+
+            for track, hypothesis in associations.items():
+                if hypothesis:
+                    state_post = self.updater.update(hypothesis)
+                    track.append(state_post)
+                    if len(track) >= self.min_points:
+                        sure_tracks.add(track)
+                        self.holding_tracks.remove(track)
+                    associated_detections.add(hypothesis.measurement)
+                else:
+                    track.append(hypothesis.prediction)
+
+            self.holding_tracks -= \
+                self.deleter.delete_tracks(self.holding_tracks)
+
+        simple_initiator = SimpleMeasurementInitiator(
+            self.prior_state, self.measurement_model)
+        self.holding_tracks |= \
+            simple_initiator.initiate(detections_set - associated_detections)
+
+        return sure_tracks
 
 
 class GaussianParticleInitiator(Initiator):
@@ -115,7 +209,7 @@ class GaussianParticleInitiator(Initiator):
             A list of new tracks with a initial :class:`~.ParticleState`
         """
         tracks = self.initiator.initiate(unassociated_detections, **kwargs)
-        weight = Probability(1/self.number_particles)
+        weight = Probability(1 / self.number_particles)
         for track in tracks:
             samples = multivariate_normal.rvs(track.state_vector.ravel(),
                                               track.covar,

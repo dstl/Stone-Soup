@@ -2,8 +2,10 @@
 
 import datetime
 
+from pytest import approx
 import scipy as sp
 from scipy.stats import multivariate_normal
+from ....types.state import State
 
 from ..linear import (
     ConstantAcceleration, CombinedLinearGaussianTransitionModel)
@@ -85,7 +87,7 @@ def base(state_vec, noise_diff_coeffs):
     # Propagate a state vector through the model
     # (without noise)
     new_state_vec_wo_noise = model_obj.function(
-        state_vec,
+        State(state_vec),
         timestamp=new_timestamp,
         time_interval=time_interval,
         noise=0)
@@ -93,39 +95,39 @@ def base(state_vec, noise_diff_coeffs):
 
     # Evaluate the likelihood of the predicted state, given the prior
     # (without noise)
-    prob = model_obj.pdf(new_state_vec_wo_noise,
-                         state_vec,
+    prob = model_obj.pdf(State(new_state_vec_wo_noise),
+                         State(state_vec),
                          timestamp=new_timestamp,
                          time_interval=time_interval)
-    assert sp.array_equal(prob, multivariate_normal.pdf(
+    assert approx(prob) == multivariate_normal.pdf(
         new_state_vec_wo_noise.T,
         mean=sp.array(F@state_vec).ravel(),
-        cov=Q).T)
+        cov=Q)
 
     # Propagate a state vector throughout the model
     # (with internal noise)
     new_state_vec_w_inoise = model_obj.function(
-        state_vec,
+        State(state_vec),
         timestamp=new_timestamp,
         time_interval=time_interval)
     assert not sp.array_equal(new_state_vec_w_inoise, F@state_vec)
 
     # Evaluate the likelihood of the predicted state, given the prior
     # (with noise)
-    prob = model_obj.pdf(new_state_vec_w_inoise,
-                         state_vec,
+    prob = model_obj.pdf(State(new_state_vec_w_inoise),
+                         State(state_vec),
                          timestamp=new_timestamp,
                          time_interval=time_interval)
-    assert sp.array_equal(prob, multivariate_normal.pdf(
+    assert approx(prob) == multivariate_normal.pdf(
         new_state_vec_w_inoise.T,
         mean=sp.array(F@state_vec).ravel(),
-        cov=Q).T)
+        cov=Q)
 
     # Propagate a state vector through the model
     # (with external noise)
     noise = model_obj.rvs(timestamp=new_timestamp, time_interval=time_interval)
     new_state_vec_w_enoise = model_obj.function(
-        state_vec,
+        State(state_vec),
         timestamp=new_timestamp,
         time_interval=time_interval,
         noise=noise)
@@ -133,9 +135,9 @@ def base(state_vec, noise_diff_coeffs):
 
     # Evaluate the likelihood of the predicted state, given the prior
     # (with noise)
-    prob = model_obj.pdf(new_state_vec_w_enoise, state_vec,
+    prob = model_obj.pdf(State(new_state_vec_w_enoise), State(state_vec),
                          timestamp=new_timestamp, time_interval=time_interval)
-    assert sp.array_equal(prob, multivariate_normal.pdf(
+    assert approx(prob) == multivariate_normal.pdf(
         new_state_vec_w_enoise.T,
         mean=sp.array(F@state_vec).ravel(),
-        cov=Q).T)
+        cov=Q)

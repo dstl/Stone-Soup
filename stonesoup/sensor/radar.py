@@ -83,7 +83,7 @@ class RadarRangeBearing(Sensor):
         """
 
         measurement_vector = self.measurement_model.function(
-            ground_truth.state_vector, noise=noise, **kwargs)
+            ground_truth, noise=noise, **kwargs)
 
         model_copy = copy.copy(self.measurement_model)
 
@@ -163,7 +163,7 @@ class RadarRotatingRangeBearing(RadarRangeBearing):
         # Transform state to measurement space and generate
         # random noise
         measurement_vector = self.measurement_model.function(
-            ground_truth.state_vector, noise=0, **kwargs)
+            ground_truth, noise=0, **kwargs)
         if(noise is None):
             measurement_noise = self.measurement_model.rvs()
         else:

@@ -4,6 +4,7 @@ import datetime
 from warnings import warn
 
 from ..base import Property
+from ..buffered_generator import BufferedGenerator
 from .base import Feeder
 
 
@@ -15,16 +16,9 @@ class TimeBufferedFeeder(Feeder):
     """
     buffer_size = Property(int, default=1000, doc="Max size of buffer")
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._detections = set()
-
-    @property
-    def detections(self):
-        return self._detections
-
+    @BufferedGenerator.generator_method
     def detections_gen(self):
-        detections_iter = iter(self.detector.detections_gen())
+        detections_iter = iter(self.detector)
         time_detections_buffer = [next(detections_iter)]
 
         for time_detections in detections_iter:
@@ -39,14 +33,10 @@ class TimeBufferedFeeder(Feeder):
 
             # Yield oldest when buffer full
             if len(time_detections_buffer) > self.buffer_size:
-                time, detections = time_detections_buffer.pop(0)
-                self._detections = detections
-                yield time, detections
+                yield time_detections_buffer.pop(0)
 
         # No more new detections: yield remaining buffer
-        for time, detections in time_detections_buffer:
-            self._detections = detections
-            yield time, detections
+        yield from time_detections_buffer
 
 
 class TimeSyncFeeder(Feeder):
@@ -62,16 +52,9 @@ class TimeSyncFeeder(Feeder):
         default=datetime.timedelta(seconds=1),
         doc="Time window to group detections")
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._detections = set()
-
-    @property
-    def detections(self):
-        return self._detections
-
+    @BufferedGenerator.generator_method
     def detections_gen(self):
-        detections_iter = iter(self.detector.detections_gen())
+        detections_iter = iter(self.detector)
         prev_time, detections = next(detections_iter)
         detections_buffer = set(detections)
 
@@ -79,21 +62,18 @@ class TimeSyncFeeder(Feeder):
 
         for time, detections in detections_iter:
             if time > prev_time + self.time_window:
-                self._detections = detections_buffer
-                yield prev_time + self.time_window, self.detections
+                yield prev_time + self.time_window, detections_buffer
 
                 # Increment time and yield empty detections set until latest
                 # detections within time window.
                 prev_time += self.time_window
                 while time > prev_time + self.time_window:
-                    self._detections = set()
                     prev_time += self.time_window
-                    yield prev_time, self.detections
+                    yield prev_time, set()
 
                 detections_buffer = set(detections)
             else:
                 detections_buffer.update(detections)
 
         # No more new detections: yield remaining buffer
-        self._detections = detections_buffer
-        yield prev_time + self.time_window, self.detections
+        yield prev_time + self.time_window, detections_buffer
