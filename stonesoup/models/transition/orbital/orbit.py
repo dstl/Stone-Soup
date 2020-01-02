@@ -23,8 +23,8 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
 
         .. math::
 
-            M_{t_1} = M_{t_0} + n(t_1 - t_0), \, \mathrm{modulo} \,
-            2\pi
+            M_{t_1} = M_{t_0} + n(t_1 - t_0), \; (\mathrm{modulo} \,
+            2\pi)
 
 
     for the interval :math:`t_0 \rightarrow t_1`, where :math:`n` is
@@ -258,8 +258,8 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
 
     Follows algorithm 3.4 in [1].
 
-    Reference
-    ---------
+    References
+    ----------
     1. Curtis, H.D 2010, Orbital Mechanics for Engineering Students (3rd
     Ed.), Elsevier Publishing
 
@@ -300,8 +300,8 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
         : StateVector
             The orbital state vector returned by the transition function
 
-        Notes
-        -----
+        Note
+        ----
         This merely passes the parameters to the :attr:`.transition()`
         function. The noise parameter has no effect, is included merely
         for compatibility with parent classes.  Units of mean motion
@@ -317,8 +317,8 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
         orbital_state : :class:`~.OrbitalState`
             The prior orbital state
         time_interval: :math:`\delta t` :attr:`datetime.timedelta`, optional
-            The time interval over which to test the new state (default is 0
-            seconds)
+            The time interval over which to test the new state (default
+            is 0 seconds)
 
         Returns
         -------
@@ -327,9 +327,9 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
 
         Warning
         -------
-        If noisy samples from the transition function are required, use the rvs
-        method. Units of mean motion must be :math:`\mathrm{rad} \,
-        \mathrm{s}^{-1}`
+        If noisy samples from the transition function are required, use
+        the :attr:`rvs` method. Units of mean motion must be
+        :math:`\mathrm{rad} \; \mathrm{s}^{-1}`
 
         """
         # Reused variables
@@ -441,18 +441,20 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
         ----------
         num_samples : int, optional
             Number of samples, (default is 1)
-        orbital_state: :class:~`OrbitalState`, optional
+        orbital_state: :class:`~.OrbitalState`, optional
             The orbital state class (default is None, in which case a
-            Gauss-dsitributed samples are generated at Cartesian [0,0,0,0,0,0])
-        time_interval : :class:~`datetime.timedelta`, optional
+            Gauss-distributed samples are generated at Cartesian
+            :math:`[0,0,0,0,0,0]^T`)
+        time_interval : :class:`~.datetime.timedelta`, optional
             The time over which the transition occurs, (default is 0)
 
         Returns
         -------
         : numpy.array, dimension (6, num_samples)
-            N random samples of the state vector drawn from a normal
-            distribution defined by the transited mean anomaly,
-            :math:`M_{t_1}` and the covariances :math:`\Sigma`.
+            num_samples random samples of the state vector drawn from
+            a normal distribution defined by the transited mean
+            anomaly, :math:`M_{t_1}` and the covariances
+            :math:`\Sigma`.
 
         """
         samples = multivariate_normal.rvs(mean=np.zeros(6), cov=self.noise,
@@ -493,7 +495,7 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
 
         Note
         ----
-        Units of mean motion must be in :math:`\mathrm{rad} s^{-1}`
+        Units of mean motion must be in :math:`\mathrm{rad} \, s^{-1}`
 
         """
 
