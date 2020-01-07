@@ -267,9 +267,9 @@ class AESARadar(Sensor):
     follows it's coordinate system"""
 
     rotation_offset = Property(StateVector, default=StateVector([0, 0, 0]),
-                               doc="""A 3x1 array of angles (rad), specifying 
-                               the radar orientation in terms of the 
-                               counter-clockwise rotation around the 
+                               doc="""A 3x1 array of angles (rad), specifying
+                               the radar orientation in terms of the
+                               counter-clockwise rotation around the
                                :math:`x,y,z` axis. i.e Roll, Pitch, Yaw""")
 
     translation_offset = Property(StateVector,
@@ -316,8 +316,9 @@ class AESARadar(Sensor):
         #   rcs, transmitted power, gain and range
         self.snr_constant = (const.c ** 2 * self.number_pulses *
                              self.duty_cycle) / (64 * np.pi ** 3 * const.k *
-                             temp * self.band_width * noise_figure *
-                             self.frequency ** 2 * loss)
+                                                 temp * self.band_width *
+                                                 noise_figure * self.frequency
+                                                 ** 2 * loss)
         # calculate range resolution for compressed pulse
 
     def measure(**kwargs):
@@ -365,12 +366,12 @@ class AESARadar(Sensor):
             sky_state.timestamp)  # [az,el]
 
         # effects of e-scan on gain and beam width
-        spoiled_gain = 10 ** (self.antenna_gain / 10) * \
-                       np.cos(beam_az) * np.cos(beam_el)
+        spoiled_gain = 10 ** (self.antenna_gain / 10) * np.cos(beam_az) * \
+            np.cos(beam_el)
         spoiled_width = self.beam_width / (np.cos(beam_az) * np.cos(beam_el))
         # state relative to radar (in cartesian space)
         relative_vector = sky_state.state_vector[self.mapping] - \
-                          self.translation_offset[self.mapping]
+            self.translation_offset[self.mapping]
         relative_vector = self._rotation_matrix @ relative_vector
 
         # calculate target position in spherical coordinates
@@ -383,14 +384,14 @@ class AESARadar(Sensor):
         self.beam_shape.beam_width = spoiled_width  # beam spoiling to width
         directed_power = self.beam_shape.beam_power(relative_az, relative_el)
         # calculate signal to noise ratio
-        snr = self.snr_constant * rcs * spoiled_gain ** 2 * \
-              directed_power / (r[0] ** 4)
+        snr = self.snr_constant * rcs * spoiled_gain ** 2 * directed_power / \
+            (r[0] ** 4)
         # calculate probability of detection using the North's approximation
         det_prob = 0.5 * erfc(
             (-np.log(self.probability_false_alarm)) ** 0.5 - (
                     snr + 1 / 2) ** 0.5)
-        return det_prob, snr, rcs, directed_power, \
-               10 * np.log10(spoiled_gain), spoiled_width
+        return det_prob, snr, rcs, directed_power,\
+            10 * np.log10(spoiled_gain), spoiled_width
 
     def gen_measurement(self, sky_state, **kwargs):
         """Generates detections of Target State with errors"""

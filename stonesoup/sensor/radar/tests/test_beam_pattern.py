@@ -22,14 +22,17 @@ def test_beam_sweep():
     start_time = datetime.datetime.now()
 
     beam_pattern = BeamSweep(angle_per_s=np.pi/18,
-                             centre=[np.pi/45,np.pi/45],
-                             frame=[np.pi/9,np.pi/18],
+                             centre=[np.pi/45, np.pi/45],
+                             frame=[np.pi/9, np.pi/18],
                              init_time=start_time,
                              separation=np.pi/36)
 
     assert beam_pattern.move_beam(start_time) == [-np.pi/30, np.pi/20]
-    assert beam_pattern.move_beam(start_time + datetime.timedelta(seconds=1)) == [np.pi/45, np.pi/20]
+    assert beam_pattern.move_beam(start_time + datetime.timedelta(seconds=1)) \
+        == [np.pi/45, np.pi/20]
     az, el = beam_pattern.move_beam(start_time + datetime.timedelta(seconds=3))
-    assert [round(az,10), round(el,10)] == [round(np.pi/45, 10), round(np.pi/45,10)]
+    assert [round(az, 10), round(el, 10)] == [round(np.pi/45, 10),
+                                              round(np.pi/45, 10)]
     az, el = beam_pattern.move_beam(start_time + datetime.timedelta(seconds=7))
-    assert [round(az,10), round(el,10)] == [round(np.pi/45, 10), round(np.pi/20,10)]
+    assert [round(az, 10), round(el, 10)] == [round(np.pi/45, 10),
+                                              round(np.pi/20, 10)]

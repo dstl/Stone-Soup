@@ -9,8 +9,9 @@ from ....functions import cart2pol
 from ....types.angle import Bearing
 from ....types.array import StateVector, CovarianceMatrix
 from ....types.state import State
+from ....types.groundtruth import GroundTruthState
 from ..radar import RadarRangeBearing, RadarRotatingRangeBearing, AESARadar
-from ..beam_pattern import StationaryBeam, BeamSweep
+from ..beam_pattern import StationaryBeam
 from ..beam_shape import Beam2DGaussian
 from ....models.measurement.linear import LinearGaussian
 
@@ -228,8 +229,9 @@ def test_raster_scan_radar():
     assert np.array_equal(measurement.state_vector, eval_m)
 
 
-def test_AESARadar():
-    target = State([75e3, 0, 10e3, 0, 20e3, 0], timestamp=datetime.datetime.now())
+def test_aesaradar():
+    target = State([75e3, 0, 10e3, 0, 20e3, 0],
+                   timestamp=datetime.datetime.now())
 
     radar = AESARadar(antenna_gain=30,
                       mapping=[0, 2, 4],
@@ -260,7 +262,8 @@ def test_AESARadar():
 
 def test_swer(repeats=10000):
     list_rcs = np.zeros(repeats)
-    target = State([75e3, 0, 10e3, 0, 20e3, 0], timestamp=datetime.datetime.now())
+    target = State([75e3, 0, 10e3, 0, 20e3, 0],
+                   timestamp=datetime.datetime.now())
     radar = AESARadar(antenna_gain=30,
                       frequency=100e6,
                       number_pulses=5,
@@ -308,5 +311,65 @@ def test_detection():
 
     target = State([50e3, 10e3, 20e3], timestamp=datetime.datetime.now())
     measurement = radar.gen_measurement(target)
-    assert np.allclose(measurement.state_vector, StateVector([50e3, 10e3, 20e3]), atol=5)
+
+    assert np.allclose(measurement.state_vector,
+                       StateVector([50e3, 10e3, 20e3]), atol=5)
+
+
+def test_failed_detect():
+    target = State([75e3, 0, 10e3, 0, 20e3, 0],
+                   timestamp=datetime.datetime.now())
+
+    radar = AESARadar(antenna_gain=30,
+                      mapping=[0, 2, 4],
+                      translation_offset=StateVector([0.0] * 6),
+                      frequency=100e6,
+                      number_pulses=5,
+                      duty_cycle=0.1,
+                      band_width=30e6,
+                      beam_width=np.deg2rad(10),
+                      probability_false_alarm=1e-6,
+                      rcs=10,
+                      receiver_noise=3,
+                      swerling_on=False,
+                      beam_shape=Beam2DGaussian(peak_power=50e3),
+                      beam_transition_model=StationaryBeam(
+                          centre=[np.deg2rad(30), np.deg2rad(40)]),
+                      measurement_model=LinearGaussian(
+                          noise_covar=np.diag([1, 1, 1]),
+                          mapping=[0, 2, 4],
+                          ndim_state=6))
+
+    assert radar.gen_measurement(target) is None
+
+
+def test_target_rcs():
+
+    rcs_10 = (GroundTruthState([150e3, 0.0, 0.0], timestamp=None))
+    rcs_10.rcs = 10
+    rcs_20 = (GroundTruthState([250e3, 0.0, 0.0], timestamp=None))
+    rcs_20.rcs = 20
+
+    radar_model = AESARadar(antenna_gain=36,
+                            mapping=[0, 1, 2],
+                            translation_offset=StateVector([0.0]*3),
+                            frequency=10e9,
+                            number_pulses=10,
+                            duty_cycle=0.18,
+                            band_width=24591.9,
+                            beam_width=np.deg2rad(5),
+                            rcs=None,
+                            receiver_noise=5,
+                            probability_false_alarm=5e-3,
+                            beam_shape=Beam2DGaussian(peak_power=1e4),
+                            measurement_model=None,
+                            beam_transition_model=StationaryBeam(centre=[0,
+                                                                         0]))
+
+    (det_prob, snr, swer_rcs, _, _, _) = radar_model.prob_gen(rcs_10)
+    assert swer_rcs == 10
+    assert round(snr, 3) == 8.197
+    (det_prob, snr, swer_rcs, _, _, _) = radar_model.prob_gen(rcs_20)
+    assert swer_rcs == 20
+    assert round(snr, 3) == 2.125
 
