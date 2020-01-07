@@ -3,7 +3,7 @@ import datetime
 
 from ...base import Property, Base
 
-from ...types.state import State, StateVector
+from ...types.state import StateVector
 
 
 class BeamTransitionModel(Base):
@@ -45,7 +45,7 @@ class BeamSweep(BeamTransitionModel):
         time_diff = timestamp - self.init_time
         # distance into a frame
         total_angle = (time_diff.total_seconds() * self.angle_per_s) % \
-                      self.length_frame
+            self.length_frame
         # the row the beam should be in
         row = int(total_angle / (self.frame[0]))
         # how far the beam is into the the current row

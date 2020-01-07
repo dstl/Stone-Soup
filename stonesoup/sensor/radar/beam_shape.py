@@ -5,7 +5,6 @@ import numpy as np
 from ..base import Property, Base
 
 
-
 class BeamShape(Base):
     """Base class for beam shape"""
     peak_power = Property(float, doc="peak power of the main lobe in Watts")
