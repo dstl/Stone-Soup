@@ -33,7 +33,8 @@ class Beam2DGaussian(BeamShape):
         Parameters
         ----------
         azimuth : The angle of the target away from the bore sight of the radar
-        elevation : The angle of the target away from the bore sight of the radar
+        elevation : The angle of the target away from
+        the bore sight of the radar
 
         Returns
         -------

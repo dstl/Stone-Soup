@@ -289,7 +289,7 @@ def test_target_rcs():
                             duty_cycle=0.18,
                             band_width=24591.9,
                             beam_width=np.deg2rad(5),
-                            rcs=None, # no default rcs
+                            rcs=None,  # no default rcs
                             receiver_noise=5,
                             probability_false_alarm=5e-3,
                             beam_shape=Beam2DGaussian(peak_power=1e4),
