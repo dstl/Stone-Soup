@@ -218,36 +218,54 @@ class RadarRotatingRangeBearing(RadarRangeBearing):
 
 class AESARadar(Sensor):
     """An AESA (Active electronically scanned array) radar model that
-    calculates the signal to noise ratio(SNR) from a target and the subsequent
+    calculates the signal to noise ratio(SNR) of a target and the subsequent
     probability of detection (PD) using the north's approximation. The SNR is
     calculated using:
     .. math::
-     SNR = \dfrac{c^2 n_p \beta}{64\pi^3 kT_0 B F f^2 L} \times
-     \dfrac{\sigma G_a^2 P_t}{R^4}
-    The SNR is then used to calculate the PD:
-    .. math:: P_d = 0.5 erfc \left( \sqrt{-\ln(P_{fa})} =
-    \sqrt{SNR + 0.5}\right).
+    SNR = \dfrac{c^2 n_p \beta}{64\pi^3 kT_0 B F f^2 L} \times
+    \dfrac{\sigma G_a^2 P_t}{R^4}
+    where
+    :math:'c' is the speed of light
+    :math:'n_p' is the number of pulses in a burst
+    :math:'\beta' is the duty cycle which is unitless
+    :math:'k' is the boltzmann constant
+    :math:'T_0' is system temperature in kelvin
+    :math:'B' is the bandwidth in hertz
+    :math:'F' is the noise figure unitless
+    :math:'f' is the frequency in hertz
+    :math:'L' is the loss which is unitless
+    The SNR is then used to calculate the probability of detection:
+    .. math::
+    P_{d} = 0.5\ \textup{erfc}\left(\sqrt{-\ln{P_{fa}}}-\sqrt{ \mathit{SNR} +
+     0.5} \right)
+    where :math:'P_{fa}' is the probability of false alarm.
     In this model the AESA scan angle effects the gain by:
-    :math: 'G_a = G_a \cos{\theta}\cos{phi}'.
-    And the effect on the beam width follows:
-    :math: '\Delta\theta = \dfrac{\Delta\theta}{\cos{\theta}\cos{phi}}'
-    This class uses cart2sphere to convert from cartesian to spherical, so
-    follows it's coordinate system"""
+    ..math::
+    G_a = G_a \cos{\theta}\cos{phi}'
+    where :math:'\theta' and :math:'\phi' are the angles away from the
+     boresight of the antenna in azimuth and elevation respectively
+    The beam width is effect by the beam spoiling:
+    ..math::
+    \Delta\theta = \dfrac{\Delta\theta}{\cos{\theta}\cos{phi}}
+    Note
+    ----
+    The current implementation of this class assumes a 3D Cartesian plane.
+    """
 
     rotation_offset = Property(StateVector, default=StateVector([0, 0, 0]),
                                doc="""A 3x1 array of angles (rad), specifying
                                the radar orientation in terms of the
                                counter-clockwise rotation around the
-                               :math:`x,y,z` axis. i.e Roll, Pitch, Yaw""")
+                               :math:`x,y,z` axis. i.e Roll, Pitch and Yaw""")
 
     translation_offset = Property(StateVector,
                                   default=StateVector([0, 0, 0]),
-                                  doc="The radar position and velocity in 3D "
-                                      "Cartesian space.[x,Vx,y,Vy,z,Vz]")
+                                  doc="The radar position in 3D "
+                                      "Cartesian space.[x,y,z]")
 
     mapping = Property(np.array, default=[0, 1, 2],
                        doc="Mapping between or positions/velocities and state "
-                           "dimensions. [x,Vx,y,Vy,z,Vz]")
+                           "dimensions. [x,y,z]")
 
     measurement_model = Property(MeasurementModel, default=None,
                                  doc="Measurement model")
@@ -260,19 +278,26 @@ class AESARadar(Sensor):
                                          "movement of the beam ")
     # SNR variables
     number_pulses = Property(int, default=1)
-    duty_cycle = Property(float)
-    band_width = Property(float, doc="hertz")
-    receiver_noise = Property(float, doc="decibels")
-    frequency = Property(float, doc="hertz")
-    antenna_gain = Property(float, doc="decibels")
-    beam_width = Property(float, doc="radians")
-    loss = Property(float, default=0, doc="decibels")
+    duty_cycle = Property(float, doc="duty cycle is the fraction of the time "
+                                     "the radar it transmitting")
+    band_width = Property(float, doc="bandwidth of the receiver in hertz")
+    receiver_noise = Property(float, doc="noise figure in decibels")
+    frequency = Property(float, doc="transmitted frequency in hertz")
+    antenna_gain = Property(float, doc="Antenna gain in decibels")
+    beam_width = Property(float, doc="radar beam width in radians")
+    loss = Property(float, default=0, doc="loss in decibels")
 
     swerling_on = Property(bool, default=False,
-                           doc="is the Swerling 1 type target")
-    rcs = Property(float, default=None, doc="radar cross section of targets")
+                           doc="Is the Swerling 1 case used. If True the RCS"
+                               " of the target will change for each timestep. "
+                               "The random RCS follows the probability "
+                               "distribution of the Swerling 1 case ")
+    rcs = Property(float, default=None, doc="The radar cross section of "
+                                            "targets in meters squared")
 
-    probability_false_alarm = Property(Probability, default=1e-6)
+    probability_false_alarm = Property(Probability, default=1e-6,
+                                       doc="probability of false alarm used in"
+                                           " the norths approximation")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -290,7 +315,13 @@ class AESARadar(Sensor):
         # calculate range resolution for compressed pulse
 
     def swerling_1(self, rcs):
-        # swerling random distribution function
+        """Swerling 1 case
+
+         Returns
+        -------
+        :class:'float'
+        returns random RCS based on the Swerling 1 case
+        """
         return -rcs * np.log(np.random.rand())
 
     @property
@@ -312,11 +343,24 @@ class AESARadar(Sensor):
         return rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
 
     def prob_gen(self, sky_state):
-        """generates the probability of detection (det_prob) of a Target State and also
-        outputs: the signal to noise ratio (snr), the radar cross section
-        (swer_rcs), the power transmitted in the direction of the target
-        (directed_power), the gain after beam spoiling (spoiled_gain) and, the
-        beam width after beam spoiling (spoiled_width)"""
+        """Returns the probability of detection of a given State. It also
+        returns: the signal to noise ratio, the radar cross section, the power
+        transmitted in the direction of the target, the gain after beam
+        spoiling (spoiled_gain) and the beam width after beam spoiling
+
+        Parameters
+        ----------
+        sky_state : The target state with state_vector of 3 dimension
+
+        Returns
+        -------
+        det_prob : probability of detection
+        snr : signal to noise ratio
+        rcs : RCS after the Swerling 1 case is applied
+        directed_power : Power in the direction of the target
+        spoiled_gain : Gain in decibels with beam spoiling applied
+        spoiled_width : Beam width with beam spoiling applied
+        """
         if hasattr(sky_state, 'rcs') and sky_state.rcs is not None:
             # use state's rcs if it has one
             rcs = sky_state.rcs
@@ -359,8 +403,21 @@ class AESARadar(Sensor):
             10 * np.log10(spoiled_gain), spoiled_width
 
     def gen_measurement(self, sky_state, **kwargs):
-        """Generates detections of Target State with errors"""
+        """Generate a measurement for a given state
 
+        Parameters
+        ----------
+        sky_state : :class:`~.State`
+            A target state in 3-D cartesian space
+
+        Returns
+        -------
+        :class:`~.Detection` or ``None``
+            A measurement generated from the given state, if np.random.rand()
+            is less than the probability of detection, or returns ``None``,
+            otherwise. The timestamp of the measurement is equal to that of
+            the input state.
+        """
         det_prob = self.prob_gen(sky_state)[0]
 
         if np.random.rand() <= det_prob:

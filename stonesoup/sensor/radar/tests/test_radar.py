@@ -189,9 +189,12 @@ def test_aesaradar():
 
 
 def test_swer(repeats=10000):
+    # initialise list or rcs (radar cross sections)
     list_rcs = np.zeros(repeats)
+    # generic target
     target = State([75e3, 0, 10e3, 0, 20e3, 0],
                    timestamp=datetime.datetime.now())
+    # define sensor
     radar = AESARadar(antenna_gain=30,
                       frequency=100e6,
                       number_pulses=5,
@@ -206,9 +209,10 @@ def test_swer(repeats=10000):
                       beam_transition_model=StationaryBeam(
                           centre=[np.deg2rad(15), np.deg2rad(20)]),
                       measurement_model=None)
+    # populate list of random rcs
     for i in range(0, repeats):
         list_rcs[i] = radar.prob_gen(target)[2]
-
+    # check histogram follows the Swerling 1 case probability distribution
     bin_height, bin_edge = np.histogram(list_rcs, 20, normed=True)
     x = (bin_edge[:-1] + bin_edge[1:]) / 2
     height = 1 / (float(radar.rcs)) * np.exp(-x / float(radar.rcs))
@@ -271,7 +275,7 @@ def test_failed_detect():
 
 
 def test_target_rcs():
-
+    # targets with the rcs
     rcs_10 = (GroundTruthState([150e3, 0.0, 0.0], timestamp=None))
     rcs_10.rcs = 10
     rcs_20 = (GroundTruthState([250e3, 0.0, 0.0], timestamp=None))
@@ -285,7 +289,7 @@ def test_target_rcs():
                             duty_cycle=0.18,
                             band_width=24591.9,
                             beam_width=np.deg2rad(5),
-                            rcs=None,
+                            rcs=None, # no default rcs
                             receiver_noise=5,
                             probability_false_alarm=5e-3,
                             beam_shape=Beam2DGaussian(peak_power=1e4),
