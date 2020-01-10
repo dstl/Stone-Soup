@@ -249,7 +249,7 @@ class RadarRasterScanRangeBearing(RadarRotatingRangeBearing):
 
 
 class AESARadar(Sensor):
-    """An AESA (Active electronically scanned array) radar model that
+    r"""An AESA (Active electronically scanned array) radar model that
     calculates the signal to noise ratio(SNR) of a target and the subsequent
     probability of detection (PD) using the north's approximation. The SNR is
     calculated using:

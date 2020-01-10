@@ -16,7 +16,7 @@ class BeamShape(Base):
 
 
 class Beam2DGaussian(BeamShape):
-    """The beam is in the shape of a 2D gaussian in the azimuth and elevation.
+    r"""The beam is in the shape of a 2D gaussian in the azimuth and elevation.
      The width at half the maxima is the beam width. It is decribed by:
      .. math::
         P = P_p\exp \left( 0.5 * \left(\left(\frac{az * 2.35}{B_w}\right)^2 +
