@@ -2,6 +2,7 @@
 """Mathematical functions used within Stone Soup"""
 
 import numpy as np
+from copy import copy
 
 from .types.numeric import Probability
 from .types.array import Matrix
@@ -68,11 +69,13 @@ def jacobian(fun, x):
     else:
         nrows = f1.size
 
+    x2 = copy(x)  # Create a clone of the input
     F2 = np.empty((nrows, ndim))
     X1 = np.tile(x.state_vector, ndim)+np.eye(ndim)*delta
 
     for col in range(0, X1.shape[1]):
-        F2[:, [col]] = fun(State(X1[:, [col]]))
+        x2.state_vector = X1[:, [col]]
+        F2[:, [col]] = fun(x2)
 
     jac = np.divide(F2-f1, delta)
     return jac.astype(np.float_)
