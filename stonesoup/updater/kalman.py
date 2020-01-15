@@ -167,7 +167,7 @@ class KalmanUpdater(Updater):
             of a simple geometric combination of the matrix and transpose.
             Default is `False`
         **kwargs : various
-            These are passed to :meth:`predict_measurement`
+            These are passed to :math:`predict_measurement`
 
         Returns
         -------
