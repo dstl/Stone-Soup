@@ -266,7 +266,8 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
     """
     noise = Property(
         CovarianceMatrix, default=CovarianceMatrix(np.zeros((6, 6))),
-        doc=r"Transition noise covariance :math:`\Sigma`")
+        doc=r"Transition noise covariance :math:`\Sigma` per unit time "
+            r"interval (assumed seconds)")
 
     @property
     def ndim_state(self):
@@ -279,6 +280,23 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
 
         """
         return 6
+
+    def covar(self, time_interval=timedelta(seconds=1)):
+        r"""Return the transition covariance matrix
+
+        Parameters
+        ----------
+        time_interval: :math:`\delta t` :attr:`datetime.timedelta`, optional
+            The time interval over which to test the new state (default is 1
+            second)
+
+        Returns
+        -------
+        : CovarianceMatrix
+            The transition covariance matrix
+
+        """
+        return CovarianceMatrix(self.noise * time_interval.total_seconds())
 
     def function(self, orbital_state, noise=0,
                  time_interval=timedelta(seconds=0)):
@@ -304,8 +322,7 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
         ----
         This merely passes the parameters to the :attr:`.transition()`
         function. The noise parameter has no effect, is included merely
-        for compatibility with parent classes.  Units of mean motion
-        must be :math:`\mathrm{rad} \, \mathrm{s}^{-1}`
+        for compatibility with parent classes.
         """
         return self.transition(orbital_state, time_interval)
 
@@ -328,9 +345,7 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
         Warning
         -------
         If noisy samples from the transition function are required, use
-        the :attr:`rvs` method. Units of mean motion must be
-        :math:`\mathrm{rad} \; \mathrm{s}^{-1}`
-
+        the :attr:`rvs` method.
         """
         # Reused variables
         root_mu = np.sqrt(orbital_state.grav_parameter)
@@ -457,8 +472,8 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
             :math:`\Sigma`.
 
         """
-        samples = multivariate_normal.rvs(mean=np.zeros(6), cov=self.noise,
-                                          size=num_samples)
+        samples = multivariate_normal.rvs(mean=np.zeros(6), cov=self.covar(
+            time_interval=time_interval), size=num_samples)
 
         # multivariate_normal.rvs() does stupid in the case of a single sample
         # so we have to put this back
@@ -492,10 +507,8 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
         Returns
         -------
         : float
+            The value of the pdf at 'test_state'
 
-        Note
-        ----
-        Units of mean motion must be in :math:`\mathrm{rad} \, s^{-1}`
 
         """
 
@@ -504,5 +517,6 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
                                        mean=self.transition(orbital_state,
                                                             time_interval).
                                        ravel(),
-                                       cov=self.noise)
+                                       cov=self.covar(
+                                           time_interval=time_interval))
         # ravel appears to be necessary here.
