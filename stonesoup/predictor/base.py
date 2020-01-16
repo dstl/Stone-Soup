@@ -31,7 +31,7 @@ class Predictor(Base):
     control_model = Property(ControlModel, default=None, doc="control model")
 
     @abstractmethod
-    def predict(self, prior, timestamp=None, **kwargs):
+    def predict(self, prior, timestamp=None, *args, **kwargs):
         """The prediction function itself
 
         Parameters

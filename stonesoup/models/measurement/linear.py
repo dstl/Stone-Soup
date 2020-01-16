@@ -36,7 +36,6 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
         :class:`int`
             The number of measurement dimensions
         """
-
         return len(self.mapping)
 
     def matrix(self, **kwargs):
@@ -173,4 +172,4 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
                 cov=self.covar()
             )
 
-        return likelihood
+            return likelihood

@@ -71,7 +71,8 @@ class ParticleUpdater(Updater):
             new_particles.append(
                 Particle(new_state_vector,
                          weight=particle.weight,
-                         parent=particle.parent))
+                         parent=particle.parent,
+                         dynamic_model=particle.dynamicmodel))
 
         return ParticleMeasurementPrediction(
             new_particles, timestamp=state_prediction.timestamp)

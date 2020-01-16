@@ -1,21 +1,12 @@
-from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.metricgenerator.ospametric import GOSPAMetric
-from datetime import timedelta
 from stonesoup.models.measurement.linear import LinearGaussian
-from datetime import datetime
 import numpy as np
-import cupy as cp
-import pandas as pd
 import os
-from stonesoup.types.state import State
-from stonesoup.types.track import Track
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
 from random import sample
 import csv
 
-DATA_DIR = "C:/Users/i_jenkins/Documents/Python Scripts"
-file_list = os.listdir(DATA_DIR)
 NOISE_COVARIANCE = 0.1
 
 
@@ -58,16 +49,6 @@ def read_csv_file(file_name):
     track_data_with_xy = np.hstack((track_data, track_xy))
 
     return track_data_with_xy
-
-
-def data_preprocessing_truth(location):
-    path = GroundTruthPath()
-    start_time = datetime.now()
-    for t, element in enumerate(location):
-        position = np.array([element[0], element[1], element[2]])
-        position = position.reshape(3, 1)
-        path.append(GroundTruthState(state_vector=position, timestamp=start_time+timedelta(seconds=t)))
-    return path, start_time
 
 
 def plot_cartesian_data(location):
@@ -127,11 +108,12 @@ def reduce_resolution(input_matrix, data_reduction):
     return input_matrix
 
 
-def create_truth_data(file_number, data_reduction):
-
+def import_track_data(file_number, data_reduction, data_dir):
+    
+    file_list = os.listdir(data_dir)
     print(file_list[file_number])
     # t lat long z x y
-    data = read_csv_file(os.path.join(DATA_DIR, file_list[file_number]))
+    data = read_csv_file(os.path.join(data_dir, file_list[file_number]))
     x_column_index = 4
     y_column_index = 5
     z_column_index = 3
@@ -147,8 +129,7 @@ def create_truth_data(file_number, data_reduction):
     location = np.transpose(location)
     location = np.array(clean_data(location))
     location = reduce_resolution(location, data_reduction)
-    truth, start_time = data_preprocessing_truth(location)
-    return truth, start_time, location
+    return location
 
 
 def create_prior(location):
@@ -168,46 +149,3 @@ def create_prior(location):
 
     return x_0, v_x_0, a_x, y_0, v_y_0, a_y, z_0, v_z_0, a_z
 
-
-def compute_metric(track_path, truth_path, drone_dir, drone_file, title_parse, number_of_particles,
-                   data_reduction, cutoff_distance, p):
-
-    measurement_model_track = LinearGaussian(
-        6,  # Number of state dimensions (position and velocity in 3D)
-        (0, 2, 4),  # Mapping measurement dimensions to state dimensions
-        np.diag([0.1, 0.1, 0.1]))  # Covariance matrix for Gaussian PDF
-    measurement_model_truth = LinearGaussian(
-        3,  # Number of state dimensions (position in 3D)
-        (0, 1, 2),  # Mapping measurement dimensions to state dimensions
-        np.diag([0.1, 0.1, 0.1]))  # Covariance matrix for Gaussian PDF
-
-    gospa_generator = GOSPAMetric(c=cutoff_distance, p=p,
-                                  measurement_model_truth=measurement_model_truth,
-                                  measurement_model_track=measurement_model_track)
-
-    # gospa_cost_matrix = gospa_generator.compute_cost_matrix(tracks.states, truths.states)
-    # print(f"This is the gospa cost matrix: {gospa_cost_matrix[0:3]}")
-
-    gospa_metric = gospa_generator.compute_over_time(track_path.states, truth_path.states)
-
-    # gospa_timestamps = [gospa_metric.value[i].timestamp.timestamp() for i in range(len(gospa_metric.value))]
-    # gospa_timestamps = [gospa_timestamps[i] - min(gospa_timestamps) / max(gospa_timestamps)
-    #                     for i in range(len(gospa_timestamps))]
-
-    gospa_distances = [gospa_metric.value[k].value['distance'] for k in range(len(gospa_metric.value))]
-    try:
-        gospa_distances = gospa_distances[:gospa_distances.index(cutoff_distance) + 1]
-    except ValueError:
-        print(f'{cutoff_distance} is not in the list of gospa distances')
-    # gospa_timestamps = gospa_timestamps[:gospa_distances.index(cutoff_distance) + 2]
-
-    print(f"This is the gospa metric: \n {gospa_distances}")
-
-    plt.plot(range(0, len(gospa_distances)), gospa_distances)
-    plt.xlabel("")
-#     plt.savefig(f"{drone_dir}/{file_list[drone_file]}/{title_parse[3]} Drone with {number_of_particles}"
-#                 f" particles with {data_reduction * 100}% Noise Covariance {NOISE_COVARIANCE} metric.png", dpi=2000)
-    plt.show()
-
-    # assignment_matrix = gospa_generator.compute_gospa_metric(tracks.states, truths.states)[1][0]
-    # print(f"This is the assignment matrix: {sum(assignment_matrix)}")

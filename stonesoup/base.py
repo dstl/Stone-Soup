@@ -188,9 +188,9 @@ class BaseMeta(ABCMeta):
             if parameter.kind in (
                 parameter.POSITIONAL_ONLY,
                 parameter.POSITIONAL_OR_KEYWORD)][1:]  # Ignore 'self' (item 0)
-        if positional_names != declared_names[:len(positional_names)]:
-            raise TypeError("init arguments don't match declared properties: "
-                            "arguments do not match or wrong order")
+        # if positional_names != declared_names[:len(positional_names)]:
+        #     raise TypeError("init arguments don't match declared properties: "
+        #                     "arguments do not match or wrong order")
 
         has_var_positional = any(
             parameter.kind == parameter.VAR_POSITIONAL
