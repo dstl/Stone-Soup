@@ -218,45 +218,60 @@ class RadarRotatingRangeBearing(RadarRangeBearing):
 
 class AESARadar(Sensor):
     r"""An AESA (Active electronically scanned array) radar model that
-    calculates the signal to noise ratio(SNR) of a target and the subsequent
-    probability of detection (PD) using the north's approximation. The SNR is
-    calculated using:
+    calculates the signal to noise ratio (SNR) of a target and the subsequent
+    probability of detection (PD). The SNR is calculated using:
+
     .. math::
-    SNR = \dfrac{c^2 n_p \beta}{64\pi^3 kT_0 B F f^2 L} \times
-    \dfrac{\sigma G_a^2 P_t}{R^4}
+
+        \mathit{SNR} = \dfrac{c^2\, n_p \,\beta}{64\,\pi^3 \,kT_0 \,B \,F \,f^2
+         \,L} \times\dfrac{\sigma\, G_a^2\, P_t}{R^4}
+
     where
-    :math:'c' is the speed of light
-    :math:'n_p' is the number of pulses in a burst
-    :math:'\beta' is the duty cycle which is unitless
-    :math:'k' is the boltzmann constant
-    :math:'T_0' is system temperature in kelvin
-    :math:'B' is the bandwidth in hertz
-    :math:'F' is the noise figure unitless
-    :math:'f' is the frequency in hertz
-    :math:'L' is the loss which is unitless
-    The SNR is then used to calculate the probability of detection:
+    :math:`c` is the speed of light
+    :math:`n_p` is the number of pulses in a burst
+    :math:`\beta` is the duty cycle which is unitless
+    :math:`k` is the boltzmann constant
+    :math:`T_0` is system temperature in kelvin
+    :math:`B` is the bandwidth in hertz
+    :math:`F` is the noise figure unitless
+    :math:`f` is the frequency in hertz
+    :math:`L` is the loss which is unitless
+    The probability of detection (:math:`P_{d}`) is calculated
+    using the North's approximation,
+
     .. math::
-    P_{d} = 0.5\ \textup{erfc}\left(\sqrt{-\ln{P_{fa}}}-\sqrt{ \mathit{SNR} +
-     0.5} \right)
-    where :math:'P_{fa}' is the probability of false alarm.
+
+        P_{d} = 0.5\, erfc\left(\sqrt{-\ln{P_{fa}}}-\sqrt{ \mathit{SNR}
+         +0.5} \right)
+
+    where :math:`P_{fa}` is the probability of false alarm.
     In this model the AESA scan angle effects the gain by:
-    ..math::
-    G_a = G_a \cos{\theta}\cos{phi}'
-    where :math:'\theta' and :math:'\phi' are the angles away from the
-     boresight of the antenna in azimuth and elevation respectively
-    The beam width is effect by the beam spoiling:
-    ..math::
-    \Delta\theta = \dfrac{\Delta\theta}{\cos{\theta}\cos{phi}}
+
+    .. math::
+
+        G_a = G_a \cos{\left(\theta\right)}
+        \cos{\left(\phi\right)}
+
+    where :math:`\theta` and :math:`\phi` are respectively the azimuth and
+    elevation angles in respects to the boresight of the antenna.
+    The effect of beam spoiling on the beam width is :
+
+    .. math::
+
+        \Delta\theta = \dfrac{\Delta\theta}{\cos{\left(\theta\right)}
+        \cos{\left(\phi\right)}}
+
     Note
     ----
     The current implementation of this class assumes a 3D Cartesian plane.
+    This model does not generate false alarms.
     """
 
     rotation_offset = Property(StateVector, default=StateVector([0, 0, 0]),
                                doc="""A 3x1 array of angles (rad), specifying
                                the radar orientation in terms of the
                                counter-clockwise rotation around the
-                               :math:`x,y,z` axis. i.e Roll, Pitch and Yaw""")
+                               :math:`x,y,z` axis. i.e Roll, Pitch and Yaw.""")
 
     translation_offset = Property(StateVector,
                                   default=StateVector([0, 0, 0]),
@@ -264,40 +279,45 @@ class AESARadar(Sensor):
                                       "Cartesian space.[x,y,z]")
 
     mapping = Property(np.array, default=[0, 1, 2],
-                       doc="Mapping between or positions/velocities and state "
+                       doc="Mapping between or positions and state "
                            "dimensions. [x,y,z]")
 
     measurement_model = Property(MeasurementModel, default=None,
-                                 doc="Measurement model")
+                                 doc="The Measurement model used to generate "
+                                     "measurements.")
 
     beam_shape = Property(BeamShape,
-                          doc="Object describing the shape of the beam")
+                          doc="Object describing the shape of the beam.")
 
     beam_transition_model = Property(BeamTransitionModel,
                                      doc="Object describing the "
-                                         "movement of the beam ")
+                                         "movement of the beam in azimuth and "
+                                         "elevation from the perspective of "
+                                         "the radar.")
     # SNR variables
-    number_pulses = Property(int, default=1)
-    duty_cycle = Property(float, doc="duty cycle is the fraction of the time "
-                                     "the radar it transmitting")
-    band_width = Property(float, doc="bandwidth of the receiver in hertz")
-    receiver_noise = Property(float, doc="noise figure in decibels")
-    frequency = Property(float, doc="transmitted frequency in hertz")
-    antenna_gain = Property(float, doc="Antenna gain in decibels")
-    beam_width = Property(float, doc="radar beam width in radians")
-    loss = Property(float, default=0, doc="loss in decibels")
+    number_pulses = Property(int, default=1, doc="The number of pulses in the"
+                                                 " radar burst.")
+    duty_cycle = Property(float, doc="Duty cycle is the fraction of the time "
+                                     "the radar it transmitting.")
+    band_width = Property(float, doc="Bandwidth of the receiver in hertz.")
+    receiver_noise = Property(float, doc="Noise figure of the radar in"
+                                         " decibels.")
+    frequency = Property(float, doc="Transmitted frequency in hertz.")
+    antenna_gain = Property(float, doc="Total Antenna gain in decibels.")
+    beam_width = Property(float, doc="Radar beam width in radians.")
+    loss = Property(float, default=0, doc="Loss in decibels.")
 
     swerling_on = Property(bool, default=False,
                            doc="Is the Swerling 1 case used. If True the RCS"
                                " of the target will change for each timestep. "
                                "The random RCS follows the probability "
-                               "distribution of the Swerling 1 case ")
+                               "distribution of the Swerling 1 case.")
     rcs = Property(float, default=None, doc="The radar cross section of "
-                                            "targets in meters squared")
+                                            "targets in meters squared.")
 
     probability_false_alarm = Property(Probability, default=1e-6,
-                                       doc="probability of false alarm used in"
-                                           " the norths approximation")
+                                       doc="Probability of false alarm used in"
+                                           " the North's approximation")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -315,12 +335,18 @@ class AESARadar(Sensor):
         # calculate range resolution for compressed pulse
 
     def swerling_1(self, rcs):
-        """Swerling 1 case
+        r"""Swerling 1 case
 
          Returns
         -------
-        :class:'float'
+        :class:`float`
         returns random RCS based on the Swerling 1 case
+
+        .. math::
+
+            P\left(\sigma\right) = \dfrac{1}{\sigma_{average}} \exp{\left(
+            \dfrac{-\sigma}{\sigma_{average}}\right)}
+
         """
         return -rcs * np.log(np.random.rand())
 
@@ -342,24 +368,21 @@ class AESARadar(Sensor):
 
         return rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
 
-    def prob_gen(self, sky_state):
-        """Returns the probability of detection of a given State. It also
-        returns: the signal to noise ratio, the radar cross section, the power
-        transmitted in the direction of the target, the gain after beam
-        spoiling (spoiled_gain) and the beam width after beam spoiling
+    def gen_probability(self, sky_state):
+        """Generates probability of detection of a given State.
 
         Parameters
         ----------
-        sky_state : The target state with state_vector of 3 dimension
+        sky_state : The target state.
 
         Returns
         -------
-        det_prob : probability of detection
-        snr : signal to noise ratio
-        rcs : RCS after the Swerling 1 case is applied
-        directed_power : Power in the direction of the target
-        spoiled_gain : Gain in decibels with beam spoiling applied
-        spoiled_width : Beam width with beam spoiling applied
+        det_prob : Probability of detection.
+        snr : Signal to noise ratio.
+        rcs : RCS after the Swerling 1 case is applied.
+        directed_power : Power in the direction of the target.
+        spoiled_gain : Gain in decibels with beam spoiling applied.
+        spoiled_width : Beam width with beam spoiling applied.
         """
         if hasattr(sky_state, 'rcs') and sky_state.rcs is not None:
             # use state's rcs if it has one
@@ -414,12 +437,12 @@ class AESARadar(Sensor):
         -------
         :class:`~.Detection` or ``None``
             A measurement generated from the given state, if np.random.rand()
-            is less than the probability of detection, or returns ``None``,
-            otherwise. The timestamp of the measurement is equal to that of
+            is less than the probability of detection, or returns ``None``.
+            The timestamp of the measurement is equal to that of
             the input state.
         """
-        det_prob = self.prob_gen(sky_state)[0]
-
+        det_prob = self.gen_probability(sky_state)[0]
+        # Is the state detected?
         if np.random.rand() <= det_prob:
             self.measurement_model.translation_offset = self.translation_offset
             self.measurement_model.rotation_offset = self.rotation_offset
