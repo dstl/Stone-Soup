@@ -251,7 +251,7 @@ def test_aesaradar():
                       measurement_model=None)
 
     [prob_detection, snr, swer_rcs, tran_power, spoil_gain,
-     spoil_width] = radar.prob_gen(target)
+     spoil_width] = radar.gen_probability(target)
     assert round(swer_rcs, 1) == 10.0
     assert round(prob_detection, 3) == 0.688
     assert round(spoil_width, 2) == 0.19
@@ -283,7 +283,7 @@ def test_swer(repeats=10000):
                       measurement_model=None)
     # populate list of random rcs
     for i in range(0, repeats):
-        list_rcs[i] = radar.prob_gen(target)[2]
+        list_rcs[i] = radar.gen_probability(target)[2]
     # check histogram follows the Swerling 1 case probability distribution
     bin_height, bin_edge = np.histogram(list_rcs, 20, normed=True)
     x = (bin_edge[:-1] + bin_edge[1:]) / 2
@@ -370,10 +370,10 @@ def test_target_rcs():
                             beam_transition_model=StationaryBeam(centre=[0,
                                                                          0]))
 
-    (det_prob, snr, swer_rcs, _, _, _) = radar_model.prob_gen(rcs_10)
+    (det_prob, snr, swer_rcs, _, _, _) = radar_model.gen_probability(rcs_10)
     assert swer_rcs == 10
     assert round(snr, 3) == 8.197
-    (det_prob, snr, swer_rcs, _, _, _) = radar_model.prob_gen(rcs_20)
+    (det_prob, snr, swer_rcs, _, _, _) = radar_model.gen_probability(rcs_20)
     assert swer_rcs == 20
     assert round(snr, 3) == 2.125
 

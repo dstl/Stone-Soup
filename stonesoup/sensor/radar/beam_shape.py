@@ -18,11 +18,14 @@ class BeamShape(Base):
 class Beam2DGaussian(BeamShape):
     r"""The beam is in the shape of a 2D gaussian in the azimuth and elevation.
      The width at half the maxima is the beam width. It is decribed by:
+
      .. math::
-        P = P_p\exp \left( 0.5 * \left(\left(\frac{az * 2.35}{B_w}\right)^2 +
-        \left(\frac{el * 2.35}{B_w}\right)^2 \right) \right)
-     where :math:'az' and :math:'el' are the azimuth and elevation away from
-     the centre. :math:'B_w' is the beam width and :math:'P_p' is the peak
+
+        P = P_p\exp \left( 0.5 \times \left(\left(\frac{2.35\,az}{B_w}\right)
+        ^2 +\left(\frac{2.35\,el}{B_w}\right)^2 \right) \right)
+
+     where :math:`az` and :math:`el` are the azimuth and elevation angles away
+     from the centre. :math:`B_w` is the beam width and :math:`P_p` is the peak
      power.
      """
     beam_width = Property(float, default=None,
@@ -32,14 +35,15 @@ class Beam2DGaussian(BeamShape):
         """
         Parameters
         ----------
-        azimuth : The angle of the target away from the bore sight of the radar
+        azimuth : The angle of the target away from the boresight of the radar
+            in azimuth
         elevation : The angle of the target away from
-        the bore sight of the radar
+            the boresight of the radar in elevation
 
         Returns
         -------
-        float
-        the power directed towards the target
+        `float`
+            the power directed towards the target
         """
         return self.peak_power * np.exp(
             -0.5 * ((azimuth / (self.beam_width / 2.35482)) ** 2 +
