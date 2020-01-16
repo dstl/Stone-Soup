@@ -15,7 +15,7 @@ class BeamTransitionModel(Base):
 
 class StationaryBeam(BeamTransitionModel):
     """Stationary beam that points in the direction of centre"""
-    def move_beam(self, **kwargs):
+    def move_beam(self, *args, **kwargs):
         """ generates a beam position based on the centre
 
         Parameters
@@ -23,8 +23,8 @@ class StationaryBeam(BeamTransitionModel):
 
         Returns
         -------
-        : `list` of 2 :class:`floats`, [azimuth, elevation] from the perspective\
-         of the radar
+        : `list` of 2 :class:`floats`, [azimuth, elevation] from the
+            perspective of the radar
         """
         return self.centre
 
