@@ -1,13 +1,8 @@
-from stonesoup.metricgenerator.ospametric import GOSPAMetric
-from stonesoup.models.measurement.linear import LinearGaussian
 import numpy as np
 import os
 import matplotlib.pyplot as plt
-from mpl_toolkits import mplot3d
 from random import sample
 import csv
-
-NOISE_COVARIANCE = 0.1
 
 
 def create_geo_reference_point(lat, long):
@@ -60,14 +55,6 @@ def plot_cartesian_data(location):
     z_points = np.array(location)[:, 2:3]
 
     ax.plot3D(x_points.flatten(), y_points.flatten(), z_points.flatten())
-    plt.show()
-
-
-def heading_direction(heading_radians, test_array):
-    # Converting degrees to radians
-    for i in range(len(data[:, 4:5])):
-        heading_radians.append([float(data[i][4]) * (np.pi / 180)])
-    plt.polar(heading_radians, test_array)
     plt.show()
 
 
@@ -148,4 +135,3 @@ def create_prior(location):
     a_z = (v_z_1 - v_z_0) / delta_t
 
     return x_0, v_x_0, a_x, y_0, v_y_0, a_y, z_0, v_z_0, a_z
-

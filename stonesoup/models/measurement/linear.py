@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
 import scipy as sp
 from scipy.stats import multivariate_normal
 
@@ -172,4 +173,4 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
                 cov=self.covar()
             )
 
-            return likelihood
+        return likelihood

@@ -59,17 +59,20 @@ class MultiModelPredictor(Predictor):
         for particle in prior.particles:
             for model_index in range(len(self.transition_matrix)):
                 if particle.dynamic_model == model_index:
-                    # Setting the new dynamic model based on the given accepted models
-                    self.transition_model = self.model_list[model_index]
-                    # Change the value of the dynamic value randomly according to the defined transition matrix
-                    dynamic_model = np.searchsorted(self.probabilities[model_index], random())
+
+                    self.transition_model = self.model_list[particle.dynamic_model]
                     # Based on given position mapping create a new state vector that contains only the required states
-                    required_state_space = particle.state_vector[np.array(self.position_mapping[model_index])]
+                    required_state_space = particle.state_vector[np.array(self.position_mapping[particle.dynamic_model])]
 
                     new_state_vector = self.transition_model.function(
                         required_state_space,
                         time_interval=time_interval,
                         **kwargs)
+
+                    # Setting the new dynamic model based on the given accepted models
+                    self.transition_model = self.model_list[model_index]
+                    # Change the value of the dynamic value randomly according to the defined transition matrix
+                    dynamic_model = np.searchsorted(self.probabilities[model_index], random())
 
                     # Calculate the indices removed from the state vector to become compatible with the dynamic model
                     missed_indices = []
@@ -81,6 +84,7 @@ class MultiModelPredictor(Predictor):
                         for i in missed_indices:
                             new_state_vector = np.insert(new_state_vector, i, particle.state_vector[i])
                     new_state_vector = np.reshape(new_state_vector, (-1, 1))
+
                     new_particles.append(
                         Particle(new_state_vector,
                                  weight=particle.weight,
