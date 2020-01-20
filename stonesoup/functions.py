@@ -237,8 +237,6 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
     for sigma_points_state in sigma_points_states:
         sigma_points = np.c_[sigma_points, sigma_points_state.state_vector]
 
-    ac = fun(sigma_points_states[0])  # eh?
-
     # Transform points through f
     sigma_points_t = np.zeros((ndim_state, n_points))
     if points_noise is None:
