@@ -52,11 +52,10 @@ def test_simple_radar():
 
     # Input arguments
     # TODO: pytest parametarization
-    noise_covar = CovarianceMatrix(np.array([[0.015, 0],
-                                             [0, 0.1]]))
-    radar_position = StateVector(
-        np.array(([[1], [1]])))
-    radar_orientation = StateVector([[0], [0], [0]])
+    noise_covar = CovarianceMatrix([[0.015, 0],
+                                   [0, 0.1]])
+    radar_position = StateVector([1, 1])
+    radar_orientation = StateVector([0, 0, 0])
     target_state = State(radar_position +
                          np.array([[1], [1]]),
                          timestamp=datetime.datetime.now())
@@ -72,11 +71,9 @@ def test_simple_radar():
 
     # Assert that the object has been correctly initialised
     assert(np.equal(radar.position, radar_position).all())
-    assert(np.equal(radar.measurement_model.translation_offset,
-                    radar_position).all())
 
     # Generate a noiseless measurement for the given target
-    measurement = radar.gen_measurement(target_state, noise=0)
+    measurement = radar.measure(target_state, noise=0)
     rho, phi = cart2pol(target_state.state_vector[0, 0]
                         - radar_position[0, 0],
                         target_state.state_vector[1, 0]
@@ -85,7 +82,7 @@ def test_simple_radar():
     # Assert correction of generated measurement
     assert(measurement.timestamp == target_state.timestamp)
     assert(np.equal(measurement.state_vector,
-                    StateVector(np.array([[phi], [rho]]))).all())
+                    StateVector([phi, rho])).all())
 
 
 def test_rotating_radar():
@@ -127,11 +124,9 @@ def test_rotating_radar():
 
     # Assert that the object has been correctly initialised
     assert(np.equal(radar.position, radar_position).all())
-    assert(np.equal(radar.measurement_model.translation_offset,
-                    radar_position).all())
 
     # Generate a noiseless measurement for the given target
-    measurement = radar.gen_measurement(target_state, noise=0)
+    measurement = radar.measure(target_state, noise=0)
 
     # Assert measurement is None since target is not in FOV
     assert(measurement is None)
@@ -141,7 +136,7 @@ def test_rotating_radar():
     target_state = State(radar_position +
                          np.array([[5], [5]]),
                          timestamp=timestamp)
-    measurement = radar.gen_measurement(target_state, noise=0)
+    measurement = radar.measure(target_state, noise=0)
     eval_m = h2d(target_state.state_vector,
                  radar.position,
                  radar.orientation+[[0],
