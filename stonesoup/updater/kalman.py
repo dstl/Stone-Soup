@@ -352,7 +352,7 @@ class UnscentedKalmanUpdater(KalmanUpdater):
         measurement_model = self._check_measurement_model(measurement_model)
 
         sigma_points, mean_weights, covar_weights = \
-            gauss2sigma(predicted_state.state_vector, predicted_state.covar,
+            gauss2sigma(predicted_state,
                         self.alpha, self.beta, self.kappa)
 
         meas_pred_mean, meas_pred_covar, cross_covar, _, _, _ = \

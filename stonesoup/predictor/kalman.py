@@ -312,7 +312,7 @@ class UnscentedKalmanPredictor(KalmanPredictor):
         prior_state_vector : :class:`~.State`
             Prior state vector
         **kwargs : various, optional
-            These are passed to :meth:`~.TransitionModel.function`
+            These are passed to :class:`~.TransitionModel.function`
 
         Returns
         -------
@@ -359,8 +359,8 @@ class UnscentedKalmanPredictor(KalmanPredictor):
             + self.control_model.control_noise
 
         # Get the sigma points from the prior mean and covariance.
-        sigma_points, mean_weights, covar_weights = gauss2sigma(
-            prior.state_vector, prior.covar, self.alpha, self.beta, self.kappa)
+        sigma_point_states, mean_weights, covar_weights = gauss2sigma(
+            prior, self.alpha, self.beta, self.kappa)
 
         # This ensures that function passed to unscented transform has the
         # correct time interval
@@ -371,7 +371,7 @@ class UnscentedKalmanPredictor(KalmanPredictor):
         # Put these through the unscented transform, together with the total
         # covariance to get the parameters of the Gaussian
         x_pred, p_pred, _, _, _, _ = unscented_transform(
-            sigma_points, mean_weights, covar_weights,
+            sigma_point_states, mean_weights, covar_weights,
             transition_and_control_function, covar_noise=total_noise_covar
         )
 
