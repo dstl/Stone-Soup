@@ -3,6 +3,8 @@ import os
 import matplotlib.pyplot as plt
 from random import sample
 import csv
+import pandas as pd
+import scipy as sp
 
 
 def create_geo_reference_point(lat, long):
@@ -135,3 +137,32 @@ def create_prior(location):
     a_z = (v_z_1 - v_z_0) / delta_t
 
     return x_0, v_x_0, a_x, y_0, v_y_0, a_y, z_0, v_z_0, a_z
+
+
+def read_synthetic_csv(file_name):
+
+    df = pd.read_csv(file_name)
+    location = np.array(df, dtype=float)
+
+    return location
+
+
+def form_transition_matrix(dynamic_model_list, probability_for_change):
+    transition = np.zeros((len(dynamic_model_list), len(dynamic_model_list)))
+    for i in range(len(dynamic_model_list)):
+        for j in range(len(dynamic_model_list)):
+            if j == i:
+                transition[i][i] = 1 - ((len(transition) - 1) * probability_for_change)
+            else:
+                transition[i][j] = probability_for_change
+    return transition
+
+
+def form_detection_transition_matrix(matrix_split, probability_for_change):
+
+    model_matrix_1 = form_transition_matrix([i for i in range(matrix_split[0])], probability_for_change[0])
+    model_matrix_2 = form_transition_matrix([i for i in range(matrix_split[1])], probability_for_change[1])
+
+    print(sp.linalg.block_diag(np.array(model_matrix_1), np.array(model_matrix_2)))
+
+    return sp.linalg.block_diag(np.array(model_matrix_1), np.array(model_matrix_2))

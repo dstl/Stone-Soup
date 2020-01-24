@@ -55,7 +55,7 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
         for dim_meas, dim_state in enumerate(self.mapping):
             if dim_state is not None:
                 model_matrix[dim_meas, dim_state] = 1
-
+        print(model_matrix)
         return model_matrix
 
     def function(self, state_vector, noise=None, **kwargs):

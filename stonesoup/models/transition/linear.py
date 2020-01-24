@@ -2,7 +2,6 @@
 import math
 from functools import lru_cache
 
-import numpy as np
 import scipy as sp
 from scipy.stats import multivariate_normal
 from scipy.linalg import block_diag
@@ -11,8 +10,9 @@ from scipy.integrate import quad
 from ...base import Property
 from ...types.array import CovarianceMatrix
 from ..base import (LinearModel, GaussianModel, TimeVariantModel,
-                    TimeInvariantModel)
+                    TimeInvariantModel, NoHoverLinearModel)
 from .base import TransitionModel
+from ..measurement.linear import LinearGaussian
 
 
 class LinearGaussianTransitionModel(
@@ -102,6 +102,141 @@ class LinearGaussianTransitionModel(
 
 
 class CombinedLinearGaussianTransitionModel(LinearGaussianTransitionModel):
+    r"""Combine multiple models into a single model by stacking them.
+
+    The assumption is that all models are Linear and Gaussian.
+    Time Variant, and Time Invariant models can be combined together.
+    If any of the models are time variant the keyword argument "time_interval"
+    must be supplied to all methods
+    """
+
+    model_list = Property(
+        [LinearGaussianTransitionModel], doc="List of Transition Models.")
+
+    @property
+    def ndim_state(self):
+        """ndim_state getter method
+
+        Returns
+        -------
+        : :class:`int`
+            The number of combined model state dimensions.
+        """
+        return sum(model.ndim_state for model in self.model_list)
+
+    def matrix(self, **kwargs):
+        """Model matrix :math:`F`
+
+        Returns
+        -------
+        : :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+        """
+
+        transition_matrices = [
+            model.matrix(**kwargs) for model in self.model_list]
+        return block_diag(*transition_matrices)
+
+    def covar(self, **kwargs):
+        """Returns the transition model noise covariance matrix.
+
+        Returns
+        -------
+        : :class:`stonesoup.types.state.CovarianceMatrix` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The process noise covariance.
+        """
+
+        covar_list = [model.covar(**kwargs) for model in self.model_list]
+        return block_diag(*covar_list)
+
+
+class NoHoverLinearGaussianTransitionModel(
+        TransitionModel, NoHoverLinearModel, GaussianModel):
+
+    @property
+    def ndim_state(self):
+        """ndim_state getter method
+
+        Returns
+        -------
+        : :class:`int`
+            The number of model state dimensions.
+        """
+
+        return self.matrix().shape[0]
+
+    def rvs(self, num_samples=1, **kwargs):
+        r""" Model noise/sample generation function
+
+        Generates noisy samples from the transition model.
+
+        In mathematical terms, this can be written as:
+
+        .. math::
+
+            w_t \sim \mathcal{N}(0,Q)
+
+        where :math:`w_t =` ``noise``.
+
+        Parameters
+        ----------
+        num_samples: :class:`int`, optional
+            The number of samples to be generated (the default is 1)
+
+        Returns
+        -------
+        noise : :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`, ``num_samples``)
+            A set of Np samples, generated from the model's noise distribution.
+        """
+
+        noise = sp.array([multivariate_normal.rvs(
+            sp.zeros(self.ndim_state),
+            self.covar(**kwargs),
+            num_samples)])
+        if num_samples == 1:
+            return noise.reshape((-1, 1))
+        else:
+            return noise.T
+
+    def pdf(self, state_vector_post, state_vector_prior, **kwargs):
+        r""" Model pdf/likelihood evaluation function
+
+        Evaluates the pdf/likelihood of the transformed state ``state_post``,
+        given the prior state ``state_prior``.
+
+        In mathematical terms, this can be written as:
+
+        .. math::
+
+            p = p(x_t | x_{t-1}) = \mathcal{N}(x_t; x_{t-1}, Q)
+
+        where :math:`x_t` = ``state_post``, :math:`x_{t-1}` = ``state_prior``
+        and :math:`Q` = :py:attr:`~covar`.
+
+        Parameters
+        ----------
+        state_vector_post : :class:`~.StateVector`
+            A predicted/posterior state
+        state_vector_prior : :class:`~.StateVector`
+            A prior state
+
+        Returns
+        -------
+        : :class:`float`
+            The likelihood of ``state_vec_post``, given ``state_vec_prior``
+        """
+
+        likelihood = multivariate_normal.pdf(
+            state_vector_post.T,
+            mean=self.function(state_vector_prior, noise=0, **kwargs).ravel(),
+            cov=self.covar(**kwargs)
+        )
+        return likelihood
+
+
+class NoHoverCombinedLinearGaussianTransitionModel(NoHoverLinearGaussianTransitionModel):
     r"""Combine multiple models into a single model by stacking them.
 
     The assumption is that all models are Linear and Gaussian.
@@ -814,5 +949,72 @@ class ConstantTurn(LinearGaussianTransitionModel, TimeVariantModel):
         covar_list = [base_covar*sp.power(self.noise_diff_coeffs[0], 2),
                       base_covar*sp.power(self.noise_diff_coeffs[1], 2)]
         covar = sp.linalg.block_diag(*covar_list)
+
+        return CovarianceMatrix(covar)
+
+
+class ConstantPosition(LinearGaussianTransitionModel, TimeVariantModel):
+
+    noise_diff_coeffs = Property(
+        sp.ndarray,
+        doc="The acceleration noise diffusion coefficients :math:`q`")
+
+    @property
+    def ndim_state(self):
+
+        return 2
+
+    def matrix(self, time_interval, **kwargs):
+
+        return sp.diag([1, 0])
+
+    def covar(self, time_interval, **kwargs):
+
+        time_interval_sec = time_interval.total_seconds()
+        base_covar = sp.array([[sp.power(time_interval_sec, 3) / 3, sp.power(time_interval_sec, 2) / 2],
+                               [sp.power(time_interval_sec, 2) / 2, time_interval_sec]])
+        covar = base_covar * self.noise_diff_coeffs
+
+        return CovarianceMatrix(covar)
+
+
+class LinearTurn(LinearGaussianTransitionModel, TimeVariantModel):
+
+    noise_diff_coeffs = Property(
+        sp.ndarray,
+        doc="The acceleration noise diffusion coefficients :math:`q`")
+    turn_rate = Property(
+        float, doc=r"The turn rate :math:`\omega`")
+
+    @property
+    def ndim_state(self):
+
+        return 6
+
+    def matrix(self, time_interval, **kwargs):
+
+        time_interval_sec = time_interval.total_seconds()
+        turn_ratedt = self.turn_rate * time_interval_sec
+
+        return sp.array(
+            [[1, (sp.sin(turn_ratedt) / self.turn_rate) * turn_ratedt, sp.power(turn_ratedt, 2) / 2,
+              0, -(1 - sp.cos(turn_ratedt)) / self.turn_rate, 0],
+             [0, sp.cos(turn_ratedt), turn_ratedt, 0, -sp.sin(turn_ratedt), 0],
+             [0, 0, 1, 0, 0, 0],
+             [0, (1 - sp.cos(turn_ratedt)) / self.turn_rate, 0, 1, sp.sin(turn_ratedt) / self.turn_rate, 0],
+             [0, sp.sin(turn_ratedt), 0, 0, sp.cos(turn_ratedt), 0],
+             [0, 0, 0, 0, 0, 1]])
+
+    def covar(self, time_interval, **kwargs):
+
+        time_interval_sec = time_interval.total_seconds()
+        base_covar = sp.array([[sp.power(time_interval_sec, 5) / 5, sp.power(time_interval_sec, 4) / 4, sp.power(time_interval_sec, 3) / 3, 0, 0, 0],
+                               [sp.power(time_interval_sec, 4) / 4, sp.power(time_interval_sec, 3) / 3, sp.power(time_interval_sec, 2) / 2, 0, 0, 0],
+                               [sp.power(time_interval_sec, 3) / 3, sp.power(time_interval_sec, 2) / 2, sp.power(time_interval_sec, 1) / 1, 0, 0, 0],
+                               [0, 0, 0, sp.power(time_interval_sec, 5) / 5, sp.power(time_interval_sec, 4) / 4, sp.power(time_interval_sec, 3)],
+                               [0, 0, 0, sp.power(time_interval_sec, 4) / 4, sp.power(time_interval_sec, 3) / 3, sp.power(time_interval_sec, 2)],
+                               [0, 0, 0, sp.power(time_interval_sec, 3) / 3, sp.power(time_interval_sec, 2) / 2, sp.power(time_interval_sec, 1)]])
+
+        covar = base_covar * self.noise_diff_coeffs
 
         return CovarianceMatrix(covar)

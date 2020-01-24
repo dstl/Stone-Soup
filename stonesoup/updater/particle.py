@@ -50,12 +50,12 @@ class ParticleUpdater(Updater):
             particle.weight /= sum_w
 
         # Resample
-        new_particles = self.resampler.resample(
+        new_particles, n_eff = self.resampler.resample(
             hypothesis.prediction.particles)
 
         return ParticleStateUpdate(new_particles,
                                    hypothesis,
-                                   timestamp=hypothesis.measurement.timestamp)
+                                   timestamp=hypothesis.measurement.timestamp), n_eff
 
     @lru_cache()
     def predict_measurement(self, state_prediction, measurement_model=None,

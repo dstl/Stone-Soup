@@ -25,6 +25,8 @@ class SystematicResampler(Resampler):
         n_particles = len(particles)
         weight = Probability(1/n_particles)
         cdf = np.cumsum([p.weight for p in particles])
+        n_eff = 1 / sum([p.weight * p.weight for p in particles])
+
         particles_listed = list(particles)
         # Pick random starting point
         u_i = np.random.uniform(0, 1 / n_particles)
@@ -42,4 +44,4 @@ class SystematicResampler(Resampler):
                          parent=particle,
                          dynamic_model=particle.dynamic_model))
 
-        return new_particles
+        return new_particles, n_eff
