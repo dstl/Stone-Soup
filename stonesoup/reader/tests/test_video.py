@@ -4,9 +4,13 @@ import pytest
 try:
     from stonesoup.reader.video import VideoClipReader, FFmpegVideoStreamReader
 except RuntimeError:
-    # Catch FFMPEG import error
+    # Catch FFMPEG error
     pytest.skip("Failed to import video reader classes. This is possibly "
                 "caused due to a missing FFMPEG system executable",
+                allow_module_level=True)
+except ImportError:
+    # Catch optional dependencies import error
+    pytest.skip("Skipping due to missing optional dependencies.",
                 allow_module_level=True)
 
 
