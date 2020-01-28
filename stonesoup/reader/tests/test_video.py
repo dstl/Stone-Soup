@@ -10,7 +10,9 @@ except RuntimeError:
                 allow_module_level=True)
 except ImportError:
     # Catch optional dependencies import error
-    pytest.skip("Skipping due to missing optional dependencies.",
+    pytest.skip("Skipping due to missing optional dependencies. Usage of "
+                "video processing classes requires that the optional package "
+                "dependencies 'moviepy' and 'ffmpeg-python' are installed",
                 allow_module_level=True)
 
 
