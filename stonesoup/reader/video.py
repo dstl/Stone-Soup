@@ -8,8 +8,15 @@ of video data/streams.
 from abc import abstractmethod
 import datetime
 import numpy as np
-import ffmpeg
-import moviepy.editor as mpy
+try:
+    import ffmpeg
+    import moviepy.editor as mpy
+except ImportError:
+    print("Usage of video processing classes requires that the optional"
+          "package dependencies 'moviepy' and 'ffmpeg-python' are installed. "
+          "This can be achieved by running 'python -m pip install .[video]'")
+    raise
+
 import threading
 from queue import Queue
 
