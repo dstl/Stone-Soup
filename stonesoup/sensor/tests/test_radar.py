@@ -7,7 +7,8 @@ from ...functions import cart2pol
 from ...types.angle import Bearing
 from ...types.array import StateVector, CovarianceMatrix
 from ...types.state import State
-from ..radar import RadarRangeBearing, RadarRotatingRangeBearing
+from ..radar import (
+    RadarRangeBearing, RadarRotatingRangeBearing, RadarRasterScanRangeBearing)
 
 
 def h2d(state_vector, translation_offset, rotation_offset):
@@ -146,3 +147,78 @@ def test_rotating_radar():
     # Assert correction of generated measurement
     assert(measurement.timestamp == target_state.timestamp)
     assert(np.equal(measurement.state_vector, eval_m).all())
+
+
+def test_raster_scan_radar():
+    # Input arguments
+    # TODO: pytest parametarization
+    timestamp = datetime.datetime.now()
+    noise_covar = CovarianceMatrix(np.array([[0.015, 0],
+                                             [0, 0.1]]))
+
+    # The radar is positioned at (1,1)
+    radar_position = StateVector(
+        np.array(([[1], [1]])))
+    # The radar is facing left/east
+    radar_orientation = StateVector([[0], [0], [np.pi]])
+    # The radar antenna is facing opposite the radar orientation
+    dwell_center = State(StateVector([[np.pi / 4]]),
+                         timestamp=timestamp)
+    rpm = 20  # 20 Rotations Per Minute Counter-clockwise
+    max_range = 100  # Max range of 100m
+    fov_angle = np.pi / 12  # FOV angle of pi/12 (15 degrees)
+    for_angle = np.pi + fov_angle  # FOR angle of pi*(13/12) (195 degrees)
+    # This will be mean the dwell center will reach at the limits -pi/2 and
+    # pi/2. As the edge of the beam will reach the full FOV
+
+    target_state = State(radar_position +
+                         np.array([[-5], [5]]),
+                         timestamp=timestamp)
+    measurement_mapping = np.array([0, 1])
+
+    # Create a radar object
+    radar = RadarRasterScanRangeBearing(
+        position=radar_position,
+        orientation=radar_orientation,
+        ndim_state=2,
+        mapping=measurement_mapping,
+        noise_covar=noise_covar,
+        dwell_center=dwell_center,
+        rpm=rpm,
+        max_range=max_range,
+        fov_angle=fov_angle,
+        for_angle=for_angle)
+
+    # Assert that the object has been correctly initialised
+    assert np.array_equal(radar.position, radar_position)
+
+    # Generate a noiseless measurement for the given target
+    measurement = radar.measure(target_state, noise=0)
+
+    # Assert measurement is None since target is not in FOV
+    assert measurement is None
+
+    # Rotate radar
+    timestamp = timestamp + datetime.timedelta(seconds=0.5)
+    target_state = State(radar_position +
+                         np.array([[-5], [5]]),
+                         timestamp=timestamp)
+    measurement = radar.measure(target_state, noise=0)
+    # Assert measurement is None since target is not in FOV
+    assert measurement is None
+
+    # Rotate radar such that the target is in FOV
+    timestamp = timestamp + datetime.timedelta(seconds=1.0)
+    target_state = State(radar_position +
+                         np.array([[-5], [5]]),
+                         timestamp=timestamp)
+    measurement = radar.measure(target_state, noise=0)
+    eval_m = h2d(target_state.state_vector,
+                 radar.position,
+                 radar.orientation + [[0],
+                                      [0],
+                                      [radar.dwell_center.state_vector[0, 0]]])
+
+    # Assert correction of generated measurement
+    assert measurement.timestamp == target_state.timestamp
+    assert np.array_equal(measurement.state_vector, eval_m)
