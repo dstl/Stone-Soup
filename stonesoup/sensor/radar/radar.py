@@ -26,32 +26,34 @@ class RadarRangeBearing(Sensor):
 
     """
 
-    position = Property(StateVector,
-                        doc="The radar position on a 3D Cartesian plane,\
-                             expressed as a 3x1 array of Cartesian coordinates\
-                             in the order :math:`x,y,z`")
+    position = Property(
+        StateVector,
+        doc="The radar position on a 3D Cartesian plane,"
+            " expressed as a 3x1 array of Cartesian "
+            "coordinates in the order :math:`x,y,z`")
     orientation = Property(
         StateVector,
-        doc="A 3x1 array of angles (rad), specifying the radar orientation in \
-            terms of the counter-clockwise rotation around each Cartesian \
-            axis in the order :math:`x,y,z`. The rotation angles are positive \
-            if the rotation is in the counter-clockwise direction when viewed \
-            by an observer looking along the respective rotation axis, \
-            towards the origin")
+        doc="A 3x1 array of angles (rad), specifying the radar orientation in "
+            "terms of the counter-clockwise rotation around each Cartesian "
+            "axis in the order :math:`x,y,z`. The rotation angles are positive "
+            "if the rotation is in the counter-clockwise direction when viewed "
+            "by an observer looking along the respective rotation axis, "
+            "towards the origin")
     ndim_state = Property(
         int,
-        doc="Number of state dimensions. This is utilised by (and follows in\
-            format) the underlying :class:`~.RangeBearingGaussianToCartesian`\
-            model")
+        doc="Number of state dimensions. This is utilised by (and follows in"
+            "format) the underlying :class:`~.RangeBearingGaussianToCartesian`"
+            "model")
     mapping = Property(
-        [np.array], doc="Mapping between the targets state space and the\
-                        sensors measurement capability")
+        [np.array],
+        doc="Mapping between the targets state space and "
+            "the sensors measurement capability")
     noise_covar = Property(CovarianceMatrix,
-                           doc="The sensor noise covariance matrix. This is \
-                                utilised by (and follow in format) the \
-                                underlying \
-                                :class:`~.RangeBearingGaussianToCartesian`\
-                                model")
+                           doc="The sensor noise covariance matrix. This is "
+                               "utilised by (and follow in format) the "
+                               "underlying "
+                               ":class:`~.RangeBearingGaussianToCartesian`"
+                               "model")
 
     def __init__(self, position, orientation, ndim_state, mapping, noise_covar,
                  *args, **kwargs):
@@ -267,88 +269,85 @@ class AESARadar(Sensor):
     This model does not generate false alarms.
     """
 
-    rotation_offset = Property(StateVector, default=StateVector([0, 0, 0]),
-                               doc="""A 3x1 array of angles (rad), specifying
-                               the radar orientation in terms of the
-                               counter-clockwise rotation around the
-                               :math:`x,y,z` axis. i.e Roll, Pitch and Yaw.""")
+    rotation_offset = Property(
+        StateVector, default=StateVector([0, 0, 0]),
+        doc="A 3x1 array of angles (rad), specifying "
+            "the radar orientation in terms of the "
+            "counter-clockwise rotation around the "
+            ":math:`x,y,z` axis. i.e Roll, Pitch and Yaw.")
+    translation_offset = Property(
+        StateVector, default=StateVector([0, 0, 0]),
+        doc="The radar position in 3D Cartesian space.[x,y,z]")
+    mapping = Property(
+        np.array, default=[0, 1, 2],
+        doc="Mapping between or positions and state "
+            "dimensions. [x,y,z]")
 
-    translation_offset = Property(StateVector,
-                                  default=StateVector([0, 0, 0]),
-                                  doc="The radar position in 3D "
-                                      "Cartesian space.[x,y,z]")
+    measurement_model = Property(
+        MeasurementModel, default=None,
+        doc="The Measurement model used to generate "
+            "measurements.")
 
-    mapping = Property(np.array, default=[0, 1, 2],
-                       doc="Mapping between or positions and state "
-                           "dimensions. [x,y,z]")
+    beam_shape = Property(
+        BeamShape,
+        doc="Object describing the shape of the beam.")
 
-    measurement_model = Property(MeasurementModel, default=None,
-                                 doc="The Measurement model used to generate "
-                                     "measurements.")
-
-    beam_shape = Property(BeamShape,
-                          doc="Object describing the shape of the beam.")
-
-    beam_transition_model = Property(BeamTransitionModel,
-                                     doc="Object describing the "
-                                         "movement of the beam in azimuth and "
-                                         "elevation from the perspective of "
-                                         "the radar.")
+    beam_transition_model = Property(
+        BeamTransitionModel,
+        doc="Object describing the "
+            "movement of the beam in azimuth and "
+            "elevation from the perspective of "
+            "the radar.")
     # SNR variables
-    number_pulses = Property(int, default=1, doc="The number of pulses in the"
-                                                 " radar burst.")
-    duty_cycle = Property(float, doc="Duty cycle is the fraction of the time "
-                                     "the radar it transmitting.")
-    band_width = Property(float, doc="Bandwidth of the receiver in hertz.")
-    receiver_noise = Property(float, doc="Noise figure of the radar in"
-                                         " decibels.")
-    frequency = Property(float, doc="Transmitted frequency in hertz.")
-    antenna_gain = Property(float, doc="Total Antenna gain in decibels.")
-    beam_width = Property(float, doc="Radar beam width in radians.")
-    loss = Property(float, default=0, doc="Loss in decibels.")
+    number_pulses = Property(
+        int, default=1,
+        doc="The number of pulses in the"
+            " radar burst.")
+    duty_cycle = Property(
+        float,
+        doc="Duty cycle is the fraction of the time "
+            "the radar it transmitting.")
+    band_width = Property(
+        float, doc="Bandwidth of the receiver in hertz.")
+    receiver_noise = Property(
+        float, doc="Noise figure of the radar in decibels.")
+    frequency = Property(
+        float, doc="Transmitted frequency in hertz.")
+    antenna_gain = Property(
+        float, doc="Total Antenna gain in decibels.")
+    beam_width = Property(
+        float, doc="Radar beam width in radians.")
+    loss = Property(
+        float, default=0, doc="Loss in decibels.")
 
-    swerling_on = Property(bool, default=False,
-                           doc="Is the Swerling 1 case used. If True the RCS"
-                               " of the target will change for each timestep. "
-                               "The random RCS follows the probability "
-                               "distribution of the Swerling 1 case.")
-    rcs = Property(float, default=None, doc="The radar cross section of "
-                                            "targets in meters squared.")
+    swerling_on = Property(
+        bool, default=False,
+        doc="Is the Swerling 1 case used. If True the RCS"
+            " of the target will change for each timestep. "
+            "The random RCS follows the probability "
+            "distribution of the Swerling 1 case.")
+    rcs = Property(
+        float, default=None,
+        doc="The radar cross section of targets in meters squared.")
 
-    probability_false_alarm = Property(Probability, default=1e-6,
-                                       doc="Probability of false alarm used in"
-                                           " the North's approximation")
+    probability_false_alarm = Property(
+        Probability, default=1e-6,
+        doc="Probability of false alarm used in the North's approximation")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+    @property
+    def _snr_constant(self):
         temp = 290  # noise reference temperature (room temperature kelvin)
         # convert from dB
         noise_figure = 10 ** (self.receiver_noise / 10)
         loss = 10 ** (self.loss / 10)
         # calculate part of snr that is independent of:
         #   rcs, transmitted power, gain and range
-        self.snr_constant = (const.c ** 2 * self.number_pulses *
-                             self.duty_cycle) / (64 * np.pi ** 3 * const.k *
-                                                 temp * self.band_width *
-                                                 noise_figure * self.frequency
-                                                 ** 2 * loss)
-        # calculate range resolution for compressed pulse
-
-    def swerling_1(self, rcs):
-        r"""Swerling 1 case
-
-         Returns
-        -------
-        :class:`float`
-        returns random RCS based on the Swerling 1 case
-
-        .. math::
-
-            P\left(\sigma\right) = \dfrac{1}{\sigma_{average}} \exp{\left(
-            \dfrac{-\sigma}{\sigma_{average}}\right)}
-
-        """
-        return -rcs * np.log(np.random.rand())
+        return (const.c ** 2 * self.number_pulses * self.duty_cycle) / \
+               (64 * np.pi ** 3 * const.k * temp * self.band_width *
+                noise_figure * self.frequency ** 2 * loss)
 
     @property
     def _rotation_matrix(self):
@@ -368,6 +367,10 @@ class AESARadar(Sensor):
 
         return rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
 
+    @staticmethod
+    def _swerling_1(rcs):
+        return -rcs * np.log(np.random.rand())
+
     def gen_probability(self, sky_state):
         """Generates probability of detection of a given State.
 
@@ -377,21 +380,27 @@ class AESARadar(Sensor):
 
         Returns
         -------
-        det_prob : Probability of detection.
-        snr : Signal to noise ratio.
-        rcs : RCS after the Swerling 1 case is applied.
-        directed_power : Power in the direction of the target.
-        spoiled_gain : Gain in decibels with beam spoiling applied.
-        spoiled_width : Beam width with beam spoiling applied.
+        det_prob : `float`
+            Probability of detection.
+        snr : `float`
+            Signal to noise ratio.
+        rcs : `float`
+            RCS after the Swerling 1 case is applied.
+        directed_power : `float`
+            Power in the direction of the target.
+        spoiled_gain : `float`
+            Gain in decibels with beam spoiling applied.
+        spoiled_width : `float`
+            Beam width with beam spoiling applied.
         """
-        if hasattr(sky_state, 'rcs') and sky_state.rcs is not None:
+        if getattr(sky_state, 'rcs', None) is not None:
             # use state's rcs if it has one
             rcs = sky_state.rcs
         else:
             rcs = self.rcs
         # apply swerling 1 case?
         if self.swerling_on:
-            rcs = self.swerling_1(rcs)
+            rcs = self._swerling_1(rcs)
 
         # e-scan beam steer
         [beam_az, beam_el] = self.beam_transition_model.move_beam(
@@ -416,7 +425,7 @@ class AESARadar(Sensor):
         self.beam_shape.beam_width = spoiled_width  # beam spoiling to width
         directed_power = self.beam_shape.beam_power(relative_az, relative_el)
         # calculate signal to noise ratio
-        snr = self.snr_constant * rcs * spoiled_gain ** 2 * directed_power / \
+        snr = self._snr_constant * rcs * spoiled_gain ** 2 * directed_power / \
             (r[0] ** 4)
         # calculate probability of detection using the North's approximation
         det_prob = 0.5 * erfc(

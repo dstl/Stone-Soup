@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
-
+from pytest import approx
 import numpy as np
 
 from ..beam_pattern import StationaryBeam, BeamSweep
@@ -35,9 +35,9 @@ def test_beam_sweep():
         == [np.pi/45, np.pi/20]
     # moved to next elevation
     az, el = beam_pattern.move_beam(start_time + datetime.timedelta(seconds=3))
-    assert [round(az, 10), round(el, 10)] == [round(np.pi/45, 10),
-                                              round(np.pi/45, 10)]
+    assert [approx(az, 10), approx(el, 10)] == [approx(np.pi/45, 10),
+                                                approx(np.pi/45, 10)]
     # restart frame and moved in azimuth
     az, el = beam_pattern.move_beam(start_time + datetime.timedelta(seconds=7))
-    assert [round(az, 10), round(el, 10)] == [round(np.pi/45, 10),
-                                              round(np.pi/20, 10)]
+    assert [approx(az, 10), approx(el, 10)] == [approx(np.pi/45, 10),
+                                                approx(np.pi/20, 10)]
