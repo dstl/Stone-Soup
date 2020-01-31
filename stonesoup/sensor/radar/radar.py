@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-from .base import Sensor3DCartesian
+from ..base import Sensor3DCartesian
 from ..base import Property
-from ..models.measurement.nonlinear import CartesianToBearingRange
-from ..types.array import CovarianceMatrix
-from ..types.detection import Detection
-from ..types.state import State, StateVector
+from ...models.measurement.nonlinear import CartesianToBearingRange
+from ...types.array import CovarianceMatrix
+from ...types.detection import Detection
+from ...types.state import State, StateVector
 
 
 class RadarRangeBearing(Sensor3DCartesian):
