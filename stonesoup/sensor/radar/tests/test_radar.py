@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
-
+from pytest import approx
 import numpy as np
 
 from ..radar import (
@@ -252,12 +252,12 @@ def test_aesaradar():
 
     [prob_detection, snr, swer_rcs, tran_power, spoil_gain,
      spoil_width] = radar.gen_probability(target)
-    assert round(swer_rcs, 1) == 10.0
-    assert round(prob_detection, 3) == 0.688
-    assert round(spoil_width, 2) == 0.19
-    assert round(spoil_gain, 2) == 29.58
-    assert round(tran_power, 2) == 7715.00
-    assert round(snr, 2) == 16.01
+    assert approx(swer_rcs, 1) == 10.0
+    assert approx(prob_detection, 3) == 0.688
+    assert approx(spoil_width, 2) == 0.19
+    assert approx(spoil_gain, 2) == 29.58
+    assert approx(tran_power, 2) == 7715.00
+    assert approx(snr, 2) == 16.01
 
 
 def test_swer(repeats=10000):
@@ -285,7 +285,7 @@ def test_swer(repeats=10000):
     for i in range(0, repeats):
         list_rcs[i] = radar.gen_probability(target)[2]
     # check histogram follows the Swerling 1 case probability distribution
-    bin_height, bin_edge = np.histogram(list_rcs, 20, normed=True)
+    bin_height, bin_edge = np.histogram(list_rcs, 20, density=True)
     x = (bin_edge[:-1] + bin_edge[1:]) / 2
     height = 1 / (float(radar.rcs)) * np.exp(-x / float(radar.rcs))
 
@@ -372,8 +372,7 @@ def test_target_rcs():
 
     (det_prob, snr, swer_rcs, _, _, _) = radar_model.gen_probability(rcs_10)
     assert swer_rcs == 10
-    assert round(snr, 3) == 8.197
+    assert approx(snr, 3) == 8.197
     (det_prob, snr, swer_rcs, _, _, _) = radar_model.gen_probability(rcs_20)
     assert swer_rcs == 20
     assert round(snr, 3) == 2.125
-

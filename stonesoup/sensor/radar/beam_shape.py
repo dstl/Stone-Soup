@@ -35,10 +35,10 @@ class Beam2DGaussian(BeamShape):
         """
         Parameters
         ----------
-        azimuth : The angle of the target away from the boresight of the radar
-            in azimuth
-        elevation : The angle of the target away from
-            the boresight of the radar in elevation
+        azimuth : `float`
+            The angle of the target away from the boresight of the radar in azimuth
+        elevation : `float`
+            The angle of the target away from the boresight of the radar in elevation
 
         Returns
         -------
