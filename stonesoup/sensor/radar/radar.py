@@ -320,6 +320,9 @@ class AESARadar(Sensor):
                              self.frequency ** 2 * loss)
         # calculate range resolution for compressed pulse
 
+    def measure(**kwargs):
+        raise NotImplementedError
+    
     def swerling_1(self, rcs):
         # swerling random distribution function
         return -rcs * np.log(np.random.rand())
