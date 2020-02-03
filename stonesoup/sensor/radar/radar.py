@@ -35,10 +35,10 @@ class RadarRangeBearing(Sensor):
         StateVector,
         doc="A 3x1 array of angles (rad), specifying the radar orientation in "
             "terms of the counter-clockwise rotation around each Cartesian "
-            "axis in the order :math:`x,y,z`. The rotation angles are positive "
-            "if the rotation is in the counter-clockwise direction when viewed "
-            "by an observer looking along the respective rotation axis, "
-            "towards the origin")
+            "axis in the order :math:`x,y,z`. The rotation angles are "
+            "positive if the rotation is in the counter-clockwise direction "
+            "when viewed by an observer looking along the respective rotation "
+            "axis, towards the origin")
     ndim_state = Property(
         int,
         doc="Number of state dimensions. This is utilised by (and follows in"
