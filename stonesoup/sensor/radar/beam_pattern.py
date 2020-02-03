@@ -31,15 +31,17 @@ class StationaryBeam(BeamTransitionModel):
 
 class BeamSweep(BeamTransitionModel):
     """This describes a beam moving in a raster pattern"""
-    init_time = Property(datetime.datetime,default=None, doc="The time the frame is"
-                                                " started")
+    init_time = Property(
+        datetime.datetime, default=None,
+        doc="The time the frame is started")
 
     angle_per_s = Property(float, doc="The speed that the beam scans at")
-    frame = Property(list, doc="Dimensions of search frame as "
-                               "[azimuth,elevation]")
+    frame = Property(
+        list, doc="Dimensions of search frame as [azimuth,elevation]")
     separation = Property(float, doc="Separation of lines in elevation")
-    centre = Property(list, default=[0, 0], doc="Centre of the search frame in"
-                                                " [azimuth,elevation]")
+    centre = Property(
+        list, default=[0, 0],
+        doc="Centre of the search frame in [azimuth,elevation]")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

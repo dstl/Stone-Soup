@@ -17,7 +17,7 @@ class BeamShape(Base):
 
 class Beam2DGaussian(BeamShape):
     r"""The beam is in the shape of a 2D gaussian in the azimuth and elevation.
-     The width at half the maxima is the beam width. It is decribed by:
+     The width at half the maxima is the beam width. It is described by:
 
      .. math::
 
@@ -36,9 +36,11 @@ class Beam2DGaussian(BeamShape):
         Parameters
         ----------
         azimuth : `float`
-            The angle of the target away from the boresight of the radar in azimuth
+            The angle of the target away from the boresight of the radar in
+            azimuth
         elevation : `float`
-            The angle of the target away from the boresight of the radar in elevation
+            The angle of the target away from the boresight of the radar in
+            elevation
 
         Returns
         -------
