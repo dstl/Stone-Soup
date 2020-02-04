@@ -103,4 +103,5 @@ class MultiModelPredictor(Predictor):
                 particle_index = new_particles.index(particle)
                 new_particles[particle_index].dynamic_model = dynamic_models
 
+        print("james is great")
         return ParticleStatePrediction(new_particles, timestamp=timestamp), dynamic_model_proportions
