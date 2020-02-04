@@ -147,7 +147,7 @@ class RadarRotatingRangeBearing(RadarRangeBearing):
             ground_truth.state_vector, noise=0, **kwargs)
 
         if noise is None:
-            measurement_noise = self.measurement_model.rvs()
+            measurement_noise = measurement_model.rvs()
         else:
             measurement_noise = noise
 
@@ -379,9 +379,6 @@ class AESARadar(Sensor):
                (64 * np.pi ** 3 * const.k * temp * self.band_width *
                 noise_figure * self.frequency ** 2 * loss)
 
-    def measure(**kwargs):
-        raise NotImplementedError
-
     @property
     def _rotation_matrix(self):
         """_rotation_matrix getter method
@@ -467,7 +464,7 @@ class AESARadar(Sensor):
         return det_prob, snr, rcs, directed_power,\
             10 * np.log10(spoiled_gain), spoiled_width
 
-    def gen_measurement(self, sky_state, **kwargs):
+    def measure(self, sky_state, **kwargs):
         """Generate a measurement for a given state
 
         Parameters
