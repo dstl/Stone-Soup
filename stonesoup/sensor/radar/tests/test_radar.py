@@ -313,7 +313,7 @@ def test_detection():
                           ndim_state=3))
 
     target = State([50e3, 10e3, 20e3], timestamp=datetime.datetime.now())
-    measurement = radar.gen_measurement(target)
+    measurement = radar.measure(target)
 
     assert np.allclose(measurement.state_vector,
                        StateVector([50e3, 10e3, 20e3]), atol=5)
@@ -343,7 +343,7 @@ def test_failed_detect():
                           mapping=[0, 2, 4],
                           ndim_state=6))
 
-    assert radar.gen_measurement(target) is None
+    assert radar.measure(target) is None
 
 
 def test_target_rcs():
