@@ -25,7 +25,7 @@ import numpy as np
 import os
 
 seed(100)
-DRONE_FILE = -3
+DRONE_FILE = 4
 # DATA_DIR = "P:/DASA/EDITTS Drone Tracking/GFI/GPS Tracking"
 DATA_DIR = "C:/Work/Drone_Tracking/EDITTS-Drone-Tracking/data/raw/"
 SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results"
