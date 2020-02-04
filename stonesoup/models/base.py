@@ -58,10 +58,10 @@ class LinearModel(Model):
             # TODO: doesn't make sense for noise=None to generate noise
             noise = self.rvs(**kwargs)
 
-        return self.matrix(**kwargs) @ state_vector + noise
+        return self.matrix(**kwargs) @ (state_vector + noise)
 
 
-class NoHoverLinearModel(Model):
+class ThresholdedLinearModel(Model):
     """LinearModel class
 
     Base/Abstract class for all linear models"""
@@ -96,7 +96,7 @@ class NoHoverLinearModel(Model):
         while sum(noise) < 0.1 and sum(noise) != 0:
             noise = self.rvs(**kwargs)
 
-        return self.matrix(**kwargs) @ state_vector + noise
+        return self.matrix(**kwargs) @ (state_vector + noise)
 
 
 class NonLinearModel(Model):

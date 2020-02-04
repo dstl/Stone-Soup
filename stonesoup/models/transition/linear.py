@@ -10,9 +10,8 @@ from scipy.integrate import quad
 from ...base import Property
 from ...types.array import CovarianceMatrix
 from ..base import (LinearModel, GaussianModel, TimeVariantModel,
-                    TimeInvariantModel, NoHoverLinearModel)
+                    TimeInvariantModel, ThresholdedLinearModel)
 from .base import TransitionModel
-from ..measurement.linear import LinearGaussian
 
 
 class LinearGaussianTransitionModel(
@@ -151,8 +150,8 @@ class CombinedLinearGaussianTransitionModel(LinearGaussianTransitionModel):
         return block_diag(*covar_list)
 
 
-class NoHoverLinearGaussianTransitionModel(
-        TransitionModel, NoHoverLinearModel, GaussianModel):
+class ThresholdedLinearGaussianTransitionModel(
+        TransitionModel, ThresholdedLinearModel, GaussianModel):
 
     @property
     def ndim_state(self):
@@ -236,7 +235,7 @@ class NoHoverLinearGaussianTransitionModel(
         return likelihood
 
 
-class NoHoverCombinedLinearGaussianTransitionModel(NoHoverLinearGaussianTransitionModel):
+class ThresholdedCombinedLinearGaussianTransitionModel(ThresholdedLinearGaussianTransitionModel):
     r"""Combine multiple models into a single model by stacking them.
 
     The assumption is that all models are Linear and Gaussian.

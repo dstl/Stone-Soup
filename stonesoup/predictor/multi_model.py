@@ -43,8 +43,8 @@ class MultiModelPredictor(Predictor):
         timestamp: :class:`datetime.datetime`, optional
             A timestamp signifying when the prediction is performed
             (the default is `None`)
-        multi_craft: if true, will resample the particles so that no model within the list of dynamic models ever
-            truly dies out.
+        multi_craft: boolean, optional, if true, will resample the particles so that no model
+            within the list of dynamic models ever truly dies out.
         Returns
         -------
         : :class:`~.ParticleStatePrediction`
@@ -62,17 +62,19 @@ class MultiModelPredictor(Predictor):
         for particle in prior.particles:
             for model_index in range(len(self.transition_matrix)):
                 if particle.dynamic_model == model_index:
-                    self.transition_model = self.model_list[particle.dynamic_model]
+
+                    # Change the value of the dynamic value randomly according to the defined transition matrix
+                    dynamic_model = np.searchsorted(self.probabilities[model_index], random())
+
+                    self.transition_model = self.model_list[dynamic_model]
+
                     # Based on given position mapping create a new state vector that contains only the required states
-                    required_state_space = particle.state_vector[np.array(self.position_mapping[model_index])]
+                    required_state_space = particle.state_vector[np.array(self.position_mapping[dynamic_model])]
 
                     new_state_vector = self.transition_model.function(
                         required_state_space,
                         time_interval=time_interval,
                         **kwargs)
-
-                    # Change the value of the dynamic value randomly according to the defined transition matrix
-                    dynamic_model = np.searchsorted(self.probabilities[model_index], random())
 
                     # Calculate the indices removed from the state vector to become compatible with the dynamic model
                     missed_indices = []
@@ -93,10 +95,6 @@ class MultiModelPredictor(Predictor):
 
         dynamic_model_list = [p.dynamic_model for p in new_particles]
         dynamic_model_proportions = [dynamic_model_list.count(i) for i in range(len(self.transition_matrix))]
-        # print(dynamic_model_proportions)
-
-        """for dynamic_models in range(len(self.transition_matrix)):
-            new_particles[randint(0, len(new_particles) - 1)].dynamic_model = dynamic_models"""
 
         if multi_craft:
             for dynamic_models in range(len(self.transition_matrix)):

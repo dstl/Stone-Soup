@@ -22,30 +22,30 @@ def test_particle():
 
     # Define prior state
     prior_particles = [Particle(np.array([[10], [10]]),
-                                1 / 9),
+                                1 / 9, dynamic_model=0),
                        Particle(np.array([[10], [20]]),
-                                1 / 9),
+                                1 / 9, dynamic_model=0),
                        Particle(np.array([[10], [30]]),
-                                1 / 9),
+                                1 / 9, dynamic_model=0),
                        Particle(np.array([[20], [10]]),
-                                1 / 9),
+                                1 / 9, dynamic_model=0),
                        Particle(np.array([[20], [20]]),
-                                1 / 9),
+                                1 / 9, dynamic_model=0),
                        Particle(np.array([[20], [30]]),
-                                1 / 9),
+                                1 / 9, dynamic_model=0),
                        Particle(np.array([[30], [10]]),
-                                1 / 9),
+                                1 / 9, dynamic_model=0),
                        Particle(np.array([[30], [20]]),
-                                1 / 9),
+                                1 / 9, dynamic_model=0),
                        Particle(np.array([[30], [30]]),
-                                1 / 9),
+                                1 / 9, dynamic_model=0),
                        ]
     prior = ParticleState(prior_particles, timestamp=timestamp)
 
     eval_particles = [Particle(cv.matrix(timestamp=new_timestamp,
                                          time_interval=time_interval)
                                @ particle.state_vector,
-                               1 / 9)
+                               1 / 9, dynamic_model=0)
                       for particle in prior_particles]
     eval_mean = np.mean(np.hstack([i.state_vector for i in eval_particles]),
                         axis=1).reshape(2, 1)
