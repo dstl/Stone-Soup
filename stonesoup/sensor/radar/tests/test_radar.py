@@ -3,14 +3,13 @@ import datetime
 from pytest import approx
 import numpy as np
 
-from ..radar import (
-    RadarRangeBearing, RadarRotatingRangeBearing, RadarRasterScanRangeBearing)
 from ....functions import cart2pol
 from ....types.angle import Bearing
 from ....types.array import StateVector, CovarianceMatrix
 from ....types.state import State
 from ....types.groundtruth import GroundTruthState
-from ..radar import RadarRangeBearing, RadarRotatingRangeBearing, AESARadar
+from ..radar import RadarRangeBearing, RadarRotatingRangeBearing, AESARadar, \
+    RadarRasterScanRangeBearing
 from ..beam_pattern import StationaryBeam
 from ..beam_shape import Beam2DGaussian
 from ....models.measurement.linear import LinearGaussian
