@@ -2,7 +2,6 @@
 
 import numpy as np
 import scipy as sp
-from scipy.stats import multivariate_normal
 
 from ...base import Property
 from ...types.array import CovarianceMatrix

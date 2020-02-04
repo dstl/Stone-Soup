@@ -35,13 +35,13 @@ class YAMLWriter(Writer):
 
     def write(self):
         if self.tracks_source:
-            gen = self.tracks_source.tracks_gen()
+            gen = self.tracks_source
         elif self.detections_source:
-            gen = self.detections_source.detections_gen()
+            gen = self.detections_source
         elif self.sensor_data_source:
-            gen = self.sensor_data_source.sensor_data_gen()
+            gen = self.sensor_data_source
         elif self.groundtruth_source:
-            gen = self.groundtruth_source.groundtruth_paths_gen()
+            gen = self.groundtruth_source
         else:  # pragma: no cover
             raise RuntimeError("At least one source required")
 

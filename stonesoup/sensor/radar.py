@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
-import copy
 import numpy as np
 
-from .base import Sensor
+from .base import Sensor3DCartesian
 from ..base import Property
 from ..models.measurement.nonlinear import CartesianToBearingRange
 from ..types.array import CovarianceMatrix
@@ -10,9 +9,9 @@ from ..types.detection import Detection
 from ..types.state import State, StateVector
 
 
-class RadarRangeBearing(Sensor):
+class RadarRangeBearing(Sensor3DCartesian):
     """A simple radar sensor that generates measurements of targets, using a
-    :class:`~.RangeBearingGaussianToCartesian` model, relative to its position.
+    :class:`~.CartesianToBearingRange` model, relative to its position.
 
     Note
     ----
@@ -20,54 +19,22 @@ class RadarRangeBearing(Sensor):
 
     """
 
-    position = Property(StateVector,
-                        doc="The radar position on a 3D Cartesian plane,\
-                             expressed as a 3x1 array of Cartesian coordinates\
-                             in the order :math:`x,y,z`")
-    orientation = Property(
-        StateVector,
-        doc="A 3x1 array of angles (rad), specifying the radar orientation in \
-            terms of the counter-clockwise rotation around each Cartesian \
-            axis in the order :math:`x,y,z`. The rotation angles are positive \
-            if the rotation is in the counter-clockwise direction when viewed \
-            by an observer looking along the respective rotation axis, \
-            towards the origin")
     ndim_state = Property(
         int,
         doc="Number of state dimensions. This is utilised by (and follows in\
-            format) the underlying :class:`~.RangeBearingGaussianToCartesian`\
+            format) the underlying :class:`~.CartesianToBearingRange`\
             model")
     mapping = Property(
-        [np.array], doc="Mapping between the targets state space and the\
-                        sensors measurement capability")
-    noise_covar = Property(CovarianceMatrix,
-                           doc="The sensor noise covariance matrix. This is \
-                                utilised by (and follow in format) the \
-                                underlying \
-                                :class:`~.RangeBearingGaussianToCartesian`\
-                                model")
+        [np.array],
+        doc="Mapping between the targets state space and the sensors\
+            measurement capability")
+    noise_covar = Property(
+        CovarianceMatrix,
+        doc="The sensor noise covariance matrix. This is utilised by\
+            (and follow in format) the underlying \
+            :class:`~.CartesianToBearingRange` model")
 
-    def __init__(self, position, orientation, ndim_state, mapping, noise_covar,
-                 *args, **kwargs):
-        measurement_model = CartesianToBearingRange(
-            ndim_state=ndim_state,
-            mapping=mapping,
-            noise_covar=noise_covar,
-            translation_offset=position,
-            rotation_offset=orientation)
-
-        super().__init__(position, orientation, ndim_state, mapping,
-                         noise_covar, *args, measurement_model, **kwargs)
-
-    def set_position(self, position):
-        self.position = position
-        self.measurement_model.translation_offset = position
-
-    def set_orientation(self, orientation):
-        self.orientation = orientation
-        self.measurement_model.rotation_offset = orientation
-
-    def gen_measurement(self, ground_truth, noise=None, **kwargs):
+    def measure(self, ground_truth, noise=None, **kwargs):
         """Generate a measurement for a given state
 
         Parameters
@@ -81,21 +48,25 @@ class RadarRangeBearing(Sensor):
             A measurement generated from the given state. The timestamp of the\
             measurement is set equal to that of the provided state.
         """
+        measurement_model = CartesianToBearingRange(
+            ndim_state=self.ndim_state,
+            mapping=self.mapping,
+            noise_covar=self.noise_covar,
+            translation_offset=self.position,
+            rotation_offset=self.orientation)
 
-        measurement_vector = self.measurement_model.function(
+        measurement_vector = measurement_model.function(
             ground_truth.state_vector, noise=noise, **kwargs)
 
-        model_copy = copy.copy(self.measurement_model)
-
         return Detection(measurement_vector,
-                         measurement_model=model_copy,
+                         measurement_model=measurement_model,
                          timestamp=ground_truth.timestamp)
 
 
 class RadarRotatingRangeBearing(RadarRangeBearing):
     """A simple rotating radar, with set field-of-view (FOV) angle, range and\
      rotations per minute (RPM), that generates measurements of targets, using\
-     a :class:`~.RangeBearingGaussianToCartesian` model, relative to its\
+     a :class:`~.CartesianToBearingRange` model, relative to its\
      position.
 
     Note
@@ -114,20 +85,16 @@ class RadarRotatingRangeBearing(RadarRangeBearing):
         Angle units are in radians"
     )
     rpm = Property(
-        float, doc="The number of antenna rotations per minute (RPM)")
+        float,
+        doc="The number of antenna rotations per minute (RPM)")
     max_range = Property(
-        float, doc="The maximum detection range of the radar (in meters)")
+        float,
+        doc="The maximum detection range of the radar (in meters)")
     fov_angle = Property(
-        float, doc="The radar field of view (FOV) angle (in radians).")
+        float,
+        doc="The radar field of view (FOV) angle (in radians).")
 
-    def __init__(self, position, orientation, ndim_state, mapping, noise_covar,
-                 dwell_center, rpm, max_range, fov_angle, *args, **kwargs):
-
-        super().__init__(position, orientation, ndim_state, mapping,
-                         noise_covar, dwell_center, rpm, max_range,
-                         fov_angle, *args, **kwargs)
-
-    def gen_measurement(self, ground_truth, noise=None, **kwargs):
+    def measure(self, ground_truth, noise=None, **kwargs):
         """Generate a measurement for a given state
 
         Parameters
@@ -153,38 +120,43 @@ class RadarRotatingRangeBearing(RadarRangeBearing):
             self.dwell_center.state_vector[0, 0]
 
         # Set rotation offset of underlying measurement model
-        rot_offset =\
+        rot_offset = \
             StateVector(
                 [[self.orientation[0, 0]],
                  [self.orientation[1, 0]],
                  [antenna_heading]])
-        self.measurement_model.rotation_offset = rot_offset
+
+        measurement_model = CartesianToBearingRange(
+            ndim_state=self.ndim_state,
+            mapping=self.mapping,
+            noise_covar=self.noise_covar,
+            translation_offset=self.position,
+            rotation_offset=rot_offset)
 
         # Transform state to measurement space and generate
         # random noise
-        measurement_vector = self.measurement_model.function(
+        measurement_vector = measurement_model.function(
             ground_truth.state_vector, noise=0, **kwargs)
-        if(noise is None):
-            measurement_noise = self.measurement_model.rvs()
+        if (noise is None):
+            measurement_noise = measurement_model.rvs()
         else:
             measurement_noise = noise
 
         # Check if state falls within sensor's FOV
-        fov_min = -self.fov_angle/2
-        fov_max = +self.fov_angle/2
+        fov_min = -self.fov_angle / 2
+        fov_max = +self.fov_angle / 2
         bearing_t = measurement_vector[0, 0]
         range_t = measurement_vector[1, 0]
 
         # Return None if state not in FOV
-        if(bearing_t > fov_max or bearing_t < fov_min
-           or range_t > self.max_range):
+        if (bearing_t > fov_max or bearing_t < fov_min
+                or range_t > self.max_range):
             return None
 
         # Else return measurement
-        model_copy = copy.copy(self.measurement_model)
         measurement_vector += measurement_noise  # Add noise
         return Detection(measurement_vector,
-                         measurement_model=model_copy,
+                         measurement_model=measurement_model,
                          timestamp=timestamp)
 
     def rotate(self, timestamp):
@@ -202,9 +174,66 @@ class RadarRotatingRangeBearing(RadarRangeBearing):
         duration = timestamp - self.dwell_center.timestamp
 
         # Update dwell center
-        rps = self.rpm/60  # rotations per sec
+        rps = self.rpm / 60  # rotations per sec
         self.dwell_center = State(
             StateVector([[self.dwell_center.state_vector[0, 0]
-                          + duration.total_seconds()*rps*2*np.pi]]),
+                          + duration.total_seconds() * rps * 2 * np.pi]]),
             timestamp
         )
+
+
+class RadarRasterScanRangeBearing(RadarRotatingRangeBearing):
+    """A simple raster scan radar, with set field-of-regard (FoR) angle, \
+     field-of-view (FoV) angle, range and rotations per minute (RPM), that \
+     generates measurements of targets, using a \
+     :class:`~.RangeBearingGaussianToCartesian` model, relative to its position
+
+     This is a simple extension of the RadarRotatingRangeBearing class with \
+     the rotate function changed to restrict the  dwell-center to within the \
+     field of regard.
+     It's important to note that this only works (has  been tested) in an 2D \
+     environment
+
+    Note
+    ----
+    * The current implementation of this class assumes a 3D Cartesian plane.
+
+    """
+
+    for_angle = Property(
+        float, doc="The radar field of regard (FoR) angle (in radians).")
+
+    def rotate(self, timestamp):
+        """Rotate the sensor's antenna
+
+        This method computes and updates the sensor's `dwell_center` property.
+
+        Parameters
+        ----------
+        timestamp: :class:`datetime.datetime`
+            A timestamp signifying when the rotation completes
+        """
+
+        super().rotate(timestamp)
+
+        dwell_center_max = self.for_angle/2.0 - self.fov_angle/2.0
+        dwell_center_min = -self.for_angle/2.0 + self.fov_angle/2.0
+
+        # If the FoV is outside of the FoR:
+        #   Correct the dwell_center
+        #   Reverse the direction of the scan pattern
+        if self.dwell_center.state_vector[0, 0] > dwell_center_max:
+            self.dwell_center = State(
+                StateVector([[(2.0 * dwell_center_max) -
+                              self.dwell_center.state_vector[0, 0]
+                              ]]), timestamp)
+
+            self.rpm = -self.rpm
+
+        elif self.dwell_center.state_vector[0, 0] < dwell_center_min:
+            self.dwell_center = State(
+                StateVector([[(2.0 * dwell_center_min) -
+                              self.dwell_center.state_vector[0, 0]
+                              ]]), timestamp)
+
+            self.rpm = -self.rpm

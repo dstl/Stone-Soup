@@ -12,4 +12,9 @@ Radars
 .. automodule:: stonesoup.sensor.radar
     :show-inheritance:
 
+Passive
+-------
+.. automodule:: stonesoup.sensor.passive
+    :show-inheritance:
+
 
