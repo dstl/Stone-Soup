@@ -16,7 +16,7 @@ def test_jacobian():
         return np.array([[1, 1], [0, 1]])@x
 
     jac = jacobian(f, state_mean)
-    jac = jac  # Stop flake8 unused warning
+    assert np.allclose(jac, np.array([[1, 1], [0, 1]]))
 
 
 def test_jacobian2():
@@ -38,9 +38,10 @@ def test_jacobian2():
         out[0] = 2*vec[0]**2 + 3*vec[1]**2
         out[1] = 2*vec[0]+3*vec[1]
         return out
-        x = 3
-        jac = jacobian(fun, x)
-        assert jac == 4*x
+
+    x = 3
+    jac = jacobian(fun, x)
+    assert np.allclose(jac, 4*x)
 
     x = np.array([[1], [2]])
     # Tolerance value to use to test if arrays are equal
@@ -60,7 +61,27 @@ def test_jacobian2():
     # Check # of array elements bigger than tol
     assert len(FOM[0]) == 0
 
-    return
+
+def test_jacobian_large_values():
+    # State related variables
+    state_mean = np.array([[1E10], [1.0]])
+
+    def f(x):
+        return x**2
+
+    jac = jacobian(f, state_mean)
+    assert np.allclose(jac, np.array([[2e10, 0.0], [0.0, 2.0]]))
+
+
+def test_jacobian_float():
+    value = 10
+
+    def f(x):
+        return np.sqrt(x)
+
+    jac = jacobian(f, value)
+
+    assert np.allclose(jac, 0.15811388)
 
 
 def test_gm_reduce_single():

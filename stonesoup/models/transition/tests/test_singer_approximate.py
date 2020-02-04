@@ -1,6 +1,7 @@
 # coding: utf-8
 import datetime
 
+from pytest import approx
 import scipy as sp
 from scipy.stats import multivariate_normal
 
@@ -118,10 +119,10 @@ def base(state_vec, noise_diff_coeffs, damping_coeffs, timediff=1.0):
                          state_vec,
                          timestamp=new_timestamp,
                          time_interval=time_interval)
-    assert sp.allclose(prob, multivariate_normal.pdf(
+    assert approx(prob) == multivariate_normal.pdf(
         new_state_vec_wo_noise.T,
         mean=sp.array(F@state_vec).ravel(),
-        cov=Q).T, rtol=1e-8)
+        cov=Q)
 
     # Propagate a state vector throughout the model
     # (with internal noise)
@@ -137,10 +138,10 @@ def base(state_vec, noise_diff_coeffs, damping_coeffs, timediff=1.0):
                          state_vec,
                          timestamp=new_timestamp,
                          time_interval=time_interval)
-    assert sp.allclose(prob, multivariate_normal.pdf(
+    assert approx(prob) == multivariate_normal.pdf(
         new_state_vec_w_inoise.T,
         mean=sp.array(F@state_vec).ravel(),
-        cov=Q).T, rtol=1e-10)
+        cov=Q)
 
     # Propagate a state vector through the model
     # (with external noise)
@@ -156,7 +157,7 @@ def base(state_vec, noise_diff_coeffs, damping_coeffs, timediff=1.0):
     # (with noise)
     prob = model_obj.pdf(new_state_vec_w_enoise, state_vec,
                          timestamp=new_timestamp, time_interval=time_interval)
-    assert sp.allclose(prob, multivariate_normal.pdf(
+    assert approx(prob) == multivariate_normal.pdf(
         new_state_vec_w_enoise.T,
         mean=sp.array(F@state_vec).ravel(),
-        cov=Q).T, rtol=1e-10)
+        cov=Q)

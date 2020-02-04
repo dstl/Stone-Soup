@@ -120,14 +120,13 @@ class SensorPlatform(Platform):
                     new_sensor_pos[j] = (self.state.state_vector[
                         self.mounting_mappings[i, j]] +
                         self.mounting_offsets[i, j])
-            self.sensors[i].set_position(StateVector(new_sensor_pos))
+            self.sensors[i].position = (StateVector(new_sensor_pos))
             vel = np.zeros([self.mounting_mappings.shape[1], 1])
             for j in range(self.mounting_mappings.shape[1]):
                 vel[j, 0] = self.state.state_vector[
                     self.mounting_mappings[i, j] + 1]
             abs_vel, heading = cart2pol(vel[0, 0], vel[1, 0])
-            self.sensors[i].set_orientation(
-                StateVector([[0], [0], [heading]]))
+            self.sensors[i].orientation = (StateVector([[0], [0], [heading]]))
 
     def _get_rotated_offset(self, i):
         """ Determine the sensor mounting offset for the platforms relative

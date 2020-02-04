@@ -53,19 +53,18 @@ def jacobian(fun, x):
         The computed Jacobian
     """
 
-    if isinstance(x, (int, float)):
-        ndim = 1
-    else:
-        ndim = np.shape(x)[0]
+    x = np.atleast_2d(x)
+    ndim, _ = np.shape(x)
 
-    # For numerical reasons the step size needs to large enough
-    delta = 1.e-8  # 100*ndim*np.finfo(float).eps
+    # For numerical reasons the step size needs to large enough. Aim for 1e-8
+    # relative to spacing between floating point numbers for each dimension
+    delta = 1e8*np.spacing(x.astype(np.float_).ravel())
+    # But at least 1e-8
+    # TODO: Is this needed? If not, note special case at zero.
+    delta[delta < 1e-8] = 1e-8
 
-    f1 = fun(x)
-    if isinstance(f1, (int, float)):
-        nrows = 1
-    else:
-        nrows = f1.size
+    f1 = np.atleast_2d(fun(x))
+    nrows, _ = np.shape(f1)
 
     F2 = np.empty((nrows, ndim))
     X1 = np.tile(x, ndim)+np.eye(ndim)*delta

@@ -1,4 +1,6 @@
 # coding: utf-8
+from numbers import Real
+
 import numpy as np
 
 from ..linear import LinearGaussianTimeInvariantTransitionModel
@@ -18,4 +20,4 @@ def test_linear_gaussian():
     assert np.array_equal(Q, model.covar())
     assert np.array_equal(x_2, model.function(x_1, noise=np.zeros([3, 1])))
     assert isinstance(model.rvs(), np.ndarray)
-    assert isinstance(model.pdf(x_2, x_1), np.float64)
+    assert isinstance(model.pdf(x_2, x_1), Real)
