@@ -71,44 +71,6 @@ class LinearModel(Model):
         return self.matrix(**kwargs) @ (state_vector + noise)
 
 
-class ThresholdedLinearModel(Model):
-    """LinearModel class
-
-    Base/Abstract class for all linear models"""
-
-    @abstractmethod
-    def matrix(self):
-        """ Model matrix"""
-        pass
-
-    def function(self, state_vector, noise=None, **kwargs):
-        """Model linear function :math:`f_k(x(k),w(k)) = F_k(x_k) + w_k`
-
-        Parameters
-        ----------
-        state_vector: :class:`~.StateVector`
-            An input state vector
-        noise: :class:`numpy.ndarray`
-            An externally generated random process noise sample (the default is
-            `None`, in which case process noise will be generated via
-            :meth:`~.Model.rvs`)
-
-        Returns
-        -------
-        : :class:`numpy.ndarray`
-            The model function evaluated.
-        """
-
-        if noise is None:
-            # TODO: doesn't make sense for noise=None to generate noise
-            noise = self.rvs(**kwargs)
-
-        while sum(noise) < 0.1 and sum(noise) != 0:
-            noise = self.rvs(**kwargs)
-
-        return self.matrix(**kwargs) @ (state_vector + noise)
-
-
 class NonLinearModel(Model):
     """NonLinearModel class
 

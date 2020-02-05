@@ -5,11 +5,12 @@ from functools import lru_cache
 import scipy as sp
 from scipy.linalg import block_diag
 from scipy.integrate import quad
+from scipy.stats import multivariate_normal
 
 from ...base import Property
 from ...types.array import CovarianceMatrix
 from ..base import (LinearModel, GaussianModel, TimeVariantModel,
-                    TimeInvariantModel, ThresholdedLinearModel)
+                    TimeInvariantModel)
 from .base import TransitionModel
 
 
@@ -30,141 +31,6 @@ class LinearGaussianTransitionModel(
 
 
 class CombinedLinearGaussianTransitionModel(LinearGaussianTransitionModel):
-    r"""Combine multiple models into a single model by stacking them.
-
-    The assumption is that all models are Linear and Gaussian.
-    Time Variant, and Time Invariant models can be combined together.
-    If any of the models are time variant the keyword argument "time_interval"
-    must be supplied to all methods
-    """
-
-    model_list = Property(
-        [LinearGaussianTransitionModel], doc="List of Transition Models.")
-
-    @property
-    def ndim_state(self):
-        """ndim_state getter method
-
-        Returns
-        -------
-        : :class:`int`
-            The number of combined model state dimensions.
-        """
-        return sum(model.ndim_state for model in self.model_list)
-
-    def matrix(self, **kwargs):
-        """Model matrix :math:`F`
-
-        Returns
-        -------
-        : :class:`numpy.ndarray` of shape\
-        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
-        """
-
-        transition_matrices = [
-            model.matrix(**kwargs) for model in self.model_list]
-        return block_diag(*transition_matrices)
-
-    def covar(self, **kwargs):
-        """Returns the transition model noise covariance matrix.
-
-        Returns
-        -------
-        : :class:`stonesoup.types.state.CovarianceMatrix` of shape\
-        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
-            The process noise covariance.
-        """
-
-        covar_list = [model.covar(**kwargs) for model in self.model_list]
-        return block_diag(*covar_list)
-
-
-class ThresholdedLinearGaussianTransitionModel(
-        TransitionModel, ThresholdedLinearModel, GaussianModel):
-
-    @property
-    def ndim_state(self):
-        """ndim_state getter method
-
-        Returns
-        -------
-        : :class:`int`
-            The number of model state dimensions.
-        """
-
-        return self.matrix().shape[0]
-
-    def rvs(self, num_samples=1, **kwargs):
-        r""" Model noise/sample generation function
-
-        Generates noisy samples from the transition model.
-
-        In mathematical terms, this can be written as:
-
-        .. math::
-
-            w_t \sim \mathcal{N}(0,Q)
-
-        where :math:`w_t =` ``noise``.
-
-        Parameters
-        ----------
-        num_samples: :class:`int`, optional
-            The number of samples to be generated (the default is 1)
-
-        Returns
-        -------
-        noise : :class:`numpy.ndarray` of shape\
-        (:py:attr:`~ndim_state`, ``num_samples``)
-            A set of Np samples, generated from the model's noise distribution.
-        """
-
-        noise = sp.array([multivariate_normal.rvs(
-            sp.zeros(self.ndim_state),
-            self.covar(**kwargs),
-            num_samples)])
-        if num_samples == 1:
-            return noise.reshape((-1, 1))
-        else:
-            return noise.T
-
-    def pdf(self, state_vector_post, state_vector_prior, **kwargs):
-        r""" Model pdf/likelihood evaluation function
-
-        Evaluates the pdf/likelihood of the transformed state ``state_post``,
-        given the prior state ``state_prior``.
-
-        In mathematical terms, this can be written as:
-
-        .. math::
-
-            p = p(x_t | x_{t-1}) = \mathcal{N}(x_t; x_{t-1}, Q)
-
-        where :math:`x_t` = ``state_post``, :math:`x_{t-1}` = ``state_prior``
-        and :math:`Q` = :py:attr:`~covar`.
-
-        Parameters
-        ----------
-        state_vector_post : :class:`~.StateVector`
-            A predicted/posterior state
-        state_vector_prior : :class:`~.StateVector`
-            A prior state
-
-        Returns
-        -------
-        : :class:`float`
-            The likelihood of ``state_vec_post``, given ``state_vec_prior``
-        """
-
-        likelihood = multivariate_normal.pdf(
-            state_vector_post.T,
-            mean=self.function(state_vector_prior, noise=0, **kwargs).ravel(),
-            cov=self.covar(**kwargs)
-        )
-        return likelihood
-
-
-class ThresholdedCombinedLinearGaussianTransitionModel(ThresholdedLinearGaussianTransitionModel):
     r"""Combine multiple models into a single model by stacking them.
 
     The assumption is that all models are Linear and Gaussian.

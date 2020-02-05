@@ -1,14 +1,13 @@
 from functions_for_particle_filter import import_track_data, create_prior, read_synthetic_csv, \
     form_transition_matrix, form_detection_transition_matrix
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
-    ConstantVelocity, ConstantAcceleration, ConstantTurn, ConstantPosition, LinearTurn, \
-    ThresholdedCombinedLinearGaussianTransitionModel
+    ConstantVelocity, ConstantAcceleration, ConstantTurn, ConstantPosition, LinearTurn
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.predictor.multi_model import MultiModelPredictor
 from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.resampler.particle import SystematicResampler
 from stonesoup.types.hypothesis import SingleHypothesis
-from stonesoup.updater.particle import ParticleUpdater
+from stonesoup.updater.particle import ParticleUpdater, MultiModelParticleUpdater
 from stonesoup.types.numeric import Probability
 from stonesoup.types.state import ParticleState
 from stonesoup.types.detection import Detection
@@ -25,16 +24,16 @@ import numpy as np
 import os
 
 seed(100)
-DRONE_FILE = 4
-# DATA_DIR = "P:/DASA/EDITTS Drone Tracking/GFI/GPS Tracking"
-DATA_DIR = "C:/Work/Drone_Tracking/EDITTS-Drone-Tracking/data/raw/"
+DRONE_FILE = 5
+DATA_DIR = "P:/DASA/EDITTS Drone Tracking/GFI/GPS Tracking"
+# DATA_DIR = "C:/Work/Drone_Tracking/EDITTS-Drone-Tracking/data/raw/"
 SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results"
 FIXED_WING = {"g2", "g4", "maja", "bixler", "x8", "kahu"}
 ROTARY_WING = {"g6", "f550", "drdc"}
 
 NUMBER_OF_PARTICLES = 700
 rw_cv_noise_covariance = 0.04
-fw_cv_noise_covariance = 0.001
+fw_cv_noise_covariance = 0.0008
 rw_hover_noise_covariance = 0.001
 constant_turn_covariance = [0.1, 0.1]
 turn_rate_left = 0.5
@@ -46,17 +45,17 @@ file_list = os.listdir(DATA_DIR)
 print(file_list)
 print(file_list[DRONE_FILE])
 title_parse = file_list[DRONE_FILE].lower().split(" ")
-# if title_parse[3] in FIXED_WING:
-#     print("Fixed Wing")
-#     model_type = "Fixed Wing"
-#     SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results/Fixed_Wing"
-# elif title_parse[3] in ROTARY_WING:
-#     print("Rotary Wing")
-#     model_type = "Rotary Wing"
-#     SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results/Rotary_Wing"
+if title_parse[3] in FIXED_WING:
+    print("Fixed Wing")
+    model_type = "Fixed Wing"
+    SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results/Fixed_Wing"
+elif title_parse[3] in ROTARY_WING:
+    print("Rotary Wing")
+    model_type = "Rotary Wing"
+    SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results/Rotary_Wing"
 
-# location = import_track_data(DRONE_FILE, DATA_REDUCTION, DATA_DIR)
-location = read_synthetic_csv(DATA_DIR + file_list[DRONE_FILE])
+location = import_track_data(DRONE_FILE, DATA_REDUCTION, DATA_DIR)
+# location = read_synthetic_csv(DATA_DIR + file_list[DRONE_FILE])
 
 ax = plt.axes(projection="3d")
 ax.plot3D(location[:, 0],
@@ -65,7 +64,7 @@ ax.plot3D(location[:, 0],
 
 
 # location = location[int(len(location) * 0): int(len(location) * 0.05)]
-# location = location[500:750]
+location = location[500:550]
 
 ax.plot3D(location[:, 0],
           location[:, 1],
@@ -82,11 +81,6 @@ for t, element in enumerate(location):
 measurements = []
 for i in truth:
     measurements.append(Detection(i.state_vector.ravel(), timestamp=i.timestamp))
-
-measurement_model = LinearGaussian(
-    9,  # Number of state dimensions (position, velocity and acceleration in 3D)
-    (0, 3, 6),  # Locations of our position variables within the entire state space
-    np.diag([0.1, 0.1, 0.1]))  # Covariance matrix for Gaussian PDF
 
 dynamic_model_list_RW = [
                         # Rotary Wing
@@ -130,7 +124,7 @@ dynamic_model_list = [*np.array(dynamic_model_list_RW), *np.array(dynamic_model_
 
 detection_matrix_split = [len(dynamic_model_list_RW), len(dynamic_model_list_FW)]
 
-model_mapping3D = [
+model_mapping = [
                    # Rotary Wing
                    [0, 1, 3, 4, 6, 7],              # CV CV CV
                    [0, 1, 3, 4, 6, 7],              # H H CV
@@ -150,11 +144,20 @@ model_mapping3D = [
 
 transition = form_detection_transition_matrix(detection_matrix_split, [0.05, 0.05])
 
-multi_model = MultiModelPredictor(transition, dynamic_model_list, model_mapping3D,
-                                  transition_model=dynamic_model_list)
+measurement_model = LinearGaussian(
+    ndim_state=9,  # Number of state dimensions (position, velocity and acceleration in 3D)
+    mapping=(0, 3, 6),  # Locations of our position variables within the entire state space
+    noise_covar=np.diag([0.1, 0.1, 0.1]))
+
+multi_model = MultiModelPredictor(transition, model_mapping, transition_model=dynamic_model_list)
 
 resampler = SystematicResampler()
-updater = ParticleUpdater(measurement_model, resampler)
+updater = MultiModelParticleUpdater(measurement_model=measurement_model,
+                                    resampler=resampler,
+                                    transition_matrix=transition,
+                                    position_mapping=model_mapping,
+                                    transition_model=dynamic_model_list
+                                    )
 
 x_0, v_x, a_x, y_0, v_y, a_y, z_0, v_z, a_z = create_prior(location)
 
@@ -170,7 +173,11 @@ for i in range(NUMBER_OF_PARTICLES):
         start_model.append(detection_matrix_split[0])
 
 particles = [Particle(sample.reshape(-1, 1), weight=Probability(1/NUMBER_OF_PARTICLES),
-                      dynamic_model=start_model[randint(0, NUMBER_OF_PARTICLES - 1)]) for sample in samples]
+                      dynamic_model=[start_model[randint(0, NUMBER_OF_PARTICLES - 1)],
+                                     start_model[randint(0, NUMBER_OF_PARTICLES - 1)]]) for sample in samples]
+
+"""particles = [Particle(sample.reshape(-1, 1), weight=Probability(1/NUMBER_OF_PARTICLES),
+                      dynamic_model=start_model[randint(0, NUMBER_OF_PARTICLES - 1)]) for sample in samples]"""
 
 prior_state = ParticleState(particles, timestamp=start_time)
 

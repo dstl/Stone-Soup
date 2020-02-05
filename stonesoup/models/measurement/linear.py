@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
 import scipy as sp
+from scipy.stats import multivariate_normal
 
 from ...base import Property
 from ...types.array import CovarianceMatrix
 from ..base import LinearModel, GaussianModel
 from .base import MeasurementModel
+from ...predictor.multi_model import MultiModelPredictor
 
 
 # TODO: Probably should call this LinearGaussianMeasurementModel
@@ -54,7 +55,6 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
         for dim_meas, dim_state in enumerate(self.mapping):
             if dim_state is not None:
                 model_matrix[dim_meas, dim_state] = 1
-        print(model_matrix)
         return model_matrix
 
     def function(self, state_vector, noise=None, **kwargs):
