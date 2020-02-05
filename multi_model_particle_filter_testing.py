@@ -18,6 +18,7 @@ from datetime import timedelta
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from datetime import datetime
+from operator import add
 from random import random, randint, seed
 from tqdm import tqdm
 import numpy as np
@@ -31,7 +32,7 @@ SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results"
 FIXED_WING = {"g2", "g4", "maja", "bixler", "x8", "kahu"}
 ROTARY_WING = {"g6", "f550", "drdc"}
 
-NUMBER_OF_PARTICLES = 700
+NUMBER_OF_PARTICLES = 100
 rw_cv_noise_covariance = 0.04
 fw_cv_noise_covariance = 0.0008
 rw_hover_noise_covariance = 0.001
@@ -64,12 +65,12 @@ ax.plot3D(location[:, 0],
 
 
 # location = location[int(len(location) * 0): int(len(location) * 0.05)]
-location = location[500:550]
+location = location[500:650]
 
 ax.plot3D(location[:, 0],
           location[:, 1],
           location[:, 2])
-plt.show()
+# plt.show()
 
 truth = GroundTruthPath()
 start_time = datetime.now()
@@ -164,20 +165,19 @@ x_0, v_x, a_x, y_0, v_y, a_y, z_0, v_z, a_z = create_prior(location)
 samples = multivariate_normal.rvs(np.array([x_0, v_x, a_x, y_0, v_y, a_y, z_0, v_z, a_z]),
                                   np.diag([0, 0, 0, 0, 0, 0, 0, 0, 0]), size=NUMBER_OF_PARTICLES)
 
-start_model = []
-for i in range(NUMBER_OF_PARTICLES):
-    random_int = random()
-    if random_int < percentage_of_first_model:
-        start_model.append(0)
-    elif random_int >= percentage_of_first_model:
-        start_model.append(detection_matrix_split[0])
+start_model = {"prior": 0, "current": detection_matrix_split[0]}
+
+
+def choose_model():
+    rand = random()
+    if rand < 0.5:
+        return start_model["prior"]
+    else:
+        return start_model["current"]
+
 
 particles = [Particle(sample.reshape(-1, 1), weight=Probability(1/NUMBER_OF_PARTICLES),
-                      dynamic_model=[start_model[randint(0, NUMBER_OF_PARTICLES - 1)],
-                                     start_model[randint(0, NUMBER_OF_PARTICLES - 1)]]) for sample in samples]
-
-"""particles = [Particle(sample.reshape(-1, 1), weight=Probability(1/NUMBER_OF_PARTICLES),
-                      dynamic_model=start_model[randint(0, NUMBER_OF_PARTICLES - 1)]) for sample in samples]"""
+                      dynamic_model=[choose_model(), choose_model()]) for sample in samples]
 
 prior_state = ParticleState(particles, timestamp=start_time)
 
@@ -187,9 +187,7 @@ effective_sample_size = []
 weighted_sum_per_model = []
 counter = 0
 for iteration, measurement in enumerate(tqdm(measurements)):
-    prediction, dynamic_model_proportions = multi_model.predict(prior_state, timestamp=measurement.timestamp,
-                                                                multi_craft=True)
-    dynamic_model_split.append(dynamic_model_proportions)
+    prediction = multi_model.predict(prior_state, timestamp=measurement.timestamp, multi_craft=True)
     weighted_sum_per_model.append([sum([p.weight for p in prediction.particles if p.dynamic_model == j])
                                    for j in range(len(transition))])
     hypothesis = SingleHypothesis(prediction, measurement)
@@ -206,6 +204,27 @@ for iteration, measurement in enumerate(tqdm(measurements)):
 particle_path = [[track[i].particles[j].state_vector for i in range(len(track))]
                  for j in range(len(track[0].particles))]
 
+weighted_positions = []
+for element in track:
+    particle_container = []
+    for particle in element.particles:
+        particle_container.append([particle.state_vector, particle.weight])
+    weighted_positions.append(particle_container)
+
+for i, element in enumerate(weighted_positions):
+    for j, state in enumerate(element):
+        weighted_positions[i][j] = state[0] * state[1]
+
+positions = []
+for i in weighted_positions:
+    positions.append(sum(i))
+
+
+"""print(weighted_positions)
+print(len(weighted_positions))
+print(len(weighted_positions[0]))"""
+
+
 try:
     os.mkdir(f"{SAVE_DIR}/{file_list[DRONE_FILE]}")
 except FileExistsError:
@@ -216,11 +235,15 @@ ax = plt.axes(projection="3d")
 
 ax.plot3D(np.array([state.particles[0].state_vector[0] for state in track]).flatten(),
           np.array([state.particles[0].state_vector[3] for state in track]).flatten(),
-          np.array([state.particles[0].state_vector[6] for state in track]).flatten(), color='c', label='PF')
+          np.array([state.particles[0].state_vector[6] for state in track]).flatten(), color='red', label='PF')
+
+ax.plot3D(np.array([state[0] for state in positions]).flatten(),
+          np.array([state[3] for state in positions]).flatten(),
+          np.array([state[6] for state in positions]).flatten(), color='green', label='Weighted PF')
 
 ax.plot3D(np.array([state.state_vector[0] for state in truth]).flatten(),
           np.array([state.state_vector[1] for state in truth]).flatten(),
-          np.array([state.state_vector[2] for state in truth]).flatten(), linestyle="--", color='coral', label='Truth')
+          np.array([state.state_vector[2] for state in truth]).flatten(), linestyle="--", color='blue', label='Truth')
 
 # x.scatter(np.array([[particle[i][0] for particle in particle_path]
 #                     for i in range(len(track)) if i % 10 == 0]).flatten(),

@@ -103,4 +103,4 @@ class MultiModelPredictor(Predictor):
                 particle_index = new_particles.index(particle)
                 new_particles[particle_index].dynamic_model[1] = dynamic_models
 
-        return ParticleStatePrediction(new_particles, timestamp=timestamp), dynamic_model_proportions
+        return ParticleStatePrediction(new_particles, timestamp=timestamp)
