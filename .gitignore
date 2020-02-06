@@ -13,5 +13,3 @@ htmlcov/
 
 # pytest
 .pytest_cache/
-
-.doc
