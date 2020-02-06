@@ -25,7 +25,7 @@ import numpy as np
 import os
 
 seed(100)
-DRONE_FILE = 1
+DRONE_FILE = 16
 DATA_DIR = "P:/DASA/EDITTS Drone Tracking/GFI/GPS Tracking"
 # DATA_DIR = "C:/Work/Drone_Tracking/EDITTS-Drone-Tracking/data/raw/"
 SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results"
@@ -34,7 +34,7 @@ ROTARY_WING = {"g6", "f550", "drdc"}
 
 NUMBER_OF_PARTICLES = 300
 rw_cv_noise_covariance = 0.35
-fw_cv_noise_covariance = 0.01
+fw_cv_noise_covariance = 0.0075
 rw_hover_noise_covariance = 0.001
 constant_turn_covariance = [0.1, 0.1]
 turn_rate_left = 0.5
@@ -65,7 +65,7 @@ ax.plot3D(location[:, 0],
 
 
 # location = location[int(len(location) * 0): int(len(location) * 0.05)]
-location = location[1250:2000]
+location = location[:]
 
 ax.plot3D(location[:, 0],
           location[:, 1],
@@ -229,11 +229,11 @@ ax = plt.axes(projection="3d")
 
 ax.plot3D(np.array([state[0] for state in sum_weighted_positions]).flatten(),
           np.array([state[3] for state in sum_weighted_positions]).flatten(),
-          np.array([state[6] for state in sum_weighted_positions]).flatten(), color='coral', label='Weighted PF')
+          np.array([state[6] for state in sum_weighted_positions]).flatten(), color='c', label='Weighted PF')
 
 ax.plot3D(np.array([state.state_vector[0] for state in truth]).flatten(),
           np.array([state.state_vector[1] for state in truth]).flatten(),
-          np.array([state.state_vector[2] for state in truth]).flatten(), linestyle="--", color='c', label='Truth')
+          np.array([state.state_vector[2] for state in truth]).flatten(), linestyle="--", color='coral', label='Truth')
 
 # ax.scatter(np.array([[particle[i][0] for particle in particle_path]
 #                      for i in range(len(track)) if i % 10 == 0]).flatten(),
@@ -256,7 +256,7 @@ plt.plot(range(len(effective_sample_size)), effective_sample_size)
 plt.xlabel("Timestep")
 plt.ylabel("Effective Sample Size")
 plt.title("Effective sample size at a given timestep")
-plt.savefig(f"{SAVE_DIR}/{file_list[DRONE_FILE]}/rw {rw_cv_noise_covariance} fw {fw_cv_noise_covariance}.png", dpi=2000)
+plt.savefig(f"{SAVE_DIR}/{file_list[DRONE_FILE]}/rw {rw_cv_noise_covariance} fw {fw_cv_noise_covariance} .png", dpi=2000)
 plt.show()
 
 
@@ -269,7 +269,7 @@ plt.legend([f"Model {i}" for i in range(len(dynamic_model_plot))])
 plt.title("Number of Particles for each model")
 plt.xlabel('Timestep')
 plt.ylabel('Number of Particles')
-plt.savefig(f"{SAVE_DIR}/{file_list[DRONE_FILE]}/rw {rw_cv_noise_covariance} fw {fw_cv_noise_covariance}.png", dpi=2000)
+plt.savefig(f"{SAVE_DIR}/{file_list[DRONE_FILE]}/rw {rw_cv_noise_covariance} fw {fw_cv_noise_covariance}  .png", dpi=2000)
 plt.show()
 
 
@@ -296,15 +296,15 @@ plt.legend([f"Model {i}" for i in range(len(probability_of_each_craft[0]))])
 plt.title("Probability of each craft")
 plt.xlabel('Timestep')
 plt.ylabel('Probability')
-plt.savefig(f"{SAVE_DIR}/{file_list[DRONE_FILE]}/rw {rw_cv_noise_covariance} fw {fw_cv_noise_covariance}.png", dpi=2000)
+plt.savefig(f"{SAVE_DIR}/{file_list[DRONE_FILE]}/rw {rw_cv_noise_covariance} fw {fw_cv_noise_covariance}   .png", dpi=2000)
 plt.show()
 
 print(f"Probability of Rotary Wing is : {sum(probability_of_each_craft[0]) / sum_of_propbs}")
 print(f"Probability of Fixed Wing is : {sum(probability_of_each_craft[1]) / sum_of_propbs}")
-print(f"Model Actually is : {model_type}")
+print(f"Model is : {model_type}")
 
 
-difference = [np.linalg.norm(track[i].state_vector[[0, 3, 6]] - truth[i].state_vector) for i in range(len(track))]
+difference = [np.linalg.norm(sum_weighted_positions[i, [0, 3, 6]] - truth[i].state_vector) for i in range(len(track))]
 sum_of_difference = sum(difference)
 print(difference)
 print(sum_of_difference)
@@ -314,5 +314,5 @@ plt.xlabel('Timestep')
 plt.ylabel('Difference')
 plt.title("Distance Metric")
 plt.text(100, 10, f"Total distance : {sum_of_difference}")
-plt.savefig(f"{SAVE_DIR}/{file_list[DRONE_FILE]}/rw {rw_cv_noise_covariance} fw {fw_cv_noise_covariance}.png", dpi=2000)
+plt.savefig(f"{SAVE_DIR}/{file_list[DRONE_FILE]}/rw {rw_cv_noise_covariance} fw {fw_cv_noise_covariance}    .png", dpi=2000)
 plt.show()
