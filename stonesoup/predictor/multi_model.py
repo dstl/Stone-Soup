@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from functools import lru_cache
 import numpy as np
-from random import randint
 
 from random import random
 from .base import Predictor
@@ -61,7 +60,7 @@ class MultiModelPredictor(Predictor):
         new_particles = []
         for particle in prior.particles:
             for model_index in range(len(self.transition_matrix)):
-                if particle.dynamic_model[1] == model_index:
+                if particle.dynamic_model == model_index:
 
                     # Change the value of the dynamic value randomly according to the defined transition matrix
                     new_dynamic_model = np.searchsorted(self.probabilities[model_index], random())
@@ -91,16 +90,16 @@ class MultiModelPredictor(Predictor):
                         Particle(new_state_vector,
                                  weight=particle.weight,
                                  parent=particle,
-                                 dynamic_model=[particle.dynamic_model[1], new_dynamic_model]))
+                                 dynamic_model=new_dynamic_model))
 
-        dynamic_model_list = [p.dynamic_model[1] for p in new_particles]
+        dynamic_model_list = [p.dynamic_model for p in new_particles]
         dynamic_model_proportions = [dynamic_model_list.count(i) for i in range(len(self.transition_matrix))]
 
         if multi_craft:
             for dynamic_models in range(len(self.transition_matrix)):
                 most_common_particle = np.argmax(dynamic_model_proportions)
-                particle = next((p for p in new_particles if p.dynamic_model[1] == most_common_particle), None)
+                particle = next((p for p in new_particles if p.dynamic_model == most_common_particle), None)
                 particle_index = new_particles.index(particle)
-                new_particles[particle_index].dynamic_model[1] = dynamic_models
+                new_particles[particle_index].dynamic_model = dynamic_models
 
         return ParticleStatePrediction(new_particles, timestamp=timestamp)

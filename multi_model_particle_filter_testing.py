@@ -165,19 +165,17 @@ x_0, v_x, a_x, y_0, v_y, a_y, z_0, v_z, a_z = create_prior(location)
 samples = multivariate_normal.rvs(np.array([x_0, v_x, a_x, y_0, v_y, a_y, z_0, v_z, a_z]),
                                   np.diag([0, 0, 0, 0, 0, 0, 0, 0, 0]), size=NUMBER_OF_PARTICLES)
 
-start_model = {"prior": 0, "current": detection_matrix_split[0]}
-
 
 def choose_model():
     rand = random()
     if rand < 0.5:
-        return start_model["prior"]
+        return 0
     else:
-        return start_model["current"]
+        return detection_matrix_split[0]
 
 
 particles = [Particle(sample.reshape(-1, 1), weight=Probability(1/NUMBER_OF_PARTICLES),
-                      dynamic_model=[choose_model(), choose_model()]) for sample in samples]
+                      dynamic_model=choose_model()) for sample in samples]
 
 prior_state = ParticleState(particles, timestamp=start_time)
 
@@ -193,10 +191,6 @@ for iteration, measurement in enumerate(tqdm(measurements)):
     hypothesis = SingleHypothesis(prediction, measurement)
     post, n_eff = updater.update(hypothesis)
     print(n_eff)
-    # if n_eff < 10 and iteration > 30:
-    #     counter += 1
-    # if counter > 10:
-    #     break
     effective_sample_size.append(n_eff)
     track.append(post)
     prior_state = track[-1]
@@ -215,15 +209,9 @@ for i, element in enumerate(weighted_positions):
     for j, state in enumerate(element):
         weighted_positions[i][j] = state[0] * state[1]
 
-positions = []
+sum_weighted_positions = []
 for i in weighted_positions:
-    positions.append(sum(i))
-
-
-"""print(weighted_positions)
-print(len(weighted_positions))
-print(len(weighted_positions[0]))"""
-
+    sum_weighted_positions.append(sum(i))
 
 try:
     os.mkdir(f"{SAVE_DIR}/{file_list[DRONE_FILE]}")
@@ -233,25 +221,25 @@ except FileExistsError:
 number_of_models = len(dynamic_model_list)
 ax = plt.axes(projection="3d")
 
-ax.plot3D(np.array([state.particles[0].state_vector[0] for state in track]).flatten(),
-          np.array([state.particles[0].state_vector[3] for state in track]).flatten(),
-          np.array([state.particles[0].state_vector[6] for state in track]).flatten(), color='red', label='PF')
+# ax.plot3D(np.array([state.particles[0].state_vector[0] for state in track]).flatten(),
+#           np.array([state.particles[0].state_vector[3] for state in track]).flatten(),
+#           np.array([state.particles[0].state_vector[6] for state in track]).flatten(), color='red', label='PF')
 
-ax.plot3D(np.array([state[0] for state in positions]).flatten(),
-          np.array([state[3] for state in positions]).flatten(),
-          np.array([state[6] for state in positions]).flatten(), color='green', label='Weighted PF')
+ax.plot3D(np.array([state[0] for state in sum_weighted_positions]).flatten(),
+          np.array([state[3] for state in sum_weighted_positions]).flatten(),
+          np.array([state[6] for state in sum_weighted_positions]).flatten(), color='#3726A6', label='Weighted PF')
 
 ax.plot3D(np.array([state.state_vector[0] for state in truth]).flatten(),
           np.array([state.state_vector[1] for state in truth]).flatten(),
-          np.array([state.state_vector[2] for state in truth]).flatten(), linestyle="--", color='blue', label='Truth')
+          np.array([state.state_vector[2] for state in truth]).flatten(), linestyle="--", color='#F2E635', label='Truth')
 
-# x.scatter(np.array([[particle[i][0] for particle in particle_path]
-#                     for i in range(len(track)) if i % 10 == 0]).flatten(),
-#           np.array([[particle[i][3] for particle in particle_path]
-#                     for i in range(len(track)) if i % 10 == 0]).flatten(),
-#           np.array([[particle[i][6] for particle in particle_path]
-#                     for i in range(len(track)) if i % 10 == 0]).flatten(),
-#                      linestyle="--", color='blue', label='Particles')
+ax.scatter(np.array([[particle[i][0] for particle in particle_path]
+                     for i in range(len(track)) if i % 10 == 0]).flatten(),
+           np.array([[particle[i][3] for particle in particle_path]
+                     for i in range(len(track)) if i % 10 == 0]).flatten(),
+           np.array([[particle[i][6] for particle in particle_path]
+                     for i in range(len(track)) if i % 10 == 0]).flatten(),
+           linestyle="--", color='#F20505', label='Particles')
 
 ax.set_xlabel('x')
 ax.set_ylabel('y')

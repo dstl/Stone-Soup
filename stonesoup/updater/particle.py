@@ -110,7 +110,7 @@ class MultiModelParticleUpdater(Updater, MultiModelPredictor):
         for particle in hypothesis.prediction.particles:
             particle.weight *= measurement_model.pdf(
                 hypothesis.measurement.state_vector, particle.state_vector,
-                **kwargs) * self.transition_matrix[particle.dynamic_model[0]][particle.dynamic_model[1]]
+                **kwargs) * self.transition_matrix[particle.parent.dynamic_model][particle.dynamic_model]
 
         # Normalise the weights
         sum_w = Probability.sum(
