@@ -25,16 +25,16 @@ import numpy as np
 import os
 
 seed(100)
-DRONE_FILE = 5
+DRONE_FILE = 1
 DATA_DIR = "P:/DASA/EDITTS Drone Tracking/GFI/GPS Tracking"
 # DATA_DIR = "C:/Work/Drone_Tracking/EDITTS-Drone-Tracking/data/raw/"
 SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results"
 FIXED_WING = {"g2", "g4", "maja", "bixler", "x8", "kahu"}
 ROTARY_WING = {"g6", "f550", "drdc"}
 
-NUMBER_OF_PARTICLES = 100
-rw_cv_noise_covariance = 0.04
-fw_cv_noise_covariance = 0.0008
+NUMBER_OF_PARTICLES = 300
+rw_cv_noise_covariance = 0.35
+fw_cv_noise_covariance = 0.01
 rw_hover_noise_covariance = 0.001
 constant_turn_covariance = [0.1, 0.1]
 turn_rate_left = 0.5
@@ -65,12 +65,12 @@ ax.plot3D(location[:, 0],
 
 
 # location = location[int(len(location) * 0): int(len(location) * 0.05)]
-location = location[500:650]
+location = location[1250:2000]
 
 ax.plot3D(location[:, 0],
           location[:, 1],
           location[:, 2])
-# plt.show()
+plt.show()
 
 truth = GroundTruthPath()
 start_time = datetime.now()
@@ -185,9 +185,11 @@ effective_sample_size = []
 weighted_sum_per_model = []
 counter = 0
 for iteration, measurement in enumerate(tqdm(measurements)):
-    prediction = multi_model.predict(prior_state, timestamp=measurement.timestamp, multi_craft=True)
+    prediction, dynamic_model_proportions = multi_model.predict(prior_state, timestamp=measurement.timestamp,
+                                                                multi_craft=True)
     weighted_sum_per_model.append([sum([p.weight for p in prediction.particles if p.dynamic_model == j])
                                    for j in range(len(transition))])
+    dynamic_model_split.append(dynamic_model_proportions)
     hypothesis = SingleHypothesis(prediction, measurement)
     post, n_eff = updater.update(hypothesis)
     print(n_eff)
@@ -227,19 +229,19 @@ ax = plt.axes(projection="3d")
 
 ax.plot3D(np.array([state[0] for state in sum_weighted_positions]).flatten(),
           np.array([state[3] for state in sum_weighted_positions]).flatten(),
-          np.array([state[6] for state in sum_weighted_positions]).flatten(), color='#3726A6', label='Weighted PF')
+          np.array([state[6] for state in sum_weighted_positions]).flatten(), color='coral', label='Weighted PF')
 
 ax.plot3D(np.array([state.state_vector[0] for state in truth]).flatten(),
           np.array([state.state_vector[1] for state in truth]).flatten(),
-          np.array([state.state_vector[2] for state in truth]).flatten(), linestyle="--", color='#F2E635', label='Truth')
+          np.array([state.state_vector[2] for state in truth]).flatten(), linestyle="--", color='c', label='Truth')
 
-ax.scatter(np.array([[particle[i][0] for particle in particle_path]
-                     for i in range(len(track)) if i % 10 == 0]).flatten(),
-           np.array([[particle[i][3] for particle in particle_path]
-                     for i in range(len(track)) if i % 10 == 0]).flatten(),
-           np.array([[particle[i][6] for particle in particle_path]
-                     for i in range(len(track)) if i % 10 == 0]).flatten(),
-           linestyle="--", color='#F20505', label='Particles')
+# ax.scatter(np.array([[particle[i][0] for particle in particle_path]
+#                      for i in range(len(track)) if i % 10 == 0]).flatten(),
+#            np.array([[particle[i][3] for particle in particle_path]
+#                      for i in range(len(track)) if i % 10 == 0]).flatten(),
+#            np.array([[particle[i][6] for particle in particle_path]
+#                      for i in range(len(track)) if i % 10 == 0]).flatten(),
+#            linestyle="--", color='#F20505', label='Particles')
 
 ax.set_xlabel('x')
 ax.set_ylabel('y')
