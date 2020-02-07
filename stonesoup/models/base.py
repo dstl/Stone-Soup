@@ -6,6 +6,7 @@ from scipy.stats import multivariate_normal
 
 from ..base import Base
 from ..functions import jacobian as compute_jac
+from ..types.array import Matrix, StateVector
 from ..types.numeric import Probability
 
 
@@ -188,7 +189,12 @@ class GaussianModel(Model):
         noise = multivariate_normal.rvs(
             np.zeros(self.ndim), self.covar(**kwargs), num_samples)
 
-        return np.atleast_2d(noise).T
+        noise = np.atleast_2d(noise).T
+
+        if num_samples == 1:
+            return noise.view(StateVector)
+        else:
+            return noise.view(Matrix)
 
     def pdf(self, state_vector1, state_vector2, **kwargs):
         r"""Model pdf/likelihood evaluation function
