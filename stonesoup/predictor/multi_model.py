@@ -6,6 +6,7 @@ from random import random
 from .base import Predictor
 from ..types.particle import Particle
 from ..types.prediction import ParticleStatePrediction
+import datetime
 
 
 class MultiModelPredictor(Predictor):
@@ -53,6 +54,7 @@ class MultiModelPredictor(Predictor):
         # Compute time_interval
         try:
             time_interval = timestamp - prior.timestamp
+            print(time_interval)
         except TypeError:
             # TypeError: (timestamp or prior.timestamp) is None
             time_interval = None

@@ -7,7 +7,7 @@ from stonesoup.predictor.multi_model import MultiModelPredictor
 from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.resampler.particle import SystematicResampler
 from stonesoup.types.hypothesis import SingleHypothesis
-from stonesoup.updater.particle import ParticleUpdater, MultiModelParticleUpdater
+from stonesoup.updater.particle import MultiModelParticleUpdater
 from stonesoup.types.numeric import Probability
 from stonesoup.types.state import ParticleState
 from stonesoup.types.detection import Detection
@@ -18,14 +18,13 @@ from datetime import timedelta
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from datetime import datetime
-from operator import add
-from random import random, randint, seed
+from random import random, seed
 from tqdm import tqdm
 import numpy as np
 import os
 
 seed(100)
-DRONE_FILE = 16
+DRONE_FILE = 4
 DATA_DIR = "P:/DASA/EDITTS Drone Tracking/GFI/GPS Tracking"
 # DATA_DIR = "C:/Work/Drone_Tracking/EDITTS-Drone-Tracking/data/raw/"
 SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results"
@@ -65,7 +64,7 @@ ax.plot3D(location[:, 0],
 
 
 # location = location[int(len(location) * 0): int(len(location) * 0.05)]
-location = location[:]
+location = location[1000:1500]
 
 ax.plot3D(location[:, 0],
           location[:, 1],
@@ -75,9 +74,15 @@ plt.show()
 truth = GroundTruthPath()
 start_time = datetime.now()
 for t, element in enumerate(location):
-    position = np.array([element[0], element[1], element[2]])
-    position = position.reshape(3, 1)
-    truth.append(GroundTruthState(state_vector=position, timestamp=start_time + timedelta(seconds=t)))
+    if t == 0:
+        position = np.array([element[0], element[1], element[2]])
+        position = position.reshape(3, 1)
+        truth.append(GroundTruthState(state_vector=position, timestamp=start_time + timedelta(seconds=0)))
+    else:
+        position = np.array([element[0], element[1], element[2]])
+        position = position.reshape(3, 1)
+        truth.append(GroundTruthState(state_vector=position, timestamp=start_time + timedelta(seconds=location[t][3]
+                                                                                              - location[0][3])))
 
 measurements = []
 for i in truth:
@@ -100,9 +105,9 @@ dynamic_model_list_FW = [
                        CombinedLinearGaussianTransitionModel((ConstantVelocity(fw_cv_noise_covariance),
                                                               ConstantVelocity(fw_cv_noise_covariance),
                                                               ConstantVelocity(fw_cv_noise_covariance))),
-                       CombinedLinearGaussianTransitionModel((ConstantAcceleration(fw_cv_noise_covariance),
-                                                              ConstantAcceleration(fw_cv_noise_covariance),
-                                                              ConstantAcceleration(fw_cv_noise_covariance))),
+                       CombinedLinearGaussianTransitionModel((ConstantVelocity(fw_cv_noise_covariance),
+                                                              ConstantVelocity(fw_cv_noise_covariance),
+                                                              ConstantAcceleration(rw_cv_noise_covariance))),
                        # CombinedLinearGaussianTransitionModel((ConstantVelocity(noise_covariance),
                        #                                        ConstantVelocity(noise_covariance),
                        #                                        ConstantAcceleration(noise_covariance))),
@@ -133,7 +138,7 @@ model_mapping = [
 
                    # Fixed Wing
                    [0, 1, 3, 4, 6, 7],              # CV CV CV
-                   [0, 1, 2, 3, 4, 5, 6, 7, 8],     # CA CA CA
+                   [0, 1, 3, 4, 6, 7, 8],           # CA CV CA
                    # [0, 1, 3, 4, 6, 7, 8],           # CV CV CA
                    # [0, 1, 2, 3, 4, 6, 7],           # CA CV CV
                    # [0, 1, 3, 4, 5, 6, 7],           # CV CA CV
