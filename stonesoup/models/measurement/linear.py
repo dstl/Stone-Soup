@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import scipy as sp
+import numpy as np
 
 from ...base import Property
 from ...types.array import CovarianceMatrix
@@ -48,7 +48,7 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
             The model matrix evaluated given the provided time interval.
         """
 
-        model_matrix = sp.zeros((self.ndim_meas, self.ndim_state))
+        model_matrix = np.zeros((self.ndim_meas, self.ndim_state))
         for dim_meas, dim_state in enumerate(self.mapping):
             if dim_state is not None:
                 model_matrix[dim_meas, dim_state] = 1

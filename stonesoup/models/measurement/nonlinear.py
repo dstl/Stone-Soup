@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import scipy as sp
+import numpy as np
 from numpy.linalg import inv
 
 from ...base import Property
@@ -23,7 +23,7 @@ class NonLinearGaussianMeasurement(MeasurementModel,
     """
     noise_covar = Property(CovarianceMatrix, doc="Noise covariance")
     rotation_offset = Property(
-        StateVector, default=StateVector(sp.array([[0], [0], [0]])),
+        StateVector, default=StateVector(np.array([[0], [0], [0]])),
         doc="A 3x1 array of angles (rad), specifying the clockwise rotation\
             around each Cartesian axis in the order :math:`x,y,z`.\
             The rotation angles are positive if the rotation is in the \
@@ -123,7 +123,7 @@ class CartesianToElevationBearingRange(
     """  # noqa:E501
 
     translation_offset = Property(
-        StateVector, default=StateVector(sp.array([[0], [0], [0]])),
+        StateVector, default=StateVector(np.array([[0], [0], [0]])),
         doc="A 3x1 array specifying the Cartesian origin offset in terms of :math:`x,y,z`\
             coordinates.")
 
@@ -168,7 +168,7 @@ class CartesianToElevationBearingRange(
         # Convert to Spherical
         rho, phi, theta = cart2sphere(*xyz_rot[:, 0])
 
-        return sp.array([[Elevation(theta)],
+        return np.array([[Elevation(theta)],
                          [Bearing(phi)],
                          [rho]]) + noise
 
@@ -183,14 +183,14 @@ class CartesianToElevationBearingRange(
         xyz = [xyz_rot[0][0], xyz_rot[1][0], xyz_rot[2][0]]
         x, y, z = xyz + self.translation_offset[:, 0]
 
-        res = sp.zeros((self.ndim_state, 1))
+        res = np.zeros((self.ndim_state, 1))
         res[self.mapping, 0] = x, y, z
 
         return res
 
     def rvs(self, num_samples=1, **kwargs):
         out = super().rvs(num_samples, **kwargs)
-        out = sp.array([[Elevation(0.)], [Bearing(0.)], [0.]]) + out
+        out = np.array([[Elevation(0.)], [Bearing(0.)], [0.]]) + out
         return out
 
 
@@ -251,7 +251,7 @@ class CartesianToBearingRange(
     """  # noqa:E501
 
     translation_offset = Property(
-        StateVector, default=StateVector(sp.array([[0], [0]])),
+        StateVector, default=StateVector(np.array([[0], [0]])),
         doc="A 2x1 array specifying the origin offset in terms of :math:`x,y`\
             coordinates.")
 
@@ -283,7 +283,7 @@ class CartesianToBearingRange(
         xy = [xyz_rot[0][0], xyz_rot[1][0]]
         x, y = xy + self.translation_offset[:, 0]
 
-        res = sp.zeros((self.ndim_state, 1))
+        res = np.zeros((self.ndim_state, 1))
         res[self.mapping, 0] = x, y
 
         return res
@@ -321,11 +321,11 @@ class CartesianToBearingRange(
         # Covert to polar
         rho, phi = cart2pol(*xyz_rot[:2, 0])
 
-        return sp.array([[Bearing(phi)], [rho]]) + noise
+        return np.array([[Bearing(phi)], [rho]]) + noise
 
     def rvs(self, num_samples=1, **kwargs):
         out = super().rvs(num_samples, **kwargs)
-        out = sp.array([[Bearing(0)], [0.]]) + out
+        out = np.array([[Bearing(0)], [0.]]) + out
         return out
 
 
@@ -387,7 +387,7 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
     """  # noqa:E501
 
     translation_offset = Property(
-        StateVector, default=StateVector(sp.array([[0], [0], [0]])),
+        StateVector, default=StateVector(np.array([[0], [0], [0]])),
         doc="A 3x1 array specifying the origin offset in terms of :math:`x,y,z`\
             coordinates.")
 
@@ -432,10 +432,10 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
         # Convert to Angles
         phi, theta = cart2angles(*xyz_rot[:, 0])
 
-        return sp.array([[Elevation(theta)],
+        return np.array([[Elevation(theta)],
                          [Bearing(phi)]]) + noise
 
     def rvs(self, num_samples=1, **kwargs):
         out = super().rvs(num_samples, **kwargs)
-        out = sp.array([[Elevation(0.)], [Bearing(0.)]]) + out
+        out = np.array([[Elevation(0.)], [Bearing(0.)]]) + out
         return out
