@@ -4,7 +4,6 @@
     <list default="true" id="29641738-84e2-4ab8-9863-cba6ff5583f5" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/multi_model_particle_filter_testing.py" beforeDir="false" afterPath="$PROJECT_DIR$/multi_model_particle_filter_testing.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/stonesoup/predictor/multi_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/predictor/multi_model.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -34,28 +33,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.multi_model_particle_filter_testing">
-    <configuration name="decorators" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <module name="Stone-Soup" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$USER_HOME$/Documents/Python Scripts" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$USER_HOME$/Documents/Python Scripts/decorators.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
+  <component name="RunManager" selected="Python.trackrnn">
     <configuration name="multi_model_particle_filter_testing" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="Stone-Soup" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -77,7 +55,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="multimodelclassifierparticlefilter" type="PythonConfigurationType" factoryName="Python" temporary="true">
+    <configuration name="rnnclassifier" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="Stone-Soup" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -85,11 +63,11 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../../EDITTS/fusion/computators/training/stonesouparticlefilter" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../../EDITTS/fusion/computators/training/rnntrackclassifier" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../../EDITTS/fusion/computators/training/stonesouparticlefilter/multimodelclassifierparticlefilter.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../../EDITTS/fusion/computators/training/rnntrackclassifier/rnnclassifier.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -119,28 +97,55 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest for stonesoup.predictor.tests.test_multimodel.test_multimodel" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+    <configuration name="rnntrackprocessortraining" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="Stone-Soup" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../../EDITTS/fusion/computators/training/rnntrackclassifier" />
+      <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="_new_keywords" value="&quot;&quot;" />
-      <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;stonesoup.predictor.tests.test_multimodel.test_multimodel&quot;" />
-      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../../EDITTS/fusion/computators/training/rnntrackclassifier/rnntrackprocessortraining.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="trackrnn" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="Stone-Soup" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../../EDITTS/fusion/computators/training/rnntrackclassifier" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../../EDITTS/fusion/computators/training/rnntrackclassifier/trackrnn.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.trackrnn" />
+        <item itemvalue="Python.rnnclassifier" />
+        <item itemvalue="Python.rnntrackprocessortraining" />
         <item itemvalue="Python.multi_model_particle_filter_testing" />
         <item itemvalue="Python.rnntrackprocessor" />
-        <item itemvalue="Python.multimodelclassifierparticlefilter" />
-        <item itemvalue="Python.decorators" />
-        <item itemvalue="Python tests.pytest for stonesoup.predictor.tests.test_multimodel.test_multimodel" />
       </list>
     </recent_temporary>
   </component>

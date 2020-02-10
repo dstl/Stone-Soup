@@ -25,16 +25,16 @@ import os
 
 seed(100)
 DRONE_FILE = 4
-DATA_DIR = "P:/DASA/EDITTS Drone Tracking/GFI/GPS Tracking"
-# DATA_DIR = "C:/Work/Drone_Tracking/EDITTS-Drone-Tracking/data/raw/"
+# DATA_DIR = "P:/DASA/EDITTS Drone Tracking/GFI/GPS Tracking"
+DATA_DIR = "C:/Work/Drone_Tracking/EDITTS-Drone-Tracking/data/raw/"
 SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results"
 FIXED_WING = {"g2", "g4", "maja", "bixler", "x8", "kahu"}
 ROTARY_WING = {"g6", "f550", "drdc"}
 
 NUMBER_OF_PARTICLES = 300
-rw_cv_noise_covariance = 0.35
-fw_cv_noise_covariance = 0.0075
-rw_hover_noise_covariance = 0.001
+rw_cv_noise_covariance = 0.01
+fw_cv_noise_covariance = 0.001
+rw_hover_noise_covariance = 0.1
 constant_turn_covariance = [0.1, 0.1]
 turn_rate_left = 0.5
 turn_rate_right = -0.5
@@ -45,17 +45,17 @@ file_list = os.listdir(DATA_DIR)
 print(file_list)
 print(file_list[DRONE_FILE])
 title_parse = file_list[DRONE_FILE].lower().split(" ")
-if title_parse[3] in FIXED_WING:
-    print("Fixed Wing")
-    model_type = "Fixed Wing"
-    SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results/Fixed_Wing"
-elif title_parse[3] in ROTARY_WING:
-    print("Rotary Wing")
-    model_type = "Rotary Wing"
-    SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results/Rotary_Wing"
+# if title_parse[3] in FIXED_WING:
+#     print("Fixed Wing")
+#     model_type = "Fixed Wing"
+#     SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results/Fixed_Wing"
+# elif title_parse[3] in ROTARY_WING:
+#     print("Rotary Wing")
+#     model_type = "Rotary Wing"
+#     SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results/Rotary_Wing"
 
-location = import_track_data(DRONE_FILE, DATA_REDUCTION, DATA_DIR)
-# location = read_synthetic_csv(DATA_DIR + file_list[DRONE_FILE])
+# location = import_track_data(DRONE_FILE, DATA_REDUCTION, DATA_DIR)
+location = read_synthetic_csv(DATA_DIR + file_list[DRONE_FILE])
 
 ax = plt.axes(projection="3d")
 ax.plot3D(location[:, 0],
@@ -64,7 +64,7 @@ ax.plot3D(location[:, 0],
 
 
 # location = location[int(len(location) * 0): int(len(location) * 0.05)]
-location = location[1000:1500]
+location = location[:]
 
 ax.plot3D(location[:, 0],
           location[:, 1],
