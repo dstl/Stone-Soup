@@ -43,7 +43,7 @@ extensions = [
 napoleon_google_docstring = False
 
 autodoc_default_options = {
-    'members': True,
+    'members': None,
     'member-order': 'bysource',
 }
 
