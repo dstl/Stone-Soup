@@ -7,7 +7,7 @@ from stonesoup.predictor.multi_model import MultiModelPredictor
 from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.resampler.particle import SystematicResampler
 from stonesoup.types.hypothesis import SingleHypothesis
-from stonesoup.updater.particle import MultiModelParticleUpdater
+from stonesoup.updater.particle import ParticleUpdater, MultiModelParticleUpdater
 from stonesoup.types.numeric import Probability
 from stonesoup.types.state import ParticleState
 from stonesoup.types.detection import Detection
@@ -18,23 +18,24 @@ from datetime import timedelta
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from datetime import datetime
-from random import random, seed
+from operator import add
+from random import random, randint, seed
 from tqdm import tqdm
 import numpy as np
 import os
 
 seed(100)
-DRONE_FILE = 4
-# DATA_DIR = "P:/DASA/EDITTS Drone Tracking/GFI/GPS Tracking"
-DATA_DIR = "C:/Work/Drone_Tracking/EDITTS-Drone-Tracking/data/raw/"
+DRONE_FILE = 5
+DATA_DIR = "P:/DASA/EDITTS Drone Tracking/GFI/GPS Tracking"
+# DATA_DIR = "C:/Work/Drone_Tracking/EDITTS-Drone-Tracking/data/raw/"
 SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results"
 FIXED_WING = {"g2", "g4", "maja", "bixler", "x8", "kahu"}
 ROTARY_WING = {"g6", "f550", "drdc"}
 
-NUMBER_OF_PARTICLES = 300
-rw_cv_noise_covariance = 0.01
-fw_cv_noise_covariance = 0.001
-rw_hover_noise_covariance = 0.1
+NUMBER_OF_PARTICLES = 700
+rw_cv_noise_covariance = 0.35
+fw_cv_noise_covariance = 0.01
+rw_hover_noise_covariance = 0.001
 constant_turn_covariance = [0.1, 0.1]
 turn_rate_left = 0.5
 turn_rate_right = -0.5
@@ -45,17 +46,17 @@ file_list = os.listdir(DATA_DIR)
 print(file_list)
 print(file_list[DRONE_FILE])
 title_parse = file_list[DRONE_FILE].lower().split(" ")
-# if title_parse[3] in FIXED_WING:
-#     print("Fixed Wing")
-#     model_type = "Fixed Wing"
-#     SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results/Fixed_Wing"
-# elif title_parse[3] in ROTARY_WING:
-#     print("Rotary Wing")
-#     model_type = "Rotary Wing"
-#     SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results/Rotary_Wing"
+if title_parse[3] in FIXED_WING:
+    print("Fixed Wing")
+    model_type = "Fixed Wing"
+    SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results/Fixed_Wing"
+elif title_parse[3] in ROTARY_WING:
+    print("Rotary Wing")
+    model_type = "Rotary Wing"
+    SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results/Rotary_Wing"
 
-# location = import_track_data(DRONE_FILE, DATA_REDUCTION, DATA_DIR)
-location = read_synthetic_csv(DATA_DIR + file_list[DRONE_FILE])
+location = import_track_data(DRONE_FILE, DATA_REDUCTION, DATA_DIR)
+# location = read_synthetic_csv(DATA_DIR + file_list[DRONE_FILE])
 
 ax = plt.axes(projection="3d")
 ax.plot3D(location[:, 0],
@@ -64,7 +65,7 @@ ax.plot3D(location[:, 0],
 
 
 # location = location[int(len(location) * 0): int(len(location) * 0.05)]
-location = location[:]
+location = location[1250:2000]
 
 ax.plot3D(location[:, 0],
           location[:, 1],
@@ -74,15 +75,9 @@ plt.show()
 truth = GroundTruthPath()
 start_time = datetime.now()
 for t, element in enumerate(location):
-    if t == 0:
-        position = np.array([element[0], element[1], element[2]])
-        position = position.reshape(3, 1)
-        truth.append(GroundTruthState(state_vector=position, timestamp=start_time + timedelta(seconds=0)))
-    else:
-        position = np.array([element[0], element[1], element[2]])
-        position = position.reshape(3, 1)
-        truth.append(GroundTruthState(state_vector=position, timestamp=start_time + timedelta(seconds=location[t][3]
-                                                                                              - location[0][3])))
+    position = np.array([element[0], element[1], element[2]])
+    position = position.reshape(3, 1)
+    truth.append(GroundTruthState(state_vector=position, timestamp=start_time + timedelta(seconds=t)))
 
 measurements = []
 for i in truth:
@@ -105,9 +100,9 @@ dynamic_model_list_FW = [
                        CombinedLinearGaussianTransitionModel((ConstantVelocity(fw_cv_noise_covariance),
                                                               ConstantVelocity(fw_cv_noise_covariance),
                                                               ConstantVelocity(fw_cv_noise_covariance))),
-                       CombinedLinearGaussianTransitionModel((ConstantVelocity(fw_cv_noise_covariance),
-                                                              ConstantVelocity(fw_cv_noise_covariance),
-                                                              ConstantAcceleration(rw_cv_noise_covariance))),
+                       CombinedLinearGaussianTransitionModel((ConstantAcceleration(fw_cv_noise_covariance),
+                                                              ConstantAcceleration(fw_cv_noise_covariance),
+                                                              ConstantAcceleration(fw_cv_noise_covariance))),
                        # CombinedLinearGaussianTransitionModel((ConstantVelocity(noise_covariance),
                        #                                        ConstantVelocity(noise_covariance),
                        #                                        ConstantAcceleration(noise_covariance))),
@@ -138,7 +133,7 @@ model_mapping = [
 
                    # Fixed Wing
                    [0, 1, 3, 4, 6, 7],              # CV CV CV
-                   [0, 1, 3, 4, 6, 7, 8],           # CA CV CA
+                   [0, 1, 2, 3, 4, 5, 6, 7, 8],     # CA CA CA
                    # [0, 1, 3, 4, 6, 7, 8],           # CV CV CA
                    # [0, 1, 2, 3, 4, 6, 7],           # CA CV CV
                    # [0, 1, 3, 4, 5, 6, 7],           # CV CA CV
@@ -185,16 +180,33 @@ particles = [Particle(sample.reshape(-1, 1), weight=Probability(1/NUMBER_OF_PART
 prior_state = ParticleState(particles, timestamp=start_time)
 
 track = Track()
+craft_probs = []
 dynamic_model_split = []
 effective_sample_size = []
 weighted_sum_per_model = []
+probability_of_each_craft = []
 counter = 0
 for iteration, measurement in enumerate(tqdm(measurements)):
-    prediction, dynamic_model_proportions = multi_model.predict(prior_state, timestamp=measurement.timestamp,
-                                                                multi_craft=True)
+    prediction = multi_model.predict(prior_state, timestamp=measurement.timestamp, multi_craft=True)
     weighted_sum_per_model.append([sum([p.weight for p in prediction.particles if p.dynamic_model == j])
                                    for j in range(len(transition))])
-    dynamic_model_split.append(dynamic_model_proportions)
+    # dynamic_model_split.append(dynamic_model_proportions)
+
+    craft_sum = np.cumsum(detection_matrix_split)
+    rw_prob = sum([weighted_sum_per_model[-1][i] for i in range(craft_sum[0])])
+    fw_prob = sum([weighted_sum_per_model[-1][i] for i in range(craft_sum[0], craft_sum[1])])
+    craft_probs.append([rw_prob, fw_prob])
+
+    if iteration % 10 == 0 and iteration != 0:
+
+        cumulative_rw_prob = sum([prob[0] for prob in craft_probs])
+        cumulative_fw_prob = sum([prob[1] for prob in craft_probs])
+
+        sum_of_probs = cumulative_fw_prob + cumulative_rw_prob
+
+        print(f"Probability of Rotary Wing is : {cumulative_rw_prob / sum_of_probs}")
+        print(f"Probability of Fixed Wing is : {cumulative_fw_prob / sum_of_probs}")
+
     hypothesis = SingleHypothesis(prediction, measurement)
     post, n_eff = updater.update(hypothesis)
     print(n_eff)
@@ -234,11 +246,11 @@ ax = plt.axes(projection="3d")
 
 ax.plot3D(np.array([state[0] for state in sum_weighted_positions]).flatten(),
           np.array([state[3] for state in sum_weighted_positions]).flatten(),
-          np.array([state[6] for state in sum_weighted_positions]).flatten(), color='c', label='Weighted PF')
+          np.array([state[6] for state in sum_weighted_positions]).flatten(), color='coral', label='Weighted PF')
 
 ax.plot3D(np.array([state.state_vector[0] for state in truth]).flatten(),
           np.array([state.state_vector[1] for state in truth]).flatten(),
-          np.array([state.state_vector[2] for state in truth]).flatten(), linestyle="--", color='coral', label='Truth')
+          np.array([state.state_vector[2] for state in truth]).flatten(), linestyle="--", color='c', label='Truth')
 
 # ax.scatter(np.array([[particle[i][0] for particle in particle_path]
 #                      for i in range(len(track)) if i % 10 == 0]).flatten(),
@@ -261,7 +273,7 @@ plt.plot(range(len(effective_sample_size)), effective_sample_size)
 plt.xlabel("Timestep")
 plt.ylabel("Effective Sample Size")
 plt.title("Effective sample size at a given timestep")
-plt.savefig(f"{SAVE_DIR}/{file_list[DRONE_FILE]}/rw {rw_cv_noise_covariance} fw {fw_cv_noise_covariance} .png", dpi=2000)
+plt.savefig(f"{SAVE_DIR}/{file_list[DRONE_FILE]}/rw {rw_cv_noise_covariance} fw {fw_cv_noise_covariance}.png", dpi=2000)
 plt.show()
 
 
@@ -274,7 +286,7 @@ plt.legend([f"Model {i}" for i in range(len(dynamic_model_plot))])
 plt.title("Number of Particles for each model")
 plt.xlabel('Timestep')
 plt.ylabel('Number of Particles')
-plt.savefig(f"{SAVE_DIR}/{file_list[DRONE_FILE]}/rw {rw_cv_noise_covariance} fw {fw_cv_noise_covariance}  .png", dpi=2000)
+plt.savefig(f"{SAVE_DIR}/{file_list[DRONE_FILE]}/rw {rw_cv_noise_covariance} fw {fw_cv_noise_covariance}.png", dpi=2000)
 plt.show()
 
 
@@ -301,15 +313,15 @@ plt.legend([f"Model {i}" for i in range(len(probability_of_each_craft[0]))])
 plt.title("Probability of each craft")
 plt.xlabel('Timestep')
 plt.ylabel('Probability')
-plt.savefig(f"{SAVE_DIR}/{file_list[DRONE_FILE]}/rw {rw_cv_noise_covariance} fw {fw_cv_noise_covariance}   .png", dpi=2000)
+plt.savefig(f"{SAVE_DIR}/{file_list[DRONE_FILE]}/rw {rw_cv_noise_covariance} fw {fw_cv_noise_covariance}.png", dpi=2000)
 plt.show()
 
 print(f"Probability of Rotary Wing is : {sum(probability_of_each_craft[0]) / sum_of_propbs}")
 print(f"Probability of Fixed Wing is : {sum(probability_of_each_craft[1]) / sum_of_propbs}")
-print(f"Model is : {model_type}")
+print(f"Model Actually is : {model_type}")
 
 
-difference = [np.linalg.norm(sum_weighted_positions[i, [0, 3, 6]] - truth[i].state_vector) for i in range(len(track))]
+difference = [np.linalg.norm(track[i].state_vector[[0, 3, 6]] - truth[i].state_vector) for i in range(len(track))]
 sum_of_difference = sum(difference)
 print(difference)
 print(sum_of_difference)
@@ -319,5 +331,5 @@ plt.xlabel('Timestep')
 plt.ylabel('Difference')
 plt.title("Distance Metric")
 plt.text(100, 10, f"Total distance : {sum_of_difference}")
-plt.savefig(f"{SAVE_DIR}/{file_list[DRONE_FILE]}/rw {rw_cv_noise_covariance} fw {fw_cv_noise_covariance}    .png", dpi=2000)
+plt.savefig(f"{SAVE_DIR}/{file_list[DRONE_FILE]}/rw {rw_cv_noise_covariance} fw {fw_cv_noise_covariance}.png", dpi=2000)
 plt.show()
