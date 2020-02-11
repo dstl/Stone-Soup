@@ -11,14 +11,18 @@ from ..types.particle import Particle
 from ..types.state import GaussianState
 from ..types.track import Track
 from ..types.update import GaussianStateUpdate, ParticleStateUpdate
-from ..updater.kalman import KalmanUpdater
+from ..updater.kalman import ExtendedKalmanUpdater
 from ..dataassociator import DataAssociator
 from ..deleter import Deleter
 from ..updater import Updater
 
 
 class SinglePointInitiator(GaussianInitiator):
-    """ SinglePointInitiator class"""
+    """SinglePointInitiator class
+
+    This uses an :class:`~.ExtendedKalmanUpdater` to carry out an update using
+    provided :attr:`prior_state` for each unassociated detection.
+    """
 
     prior_state = Property(GaussianState, doc="Prior state information")
     measurement_model = Property(MeasurementModel, doc="Measurement model")
@@ -38,7 +42,7 @@ class SinglePointInitiator(GaussianInitiator):
             A list of new tracks with an initial :class:`~.GaussianState`
         """
 
-        updater = KalmanUpdater(self.measurement_model)
+        updater = ExtendedKalmanUpdater(self.measurement_model)
 
         tracks = set()
         for detection in unassociated_detections:
