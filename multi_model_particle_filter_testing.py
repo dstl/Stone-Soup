@@ -25,7 +25,7 @@ import numpy as np
 import os
 
 seed(100)
-DRONE_FILE = 5
+DRONE_FILE = 27
 DATA_DIR = "P:/DASA/EDITTS Drone Tracking/GFI/GPS Tracking"
 # DATA_DIR = "C:/Work/Drone_Tracking/EDITTS-Drone-Tracking/data/raw/"
 SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results"
@@ -33,8 +33,8 @@ FIXED_WING = {"g2", "g4", "maja", "bixler", "x8", "kahu"}
 ROTARY_WING = {"g6", "f550", "drdc"}
 
 NUMBER_OF_PARTICLES = 700
-rw_cv_noise_covariance = 0.35
-fw_cv_noise_covariance = 0.01
+rw_cv_noise_covariance = 0.25
+fw_cv_noise_covariance = 0.005
 rw_hover_noise_covariance = 0.001
 constant_turn_covariance = [0.1, 0.1]
 turn_rate_left = 0.5
@@ -190,6 +190,8 @@ for iteration, measurement in enumerate(tqdm(measurements)):
     prediction = multi_model.predict(prior_state, timestamp=measurement.timestamp, multi_craft=True)
     weighted_sum_per_model.append([sum([p.weight for p in prediction.particles if p.dynamic_model == j])
                                    for j in range(len(transition))])
+    particle_proportions = [p.dynamic_model for p in prediction.particles]
+    print([particle_proportions.count(i) for i in range(len(transition))])
     # dynamic_model_split.append(dynamic_model_proportions)
 
     craft_sum = np.cumsum(detection_matrix_split)

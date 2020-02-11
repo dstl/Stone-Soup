@@ -54,7 +54,6 @@ class MultiModelPredictor(Predictor):
         # Compute time_interval
         try:
             time_interval = timestamp - prior.timestamp
-            print(time_interval)
         except TypeError:
             # TypeError: (timestamp or prior.timestamp) is None
             time_interval = None
@@ -105,4 +104,4 @@ class MultiModelPredictor(Predictor):
                 new_particles[particle_index].dynamic_model = dynamic_models
                 new_particles[particle_index].parent.dynamic_model = dynamic_models
 
-        return ParticleStatePrediction(new_particles, timestamp=timestamp), dynamic_model_proportions
+        return ParticleStatePrediction(new_particles, timestamp=timestamp)
