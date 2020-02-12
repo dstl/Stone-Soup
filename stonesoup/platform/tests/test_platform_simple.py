@@ -436,25 +436,25 @@ def test_3d_platform(state, expected, move, radars_3d, mounting_offsets_3d):
     sensor_positions_test(expected, platform)
 
 
-def sensor_positions_test(expected, platform):
+def sensor_positions_test(expected_offset, platform):
     """
     This function asserts that the sensor positions on the platform have been
     correctly updated when the platform has been moved or sensor mounted on the
     platform.
 
-    :param expected: nD array of expected sensor position post rotation
+    :param expected_offset: nD array of expected sensor position post rotation
     :param platform: platform object
     :return:
     """
-    expected_radar_position = np.zeros(
+    radar_position = np.zeros(
         [len(platform.sensors), platform.mounting_offsets.shape[1]])
+    expected_radar_position = np.zeros_like(radar_position)
     for i in range(len(platform.sensors)):
-        radar_position = platform.sensors[i].position
+        radar_position[i, :] = platform.sensors[i].position.flatten()
 
-        for j in range(platform.mounting_offsets.shape[1]):
-            expected_radar_position[i, j] = (expected[i, j] +
-                                             platform.state.state_vector[
-                                                 platform.mounting_mappings[
-                                                     i, j]])
-        assert np.allclose(expected_radar_position[i, :],
-                           radar_position.flatten())
+        platform_position = platform.state.state_vector[
+            platform.mounting_mappings[i, :]].flatten()
+
+        expected_radar_position[i, :] = (expected_offset[i, :] +
+                                         platform_position)
+    assert np.allclose(expected_radar_position, radar_position)
