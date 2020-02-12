@@ -8,7 +8,7 @@ from ...types.state import State
 from ...platform.simple import SensorPlatform
 from ...models.transition.linear import (
     ConstantVelocity, CombinedLinearGaussianTransitionModel)
-from ...sensor.radar import RadarRangeBearing
+from ...sensor.radar.radar import RadarRangeBearing
 from ...types.array import StateVector, CovarianceMatrix
 
 # Input arguments
