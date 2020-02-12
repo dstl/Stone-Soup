@@ -67,6 +67,8 @@ class LinearModel(Model):
         if noise is None:
             # TODO: doesn't make sense for noise=None to generate noise
             noise = self.rvs(**kwargs)
+        else:
+            noise = 0
 
         return self.matrix(**kwargs) @ (state_vector + noise)
 
