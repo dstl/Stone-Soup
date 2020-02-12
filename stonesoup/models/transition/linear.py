@@ -66,7 +66,7 @@ class CombinedLinearGaussianTransitionModel(LinearGaussianTransitionModel):
             model.matrix(**kwargs) for model in self.model_list]
         return block_diag(*transition_matrices)
 
-    def covar(self, **kwargs):
+    def covar(self, time_interval, **kwargs):
         """Returns the transition model noise covariance matrix.
 
         Returns
@@ -76,7 +76,7 @@ class CombinedLinearGaussianTransitionModel(LinearGaussianTransitionModel):
             The process noise covariance.
         """
 
-        covar_list = [model.covar(**kwargs) for model in self.model_list]
+        covar_list = [model.covar(time_interval=time_interval, **kwargs) for model in self.model_list]
         return block_diag(*covar_list)
 
 
@@ -750,7 +750,7 @@ class ConstantTurn(LinearGaussianTransitionModel, TimeVariantModel):
 
 class ConstantPosition(LinearGaussianTransitionModel, TimeVariantModel):
 
-    noise_diff_coeffs = Property(
+    noise_diff_coeff = Property(
         sp.ndarray,
         doc="The acceleration noise diffusion coefficients :math:`q`")
 
@@ -768,7 +768,7 @@ class ConstantPosition(LinearGaussianTransitionModel, TimeVariantModel):
         time_interval_sec = time_interval.total_seconds()
         base_covar = sp.array([[sp.power(time_interval_sec, 3) / 3, sp.power(time_interval_sec, 2) / 2],
                                [sp.power(time_interval_sec, 2) / 2, time_interval_sec]])
-        covar = base_covar * self.noise_diff_coeffs
+        covar = base_covar * self.noise_diff_coeff
 
         return CovarianceMatrix(covar)
 
@@ -803,12 +803,18 @@ class LinearTurn(LinearGaussianTransitionModel, TimeVariantModel):
     def covar(self, time_interval, **kwargs):
 
         time_interval_sec = time_interval.total_seconds()
-        base_covar = sp.array([[sp.power(time_interval_sec, 5) / 5, sp.power(time_interval_sec, 4) / 4, sp.power(time_interval_sec, 3) / 3, 0, 0, 0],
-                               [sp.power(time_interval_sec, 4) / 4, sp.power(time_interval_sec, 3) / 3, sp.power(time_interval_sec, 2) / 2, 0, 0, 0],
-                               [sp.power(time_interval_sec, 3) / 3, sp.power(time_interval_sec, 2) / 2, sp.power(time_interval_sec, 1) / 1, 0, 0, 0],
-                               [0, 0, 0, sp.power(time_interval_sec, 5) / 5, sp.power(time_interval_sec, 4) / 4, sp.power(time_interval_sec, 3)],
-                               [0, 0, 0, sp.power(time_interval_sec, 4) / 4, sp.power(time_interval_sec, 3) / 3, sp.power(time_interval_sec, 2)],
-                               [0, 0, 0, sp.power(time_interval_sec, 3) / 3, sp.power(time_interval_sec, 2) / 2, sp.power(time_interval_sec, 1)]])
+        base_covar = sp.array([[sp.power(time_interval_sec, 5) / 5, sp.power(time_interval_sec, 4) / 4,
+                                sp.power(time_interval_sec, 3) / 3, 0, 0, 0],
+                               [sp.power(time_interval_sec, 4) / 4, sp.power(time_interval_sec, 3) / 3,
+                                sp.power(time_interval_sec, 2) / 2, 0, 0, 0],
+                               [sp.power(time_interval_sec, 3) / 3, sp.power(time_interval_sec, 2) / 2,
+                                sp.power(time_interval_sec, 1) / 1, 0, 0, 0],
+                               [0, 0, 0, sp.power(time_interval_sec, 5) / 5, sp.power(time_interval_sec, 4) / 4,
+                                sp.power(time_interval_sec, 3)],
+                               [0, 0, 0, sp.power(time_interval_sec, 4) / 4, sp.power(time_interval_sec, 3) / 3,
+                                sp.power(time_interval_sec, 2)],
+                               [0, 0, 0, sp.power(time_interval_sec, 3) / 3, sp.power(time_interval_sec, 2) / 2,
+                                sp.power(time_interval_sec, 1)]])
 
         covar = base_covar * self.noise_diff_coeffs
 

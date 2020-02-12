@@ -198,11 +198,8 @@ for iteration, measurement in enumerate(tqdm(measurements)):
 
     hypothesis = SingleHypothesis(prediction, measurement)
 
-    # if iteration < 3:
-    #     post, n_eff = updater.update(hypothesis)
-    # else:
-    rao_updater.calculate_model_probabilities(hypothesis)
-    post, n_eff = rao_updater.update(hypothesis)
+    post, n_eff = rao_updater.update(hypothesis, iteration)
+
     # print(n_eff)
     effective_sample_size.append(n_eff)
     track.append(post)

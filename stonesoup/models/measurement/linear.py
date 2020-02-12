@@ -76,8 +76,6 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
 
         if noise is None:
             noise = self.rvs()  # TODO: change noise=None generates noise!
-        else:
-            noise = 0
 
         return self.matrix(**kwargs)@state_vector + noise
 

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from functools import lru_cache
 import numpy as np
+from scipy.stats import multivariate_normal
 
 from .base import Updater
 from ..base import Property
@@ -158,7 +159,7 @@ class RaoBlackwellisedParticleUpdater(Updater, MultiModelPredictor):
     resampler = Property(Resampler,
                          doc='Resampler to prevent particle degeneracy')
 
-    def update(self, hypothesis, **kwargs):
+    def update(self, hypothesis, iteration, **kwargs):
         """Particle Filter update step
 
         Parameters
@@ -188,6 +189,10 @@ class RaoBlackwellisedParticleUpdater(Updater, MultiModelPredictor):
         for particle in hypothesis.prediction.particles:
             particle.weight /= sum_w
 
+        if iteration > 3:
+            for particle in hypothesis.prediction.particles:
+                self.calculate_model_probabilities(particle)
+
         # Resample
         new_particles, n_eff = self.resampler.resample(
             hypothesis.prediction.particles)
@@ -216,22 +221,26 @@ class RaoBlackwellisedParticleUpdater(Updater, MultiModelPredictor):
         return ParticleMeasurementPrediction(
             new_particles, timestamp=state_prediction.timestamp)
 
-    def calculate_model_probabilities(self, hypothesis):
+    def calculate_model_probabilities(self, particle):
 
-        for particle in hypothesis.prediction.particles:
-            print("NEW PARTICLE")
-            # p(CV｜CA)
-            transition_probability = self.transition_matrix[particle.parent.dynamic_model][particle.dynamic_model]
-            # Column vector of previously computed model probabilities
-            previous_probabilities = particle.parent.model_probabilities
+        previous_probabilities = particle.parent.model_probabilities
 
-            for models in self.model_list:
-                print("NEW MODEL")
-                prior_model = self.model_list[particle.parent.dynamic_model]
-                prior_required_state_space = particle.parent.state_vector[np.array(self.position_mapping[particle.parent.dynamic_model])]
-                print(prior_required_state_space)
+        for i, model in enumerate(self.model_list):
 
-                print(particle.time_interval)
+            transition_probability = self.transition_matrix[particle.parent.dynamic_model][i]
+            parent_required_state_space = particle.parent.state_vector[np.array(self.position_mapping[i])]
+            mean = model.function(parent_required_state_space, time_interval=particle.time_interval, noise=False)
 
-                mean = prior_model.function(prior_required_state_space, time_interval=particle.time_interval, noise=False)
-                print(mean)
+            covar = model.covar(particle.time_interval)
+            particle_required_state_space = particle.state_vector[np.array(self.position_mapping[i])]
+
+            mean = np.squeeze(mean)
+
+            covar = np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+            print(model)
+            print(covar)
+            print(mean)
+            print(particle_required_state_space)
+
+            print(multivariate_normal.pdf(particle_required_state_space, mean=mean, cov=covar))
+            print("Test")
