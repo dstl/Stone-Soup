@@ -94,28 +94,28 @@ def get_3d_expected(i):
                          [0, 1/np.sqrt(2), -1/np.sqrt(2)]])
     elif i == 14:
         # x.z vel
-        return np.array([[0, 0, 0], [0, 1/np.sqrt(2), 1/np.sqrt(2)],
-                         [-1, 0, 0], [0, -1/np.sqrt(2), -1/np.sqrt(2)],
-                         [1, 0, 0], [0, -1/np.sqrt(2), 1/np.sqrt(2)],
-                         [0, 1/np.sqrt(2), -1/np.sqrt(2)]])
+        return np.array([[0, 0, 0], [1/np.sqrt(2), 0, 1/np.sqrt(2)],
+                         [0, 1, 0], [-1/np.sqrt(2), 0, -1/np.sqrt(2)],
+                         [0, -1, 0], [-1/np.sqrt(2), 0, 1/np.sqrt(2)],
+                         [1/np.sqrt(2), 0, -1/np.sqrt(2)]])
     elif i == 15:
         # -x.z vel
-        return np.array([[0, 0, 0], [0, -1/np.sqrt(2), 1/np.sqrt(2)],
-                         [1, 0, 0], [0, 1/np.sqrt(2), -1/np.sqrt(2)],
-                         [-1, 0, 0], [0, 1/np.sqrt(2), 1/np.sqrt(2)],
-                         [0, -1/np.sqrt(2), -1/np.sqrt(2)]])
+        return np.array([[0, 0, 0], [-1/np.sqrt(2), 0, 1/np.sqrt(2)],
+                         [0, -1, 0], [1/np.sqrt(2), 0, -1/np.sqrt(2)],
+                         [0, 1, 0], [1/np.sqrt(2), 0, 1/np.sqrt(2)],
+                         [-1/np.sqrt(2), 0, -1/np.sqrt(2)]])
     elif i == 16:
         # x.-z vel
-        return np.array([[0, 0, 0], [0, 1/np.sqrt(2), -1/np.sqrt(2)],
-                         [-1, 0, 0], [0, -1/np.sqrt(2), 1/np.sqrt(2)],
-                         [1, 0, 0], [0, 1/np.sqrt(2), 1/np.sqrt(2)],
-                         [0, -1/np.sqrt(2), -1/np.sqrt(2)]])
+        return np.array([[0, 0, 0], [1/np.sqrt(2), 0, -1/np.sqrt(2)],
+                         [0, 1, 0], [-1/np.sqrt(2), 0, 1/np.sqrt(2)],
+                         [0, -1, 0], [1/np.sqrt(2), 0, 1/np.sqrt(2)],
+                         [-1/np.sqrt(2), 0, -1/np.sqrt(2)]])
     elif i == 17:
         # -x,-z vel
-        return np.array([[0, 0, 0], [0, -1/np.sqrt(2), -1/np.sqrt(2)],
-                         [1, 0, 0], [0, 1/np.sqrt(2), 1/np.sqrt(2)],
-                         [-1, 0, 0], [0, -1/np.sqrt(2), 1/np.sqrt(2)],
-                         [0, 1/np.sqrt(2), -1/np.sqrt(2)]])
+        return np.array([[0, 0, 0], [-1/np.sqrt(2), 0, -1/np.sqrt(2)],
+                         [0, -1, 0], [1/np.sqrt(2), 0, 1/np.sqrt(2)],
+                         [0, 1, 0], [-1/np.sqrt(2), 0, 1/np.sqrt(2)],
+                         [1/np.sqrt(2), 0, -1/np.sqrt(2)]])
     elif i == 18:
         # x.y.z vel
         a = np.cos(np.arctan2(1, np.sqrt(2)) * -1)
@@ -450,9 +450,11 @@ def sensor_positions_test(expected, platform):
         [len(platform.sensors), platform.mounting_offsets.shape[1]])
     for i in range(len(platform.sensors)):
         radar_position = platform.sensors[i].position
+
         for j in range(platform.mounting_offsets.shape[1]):
             expected_radar_position[i, j] = (expected[i, j] +
                                              platform.state.state_vector[
                                                  platform.mounting_mappings[
                                                      i, j]])
-        assert (np.allclose(expected_radar_position[i, j], radar_position[j]))
+        assert np.allclose(expected_radar_position[i, :],
+                           radar_position.flatten())
