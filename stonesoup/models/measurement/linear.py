@@ -148,7 +148,7 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
         :class:`float`
             The likelihood of ``meas``, given ``state``
         """
-
+        print(self.matrix())
         if len(state_vec) == 6:
             """model_matrix = sp.zeros((self.ndim_meas, self.ndim_state))
             for dim_meas, dim_state in enumerate(self.mapping):

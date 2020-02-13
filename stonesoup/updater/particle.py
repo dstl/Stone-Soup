@@ -228,19 +228,21 @@ class RaoBlackwellisedParticleUpdater(Updater, MultiModelPredictor):
         for i, model in enumerate(self.model_list):
 
             transition_probability = self.transition_matrix[particle.parent.dynamic_model][i]
-            parent_required_state_space = particle.parent.state_vector[np.array(self.position_mapping[i])]
-            mean = model.function(parent_required_state_space, time_interval=particle.time_interval, noise=False)
 
-            covar = model.covar(particle.time_interval)
+            parent_required_state_space = particle.parent.state_vector[np.array(self.position_mapping[i])]
             particle_required_state_space = particle.state_vector[np.array(self.position_mapping[i])]
 
+            mean = model.function(parent_required_state_space, time_interval=particle.time_interval, noise=False)
             mean = np.squeeze(mean)
 
-            covar = np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
-            print(model)
-            print(covar)
+            covar = model.covar(particle.time_interval)
+            
             print(mean)
             print(particle_required_state_space)
 
-            print(multivariate_normal.pdf(particle_required_state_space, mean=mean, cov=covar))
-            print("Test")
+            print(self.measurement_model.pdf(particle_required_state_space, mean))
+
+            print(model)
+
+            # print(multivariate_normal.pdf(particle_required_state_space, mean=mean, cov=covar))
+            # print("Test")
