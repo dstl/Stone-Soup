@@ -32,10 +32,10 @@ SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results"
 FIXED_WING = {"g2", "g4", "maja", "bixler", "x8", "kahu"}
 ROTARY_WING = {"g6", "f550", "drdc"}
 
-NUMBER_OF_PARTICLES = 700
-rw_cv_noise_covariance = 0.25
-fw_cv_noise_covariance = 0.005
-rw_hover_noise_covariance = 0.001
+NUMBER_OF_PARTICLES = 100
+rw_cv_noise_covariance = 2.5
+fw_cv_noise_covariance = 0.05
+rw_hover_noise_covariance = 0.01
 constant_turn_covariance = [0.1, 0.1]
 turn_rate_left = 0.5
 turn_rate_right = -0.5
@@ -56,6 +56,10 @@ elif title_parse[3] in ROTARY_WING:
     SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results/Rotary_Wing"
 
 location = import_track_data(DRONE_FILE, DATA_REDUCTION, DATA_DIR)
+
+for i, element in enumerate(location):
+    location[i][:3] = np.random.normal(element[:3], 0.5)
+
 # location = read_synthetic_csv(DATA_DIR + file_list[DRONE_FILE])
 
 ax = plt.axes(projection="3d")
@@ -148,7 +152,7 @@ transition = form_detection_transition_matrix(detection_matrix_split, [0.05, 0.0
 measurement_model = LinearGaussian(
     ndim_state=9,  # Number of state dimensions (position, velocity and acceleration in 3D)
     mapping=(0, 3, 6),  # Locations of our position variables within the entire state space
-    noise_covar=np.diag([0.1, 0.1, 0.1]))
+    noise_covar=np.diag([1, 1, 1]))
 
 multi_model = MultiModelPredictor(transition, model_mapping, transition_model=dynamic_model_list)
 
