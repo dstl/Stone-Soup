@@ -5,6 +5,7 @@ from numpy import matlib
 from scipy.stats import norm
 from scipy.stats import multivariate_normal
 from datetime import datetime, timedelta
+from ....orbital_functions import stumpf_c, stumpf_s
 
 from ....base import Property
 from ....types.orbitalstate import OrbitalState, TLEOrbitalState
@@ -375,32 +376,6 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
                 chi_i = chi_i - ratio
 
             return chi_i
-
-        def stumpf_s(z):
-            """The Stumpf S function"""
-            if z > 0:
-                sqz = np.sqrt(z)
-                return (sqz - np.sin(sqz)) / sqz ** 3
-            elif z < 0:
-                sqz = np.sqrt(-z)
-                return (np.sinh(sqz) - sqz) / sqz ** 3
-            elif z == 0:
-                return 1 / 6
-            else:
-                raise ValueError("Shouldn't get to this point")
-
-        def stumpf_c(z):
-            """The Stumpf C function"""
-            if z > 0:
-                sqz = np.sqrt(z)
-                return (1 - np.cos(sqz)) / sqz ** 2
-            elif z < 0:
-                sqz = np.sqrt(-z)
-                return (np.cosh(sqz) - 1) / sqz ** 2
-            elif z == 0:
-                return 1 / 2
-            else:
-                raise ValueError("Shouldn't get to this point")
 
         # Calculate the magnitude of the position and velocity vectors
         bold_r_0 = orbital_state.cartesian_state_vector[0:3]

@@ -32,10 +32,9 @@ def test_gibbsinitiator():
     ginitiator = GibbsInitiator(grav_parameter=3.986004418e5)
 
     # Track initialise
-    out_track = ginitiator.initiate(inlist)
+    out_tracks = ginitiator.initiate(inlist)
+    out_track = out_tracks.pop()
 
-    print(out_track)
-
-    assert(np.allclose(out_cart, out_track[0][1].state_vector, rtol=1e-5))
+    assert(np.allclose(out_cart, out_track[1].state_vector, rtol=1e-5))
 
 
