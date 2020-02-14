@@ -151,7 +151,7 @@ class MultiModelParticleUpdater(Updater, RaoBlackwellisedMultiModelPredictor):
             new_particles, timestamp=state_prediction.timestamp)
 
 
-class RaoBlackwellisedParticleUpdater(Updater, MultiModelPredictor):
+class RaoBlackwellisedParticleUpdater(Updater):
     """Simple Particle Updater
 
         Perform measurement update step in the standard Kalman Filter.
@@ -160,7 +160,7 @@ class RaoBlackwellisedParticleUpdater(Updater, MultiModelPredictor):
     resampler = Property(Resampler,
                          doc='Resampler to prevent particle degeneracy')
 
-    def update(self, hypothesis, iteration, **kwargs):
+    def update(self, hypothesis, predictor, iteration, **kwargs):
         """Particle Filter update step
 
         Parameters
@@ -183,10 +183,9 @@ class RaoBlackwellisedParticleUpdater(Updater, MultiModelPredictor):
         for particle in hypothesis.prediction.particles:
             particle.weight *= measurement_model.pdf(
                 hypothesis.measurement.state_vector, particle.state_vector,
-                **kwargs) * self.transition_matrix[particle.parent.dynamic_model][particle.dynamic_model]
+                **kwargs) * predictor.transition_matrix[particle.parent.dynamic_model][particle.dynamic_model]
 
-            model_probabilities = self.calculate_model_probabilities(particle)
-            particle.model_probabilities = model_probabilities
+            particle.model_probabilities = self.calculate_model_probabilities(particle, predictor)
 
         # Normalise the weights
         sum_w = Probability.sum(
@@ -224,28 +223,28 @@ class RaoBlackwellisedParticleUpdater(Updater, MultiModelPredictor):
         return ParticleMeasurementPrediction(
             new_particles, timestamp=state_prediction.timestamp)
 
-    def calculate_model_probabilities(self, particle):
+    def calculate_model_probabilities(self, particle, predictor):
 
         previous_probabilities = particle.model_probabilities
 
         denominator = []
-        for i, model in enumerate(self.model_list):
+        for i, model in enumerate(predictor.model_list):
 
             # if p(m_k|m_k-1) = 0 then p(m_k|x_1:k) = 0
-            transition_probability = self.transition_matrix[particle.parent.dynamic_model][i]
+            transition_probability = predictor.transition_matrix[particle.parent.dynamic_model][i]
             if transition_probability == 0:
                 previous_probabilities[i] = 0
                 denominator.append(0)
             else:
                 # Getting required states to apply the model to that state vector
-                parent_required_state_space = particle.parent.state_vector[np.array(self.position_mapping[i])]
+                parent_required_state_space = particle.parent.state_vector[np.array(predictor.position_mapping[i])]
 
                 # The noiseless application of m_k onto x_k-1
                 mean = model.function(parent_required_state_space, time_interval=particle.time_interval, noise=False)
 
                 # Input the indices that were removed previously
                 for j in range(len(particle.state_vector)):
-                    if j not in self.position_mapping[i]:
+                    if j not in predictor.position_mapping[i]:
                         mean = np.insert(mean, j, particle.state_vector[j])
 
                 # Extracting x, y, z from the particle
@@ -257,8 +256,8 @@ class RaoBlackwellisedParticleUpdater(Updater, MultiModelPredictor):
                 prob_previous_iteration_with_old_model = previous_probabilities[i]
 
                 product_of_probs = prob_position_given_model_and_old_position * \
-                                   transition_probability * \
-                                   prob_previous_iteration_with_old_model
+                                        transition_probability * \
+                                            prob_previous_iteration_with_old_model
 
                 denominator.append(product_of_probs)
 
@@ -268,8 +267,7 @@ class RaoBlackwellisedParticleUpdater(Updater, MultiModelPredictor):
             sys.exit()
 
         for i in range(len(previous_probabilities)):
-
+            print(denominator[i] / sum(denominator))
             previous_probabilities[i] = denominator[i] / sum(denominator)
 
         return previous_probabilities
-

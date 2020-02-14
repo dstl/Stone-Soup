@@ -119,7 +119,7 @@ model_mapping = [
 
 
 # transition = form_detection_transition_matrix(detection_matrix_split, [0.05, 0.05])
-transition = [[0.93, 0.05, 0.1, 0.1], [0.03, 0.95, 0.1, 0.1], [0.1, 0.1, 0.93, 0.5], [0.1, 0.1, 0.05, 0.93]]
+transition = [[0.93, 0.05, 0.01, 0.01], [0.03, 0.95, 0.01, 0.01], [0.01, 0.01, 0.93, 0.5], [0.01, 0.01, 0.05, 0.93]]
 measurement_model = LinearGaussian(
     ndim_state=9,  # Number of state dimensions (position, velocity and acceleration in 3D)
     mapping=(0, 3, 6),  # Locations of our position variables within the entire state space
@@ -137,10 +137,7 @@ updater = MultiModelParticleUpdater(measurement_model=measurement_model,
                                     )
 
 rao_updater = RaoBlackwellisedParticleUpdater(measurement_model=measurement_model,
-                                              resampler=resampler,
-                                              transition_matrix=transition,
-                                              position_mapping=model_mapping,
-                                              transition_model=dynamic_model_list
+                                              resampler=resampler
                                               )
 
 x_0, v_x, a_x, y_0, v_y, a_y, z_0, v_z, a_z = create_prior(location)
@@ -195,7 +192,7 @@ for iteration, measurement in enumerate(tqdm(measurements)):
 
     hypothesis = SingleHypothesis(prediction, measurement)
 
-    post, n_eff = rao_updater.update(hypothesis, iteration)
+    post, n_eff = rao_updater.update(hypothesis, iteration=iteration, predictor=rao_multi_model)
 
     # print(n_eff)
     effective_sample_size.append(n_eff)
