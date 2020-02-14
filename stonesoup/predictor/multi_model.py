@@ -77,15 +77,9 @@ class MultiModelPredictor(Predictor):
                         **kwargs)
 
                     # Calculate the indices removed from the state vector to become compatible with the dynamic model
-                    missed_indices = []
-                    for i in range(len(particle.state_vector)):
-                        if i not in self.position_mapping[model_index]:
-                            missed_indices.append(i)
-
-                    if len(missed_indices) != 0:
-                        for i in missed_indices:
-                            new_state_vector = np.insert(new_state_vector, i, particle.state_vector[i])
-                    new_state_vector = np.reshape(new_state_vector, (-1, 1))
+                    for j in range(len(particle.state_vector)):
+                        if j not in self.position_mapping[model_index]:
+                            new_state_vector = np.insert(new_state_vector, j, particle.state_vector[j])
 
                     new_particles.append(
                         Particle(new_state_vector,
@@ -162,12 +156,12 @@ class RaoBlackwellisedMultiModelPredictor(Predictor):
                 if particle.dynamic_model == model_index:
 
                     # Change the value of the dynamic value randomly according to the defined transition matrix
-                    new_dynamic_model = np.searchsorted(self.probabilities[model_index], random())
+                    new_dynamic_model = np.argmax(particle.model_probabilities)
 
-                    self.transition_model = self.model_list[model_index]
+                    self.transition_model = self.model_list[particle.dynamic_model]
 
                     # Based on given position mapping create a new state vector that contains only the required states
-                    required_state_space = particle.state_vector[np.array(self.position_mapping[model_index])]
+                    required_state_space = particle.state_vector[np.array(self.position_mapping[particle.dynamic_model])]
 
                     new_state_vector = self.transition_model.function(
                         required_state_space,
@@ -175,14 +169,10 @@ class RaoBlackwellisedMultiModelPredictor(Predictor):
                         **kwargs)
 
                     # Calculate the indices removed from the state vector to become compatible with the dynamic model
-                    missed_indices = []
-                    for i in range(len(particle.state_vector)):
-                        if i not in self.position_mapping[model_index]:
-                            missed_indices.append(i)
+                    for j in range(len(particle.state_vector)):
+                        if j not in self.position_mapping[particle.dynamic_model]:
+                            new_state_vector = np.insert(new_state_vector, j, particle.state_vector[j])
 
-                    if len(missed_indices) != 0:
-                        for i in missed_indices:
-                            new_state_vector = np.insert(new_state_vector, i, particle.state_vector[i])
                     new_state_vector = np.reshape(new_state_vector, (-1, 1))
 
                     new_particles.append(RaoBlackwellisedParticle(new_state_vector,

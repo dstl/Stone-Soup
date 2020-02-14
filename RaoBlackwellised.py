@@ -25,17 +25,17 @@ import numpy as np
 import os
 
 seed(100)
-DRONE_FILE = 18
+DRONE_FILE = 15
 DATA_DIR = "P:/DASA/EDITTS Drone Tracking/GFI/GPS Tracking"
 # DATA_DIR = "C:/Work/Drone_Tracking/EDITTS-Drone-Tracking/data/raw/"
 SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results"
 FIXED_WING = {"g2", "g4", "maja", "bixler", "x8", "kahu"}
 ROTARY_WING = {"g6", "f550", "drdc"}
 
-NUMBER_OF_PARTICLES = 700
-rw_cv_noise_covariance = 0.25
-fw_cv_noise_covariance = 0.003
-rw_hover_noise_covariance = 0.001
+NUMBER_OF_PARTICLES = 300
+rw_cv_noise_covariance = 2.5
+fw_cv_noise_covariance = 0.03
+rw_hover_noise_covariance = 0.01
 constant_turn_covariance = [0.1, 0.1]
 turn_rate_left = 0.5
 turn_rate_right = -0.5
@@ -65,7 +65,7 @@ ax.plot3D(location[:, 0],
 
 
 # location = location[int(len(location) * 0): int(len(location) * 0.05)]
-location = location[1250:1500]
+location = location[1250:1400]
 
 ax.plot3D(location[:, 0],
           location[:, 1],
@@ -118,12 +118,12 @@ model_mapping = [
                   ]
 
 
-transition = form_detection_transition_matrix(detection_matrix_split, [0.05, 0.05])
-
+# transition = form_detection_transition_matrix(detection_matrix_split, [0.05, 0.05])
+transition = [[0.93, 0.05, 0.1, 0.1], [0.03, 0.95, 0.1, 0.1], [0.1, 0.1, 0.93, 0.5], [0.1, 0.1, 0.05, 0.93]]
 measurement_model = LinearGaussian(
     ndim_state=9,  # Number of state dimensions (position, velocity and acceleration in 3D)
     mapping=(0, 3, 6),  # Locations of our position variables within the entire state space
-    noise_covar=np.diag([0.1, 0.1, 0.1]))
+    noise_covar=np.diag([1, 1, 1]))
 
 multi_model = MultiModelPredictor(transition, model_mapping, transition_model=dynamic_model_list)
 rao_multi_model = RaoBlackwellisedMultiModelPredictor(transition, model_mapping, transition_model=dynamic_model_list)
@@ -146,7 +146,7 @@ rao_updater = RaoBlackwellisedParticleUpdater(measurement_model=measurement_mode
 x_0, v_x, a_x, y_0, v_y, a_y, z_0, v_z, a_z = create_prior(location)
 
 samples = multivariate_normal.rvs(np.array([x_0, v_x, a_x, y_0, v_y, a_y, z_0, v_z, a_z]),
-                                  np.diag([0, 0, 0, 0, 0, 0, 0, 0, 0]), size=NUMBER_OF_PARTICLES)
+                                  np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]), size=NUMBER_OF_PARTICLES)
 
 
 def choose_model():
@@ -171,16 +171,13 @@ weighted_sum_per_model = []
 probability_of_each_craft = []
 counter = 0
 for iteration, measurement in enumerate(tqdm(measurements)):
-    # if iteration < 3:
-    #     prediction = multi_model.predict(prior_state, timestamp=measurement.timestamp, multi_craft=True)
-    # else:
+
     prediction = rao_multi_model.predict(prior_state, timestamp=measurement.timestamp, multi_craft=True)
 
     weighted_sum_per_model.append([sum([p.weight for p in prediction.particles if p.dynamic_model == j])
                                    for j in range(len(transition))])
     particle_proportions = [p.dynamic_model for p in prediction.particles]
     print([particle_proportions.count(i) for i in range(len(transition))])
-
     craft_sum = np.cumsum(detection_matrix_split)
     rw_prob = sum([weighted_sum_per_model[-1][i] for i in range(craft_sum[0])])
     fw_prob = sum([weighted_sum_per_model[-1][i] for i in range(craft_sum[0], craft_sum[1])])

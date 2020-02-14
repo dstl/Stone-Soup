@@ -3,7 +3,10 @@
   <component name="ChangeListManager">
     <list default="true" id="29641738-84e2-4ab8-9863-cba6ff5583f5" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RaoBlackwellised.py" beforeDir="false" afterPath="$PROJECT_DIR$/RaoBlackwellised.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/stonesoup/models/measurement/linear.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/models/measurement/linear.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/predictor/multi_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/predictor/multi_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/resampler/particle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/resampler/particle.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/stonesoup/updater/particle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/updater/particle.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />

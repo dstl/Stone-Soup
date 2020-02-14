@@ -79,6 +79,7 @@ class RaoBlackwellisedSystematicResampler(Resampler):
 
             u_j = u_i + (1 / n_particles) * j
             particle = particles_listed[np.argmax(u_j < cdf)]
+
             new_particles.append(
                 RaoBlackwellisedParticle(particle.state_vector,
                                          weight=weight,
