@@ -117,8 +117,6 @@ class PDAHypothesiser(Hypothesiser):
 
         # Common state & measurement prediction
         prediction = self.predictor.predict(track.state, timestamp=timestamp)
-        measurement_prediction = self.updater.predict_measurement(
-            prediction)
 
         # Missed detection hypothesis
         probability = Probability(1 - self.prob_detect*self.prob_gate)
@@ -126,8 +124,7 @@ class PDAHypothesiser(Hypothesiser):
             SingleProbabilityHypothesis(
                 prediction,
                 MissedDetection(timestamp=timestamp),
-                probability,
-                measurement_prediction))
+                probability))
 
         # True detection hypotheses
         for detection in detections:
