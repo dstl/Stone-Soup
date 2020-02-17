@@ -267,7 +267,6 @@ class RaoBlackwellisedParticleUpdater(Updater):
             sys.exit()
 
         for i in range(len(previous_probabilities)):
-            print(denominator[i] / sum(denominator))
             previous_probabilities[i] = denominator[i] / sum(denominator)
 
         return previous_probabilities

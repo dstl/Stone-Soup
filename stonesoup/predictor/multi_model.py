@@ -156,7 +156,7 @@ class RaoBlackwellisedMultiModelPredictor(Predictor):
                 if particle.dynamic_model == model_index:
 
                     # Change the value of the dynamic value randomly according to the defined transition matrix
-                    new_dynamic_model = np.argmax(particle.model_probabilities)
+                    new_dynamic_model = np.searchsorted(self.probabilities[model_index], random())
 
                     self.transition_model = self.model_list[particle.dynamic_model]
 
