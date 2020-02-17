@@ -13,7 +13,7 @@ class Sensor(Base):
     """
 
     @abstractmethod
-    def measure(**kwargs):
+    def measure(self, **kwargs):
         """Generate a measurement"""
         raise NotImplementedError
 
@@ -38,6 +38,6 @@ class Sensor3DCartesian(Sensor):
             origin")
 
     @abstractmethod
-    def measure(**kwargs):
+    def measure(self, **kwargs):
         """Generate a measurement"""
         raise NotImplementedError
