@@ -434,12 +434,11 @@ class AESARadar(Sensor):
             sky_state.timestamp)  # [az,el]
 
         # effects of e-scan on gain and beam width
-        spoiled_gain = 10 ** (self.antenna_gain / 10) * np.cos(beam_az) * \
-            np.cos(beam_el)
+        spoiled_gain = 10 ** (self.antenna_gain / 10) * np.cos(beam_az) * np.cos(beam_el)
         spoiled_width = self.beam_width / (np.cos(beam_az) * np.cos(beam_el))
         # state relative to radar (in cartesian space)
-        relative_vector = sky_state.state_vector[self.mapping] - \
-            self.translation_offset[self.mapping]
+        relative_vector = sky_state.state_vector[self.mapping] \
+                          - self.translation_offset[self.mapping]  # noqa E127
         relative_vector = self._rotation_matrix @ relative_vector
 
         # calculate target position in spherical coordinates
@@ -452,8 +451,7 @@ class AESARadar(Sensor):
         self.beam_shape.beam_width = spoiled_width  # beam spoiling to width
         directed_power = self.beam_shape.beam_power(relative_az, relative_el)
         # calculate signal to noise ratio
-        snr = self._snr_constant * rcs * spoiled_gain ** 2 * directed_power / \
-            (r[0] ** 4)
+        snr = self._snr_constant * rcs * spoiled_gain ** 2 * directed_power / (r[0] ** 4)
         # calculate probability of detection using the North's approximation
         det_prob = 0.5 * erfc(
             (-np.log(self.probability_false_alarm)) ** 0.5 - (
