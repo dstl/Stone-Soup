@@ -36,14 +36,13 @@ class RaoBlackwellisedParticle(Type):
     parent = Property(None, default=None, doc='Parent particle')
     dynamic_model = Property(int, doc='Assigned dynamic model')
     model_probabilities = Property(list, doc="The dynamic probabilities of changing models")
-    time_interval = Property(float, doc="The time interval between the previous particle and this one")
 
-    def __init__(self, state_vector, weight, dynamic_model, model_probabilities, time_interval,
+    def __init__(self, state_vector, weight, dynamic_model, model_probabilities,
                  parent=None, *args, **kwargs):
 
         if parent:
             parent.parent = None
-        super().__init__(state_vector, weight, dynamic_model, model_probabilities, time_interval,
+        super().__init__(state_vector, weight, dynamic_model, model_probabilities,
                          parent, *args, **kwargs)
 
 

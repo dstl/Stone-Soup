@@ -2,7 +2,6 @@
 from functools import lru_cache
 import numpy as np
 import sys
-from scipy.stats import multivariate_normal
 
 from .base import Updater
 from ..base import Property
@@ -11,8 +10,6 @@ from ..types.numeric import Probability
 from ..types.particle import Particle, RaoBlackwellisedParticle
 from ..types.prediction import ParticleMeasurementPrediction
 from ..types.update import ParticleStateUpdate
-from ..predictor.multi_model import MultiModelPredictor
-from ..predictor.multi_model import RaoBlackwellisedMultiModelPredictor
 
 
 class ParticleUpdater(Updater):
@@ -83,7 +80,7 @@ class ParticleUpdater(Updater):
             new_particles, timestamp=state_prediction.timestamp)
 
 
-class MultiModelParticleUpdater(Updater, RaoBlackwellisedMultiModelPredictor):
+class MultiModelParticleUpdater(Updater):
     """Simple Particle Updater
 
         Perform measurement update step in the standard Kalman Filter.
@@ -92,7 +89,7 @@ class MultiModelParticleUpdater(Updater, RaoBlackwellisedMultiModelPredictor):
     resampler = Property(Resampler,
                          doc='Resampler to prevent particle degeneracy')
 
-    def update(self, hypothesis, **kwargs):
+    def update(self, hypothesis, predictor, **kwargs):
         """Particle Filter update step
 
         Parameters
@@ -114,7 +111,7 @@ class MultiModelParticleUpdater(Updater, RaoBlackwellisedMultiModelPredictor):
         for particle in hypothesis.prediction.particles:
             particle.weight *= measurement_model.pdf(
                 hypothesis.measurement.state_vector, particle.state_vector,
-                **kwargs) * self.transition_matrix[particle.parent.dynamic_model][particle.dynamic_model]
+                **kwargs) * predictor.transition_matrix[particle.parent.dynamic_model][particle.dynamic_model]
 
         # Normalise the weights
         sum_w = Probability.sum(
@@ -160,7 +157,7 @@ class RaoBlackwellisedParticleUpdater(Updater):
     resampler = Property(Resampler,
                          doc='Resampler to prevent particle degeneracy')
 
-    def update(self, hypothesis, predictor, iteration, **kwargs):
+    def update(self, hypothesis, predictor, iteration, prior_timestamp, **kwargs):
         """Particle Filter update step
 
         Parameters
@@ -175,6 +172,8 @@ class RaoBlackwellisedParticleUpdater(Updater):
             The state posterior
         """
 
+        time_interval = hypothesis.prediction.timestamp - prior_timestamp
+
         if hypothesis.measurement.measurement_model is None:
             measurement_model = self.measurement_model
         else:
@@ -185,7 +184,7 @@ class RaoBlackwellisedParticleUpdater(Updater):
                 hypothesis.measurement.state_vector, particle.state_vector,
                 **kwargs) * predictor.transition_matrix[particle.parent.dynamic_model][particle.dynamic_model]
 
-            particle.model_probabilities = self.calculate_model_probabilities(particle, predictor)
+            particle.model_probabilities = self.calculate_model_probabilities(particle, predictor, time_interval)
 
         # Normalise the weights
         sum_w = Probability.sum(
@@ -217,13 +216,12 @@ class RaoBlackwellisedParticleUpdater(Updater):
                                          weight=particle.weight,
                                          parent=particle.parent,
                                          dynamic_model=particle.dynamicmodel,
-                                         model_probabilities=particle.model_probabilities,
-                                         time_interval=particle.time_interval))
+                                         model_probabilities=particle.model_probabilities))
 
         return ParticleMeasurementPrediction(
             new_particles, timestamp=state_prediction.timestamp)
 
-    def calculate_model_probabilities(self, particle, predictor):
+    def calculate_model_probabilities(self, particle, predictor, time_interval):
 
         previous_probabilities = particle.model_probabilities
 
@@ -232,36 +230,33 @@ class RaoBlackwellisedParticleUpdater(Updater):
 
             # if p(m_k|m_k-1) = 0 then p(m_k|x_1:k) = 0
             transition_probability = predictor.transition_matrix[particle.parent.dynamic_model][i]
-            if transition_probability == 0:
-                previous_probabilities[i] = 0
-                denominator.append(0)
-            else:
-                # Getting required states to apply the model to that state vector
-                parent_required_state_space = particle.parent.state_vector[np.array(predictor.position_mapping[i])]
+            # Getting required states to apply the model to that state vector
+            parent_required_state_space = particle.parent.state_vector[np.array(predictor.position_mapping[i])]
 
-                # The noiseless application of m_k onto x_k-1
-                mean = model.function(parent_required_state_space, time_interval=particle.time_interval, noise=False)
+            # The noiseless application of m_k onto x_k-1
 
-                # Input the indices that were removed previously
-                for j in range(len(particle.state_vector)):
-                    if j not in predictor.position_mapping[i]:
-                        mean = np.insert(mean, j, particle.state_vector[j])
+            mean = model.function(parent_required_state_space, time_interval=time_interval, noise=False)
 
-                # Extracting x, y, z from the particle
-                particle_position = self.measurement_model.matrix() @ particle.state_vector
+            # Input the indices that were removed previously
+            for j in range(len(particle.state_vector)):
+                if j not in predictor.position_mapping[i]:
+                    mean = np.insert(mean, j, particle.state_vector[j])
 
-                # p(x_k|m_k, x_k-1)
-                prob_position_given_model_and_old_position = self.measurement_model.pdf(particle_position, mean)
-                # p(m_k-1|x_1:k-1)
-                prob_previous_iteration_with_old_model = previous_probabilities[i]
+            # Extracting x, y, z from the particle
+            particle_position = self.measurement_model.matrix() @ particle.state_vector
+            # p(x_k|m_k, x_k-1)
+            prob_position_given_model_and_old_position = Probability(self.measurement_model.pdf(particle_position,
+                                                                                                mean))
+            # p(m_k-1|x_1:k-1)
+            prob_previous_iteration_with_old_model = Probability(previous_probabilities[i])
 
-                product_of_probs = prob_position_given_model_and_old_position * \
-                                        transition_probability * \
-                                            prob_previous_iteration_with_old_model
+            product_of_probs = Probability(prob_position_given_model_and_old_position *
+                                           transition_probability *
+                                           prob_previous_iteration_with_old_model)
 
-                denominator.append(product_of_probs)
+            denominator.append(product_of_probs)
 
-        if denominator.count(0) == 4:
+        if denominator.count(0) == len(denominator):
             print(particle)
             print(denominator)
             sys.exit()

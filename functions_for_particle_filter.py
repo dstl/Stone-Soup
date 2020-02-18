@@ -164,8 +164,6 @@ def form_detection_transition_matrix(matrix_split, probability_for_change):
     model_matrix_1 = form_transition_matrix([i for i in range(matrix_split[0])], probability_for_change[0])
     model_matrix_2 = form_transition_matrix([i for i in range(matrix_split[1])], probability_for_change[1])
 
-    print(sp.linalg.block_diag(np.array(model_matrix_1), np.array(model_matrix_2)))
-
     return sp.linalg.block_diag(np.array(model_matrix_1), np.array(model_matrix_2))
 
 
@@ -188,7 +186,7 @@ class PlotData:
                                          range(len(model_probabilities[0]))]
         self.sum_of_probs = sum([sum(self.craft_prob()[i]) for i in range(len(self.craft_prob()))])
 
-    def pf_vs_truth(self):
+    def calculate_sum_weighted_positions(self):
 
         weighted_positions = []
         for element in self.track:
@@ -199,11 +197,17 @@ class PlotData:
 
         sum_weighted_positions = [sum(element) for element in weighted_positions]
 
+        return sum_weighted_positions
+
+    def pf_vs_truth(self):
+
+        weighted_state = self.calculate_sum_weighted_positions()
+
         ax = plt.axes(projection="3d")
 
-        ax.plot3D(np.array([state[0] for state in sum_weighted_positions]).flatten(),
-                  np.array([state[3] for state in sum_weighted_positions]).flatten(),
-                  np.array([state[6] for state in sum_weighted_positions]).flatten(), color='coral',
+        ax.plot3D(np.array([state[0] for state in weighted_state]).flatten(),
+                  np.array([state[3] for state in weighted_state]).flatten(),
+                  np.array([state[6] for state in weighted_state]).flatten(), color='coral',
                   label='Weighted PF')
 
         ax.plot3D(np.array([state.state_vector[0] for state in self.truth]).flatten(),
@@ -249,7 +253,7 @@ class PlotData:
     def craft_prob(self):
 
         probability_of_each_craft = []
-        for i, element in enumerate(range(len(self.detection_matrix_split))):
+        for i in range(len(self.detection_matrix_split)):
             craft_sum = np.cumsum(self.detection_matrix_split)
             temp = []
             for entry in self.weighted_sum_per_model:
@@ -280,15 +284,16 @@ class PlotData:
 
     def plot_difference_metric(self):
 
-        difference = [np.linalg.norm(self.track[i].state_vector[[0, 3, 6]] - self.truth[i].state_vector) for i in
+        weighted_state = self.calculate_sum_weighted_positions()
+
+        difference = [np.linalg.norm(weighted_state[i][[0, 3, 6]] - self.truth[i].state_vector) for i in
                       range(len(self.track))]
+
         sum_of_difference = sum(difference)
-        print(difference)
-        print(sum_of_difference)
 
         plt.plot(range(len(difference)), difference)
         plt.xlabel('Timestep')
         plt.ylabel('Difference')
         plt.title("Distance Metric")
-        plt.text(100, 10, f"Total distance : {sum_of_difference}")
         plt.show()
+        print(f"Total distance : {sum_of_difference}")

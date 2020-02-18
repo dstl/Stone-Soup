@@ -5,37 +5,36 @@ from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionM
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.predictor.multi_model import MultiModelPredictor, RaoBlackwellisedMultiModelPredictor
 from stonesoup.models.measurement.linear import LinearGaussian
-from stonesoup.resampler.particle import SystematicResampler, RaoBlackwellisedSystematicResampler
+from stonesoup.resampler.particle import SystematicResampler, RaoBlackwellisedSystematicResampler, MultiResampler
 from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.updater.particle import ParticleUpdater, MultiModelParticleUpdater, RaoBlackwellisedParticleUpdater
 from stonesoup.types.numeric import Probability
 from stonesoup.types.state import ParticleState
 from stonesoup.types.detection import Detection
-from stonesoup.types.particle import Particle, RaoBlackwellisedParticle
+from stonesoup.types.particle import RaoBlackwellisedParticle
 from scipy.stats import multivariate_normal
 from stonesoup.types.track import Track
 from datetime import timedelta
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from datetime import datetime
-from operator import add
 from random import random, seed
 from tqdm import tqdm
 import numpy as np
 import os
 
 seed(100)
-DRONE_FILE = 15
+DRONE_FILE = 20
 DATA_DIR = "P:/DASA/EDITTS Drone Tracking/GFI/GPS Tracking"
 # DATA_DIR = "C:/Work/Drone_Tracking/EDITTS-Drone-Tracking/data/raw/"
 SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results"
 FIXED_WING = {"g2", "g4", "maja", "bixler", "x8", "kahu"}
 ROTARY_WING = {"g6", "f550", "drdc"}
 
-NUMBER_OF_PARTICLES = 300
-rw_cv_noise_covariance = 2.5
-fw_cv_noise_covariance = 0.03
-rw_hover_noise_covariance = 0.01
+NUMBER_OF_PARTICLES = 100
+rw_cv_noise_covariance = 1
+fw_cv_noise_covariance = 0.01
+rw_hover_noise_covariance = 0.5
 constant_turn_covariance = [0.1, 0.1]
 turn_rate_left = 0.5
 turn_rate_right = -0.5
@@ -63,14 +62,13 @@ ax.plot3D(location[:, 0],
           location[:, 1],
           location[:, 2])
 
-
 # location = location[int(len(location) * 0): int(len(location) * 0.05)]
-location = location[1250:1500]
+location = location[1000:1250]
 
 ax.plot3D(location[:, 0],
           location[:, 1],
           location[:, 2])
-# plt.show()
+plt.show()
 
 truth = GroundTruthPath()
 start_time = datetime.now()
@@ -85,9 +83,9 @@ for i in truth:
 
 dynamic_model_list_RW = [
                         # Rotary Wing
-                        CombinedLinearGaussianTransitionModel((ConstantVelocity(rw_cv_noise_covariance),
-                                                               ConstantVelocity(rw_cv_noise_covariance),
-                                                               ConstantVelocity(rw_cv_noise_covariance))),
+                        CombinedLinearGaussianTransitionModel((ConstantVelocity(fw_cv_noise_covariance),
+                                                               ConstantVelocity(fw_cv_noise_covariance),
+                                                               ConstantVelocity(fw_cv_noise_covariance))),
                         CombinedLinearGaussianTransitionModel((ConstantPosition(rw_hover_noise_covariance),
                                                                ConstantPosition(rw_hover_noise_covariance),
                                                                ConstantVelocity(rw_cv_noise_covariance)))
@@ -118,22 +116,21 @@ model_mapping = [
                   ]
 
 
-# transition = form_detection_transition_matrix(detection_matrix_split, [0.05, 0.05])
-transition = [[0.93, 0.05, 0.01, 0.01], [0.03, 0.95, 0.01, 0.01], [0.01, 0.01, 0.93, 0.5], [0.01, 0.01, 0.05, 0.93]]
+transition = form_detection_transition_matrix(detection_matrix_split, [0.05, 0.05])
+# transition = form_transition_matrix(dynamic_model_list, 0.05)
+print(transition)
 measurement_model = LinearGaussian(
     ndim_state=9,  # Number of state dimensions (position, velocity and acceleration in 3D)
     mapping=(0, 3, 6),  # Locations of our position variables within the entire state space
-    noise_covar=np.diag([1, 1, 1]))
+    noise_covar=np.diag([0.75, 0.75, 0.75]))
 
 multi_model = MultiModelPredictor(transition, model_mapping, transition_model=dynamic_model_list)
 rao_multi_model = RaoBlackwellisedMultiModelPredictor(transition, model_mapping, transition_model=dynamic_model_list)
 
 resampler = RaoBlackwellisedSystematicResampler()
+# resampler = MultiResampler(detection_matrix_split)
 updater = MultiModelParticleUpdater(measurement_model=measurement_model,
-                                    resampler=resampler,
-                                    transition_matrix=transition,
-                                    position_mapping=model_mapping,
-                                    transition_model=dynamic_model_list
+                                    resampler=resampler
                                     )
 
 rao_updater = RaoBlackwellisedParticleUpdater(measurement_model=measurement_model,
@@ -155,7 +152,7 @@ def choose_model():
 
 
 particles = [RaoBlackwellisedParticle(sample.reshape(-1, 1), weight=Probability(1/NUMBER_OF_PARTICLES),
-             dynamic_model=choose_model(), time_interval=start_time, model_probabilities=[0.5, 0, 0.5, 0])
+             dynamic_model=choose_model(), model_probabilities=[0.25, 0.25, 0.25, 0.25])
              for sample in samples]
 
 prior_state = ParticleState(particles, timestamp=start_time)
@@ -169,18 +166,21 @@ weighted_sum_per_model = []
 probability_of_each_craft = []
 for iteration, measurement in enumerate(tqdm(measurements)):
 
-    prediction = rao_multi_model.predict(prior_state, timestamp=measurement.timestamp, multi_craft=True)
-
+    prediction = rao_multi_model.predict(prior_state, timestamp=measurement.timestamp)
+    print(prediction)
     weighted_sum_per_model.append([sum([p.weight for p in prediction.particles if p.dynamic_model == j])
                                    for j in range(len(transition))])
 
     particle_proportions = [p.dynamic_model for p in prediction.particles]
+
     print([particle_proportions.count(i) for i in range(len(transition))])
 
     model_probabilities.append([sum([p.model_probabilities[i] for p in prediction.particles]) / NUMBER_OF_PARTICLES
                                 for i in range(len(transition))])
+
     print([sum([p.model_probabilities[i] for p in prediction.particles]) / NUMBER_OF_PARTICLES
            for i in range(len(transition))])
+
     dynamic_model_split.append([particle_proportions.count(i) for i in range(len(transition))])
 
     craft_sum = np.cumsum(detection_matrix_split)
@@ -199,7 +199,8 @@ for iteration, measurement in enumerate(tqdm(measurements)):
         print(f"Probability of Fixed Wing is : {cumulative_fw_prob / sum_of_probs}")
 
     hypothesis = SingleHypothesis(prediction, measurement)
-    post, n_eff = rao_updater.update(hypothesis, iteration=iteration, predictor=rao_multi_model)
+    post, n_eff = rao_updater.update(hypothesis, iteration=iteration, predictor=rao_multi_model,
+                                     prior_timestamp=prior_state.timestamp)
 
     effective_sample_size.append(n_eff)
     track.append(post)
@@ -213,5 +214,4 @@ data_plot.plot_neff()
 data_plot.particles_per_model()
 data_plot.rao_probabilities()
 data_plot.craft_prob_plot()
-
-print(f"Model Actually is : {model_type}")
+data_plot.plot_difference_metric()

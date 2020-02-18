@@ -6,6 +6,8 @@
       <change beforePath="$PROJECT_DIR$/RaoBlackwellised.py" beforeDir="false" afterPath="$PROJECT_DIR$/RaoBlackwellised.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/functions_for_particle_filter.py" beforeDir="false" afterPath="$PROJECT_DIR$/functions_for_particle_filter.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/stonesoup/predictor/multi_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/predictor/multi_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/resampler/particle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/resampler/particle.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/types/particle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/types/particle.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/stonesoup/updater/particle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/updater/particle.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -177,16 +179,5 @@
         </entry>
       </map>
     </option>
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/stonesoup/updater/particle.py</url>
-          <line>250</line>
-          <option name="timeStamp" value="6" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>
