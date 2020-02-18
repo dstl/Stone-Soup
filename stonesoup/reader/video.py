@@ -11,11 +11,13 @@ import numpy as np
 try:
     import ffmpeg
     import moviepy.editor as mpy
-except ImportError:
-    print("Usage of video processing classes requires that the optional"
-          "package dependencies 'moviepy' and 'ffmpeg-python' are installed. "
-          "This can be achieved by running 'python -m pip install .[video]'")
-    raise
+except ImportError as error:
+    raise ImportError(
+        "Usage of video processing classes requires that the optional"
+        "package dependencies 'moviepy' and 'ffmpeg-python' are installed. "
+        "This can be achieved by running "
+        "'python -m pip install stonesoup[video]'")\
+        from error
 
 import threading
 from queue import Queue
@@ -69,7 +71,7 @@ class FrameReader(SensorDataReader):
         : set of :class:`~.ImageFrame`
             Generated frame in the time step
         """
-        yield self.frames_gen()
+        yield from self.frames_gen()
 
 
 class VideoClipReader(FileReader, FrameReader):
