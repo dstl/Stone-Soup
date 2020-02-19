@@ -47,8 +47,9 @@ class GibbsInitiator(OrbitalInitiator):
         Parameters
         ----------
         detections : list of :class:`~.Detection` triples
-            Exactly 3 position vectors are used to generate a track. Each.
-            element in the list is a triple of detections.
+            Exactly 3 position vectors are used to generate a track. Each
+            element in the list is a triple of detections. Position
+            vectors must be in ECI coordinates.
         tol_check : float
             A parameter setting to what precision the assertion that the
             dot product of the unit vectors of r0 with the cross of r1
@@ -57,12 +58,13 @@ class GibbsInitiator(OrbitalInitiator):
         Returns
         -------
         : set of :class:`~.Track`
-            Tracks generated from detections
+            Set of :class:`~.Track`, each of which is composed of
+            :class:`~.OrbitalState`
         """
 
         # Initialise tracks container.
         tracks = set()
-        # Run through the list of detectionsx
+        # Run through the list of detections
         for detection in detections:
 
             # TODO: Work out how to do this with more than three input states
@@ -136,7 +138,8 @@ class LambertInitiator(OrbitalInitiator):
                             doc="The precision with which to calculate the"
                             "value of z using Newton's method")
 
-    def initiate(self, detections, direction="", tol_check=1e-5, **kwargs):
+    def initiate(self, detections, true_anomalies=[], directions=[],
+                 tol_check=1e-5, **kwargs):
         r"""Generate tracks from detections
 
         Parameters
@@ -144,11 +147,20 @@ class LambertInitiator(OrbitalInitiator):
         detections : list of :class:`~.Detection` doubles
             Exactly 2 position vectors are used to generate a track. Each
             element in the list is a pair of timestamped detections.
-        direction : char (default is None)
-            prograde, retrograde, or None. The assumed direction of travel
-            used to calculate the angular deviation. In the event that it
-            isn't specified, the smallest implied angular deviation is
-            used.
+            Postion vectors must be in ECI coordinates.
+        true_anomalies : list of float (optional, default is empty)
+            A list of true anomaly deltas with length equal to the number of
+            detection pairs. If the list element is specified then the
+            calculation of true anomaly from the detections (and the
+            direction ambiguity) is bypassed. No checking for consistency
+            between the detections and the true anomaly is undertaken.
+        directions : list of char (optional, default is empty)
+            A list of length equal to the number of detection pairs.
+            Allowed terms are prograde or retrograde. The direction of
+            travel used to calculate the angular deviation. In the event
+            that it isn't specified, the smallest implied angular
+            deviation is used. Alternatively, if a single item is
+            specified then that direction is applied to all detections.
         tol_check : float
             A parameter setting to what precision the assertion that the
             dot product of the unit vectors of r0 with the cross of r1
@@ -157,15 +169,28 @@ class LambertInitiator(OrbitalInitiator):
         Returns
         -------
         : set of :class:`~.Track`
-            Tracks generated from detections
+            set of :class:`~.Tracks`, composed of :class:`~.OrbitalState`
         """
 
         # Initialise tracks container.
         tracks = set()
-        # Run through the list of detections
-        for detection in detections:
 
-            # TODO: Work out how to do this with more than three input states
+        # Check emptiness of true anomaly list
+        if len(true_anomalies) == 0:
+            true_anomalies = [None] * len(detections)
+
+        # If we only have one direction then use this for all. If, on the other
+        # hand we have 0, then set as undefined
+        if len(directions) == 0:
+            directions = [''] * len(detections)
+        elif len(directions) == 1:
+            directions = [directions[0]] * len(detections)
+
+        # Run through the list of detections (and corresponding lists)
+        for detection, true_anomaly, direction in \
+                zip(detections, true_anomalies, directions):
+
+            # TODO: Work out how to do this with more than two input states
             # TODO: Presumably it's then a fitting problem
             if len(detection) != 2:
                 raise TypeError("Number of detections must be 2")
@@ -180,41 +205,27 @@ class LambertInitiator(OrbitalInitiator):
             # position vector norms
             r = np.linalg.norm(br, axis=1)
 
-            """At this point one must decide on either a prograde or retrograde 
-            orbit. There's a clear ambiguity in considering 2 points (it could
-            have gone round either way). We'll resolve this by assuming that 
-            the smallest angular deviation is correct, unless the <direction>
-            keyword is supplied."""
+            """If the true anomaly is not supplied then one must decide on 
+            either a prograde or a retrograde orbit. There's a clear ambiguity
+            in considering 2 points (it could have gone round either way). 
+            We'll resolve this by assuming that the smallest angular deviation 
+            is correct, unless the <direction> keyword is supplied."""
+            if true_anomaly is None:
+                crossr = np.atleast_2d(np.cross(br[0].ravel(), br[1].ravel())).T
+                cterm = np.arccos(np.dot(br[0].T, br[1])/(r[0]*r[1]))[0][0]
 
-            crossr = np.cross(br[0].ravel(), br[1].ravel())
-            cterm = np.arccos(np.dot(br[0], br[1])/(r[0]*r[1]))
-
-            if direction.lower() == "prograde":
-                if crossr[2] >= 0:
+                if (direction.lower() == "prograde" and crossr[2] >= 0) or \
+                        (direction.lower() == "retrograde" and crossr[2] < 0):
                     dtheta = cterm
-                else:
-                    dtheta = 2*np.pi - cterm
-            elif direction.lower() == "retrograde":
-                if crossr[2] >= 0:
+                elif (direction.lower() == "prograde" and crossr[2] < 0) or \
+                        (direction.lower() == "retrograde" and crossr[2] >= 0):
                     dtheta = 2*np.pi - cterm
                 else:
-                    dtheta = cterm
+                    # if direction isn't specified use the smallest angle (in 0 <
+                    # theta <= pi)
+                    dtheta = min(cterm % (2*np.pi), (2*np.pi-cterm) % (2*np.pi))
             else:
-                # It's surely possible to combine the following into a single
-                # statement
-                dtheta = min(cterm, 2*np.pi-cterm)
-                argthe = np.argmin((cterm, 2*np.pi-cterm))
-
-                # Work out what the direction is (there's no value in this at
-                # present)
-                if (crossr[2] >= 0 & argthe == 0) | \
-                        (crossr[2] < 0 & argthe == 1):
-                    direction = "prograde"
-                elif (crossr[2] < 0 & argthe == 0) | \
-                        (crossr[2] >= 0 & argthe == 1):
-                    direction = "retrograde"
-                else:
-                    return ValueError(" Shouldn't get to this place!")
+                dtheta = true_anomaly
 
             biga = np.sin(dtheta) * np.sqrt((r[0]*r[1])/(1 - np.cos(dtheta)))
 
@@ -234,7 +245,7 @@ class LambertInitiator(OrbitalInitiator):
                             (np.sqrt(y) + biga*np.sqrt(1/(2*y)))
                 else:
                     bigfp = (y/stumpf_c(z))**1.5 * (
-                            (1/2*z)*(stumpf_c(z) -
+                            (1/(2*z))*(stumpf_c(z) -
                                      3*stumpf_s(z)/(2*stumpf_c(z))) +
                             (3*stumpf_s(z)**2/(4*stumpf_c(z)))) + biga/8 * \
                             (3*stumpf_s(z)/stumpf_c(z) * np.sqrt(y) +

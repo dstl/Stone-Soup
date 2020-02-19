@@ -1,12 +1,13 @@
 import numpy as np
 import pytest
+from datetime import datetime, timedelta
 
 from ...types.detection import Detection
-from ..preliminaryorbitdetermination import GibbsInitiator
+from ..preliminaryorbitdetermination import GibbsInitiator, LambertInitiator
 
 
 def test_gibbsinitiator():
-    """Follow example 5.1 from [1]
+    """Example 5.1 from [1]
 
     Using three position vectors initialise a track using the Gibbs
     initiator. Then check with the answer in the book. Note that [1]
@@ -36,5 +37,67 @@ def test_gibbsinitiator():
     out_track = out_tracks.pop()
 
     assert(np.allclose(out_cart, out_track[1].state_vector, rtol=1e-5))
+
+
+def test_lambert_initiator():
+    """Examples 5.2 and 5.3 in [1]
+
+    Using two timestamped position vectors to initialise a track using the
+    Lambert/Laplace-based initiator. Then check with the answer in the book.
+    Note that [1] has rounding issues.
+
+    Reference
+    ---------
+        1. Curtis, H. D. 2010, Orbital Mechanics for Engineering Students,
+        Third Edition, Elsevier
+
+    """
+    """Example 5.2"""
+    # Create the initiator
+    linitiator = LambertInitiator(grav_parameter=3.986004418e5)
+
+    # Set a time interval
+    time1 = datetime.now()
+    time2 = time1 + timedelta(hours=1)
+
+    # Two position vectors
+    r1 = Detection(np.array([[5000], [10000], [2100]]), timestamp=time1)
+    r2 = Detection(np.array([[-14600], [2500], [7000]]), timestamp=time2)
+
+    # These are the answers we aim to arrive at
+    v1 = np.array([[-5.9925], [1.9254], [3.2456]])
+    v2 = np.array([[-3.3125], [-4.1966], [-0.38529]])
+    oc1 = np.concatenate((r1.state_vector, v1))
+    oc2 = np.concatenate((r2.state_vector, v2))
+
+    # Do the calculation
+    otracks = linitiator.initiate([(r1, r2)], directions=["prograde"])
+
+    # Check that we got the answer right
+    otrack = otracks.pop()  # Pop the only track off the set
+    assert np.allclose(otrack[0].state_vector, oc1, rtol=1e-4)
+    assert np.allclose(otrack[1].state_vector, oc2, rtol=1e-4)
+
+    """Now Example 5.3"""
+    # A new time interval
+    time2 = time1 + timedelta(hours=13.5)
+
+    # Two new position vectors
+    r1 = Detection(np.array([[273378], [0], [0]]), timestamp=time1)
+    r2 = Detection(np.array([[145820], [12758], [0]]), timestamp=time2)
+
+    # This time there's a measured angular deviation
+    dtrue_anomaly = 5/180 * np.pi # That's 5 degrees.
+
+    # Set the answers to what the book says
+    v1 = np.array([[-2.4356], [0.26741], [0]])
+    oc1 = np.concatenate((r1.state_vector, v1))
+
+    # Do the calculation
+    otracks = linitiator.initiate([(r1, r2)], true_anomalies=[dtrue_anomaly])
+
+    # And check the answer is right
+    otrack = otracks.pop()
+    assert np.allclose(otrack[0].state_vector, oc1, rtol=1e-4)
 
 
