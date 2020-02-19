@@ -156,7 +156,7 @@ class RaoBlackwellisedMultiModelPredictor(MultiModelPredictor):
                     # Calculate the indices removed from the state vector to become compatible with the dynamic model
                     for j in range(len(particle.state_vector)):
                         if j not in self.position_mapping[particle.dynamic_model]:
-                            new_state_vector = np.insert(new_state_vector, j, particle.state_vector[j])
+                            new_state_vector = np.insert(new_state_vector, j, 0)
 
                     new_state_vector = np.reshape(new_state_vector, (-1, 1))
 
