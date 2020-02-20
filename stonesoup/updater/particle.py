@@ -2,6 +2,7 @@
 from functools import lru_cache
 import numpy as np
 import sys
+from collections import namedtuple
 
 from .base import Updater
 from ..base import Property
@@ -179,7 +180,7 @@ class RaoBlackwellisedParticleUpdater(Updater):
     resampler = Property(Resampler,
                          doc='Resampler to prevent particle degeneracy')
 
-    def update(self, hypothesis, predictor, iteration, prior_timestamp, **kwargs):
+    def update(self, hypothesis, predictor, prior_timestamp, transition, **kwargs):
         """Particle Filter update step
 
         Parameters
@@ -194,14 +195,19 @@ class RaoBlackwellisedParticleUpdater(Updater):
             The state posterior
         """
 
-        time_interval = hypothesis.prediction.timestamp - prior_timestamp
-
         if hypothesis.measurement.measurement_model is None:
             measurement_model = self.measurement_model
         else:
             measurement_model = hypothesis.measurement.measurement_model
+        time_interval = hypothesis.prediction.timestamp - prior_timestamp
 
         for particle in hypothesis.prediction.particles:
+            particle.model_probabilities = self.calculate_model_probabilities(particle, predictor, time_interval)
+
+        for particle in hypothesis.prediction.particles:
+
+            predictor.transition_matrix = transition
+
             prob_y_given_x = measurement_model.pdf(
                 hypothesis.measurement.state_vector, particle.state_vector,
                 **kwargs)
@@ -209,11 +215,11 @@ class RaoBlackwellisedParticleUpdater(Updater):
             prob_position_given_previous_position = sum(
                 self.calculate_model_probabilities(particle, predictor, time_interval))
 
-            proposal = self.calculate_model_probabilities(particle, predictor, time_interval)[particle.dynamic_model]
+            prob_proposal = self.calculate_model_probabilities(
+                particle, predictor, time_interval)[particle.dynamic_model] / prob_position_given_previous_position
 
-            particle.weight *= prob_position_given_previous_position * prob_y_given_x / proposal
-
-            particle.model_probabilities = self.calculate_model_probabilities(particle, predictor, time_interval)
+            particle.weight *= prob_y_given_x * prob_position_given_previous_position / prob_proposal
+            # particle.weight *= prob_y_given_x
 
         # Normalise the weights
         sum_w = Probability.sum(

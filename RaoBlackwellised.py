@@ -58,6 +58,9 @@ elif title_parse[3] in ROTARY_WING:
 location = import_track_data(DRONE_FILE, DATA_REDUCTION, DATA_DIR)
 # location = read_synthetic_csv(DATA_DIR + file_list[DRONE_FILE])
 
+for i, element in enumerate(location):
+    location[i][:3] = np.random.normal(element[:3], 0)
+
 ax = plt.axes(projection="3d")
 ax.plot3D(location[:, 0],
           location[:, 1],
@@ -117,16 +120,18 @@ model_mapping = [
                   ]
 
 
-# transition = form_detection_transition_matrix(detection_matrix_split, [0.05, 0.05])
+transition_block = form_detection_transition_matrix(detection_matrix_split, [0.05, 0.05])
 transition = form_transition_matrix(dynamic_model_list, 0.01)
 print(transition)
+print(transition_block)
 measurement_model = LinearGaussian(
     ndim_state=9,  # Number of state dimensions (position, velocity and acceleration in 3D)
     mapping=(0, 3, 6),  # Locations of our position variables within the entire state space
     noise_covar=np.diag([0.75, 0.75, 0.75]))
 
-multi_model = MultiModelPredictor(transition, model_mapping, transition_model=dynamic_model_list)
-rao_multi_model = RaoBlackwellisedMultiModelPredictor(transition, model_mapping, transition_model=dynamic_model_list)
+multi_model = MultiModelPredictor(transition_block, model_mapping, transition_model=dynamic_model_list)
+rao_multi_model = RaoBlackwellisedMultiModelPredictor(transition_block, model_mapping,
+                                                      transition_model=dynamic_model_list)
 
 resampler = RaoBlackwellisedSystematicResampler()
 # resampler = MultiResampler(detection_matrix_split)
@@ -172,19 +177,19 @@ for iteration, measurement in enumerate(tqdm(measurements)):
     prediction = rao_multi_model.predict(prior_state, timestamp=measurement.timestamp)
 
     weighted_sum_per_model.append([sum([p.weight for p in prediction.particles if p.dynamic_model == j])
-                                   for j in range(len(transition))])
+                                   for j in range(len(transition_block))])
 
     particle_proportions = [p.dynamic_model for p in prediction.particles]
 
     # print([particle_proportions.count(i) for i in range(len(transition))])
 
     model_probabilities.append([sum([p.model_probabilities[i] for p in prediction.particles]) / NUMBER_OF_PARTICLES
-                                for i in range(len(transition))])
+                                for i in range(len(transition_block))])
 
     # print([sum([p.model_probabilities[i] for p in prediction.particles]) / NUMBER_OF_PARTICLES
     #        for i in range(len(transition))])
 
-    dynamic_model_split.append([particle_proportions.count(i) for i in range(len(transition))])
+    dynamic_model_split.append([particle_proportions.count(i) for i in range(len(transition_block))])
 
     craft_sum = np.cumsum(detection_matrix_split)
     rw_prob = sum([weighted_sum_per_model[-1][i] for i in range(craft_sum[0])])
@@ -203,7 +208,7 @@ for iteration, measurement in enumerate(tqdm(measurements)):
         print(f"Probability of Fixed Wing is : {cumulative_fw_prob / sum_of_probs}")
 
     hypothesis = SingleHypothesis(prediction, measurement)
-    post, n_eff = rao_updater.update(hypothesis, iteration=iteration, predictor=rao_multi_model,
+    post, n_eff = rao_updater.update(hypothesis, iteration=iteration, predictor=rao_multi_model, transition=transition,
                                      prior_timestamp=prior_state.timestamp)
 
     effective_sample_size.append(n_eff)
