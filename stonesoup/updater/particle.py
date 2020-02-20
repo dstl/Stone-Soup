@@ -109,9 +109,8 @@ class MultiModelParticleUpdater(Updater):
             measurement_model = hypothesis.measurement.measurement_model
 
         for particle in hypothesis.prediction.particles:
-            particle.weight *= measurement_model.pdf(
-                hypothesis.measurement.state_vector, particle.state_vector,
-                **kwargs) * predictor.transition_matrix[particle.parent.dynamic_model][particle.dynamic_model]
+
+            particle.weight *= self.weight_calculator()
 
         # Normalise the weights
         sum_w = Probability.sum(
@@ -126,6 +125,29 @@ class MultiModelParticleUpdater(Updater):
         return ParticleStateUpdate(new_particles,
                                    hypothesis,
                                    timestamp=hypothesis.measurement.timestamp), n_eff
+
+    def weight_calculator(self):
+
+        prob_y_given_x = measurement_model.pdf(
+            hypothesis.measurement.state_vector, particle.state_vector,
+            **kwargs)
+        transition_probability = predictor.transition_matrix[particle.parent.dynamic_model][particle.dynamic_model]
+
+        parent_required_state_space = particle.parent.state_vector[
+            np.array(predictor.position_mapping[particle.parent.dynamic_model])]
+
+        mean = predictor.model_list[particle.parent.dynamic_model].function(
+            parent_required_state_space, time_interval=time_interval, noise=False)
+
+        for j in range(len(particle.state_vector)):
+            if j not in predictor.position_mapping[particle.parent.dynamic_model]:
+                mean = np.insert(mean, j, 0)
+
+        particle_position = self.measurement_model.matrix() @ particle.state_vector
+
+        prob_position_given_model_and_old_position = Probability(self.measurement_model.pdf(particle_position,
+                                                                                            mean))
+        return prob_y_given_x * transition_probability / prob_position_given_model_and_old_position
 
     @lru_cache()
     def predict_measurement(self, state_prediction, measurement_model=None,
@@ -180,9 +202,16 @@ class RaoBlackwellisedParticleUpdater(Updater):
             measurement_model = hypothesis.measurement.measurement_model
 
         for particle in hypothesis.prediction.particles:
-            particle.weight *= measurement_model.pdf(
+            prob_y_given_x = measurement_model.pdf(
                 hypothesis.measurement.state_vector, particle.state_vector,
-                **kwargs) * predictor.transition_matrix[particle.parent.dynamic_model][particle.dynamic_model]
+                **kwargs)
+
+            prob_position_given_previous_position = sum(
+                self.calculate_model_probabilities(particle, predictor, time_interval))
+
+            proposal = self.calculate_model_probabilities(particle, predictor, time_interval)[particle.dynamic_model]
+
+            particle.weight *= prob_position_given_previous_position * prob_y_given_x / proposal
 
             particle.model_probabilities = self.calculate_model_probabilities(particle, predictor, time_interval)
 
@@ -244,7 +273,7 @@ class RaoBlackwellisedParticleUpdater(Updater):
 
             # Extracting x, y, z from the particle
             particle_position = self.measurement_model.matrix() @ particle.state_vector
-            # p(x_k|m_k, x_k-1)
+
             prob_position_given_model_and_old_position = Probability(self.measurement_model.pdf(particle_position,
                                                                                                 mean))
             # p(m_k-1|x_1:k-1)
@@ -253,15 +282,10 @@ class RaoBlackwellisedParticleUpdater(Updater):
             product_of_probs = Probability(prob_position_given_model_and_old_position *
                                            transition_probability *
                                            prob_previous_iteration_with_old_model)
-
             denominator.append(product_of_probs)
 
-        if denominator.count(0) == len(denominator):
-            print(particle)
-            print(denominator)
-            sys.exit()
-
+        new_probabilities = []
         for i in range(len(previous_probabilities)):
-            previous_probabilities[i] = denominator[i] / sum(denominator)
+            new_probabilities.append(denominator[i] / sum(denominator))
 
-        return previous_probabilities
+        return new_probabilities

@@ -2,12 +2,12 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="29641738-84e2-4ab8-9863-cba6ff5583f5" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/Stone-Soup.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Stone-Soup.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/RaoBlackwellised.py" beforeDir="false" afterPath="$PROJECT_DIR$/RaoBlackwellised.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/functions_for_particle_filter.py" beforeDir="false" afterPath="$PROJECT_DIR$/functions_for_particle_filter.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/stonesoup/predictor/multi_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/predictor/multi_model.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/stonesoup/resampler/particle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/resampler/particle.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/stonesoup/types/particle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/types/particle.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/stonesoup/updater/particle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/updater/particle.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -24,7 +24,7 @@
     <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="restartRequiresConfirmation" value="false" />
-    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyIntegratedToolsModulesConfigurable" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -81,7 +81,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="cnntrackprocessor" type="PythonConfigurationType" factoryName="Python" temporary="true">
+    <configuration name="editts" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="Stone-Soup" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -89,11 +89,32 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../../EDITTS/fusion/computators/training/cnntrackclassifier" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../../EDITTS" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../../EDITTS/fusion/computators/training/cnntrackclassifier/cnntrackprocessor.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../../EDITTS/editts.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="inittest" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="Stone-Soup" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$USER_HOME$/Documents/Python Scripts" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$USER_HOME$/Documents/Python Scripts/inittest.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -123,34 +144,13 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="trackrnn" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <module name="Stone-Soup" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../../EDITTS/fusion/computators/training/rnntrackclassifier" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../../EDITTS/fusion/computators/training/rnntrackclassifier/trackrnn.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
     <recent_temporary>
       <list>
         <item itemvalue="Python.RaoBlackwellised" />
+        <item itemvalue="Python.inittest" />
+        <item itemvalue="Python.editts" />
         <item itemvalue="Python.base" />
         <item itemvalue="Python.particle" />
-        <item itemvalue="Python.cnntrackprocessor" />
-        <item itemvalue="Python.trackrnn" />
       </list>
     </recent_temporary>
   </component>
@@ -179,5 +179,16 @@
         </entry>
       </map>
     </option>
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/stonesoup/updater/particle.py</url>
+          <line>111</line>
+          <option name="timeStamp" value="8" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

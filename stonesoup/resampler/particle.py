@@ -109,7 +109,7 @@ class MultiResampler(Resampler):
         particles : list of :class:`~.Particle`
             The resampled particles
         """
-        print(particles)
+
         craft_sum = np.cumsum(self.detection_matrix_split)
 
         particles_per_craft = []

@@ -179,6 +179,7 @@ class PlotData:
         self.model_probabilities = model_probabilities
         self.weighted_sum_per_model = weighted_sum_per_model
         self.detection_matrix_split = detection_matrix_split
+        self.craft_sum = np.cumsum(self.detection_matrix_split)
 
         self.dynamic_model_plot = [[element[j] for element in dynamic_model_split] for j in
                                    range(len(dynamic_model_split[0]))]
@@ -250,11 +251,23 @@ class PlotData:
         plt.ylabel('Probability')
         plt.show()
 
+        craft_proba = []
+        for i, craft in enumerate(self.craft_sum):
+            if i == 0:
+                craft_proba.append(sum([sum(self.model_probabilities_plot[i])
+                                        for i in range(self.craft_sum[0])]))
+            else:
+                craft_proba.append(sum([sum(self.model_probabilities_plot[i])
+                                        for i in range(self.craft_sum[i-1], self.craft_sum[i])]))
+
+        for i, craft in enumerate(craft_proba):
+            print(f"Rao probability of craft {i} : {float(craft / sum(craft_proba))}")
+
     def craft_prob(self):
 
         probability_of_each_craft = []
         for i in range(len(self.detection_matrix_split)):
-            craft_sum = np.cumsum(self.detection_matrix_split)
+
             temp = []
             for entry in self.weighted_sum_per_model:
                 if i == 0:
@@ -263,7 +276,7 @@ class PlotData:
                     )
                 else:
                     temp.append(
-                        sum([entry[k] for k in range(craft_sum[i - 1], craft_sum[i])])
+                        sum([entry[k] for k in range(self.craft_sum[i - 1], self.craft_sum[i])])
                     )
             probability_of_each_craft.append([*temp])
 
