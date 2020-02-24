@@ -205,21 +205,20 @@ class RaoBlackwellisedParticleUpdater(Updater):
             particle.model_probabilities = self.calculate_model_probabilities(particle, predictor, time_interval)
 
         for particle in hypothesis.prediction.particles:
-
             predictor.transition_matrix = transition
 
             prob_y_given_x = measurement_model.pdf(
                 hypothesis.measurement.state_vector, particle.state_vector,
                 **kwargs)
 
-            prob_position_given_previous_position = sum(
+            """prob_position_given_previous_position = sum(
                 self.calculate_model_probabilities(particle, predictor, time_interval))
 
             prob_proposal = self.calculate_model_probabilities(
                 particle, predictor, time_interval)[particle.dynamic_model] / prob_position_given_previous_position
 
-            particle.weight *= prob_y_given_x * prob_position_given_previous_position / prob_proposal
-            # particle.weight *= prob_y_given_x
+            particle.weight *= prob_y_given_x * prob_position_given_previous_position / prob_proposal"""
+            particle.weight *= prob_y_given_x
 
         # Normalise the weights
         sum_w = Probability.sum(
@@ -262,14 +261,12 @@ class RaoBlackwellisedParticleUpdater(Updater):
 
         denominator = []
         for i, model in enumerate(predictor.model_list):
-
             # if p(m_k|m_k-1) = 0 then p(m_k|x_1:k) = 0
             transition_probability = predictor.transition_matrix[particle.parent.dynamic_model][i]
             # Getting required states to apply the model to that state vector
             parent_required_state_space = particle.parent.state_vector[np.array(predictor.position_mapping[i])]
 
             # The noiseless application of m_k onto x_k-1
-
             mean = model.function(parent_required_state_space, time_interval=time_interval, noise=False)
 
             # Input the indices that were removed previously

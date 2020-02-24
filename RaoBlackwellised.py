@@ -25,7 +25,7 @@ import numpy as np
 import os
 
 seed(100)
-DRONE_FILE = 15
+DRONE_FILE = 20
 DATA_DIR = "P:/DASA/EDITTS Drone Tracking/GFI/GPS Tracking"
 # DATA_DIR = "C:/Work/Drone_Tracking/EDITTS-Drone-Tracking/data/raw/"
 SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results"
@@ -208,7 +208,7 @@ for iteration, measurement in enumerate(tqdm(measurements)):
         print(f"Probability of Fixed Wing is : {cumulative_fw_prob / sum_of_probs}")
 
     hypothesis = SingleHypothesis(prediction, measurement)
-    post, n_eff = rao_updater.update(hypothesis, iteration=iteration, predictor=rao_multi_model, transition=transition,
+    post, n_eff = rao_updater.update(hypothesis, predictor=rao_multi_model, transition=transition,
                                      prior_timestamp=prior_state.timestamp)
 
     effective_sample_size.append(n_eff)
