@@ -270,6 +270,12 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
         doc=r"Transition noise covariance :math:`\Sigma` per unit time "
             r"interval (assumed seconds)")
 
+    _uanom_precision = Property(
+        float, default=1e-8, doc="The stopping point in the progression of "
+                                 "ever smaller f/f' ratio in the the Newton's "
+                                 "method calculation of universal anomaly."
+    )
+
     @property
     def ndim_state(self):
         """Dimension of the state vector is 6
@@ -389,8 +395,7 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
 
         # Get the universal anomaly
         u_anom = calculate_universal_anomaly(r_0, v_r_0, time_interval,
-                                             tolerance=orbital_state.
-                                             _eanom_precision)
+                                             tolerance=self._uanom_precision)
 
         # For convenience
         z = inv_sma * u_anom ** 2
