@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+from ..orbital_functions import keplerian_to_rv, tru_anom_from_mean_anom
 
 from ..base import Property
 from .array import CovarianceMatrix, StateVector
@@ -114,12 +115,6 @@ class OrbitalState(State):
             "dependant on which parameterisation is chosen."
     )
 
-    _eanom_precision = Property(
-        float, default=1e-8,
-        doc="Precision used for the stopping point in determining eccentric "
-            "anomaly from mean anomaly, (default: :math:`10^{-8}`)"
-    )
-
     metadata = Property(
         dict, default={}, doc="Dictionary containing metadata about orbit"
     )
@@ -159,7 +154,8 @@ class OrbitalState(State):
 
         elif self.coordinates.lower() == 'keplerian':
             # Convert Keplerian elements to Cartesian
-            self.state_vector = self._keplerian_to_rv(state_vector)
+            self.state_vector = keplerian_to_rv(state_vector, grav_parameter=
+                                                self.grav_parameter)
 
         elif self.coordinates.upper() == 'TLE':
             # TODO: ensure this works for parabolas and hyperbolas
@@ -167,18 +163,19 @@ class OrbitalState(State):
             semimajor_axis = np.cbrt(self.grav_parameter/state_vector[5][0]**2)
 
             # True anomaly from mean anomaly
-            tru_anom = self._tru_anom_from_mean_anom(state_vector[4][0],
-                                                     state_vector[2][0])
+            tru_anom = tru_anom_from_mean_anom(state_vector[4][0],
+                                               state_vector[2][0])
 
             # Use given and derived quantities to convert from Keplarian to
             # Cartesian
-            self.state_vector = self._keplerian_to_rv(
-                np.array([[state_vector[2][0]],
-                         [semimajor_axis],
-                         [state_vector[0][0]],
-                         [state_vector[1][0]],
-                         [state_vector[3][0]],
-                         [tru_anom]]))
+            self.state_vector = keplerian_to_rv(np.array([[state_vector[2][0]],
+                                                          [semimajor_axis],
+                                                          [state_vector[0][0]],
+                                                          [state_vector[1][0]],
+                                                          [state_vector[3][0]],
+                                                          [tru_anom]]),
+                                                grav_parameter=
+                                                self.grav_parameter)
 
         elif self.coordinates.lower() == 'equinoctial':
             # Calculate the Keplarian element quantities
@@ -190,236 +187,19 @@ class OrbitalState(State):
             eccentricity = state_vector[1][0]/(np.sin(arg_per + raan))
 
             # True anomaly from mean anomaly
-            tru_anom = self._tru_anom_from_mean_anom(mean_anomaly,
-                                                     eccentricity)
+            tru_anom = tru_anom_from_mean_anom(mean_anomaly, eccentricity)
 
             # Convert from Keplarian to Cartesian
-            self.state_vector = self._keplerian_to_rv(
-                np.array([[eccentricity],
-                         [semimajor_axis],
-                         [inclination],
-                         [raan],
-                         [arg_per],
-                         [tru_anom]]))
+            self.state_vector = keplerian_to_rv(np.array([[eccentricity],
+                                                          [semimajor_axis],
+                                                          [inclination],[raan],
+                                                          [arg_per],
+                                                          [tru_anom]]),
+                                                grav_parameter=
+                                                self.grav_parameter)
 
         else:
             raise TypeError("Coordinate keyword not recognised")
-
-    # A few helper functions compute intermediate quantities
-    def _eccentric_anomaly_from_mean_anomaly(self, mean_anomaly, eccentricity):
-        r"""Approximately solve the transcendental equation
-        :math:`E - e sin E = M_e` for E. This is an iterative process using
-        Newton's method.
-
-        Parameters
-        ----------
-        mean_anomaly : float
-            Current mean anomaly
-        eccentricity : float
-            Orbital eccentricity
-
-        Returns
-        -------
-        : float
-            Eccentric anomaly of the orbit
-        """
-
-        if mean_anomaly < np.pi:
-            ecc_anomaly = mean_anomaly + eccentricity / 2
-        else:
-            ecc_anomaly = mean_anomaly - eccentricity / 2
-
-        ratio = 1
-
-        while np.abs(ratio) > self._eanom_precision:
-            f = ecc_anomaly - eccentricity * np.sin(ecc_anomaly) - mean_anomaly
-            fp = 1 - eccentricity * np.cos(ecc_anomaly)
-            ratio = f / fp  # Need to check conditioning
-            ecc_anomaly = ecc_anomaly - ratio
-
-        return ecc_anomaly  # Check whether this ever goes outside 0 < 2pi
-
-    def _tru_anom_from_mean_anom(self, mean_anomaly, eccentricity):
-        r"""Get the true anomaly from the mean anomaly via the eccentric
-        anomaly
-
-        Parameters
-        ----------
-        mean_anomaly : float
-            The mean anomaly
-        eccentricity : float
-            Eccentricity
-
-        Returns
-        -------
-        : float
-            True anomaly
-
-        """
-        cos_ecc_anom = np.cos(self._eccentric_anomaly_from_mean_anomaly(
-            mean_anomaly, eccentricity))
-        sin_ecc_anom = np.sin(self._eccentric_anomaly_from_mean_anomaly(
-            mean_anomaly, eccentricity))
-
-        # This only works for M_e < \pi
-        # return np.arccos(np.clip((eccentricity - cos_ecc_anom) /
-        #                 (eccentricity*cos_ecc_anom - 1), -1, 1))
-
-        return np.remainder(np.arctan2(np.sqrt(1 - eccentricity**2) *
-                                       sin_ecc_anom,
-                                       cos_ecc_anom - eccentricity), 2*np.pi)
-
-    @staticmethod
-    def _perifocal_position(eccentricity, semimajor_axis, true_anomaly):
-        r"""The position vector in perifocal coordinates calculated from the
-        Keplarian elements
-
-        Parameters
-        ----------
-        eccentricity : float
-            Orbit eccentricity
-        semimajor_axis : float
-            Orbit semi-major axis
-        true_anomaly
-            Orbit true anomaly
-
-        Returns
-        -------
-        : numpy.array
-            :math:`[r_x, r_y, r_z]` position in perifocal coordinates
-
-        """
-
-        # Cache some trigonometric functions
-        c_tran = np.cos(true_anomaly)
-        s_tran = np.sin(true_anomaly)
-
-        return semimajor_axis * (1 - eccentricity ** 2) / \
-            (1 + eccentricity * c_tran) * np.array([[c_tran], [s_tran],
-                                                    [0]])
-
-    def _perifocal_velocity(self, eccentricity, semimajor_axis, true_anomaly):
-        r"""The velocity vector in perifocal coordinates calculated from the
-        Keplarian elements
-
-        Parameters
-        ----------
-        eccentricity : float
-            Orbit eccentricity
-        semimajor_axis : float
-            Orbit semi-major axis
-        true_anomaly
-            Orbit true anomaly
-
-        Returns
-        -------
-        : numpy.narray
-            :math:`[v_x, v_y, v_z]` position in perifocal coordinates
-
-        """
-
-        # Cache some trigonometric functions
-        c_tran = np.cos(true_anomaly)
-        s_tran = np.sin(true_anomaly)
-
-        return np.sqrt(self.grav_parameter / (semimajor_axis *
-                                              (1 - eccentricity**2))) * \
-            np.array([[-s_tran],
-                      [eccentricity + c_tran],
-                      [0]])
-
-    @staticmethod
-    def _perifocal_to_geocentric_matrix(inclination, raan, argp):
-        r"""Return the matrix which transforms from perifocal to geocentric
-        coordinates
-
-        Parameters
-        ----------
-        inclination : float
-            Orbital inclination
-        raan : float
-            Orbit Right Ascension of the ascending node
-        argp : float
-            The orbit's argument of periapsis
-
-        Returns
-        -------
-        : numpy.array
-            The [3x3] array that transforms from perifocal coordinates to
-            geocentric coordinates
-
-        """
-
-        # Cache some trig functions
-        s_incl = np.sin(inclination)
-        c_incl = np.cos(inclination)
-
-        s_raan = np.sin(raan)
-        c_raan = np.cos(raan)
-
-        s_aper = np.sin(argp)
-        c_aper = np.cos(argp)
-
-        # Build the matrix
-        return np.array([[-s_raan * c_incl * s_aper + c_raan * c_aper,
-                          -s_raan * c_incl * c_aper - c_raan * s_aper,
-                        s_raan * s_incl],
-                        [c_raan * c_incl * s_aper + s_raan * c_aper,
-                        c_raan * c_incl * c_aper - s_raan * s_aper,
-                        -c_raan * s_incl],
-                        [s_incl * s_aper, s_incl * c_aper, c_incl]])
-
-    def _keplerian_to_rv(self, state_vector):
-        r"""Convert the Keplarian orbital elements to position, velocity
-        state vector
-
-        Parameters
-        ----------
-        state_vector : numpy.array()
-            defined as
-
-            .. math::
-
-                X = [e, a, i, \Omega, \omega, \\theta]^{T} \\
-
-            where:
-            :math:`e` is the orbital eccentricity (unitless),
-            :math:`a` the semi-major axis (m),
-            :math:`i` the inclination (rad),
-            :math:`\Omega` is the longitude of the ascending node (rad),
-            :math:`\omega` the argument of periapsis (rad), and
-            :math:`\\theta` the true anomaly (rad)
-
-        Returns
-        -------
-        : numpy.array
-            Orbital state vector as :math:`[r_x, r_y, r_z, v_x, v_y, v_z]`
-
-        Warning
-        -------
-        No checking. Assumes Keplerian elements rendered correctly as above
-
-        """
-
-        # Calculate the position vector in perifocal coordinates
-        rx = self._perifocal_position(state_vector[0][0], state_vector[1][0],
-                                      state_vector[5][0])
-
-        # Calculate the velocity vector in perifocal coordinates
-        vx = self._perifocal_velocity(state_vector[0][0], state_vector[1][0],
-                                      state_vector[5][0])
-
-        # Transform position (perifocal) and velocity (perifocal)
-        # into geocentric
-        r = self._perifocal_to_geocentric_matrix(state_vector[2][0],
-                                                 state_vector[3][0],
-                                                 state_vector[4][0]) @ rx
-        v = self._perifocal_to_geocentric_matrix(state_vector[2][0],
-                                                 state_vector[3][0],
-                                                 state_vector[4][0]) @ vx
-
-        # And put them into the state vector
-        return np.concatenate((r, v), axis=0)
 
     # Some vector quantities
     @property

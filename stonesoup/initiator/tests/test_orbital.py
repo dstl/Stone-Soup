@@ -3,7 +3,8 @@ import pytest
 from datetime import datetime, timedelta
 
 from ...types.detection import Detection
-from ..preliminaryorbitdetermination import GibbsInitiator, LambertInitiator
+from ..preliminaryorbitdetermination import GibbsInitiator, LambertInitiator, \
+    RangeAltAzInitiator
 
 
 def test_gibbsinitiator():
@@ -99,5 +100,57 @@ def test_lambert_initiator():
     # And check the answer is right
     otrack = otracks.pop()
     assert np.allclose(otrack[0].state_vector, oc1, rtol=1e-4)
+
+
+def test_ranaltaz_initiatior():
+    """Example 5.10 in [1]
+
+    Simulate an observation which measures range, altitude and azimuth
+    and their rates
+
+    Reference
+    ---------
+        1. Curtis, H. D. 2010, Orbital Mechanics for Engineering
+        Students, Third Edition, Elsevier
+
+    """
+
+    # Set up the problem
+    # Location of sensor
+    latitude = 60*np.pi/180
+    height = 0
+    # Together the following give a local sidereal time of 300 degrees
+    longitude = 199.8782*np.pi/180
+    lst = datetime(2020, 1, 1, 0, 0, 0)
+
+    # The measurement
+    range = 2551e3
+    azimuth = np.pi/2
+    altitude = np.pi/6
+    drange = 0
+    dazimuth = 1.973e-3
+    daltitude = 9.864e-4
+
+    # The answer will be
+    out_state = np.array([[3831e3], [-2216e3], [6605e3],
+                          [1504], [-4562], [-292]])
+
+    # Create a detection
+    detection = Detection(np.array([[range],
+                                    [altitude],
+                                    [azimuth],
+                                    [drange],
+                                    [daltitude],
+                                    [dazimuth]]))
+    # Create the initiator
+    rinitiator = RangeAltAzInitiator()
+
+    # Initiate tracks
+    otracks = rinitiator.initiate([detection], latitude, longitude, height, lst)
+
+    # Check
+    otrack = otracks.pop()
+    print(otrack[0].state_vector)
+    assert np.allclose(otrack[0].state_vector, out_state, rtol=1e-4)
 
 

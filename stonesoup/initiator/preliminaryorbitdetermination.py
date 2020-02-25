@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+from datetime import datetime
+
 from ..orbital_functions import stumpf_s, stumpf_c
+from ..astronomical_conversions import topocentric_to_geocentric, \
+    topocentric_altaz_to_radec
 
 from .base import Initiator
 from ..base import Property
 from ..types.track import Track
 from ..types.orbitalstate import OrbitalState
+
 
 class OrbitalInitiator(Initiator):
     r"""Parent class of orbital initiators. Will take various input
@@ -104,8 +109,8 @@ class GibbsInitiator(OrbitalInitiator):
                 brr = det.state_vector
                 bvv = np.sqrt(self.grav_parameter/
                               (np.linalg.norm(bign)*np.linalg.norm(bigd))) * \
-                      (np.atleast_2d(np.cross(bigd.ravel(),
-                                              brr.ravel())).T/rr + bigs)
+                    (np.atleast_2d(np.cross(bigd.ravel(),
+                                            brr.ravel())).T/rr + bigs)
 
                 orbstate = OrbitalState(np.concatenate((brr, bvv), axis=0),
                                         timestamp=det.timestamp)
@@ -266,6 +271,182 @@ class LambertInitiator(OrbitalInitiator):
                                         timestamp=det.timestamp)
                 track.append(orbstate)
 
+            tracks.add(track)
+
+        return tracks
+
+
+class RangeAltAzInitiator(OrbitalInitiator):
+    """Implements an initiator based on measurements of range, altitude,
+    and azimuth, together with their rates, from an observatory. The
+    method is outlined in S5.8 in [1]. It's a bunch of coordinate
+    transforms, basically.
+
+    The :attr:`inititate()` function takes an input list of timestamped
+    detections and returns a :class:`~Set` of :class:`~Track` each of
+    which has two :class:`~OrbitalState`.
+
+    Reference
+    ---------
+        1. Curtis, H. D. 2010, Orbital Mechanics for Engineering
+        Students, Third Edition, Elsevier
+
+    """
+    latitude = Property(
+        float, default=None, doc="The latitude of the observer's location "
+                                 "(radians). Doesn't have to be supplied if "
+                                 "included as an argument to the "
+                                 ":attr:`initiate()` function."
+    )
+
+    longitude = Property(
+        float, default=None, doc="The longitude of the observer's location "
+                                 "(radians). Doesn't have to be supplied if "
+                                 "included as an argument to the "
+                                 ":attr:`initiate()` function."
+    )
+
+    height = Property(
+        float, default=None, doc="The height of the observer's location "
+                                 "(m) above the notional sea level. Doesn't "
+                                 "have to be supplied if included as an "
+                                 "argument to the "
+                                 ":attr:`initiate()` function."
+    )
+
+    datetime_ut = Property(
+        datetime, default=None, doc="The time (UT) at which the observation "
+                                    "takes place, as a :class:`~datetime` "
+                                    "object. If not supplied in the "
+                                    ":attr:`initiate()` function or here then"
+                                    ":attr:`datetime.utcnow()` is used."
+    )
+
+    inertial_angular_velocity = Property(
+        float, default=7.292115e-5, doc=r"The angular velocity of the primary "
+                                        "body in its inertial frame. Defaults"
+                                        "to the value of the Earth in rad "
+                                        "s^{-1}"
+    )
+
+    def initiate(self, detections, latitude=None, longitude=None, height=None,
+                 datetime_ut=None, **kwargs):
+        r"""Initiate tracks from detections
+
+        Parameters
+        ----------
+        detections : list of :class:`~.Detection`
+            A list of :class:`~Detection` objects with state vectors of
+            the form :math:`[r, a, A, \frac{dr}{dt} \frac{da}{dt}
+            \frac{dA}{dt}]^T`
+        latitude : float
+            The latitude of the observer's location (radians). If not
+            supplied or None, the parent class will be checked for an
+            instance before an error is thrown.
+        longitude : float
+            The longitude of the observer's location (radians). If not
+            supplied or None, the parent class will be checked for an
+            instance before an error is thrown.
+        height : float
+            The height of the observer's location (m) above the notional
+            sea level. If not supplier, or None, the parent class is
+            checked before an error is thrown.
+        datetime_ut : datetime
+            The time (UT) at which the observation takes place, as a
+            :class:`~datetime` object. If not supplied here the parent
+            class is checked and if that's none then
+            :attr:`datetime.utcnow()` is used.
+
+        kwargs :
+
+        Returns
+        -------
+        : set of :class:`~.Track`
+            set of :class:`~.Tracks`, composed of :class:`~.OrbitalState`
+
+        """
+        # Figure out where and when we are. Note that an extra layer of
+        # complexity will be required if we want to initialised tracks from
+        # different locations. We might add these a
+        if latitude is None:
+            if self.latitude is None:
+                raise ValueError("A latitude must be supplied somewhere")
+            else:
+                latitude = self.latitude
+
+        if longitude is None:
+            if self.longitude is None:
+                raise ValueError("A longitude must be supplied somewhere")
+            else:
+                longitude = self.longitude
+
+        if height is None:
+            if self.height is None:
+                raise ValueError("A height must be supplied somewhere")
+
+        if datetime_ut is None:
+            if self.datetime_ut is None:
+                ltd = datetime.utcnow()
+            else:
+                ltd = self.datetime_ut
+        else:
+            ltd = datetime_ut
+
+
+        # Initialise tracks container.
+        tracks = set()
+        # Run through the list of detections
+        for detection in detections:
+            # Extract information in the detection
+            rn_al_az = detection.state_vector
+            bigr = topocentric_to_geocentric(latitude, longitude, height,
+                                          datetime_ut=datetime_ut)
+            ra, dec = topocentric_altaz_to_radec(rn_al_az[1], rn_al_az[2],
+                                                 latitude, longitude,
+                                                 datetime_ut)
+
+            # Caching some trig results
+            sdec = np.sin(dec)
+            cdec = np.cos(dec)
+            cra = np.cos(ra)
+            sra = np.sin(ra)
+
+            # Unit vector direction
+            du_ran = np.array([cdec*cra, cdec*sra, sdec])
+
+            # Geocentric position
+            r = bigr + rn_al_az[0]*du_ran
+            omega = self.inertial_angular_velocity * np.array([[0], [0], [1]])
+            bigrdot = np.atleast_2d(np.cross(omega.ravel(), bigr.ravel())).T
+
+            # Caching more trig
+            slat = np.sin(latitude)
+            clat = np.cos(latitude)
+            salt = np.sin(rn_al_az[1])
+            calt = np.cos(rn_al_az[1])
+            saz = np.sin(rn_al_az[2])
+            caz = np.cos(rn_al_az[2])
+
+            # The rates of change of ra and dec are
+            decdot = (1/cdec) * (-rn_al_az[5] * clat * saz * cra + rn_al_az[4]
+                                 * (slat*calt - clat*caz*salt))
+
+            radot = self.inertial_angular_velocity + \
+                (rn_al_az[5] * caz * calt - rn_al_az[4] * saz * salt +
+                    decdot * saz * calt * np.tan(dec)) / \
+                (clat*salt - slat*caz*calt)
+
+            # Direction cosine rates vector
+            du_rho = np.array([-radot * sra * cdec - decdot * cra * sdec,
+                               radot * cra * cdec - decdot * sra * sdec,
+                               decdot * cdec])
+
+            # The velocity vector is then
+            v = bigrdot + rn_al_az[3]*du_ran + rn_al_az[0]*du_rho
+
+            # Finally construct the state vector
+            track = Track(OrbitalState(np.concatenate((r, v), axis=0),
+                                    timestamp=detection.timestamp))
             tracks.add(track)
 
         return tracks
