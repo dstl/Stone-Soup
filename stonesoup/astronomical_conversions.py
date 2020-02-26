@@ -151,12 +151,12 @@ def topocentric_altaz_to_radec(altitude, azimuth, latitude, longitude,
 
     # If the date time isn't specified use now().
     if datetime_ut is None:
-        ldt = datetime.now()
+        ldt = datetime.utcnow()
     else:
         ldt = datetime_ut
 
     # Ensure the azimuth sits between 0 and 2pi
-    azimuth = azimuth % 2*np.pi
+    azimuth = azimuth % (2*np.pi)
 
     # Some trigonometric pre-calculations
     clat = np.cos(latitude)

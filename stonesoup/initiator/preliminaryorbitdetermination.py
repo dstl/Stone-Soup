@@ -428,7 +428,7 @@ class RangeAltAzInitiator(OrbitalInitiator):
             caz = np.cos(rn_al_az[2])
 
             # The rates of change of ra and dec are
-            decdot = (1/cdec) * (-rn_al_az[5] * clat * saz * cra + rn_al_az[4]
+            decdot = (1/cdec) * (-rn_al_az[5] * clat * saz * calt + rn_al_az[4]
                                  * (slat*calt - clat*caz*salt))
 
             radot = self.inertial_angular_velocity + \
