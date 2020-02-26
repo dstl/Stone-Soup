@@ -6,16 +6,16 @@ import numpy as np
 @pytest.fixture()
 def transition_model1():
     class TestTransitionModel:
-        def function(self, state_vector, time_interval):
-            return state_vector + time_interval.total_seconds()
+        def function(self, state, time_interval):
+            return state.state_vector + time_interval.total_seconds()
     return TestTransitionModel()
 
 
 @pytest.fixture()
 def transition_model2():
     class TestTransitionModel:
-        def function(self, state_vector, time_interval):
-            return state_vector + 2*time_interval.total_seconds()
+        def function(self, state, time_interval):
+            return state.state_vector + 2*time_interval.total_seconds()
     return TestTransitionModel()
 
 
@@ -26,7 +26,7 @@ def measurement_model():
         ndim_meas = 2
 
         @staticmethod
-        def function(state_vector):
+        def function(state):
             matrix = np.array([[1, 0, 0, 0], [0, 0, 1, 0]])
-            return matrix @ state_vector
+            return matrix @ state.state_vector
     return TestMeasurementModel()
