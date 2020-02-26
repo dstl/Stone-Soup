@@ -3,6 +3,7 @@ import pytest
 from datetime import datetime, timedelta
 
 from ...types.detection import Detection
+from ...astronomical_conversions import local_sidereal_time
 from ..preliminaryorbitdetermination import GibbsInitiator, LambertInitiator, \
     RangeAltAzInitiator
 
@@ -121,7 +122,7 @@ def test_ranaltaz_initiatior():
     height = 0
     # Together the following give a local sidereal time of 300 degrees
     longitude = 199.8782*np.pi/180
-    lst = datetime(2020, 1, 1, 0, 0, 0)
+    local_time = datetime(2020, 1, 1, 0, 0, 0)
 
     # The measurement
     range = 2551e3
@@ -146,11 +147,10 @@ def test_ranaltaz_initiatior():
     rinitiator = RangeAltAzInitiator()
 
     # Initiate tracks
-    otracks = rinitiator.initiate([detection], latitude, longitude, height, lst)
+    otracks = rinitiator.initiate([detection], latitude, longitude, height, local_time)
 
     # Check
     otrack = otracks.pop()
-    print(otrack[0].state_vector)
-    assert np.allclose(otrack[0].state_vector, out_state, rtol=1e-4)
+    assert np.allclose(otrack[0].state_vector, out_state, rtol=1e-3)
 
 
