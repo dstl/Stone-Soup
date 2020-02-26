@@ -226,9 +226,15 @@ class RaoBlackwellisedParticleUpdater(Updater):
         for particle in hypothesis.prediction.particles:
             particle.weight /= sum_w
 
-        # Resample
-        new_particles, n_eff = self.resampler.resample(
-            hypothesis.prediction.particles)
+        n_eff = 1 / sum([p.weight * p.weight for p in hypothesis.prediction.particles])
+
+        # Only resamples if less than a quarter of the particles are effective.
+        if n_eff < len(hypothesis.prediction.particles) / 4:
+            # Resample
+            new_particles, n_eff = self.resampler.resample(
+                hypothesis.prediction.particles)
+        else:
+            new_particles = [particle for particle in hypothesis.prediction.particles]
 
         return ParticleStateUpdate(new_particles,
                                    hypothesis,
@@ -277,12 +283,12 @@ class RaoBlackwellisedParticleUpdater(Updater):
             # Extracting x, y, z from the particle
             particle_position = self.measurement_model.matrix() @ particle.state_vector
 
-            prob_position_given_model_and_old_position = Probability(self.measurement_model.pdf(particle_position,
-                                                                                                mean))
+            prob_position_given_model_and_old_position = self.measurement_model.pdf(particle_position,
+                                                                                                mean)
             # p(m_k-1|x_1:k-1)
-            prob_previous_iteration_with_old_model = Probability(previous_probabilities[i])
+            prob_previous_iteration_with_old_model = previous_probabilities[i]
 
-            product_of_probs = Probability(prob_position_given_model_and_old_position *
+            product_of_probs = (prob_position_given_model_and_old_position *
                                            transition_probability *
                                            prob_previous_iteration_with_old_model)
             denominator.append(product_of_probs)

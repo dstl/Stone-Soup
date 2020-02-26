@@ -66,7 +66,6 @@ class RaoBlackwellisedSystematicResampler(Resampler):
         n_particles = len(particles)
         weight = Probability(1/n_particles)
         cdf = np.cumsum([p.weight for p in particles])
-        n_eff = 1 / sum([p.weight * p.weight for p in particles])
 
         particles_listed = list(particles)
         # Pick random starting point
@@ -87,7 +86,7 @@ class RaoBlackwellisedSystematicResampler(Resampler):
                                          dynamic_model=particle.dynamic_model,
                                          model_probabilities=particle.model_probabilities))
 
-        return new_particles, n_eff
+        return new_particles
 
 
 class MultiResampler(Resampler):
