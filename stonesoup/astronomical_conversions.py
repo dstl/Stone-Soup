@@ -181,3 +181,125 @@ def topocentric_altaz_to_radec(altitude, azimuth, latitude, longitude,
                      hourangle
 
     return rightascension, declination
+
+
+def topocentric_altaz_to_radecrate(altitude, azimuth, altituderate,
+                                   azimuthrate, latitude, longitude,
+                                   datetime_ut=None, inertial_angular_velocity=
+                                   7.292115e-5):
+    """Convert the topocentric rates of change of altitude and azimuth of
+    a target observed from a particular location (specified by the
+    latitude and longitude, and time) into the (absolute) rates of change
+    of right ascension and declination
+
+    Parameters
+    ----------
+    altitude : float (radians)
+        Topocentric altitude above horizon
+    azimuth : float (radians)
+        Topocentric azimuth East of North
+    altituderate : float (radians/s)
+        Rate of change in altitude
+    azimuthrate : float (radians/s)
+        Rate of change in azimuth
+    latitude : float (radians)
+        Geodetic latitude
+    longitude : float (radians)
+        Geodetic longitiude
+    datetime_ut : datetime.datetime
+        The datetime object representing the time in UT when the
+        calculation is to be made. Default is datetime.utcnow()
+    inertial_angular_velocity : float (radians/s),
+        The angular velocity of the primary body in its inertial frame.
+        Defaults to the value of the Earth, 7.292115e-5 rad s^{-1}
+
+    Returns
+    -------
+
+    dRA/dt, dDec/dt : (radians/s, radians/s)
+        The rates of change of right ascension and declination of the
+        target
+
+    """
+
+    ra, dec = topocentric_altaz_to_radec(altitude, azimuth, latitude,
+                                         longitude, datetime_ut=datetime_ut)
+
+    # Caching some trig
+    slat = np.sin(latitude)
+    clat = np.cos(latitude)
+    salt = np.sin(altitude)
+    calt = np.cos(altitude)
+    saz = np.sin(azimuth)
+    caz = np.cos(azimuth)
+
+    # The rates of change of ra and dec are
+    decdot = (1/np.cos(dec)) * (-azimuthrate * clat * saz * calt +
+                                altituderate * (slat*calt - clat*caz*salt))
+
+    radot = inertial_angular_velocity + (azimuthrate * caz * calt -
+                                         altituderate * saz * salt + decdot *
+                                         saz * calt * np.tan(dec)) / \
+        (clat*salt - slat*caz*calt)
+
+    return radot, decdot
+
+
+def direction_cosine_unit_vector(ra, dec):
+    """Calculate the direction cosine unit vector from the Right 
+    Ascension and Declination
+    
+    Parameters
+    ----------
+    ra : float  # TODO - change this to bearing class?
+        The target Right Ascension
+    dec : float
+        The target's Declination
+        
+    Returns 
+    -------
+    : np.array
+        3x1 vector of direction cosines
+
+    """
+
+    # Cache some trig results
+    sdec = np.sin(dec)
+    cdec = np.cos(dec)
+    cra = np.cos(ra)
+    sra = np.sin(ra)
+
+    # Unit vector direction
+    return np.array([cdec*cra, cdec*sra, sdec])
+
+
+def direction_rate_cosine_unit_vector(ra, dec, radot, decdot):
+    r"""Calculate the direction rate cosine unit vector from the Right
+    Ascension, Declination, and their rates of change
+
+    Parameters
+    ----------
+    ra : float  # TODO - change this to bearing class?
+        The target Right Ascension (radian)
+    dec : float
+        The target's Declination (radian)
+    radot : float
+        The rate of change in Right Ascension (rad s^{-1})
+    decdot : float
+        The rate of change in Declination (rad s^{-1})
+
+    Returns
+    -------
+    : np.array
+        3x1 vector of direction cosines
+    """
+    # Cache some trig results
+    sdec = np.sin(dec)
+    cdec = np.cos(dec)
+    cra = np.cos(ra)
+    sra = np.sin(ra)
+
+    # Direction cosine rates vector
+    return np.array([-radot * sra * cdec - decdot * cra * sdec,
+                     radot * cra * cdec - decdot * sra * sdec,
+                     decdot * cdec])

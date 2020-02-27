@@ -154,3 +154,15 @@ def test_ranaltaz_initiatior():
     assert np.allclose(otrack[0].state_vector, out_state, rtol=1e-3)
 
 
+def test_gauss_initiator():
+    """ Example XX on [1]
+
+    Test initiator based on angles-only measurements
+
+     Reference
+    ---------
+        1. Curtis, H. D. 2010, Orbital Mechanics for Engineering
+        Students, Third Edition, Elsevier
+
+    """
+
