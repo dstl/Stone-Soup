@@ -5,7 +5,8 @@ from datetime import datetime
 
 from ..orbital_functions import stumpf_s, stumpf_c
 from ..astronomical_conversions import topocentric_to_geocentric, \
-    topocentric_altaz_to_radec
+    topocentric_altaz_to_radec, topocentric_altaz_to_radecrate, \
+    direction_cosine_unit_vector, direction_rate_cosine_unit_vector
 
 from .base import Initiator
 from ..base import Property
@@ -284,7 +285,7 @@ class RangeAltAzInitiator(OrbitalInitiator):
 
     The :attr:`inititate()` function takes an input list of timestamped
     detections and returns a :class:`~Set` of :class:`~Track` each of
-    which has two :class:`~OrbitalState`.
+    which has a single :class:`~OrbitalState`.
 
     Reference
     ---------
@@ -366,8 +367,9 @@ class RangeAltAzInitiator(OrbitalInitiator):
 
         """
         # Figure out where and when we are. Note that an extra layer of
-        # complexity will be required if we want to initialised tracks from
-        # different locations. We might add these a
+        # complexity will be required if we want to initialise tracks from
+        # different locations.
+        # TODO augment to be able to initilise tracks from different locations
         if latitude is None:
             if self.latitude is None:
                 raise ValueError("A latitude must be supplied somewhere")
@@ -392,65 +394,179 @@ class RangeAltAzInitiator(OrbitalInitiator):
         else:
             ltd = datetime_ut
 
-
         # Initialise tracks container.
         tracks = set()
         # Run through the list of detections
         for detection in detections:
             # Extract information in the detection
             rn_al_az = detection.state_vector
+            # Oberver's position
             bigr = topocentric_to_geocentric(latitude, longitude, height,
-                                          datetime_ut=datetime_ut)
+                                             datetime_ut=datetime_ut)
+            # Target's position on the sky
             ra, dec = topocentric_altaz_to_radec(rn_al_az[1], rn_al_az[2],
                                                  latitude, longitude,
                                                  datetime_ut)
+            # The cosine unit vector in the direction of the target
+            du_ran = direction_cosine_unit_vector(ra, dec)
 
-            # Caching some trig results
-            sdec = np.sin(dec)
-            cdec = np.cos(dec)
-            cra = np.cos(ra)
-            sra = np.sin(ra)
-
-            # Unit vector direction
-            du_ran = np.array([cdec*cra, cdec*sra, sdec])
-
-            # Geocentric position
+            # Geocentric position of the target
             r = bigr + rn_al_az[0]*du_ran
+
+            # Observer's velocity
             omega = self.inertial_angular_velocity * np.array([[0], [0], [1]])
             bigrdot = np.atleast_2d(np.cross(omega.ravel(), bigr.ravel())).T
 
-            # Caching more trig
-            slat = np.sin(latitude)
-            clat = np.cos(latitude)
-            salt = np.sin(rn_al_az[1])
-            calt = np.cos(rn_al_az[1])
-            saz = np.sin(rn_al_az[2])
-            caz = np.cos(rn_al_az[2])
+            # Rate of change in RA and Dec
+            radot, decdot = topocentric_altaz_to_radecrate(rn_al_az[1],
+                                                           rn_al_az[2],
+                                                           rn_al_az[4],
+                                                           rn_al_az[5],
+                                                           latitude, longitude,
+                                                           datetime_ut=
+                                                           datetime_ut,
+                                                           inertial_angular_velocity=
+                                                           self.inertial_angular_velocity)
 
-            # The rates of change of ra and dec are
-            decdot = (1/cdec) * (-rn_al_az[5] * clat * saz * calt + rn_al_az[4]
-                                 * (slat*calt - clat*caz*salt))
+            # Direction rate cosine vector
+            du_rho = direction_rate_cosine_unit_vector(ra, dec, radot, decdot)
 
-            radot = self.inertial_angular_velocity + \
-                (rn_al_az[5] * caz * calt - rn_al_az[4] * saz * salt +
-                    decdot * saz * calt * np.tan(dec)) / \
-                (clat*salt - slat*caz*calt)
-
-            # Direction cosine rates vector
-            du_rho = np.array([-radot * sra * cdec - decdot * cra * sdec,
-                               radot * cra * cdec - decdot * sra * sdec,
-                               decdot * cdec])
-
-            # The velocity vector is then
+            # The velocity vector in geocentric coordinates is then
             v = bigrdot + rn_al_az[3]*du_ran + rn_al_az[0]*du_rho
 
             # Finally construct the state vector
             track = Track(OrbitalState(np.concatenate((r, v), axis=0),
-                                    timestamp=detection.timestamp))
+                                       timestamp=detection.timestamp))
+            # And add it to the track container
             tracks.add(track)
 
         return tracks
 
 
 class GaussInitiator(OrbitalInitiator):
-    """Implements Gauss's method."""
+    """Implements Gauss's method for angles-only measurements. The method
+    is outlined in S5.10 of [1].
+
+    The :attr:`inititate()` function takes an input list of timestamped
+    RA, Dec triples and returns a :class:`~Set` of :class:`~Track` each
+    of which has three :class:`~OrbitalState`s.
+
+    Warning
+    -------
+    This currently assumes a static observer with respect to the Earth's
+    surface, i.e. the latitude, longitude and height do not change,
+    though the position vectors do, as the Earth rotates.
+
+    TODO: allow the possibility that the initiate() function takes
+    TODO: varying lat, lon, hei
+
+    Reference
+    ---------
+        1. Curtis, H. D. 2010, Orbital Mechanics for Engineering
+        Students, Third Edition, Elsevier
+
+    """
+    latitude = Property(
+        float, default=None, doc="The latitude of the observer's location "
+                                 "(radians). Doesn't have to be supplied if "
+                                 "included as an argument to the "
+                                 ":attr:`initiate()` function."
+    )
+
+    longitude = Property(
+        float, default=None, doc="The longitude of the observer's location "
+                                 "(radians). Doesn't have to be supplied if "
+                                 "included as an argument to the "
+                                 ":attr:`initiate()` function."
+    )
+
+    height = Property(
+        float, default=None, doc="The height of the observer's location "
+                                 "(m) above the notional sea level. Doesn't "
+                                 "have to be supplied if included as an "
+                                 "argument to the "
+                                 ":attr:`initiate()` function."
+    )
+
+    inertial_angular_velocity = Property(
+        float, default=7.292115e-5, doc=r"The angular velocity of the primary "
+                                        "body in its inertial frame. Defaults"
+                                        "to the value of the Earth in rad "
+                                        "s^{-1}"
+    )
+
+    def initiate(self, detections, latitude=None, longitude=None, height=None,
+                 **kwargs):
+        r"""Initiate tracks from detections
+
+        Parameters
+        ----------
+        detections : list of :class:`~.Detection`
+            A list of timestamped :class:`~Detection` triples each with state
+            vectors of the form :math:`[RA, Dec]^T`
+        latitude : float
+            The latitude of the observer's location (radians). If not
+            supplied or None, the parent class will be checked for an
+            instance before an error is thrown.
+        longitude : float
+            The longitude of the observer's location (radians). If not
+            supplied or None, the parent class will be checked for an
+            instance before an error is thrown.
+        height : float
+            The height of the observer's location (m) above the notional
+            sea level. If not supplier, or None, the parent class is
+            checked before an error is thrown.
+
+
+        kwargs :
+
+        Returns
+        -------
+        : set of :class:`~.Track`
+            set of :class:`~.Tracks`, composed of (three)
+            :class:`~.OrbitalState`
+
+        """
+
+        # Figure out where and when we are. Note that an extra layer of
+        # complexity will be required if we want to initialise tracks from
+        # different locations.
+        # TODO augment to be able to initilise tracks from different locations
+        if latitude is None:
+            if self.latitude is None:
+                raise ValueError("A latitude must be supplied somewhere")
+            else:
+                latitude = self.latitude
+
+        if longitude is None:
+            if self.longitude is None:
+                raise ValueError("A longitude must be supplied somewhere")
+            else:
+                longitude = self.longitude
+
+        if height is None:
+            if self.height is None:
+                raise ValueError("A height must be supplied somewhere")
+
+        if datetime_ut is None:
+            if self.datetime_ut is None:
+                ltd = datetime.utcnow()
+            else:
+                ltd = self.datetime_ut
+        else:
+            ltd = datetime_ut
+
+        # Initialise tracks container.
+        tracks = set()
+        # Run through the list of detections
+        for detection in detections:
+
+            if len(detection) != 3:
+                raise TypeError("Number of detections must be 3")
+
+            # extract the position vectors
+            br = np.array([detection[0].state_vector,
+                           detection[1].state_vector,
+                           detection[2].state_vector])
+
+        return
