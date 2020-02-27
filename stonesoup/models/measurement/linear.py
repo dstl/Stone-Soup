@@ -7,7 +7,6 @@ from ...base import Property
 from ...types.array import CovarianceMatrix
 from ..base import LinearModel, GaussianModel
 from .base import MeasurementModel
-from ...predictor.multi_model import MultiModelPredictor
 
 
 # TODO: Probably should call this LinearGaussianMeasurementModel

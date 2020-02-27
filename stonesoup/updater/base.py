@@ -24,7 +24,8 @@ class Updater(Base):
 
     @abstractmethod
     def predict_measurement(
-            self, state_prediction, measurement_model=None, **kwargs):
+            self, state_prediction, measurement_model=None, prior_timestamp=None,
+            transition=None, always_resample=True, **kwargs):
         """Get measurement prediction from state prediction
 
         Parameters
@@ -37,6 +38,20 @@ class Updater(Base):
             on the received measurement. The default is `None`, in which case
             the updater will use the measurement model specified on
             initialisation
+        prior_timestamp: :class: `~.datetime.datetime`
+            the timestamp associated with the prior measurement state.
+        transition: :np.array:
+            a non block diagonal transition_matrix example:
+                [[0.97 0.01 0.01 0.01]
+                 [0.01 0.97 0.01 0.01]
+                 [0.01 0.01 0.97 0.01]
+                 [0.01 0.01 0.01 0.97]]
+            which would represent using four models.
+        always_resample: :Boolean:
+            if True, then the particle filter will resample every time step.
+            Otherwise, will only resample when 25% or less of the particles
+            are deemed effective.
+            Calculated by 1 / sum(particle.weight^2) for all particles
 
         Returns
         -------
@@ -46,7 +61,7 @@ class Updater(Base):
         raise NotImplementedError
 
     @abstractmethod
-    def update(self, hypothesis, **kwargs):
+    def update(self, hypothesis, predictor=None, **kwargs):
         """Update state using prediction and measurement.
 
         Parameters
@@ -54,6 +69,10 @@ class Updater(Base):
         hypothesis : :class:`~.Hypothesis`
             Hypothesis with predicted state and associated detection used for
             updating.
+        predictor: :class:`~.Predictor`
+            Predictor which holds the transition matrix, dynamic models and the
+            mapping rules.
+            Optional
 
         Returns
         -------

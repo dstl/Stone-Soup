@@ -2,8 +2,22 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="29641738-84e2-4ab8-9863-cba6ff5583f5" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/Stone-Soup.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Stone-Soup.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+<<<<<<< HEAD
       <change beforePath="$PROJECT_DIR$/multi_model_particle_filter_testing.py" beforeDir="false" afterPath="$PROJECT_DIR$/multi_model_particle_filter_testing.py" afterDir="false" />
+=======
+      <change beforePath="$PROJECT_DIR$/RaoBlackwellised.py" beforeDir="false" afterPath="$PROJECT_DIR$/RaoBlackwellised.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/models/measurement/linear.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/models/measurement/linear.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/predictor/multi_model.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/predictor/particle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/predictor/particle.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/resampler/particle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/resampler/particle.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/types/particle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/types/particle.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/updater/base.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/updater/base.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/updater/particle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/updater/particle.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/updater/tests/test_particle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/updater/tests/test_particle.py" afterDir="false" />
+>>>>>>> RaoBlackwellised
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -19,7 +33,7 @@
     <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="restartRequiresConfirmation" value="false" />
-    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyIntegratedToolsModulesConfigurable" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -33,29 +47,13 @@
       </list>
     </option>
   </component>
+<<<<<<< HEAD
   <component name="RunManager" selected="Python.multi_model_particle_filter_testing">
     <configuration name="cnntrackprocessor" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <module name="Stone-Soup" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../../EDITTS/fusion/computators/training/cnntrackclassifier" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../../EDITTS/fusion/computators/training/cnntrackclassifier/cnntrackprocessor.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="multi_model_particle_filter_testing" type="PythonConfigurationType" factoryName="Python" temporary="true">
+=======
+  <component name="RunManager" selected="Python.RaoBlackwellised">
+    <configuration name="RaoBlackwellised" type="PythonConfigurationType" factoryName="Python" temporary="true">
+>>>>>>> RaoBlackwellised
       <module name="Stone-Soup" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -67,7 +65,40 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/RaoBlackwellised.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+<<<<<<< HEAD
+    <configuration name="multi_model_particle_filter_testing" type="PythonConfigurationType" factoryName="Python" temporary="true">
+=======
+    <configuration name="inittest" type="PythonConfigurationType" factoryName="Python" temporary="true">
+>>>>>>> RaoBlackwellised
+      <module name="Stone-Soup" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+<<<<<<< HEAD
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/multi_model_particle_filter_testing.py" />
+=======
+      <option name="WORKING_DIRECTORY" value="$USER_HOME$/Documents/Python Scripts" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$USER_HOME$/Documents/Python Scripts/inittest.py" />
+>>>>>>> RaoBlackwellised
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -76,7 +107,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="rnntrackprocessortraining" type="PythonConfigurationType" factoryName="Python" temporary="true">
+    <configuration name="super()" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="Stone-Soup" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -84,11 +115,11 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../../EDITTS/fusion/computators/training/rnntrackclassifier" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../../../../PythonScripts" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../../EDITTS/fusion/computators/training/rnntrackclassifier/rnntrackprocessortraining.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../../../../PythonScripts/super().py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -97,55 +128,51 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="trackcnn" type="PythonConfigurationType" factoryName="Python" temporary="true">
+    <configuration name="pytest for stonesoup.updater.tests.test_particle.test_rao_blackwellised_updater" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Stone-Soup" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../../EDITTS/fusion/computators/training/cnntrackclassifier" />
-      <option name="IS_MODULE_SDK" value="false" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../../EDITTS/fusion/computators/training/cnntrackclassifier/trackcnn.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;stonesoup.updater.tests.test_particle.test_rao_blackwellised_updater&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="trackrnn" type="PythonConfigurationType" factoryName="Python" temporary="true">
+    <configuration name="pytest in test_particle.py" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="Stone-Soup" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../../EDITTS/fusion/computators/training/rnntrackclassifier" />
-      <option name="IS_MODULE_SDK" value="false" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../../EDITTS/fusion/computators/training/rnntrackclassifier/trackrnn.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;$PROJECT_DIR$/stonesoup/updater/tests/test_particle.py&quot;" />
+      <option name="_new_targetType" value="&quot;PATH&quot;" />
       <method v="2" />
     </configuration>
     <recent_temporary>
       <list>
+<<<<<<< HEAD
         <item itemvalue="Python.multi_model_particle_filter_testing" />
         <item itemvalue="Python.cnntrackprocessor" />
         <item itemvalue="Python.trackrnn" />
         <item itemvalue="Python.rnntrackprocessortraining" />
         <item itemvalue="Python.trackcnn" />
+=======
+        <item itemvalue="Python.RaoBlackwellised" />
+        <item itemvalue="Python tests.pytest for stonesoup.updater.tests.test_particle.test_rao_blackwellised_updater" />
+        <item itemvalue="Python.super()" />
+        <item itemvalue="Python tests.pytest in test_particle.py" />
+        <item itemvalue="Python.inittest" />
+>>>>>>> RaoBlackwellised
       </list>
     </recent_temporary>
   </component>
