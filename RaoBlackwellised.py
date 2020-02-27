@@ -3,7 +3,7 @@ from functions_for_particle_filter import import_track_data, create_prior, read_
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
     ConstantVelocity, ConstantAcceleration, ConstantTurn, ConstantPosition, LinearTurn
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
-from stonesoup.predictor.multi_model import MultiModelPredictor, RaoBlackwellisedMultiModelPredictor
+from stonesoup.predictor.particle import MultiModelPredictor, RaoBlackwellisedMultiModelPredictor
 from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.resampler.particle import SystematicResampler, RaoBlackwellisedSystematicResampler, MultiResampler
 from stonesoup.types.hypothesis import SingleHypothesis
@@ -208,10 +208,9 @@ for iteration, measurement in enumerate(tqdm(measurements)):
         print(f"Probability of Fixed Wing is : {cumulative_fw_prob / sum_of_probs}")
 
     hypothesis = SingleHypothesis(prediction, measurement)
-    post, n_eff = rao_updater.update(hypothesis, predictor=rao_multi_model, transition=transition,
+    post = rao_updater.update(hypothesis, predictor=rao_multi_model, transition=transition,
                                      prior_timestamp=prior_state.timestamp)
 
-    effective_sample_size.append(n_eff)
     track.append(post)
     prior_state = track[-1]
 

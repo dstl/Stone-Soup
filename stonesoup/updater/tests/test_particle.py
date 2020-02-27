@@ -17,7 +17,7 @@ from ...types.particle import RaoBlackwellisedParticle
 from ...resampler.particle import RaoBlackwellisedSystematicResampler
 from ...models.transition.linear import ConstantVelocity, ConstantAcceleration
 from ...models.transition.linear import CombinedLinearGaussianTransitionModel
-from ...predictor.multi_model import RaoBlackwellisedMultiModelPredictor
+from ...predictor.particle import RaoBlackwellisedMultiModelPredictor
 from ...types.prediction import ParticleState
 
 
@@ -27,23 +27,23 @@ def test_particle():
                         noise_covar=np.array([[0.04]]))
     timestamp = datetime.datetime.now()
     particles = [Particle(np.array([[10], [10]]),
-                          1 / 9, dynamic_model=0),
+                          1 / 9),
                  Particle(np.array([[10], [20]]),
-                          1 / 9, dynamic_model=0),
+                          1 / 9),
                  Particle(np.array([[10], [30]]),
-                          1 / 9, dynamic_model=0),
+                          1 / 9),
                  Particle(np.array([[20], [10]]),
-                          1 / 9, dynamic_model=0),
+                          1 / 9),
                  Particle(np.array([[20], [20]]),
-                          1 / 9, dynamic_model=0),
+                          1 / 9),
                  Particle(np.array([[20], [30]]),
-                          1 / 9, dynamic_model=0),
+                          1 / 9),
                  Particle(np.array([[30], [10]]),
-                          1 / 9, dynamic_model=0),
+                          1 / 9),
                  Particle(np.array([[30], [20]]),
-                          1 / 9, dynamic_model=0),
+                          1 / 9),
                  Particle(np.array([[30], [30]]),
-                          1 / 9, dynamic_model=0),
+                          1 / 9),
                  ]
 
     prediction = ParticleStatePrediction(particles,
@@ -52,7 +52,7 @@ def test_particle():
     resampler = SystematicResampler()
     updater = ParticleUpdater(lg, resampler)
     eval_measurement_prediction = ParticleMeasurementPrediction([
-                                            Particle(i.state_vector[0], 1 / 9, dynamic_model=0)
+                                            Particle(i.state_vector[0], 1 / 9)
                                             for i in particles],
                                             timestamp=timestamp)
 

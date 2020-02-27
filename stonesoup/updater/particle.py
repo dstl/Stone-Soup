@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 from functools import lru_cache
 import numpy as np
-import sys
-from collections import namedtuple
 
 from .base import Updater
 from ..base import Property
 from ..resampler import Resampler
 from ..types.numeric import Probability
-from ..types.particle import Particle, RaoBlackwellisedParticle
+from ..types.particle import Particle, RaoBlackwellisedParticle, MultiModelParticle
 from ..types.prediction import ParticleMeasurementPrediction
 from ..types.update import ParticleStateUpdate
 
@@ -22,7 +20,7 @@ class ParticleUpdater(Updater):
     resampler = Property(Resampler,
                          doc='Resampler to prevent particle degeneracy')
 
-    def update(self, hypothesis, **kwargs):
+    def update(self, hypothesis, always_resample=True, **kwargs):
         """Particle Filter update step
 
         Parameters
@@ -30,6 +28,11 @@ class ParticleUpdater(Updater):
         hypothesis : :class:`~.Hypothesis`
             Hypothesis with predicted state and associated detection used for
             updating.
+        always_resample: :Boolean:
+            if True, then the particle filter will resample every time step.
+            Otherwise, will only resample when 25% or less of the particles
+            are deemed effective.
+            Calculated by 1 / sum(particle.weight^2) for all particles
 
         Returns
         -------
@@ -52,13 +55,19 @@ class ParticleUpdater(Updater):
         for particle in hypothesis.prediction.particles:
             particle.weight /= sum_w
 
-        # Resample
-        new_particles, n_eff = self.resampler.resample(
-            hypothesis.prediction.particles)
+        n_eff = 1 / sum([p.weight * p.weight for p in hypothesis.prediction.particles])
+
+        # Only resamples if less than a quarter of the particles are effective.
+        if n_eff < len(hypothesis.prediction.particles) / 4 or always_resample:
+            # Resample
+            new_particles = self.resampler.resample(
+                hypothesis.prediction.particles)
+        else:
+            new_particles = [particle for particle in hypothesis.prediction.particles]
 
         return ParticleStateUpdate(new_particles,
                                    hypothesis,
-                                   timestamp=hypothesis.measurement.timestamp), n_eff
+                                   timestamp=hypothesis.measurement.timestamp)
 
     @lru_cache()
     def predict_measurement(self, state_prediction, measurement_model=None,
@@ -90,7 +99,7 @@ class MultiModelParticleUpdater(Updater):
     resampler = Property(Resampler,
                          doc='Resampler to prevent particle degeneracy')
 
-    def update(self, hypothesis, predictor, **kwargs):
+    def update(self, hypothesis, predictor=None, always_resample=True, **kwargs):
         """Particle Filter update step
 
         Parameters
@@ -98,6 +107,14 @@ class MultiModelParticleUpdater(Updater):
         hypothesis : :class:`~.Hypothesis`
             Hypothesis with predicted state and associated detection used for
             updating.
+        predictor: :class:`~.Predictor`
+            Predictor which holds the transition matrix, dynamic models and the
+            mapping rules.
+        always_resample: :Boolean:
+            if True, then the particle filter will resample every time step.
+            Otherwise, will only resample when 25% or less of the particles
+            are deemed effective.
+            Calculated by 1 / sum(particle.weight^2) for all particles
 
         Returns
         -------
@@ -110,8 +127,9 @@ class MultiModelParticleUpdater(Updater):
             measurement_model = hypothesis.measurement.measurement_model
 
         for particle in hypothesis.prediction.particles:
-
-            particle.weight *= self.weight_calculator()
+            particle.weight *= measurement_model.pdf(
+                hypothesis.measurement.state_vector, particle.state_vector,
+                **kwargs)
 
         # Normalise the weights
         sum_w = Probability.sum(
@@ -119,36 +137,19 @@ class MultiModelParticleUpdater(Updater):
         for particle in hypothesis.prediction.particles:
             particle.weight /= sum_w
 
-        # Resample
-        new_particles, n_eff = self.resampler.resample(
-            hypothesis.prediction.particles)
+        n_eff = 1 / sum([p.weight * p.weight for p in hypothesis.prediction.particles])
+
+        # Only resamples if less than a quarter of the particles are effective.
+        if n_eff < len(hypothesis.prediction.particles) / 4 or always_resample:
+            # Resample
+            new_particles = self.resampler.resample(
+                hypothesis.prediction.particles)
+        else:
+            new_particles = [particle for particle in hypothesis.prediction.particles]
 
         return ParticleStateUpdate(new_particles,
                                    hypothesis,
-                                   timestamp=hypothesis.measurement.timestamp), n_eff
-
-    def weight_calculator(self):
-
-        prob_y_given_x = measurement_model.pdf(
-            hypothesis.measurement.state_vector, particle.state_vector,
-            **kwargs)
-        transition_probability = predictor.transition_matrix[particle.parent.dynamic_model][particle.dynamic_model]
-
-        parent_required_state_space = particle.parent.state_vector[
-            np.array(predictor.position_mapping[particle.parent.dynamic_model])]
-
-        mean = predictor.model_list[particle.parent.dynamic_model].function(
-            parent_required_state_space, time_interval=time_interval, noise=False)
-
-        for j in range(len(particle.state_vector)):
-            if j not in predictor.position_mapping[particle.parent.dynamic_model]:
-                mean = np.insert(mean, j, 0)
-
-        particle_position = self.measurement_model.matrix() @ particle.state_vector
-
-        prob_position_given_model_and_old_position = Probability(self.measurement_model.pdf(particle_position,
-                                                                                            mean))
-        return prob_y_given_x * transition_probability / prob_position_given_model_and_old_position
+                                   timestamp=hypothesis.measurement.timestamp)
 
     @lru_cache()
     def predict_measurement(self, state_prediction, measurement_model=None,
@@ -162,10 +163,10 @@ class MultiModelParticleUpdater(Updater):
             new_state_vector = measurement_model.function(
                 particle.state_vector, noise=0, **kwargs)
             new_particles.append(
-                Particle(new_state_vector,
-                         weight=particle.weight,
-                         parent=particle.parent,
-                         dynamic_model=particle.dynamicmodel))
+                MultiModelParticle(new_state_vector,
+                                   weight=particle.weight,
+                                   parent=particle.parent,
+                                   dynamic_model=particle.dynamicmodel))
 
         return ParticleMeasurementPrediction(
             new_particles, timestamp=state_prediction.timestamp)
@@ -180,7 +181,8 @@ class RaoBlackwellisedParticleUpdater(Updater):
     resampler = Property(Resampler,
                          doc='Resampler to prevent particle degeneracy')
 
-    def update(self, hypothesis, predictor, prior_timestamp, transition, **kwargs):
+    def update(self, hypothesis, predictor=None, prior_timestamp=None,
+               transition=None, always_resample=True, **kwargs):
         """Particle Filter update step
 
         Parameters
@@ -188,7 +190,23 @@ class RaoBlackwellisedParticleUpdater(Updater):
         hypothesis : :class:`~.Hypothesis`
             Hypothesis with predicted state and associated detection used for
             updating.
-
+        predictor: :class:`~.Predictor`
+            Predictor which holds the transition matrix, dynamic models and the
+            mapping rules.
+        prior_timestamp: :class: `~.datetime.datetime`
+            the timestamp associated with the prior measurement state.
+        transition: :np.array:
+            a non block diagonal transition_matrix example:
+                [[0.97 0.01 0.01 0.01]
+                 [0.01 0.97 0.01 0.01]
+                 [0.01 0.01 0.97 0.01]
+                 [0.01 0.01 0.01 0.97]]
+            which would represent using four models.
+        always_resample: :Boolean:
+            if True, then the particle filter will resample every time step.
+            Otherwise, will only resample when 25% or less of the particles
+            are deemed effective.
+            Calculated by 1 / sum(particle.weight^2) for all particles
         Returns
         -------
         : :class:`~.ParticleState`
@@ -229,16 +247,16 @@ class RaoBlackwellisedParticleUpdater(Updater):
         n_eff = 1 / sum([p.weight * p.weight for p in hypothesis.prediction.particles])
 
         # Only resamples if less than a quarter of the particles are effective.
-        if n_eff < len(hypothesis.prediction.particles) / 4:
+        if n_eff < len(hypothesis.prediction.particles) / 4 or always_resample:
             # Resample
-            new_particles, n_eff = self.resampler.resample(
+            new_particles = self.resampler.resample(
                 hypothesis.prediction.particles)
         else:
             new_particles = [particle for particle in hypothesis.prediction.particles]
 
         return ParticleStateUpdate(new_particles,
                                    hypothesis,
-                                   timestamp=hypothesis.measurement.timestamp), n_eff
+                                   timestamp=hypothesis.measurement.timestamp)
 
     @lru_cache()
     def predict_measurement(self, state_prediction, measurement_model=None,
