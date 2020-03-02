@@ -180,3 +180,29 @@ def test_basic_getter():
     # now test when the default is used
     test_object_default = TestGetter()
     assert test_object_default.times_two == 10
+
+
+def test_readonly():
+
+    class TestReadonly(Base):
+        readonly_property_default = Property(float, default=0, readonly=True)
+        readonly_property_no_default = Property(float, readonly=True)
+
+    test_object = TestReadonly(readonly_property_default=10,
+                               readonly_property_no_default=20)
+
+    # first test read
+    assert test_object.readonly_property_default == 10
+    assert test_object.readonly_property_no_default == 20
+
+    # then test that write raises an exception
+    with pytest.raises(AttributeError):
+        test_object.readonly_property_default = 20
+    with pytest.raises(AttributeError):
+        test_object.readonly_property_no_default = 10
+
+    # now test when the default is used
+    test_object_default = TestReadonly(readonly_property_no_default=20)
+    assert test_object_default.readonly_property_default == 0
+    with pytest.raises(AttributeError):
+        test_object_default.readonly_property_default = 20

@@ -79,6 +79,10 @@ class Property:
     A description string can also be provided which will be rendered in the
     documentation.
 
+    A property can be specified as read only using the (optional) ``readonly``
+    flag. Such properties can be written only once (when the parent object is
+    instantiated). Any subsequent write raises an ``AttributeError``
+
     Parameters
     ----------
     cls : class
@@ -88,6 +92,7 @@ class Property:
         to :class:`inspect.Parameter.empty` (alias :attr:`Property.empty`)
     doc : str, optional
         Doc string for property
+    readonly : bool, optional
 
     Attributes
     ----------
@@ -100,13 +105,25 @@ class Property:
     empty = inspect.Parameter.empty
     _property_name = None
 
-    def __init__(self, cls, *, default=inspect.Parameter.empty, doc=None):
+    def __init__(self, cls, *, default=inspect.Parameter.empty, doc=None,
+                 readonly=False):
         self.cls = cls
         self.default = default
         self.doc = doc
         self._setter = None
         self._getter = None
         self._deleter = None
+
+        if readonly:
+            def _setter(instance, value):
+                # if the value hasn't been set before then we can set it once
+                if not hasattr(instance, self._property_name):
+                    setattr(instance, self._property_name, value)
+                else:
+                    # if the value has been set, raise an AttributeError
+                    raise AttributeError(f'{self._property_name} is readonly')
+
+            self._setter = _setter
 
     def __get__(self, instance, owner):
         if instance is None:
