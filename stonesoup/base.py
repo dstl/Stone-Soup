@@ -104,22 +104,46 @@ class Property:
         self.cls = cls
         self.default = default
         self.doc = doc
+        self._setter = None
+        self._getter = None
+        self._deleter = None
 
     def __get__(self, instance, owner):
         if instance is None:
             return self
-        return getattr(instance, self._property_name)
+        if self._getter is None:
+            return getattr(instance, self._property_name)
+        else:
+            return self._getter(instance)
 
     def __set__(self, instance, value):
-        setattr(instance, self._property_name, value)
+        if self._setter is None:
+            setattr(instance, self._property_name, value)
+        else:
+            self._setter(instance, value)
 
     def __delete__(self, instance):
-        delattr(instance, self._property_name)
+        if self._deleter is None:
+            delattr(instance, self._property_name)
+        else:
+            self._deleter(instance, self._property_name)
 
     def __set_name__(self, owner, name):
         if not isinstance(owner, BaseMeta):
             raise AttributeError("Cannot use Property on this class type")
         self._property_name = "_property_{}".format(name)
+
+    def deleter(self, method):  # real signature unknown
+        """ Descriptor to change the deleter on a property. """
+        self._deleter = method
+
+    def getter(self, method):  # real signature unknown
+        """ Descriptor to change the getter on a property. """
+        self._getter = method
+
+    def setter(self, method):  # real signature unknown
+        """ Descriptor to change the setter on a property. """
+        self._setter = method
 
 
 class BaseMeta(ABCMeta):
