@@ -79,6 +79,10 @@ class Property:
     A description string can also be provided which will be rendered in the
     documentation.
 
+    A property can be specified as read only using the (optional) ``readonly``
+    flag. Such properties can be written only once (when the parent object is
+    instantiated). Any subsequent write raises an ``AttributeError``
+
     Parameters
     ----------
     cls : class
@@ -88,6 +92,7 @@ class Property:
         to :class:`inspect.Parameter.empty` (alias :attr:`Property.empty`)
     doc : str, optional
         Doc string for property
+    readonly : bool, optional
 
     Attributes
     ----------
@@ -100,26 +105,63 @@ class Property:
     empty = inspect.Parameter.empty
     _property_name = None
 
-    def __init__(self, cls, *, default=inspect.Parameter.empty, doc=None):
+    def __init__(self, cls, *, default=inspect.Parameter.empty, doc=None,
+                 readonly=False):
         self.cls = cls
         self.default = default
         self.doc = doc
+        self._setter = None
+        self._getter = None
+        self._deleter = None
+
+        if readonly:
+            def _setter(instance, value):
+                # if the value hasn't been set before then we can set it once
+                if not hasattr(instance, self._property_name):
+                    setattr(instance, self._property_name, value)
+                else:
+                    # if the value has been set, raise an AttributeError
+                    raise AttributeError(
+                        '{} is readonly'.format(self._property_name))
+
+            self._setter = _setter
 
     def __get__(self, instance, owner):
         if instance is None:
             return self
-        return getattr(instance, self._property_name)
+        if self._getter is None:
+            return getattr(instance, self._property_name)
+        else:
+            return self._getter(instance)
 
     def __set__(self, instance, value):
-        setattr(instance, self._property_name, value)
+        if self._setter is None:
+            setattr(instance, self._property_name, value)
+        else:
+            self._setter(instance, value)
 
     def __delete__(self, instance):
-        delattr(instance, self._property_name)
+        if self._deleter is None:
+            delattr(instance, self._property_name)
+        else:
+            self._deleter(instance, self._property_name)
 
     def __set_name__(self, owner, name):
         if not isinstance(owner, BaseMeta):
             raise AttributeError("Cannot use Property on this class type")
         self._property_name = "_property_{}".format(name)
+
+    def deleter(self, method):  # real signature unknown
+        """ Descriptor to change the deleter on a property. """
+        self._deleter = method
+
+    def getter(self, method):  # real signature unknown
+        """ Descriptor to change the getter on a property. """
+        self._getter = method
+
+    def setter(self, method):  # real signature unknown
+        """ Descriptor to change the setter on a property. """
+        self._setter = method
 
 
 class BaseMeta(ABCMeta):
