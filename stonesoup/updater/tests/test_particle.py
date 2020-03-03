@@ -218,7 +218,7 @@ def test_rao_blackwellised_updater():
 
     hypothesis = SingleHypothesis(prediction, measurement)
     # Run the actual updater on these two particles.
-    post, n_eff = updater.update(hypothesis, predictor=predictor,
+    post = updater.update(hypothesis, predictor=predictor, always_resample=False,
                                  prior_timestamp=start_time - datetime.timedelta(seconds=1), transition=transition)
 
     # Check to see that the probabilities sum to 1.

@@ -220,7 +220,8 @@ class RaoBlackwellisedParticleUpdater(Updater):
         time_interval = hypothesis.prediction.timestamp - prior_timestamp
 
         for particle in hypothesis.prediction.particles:
-            particle.model_probabilities = self.calculate_model_probabilities(particle, predictor, time_interval)
+            particle.model_probabilities = self.calculate_model_probabilities(
+                particle, predictor, time_interval)
 
         for particle in hypothesis.prediction.particles:
             predictor.transition_matrix = transition
@@ -286,12 +287,15 @@ class RaoBlackwellisedParticleUpdater(Updater):
         denominator = []
         for i, model in enumerate(predictor.model_list):
             # if p(m_k|m_k-1) = 0 then p(m_k|x_1:k) = 0
-            transition_probability = predictor.transition_matrix[particle.parent.dynamic_model][i]
+            transition_probability = predictor.transition_matrix[
+                particle.parent.dynamic_model][i]
             # Getting required states to apply the model to that state vector
-            parent_required_state_space = particle.parent.state_vector[np.array(predictor.position_mapping[i])]
+            parent_required_state_space = particle.parent.state_vector[
+                np.array(predictor.position_mapping[i])]
 
             # The noiseless application of m_k onto x_k-1
-            mean = model.function(parent_required_state_space, time_interval=time_interval, noise=False)
+            mean = model.function(parent_required_state_space,
+                                  time_interval=time_interval, noise=False)
 
             # Input the indices that were removed previously
             for j in range(len(particle.state_vector)):
@@ -301,8 +305,8 @@ class RaoBlackwellisedParticleUpdater(Updater):
             # Extracting x, y, z from the particle
             particle_position = self.measurement_model.matrix() @ particle.state_vector
 
-            prob_position_given_model_and_old_position = self.measurement_model.pdf(particle_position,
-                                                                                                mean)
+            prob_position_given_model_and_old_position = self.measurement_model.pdf(
+                particle_position, mean)
             # p(m_k-1|x_1:k-1)
             prob_previous_iteration_with_old_model = previous_probabilities[i]
 
