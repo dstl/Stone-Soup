@@ -121,7 +121,8 @@ class Property:
                     setattr(instance, self._property_name, value)
                 else:
                     # if the value has been set, raise an AttributeError
-                    raise AttributeError(f'{self._property_name} is readonly')
+                    raise AttributeError(
+                        '{} is readonly'.format(self._property_name))
 
             self._setter = _setter
 
