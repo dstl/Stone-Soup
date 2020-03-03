@@ -19,18 +19,112 @@ class OrbitalInitiator(Initiator):
     detections  (according to type) and return initial estimate of
     :class:`~OrbitalState`.
 
-    Properties
-    ----------
-    grav_parameter : float
-            The gravitational parameter, :math:`\mu = GM', defaults to
-            the Earth value of :math:`3.986004418 \times 10^{14} \,
-            \mathrm{m}^{3} \mathrm{s}^{-2}
-
     """
+    grav_parameter = Property(
+        float, default="3.986004418e14", doc=r"Standard gravitational "
+                                             r"parameter. Defaults to the "
+                                             r"Earth's value (3.986004418 "
+                                             r"\times 10^{14} mathrm{m}^{3} "
+                                             r"\mathrm{s}^{-2})."
+    )
 
-    grav_parameter = Property(float, default="3.986004418e14",
-                              doc=r"Standard gravitational parameter "
-                                  r"(mathrm{m}^{3} \mathrm{s}^{-2}")
+    latitude = Property(
+        float, default=None, doc="The latitude of the observer's location "
+                                 "(radians). Doesn't have to be supplied if "
+                                 "included as an argument to the "
+                                 ":attr:`initiate()` function."
+    )
+
+    longitude = Property(
+        float, default=None, doc="The longitude of the observer's location "
+                                 "(radians). Doesn't have to be supplied if "
+                                 "included as an argument to the "
+                                 ":attr:`initiate()` function."
+    )
+
+    height = Property(
+        float, default=None, doc="The height of the observer's location "
+                                 "(m) above the notional sea level. Doesn't "
+                                 "have to be supplied if included as an "
+                                 "argument to the :attr:`initiate()` function."
+    )
+
+    datetime_ut = Property(
+        datetime, default=None, doc="The time (UT) at which the observation "
+                                    "takes place, as a :class:`~datetime` "
+                                    "object. If not supplied in the "
+                                    ":attr:`initiate()` function or here then"
+                                    ":attr:`datetime.utcnow()` should be used."
+    )
+
+    inertial_angular_velocity = Property(
+        float, default=7.292115e-5, doc=r"The angular velocity of the primary "
+                                        "body in its inertial frame. Defaults"
+                                        "to the value of the Earth in rad "
+                                        "s^{-1}"
+    )
+
+    def _check_lat_lon_hei(self, latitude, longitude, height):
+        """Decide whether to one has been passed (lat, lon, hei). If not
+        use the native ones.
+
+        Parameters
+        ----------
+        latitude : float
+            Latitude to check (rad)
+        longitude : float
+            Longitude to check (rad)
+        height : float
+            Height to check (m)
+
+        Returns
+        -------
+        : float, float, float
+            Latitude, Longitude, Height
+
+        """
+        if latitude is None:
+            if self.latitude is None:
+                raise ValueError("A latitude must be supplied somewhere")
+            else:
+                latitude = self.latitude
+
+        if longitude is None:
+            if self.longitude is None:
+                raise ValueError("A longitude must be supplied somewhere")
+            else:
+                longitude = self.longitude
+
+        if height is None:
+            if self.height is None:
+                raise ValueError("A height must be supplied somewhere")
+
+        return latitude, longitude, height
+
+    def _check_time(self, datetime_ut):
+        """Check the datetime object, if None try to return the one in the
+        parent.
+
+        Parameters
+        ----------
+        datetime_ut : datetime.datetime
+            The datetime object to check
+
+        Returns
+        -------
+        : datetime.datetime
+            The returned datetime object
+
+        """
+        if datetime_ut is None:
+            if self.datetime_ut is None:
+                ltd = datetime.utcnow()
+            else:
+                ltd = self.datetime_ut
+        else:
+            ltd = datetime_ut
+
+        return ltd
 
 
 class GibbsInitiator(OrbitalInitiator):
@@ -285,7 +379,8 @@ class RangeAltAzInitiator(OrbitalInitiator):
 
     The :attr:`inititate()` function takes an input list of timestamped
     detections and returns a :class:`~Set` of :class:`~Track` each of
-    which has a single :class:`~OrbitalState`.
+    which has a single :class:`~OrbitalState`. At present the timestamp
+    must be in UT. No checking for timezone conversions is done.
 
     Reference
     ---------
@@ -293,45 +388,9 @@ class RangeAltAzInitiator(OrbitalInitiator):
         Students, Third Edition, Elsevier
 
     """
-    latitude = Property(
-        float, default=None, doc="The latitude of the observer's location "
-                                 "(radians). Doesn't have to be supplied if "
-                                 "included as an argument to the "
-                                 ":attr:`initiate()` function."
-    )
-
-    longitude = Property(
-        float, default=None, doc="The longitude of the observer's location "
-                                 "(radians). Doesn't have to be supplied if "
-                                 "included as an argument to the "
-                                 ":attr:`initiate()` function."
-    )
-
-    height = Property(
-        float, default=None, doc="The height of the observer's location "
-                                 "(m) above the notional sea level. Doesn't "
-                                 "have to be supplied if included as an "
-                                 "argument to the "
-                                 ":attr:`initiate()` function."
-    )
-
-    datetime_ut = Property(
-        datetime, default=None, doc="The time (UT) at which the observation "
-                                    "takes place, as a :class:`~datetime` "
-                                    "object. If not supplied in the "
-                                    ":attr:`initiate()` function or here then"
-                                    ":attr:`datetime.utcnow()` is used."
-    )
-
-    inertial_angular_velocity = Property(
-        float, default=7.292115e-5, doc=r"The angular velocity of the primary "
-                                        "body in its inertial frame. Defaults"
-                                        "to the value of the Earth in rad "
-                                        "s^{-1}"
-    )
 
     def initiate(self, detections, latitude=None, longitude=None, height=None,
-                 datetime_ut=None, **kwargs):
+                 **kwargs):
         r"""Initiate tracks from detections
 
         Parameters
@@ -339,7 +398,8 @@ class RangeAltAzInitiator(OrbitalInitiator):
         detections : list of :class:`~.Detection`
             A list of :class:`~Detection` objects with state vectors of
             the form :math:`[r, a, A, \frac{dr}{dt} \frac{da}{dt}
-            \frac{dA}{dt}]^T`
+            \frac{dA}{dt}]^T`. It has a timestamp in UT from where the
+            sidereal time is calculated.
         latitude : float
             The latitude of the observer's location (radians). If not
             supplied or None, the parent class will be checked for an
@@ -352,11 +412,6 @@ class RangeAltAzInitiator(OrbitalInitiator):
             The height of the observer's location (m) above the notional
             sea level. If not supplier, or None, the parent class is
             checked before an error is thrown.
-        datetime_ut : datetime
-            The time (UT) at which the observation takes place, as a
-            :class:`~datetime` object. If not supplied here the parent
-            class is checked and if that's none then
-            :attr:`datetime.utcnow()` is used.
 
         kwargs :
 
@@ -370,29 +425,9 @@ class RangeAltAzInitiator(OrbitalInitiator):
         # complexity will be required if we want to initialise tracks from
         # different locations.
         # TODO augment to be able to initilise tracks from different locations
-        if latitude is None:
-            if self.latitude is None:
-                raise ValueError("A latitude must be supplied somewhere")
-            else:
-                latitude = self.latitude
-
-        if longitude is None:
-            if self.longitude is None:
-                raise ValueError("A longitude must be supplied somewhere")
-            else:
-                longitude = self.longitude
-
-        if height is None:
-            if self.height is None:
-                raise ValueError("A height must be supplied somewhere")
-
-        if datetime_ut is None:
-            if self.datetime_ut is None:
-                ltd = datetime.utcnow()
-            else:
-                ltd = self.datetime_ut
-        else:
-            ltd = datetime_ut
+        latitude, longitude, height = self._check_lat_lon_hei(latitude,
+                                                              longitude,
+                                                              height)
 
         # Initialise tracks container.
         tracks = set()
@@ -402,11 +437,11 @@ class RangeAltAzInitiator(OrbitalInitiator):
             rn_al_az = detection.state_vector
             # Oberver's position
             bigr = topocentric_to_geocentric(latitude, longitude, height,
-                                             datetime_ut=datetime_ut)
+                                             datetime_ut=detection.timestamp)
             # Target's position on the sky
             ra, dec = topocentric_altaz_to_radec(rn_al_az[1], rn_al_az[2],
                                                  latitude, longitude,
-                                                 datetime_ut)
+                                                 detection.timestamp)
             # The cosine unit vector in the direction of the target
             du_ran = direction_cosine_unit_vector(ra, dec)
 
@@ -424,7 +459,7 @@ class RangeAltAzInitiator(OrbitalInitiator):
                                                            rn_al_az[5],
                                                            latitude, longitude,
                                                            datetime_ut=
-                                                           datetime_ut,
+                                                           detection.timestamp,
                                                            inertial_angular_velocity=
                                                            self.inertial_angular_velocity)
 
@@ -466,33 +501,17 @@ class GaussInitiator(OrbitalInitiator):
         Students, Third Edition, Elsevier
 
     """
-    latitude = Property(
-        float, default=None, doc="The latitude of the observer's location "
-                                 "(radians). Doesn't have to be supplied if "
-                                 "included as an argument to the "
-                                 ":attr:`initiate()` function."
+    allowed_range = Property(
+        np.array(), default=np.array([6378100, 384400000]),
+        doc="This is the range interval within which to restrict consideration "
+            "of orbits when initiating tracks. The default extends between the "
+            "earth's surface and the orbit of the moon."
     )
 
-    longitude = Property(
-        float, default=None, doc="The longitude of the observer's location "
-                                 "(radians). Doesn't have to be supplied if "
-                                 "included as an argument to the "
-                                 ":attr:`initiate()` function."
-    )
-
-    height = Property(
-        float, default=None, doc="The height of the observer's location "
-                                 "(m) above the notional sea level. Doesn't "
-                                 "have to be supplied if included as an "
-                                 "argument to the "
-                                 ":attr:`initiate()` function."
-    )
-
-    inertial_angular_velocity = Property(
-        float, default=7.292115e-5, doc=r"The angular velocity of the primary "
-                                        "body in its inertial frame. Defaults"
-                                        "to the value of the Earth in rad "
-                                        "s^{-1}"
+    iterative_improvement = Property(
+        bool, default=True, doc="Carry out the iterative improvement to the "
+                                "initial track estimate via the universal "
+                                "Kepler equation."
     )
 
     def initiate(self, detections, latitude=None, longitude=None, height=None,
@@ -517,7 +536,6 @@ class GaussInitiator(OrbitalInitiator):
             sea level. If not supplier, or None, the parent class is
             checked before an error is thrown.
 
-
         kwargs :
 
         Returns
@@ -531,42 +549,161 @@ class GaussInitiator(OrbitalInitiator):
         # Figure out where and when we are. Note that an extra layer of
         # complexity will be required if we want to initialise tracks from
         # different locations.
+        # Figure out where and when we are. Note that an extra layer of
+        # complexity will be required if we want to initialise tracks from
+        # different locations.
         # TODO augment to be able to initilise tracks from different locations
-        if latitude is None:
-            if self.latitude is None:
-                raise ValueError("A latitude must be supplied somewhere")
-            else:
-                latitude = self.latitude
-
-        if longitude is None:
-            if self.longitude is None:
-                raise ValueError("A longitude must be supplied somewhere")
-            else:
-                longitude = self.longitude
-
-        if height is None:
-            if self.height is None:
-                raise ValueError("A height must be supplied somewhere")
-
-        if datetime_ut is None:
-            if self.datetime_ut is None:
-                ltd = datetime.utcnow()
-            else:
-                ltd = self.datetime_ut
-        else:
-            ltd = datetime_ut
+        latitude, longitude, height = self._check_lat_lon_hei(latitude,
+                                                              longitude,
+                                                              height)
 
         # Initialise tracks container.
         tracks = set()
         # Run through the list of detections
-        for detection in detections:
+        for detectiontriple in detections:
 
-            if len(detection) != 3:
+            if len(detectiontriple) != 3:
                 raise TypeError("Number of detections must be 3")
 
-            # extract the position vectors
-            br = np.array([detection[0].state_vector,
-                           detection[1].state_vector,
-                           detection[2].state_vector])
+            timetriple = []
+            bigr = []
+            dcuv = []
+            for detection in detectiontriple:
+                # times
+                timetriple.append(detection.timestamp)
 
-        return
+                # RA and Dec
+                #br.append(detection.state_vector)
+
+                # extract the position vectors as a list
+                bigr.append(topocentric_to_geocentric(latitude, longitude,
+                                                      height, datetime_ut=
+                                                      detection.timestamp))
+
+                # The cosine unit vector in the direction of the target
+                dcuv.append(direction_cosine_unit_vector(
+                    detection.state_vector[0], detection.state_vector[1]))
+
+            # Time deltas
+            tau1 = (timetriple[0] - timetriple[1]).totalseconds()
+            tau3 = (timetriple[2] - timetriple[1]).totalseconds()
+            tau = tau3 - tau1
+
+            # Cross products of direction cosines
+            boldp1 = np.atleast_2d(np.cross(dcuv[1].ravel(), dcuv[2].ravel()))
+            boldp2 = np.atleast_2d(np.cross(dcuv[0].ravel(), dcuv[2].ravel()))
+            boldp3 = np.atleast_2d(np.cross(dcuv[0].ravel(), dcuv[1].ravel()))
+
+            # Scalar triple products
+            bigd0 = np.dot(dcuv[0].T, boldp1)
+
+            bigd11 = np.dot(bigr[0].T, boldp1)
+            bigd12 = np.dot(bigr[0].T, boldp2)
+            bigd13 = np.dot(bigr[0].T, boldp3)
+
+            bigd21 = np.dot(bigr[1].T, boldp1)
+            bigd22 = np.dot(bigr[1].T, boldp2)
+            bigd23 = np.dot(bigr[1].T, boldp3)
+
+            bigd31 = np.dot(bigr[2].T, boldp1)
+            bigd32 = np.dot(bigr[2].T, boldp2)
+            bigd33 = np.dot(bigr[2].T, boldp3)
+
+            biga = (1/bigd0) * (-bigd12*tau3/tau + bigd22 + bigd32*tau1/tau)
+            bigb = (1/(6*bigd0)) * (bigd12*(tau3**2 - tau**2)*tau3/tau +
+                                    bigd32*(tau**2 - tau1**2)*tau1/tau)
+
+            bige = np.dot(bigr[1].T, dcuv[2])
+            bigr2sq = np.dot(bigr[1].T, bigr[1])
+
+            # Coeffiecients of the eighth-order polynomial
+            smla = -(biga**2 + 2*biga*bige + bigr2sq)
+            smlb = -2*self.grav_parameter * bigb * (biga + bige)
+            smlc = -self.grav_parameter**2 * bigb**2
+
+            # Find the roots of this equation:
+
+            '''Set a range of reasonable values within which to restrict the 
+            roots (in the class). Then pick the (hopefully one) non-complex 
+            non-negative root. If more than one is found, raise a warning and
+             pick the one with lowest value...'''
+
+            # Set up the coefficient matrix
+            coeffs = np.array([1, 0, smla, 0, 0, smlb, 0, 0, smlc])
+            roots = np.roots(coeffs)  # Calculate the roots
+
+            # Now pick only the most sensible roots. That is those that are
+            # wholly real, positive and exist within the limits defined by way
+            # of the admitted_region attribute.
+            rr2 = []
+            for r2 in roots:
+                if r2.isreal() and min(self.allowed_range) < r2 < max(self.allowed_range):
+                    rho1 = (1 / bigd0) * ((6 *
+                                           (bigd31 * tau1 / tau3 + bigd21 * tau / tau3)
+                                           * r2 ** 3 + self.grav_parameter * bigd31 *
+                                           (tau ** 2 - tau1 ** 2) * tau1 / tau3) /
+                                          (6 * r2 ** 3 + self.grav_parameter *
+                                           (tau ** 2 - tau3 ** 2)) - bigd11)
+                    rho2 = biga + self.grav_parameter * bigb / (r2 ** 3)
+                    rho3 = (1 / bigd0) * ((6 *
+                                           (bigd13 * tau3 / tau1 + bigd23 * tau / tau1)
+                                           * r2 ** 3 +
+                                           self.grav_parameter * bigd13 *
+                                           (tau ** 2 - tau3 ** 2) * tau3 / tau1) /
+                                          (6 * r2 ** 3 + self.grav_parameter *
+                                           (tau ** 2 - tau1 ** 2)) - bigd33)
+
+                    # TODO: make this more efficient
+                    boldr1 = bigr[0] + rho1*dcuv[0]
+                    boldr2 = bigr[1] + rho2*dcuv[1]
+                    boldr3 = bigr[2] + rho3*dcuv[2]
+
+                    # Approximate Lagrange coefficients
+                    mu_rsq = self.grav_parameter/r2**3
+                    f1 = 1 - (1/2)*mu_rsq*tau1**2
+                    f3 = 1 - (1/2)*mu_rsq*tau3**2
+                    g1 = tau1 - (1/6)*mu_rsq*tau1**2
+                    g3 = tau3 - (1/6)*mu_rsq*tau3**2
+
+                    # middle velocity
+                    boldv2 = 1/(f1*g3 - f3*g1) * (-f3*boldr1 + f1 *boldr3)
+
+                    # This is the approximate answer. Do we want to invoke the
+                    # iterative improvement which uses the universal Kepler
+                    # equation.
+                    if self.iterative_improvement is True:
+                        # Calculate magnitude of boldr2 and boldv2
+                        pass
+                        # get the reciprocal of the semi-major axis
+
+                        # Calculate the radial component of v2
+
+                        # Solve the universal Kepler equation for the universal
+                        # variables at times t1 and t3
+
+                        # Use universal variables to work out better f1, g1,
+                        # f3, g3
+
+                        # Use these to get updated rhos and thereby updated
+                        # boldrs. Stop if the rhos don't change enough
+
+                        # calculate the updated v2 and contine:
+
+                    """Concatenate r2 and v2 and construct the state and add it
+                     to the tracks. Note that this 'solves' the issue of 
+                     multiple roots by adding more tracks, which can't both
+                     be true. TODO: consider choosing best track?"""
+                    tracks.add(Track(OrbitalState(np.concatenate((boldr2,
+                                                                  boldv2),
+                                                                 axis=0),
+                                                  timestamp=
+                                                  detection.timestamp)))
+
+                else:
+                    # TODO: chuck error but continue
+                    return ValueError("No valid slant ranges found. Consider "
+                                      "expanding the range within which to "
+                                      "search")
+
+
+
