@@ -142,12 +142,12 @@ def test_ranaltaz_initiatior():
                                     [azimuth],
                                     [drange],
                                     [daltitude],
-                                    [dazimuth]]))
+                                    [dazimuth]]), timestamp=local_time)
     # Create the initiator
     rinitiator = RangeAltAzInitiator()
 
     # Initiate tracks
-    otracks = rinitiator.initiate([detection], latitude, longitude, height, local_time)
+    otracks = rinitiator.initiate([detection], latitude, longitude, height)
 
     # Check
     otrack = otracks.pop()
@@ -155,7 +155,7 @@ def test_ranaltaz_initiatior():
 
 
 def test_gauss_initiator():
-    """ Example XX on [1]
+    """ Example 5.11 in [1]
 
     Test initiator based on angles-only measurements
 
@@ -165,4 +165,21 @@ def test_gauss_initiator():
         Students, Third Edition, Elsevier
 
     """
+
+    # Set up the problem
+    # Location of sensor
+    latitude = 40 * np.pi/180
+    height = 1000  # (m)
+    # Together the following give a local sidereal time of 300 degrees
+    longitude = 304.3845 * np.pi / 180
+    local_time = datetime(2020, 1, 1, 0, 0, 0)
+
+    # Set up the measurements
+    detections = (Detection(np.pi/180*np.array([[43.537], [-8.8733]]),
+                            timestamp=local_time),
+                  Detection(np.pi/180*np.array([[54.420], [-12.074]]),
+                            timestamp=local_time + timedelta(seconds=118.1)),
+                  Detection(np.pi/180*np.array([[64.318], [-15.105]]),
+                            timestamp=local_time + timedelta(seconds=237.58))
+                  )
 
