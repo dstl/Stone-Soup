@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from ...types.detection import Detection
 from ...astronomical_conversions import local_sidereal_time
 from ..preliminaryorbitdetermination import GibbsInitiator, LambertInitiator, \
-    RangeAltAzInitiator
+    RangeAltAzInitiator, GaussInitiator
 
 
 def test_gibbsinitiator():
@@ -170,12 +170,12 @@ def test_gauss_initiator():
     # Location of sensor
     latitude = 40 * np.pi/180
     height = 1000  # (m)
-    # Together the following give a local sidereal time of 300 degrees
-    longitude = 304.3845 * np.pi / 180
+    # Together the following give the correct local sidereal times
+    longitude = 304.3846 * np.pi / 180
     local_time = datetime(2020, 1, 1, 0, 0, 0)
 
     # Set up the measurements
-    detections = (Detection(np.pi/180*np.array([[43.537], [-8.8733]]),
+    detections = (Detection(np.pi/180*np.array([[43.537], [-8.7833]]),
                             timestamp=local_time),
                   Detection(np.pi/180*np.array([[54.420], [-12.074]]),
                             timestamp=local_time + timedelta(seconds=118.1)),
@@ -183,3 +183,16 @@ def test_gauss_initiator():
                             timestamp=local_time + timedelta(seconds=237.58))
                   )
 
+    # The answer will be
+    out_state = np.array([[5659.1e3], [6533.8e3], [3270.1e3],
+                          [-3880], [5115.6], [-2238.7]])
+
+    # Create the initiator
+    ginitiator = GaussInitiator()
+
+    # Initiate tracks
+    otracks = ginitiator.initiate([detections], latitude, longitude, height)
+
+    # Check
+    otrack = otracks.pop()
+    assert np.allclose(otrack[0].state_vector, out_state, rtol=1e-2)
