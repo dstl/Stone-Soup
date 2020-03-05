@@ -6,7 +6,7 @@ from datetime import datetime
 from ..orbital_functions import stumpf_s, stumpf_c
 from ..astronomical_conversions import topocentric_to_geocentric, \
     topocentric_altaz_to_radec, topocentric_altaz_to_radecrate, \
-    direction_cosine_unit_vector, direction_rate_cosine_unit_vector
+    direction_cosine_unit_vector, direction_rate_cosine_unit_vector, local_sidereal_time
 
 from .base import Initiator
 from ..base import Property
@@ -21,7 +21,7 @@ class OrbitalInitiator(Initiator):
 
     """
     grav_parameter = Property(
-        float, default="3.986004418e14", doc=r"Standard gravitational "
+        float, default=3.986004418e14, doc=r"Standard gravitational "
                                              r"parameter. Defaults to the "
                                              r"Earth's value (3.986004418 "
                                              r"\times 10^{14} mathrm{m}^{3} "
@@ -188,7 +188,7 @@ class GibbsInitiator(OrbitalInitiator):
 
             # This must be true if vectors co-planar
             assert np.dot(br[0].T/r[0], c12/np.linalg.norm(c12))[0][0] < \
-                   tol_check
+                tol_check
 
             # Some interim vector quantities
             bign = r[0]*c12 + r[1]*c20 + r[2]*c01
@@ -502,7 +502,7 @@ class GaussInitiator(OrbitalInitiator):
 
     """
     allowed_range = Property(
-        np.array(), default=np.array([6378100, 384400000]),
+        np.array, default=np.array([6378100, 384400000]),
         doc="This is the range interval within which to restrict consideration "
             "of orbits when initiating tracks. The default extends between the "
             "earth's surface and the orbit of the moon."
@@ -572,9 +572,6 @@ class GaussInitiator(OrbitalInitiator):
                 # times
                 timetriple.append(detection.timestamp)
 
-                # RA and Dec
-                #br.append(detection.state_vector)
-
                 # extract the position vectors as a list
                 bigr.append(topocentric_to_geocentric(latitude, longitude,
                                                       height, datetime_ut=
@@ -585,36 +582,36 @@ class GaussInitiator(OrbitalInitiator):
                     detection.state_vector[0], detection.state_vector[1]))
 
             # Time deltas
-            tau1 = (timetriple[0] - timetriple[1]).totalseconds()
-            tau3 = (timetriple[2] - timetriple[1]).totalseconds()
+            tau1 = (timetriple[0] - timetriple[1]).total_seconds()
+            tau3 = (timetriple[2] - timetriple[1]).total_seconds()
             tau = tau3 - tau1
 
-            # Cross products of direction cosines
-            boldp1 = np.atleast_2d(np.cross(dcuv[1].ravel(), dcuv[2].ravel()))
-            boldp2 = np.atleast_2d(np.cross(dcuv[0].ravel(), dcuv[2].ravel()))
-            boldp3 = np.atleast_2d(np.cross(dcuv[0].ravel(), dcuv[1].ravel()))
+            # Cross products of direction cosins
+            boldp1 = np.atleast_2d(np.cross(dcuv[1].ravel(), dcuv[2].ravel())).T
+            boldp2 = np.atleast_2d(np.cross(dcuv[0].ravel(), dcuv[2].ravel())).T
+            boldp3 = np.atleast_2d(np.cross(dcuv[0].ravel(), dcuv[1].ravel())).T
 
             # Scalar triple products
-            bigd0 = np.dot(dcuv[0].T, boldp1)
+            bigd0 = np.dot(dcuv[0].T, boldp1)[0][0]
 
-            bigd11 = np.dot(bigr[0].T, boldp1)
-            bigd12 = np.dot(bigr[0].T, boldp2)
-            bigd13 = np.dot(bigr[0].T, boldp3)
+            bigd11 = np.dot(bigr[0].T, boldp1)[0][0]
+            bigd12 = np.dot(bigr[0].T, boldp2)[0][0]
+            bigd13 = np.dot(bigr[0].T, boldp3)[0][0]
 
-            bigd21 = np.dot(bigr[1].T, boldp1)
-            bigd22 = np.dot(bigr[1].T, boldp2)
-            bigd23 = np.dot(bigr[1].T, boldp3)
+            bigd21 = np.dot(bigr[1].T, boldp1)[0][0]
+            bigd22 = np.dot(bigr[1].T, boldp2)[0][0]
+            bigd23 = np.dot(bigr[1].T, boldp3)[0][0]
 
-            bigd31 = np.dot(bigr[2].T, boldp1)
-            bigd32 = np.dot(bigr[2].T, boldp2)
-            bigd33 = np.dot(bigr[2].T, boldp3)
+            bigd31 = np.dot(bigr[2].T, boldp1)[0][0]
+            bigd32 = np.dot(bigr[2].T, boldp2)[0][0]
+            bigd33 = np.dot(bigr[2].T, boldp3)[0][0]
 
             biga = (1/bigd0) * (-bigd12*tau3/tau + bigd22 + bigd32*tau1/tau)
             bigb = (1/(6*bigd0)) * (bigd12*(tau3**2 - tau**2)*tau3/tau +
                                     bigd32*(tau**2 - tau1**2)*tau1/tau)
 
-            bige = np.dot(bigr[1].T, dcuv[2])
-            bigr2sq = np.dot(bigr[1].T, bigr[1])
+            bige = np.dot(bigr[1].T, dcuv[1])[0][0]
+            bigr2sq = np.dot(bigr[1].T, bigr[1])[0][0]
 
             # Coeffiecients of the eighth-order polynomial
             smla = -(biga**2 + 2*biga*bige + bigr2sq)
@@ -637,7 +634,7 @@ class GaussInitiator(OrbitalInitiator):
             # of the admitted_region attribute.
             rr2 = []
             for r2 in roots:
-                if r2.isreal() and min(self.allowed_range) < r2 < max(self.allowed_range):
+                if np.isreal(r2) and min(self.allowed_range) < r2 < max(self.allowed_range):
                     rho1 = (1 / bigd0) * ((6 *
                                            (bigd31 * tau1 / tau3 + bigd21 * tau / tau3)
                                            * r2 ** 3 + self.grav_parameter * bigd31 *
@@ -646,7 +643,7 @@ class GaussInitiator(OrbitalInitiator):
                                            (tau ** 2 - tau3 ** 2)) - bigd11)
                     rho2 = biga + self.grav_parameter * bigb / (r2 ** 3)
                     rho3 = (1 / bigd0) * ((6 *
-                                           (bigd13 * tau3 / tau1 + bigd23 * tau / tau1)
+                                           (bigd13 * tau3 / tau1 - bigd23 * tau / tau1)
                                            * r2 ** 3 +
                                            self.grav_parameter * bigd13 *
                                            (tau ** 2 - tau3 ** 2) * tau3 / tau1) /
@@ -662,11 +659,11 @@ class GaussInitiator(OrbitalInitiator):
                     mu_rsq = self.grav_parameter/r2**3
                     f1 = 1 - (1/2)*mu_rsq*tau1**2
                     f3 = 1 - (1/2)*mu_rsq*tau3**2
-                    g1 = tau1 - (1/6)*mu_rsq*tau1**2
-                    g3 = tau3 - (1/6)*mu_rsq*tau3**2
+                    g1 = tau1 - (1/6)*mu_rsq*tau1**3
+                    g3 = tau3 - (1/6)*mu_rsq*tau3**3
 
                     # middle velocity
-                    boldv2 = 1/(f1*g3 - f3*g1) * (-f3*boldr1 + f1 *boldr3)
+                    boldv2 = (1/(f1*g3 - f3*g1)) * (-f3*boldr1 + f1*boldr3)
 
                     # This is the approximate answer. Do we want to invoke the
                     # iterative improvement which uses the universal Kepler
@@ -701,9 +698,11 @@ class GaussInitiator(OrbitalInitiator):
 
                 else:
                     # TODO: chuck error but continue
-                    return ValueError("No valid slant ranges found. Consider "
-                                      "expanding the range within which to "
-                                      "search")
+                    pass
+                    #return ValueError("No valid slant ranges found. Consider "
+                    #                  "expanding the range within which to "
+                    #                  "search")
 
+        return tracks
 
 
