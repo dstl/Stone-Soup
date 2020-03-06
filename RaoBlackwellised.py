@@ -25,17 +25,17 @@ import numpy as np
 import os
 
 seed(100)
-DRONE_FILE = 20
+DRONE_FILE = 23
 DATA_DIR = "P:/DASA/EDITTS Drone Tracking/GFI/GPS Tracking"
 # DATA_DIR = "C:/Work/Drone_Tracking/EDITTS-Drone-Tracking/data/raw/"
 SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results"
 FIXED_WING = {"g2", "g4", "maja", "bixler", "x8", "kahu"}
 ROTARY_WING = {"g6", "f550", "drdc"}
 
-NUMBER_OF_PARTICLES = 350
-rw_cv_noise_covariance = 0.75
+NUMBER_OF_PARTICLES = 100
+rw_cv_noise_covariance = 0.1
 fw_cv_noise_covariance = 0.5
-rw_hover_noise_covariance = 0.75
+rw_hover_noise_covariance = 0.5
 constant_turn_covariance = [0.1, 0.1]
 turn_rate_left = 0.5
 turn_rate_right = -0.5
@@ -67,7 +67,7 @@ ax.plot3D(location[:, 0],
           location[:, 2])
 
 # location = location[int(len(location) * 0): int(len(location) * 0.05)]
-location = location[1100:1200]
+location = location[1500:1600]
 
 ax.plot3D(location[:, 0],
           location[:, 1],
