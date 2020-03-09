@@ -5,7 +5,7 @@ import numpy as np
 from copy import copy
 
 from .types.numeric import Probability
-from .types.array import StateVector, StateVectors, CovarianceMatrix
+from .types.array import Matrix, StateVector, StateVectors, CovarianceMatrix
 
 
 def tria(matrix):
@@ -78,6 +78,26 @@ def jacobian(fun, x):
     return jac.astype(np.float_)
 
 
+def match_sv_types(state_vector, ref_state_vector):
+    """ Match the types of elements in a state vector to the corresponding
+    types of the elements in a reference state vector and return the
+    resulting state vector.
+
+    Parameters
+    ----------
+    state_vector : :class:~`StateVector`
+        The state vector to be modified
+    ref_state_vector : :class:~`StateVector`
+        The reference state vector
+    Returns
+    -------
+    : :class:~`StateVector`
+        The resulting state vector with appropriately set types
+    """
+    return StateVector([type(s)(v) for (s, v)
+                        in zip(ref_state_vector[:, 0], state_vector[:, 0])])
+
+                        
 def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
     """
     Approximate a given distribution to a Gaussian, using a
@@ -181,7 +201,8 @@ def sigma2gauss(sigma_points, mean_weights, covar_weights, covar_noise=None):
         Calculated covariance
     """
 
-    mean = np.average(sigma_points, axis=1, weights=mean_weights)
+    mean = match_sv_types(np.average(sigma_points, axis=1, weights=mean_weights),
+                          sigma_points)
 
     points_diff = sigma_points - mean
 
