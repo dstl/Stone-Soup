@@ -4,7 +4,7 @@ from abc import abstractmethod
 import numpy as np
 from scipy.stats import multivariate_normal
 
-from ..base import Base
+from ..base import Base, Property
 from ..functions import jacobian as compute_jac
 from ..types.array import StateVector, StateVectors
 from ..types.numeric import Probability
@@ -14,6 +14,13 @@ class Model(Base):
     """Model type
 
     Base/Abstract class for all models."""
+
+    sv_types = Property(list,
+                        doc="An array of types, corresponding to the type of "
+                            "each element in the model state vector. Default "
+                            "is `None` in which case the type is determined "
+                            "by `numpy`.",
+                        default=None)
 
     @property
     @abstractmethod
@@ -35,6 +42,23 @@ class Model(Base):
     def pdf(self, state1, state2):
         """Model pdf/likelihood evaluator method"""
         pass
+
+    def cast_sv_types(self, state_vector):
+        """ Cast state vector element types according to :py:attr:`~sv_types`
+
+        Parameters
+        ----------
+        state_vector : :class:~`StateVector`
+            State vector whose elements need to be cast
+        Returns
+        -------
+        :class:~`StateVector`
+            The resulting state vector
+        """
+        if self.sv_types is not None:
+            return StateVector([t(v) for (t, v)
+                                in zip(self.sv_types, state_vector[:, 0])])
+        return state_vector
 
 
 class LinearModel(Model):
@@ -70,7 +94,7 @@ class LinearModel(Model):
             else:
                 noise = 0
 
-        return self.matrix(**kwargs) @ state.state_vector + noise
+        return self.cast_sv_types(self.matrix(**kwargs) @ state_vector + noise)
 
 
 class NonLinearModel(Model):
