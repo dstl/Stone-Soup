@@ -544,3 +544,43 @@ def mod_elevation(x):
     elif N == 3:
         x = x - 2.0 * np.pi
     return x
+
+
+def mod_longitude(x):
+    r"""Calculates the modulus of a longitude. Longitude angles
+    are within the range -180 to 180 degrees.
+
+    Parameters
+    ----------
+    x: float
+        Longitude in degrees
+
+    Returns
+    -------
+    float
+        Longitude in degrees in the range -180 to 180
+    """
+    return (x+180.0) % 360.0 - 180.0
+
+
+def mod_latitude(x):
+    r"""Calculates the modulus of a latitude. Latitude angles
+    are within the range -90 to 90 degrees.
+
+    Parameters
+    ----------
+    x: float
+        Latitude in degrees
+
+    Returns
+    -------
+    float
+        Latitude in degrees in the range -90 to 90
+    """
+    x = x % 360.0  # limit to 360
+    N = x // 90.0  # Count # of 90 deg multiples
+    if N == 1 or N == 2:
+        x = 180.0 - x
+    elif N == 3:
+        x = x - 360.0
+    return x
