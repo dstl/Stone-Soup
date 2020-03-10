@@ -283,20 +283,22 @@ class RaoBlackwellisedParticleUpdater(Updater):
 
         previous_probabilities = particle.model_probabilities
 
-        denominator = []
-        for k in range(len(previous_probabilities)):
+        denominator_components = []
+        # Loop over the current models m_k
+        for l in range(len(previous_probabilities)):
+            selected_model_sum = 0
+            # Loop over the previous models m_k-1
             for i, model in enumerate(model_list):
-                # if p(m_k|m_k-1) = 0 then p(m_k|x_1:k) = 0
-                transition_probability = transition_matrix[
-                    particle.parent.dynamic_model][i]
+                # Looks up p(m_k|m_k-1)
+                # Note: if p(m_k|m_k-1) = 0 then p(m_k|x_1:k) = 0
+                transition_probability = transition_matrix[i][l]
+                if(transition_probability == 0):
+                    break
                 # Getting required states to apply the model to that state vector
-                parent_required_state_space = particle.parent.state_vector[
-                    np.array(position_mapping[i])]
+                parent_required_state_space = particle.parent.state_vector[np.array(position_mapping[i])]
 
                 # The noiseless application of m_k onto x_k-1
-
-                mean = model.function(parent_required_state_space,
-                                      time_interval=time_interval, noise=False)
+                mean = model.function(parent_required_state_space, time_interval=time_interval, noise=False)
 
                 # Input the indices that were removed previously
                 for j in range(len(particle.state_vector)):
@@ -306,18 +308,24 @@ class RaoBlackwellisedParticleUpdater(Updater):
                 # Extracting x, y, z from the particle
                 particle_position = self.measurement_model.matrix() @ particle.state_vector
 
-                prob_position_given_model_and_old_position = self.measurement_model.pdf(
-                    particle_position, mean)
+                prob_position_given_model_and_old_position = self.measurement_model.pdf(particle_position, mean)
                 # p(m_k-1|x_1:k-1)
-                prob_previous_iteration_given_model = previous_probabilities[k]
+                prob_previous_iteration_given_model = previous_probabilities[l]
 
                 product_of_probs = (prob_position_given_model_and_old_position *
                                                transition_probability *
                                                prob_previous_iteration_given_model)
-                denominator.append(product_of_probs)
-        print(denominator)
+                selected_model_sum = selected_model_sum + product_of_probs
+            denominator_components.append(selected_model_sum)
+
+        #print(denominator)
+
+        # Calculate the denominator
+        denominator = sum(denominator_components)
+
+        # Calculate the new probabilities
         new_probabilities = []
         for i in range(len(previous_probabilities)):
-            new_probabilities.append(denominator[i] / sum(denominator))
+            new_probabilities.append(denominator_components[i] / denominator)
 
         return new_probabilities
