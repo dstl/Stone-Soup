@@ -176,15 +176,16 @@ class PlotData:
         self.track = track
         self.effective_sample_size = effective_sample_size
         self.dynamic_model_split = dynamic_model_split
-        self.model_probabilities = model_probabilities
         self.weighted_sum_per_model = weighted_sum_per_model
         self.detection_matrix_split = detection_matrix_split
         self.craft_sum = np.cumsum(self.detection_matrix_split)
 
         self.dynamic_model_plot = [[element[j] for element in dynamic_model_split] for j in
                                    range(len(dynamic_model_split[0]))]
+
         self.model_probabilities_plot = [[element[j] for element in model_probabilities] for j in
                                          range(len(model_probabilities[0]))]
+
         self.sum_of_probs = sum([sum(self.craft_prob()[i]) for i in range(len(self.craft_prob()))])
 
     def calculate_sum_weighted_positions(self):

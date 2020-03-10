@@ -25,14 +25,14 @@ import numpy as np
 import os
 
 seed(100)
-DRONE_FILE = 23
+DRONE_FILE = 24
 DATA_DIR = "P:/DASA/EDITTS Drone Tracking/GFI/GPS Tracking"
 # DATA_DIR = "C:/Work/Drone_Tracking/EDITTS-Drone-Tracking/data/raw/"
 SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results"
 FIXED_WING = {"g2", "g4", "maja", "bixler", "x8", "kahu"}
 ROTARY_WING = {"g6", "f550", "drdc"}
 
-NUMBER_OF_PARTICLES = 100
+NUMBER_OF_PARTICLES = 250
 rw_cv_noise_covariance = 0.1
 fw_cv_noise_covariance = 0.5
 rw_hover_noise_covariance = 0.5
@@ -183,11 +183,9 @@ for iteration, measurement in enumerate(tqdm(measurements)):
 
     # print([particle_proportions.count(i) for i in range(len(transition))])
 
-    model_probabilities.append([sum([p.model_probabilities[i] for p in prediction.particles]) / NUMBER_OF_PARTICLES
+    model_probabilities.append([sum([(p.model_probabilities[i] * p.weight)
+                                     for p in prediction.particles])
                                 for i in range(len(transition_block))])
-
-    # print([sum([p.model_probabilities[i] for p in prediction.particles]) / NUMBER_OF_PARTICLES
-    #        for i in range(len(transition))])
 
     dynamic_model_split.append([particle_proportions.count(i) for i in range(len(transition_block))])
 
