@@ -149,8 +149,7 @@ def lagrange_coefficients_from_universal_anomaly(o_state_vector, delta_t,
     r = np.sqrt(dotproduct(bold_r, bold_r))
 
     # and the Lagrange (time) derivatives also using Stumpf
-    fdot = root_mu / (r * r_0) * (inv_sma * chii ** 3 * stumpf_s(z) -
-                                   chii)
+    fdot = root_mu / (r * r_0) * (inv_sma * chii ** 3 * stumpf_s(z) - chii)
     gdot = 1 - (chii ** 2 / r) * stumpf_c(z)
 
     return f, g, fdot, gdot
