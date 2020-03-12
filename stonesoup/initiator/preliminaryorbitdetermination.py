@@ -3,10 +3,12 @@
 import numpy as np
 from datetime import datetime
 
-from ..orbital_functions import stumpf_s, stumpf_c
+from ..functions import dotproduct as dot, crossproduct as cross
+from ..orbital_functions import stumpf_s, stumpf_c, universal_anomaly_newton, \
+    lagrange_coefficients_from_universal_anomaly
 from ..astronomical_conversions import topocentric_to_geocentric, \
     topocentric_altaz_to_radec, topocentric_altaz_to_radecrate, \
-    direction_cosine_unit_vector, direction_rate_cosine_unit_vector, local_sidereal_time
+    direction_cosine_unit_vector, direction_rate_cosine_unit_vector
 
 from .base import Initiator
 from ..base import Property
@@ -182,13 +184,12 @@ class GibbsInitiator(OrbitalInitiator):
 
             # vector cross products
             # (wish Python would duck-type vectors...)
-            c01 = np.atleast_2d(np.cross(br[0].ravel(), br[1].ravel())).T
-            c12 = np.atleast_2d(np.cross(br[1].ravel(), br[2].ravel())).T
-            c20 = np.atleast_2d(np.cross(br[2].ravel(), br[0].ravel())).T
+            c01 = cross(br[0], br[1])
+            c12 = cross(br[1], br[2])
+            c20 = cross(br[2], br[0])
 
             # This must be true if vectors co-planar
-            assert np.dot(br[0].T/r[0], c12/np.linalg.norm(c12))[0][0] < \
-                tol_check
+            assert dot(br[0]/r[0], c12/np.linalg.norm(c12)) < tol_check
 
             # Some interim vector quantities
             bign = r[0]*c12 + r[1]*c20 + r[2]*c01
@@ -204,8 +205,7 @@ class GibbsInitiator(OrbitalInitiator):
                 brr = det.state_vector
                 bvv = np.sqrt(self.grav_parameter/
                               (np.linalg.norm(bign)*np.linalg.norm(bigd))) * \
-                    (np.atleast_2d(np.cross(bigd.ravel(),
-                                            brr.ravel())).T/rr + bigs)
+                    (cross(bigd, brr)/rr + bigs)
 
                 orbstate = OrbitalState(np.concatenate((brr, bvv), axis=0),
                                         timestamp=det.timestamp)
@@ -311,8 +311,8 @@ class LambertInitiator(OrbitalInitiator):
             We'll resolve this by assuming that the smallest angular deviation 
             is correct, unless the <direction> keyword is supplied."""
             if true_anomaly is None:
-                crossr = np.atleast_2d(np.cross(br[0].ravel(), br[1].ravel())).T
-                cterm = np.arccos(np.dot(br[0].T, br[1])/(r[0]*r[1]))[0][0]
+                crossr = cross(br[0], br[1])
+                cterm = np.arccos(dot(br[0], br[1])/(r[0]*r[1]))
 
                 if (direction.lower() == "prograde" and crossr[2] >= 0) or \
                         (direction.lower() == "retrograde" and crossr[2] < 0):
@@ -338,7 +338,7 @@ class LambertInitiator(OrbitalInitiator):
                 # Need to ensure that the units of the gravitational parameter are
                 # in seconds
                 bigf = (y/stumpf_c(z))**1.5 * stumpf_s(z) + biga * np.sqrt(y) - \
-                       np.sqrt(self.grav_parameter) * deltat.total_seconds()
+                    np.sqrt(self.grav_parameter) * deltat.total_seconds()
 
                 if z == 0:
                     bigfp = (np.sqrt(2)/40) * y**1.5 + biga/8 * \
@@ -450,7 +450,7 @@ class RangeAltAzInitiator(OrbitalInitiator):
 
             # Observer's velocity
             omega = self.inertial_angular_velocity * np.array([[0], [0], [1]])
-            bigrdot = np.atleast_2d(np.cross(omega.ravel(), bigr.ravel())).T
+            bigrdot = cross(omega, bigr)
 
             # Rate of change in RA and Dec
             radot, decdot = topocentric_altaz_to_radecrate(rn_al_az[1],
@@ -508,14 +508,16 @@ class GaussInitiator(OrbitalInitiator):
             "earth's surface and the orbit of the moon."
     )
 
-    iterative_improvement = Property(
-        bool, default=True, doc="Carry out the iterative improvement to the "
-                                "initial track estimate via the universal "
-                                "Kepler equation."
+    itr_improvement_factor = Property(
+        float, default=None, doc="Carry out the iterative improvement to the "
+                                "preliminary orbit estimate via the universal "
+                                "Kepler equation until the change in the slant"
+                                 "ranges falls below this number."
     )
 
+
     def initiate(self, detections, latitude=None, longitude=None, height=None,
-                 **kwargs):
+                 uanom_precision=1e-8, **kwargs):
         r"""Initiate tracks from detections
 
         Parameters
@@ -535,6 +537,9 @@ class GaussInitiator(OrbitalInitiator):
             The height of the observer's location (m) above the notional
             sea level. If not supplier, or None, the parent class is
             checked before an error is thrown.
+        uanom_precision : float (optional)
+            The precision to which to calculate the universal anomaly via
+            Newton's method.
 
         kwargs :
 
@@ -545,6 +550,16 @@ class GaussInitiator(OrbitalInitiator):
             :class:`~.OrbitalState`
 
         """
+
+        # This function used several times later. Gets the slant ranges from
+        # various coefficients
+        def slantrangefromcd(cc1, cc3, bd):
+            # rhos are the slant ranges
+            rho_1 = -bd[0][0] + bd[1][0] / cc1 - cc3 * bd[2][0] / cc1
+            rho_2 = -cc1 * bd[0][1] + bd[1][1] - cc3 * bd[2][1]
+            rho_3 = -cc1 * bd[0][2] / cc3 + bd[1][2] / cc3 - bd[2][2]
+
+            return [rho_1, rho_2, rho_3]
 
         # Figure out where and when we are. Note that an extra layer of
         # complexity will be required if we want to initialise tracks from
@@ -586,119 +601,126 @@ class GaussInitiator(OrbitalInitiator):
             tau3 = (timetriple[2] - timetriple[1]).total_seconds()
             tau = tau3 - tau1
 
-            # Cross products of direction cosins
-            boldp1 = np.atleast_2d(np.cross(dcuv[1].ravel(), dcuv[2].ravel())).T
-            boldp2 = np.atleast_2d(np.cross(dcuv[0].ravel(), dcuv[2].ravel())).T
-            boldp3 = np.atleast_2d(np.cross(dcuv[0].ravel(), dcuv[1].ravel())).T
+            # Cross products of direction cosines
+            boldp1 = cross(dcuv[1], dcuv[2])
+            boldp2 = cross(dcuv[0], dcuv[2])
+            boldp3 = cross(dcuv[0], dcuv[1])
 
             # Scalar triple products
-            bigd0 = np.dot(dcuv[0].T, boldp1)[0][0]
+            bigd0 = dot(dcuv[0], boldp1)
 
-            bigd11 = np.dot(bigr[0].T, boldp1)[0][0]
-            bigd12 = np.dot(bigr[0].T, boldp2)[0][0]
-            bigd13 = np.dot(bigr[0].T, boldp3)[0][0]
+            # Triple products in a matrix
+            bigd = np.array([[dot(bigr[0], boldp1), dot(bigr[0], boldp2),
+                              dot(bigr[0], boldp3)],
+                             [dot(bigr[1], boldp1), dot(bigr[1], boldp2),
+                              dot(bigr[1], boldp3)],
+                             [dot(bigr[2], boldp1), dot(bigr[2], boldp2),
+                              dot(bigr[2], boldp3)]])/bigd0
 
-            bigd21 = np.dot(bigr[1].T, boldp1)[0][0]
-            bigd22 = np.dot(bigr[1].T, boldp2)[0][0]
-            bigd23 = np.dot(bigr[1].T, boldp3)[0][0]
+            # Prepare to construct polynomial
+            biga = (-bigd[0][1]*tau3/tau + bigd[1][1] + bigd[2][1]*tau1/tau)
+            bigb = (1/6) * (bigd[0][1]*(tau3**2 - tau**2)*tau3/tau +
+                            bigd[2][1]*(tau**2 - tau1**2)*tau1/tau)
+            bige = dot(bigr[1], dcuv[1])
+            bigr2sq = dot(bigr[1], bigr[1])
 
-            bigd31 = np.dot(bigr[2].T, boldp1)[0][0]
-            bigd32 = np.dot(bigr[2].T, boldp2)[0][0]
-            bigd33 = np.dot(bigr[2].T, boldp3)[0][0]
-
-            biga = (1/bigd0) * (-bigd12*tau3/tau + bigd22 + bigd32*tau1/tau)
-            bigb = (1/(6*bigd0)) * (bigd12*(tau3**2 - tau**2)*tau3/tau +
-                                    bigd32*(tau**2 - tau1**2)*tau1/tau)
-
-            bige = np.dot(bigr[1].T, dcuv[1])[0][0]
-            bigr2sq = np.dot(bigr[1].T, bigr[1])[0][0]
-
-            # Coeffiecients of the eighth-order polynomial
+            # Coefficients of the eighth-order polynomial
             smla = -(biga**2 + 2*biga*bige + bigr2sq)
             smlb = -2*self.grav_parameter * bigb * (biga + bige)
             smlc = -self.grav_parameter**2 * bigb**2
 
             # Find the roots of this equation:
-
             '''Set a range of reasonable values within which to restrict the 
             roots (in the class). Then pick the (hopefully one) non-complex 
             non-negative root. If more than one is found, raise a warning and
              pick the one with lowest value...'''
-
             # Set up the coefficient matrix
             coeffs = np.array([1, 0, smla, 0, 0, smlb, 0, 0, smlc])
             roots = np.roots(coeffs)  # Calculate the roots
 
             # Now pick only the most sensible roots. That is those that are
             # wholly real, positive and exist within the limits defined by way
-            # of the admitted_region attribute.
-            rr2 = []
+            # of the admitted_region attribute. The root is solution to the
+            # equation for geocentric radius, r2.
             for r2 in roots:
                 if np.isreal(r2) and min(self.allowed_range) < r2 < max(self.allowed_range):
-                    rho1 = (1 / bigd0) * ((6 *
-                                           (bigd31 * tau1 / tau3 + bigd21 * tau / tau3)
-                                           * r2 ** 3 + self.grav_parameter * bigd31 *
-                                           (tau ** 2 - tau1 ** 2) * tau1 / tau3) /
-                                          (6 * r2 ** 3 + self.grav_parameter *
-                                           (tau ** 2 - tau3 ** 2)) - bigd11)
-                    rho2 = biga + self.grav_parameter * bigb / (r2 ** 3)
-                    rho3 = (1 / bigd0) * ((6 *
-                                           (bigd13 * tau3 / tau1 - bigd23 * tau / tau1)
-                                           * r2 ** 3 +
-                                           self.grav_parameter * bigd13 *
-                                           (tau ** 2 - tau3 ** 2) * tau3 / tau1) /
-                                          (6 * r2 ** 3 + self.grav_parameter *
-                                           (tau ** 2 - tau1 ** 2)) - bigd33)
 
-                    # TODO: make this more efficient
-                    boldr1 = bigr[0] + rho1*dcuv[0]
-                    boldr2 = bigr[1] + rho2*dcuv[1]
-                    boldr3 = bigr[2] + rho3*dcuv[2]
+                    # approximate the factors of the linear combination of r_
+                    mu_rsq = self.grav_parameter / r2 ** 3
+                    c1 = (tau3/tau) * (1 + (1/6)*mu_rsq*(tau**2 - tau3**2))
+                    c3 = -(tau1/tau) * (1 + (1/6)*mu_rsq*(tau**2 - tau1**2))
+
+                    # rhos are the slant ranges
+                    rhos = slantrangefromcd(c1, c3, bigd)
 
                     # Approximate Lagrange coefficients
-                    mu_rsq = self.grav_parameter/r2**3
-                    f1 = 1 - (1/2)*mu_rsq*tau1**2
-                    f3 = 1 - (1/2)*mu_rsq*tau3**2
-                    g1 = tau1 - (1/6)*mu_rsq*tau1**3
-                    g3 = tau3 - (1/6)*mu_rsq*tau3**3
+                    f1 = 1 - (1 / 2) * mu_rsq * tau1**2
+                    f3 = 1 - (1 / 2) * mu_rsq * tau3**2
+                    g1 = tau1 - (1 / 6) * mu_rsq * tau1**3
+                    g3 = tau3 - (1 / 6) * mu_rsq * tau3**3
+
+                    # Calculate the position vectors of three input points
+                    boldr = []
+                    for bigrr, rho, dcuvv in zip(bigr, rhos, dcuv):
+                        boldr.append(bigrr + rho*dcuvv)
 
                     # middle velocity
-                    boldv2 = (1/(f1*g3 - f3*g1)) * (-f3*boldr1 + f1*boldr3)
+                    boldv2 = (1 / (f1 * g3 - f3 * g1)) * (-f3 * boldr[0] + f1 * boldr[2])
 
                     # This is the approximate answer. Do we want to invoke the
                     # iterative improvement which uses the universal Kepler
-                    # equation.
-                    if self.iterative_improvement is True:
-                        # Calculate magnitude of boldr2 and boldv2
-                        pass
-                        # get the reciprocal of the semi-major axis
-
-                        # Calculate the radial component of v2
-
-                        # Solve the universal Kepler equation for the universal
-                        # variables at times t1 and t3
-
+                    # equation?
+                    while self.itr_improvement_factor is not None:
                         # Use universal variables to work out better f1, g1,
-                        # f3, g3
+                        # f3, g3 via the universal anomaly
+                        f1, g1, _, _ = \
+                            lagrange_coefficients_from_universal_anomaly(
+                                np.concatenate((boldr[1], boldv2)), tau1,
+                                grav_parameter=self.grav_parameter,
+                                precision=uanom_precision)
+                        f3, g3, _, _ = universal_anomaly_newton(np.concatenate(
+                            (boldr[1], boldv2)), tau3, grav_parameter=
+                            self.grav_parameter, precision=uanom_precision)
+
+                        # A handy combination of these is
+                        c1 = g3/(f1*g3 - f3*g1)
+                        c3 = g1/(f1*g3 - f3*g1)
 
                         # Use these to get updated rhos and thereby updated
                         # boldrs. Stop if the rhos don't change enough
+                        drhos = np.subtract(slantrangefromcd(c1, c3, bigd), rhos)
 
-                        # calculate the updated v2 and contine:
+                        # Calculate the position vectors of three input points
+                        boldr = []
+                        for bigrr, rho, dcuvv in zip(bigr, np.add(rhos, drhos),
+                                                     dcuv):
+                            boldr.append(bigrr + rho * dcuvv)
+
+                        # calculate the updated v2 and continue:
+                        # middle velocity
+                        boldv2 = (1 / (f1 * g3 - f3 * g1)) * (-f3 * boldr[0] +
+                                                              f1 * boldr[2])
+
+                        # Figure out how to compare each element in this list
+                        # and stop if all items are within tolerance
+                        if np.all(np.less(drhos, self.itr_improvement_factor)):
+                            continue
+                        else:
+                            rhos += drhos
 
                     """Concatenate r2 and v2 and construct the state and add it
                      to the tracks. Note that this 'solves' the issue of 
                      multiple roots by adding more tracks, which can't both
                      be true. TODO: consider choosing best track?"""
-                    tracks.add(Track(OrbitalState(np.concatenate((boldr2,
+                    tracks.add(Track(OrbitalState(np.concatenate((boldr[1],
                                                                   boldv2),
                                                                  axis=0),
                                                   timestamp=
                                                   detection.timestamp)))
 
-                else:
+                #else:
                     # TODO: chuck error but continue
-                    pass
+                #    pass
                     #return ValueError("No valid slant ranges found. Consider "
                     #                  "expanding the range within which to "
                     #                  "search")

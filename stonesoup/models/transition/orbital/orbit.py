@@ -5,7 +5,8 @@ from numpy import matlib
 from scipy.stats import norm
 from scipy.stats import multivariate_normal
 from datetime import datetime, timedelta
-from ....orbital_functions import stumpf_c, stumpf_s
+from ....orbital_functions import stumpf_c, stumpf_s, universal_anomaly_newton, \
+    lagrange_coefficients_from_universal_anomaly
 
 from ....base import Property
 from ....types.orbitalstate import OrbitalState, TLEOrbitalState
@@ -354,66 +355,18 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
         If noisy samples from the transition function are required, use
         the :attr:`rvs` method.
         """
-        # Reused variables
-        root_mu = np.sqrt(orbital_state.grav_parameter)
-        inv_sma = 1. / orbital_state.semimajor_axis
-
-        # Some helpful functions
-        def calculate_universal_anomaly(mag_r_0, v_rad_0, delta_t,
-                                        tolerance=1e-8):
-            """Algorithm 3.3 in [1]"""
-
-            # Initial estimate of Chi
-            chi_i = root_mu * np.abs(inv_sma) * delta_t.total_seconds()
-            ratio = 1
-
-            # Do Newton's method
-            while np.abs(ratio) > tolerance:
-                z_i = inv_sma * chi_i ** 2
-                f_chi_i = mag_r_0 * v_rad_0 / root_mu * chi_i ** 2 * \
-                    stumpf_c(z_i) + (1 - inv_sma * mag_r_0) * chi_i ** 3 * \
-                    stumpf_s(z_i) + mag_r_0 * chi_i - root_mu * \
-                    delta_t.total_seconds()
-                fp_chi_i = mag_r_0 * v_rad_0 / root_mu * chi_i * \
-                    (1 - inv_sma * chi_i ** 2 * stumpf_s(z_i)) + \
-                    (1 - inv_sma * mag_r_0) * chi_i ** 2 * stumpf_c(z_i) + \
-                    mag_r_0
-                ratio = f_chi_i / fp_chi_i
-                chi_i = chi_i - ratio
-
-            return chi_i
-
-        # Calculate the magnitude of the position and velocity vectors
+        # Get the position and velocity vectors
         bold_r_0 = orbital_state.cartesian_state_vector[0:3]
         bold_v_0 = orbital_state.cartesian_state_vector[3:6]
 
-        r_0 = np.sqrt(np.dot(bold_r_0.T, bold_r_0).item())
+        # Get the Lagrange coefficients via the universal anomaly
+        f, g, f_dot, g_dot = lagrange_coefficients_from_universal_anomaly(
+            orbital_state.cartesian_state_vector, time_interval,
+            grav_parameter=orbital_state.grav_parameter,
+            precision=self._uanom_precision)
 
-        # Find the radial component of the velocity by projecting v_0 onto
-        # direction of r_0
-        v_r_0 = np.dot(bold_r_0.T, bold_v_0).item() / r_0
-
-        # Get the universal anomaly
-        u_anom = calculate_universal_anomaly(r_0, v_r_0, time_interval,
-                                             tolerance=self._uanom_precision)
-
-        # For convenience
-        z = inv_sma * u_anom ** 2
-
-        # Get the Lagrange coefficients
-        f = 1 - u_anom ** 2 / r_0 * stumpf_c(z)
-        g = time_interval.total_seconds() - 1 / root_mu * u_anom ** 3 * \
-            stumpf_s(z)
-
-        # Get the position vector and magnitude of that vector
+        # Get the position vector
         bold_r = f * bold_r_0 + g * bold_v_0
-        r = np.sqrt(np.dot(bold_r.T, bold_r).item())
-
-        # and the Lagrange (time) derivatives
-        f_dot = root_mu / (r * r_0) * (inv_sma * u_anom ** 3 * stumpf_s(z) -
-                                       u_anom)
-        g_dot = 1 - (u_anom ** 2 / r) * stumpf_c(z)
-
         # The velocity vector
         bold_v = f_dot * bold_r_0 + g_dot * bold_v_0
 

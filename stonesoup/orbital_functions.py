@@ -3,6 +3,7 @@
 
 """
 import numpy as np
+from .functions import dotproduct
 
 
 def stumpf_s(z):
@@ -31,6 +32,129 @@ def stumpf_c(z):
         return 1 / 2
     else:
         raise ValueError("Shouldn't get to this point")
+
+
+def universal_anomaly_newton(o_state_vector, delta_t,
+                             grav_parameter=3.986004418e14, precision=1e-8):
+    r"""Calculate the universal anomaly via Newton's method. Algorithm 3.3
+    in [1].
+
+    Parameters
+    ----------
+    o_state_vector : numpy.array
+        The orbital state vector formed as
+        :math`[r_x, r_y, r_z, v_x, v_y, v_z]^T`
+    delta_t : timedelta
+        The time interval over which to estimate the universal anomaly
+    grav_parameter : float
+        The universal gravitational parameter. Defaults to that of the
+        Earth, :math:`3.986004418 \times 10^{14} \ \mathrm{m}^{3} \
+        \mathrm{s}^{-2}`
+    precision : float
+        The difference between new and old values below which the ]
+        iteration stops and the answer is returned
+
+    Returns
+    -------
+    : float
+        The universal anomaly, :math:`\Chi`
+    """
+
+    # For convenience
+    mag_r_0 = np.sqrt(dotproduct(o_state_vector[0:3], o_state_vector[0:3]))
+    mag_v_0 = np.sqrt(dotproduct(o_state_vector[3:6], o_state_vector[3:6]))
+    v_rad_0 = dotproduct(o_state_vector[3:6], o_state_vector[0:3])/mag_r_0
+    root_mu = np.sqrt(grav_parameter)
+    inv_sma = 2/mag_r_0 - (mag_v_0**2)/grav_parameter
+
+    # Initial estimate of Chi
+    chi_i = root_mu * np.abs(inv_sma) * delta_t.total_seconds()
+    ratio = 1
+
+    # Do Newton's method
+    while np.abs(ratio) > precision:
+        z_i = inv_sma * chi_i ** 2
+        f_chi_i = mag_r_0 * v_rad_0 / root_mu * chi_i ** 2 * \
+            stumpf_c(z_i) + (1 - inv_sma * mag_r_0) * chi_i ** 3 * \
+            stumpf_s(z_i) + mag_r_0 * chi_i - root_mu * \
+            delta_t.total_seconds()
+        fp_chi_i = mag_r_0 * v_rad_0 / root_mu * chi_i * \
+            (1 - inv_sma * chi_i ** 2 * stumpf_s(z_i)) + \
+            (1 - inv_sma * mag_r_0) * chi_i ** 2 * stumpf_c(z_i) + \
+            mag_r_0
+        ratio = f_chi_i / fp_chi_i
+        chi_i = chi_i - ratio
+
+    return chi_i
+
+
+def lagrange_coefficients_from_universal_anomaly(o_state_vector, delta_t,
+                             grav_parameter=3.986004418e14, precision=1e-8):
+    r""" Calculate the Lagrangian coefficients, f and g, and their time
+    derivatives, by way of the universal anomaly and the Stumpf functions.
+
+    Parameters
+    ----------
+    o_state_vector : StateVector
+        The (Cartesian) orbital state vector,
+        :math:`[r_x, r_y, r_z, v_x, v_y, v_z]^T`
+    delta_t : timedelta
+        The time interval over which to calculate
+    grav_parameter : float
+        The universal gravitational parameter. Defaults to that of the
+        Earth, :math:`3.986004418 \times 10^{14} \ \mathrm{m}^{3} \
+        \mathrm{s}^{-2}`. Note that the units of time must be seconds.
+    precision : float
+        Precision to which to calculate the universal anomaly. See the doc
+        section for that function
+
+    Returns
+    -------
+
+    : float, float, float, float
+        The Lagrange coefficients, f, g, \odot{f}, \odot{g}, in that order.
+
+    Reference
+    ---------
+    1. Bond V.R., Altman M.C. 1996, Modern Astrodynamics: Fundamentals and
+    Perturbation Methods, Princeton University Press
+
+
+    """
+    # First get the universal anomaly using Newton's method
+    chii = universal_anomaly_newton(o_state_vector, delta_t,
+                                    grav_parameter=grav_parameter,
+                                    precision=precision)
+
+    # Get the position and velocity vectors
+    bold_r_0 = o_state_vector[0:3]
+    bold_v_0 = o_state_vector[3:6]
+
+    # Calculate the magnitude of the position and velocity vectors
+    r_0 = np.sqrt(dotproduct(bold_r_0, bold_r_0))
+    v_0 = np.sqrt(dotproduct(bold_v_0, bold_v_0))
+
+    # For convenience
+    root_mu = np.sqrt(grav_parameter)
+    inv_sma = 2 / r_0 - (v_0 ** 2) / grav_parameter
+    z = inv_sma * chii ** 2
+
+    # Get the Lagrange coefficients using Stumpf
+    f = 1 - chii ** 2 / r_0 * stumpf_c(z)
+    g = delta_t.total_seconds() - 1 / root_mu * chii ** 3 * \
+        stumpf_s(z)
+
+    # Get the position vector and magnitude of that vector
+    bold_r = f * bold_r_0 + g * bold_v_0
+    r = np.sqrt(dotproduct(bold_r, bold_r))
+
+    # and the Lagrange (time) derivatives also using Stumpf
+    fdot = root_mu / (r * r_0) * (inv_sma * chii ** 3 * stumpf_s(z) -
+                                   chii)
+    gdot = 1 - (chii ** 2 / r) * stumpf_c(z)
+
+    return f, g, fdot, gdot
+
 
 
 def eccentric_anomaly_from_mean_anomaly(mean_anomaly, eccentricity,
