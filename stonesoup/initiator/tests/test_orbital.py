@@ -184,13 +184,25 @@ def test_gauss_initiator():
                   )
 
     # The answer will be
-    out_state = np.array([[5659.1e3], [6533.8e3], [3270.1e3],
-                          [-3880], [5115.6], [-2238.7]])
+    out_state = np.array([[5659.1e3], [6533.8e3], [3270.1e3], [-3880],
+                          [5115.6], [-2238.7]])
+
+    # The iterated improvement will be
+    out_state_i = np.array([[5662.1e3], [6538e3], [3269e3], [-3885.6],
+                            [5121.4], [-2243.3]])
 
     # Create the initiator
     ginitiator = GaussInitiator()
 
     # Initiate tracks
+    otracks = ginitiator.initiate([detections], latitude, longitude, height)
+
+    # Check
+    otrack = otracks.pop()
+    assert np.allclose(otrack[0].state_vector, out_state, rtol=1e-2)
+
+    # Initiate tracks on the improved version
+    ginitiator.itr_improvement_factor = 1  # (m)
     otracks = ginitiator.initiate([detections], latitude, longitude, height)
 
     # Check

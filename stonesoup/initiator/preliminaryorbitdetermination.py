@@ -643,7 +643,11 @@ class GaussInitiator(OrbitalInitiator):
             # of the admitted_region attribute. The root is solution to the
             # equation for geocentric radius, r2.
             for r2 in roots:
-                if np.isreal(r2) and min(self.allowed_range) < r2 < max(self.allowed_range):
+                # Note that no attempt is made to check what number, if any,
+                # 'in-range' slant ranges exists and so anywhere between 0 and
+                # many tracks may be generated for each detection triple
+                if np.isreal(r2) and min(self.allowed_range) < r2 < \
+                        max(self.allowed_range):
 
                     # approximate the factors of the linear combination of r_
                     mu_rsq = self.grav_parameter / r2 ** 3
@@ -675,16 +679,20 @@ class GaussInitiator(OrbitalInitiator):
                         # f3, g3 via the universal anomaly
                         f1, g1, _, _ = \
                             lagrange_coefficients_from_universal_anomaly(
-                                np.concatenate((boldr[1], boldv2)), tau1,
+                                np.concatenate((boldr[1], boldv2)),
+                                timetriple[0] - timetriple[1],
                                 grav_parameter=self.grav_parameter,
                                 precision=uanom_precision)
-                        f3, g3, _, _ = universal_anomaly_newton(np.concatenate(
-                            (boldr[1], boldv2)), tau3, grav_parameter=
-                            self.grav_parameter, precision=uanom_precision)
+                        f3, g3, _, _ = \
+                            lagrange_coefficients_from_universal_anomaly(
+                                np.concatenate((boldr[1], boldv2)),
+                                timetriple[2] - timetriple[1],
+                                grav_parameter=self.grav_parameter,
+                                precision=uanom_precision)
 
                         # A handy combination of these is
                         c1 = g3/(f1*g3 - f3*g1)
-                        c3 = g1/(f1*g3 - f3*g1)
+                        c3 = -g1/(f1*g3 - f3*g1)
 
                         # Use these to get updated rhos and thereby updated
                         # boldrs. Stop if the rhos don't change enough
@@ -704,7 +712,7 @@ class GaussInitiator(OrbitalInitiator):
                         # Figure out how to compare each element in this list
                         # and stop if all items are within tolerance
                         if np.all(np.less(drhos, self.itr_improvement_factor)):
-                            continue
+                            break
                         else:
                             rhos += drhos
 
@@ -718,12 +726,6 @@ class GaussInitiator(OrbitalInitiator):
                                                   timestamp=
                                                   detection.timestamp)))
 
-                #else:
-                    # TODO: chuck error but continue
-                #    pass
-                    #return ValueError("No valid slant ranges found. Consider "
-                    #                  "expanding the range within which to "
-                    #                  "search")
 
         return tracks
 
