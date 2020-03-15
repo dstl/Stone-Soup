@@ -515,7 +515,6 @@ class GaussInitiator(OrbitalInitiator):
                                  "ranges falls below this number."
     )
 
-
     def initiate(self, detections, latitude=None, longitude=None, height=None,
                  uanom_precision=1e-8, **kwargs):
         r"""Initiate tracks from detections
@@ -550,7 +549,6 @@ class GaussInitiator(OrbitalInitiator):
             :class:`~.OrbitalState`
 
         """
-
         # This function used several times later. Gets the slant ranges from
         # various coefficients
         def slantrangefromcd(cc1, cc3, bd):
