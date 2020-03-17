@@ -25,7 +25,7 @@ import numpy as np
 import os
 
 seed(100)
-DRONE_FILE = 24
+DRONE_FILE = 11
 DATA_DIR = "P:/DASA/EDITTS Drone Tracking/GFI/GPS Tracking"
 # DATA_DIR = "C:/Work/Drone_Tracking/EDITTS-Drone-Tracking/data/raw/"
 SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results"
@@ -67,7 +67,7 @@ ax.plot3D(location[:, 0],
           location[:, 2])
 
 # location = location[int(len(location) * 0): int(len(location) * 0.05)]
-location = location[1500:1600]
+location = location[1600:1700]
 
 ax.plot3D(location[:, 0],
           location[:, 1],

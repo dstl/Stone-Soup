@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from functools import lru_cache
 import numpy as np
+from scipy.stats import multivariate_normal
 
 from .base import Updater
 from ..base import Property
@@ -221,7 +222,7 @@ class RaoBlackwellisedParticleUpdater(Updater):
 
         for particle in hypothesis.prediction.particles:
 
-            new_model_probabilities = self.calculate_model_probabilities(
+            new_model_probabilities, prob_position_given_previous_position = self.calculate_model_probabilities(
                 particle, predictor.position_mapping, transition, predictor.model_list, time_interval)
 
             particle.model_probabilities = new_model_probabilities
@@ -292,13 +293,16 @@ class RaoBlackwellisedParticleUpdater(Updater):
                 # Looks up p(m_k|m_k-1)
                 # Note: if p(m_k|m_k-1) = 0 then p(m_k|x_1:k) = 0
                 transition_probability = transition_matrix[i][l]
-                if(transition_probability == 0):
+                if transition_probability == 0:
                     break
                 # Getting required states to apply the model to that state vector
-                parent_required_state_space = particle.parent.state_vector[np.array(position_mapping[i])]
+                parent_required_state_space = particle.parent.state_vector[
+                    np.array(position_mapping[i])]
 
                 # The noiseless application of m_k onto x_k-1
-                mean = model.function(parent_required_state_space, time_interval=time_interval, noise=False)
+                mean = model.function(
+                    parent_required_state_space,
+                    time_interval=time_interval, noise=True)
 
                 # Input the indices that were removed previously
                 for j in range(len(particle.state_vector)):
@@ -307,8 +311,18 @@ class RaoBlackwellisedParticleUpdater(Updater):
 
                 # Extracting x, y, z from the particle
                 particle_position = self.measurement_model.matrix() @ particle.state_vector
+                print(len(mean))
+                p = multivariate_normal.pdf(
+                    np.transpose(particle.state_vector),
+                    mean=mean,
+                    cov=np.diag([0.75 for i in mean])
+                )
+                print(f"PROBABILITY {p}")
 
-                prob_position_given_model_and_old_position = self.measurement_model.pdf(particle_position, mean)
+                prob_position_given_model_and_old_position = self.measurement_model.pdf(
+                    particle_position, mean
+                )
+
                 # p(m_k-1|x_1:k-1)
                 prob_previous_iteration_given_model = previous_probabilities[l]
 
@@ -318,8 +332,6 @@ class RaoBlackwellisedParticleUpdater(Updater):
                 selected_model_sum = selected_model_sum + product_of_probs
             denominator_components.append(selected_model_sum)
 
-        #print(denominator)
-
         # Calculate the denominator
         denominator = sum(denominator_components)
 
@@ -328,4 +340,18 @@ class RaoBlackwellisedParticleUpdater(Updater):
         for i in range(len(previous_probabilities)):
             new_probabilities.append(denominator_components[i] / denominator)
 
-        return new_probabilities
+        return [new_probabilities, denominator]
+
+    def prob_pos_given_old(self, particle, mean):
+
+        zeros = []
+        for index, element in enumerate(mean):
+            if element == 0:
+                zeros.append(index)
+
+        for zero in zeros:
+            if particle.state_vector[zero] != 0:
+                return 0
+
+
+
