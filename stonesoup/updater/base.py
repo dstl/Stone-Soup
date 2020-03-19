@@ -24,8 +24,7 @@ class Updater(Base):
 
     @abstractmethod
     def predict_measurement(
-            self, state_prediction, measurement_model=None, prior_timestamp=None,
-            transition=None, always_resample=True, **kwargs):
+            self, state_prediction, measurement_model=None, **kwargs):
         """Get measurement prediction from state prediction
 
         Parameters

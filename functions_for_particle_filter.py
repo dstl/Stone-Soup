@@ -180,8 +180,8 @@ class PlotData:
         self.detection_matrix_split = detection_matrix_split
         self.craft_sum = np.cumsum(self.detection_matrix_split)
 
-        self.dynamic_model_plot = [[element[j] for element in dynamic_model_split] for j in
-                                   range(len(dynamic_model_split[0]))]
+        # self.dynamic_model_plot = [[element[j] for element in dynamic_model_split] for j in
+        #                            range(len(dynamic_model_split[0]))]
 
         self.model_probabilities_plot = [[element[j] for element in model_probabilities] for j in
                                          range(len(model_probabilities[0]))]
@@ -245,7 +245,7 @@ class PlotData:
     def rao_probabilities(self):
 
         for i, line in enumerate(self.model_probabilities_plot):
-            plt.plot(range(len(self.dynamic_model_split)), line)
+            plt.plot(range(len(self.model_probabilities_plot[i])), line)
         plt.legend([f"Model {i}" for i in range(len(self.model_probabilities_plot))])
         plt.title("Average Model Probability given previous track")
         plt.xlabel('Timestep')

@@ -25,17 +25,17 @@ import numpy as np
 import os
 
 seed(100)
-DRONE_FILE = 11
+DRONE_FILE = 18
 DATA_DIR = "P:/DASA/EDITTS Drone Tracking/GFI/GPS Tracking"
 # DATA_DIR = "C:/Work/Drone_Tracking/EDITTS-Drone-Tracking/data/raw/"
 SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results"
 FIXED_WING = {"g2", "g4", "maja", "bixler", "x8", "kahu"}
 ROTARY_WING = {"g6", "f550", "drdc"}
 
-NUMBER_OF_PARTICLES = 250
-rw_cv_noise_covariance = 0.1
-fw_cv_noise_covariance = 0.5
-rw_hover_noise_covariance = 0.5
+NUMBER_OF_PARTICLES = 125
+rw_cv_noise_covariance = 1
+fw_cv_noise_covariance = 0.2
+rw_hover_noise_covariance = 0.2
 constant_turn_covariance = [0.1, 0.1]
 turn_rate_left = 0.5
 turn_rate_right = -0.5
@@ -67,7 +67,7 @@ ax.plot3D(location[:, 0],
           location[:, 2])
 
 # location = location[int(len(location) * 0): int(len(location) * 0.05)]
-location = location[1600:1700]
+location = location[1600:1750]
 
 ax.plot3D(location[:, 0],
           location[:, 1],
@@ -120,21 +120,18 @@ model_mapping = [
                   ]
 
 
-transition_block = form_detection_transition_matrix(detection_matrix_split, [0.05, 0.05])
+# transition = form_detection_transition_matrix(detection_matrix_split, [0.05, 0.05])
 transition = form_transition_matrix(dynamic_model_list, 0.01)
 print(transition)
-print(transition_block)
 measurement_model = LinearGaussian(
     ndim_state=9,  # Number of state dimensions (position, velocity and acceleration in 3D)
     mapping=(0, 3, 6),  # Locations of our position variables within the entire state space
     noise_covar=np.diag([0.75, 0.75, 0.75]))
 
-multi_model = MultiModelPredictor(transition_block, model_mapping, transition_model=dynamic_model_list)
-rao_multi_model = RaoBlackwellisedMultiModelPredictor(transition_block, model_mapping,
+rao_multi_model = RaoBlackwellisedMultiModelPredictor(position_mapping=model_mapping,
                                                       transition_model=dynamic_model_list)
 
 resampler = RaoBlackwellisedSystematicResampler()
-# resampler = MultiResampler(detection_matrix_split)
 updater = MultiModelParticleUpdater(measurement_model=measurement_model,
                                     resampler=resampler
                                     )
@@ -157,9 +154,10 @@ def choose_model():
         return detection_matrix_split[0]
 
 
-particles = [RaoBlackwellisedParticle(sample.reshape(-1, 1), weight=Probability(1/NUMBER_OF_PARTICLES),
-             dynamic_model=choose_model(), model_probabilities=[0.25, 0.25, 0.25, 0.25])
-             for sample in samples]
+particles = [RaoBlackwellisedParticle(
+    sample.reshape(-1, 1), weight=Probability(1/NUMBER_OF_PARTICLES),
+    model_probabilities=[0.25, 0.25, 0.25, 0.25])
+    for sample in samples]
 
 prior_state = ParticleState(particles, timestamp=start_time)
 
@@ -176,38 +174,38 @@ for iteration, measurement in enumerate(tqdm(measurements)):
 
     prediction = rao_multi_model.predict(prior_state, timestamp=measurement.timestamp)
 
-    weighted_sum_per_model.append([sum([p.weight for p in prediction.particles if p.dynamic_model == j])
-                                   for j in range(len(transition_block))])
+    # weighted_sum_per_model.append([sum([p.weight for p in prediction.particles if p.dynamic_model == j])
+    #                                for j in range(len(transition_block))])
 
-    particle_proportions = [p.dynamic_model for p in prediction.particles]
+    # particle_proportions = [p.dynamic_model for p in prediction.particles]
 
     # print([particle_proportions.count(i) for i in range(len(transition))])
 
     model_probabilities.append([sum([(p.model_probabilities[i] * p.weight)
                                      for p in prediction.particles])
-                                for i in range(len(transition_block))])
+                                for i in range(len(transition))])
 
-    dynamic_model_split.append([particle_proportions.count(i) for i in range(len(transition_block))])
+    # dynamic_model_split.append([particle_proportions.count(i) for i in range(len(transition_block))])
 
-    craft_sum = np.cumsum(detection_matrix_split)
-    rw_prob = sum([weighted_sum_per_model[-1][i] for i in range(craft_sum[0])])
-    fw_prob = sum([weighted_sum_per_model[-1][i] for i in range(craft_sum[0], craft_sum[1])])
-    craft_probs.append([rw_prob, fw_prob])
-
-    if iteration % 10 == 0 and iteration != 0:
-
-        cumulative_rw_prob = sum([prob[0] for prob in craft_probs])
-        cumulative_fw_prob = sum([prob[1] for prob in craft_probs])
-
-        sum_of_probs = cumulative_fw_prob + cumulative_rw_prob
-
-        print("\n")
-        print(f"Probability of Rotary Wing is : {cumulative_rw_prob / sum_of_probs}")
-        print(f"Probability of Fixed Wing is : {cumulative_fw_prob / sum_of_probs}")
+    # craft_sum = np.cumsum(detection_matrix_split)
+    # rw_prob = sum([weighted_sum_per_model[-1][i] for i in range(craft_sum[0])])
+    # fw_prob = sum([weighted_sum_per_model[-1][i] for i in range(craft_sum[0], craft_sum[1])])
+    # craft_probs.append([rw_prob, fw_prob])
+#
+    # if iteration % 10 == 0 and iteration != 0:
+#
+    #     cumulative_rw_prob = sum([prob[0] for prob in craft_probs])
+    #     cumulative_fw_prob = sum([prob[1] for prob in craft_probs])
+#
+    #     sum_of_probs = cumulative_fw_prob + cumulative_rw_prob
+#
+    #     print("\n")
+    #     print(f"Probability of Rotary Wing is : {cumulative_rw_prob / sum_of_probs}")
+    #     print(f"Probability of Fixed Wing is : {cumulative_fw_prob / sum_of_probs}")
 
     hypothesis = SingleHypothesis(prediction, measurement)
     post = rao_updater.update(hypothesis, predictor=rao_multi_model, transition=transition,
-                                     prior_timestamp=prior_state.timestamp)
+                              prior_timestamp=prior_state.timestamp)
 
     track.append(post)
     prior_state = track[-1]
@@ -216,8 +214,8 @@ data_plot = PlotData(truth, track, effective_sample_size, dynamic_model_split, m
                      weighted_sum_per_model, detection_matrix_split)
 
 data_plot.pf_vs_truth()
-data_plot.plot_neff()
-data_plot.particles_per_model()
+# data_plot.plot_neff()
+# data_plot.particles_per_model()
 data_plot.rao_probabilities()
-data_plot.craft_prob_plot()
+# data_plot.craft_prob_plot()
 data_plot.plot_difference_metric()

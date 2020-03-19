@@ -21,7 +21,7 @@ class ParticleUpdater(Updater):
     resampler = Property(Resampler,
                          doc='Resampler to prevent particle degeneracy')
 
-    def update(self, hypothesis, always_resample=True, **kwargs):
+    def update(self, hypothesis, **kwargs):
         """Particle Filter update step
 
         Parameters
@@ -56,15 +56,10 @@ class ParticleUpdater(Updater):
         for particle in hypothesis.prediction.particles:
             particle.weight /= sum_w
 
-        n_eff = 1 / sum([p.weight * p.weight for p in hypothesis.prediction.particles])
-
         # Only resamples if less than a quarter of the particles are effective.
-        if n_eff < len(hypothesis.prediction.particles) / 4 or always_resample:
-            # Resample
-            new_particles = self.resampler.resample(
-                hypothesis.prediction.particles)
-        else:
-            new_particles = [particle for particle in hypothesis.prediction.particles]
+        # Resample
+        new_particles = self.resampler.resample(
+            hypothesis.prediction.particles)
 
         return ParticleStateUpdate(new_particles,
                                    hypothesis,
@@ -141,7 +136,7 @@ class MultiModelParticleUpdater(Updater):
         n_eff = 1 / sum([p.weight * p.weight for p in hypothesis.prediction.particles])
 
         # Only resamples if less than a quarter of the particles are effective.
-        if n_eff < len(hypothesis.prediction.particles) / 4 or always_resample:
+        if n_eff < len(hypothesis.prediction.particles) / 2 or always_resample:
             # Resample
             new_particles = self.resampler.resample(
                 hypothesis.prediction.particles)
@@ -223,7 +218,7 @@ class RaoBlackwellisedParticleUpdater(Updater):
         for particle in hypothesis.prediction.particles:
 
             new_model_probabilities, prob_position_given_previous_position = self.calculate_model_probabilities(
-                particle, predictor.position_mapping, transition, predictor.model_list, time_interval)
+                particle, predictor.position_mapping, transition, predictor.transition_model, time_interval)
 
             particle.model_probabilities = new_model_probabilities
 
@@ -231,11 +226,6 @@ class RaoBlackwellisedParticleUpdater(Updater):
                 hypothesis.measurement.state_vector, particle.state_vector,
                 **kwargs)
 
-            """prob_position_given_previous_position = sum(new_model_probabilities)
-
-            prob_proposal = new_model_probabilities[particle.dynamic_model] / prob_position_given_previous_position"""
-
-            # particle.weight *= prob_y_given_x * prob_position_given_previous_position / prob_proposal
             particle.weight *= prob_y_given_x
 
         # Normalise the weights
@@ -247,7 +237,7 @@ class RaoBlackwellisedParticleUpdater(Updater):
         n_eff = 1 / sum([p.weight * p.weight for p in hypothesis.prediction.particles])
 
         # Only resamples if less than a quarter of the particles are effective.
-        if n_eff < len(hypothesis.prediction.particles) / 4 or always_resample:
+        if n_eff < len(hypothesis.prediction.particles) / 2 or always_resample:
             # Resample
             new_particles = self.resampler.resample(
                 hypothesis.prediction.particles)
@@ -308,21 +298,13 @@ class RaoBlackwellisedParticleUpdater(Updater):
                 for j in range(len(particle.state_vector)):
                     if j not in position_mapping[i]:
                         mean = np.insert(mean, j, 0)
+                mean = mean.reshape((1, -1))[0]
 
-                # Extracting x, y, z from the particle
-                particle_position = self.measurement_model.matrix() @ particle.state_vector
-                print(len(mean))
-                p = multivariate_normal.pdf(
+                prob_position_given_model_and_old_position = multivariate_normal.pdf(
                     np.transpose(particle.state_vector),
                     mean=mean,
                     cov=np.diag([0.75 for i in mean])
                 )
-                print(f"PROBABILITY {p}")
-
-                prob_position_given_model_and_old_position = self.measurement_model.pdf(
-                    particle_position, mean
-                )
-
                 # p(m_k-1|x_1:k-1)
                 prob_previous_iteration_given_model = previous_probabilities[l]
 
@@ -341,17 +323,3 @@ class RaoBlackwellisedParticleUpdater(Updater):
             new_probabilities.append(denominator_components[i] / denominator)
 
         return [new_probabilities, denominator]
-
-    def prob_pos_given_old(self, particle, mean):
-
-        zeros = []
-        for index, element in enumerate(mean):
-            if element == 0:
-                zeros.append(index)
-
-        for zero in zeros:
-            if particle.state_vector[zero] != 0:
-                return 0
-
-
-

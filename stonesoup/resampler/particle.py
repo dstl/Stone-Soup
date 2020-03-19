@@ -122,7 +122,6 @@ class RaoBlackwellisedSystematicResampler(Resampler):
                 RaoBlackwellisedParticle(particle.state_vector,
                                          weight=weight,
                                          parent=particle,
-                                         dynamic_model=particle.dynamic_model,
                                          model_probabilities=particle.model_probabilities))
 
         return new_particles

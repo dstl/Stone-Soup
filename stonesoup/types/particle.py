@@ -54,15 +54,14 @@ class RaoBlackwellisedParticle(Type):
     state_vector = Property(StateVector, doc="State vector")
     weight = Property(float, doc='Weight of particle')
     parent = Property(None, default=None, doc='Parent particle')
-    dynamic_model = Property(int, doc='Assigned dynamic model')
     model_probabilities = Property(list, doc="The dynamic probabilities of changing models")
 
-    def __init__(self, state_vector, weight, dynamic_model, model_probabilities,
+    def __init__(self, state_vector, weight, model_probabilities,
                  parent=None, *args, **kwargs):
 
         if parent:
             parent.parent = None
-        super().__init__(state_vector, weight, dynamic_model, model_probabilities,
+        super().__init__(state_vector, weight, model_probabilities,
                          parent, *args, **kwargs)
 
 

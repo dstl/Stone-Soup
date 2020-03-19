@@ -153,11 +153,14 @@ class MultiModelPredictor(Predictor):
         return ParticleStatePrediction(new_particles, timestamp=timestamp)
 
 
-class RaoBlackwellisedMultiModelPredictor(MultiModelPredictor):
+class RaoBlackwellisedMultiModelPredictor(Predictor):
     """ParticlePredictor class
 
     An implementation of a Particle Filter predictor.
     """
+    def __init__(self, position_mapping, *args, **kwargs):
+        self.position_mapping = position_mapping
+        super().__init__(*args, **kwargs)
 
     @lru_cache()
     def predict(self, prior, control_input=None, timestamp=None, **kwargs):
@@ -188,35 +191,35 @@ class RaoBlackwellisedMultiModelPredictor(MultiModelPredictor):
 
         new_particles = []
         for particle in prior.particles:
-            for model_index in range(len(self.transition_matrix)):
-                if particle.dynamic_model == model_index:
 
-                    # Change the value of the dynamic value randomly according to the defined transition matrix
-                    new_dynamic_model = np.searchsorted(self.probabilities[model_index], random())
+            # Change the value of the dynamic value randomly according to the defined transition matrix
+            new_dynamic_model = np.random.choice(
+                list(range(len(particle.model_probabilities))),
+                p=particle.model_probabilities)
 
-                    self.transition_model = self.model_list[particle.dynamic_model]
+            # Based on given position mapping create a new state vector that contains only the required states
+            required_state_space = particle.state_vector[
+                    np.array(self.position_mapping[new_dynamic_model])
+            ]
 
-                    # Based on given position mapping create a new state vector that contains only the required states
-                    required_state_space = particle.state_vector[
-                                                                 np.array(self.position_mapping[particle.dynamic_model])
-                                                                ]
+            new_state_vector = self.transition_model[
+                new_dynamic_model].function(
+                required_state_space,
+                time_interval=time_interval,
+                **kwargs)
 
-                    new_state_vector = self.transition_model.function(
-                        required_state_space,
-                        time_interval=time_interval,
-                        **kwargs)
+            # Calculate the indices removed from the state vector to become compatible with the dynamic model
+            for j in range(len(particle.state_vector)):
+                if j not in self.position_mapping[new_dynamic_model]:
+                    new_state_vector = np.insert(new_state_vector, j, 0)
 
-                    # Calculate the indices removed from the state vector to become compatible with the dynamic model
-                    for j in range(len(particle.state_vector)):
-                        if j not in self.position_mapping[particle.dynamic_model]:
-                            new_state_vector = np.insert(new_state_vector, j, 0)
+            new_state_vector = np.reshape(new_state_vector, (-1, 1))
 
-                    new_state_vector = np.reshape(new_state_vector, (-1, 1))
-
-                    new_particles.append(RaoBlackwellisedParticle(new_state_vector,
-                                                                  weight=particle.weight,
-                                                                  parent=particle,
-                                                                  dynamic_model=new_dynamic_model,
-                                                                  model_probabilities=particle.model_probabilities))
+            new_particles.append(
+                RaoBlackwellisedParticle(new_state_vector,
+                                         weight=particle.weight,
+                                         parent=particle,
+                                         model_probabilities=particle.model_probabilities)
+            )
 
         return ParticleStatePrediction(new_particles, timestamp=timestamp)
