@@ -67,7 +67,7 @@ class ParticleUpdater(Updater):
         new_particles = []
         for particle in state_prediction.particles:
             new_state_vector = measurement_model.function(
-                particle.state_vector, noise=0, **kwargs)
+                particle.state_vector, **kwargs)
             new_particles.append(
                 Particle(new_state_vector,
                          weight=particle.weight,

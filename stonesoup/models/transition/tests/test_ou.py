@@ -54,8 +54,7 @@ def test_oumodel():
     new_state_vec_wo_noise = ou.function(
         state_vec,
         timestamp=new_timestamp,
-        time_interval=time_interval,
-        noise=0)
+        time_interval=time_interval)
     assert np.allclose(new_state_vec_wo_noise, F @ state_vec, rtol=1e-10)
 
     # Evaluate the likelihood of the predicted state, given the prior
@@ -73,6 +72,7 @@ def test_oumodel():
     # (with internal noise)
     new_state_vec_w_inoise = ou.function(
         state_vec,
+        noise=True,
         timestamp=new_timestamp,
         time_interval=time_interval)
     assert not np.allclose(new_state_vec_w_inoise, F @ state_vec, rtol=1e-10)

@@ -22,7 +22,7 @@ class Model(Base):
         pass
 
     @abstractmethod
-    def function(self, state_vector, noise=None):
+    def function(self, state_vector, noise=False):
         """ Model function"""
         pass
 
@@ -47,17 +47,17 @@ class LinearModel(Model):
         """ Model matrix"""
         pass
 
-    def function(self, state_vector, noise=None, **kwargs):
+    def function(self, state_vector, noise=False, **kwargs):
         """Model linear function :math:`f_k(x(k),w(k)) = F_k(x_k) + w_k`
 
         Parameters
         ----------
         state_vector: :class:`~.StateVector`
             An input state vector
-        noise: :class:`numpy.ndarray`
+        noise: :class:`numpy.ndarray` or bool
             An externally generated random process noise sample (the default is
-            `None`, in which case process noise will be generated via
-            :meth:`~.Model.rvs`)
+            `False`, in which case no noise will be added
+            if 'True', :meth:`~.Model.rvs` is used)
 
         Returns
         -------
@@ -65,9 +65,11 @@ class LinearModel(Model):
             The model function evaluated.
         """
 
-        if noise is None:
-            # TODO: doesn't make sense for noise=None to generate noise
-            noise = self.rvs(**kwargs)
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                noise = self.rvs(**kwargs)
+            else:
+                noise = 0
 
         return self.matrix(**kwargs) @ state_vector + noise
 
@@ -93,21 +95,22 @@ class NonLinearModel(Model):
         """
 
         def fun(x):
-            return self.function(x, noise=0)
+            return self.function(x, noise=False)
 
         return compute_jac(fun, state_vector)
 
     @abstractmethod
-    def function(self, state_vector, noise=None, **kwargs):
+    def function(self, state_vector, noise=False, **kwargs):
         """Model function :math:`f(t,x(t),w(t))`
 
         Parameters
         ----------
         state_vector: :class:`~.StateVector`
             An input state vector
-        noise: :class:`numpy.ndarray`
-            An externally generated random process noise sample (the default in
-            `None`, in which case process noise will be generated internally)
+        noise: :class:`numpy.ndarray` or bool
+            An externally generated random process noise sample (the default is
+            `False`, in which case no noise will be added
+            if 'True', :meth:`~.Model.rvs` is used)
 
         Returns
         -------
@@ -224,7 +227,7 @@ class GaussianModel(Model):
 
         likelihood = multivariate_normal.logpdf(
             state_vector1.T,
-            mean=self.function(state_vector2, noise=0, **kwargs).ravel(),
+            mean=self.function(state_vector2, **kwargs).ravel(),
             cov=self.covar(**kwargs)
         )
         return Probability(likelihood, log_value=True)

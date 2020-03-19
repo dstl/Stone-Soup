@@ -33,13 +33,17 @@ class PassiveElevationBearing(Sensor3DCartesian):
             (and follow in format) the underlying \
             :class:`~.CartesianToElevationBearing` model")
 
-    def measure(self, ground_truth, noise=None, **kwargs):
+    def measure(self, ground_truth, noise=True, **kwargs):
         """Generate a measurement for a given state
 
         Parameters
         ----------
         ground_truth : :class:`~.State`
             A ground-truth state
+        noise: :class:`numpy.ndarray` or bool
+            An externally generated random process noise sample (the default is
+            `True`, in which case :meth:`~.Model.rvs` is used
+            if 'False', no noise will be added)
 
         Returns
         -------

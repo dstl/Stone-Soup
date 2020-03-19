@@ -11,7 +11,7 @@ from ..linear import (
     ConstantAcceleration, CombinedLinearGaussianTransitionModel)
 
 
-def test_cam1dodel():
+def test_ca1dmodel():
     """ ConstantAcceleration Transition Model test """
     state_vec = np.array([[3.0], [1.0], [0.1]])
     noise_diff_coeffs = np.array([[0.01]])
@@ -89,8 +89,7 @@ def base(state_vec, noise_diff_coeffs):
     new_state_vec_wo_noise = model_obj.function(
         state_vec,
         timestamp=new_timestamp,
-        time_interval=time_interval,
-        noise=0)
+        time_interval=time_interval)
     assert np.array_equal(new_state_vec_wo_noise, F@state_vec)
 
     # Evaluate the likelihood of the predicted state, given the prior
@@ -108,6 +107,7 @@ def base(state_vec, noise_diff_coeffs):
     # (with internal noise)
     new_state_vec_w_inoise = model_obj.function(
         state_vec,
+        noise=True,
         timestamp=new_timestamp,
         time_interval=time_interval)
     assert not np.array_equal(new_state_vec_w_inoise, F@state_vec)

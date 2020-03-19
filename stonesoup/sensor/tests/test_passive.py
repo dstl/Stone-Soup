@@ -33,7 +33,7 @@ def test_passive_sensor():
     assert (np.equal(detector.position, detector_position).all())
 
     # Generate a noiseless measurement for the given target
-    measurement = detector.measure(target_state, noise=0)
+    measurement = detector.measure(target_state, noise=False)
 
     # Account
     xyz = target_state.state_vector - detector_position

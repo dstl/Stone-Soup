@@ -43,6 +43,7 @@ class ParticlePredictor(Predictor):
         for particle in prior.particles:
             new_state_vector = self.transition_model.function(
                 particle.state_vector,
+                noise=True,
                 time_interval=time_interval,
                 **kwargs)
             new_particles.append(

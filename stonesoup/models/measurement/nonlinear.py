@@ -217,16 +217,17 @@ class CartesianToElevationBearingRange(
 
         return 3
 
-    def function(self, state_vector, noise=None, **kwargs):
+    def function(self, state_vector, noise=False, **kwargs):
         r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
 
         Parameters
         ----------
         state_vector: :class:`~.StateVector`
             An input state vector
-        noise: :class:`numpy.ndarray`
-            An externally generated random process noise sample (the default in
-            `None`, in which case process noise will be generated internally)
+        noise: :class:`numpy.ndarray` or bool
+            An externally generated random process noise sample (the default is
+            `False`, in which case no noise will be added
+            if 'True', :meth:`~.Model.rvs` is used)
 
         Returns
         -------
@@ -234,8 +235,11 @@ class CartesianToElevationBearingRange(
             The model function evaluated given the provided time interval.
         """
 
-        if noise is None:
-            noise = self.rvs()
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                noise = self.rvs()
+            else:
+                noise = 0
 
         # Account for origin offset
         xyz = state_vector[self.mapping] - self.translation_offset
@@ -364,16 +368,17 @@ class CartesianToBearingRange(
 
         return res
 
-    def function(self, state_vector, noise=None, **kwargs):
+    def function(self, state_vector, noise=False, **kwargs):
         r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
 
         Parameters
         ----------
         state_vector: :class:`~.StateVector`
             An input state vector
-        noise: :class:`numpy.ndarray`
-            An externally generated random process noise sample (the default in
-            `None`, in which case process noise will be generated internally)
+        noise: :class:`numpy.ndarray` or bool
+            An externally generated random process noise sample (the default is
+            `False`, in which case no noise will be added
+            if 'True', :meth:`~.Model.rvs` is used)
 
         Returns
         -------
@@ -381,8 +386,11 @@ class CartesianToBearingRange(
             The model function evaluated given the provided time interval.
         """
 
-        if noise is None:
-            noise = self.rvs()
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                noise = self.rvs()
+            else:
+                noise = 0
 
         # Account for origin offset
         xyz = [[state_vector[self.mapping[0], 0]
@@ -479,16 +487,17 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
 
         return 2
 
-    def function(self, state_vector, noise=None, **kwargs):
+    def function(self, state_vector, noise=False, **kwargs):
         r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
 
         Parameters
         ----------
         state_vector: :class:`~.StateVector`
             An input state vector
-        noise: :class:`numpy.ndarray`
-            An externally generated random process noise sample (the default in
-            `None`, in which case process noise will be generated internally)
+        noise: :class:`numpy.ndarray` or bool
+            An externally generated random process noise sample (the default is
+            `False`, in which case no noise will be added
+            if 'True', :meth:`~.Model.rvs` is used)
 
         Returns
         -------
@@ -496,8 +505,11 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
             The model function evaluated given the provided time interval.
         """
 
-        if noise is None:
-            noise = self.rvs()
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                noise = self.rvs()
+            else:
+                noise = 0
 
         # Account for origin offset
         xyz = state_vector[self.mapping] - self.translation_offset

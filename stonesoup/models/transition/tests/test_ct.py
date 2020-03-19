@@ -74,7 +74,7 @@ def base(model, state_vec, noise_diff_coeffs, turn_rate):
     # Propagate a state vector through the model
     # (without noise)
     new_state_vec_wo_noise = model_obj.function(
-        state_vec, noise=0,
+        state_vec,
         timestamp=new_timestamp,
         time_interval=time_interval)
 
@@ -95,6 +95,7 @@ def base(model, state_vec, noise_diff_coeffs, turn_rate):
     # (with internal noise)
     new_state_vec_w_inoise = model_obj.function(
         state_vec,
+        noise=True,
         timestamp=new_timestamp,
         time_interval=time_interval)
     assert not np.array_equal(new_state_vec_w_inoise, F@state_vec)
