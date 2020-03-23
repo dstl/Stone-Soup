@@ -29,12 +29,6 @@ class ParticleUpdater(Updater):
         hypothesis : :class:`~.Hypothesis`
             Hypothesis with predicted state and associated detection used for
             updating.
-        always_resample: :Boolean:
-            if True, then the particle filter will resample every time step.
-            Otherwise, will only resample when 25% or less of the particles
-            are deemed effective.
-            Calculated by 1 / sum(particle.weight^2) for all particles
-
         Returns
         -------
         : :class:`~.ParticleState`
@@ -125,7 +119,7 @@ class MultiModelParticleUpdater(Updater):
         for particle in hypothesis.prediction.particles:
             particle.weight *= measurement_model.pdf(
                 hypothesis.measurement.state_vector, particle.state_vector,
-                **kwargs) * predictor.transition_matrix[particle.parent.dynamic_model][particle.dynamicmodel]
+                **kwargs) * predictor.transition_matrix[particle.parent.dynamic_model][particle.dynamic_model]
 
         # Normalise the weights
         sum_w = Probability.sum(
@@ -200,7 +194,7 @@ class RaoBlackwellisedParticleUpdater(Updater):
             which would represent using four models.
         always_resample: :Boolean:
             if True, then the particle filter will resample every time step.
-            Otherwise, will only resample when 25% or less of the particles
+            Otherwise, will only resample when 50% or less of the particles
             are deemed effective.
             Calculated by 1 / sum(particle.weight^2) for all particles
         Returns
@@ -269,7 +263,8 @@ class RaoBlackwellisedParticleUpdater(Updater):
         return ParticleMeasurementPrediction(
             new_particles, timestamp=state_prediction.timestamp)
 
-    def calculate_model_probabilities(self, particle, position_mapping,
+    @staticmethod
+    def calculate_model_probabilities(particle, position_mapping,
                                       transition_matrix, model_list, time_interval):
 
         previous_probabilities = particle.model_probabilities
@@ -308,7 +303,7 @@ class RaoBlackwellisedParticleUpdater(Updater):
                 # p(m_k-1|x_1:k-1)
                 prob_previous_iteration_given_model = previous_probabilities[l]
 
-                product_of_probs = (prob_position_given_model_and_old_position *
+                product_of_probs = Probability(prob_position_given_model_and_old_position *
                                                transition_probability *
                                                prob_previous_iteration_given_model)
                 selected_model_sum = selected_model_sum + product_of_probs
@@ -320,6 +315,7 @@ class RaoBlackwellisedParticleUpdater(Updater):
         # Calculate the new probabilities
         new_probabilities = []
         for i in range(len(previous_probabilities)):
-            new_probabilities.append(denominator_components[i] / denominator)
+            new_probabilities.append(
+                Probability(denominator_components[i] / denominator))
 
         return [new_probabilities, denominator]
