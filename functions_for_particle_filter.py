@@ -148,6 +148,22 @@ def read_synthetic_csv(file_name):
     return location
 
 
+def read_bird_csv(file_name):
+
+    df = pd.read_csv(file_name)
+    location = np.array(df, dtype=float)
+    location = location[:, 1:]
+    location = np.stack((
+        location[:, 1],
+        location[:, 2],
+        location[:, 3],
+        location[:, 0],
+    ))
+    location = np.transpose(location)
+
+    return location
+
+
 def form_transition_matrix(dynamic_model_list, probability_for_change):
     transition = np.zeros((len(dynamic_model_list), len(dynamic_model_list)))
     for i in range(len(dynamic_model_list)):

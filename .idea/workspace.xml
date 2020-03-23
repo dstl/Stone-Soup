@@ -5,11 +5,6 @@
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/RaoBlackwellised.py" beforeDir="false" afterPath="$PROJECT_DIR$/RaoBlackwellised.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/functions_for_particle_filter.py" beforeDir="false" afterPath="$PROJECT_DIR$/functions_for_particle_filter.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/stonesoup/predictor/particle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/predictor/particle.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/stonesoup/resampler/particle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/resampler/particle.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/stonesoup/types/particle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/types/particle.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/stonesoup/updater/base.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/updater/base.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/stonesoup/updater/particle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/updater/particle.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />

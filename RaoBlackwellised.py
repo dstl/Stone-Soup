@@ -1,5 +1,5 @@
 from functions_for_particle_filter import import_track_data, create_prior, read_synthetic_csv, \
-    form_transition_matrix, form_detection_transition_matrix, PlotData
+    form_transition_matrix, form_detection_transition_matrix, PlotData, read_bird_csv
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
     ConstantVelocity, ConstantAcceleration, ConstantTurn, ConstantPosition, LinearTurn
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
@@ -25,17 +25,18 @@ import numpy as np
 import os
 
 seed(100)
-DRONE_FILE = 18
-DATA_DIR = "P:/DASA/EDITTS Drone Tracking/GFI/GPS Tracking"
+DRONE_FILE = 8
+# DATA_DIR = "P:/DASA/EDITTS Drone Tracking/GFI/GPS Tracking"
+DATA_DIR = "C:/Work/editts_working/training_data/track_data/BIF/"
 # DATA_DIR = "C:/Work/Drone_Tracking/EDITTS-Drone-Tracking/data/raw/"
 SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results"
 FIXED_WING = {"g2", "g4", "maja", "bixler", "x8", "kahu"}
 ROTARY_WING = {"g6", "f550", "drdc"}
 
-NUMBER_OF_PARTICLES = 125
+NUMBER_OF_PARTICLES = 250
 rw_cv_noise_covariance = 1
 fw_cv_noise_covariance = 0.2
-rw_hover_noise_covariance = 0.2
+rw_hover_noise_covariance = 0.8
 constant_turn_covariance = [0.1, 0.1]
 turn_rate_left = 0.5
 turn_rate_right = -0.5
@@ -45,7 +46,7 @@ percentage_of_first_model = 0.5  # (0, 1]
 file_list = os.listdir(DATA_DIR)
 print(file_list)
 print(file_list[DRONE_FILE])
-title_parse = file_list[DRONE_FILE].lower().split(" ")
+"""title_parse = file_list[DRONE_FILE].lower().split(" ")
 if title_parse[3] in FIXED_WING:
     print("Fixed Wing")
     model_type = "Fixed Wing"
@@ -53,10 +54,11 @@ if title_parse[3] in FIXED_WING:
 elif title_parse[3] in ROTARY_WING:
     print("Rotary Wing")
     model_type = "Rotary Wing"
-    SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results/Rotary_Wing"
+    SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results/Rotary_Wing"""
 
-location = import_track_data(DRONE_FILE, DATA_REDUCTION, DATA_DIR)
+# location = import_track_data(DRONE_FILE, DATA_REDUCTION, DATA_DIR)
 # location = read_synthetic_csv(DATA_DIR + file_list[DRONE_FILE])
+location = read_bird_csv(DATA_DIR + file_list[DRONE_FILE])
 
 for i, element in enumerate(location):
     location[i][:3] = np.random.normal(element[:3], 0)
@@ -67,7 +69,7 @@ ax.plot3D(location[:, 0],
           location[:, 2])
 
 # location = location[int(len(location) * 0): int(len(location) * 0.05)]
-location = location[1600:1750]
+location = location[670:770]
 
 ax.plot3D(location[:, 0],
           location[:, 1],
@@ -85,15 +87,26 @@ measurements = []
 for i in truth:
     measurements.append(Detection(i.state_vector.ravel(), timestamp=i.timestamp))
 
-dynamic_model_list_RW = [
-                        # Rotary Wing
-                        CombinedLinearGaussianTransitionModel((ConstantVelocity(fw_cv_noise_covariance),
-                                                               ConstantVelocity(fw_cv_noise_covariance),
-                                                               ConstantVelocity(fw_cv_noise_covariance))),
-                        CombinedLinearGaussianTransitionModel((ConstantPosition(rw_hover_noise_covariance),
-                                                               ConstantPosition(rw_hover_noise_covariance),
-                                                               ConstantVelocity(rw_cv_noise_covariance)))
-                        ]
+dynamic_model_list_BIF = [CombinedLinearGaussianTransitionModel((ConstantAcceleration(fw_cv_noise_covariance),
+                                                                 ConstantAcceleration(fw_cv_noise_covariance),
+                                                                 ConstantPosition(fw_cv_noise_covariance))),
+
+                          CombinedLinearGaussianTransitionModel((ConstantPosition(fw_cv_noise_covariance),
+                                                                 ConstantPosition(fw_cv_noise_covariance),
+                                                                 ConstantAcceleration(fw_cv_noise_covariance))),
+
+                          CombinedLinearGaussianTransitionModel((ConstantTurn(constant_turn_covariance,
+                                                                              turn_rate_left),
+                                                                 ConstantPosition(fw_cv_noise_covariance))),
+
+                          CombinedLinearGaussianTransitionModel((ConstantTurn(constant_turn_covariance,
+                                                                              turn_rate_left),
+                                                                 ConstantPosition(fw_cv_noise_covariance))),
+
+                          CombinedLinearGaussianTransitionModel((ConstantAcceleration(fw_cv_noise_covariance),
+                                                                 ConstantAcceleration(fw_cv_noise_covariance),
+                                                                 ConstantAcceleration(fw_cv_noise_covariance)))
+                          ]
 
 dynamic_model_list_FW = [
                        # Fixed Wing
@@ -105,19 +118,39 @@ dynamic_model_list_FW = [
                                                               ConstantAcceleration(fw_cv_noise_covariance)))
                        ]
 
-dynamic_model_list = [*np.array(dynamic_model_list_RW), *np.array(dynamic_model_list_FW)]
+dynamic_model_list_RW = [
+                        # Rotary Wing
+                        CombinedLinearGaussianTransitionModel((ConstantVelocity(fw_cv_noise_covariance),
+                                                               ConstantVelocity(fw_cv_noise_covariance),
+                                                               ConstantVelocity(fw_cv_noise_covariance))),
+                        CombinedLinearGaussianTransitionModel((ConstantPosition(rw_hover_noise_covariance),
+                                                               ConstantPosition(rw_hover_noise_covariance),
+                                                               ConstantVelocity(rw_cv_noise_covariance)))
+                        ]
 
-detection_matrix_split = [len(dynamic_model_list_RW), len(dynamic_model_list_FW)]
+dynamic_model_list = [*np.array(dynamic_model_list_BIF),
+                      *np.array(dynamic_model_list_FW),
+                      *np.array(dynamic_model_list_RW)]
+
+detection_matrix_split = [len(dynamic_model_list_BIF),
+                          len(dynamic_model_list_FW),
+                          len(dynamic_model_list_RW)]
 
 model_mapping = [
-                   # Rotary Wing
-                   [0, 1, 3, 4, 6, 7],              # CV CV CV
-                   [0, 1, 3, 4, 6, 7],              # H H CV
+                 # Birds In Flight
+                 [0, 1, 2, 3, 4, 5, 6, 7],
+                 [0, 1, 3, 4, 6, 7, 8],
+                 [0, 1, 3, 4, 6, 7],
+                 [0, 1, 3, 4, 6, 7],
+                 [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                 # Fixed Wing
+                 [0, 1, 3, 4, 6, 7],  # CV CV CV
+                 [0, 1, 2, 3, 4, 5, 6, 7, 8],  # CA CA CA
 
-                   # Fixed Wing
-                   [0, 1, 3, 4, 6, 7],              # CV CV CV
-                   [0, 1, 2, 3, 4, 5, 6, 7, 8],     # CA CA CA
-                  ]
+                 # Rotary Wing
+                 [0, 1, 3, 4, 6, 7],              # CV CV CV
+                 [0, 1, 3, 4, 6, 7],              # H H CV
+                 ]
 
 
 # transition = form_detection_transition_matrix(detection_matrix_split, [0.05, 0.05])
@@ -156,7 +189,7 @@ def choose_model():
 
 particles = [RaoBlackwellisedParticle(
     sample.reshape(-1, 1), weight=Probability(1/NUMBER_OF_PARTICLES),
-    model_probabilities=[0.25, 0.25, 0.25, 0.25])
+    model_probabilities=[1/len(transition) for i in transition])
     for sample in samples]
 
 prior_state = ParticleState(particles, timestamp=start_time)
@@ -180,7 +213,6 @@ for iteration, measurement in enumerate(tqdm(measurements)):
     # particle_proportions = [p.dynamic_model for p in prediction.particles]
 
     # print([particle_proportions.count(i) for i in range(len(transition))])
-
     model_probabilities.append([sum([(p.model_probabilities[i] * p.weight)
                                      for p in prediction.particles])
                                 for i in range(len(transition))])
