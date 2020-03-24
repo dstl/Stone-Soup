@@ -25,23 +25,32 @@ import numpy as np
 import os
 
 seed(100)
-DRONE_FILE = 8
-# DATA_DIR = "P:/DASA/EDITTS Drone Tracking/GFI/GPS Tracking"
-DATA_DIR = "C:/Work/editts_working/training_data/track_data/BIF/"
+DRONE_FILE = 3
+DATA_DIR = "C:/Work/editts_working/training_data/track_data/FW"
+# DATA_DIR = "C:/Work/Drone_Tracking/EDITTS-Drone-Tracking/scripts/BirdDynamicsSynthesiser/synthesisedtracks/"
 # DATA_DIR = "C:/Work/Drone_Tracking/EDITTS-Drone-Tracking/data/raw/"
 SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results"
 FIXED_WING = {"g2", "g4", "maja", "bixler", "x8", "kahu"}
 ROTARY_WING = {"g6", "f550", "drdc"}
 
 NUMBER_OF_PARTICLES = 250
-rw_cv_noise_covariance = 1
-fw_cv_noise_covariance = 0.2
-rw_hover_noise_covariance = 0.8
+
+bif_ca_nc = 0.2
+bif_cp_nc = 0.8
+
+fw_cv_nc = 0.3
+fw_ca_nc = 0.3
+fw_cp_nc = 0.3
+
+rw_cv_nc = 0.4
+rw_ca_nc = 0.5
+rw_cp_nc = 0.3
+
 constant_turn_covariance = [0.1, 0.1]
 turn_rate_left = 0.5
 turn_rate_right = -0.5
+
 DATA_REDUCTION = 1  # (0, 1]
-percentage_of_first_model = 0.5  # (0, 1]
 
 file_list = os.listdir(DATA_DIR)
 print(file_list)
@@ -56,9 +65,9 @@ elif title_parse[3] in ROTARY_WING:
     model_type = "Rotary Wing"
     SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results/Rotary_Wing"""
 
-# location = import_track_data(DRONE_FILE, DATA_REDUCTION, DATA_DIR)
+location = import_track_data(DRONE_FILE, DATA_REDUCTION, DATA_DIR)
 # location = read_synthetic_csv(DATA_DIR + file_list[DRONE_FILE])
-location = read_bird_csv(DATA_DIR + file_list[DRONE_FILE])
+# location = read_bird_csv(DATA_DIR + file_list[DRONE_FILE])
 
 for i, element in enumerate(location):
     location[i][:3] = np.random.normal(element[:3], 0)
@@ -69,7 +78,7 @@ ax.plot3D(location[:, 0],
           location[:, 2])
 
 # location = location[int(len(location) * 0): int(len(location) * 0.05)]
-location = location[670:770]
+location = location[1500:1530]
 
 ax.plot3D(location[:, 0],
           location[:, 1],
@@ -87,45 +96,48 @@ measurements = []
 for i in truth:
     measurements.append(Detection(i.state_vector.ravel(), timestamp=i.timestamp))
 
-dynamic_model_list_BIF = [CombinedLinearGaussianTransitionModel((ConstantAcceleration(fw_cv_noise_covariance),
-                                                                 ConstantAcceleration(fw_cv_noise_covariance),
-                                                                 ConstantPosition(fw_cv_noise_covariance))),
+dynamic_model_list_BIF = [CombinedLinearGaussianTransitionModel((ConstantAcceleration(bif_ca_nc),
+                                                                 ConstantAcceleration(bif_ca_nc),
+                                                                 ConstantPosition(bif_cp_nc))),
 
-                          CombinedLinearGaussianTransitionModel((ConstantPosition(fw_cv_noise_covariance),
-                                                                 ConstantPosition(fw_cv_noise_covariance),
-                                                                 ConstantAcceleration(fw_cv_noise_covariance))),
+                          CombinedLinearGaussianTransitionModel((ConstantPosition(bif_cp_nc),
+                                                                 ConstantPosition(bif_cp_nc),
+                                                                 ConstantAcceleration(bif_ca_nc))),
 
-                          CombinedLinearGaussianTransitionModel((ConstantTurn(constant_turn_covariance,
-                                                                              turn_rate_left),
-                                                                 ConstantPosition(fw_cv_noise_covariance))),
+                          # CombinedLinearGaussianTransitionModel((ConstantTurn(constant_turn_covariance,
+                          #                                                     turn_rate_left),
+                          #                                        ConstantPosition(fw_cv_nc))),
 
-                          CombinedLinearGaussianTransitionModel((ConstantTurn(constant_turn_covariance,
-                                                                              turn_rate_left),
-                                                                 ConstantPosition(fw_cv_noise_covariance))),
+                          # CombinedLinearGaussianTransitionModel((ConstantTurn(constant_turn_covariance,
+                          #                                                     turn_rate_left),
+                          #                                        ConstantPosition(fw_cv_nc))),
 
-                          CombinedLinearGaussianTransitionModel((ConstantAcceleration(fw_cv_noise_covariance),
-                                                                 ConstantAcceleration(fw_cv_noise_covariance),
-                                                                 ConstantAcceleration(fw_cv_noise_covariance)))
+                          CombinedLinearGaussianTransitionModel((ConstantAcceleration(fw_cv_nc),
+                                                                 ConstantAcceleration(fw_cv_nc),
+                                                                 ConstantAcceleration(fw_cv_nc)))
                           ]
 
 dynamic_model_list_FW = [
                        # Fixed Wing
-                       CombinedLinearGaussianTransitionModel((ConstantVelocity(fw_cv_noise_covariance),
-                                                              ConstantVelocity(fw_cv_noise_covariance),
-                                                              ConstantVelocity(fw_cv_noise_covariance))),
-                       CombinedLinearGaussianTransitionModel((ConstantAcceleration(fw_cv_noise_covariance),
-                                                              ConstantAcceleration(fw_cv_noise_covariance),
-                                                              ConstantAcceleration(fw_cv_noise_covariance)))
+                       CombinedLinearGaussianTransitionModel((ConstantVelocity(fw_cv_nc),
+                                                              ConstantVelocity(fw_cv_nc),
+                                                              ConstantPosition(fw_cp_nc))),
+                       CombinedLinearGaussianTransitionModel((ConstantAcceleration(fw_ca_nc),
+                                                              ConstantAcceleration(fw_ca_nc),
+                                                              ConstantAcceleration(fw_ca_nc)))
                        ]
 
 dynamic_model_list_RW = [
                         # Rotary Wing
-                        CombinedLinearGaussianTransitionModel((ConstantVelocity(fw_cv_noise_covariance),
-                                                               ConstantVelocity(fw_cv_noise_covariance),
-                                                               ConstantVelocity(fw_cv_noise_covariance))),
-                        CombinedLinearGaussianTransitionModel((ConstantPosition(rw_hover_noise_covariance),
-                                                               ConstantPosition(rw_hover_noise_covariance),
-                                                               ConstantVelocity(rw_cv_noise_covariance)))
+                        CombinedLinearGaussianTransitionModel((ConstantVelocity(rw_cv_nc),
+                                                               ConstantVelocity(rw_cv_nc),
+                                                               ConstantPosition(rw_cv_nc))),
+                        CombinedLinearGaussianTransitionModel((ConstantPosition(rw_cp_nc),
+                                                               ConstantPosition(rw_cp_nc),
+                                                               ConstantAcceleration(rw_ca_nc))),
+                        CombinedLinearGaussianTransitionModel((ConstantPosition(rw_cp_nc),
+                                                               ConstantPosition(rw_cp_nc),
+                                                               ConstantVelocity(rw_cv_nc)))
                         ]
 
 dynamic_model_list = [*np.array(dynamic_model_list_BIF),
@@ -140,8 +152,8 @@ model_mapping = [
                  # Birds In Flight
                  [0, 1, 2, 3, 4, 5, 6, 7],
                  [0, 1, 3, 4, 6, 7, 8],
-                 [0, 1, 3, 4, 6, 7],
-                 [0, 1, 3, 4, 6, 7],
+                 # [0, 1, 3, 4, 6, 7],
+                 # [0, 1, 3, 4, 6, 7],
                  [0, 1, 2, 3, 4, 5, 6, 7, 8],
                  # Fixed Wing
                  [0, 1, 3, 4, 6, 7],  # CV CV CV
@@ -149,12 +161,13 @@ model_mapping = [
 
                  # Rotary Wing
                  [0, 1, 3, 4, 6, 7],              # CV CV CV
-                 [0, 1, 3, 4, 6, 7],              # H H CV
+                 [0, 1, 3, 4, 6, 7, 8],              # H H CA
+                 [0, 1, 3, 4, 6, 7],              # H H CA
                  ]
 
 
 # transition = form_detection_transition_matrix(detection_matrix_split, [0.05, 0.05])
-transition = form_transition_matrix(dynamic_model_list, 0.01)
+transition = form_transition_matrix(dynamic_model_list, 0.001)
 print(transition)
 measurement_model = LinearGaussian(
     ndim_state=9,  # Number of state dimensions (position, velocity and acceleration in 3D)

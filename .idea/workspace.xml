@@ -4,7 +4,6 @@
     <list default="true" id="29641738-84e2-4ab8-9863-cba6ff5583f5" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/RaoBlackwellised.py" beforeDir="false" afterPath="$PROJECT_DIR$/RaoBlackwellised.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions_for_particle_filter.py" beforeDir="false" afterPath="$PROJECT_DIR$/functions_for_particle_filter.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -183,9 +182,9 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/../../scripts/BirdDynamicsSynthesiser/simulator/track.py</url>
-          <line>60</line>
-          <option name="timeStamp" value="1" />
+          <url>file://$PROJECT_DIR$/functions_for_particle_filter.py</url>
+          <line>31</line>
+          <option name="timeStamp" value="5" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
