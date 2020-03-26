@@ -1,5 +1,6 @@
 # coding: utf-8
 import datetime
+from numbers import Real
 
 import numpy as np
 
@@ -33,4 +34,4 @@ def test_combined():
         x_prior, noise=np.random.randn(DIM, 1), time_interval=t_delta).shape
     assert (DIM, 1) == combined_model.rvs(time_interval=t_delta).shape
     assert isinstance(
-        combined_model.pdf(x_post, x_prior, time_interval=t_delta), np.float64)
+        combined_model.pdf(x_post, x_prior, time_interval=t_delta), Real)

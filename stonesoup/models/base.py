@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
 from abc import abstractmethod
 
+import numpy as np
+from scipy.stats import multivariate_normal
+
 from ..base import Base
 from ..functions import jacobian as compute_jac
+from ..types.array import Matrix, StateVector
+from ..types.numeric import Probability
 
 
 class Model(Base):
@@ -10,18 +15,24 @@ class Model(Base):
 
     Base/Abstract class for all models."""
 
+    @property
     @abstractmethod
-    def function(self):
+    def ndim(self):
+        """Number of dimensions of model"""
+        pass
+
+    @abstractmethod
+    def function(self, state_vector, noise=None):
         """ Model function"""
         pass
 
     @abstractmethod
-    def rvs(self):
+    def rvs(self, num_samples=1):
         """Model noise/sample generation method"""
         pass
 
     @abstractmethod
-    def pdf(self):
+    def pdf(self, state_vector1, state_vector2):
         """Model pdf/likelihood evaluator method"""
         pass
 
@@ -150,6 +161,74 @@ class GaussianModel(Model):
 
     Base/Abstract class for all Gaussian models"""
 
+    def rvs(self, num_samples=1, **kwargs):
+        r"""Model noise/sample generation function
+
+        Generates noise samples from the model.
+
+        In mathematical terms, this can be written as:
+
+        .. math::
+
+            v_t \sim \mathcal{N}(0,Q)
+
+        where :math:`v_t =` ``noise`` and :math:`Q` = :attr:`covar`.
+
+        Parameters
+        ----------
+        num_samples: scalar, optional
+            The number of samples to be generated (the default is 1)
+
+        Returns
+        -------
+        noise : 2-D array of shape (:attr:`~.ndim`, ``num_samples``)
+            A set of Np samples, generated from the model's noise
+            distribution.
+        """
+
+        noise = multivariate_normal.rvs(
+            np.zeros(self.ndim), self.covar(**kwargs), num_samples)
+
+        noise = np.atleast_2d(noise).T
+
+        if num_samples == 1:
+            return noise.view(StateVector)
+        else:
+            return noise.view(Matrix)
+
+    def pdf(self, state_vector1, state_vector2, **kwargs):
+        r"""Model pdf/likelihood evaluation function
+
+        Evaluates the pdf/likelihood of ``state_vector1``, given the state
+        ``state_vector2`` which is passed to :meth:`~.function`.
+
+        In mathematical terms, this can be written as:
+
+        .. math::
+
+            p = p(y_t | x_t) = \mathcal{N}(y_t; x_t, Q)
+
+        where :math:`y_t` = ``state_vector1``, :math:`x_t` = ``state_vector2``
+        and :math:`Q` = :attr:`covar`.
+
+        Parameters
+        ----------
+        state_vector1 : :class:`~.StateVector`
+        state_vector2 : :class:`~.StateVector`
+
+        Returns
+        -------
+        : :class:`~.Probability`
+            The likelihood of ``state_vector1``, given ``state_vector2``
+        """
+
+        likelihood = multivariate_normal.logpdf(
+            state_vector1.T,
+            mean=self.function(state_vector2, noise=0, **kwargs).ravel(),
+            cov=self.covar(**kwargs)
+        )
+        return Probability(likelihood, log_value=True)
+
     @abstractmethod
     def covar(self):
-        """Model covariance getter"""
+        """Model covariance"""

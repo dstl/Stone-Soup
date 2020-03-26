@@ -15,6 +15,10 @@ class MeasurementModel(Model):
         sp.ndarray, doc="Mapping between measurement and state dims")
 
     @property
+    def ndim(self):
+        return self.ndim_meas
+
+    @property
     @abstractmethod
     def ndim_meas(self):
         """Number of measurement dimensions"""

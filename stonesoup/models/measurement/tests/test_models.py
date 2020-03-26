@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import pytest
+from pytest import approx
 import numpy as np
 from scipy.stats import multivariate_normal
 
@@ -9,6 +10,7 @@ from ..nonlinear import (
 from ...base import ReversibleModel
 from ....functions import jacobian as compute_jac
 from ....types.angle import Bearing, Elevation
+from ....types.array import StateVector, Matrix
 
 
 def h2d(state_vector, translation_offset, rotation_offset):
@@ -201,6 +203,16 @@ def test_models(h, ModelClass, state_vec, R,
     # Ensure ```lg.covar()``` returns R
     assert np.array_equal(R, model.covar())
 
+    # Ensure model creates noise
+    rvs = model.rvs()
+    assert rvs.shape == (model.ndim_meas, 1)
+    assert isinstance(rvs, StateVector)
+    rvs = model.rvs(10)
+    assert rvs.shape == (model.ndim_meas, 10)
+    assert isinstance(rvs, Matrix)
+    # StateVector is subclass of Matrix, so need to check explicitly.
+    assert not isinstance(rvs, StateVector)
+
     # Project a state throught the model
     # (without noise)
     meas_pred_wo_noise = model.function(state_vec, noise=0)
@@ -210,12 +222,12 @@ def test_models(h, ModelClass, state_vec, R,
     # Evaluate the likelihood of the predicted measurement, given the state
     # (without noise)
     prob = model.pdf(meas_pred_wo_noise, state_vec)
-    assert np.array_equal(prob, multivariate_normal.pdf(
+    assert approx(prob) == multivariate_normal.pdf(
         meas_pred_wo_noise.T,
         mean=np.array(h(state_vec,
                         model.translation_offset,
                         model.rotation_offset)).ravel(),
-        cov=R).T)
+        cov=R)
 
     # Propagate a state vector through the model
     # (with internal noise)
@@ -227,12 +239,12 @@ def test_models(h, ModelClass, state_vec, R,
     # Evaluate the likelihood of the predicted state, given the prior
     # (with noise)
     prob = model.pdf(meas_pred_w_inoise, state_vec)
-    assert np.array_equal(prob, multivariate_normal.pdf(
+    assert approx(prob) == multivariate_normal.pdf(
         meas_pred_w_inoise.T,
         mean=np.array(h(state_vec,
                         model.translation_offset,
                         model.rotation_offset)).ravel(),
-        cov=R).T)
+        cov=R)
 
     # Propagate a state vector throught the model
     # (with external noise)
@@ -245,9 +257,9 @@ def test_models(h, ModelClass, state_vec, R,
     # Evaluate the likelihood of the predicted state, given the prior
     # (with noise)
     prob = model.pdf(meas_pred_w_enoise, state_vec)
-    assert np.array_equal(prob, multivariate_normal.pdf(
+    assert approx(prob) == multivariate_normal.pdf(
         meas_pred_w_enoise.T,
         mean=np.array(h(state_vec,
                         model.translation_offset,
                         model.rotation_offset)).ravel(),
-        cov=R).T)
+        cov=R)

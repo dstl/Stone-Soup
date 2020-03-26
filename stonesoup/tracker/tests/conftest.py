@@ -4,6 +4,8 @@ import datetime
 import numpy as np
 import pytest
 
+from ...buffered_generator import BufferedGenerator
+from ...reader import DetectionReader
 from ...types.array import StateVector
 from ...types.detection import MissedDetection, GaussianDetection
 from ...types.hypothesis import SingleDistanceHypothesis, \
@@ -36,7 +38,8 @@ def deleter():
 
 @pytest.fixture()
 def detector():
-    class TestDetector:
+    class TestDetector(DetectionReader):
+        @BufferedGenerator.generator_method
         def detections_gen(self):
             time = datetime.datetime(2018, 1, 1, 14)
             for step in range(20):

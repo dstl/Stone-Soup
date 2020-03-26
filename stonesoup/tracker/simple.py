@@ -57,10 +57,10 @@ class SingleTargetTracker(Tracker):
     @BufferedGenerator.generator_method
     def tracks_gen(self):
         track = None
-        for time, detections in self.detector.detections_gen():
+        for time, detections in self.detector:
             if track is not None:
                 associations = self.data_associator.associate(
-                        self.current[1], detections, time)
+                    {track}, detections, time)
                 if associations[track]:
                     state_post = self.updater.update(associations[track])
                     track.append(state_post)
@@ -68,10 +68,10 @@ class SingleTargetTracker(Tracker):
                     track.append(
                         associations[track].prediction)
 
-            if track is None or self.deleter.delete_tracks(self.current[1]):
+            if track is None or self.deleter.delete_tracks({track}):
                 new_tracks = self.initiator.initiate(detections)
                 if new_tracks:
-                    track = next(iter(new_tracks))
+                    track = new_tracks.pop()
                 else:
                     track = None
 
@@ -115,7 +115,7 @@ class MultiTargetTracker(Tracker):
     def tracks_gen(self):
         tracks = set()
 
-        for time, detections in self.detector.detections_gen():
+        for time, detections in self.detector:
 
             associations = self.data_associator.associate(
                 tracks, detections, time)
@@ -174,7 +174,7 @@ class MultiTargetMixtureTracker(Tracker):
     def tracks_gen(self):
         tracks = set()
 
-        for time, detections in self.detector.detections_gen():
+        for time, detections in self.detector:
 
             associations = self.data_associator.associate(
                 tracks, detections, time)

@@ -4,7 +4,7 @@ from textwrap import dedent
 
 import numpy as np
 
-from ..yaml import YAMLReader
+from ..yaml import YAMLDetectionReader, YAMLGroundTruthReader, YAMLTrackReader
 
 
 def test_detections_yaml(tmpdir):
@@ -42,9 +42,9 @@ def test_detections_yaml(tmpdir):
               :
             """))
 
-    reader = YAMLReader(filename.strpath)
+    reader = YAMLDetectionReader(filename.strpath)
 
-    for n, (time, detections) in enumerate(reader.detections_gen()):
+    for n, (time, detections) in enumerate(reader):
         assert len(detections) == n
         for detection in detections:
             assert np.array_equal(
@@ -53,10 +53,6 @@ def test_detections_yaml(tmpdir):
             assert detection.timestamp.minute == n
             assert detection.timestamp.date() == datetime.date(2018, 1, 1)
             assert detection.timestamp == time
-
-        assert not reader.groundtruth_paths
-        assert not reader.sensor_data
-        assert not reader.tracks
 
 
 def test_groundtruth_paths_yaml(tmpdir):
@@ -106,10 +102,10 @@ def test_groundtruth_paths_yaml(tmpdir):
             ...
             """))
 
-    reader = YAMLReader(filename.strpath)
+    reader = YAMLGroundTruthReader(filename.strpath)
 
     ptime = None
-    for n, (time, paths) in enumerate(reader.groundtruth_paths_gen()):
+    for n, (time, paths) in enumerate(reader):
         assert len(paths) == n
         for path in paths:
             assert time.hour == 14
@@ -118,9 +114,6 @@ def test_groundtruth_paths_yaml(tmpdir):
             assert path[-1].timestamp == time
             if len(path) > 1:
                 assert path[-2].timestamp == ptime
-        assert not reader.sensor_data
-        assert not reader.detections
-        assert not reader.tracks
         ptime = time
 
 
@@ -171,10 +164,10 @@ def test_tracks_yaml(tmpdir):
             ...
             """))
 
-    reader = YAMLReader(filename.strpath)
+    reader = YAMLTrackReader(filename.strpath)
 
     ptime = None
-    for n, (time, tracks) in enumerate(reader.tracks_gen()):
+    for n, (time, tracks) in enumerate(reader):
         assert len(tracks) == n
         for track in tracks:
             assert time.hour == 14
@@ -183,7 +176,4 @@ def test_tracks_yaml(tmpdir):
             assert track.timestamp == time
             if len(track) > 1:
                 assert track[-2].timestamp == ptime
-        assert not reader.groundtruth_paths
-        assert not reader.sensor_data
-        assert not reader.detections
         ptime = time

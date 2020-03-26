@@ -33,6 +33,10 @@ class LinearControlModel(ControlModel, LinearModel):
         doc="Control input noise covariance at time :math:`k`")
 
     @property
+    def ndim(self):
+        return self.ndim_ctrl
+
+    @property
     def ndim_ctrl(self):
         return self.control_vector.shape[0]
 

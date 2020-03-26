@@ -1,18 +1,95 @@
 # -*- coding: utf-8 -*-
 
-import scipy as sp
-from scipy.stats import multivariate_normal
-from numpy.linalg import inv
+import numpy as np
+from scipy.linalg import inv, pinv, block_diag
 
 from ...base import Property
 
 from ...functions import cart2pol, pol2cart, \
     cart2sphere, sphere2cart, cart2angles, \
     rotx, roty, rotz
-from ...types.array import StateVector, CovarianceMatrix
+from ...types.array import StateVector, CovarianceMatrix, Matrix
 from ...types.angle import Bearing, Elevation
-from ..base import NonLinearModel, GaussianModel, ReversibleModel
+from ..base import LinearModel, NonLinearModel, GaussianModel, ReversibleModel
 from .base import MeasurementModel
+
+
+class CombinedReversibleGaussianMeasurementModel(
+        ReversibleModel, GaussianModel, MeasurementModel):
+    r"""Combine multiple models into a single model by stacking them.
+
+    The assumption is that all models are Gaussian, and must be combination of
+    :class:`~.LinearModel` and :class:`~.NonLinearModel` models. They must all
+    expect the same dimension state vector (i.e. have the same
+    :attr:`~.MeasurementModel.ndim_state`), using model mapping as appropriate.
+
+    This also implements the :meth:`inverse_function`, but will raise a
+    :exc:`NotImplementedError` if any model isn't either a
+    :class:`~.LinearModel` or :class:`~.ReversibleModel`.
+    """
+    mapping = None
+    model_list = Property(
+        [MeasurementModel], doc="List of Measurement Models.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        for model in self.model_list:
+            if model.ndim_state != self.ndim_state:
+                raise ValueError("Models must all have the same `ndim_state`")
+
+    @property
+    def ndim_state(self):
+        """Number of state dimensions"""
+        return self.model_list[0].ndim_state
+
+    @property
+    def ndim_meas(self):
+        return sum(model.ndim_meas for model in self.model_list)
+
+    def function(self, state_vector, **kwargs):
+        return np.vstack([model.function(state_vector, **kwargs)
+                          for model in self.model_list]).view(StateVector)
+
+    @staticmethod
+    def _linear_inverse_function(model, meas_vector, **kwargs):
+        model_matrix = model.matrix(**kwargs)
+        inv_model_matrix = pinv(model_matrix)
+
+        return inv_model_matrix@meas_vector
+
+    def inverse_function(self, meas_vector, **kwargs):
+        ndim_count = 0
+        state_vector = np.zeros((self.ndim_state, 1)).view(StateVector)
+        for model in self.model_list:
+            if isinstance(model, ReversibleModel):
+                state_vector += model.inverse_function(
+                    meas_vector[ndim_count:model.ndim_meas+ndim_count, :],
+                    **kwargs)
+            elif isinstance(model, LinearModel):
+                state_vector += self._linear_inverse_function(
+                    model,
+                    meas_vector[ndim_count:model.ndim_meas+ndim_count, :],
+                    **kwargs)
+            else:
+                raise NotImplementedError(
+                    "Model {!r} not reversible".format(type(model)))
+            ndim_count += model.ndim_meas
+
+        return state_vector
+
+    def covar(self, **kwargs):
+        return block_diag(
+            *(model.covar(**kwargs) for model in self.model_list)
+            ).view(CovarianceMatrix)
+
+    def rvs(self, num_samples=1, **kwargs):
+        rvs_vectors = np.vstack([model.rvs(num_samples, **kwargs)
+                                 for model in self.model_list])
+        if num_samples == 1:
+            return rvs_vectors.view(StateVector)
+        else:
+            return rvs_vectors.view(Matrix)
 
 
 class NonLinearGaussianMeasurement(MeasurementModel,
@@ -24,7 +101,7 @@ class NonLinearGaussianMeasurement(MeasurementModel,
     """
     noise_covar = Property(CovarianceMatrix, doc="Noise covariance")
     rotation_offset = Property(
-        StateVector, default=StateVector(sp.array([[0], [0], [0]])),
+        StateVector, default=StateVector(np.array([[0], [0], [0]])),
         doc="A 3x1 array of angles (rad), specifying the clockwise rotation\
             around each Cartesian axis in the order :math:`x,y,z`.\
             The rotation angles are positive if the rotation is in the \
@@ -42,69 +119,6 @@ class NonLinearGaussianMeasurement(MeasurementModel,
         """
 
         return self.noise_covar
-
-    def pdf(self, meas_vec, state_vec, **kwargs):
-        r""" Measurement pdf/likelihood evaluation function
-
-        Evaluates the pdf/likelihood of the (set of) measurement vector(s)
-        ``meas_vec``, given the (set of) state vector(s) ``state_vec``.
-
-        In mathematical terms, this can be written as:
-
-        .. math::
-
-            p(\vec{y}_t | \vec{x}_t) = \mathcal{N}(\vec{y}_t; \vec{x}_t, R)
-
-        Parameters
-        ----------
-        meas_vec : :class:`~.StateVector`
-            A measurement
-        state_vec : :class:`~.StateVector`
-            A state
-
-        Returns
-        -------
-        :class:`float`
-            The likelihood of ``meas``, given ``state``
-        """
-
-        likelihood = multivariate_normal.pdf(
-            meas_vec.T,
-            mean=(self.function(state_vec, 0)).ravel(),
-            cov=self.covar()
-        )
-        return likelihood
-
-    def rvs(self, num_samples=1, **kwargs):
-        r""" Model noise/sample generation function
-
-        Generates noise samples from the measurement model.
-
-        In mathematical terms, this can be written as:
-
-        .. math::
-
-            \vec{v}_t \sim \mathcal{N}(0,R)
-
-        Parameters
-        ----------
-        num_samples: scalar, optional
-            The number of samples to be generated (the default is 1)
-
-        Returns
-        -------
-        2-D array of shape (:py:attr:`~ndim_meas`, ``num_samples``)
-            A set of Np samples, generated from the model's noise
-            distribution.
-        """
-
-        noise = multivariate_normal.rvs(
-            sp.zeros(self.ndim_meas), self.covar(), num_samples)
-
-        if num_samples == 1:
-            return noise.reshape((-1, 1))
-        else:
-            return noise.T
 
     @property
     def _rotation_matrix(self):
@@ -187,7 +201,7 @@ class CartesianToElevationBearingRange(
     """  # noqa:E501
 
     translation_offset = Property(
-        StateVector, default=StateVector(sp.array([[0], [0], [0]])),
+        StateVector, default=StateVector(np.array([[0], [0], [0]])),
         doc="A 3x1 array specifying the Cartesian origin offset in terms of :math:`x,y,z`\
             coordinates.")
 
@@ -232,9 +246,7 @@ class CartesianToElevationBearingRange(
         # Convert to Spherical
         rho, phi, theta = cart2sphere(*xyz_rot[:, 0])
 
-        return sp.array([[Elevation(theta)],
-                         [Bearing(phi)],
-                         [rho]]) + noise
+        return StateVector([[Elevation(theta)], [Bearing(phi)], [rho]]) + noise
 
     def inverse_function(self, state_vector, **kwargs):
 
@@ -247,14 +259,14 @@ class CartesianToElevationBearingRange(
         xyz = [xyz_rot[0][0], xyz_rot[1][0], xyz_rot[2][0]]
         x, y, z = xyz + self.translation_offset[:, 0]
 
-        res = sp.zeros((self.ndim_state, 1))
+        res = np.zeros((self.ndim_state, 1)).view(StateVector)
         res[self.mapping, 0] = x, y, z
 
         return res
 
     def rvs(self, num_samples=1, **kwargs):
         out = super().rvs(num_samples, **kwargs)
-        out = sp.array([[Elevation(0.)], [Bearing(0.)], [0.]]) + out
+        out = np.array([[Elevation(0.)], [Bearing(0.)], [0.]]) + out
         return out
 
 
@@ -315,7 +327,7 @@ class CartesianToBearingRange(
     """  # noqa:E501
 
     translation_offset = Property(
-        StateVector, default=StateVector(sp.array([[0], [0]])),
+        StateVector, default=StateVector(np.array([[0], [0]])),
         doc="A 2x1 array specifying the origin offset in terms of :math:`x,y`\
             coordinates.")
 
@@ -347,7 +359,7 @@ class CartesianToBearingRange(
         xy = [xyz_rot[0][0], xyz_rot[1][0]]
         x, y = xy + self.translation_offset[:, 0]
 
-        res = sp.zeros((self.ndim_state, 1))
+        res = np.zeros((self.ndim_state, 1)).view(StateVector)
         res[self.mapping, 0] = x, y
 
         return res
@@ -385,11 +397,11 @@ class CartesianToBearingRange(
         # Covert to polar
         rho, phi = cart2pol(*xyz_rot[:2, 0])
 
-        return sp.array([[Bearing(phi)], [rho]]) + noise
+        return StateVector([[Bearing(phi)], [rho]]) + noise
 
     def rvs(self, num_samples=1, **kwargs):
         out = super().rvs(num_samples, **kwargs)
-        out = sp.array([[Bearing(0)], [0.]]) + out
+        out = np.array([[Bearing(0)], [0.]]) + out
         return out
 
 
@@ -451,7 +463,7 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
     """  # noqa:E501
 
     translation_offset = Property(
-        StateVector, default=StateVector(sp.array([[0], [0], [0]])),
+        StateVector, default=StateVector(np.array([[0], [0], [0]])),
         doc="A 3x1 array specifying the origin offset in terms of :math:`x,y,z`\
             coordinates.")
 
@@ -496,10 +508,9 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
         # Convert to Angles
         phi, theta = cart2angles(*xyz_rot[:, 0])
 
-        return sp.array([[Elevation(theta)],
-                         [Bearing(phi)]]) + noise
+        return StateVector([[Elevation(theta)], [Bearing(phi)]]) + noise
 
     def rvs(self, num_samples=1, **kwargs):
         out = super().rvs(num_samples, **kwargs)
-        out = sp.array([[Elevation(0.)], [Bearing(0.)]]) + out
+        out = np.array([[Elevation(0.)], [Bearing(0.)]]) + out
         return out
