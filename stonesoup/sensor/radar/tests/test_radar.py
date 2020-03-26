@@ -288,8 +288,8 @@ def test_swer(repeats=10000):
     x = (bin_edge[:-1] + bin_edge[1:]) / 2
     height = 1 / (float(radar.rcs)) * np.exp(-x / float(radar.rcs))
 
-    assert np.allclose(height, bin_height, rtol=0.05,
-                       atol=0.01 * np.max(bin_height))
+    assert np.allclose(height, bin_height, rtol=0.03,
+                       atol=0.05 * np.max(bin_height))
 
 
 def test_detection():
