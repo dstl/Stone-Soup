@@ -179,8 +179,9 @@ def form_detection_transition_matrix(matrix_split, probability_for_change):
 
     model_matrix_1 = form_transition_matrix([i for i in range(matrix_split[0])], probability_for_change[0])
     model_matrix_2 = form_transition_matrix([i for i in range(matrix_split[1])], probability_for_change[1])
+    model_matrix_3 = form_transition_matrix([i for i in range(matrix_split[2])], probability_for_change[2])
 
-    return sp.linalg.block_diag(np.array(model_matrix_1), np.array(model_matrix_2))
+    return sp.linalg.block_diag(np.array(model_matrix_1), np.array(model_matrix_2), np.array(model_matrix_3) )
 
 
 class PlotData:
@@ -238,7 +239,7 @@ class PlotData:
         ax.set_zlabel('z')
         ax.legend(loc="upper right")
         plt.title("True path and predicted PF path")
-        plt.show()
+        # plt.show()
 
     def plot_neff(self):
 
@@ -259,9 +260,9 @@ class PlotData:
         plt.show()
 
     def rao_probabilities(self):
-
+        plt.show()
         for i, line in enumerate(self.model_probabilities_plot):
-            plt.plot(range(len(self.model_probabilities_plot[i])), line)
+            plt.plot(range(len(line)), line)
         plt.legend([f"Model {i}" for i in range(len(self.model_probabilities_plot))])
         plt.title("Average Model Probability given previous track")
         plt.xlabel('Timestep')
@@ -276,9 +277,11 @@ class PlotData:
             else:
                 craft_proba.append(sum([sum(self.model_probabilities_plot[i])
                                         for i in range(self.craft_sum[i-1], self.craft_sum[i])]))
-
+        rv = []
         for i, craft in enumerate(craft_proba):
             print(f"Rao probability of craft {i} : {float(craft / sum(craft_proba))}")
+            rv.append(float(craft / sum(craft_proba)))
+        return rv
 
     def craft_prob(self):
 
@@ -325,5 +328,6 @@ class PlotData:
         plt.xlabel('Timestep')
         plt.ylabel('Difference')
         plt.title("Distance Metric")
-        plt.show()
+        # plt.show()
         print(f"Total distance : {sum_of_difference}")
+        return sum_of_difference
