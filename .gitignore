@@ -13,3 +13,5 @@ htmlcov/
 
 # pytest
 .pytest_cache/
+
+/.idea/

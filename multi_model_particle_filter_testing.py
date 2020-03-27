@@ -25,17 +25,17 @@ import numpy as np
 import os
 
 seed(100)
-DRONE_FILE = 1
+DRONE_FILE = 27
 DATA_DIR = "P:/DASA/EDITTS Drone Tracking/GFI/GPS Tracking"
 # DATA_DIR = "C:/Work/Drone_Tracking/EDITTS-Drone-Tracking/data/raw/"
 SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results"
 FIXED_WING = {"g2", "g4", "maja", "bixler", "x8", "kahu"}
 ROTARY_WING = {"g6", "f550", "drdc"}
 
-NUMBER_OF_PARTICLES = 300
-rw_cv_noise_covariance = 0.35
-fw_cv_noise_covariance = 0.01
-rw_hover_noise_covariance = 0.001
+NUMBER_OF_PARTICLES = 100
+rw_cv_noise_covariance = 2.5
+fw_cv_noise_covariance = 0.05
+rw_hover_noise_covariance = 0.01
 constant_turn_covariance = [0.1, 0.1]
 turn_rate_left = 0.5
 turn_rate_right = -0.5
@@ -56,6 +56,10 @@ elif title_parse[3] in ROTARY_WING:
     SAVE_DIR = "C:/Work/Drone_Tracking/multi_model_results/Rotary_Wing"
 
 location = import_track_data(DRONE_FILE, DATA_REDUCTION, DATA_DIR)
+
+for i, element in enumerate(location):
+    location[i][:3] = np.random.normal(element[:3], 0.5)
+
 # location = read_synthetic_csv(DATA_DIR + file_list[DRONE_FILE])
 
 ax = plt.axes(projection="3d")
@@ -148,7 +152,7 @@ transition = form_detection_transition_matrix(detection_matrix_split, [0.05, 0.0
 measurement_model = LinearGaussian(
     ndim_state=9,  # Number of state dimensions (position, velocity and acceleration in 3D)
     mapping=(0, 3, 6),  # Locations of our position variables within the entire state space
-    noise_covar=np.diag([0.1, 0.1, 0.1]))
+    noise_covar=np.diag([1, 1, 1]))
 
 multi_model = MultiModelPredictor(transition, model_mapping, transition_model=dynamic_model_list)
 
@@ -180,16 +184,35 @@ particles = [Particle(sample.reshape(-1, 1), weight=Probability(1/NUMBER_OF_PART
 prior_state = ParticleState(particles, timestamp=start_time)
 
 track = Track()
+craft_probs = []
 dynamic_model_split = []
 effective_sample_size = []
 weighted_sum_per_model = []
+probability_of_each_craft = []
 counter = 0
 for iteration, measurement in enumerate(tqdm(measurements)):
-    prediction, dynamic_model_proportions = multi_model.predict(prior_state, timestamp=measurement.timestamp,
-                                                                multi_craft=True)
+    prediction = multi_model.predict(prior_state, timestamp=measurement.timestamp, multi_craft=True)
     weighted_sum_per_model.append([sum([p.weight for p in prediction.particles if p.dynamic_model == j])
                                    for j in range(len(transition))])
-    dynamic_model_split.append(dynamic_model_proportions)
+    particle_proportions = [p.dynamic_model for p in prediction.particles]
+    print([particle_proportions.count(i) for i in range(len(transition))])
+    # dynamic_model_split.append(dynamic_model_proportions)
+
+    craft_sum = np.cumsum(detection_matrix_split)
+    rw_prob = sum([weighted_sum_per_model[-1][i] for i in range(craft_sum[0])])
+    fw_prob = sum([weighted_sum_per_model[-1][i] for i in range(craft_sum[0], craft_sum[1])])
+    craft_probs.append([rw_prob, fw_prob])
+
+    if iteration % 10 == 0 and iteration != 0:
+
+        cumulative_rw_prob = sum([prob[0] for prob in craft_probs])
+        cumulative_fw_prob = sum([prob[1] for prob in craft_probs])
+
+        sum_of_probs = cumulative_fw_prob + cumulative_rw_prob
+
+        print(f"Probability of Rotary Wing is : {cumulative_rw_prob / sum_of_probs}")
+        print(f"Probability of Fixed Wing is : {cumulative_fw_prob / sum_of_probs}")
+
     hypothesis = SingleHypothesis(prediction, measurement)
     post, n_eff = updater.update(hypothesis)
     print(n_eff)
