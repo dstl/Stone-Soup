@@ -128,8 +128,9 @@ def assign2D(C, maximize=False):
     # end.
     if not maximize:
         CDelta = numpy.inf
+        idxs = numpy.unravel_index([i for i in range(totalNumElsInC)], C.shape)
         for i in range(0, totalNumElsInC):
-            idx = numpy.unravel_index(i, C.shape)
+            idx = (idxs[0][i], idxs[1][i])
             if C[idx] < CDelta:
                 CDelta = C[idx]
 
@@ -138,13 +139,14 @@ def assign2D(C, maximize=False):
             CDelta = 0
 
         for i in range(0, totalNumElsInC):
-            idx = numpy.unravel_index(i, C.shape)
+            idx = (idxs[0][i], idxs[1][i])
             C[idx] = C[idx] - CDelta
 
     else:
         CDelta = -numpy.inf
+        idxs = numpy.unravel_index([i for i in range(totalNumElsInC)], C.shape)
         for i in range(0, totalNumElsInC):
-            idx = numpy.unravel_index(i, C.shape)
+            idx = (idxs[0][i], idxs[1][i])
             if C[idx] > CDelta:
                 CDelta = C[idx]
 
@@ -153,7 +155,7 @@ def assign2D(C, maximize=False):
             CDelta = 0
 
         for i in range(0, totalNumElsInC):
-            idx = numpy.unravel_index(i, C.shape)
+            idx = (idxs[0][i], idxs[1][i])
             C[idx] = -C[idx] + CDelta
 
     CDelta = CDelta * numCol

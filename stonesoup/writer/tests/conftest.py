@@ -36,13 +36,14 @@ def groundtruth_reader():
         def groundtruth_paths_gen(self):
             time = datetime.datetime(2018, 1, 1, 14)
             state_vector = StateVector([[0]])
-            for i in range(3):
+            for i in range(2):
                 groundtruth_paths = {
                     GroundTruthPath(
                         [GroundTruthState(
                             state_vector + i + 10*j, timestamp=time)
-                         for j in range(i)])
-                    for _ in range(i)}
+                         for j in range(i)],
+                        str(k))
+                    for k in range(i)}
                 yield time, groundtruth_paths
                 time += datetime.timedelta(minutes=1)
     return TestGroundTruthReader()
