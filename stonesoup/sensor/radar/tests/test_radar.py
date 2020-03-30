@@ -234,7 +234,8 @@ def test_aesaradar():
 
     radar = AESARadar(antenna_gain=30,
                       mapping=[0, 2, 4],
-                      translation_offset=StateVector([0.0] * 6),
+                      position=StateVector([0.0] * 3),
+                      orientation=StateVector([0.0] * 3),
                       frequency=100e6,
                       number_pulses=5,
                       duty_cycle=0.1,
@@ -279,7 +280,9 @@ def test_swer(repeats=10000):
                       beam_shape=Beam2DGaussian(peak_power=50e3),
                       beam_transition_model=StationaryBeam(
                           centre=[np.deg2rad(15), np.deg2rad(20)]),
-                      measurement_model=None)
+                      measurement_model=None,
+                      position=StateVector([0.0]*3),
+                      orientation=StateVector([0.0]*3))
     # populate list of random rcs
     for i in range(0, repeats):
         list_rcs[i] = radar.gen_probability(target)[2]
@@ -294,7 +297,8 @@ def test_swer(repeats=10000):
 
 def test_detection():
     radar = AESARadar(antenna_gain=30,
-                      translation_offset=StateVector([0.0] * 3),
+                      position=StateVector([0.0] * 3),
+                      orientation=StateVector([0.0] * 3),
                       frequency=100e6,
                       number_pulses=5,
                       duty_cycle=0.1,
@@ -325,7 +329,8 @@ def test_failed_detect():
 
     radar = AESARadar(antenna_gain=30,
                       mapping=[0, 2, 4],
-                      translation_offset=StateVector([0.0] * 6),
+                      position=StateVector([0.0] * 3),
+                      orientation=StateVector([0.0] * 3),
                       frequency=100e6,
                       number_pulses=5,
                       duty_cycle=0.1,
@@ -355,7 +360,8 @@ def test_target_rcs():
 
     radar_model = AESARadar(antenna_gain=36,
                             mapping=[0, 1, 2],
-                            translation_offset=StateVector([0.0]*3),
+                            position=StateVector([0.0]*3),
+                            orientation=StateVector([0.0] * 3),
                             frequency=10e9,
                             number_pulses=10,
                             duty_cycle=0.18,

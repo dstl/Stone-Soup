@@ -2,9 +2,10 @@
 import numpy as np
 
 from math import erfc
+
+from ...platform.simple import PlatformSensor
 from ...functions import cart2sphere, rotx, roty, rotz
-from ..base import Sensor
-from ..base import Property, Sensor3DCartesian
+from ..base import Property
 
 from ...models.measurement.nonlinear import CartesianToBearingRange
 from ...types.array import CovarianceMatrix
@@ -17,7 +18,7 @@ from ...types.numeric import Probability
 import scipy.constants as const
 
 
-class RadarRangeBearing(Sensor3DCartesian):
+class RadarRangeBearing(PlatformSensor):
     """A simple radar sensor that generates measurements of targets, using a
     :class:`~.CartesianToBearingRange` model, relative to its position.
 
@@ -64,7 +65,7 @@ class RadarRangeBearing(Sensor3DCartesian):
             ndim_state=self.ndim_state,
             mapping=self.mapping,
             noise_covar=self.noise_covar,
-            translation_offset=self.position,
+            translation_offset=self.get_position(),
             rotation_offset=self.orientation)
 
         measurement_vector = measurement_model.function(
@@ -255,7 +256,7 @@ class RadarRasterScanRangeBearing(RadarRotatingRangeBearing):
             self.rpm = -self.rpm
 
 
-class AESARadar(Sensor):
+class AESARadar(PlatformSensor):
     r"""An AESA (Active electronically scanned array) radar model that
     calculates the signal to noise ratio (SNR) of a target and the subsequent
     probability of detection (PD). The SNR is calculated using:
@@ -305,16 +306,13 @@ class AESARadar(Sensor):
     The current implementation of this class assumes a 3D Cartesian plane.
     This model does not generate false alarms.
     """
-
     rotation_offset = Property(
         StateVector, default=StateVector([0, 0, 0]),
         doc="A 3x1 array of angles (rad), specifying "
             "the radar orientation in terms of the "
             "counter-clockwise rotation around the "
             ":math:`x,y,z` axis. i.e Roll, Pitch and Yaw.")
-    translation_offset = Property(
-        StateVector, default=StateVector([0, 0, 0]),
-        doc="The radar position in 3D Cartesian space.[x,y,z]")
+
     mapping = Property(
         np.array, default=[0, 1, 2],
         doc="Mapping between or positions and state "
@@ -444,8 +442,7 @@ class AESARadar(Sensor):
         spoiled_gain = 10 ** (self.antenna_gain / 10) * np.cos(beam_az) * np.cos(beam_el)
         spoiled_width = self.beam_width / (np.cos(beam_az) * np.cos(beam_el))
         # state relative to radar (in cartesian space)
-        relative_vector = sky_state.state_vector[self.mapping] \
-                          - self.translation_offset[self.mapping]  # noqa E127
+        relative_vector = sky_state.state_vector[self.mapping] - self.get_position()
         relative_vector = self._rotation_matrix @ relative_vector
 
         # calculate target position in spherical coordinates
@@ -489,7 +486,7 @@ class AESARadar(Sensor):
         det_prob = self.gen_probability(sky_state)[0]
         # Is the state detected?
         if np.random.rand() <= det_prob:
-            self.measurement_model.translation_offset = self.translation_offset
+            self.measurement_model.translation_offset = self.get_position()
             self.measurement_model.rotation_offset = self.rotation_offset
             measured_pos = self.measurement_model.function(sky_state, noise=noise)
 

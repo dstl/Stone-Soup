@@ -16,6 +16,18 @@ class Platform(Base):
     transition_model = Property(
         TransitionModel, doc="Transition model")
 
+    def get_position(self):
+        if self.state.ndim == 6 or self.state.ndim == 4:
+            return self.state.state_vector[0::2]
+        else:
+            raise NotImplementedError
+
+    def get_velocity(self):
+        if self.state.ndim == 6 or self.state.ndim == 4:
+            return self.state.state_vector[1::2]
+        else:
+            raise NotImplementedError
+
     def move(self, timestamp=None, **kwargs):
         """Propagate the platform position using the :attr:`transition_model`.
 

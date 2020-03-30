@@ -305,6 +305,16 @@ def move(request):
     return request.param
 
 
+@pytest.fixture(params=[True, False], ids=["Add", "Initialise"])
+def add_sensor(request):
+    return request.param
+
+
+@pytest.fixture(params=[True, False], ids=["MM_empty", "MM_added"])
+def mounting_mapping_on_add(request):
+    return request.param
+
+
 testdata_2d = [
     np.array([[0], [0], [0], [0]]),
     np.array([[10], [0], [0], [0]]),
@@ -354,7 +364,8 @@ expected_2d = [
     'state, expected', zip(testdata_2d, expected_2d),
     ids=["Static", "pos offset", "x vel", "y vel", "-x vel", "-y vel",
          "x,y vel", "-x,-y vel", "x,-y vel", "-x,y vel"])
-def test_2d_platform(state, expected, move, radars_2d, mounting_offsets_2d):
+def test_2d_platform(state, expected, move, radars_2d,
+                     mounting_offsets_2d, add_sensor, mounting_mapping_on_add):
     # Define time related variables
     timestamp = datetime.datetime.now()
     # Define transition model and position for platform
@@ -366,13 +377,28 @@ def test_2d_platform(state, expected, move, radars_2d, mounting_offsets_2d):
     # This defines the mapping to the platforms state vector (i.e. x and y)
     mounting_mappings = np.array([[0, 2]])
     # create a platform with the simple radar mounted
-    platform = SensorPlatform(
-        state=platform_state,
-        transition_model=trans_model,
-        sensors=radars_2d,
-        mounting_offsets=mounting_offsets_2d,
-        mounting_mappings=mounting_mappings
-    )
+    if add_sensor:
+        platform = SensorPlatform(
+            state=platform_state,
+            transition_model=trans_model,
+            sensors=[],
+            mounting_offsets=np.array([]),
+            mounting_mappings=mounting_mappings
+        )
+        for i, sensor in enumerate(radars_2d):
+            if mounting_mapping_on_add:
+                platform.add_sensor(sensor, mounting_offsets_2d[i, :],
+                                    mounting_mappings)
+            else:
+                platform.add_sensor(sensor, mounting_offsets_2d[i, :])
+    else:
+        platform = SensorPlatform(
+            state=platform_state,
+            transition_model=trans_model,
+            sensors=radars_2d,
+            mounting_offsets=mounting_offsets_2d,
+            mounting_mappings=mounting_mappings
+        )
     if move:
         # Move the platform
         platform.move(timestamp + datetime.timedelta(seconds=2))
@@ -423,13 +449,28 @@ def test_3d_platform(state, expected, move, radars_3d, mounting_offsets_3d):
     # This defines the mapping to the platforms state vector (i.e. x and y)
     mounting_mappings = np.array([[0, 2, 4]])
     # create a platform with the simple radar mounted
-    platform = SensorPlatform(
-        state=platform_state,
-        transition_model=trans_model,
-        sensors=radars_3d,
-        mounting_offsets=mounting_offsets_3d,
-        mounting_mappings=mounting_mappings
-    )
+    if add_sensor:
+        platform = SensorPlatform(
+            state=platform_state,
+            transition_model=trans_model,
+            sensors=[],
+            mounting_offsets=np.array([]),
+            mounting_mappings=mounting_mappings
+        )
+        for i, sensor in enumerate(radars_3d):
+            if mounting_mapping_on_add:
+                platform.add_sensor(sensor, mounting_offsets_3d[i, :],
+                                    mounting_mappings)
+            else:
+                platform.add_sensor(sensor, mounting_offsets_3d[i, :])
+    else:
+        platform = SensorPlatform(
+            state=platform_state,
+            transition_model=trans_model,
+            sensors=radars_3d,
+            mounting_offsets=mounting_offsets_3d,
+            mounting_mappings=mounting_mappings
+        )
     if move:
         # Move the platform
         platform.move(timestamp + datetime.timedelta(seconds=2))
@@ -450,7 +491,7 @@ def sensor_positions_test(expected_offset, platform):
         [len(platform.sensors), platform.mounting_offsets.shape[1]])
     expected_radar_position = np.zeros_like(radar_position)
     for i in range(len(platform.sensors)):
-        radar_position[i, :] = platform.sensors[i].position.flatten()
+        radar_position[i, :] = platform.sensors[i].get_position().flatten()
 
         platform_position = platform.state.state_vector[
             platform.mounting_mappings[i, :]].flatten()

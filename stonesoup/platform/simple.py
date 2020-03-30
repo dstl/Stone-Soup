@@ -2,12 +2,37 @@
 import numpy as np
 from math import cos, sin
 from scipy.linalg import expm
+import weakref
+from functools import lru_cache
 
+from stonesoup.sensor.base import Sensor3DCartesian
 from ..base import Property
 from ..types.state import StateVector
-from ..sensor import Sensor
 from ..functions import cart2pol
 from .base import Platform
+
+
+class PlatformSensor(Sensor3DCartesian):
+    platform_system = Property(Platform, default=None,
+                               doc='`weakref` to the platform on which the '
+                                   'sensor is mounted')
+
+    def measure(self, **kwargs):
+        raise NotImplementedError
+
+    def get_position(self):
+        if (hasattr(self, 'platform_system')
+                and self.platform_system is not None):
+            return self.platform_system().get_sensor_position(self)
+        else:
+            return self.position
+
+    def get_orientation(self):
+        if (hasattr(self, 'platform_system')
+                and self.platform_system is not None):
+            return self.platform_system().get_sensor_orientation(self)
+        else:
+            return self.orientation
 
 
 class SensorPlatform(Platform):
@@ -24,15 +49,15 @@ class SensorPlatform(Platform):
 
     """
 
-    sensors = Property([Sensor], doc="A list of N mounted sensors")
+    sensors = Property([PlatformSensor], doc="A list of N mounted sensors")
     mounting_offsets = Property(
         [np.array], doc="A list of sensor offsets (For now expressed\
                             as a Nxn array of nD Cartesian coordinates)")
     mounting_mappings = Property(
         [np.array], doc="Mappings between the platform state vector and the\
                             individuals sensors mounting offset (For now\
-                            expressed as a nxN array of nD Cartesian\
-                            coordinates or a 1xN array where a single\
+                            expressed as a Nxn array of nD Cartesian\
+                            coordinates or a 1xn array where a single\
                             mapping will be applied to all sensors)")
 
     # TODO: Determine where a platform coordinate frame should be maintained
@@ -67,66 +92,82 @@ class SensorPlatform(Platform):
                                           self.mounting_mappings,
                                           axis=0)
             self.mounting_mappings = mapping_array
+        for sensor in self.sensors:
+            sensor.platform_system = weakref.ref(self)
+            sensor.position = None
+            sensor.orientation = None
 
-        self._move_sensors()
+    def add_sensor(self, sensor, mounting_offset, mounting_mapping=None):
+        """ Determine the sensor mounting offset for the platforms relative
+                orientation.
 
-    # TODO: create add_sensor method
+                Parameters
+                ----------
+                sensor : :class:`Sensor`
+                    The sensor object to add
+                mounting_offset : :class:`np.ndarray`
+                    A 1xN array with the mounting offset of the new sensor
+                mounting_mapping : :class:`np.ndarray`, optional
+                    A 1xN array with the mounting mapping of the new sensor.
+                    If `None` (default) then use the same mapping as all
+                    previous sensors. If all sensor do not a have the same
+                    mapping then raise ValueError
+                """
+        self.sensors.append(sensor)
+        sensor.platform_system = weakref.ref(self)
+        sensor.position = None
+        sensor.orientation = None
 
-    def move(self, timestamp=None, **kwargs):
-        """Propagate the platform position using the :attr:`transition_model`,
-        and use _move_sensors method to update sensor positions, this in turn
-        calls _get_rotated_offset to modify sensor offsets relative to the
-        platforms velocity vector
+        if mounting_mapping is None:
+            if not np.all(self.mounting_mappings
+                          == self.mounting_mappings[0, :]):
+                raise ValueError('Mapping must be specified unless all '
+                                 'sensors have the same mapping')
+            mounting_mapping = self.mounting_mappings[0, :]
 
-        Parameters
-        ----------
-        timestamp: :class:`datetime.datetime`, optional
-            A timestamp signifying when the maneuver completes
-            (the default is `None`)
+        if mounting_offset.ndim == 1:
+            mounting_offset = mounting_offset[np.newaxis, :]
+        if mounting_mapping.ndim == 1:
+            mounting_mapping = mounting_mapping[np.newaxis, :]
 
-        Notes
-        -----
-        This methods updates the value of :attr:`position` and :attr:`sensors`
-        """
-        # Call superclass method to update platform state
-        super().move(timestamp=timestamp, **kwargs)
-        # Move the platforms sensors relative to the platform
-        self._move_sensors()
+        if len(self.sensors) == 1:
+            # This is the first sensor added, so no mounting mappings/offsets
+            # to maintain
+            self.mounting_offsets = mounting_offset
+        else:
+            self.mounting_offsets = np.concatenate([self.mounting_offsets,
+                                                    mounting_offset])
 
-    def _move_sensors(self):
-        """ Propogate the Sensor positions based upon the mounting
-        offsets and the platform position and heading post manoeuvre.
+        if len(self.sensors) == 1:
+            # This is the first sensor added, so no mounting
+            # mappings/offsets to maintain
+            self.mounting_mappings = mounting_mapping
+        else:
+            self.mounting_mappings = np.concatenate([self.mounting_mappings,
+                                                     mounting_mapping])
 
-        Notes
-        -----
-        Method assumes that if a platform has a transition model it will have
-        velocity components. A sensor offset will therefore be rotated based
-        upon the platforms velocity (i.e. direction of motion)
-        """
+    def get_sensor_position(self, sensor):
+        i = self.sensors.index(sensor)
+        if self.is_moving():
+            offsets = self._get_rotated_offset(i)
+        else:
+            offsets = StateVector(self.mounting_offsets[i, :])
+        new_sensor_pos = self.get_position() + offsets
+        return StateVector(new_sensor_pos)
 
-        # Update the positions of all sensors relative to the platform
-        for i in range(len(self.sensors)):
-            if (hasattr(self, 'transition_model') &
-                    (np.absolute(self.state.state_vector[
-                        self.mounting_mappings[0]+1]).max() > 0)):
-                new_sensor_pos = self._get_rotated_offset(i)
-                for j in range(self.mounting_offsets.shape[1]):
-                    new_sensor_pos[j] = new_sensor_pos[j] + \
-                        (self.state.state_vector[
-                            self.mounting_mappings[i, j]])
-            else:
-                new_sensor_pos = np.zeros([self.mounting_offsets.shape[1], 1])
-                for j in range(self.mounting_offsets.shape[1]):
-                    new_sensor_pos[j] = (self.state.state_vector[
-                        self.mounting_mappings[i, j]] +
-                        self.mounting_offsets[i, j])
-            self.sensors[i].position = (StateVector(new_sensor_pos))
-            vel = np.zeros([self.mounting_mappings.shape[1], 1])
-            for j in range(self.mounting_mappings.shape[1]):
-                vel[j, 0] = self.state.state_vector[
-                    self.mounting_mappings[i, j] + 1]
-            abs_vel, heading = cart2pol(vel[0, 0], vel[1, 0])
-            self.sensors[i].orientation = (StateVector([[0], [0], [heading]]))
+    def get_sensor_orientation(self, sensor):
+        i = self.sensors.index(sensor)
+        vel = np.zeros([self.mounting_mappings.shape[1], 1])
+        for j in range(self.mounting_mappings.shape[1]):
+            vel[j, 0] = self.state.state_vector[
+                self.mounting_mappings[i, j] + 1]
+        abs_vel, heading = cart2pol(vel[0, 0], vel[1, 0])
+        return StateVector([[0], [0], [heading]])
+
+    def is_moving(self):
+        return (hasattr(self, 'transition_model')
+                and self.transition_model is not None
+                and np.any(self.get_velocity() != 0))
 
     def _get_rotated_offset(self, i):
         """ Determine the sensor mounting offset for the platforms relative
@@ -139,14 +180,11 @@ class SensorPlatform(Platform):
 
         Returns
         -------
-        np.array
+        np.ndarray
             Sensor mounting offset rotated relative to platform motion
         """
 
-        vel = np.zeros([self.mounting_mappings.shape[1], 1])
-        for j in range(self.mounting_mappings.shape[1]):
-            vel[j, 0] = self.state.state_vector[
-                self.mounting_mappings[i, j] + 1]
+        vel = self.get_velocity()
 
         rot = _get_rotation_matrix(vel)
         return np.transpose(np.dot(rot, self.mounting_offsets[i])[np.newaxis])
@@ -165,7 +203,7 @@ def _get_rotation_matrix(vel):
 
     Parameters
     ----------
-    vel : np.arrary
+    vel : np.ndarrary
         1xD vector denoting platform velocity in D dimensions
 
     Returns
@@ -190,9 +228,9 @@ def _get_angle(vec, axis):
 
     Parameters
     ----------
-    vec : np.array
+    vec : np.ndarray
         1xD array denoting platform velocity
-    axis : np.array
+    axis : np.ndarray
         Dx1 array denoting sensor offset relative to platform
 
     Returns
@@ -220,18 +258,32 @@ def _rot3d(vec):
 
     Parameters
     ----------
-    vec: np.array
+    vec: np.ndarray
         platform velocity
 
     Returns
     -------
-    np.array
+    np.ndarray
         3x3 rotation matrix
     """
+    return _rot3d_tuple(tuple(v[0] for v in vec))
+
+
+@lru_cache(maxsize=128)
+def _rot3d_tuple(vec):
+    """ Private method. Should not be called directly, only from `_rot3d`
+
+    Params and returns as :func:`~_rot3d`
+
+    This wrapped method takes a tuple rather than a state vector. This allows caching, which
+    is important as the new sensor approach means `_rot3d` is called on each call to get_position,
+    and becomes a significant performance hit.
+
+    """
     # TODO handle platform roll
-    yaw = np.arctan2(vec[[1]], vec[[0]])
-    pitch = np.arctan2(vec[[2]],
-                       np.sqrt(vec[[0]] ** 2 + vec[[1]] ** 2)) * -1
+    yaw = np.arctan2(vec[1], vec[0])
+    pitch = np.arctan2(vec[2],
+                       np.sqrt(vec[0] ** 2 + vec[1] ** 2)) * -1
     rot_z = _rot_z(yaw)
     # Modify to correct for new y axis
     y_axis = np.array([0, 1, 0])
@@ -251,7 +303,7 @@ def _rot_z(theta):
 
     Returns
     -------
-    np.array
+    np.ndarray
         3x3 rotation matrix
     """
     return np.array([[cos(theta), -sin(theta), 0],
