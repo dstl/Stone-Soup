@@ -43,8 +43,17 @@ class YAMLGroundTruthReader(YAMLReader, GroundTruthReader):
 
     @BufferedGenerator.generator_method
     def groundtruth_paths_gen(self):
+        paths = dict()
         for time, document in self.data_gen():
-            yield time, document.get('groundtruth_paths', set())
+            updated_paths = set()
+            for path in document.get('groundtruth_paths', set()):
+                if path.id in paths:
+                    paths[path.id].states = path.states
+                else:
+                    paths[path.id] = path
+                updated_paths.add(paths[path.id])
+
+            yield time, updated_paths
 
 
 class YAMLSensorDataReader(YAMLReader, SensorDataReader):
@@ -67,5 +76,14 @@ class YAMLTrackReader(YAMLReader, Tracker):
 
     @BufferedGenerator.generator_method
     def tracks_gen(self):
+        tracks = dict()
         for time, document in self.data_gen():
-            yield time, document.get('tracks', set())
+            updated_tracks = set()
+            for track in document.get('tracks', set()):
+                if track.id in tracks:
+                    tracks[track.id].states = track.states
+                else:
+                    tracks[track.id] = track
+                updated_tracks.add(tracks[track.id])
+
+            yield time, updated_tracks
