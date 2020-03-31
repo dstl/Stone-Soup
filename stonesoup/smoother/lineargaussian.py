@@ -4,7 +4,9 @@ import copy
 import numpy as np
 
 from .base import Smoother
+from ..types.multihypothesis import MultipleHypothesis
 from ..types.state import GaussianState
+from ..types.update import Update
 
 
 class Backward(Smoother):
@@ -12,28 +14,50 @@ class Backward(Smoother):
     a Linear Gaussian State Space Model.
     """
 
-    def track_smooth(self, filtered_track, estimates):
+    @staticmethod
+    def _get_estimates(track):
+        estimates = []
+        for state in track:
+            # Check for multi-hypothesis
+            if isinstance(state, Update) \
+                    and isinstance(state.hypothesis, MultipleHypothesis):
+                predictions = {hypothesis.prediction
+                               for hypothesis in state.hypothesis}
+                if len(predictions) == 1:
+                    # One predictions, this is fine to use.
+                    estimates.append(predictions.pop())
+                else:
+                    # Multiple predictions, so can't process this.
+                    raise ValueError(
+                        "Track has MultipleHypotheses updates with multiple "
+                        "predictions.")
+            elif isinstance(state, Update):
+                estimates.append(state.hypothesis.prediction)
+            else:
+                # Prediction or other state
+                # TODO: Should this be ignored and removed from filtered_track?
+                estimates.append(state)
+        return estimates
+
+    def track_smooth(self, filtered_track):
         """ Apply smoothing to a track of filtered estimates.
 
         Parameters
         ----------
         filtered_track : :class:`Track`
-            Track object consisting a of GaussianState objects.
-        estimates : :obj:`list` of :class:`GaussianState`
-            List of T GaussianState objects corresponding to the Track.
+            :class:`~.Track` object consisting a of
+            :class:`~.GaussianStateUpdate` objects.
 
         Returns
         -------
-        smoothed_track : :class:`Track`
-            Track object containing smoothed GaussianStates.
+        smoothed_track : :class:`~.Track`
+            :class:`~.Track` object containing smoothed
+            :class:`~.GaussianState`s.
         """
-        track_length = len(filtered_track)
-        if track_length != len(estimates):
-            raise ValueError(
-                "filtered_track and estimates should have the same "
-                "length")
 
-        penultimate_index = track_length - 2
+        estimates = self._get_estimates(filtered_track)
+
+        penultimate_index = len(filtered_track) - 2
 
         smoothed_track = copy.deepcopy(filtered_track)
 
