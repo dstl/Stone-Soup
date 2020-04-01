@@ -57,7 +57,7 @@ class LinearModel(Model):
         noise: :class:`numpy.ndarray` or bool
             An externally generated random process noise sample (the default is
             `False`, in which case no noise will be added
-            if 'True', :meth:`~.Model.rvs` is used)
+            if 'True', the output of :meth:`~.Model.rvs` is added)
 
         Returns
         -------
@@ -110,7 +110,7 @@ class NonLinearModel(Model):
         noise: :class:`numpy.ndarray` or bool
             An externally generated random process noise sample (the default is
             `False`, in which case no noise will be added
-            if 'True', :meth:`~.Model.rvs` is used)
+            if 'True', the output of :meth:`~.Model.rvs` is added)
 
         Returns
         -------
