@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from ..base import Property
 from .array import CovarianceMatrix
 from .base import Type
-from .state import State, GaussianState, ParticleState
+from .state import State, GaussianState, ParticleState, ASDGaussianState
+from ..base import Property
 
 
 class Prediction(Type):
@@ -39,6 +39,12 @@ class GaussianStatePrediction(Prediction, GaussianState):
     suggests, is described by a Gaussian distribution.
     """
 
+class ASDGaussianStatePrediction(Prediction, ASDGaussianState):
+    """ ASDGaussianStatePrediction type
+
+    This is a simple ASDGaussian state prediction object, which, as the name
+    suggests, is described by a Gaussian distribution.
+    """
 
 class GaussianMeasurementPrediction(MeasurementPrediction, GaussianState):
     """ GaussianMeasurementPrediction type
@@ -59,6 +65,13 @@ class GaussianMeasurementPrediction(MeasurementPrediction, GaussianState):
                              columns as the number of rows in state_vector")
         super().__init__(state_vector, covar, timestamp,
                          cross_covar, *args, **kwargs)
+
+
+class ASDGaussianMeasurementPrediction(MeasurementPrediction, ASDGaussianState):
+    """ASD Gaussian Measurement Prediction"""
+    cross_covar = Property(CovarianceMatrix,
+                           doc="The state-measurement cross covariance matrix",
+                           default=None)
 
 
 class ParticleStatePrediction(Prediction, ParticleState):
