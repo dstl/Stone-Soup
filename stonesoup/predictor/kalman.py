@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
-
-import numpy as np
+import copy
 from functools import lru_cache, partial
 
-from ..base import Property
+import numpy as np
+
 from .base import Predictor
-from ..types.prediction import GaussianStatePrediction
+from ..base import Property
+from ..functions import gauss2sigma, unscented_transform
 from ..models.base import LinearModel
-from ..models.transition import TransitionModel
-from ..models.transition.linear import LinearGaussianTransitionModel
 from ..models.control import ControlModel
 from ..models.control.linear import LinearControlModel
-from ..functions import gauss2sigma, unscented_transform
+from ..models.transition import TransitionModel
+from ..models.transition.linear import LinearGaussianTransitionModel
+from ..types.prediction import GaussianStatePrediction, ASDGaussianStatePrediction
 
 
 class KalmanPredictor(Predictor):
@@ -179,6 +180,88 @@ class KalmanPredictor(Predictor):
             + control_matrix @ control_noise @ control_matrix.T
 
         return GaussianStatePrediction(x_pred, p_pred, timestamp=timestamp)
+
+
+class ASDKalmanPredictor(KalmanPredictor):
+
+    @lru_cache()
+    def predict(self, prior, timestamp, **kwargs):
+        r"""The predict function
+
+                Parameters
+                ----------
+                prior : :class:`~.ASDState`
+                    :math:`\mathbf{x}_{k-1}`
+                timestamp : :class:`datetime.datetime`,
+                    :math:`k`
+                **kwargs :
+                    These are passed, via :meth:`~.KalmanFilter.transition_function` to
+                    :meth:`~.LinearGaussianTransitionModel.matrix`
+
+                Returns
+                -------
+                : :class:`~.ASDState`
+                    :math:`\mathbf{x}_{k|k-1}`, the predicted state and the predicted
+                    state covariance :math:`P_{k|k-1}`
+
+                """
+
+        correlation_matrices = copy.deepcopy(prior.correlation_matrices)
+
+        # Get the prediction interval
+        predict_over_interval = self._predict_over_interval(prior, timestamp)
+        if len(correlation_matrices) == 0:
+            correlation_matrices[prior.timestamp] = prior.covar
+
+        # Prediction of the mean
+        x_pred_k = self._transition_function(
+            prior, time_interval=predict_over_interval, **kwargs) \
+                   + self.control_model.control_input()
+        x_pred = np.concatenate([x_pred_k, prior.multi_state_vector])
+
+        # As this is Kalman-like, the control model must be capable of
+        # returning a control matrix (B)
+
+        transition_matrix = self._transition_matrix(
+            prior=prior, time_interval=predict_over_interval, **kwargs)
+        transition_covar = self.transition_model.covar(
+            time_interval=predict_over_interval, **kwargs)
+
+        control_matrix = self._control_matrix
+        control_noise = self.control_model.control_noise
+
+        # Normal Kalman-like prediction for the newest state.
+        p_pred_k = transition_matrix @ prior.covar @ transition_matrix.T \
+                   + transition_covar \
+                   + control_matrix @ control_noise @ control_matrix.T
+
+        # Generation of the Correlation matrices
+        C_list = self.generate_C_list(prior, correlation_matrices)
+
+        # add new correlation matrix with the present time step
+        correlation_matrices[timestamp] = transition_matrix.T @ np.linalg.inv(p_pred_k)
+
+        #
+        W_P_column = np.array([c @ prior.covar for c in C_list])
+        correlated_column = np.reshape(W_P_column, (
+            prior.multi_covar.shape[0], prior.ndim)) @ transition_matrix.T
+        correlated_row = correlated_column.T
+
+        # put row and col block matrices together
+        p_top = np.hstack((p_pred_k, correlated_row))
+        p_bottom = np.hstack((correlated_column, prior.multi_covar))
+        p_pred = np.vstack((p_top, p_bottom))
+        return ASDGaussianStatePrediction(multi_state_vector=x_pred, multi_covar=p_pred,
+                                          correlation_matrices=correlation_matrices,
+                                          timestamps=[timestamp] + prior.timestamps)
+
+    def generate_C_list(self, prior, correlation_matrices):
+        prior_ndim = prior.ndim
+        C_list = []
+        C_list.append(np.eye(prior_ndim))
+        for item in list(correlation_matrices.values())[-2::-1]:
+            C_list.append(C_list[-1] @ item)
+        return C_list
 
 
 class ExtendedKalmanPredictor(KalmanPredictor):
