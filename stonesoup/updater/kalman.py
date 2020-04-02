@@ -138,7 +138,7 @@ class KalmanUpdater(Updater):
         # native to the updater
         measurement_model = self._check_measurement_model(measurement_model)
 
-        pred_meas = measurement_model.function(predicted_state.state_vector,
+        pred_meas = measurement_model.function(predicted_state,
                                                noise=0, **kwargs)
 
         hh = self._measurement_matrix(predicted_state=predicted_state,
@@ -265,7 +265,7 @@ class ExtendedKalmanUpdater(KalmanUpdater):
         if isinstance(measurement_model, LinearModel):
             return measurement_model.matrix(**kwargs)
         else:
-            return measurement_model.jacobian(predicted_state.state_vector,
+            return measurement_model.jacobian(predicted_state,
                                               **kwargs)
 
 
@@ -329,11 +329,11 @@ class UnscentedKalmanUpdater(KalmanUpdater):
         measurement_model = self._check_measurement_model(measurement_model)
 
         sigma_points, mean_weights, covar_weights = \
-            gauss2sigma(predicted_state.state_vector, predicted_state.covar,
+            gauss2sigma(predicted_state,
                         self.alpha, self.beta, self.kappa)
 
-        def measurement_function_nonoise(state_vector, noise=0, **kwargs):
-            return measurement_model.function(state_vector, noise, **kwargs)
+        def measurement_function_nonoise(state, noise=0, **kwargs):
+            return measurement_model.function(state, noise, **kwargs)
 
         meas_pred_mean, meas_pred_covar, cross_covar, _, _, _ = \
             unscented_transform(sigma_points, mean_weights, covar_weights,

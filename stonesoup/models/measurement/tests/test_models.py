@@ -8,6 +8,7 @@ from ..nonlinear import (
     CartesianToElevationBearingRange, CartesianToBearingRange,
     CartesianToElevationBearing)
 from ...base import ReversibleModel
+from ....types.state import State
 from ....functions import jacobian as compute_jac
 from ....types.angle import Bearing, Elevation
 from ....types.array import StateVector, Matrix
@@ -172,6 +173,7 @@ def test_models(h, ModelClass, state_vec, R,
     """ CartesianToBearingRange Measurement Model test """
 
     ndim_state = state_vec.size
+    state = State(state_vec)
 
     # Create and a measurement model object
     model = ModelClass(ndim_state=ndim_state,
@@ -180,24 +182,24 @@ def test_models(h, ModelClass, state_vec, R,
                        translation_offset=translation_offset,
                        rotation_offset=rotation_offset)
 
-    # Project a state throught the model
+    # Project a state through the model
     # (without noise)
-    meas_pred_wo_noise = model.function(state_vec, noise=0)
+    meas_pred_wo_noise = model.function(state, noise=0)
     eval_m = h(state_vec, model.translation_offset, model.rotation_offset)
     assert np.array_equal(meas_pred_wo_noise, eval_m)
 
     # Ensure ```lg.transfer_function()``` returns H
     def fun(x):
         return model.function(x, noise=0)
-    H = compute_jac(fun, state_vec)
-    assert np.array_equal(H, model.jacobian(state_vec))
+    H = compute_jac(fun, state)
+    assert np.array_equal(H, model.jacobian(state))
 
     # Check Jacobian has proper dimensions
     assert H.shape == (model.ndim_meas, ndim_state)
 
     # Ensure inverse function returns original
     if isinstance(model, ReversibleModel):
-        J = model.inverse_function(meas_pred_wo_noise)
+        J = model.inverse_function(State(meas_pred_wo_noise))
         assert np.allclose(J, state_vec)
 
     # Ensure ```lg.covar()``` returns R
@@ -214,14 +216,15 @@ def test_models(h, ModelClass, state_vec, R,
     assert not isinstance(rvs, StateVector)
 
     # Project a state throught the model
+    # Project a state through the model
     # (without noise)
-    meas_pred_wo_noise = model.function(state_vec, noise=0)
+    meas_pred_wo_noise = model.function(state, noise=0)
     assert np.array_equal(meas_pred_wo_noise,  h(
         state_vec, model.translation_offset, model.rotation_offset))
 
     # Evaluate the likelihood of the predicted measurement, given the state
     # (without noise)
-    prob = model.pdf(meas_pred_wo_noise, state_vec)
+    prob = model.pdf(State(meas_pred_wo_noise), state)
     assert approx(prob) == multivariate_normal.pdf(
         meas_pred_wo_noise.T,
         mean=np.array(h(state_vec,
@@ -231,14 +234,14 @@ def test_models(h, ModelClass, state_vec, R,
 
     # Propagate a state vector through the model
     # (with internal noise)
-    meas_pred_w_inoise = model.function(state_vec)
+    meas_pred_w_inoise = model.function(state)
     assert not np.array_equal(
         meas_pred_w_inoise,  h(state_vec, model.translation_offset,
                                model.rotation_offset))
 
     # Evaluate the likelihood of the predicted state, given the prior
     # (with noise)
-    prob = model.pdf(meas_pred_w_inoise, state_vec)
+    prob = model.pdf(State(meas_pred_w_inoise), state)
     assert approx(prob) == multivariate_normal.pdf(
         meas_pred_w_inoise.T,
         mean=np.array(h(state_vec,
@@ -249,14 +252,14 @@ def test_models(h, ModelClass, state_vec, R,
     # Propagate a state vector throught the model
     # (with external noise)
     noise = model.rvs()
-    meas_pred_w_enoise = model.function(state_vec,
+    meas_pred_w_enoise = model.function(state,
                                         noise=noise)
     assert np.array_equal(meas_pred_w_enoise,  h(
         state_vec, model.translation_offset, model.rotation_offset)+noise)
 
     # Evaluate the likelihood of the predicted state, given the prior
     # (with noise)
-    prob = model.pdf(meas_pred_w_enoise, state_vec)
+    prob = model.pdf(State(meas_pred_w_enoise), state)
     assert approx(prob) == multivariate_normal.pdf(
         meas_pred_w_enoise.T,
         mean=np.array(h(state_vec,

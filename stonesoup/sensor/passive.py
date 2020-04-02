@@ -56,7 +56,7 @@ class PassiveElevationBearing(Sensor3DCartesian):
             rotation_offset=self.orientation)
 
         measurement_vector = measurement_model.function(
-            ground_truth.state_vector, noise=noise, **kwargs)
+            ground_truth, noise=noise, **kwargs)
 
         return Detection(measurement_vector,
                          measurement_model=measurement_model,

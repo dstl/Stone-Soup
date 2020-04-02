@@ -46,8 +46,7 @@ class SingleTargetGroundTruthSimulator(GroundTruthSimulator):
             time += self.timestep
             # Move track forward
             trans_state_vector = self.transition_model.function(
-                gttrack[-1].state_vector,
-                time_interval=self.timestep)
+                gttrack[-1], time_interval=self.timestep)
             gttrack.append(GroundTruthState(
                 trans_state_vector, timestamp=time,
                 metadata={"index": self.index}))
@@ -111,8 +110,7 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
             for gttrack in groundtruth_paths:
                 self.index = gttrack[-1].metadata.get("index")
                 trans_state_vector = self.transition_model.function(
-                    gttrack[-1].state_vector,
-                    time_interval=self.timestep)
+                    gttrack[-1], time_interval=self.timestep)
                 gttrack.append(GroundTruthState(
                     trans_state_vector, timestamp=time,
                     metadata={"index": self.index}))
@@ -194,7 +192,7 @@ class SimpleDetectionSimulator(DetectionSimulator):
                 if np.random.rand() < self.detection_probability:
                     detection = TrueDetection(
                         self.measurement_model.function(
-                            track[-1].state_vector),
+                            track[-1]),
                         timestamp=track[-1].timestamp,
                         groundtruth_path=track)
                     detection.clutter = False

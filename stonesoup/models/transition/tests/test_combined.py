@@ -7,6 +7,7 @@ import numpy as np
 from ..linear import (
     LinearGaussianTimeInvariantTransitionModel, ConstantVelocity,
     CombinedLinearGaussianTransitionModel)
+from ....types.state import State
 
 
 def test_combined():
@@ -31,7 +32,9 @@ def test_combined():
     assert (DIM, DIM) == combined_model.matrix(time_interval=t_delta).shape
     assert (DIM, DIM) == combined_model.covar(time_interval=t_delta).shape
     assert (DIM, 1) == combined_model.function(
-        x_prior, noise=np.random.randn(DIM, 1), time_interval=t_delta).shape
+        State(x_prior), noise=np.random.randn(DIM, 1),
+        time_interval=t_delta).shape
     assert (DIM, 1) == combined_model.rvs(time_interval=t_delta).shape
     assert isinstance(
-        combined_model.pdf(x_post, x_prior, time_interval=t_delta), Real)
+        combined_model.pdf(State(x_post), State(x_prior),
+                           time_interval=t_delta), Real)

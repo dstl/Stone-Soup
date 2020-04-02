@@ -8,7 +8,7 @@ from ..models.base import NonLinearModel, ReversibleModel
 from ..types.hypothesis import SingleHypothesis
 from ..types.numeric import Probability
 from ..types.particle import Particle
-from ..types.state import GaussianState
+from ..types.state import State, GaussianState
 from ..types.track import Track
 from ..types.update import GaussianStateUpdate, ParticleStateUpdate
 from ..updater.kalman import ExtendedKalmanUpdater
@@ -86,8 +86,9 @@ class SimpleMeasurementInitiator(GaussianInitiator):
             if isinstance(measurement_model, NonLinearModel):
                 if isinstance(measurement_model, ReversibleModel):
                     state_vector = measurement_model.inverse_function(
-                        detection.state_vector)
-                    model_matrix = measurement_model.jacobian(state_vector)
+                        detection)
+                    model_matrix = measurement_model.jacobian(State(
+                        state_vector))
                     inv_model_matrix = np.linalg.pinv(model_matrix)
                 else:
                     raise Exception("Invalid measurement model used.\

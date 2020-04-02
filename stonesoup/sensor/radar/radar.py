@@ -64,7 +64,7 @@ class RadarRangeBearing(Sensor3DCartesian):
             rotation_offset=self.orientation)
 
         measurement_vector = measurement_model.function(
-            ground_truth.state_vector, noise=noise, **kwargs)
+            ground_truth, noise=noise, **kwargs)
 
         return Detection(measurement_vector,
                          measurement_model=measurement_model,
@@ -144,7 +144,7 @@ class RadarRotatingRangeBearing(RadarRangeBearing):
         # Transform state to measurement space and generate
         # random noise
         measurement_vector = measurement_model.function(
-            ground_truth.state_vector, noise=0, **kwargs)
+            ground_truth, noise=0, **kwargs)
 
         if noise is None:
             measurement_noise = measurement_model.rvs()
@@ -480,8 +480,7 @@ class AESARadar(Sensor):
         if np.random.rand() <= det_prob:
             self.measurement_model.translation_offset = self.translation_offset
             self.measurement_model.rotation_offset = self.rotation_offset
-            measured_pos = self.measurement_model.function(
-                sky_state.state_vector)
+            measured_pos = self.measurement_model.function(sky_state)
 
             return Detection(measured_pos, timestamp=sky_state.timestamp,
                              measurement_model=self.measurement_model)

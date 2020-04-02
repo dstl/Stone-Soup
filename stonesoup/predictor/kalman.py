@@ -226,7 +226,7 @@ class ExtendedKalmanPredictor(KalmanPredictor):
         if isinstance(self.transition_model, LinearModel):
             return self.transition_model.matrix(**kwargs)
         else:
-            return self.transition_model.jacobian(prior.state_vector, **kwargs)
+            return self.transition_model.jacobian(prior, **kwargs)
 
     def _transition_function(self, prior, **kwargs):
         r"""This is the application of :math:`f_k(\mathbf{x}_{k-1})`, the
@@ -246,8 +246,7 @@ class ExtendedKalmanPredictor(KalmanPredictor):
             The predicted state
 
         """
-        return self.transition_model.function(prior.state_vector, noise=0,
-                                              **kwargs)
+        return self.transition_model.function(prior, noise=0, **kwargs)
 
     @property
     def _control_matrix(self):
@@ -304,7 +303,7 @@ class UnscentedKalmanPredictor(KalmanPredictor):
 
         self._time_interval = None
 
-    def _transition_and_control_function(self, prior_state_vector, **kwargs):
+    def _transition_and_control_function(self, prior_state, **kwargs):
         r"""Returns the result of applying the transition and control functions
         for the unscented transform
 
@@ -313,7 +312,7 @@ class UnscentedKalmanPredictor(KalmanPredictor):
         prior_state_vector : :class:`~.State`
             Prior state vector
         **kwargs : various, optional
-            These are passed to :meth:`~.TransitionModel.function`
+            These are passed to :class:`~.TransitionModel.function`
 
         Returns
         -------
@@ -323,9 +322,8 @@ class UnscentedKalmanPredictor(KalmanPredictor):
         """
 
         return \
-            self.transition_model.function(
-                prior_state_vector, noise=0, **kwargs) \
-            + self.control_model.control_input()
+            self.transition_model.function(prior_state, noise=0, **kwargs) + \
+            self.control_model.control_input()
 
     @lru_cache()
     def predict(self, prior, timestamp=None, **kwargs):
@@ -361,8 +359,8 @@ class UnscentedKalmanPredictor(KalmanPredictor):
             + self.control_model.control_noise
 
         # Get the sigma points from the prior mean and covariance.
-        sigma_points, mean_weights, covar_weights = gauss2sigma(
-            prior.state_vector, prior.covar, self.alpha, self.beta, self.kappa)
+        sigma_point_states, mean_weights, covar_weights = gauss2sigma(
+            prior, self.alpha, self.beta, self.kappa)
 
         # This ensures that function passed to unscented transform has the
         # correct time interval
@@ -373,7 +371,7 @@ class UnscentedKalmanPredictor(KalmanPredictor):
         # Put these through the unscented transform, together with the total
         # covariance to get the parameters of the Gaussian
         x_pred, p_pred, _, _, _, _ = unscented_transform(
-            sigma_points, mean_weights, covar_weights,
+            sigma_point_states, mean_weights, covar_weights,
             transition_and_control_function, covar_noise=total_noise_covar
         )
 

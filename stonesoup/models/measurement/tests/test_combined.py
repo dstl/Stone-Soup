@@ -5,6 +5,8 @@ import numpy as np
 
 from ....types.angle import Bearing
 from ....types.array import StateVector, CovarianceMatrix
+from ....types.detection import Detection
+from ....types.state import State
 from ..linear import LinearGaussian
 from ..nonlinear import (
     CombinedReversibleGaussianMeasurementModel, CartesianToBearingRange)
@@ -23,7 +25,7 @@ def test_non_linear(model):
     assert model.ndim_state == 5
 
     meas_vector = model.function(
-        StateVector([[0], [10], [10], [0], [-10]]), noise=0)
+        Detection(StateVector([[0], [10], [10], [0], [-10]])), noise=0)
 
     assert isinstance(meas_vector[0, 0], Bearing)
     assert not isinstance(meas_vector[1, 0], Bearing)
@@ -36,7 +38,7 @@ def test_non_linear(model):
 
 
 def test_jacobian(model):
-    state = StateVector([[10.0], [10.0], [0.0], [10.0], [0.0]])
+    state = State(StateVector([[10.0], [10.0], [0.0], [10.0], [0.0]]))
     jacobian = model.jacobian(state)
     assert jacobian == approx(np.array([[-0.05,      0.05,       0, 0, 0],
                                         [0.70710678, 0.70710678, 0, 0, 0],
@@ -51,10 +53,10 @@ def test_covar(model):
 
 
 def test_inverse(model):
-    state = StateVector([[0.1], [10], [0], [0.2], [20]])
+    state = State(StateVector([[0.1], [10], [0], [0.2], [20]]))
     meas_state = model.function(state, noise=0)
 
-    assert model.inverse_function(meas_state) == approx(state)
+    assert model.inverse_function(State(meas_state)) == approx(state.state_vector)
 
 
 def test_rvs(model):
@@ -75,8 +77,8 @@ def test_rvs(model):
 
 
 def test_pdf(model):
-    pdf = model.pdf(StateVector([[0], [10], [0], [10]]),
-                    StateVector([[10], [0], [0], [10], [0]]))
+    pdf = model.pdf(State(StateVector([[0], [10], [0], [10]])),
+                    State(StateVector([[10], [0], [0], [10], [0]])))
     assert float(pdf) == approx(0.0012665, rel=1e-3)
 
 
@@ -86,15 +88,15 @@ def test_non_linear_and_linear():
         LinearGaussian(3, [2], np.array([[20]])),
     ])
 
-    state_vector = StateVector([[0], [10], [20]])
-    meas_vector = model.function(state_vector, noise=0)
+    state = State(StateVector([[0], [10], [20]]))
+    meas_vector = model.function(state, noise=0)
     assert isinstance(meas_vector[0, 0], Bearing)
     assert not isinstance(meas_vector[1, 0], Bearing)
     assert not isinstance(meas_vector[2, 0], Bearing)
     assert isinstance(meas_vector, StateVector)
     assert np.array_equal(meas_vector, np.array([[np.pi/2], [10], [20]]))
 
-    assert model.inverse_function(meas_vector) == approx(state_vector)
+    assert model.inverse_function(State(meas_vector)) == approx(state.state_vector)
 
     assert model.covar() == approx(np.diag([1, 10, 20]))
 
