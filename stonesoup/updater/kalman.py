@@ -7,8 +7,8 @@ from functools import lru_cache
 from ..base import Property
 from .base import Updater
 from ..types.array import CovarianceMatrix
-from ..types.prediction import GaussianMeasurementPrediction
-from ..types.update import GaussianStateUpdate, SqrtGaussianStateUpdate
+from ..types.prediction import GaussianMeasurementPrediction, ASDGaussianMeasurementPrediction
+from ..types.update import GaussianStateUpdate, SqrtGaussianStateUpdate, ASDGaussianStateUpate
 from ..models.base import LinearModel
 from ..models.measurement.linear import LinearGaussian
 from ..models.measurement import MeasurementModel
@@ -282,6 +282,121 @@ class KalmanUpdater(Updater):
 
         return self._update_class(posterior_mean, posterior_covariance, hypothesis,
                                   timestamp=hypothesis.measurement.timestamp)
+
+
+class ASDKalmanUpdater(KalmanUpdater):
+    @lru_cache()
+    def predict_measurement(self, predicted_state, measurement_model=None,
+                            **kwargs):
+        r"""Predict the measurement implied by the predicted state mean
+
+                Parameters
+                ----------
+                predicted_state : :class:`~.ASDState`
+                    The predicted state :math:`\mathbf{x}_{k|k-1}`
+                measurement_model : :class:`~.MeasurementModel`
+                    The measurement model. If omitted, the model in the updater object
+                    is used
+                **kwargs : various
+                    These are passed to :meth:`~.MeasurementModel.function` and
+                    :meth:`~.MeasurementModel.matrix`
+
+                Returns
+                -------
+                : :class:`ASDGaussianMeasurementPrediction`
+                    The measurement prediction, :math:`\mathbf{z}_{k|k-1}`
+
+                """
+        measurement_model = self._check_measurement_model(measurement_model)
+
+        pred_meas = measurement_model.function(predicted_state,
+                                               noise=0, **kwargs)
+
+        hh = self._measurement_matrix(predicted_state=predicted_state,
+                                      measurement_model=measurement_model,
+                                      **kwargs)
+
+        innov_cov = hh @ predicted_state.covar @ hh.T + measurement_model.covar()
+
+        # get the first column of the multi_covar
+        Pi = np.block([[np.eye(predicted_state.ndim)],
+                       [np.zeros((predicted_state.multi_covar.shape[0] - predicted_state.ndim, predicted_state.ndim))]])
+        meas_cross_cov = predicted_state.multi_covar @ Pi @ hh.T
+        return ASDGaussianMeasurementPrediction(multi_state_vector=pred_meas, multi_covar=innov_cov,
+                                                timestamps=[predicted_state.timestamps[0]], cross_covar=meas_cross_cov)
+
+    def update(self, hypothesis, force_symmetric_covariance=False, **kwargs):
+        r"""The Kalman update method. Given a hypothesised association between
+        a predicted state or predicted measurement and an actual measurement,
+        calculate the posterior state.
+
+        Parameters
+        ----------
+        hypothesis : :class:`~.SingleHypothesis`
+            the prediction-measurement association hypothesis. This hypothesis
+            may carry a predicted measurement, or a predicted state. In the
+            latter case a predicted measurement will be calculated.
+        force_symmetric_covariance : :obj:`bool`, optional
+            A flag to force the output covariance matrix to be symmetric by way
+            of a simple geometric combination of the matrix and transpose.
+            Default is `False`
+        **kwargs : various
+            These are passed to :meth:`predict_measurement`
+
+        Returns
+        -------
+        : :class:`~.ASDGaussianStateUpdate`
+            The posterior state Gaussian with mean :math:`\mathbf{x}_{k|k}` and
+            covariance :math:`P_{x|x}`
+
+        """
+
+        # Get the predicted state out of the hypothesis
+        predicted_state = hypothesis.prediction
+
+        # If there is no measurement prediction in the hypothesis then do the
+        # measurement prediction (and attach it back to the hypothesis).
+        if hypothesis.measurement_prediction is None:
+            # Get the measurement model out of the measurement if it's there.
+            # If not, use the one native to the updater (which might still be
+            # none)
+            measurement_model = hypothesis.measurement.measurement_model
+            measurement_model = self._check_measurement_model(
+                measurement_model)
+
+            # Attach the measurement prediction to the hypothesis
+            hypothesis.measurement_prediction = self.predict_measurement(
+                predicted_state, measurement_model=measurement_model, **kwargs)
+
+        # Get the predicted measurement mean, innovation covariance and
+        # measurement cross-covariance
+        pred_meas = hypothesis.measurement_prediction.state_vector
+        innov_cov = hypothesis.measurement_prediction.covar
+        m_cross_cov = hypothesis.measurement_prediction.cross_covar
+
+        # Complete the calculation of the posterior
+        # This isn't optimised
+        kalman_gain = m_cross_cov @ np.linalg.inv(innov_cov)
+        posterior_mean = \
+            predicted_state.multi_state_vector \
+            + kalman_gain @ (hypothesis.measurement.state_vector - pred_meas)
+        posterior_covariance = \
+            predicted_state.multi_covar - kalman_gain @ innov_cov @ kalman_gain.T
+
+        if force_symmetric_covariance:
+            posterior_covariance = \
+                (posterior_covariance + posterior_covariance.T) / 2
+        predicted_state.timestamps[-1] = hypothesis.measurement.timestamp
+
+        # calculate the rest of the correlation matrix so that the whole matrix is in
+        # the correlation_matrices dictionary.
+        part_correlation_matrix = predicted_state.correlation_matrices[predicted_state.timestamp]
+        predicted_state.correlation_matrices[predicted_state.timestamp] = posterior_covariance[0:predicted_state.ndim,
+                                                                          0:predicted_state.ndim] @ part_correlation_matrix
+
+        return ASDGaussianStateUpate(multi_state_vector=posterior_mean, multi_covar=posterior_covariance,
+                                     hypothesis=hypothesis, timestamps=predicted_state.timestamps,
+                                     correlation_matrices=predicted_state.correlation_matrices)
 
 
 class ExtendedKalmanUpdater(KalmanUpdater):
