@@ -2,7 +2,7 @@
 from ..base import Property
 from .base import Type
 from .hypothesis import Hypothesis
-from .state import State, GaussianState, ParticleState, SqrtGaussianState
+from .state import State, GaussianState, ParticleState, SqrtGaussianState, ASDGaussianState
 from .mixture import GaussianMixture
 
 
@@ -46,6 +46,14 @@ class GaussianMixtureUpdate(Update, GaussianMixture):
 
     This is a Gaussian mixture update object, which, as the name
     suggests, is described by a Gaussian mixture.
+    """
+
+
+class ASDGaussianStateUpate(Update, ASDGaussianState):
+    """ ASDGaussianStateUpdate type
+
+    This is a simple ASD Gaussian state update object, which, as the name
+    suggests, is described by a Gaussian distribution.
     """
 
 
