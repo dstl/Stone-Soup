@@ -4,7 +4,7 @@ import numpy as np
 from math import erfc
 
 from ...platform.simple import PlatformSensor
-from ...functions import cart2sphere, rotx, roty, rotz
+from ...functions import cart2sphere, rotx, roty, rotz, coerce_to_valid_mapping
 from ..base import Property
 
 from ...models.measurement.nonlinear import CartesianToBearingRange
@@ -42,6 +42,10 @@ class RadarRangeBearing(PlatformSensor):
         doc="The sensor noise covariance matrix. This is utilised by\
             (and follow in format) the underlying \
             :class:`~.CartesianToBearingRange` model")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.mapping = coerce_to_valid_mapping(self.mapping)
 
     def measure(self, ground_truth, noise=True, **kwargs):
         """Generate a measurement for a given state
@@ -368,6 +372,10 @@ class AESARadar(PlatformSensor):
     probability_false_alarm = Property(
         Probability, default=1e-6,
         doc="Probability of false alarm used in the North's approximation")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.mapping = coerce_to_valid_mapping(self.mapping)
 
     @property
     def _snr_constant(self):
