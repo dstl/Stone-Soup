@@ -3,7 +3,7 @@ import datetime
 from pytest import approx
 import numpy as np
 
-from ....functions import cart2pol
+from ....functions import cart2pol, rotz, rotx, roty
 from ....types.angle import Bearing
 from ....types.array import StateVector, CovarianceMatrix
 from ....types.state import State
@@ -23,25 +23,11 @@ def h2d(state_vector, translation_offset, rotation_offset):
            [0]]
 
     # Get rotation matrix
-    theta_z = - rotation_offset[2, 0]
-    cos_z, sin_z = np.cos(theta_z), np.sin(theta_z)
-    rot_z = np.array([[cos_z, -sin_z, 0],
-                      [sin_z, cos_z, 0],
-                      [0, 0, 1]])
-
+    theta_z = -rotation_offset[2, 0]
     theta_y = -rotation_offset[1, 0]
-    cos_y, sin_y = np.cos(theta_y), np.sin(theta_y)
-    rot_y = np.array([[cos_y, 0, sin_y],
-                      [0, 1, 0],
-                      [-sin_y, 0, cos_y]])
-
     theta_x = -rotation_offset[0, 0]
-    cos_x, sin_x = np.cos(theta_x), np.sin(theta_x)
-    rot_x = np.array([[1, 0, 0],
-                      [0, cos_x, -sin_x],
-                      [0, sin_x, cos_x]])
 
-    rotation_matrix = rot_z@rot_y@rot_x
+    rotation_matrix = rotz(theta_z)@roty(theta_y)@rotx(theta_x)
 
     xyz_rot = rotation_matrix @ xyz
     x = xyz_rot[0, 0]
