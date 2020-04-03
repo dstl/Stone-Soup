@@ -40,13 +40,16 @@ class ASDState(Type):
     """
 
     multi_state_vector = Property(StateVector)
-    timestamps = Property(List[datetime.datetime])  # [datetime.datetime])
+    timestamps = Property(List[datetime.datetime])
+    max_nstep = Property(int,
+                         doc="Decides when the state is pruned in a prediction step. If 0 then there is no pruning ")
 
-    def __init__(self, multi_state_vector, timestamps, *args, **kwargs):
+    def __init__(self, multi_state_vector, timestamps, max_nstep=0, *args, **kwargs):
         if multi_state_vector is not None and timestamps is not None:
             multi_state_vector = StateVector(multi_state_vector)
             timestamps = list(timestamps)
-        super().__init__(multi_state_vector, timestamps, *args, **kwargs)
+            self.max_nstep = max_nstep
+        super().__init__(multi_state_vector, timestamps, max_nstep, *args, **kwargs)
 
     @property
     def state_vector(self):
