@@ -35,6 +35,11 @@ class Platform(Base):
         no effect, but will return successfully.
 
         """
+
+        if self.state.timestamp is None:
+            self.state.timestamp = timestamp
+            return self
+
         # Compute time_interval
         try:
             time_interval = timestamp - self.state.timestamp
@@ -45,13 +50,20 @@ class Platform(Base):
         # Return without moving static platforms
         if self.transition_model is None:
             self.state.timestamp = timestamp
-            return self
+        else:
+            self.state = State(
+                state_vector=self.transition_model.function(
+                    state=self.state,
+                    noise=True,
+                    timestamp=timestamp,
+                    time_interval=time_interval,
+                    **kwargs),
+                timestamp=timestamp)
 
-        self.state = State(
-            state_vector=self.transition_model.function(
-                state=self.state,
-                noise=True,
-                timestamp=timestamp,
-                time_interval=time_interval,
-                **kwargs),
-            timestamp=timestamp)
+    @property
+    def state_vector(self):
+        return self.state.state_vector
+
+    @property
+    def timestamp(self):
+        return self.state.timestamp
