@@ -13,6 +13,7 @@ from ..radar import RadarRangeBearing, RadarRotatingRangeBearing, AESARadar, \
 from ..beam_pattern import StationaryBeam
 from ..beam_shape import Beam2DGaussian
 from ....models.measurement.linear import LinearGaussian
+from ....platform.simple import FixedSensorPlatform
 
 
 def h2d(state_vector, translation_offset, rotation_offset):
@@ -28,13 +29,13 @@ def h2d(state_vector, translation_offset, rotation_offset):
                       [sin_z, cos_z, 0],
                       [0, 0, 1]])
 
-    theta_y = - rotation_offset[1, 0]
+    theta_y = -rotation_offset[1, 0]
     cos_y, sin_y = np.cos(theta_y), np.sin(theta_y)
     rot_y = np.array([[cos_y, 0, sin_y],
                       [0, 1, 0],
                       [-sin_y, 0, cos_y]])
 
-    theta_x = - rotation_offset[0, 0]
+    theta_x = -rotation_offset[0, 0]
     cos_x, sin_x = np.cos(theta_x), np.sin(theta_x)
     rot_x = np.array([[1, 0, 0],
                       [0, cos_x, -sin_x],
@@ -66,13 +67,16 @@ def test_simple_radar():
                          timestamp=datetime.datetime.now())
     measurement_mapping = np.array([0, 1])
 
+    platform = FixedSensorPlatform(state=State(state_vector=radar_position),
+                                   orientation=radar_orientation,
+                                   mapping=[0, 1])
     # Create a radar object
     radar = RadarRangeBearing(
-        position=radar_position,
-        orientation=radar_orientation,
         ndim_state=2,
         mapping=measurement_mapping,
         noise_covar=noise_covar)
+
+    platform.add_sensor(radar)
 
     # Assert that the object has been correctly initialised
     assert(np.equal(radar.position, radar_position).all())
@@ -117,8 +121,6 @@ def test_rotating_radar():
 
     # Create a radar object
     radar = RadarRotatingRangeBearing(
-        position=radar_position,
-        orientation=radar_orientation,
         ndim_state=2,
         mapping=measurement_mapping,
         noise_covar=noise_covar,
@@ -126,6 +128,11 @@ def test_rotating_radar():
         rpm=rpm,
         max_range=max_range,
         fov_angle=fov_angle)
+
+    platform = FixedSensorPlatform(state=State(state_vector=radar_position),
+                                   orientation=radar_orientation,
+                                   mapping=[0, 1])
+    platform.add_sensor(radar)
 
     # Assert that the object has been correctly initialised
     assert(np.equal(radar.position, radar_position).all())
@@ -166,8 +173,7 @@ def test_raster_scan_radar():
     # The radar is facing left/east
     radar_orientation = StateVector([[0], [0], [np.pi]])
     # The radar antenna is facing opposite the radar orientation
-    dwell_center = State(StateVector([[np.pi / 4]]),
-                         timestamp=timestamp)
+    dwell_center = State(StateVector([[np.pi / 4]]), timestamp=timestamp)
     rpm = 20  # 20 Rotations Per Minute Counter-clockwise
     max_range = 100  # Max range of 100m
     fov_angle = np.pi / 12  # FOV angle of pi/12 (15 degrees)
@@ -175,23 +181,23 @@ def test_raster_scan_radar():
     # This will be mean the dwell center will reach at the limits -pi/2 and
     # pi/2. As the edge of the beam will reach the full FOV
 
-    target_state = State(radar_position +
-                         np.array([[-5], [5]]),
-                         timestamp=timestamp)
+    target_state = State(radar_position + np.array([[-5], [5]]), timestamp=timestamp)
     measurement_mapping = np.array([0, 1])
 
     # Create a radar object
-    radar = RadarRasterScanRangeBearing(
-        position=radar_position,
-        orientation=radar_orientation,
-        ndim_state=2,
-        mapping=measurement_mapping,
-        noise_covar=noise_covar,
-        dwell_center=dwell_center,
-        rpm=rpm,
-        max_range=max_range,
-        fov_angle=fov_angle,
-        for_angle=for_angle)
+    radar = RadarRasterScanRangeBearing(ndim_state=2,
+                                        mapping=measurement_mapping,
+                                        noise_covar=noise_covar,
+                                        dwell_center=dwell_center,
+                                        rpm=rpm,
+                                        max_range=max_range,
+                                        fov_angle=fov_angle,
+                                        for_angle=for_angle)
+
+    platform = FixedSensorPlatform(state=State(state_vector=radar_position),
+                                   orientation=radar_orientation,
+                                   mapping=[0, 1])
+    platform.add_sensor(radar)
 
     # Assert that the object has been correctly initialised
     assert np.array_equal(radar.position, radar_position)
@@ -234,8 +240,6 @@ def test_aesaradar():
 
     radar = AESARadar(antenna_gain=30,
                       mapping=[0, 2, 4],
-                      position=StateVector([0.0] * 3),
-                      orientation=StateVector([0.0] * 3),
                       frequency=100e6,
                       number_pulses=5,
                       duty_cycle=0.1,
@@ -249,6 +253,12 @@ def test_aesaradar():
                       beam_transition_model=StationaryBeam(
                           centre=[np.deg2rad(15), np.deg2rad(20)]),
                       measurement_model=None)
+
+    # noinspection PyUnusedLocal
+    platform = FixedSensorPlatform(state=State(state_vector=StateVector([0, 0, 0])),  # noqa F841
+                                   mapping=[0, 1, 2],
+                                   sensors=[radar],
+                                   )
 
     [prob_detection, snr, swer_rcs, tran_power, spoil_gain,
      spoil_width] = radar.gen_probability(target)
@@ -281,8 +291,12 @@ def test_swer(repeats=10000):
                       beam_transition_model=StationaryBeam(
                           centre=[np.deg2rad(15), np.deg2rad(20)]),
                       measurement_model=None,
-                      position=StateVector([0.0]*3),
-                      orientation=StateVector([0.0]*3))
+                      )
+    # noinspection PyUnusedLocal
+    platform = FixedSensorPlatform(state=State(state_vector=StateVector([0, 0, 0])),  # noqa F841
+                                   mapping=[0, 1, 2],
+                                   sensors=[radar],
+                                   )
     # populate list of random rcs
     for i in range(0, repeats):
         list_rcs[i] = radar.gen_probability(target)[2]
@@ -297,8 +311,6 @@ def test_swer(repeats=10000):
 
 def test_detection():
     radar = AESARadar(antenna_gain=30,
-                      position=StateVector([0.0] * 3),
-                      orientation=StateVector([0.0] * 3),
                       frequency=100e6,
                       number_pulses=5,
                       duty_cycle=0.1,
@@ -315,6 +327,11 @@ def test_detection():
                           noise_covar=np.diag([1, 1, 1]),
                           mapping=[0, 1, 2],
                           ndim_state=3))
+    # noinspection PyUnusedLocal
+    platform = FixedSensorPlatform(state=State(state_vector=StateVector([0, 0, 0])),  # noqa F841
+                                   mapping=[0, 1, 2],
+                                   sensors=[radar],
+                                   )
 
     target = State([50e3, 10e3, 20e3], timestamp=datetime.datetime.now())
     measurement = radar.measure(target)
@@ -329,8 +346,6 @@ def test_failed_detect():
 
     radar = AESARadar(antenna_gain=30,
                       mapping=[0, 2, 4],
-                      position=StateVector([0.0] * 3),
-                      orientation=StateVector([0.0] * 3),
                       frequency=100e6,
                       number_pulses=5,
                       duty_cycle=0.1,
@@ -347,7 +362,11 @@ def test_failed_detect():
                           noise_covar=np.diag([1, 1, 1]),
                           mapping=[0, 2, 4],
                           ndim_state=6))
-
+    # noinspection PyUnusedLocal
+    platform = FixedSensorPlatform(state=State(state_vector=StateVector([0, 0, 0])),  # noqa F841
+                                   mapping=[0, 1, 2],
+                                   sensors=[radar],
+                                   )
     assert radar.measure(target) is None
 
 
@@ -358,26 +377,28 @@ def test_target_rcs():
     rcs_20 = (GroundTruthState([250e3, 0.0, 0.0], timestamp=None))
     rcs_20.rcs = 20
 
-    radar_model = AESARadar(antenna_gain=36,
-                            mapping=[0, 1, 2],
-                            position=StateVector([0.0]*3),
-                            orientation=StateVector([0.0] * 3),
-                            frequency=10e9,
-                            number_pulses=10,
-                            duty_cycle=0.18,
-                            band_width=24591.9,
-                            beam_width=np.deg2rad(5),
-                            rcs=None,  # no default rcs
-                            receiver_noise=5,
-                            probability_false_alarm=5e-3,
-                            beam_shape=Beam2DGaussian(peak_power=1e4),
-                            measurement_model=None,
-                            beam_transition_model=StationaryBeam(centre=[0,
-                                                                         0]))
+    radar = AESARadar(antenna_gain=36,
+                      mapping=[0, 1, 2],
+                      frequency=10e9,
+                      number_pulses=10,
+                      duty_cycle=0.18,
+                      band_width=24591.9,
+                      beam_width=np.deg2rad(5),
+                      rcs=None,  # no default rcs
+                      receiver_noise=5,
+                      probability_false_alarm=5e-3,
+                      beam_shape=Beam2DGaussian(peak_power=1e4),
+                      measurement_model=None,
+                      beam_transition_model=StationaryBeam(centre=[0, 0]))
+    # noinspection PyUnusedLocal
+    platform = FixedSensorPlatform(state=State(state_vector=StateVector([0, 0, 0])),  # noqa F841
+                                   mapping=[0, 1, 2],
+                                   sensors=[radar],
+                                   )
 
-    (det_prob, snr, swer_rcs, _, _, _) = radar_model.gen_probability(rcs_10)
+    (det_prob, snr, swer_rcs, _, _, _) = radar.gen_probability(rcs_10)
     assert swer_rcs == 10
     assert approx(snr, 3) == 8.197
-    (det_prob, snr, swer_rcs, _, _, _) = radar_model.gen_probability(rcs_20)
+    (det_prob, snr, swer_rcs, _, _, _) = radar.gen_probability(rcs_20)
     assert swer_rcs == 20
     assert round(snr, 3) == 2.125

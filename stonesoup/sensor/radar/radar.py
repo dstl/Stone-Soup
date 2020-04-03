@@ -65,7 +65,7 @@ class RadarRangeBearing(PlatformSensor):
             ndim_state=self.ndim_state,
             mapping=self.mapping,
             noise_covar=self.noise_covar,
-            translation_offset=self.get_position(),
+            translation_offset=self.position,
             rotation_offset=self.orientation)
 
         measurement_vector = measurement_model.function(
@@ -442,7 +442,7 @@ class AESARadar(PlatformSensor):
         spoiled_gain = 10 ** (self.antenna_gain / 10) * np.cos(beam_az) * np.cos(beam_el)
         spoiled_width = self.beam_width / (np.cos(beam_az) * np.cos(beam_el))
         # state relative to radar (in cartesian space)
-        relative_vector = sky_state.state_vector[self.mapping] - self.get_position()
+        relative_vector = sky_state.state_vector[self.mapping] - self.position
         relative_vector = self._rotation_matrix @ relative_vector
 
         # calculate target position in spherical coordinates
@@ -486,7 +486,7 @@ class AESARadar(PlatformSensor):
         det_prob = self.gen_probability(sky_state)[0]
         # Is the state detected?
         if np.random.rand() <= det_prob:
-            self.measurement_model.translation_offset = self.get_position()
+            self.measurement_model.translation_offset = self.position
             self.measurement_model.rotation_offset = self.rotation_offset
             measured_pos = self.measurement_model.function(sky_state, noise=noise)
 

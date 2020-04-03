@@ -6,7 +6,7 @@ import numpy as np
 from ...types.state import State
 from ...models.transition.linear import (
     ConstantVelocity, CombinedLinearGaussianTransitionModel)
-from ..base import Platform
+from ..base import MovingPlatform, FixedPlatform
 
 
 def test_base():
@@ -19,7 +19,7 @@ def test_base():
     platform_state2d = State(np.array([[2],
                                        [2]]),
                              timestamp)
-    platform = Platform(platform_state2d, None)
+    platform = FixedPlatform(state=platform_state2d, mapping=np.array([0, 1]))
     platform.move(new_timestamp)
     new_statevector = np.array([[2],
                                 [2]])
@@ -33,7 +33,7 @@ def test_base():
                                        [2],
                                        [2]]),
                              timestamp)
-    platform = Platform(platform_state3d, None)
+    platform = FixedPlatform(state=platform_state3d, mapping=[0, 1, 2])
     platform.move(new_timestamp)
     new_statevector = np.array([[2],
                                 [2],
@@ -52,7 +52,7 @@ def test_base():
                                        [2],
                                        [1]]),
                              timestamp)
-    platform = Platform(platform_state2d, model_2d)
+    platform = MovingPlatform(state=platform_state2d, transition_model=model_2d, mapping=[0, 2])
     platform.move(new_timestamp)
 
     # Define expected platform location after movement
@@ -74,7 +74,7 @@ def test_base():
                                      [0],
                                      [1]]),
                            timestamp)
-    platform = Platform(platform_state, model_3d)
+    platform = MovingPlatform(state=platform_state, transition_model=model_3d, mapping=[0, 2, 4])
     platform.move(new_timestamp)
 
     # Define expected platform location in 3d after movement

@@ -1,32 +1,125 @@
 # -*- coding: utf-8 -*-
+from abc import abstractmethod, ABC
 
+from ..functions import cart2sphere, cart2pol, coerce_to_valid_mapping
+from ..types.array import StateVector
 from ..base import Base, Property
 from ..types.state import State
 from ..models.transition import TransitionModel
+import numpy as np
 
 
-class Platform(Base):
-    """Platform base class
+class Platform(Base, ABC):
+    state = Property(State, doc="The platform state at any given point")
+    mapping = Property(np.ndarray, doc="Mapping between platform position and state dims")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.mapping = coerce_to_valid_mapping(self.mapping)
+
+    @property
+    def state_vector(self):
+        return self.state.state_vector
+
+    @property
+    def position(self):
+        return self.state_vector[self.mapping]
+
+    @property
+    def ndim(self):
+        return len(self.mapping)
+
+    @property
+    @abstractmethod
+    def orientation(self):
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def velocity(self):
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def acceleration(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def is_moving(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def move(self, timestamp):
+        raise NotImplementedError
+
+
+class FixedPlatform(Platform):
+    orientation = Property(StateVector, default=StateVector([0, 0, 0]),
+                           doc='A fixed orientation of the static platform')
+
+    @property
+    def velocity(self):
+        return StateVector([0] * self.ndim)
+
+    @property
+    def acceleration(self):
+        return StateVector([0] * self.ndim)
+
+    def is_moving(self):
+        return False
+
+    def move(self, timestamp):
+        # Return without moving static platforms
+        self.state.timestamp = timestamp
+
+
+class MovingPlatform(Platform):
+    """Moving platform base class
 
     A platform represents a random object defined as a :class:`~.State`
     that moves according to a given :class:`~.TransitionModel`.
     """
-
-    state = Property(State, doc="The platform state at any given point")
     transition_model = Property(
         TransitionModel, doc="Transition model")
 
-    def get_position(self):
-        if self.state.ndim == 6 or self.state.ndim == 4:
-            return self.state.state_vector[0::2]
-        else:
-            raise NotImplementedError
+    @property
+    def velocity(self):
+        # TODO docs
+        # TODO return zeros?
+        try:
+            return self.state_vector[self.mapping + 1]
+        except IndexError:
+            raise AttributeError('Velocity is not defined for this platform')
 
-    def get_velocity(self):
-        if self.state.ndim == 6 or self.state.ndim == 4:
-            return self.state.state_vector[1::2]
-        else:
-            raise NotImplementedError
+    @property
+    def acceleration(self):
+        # TODO docs
+        # TODO return zeros?
+        try:
+            return self.state_vector[self.mapping + 2]
+        except IndexError:
+            raise AttributeError('Acceleration is not defined for this platform')
+
+    @property
+    def orientation(self):
+        # TODO docs
+        # TODO handle roll?
+        try:
+            velocity = self.velocity
+        except AttributeError:
+            raise AttributeError('Orientation of a zero-velocity moving platform is not defined')
+        if self.ndim == 3:
+            _, bearing, elevation = cart2sphere(*velocity)
+            return StateVector([0, bearing, elevation])
+        elif self.ndim == 2:
+            _, bearing = cart2pol(*velocity)
+            return StateVector([0, bearing])
+
+    def is_moving(self):
+        # TODO docs
+        return (hasattr(self, 'transition_model')
+                and self.transition_model is not None
+                and np.any(self.velocity != 0))
 
     def move(self, timestamp=None, **kwargs):
         """Propagate the platform position using the :attr:`transition_model`.
@@ -53,11 +146,6 @@ class Platform(Base):
         except TypeError:
             # TypeError: (timestamp or prior.timestamp) is None
             time_interval = None
-
-        # Return without moving static platforms
-        if self.transition_model is None:
-            self.state.timestamp = timestamp
-            return self
 
         self.state = State(
             state_vector=self.transition_model.function(

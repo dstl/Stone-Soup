@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from ...types.state import State
-from ...platform.simple import SensorPlatform
+from ...platform.simple import MovingSensorPlatform
 from ...models.transition.linear import (
     ConstantVelocity, CombinedLinearGaussianTransitionModel)
 from ...sensor.radar.radar import RadarRangeBearing
@@ -143,54 +143,32 @@ def radars_2d():
     noise_covar = CovarianceMatrix(np.array([[0.015, 0],
                                              [0, 0.1]]))
 
-    # define arbitrary sensor origin
-    radar1_position = StateVector(np.array(([[100], [100]])))
-    radar1_orientation = StateVector(np.array(([[0], [0], [0]])))
-    radar2_position = StateVector(np.array(([[100], [100]])))
-    radar2_orientation = StateVector(np.array(([[0], [0], [0]])))
-    radar3_position = StateVector(np.array(([[100], [100]])))
-    radar3_orientation = StateVector(np.array(([[0], [0], [0]])))
-    radar4_position = StateVector(np.array(([[100], [100]])))
-    radar4_orientation = StateVector(np.array(([[0], [0], [0]])))
-    radar5_position = StateVector(np.array(([[100], [100]])))
-    radar5_orientation = StateVector(np.array(([[0], [0], [0]])))
-
     measurement_mapping = np.array([0, 2])
 
     # Create 5 simple radar sensor objects
     radar1 = RadarRangeBearing(
-        position=radar1_position,
-        orientation=radar1_orientation,
         ndim_state=4,
         mapping=measurement_mapping,
         noise_covar=noise_covar,
     )
 
     radar2 = RadarRangeBearing(
-        position=radar2_position,
-        orientation=radar2_orientation,
         ndim_state=4,
         mapping=measurement_mapping,
         noise_covar=noise_covar
     )
     radar3 = RadarRangeBearing(
-        position=radar3_position,
-        orientation=radar3_orientation,
         ndim_state=4,
         mapping=measurement_mapping,
         noise_covar=noise_covar
     )
 
     radar4 = RadarRangeBearing(
-        position=radar4_position,
-        orientation=radar4_orientation,
         ndim_state=4,
         mapping=measurement_mapping,
         noise_covar=noise_covar
     )
     radar5 = RadarRangeBearing(
-        position=radar5_position,
-        orientation=radar5_orientation,
         ndim_state=4,
         mapping=measurement_mapping,
         noise_covar=noise_covar
@@ -205,72 +183,42 @@ def radars_3d():
     noise_covar = CovarianceMatrix(np.array([[0.015, 0],
                                              [0, 0.1]]))
 
-    # Note 1 - the radar position is irrelevant once mounted
-    radar1_position = StateVector(np.array(([[100], [100], [100]])))
-    radar1_orientation = StateVector(np.array(([[0], [0], [0]])))
-    radar2_position = StateVector(np.array(([[100], [100], [100]])))
-    radar2_orientation = StateVector(np.array(([[0], [0], [0]])))
-    radar3_position = StateVector(np.array(([[100], [100], [100]])))
-    radar3_orientation = StateVector(np.array(([[0], [0], [0]])))
-    radar4_position = StateVector(np.array(([[100], [100], [100]])))
-    radar4_orientation = StateVector(np.array(([[0], [0], [0]])))
-    radar5_position = StateVector(np.array(([[100], [100], [100]])))
-    radar5_orientation = StateVector(np.array(([[0], [0], [0]])))
-    radar6_position = StateVector(np.array(([[100], [100], [100]])))
-    radar6_orientation = StateVector(np.array(([[0], [0], [0]])))
-    radar7_position = StateVector(np.array(([[100], [100], [100]])))
-    radar7_orientation = StateVector(np.array(([[0], [0], [0]])))
-
     measurement_mapping = np.array([0, 2, 4])
 
     # Create 5 simple radar sensor objects
     radar1 = RadarRangeBearing(
-        position=radar1_position,
-        orientation=radar1_orientation,
         ndim_state=6,
         mapping=measurement_mapping,
         noise_covar=noise_covar
     )
 
     radar2 = RadarRangeBearing(
-        position=radar2_position,
-        orientation=radar2_orientation,
         ndim_state=6,
         mapping=measurement_mapping,
         noise_covar=noise_covar
     )
     radar3 = RadarRangeBearing(
-        position=radar3_position,
-        orientation=radar3_orientation,
         ndim_state=6,
         mapping=measurement_mapping,
         noise_covar=noise_covar
     )
 
     radar4 = RadarRangeBearing(
-        position=radar4_position,
-        orientation=radar4_orientation,
         ndim_state=6,
         mapping=measurement_mapping,
         noise_covar=noise_covar
     )
     radar5 = RadarRangeBearing(
-        position=radar5_position,
-        orientation=radar5_orientation,
         ndim_state=6,
         mapping=measurement_mapping,
         noise_covar=noise_covar
     )
     radar6 = RadarRangeBearing(
-        position=radar6_position,
-        orientation=radar6_orientation,
         ndim_state=6,
         mapping=measurement_mapping,
         noise_covar=noise_covar
     )
     radar7 = RadarRangeBearing(
-        position=radar7_position,
-        orientation=radar7_orientation,
         ndim_state=6,
         mapping=measurement_mapping,
         noise_covar=noise_covar
@@ -281,23 +229,25 @@ def radars_3d():
 @pytest.fixture(scope='session')
 def mounting_offsets_2d():
     # Generate sensor mounting offsets for testing purposes
-    return np.array([[0, 0],
-                     [1, 0],
-                     [0, 1],
-                     [-1, 0],
-                     [0, -1]])
+    offsets = [[0, 0],
+               [1, 0],
+               [0, 1],
+               [-1, 0],
+               [0, -1]]
+    return [StateVector(offset) for offset in offsets]
 
 
 @pytest.fixture(scope='session')
 def mounting_offsets_3d():
     # Generate sensor mounting offsets for testing purposes
-    return np.array([[0, 0, 0],
-                     [1, 0, 0],
-                     [0, 1, 0],
-                     [-1, 0, 0],
-                     [0, -1, 0],
-                     [0, 0, 1],
-                     [0, 0, -1]])
+    offsets = [[0, 0, 0],
+               [1, 0, 0],
+               [0, 1, 0],
+               [-1, 0, 0],
+               [0, -1, 0],
+               [0, 0, 1],
+               [0, 0, -1]]
+    return [StateVector(offset) for offset in offsets]
 
 
 @pytest.fixture(params=[True, False], ids=["Moving", "Static"])
@@ -316,16 +266,16 @@ def mounting_mapping_on_add(request):
 
 
 testdata_2d = [
-    np.array([[0], [0], [0], [0]]),
-    np.array([[10], [0], [0], [0]]),
-    np.array([[0], [1], [0], [0]]),
-    np.array([[0], [0], [0], [1]]),
-    np.array([[0], [-1], [0], [0]]),
-    np.array([[0], [0], [0], [-1]]),
-    np.array([[0], [1], [0], [1]]),
-    np.array([[0], [-1], [0], [-1]]),
-    np.array([[0], [1], [0], [-1]]),
-    np.array([[0], [-1], [0], [1]])
+    StateVector([0, 0, 0, 0]),
+    StateVector([10, 0, 0, 0]),
+    StateVector([0, 1, 0, 0]),
+    StateVector([0, 0, 0, 1]),
+    StateVector([0, -1, 0, 0]),
+    StateVector([0, 0, 0, -1]),
+    StateVector([0, 1, 0, 1]),
+    StateVector([0, -1, 0, -1]),
+    StateVector([0, 1, 0, -1]),
+    StateVector([0, -1, 0, 1])
 ]
 
 expected_2d = [
@@ -375,29 +325,31 @@ def test_2d_platform(state, expected, move, radars_2d,
     platform_state = State(state, timestamp)
 
     # This defines the mapping to the platforms state vector (i.e. x and y)
-    mounting_mappings = np.array([[0, 2]])
+    mounting_mapping = np.array([0, 2])
     # create a platform with the simple radar mounted
     if add_sensor:
-        platform = SensorPlatform(
+        platform = MovingSensorPlatform(
             state=platform_state,
             transition_model=trans_model,
             sensors=[],
-            mounting_offsets=np.array([]),
-            mounting_mappings=mounting_mappings
+            mounting_offsets=[],
+            mounting_mappings=mounting_mapping,
+            mapping=mounting_mapping
         )
-        for i, sensor in enumerate(radars_2d):
+        for sensor, offset in zip(radars_2d, mounting_offsets_2d):
             if mounting_mapping_on_add:
-                platform.add_sensor(sensor, mounting_offsets_2d[i, :],
-                                    mounting_mappings)
+                platform.add_sensor(sensor, offset,
+                                    mounting_mapping=mounting_mapping)
             else:
-                platform.add_sensor(sensor, mounting_offsets_2d[i, :])
+                platform.add_sensor(sensor, offset)
     else:
-        platform = SensorPlatform(
+        platform = MovingSensorPlatform(
             state=platform_state,
             transition_model=trans_model,
             sensors=radars_2d,
             mounting_offsets=mounting_offsets_2d,
-            mounting_mappings=mounting_mappings
+            mounting_mappings=mounting_mapping,
+            mapping=mounting_mapping
         )
     if move:
         # Move the platform
@@ -406,28 +358,28 @@ def test_2d_platform(state, expected, move, radars_2d,
 
 
 testdata_3d = [
-    (np.array([[0], [0], [0], [0], [0], [0]]), get_3d_expected(0)),
-    (np.array([[10], [0], [0], [0], [0], [0]]), get_3d_expected(0)),
-    (np.array([[0], [1], [0], [0], [0], [0]]), get_3d_expected(0)),
-    (np.array([[0], [0], [0], [1], [0], [0]]), get_3d_expected(1)),
-    (np.array([[0], [-1], [0], [0], [0], [0]]), get_3d_expected(2)),
-    (np.array([[0], [0], [0], [-1], [0], [0]]), get_3d_expected(3)),
-    (np.array([[0], [1], [0], [1], [0], [0]]), get_3d_expected(4)),
-    (np.array([[0], [-1], [0], [-1], [0], [0]]), get_3d_expected(5)),
-    (np.array([[0], [1], [0], [-1], [0], [0]]), get_3d_expected(6)),
-    (np.array([[0], [-1], [0], [1], [0], [0]]), get_3d_expected(7)),
-    (np.array([[0], [0], [0], [0], [0], [1]]), get_3d_expected(8)),
-    (np.array([[0], [0], [0], [0], [0], [-1]]), get_3d_expected(9)),
-    (np.array([[0], [0], [0], [1], [0], [1]]), get_3d_expected(10)),
-    (np.array([[0], [0], [0], [1], [0], [-1]]), get_3d_expected(11)),
-    (np.array([[0], [0], [0], [-1], [0], [1]]), get_3d_expected(12)),
-    (np.array([[0], [0], [0], [-1], [0], [-1]]), get_3d_expected(13)),
-    (np.array([[0], [1], [0], [0], [0], [1]]), get_3d_expected(14)),
-    (np.array([[0], [-1], [0], [0], [0], [1]]), get_3d_expected(15)),
-    (np.array([[0], [1], [0], [0], [0], [-1]]), get_3d_expected(16)),
-    (np.array([[0], [-1], [0], [0], [0], [-1]]), get_3d_expected(17)),
-    (np.array([[0], [1], [0], [1], [0], [1]]), get_3d_expected(18)),
-    (np.array([[0], [-1], [0], [-1], [0], [-1]]), get_3d_expected(19))
+    (StateVector([0, 0, 0, 0, 0, 0]), get_3d_expected(0)),
+    (StateVector([10, 0, 0, 0, 0, 0]), get_3d_expected(0)),
+    (StateVector([0, 1, 0, 0, 0, 0]), get_3d_expected(0)),
+    (StateVector([0, 0, 0, 1, 0, 0]), get_3d_expected(1)),
+    (StateVector([0, -1, 0, 0, 0, 0]), get_3d_expected(2)),
+    (StateVector([0, 0, 0, -1, 0, 0]), get_3d_expected(3)),
+    (StateVector([0, 1, 0, 1, 0, 0]), get_3d_expected(4)),
+    (StateVector([0, -1, 0, -1, 0, 0]), get_3d_expected(5)),
+    (StateVector([0, 1, 0, -1, 0, 0]), get_3d_expected(6)),
+    (StateVector([0, -1, 0, 1, 0, 0]), get_3d_expected(7)),
+    (StateVector([0, 0, 0, 0, 0, 1]), get_3d_expected(8)),
+    (StateVector([0, 0, 0, 0, 0, -1]), get_3d_expected(9)),
+    (StateVector([0, 0, 0, 1, 0, 1]), get_3d_expected(10)),
+    (StateVector([0, 0, 0, 1, 0, -1]), get_3d_expected(11)),
+    (StateVector([0, 0, 0, -1, 0, 1]), get_3d_expected(12)),
+    (StateVector([0, 0, 0, -1, 0, -1]), get_3d_expected(13)),
+    (StateVector([0, 1, 0, 0, 0, 1]), get_3d_expected(14)),
+    (StateVector([0, -1, 0, 0, 0, 1]), get_3d_expected(15)),
+    (StateVector([0, 1, 0, 0, 0, -1]), get_3d_expected(16)),
+    (StateVector([0, -1, 0, 0, 0, -1]), get_3d_expected(17)),
+    (StateVector([0, 1, 0, 1, 0, 1]), get_3d_expected(18)),
+    (StateVector([0, -1, 0, -1, 0, -1]), get_3d_expected(19))
 ]
 
 
@@ -447,29 +399,30 @@ def test_3d_platform(state, expected, move, radars_3d, mounting_offsets_3d):
     platform_state = State(state, timestamp)
 
     # This defines the mapping to the platforms state vector (i.e. x and y)
-    mounting_mappings = np.array([[0, 2, 4]])
+    mounting_mapping = np.array([0, 2, 4])
     # create a platform with the simple radar mounted
     if add_sensor:
-        platform = SensorPlatform(
+        platform = MovingSensorPlatform(
             state=platform_state,
             transition_model=trans_model,
             sensors=[],
-            mounting_offsets=np.array([]),
-            mounting_mappings=mounting_mappings
+            mounting_offsets=[],
+            mounting_mappings=mounting_mapping,
+            mapping=mounting_mapping
         )
-        for i, sensor in enumerate(radars_3d):
+        for sensor, offset in zip(radars_3d, mounting_offsets_3d):
             if mounting_mapping_on_add:
-                platform.add_sensor(sensor, mounting_offsets_3d[i, :],
-                                    mounting_mappings)
+                platform.add_sensor(sensor, offset,
+                                    mounting_mapping=mounting_mapping)
             else:
-                platform.add_sensor(sensor, mounting_offsets_3d[i, :])
+                platform.add_sensor(sensor, offset)
     else:
-        platform = SensorPlatform(
+        platform = MovingSensorPlatform(
             state=platform_state,
             transition_model=trans_model,
             sensors=radars_3d,
             mounting_offsets=mounting_offsets_3d,
-            mounting_mappings=mounting_mappings
+            mounting_mappings=mounting_mapping
         )
     if move:
         # Move the platform
@@ -488,14 +441,16 @@ def sensor_positions_test(expected_offset, platform):
     :return:
     """
     radar_position = np.zeros(
-        [len(platform.sensors), platform.mounting_offsets.shape[1]])
+        [len(platform.sensors), len(platform.mapping)])
     expected_radar_position = np.zeros_like(radar_position)
-    for i in range(len(platform.sensors)):
-        radar_position[i, :] = platform.sensors[i].get_position().flatten()
+    for i, sensor in enumerate(platform.sensors):
+        radar_position[i, :] = sensor.position.flatten()
 
-        platform_position = platform.state.state_vector[
-            platform.mounting_mappings[i, :]].flatten()
+        platform_position = platform.state_vector[platform.mounting_mappings[i]]
 
         expected_radar_position[i, :] = (expected_offset[i, :] +
-                                         platform_position)
+                                         platform_position.flatten())
+
+        assert np.allclose(radar_position[i, :], platform.get_sensor_position(sensor).flatten())
+        assert np.allclose(platform_position, platform.position)
     assert np.allclose(expected_radar_position, radar_position)

@@ -1,18 +1,22 @@
 # -*- coding: utf-8 -*-
+from abc import ABC
+from collections.abc import Sequence
+from typing import List, Union
+
 import numpy as np
 from math import cos, sin
 from scipy.linalg import expm
 import weakref
 from functools import lru_cache
 
-from stonesoup.sensor.base import Sensor3DCartesian
+from ..functions import coerce_to_valid_mapping, rotz
+from ..sensor.base import Sensor
 from ..base import Property
 from ..types.state import StateVector
-from ..functions import cart2pol
-from .base import Platform
+from .base import Platform, MovingPlatform, FixedPlatform
 
 
-class PlatformSensor(Sensor3DCartesian):
+class PlatformSensor(Sensor):
     platform_system = Property(Platform, default=None,
                                doc='`weakref` to the platform on which the '
                                    'sensor is mounted')
@@ -20,22 +24,16 @@ class PlatformSensor(Sensor3DCartesian):
     def measure(self, **kwargs):
         raise NotImplementedError
 
-    def get_position(self):
-        if (hasattr(self, 'platform_system')
-                and self.platform_system is not None):
-            return self.platform_system().get_sensor_position(self)
-        else:
-            return self.position
+    @property
+    def position(self):
+        return self.platform_system().get_sensor_position(self)
 
-    def get_orientation(self):
-        if (hasattr(self, 'platform_system')
-                and self.platform_system is not None):
-            return self.platform_system().get_sensor_orientation(self)
-        else:
-            return self.orientation
+    @property
+    def orientation(self):
+        return self.platform_system().get_sensor_orientation(self)
 
 
-class SensorPlatform(Platform):
+class SensorPlatformMixin(Platform, ABC):
     """A simple Platform that can carry a number of different sensors and is
     capable of moving based upon the :class:`~.TransitionModel`.
 
@@ -49,16 +47,22 @@ class SensorPlatform(Platform):
 
     """
 
-    sensors = Property([PlatformSensor], doc="A list of N mounted sensors")
-    mounting_offsets = Property(
-        [np.array], doc="A list of sensor offsets (For now expressed\
-                            as a Nxn array of nD Cartesian coordinates)")
-    mounting_mappings = Property(
-        [np.array], doc="Mappings between the platform state vector and the\
-                            individuals sensors mounting offset (For now\
-                            expressed as a Nxn array of nD Cartesian\
-                            coordinates or a 1xn array where a single\
-                            mapping will be applied to all sensors)")
+    sensors = Property([PlatformSensor], doc="A list of N mounted sensors", default=[])
+    mounting_offsets = Property(List[StateVector], default=None,
+                                doc="A list of StateVectors containing the sensor translation "
+                                    "offsets from the platform's reference point. Defaults to "
+                                    "a zero vector with the same length as the Platform's mapping")
+    rotation_offsets = Property(List[StateVector], default=None,
+                                doc="A list of StateVectors containing the sensor translation "
+                                    "offsets from the platform's primary axis (defined as the "
+                                    "direction of motion). Defaults to a zero vector with the "
+                                    "same length as the Platform's mapping")
+    mounting_mappings = Property(Union[StateVector, List[StateVector]], default=None,
+                                 doc="Mappings between the platform state vector and the"
+                                     "individual sensors mounting offset. Can be a single "
+                                     ":class:`~StateVector` (the same for all sensors) or a list "
+                                     "of :class:`~StateVector` (one for each sensor). Defaults to "
+                                     "be the same as the Platform's mapping")
 
     # TODO: Determine where a platform coordinate frame should be maintained
 
@@ -68,46 +72,67 @@ class SensorPlatform(Platform):
         consistent at initialisation.
         """
         super().__init__(*args, **kwargs)
-        if self.mounting_mappings.max() > len(self.state.state_vector):
+        # Set values to defaults if not provided
+        if self.mounting_offsets is None:
+            self.mounting_offsets = [StateVector([0] * self.ndim)] * len(self.sensors)
+
+        if self.rotation_offsets is None:
+            self.rotation_offsets = [StateVector([0] * 3)] * len(self.sensors)
+
+        if self.mounting_mappings is None:
+            self.mounting_mappings = self.mapping
+
+        if ((isinstance(self.mounting_mappings, Sequence) and self.mounting_mappings)
+            and (isinstance(self.mounting_mappings[0], np.ndarray) or
+                 isinstance(self.mounting_mappings[0], Sequence))):
+            # We were passed a non-empty list of arrays or lists
+            self.mounting_mappings = [coerce_to_valid_mapping(m) for m in self.mounting_mappings]
+        elif (isinstance(self.mounting_mappings, np.ndarray) or
+              isinstance(self.mounting_mappings, Sequence)):
+            # We were passed either list of non-arrays (assumed to be ints) or a single array, so
+            # coerce the single entry and then expand
+            # noinspection PyTypeChecker
+            single_mapping = coerce_to_valid_mapping(self.mounting_mappings)
+            self.mounting_mappings = [single_mapping] * len(self.sensors)
+
+        # Check for consistent values (after defaults have been applied)
+        if (self.mounting_mappings
+                and max(m.max() for m in self.mounting_mappings) > len(self.state_vector)):
             raise IndexError(
                 "Platform state vector length and sensor mounting mapping "
                 "are incompatible")
 
-        if len(self.sensors) != self.mounting_offsets.shape[0]:
-            raise IndexError(
+        if len(self.sensors) != len(self.mounting_offsets):
+            raise ValueError(
                 "Number of sensors associated with the platform does not "
                 "match the number of sensor mounting offsets specified")
 
-        if ((len(self.sensors) != self.mounting_mappings.shape[0]) and
-                (self.mounting_mappings.shape[0] != 1)):
-            raise IndexError(
+        if len(self.sensors) != len(self.rotation_offsets):
+            raise ValueError(
+                "Number of sensors associated with the platform does not "
+                "match the number of sensor rotation offsets specified")
+
+        if len(self.sensors) != len(self.mounting_mappings):
+            raise ValueError(
                 "Number of sensors associated with the platform does not "
                 "match the number of mounting mappings specified")
 
-        if ((self.mounting_mappings.shape[0] == 1) and
-                len(self.sensors) > 1):
-            mapping_array = np.empty((0, self.mounting_mappings.shape[1]), int)
-            for i in range(len(self.sensors)):
-                mapping_array = np.append(mapping_array,
-                                          self.mounting_mappings,
-                                          axis=0)
-            self.mounting_mappings = mapping_array
+        # Store the platform weakref in each of the child sensors
         for sensor in self.sensors:
             sensor.platform_system = weakref.ref(self)
-            sensor.position = None
-            sensor.orientation = None
 
-    def add_sensor(self, sensor, mounting_offset, mounting_mapping=None):
-        """ Determine the sensor mounting offset for the platforms relative
-                orientation.
-
+    def add_sensor(self, sensor: PlatformSensor, mounting_offset: StateVector = None,
+                   rotation_offset: StateVector = None,
+                   mounting_mapping: np.ndarray = None):
+        """ TODO
                 Parameters
                 ----------
-                sensor : :class:`Sensor`
+                sensor : :class:`PlatformSensor`
                     The sensor object to add
-                mounting_offset : :class:`np.ndarray`
+                mounting_offset : :class:`StateVector`
                     A 1xN array with the mounting offset of the new sensor
-                mounting_mapping : :class:`np.ndarray`, optional
+                    TODO
+                mounting_mapping : :class:`StateVector`, optional
                     A 1xN array with the mounting mapping of the new sensor.
                     If `None` (default) then use the same mapping as all
                     previous sensors. If all sensor do not a have the same
@@ -115,59 +140,43 @@ class SensorPlatform(Platform):
                 """
         self.sensors.append(sensor)
         sensor.platform_system = weakref.ref(self)
-        sensor.position = None
-        sensor.orientation = None
 
         if mounting_mapping is None:
-            if not np.all(self.mounting_mappings
-                          == self.mounting_mappings[0, :]):
+            if not all([np.all(m == self.mounting_mappings[0]) for m in self.mounting_mappings]):
                 raise ValueError('Mapping must be specified unless all '
                                  'sensors have the same mapping')
-            mounting_mapping = self.mounting_mappings[0, :]
+            if self.mounting_mappings:
+                mounting_mapping = self.mounting_mappings[0]
+            else:
+                # if no mapping was supplied, and no mapping is already stored, default to
+                # platform mapping
+                mounting_mapping = self.mapping
 
-        if mounting_offset.ndim == 1:
-            mounting_offset = mounting_offset[np.newaxis, :]
-        if mounting_mapping.ndim == 1:
-            mounting_mapping = mounting_mapping[np.newaxis, :]
+        if mounting_offset is None:
+            mounting_offset = StateVector([0] * self.ndim)
+        if rotation_offset is None:
+            rotation_offset = StateVector([0] * 3)
 
-        if len(self.sensors) == 1:
-            # This is the first sensor added, so no mounting mappings/offsets
-            # to maintain
-            self.mounting_offsets = mounting_offset
-        else:
-            self.mounting_offsets = np.concatenate([self.mounting_offsets,
-                                                    mounting_offset])
+        self.mounting_mappings.append(mounting_mapping)
+        self.mounting_offsets.append(mounting_offset)
+        self.rotation_offsets.append(rotation_offset)
 
-        if len(self.sensors) == 1:
-            # This is the first sensor added, so no mounting
-            # mappings/offsets to maintain
-            self.mounting_mappings = mounting_mapping
-        else:
-            self.mounting_mappings = np.concatenate([self.mounting_mappings,
-                                                     mounting_mapping])
-
-    def get_sensor_position(self, sensor):
+    def get_sensor_position(self, sensor: PlatformSensor):
+        # TODO docs
         i = self.sensors.index(sensor)
         if self.is_moving():
-            offsets = self._get_rotated_offset(i)
+            offset = self._get_rotated_offset(i)
         else:
-            offsets = StateVector(self.mounting_offsets[i, :])
-        new_sensor_pos = self.get_position() + offsets
-        return StateVector(new_sensor_pos)
+            offset = self.mounting_offsets[i]
+        new_sensor_pos = self.position + offset
+        return new_sensor_pos
 
-    def get_sensor_orientation(self, sensor):
+    def get_sensor_orientation(self, sensor: PlatformSensor):
+        # TODO docs
+        # TODO handle roll?
         i = self.sensors.index(sensor)
-        vel = np.zeros([self.mounting_mappings.shape[1], 1])
-        for j in range(self.mounting_mappings.shape[1]):
-            vel[j, 0] = self.state.state_vector[
-                self.mounting_mappings[i, j] + 1]
-        abs_vel, heading = cart2pol(vel[0, 0], vel[1, 0])
-        return StateVector([[0], [0], [heading]])
-
-    def is_moving(self):
-        return (hasattr(self, 'transition_model')
-                and self.transition_model is not None
-                and np.any(self.get_velocity() != 0))
+        offset = self.rotation_offsets[i]
+        return self.orientation + offset
 
     def _get_rotated_offset(self, i):
         """ Determine the sensor mounting offset for the platforms relative
@@ -184,10 +193,18 @@ class SensorPlatform(Platform):
             Sensor mounting offset rotated relative to platform motion
         """
 
-        vel = self.get_velocity()
+        vel = self.velocity
 
         rot = _get_rotation_matrix(vel)
-        return np.transpose(np.dot(rot, self.mounting_offsets[i])[np.newaxis])
+        return rot @ self.mounting_offsets[i]
+
+
+class FixedSensorPlatform(SensorPlatformMixin, FixedPlatform):
+    pass
+
+
+class MovingSensorPlatform(SensorPlatformMixin, MovingPlatform):
+    pass
 
 
 def _get_rotation_matrix(vel):
@@ -284,28 +301,9 @@ def _rot3d_tuple(vec):
     yaw = np.arctan2(vec[1], vec[0])
     pitch = np.arctan2(vec[2],
                        np.sqrt(vec[0] ** 2 + vec[1] ** 2)) * -1
-    rot_z = _rot_z(yaw)
+    rot_z = rotz(yaw)
     # Modify to correct for new y axis
     y_axis = np.array([0, 1, 0])
     rot_y = expm(np.cross(np.eye(3), np.dot(rot_z, y_axis) * pitch))
 
     return np.dot(rot_y, rot_z)
-
-
-def _rot_z(theta):
-    """ Returns a rotation matrix which will rotate a vector around the Z axis
-    in a counter clockwise direction by theta radians.
-
-    Parameters
-    ----------
-    theta : float
-        Required rotation angle in radians
-
-    Returns
-    -------
-    np.ndarray
-        3x3 rotation matrix
-    """
-    return np.array([[cos(theta), -sin(theta), 0],
-                     [sin(theta), cos(theta), 0],
-                     [0, 0, 1]])
