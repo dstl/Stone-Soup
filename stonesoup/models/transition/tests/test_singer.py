@@ -124,8 +124,7 @@ def base(state, noise_diff_coeffs, damping_coeffs, timediff=1.0):
     new_state_vec_wo_noise = model_obj.function(
         state,
         timestamp=new_timestamp,
-        time_interval=time_interval,
-        noise=0)
+        time_interval=time_interval)
     assert np.allclose(new_state_vec_wo_noise, F@state_vec, rtol=1e-6)
 
     # Evaluate the likelihood of the predicted state, given the prior
@@ -143,6 +142,7 @@ def base(state, noise_diff_coeffs, damping_coeffs, timediff=1.0):
     # (with internal noise)
     new_state_vec_w_inoise = model_obj.function(
         state,
+        noise=True,
         timestamp=new_timestamp,
         time_interval=time_interval)
     assert not np.allclose(new_state_vec_w_inoise, F@state_vec, rtol=1e-6)

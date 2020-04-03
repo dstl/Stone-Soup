@@ -25,7 +25,7 @@ def test_non_linear(model):
     assert model.ndim_state == 5
 
     meas_vector = model.function(
-        Detection(StateVector([[0], [10], [10], [0], [-10]])), noise=0)
+        Detection(StateVector([[0], [10], [10], [0], [-10]])))
 
     assert isinstance(meas_vector[0, 0], Bearing)
     assert not isinstance(meas_vector[1, 0], Bearing)
@@ -54,7 +54,7 @@ def test_covar(model):
 
 def test_inverse(model):
     state = State(StateVector([[0.1], [10], [0], [0.2], [20]]))
-    meas_state = model.function(state, noise=0)
+    meas_state = model.function(state)
 
     assert model.inverse_function(State(meas_state)) == approx(state.state_vector)
 
@@ -89,7 +89,7 @@ def test_non_linear_and_linear():
     ])
 
     state = State(StateVector([[0], [10], [20]]))
-    meas_vector = model.function(state, noise=0)
+    meas_vector = model.function(state)
     assert isinstance(meas_vector[0, 0], Bearing)
     assert not isinstance(meas_vector[1, 0], Bearing)
     assert not isinstance(meas_vector[2, 0], Bearing)

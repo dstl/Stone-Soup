@@ -52,7 +52,7 @@ def test_lgmodel(H, R, ndim_state, mapping):
 
     # Project a state through the model
     # (without noise)
-    meas_pred_wo_noise = lg.function(state, noise=0)
+    meas_pred_wo_noise = lg.function(state)
     assert np.array_equal(meas_pred_wo_noise, H@state_vec)
 
     # Evaluate the likelihood of the predicted measurement, given the state

@@ -78,7 +78,7 @@ def test_simple_radar():
     assert(np.equal(radar.position, radar_position).all())
 
     # Generate a noiseless measurement for the given target
-    measurement = radar.measure(target_state, noise=0)
+    measurement = radar.measure(target_state, noise=False)
     rho, phi = cart2pol(target_state.state_vector[0, 0]
                         - radar_position[0, 0],
                         target_state.state_vector[1, 0]
@@ -131,7 +131,7 @@ def test_rotating_radar():
     assert(np.equal(radar.position, radar_position).all())
 
     # Generate a noiseless measurement for the given target
-    measurement = radar.measure(target_state, noise=0)
+    measurement = radar.measure(target_state, noise=False)
 
     # Assert measurement is None since target is not in FOV
     assert(measurement is None)
@@ -141,7 +141,7 @@ def test_rotating_radar():
     target_state = State(radar_position +
                          np.array([[5], [5]]),
                          timestamp=timestamp)
-    measurement = radar.measure(target_state, noise=0)
+    measurement = radar.measure(target_state, noise=False)
     eval_m = h2d(target_state.state_vector,
                  radar.position,
                  radar.orientation+[[0],
@@ -197,7 +197,7 @@ def test_raster_scan_radar():
     assert np.array_equal(radar.position, radar_position)
 
     # Generate a noiseless measurement for the given target
-    measurement = radar.measure(target_state, noise=0)
+    measurement = radar.measure(target_state, noise=False)
 
     # Assert measurement is None since target is not in FOV
     assert measurement is None
@@ -207,7 +207,7 @@ def test_raster_scan_radar():
     target_state = State(radar_position +
                          np.array([[-5], [5]]),
                          timestamp=timestamp)
-    measurement = radar.measure(target_state, noise=0)
+    measurement = radar.measure(target_state, noise=False)
     # Assert measurement is None since target is not in FOV
     assert measurement is None
 
@@ -216,7 +216,7 @@ def test_raster_scan_radar():
     target_state = State(radar_position +
                          np.array([[-5], [5]]),
                          timestamp=timestamp)
-    measurement = radar.measure(target_state, noise=0)
+    measurement = radar.measure(target_state, noise=False)
     eval_m = h2d(target_state.state_vector,
                  radar.position,
                  radar.orientation + [[0],

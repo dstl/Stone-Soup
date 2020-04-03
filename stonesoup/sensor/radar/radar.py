@@ -42,13 +42,17 @@ class RadarRangeBearing(Sensor3DCartesian):
             (and follow in format) the underlying \
             :class:`~.CartesianToBearingRange` model")
 
-    def measure(self, ground_truth, noise=None, **kwargs):
+    def measure(self, ground_truth, noise=True, **kwargs):
         """Generate a measurement for a given state
 
         Parameters
         ----------
         ground_truth : :class:`~.State`
             A ground-truth state
+        noise: :class:`numpy.ndarray` or bool
+            An externally generated random process noise sample (the default is
+            `True`, in which case :meth:`~.Model.rvs` is used
+            if 'False', no noise will be added)
 
         Returns
         -------
@@ -102,13 +106,17 @@ class RadarRotatingRangeBearing(RadarRangeBearing):
         float,
         doc="The radar field of view (FOV) angle (in radians).")
 
-    def measure(self, ground_truth, noise=None, **kwargs):
+    def measure(self, ground_truth, noise=True, **kwargs):
         """Generate a measurement for a given state
 
         Parameters
         ----------
         ground_truth : :class:`~.State`
             A ground-truth state
+        noise: :class:`numpy.ndarray` or bool
+            An externally generated random process noise sample (the default is
+            `True`, in which case :meth:`~.Model.rvs` is used
+            if 'False', no noise will be added)
 
         Returns
         -------
@@ -143,10 +151,9 @@ class RadarRotatingRangeBearing(RadarRangeBearing):
 
         # Transform state to measurement space and generate
         # random noise
-        measurement_vector = measurement_model.function(
-            ground_truth, noise=0, **kwargs)
+        measurement_vector = measurement_model.function(ground_truth, **kwargs)
 
-        if noise is None:
+        if noise is True:
             measurement_noise = measurement_model.rvs()
         else:
             measurement_noise = noise
@@ -459,13 +466,17 @@ class AESARadar(Sensor):
         return det_prob, snr, rcs, directed_power,\
             10 * np.log10(spoiled_gain), spoiled_width
 
-    def measure(self, sky_state, **kwargs):
+    def measure(self, sky_state, noise=True, **kwargs):
         """Generate a measurement for a given state
 
         Parameters
         ----------
         sky_state : :class:`~.State`
             A target state in 3-D cartesian space
+        noise: :class:`numpy.ndarray` or bool
+            An externally generated random process noise sample (the default is
+            `True`, in which case :meth:`~.Model.rvs` is used
+            if 'False', no noise will be added)
 
         Returns
         -------
@@ -480,7 +491,7 @@ class AESARadar(Sensor):
         if np.random.rand() <= det_prob:
             self.measurement_model.translation_offset = self.translation_offset
             self.measurement_model.rotation_offset = self.rotation_offset
-            measured_pos = self.measurement_model.function(sky_state)
+            measured_pos = self.measurement_model.function(sky_state, noise=noise)
 
             return Detection(measured_pos, timestamp=sky_state.timestamp,
                              measurement_model=self.measurement_model)

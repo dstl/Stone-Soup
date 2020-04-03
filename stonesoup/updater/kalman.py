@@ -138,8 +138,7 @@ class KalmanUpdater(Updater):
         # native to the updater
         measurement_model = self._check_measurement_model(measurement_model)
 
-        pred_meas = measurement_model.function(predicted_state,
-                                               noise=0, **kwargs)
+        pred_meas = measurement_model.function(predicted_state, **kwargs)
 
         hh = self._measurement_matrix(predicted_state=predicted_state,
                                       measurement_model=measurement_model,
@@ -332,12 +331,9 @@ class UnscentedKalmanUpdater(KalmanUpdater):
             gauss2sigma(predicted_state,
                         self.alpha, self.beta, self.kappa)
 
-        def measurement_function_nonoise(state, noise=0, **kwargs):
-            return measurement_model.function(state, noise, **kwargs)
-
         meas_pred_mean, meas_pred_covar, cross_covar, _, _, _ = \
             unscented_transform(sigma_points, mean_weights, covar_weights,
-                                measurement_function_nonoise,
+                                measurement_model.function,
                                 covar_noise=measurement_model.covar())
 
         return GaussianMeasurementPrediction(meas_pred_mean, meas_pred_covar,

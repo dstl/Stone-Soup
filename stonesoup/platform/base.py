@@ -50,6 +50,7 @@ class Platform(Base):
         self.state = State(
             state_vector=self.transition_model.function(
                 state=self.state,
+                noise=True,
                 timestamp=timestamp,
                 time_interval=time_interval,
                 **kwargs),

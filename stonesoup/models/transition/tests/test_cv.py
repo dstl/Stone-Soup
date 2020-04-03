@@ -43,8 +43,7 @@ def test_cvmodel():
     new_state_vec_wo_noise = cv.function(
         state,
         timestamp=new_timestamp,
-        time_interval=time_interval,
-        noise=0)
+        time_interval=time_interval)
     assert np.array_equal(new_state_vec_wo_noise, F@state.state_vector)
 
     # Evaluate the likelihood of the predicted state, given the prior
@@ -62,6 +61,7 @@ def test_cvmodel():
     # (with internal noise)
     new_state_vec_w_inoise = cv.function(
         state,
+        noise=True,
         timestamp=new_timestamp,
         time_interval=time_interval)
     assert not np.array_equal(new_state_vec_w_inoise, F@state.state_vector)

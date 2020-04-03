@@ -246,7 +246,7 @@ class ExtendedKalmanPredictor(KalmanPredictor):
             The predicted state
 
         """
-        return self.transition_model.function(prior, noise=0, **kwargs)
+        return self.transition_model.function(prior, **kwargs)
 
     @property
     def _control_matrix(self):
@@ -321,9 +321,8 @@ class UnscentedKalmanPredictor(KalmanPredictor):
             control
         """
 
-        return \
-            self.transition_model.function(prior_state, noise=0, **kwargs) + \
-            self.control_model.control_input()
+        return (self.transition_model.function(prior_state, **kwargs)
+                + self.control_model.control_input())
 
     @lru_cache()
     def predict(self, prior, timestamp=None, **kwargs):
