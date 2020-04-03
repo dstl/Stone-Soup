@@ -7,6 +7,12 @@ Predictors
 .. automodule:: stonesoup.predictor.base
     :show-inheritance:
 
+AlphaBeta
+--------
+
+.. automodule:: stonesoup.predictor.alphabeta
+    :show-inheritance:
+
 Kalman
 ------
 

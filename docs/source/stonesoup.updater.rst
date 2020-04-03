@@ -7,6 +7,12 @@ Updaters
 .. automodule:: stonesoup.updater.base
     :show-inheritance:
 
+AlphaBeta
+--------
+
+.. automodule:: stonesoup.predictor.alphabeta
+    :show-inheritance:
+
 Kalman
 ------
 
