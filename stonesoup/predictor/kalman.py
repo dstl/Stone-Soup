@@ -269,9 +269,11 @@ class ASDKalmanPredictor(KalmanPredictor):
         p_top = np.hstack((p_pred_k, correlated_row))
         p_bottom = np.hstack((correlated_column, prior.multi_covar))
         p_pred = np.vstack((p_top, p_bottom))
-        return ASDGaussianStatePrediction(multi_state_vector=x_pred, multi_covar=p_pred,
+        predicted_state = ASDGaussianStatePrediction(multi_state_vector=x_pred, multi_covar=p_pred,
                                           correlation_matrices=correlation_matrices,
-                                          timestamps=[timestamp] + prior.timestamps)
+                                          timestamps=[timestamp] + prior.timestamps, max_nstep=prior.max_nstep)
+        self.prune_state(predicted_state)
+        return predicted_state
 
     def generate_C_list(self, prior, correlation_matrices):
         prior_ndim = prior.ndim
@@ -280,6 +282,32 @@ class ASDKalmanPredictor(KalmanPredictor):
         for item in list(correlation_matrices.values())[-2::-1]:
             C_list.append(C_list[-1] @ item)
         return C_list
+
+    def prune_state(self, predicted_state):
+        r"""Simple ASD pruning function. Deletes one timesteps from the multi state if it is longer then max_nstep
+
+                Parameters
+                ----------
+                prior : :class:`~.ASDState`
+                    :math:`\mathbf{x}_{k|k-1}`
+
+                Returns
+                -------
+                : :class:`~.ASDState`
+                    :math:`\mathbf{x}_{k|k-1}`, the pruned state and the pruned
+                    state covariance :math:`P_{k|k-1}`
+
+                """
+        if predicted_state.nstep > predicted_state.max_nstep and predicted_state.max_nstep != 0:
+            index = predicted_state.max_nstep * predicted_state.ndim
+            predicted_state.multi_state_vector = predicted_state.multi_state_vector[0:index]
+            predicted_state.multi_covar = predicted_state.multi_covar[0:index, 0:index]
+            deleted_timestamps = predicted_state.timestamps[predicted_state.max_nstep:]
+            predicted_state.timestamps = predicted_state.timestamps[0:predicted_state.max_nstep]
+            _ = [predicted_state.correlation_matrices.pop(el) for el in deleted_timestamps]
+            return predicted_state
+        else:
+            return predicted_state
 
 
 class ExtendedKalmanPredictor(KalmanPredictor):

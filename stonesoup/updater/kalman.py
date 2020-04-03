@@ -396,7 +396,7 @@ class ASDKalmanUpdater(KalmanUpdater):
 
         return ASDGaussianStateUpate(multi_state_vector=posterior_mean, multi_covar=posterior_covariance,
                                      hypothesis=hypothesis, timestamps=predicted_state.timestamps,
-                                     correlation_matrices=predicted_state.correlation_matrices)
+                                     correlation_matrices=predicted_state.correlation_matrices, max_nstep=predicted_state.max_nstep)
 
 
 class ExtendedKalmanUpdater(KalmanUpdater):
