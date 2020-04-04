@@ -32,7 +32,7 @@ class GaussianStateUpdate(Update, GaussianState):
     """
 
 
-class ASDGaussianStateUpate(Update, ASDGaussianState):
+class ASDGaussianStateUpdate(Update, ASDGaussianState):
     """ ASDGaussianStateUpdate type
 
     This is a simple ASD Gaussian state update object, which, as the name
