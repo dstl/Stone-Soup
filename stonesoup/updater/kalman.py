@@ -8,7 +8,7 @@ from ..base import Property
 from .base import Updater
 from ..types.array import CovarianceMatrix
 from ..types.prediction import GaussianMeasurementPrediction, ASDGaussianMeasurementPrediction
-from ..types.update import GaussianStateUpdate, SqrtGaussianStateUpdate, ASDGaussianStateUpate
+from ..types.update import GaussianStateUpdate, SqrtGaussianStateUpdate, ASDGaussianStateUpdate
 from ..models.base import LinearModel
 from ..models.measurement.linear import LinearGaussian
 from ..models.measurement import MeasurementModel
@@ -394,9 +394,9 @@ class ASDKalmanUpdater(KalmanUpdater):
         predicted_state.correlation_matrices[predicted_state.timestamp] = posterior_covariance[0:predicted_state.ndim,
                                                                           0:predicted_state.ndim] @ part_correlation_matrix
 
-        return ASDGaussianStateUpate(multi_state_vector=posterior_mean, multi_covar=posterior_covariance,
-                                     hypothesis=hypothesis, timestamps=predicted_state.timestamps,
-                                     correlation_matrices=predicted_state.correlation_matrices, max_nstep=predicted_state.max_nstep)
+        return ASDGaussianStateUpdate(multi_state_vector=posterior_mean, multi_covar=posterior_covariance,
+                                      hypothesis=hypothesis, timestamps=predicted_state.timestamps,
+                                      correlation_matrices=predicted_state.correlation_matrices, max_nstep=predicted_state.max_nstep)
 
 
 class ExtendedKalmanUpdater(KalmanUpdater):
