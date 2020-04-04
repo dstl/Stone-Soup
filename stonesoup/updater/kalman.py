@@ -341,8 +341,7 @@ class ASDKalmanUpdater(KalmanUpdater):
             of a simple geometric combination of the matrix and transpose.
             Default is `False`
         **kwargs : various
-            These are passed to :meth:`predict_measurement` Each Detection has to
-            have a timestamp for the use of this ASDKalmanUpdater
+            These are passed to :meth:`predict_measurement`
 
         Returns
         -------
@@ -387,7 +386,7 @@ class ASDKalmanUpdater(KalmanUpdater):
         if force_symmetric_covariance:
             posterior_covariance = \
                 (posterior_covariance + posterior_covariance.T) / 2
-        predicted_state.timestamps[-1] = hypothesis.measurement.timestamp
+
 
         # calculate the rest of the correlation matrix so that the whole matrix is in
         # the correlation_matrices dictionary.
