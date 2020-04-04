@@ -47,7 +47,10 @@ class ASDState(Type):
     def __init__(self, multi_state_vector, timestamps, max_nstep=0, *args, **kwargs):
         if multi_state_vector is not None and timestamps is not None:
             multi_state_vector = StateVector(multi_state_vector)
-            timestamps = list(timestamps)
+            if not isinstance(timestamps,list):
+                timestamps = list([timestamps])
+            else:
+                timestamps = timestamps
             self.max_nstep = max_nstep
         super().__init__(multi_state_vector, timestamps, max_nstep, *args, **kwargs)
 
