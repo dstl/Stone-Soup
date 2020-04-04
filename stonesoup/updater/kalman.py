@@ -341,7 +341,8 @@ class ASDKalmanUpdater(KalmanUpdater):
             of a simple geometric combination of the matrix and transpose.
             Default is `False`
         **kwargs : various
-            These are passed to :meth:`predict_measurement`
+            These are passed to :meth:`predict_measurement` Each Detection has to
+            have a timestamp for the use of this ASDKalmanUpdater
 
         Returns
         -------
