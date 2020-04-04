@@ -10,7 +10,6 @@ from .base import Detector
 from ..base import Property
 from ..buffered_generator import BufferedGenerator
 from ..types.detection import Detection
-from ..reader.file import FileReader
 
 
 class TensorFlowBoxObjectDetector(Detector):
@@ -38,7 +37,7 @@ class TensorFlowBoxObjectDetector(Detector):
     ---------
     Use of this class requires that TensorFlow is installed. Only TensorFlow v1.x is supported.
     
-    """
+    """  # noqa
 
     model_path = Property(
         Path,
@@ -57,7 +56,7 @@ class TensorFlowBoxObjectDetector(Detector):
             "reader asynchronously and only perform detection on the last "
             "frame digested. This is suitable when the detector is applied to "
             "readers generating a live feed "
-            "(e.g. :class:`~.FFmpegVideoStreamReader`), " 
+            "(e.g. :class:`~.FFmpegVideoStreamReader`), "
             "where real-time processing is paramount. Defaults to ``False``",
         default=False)
 

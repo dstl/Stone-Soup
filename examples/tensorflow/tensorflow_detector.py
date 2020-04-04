@@ -7,9 +7,9 @@ import cv2
 from copy import copy
 
 from object_detection.utils import visualization_utils as vis_util
-from stonesoup.feeder.filter import MetadataValueFilter
+# from stonesoup.feeder.filter import MetadataValueFilter
 
-from stonesoup.reader.video import VideoClipReader, FFmpegVideoStreamReader
+from stonesoup.reader.video import VideoClipReader  # , FFmpegVideoStreamReader
 from stonesoup.detector.tensorflow import TensorFlowBoxObjectDetector
 
 
@@ -18,10 +18,10 @@ def detection_to_bbox(state_vector):
                                    state_vector[1, 0],
                                    state_vector[2, 0],
                                    state_vector[3, 0])
-    return np.array([y_min, x_min, y_min + height, x_min + width,])
+    return np.array([y_min, x_min, y_min + height, x_min + width])
 
 
-def draw_detections(frame, detections, category_index, score_threshold = 0.5):
+def draw_detections(frame, detections, category_index, score_threshold=0.5):
     if len(detections):
         boxes = np.array([detection_to_bbox(detection.state_vector)
                           for detection in detections])
@@ -43,6 +43,7 @@ def draw_detections(frame, detections, category_index, score_threshold = 0.5):
             # skip_labels=True
         )
     return frame
+
 
 #####################################################################################
 # This is an optional step to download:                                             #
@@ -83,9 +84,11 @@ if not os.path.exists(os.path.join(os.getcwd(), LABEL_FILE)):
 # VIDEO CLIP READER ##################################################################
 def arrange_bgr(image):
     return image[:, :, [2, 1, 0]]  # Rearrange RGB to BGR
+
+
 VIDEO_PATH = r'.\sample.mp4'
 start_time = datetime.timedelta(minutes=0, seconds=0)
-end_time = None #datetime.timedelta(minutes=3, seconds=20)
+end_time = None  # datetime.timedelta(minutes=3, seconds=20)
 video_reader = VideoClipReader(VIDEO_PATH, start_time, end_time)
 video_reader.clip = video_reader.clip.fl_image(arrange_bgr)
 run_async = False
