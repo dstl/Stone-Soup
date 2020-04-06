@@ -103,9 +103,10 @@ class LongLatToUTMConverter(Feeder):
             "zone based on the first detection if :attr:`dynamic` isn't set.")
     dynamic = Property(
         bool, default=False,
-        doc="In dynamic mode, each detection will be put into the UTM zone that it belongs, rather"
-            "than being assigned to the same zone. The `utm_zone` will be added to the detections"
-            "metadata. Default `False`.")
+        doc="In dynamic mode, each detection will be put into the UTM zone that it belongs, "
+            "rather than being assigned to the same zone. The `utm_zone` will be added to the "
+            "detections metadata. This is designed to be used in conjunction with the "
+            ":class:`~.DynamicUTMHypothesiserWrapper`. Default `False`.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
