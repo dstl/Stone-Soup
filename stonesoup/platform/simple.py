@@ -9,28 +9,11 @@ from scipy.linalg import expm
 import weakref
 from functools import lru_cache
 
+from stonesoup.sensor.base import Sensor
 from ..functions import coerce_to_valid_mapping, rotz
-from ..sensor.base import Sensor
 from ..base import Property
 from ..types.state import StateVector
 from .base import Platform, MovingPlatform, FixedPlatform
-
-
-class PlatformSensor(Sensor):
-    platform_system = Property(Platform, default=None,
-                               doc='`weakref` to the platform on which the '
-                                   'sensor is mounted')
-
-    def measure(self, **kwargs):
-        raise NotImplementedError
-
-    @property
-    def position(self):
-        return self.platform_system().get_sensor_position(self)
-
-    @property
-    def orientation(self):
-        return self.platform_system().get_sensor_orientation(self)
 
 
 class SensorPlatformMixin(Platform, ABC):
@@ -47,7 +30,7 @@ class SensorPlatformMixin(Platform, ABC):
 
     """
 
-    sensors = Property([PlatformSensor], doc="A list of N mounted sensors", default=[])
+    sensors = Property([Sensor], doc="A list of N mounted sensors", default=[])
     mounting_offsets = Property(List[StateVector], default=None,
                                 doc="A list of StateVectors containing the sensor translation "
                                     "offsets from the platform's reference point. Defaults to "
@@ -121,13 +104,13 @@ class SensorPlatformMixin(Platform, ABC):
         for sensor in self.sensors:
             sensor.platform_system = weakref.ref(self)
 
-    def add_sensor(self, sensor: PlatformSensor, mounting_offset: StateVector = None,
+    def add_sensor(self, sensor: Sensor, mounting_offset: StateVector = None,
                    rotation_offset: StateVector = None,
                    mounting_mapping: np.ndarray = None):
         """ TODO
                 Parameters
                 ----------
-                sensor : :class:`PlatformSensor`
+                sensor : :class:`Sensor`
                     The sensor object to add
                 mounting_offset : :class:`StateVector`
                     A 1xN array with the mounting offset of the new sensor
@@ -161,7 +144,7 @@ class SensorPlatformMixin(Platform, ABC):
         self.mounting_offsets.append(mounting_offset)
         self.rotation_offsets.append(rotation_offset)
 
-    def get_sensor_position(self, sensor: PlatformSensor):
+    def get_sensor_position(self, sensor: Sensor):
         # TODO docs
         i = self.sensors.index(sensor)
         if self.is_moving():
@@ -171,7 +154,7 @@ class SensorPlatformMixin(Platform, ABC):
         new_sensor_pos = self.position + offset
         return new_sensor_pos
 
-    def get_sensor_orientation(self, sensor: PlatformSensor):
+    def get_sensor_orientation(self, sensor: Sensor):
         # TODO docs
         # TODO handle roll?
         i = self.sensors.index(sensor)

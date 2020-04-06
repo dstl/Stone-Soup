@@ -2,14 +2,14 @@
 import numpy as np
 
 from stonesoup.functions import coerce_to_valid_mapping
-from .base import Sensor3DCartesian
+from .base import Sensor
 from ..base import Property
 from ..models.measurement.nonlinear import CartesianToElevationBearing
 from ..types.array import CovarianceMatrix
 from ..types.detection import Detection
 
 
-class PassiveElevationBearing(Sensor3DCartesian):
+class PassiveElevationBearing(Sensor):
     """A simple passive sensor that generates measurements of targets, using a
     :class:`~.CartesianToElevationBearing` model, relative to its position.
 

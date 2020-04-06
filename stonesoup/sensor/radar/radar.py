@@ -3,7 +3,7 @@ import numpy as np
 
 from math import erfc
 
-from ...platform.simple import PlatformSensor
+from stonesoup.sensor.base import Sensor
 from ...functions import cart2sphere, rotx, roty, rotz, coerce_to_valid_mapping
 from ..base import Property
 
@@ -18,7 +18,7 @@ from ...types.numeric import Probability
 import scipy.constants as const
 
 
-class RadarRangeBearing(PlatformSensor):
+class RadarRangeBearing(Sensor):
     """A simple radar sensor that generates measurements of targets, using a
     :class:`~.CartesianToBearingRange` model, relative to its position.
 
@@ -260,7 +260,7 @@ class RadarRasterScanRangeBearing(RadarRotatingRangeBearing):
             self.rpm = -self.rpm
 
 
-class AESARadar(PlatformSensor):
+class AESARadar(Sensor):
     r"""An AESA (Active electronically scanned array) radar model that
     calculates the signal to noise ratio (SNR) of a target and the subsequent
     probability of detection (PD). The SNR is calculated using:
