@@ -18,6 +18,32 @@ def test_statevector():
     assert np.array_equal(state_vector, state_vector_array)
     assert np.array_equal(StateVector([1, 2, 3, 4]), state_vector_array)
     assert np.array_equal(StateVector([[1, 2, 3, 4]]), state_vector_array)
+    assert np.array_equal(StateVector(state_vector_array), state_vector)
+
+
+def test_standard_statevector_indexing():
+    state_vector_array = np.array([[1], [2], [3], [4]])
+    state_vector = StateVector(state_vector_array)
+
+    # test standard indexing
+    assert state_vector[2, 0] == 3
+    assert not isinstance(state_vector[2, 0], StateVector)
+
+    # test Slicing
+    assert state_vector[1:2, 0] == 2
+    assert isinstance(state_vector[1:2, 0], StateVector)
+    assert np.array_equal(state_vector[:], state_vector)
+    assert isinstance(state_vector[:, 0], StateVector)
+    assert np.array_equal(state_vector[0:], state_vector)
+    assert isinstance(state_vector[0:, 0], StateVector)
+
+    # test list indices
+    assert np.array_equal(state_vector[[1, 3]], StateVector([2, 4]))
+    assert isinstance(state_vector[[1, 3], 0], StateVector)
+
+    # test int indexing
+    assert state_vector[2] == 3
+    assert not isinstance(state_vector[2], StateVector)
 
 
 def test_covariancematrix():

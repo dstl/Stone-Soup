@@ -91,8 +91,8 @@ class LongLatToUTMConverter(Feeder):
     """
 
     mapping = Property(
-        (float, float), default=(0, 1),
-        doc="Indexes of long, lat. Default (0, 1)")
+        (float, float), default=[0, 1],
+        doc="Indexes of long, lat. Default [0, 1]")
     zone_number = Property(
         int, default=None,
         doc="UTM zone number to carry out conversion. Default `None`, where it"
@@ -109,7 +109,7 @@ class LongLatToUTMConverter(Feeder):
             utm_detections = set()
             for detection in detections:
                 easting, northing, zone_num, northern = utm.from_latlon(
-                    *detection.state_vector[self.mapping[::-1], 0],
+                    *detection.state_vector[self.mapping[::-1]],
                     self.zone_number)
                 if self.zone_number is None:
                     self.zone_number = zone_num

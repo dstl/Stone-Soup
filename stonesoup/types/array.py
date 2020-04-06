@@ -50,6 +50,17 @@ class StateVector(Matrix):
     ``StateVector([1., 2., 3.])``, ``StateVector ([[1., 2., 3.,]])``, and
     ``StateVector([[1.], [2.], [3.]])`` will all return the same 3x1 StateVector.
 
+    It also overrides the behaviour of indexing such that my_state_vector[1] returns the second
+    element (as `int`, `float` etc), rather than a StateVector of size (1, 1) as would be the case
+    without this override. Behaviour of indexing with lists, slices or other indexing is
+    unaffected (as you would expect those to return StateVectors). This override avoids the need
+    for client to specifically index with zero as the second element (`my_state_vector[1, 0]`) to
+    get a native numeric type. Iterating through the StateVector returns a sequence of numbers,
+    rather than a sequence of 1x1 StateVectors. This makes the class behave as would be expected
+    and avoids 'gotchas'.
+
+    Note that code using the pattern `my_state_vector[1, 0]` will continue to work.
+
     .. note ::
         It is not recommended to use a StateVector for indexing another vector. Doing so will lead
         to unexpected effects. Use a :class:`tuple`, :class:`list` or :class:`np.ndarray` for this.
@@ -69,6 +80,18 @@ class StateVector(Matrix):
                 "state vector shape should be Nx1 dimensions: got {}".format(
                     array.shape))
         return array.view(cls)
+
+    def __getitem__(self, item):
+        # If item has two elements, it is a tuple and should be left alone.
+        # If item is a slice object, or an ndarray, we would expect a StateVector returned,
+        #   so leave it alone.
+        # If item is an int, we would expected a number returned, so we should append 0  to the
+        #   item and extract the first (and only) column
+        # Note that an ndarray of ints is an instance of int
+        #   i.e. isinstance(np.array([1]), int) == True
+        if isinstance(item, int):  # and not isinstance(item, np.ndarray):
+            item = (item, 0)
+        return super().__getitem__(item)
 
 
 class CovarianceMatrix(Matrix):

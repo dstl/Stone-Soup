@@ -35,7 +35,7 @@ def test_lla_reference_converter(detector, converter_class, reverse_func):
         detection = detections.pop()
 
         assert pytest.approx((50, i, 5000 + i*10), abs=1e-2, rel=1e-3) == \
-            reverse_func(*detection.state_vector[:, 0], 50, 0, 5000)
+            reverse_func(*detection.state_vector, 50, 0, 5000)
 
 
 def test_utm_converter(detector):
@@ -54,4 +54,4 @@ def test_utm_converter(detector):
         p_east = detection.state_vector[0]
 
         assert pytest.approx((50, long), rel=1e-2, abs=1e-4) == utm.to_latlon(
-            *detection.state_vector[0:2, 0], zone_number=30, northern=True)
+            *detection.state_vector[0:2], zone_number=30, northern=True)

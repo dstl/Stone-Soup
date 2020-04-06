@@ -244,23 +244,20 @@ class CartesianToElevationBearingRange(
         xyz_rot = self._rotation_matrix @ xyz
 
         # Convert to Spherical
-        rho, phi, theta = cart2sphere(*xyz_rot[:, 0])
+        rho, phi, theta = cart2sphere(*xyz_rot)
 
         return StateVector([[Elevation(theta)], [Bearing(phi)], [rho]]) + noise
 
     def inverse_function(self, detection, **kwargs):
 
-        theta, phi, rho = detection.state_vector[:, 0]
-        x, y, z = sphere2cart(rho, phi, theta)
+        theta, phi, rho = detection.state_vector
+        xyz = StateVector(sphere2cart(rho, phi, theta))
 
-        xyz = [[x], [y], [z]]
         inv_rotation_matrix = inv(self._rotation_matrix)
-        xyz_rot = inv_rotation_matrix @ xyz
-        xyz = [xyz_rot[0][0], xyz_rot[1][0], xyz_rot[2][0]]
-        x, y, z = xyz + self.translation_offset[:, 0]
+        xyz = inv_rotation_matrix @ xyz
 
         res = np.zeros((self.ndim_state, 1)).view(StateVector)
-        res[self.mapping, 0] = x, y, z
+        res[self.mapping] = xyz + self.translation_offset
 
         return res
 
@@ -343,23 +340,22 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
         return 2
 
     def inverse_function(self, detection, **kwargs):
-        if not ((self.rotation_offset[0][0] == 0)
-                and (self.rotation_offset[1][0] == 0)):
+        if not ((self.rotation_offset[0] == 0)
+                and (self.rotation_offset[1] == 0)):
             raise RuntimeError(
                 "Measurement model assumes 2D space. \
                 Rotation in 3D space is unsupported at this time.")
 
-        phi, rho = detection.state_vector[:, 0]
-        x, y = pol2cart(rho, phi)
+        phi, rho = detection.state_vector[:]
+        xy = StateVector(pol2cart(rho, phi))
 
-        xyz = [[x], [y], [0]]
+        xyz = np.concatenate((xy, StateVector([0])), axis=0)
         inv_rotation_matrix = inv(self._rotation_matrix)
-        xyz_rot = inv_rotation_matrix @ xyz
-        xy = [xyz_rot[0][0], xyz_rot[1][0]]
-        x, y = xy + self.translation_offset[:, 0]
+        xyz = inv_rotation_matrix @ xyz
+        xy = xyz[0:2]
 
         res = np.zeros((self.ndim_state, 1)).view(StateVector)
-        res[self.mapping, 0] = x, y
+        res[self.mapping] = xy + self.translation_offset
 
         return res
 
@@ -513,7 +509,7 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
         xyz_rot = self._rotation_matrix @ xyz
 
         # Convert to Angles
-        phi, theta = cart2angles(*xyz_rot[:, 0])
+        phi, theta = cart2angles(*xyz_rot)
 
         return StateVector([[Elevation(theta)], [Bearing(phi)]]) + noise
 
