@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 from abc import abstractmethod, ABC
 
-from stonesoup.platform import Platform
+from ..platform import Platform
 
 from ..base import Base, Property
 
 
-class Sensor(Base, ABC):
+class SensorBase(Base, ABC):
     """Sensor base class
 
         A sensor object that operates according to a given
@@ -15,6 +15,15 @@ class Sensor(Base, ABC):
     platform_system = Property(Platform, default=None,
                                doc='`weakref` to the platform on which the '
                                    'sensor is mounted')
+
+    # noinspection PyPropertyDefinition
+    @platform_system.setter
+    def set_platform_system(self, value):
+        # this slightly od construction is to allow overriding by subclasses
+        self._set_platform_system(value)
+
+    def _set_platform_system(self, value):
+        self._property_platform_system = value
 
     @abstractmethod
     def measure(self, **kwargs):
