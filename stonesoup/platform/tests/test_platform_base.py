@@ -322,3 +322,51 @@ def test_setting_position():
         platform.velocity = [0, 0, 0]
     with pytest.raises(AttributeError):
         platform.acceleration = [0, 0, 0]
+
+
+# noinspection PyPropertyAccess
+def test_setting_orientation():
+    timestamp = datetime.datetime.now()
+    platform_state = State(np.array([[2],
+                                     [2],
+                                     [0]]),
+                           timestamp)
+    platform = MovingPlatform(state=platform_state, transition_model=None, mapping=[0, 1, 2])
+    with pytest.raises(AttributeError):
+        platform.orientation = [0, 0, 0]
+
+    platform_state = State(np.array([[2],
+                                     [2],
+                                     [0]]),
+                           timestamp)
+    platform_orientation = StateVector([0, 0, 0])
+    platform = FixedPlatform(state=platform_state, mapping=[0, 1, 2],
+                             orientation=platform_orientation)
+    assert np.array_equal(platform.orientation, StateVector([0, 0, 0]))
+    platform.orientation = StateVector([0, 1, 0])
+    assert np.array_equal(platform.orientation, StateVector([0, 1, 0]))
+
+    platform_state = State(np.array([[2],
+                                     [1],
+                                     [2],
+                                     [-1],
+                                     [2],
+                                     [0]]),
+                           timestamp)
+    platform = MovingPlatform(state=platform_state, transition_model=None, mapping=[0, 1, 2])
+    with pytest.raises(AttributeError):
+        platform.orientation = [0, 0]
+
+    platform_state = State(np.array([[2],
+                                     [1],
+                                     [2],
+                                     [-1],
+                                     [2],
+                                     [0]]),
+                           timestamp)
+    platform_orientation = StateVector([0, 0, 0])
+    platform = FixedPlatform(state=platform_state, mapping=[0, 1, 2],
+                             orientation=platform_orientation)
+    assert np.array_equal(platform.orientation, StateVector([0, 0, 0]))
+    platform.orientation = StateVector([0, 1, 0])
+    assert np.array_equal(platform.orientation, StateVector([0, 1, 0]))
