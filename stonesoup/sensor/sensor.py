@@ -18,7 +18,8 @@ class Sensor(BaseSensor, ABC):
             if position is None:
                 # assuming 3d for a default platform
                 position = StateVector([0, 0, 0])
-            # orientation=None will be handled correctly by the platform defaults
+            if orientation is None:
+                orientation = StateVector([0, 0, 0])
             self._internal_platform = FixedSensorPlatform(state=State(state_vector=position),
                                                           mapping=list(range(len(position))),
                                                           orientation=orientation,

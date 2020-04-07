@@ -19,7 +19,7 @@ class BaseSensor(Base, ABC):
     # noinspection PyPropertyDefinition
     @platform_system.setter
     def set_platform_system(self, value):
-        # this slightly od construction is to allow overriding by subclasses
+        # this slightly odd construction is to allow overriding by the Sensor subclass
         self._set_platform_system(value)
 
     def _set_platform_system(self, value):
