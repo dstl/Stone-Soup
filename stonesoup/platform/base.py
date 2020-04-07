@@ -25,6 +25,10 @@ class Platform(Base, ABC):
     def position(self):
         return self.state_vector[self.mapping]
 
+    @position.setter
+    def position(self, value):
+        self._set_position(value)
+
     @property
     def ndim(self):
         return len(self.mapping)
@@ -52,10 +56,17 @@ class Platform(Base, ABC):
     def move(self, timestamp):
         raise NotImplementedError
 
+    @abstractmethod
+    def _set_position(self, value):
+        raise NotImplementedError
+
 
 class FixedPlatform(Platform):
     orientation = Property(StateVector, default=StateVector([0, 0, 0]),
                            doc='A fixed orientation of the static platform')
+
+    def _set_position(self, value):
+        self.state_vector[self.mapping] = value
 
     @property
     def velocity(self):
@@ -123,6 +134,9 @@ class MovingPlatform(Platform):
         # StateVector. It just won't move
         # This inconsistency will be handled in the move logic
         return np.any(self.velocity != 0)
+
+    def _set_position(self, value):
+        raise AttributeError('Cannot set the position of a moving platform')
 
     def move(self, timestamp=None, **kwargs):
         """Propagate the platform position using the :attr:`transition_model`.
