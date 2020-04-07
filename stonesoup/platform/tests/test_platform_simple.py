@@ -389,7 +389,8 @@ testdata_3d = [
     "y.-z vel", "-y.z vel", "-y.-z vel", "x.z vel", "-x.z vel", "x.-z vel",
     "-x,-z vel", "x,y,z vel", "-x,-y,-z vel"
 ])
-def test_3d_platform(state, expected, move, radars_3d, mounting_offsets_3d):
+def test_3d_platform(state, expected, move, radars_3d, mounting_offsets_3d,
+                     add_sensor, mounting_mapping_on_add):
     # Define time related variables
     timestamp = datetime.datetime.now()
     # Define transition model and position for platform
@@ -422,7 +423,8 @@ def test_3d_platform(state, expected, move, radars_3d, mounting_offsets_3d):
             transition_model=trans_model,
             sensors=radars_3d,
             mounting_offsets=mounting_offsets_3d,
-            mounting_mappings=mounting_mapping
+            mounting_mappings=mounting_mapping,
+            mapping=mounting_mapping
         )
     if move:
         # Move the platform
