@@ -16,6 +16,10 @@ class BaseSensor(Base, ABC):
                                doc='`weakref` to the platform on which the '
                                    'sensor is mounted')
 
+    @property
+    def platform(self):
+        return self.platform_system()
+
     # noinspection PyPropertyDefinition
     @platform_system.setter
     def set_platform_system(self, value):
@@ -38,6 +42,14 @@ class BaseSensor(Base, ABC):
         sensor is mounted."""
         return self.platform_system().get_sensor_position(self)
 
+    @position.setter
+    def position(self, value):
+        if self._has_internal_platform:
+            self.platform.position = value
+        else:
+            raise AttributeError('Cannot set sensor position unless the sensor has its own '
+                                 'default platform')
+
     @property
     def orientation(self):
         """A 3x1 array of angles (rad), specifying the sensor orientation in terms of the
@@ -49,3 +61,15 @@ class BaseSensor(Base, ABC):
         This property delegates that actual calculation of orientation to the platform on which the
         sensor is mounted."""
         return self.platform_system().get_sensor_orientation(self)
+
+    @orientation.setter
+    def orientation(self, value):
+        if self._has_internal_platform:
+            self.platform.position = value
+        else:
+            raise AttributeError('Cannot set sensor position unless the sensor has its own '
+                                 'default platform')
+
+    @property
+    def _has_internal_platform(self):
+        return False
