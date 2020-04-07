@@ -570,7 +570,7 @@ def mod_elevation(x):
 
 
 def coerce_to_valid_mapping(mapping: Union[List[int], np.ndarray, StateVector]):
-    """Function to take a mapping and convert it to a suibale form for indexing a
+    """Function to take a mapping and convert it to a suitable form for indexing a
     :class:`StateVector`. Needed because if you index a :class:`StateVector` with another
     :class:`StateVector` (which would be the obvious technique) you get a 3d :class:`ndarray`.
 
