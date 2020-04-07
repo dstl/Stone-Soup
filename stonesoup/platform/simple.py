@@ -147,7 +147,7 @@ class SensorPlatformMixin(Platform, ABC):
     def get_sensor_position(self, sensor: BaseSensor):
         # TODO docs
         i = self.sensors.index(sensor)
-        if self.is_moving():
+        if self.is_moving:
             offset = self._get_rotated_offset(i)
         else:
             offset = self.mounting_offsets[i]

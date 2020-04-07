@@ -65,6 +65,7 @@ class FixedPlatform(Platform):
     def acceleration(self):
         return StateVector([0] * self.ndim)
 
+    @property
     def is_moving(self):
         return False
 
@@ -115,6 +116,7 @@ class MovingPlatform(Platform):
             _, bearing = cart2pol(*velocity)
             return StateVector([0, bearing])
 
+    @property
     def is_moving(self):
         # TODO docs
         return (hasattr(self, 'transition_model')
