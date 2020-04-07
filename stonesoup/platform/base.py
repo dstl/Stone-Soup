@@ -105,23 +105,24 @@ class MovingPlatform(Platform):
     def orientation(self):
         # TODO docs
         # TODO handle roll?
-        try:
-            velocity = self.velocity
-        except AttributeError:
+        if not self.is_moving:
             raise AttributeError('Orientation of a zero-velocity moving platform is not defined')
+        velocity = self.velocity
+
         if self.ndim == 3:
-            _, bearing, elevation = cart2sphere(*velocity)
+            _, bearing, elevation = cart2sphere(*velocity.flat)
             return StateVector([0, bearing, elevation])
         elif self.ndim == 2:
-            _, bearing = cart2pol(*velocity)
+            _, bearing = cart2pol(*velocity.flat)
             return StateVector([0, bearing])
 
     @property
     def is_moving(self):
         # TODO docs
-        return (hasattr(self, 'transition_model')
-                and self.transition_model is not None
-                and np.any(self.velocity != 0))
+        # Note: a platform without a transition model can be given a velocity as part of it's
+        # StateVector. It just won't move
+        # This inconsistency will be handled in the move logic
+        return np.any(self.velocity != 0)
 
     def move(self, timestamp=None, **kwargs):
         """Propagate the platform position using the :attr:`transition_model`.
@@ -147,7 +148,10 @@ class MovingPlatform(Platform):
             time_interval = timestamp - self.state.timestamp
         except TypeError:
             # TypeError: (timestamp or prior.timestamp) is None
-            time_interval = None
+            return
+
+        if self.transition_model is None:
+            raise AttributeError('Platform without a transition model cannot be moved')
 
         self.state = State(
             state_vector=self.transition_model.function(
