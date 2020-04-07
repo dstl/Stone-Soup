@@ -9,7 +9,7 @@ components and data types.
 import datetime
 import warnings
 from io import StringIO
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from functools import lru_cache
 from pathlib import Path
 from importlib import import_module
@@ -46,6 +46,12 @@ class YAML:
             Path, self.path_to_yaml)
         self._yaml.constructor.add_constructor(
             "!pathlib.Path", self.path_from_yaml)
+
+        # deque
+        self._yaml.representer.add_representer(
+            deque, self.deque_to_yaml)
+        self._yaml.constructor.add_constructor(
+            "!collections.deque", self.deque_from_yaml)
 
         # Declarative classes
         self._yaml.representer.add_multi_representer(
@@ -174,3 +180,16 @@ class YAML:
 
         Value should be total number of seconds."""
         return Path(constructor.construct_scalar(node))
+
+    @staticmethod
+    def deque_to_yaml(representer, node):
+        """Convert collections.deque to YAML"""
+        return representer.represent_sequence(
+            "!collections.deque",
+            (list(node), node.maxlen))
+
+    @staticmethod
+    def deque_from_yaml(constructor, node):
+        """Convert YAML to collections.deque"""
+        iterable, maxlen = constructor.construct_sequence(node, deep=True)
+        return deque(iterable, maxlen)
