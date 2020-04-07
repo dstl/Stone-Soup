@@ -80,7 +80,7 @@ class SensorPlatformMixin(Platform, ABC):
 
         # Check for consistent values (after defaults have been applied)
         if (self.mounting_mappings
-                and max(m.max() for m in self.mounting_mappings) > len(self.state_vector)):
+                and max(m.max() for m in self.mounting_mappings) >= len(self.state_vector)):
             raise IndexError(
                 "Platform state vector length and sensor mounting mapping "
                 "are incompatible")
