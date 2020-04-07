@@ -3,7 +3,7 @@ import numpy as np
 
 from math import erfc
 
-from stonesoup.platform.simple import Sensor
+from stonesoup.sensor.sensor import Sensor
 from ...functions import cart2sphere, rotx, roty, rotz, coerce_to_valid_mapping
 from ..base import Property
 

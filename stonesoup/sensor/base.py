@@ -6,7 +6,7 @@ from ..platform import Platform
 from ..base import Base, Property
 
 
-class SensorBase(Base, ABC):
+class BaseSensor(Base, ABC):
     """Sensor base class
 
         A sensor object that operates according to a given

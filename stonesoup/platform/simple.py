@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from abc import ABC, abstractmethod
+from abc import ABC
 from collections.abc import Sequence
 from typing import List, Union
 
@@ -9,10 +9,10 @@ from scipy.linalg import expm
 import weakref
 from functools import lru_cache
 
-from ..sensor.base import SensorBase
+from ..sensor.base import BaseSensor
 from ..functions import coerce_to_valid_mapping, rotz
 from ..base import Property
-from ..types.state import StateVector, State
+from ..types.state import StateVector
 from .base import Platform, MovingPlatform, FixedPlatform
 
 
@@ -30,7 +30,7 @@ class SensorPlatformMixin(Platform, ABC):
 
     """
 
-    sensors = Property([SensorBase], doc="A list of N mounted sensors", default=[])
+    sensors = Property([BaseSensor], doc="A list of N mounted sensors", default=[])
     mounting_offsets = Property(List[StateVector], default=None,
                                 doc="A list of StateVectors containing the sensor translation "
                                     "offsets from the platform's reference point. Defaults to "
@@ -104,13 +104,13 @@ class SensorPlatformMixin(Platform, ABC):
         for sensor in self.sensors:
             sensor.platform_system = weakref.ref(self)
 
-    def add_sensor(self, sensor: SensorBase, mounting_offset: StateVector = None,
+    def add_sensor(self, sensor: BaseSensor, mounting_offset: StateVector = None,
                    rotation_offset: StateVector = None,
                    mounting_mapping: np.ndarray = None):
         """ TODO
                 Parameters
                 ----------
-                sensor : :class:`Sensor`
+                sensor : :class:`stonesoup.sensor.sensor.Sensor`
                     The sensor object to add
                 mounting_offset : :class:`StateVector`
                     A 1xN array with the mounting offset of the new sensor
@@ -144,7 +144,7 @@ class SensorPlatformMixin(Platform, ABC):
         self.mounting_offsets.append(mounting_offset)
         self.rotation_offsets.append(rotation_offset)
 
-    def get_sensor_position(self, sensor: SensorBase):
+    def get_sensor_position(self, sensor: BaseSensor):
         # TODO docs
         i = self.sensors.index(sensor)
         if self.is_moving():
@@ -154,7 +154,7 @@ class SensorPlatformMixin(Platform, ABC):
         new_sensor_pos = self.position + offset
         return new_sensor_pos
 
-    def get_sensor_orientation(self, sensor: SensorBase):
+    def get_sensor_orientation(self, sensor: BaseSensor):
         # TODO docs
         # TODO handle roll?
         i = self.sensors.index(sensor)
@@ -188,39 +188,6 @@ class FixedSensorPlatform(SensorPlatformMixin, FixedPlatform):
 
 class MovingSensorPlatform(SensorPlatformMixin, MovingPlatform):
     pass
-
-
-class Sensor(SensorBase, ABC):
-    # this functionality requires knowledge of FixedSensorPlatform so cannot go in the SensorBase
-    # class
-    def __init__(self, *args, **kwargs):
-        position = kwargs.pop('position', None)
-        orientation = kwargs.pop('orientation', None)
-        self._internal_platform = None
-        super().__init__(*args, **kwargs)
-        if position is not None or orientation is not None:
-            if position is None:
-                # assuming 3d for a default platform
-                position = StateVector([0, 0, 0])
-            # orientation=None will be handled correctly by the platform defaults
-            self._internal_platform = FixedSensorPlatform(state=State(state_vector=position),
-                                                          mapping=list(range(len(position))),
-                                                          orientation=orientation,
-                                                          sensors=[self])
-
-    @property
-    def _has_internal_platform(self):
-        return self._internal_platform is not None
-
-    def _set_platform_system(self, value):
-        if self._has_internal_platform:
-            raise AttributeError('Platform system cannot be set on sensors that were created with '
-                                 'a default platform')
-        self._property_platform_system = value
-
-    @abstractmethod
-    def measure(self, **kwargs):
-        raise NotImplementedError
 
 
 def _get_rotation_matrix(vel):
@@ -299,7 +266,7 @@ def _rot3d(vec):
     np.ndarray
         3x3 rotation matrix
     """
-    return _rot3d_tuple(tuple(v[0] for v in vec))
+    return _rot3d_tuple(tuple(vec.flat))
 
 
 @lru_cache(maxsize=128)

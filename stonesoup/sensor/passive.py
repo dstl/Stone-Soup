@@ -2,7 +2,7 @@
 import numpy as np
 
 from stonesoup.functions import coerce_to_valid_mapping
-from ..platform.simple import Sensor
+from stonesoup.sensor.sensor import Sensor
 from ..base import Property
 from ..models.measurement.nonlinear import CartesianToElevationBearing
 from ..types.array import CovarianceMatrix
