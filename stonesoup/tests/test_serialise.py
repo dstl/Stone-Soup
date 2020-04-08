@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import numpy as np
 import pytest
 from ruamel.yaml.constructor import ConstructorError
 
@@ -64,8 +65,6 @@ def test_duplicate_tag_warning(base, serialised_file):
 
 
 def test_numpy(base, serialised_file):
-    import numpy as np
-
     class _TestNumpy(base):
         property_d = Property(np.ndarray)
 
@@ -77,6 +76,17 @@ def test_numpy(base, serialised_file):
     new_instance = serialised_file.load(serialised_str)
     assert isinstance(new_instance.property_d, np.ndarray)
     assert np.allclose(instance.property_d, new_instance.property_d)
+
+
+@pytest.mark.parametrize(
+    'values',
+    [[np.int_(10), np.int16(20), np.int64(-30)],
+     [np.float_(10.0), np.float64(20.1), np.float32(-0.5), np.longfloat(10.5)]],
+    ids=['int', 'float'])
+def test_numpy_dtypes(serialised_file, values):
+    serialised_str = serialised_file.dumps(values)
+    new_values = serialised_file.load(serialised_str)
+    assert new_values == values
 
 
 def test_datetime(base, serialised_file):

@@ -34,6 +34,12 @@ class YAML:
             np.ndarray, self.ndarray_to_yaml)
         self._yaml.constructor.add_constructor(
             "!numpy.ndarray", self.ndarray_from_yaml)
+        self._yaml.representer.add_multi_representer(
+            np.integer, self.numpy_int_to_yaml
+        )
+        self._yaml.representer.add_multi_representer(
+            np.floating, self.numpy_float_to_yaml
+        )
 
         # Datetime
         self._yaml.representer.add_representer(
@@ -143,6 +149,16 @@ class YAML:
     def ndarray_from_yaml(constructor, node):
         """Convert YAML to numpy.ndarray."""
         return np.array(constructor.construct_sequence(node, deep=True))
+
+    @staticmethod
+    def numpy_int_to_yaml(representer, node):
+        """Convert numpy ints to YAML"""
+        return representer.represent_int(node)
+
+    @staticmethod
+    def numpy_float_to_yaml(representer, node):
+        """Convert numpy floats to YAML"""
+        return representer.represent_float(node)
 
     @staticmethod
     def timedelta_to_yaml(representer, node):
