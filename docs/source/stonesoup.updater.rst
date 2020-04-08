@@ -10,7 +10,7 @@ Updaters
 AlphaBeta
 --------
 
-.. automodule:: stonesoup.predictor.alphabeta
+.. automodule:: stonesoup.updater.alphabeta
     :show-inheritance:
 
 Kalman

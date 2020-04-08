@@ -13,12 +13,19 @@ from ..models.measurement.linear import LinearGaussian
 
 class AlphaBetaUpdater(Updater):
     r"""A class which
-    performs measurement update step as in the standard Alpha-Beta Filter.
+    performs measurement update step as in the standard Alpha-Beta Filter. The posterior state mean
+    and velocity are calculated according to,
+
     .. math::
 
-        \hat{\mathbf{x}}_{k} = \hat{\mathbf{x}}_{k} \alpha \hat{\mathbf{x}}_{k}
+        \mathbf{x}_{k|k} = \mathbf{x}_{k|k-1} + \alpha \mathbf{r}_{k} \\
+        \mathbf{v}_{k|k} = \mathbf{v}_{k|k-1} + \frac{\beta}{\Delta T} \mathbf{r}_{k}
 
-        \hat{\mathbf{v}}_{k} = \hat{\mathbf{v}}_{k} \frac{\beta}{\Delta T}\hat{\mathbf{x}}_{k}
+    where,
+
+    .. math::
+
+        \mathbf{r}_{k} = \mathbf{z}_{k|k-1} - \mathbf{x}_{k|k-1}
 
     :meth:`predict_measurement` returns a
     :class:`~.StateMeasurementPrediction`.
@@ -26,10 +33,10 @@ class AlphaBetaUpdater(Updater):
     """
     alpha = Property(float,
                      default=0.5,
-                     doc="Alpha value, required to be 0 < alpha < 1.")
+                     doc="Alpha value, required to be :math:`0 < \\alpha < 1`.")
     beta = Property(float,
                     default=0.5,
-                    doc="Beta value, required to be 0 < alpha < 1.")
+                    doc="Beta value, required to be :math:`0 < \\beta < 1`.")
 
     measurement_model = Property(
         LinearGaussian, default=None,

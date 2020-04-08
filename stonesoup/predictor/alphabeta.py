@@ -8,14 +8,16 @@ class AlphaBetaPredictor(Predictor):
     r"""Alpha-beta predictor which inherits from base
 
     A predictor is used to predict a new :class:`~.State` given a prior
-    :class:`~.State`.
+    :class:`~.State`. and a transition model
 
     .. math::
 
-        \hat{\mathbf{x}}_{k} = \hat{\mathbf{x}}_{k-1} + \Delta T \hat{\mathbf{v}}_{k-1}
+        f_k( \mathbf{x}_{k-1}) = \mathbf{x}_{k-1} + \Delta T \mathbf{v}_{k-1} \ \mathrm{and} \
+        \mathbf{\nu}_k \sim \mathcal{N}(0,Q_k)
 
-    where :math:`\mathbf{x}_{k-1}` is the prior state,
-    :math:\Delta T is the time interval.
+    where :math:`\mathbf{x}_{k-1}` is the prior state, :math:`\mathbf{v}_{k-1}` is the prior
+    first derivative of :math:`\mathbf{x}_{k-1}` vector and :math:`\Delta T` is the time interval
+    between measurements.
 
     """
 
