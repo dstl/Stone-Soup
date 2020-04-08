@@ -4,19 +4,34 @@ import datetime
 
 import numpy as np
 
+from ...models.transition.linear import \
+    CombinedLinearGaussianTransitionModel, ConstantVelocity
+from ...platform.simple import SensorPlatform
 from ...types.state import State
-
 from ..platform import PlatformDetectionSimulator
 from ..simple import SingleTargetGroundTruthSimulator
 
 
+def build_platform(sensors, x_velocity):
+    state = State(state_vector=[[0], [x_velocity], [0], [0]],
+                  timestamp=datetime.datetime(2020, 4, 1))
+    model_1d = ConstantVelocity(0.0)  # zero noise so pure movement
+    trans_model = CombinedLinearGaussianTransitionModel([model_1d] * 2)
+    mounting_offsets = np.zeros((len(sensors), 2))
+    mounting_mappings = np.array([[0, 2]])
+    platform = SensorPlatform(state=state, sensors=sensors,
+                              transition_model=trans_model,
+                              mounting_offsets=mounting_offsets,
+                              mounting_mappings=mounting_mappings)
+    return platform
+
+
 def test_platform_detection_simulator(sensor_model1,
                                       sensor_model2,
-                                      platform_class,
                                       transition_model1):
 
-    platform1 = platform_class([sensor_model1], 1)
-    platform2 = platform_class([sensor_model2], 2)
+    platform1 = build_platform([sensor_model1], 1)
+    platform2 = build_platform([sensor_model2], 2)
 
     ground_truth = ((datetime.datetime(2020, 4, 1) +
                      datetime.timedelta(seconds=i),
@@ -49,10 +64,9 @@ def test_platform_detection_simulator(sensor_model1,
 
 def test_platform_ground_truth_detection_simulator(sensor_model1,
                                                    sensor_model2,
-                                                   platform_class,
                                                    transition_model1):
 
-    platform = platform_class([sensor_model1,
+    platform = build_platform([sensor_model1,
                                sensor_model2],
                               1)
 
@@ -76,11 +90,10 @@ def test_platform_ground_truth_detection_simulator(sensor_model1,
 
 def test_detection_simulator(sensor_model1,
                              sensor_model2,
-                             platform_class,
                              transition_model1):
 
-    platform1 = platform_class([sensor_model1, sensor_model2], 1)
-    platform2 = platform_class([sensor_model1], 2)
+    platform1 = build_platform([sensor_model1, sensor_model2], 1)
+    platform2 = build_platform([sensor_model1], 2)
 
     initial_state = State(np.array([[0], [0], [0], [0]]),
                           timestamp=datetime.datetime(2020, 4, 1))

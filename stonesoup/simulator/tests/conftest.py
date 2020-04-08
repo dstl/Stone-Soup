@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import datetime
-
 import pytest
 import numpy as np
 
 from ...types.detection import Detection
-from ...types.state import State
+from ...sensor import Sensor
 
 
 @pytest.fixture()
@@ -40,7 +38,7 @@ def measurement_model():
 
 @pytest.fixture()
 def sensor_model1():
-    class TestSensor():
+    class TestSensor(Sensor):
 
         @staticmethod
         def measure(ground_truth):
@@ -51,37 +49,10 @@ def sensor_model1():
 
 @pytest.fixture()
 def sensor_model2():
-    class TestSensor:
+    class TestSensor(Sensor):
 
         @staticmethod
         def measure(ground_truth):
             return Detection(ground_truth.state_vector,
                              timestamp=ground_truth.timestamp)
     return TestSensor()
-
-
-@pytest.fixture()
-def platform_class():
-    class TestPlatform:
-
-        def __init__(self, sensors, x_velocity):
-            self.state = State([[0], [x_velocity], [0], [0]],
-                               datetime.datetime(2020, 4, 1))
-            self.sensors = sensors
-
-        def move(self, timestamp):
-
-            time_delta = timestamp - self.state.timestamp
-
-            self.state.state_vector[0, 0] += \
-                time_delta.total_seconds()*self.state.state_vector[1, 0]
-            self.state.timestamp = timestamp
-
-        @property
-        def state_vector(self):
-            return self.state.state_vector
-
-        @property
-        def timestamp(self):
-            return self.state.timestamp
-    return TestPlatform
