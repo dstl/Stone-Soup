@@ -596,8 +596,14 @@ def test_rotation_offsets_3d(state, expected_platform_orientation, expected_sens
 
 
 def all_sensor_orientations(platform):
-    radar_orientation = np.stack([sensor.orientation for sensor in platform.sensors], axis=1)
-    return radar_orientation.T
+    sensor_orientations = np.concatenate([sensor.orientation for sensor in platform.sensors],
+                                         axis=1)
+    return sensor_orientations.T
+
+
+def all_sensor_positions(platform):
+    sensor_positions = np.concatenate([sensor.position for sensor in platform.sensors], axis=1)
+    return sensor_positions.T
 
 
 def test_defaults(radars_3d, platform_type, add_sensor):
@@ -703,17 +709,8 @@ def sensor_positions_test(expected_offset, platform):
     :param platform: platform object
     :return:
     """
-    radar_position = np.zeros(
-        [len(platform.sensors), len(platform.mapping)])
-    expected_radar_position = np.zeros_like(radar_position)
-    for i, sensor in enumerate(platform.sensors):
-        radar_position[i, :] = sensor.position.flat
+    radar_position = all_sensor_positions(platform)
+    platform_position = platform.position
+    expected_radar_position = expected_offset + platform_position.T
 
-        platform_position = platform.state_vector[platform.mounting_mappings[i]]
-
-        expected_radar_position[i, :] = (expected_offset[i, :] +
-                                         platform_position.flatten())
-
-        assert np.allclose(radar_position[i, :], platform.get_sensor_position(sensor).flatten())
-        assert np.allclose(platform_position, platform.position)
     assert np.allclose(expected_radar_position, radar_position)
