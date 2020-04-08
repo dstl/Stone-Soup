@@ -46,6 +46,23 @@ def test_standard_statevector_indexing():
     assert not isinstance(state_vector[2], StateVector)
 
 
+def test_setting():
+    state_vector_array = np.array([[1], [2], [3], [4]])
+    state_vector = StateVector(state_vector_array.copy())
+
+    state_vector[2, 0] = 4
+    assert np.array_equal(state_vector, StateVector([1, 2, 4, 4]))
+
+    state_vector[2] = 5
+    assert np.array_equal(state_vector, StateVector([1, 2, 5, 4]))
+
+    state_vector[:] = state_vector_array[:]
+    assert np.array_equal(state_vector, StateVector([1, 2, 3, 4]))
+
+    state_vector[1:3] = StateVector([5, 6])
+    assert np.array_equal(state_vector, StateVector([1, 5, 6, 4]))
+
+
 def test_covariancematrix():
     """ CovarianceMatrix Type test """
 

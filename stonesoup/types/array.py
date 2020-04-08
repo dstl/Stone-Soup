@@ -89,9 +89,14 @@ class StateVector(Matrix):
         #   item and extract the first (and only) column
         # Note that an ndarray of ints is an instance of int
         #   i.e. isinstance(np.array([1]), int) == True
-        if isinstance(item, int):  # and not isinstance(item, np.ndarray):
+        if isinstance(item, int):
             item = (item, 0)
         return super().__getitem__(item)
+
+    def __setitem__(self, key, value):
+        if isinstance(key, int):
+            key = (key, 0)
+        return super().__setitem__(key, value)
 
 
 class CovarianceMatrix(Matrix):
