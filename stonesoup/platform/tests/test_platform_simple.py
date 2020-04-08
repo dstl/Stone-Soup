@@ -508,6 +508,62 @@ def expected_orientations_3d():
     ]
 
 
+def expected_orientations_2d():
+    pi = np.pi
+    return [
+        np.array([[0., 0.], [pi/4, 0.], [0., pi/4], [-pi/4, 0.], [0., -pi/4]]),
+        np.array([[0., pi/2], [pi/4, pi/2], [0., 3 * pi/4], [-pi/4, pi/2],
+                  [0., pi/4]]),
+        np.array([[0., 0.], [pi/4, 0.], [0., pi/4], [-pi/4, 0.],
+                  [0., -pi/4]]),
+        np.array([[0., pi/2], [pi/4, pi/2], [0., 3 * pi/4], [-pi/4, pi/2],
+                  [0., pi/4]]),
+        np.array([[0., pi/4], [pi/4, pi/4], [0., pi/2], [-pi/4, pi/4],
+                  [0., 0.]]),
+        np.array([[0., pi], [pi/4, pi], [0., 5*pi/4], [-pi/4, pi],
+                  [0., 3 * pi/4]]),
+        np.array([[0., -pi/2], [pi/4, -pi/2], [0., -pi/4], [-pi/4, -pi/2],
+                  [0., -3 * pi/4]]),
+        np.array([[0., pi], [pi/4, pi], [0., 5 * pi/4], [-pi/4, pi],
+                  [0., 3 * pi/4]]),
+        np.array([[0., -pi/2], [pi/4, -pi/2], [0., -pi/4], [-pi/4, -pi/2],
+                  [0., -3 * pi/4]]),
+        np.array([[0., -3 * pi/4], [pi/4, -3 * pi/4], [0., -pi/2], [-pi/4, -3 * pi/4],
+                  [0., -pi]])
+    ]
+
+
+@pytest.mark.parametrize('state, expected_platform_orientation, expected_sensor_orientations',
+                         zip(*zip(*test_platform_base.orientation_tests_2d),
+                             expected_orientations_2d()))
+def test_rotation_offsets_2d(state, expected_platform_orientation, expected_sensor_orientations,
+                             move, radars_2d, rotation_offsets_2d):
+    # Define time related variables
+    timestamp = datetime.datetime.now()
+    # Define transition model and position for platform
+    model_1d = ConstantVelocity(0.0)  # zero noise so pure movement
+    trans_model = CombinedLinearGaussianTransitionModel(
+        [model_1d] * (radars_2d[0].ndim_state // 2))
+    platform_state = State(state, timestamp)
+
+    # This defines the mapping to the platforms state vector (i.e. x and y)
+    mounting_mapping = np.array([0, 2])
+    # create a platform with the simple radar mounted
+    platform = MovingSensorPlatform(
+        state=platform_state,
+        transition_model=trans_model,
+        sensors=radars_2d,
+        rotation_offsets=rotation_offsets_2d,
+        mounting_mappings=mounting_mapping,
+        mapping=mounting_mapping
+    )
+    if move:
+        # Move the platform
+        platform.move(timestamp + datetime.timedelta(seconds=2))
+    assert np.allclose(platform.orientation, expected_platform_orientation)
+    assert np.allclose(all_sensor_orientations(platform), expected_sensor_orientations)
+
+
 @pytest.mark.parametrize('state, expected_platform_orientation, expected_sensor_orientations',
                          zip(*zip(*test_platform_base.orientation_tests_3d),
                              expected_orientations_3d()))
