@@ -6,15 +6,13 @@ import numpy as np
 import pytest
 
 from stonesoup.platform.simple import FixedSensorPlatform
+from stonesoup.platform.tests import test_platform_base
 from ...types.state import State
 from ...platform.simple import MovingSensorPlatform
 from ...models.transition.linear import (
     ConstantVelocity, CombinedLinearGaussianTransitionModel)
 from ...sensor.radar.radar import RadarRangeBearing
 from ...types.array import StateVector, CovarianceMatrix
-
-# Input arguments
-# TODO: pytest parametarization
 
 
 def get_3d_expected(i):
@@ -251,6 +249,7 @@ def mounting_offsets_3d():
                [0, 0, -1]]
     return [StateVector(offset) for offset in offsets]
 
+
 @pytest.fixture(params=[MovingSensorPlatform, FixedSensorPlatform],
                 ids=['MovingSensorPlatform', 'FixedSensorPlatform'])
 def platform_type(request):
@@ -439,6 +438,112 @@ def test_3d_platform(state, expected, move, radars_3d, mounting_offsets_3d,
     sensor_positions_test(expected, platform)
 
 
+@pytest.fixture(scope='session')
+def rotation_offsets_2d():
+    # Generate sensor mounting offsets for testing purposes
+    offsets = [[0, 0],
+               [np.pi / 4, 0],
+               [0, np.pi / 4],
+               [-np.pi / 4, 0],
+               [0, -np.pi / 4]]
+    return [StateVector(offset) for offset in offsets]
+
+
+@pytest.fixture(scope='session')
+def rotation_offsets_3d():
+    # Generate sensor rotation offsets for testing purposes
+    offsets = [[0, 0, 0],
+               [np.pi / 4, 0, 0],
+               [0, np.pi / 4, 0],
+               [-np.pi / 4, 0, 0],
+               [0, -np.pi / 4, 0],
+               [0, 0, np.pi / 4],
+               [0, 0, -np.pi / 4]]
+    return [StateVector(offset) for offset in offsets]
+
+
+def expected_orientations_3d():
+    pi = np.pi
+    offset_3d_movement = np.arctan(1/np.sqrt(2))
+
+    return [
+        np.array([[0., 0., 0.], [pi/4, 0., 0.], [0., pi/4, 0.], [-pi/4, 0., 0.],
+                  [0., -pi/4, 0.], [0., 0., pi/4], [0., 0., -pi/4]]),
+        np.array([[0., 0., pi/2], [pi/4, 0., pi/2], [0., pi/4, pi/2], [-pi/4, 0., pi/2],
+                  [0., -pi/4, pi/2], [0., 0., 3 * pi/4], [0., 0., pi/4]]),
+        np.array([[0., pi/2, 0.],
+                  [pi/4, pi/2, 0.], [0., 3 * pi/4, 0.], [-pi/4, pi/2, 0.],
+                  [0., pi/4, 0.], [0., pi/2, pi/4], [0., pi/2, -pi/4]]),
+        np.array([[0., 0., 0.], [pi/4, 0., 0.], [0., pi/4, 0.], [-pi/4, 0., 0.],
+                  [0., -pi/4, 0.], [0., 0., pi/4], [0., 0., -pi/4]]),
+        np.array([[0., 0., pi/2], [pi/4, 0., pi/2], [0., pi/4, pi/2], [-pi/4, 0., pi/2],
+                  [0., -pi/4, pi/2], [0., 0., 3 * pi/4], [0., 0., pi/4]]),
+        np.array([[0., pi/2, 0.], [pi/4, pi/2, 0.], [0., 3 * pi/4, 0.], [-pi/4, pi/2, 0.],
+                  [0., pi/4, 0.], [0., pi/2, pi/4], [0., pi/2, -pi/4]]),
+        np.array([[0., 0., pi/4], [pi/4, 0., pi/4], [0., pi/4, pi/4], [-pi/4, 0., pi/4],
+                  [0., -pi/4, pi/4], [0., 0., pi/2], [0., 0., 0.]]),
+        np.array([[0., pi/2, pi/4], [pi/4, pi/2, pi/4], [0., 3 * pi/4, pi/4], [-pi/4, pi/2, pi/4],
+                  [0., pi/4, pi/4], [0., pi/2, pi/2], [0., pi/2, 0.]]),
+        np.array([[0., pi/4, offset_3d_movement], [pi/4, pi/4, offset_3d_movement],
+                  [0., pi/2, offset_3d_movement], [-pi/4, pi/4, offset_3d_movement],
+                  [0., 0., offset_3d_movement], [0., pi/4, pi/4 + offset_3d_movement],
+                  [0., pi/4, -pi/4 + offset_3d_movement]]),
+        np.array([[0., pi, 0.], [pi/4, pi, 0.], [0., 5 * pi/4, 0.], [-pi/4, pi, 0.],
+                  [0., 3 * pi/4, 0.], [0., pi, pi/4], [0., pi, -pi/4]]),
+        np.array([[0., -pi/2, 0.], [pi/4, -pi/2, 0.], [0., -pi/4, 0.], [-pi/4, -pi/2, 0.],
+                  [0., -3 * pi/4, 0.], [0., -pi/2, pi/4], [0., -pi/2, -pi/4]]),
+        np.array([[0., 0., -pi/2], [pi/4, 0., -pi/2], [0., pi/4, -pi/2], [-pi/4, 0., -pi/2],
+                  [0., -pi/4, -pi/2], [0., 0., -pi/4], [0., 0., -3 * pi/4]]),
+        np.array([[0., pi, 0.], [pi/4, pi, 0.], [0., 5 * pi/4, 0.], [-pi/4, pi, 0.],
+                  [0., 3 * pi/4, 0.], [0., pi, pi/4], [0., pi, -pi/4]]),
+        np.array([[0., -pi/2, 0.], [pi/4, -pi/2, 0.], [0., -pi/4, 0.], [-pi/4, -pi/2, 0.],
+                  [0., -3 * pi/4, 0.], [0., -pi/2, pi/4], [0., -pi/2, -pi/4]]),
+        np.array([[0., 0., -pi/2], [pi/4, 0., -pi/2], [0., pi/4, -pi/2], [-pi/4, 0., -pi/2],
+                  [0., -pi/4, -pi/2], [0., 0., -pi/4], [0., 0., -3 * pi/4]]),
+        np.array([[0., pi, -pi/4], [pi/4, pi, -pi/4], [0., 5 * pi/4, -pi/4], [-pi/4, pi, -pi/4],
+                  [0., 3 * pi/4, -pi/4], [0., pi, 0.], [0., pi, -pi/2]]),
+        np.array([[0., -pi/2, -pi/4], [pi/4, -pi/2, -pi/4], [0., -pi/4, -pi/4],
+                  [-pi/4, -pi/2, -pi/4], [0., -3 * pi/4, -pi/4], [0., -pi/2, 0.],
+                  [0., -pi/2, -pi/2]]),
+    ]
+
+
+@pytest.mark.parametrize('state, expected_platform_orientation, expected_sensor_orientations',
+                         zip(*zip(*test_platform_base.orientation_tests_3d),
+                             expected_orientations_3d()))
+def test_rotation_offsets_3d(state, expected_platform_orientation, expected_sensor_orientations,
+                             move, radars_3d, rotation_offsets_3d):
+    # Define time related variables
+    timestamp = datetime.datetime.now()
+    # Define transition model and position for platform
+    model_1d = ConstantVelocity(0.0)  # zero noise so pure movement
+    trans_model = CombinedLinearGaussianTransitionModel(
+        [model_1d] * (radars_3d[0].ndim_state // 2))
+    platform_state = State(state, timestamp)
+
+    # This defines the mapping to the platforms state vector (i.e. x and y)
+    mounting_mapping = np.array([0, 2, 4])
+    # create a platform with the simple radar mounted
+    platform = MovingSensorPlatform(
+        state=platform_state,
+        transition_model=trans_model,
+        sensors=radars_3d,
+        rotation_offsets=rotation_offsets_3d,
+        mounting_mappings=mounting_mapping,
+        mapping=mounting_mapping
+    )
+    if move:
+        # Move the platform
+        platform.move(timestamp + datetime.timedelta(seconds=2))
+    assert np.allclose(platform.orientation, expected_platform_orientation)
+    assert np.allclose(all_sensor_orientations(platform), expected_sensor_orientations)
+
+
+def all_sensor_orientations(platform):
+    radar_orientation = np.stack([sensor.orientation for sensor in platform.sensors], axis=1)
+    return radar_orientation.T
+
+
 def test_defaults(radars_3d, platform_type, add_sensor):
     platform_state = State(state_vector=StateVector([0, 1, 2, 1, 4, 1]),
                            timestamp=datetime.datetime.now())
@@ -470,7 +575,7 @@ def test_add_sensor_mapping_error(radars_3d, platform_type):
     if platform_type is MovingSensorPlatform:
         platform_args['transition_model'] = None
 
-    mappings = [[0, 1, 2]] + [[0, 2, 4]] * (len(radars_3d)-1)
+    mappings = [[0, 1, 2]] + [[0, 2, 4]] * (len(radars_3d) - 1)
     platform = platform_type(state=platform_state, sensors=radars_3d, mapping=[0, 2, 4],
                              mounting_mappings=mappings, **platform_args)
     with pytest.raises(ValueError):
@@ -496,7 +601,7 @@ def test_mounting_mapping_list(radars_3d, platform_type, mapping):
     for i, sensor in enumerate(radars_3d):
         assert np.array_equal(platform.mounting_mappings[i], np.array([0, 2, 4]))
 
-    mappings = [mapping] * (len(radars_3d)-1)
+    mappings = [mapping] * (len(radars_3d) - 1)
     with pytest.raises(ValueError):
         _ = platform_type(state=platform_state, sensors=radars_3d, mapping=[0, 2, 4],
                           mounting_mappings=mappings, **platform_args)
@@ -522,7 +627,7 @@ def test_sensor_offset_error(radars_3d, platform_type):
 
     offset = StateVector([0, 0, 0])
 
-    offsets = [offset] * (len(radars_3d)-1)
+    offsets = [offset] * (len(radars_3d) - 1)
     with pytest.raises(ValueError):
         _ = platform_type(state=platform_state, sensors=radars_3d, mapping=[0, 2, 4],
                           mounting_offsets=offsets, **platform_args)
