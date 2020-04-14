@@ -11,18 +11,18 @@ import numpy as np
 from stonesoup.types.state import State
 
 
-class TSensor(Sensor):
+class TestingSensor(Sensor):
     def measure(self, **kwargs):
         pass
 
 
-class TBaseSensor(BaseSensor):
+class TestingBaseSensor(BaseSensor):
     def measure(self, **kwargs):
         pass
 
 
 def test_sensor_position_orientation_setting():
-    sensor = TSensor(position=StateVector([0, 0, 1]))
+    sensor = TestingSensor(position=StateVector([0, 0, 1]))
     assert np.array_equal(sensor.position, StateVector([0, 0, 1]))
     assert np.array_equal(sensor.orientation, StateVector([0, 0, 0]))
     sensor.position = StateVector([0, 1, 0])
@@ -31,9 +31,9 @@ def test_sensor_position_orientation_setting():
     assert np.array_equal(sensor.orientation, StateVector([0, 0, 0]))
 
     position = StateVector([0, 0, 1])
-    sensor = TSensor()
+    sensor = TestingSensor()
     platform_state = State(state_vector=position + 1, timestamp=datetime.datetime.now())
-    platform = FixedSensorPlatform(state=platform_state, mapping=[0, 1, 2])
+    platform = FixedSensorPlatform(state=platform_state, position_mapping=[0, 1, 2])
     platform.add_sensor(sensor)
     with pytest.raises(AttributeError):
         sensor.position = StateVector([0, 1, 0])
@@ -42,37 +42,37 @@ def test_sensor_position_orientation_setting():
 
 
 def test_default_platform():
-    sensor = TSensor(position=StateVector([0, 0, 1]))
+    sensor = TestingSensor(position=StateVector([0, 0, 1]))
     assert np.array_equal(sensor.position, StateVector([0, 0, 1]))
     assert np.array_equal(sensor.orientation, StateVector([0, 0, 0]))
 
-    sensor = TSensor(orientation=StateVector([0, 0, 1]))
+    sensor = TestingSensor(orientation=StateVector([0, 0, 1]))
     assert np.array_equal(sensor.orientation, StateVector([0, 0, 1]))
     assert np.array_equal(sensor.position, StateVector([0, 0, 0]))
 
 
 def test_internal_platform_flag():
-    sensor = TSensor(position=StateVector([0, 0, 1]))
+    sensor = TestingSensor(position=StateVector([0, 0, 1]))
     assert sensor._has_internal_platform
 
-    sensor = TSensor()
+    sensor = TestingSensor()
     assert not sensor._has_internal_platform
 
-    sensor = TBaseSensor()
+    sensor = TestingBaseSensor()
     assert not sensor._has_internal_platform
 
 
 def test_changing_platform_from_default():
     position = StateVector([0, 0, 1])
-    sensor = TSensor(position=StateVector([0, 0, 1]))
+    sensor = TestingSensor(position=StateVector([0, 0, 1]))
 
     platform_state = State(state_vector=position+1, timestamp=datetime.datetime.now())
-    platform = FixedSensorPlatform(state=platform_state, mapping=[0, 1, 2])
+    platform = FixedSensorPlatform(state=platform_state, position_mapping=[0, 1, 2])
     with pytest.raises(AttributeError):
         platform.add_sensor(sensor)
 
 
-@pytest.mark.parametrize('sensor', [TBaseSensor, TSensor])
+@pytest.mark.parametrize('sensor', [TestingBaseSensor, TestingSensor])
 def test_sensor_measure(sensor):
     # needed for test coverage... Does no harm
     assert sensor().measure() is None

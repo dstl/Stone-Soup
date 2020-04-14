@@ -33,12 +33,13 @@ class SensorPlatformMixin(Platform, ABC):
     mounting_offsets = Property(List[StateVector], default=None,
                                 doc="A list of StateVectors containing the sensor translation "
                                     "offsets from the platform's reference point. Defaults to "
-                                    "a zero vector with the same length as the Platform's mapping")
+                                    "a zero vector with the same length as the Platform's "
+                                    "position_mapping")
     rotation_offsets = Property(List[StateVector], default=None,
                                 doc="A list of StateVectors containing the sensor translation "
                                     "offsets from the platform's primary axis (defined as the "
                                     "direction of motion). Defaults to a zero vector with the "
-                                    "same length as the Platform's mapping")
+                                    "same length as the Platform's position_mapping")
 
     # TODO: Determine where a platform coordinate frame should be maintained
 

@@ -20,10 +20,11 @@ class Sensor(BaseSensor, ABC):
                 position = StateVector([0, 0, 0])
             if orientation is None:
                 orientation = StateVector([0, 0, 0])
-            self._internal_platform = FixedSensorPlatform(state=State(state_vector=position),
-                                                          mapping=list(range(len(position))),
-                                                          orientation=orientation,
-                                                          sensors=[self])
+            self._internal_platform = FixedSensorPlatform(
+                state=State(state_vector=position),
+                position_mapping=list(range(len(position))),
+                orientation=orientation,
+                sensors=[self])
 
     @property
     def _has_internal_platform(self):

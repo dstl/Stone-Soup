@@ -11,11 +11,16 @@ import numpy as np
 
 class Platform(Base, ABC):
     state = Property(State, doc="The platform state at any given point")
-    mapping = Property(np.ndarray, doc="Mapping between platform position and state dims")
+    position_mapping = Property(np.ndarray, doc="Mapping between platform position and state dims")
+    velocity_mapping = Property(np.ndarray, default=None,
+                                doc="Mapping between platform velocity and state dims. If not "
+                                    "set, it will default to `[m+1 for m in position_mapping]`")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.mapping = coerce_to_valid_mapping(self.mapping)
+        self.position_mapping = coerce_to_valid_mapping(self.position_mapping)
+        if self.velocity_mapping is None:
+            self.velocity_mapping = self.position_mapping + 1
 
     @property
     def state_vector(self):
@@ -23,7 +28,7 @@ class Platform(Base, ABC):
 
     @property
     def position(self):
-        return self.state_vector[self.mapping]
+        return self.state_vector[self.position_mapping]
 
     @position.setter
     def position(self, value):
@@ -31,7 +36,7 @@ class Platform(Base, ABC):
 
     @property
     def ndim(self):
-        return len(self.mapping)
+        return len(self.position_mapping)
 
     @property
     @abstractmethod
@@ -66,7 +71,7 @@ class FixedPlatform(Platform):
                            doc='A fixed orientation of the static platform')
 
     def _set_position(self, value):
-        self.state_vector[self.mapping] = value
+        self.state_vector[self.position_mapping] = value
 
     @property
     def velocity(self):
@@ -99,7 +104,7 @@ class MovingPlatform(Platform):
         # TODO docs
         # TODO return zeros?
         try:
-            return self.state_vector[self.mapping + 1]
+            return self.state_vector[self.velocity_mapping]
         except IndexError:
             raise AttributeError('Velocity is not defined for this platform')
 
