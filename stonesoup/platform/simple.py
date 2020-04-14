@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from abc import ABC
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 from math import cos, sin
@@ -16,7 +16,7 @@ from .base import Platform, MovingPlatform, FixedPlatform
 
 
 class SensorPlatformMixin(Platform, ABC):
-    """A simple Platform that can carry a number of different sensors and is
+    """A platform mixin that can carry a number of different sensors and is
     capable of moving based upon the :class:`~.TransitionModel`.
 
     The location of platform mounted sensors will be maintained relative to
@@ -27,6 +27,12 @@ class SensorPlatformMixin(Platform, ABC):
     velocity. It does not take into account issues such as bank angle or body
     deformation (e.g. flex).
 
+
+    .. note:: This class abstract and not intended to be instantiated. To get the behaviour of
+        this class use a subclass which combines this class with the `Platform` movement
+        behaviours. Currently these are :class:`~.FixedSensorPlatform` and
+        :class:`~.MovingSensorPlatform`
+
     """
 
     sensors = Property([BaseSensor], doc="A list of N mounted sensors", default=[])
@@ -34,12 +40,12 @@ class SensorPlatformMixin(Platform, ABC):
                                 doc="A list of StateVectors containing the sensor translation "
                                     "offsets from the platform's reference point. Defaults to "
                                     "a zero vector with the same length as the Platform's "
-                                    "position_mapping")
+                                    ":attr:`position_mapping`")
     rotation_offsets = Property(List[StateVector], default=None,
-                                doc="A list of StateVectors containing the sensor translation "
+                                doc="A list of StateVectors containing the sensor rotation "
                                     "offsets from the platform's primary axis (defined as the "
                                     "direction of motion). Defaults to a zero vector with the "
-                                    "same length as the Platform's position_mapping")
+                                    "same length as the Platform's :attr:`position_mapping`")
 
     # TODO: Determine where a platform coordinate frame should be maintained
 
@@ -70,16 +76,21 @@ class SensorPlatformMixin(Platform, ABC):
         for sensor in self.sensors:
             sensor.platform_system = weakref.ref(self)
 
-    def add_sensor(self, sensor: BaseSensor, mounting_offset: StateVector = None,
-                   rotation_offset: StateVector = None):
-        """ TODO
-                Parameters
-                ----------
-                sensor : :class:`stonesoup.sensor.sensor.Sensor`
-                    The sensor object to add
-                mounting_offset : :class:`StateVector`
-                    A 1xN array with the mounting offset of the new sensor
-                """
+    def add_sensor(self, sensor: BaseSensor, mounting_offset: Optional[StateVector] = None,
+                   rotation_offset: Optional[StateVector] = None) -> None:
+        """ Add a sensor to the platform
+
+        Parameters
+        ----------
+        sensor : :class:`~stonesoup.sensor.sensor.BaseSensor`
+            The sensor object to add
+        mounting_offset : :class:`StateVector`, optional
+            A StateVector with the mounting offset of the new sensor. If not supplied, defaults to
+            a zero vector
+        rotation_offset : :class:`StateVector`, optional
+            A StateVector with the rotation offset of the new sensor. If not supplied, defaults to
+            a zero vector.
+        """
         self.sensors.append(sensor)
         sensor.platform_system = weakref.ref(self)
 
@@ -91,8 +102,20 @@ class SensorPlatformMixin(Platform, ABC):
         self.mounting_offsets.append(mounting_offset)
         self.rotation_offsets.append(rotation_offset)
 
-    def get_sensor_position(self, sensor: BaseSensor):
-        # TODO docs
+    def get_sensor_position(self, sensor: BaseSensor) -> StateVector:
+        """Return the position of the given sensor, which should be already attached to the
+        platform.
+
+        Parameters
+        ----------
+        sensor : :class:`~.BaseSensor`
+            The sensor for which to return the position.
+        Returns
+        -------
+        : :class:`StateVector`
+            The position of the sensor, taking into account the platform position and orientation
+            and the mounting offset of the sensor.
+        """
         i = self.sensors.index(sensor)
         if self.is_moving:
             offset = self._get_rotated_offset(i)
@@ -101,25 +124,37 @@ class SensorPlatformMixin(Platform, ABC):
         new_sensor_pos = self.position + offset
         return new_sensor_pos
 
-    def get_sensor_orientation(self, sensor: BaseSensor):
-        # TODO docs
+    def get_sensor_orientation(self, sensor: BaseSensor) -> StateVector:
+        """Return the orientation of the given sensor, which should be already attached to the
+        platform.
+
+        Parameters
+        ----------
+        sensor : :class:`~.BaseSensor`
+            The sensor for which to return the orientation.
+        Returns
+        -------
+        : :class:`StateVector`
+            The orientation of the sensor, taking into account the platform orientation
+            and the rotation offset of the sensor.
+        """
         # TODO handle roll?
         i = self.sensors.index(sensor)
         offset = self.rotation_offsets[i]
         return self.orientation + offset
 
-    def _get_rotated_offset(self, i):
+    def _get_rotated_offset(self, i: int) -> np.ndarray:
         """ Determine the sensor mounting offset for the platforms relative
         orientation.
 
         Parameters
         ----------
-        i : int
+        i : :class:`int`
             Integer reference to the sensor index
 
         Returns
         -------
-        np.ndarray
+        : :class:`np.ndarray`
             Sensor mounting offset rotated relative to platform motion
         """
 
@@ -130,14 +165,22 @@ class SensorPlatformMixin(Platform, ABC):
 
 
 class FixedSensorPlatform(SensorPlatformMixin, FixedPlatform):
+    """ A moving sensor platform that simply combines the functionality of the
+    :class:`~.FixedPlatform` with the :class:`~.SensorPlatformMixin`. This and
+    :class:`~.MovingSensorPlatform` are the primary user facing classes for platforms.
+        """
     pass
 
 
 class MovingSensorPlatform(SensorPlatformMixin, MovingPlatform):
+    """ A moving sensor platform that simply combines the functionality of the
+    :class:`~.MovingPlatform` with the :class:`~.SensorPlatformMixin`. This and
+    :class:`~.FixedSensorPlatform` are the primary user facing classes for platforms.
+    """
     pass
 
 
-def _get_rotation_matrix(vel):
+def _get_rotation_matrix(vel: StateVector) -> np.ndarray:
     """ Generates a rotation matrix which can be used to determine the
     corrected sensor offsets.
 
@@ -150,7 +193,7 @@ def _get_rotation_matrix(vel):
 
     Parameters
     ----------
-    vel : np.ndarrary
+    vel : StateVector
         1xD vector denoting platform velocity in D dimensions
 
     Returns
@@ -168,14 +211,14 @@ def _get_rotation_matrix(vel):
                          [sin(theta), cos(theta)]])
 
 
-def _get_angle(vec, axis):
+def _get_angle(vec: StateVector, axis: np.ndarray) -> float:
     """ Returns the angle between a pair of vectors. Used to determine the
     angle of rotation required between relative rectangular cartesian
     coordinate frame of reference and platform inertial frame of reference.
 
     Parameters
     ----------
-    vec : np.ndarray
+    vec : StateVector
         1xD array denoting platform velocity
     axis : np.ndarray
         Dx1 array denoting sensor offset relative to platform
@@ -191,7 +234,7 @@ def _get_angle(vec, axis):
     return np.arccos(np.clip(np.dot(axis_norm, vel_norm), -1.0, 1.0))
 
 
-def _rot3d(vec):
+def _rot3d(vec: np.ndarray) -> np.ndarray:
     """
     This approach determines the platforms attitude based upon its velocity
     component. It does not take into account potential platform roll, nor
@@ -205,7 +248,7 @@ def _rot3d(vec):
 
     Parameters
     ----------
-    vec: np.ndarray
+    vec: StateVector
         platform velocity
 
     Returns
@@ -217,7 +260,7 @@ def _rot3d(vec):
 
 
 @lru_cache(maxsize=128)
-def _rot3d_tuple(vec):
+def _rot3d_tuple(vec: tuple) -> np.ndarray:
     """ Private method. Should not be called directly, only from `_rot3d`
 
     Params and returns as :func:`~_rot3d`

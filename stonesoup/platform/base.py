@@ -129,7 +129,7 @@ class FixedPlatform(Platform):
 
     def move(self, timestamp: datetime.datetime, **kwargs) -> None:
         """For a fixed platform this method has no effect other than to update the timestamp."""
-        # TODO should this be the case?
+        # TODO Is this a sensible implementation?
         # Return without moving static platforms
         self.state.timestamp = timestamp
 

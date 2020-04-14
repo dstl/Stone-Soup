@@ -68,8 +68,8 @@ class BaseSensor(Base, ABC):
         towards the origin.
 
         .. note::
-            This property delegates the actual calculation of orientation to the platform on which the
-            sensor is mounted.
+            This property delegates the actual calculation of orientation to the platform on which
+            the sensor is mounted.
 
             It is settable if, and only if, the sensor holds its own internal platform."""
         return self.platform_system().get_sensor_orientation(self)
