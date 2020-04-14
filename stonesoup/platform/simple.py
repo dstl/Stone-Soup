@@ -104,7 +104,7 @@ class SensorPlatformMixin(Platform, ABC):
 
     def get_sensor_position(self, sensor: BaseSensor) -> StateVector:
         """Return the position of the given sensor, which should be already attached to the
-        platform.
+        platform. If the sensor is not attached to the platform, raises a :class:`ValueError`.
 
         Parameters
         ----------
@@ -126,7 +126,7 @@ class SensorPlatformMixin(Platform, ABC):
 
     def get_sensor_orientation(self, sensor: BaseSensor) -> StateVector:
         """Return the orientation of the given sensor, which should be already attached to the
-        platform.
+        platform. If the sensor is not attached to the platform, raises a :class:`ValueError`.
 
         Parameters
         ----------

@@ -628,6 +628,26 @@ def test_sensor_offset_error(radars_3d, platform_type):
                           rotation_offsets=offsets, **platform_args)
 
 
+def test_missing_sensors(radars_3d, platform_type):
+    platform_state = State(state_vector=StateVector([0, 1, 2, 1, 4, 1]),
+                           timestamp=datetime.datetime.now())
+    platform_args = {}
+    if platform_type is MovingSensorPlatform:
+        platform_args['transition_model'] = None
+
+    # add all but the last sensor
+    platform = platform_type(state=platform_state, sensors=radars_3d[:-2],
+                             position_mapping=[0, 2, 4], **platform_args)
+
+    # finding the position/orientation of a sensor that is not on the platform
+    # should raise an error
+    with pytest.raises(ValueError):
+        platform.get_sensor_position(radars_3d[-1])
+
+    with pytest.raises(ValueError):
+        platform.get_sensor_orientation(radars_3d[-1])
+
+
 def sensor_positions_test(expected_offset, platform):
     """
     This function asserts that the sensor positions on the platform have been
