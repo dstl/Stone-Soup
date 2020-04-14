@@ -30,7 +30,6 @@ def test_base():
     # Test to ensure platform time has updated
     assert (platform.state.timestamp == new_timestamp)
     assert np.array_equal(platform.velocity, StateVector([0, 0]))
-    assert np.array_equal(platform.acceleration, StateVector([0, 0]))
     assert platform.ndim == 2
     assert not platform.is_moving
 
@@ -47,7 +46,6 @@ def test_base():
     # Ensure 2d platform has not moved
     assert np.array_equal(platform.state.state_vector, new_statevector)
     assert np.array_equal(platform.velocity, StateVector([0, 0, 0]))
-    assert np.array_equal(platform.acceleration, StateVector([0, 0, 0]))
     assert platform.ndim == 3
     assert not platform.is_moving
 
@@ -73,8 +71,6 @@ def test_base():
                                 [1]])
     assert (np.array_equal(platform.state.state_vector, new_statevector))
     assert np.array_equal(platform.velocity, StateVector([1, 1]))
-    with pytest.raises(AttributeError):
-        _ = platform.acceleration
     assert platform.ndim == 2
     assert platform.is_moving
 
@@ -103,8 +99,6 @@ def test_base():
                                 [1]])
     assert (np.array_equal(platform.state.state_vector, new_statevector))
     assert np.array_equal(platform.velocity, StateVector([1, 1, 1]))
-    with pytest.raises(AttributeError):
-        _ = platform.acceleration
     assert platform.ndim == 3
     assert platform.is_moving
 
@@ -166,8 +160,6 @@ def test_velocity_properties():
                               position_mapping=[0, 2, 4])
     with pytest.raises(AttributeError):
         _ = platform.velocity
-    with pytest.raises(AttributeError):
-        _ = platform.acceleration
 
 
 orientation_tests_3d = [(StateVector([0, 1, 0, 0, 0, 0]), StateVector([0, 0, 0])),
@@ -286,8 +278,6 @@ def test_setting_position():
         platform.position = [0, 0, 0]
     with pytest.raises(AttributeError):
         platform.velocity = [0, 0, 0]
-    with pytest.raises(AttributeError):
-        platform.acceleration = [0, 0, 0]
 
     platform_state = State(np.array([[2],
                                      [2],
@@ -301,8 +291,6 @@ def test_setting_position():
 
     with pytest.raises(AttributeError):
         platform.velocity = [0, 0, 0]
-    with pytest.raises(AttributeError):
-        platform.acceleration = [0, 0, 0]
 
     platform_state = State(np.array([[2],
                                      [1],
@@ -331,8 +319,6 @@ def test_setting_position():
 
     with pytest.raises(AttributeError):
         platform.velocity = [0, 0, 0]
-    with pytest.raises(AttributeError):
-        platform.acceleration = [0, 0, 0]
 
 
 # noinspection PyPropertyAccess

@@ -48,11 +48,6 @@ class Platform(Base, ABC):
     def velocity(self):
         raise NotImplementedError
 
-    @property
-    @abstractmethod
-    def acceleration(self):
-        raise NotImplementedError
-
     @abstractmethod
     def is_moving(self):
         raise NotImplementedError
@@ -75,10 +70,6 @@ class FixedPlatform(Platform):
 
     @property
     def velocity(self):
-        return StateVector([0] * self.ndim)
-
-    @property
-    def acceleration(self):
         return StateVector([0] * self.ndim)
 
     @property
@@ -107,15 +98,6 @@ class MovingPlatform(Platform):
             return self.state_vector[self.velocity_mapping]
         except IndexError:
             raise AttributeError('Velocity is not defined for this platform')
-
-    @property
-    def acceleration(self):
-        # TODO docs
-        # TODO return zeros?
-        try:
-            return self.state_vector[self.mapping + 2]
-        except IndexError:
-            raise AttributeError('Acceleration is not defined for this platform')
 
     @property
     def orientation(self):
