@@ -1,9 +1,9 @@
 from abc import ABC
 
-from stonesoup.platform.simple import FixedSensorPlatform
-from stonesoup.sensor.base import BaseSensor
-from stonesoup.types.array import StateVector
-from stonesoup.types.state import State
+from ..platform.simple import FixedSensorPlatform
+from .base import BaseSensor
+from ..types.array import StateVector
+from ..types.state import State
 
 
 class Sensor(BaseSensor, ABC):

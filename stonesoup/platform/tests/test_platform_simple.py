@@ -4,10 +4,9 @@ import datetime
 import numpy as np
 import pytest
 
-from stonesoup.platform.simple import FixedSensorPlatform
-from stonesoup.platform.tests import test_platform_base
+from ..tests import test_platform_base
 from ...types.state import State
-from ...platform.simple import MovingSensorPlatform
+from ..simple import MovingSensorPlatform, FixedSensorPlatform
 from ...models.transition.linear import (
     ConstantVelocity, CombinedLinearGaussianTransitionModel)
 from ...sensor.radar.radar import RadarRangeBearing
