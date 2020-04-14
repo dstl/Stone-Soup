@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from abc import ABC
-from collections.abc import Sequence
-from typing import List, Union
+from typing import List
 
 import numpy as np
 from math import cos, sin
@@ -10,7 +9,7 @@ import weakref
 from functools import lru_cache
 
 from ..sensor.base import BaseSensor
-from ..functions import coerce_to_valid_mapping, rotz
+from ..functions import rotz
 from ..base import Property
 from ..types.state import StateVector
 from .base import Platform, MovingPlatform, FixedPlatform
@@ -40,12 +39,6 @@ class SensorPlatformMixin(Platform, ABC):
                                     "offsets from the platform's primary axis (defined as the "
                                     "direction of motion). Defaults to a zero vector with the "
                                     "same length as the Platform's mapping")
-    mounting_mappings = Property(Union[StateVector, List[StateVector]], default=None,
-                                 doc="Mappings between the platform state vector and the"
-                                     "individual sensors mounting offset. Can be a single "
-                                     ":class:`~StateVector` (the same for all sensors) or a list "
-                                     "of :class:`~StateVector` (one for each sensor). Defaults to "
-                                     "be the same as the Platform's mapping")
 
     # TODO: Determine where a platform coordinate frame should be maintained
 
@@ -62,29 +55,6 @@ class SensorPlatformMixin(Platform, ABC):
         if self.rotation_offsets is None:
             self.rotation_offsets = [StateVector([0] * 3)] * len(self.sensors)
 
-        if self.mounting_mappings is None:
-            self.mounting_mappings = self.mapping
-
-        if ((isinstance(self.mounting_mappings, Sequence) and self.mounting_mappings)
-            and (isinstance(self.mounting_mappings[0], np.ndarray) or
-                 isinstance(self.mounting_mappings[0], Sequence))):
-            # We were passed a non-empty list of arrays or lists
-            self.mounting_mappings = [coerce_to_valid_mapping(m) for m in self.mounting_mappings]
-        elif (isinstance(self.mounting_mappings, np.ndarray) or
-              isinstance(self.mounting_mappings, Sequence)):
-            # We were passed either list of non-arrays (assumed to be ints) or a single array, so
-            # coerce the single entry and then expand
-            # noinspection PyTypeChecker
-            single_mapping = coerce_to_valid_mapping(self.mounting_mappings)
-            self.mounting_mappings = [single_mapping] * len(self.sensors)
-
-        # Check for consistent values (after defaults have been applied)
-        if (self.mounting_mappings
-                and max(m.max() for m in self.mounting_mappings) >= len(self.state_vector)):
-            raise IndexError(
-                "Platform state vector length and sensor mounting mapping "
-                "are incompatible")
-
         if len(self.sensors) != len(self.mounting_offsets):
             raise ValueError(
                 "Number of sensors associated with the platform does not "
@@ -95,18 +65,12 @@ class SensorPlatformMixin(Platform, ABC):
                 "Number of sensors associated with the platform does not "
                 "match the number of sensor rotation offsets specified")
 
-        if len(self.sensors) != len(self.mounting_mappings):
-            raise ValueError(
-                "Number of sensors associated with the platform does not "
-                "match the number of mounting mappings specified")
-
         # Store the platform weakref in each of the child sensors
         for sensor in self.sensors:
             sensor.platform_system = weakref.ref(self)
 
     def add_sensor(self, sensor: BaseSensor, mounting_offset: StateVector = None,
-                   rotation_offset: StateVector = None,
-                   mounting_mapping: np.ndarray = None):
+                   rotation_offset: StateVector = None):
         """ TODO
                 Parameters
                 ----------
@@ -114,33 +78,15 @@ class SensorPlatformMixin(Platform, ABC):
                     The sensor object to add
                 mounting_offset : :class:`StateVector`
                     A 1xN array with the mounting offset of the new sensor
-                    TODO
-                mounting_mapping : :class:`StateVector`, optional
-                    A 1xN array with the mounting mapping of the new sensor.
-                    If `None` (default) then use the same mapping as all
-                    previous sensors. If all sensor do not a have the same
-                    mapping then raise ValueError
                 """
         self.sensors.append(sensor)
         sensor.platform_system = weakref.ref(self)
-
-        if mounting_mapping is None:
-            if not all([np.all(m == self.mounting_mappings[0]) for m in self.mounting_mappings]):
-                raise ValueError('Mapping must be specified unless all '
-                                 'sensors have the same mapping')
-            if self.mounting_mappings:
-                mounting_mapping = self.mounting_mappings[0]
-            else:
-                # if no mapping was supplied, and no mapping is already stored, default to
-                # platform mapping
-                mounting_mapping = self.mapping
 
         if mounting_offset is None:
             mounting_offset = StateVector([0] * self.ndim)
         if rotation_offset is None:
             rotation_offset = StateVector([0] * 3)
 
-        self.mounting_mappings.append(mounting_mapping)
         self.mounting_offsets.append(mounting_offset)
         self.rotation_offsets.append(rotation_offset)
 

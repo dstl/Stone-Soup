@@ -1,5 +1,4 @@
 # coding: utf-8
-import copy
 import datetime
 
 import numpy as np
@@ -266,11 +265,6 @@ def add_sensor(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False], ids=["MM_empty", "MM_added"])
-def mounting_mapping_on_add(request):
-    return request.param
-
-
 testdata_2d = [
     StateVector([0, 0, 0, 0]),
     StateVector([10, 0, 0, 0]),
@@ -321,7 +315,7 @@ expected_2d = [
     ids=["Static", "pos offset", "x vel", "y vel", "-x vel", "-y vel",
          "x,y vel", "-x,-y vel", "x,-y vel", "-x,y vel"])
 def test_2d_platform(state, expected, move, radars_2d,
-                     mounting_offsets_2d, add_sensor, mounting_mapping_on_add):
+                     mounting_offsets_2d, add_sensor):
     # Define time related variables
     timestamp = datetime.datetime.now()
     # Define transition model and position for platform
@@ -339,22 +333,16 @@ def test_2d_platform(state, expected, move, radars_2d,
             transition_model=trans_model,
             sensors=[],
             mounting_offsets=[],
-            mounting_mappings=mounting_mapping,
             mapping=mounting_mapping
         )
         for sensor, offset in zip(radars_2d, mounting_offsets_2d):
-            if mounting_mapping_on_add:
-                platform.add_sensor(sensor, offset,
-                                    mounting_mapping=mounting_mapping)
-            else:
-                platform.add_sensor(sensor, offset)
+            platform.add_sensor(sensor, offset)
     else:
         platform = MovingSensorPlatform(
             state=platform_state,
             transition_model=trans_model,
             sensors=radars_2d,
             mounting_offsets=mounting_offsets_2d,
-            mounting_mappings=mounting_mapping,
             mapping=mounting_mapping
         )
     if move:
@@ -396,7 +384,7 @@ testdata_3d = [
     "-x,-z vel", "x,y,z vel", "-x,-y,-z vel"
 ])
 def test_3d_platform(state, expected, move, radars_3d, mounting_offsets_3d,
-                     add_sensor, mounting_mapping_on_add):
+                     add_sensor):
     # Define time related variables
     timestamp = datetime.datetime.now()
     # Define transition model and position for platform
@@ -414,22 +402,16 @@ def test_3d_platform(state, expected, move, radars_3d, mounting_offsets_3d,
             transition_model=trans_model,
             sensors=[],
             mounting_offsets=[],
-            mounting_mappings=mounting_mapping,
             mapping=mounting_mapping
         )
         for sensor, offset in zip(radars_3d, mounting_offsets_3d):
-            if mounting_mapping_on_add:
-                platform.add_sensor(sensor, offset,
-                                    mounting_mapping=mounting_mapping)
-            else:
-                platform.add_sensor(sensor, offset)
+            platform.add_sensor(sensor, offset)
     else:
         platform = MovingSensorPlatform(
             state=platform_state,
             transition_model=trans_model,
             sensors=radars_3d,
             mounting_offsets=mounting_offsets_3d,
-            mounting_mappings=mounting_mapping,
             mapping=mounting_mapping
         )
     if move:
@@ -554,7 +536,6 @@ def test_rotation_offsets_2d(state, expected_platform_orientation, expected_sens
         transition_model=trans_model,
         sensors=radars_2d,
         rotation_offsets=rotation_offsets_2d,
-        mounting_mappings=mounting_mapping,
         mapping=mounting_mapping
     )
     if move:
@@ -585,7 +566,6 @@ def test_rotation_offsets_3d(state, expected_platform_orientation, expected_sens
         transition_model=trans_model,
         sensors=radars_3d,
         rotation_offsets=rotation_offsets_3d,
-        mounting_mappings=mounting_mapping,
         mapping=mounting_mapping
     )
     if move:
@@ -623,61 +603,10 @@ def test_defaults(radars_3d, platform_type, add_sensor):
                                  **platform_args)
 
     for i, sensor in enumerate(radars_3d):
-        assert np.array_equal(platform.mounting_mappings[i], np.array([0, 2, 4]))
         assert np.array_equal(platform.mounting_offsets[i], StateVector([0, 0, 0]))
         assert np.array_equal(platform.rotation_offsets[i], StateVector([0, 0, 0]))
         assert np.array_equal(sensor.position, platform.position)
         assert np.array_equal(sensor.orientation, platform.orientation)
-
-
-def test_add_sensor_mapping_error(radars_3d, platform_type):
-    platform_state = State(state_vector=StateVector([0, 1, 2, 1, 4, 1]),
-                           timestamp=datetime.datetime.now())
-    platform_args = {}
-    if platform_type is MovingSensorPlatform:
-        platform_args['transition_model'] = None
-
-    mappings = [[0, 1, 2]] + [[0, 2, 4]] * (len(radars_3d) - 1)
-    platform = platform_type(state=platform_state, sensors=radars_3d, mapping=[0, 2, 4],
-                             mounting_mappings=mappings, **platform_args)
-    with pytest.raises(ValueError):
-        platform.add_sensor(radars_3d[0])
-    # no error if we specify mapping
-    platform.add_sensor(radars_3d[0], mounting_mapping=[0, 1, 2])
-
-
-@pytest.mark.parametrize('mapping', [[0, 2, 4],
-                                     (0, 2, 4),
-                                     np.array([0, 2, 4])])
-def test_mounting_mapping_list(radars_3d, platform_type, mapping):
-    platform_state = State(state_vector=StateVector([0, 1, 2, 1, 4, 1]),
-                           timestamp=datetime.datetime.now())
-    platform_args = {}
-    if platform_type is MovingSensorPlatform:
-        platform_args['transition_model'] = None
-
-    mappings = [mapping] * len(radars_3d)
-    platform = platform_type(state=platform_state, sensors=radars_3d, mapping=[0, 2, 4],
-                             mounting_mappings=mappings, **platform_args)
-
-    for i, sensor in enumerate(radars_3d):
-        assert np.array_equal(platform.mounting_mappings[i], np.array([0, 2, 4]))
-
-    mappings = [mapping] * (len(radars_3d) - 1)
-    with pytest.raises(ValueError):
-        _ = platform_type(state=platform_state, sensors=radars_3d, mapping=[0, 2, 4],
-                          mounting_mappings=mappings, **platform_args)
-
-    mappings = [copy.copy(mapping)] * len(radars_3d)
-    try:
-        mappings[0][2] = 6  # this value is out of bounds, and should cause an error
-    except TypeError:
-        # Tuple mapping is not assignable, but we can skip that one as the other two are good
-        # enough tests
-        return
-    with pytest.raises(IndexError):
-        _ = platform_type(state=platform_state, sensors=radars_3d, mapping=[0, 2, 4],
-                          mounting_mappings=mappings, **platform_args)
 
 
 def test_sensor_offset_error(radars_3d, platform_type):
