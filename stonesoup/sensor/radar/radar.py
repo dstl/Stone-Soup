@@ -492,8 +492,8 @@ class AESARadar(Sensor):
         # Is the state detected?
         if np.random.rand() <= det_prob:
             measurement_model = copy.deepcopy(self.measurement_model)
-            measurement_model.translation_offset = self.translation_offset
-            measurement_model.rotation_offset = self.rotation_offset
+            measurement_model.translation_offset = self.translation_offset.copy()
+            measurement_model.rotation_offset = self.rotation_offset.copy()
             measured_pos = self.measurement_model.function(sky_state, noise=noise)
 
             return Detection(measured_pos, timestamp=sky_state.timestamp,
