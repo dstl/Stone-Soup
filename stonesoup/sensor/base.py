@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
+import weakref
 from abc import abstractmethod, ABC
 
+from ..types.array import StateVector
 from ..platform import Platform
 
 from ..base import Base, Property
@@ -9,15 +11,19 @@ from ..base import Base, Property
 class BaseSensor(Base, ABC):
     """Sensor base class
 
-        A sensor object that operates according to a given
-        :class:`~.MeasurementModel`.
+    .. warning::
+        This class is private and should not be used or subclassed directly. Instead use the
+        :class:`~.Sensor` class which is needed to achieve the functionality described in this
+        class's documentation.
+
     """
-    platform_system = Property(Platform, default=None,
-                               doc='`weakref` to the platform on which the '
-                                   'sensor is mounted')
+    platform_system = Property(weakref.ref, default=None,
+                               doc='``weakref`` to the platform on which the sensor is mounted')
 
     @property
-    def platform(self):
+    def platform(self) -> Platform:
+        """Return the platform system to which the sensor is attached. Resolves the ``weakref``
+        stored in the :attr:`platform_system` Property."""
         return self.platform_system()
 
     # noinspection PyPropertyDefinition
@@ -34,12 +40,15 @@ class BaseSensor(Base, ABC):
         raise NotImplementedError
 
     @property
-    def position(self):
-        """The sensor position on a 3D Cartesian plane, expressed as a 3x1 array of Cartesian
-        coordinates in the order :math:`x,y,z` in the order :math:`x,y,z`.
+    def position(self) -> StateVector:
+        """The sensor position on a 3D Cartesian plane, expressed as a 3x1 :class:`StateVector`
+        of Cartesian coordinates in the order :math:`x,y,z`.
 
-        This property delegates that actual calculation of position to the platform on which the
-        sensor is mounted."""
+        .. note::
+            This property delegates the actual calculation of position to the platform on which the
+            sensor is mounted.
+
+            It is settable if, and only if, the sensor holds its own internal platform."""
         return self.platform_system().get_sensor_position(self)
 
     @position.setter
@@ -52,14 +61,17 @@ class BaseSensor(Base, ABC):
 
     @property
     def orientation(self):
-        """A 3x1 array of angles (rad), specifying the sensor orientation in terms of the
+        """A 3x1 StateVector of angles (rad), specifying the sensor orientation in terms of the
         counter-clockwise rotation around each Cartesian axis in the order :math:`x,y,z`.
         The rotation angles are positive if the rotation is in the counter-clockwise
         direction when viewed by an observer looking along the respective rotation axis,
         towards the origin.
 
-        This property delegates that actual calculation of orientation to the platform on which the
-        sensor is mounted."""
+        .. note::
+            This property delegates the actual calculation of orientation to the platform on which the
+            sensor is mounted.
+
+            It is settable if, and only if, the sensor holds its own internal platform."""
         return self.platform_system().get_sensor_orientation(self)
 
     @orientation.setter

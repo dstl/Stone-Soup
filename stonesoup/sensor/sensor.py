@@ -7,6 +7,17 @@ from stonesoup.types.state import State
 
 
 class Sensor(BaseSensor, ABC):
+    """Sensor Base class for general use.
+
+    Most properties and methods are inherited from :class:`~.BaseSensor`, but this class includes
+    crucial functionality and so should be used in preference.
+
+    All sensors must be mounted on a platform to calculate their position and orientation. To
+    make this easier, if the sensor has a position and/or orientation specified in the constructor,
+    and no :attr:`platform_system`, then the default is to create an internally held "private"
+    platform for the Sensor. This restricts the later setting of the :attr:`platform_system` but
+    does allow the Sensor to control (and set) its own position and orientation.
+    """
     # this functionality requires knowledge of FixedSensorPlatform so cannot go in the BaseSensor
     # class
     def __init__(self, *args, **kwargs):
