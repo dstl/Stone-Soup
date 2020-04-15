@@ -406,7 +406,7 @@ def rotx(theta):
     """
 
     c, s = np.cos(theta), np.sin(theta)
-    zero = np.zeros_like(theta) 
+    zero = np.zeros_like(theta)
     one = np.ones_like(theta)
     return np.array([[one, zero, zero],
                      [zero, c, -s],
@@ -442,7 +442,7 @@ def roty(theta):
     """
 
     c, s = np.cos(theta), np.sin(theta)
-    zero = np.zeros_like(theta) 
+    zero = np.zeros_like(theta)
     one = np.ones_like(theta)
     return np.array([[c, zero, s],
                      [zero, one, zero],
@@ -478,7 +478,7 @@ def rotz(theta):
     """
 
     c, s = np.cos(theta), np.sin(theta)
-    zero = np.zeros_like(theta) 
+    zero = np.zeros_like(theta)
     one = np.ones_like(theta)
     return np.array([[c, -s, zero],
                      [s, c, zero],
