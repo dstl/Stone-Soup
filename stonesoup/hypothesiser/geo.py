@@ -28,7 +28,7 @@ class DynamicUTMHypothesiserWrapper(Hypothesiser):
 
     def _track_to_utm_zone(self, track, track_zone, detection_zone):
         return Track([self._state_to_utm_northern(
-            track.state, self.utm_mapping,
+            track.state, tuple(self.utm_mapping),
             track_zone[0], track_zone[1] >= 'N', detection_zone[0], detection_zone[1] >= 'N')])
 
     @staticmethod
