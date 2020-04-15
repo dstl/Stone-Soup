@@ -194,7 +194,7 @@ def _get_rotation_matrix(vel: StateVector) -> np.ndarray:
     Parameters
     ----------
     vel : StateVector
-        1xD vector denoting platform velocity in D dimensions
+        Dx1 vector denoting platform velocity in D dimensions
 
     Returns
     -------

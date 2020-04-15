@@ -572,8 +572,8 @@ def mod_elevation(x):
 def coerce_to_valid_mapping(mapping: Union[List[int], np.ndarray, StateVector]) -> np.ndarray:
     """Function to take a mapping and convert it to a suitable form for indexing a
     :class:`StateVector`. Needed because if you index a :class:`StateVector` with another
-    :class:`StateVector` (which could seem like the obvious thing to a user - it's the right shape)
-    you get a 3d :class:`ndarray`.
+    :class:`StateVector` (which could seem like the obvious thing to a naive user - it's the
+    right shape) you get a 3d :class:`ndarray`.
 
     The input is either a List, :class:`ndarray` or a :class:`StateVector`, all of which should
     contain integers. It returns a 1d :class:`ndarray` of with ``shape == (ndim,)`` where ``ndim``
@@ -590,4 +590,4 @@ def coerce_to_valid_mapping(mapping: Union[List[int], np.ndarray, StateVector]) 
         A flattened np.ndarray suitable for indexing a :class:`StateVector`
     """
 
-    return np.asarray(mapping).flatten()
+    return np.ravel(mapping)
