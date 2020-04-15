@@ -189,7 +189,7 @@ class MovingPlatform(Platform):
             return StateVector([0, bearing])
 
     @property
-    def is_moving(self):
+    def is_moving(self) -> bool:
         """Return the ``True`` if the platform is moving, ``False`` otherwise.
 
         Equivalent (for this class) to ``all(v == 0 for v in self.velocity)``
@@ -202,7 +202,7 @@ class MovingPlatform(Platform):
     def _set_position(self, value):
         raise AttributeError('Cannot set the position of a moving platform')
 
-    def move(self, timestamp=None, **kwargs):
+    def move(self, timestamp=None, **kwargs) -> None:
         """Propagate the platform position using the :attr:`transition_model`.
 
         Parameters
