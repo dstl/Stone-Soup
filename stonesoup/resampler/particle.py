@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+from operator import attrgetter
 
 from .base import Resampler
 from ..types.numeric import Probability
@@ -24,9 +25,9 @@ class SystematicResampler(Resampler):
 
         n_particles = len(particles)
         weight = Probability(1/n_particles)
-        particles = sorted(particles, key=lambda x: x.weight, reverse=False)
-        cdf = np.cumsum([p.weight for p in particles])
-        particles_listed = list(particles)
+        particles_sorted = sorted(particles, key=attrgetter('weight'), reverse=False)
+        cdf = np.cumsum([p.weight for p in particles_sorted])
+
         # Pick random starting point
         u_i = np.random.uniform(0, 1 / n_particles)
         new_particles = []
@@ -37,7 +38,7 @@ class SystematicResampler(Resampler):
 
             u_j = u_i + (1 / n_particles) * j
 
-            particle = particles_listed[np.argmax(u_j < cdf)]
+            particle = particles_sorted[np.argmax(u_j < cdf)]
             new_particles.append(
                 Particle(particle.state_vector,
                          weight=weight,

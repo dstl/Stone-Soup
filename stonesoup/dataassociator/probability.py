@@ -129,8 +129,7 @@ class JPDA(DataAssociator):
                 SingleProbabilityHypothesis(
                     hypotheses[track][0].prediction,
                     MissedDetection(timestamp=time),
-                    measurement_prediction=hypotheses[track][0]
-                    .measurement_prediction,
+                    measurement_prediction=hypotheses[track][0].measurement_prediction,
                     probability=prob_misdetect))
 
             # record hypothesis for any given Detection being associated with
@@ -141,8 +140,7 @@ class JPDA(DataAssociator):
                 pro_detect_assoc = Probability.sum(
                     joint_hypothesis.probability
                     for joint_hypothesis in joint_hypotheses
-                    if joint_hypothesis.
-                        hypotheses[track].measurement is hypothesis.measurement)
+                    if joint_hypothesis.hypotheses[track].measurement is hypothesis.measurement)
 
                 single_measurement_hypotheses.append(
                     SingleProbabilityHypothesis(
