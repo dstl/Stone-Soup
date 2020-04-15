@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 import weakref
 from abc import abstractmethod, ABC
+from typing import Optional
+from warnings import warn
 
 from ..types.array import StateVector
 from ..platform import Platform
 
-from ..base import Base, Property
+from ..base import Base
 
 
 class BaseSensor(Base, ABC):
@@ -17,23 +19,35 @@ class BaseSensor(Base, ABC):
         class's documentation.
 
     """
-    platform_system = Property(weakref.ref, default=None,
-                               doc='``weakref`` to the platform on which the sensor is mounted')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._platform_system: Optional[weakref.ref] = None
 
     @property
-    def platform(self) -> Platform:
+    def platform(self) -> Optional[Platform]:
         """Return the platform system to which the sensor is attached. Resolves the ``weakref``
         stored in the :attr:`platform_system` Property."""
-        return self.platform_system()
+        if self.platform_system is None:
+            return None
+        else:
+            return self.platform_system()
 
-    # noinspection PyPropertyDefinition
+    @property
+    def platform_system(self) -> Optional[weakref.ref]:
+        """Return a ``weakref`` to the platform on which the sensor is mounted"""
+        return self._platform_system
+
     @platform_system.setter
-    def set_platform_system(self, value):
+    def platform_system(self, value):
         # this slightly odd construction is to allow overriding by the Sensor subclass
         self._set_platform_system(value)
 
     def _set_platform_system(self, value):
-        self._property_platform_system = value
+        if self._platform_system is not None:
+            warn('Sensor has been moved from one platform to another. This is unexpected '
+                 'behaviour')
+        self._platform_system = value
 
     @abstractmethod
     def measure(self, **kwargs):

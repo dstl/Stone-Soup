@@ -26,9 +26,6 @@ class Sensor(BaseSensor, ABC):
         self._internal_platform = None
         super().__init__(*args, **kwargs)
         if position is not None or orientation is not None:
-            if self.platform_system is not None:
-                raise ValueError('Platform system and position/orientation cannot both be '
-                                 'specified.')
             if position is None:
                 # assuming 3d for a default platform
                 position = StateVector([0, 0, 0])
@@ -48,4 +45,4 @@ class Sensor(BaseSensor, ABC):
         if self._has_internal_platform:
             raise AttributeError('Platform system cannot be set on sensors that were created with '
                                  'a default platform')
-        self._property_platform_system = value
+        super()._set_platform_system(value)

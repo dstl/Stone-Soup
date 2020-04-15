@@ -1,5 +1,4 @@
 import datetime
-import weakref
 
 import pytest
 
@@ -50,15 +49,6 @@ def test_default_platform():
     sensor = TestingSensor(orientation=StateVector([0, 0, 1]))
     assert np.array_equal(sensor.orientation, StateVector([0, 0, 1]))
     assert np.array_equal(sensor.position, StateVector([0, 0, 0]))
-
-    platform = FixedSensorPlatform(state=State(StateVector([0, 0, 0])),
-                                   position_mapping=StateVector([0, 1, 2]))
-    with pytest.raises(ValueError):
-        _ = TestingSensor(position=StateVector([0, 0, 1]), platform_system=weakref.ref(platform))
-
-    with pytest.raises(ValueError):
-        _ = TestingSensor(orientation=StateVector([0, 0, 1]),
-                          platform_system=weakref.ref(platform))
 
 
 def test_internal_platform_flag():

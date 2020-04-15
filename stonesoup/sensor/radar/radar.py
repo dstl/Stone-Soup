@@ -5,7 +5,7 @@ from math import erfc
 
 from stonesoup.sensor.sensor import Sensor
 from ...functions import cart2sphere, rotx, roty, rotz
-from ..base import Property
+from ...base import Property
 
 from ...models.measurement.nonlinear import CartesianToBearingRange
 from ...types.array import CovarianceMatrix
