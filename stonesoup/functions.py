@@ -406,10 +406,11 @@ def rotx(theta):
     """
 
     c, s = np.cos(theta), np.sin(theta)
-
-    return np.array([[1, 0, 0],
-                     [0, c, -s],
-                     [0, s, c]])
+    zero = np.zeros_like(theta) 
+    one = np.ones_like(theta)
+    return np.array([[one, zero, zero],
+                     [zero, c, -s],
+                     [zero, s, c]])
 
 
 def roty(theta):
@@ -441,10 +442,11 @@ def roty(theta):
     """
 
     c, s = np.cos(theta), np.sin(theta)
-
-    return np.array([[c, 0, s],
-                     [0, 1, 0],
-                     [-s, 0, c]])
+    zero = np.zeros_like(theta) 
+    one = np.ones_like(theta)
+    return np.array([[c, zero, s],
+                     [zero, one, zero],
+                     [-s, zero, c]])
 
 
 def rotz(theta):
@@ -476,10 +478,11 @@ def rotz(theta):
     """
 
     c, s = np.cos(theta), np.sin(theta)
-
-    return np.array([[c, -s, 0],
-                     [s, c, 0],
-                     [0, 0, 1]])
+    zero = np.zeros_like(theta) 
+    one = np.ones_like(theta)
+    return np.array([[c, -s, zero],
+                     [s, c, zero],
+                     [zero, zero, one]])
 
 
 def gm_reduce_single(means, covars, weights):
