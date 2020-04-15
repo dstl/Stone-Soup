@@ -82,12 +82,12 @@ class SensorPlatformMixin(Platform, ABC):
 
         Parameters
         ----------
-        sensor : :class:`~stonesoup.sensor.sensor.BaseSensor`
+        sensor : :class:`~.BaseSensor`
             The sensor object to add
-        mounting_offset : :class:`StateVector`, optional
+        mounting_offset : :class:`~.StateVector`, optional
             A StateVector with the mounting offset of the new sensor. If not supplied, defaults to
             a zero vector
-        rotation_offset : :class:`StateVector`, optional
+        rotation_offset : :class:`~.StateVector`, optional
             A StateVector with the rotation offset of the new sensor. If not supplied, defaults to
             a zero vector.
         """

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import datetime
 from abc import abstractmethod, ABC
+from typing import Sequence
 
 from ..functions import cart2sphere, cart2pol, coerce_to_valid_mapping
 from ..types.array import StateVector
@@ -11,9 +12,15 @@ import numpy as np
 
 
 class Platform(Base, ABC):
-    state = Property(State, doc="The platform state at any given point")
-    position_mapping = Property(np.ndarray, doc="Mapping between platform position and state dims")
-    velocity_mapping = Property(np.ndarray, default=None,
+    state = Property(State, doc="The platform state at any given point. For a static platform, "
+                                "this would usually contain its position coordinates in the form"
+                                "``[x, y, z]``. For a moving platform it would contain position "
+                                "and velocity interleaved: ``[x, vx, y, vy, z, vz]``")
+    position_mapping = Property(Sequence[int],
+                                doc="Mapping between platform position and state vector. For a "
+                                    "position-only 3d platform this might be ``[0, 1, 2]``. For a "
+                                    "position and velocity platform: ``[0, 2, 4]``")
+    velocity_mapping = Property(Sequence[int], default=None,
                                 doc="Mapping between platform velocity and state dims. If not "
                                     "set, it will default to ``[m+1 for m in position_mapping]``")
 
