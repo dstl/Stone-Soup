@@ -3,7 +3,7 @@ import datetime
 from abc import abstractmethod, ABC
 from typing import Sequence
 
-from ..functions import cart2sphere, cart2pol, coerce_to_valid_mapping
+from ..functions import cart2sphere, cart2pol
 from ..types.array import StateVector
 from ..base import Base, Property
 from ..types.state import State
@@ -26,9 +26,8 @@ class Platform(Base, ABC):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.position_mapping = coerce_to_valid_mapping(self.position_mapping)
         if self.velocity_mapping is None:
-            self.velocity_mapping = self.position_mapping + 1
+            self.velocity_mapping = [p + 1 for p in self.position_mapping]
 
     @property
     def state_vector(self) -> StateVector:
@@ -43,7 +42,7 @@ class Platform(Base, ABC):
         :attr:`position_mapping`. This property is settable for fixed platforms, but not for
         movable ones, where the position must be set by moving the model with a transition model.
         """
-        return self.state_vector[self.position_mapping]
+        return self.state_vector[self.position_mapping, :]
 
     @position.setter
     def position(self, value: StateVector) -> None:
@@ -120,7 +119,7 @@ class FixedPlatform(Platform):
                            doc='A fixed orientation of the static platform')
 
     def _set_position(self, value: StateVector) -> None:
-        self.state_vector[self.position_mapping] = value
+        self.state_vector[self.position_mapping, :] = value
 
     @property
     def velocity(self) -> StateVector:
@@ -161,7 +160,7 @@ class MovingPlatform(Platform):
         elements specified in the :attr:`velocity_mapping` this raises an :class:`AttributeError`
         """
         try:
-            return self.state_vector[self.velocity_mapping]
+            return self.state_vector[self.velocity_mapping, :]
         except IndexError:
             raise AttributeError('Velocity is not defined for this platform')
 

@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 """Mathematical functions used within Stone Soup"""
-from typing import List, Union
 
 import numpy as np
 from copy import copy
 
 from .types.numeric import Probability
-from .types.array import Matrix, StateVector
+from .types.array import Matrix
 
 
 def tria(matrix):
@@ -567,27 +566,3 @@ def mod_elevation(x):
     elif N == 3:
         x = x - 2.0 * np.pi
     return x
-
-
-def coerce_to_valid_mapping(mapping: Union[List[int], np.ndarray, StateVector]) -> np.ndarray:
-    """Function to take a mapping and convert it to a suitable form for indexing a
-    :class:`StateVector`. Needed because if you index a :class:`StateVector` with another
-    :class:`StateVector` (which could seem like the obvious thing to a naive user - it's the
-    right shape) you get a 3d :class:`ndarray`.
-
-    The input is either a List, :class:`ndarray` or a :class:`StateVector`, all of which should
-    contain integers. It returns a 1d :class:`ndarray` of with ``shape == (ndim,)`` where ``ndim``
-    is the number of elements in the mapping array.
-
-    Parameters
-    ----------
-    mapping: :class:`Union[List, np.ndarray, StateVector]`
-        A mapping that needs to be formatted to a valid mapping shape
-
-    Returns
-    -------
-    mapping: :class:`np.ndarray`
-        A flattened np.ndarray suitable for indexing a :class:`StateVector`
-    """
-
-    return np.ravel(mapping)
