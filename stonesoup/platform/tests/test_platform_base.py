@@ -364,8 +364,33 @@ def test_setting_orientation():
                                      [0]]),
                            timestamp)
     platform_orientation = StateVector([0, 0, 0])
-    platform = FixedPlatform(state=platform_state, position_mapping=[0, 1, 2],
+    platform = FixedPlatform(state=platform_state, position_mapping=[0, 2, 4],
                              orientation=platform_orientation)
     assert np.array_equal(platform.orientation, StateVector([0, 0, 0]))
     platform.orientation = StateVector([0, 1, 0])
     assert np.array_equal(platform.orientation, StateVector([0, 1, 0]))
+
+
+@pytest.mark.parametrize('mapping_type', (tuple, list, np.array))
+def test_mapping_types(mapping_type):
+    timestamp = datetime.datetime.now()
+    platform_state = State(np.array([[2],
+                                     [2],
+                                     [0]]),
+                           timestamp)
+    platform = FixedPlatform(state=platform_state, position_mapping=mapping_type([0, 1, 2]))
+    assert np.array_equal(platform.position, StateVector([2, 2, 0]))
+    platform.position = StateVector([0, 0, 1])
+    assert np.array_equal(platform.position, StateVector([0, 0, 1]))
+
+    platform_state = State(np.array([[2],
+                                     [1],
+                                     [2],
+                                     [-1],
+                                     [2],
+                                     [0]]),
+                           timestamp)
+    platform = MovingPlatform(state=platform_state, transition_model=None,
+                              position_mapping=mapping_type([0, 2, 4]))
+    assert np.array_equal(platform.position, StateVector([2, 2, 2]))
+    assert np.array_equal(platform.velocity, StateVector([1, -1, 0]))
