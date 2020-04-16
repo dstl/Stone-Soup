@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from typing import List
+
 import numpy as np
 from math import cos, sin
 from scipy.linalg import expm
@@ -24,7 +26,7 @@ class SensorPlatform(Platform):
 
     """
 
-    sensors = Property([Sensor], doc="A list of N mounted sensors")
+    sensors = Property(List[Sensor], doc="A list of N mounted sensors")
     mounting_offsets = Property(
         [np.array], doc="A list of sensor offsets (For now expressed\
                             as a Nxn array of nD Cartesian coordinates)")
