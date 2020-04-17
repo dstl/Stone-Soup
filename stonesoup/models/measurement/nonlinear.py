@@ -586,9 +586,17 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
 
     """
 
-    translation_offset: StateVector = Property(default=StateVector(np.array([[0], [0]])),
-                                               doc="A 2x1 array specifying the origin \
-                                               offset in terms of :math:`x,y` coordinates.")
+    translation_offset = Property(
+        StateVector,
+        default=StateVector(np.array([[0], [0]])),
+        doc="A 2x1 array specifying the origin offset in terms of :math:`x,y` coordinates.")
+    vel_mapping = Property(
+        np.array,
+        doc="Mapping to the targets velocity within its state space")
+    velocity = Property(
+        StateVector,
+        default=StateVector(np.array([[0], [0]])),
+        doc="A 2x1 array specifying the sensor velocity in terms of :math:`x,y` coordinates.")
 
     @property
     def ndim_meas(self) -> int:
@@ -602,20 +610,14 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
 
         return 3
 
-    def function(self, target_pos, target_vel, sensor_pos,
-                 sensor_vel, noise=False, **kwargs) -> StateVector:
+    def function(self, state, noise=False, **kwargs) -> StateVector:
         r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
 
         Parameters
         ----------
-        target_pos: :class:`~.StateVector`
-            An input state vector target position
-        target_vel: :class:`~.StateVector`
-            An input state vector target velocity
-        sensor_pos: :class:`~.StateVector`
-            An input state vector for sensor position
-        sensor_vel: :class:`~.StateVector`
-            An input state vector for sensor velocity
+        state: :class:`~.StateVector`
+            An input state vector for the target
+
         noise: :class:`numpy.ndarray` or bool
             An externally generated random process noise sample (the default is
             `False`, in which case no noise will be added
@@ -626,9 +628,6 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
         :class:`numpy.ndarray` of shape (:py:attr:`~ndim_meas`, 1)
             The model function evaluated given the provided time interval.
 
-        Note
-        ----
-        The parameters will need to be modified in line with #177
         """
 
         if isinstance(noise, bool) or noise is None:
@@ -638,7 +637,7 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
                 noise = 0
 
         # Account for origin offset in position to enable range and angles to be determined
-        xy_pos = target_pos - sensor_pos
+        xy_pos = state.state_vector[self.mapping, :] - self.translation_offset
 
         # Rotate coordinates based upon the sensor_velocity
         xy_rot = self._rotation_matrix @ xy_pos
@@ -647,7 +646,7 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
         rho, phi, _ = cart2sphere(*xy_rot[:, 0])
 
         # Determine the net velocity component in the engagement
-        xy_vel = target_vel - sensor_vel
+        xy_vel = state.state_vector[self.vel_mapping, :] - self.velocity
 
         # Use polar to calculate range rate
         rr = -np.dot(xy_pos[:, 0], xy_vel[:, 0]) / np.linalg.norm(xy_pos)
@@ -660,7 +659,7 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
         return out
 
 
-class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement):
+class CartesianToElevationBearingRangeRate(CartesianToBearingRangeRate):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of elevation \
     (:math:`\theta`),  bearing (:math:`\phi`), range (:math:`r`) and
@@ -726,9 +725,17 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement):
 
     """
 
-    translation_offset: StateVector = Property(default=StateVector(np.array([[0], [0], [0]])),
-                                               doc="A 3x1 array specifying the origin offset \
-                                               in terms of :math:`x,y`,z coordinates.")
+    translation_offset = Property(
+        StateVector,
+        default=StateVector(np.array([[0], [0], [0]])),
+        doc="A 3x1 array specifying the origin offset in terms of :math:`x,y,z` coordinates.")
+    vel_mapping = Property(
+        np.array,
+        doc="Mapping to the targets velocity within its state space")
+    velocity = Property(
+        StateVector,
+        default=StateVector(np.array([[0], [0], [0]])),
+        doc="A 3x1 array specifying the sensor velocity in terms of :math:`x,y,z` coordinates.")
 
     @property
     def ndim_meas(self) -> int:
@@ -742,14 +749,14 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement):
 
         return 4
 
-    def function(self, target_pos, target_vel, sensor_pos, sensor_vel,
-                 noise=False, **kwargs) -> StateVector:
+    def function(self, state, noise=False, **kwargs) -> StateVector:
         r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
 
         Parameters
         ----------
-        state_vector: :class:`~.StateVector`
-            An input state vector
+        state: :class:`~.StateVector`
+            An input state vector for the target
+
         noise: :class:`numpy.ndarray` or bool
             An externally generated random process noise sample (the default is
             `False`, in which case no noise will be added
@@ -768,7 +775,7 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement):
                 noise = 0
 
         # Account for origin offset in position to enable range and angles to be determined
-        xyz_pos = target_pos - sensor_pos
+        xyz_pos = state.state_vector[self.mapping, :] - self.translation_offset
 
         # Rotate coordinates based upon the sensor_velocity
         xyz_rot = self._rotation_matrix @ xyz_pos
@@ -777,7 +784,7 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement):
         rho, phi, theta = cart2sphere(*xyz_rot[:, 0])
 
         # Determine the net velocity component in the engagement
-        xyz_vel = target_vel - sensor_vel
+        xyz_vel = state.state_vector[self.vel_mapping, :] - self.velocity
 
         # Use polar to calculate range rate
         rr = -np.dot(xyz_pos[:, 0], xyz_vel[:, 0]) / np.linalg.norm(xyz_pos)
