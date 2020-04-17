@@ -135,8 +135,7 @@ class NonLinearGaussianMeasurement(MeasurementModel, NonLinearModel, GaussianMod
         return rotz(theta_z)@roty(theta_y)@rotx(theta_x)
 
 
-class CartesianToElevationBearingRange(
-        NonLinearGaussianMeasurement, ReversibleModel):
+class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of bearing \
     (:math:`\phi`), elevation (:math:`\theta`) and range (:math:`r`), with \
@@ -613,9 +612,8 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
 
         Parameters
         ----------
-        state: :class:`~.StateVector`
-            An input state vector for the target
-
+        state: :class:`~.State`
+            An input state
         noise: :class:`numpy.ndarray` or bool
             An externally generated random process noise sample (the default is
             `False`, in which case no noise will be added
@@ -623,7 +621,7 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
 
         Returns
         -------
-        :class:`numpy.ndarray` of shape (:py:attr:`~ndim_meas`, 1)
+        :class:`numpy.ndarray` of shape (:py:attr:`~ndim_state`, 1)
             The model function evaluated given the provided time interval.
 
         """
@@ -635,7 +633,7 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
                 noise = 0
 
         # Account for origin offset in position to enable range and angles to be determined
-        xy_pos = state.state_vector[self.mapping, :] - self.translation_offset
+        xy_pos = state.state_vector[self.mapping] - self.translation_offset
 
         # Rotate coordinates based upon the sensor_velocity
         xy_rot = self._rotation_matrix @ xy_pos
@@ -769,7 +767,7 @@ class CartesianToElevationBearingRangeRate(CartesianToBearingRangeRate):
                 noise = 0
 
         # Account for origin offset in position to enable range and angles to be determined
-        xyz_pos = state.state_vector[self.mapping, :] - self.translation_offset
+        xyz_pos = state.state_vector[self.mapping] - self.translation_offset
 
         # Rotate coordinates based upon the sensor_velocity
         xyz_rot = self._rotation_matrix @ xyz_pos
