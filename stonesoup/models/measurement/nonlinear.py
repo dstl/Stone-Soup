@@ -579,24 +579,22 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
 
     Note
     ----
-    This class implementation assumes a 2D Cartesian plane.
-
-    The velocity states are assumed to be contained in the adjacent state \
-    the position - i.e. obtained by xy = state_vector[self.mapping+1]
-
+    This class implementation assumes a 2D Cartesian plane by default, however\
+    it will operate in 3D so long as all upstream inputs are specified in 3D.
     """
 
     translation_offset = Property(
         StateVector,
         default=StateVector(np.array([[0], [0]])),
-        doc="A 2x1 array specifying the origin offset in terms of :math:`x,y` coordinates.")
+        doc="A 2x1 or 3x1 array specifying the origin offset in terms of :math:`x,y` coordinates.")
     vel_mapping = Property(
         np.array,
         doc="Mapping to the targets velocity within its state space")
     velocity = Property(
         StateVector,
         default=StateVector(np.array([[0], [0]])),
-        doc="A 2x1 array specifying the sensor velocity in terms of :math:`x,y` coordinates.")
+        doc="A 2x1 or 3x1 array specifying the sensor velocity in terms of :math:`x,y` \
+        coordinates.")
 
     @property
     def ndim_meas(self) -> int:
@@ -719,10 +717,6 @@ class CartesianToElevationBearingRangeRate(CartesianToBearingRangeRate):
     Note
     ----
     This class assumes a 3D Cartesian plane.
-
-    The velocity states are assumed to be contained in the adjacent state \
-    the position - i.e. obtained by \dot{x} = state_vector[self.mapping[0]+1]
-
     """
 
     translation_offset = Property(
