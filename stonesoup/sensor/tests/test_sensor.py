@@ -2,13 +2,13 @@ import datetime
 
 import pytest
 
-from stonesoup.platform.simple import FixedSensorPlatform
-from stonesoup.sensor.base import BaseSensor
-from stonesoup.sensor.sensor import Sensor
-from stonesoup.types.array import StateVector
-import numpy as np
+from ...platform.base import FixedPlatform
+from ..base import BaseSensor
+from ..sensor import Sensor
+from ...types.array import StateVector
+from ...types.state import State
 
-from stonesoup.types.state import State
+import numpy as np
 
 
 class TestingSensor(Sensor):
@@ -33,7 +33,7 @@ def test_sensor_position_orientation_setting():
     position = StateVector([0, 0, 1])
     sensor = TestingSensor()
     platform_state = State(state_vector=position + 1, timestamp=datetime.datetime.now())
-    platform = FixedSensorPlatform(state=platform_state, position_mapping=[0, 1, 2])
+    platform = FixedPlatform(state=platform_state, position_mapping=[0, 1, 2])
     platform.add_sensor(sensor)
     with pytest.raises(AttributeError):
         sensor.position = StateVector([0, 1, 0])
@@ -67,7 +67,7 @@ def test_changing_platform_from_default():
     sensor = TestingSensor(position=StateVector([0, 0, 1]))
 
     platform_state = State(state_vector=position+1, timestamp=datetime.datetime.now())
-    platform = FixedSensorPlatform(state=platform_state, position_mapping=[0, 1, 2])
+    platform = FixedPlatform(state=platform_state, position_mapping=[0, 1, 2])
     with pytest.raises(AttributeError):
         platform.add_sensor(sensor)
 

@@ -1,6 +1,6 @@
 from abc import ABC
 
-from ..platform.simple import FixedSensorPlatform
+from ..platform.base import FixedPlatform
 from .base import BaseSensor
 from ..types.array import StateVector
 from ..types.state import State
@@ -18,7 +18,7 @@ class Sensor(BaseSensor, ABC):
     platform for the Sensor. This restricts the later setting of the :attr:`platform_system` but
     does allow the Sensor to control (and set) its own position and orientation.
     """
-    # this functionality requires knowledge of FixedSensorPlatform so cannot go in the BaseSensor
+    # this functionality requires knowledge of FixedPlatform so cannot go in the BaseSensor
     # class
     def __init__(self, *args, **kwargs):
         position = kwargs.pop('position', None)
@@ -31,7 +31,7 @@ class Sensor(BaseSensor, ABC):
                 position = StateVector([0, 0, 0])
             if orientation is None:
                 orientation = StateVector([0, 0, 0])
-            self._internal_platform = FixedSensorPlatform(
+            self._internal_platform = FixedPlatform(
                 state=State(state_vector=position),
                 position_mapping=list(range(len(position))),
                 orientation=orientation,

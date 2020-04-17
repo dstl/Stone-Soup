@@ -6,7 +6,7 @@ import pytest
 
 from ..tests import test_platform_base
 from ...types.state import State
-from ..simple import MovingSensorPlatform, FixedSensorPlatform
+from ..base import MovingPlatform, FixedPlatform
 from ...models.transition.linear import (
     ConstantVelocity, CombinedLinearGaussianTransitionModel)
 from ...sensor.radar.radar import RadarRangeBearing
@@ -248,8 +248,8 @@ def mounting_offsets_3d():
     return [StateVector(offset) for offset in offsets]
 
 
-@pytest.fixture(params=[MovingSensorPlatform, FixedSensorPlatform],
-                ids=['MovingSensorPlatform', 'FixedSensorPlatform'])
+@pytest.fixture(params=[MovingPlatform, FixedPlatform],
+                ids=['MovingPlatform', 'FixedPlatform'])
 def platform_type(request):
     return request.param
 
@@ -327,7 +327,7 @@ def test_2d_platform(state, expected, move, radars_2d,
     mounting_mapping = np.array([0, 2])
     # create a platform with the simple radar mounted
     if add_sensor:
-        platform = MovingSensorPlatform(
+        platform = MovingPlatform(
             state=platform_state,
             transition_model=trans_model,
             sensors=[],
@@ -337,7 +337,7 @@ def test_2d_platform(state, expected, move, radars_2d,
         for sensor, offset in zip(radars_2d, mounting_offsets_2d):
             platform.add_sensor(sensor, offset)
     else:
-        platform = MovingSensorPlatform(
+        platform = MovingPlatform(
             state=platform_state,
             transition_model=trans_model,
             sensors=radars_2d,
@@ -396,7 +396,7 @@ def test_3d_platform(state, expected, move, radars_3d, mounting_offsets_3d,
     mounting_mapping = np.array([0, 2, 4])
     # create a platform with the simple radar mounted
     if add_sensor:
-        platform = MovingSensorPlatform(
+        platform = MovingPlatform(
             state=platform_state,
             transition_model=trans_model,
             sensors=[],
@@ -406,7 +406,7 @@ def test_3d_platform(state, expected, move, radars_3d, mounting_offsets_3d,
         for sensor, offset in zip(radars_3d, mounting_offsets_3d):
             platform.add_sensor(sensor, offset)
     else:
-        platform = MovingSensorPlatform(
+        platform = MovingPlatform(
             state=platform_state,
             transition_model=trans_model,
             sensors=radars_3d,
@@ -530,7 +530,7 @@ def test_rotation_offsets_2d(state, expected_platform_orientation, expected_sens
     # This defines the position_mapping to the platforms state vector (i.e. x and y)
     mounting_mapping = np.array([0, 2])
     # create a platform with the simple radar mounted
-    platform = MovingSensorPlatform(
+    platform = MovingPlatform(
         state=platform_state,
         transition_model=trans_model,
         sensors=radars_2d,
@@ -560,7 +560,7 @@ def test_rotation_offsets_3d(state, expected_platform_orientation, expected_sens
     # This defines the position_mapping to the platforms state vector (i.e. x and y)
     mounting_mapping = np.array([0, 2, 4])
     # create a platform with the simple radar mounted
-    platform = MovingSensorPlatform(
+    platform = MovingPlatform(
         state=platform_state,
         transition_model=trans_model,
         sensors=radars_3d,
@@ -589,7 +589,7 @@ def test_defaults(radars_3d, platform_type, add_sensor):
     platform_state = State(state_vector=StateVector([0, 1, 2, 1, 4, 1]),
                            timestamp=datetime.datetime.now())
     platform_args = {}
-    if platform_type is MovingSensorPlatform:
+    if platform_type is MovingPlatform:
         platform_args['transition_model'] = None
 
     if add_sensor:
@@ -612,7 +612,7 @@ def test_sensor_offset_error(radars_3d, platform_type):
     platform_state = State(state_vector=StateVector([0, 1, 2, 1, 4, 1]),
                            timestamp=datetime.datetime.now())
     platform_args = {}
-    if platform_type is MovingSensorPlatform:
+    if platform_type is MovingPlatform:
         platform_args['transition_model'] = None
 
     offset = StateVector([0, 0, 0])
@@ -631,7 +631,7 @@ def test_missing_sensors(radars_3d, platform_type):
     platform_state = State(state_vector=StateVector([0, 1, 2, 1, 4, 1]),
                            timestamp=datetime.datetime.now())
     platform_args = {}
-    if platform_type is MovingSensorPlatform:
+    if platform_type is MovingPlatform:
         platform_args['transition_model'] = None
 
     # add all but the last sensor
