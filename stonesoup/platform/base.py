@@ -35,6 +35,10 @@ class Platform(Base, ABC):
         return self.state.state_vector
 
     @property
+    def timestamp(self):
+        return self.state.timestamp
+
+    @property
     def position(self) -> StateVector:
         """Return the position of the platform.
 
@@ -227,6 +231,11 @@ class MovingPlatform(Platform):
         no effect, but will return successfully.
 
         """
+
+        if self.state.timestamp is None:
+            self.state.timestamp = timestamp
+            return
+
         # Compute time_interval
         try:
             time_interval = timestamp - self.state.timestamp

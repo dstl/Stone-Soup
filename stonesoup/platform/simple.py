@@ -35,7 +35,7 @@ class SensorPlatformMixin(Platform, ABC):
 
     """
 
-    sensors = Property([BaseSensor], doc="A list of N mounted sensors", default=[])
+    sensors = Property(List[BaseSensor], doc="A list of N mounted sensors", default=[])
     mounting_offsets = Property(List[StateVector], default=None,
                                 doc="A list of StateVectors containing the sensor translation "
                                     "offsets from the platform's reference point. Defaults to "
