@@ -113,13 +113,13 @@ class BaseSensor(Base, ABC):
             sensor is mounted.
 
             It is settable if, and only if, the sensor holds its own internal platform."""
-        return self.platform_system().velocity(self)
+        return self.platform_system().velocity
 
     @velocity.setter
     def velocity(self, value):
         if self._has_internal_platform:
             self.platform.velocity = value
         else:
-            raise AttributeError('Cannot set sensor velocity unless the sensor has its own '
+            raise AttributeError('Cannot set platform velocity unless the sensor has its own '
                                  'default platform')
 
