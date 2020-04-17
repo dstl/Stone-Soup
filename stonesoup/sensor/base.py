@@ -63,7 +63,7 @@ class BaseSensor(Base, ABC):
             sensor is mounted.
 
             It is settable if, and only if, the sensor holds its own internal platform."""
-        return self.platform_system().get_sensor_position(self)
+        return self.platform.get_sensor_position(self)
 
     @position.setter
     def position(self, value):
@@ -86,7 +86,7 @@ class BaseSensor(Base, ABC):
             the sensor is mounted.
 
             It is settable if, and only if, the sensor holds its own internal platform."""
-        return self.platform_system().get_sensor_orientation(self)
+        return self.platform.get_sensor_orientation(self)
 
     @orientation.setter
     def orientation(self, value):
