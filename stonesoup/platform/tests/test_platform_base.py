@@ -272,10 +272,26 @@ def test_setting_position():
                                      [2],
                                      [0]]),
                            timestamp)
-    platform = MovingPlatform(state=platform_state, transition_model=None,
+    model_1d = ConstantVelocity(0.0)
+    model_3d = CombinedLinearGaussianTransitionModel(
+        [model_1d, model_1d, model_1d])
+
+    platform = MovingPlatform(state=platform_state, transition_model=model_3d,
                               position_mapping=[0, 1, 2])
     with pytest.raises(AttributeError):
         platform.position = [0, 0, 0]
+    with pytest.raises(AttributeError):
+        platform.velocity = [0, 0, 0]
+
+    platform_state = State(np.array([[2],
+                                     [2],
+                                     [0]]),
+                           timestamp)
+    platform = MovingPlatform(state=platform_state, transition_model=None,
+                              position_mapping=[0, 1, 2])
+    assert np.array_equal(platform.position, StateVector([2, 2, 0]))
+    platform.position = StateVector([0, 0, 0])
+    assert np.array_equal(platform.position, StateVector([0, 0, 0]))
     with pytest.raises(AttributeError):
         platform.velocity = [0, 0, 0]
 
@@ -299,10 +315,10 @@ def test_setting_position():
                                      [2],
                                      [0]]),
                            timestamp)
-    platform = MovingPlatform(state=platform_state, transition_model=None,
-                              position_mapping=[0, 1, 2])
+    platform = MovingPlatform(state=platform_state, transition_model=model_3d,
+                              position_mapping=[0, 2, 4])
     with pytest.raises(AttributeError):
-        platform.position = [0, 0]
+        platform.position = [0, 0, 0]
 
     platform_state = State(np.array([[2],
                                      [1],
@@ -312,6 +328,23 @@ def test_setting_position():
                                      [0]]),
                            timestamp)
     platform = FixedPlatform(state=platform_state, position_mapping=[0, 2, 4])
+    assert np.array_equal(platform.position, StateVector([2, 2, 2]))
+    platform.position = StateVector([0, 0, 1])
+    assert np.array_equal(platform.position, StateVector([0, 0, 1]))
+    assert np.array_equal(platform.state_vector, StateVector([0, 1, 0, -1, 1, 0]))
+
+    with pytest.raises(AttributeError):
+        platform.velocity = [0, 0, 0]
+
+    platform_state = State(np.array([[2],
+                                     [1],
+                                     [2],
+                                     [-1],
+                                     [2],
+                                     [0]]),
+                           timestamp)
+    platform = MovingPlatform(state=platform_state, transition_model=None,
+                              position_mapping=[0, 2, 4])
     assert np.array_equal(platform.position, StateVector([2, 2, 2]))
     platform.position = StateVector([0, 0, 1])
     assert np.array_equal(platform.position, StateVector([0, 0, 1]))

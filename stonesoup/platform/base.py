@@ -359,7 +359,7 @@ class MovingPlatform(Platform):
         # This inconsistency is handled in the move logic
         return np.any(self.velocity != 0)
 
-    def _set_position(self, value):
+    def _set_position(self, value: StateVector):
         # The logic below is this: if a moving platform is being built from (say) input
         # real-world data then its transition model would not be set, and so it would be fine to
         # set its position. However, if the transition model is set, then setting the position is
