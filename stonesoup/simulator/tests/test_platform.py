@@ -4,9 +4,8 @@ import datetime
 
 import numpy as np
 
-from ...models.transition.linear import \
-    CombinedLinearGaussianTransitionModel, ConstantVelocity
-from ...platform.simple import SensorPlatform
+from stonesoup.platform.simple import MovingSensorPlatform
+from ...models.transition.linear import CombinedLinearGaussianTransitionModel, ConstantVelocity
 from ...types.state import State
 from ..platform import PlatformDetectionSimulator
 from ..simple import SingleTargetGroundTruthSimulator
@@ -18,11 +17,11 @@ def build_platform(sensors, x_velocity):
     model_1d = ConstantVelocity(0.0)  # zero noise so pure movement
     trans_model = CombinedLinearGaussianTransitionModel([model_1d] * 2)
     mounting_offsets = np.zeros((len(sensors), 2))
-    mounting_mappings = np.array([[0, 2]])
-    platform = SensorPlatform(state=state, sensors=sensors,
-                              transition_model=trans_model,
-                              mounting_offsets=mounting_offsets,
-                              mounting_mappings=mounting_mappings)
+    position_mapping = np.array([[0, 2]])
+    platform = MovingSensorPlatform(state=state, sensors=sensors,
+                                    transition_model=trans_model,
+                                    mounting_offsets=mounting_offsets,
+                                    position_mapping=position_mapping)
     return platform
 
 

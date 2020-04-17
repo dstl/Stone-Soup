@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 
 from ...types.detection import Detection
-from ...sensor import Sensor
+from ...sensor.sensor import Sensor
 
 
 @pytest.fixture()
