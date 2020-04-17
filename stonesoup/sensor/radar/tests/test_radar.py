@@ -54,7 +54,7 @@ def test_simple_radar():
     radar = RadarRangeBearing(position=radar_position,
                               orientation=radar_orientation,
                               ndim_state=2,
-                              mapping=measurement_mapping,
+                              pos_mapping=measurement_mapping,
                               noise_covar=noise_covar)
 
     # Assert that the object has been correctly initialised
@@ -100,7 +100,7 @@ def test_rotating_radar():
     radar = RadarRotatingRangeBearing(position=radar_position,
                                       orientation=radar_orientation,
                                       ndim_state=2,
-                                      mapping=measurement_mapping,
+                                      pos_mapping=measurement_mapping,
                                       noise_covar=noise_covar,
                                       dwell_center=dwell_center,
                                       rpm=rpm,
@@ -161,7 +161,7 @@ def test_raster_scan_radar():
     radar = RadarRasterScanRangeBearing(position=radar_position,
                                         orientation=radar_orientation,
                                         ndim_state=2,
-                                        mapping=measurement_mapping,
+                                        pos_mapping=measurement_mapping,
                                         noise_covar=noise_covar,
                                         dwell_center=dwell_center,
                                         rpm=rpm,
@@ -209,7 +209,7 @@ def test_aesaradar():
                    timestamp=datetime.datetime.now())
 
     radar = AESARadar(antenna_gain=30,
-                      mapping=[0, 2, 4],
+                      pos_mapping=[0, 2, 4],
                       position=StateVector([0.0] * 3),
                       orientation=StateVector([0.0] * 3),
                       frequency=100e6,
@@ -304,7 +304,7 @@ def test_failed_detect():
                    timestamp=datetime.datetime.now())
 
     radar = AESARadar(antenna_gain=30,
-                      mapping=[0, 2, 4],
+                      pos_mapping=[0, 2, 4],
                       position=StateVector([0.0] * 3),
                       orientation=StateVector([0.0] * 3),
                       frequency=100e6,
@@ -334,7 +334,7 @@ def test_target_rcs():
     rcs_20.rcs = 20
 
     radar = AESARadar(antenna_gain=36,
-                      mapping=[0, 1, 2],
+                      pos_mapping=[0, 1, 2],
                       position=StateVector([0.0]*3),
                       orientation=StateVector([0.0] * 3),
                       frequency=10e9,
