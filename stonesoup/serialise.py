@@ -28,8 +28,8 @@ class YAML:
     """Class for YAML serialisation."""
     tag_prefix = '!{}.'.format(__name__.split('.', 1)[0])
 
-    def __init__(self):
-        self._yaml = ruamel.yaml.YAML()
+    def __init__(self, typ='rt'):
+        self._yaml = ruamel.yaml.YAML(typ=typ)
         self._yaml.default_flow_style = False
 
         # NumPy
@@ -179,7 +179,9 @@ class YAML:
 
     def ndarray_to_yaml(self, representer, node):
         """Convert numpy.ndarray to YAML."""
-        if node.ndim > 1:
+
+        # If using "round trip" type, change flow style to make more readable
+        if node.ndim > 1 and 'rt' in self._yaml.typ:
             array = [self._yaml.seq(row) for row in node.tolist()]
             [seq.fa.set_flow_style() for seq in array]
         else:
