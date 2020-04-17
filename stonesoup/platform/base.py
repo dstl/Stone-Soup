@@ -360,7 +360,15 @@ class MovingPlatform(Platform):
         return np.any(self.velocity != 0)
 
     def _set_position(self, value):
-        raise AttributeError('Cannot set the position of a moving platform')
+        # The logic below is this: if a moving platform is being built from (say) input
+        # real-world data then its transition model would not be set, and so it would be fine to
+        # set its position. However, if the transition model is set, then setting the position is
+        # both unexpected and may cause odd effects, so is forbidden
+        if self.transition_model is None:
+            self.state_vector[self.position_mapping, :] = value
+        else:
+            raise AttributeError('Cannot set the position of a moving platform with a '
+                                 'transition model')
 
     def move(self, timestamp=None, **kwargs) -> None:
         """Propagate the platform position using the :attr:`transition_model`.
