@@ -103,3 +103,23 @@ class BaseSensor(Base, ABC):
     @property
     def _has_internal_platform(self) -> bool:
         return False
+
+    def velocity(self):
+        """The sensor velocity on a 3D Cartesian plane, expressed as a 3x1 :class:`StateVector`
+        of Cartesian coordinates in the order :math:`x,y,z`.
+
+        .. note::
+            This property delegates the actual calculation of velocity to the platform on which the
+            sensor is mounted.
+
+            It is settable if, and only if, the sensor holds its own internal platform."""
+        return self.platform_system().velocity(self)
+
+    @velocity.setter
+    def velocity(self, value):
+        if self._has_internal_platform:
+            self.platform.velocity = value
+        else:
+            raise AttributeError('Cannot set sensor velocity unless the sensor has its own '
+                                 'default platform')
+
