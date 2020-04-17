@@ -39,11 +39,11 @@ class BaseSensor(Base, ABC):
         return self._platform_system
 
     @platform_system.setter
-    def platform_system(self, value):
+    def platform_system(self, value: weakref.ref):
         # this slightly odd construction is to allow overriding by the Sensor subclass
         self._set_platform_system(value)
 
-    def _set_platform_system(self, value):
+    def _set_platform_system(self, value: weakref.ref):
         if self._platform_system is not None:
             warn('Sensor has been moved from one platform to another. This is unexpected '
                  'behaviour')
@@ -66,7 +66,7 @@ class BaseSensor(Base, ABC):
         return self.platform.get_sensor_position(self)
 
     @position.setter
-    def position(self, value):
+    def position(self, value: StateVector):
         if self._has_internal_platform:
             self.platform.position = value
         else:
@@ -89,7 +89,7 @@ class BaseSensor(Base, ABC):
         return self.platform.get_sensor_orientation(self)
 
     @orientation.setter
-    def orientation(self, value):
+    def orientation(self, value: StateVector):
         if self._has_internal_platform:
             self.platform.position = value
         else:
@@ -97,5 +97,5 @@ class BaseSensor(Base, ABC):
                                  'default platform')
 
     @property
-    def _has_internal_platform(self):
+    def _has_internal_platform(self) -> bool:
         return False
