@@ -5,6 +5,8 @@ from ruamel.yaml.constructor import ConstructorError
 
 from ..serialise import YAML
 from ..base import Property
+from ..types.array import Matrix, StateVector, CovarianceMatrix
+from ..types.angle import Angle, Bearing, Elevation, Longitude, Latitude
 
 
 @pytest.fixture()
@@ -64,6 +66,40 @@ def test_duplicate_tag_warning(base, serialised_file):
     assert isinstance(new_instance, (first_class, second_class))
 
 
+@pytest.mark.parametrize(
+    'instance',
+    [Angle(0.1), Bearing(0.2), Elevation(0.3), Longitude(0.4), Latitude(0.5)],
+    ids=('Angle', 'Bearing', 'Elevation', 'Longitude', 'Latitude'))
+def test_angle(serialised_file, instance):
+    serialised_str = serialised_file.dumps(instance)
+
+    new_instance = serialised_file.load(serialised_str)
+    assert isinstance(new_instance, type(instance))
+    assert instance == new_instance
+
+
+def test_probability(serialised_file):
+    from ..types.numeric import Probability
+
+    instance = Probability(1E-100)
+
+    serialised_str = serialised_file.dumps(instance)
+    assert 'exp' not in serialised_str
+
+    new_instance = serialised_file.load(serialised_str)
+    assert isinstance(new_instance, Probability)
+    assert instance == new_instance
+
+    instance = instance**4  # Very small number, so need log representation
+    serialised_str = serialised_file.dumps(instance)
+    assert 'exp' in serialised_str
+    assert str(instance.log_value) in serialised_str
+
+    new_instance = serialised_file.load(serialised_str)
+    assert isinstance(new_instance, Probability)
+    assert instance == new_instance
+
+
 def test_numpy(base, serialised_file):
     class _TestNumpy(base):
         property_d = Property(np.ndarray)
@@ -76,6 +112,21 @@ def test_numpy(base, serialised_file):
     new_instance = serialised_file.load(serialised_str)
     assert isinstance(new_instance.property_d, np.ndarray)
     assert np.allclose(instance.property_d, new_instance.property_d)
+
+
+@pytest.mark.parametrize(
+    'instance',
+    [Matrix([[1, 2, 4], [4, 5, 6]]),
+     StateVector([[1], [2], [3], [4]]),
+     CovarianceMatrix([[1, 0], [0, 2]])],
+    ids=('Matrix', 'StateVector', 'CovarianceMatrix')
+)
+def test_arrays(serialised_file, instance):
+    serialised_str = serialised_file.dumps(instance)
+
+    new_instance = serialised_file.load(serialised_str)
+    assert isinstance(new_instance, type(instance))
+    assert np.allclose(instance, new_instance)
 
 
 @pytest.mark.parametrize(
