@@ -393,15 +393,15 @@ def rotx(theta):
 
     Parameters
     ----------
-    theta: float
-        Rotation angle specified as a real-valued number. The rotation angle \
-        is positive if the rotation is in the clockwise direction \
-        when viewed by an observer looking down the x-axis towards the \
-        origin. Angle units are in radians.
+    theta: Union[float, np.ndarray]
+        Rotation angle specified as a real-valued number or an \
+        :class:`np.ndarray` of reals. The rotation angle is positive if the \
+        rotation is in the clockwise direction when viewed by an observer \
+        looking down the x-axis towards the origin. Angle units are in radians.
 
     Returns
     -------
-    : :class:`numpy.ndarray` of shape (3, 3)
+    : :class:`numpy.ndarray` of shape (3, 3) or (3, 3, n) for array input
         Rotation matrix around x-axis of the form :eq:`Rx`.
     """
 
@@ -429,15 +429,15 @@ def roty(theta):
 
     Parameters
     ----------
-    theta: float
-        Rotation angle specified as a real-valued number. The rotation angle \
-        is positive if the rotation is in the clockwise direction \
-        when viewed by an observer looking down the y-axis towards the \
-        origin. Angle units are in radians.
+    theta: Union[float, np.ndarray]
+        Rotation angle specified as a real-valued number or an \
+        :class:`np.ndarray` of reals. The rotation angle is positive if the \
+        rotation is in the clockwise direction when viewed by an observer \
+        looking down the y-axis towards the origin. Angle units are in radians.
 
     Returns
     -------
-    : :class:`numpy.ndarray` of shape (3, 3)
+    : :class:`numpy.ndarray` of shape (3, 3) or (3, 3, n) for array input
         Rotation matrix around y-axis of the form :eq:`Ry`.
     """
 
@@ -465,15 +465,15 @@ def rotz(theta):
 
     Parameters
     ----------
-    theta: float
-        Rotation angle specified as a real-valued number. The rotation angle \
-        is positive if the rotation is in the clockwise direction \
-        when viewed by an observer looking down the z-axis towards the \
-        origin. Angle units are in radians.
+    theta: Union[float, np.ndarray]
+        Rotation angle specified as a real-valued number or an \
+        :class:`np.ndarray` of reals. The rotation angle is positive if the \
+        rotation is in the clockwise direction when viewed by an observer \
+        looking down the z-axis towards the origin. Angle units are in radians.
 
     Returns
     -------
-    : :class:`numpy.ndarray` of shape (3, 3)
+    : :class:`numpy.ndarray` of shape (3, 3) or (3, 3, n) for array input
         Rotation matrix around z-axis of the form :eq:`Rz`.
     """
 
