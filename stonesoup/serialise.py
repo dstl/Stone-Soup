@@ -8,6 +8,7 @@ components and data types.
 .. _YAML: http://yaml.org/"""
 import datetime
 import warnings
+import sys
 from io import StringIO
 from collections import OrderedDict
 from functools import lru_cache
@@ -23,13 +24,33 @@ from .types.angle import Angle
 from .types.array import Matrix
 from .types.numeric import Probability
 
+__all__ = ['YAML']
+
+typ = 'stonesoup'
+
+
+def init_typ(yaml):
+
+    class _StoneSoupConstructor(yaml.Constructor):
+        if sys.version_info < (3, 6):  # pragma: no cover
+            from collections import OrderedDict
+            yaml_multi_constructors = OrderedDict(yaml.Constructor.yaml_multi_constructors)
+
+    class _StoneSoupRepresenter(yaml.Representer):
+        if sys.version_info < (3, 6):  # pragma: no cover
+            from collections import OrderedDict
+            yaml_multi_representers = OrderedDict(yaml.Representer.yaml_multi_representers)
+
+    yaml.Constructor = _StoneSoupConstructor
+    yaml.Representer = _StoneSoupRepresenter
+
 
 class YAML:
     """Class for YAML serialisation."""
     tag_prefix = '!{}.'.format(__name__.split('.', 1)[0])
 
     def __init__(self, typ='rt'):
-        self._yaml = ruamel.yaml.YAML(typ=typ)
+        self._yaml = ruamel.yaml.YAML(typ=[typ, 'stonesoup'], plug_ins=['stonesoup.serialise'])
         self._yaml.default_flow_style = False
 
         # NumPy
