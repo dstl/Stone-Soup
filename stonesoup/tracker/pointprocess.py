@@ -26,9 +26,8 @@ class PointProcessMultiTargetTracker(Tracker):
         doc="Updater used to update the objects to their new state.")
     gaussian_mixture = Property(
         GaussianMixture,
-        default=None,
-        doc="""Gaussian Mixture modelling the
-                intensity over the target state space.""")
+        doc="""Gaussian Mixture modelling
+        the intensity over the target state space.""")
     hypothesiser = Property(
         GaussianMixtureHypothesiser,
         default=None,
@@ -48,7 +47,6 @@ class PointProcessMultiTargetTracker(Tracker):
         expected number of births per timestep (Poission distributed)""")
     target_tracks = Property(
         dict,
-        default=None,
         doc="""The dictonary containing unique target tracks indexed
                by the UUID of the target""")
 
@@ -59,7 +57,14 @@ class PointProcessMultiTargetTracker(Tracker):
         if self.target_tracks is None:
             self.target_tracks = dict()
 
+    @property
     def tracks(self):
+        tracks = set()
+        for track in self.target_tracks.values():
+            tracks |= track
+        return tracks
+
+    def update_tracks(self):
         """
         Updates the tracks (:class:`Track`) associated with the filter.
 
@@ -86,30 +91,30 @@ class PointProcessMultiTargetTracker(Tracker):
                     if component.weight > \
                             self.extraction_threshold:
                         self.target_tracks[tag] = Track([component], id=tag)
-        self.end_tracks()
+
 
     @BufferedGenerator.generator_method
     def tracks_gen(self):
         for time, detections in self.detector:
-            print()
             # Add birth component
             self.birth_component.timestamp = time
             self.gaussian_mixture.append(self.birth_component)
             # Perform GM Prediction and generate hypotheses
-            if self.gaussian_mixture:
-                hypotheses = self.hypothesiser.hypothesise(
-                            self.gaussian_mixture.components,
-                            detections,
-                            time
-                            )
+            hypotheses = self.hypothesiser.hypothesise(
+                        self.gaussian_mixture.components,
+                        detections,
+                        time
+                        )
             # Perform GM Update
             self.gaussian_mixture = self.updater.update(hypotheses)
             # Reduce mixture - Pruning and Merging
             self.gaussian_mixture.components = \
                 self.reducer.reduce(self.gaussian_mixture.components)
             # Update the tracks
-            self.tracks()
-            yield time, self.target_tracks
+            self.update_tracks()
+            self.end_tracks()
+            yield time, self.tracks
+
 
     def end_tracks(self):
         """

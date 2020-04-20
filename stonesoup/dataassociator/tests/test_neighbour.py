@@ -36,3 +36,19 @@ def test_nearest_neighbour(associator):
                                for hypothesis in associations.values()
                                if hypothesis.measurement]
     assert len(associated_measurements) == len(set(associated_measurements))
+
+def test_missed_detection_nearest_neighbour(associator):
+
+    timestamp = datetime.datetime.now()
+    t1 = Track([GaussianState(np.array([[0]]), np.array([[1]]), timestamp)])
+    t2 = Track([GaussianState(np.array([[3]]), np.array([[1]]), timestamp)])
+    d1 = Detection(np.array([[20]]))
+
+    tracks = {t1, t2}
+    detections = {d1}
+
+    associations = associator.associate(tracks, detections, timestamp)
+
+    # Best hypothesis should be missed detection hypothesis
+    assert all(not hypothesis.measurement
+               for hypothesis in associations.values())

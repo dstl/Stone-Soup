@@ -130,7 +130,9 @@ class PDAHypothesiser(Hypothesiser):
 
         # True detection hypotheses
         for detection in detections:
-
+             # Re-evaluate prediction
+            prediction = self.predictor.predict(
+                track.state, timestamp=detection.timestamp)
             # Compute measurement prediction and probability measure
             measurement_prediction = self.updater.predict_measurement(
                 prediction, detection.measurement_model)

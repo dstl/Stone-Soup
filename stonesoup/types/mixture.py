@@ -24,7 +24,6 @@ class GaussianMixture(Type, Sized, Iterable, Container):
         super().__init__(*args, **kwargs)
         if self.components is None:
             self.components = []
-        if len(self.components) > 0:
             if any(not isinstance(component, WeightedGaussianState)
                     for component in self.components):
                 raise ValueError("Cannot form GaussianMixtureState out of "
@@ -40,22 +39,11 @@ class GaussianMixture(Type, Sized, Iterable, Container):
 
     def __iter__(self):
         self.index = 0
-        return self
-
-    def __next__(self):
-        if self.index < len(self.components):
-            component = self.components[self.index]
-            self.index += 1
-            return component
-        else:
-            raise StopIteration
+        return iter(self.components)
 
     def __getitem__(self, index):
         # retrieve WeightedGaussianState by array index
-        if isinstance(index, int):
-            return self.components[index]
-        else:
-            raise ValueError("Index must be int")
+        return self.components[index]
 
     def __setitem__(self, index, value):
         return self.components.__setitem__(index, value)

@@ -89,3 +89,4 @@ def test_switch_detection_simulator(
         assert (meas_range[:, 1] >= clutter.state_vector.ravel()).all()
 
     assert detector.clutter_spatial_density == 3e-8
+    assert len(total_detections) < len(test_detections)

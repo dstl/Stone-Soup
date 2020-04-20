@@ -85,4 +85,4 @@ def test_gmphd_multi_target_tracker_cycle(detector, predictor):
         assert tracker.estimated_number_of_targets < 4
         previous_time = time
         # Shouldn't have more than three tracks
-        assert (len(tracks) >= 1) & (len(tracks) <= 7)
+        assert (len(tracks) >= 1) & (len(tracks) <= 3)

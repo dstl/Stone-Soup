@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from .base import Hypothesiser
 from ..base import Property
-from ..types.hypothesis import SingleDistanceHypothesis
+from ..measures import Measure
 from ..predictor import Predictor
 from ..types.detection import MissedDetection
+from ..types.hypothesis import SingleDistanceHypothesis
 from ..updater import Updater
-from ..measures import Measure
+
 
 
 class DistanceHypothesiser(Hypothesiser):
@@ -93,4 +94,4 @@ class DistanceHypothesiser(Hypothesiser):
                         distance,
                         measurement_prediction))
 
-        return sorted(hypotheses, reverse=True)
+        return MultipleHypothesis(sorted(hypotheses, reverse=True))

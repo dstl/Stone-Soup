@@ -59,9 +59,8 @@ class GaussianMixtureReducer(MixtureReducer):
         if len(components_list) > 0:
             if self.pruning:
                 components_list = self.prune(components_list)
-            if len(components_list) > 1:
-                if self.merging:
-                    components_list = self.merge(components_list)
+            if len(components_list) > 1 & self.merging:
+                components_list = self.merge(components_list)
         return components_list
 
     def prune(self, components_list):
@@ -89,10 +88,9 @@ class GaussianMixtureReducer(MixtureReducer):
         remaining_components = [component for component in components_list
                                 if component.weight > self.prune_threshold]
         # Distribute pruned weights across remaining components
-        if len(remaining_components) > 0:
-            for component in remaining_components:
-                component.weight += \
-                    pruned_weight_sum / len(remaining_components)
+        for component in remaining_components:
+            component.weight += \
+                pruned_weight_sum / len(remaining_components)
         return remaining_components
 
     def merge_components(self, component_1, component_2):
@@ -112,14 +110,14 @@ class GaussianMixtureReducer(MixtureReducer):
             Merged Gaussian Component
 
         """
-        weight_sum = (component_1.weight+component_2.weight)
+        weight_sum = component_1.weight+component_2.weight
         w1 = component_1.weight / weight_sum
         w2 = component_2.weight / weight_sum
-        merged_mean = (component_1.mean * w1) + (component_2.mean * w2)
-        merged_covar = (component_1.covar * w1) + (component_2.covar * w2)
+        merged_mean = component_1.mean*w1 + component_2.mean*w2
+        merged_covar = component_1.covar*w1 + component_2.covar*w2
         mu1_minus_m2 = component_1.mean - component_2.mean
         merged_covar = merged_covar + \
-            ((mu1_minus_m2*np.transpose(mu1_minus_m2)) * (w1 * w2))
+            mu1_minus_m2*mu1_minus_m2.T*w1*w2
         merged_weight = component_1.weight + component_2.weight
         if merged_weight > 1:
             merged_weight = 1
@@ -159,38 +157,25 @@ class GaussianMixtureReducer(MixtureReducer):
             Merged components
 
         """
-        remaining = [True] * len(components_list)
+        # Sort components by weight
+        remaining_components = sorted(
+            components_list, key=attrgetter('weight'))
 
         merged_components = []
-        while not all(not x for x in remaining):
-            # Get remaining components
-            remaining_components = [
-                i for (i, v) in zip(components_list, remaining)
-                if v
-            ]
+        while remaining_components:
             # Get highest weighted component
-            best_weight = 0
-            best_component = None
-            for index, component in enumerate(remaining_components):
-                if component.weight > best_weight:
-                    best_weight = component.weight
-                    best_component = component
-            remaining[components_list.index(best_component)] = False
-            remaining_components.remove(best_component)
-            # Check for similar Components
-            for index, component in enumerate(remaining_components):
+            best_component = remaining_components.pop()
+            # Check for similar components
+            # (modifying list in loop, so copy used)
+            for component in remaining_components.copy():
                 # Calculate distance between component and best component
                 distance = dist.mahalanobis(
-                    best_component.mean,
-                    component.mean,
-                    best_component.covar
-                )
+                    best_component.mean, component.mean, best_component.covar)
                 # Merge if similar
                 if distance < self.merge_threshold:
-                    remaining[components_list.index(component)] = False
+                    remaining_components.remove(component)
                     best_component = self.merge_components(
-                        best_component,
-                        component
+                        best_component, component
                     )
             # Add potentially merged component to new mixture
             merged_components.append(best_component)

@@ -11,6 +11,11 @@ from ..types.state import TaggedWeightedGaussianState
 
 class PointProcessUpdater(Base):
     r"""
+    Base updater class for the implementation of any Gaussian Mixture (GM)
+    point process derived multi target filters such as the
+    Probability Hypothesis Density (PHD),
+    Cardinalised Probability Hypothesis Density (CPHD) or
+    Linear Complexity with Cumulants (LCC) filters
     """
     updater = Property(
         KalmanUpdater,
@@ -60,18 +65,18 @@ class PointProcessUpdater(Base):
         updated_components = list()
         weight_sum_list = list()
         # Loop over all measurements
-        for i in range(len(hypotheses)-1):
+        for multi_hypothesis in hypotheses[:-1]:
             updated_measurement_components = list()
             # Initialise weight sum for measurement to clutter intensity
             weight_sum = 0
             # For every valid single hypothesis, update that component with
             # measurements and calculate new weight
-            for j in range(len(hypotheses[i])):
+            for hypothesis in multi_hypothesis:
                 measurement_prediction = \
                     self.updater.predict_measurement(
-                            hypotheses[i][j].prediction)
-                measurement = hypotheses[i][j].measurement
-                prediction = hypotheses[i][j].prediction
+                            hypothesis.prediction)
+                measurement = hypothesis.measurement
+                prediction = hypothesis.prediction
                 # Calculate new weight and add to weight sum
                 q = multivariate_normal.pdf(
                     measurement.state_vector.flatten(),
@@ -82,7 +87,7 @@ class PointProcessUpdater(Base):
                     * prediction.weight * q * self.prob_survival
                 weight_sum += new_weight
                 # Perform single target Kalman Update
-                temp_updated_component = self.updater.update(hypotheses[i][j])
+                temp_updated_component = self.updater.update(hypothesis)
                 updated_component = TaggedWeightedGaussianState(
                     tag=prediction.tag if prediction.tag != "birth" else None,
                     weight=new_weight,
@@ -168,8 +173,6 @@ class LCCUpdater(PointProcessUpdater):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.second_order_cumulant = 0
-        self.second_order_false_alarm_cumulant = \
-            self.variance_of_false_alarms - self.mean_number_of_false_alarms
 
     def _calculate_update_terms(self, updated_sum_list, hypotheses):
         """
@@ -206,3 +209,7 @@ class LCCUpdater(PointProcessUpdater):
         self.second_order_cumulant = misdetected_c2 - detected_c2
         # Return the l1 correction factor for miss detected weight update
         return l1
+
+    @property
+    def second_order_false_alarm_cumulant(self)
+        return self.variance_of_false_alarms - self.mean_number_of_false_alarms
