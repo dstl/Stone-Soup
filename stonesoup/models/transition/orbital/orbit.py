@@ -14,6 +14,7 @@ from ....types.array import CovarianceMatrix
 from ...base import LinearModel, NonLinearModel
 from .base import OrbitalTransitionModel
 
+from sgp4.api import jday, Satrec
 
 class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
     r"""This simple transition model uses the mean motion to update the
@@ -369,6 +370,205 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
         bold_r = f * bold_r_0 + g * bold_v_0
         # The velocity vector
         bold_v = f_dot * bold_r_0 + g_dot * bold_v_0
+
+        # And put them together
+        return np.concatenate((bold_r, bold_v), axis=0)
+
+    def rvs(self, num_samples=1, orbital_state=None,
+            time_interval=timedelta(seconds=0)):
+        r"""Sample from the transited state. Do this in a fairly simple-minded
+        way by way of additive white noise in Cartesian coordinates.
+
+        .. math::
+
+            \mathbf{x}_t = f(\mathbf{x}_{t-1}) + \mathbf{\zeta},
+            \mathbf{\zeta} \sim \mathcal{N}(\mathbf{0}, \Sigma)
+
+        where
+
+        Parameters
+        ----------
+        num_samples : int, optional
+            Number of samples, (default is 1)
+        orbital_state: :class:`~.OrbitalState`, optional
+            The orbital state class (default is None, in which case a
+            Gauss-distributed samples are generated at Cartesian
+            :math:`[0,0,0,0,0,0]^T`)
+        time_interval : :class:`~.datetime.timedelta`, optional
+            The time over which the transition occurs, (default is 0)
+
+        Returns
+        -------
+        : numpy.array, dimension (6, num_samples)
+            num_samples random samples of the state vector drawn from
+            a normal distribution defined by the transited mean
+            anomaly, :math:`M_{t_1}` and the covariances
+            :math:`\Sigma`.
+
+        """
+        samples = multivariate_normal.rvs(mean=np.zeros(6), cov=self.covar(
+            time_interval=time_interval), size=num_samples)
+
+        # multivariate_normal.rvs() does stupid in the case of a single sample
+        # so we have to put this back
+        if num_samples == 1:
+            samples = np.array([samples])
+
+        if orbital_state is None:
+            return samples.T
+        else:
+            new_cstate_vector = self.transition(
+                orbital_state, time_interval=time_interval)
+            return matlib.repmat(new_cstate_vector, 1, num_samples) + \
+                samples.T
+
+    def pdf(self, test_state, orbital_state,
+            time_interval=timedelta(seconds=0)):
+        r"""Return the value of the pdf at :math:`\delta t` for a given test
+        orbital state. Assumes multi-variate normal distribution in Cartesian
+        position and velocity coordinates.
+
+        Parameters
+        ----------
+        test_state: :class:`~.OrbitalState`
+            The orbital state vector to test.
+        orbital_state: :class:`~.OrbitalState`
+            The 'mean' orbital state class. This undergoes the state transition
+            before comparison with the test state.
+        time_interval: :math:`\delta t` :attr:`datetime.timedelta`
+            The time interval over which to test the new state
+
+        Returns
+        -------
+        : float
+            The value of the pdf at 'test_state'
+
+
+        """
+
+        return multivariate_normal.pdf(test_state.cartesian_state_vector.
+                                       ravel(),
+                                       mean=self.transition(orbital_state,
+                                                            time_interval).
+                                       ravel(),
+                                       cov=self.covar(
+                                           time_interval=time_interval))
+        # ravel appears to be necessary here.
+
+class SGP4TransitionModel(OrbitalTransitionModel, NonLinearModel):
+    """This class wraps https://pypi.org/project/sgp4/
+
+    References
+    ----------
+    1. https://pypi.org/project/sgp4/
+
+    """
+    noise = Property(
+        CovarianceMatrix, default=CovarianceMatrix(np.zeros((6, 6))),
+        doc=r"Transition noise covariance :math:`\Sigma` per unit time "
+            r"interval (assumed seconds)")
+
+    _uanom_precision = Property(
+        float, default=1e-8, doc="The stopping point in the progression of "
+                                 "ever smaller f/f' ratio in the the Newton's "
+                                 "method calculation of universal anomaly."
+    )
+
+    @property
+    def ndim_state(self):
+        """Dimension of the state vector is 6
+
+        Returns
+        -------
+        : int
+            The dimension of the state vector, i.e. 6
+
+        """
+        return 6
+
+    def covar(self, time_interval=timedelta(seconds=1)):
+        r"""Return the transition covariance matrix
+
+        Parameters
+        ----------
+        time_interval: :math:`\delta t` :attr:`datetime.timedelta`, optional
+            The time interval over which to test the new state (default is 1
+            second)
+
+        Returns
+        -------
+        : CovarianceMatrix
+            The transition covariance matrix
+
+        """
+        return CovarianceMatrix(self.noise * time_interval.total_seconds())
+
+    def function(self, orbital_state, noise=0,
+                 time_interval=timedelta(seconds=0)):
+        r"""Just passes parameters to the transition function
+
+        Parameters
+        ----------
+        orbital_state : :class:`~.OrbitalState`
+            The prior orbital state
+        noise : CovarianceMatrix, optional
+            The nominal covariance matrix. This isn't passed to the transition
+            function though, so can be left out.
+        time_interval: :math:`\delta t` :attr:`datetime.timedelta`, optional
+            The time interval over which to test the new state (default is 0
+            seconds)
+
+        Returns
+        -------
+        : StateVector
+            The orbital state vector returned by the transition function
+
+        Note
+        ----
+        This merely passes the parameters to the :attr:`.transition()`
+        function. The noise parameter has no effect, is included merely
+        for compatibility with parent classes.
+        """
+        return self.transition(orbital_state, time_interval)
+
+    def transition(self, orbital_state, time_interval=timedelta(seconds=0)):
+        r"""The transition proceeds as algorithm 3.4 in [1]
+
+        Parameters
+        ----------
+        orbital_state : :class:`~.OrbitalState`
+            The prior orbital state
+        time_interval: :math:`\delta t` :attr:`datetime.timedelta`, optional
+            The time interval over which to test the new state (default
+            is 0 seconds)
+
+        Returns
+        -------
+        : StateVector
+            The orbital state vector returned by the transition function
+
+        Warning
+        -------
+        If noisy samples from the transition function are required, use
+        the :attr:`rvs` method.
+        """
+        # Get the position and velocity vectors
+        # Evaluated at initial timestamp
+        tle_ext = Satrec.twoline2rv(orbital_state.state.metadata['line_1'],
+                                    orbital_state.state.metadata['line_2'])
+        jd, fr = jday(orbital_state.state.timestamp.year,
+                      orbital_state.state.timestamp.month,
+                      orbital_state.state.timestamp.day,
+                      orbital_state.state.timestamp.hour,
+                      orbital_state.state.timestamp.minute,
+                      orbital_state.state.timestamp.second)
+        e, bold_r_0, bold_v_0 = tle_ext.sgp4(jd, fr)
+
+        tt = orbital_state.state.timestamp + time_interval
+        jd, fr = jday(tt.year,tt.month,tt.day,
+                      tt.hour,tt.minute,tt.second)
+        e, bold_r, bold_v = tle_ext.sgp4(jd, fr)
+
 
         # And put them together
         return np.concatenate((bold_r, bold_v), axis=0)
