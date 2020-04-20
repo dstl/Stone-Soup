@@ -22,7 +22,7 @@ class BaseSensor(Base, ABC):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._platform_system: Optional[weakref.ref] = None
+        self._platform_system = None
 
     @property
     def platform(self) -> Optional[Platform]:
