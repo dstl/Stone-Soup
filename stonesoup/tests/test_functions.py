@@ -3,8 +3,8 @@ from numpy import deg2rad
 from pytest import approx
 
 from ..functions import (
-    jacobian, gm_reduce_single, mod_bearing, mod_elevation)
-from ..types.state import State
+    jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma)
+from ..types.state import State, GaussianState
 
 
 def test_jacobian():
@@ -109,3 +109,27 @@ def test_elevation():
 
     for ind, val in enumerate(rad_in):
         assert rad_out[ind] == approx(mod_elevation(val))
+
+
+def test_gauss2sigma_float():
+    mean = 1.0
+    covar = 2.0
+    state = GaussianState([[mean]], [[covar]])
+
+    sigma_points_states, mean_weights, covar_weights = gauss2sigma(state, kappa=0)
+
+    for n, sigma_point_state in zip((0, 1, -1), sigma_points_states):
+        assert sigma_point_state.state_vector[0, 0] == approx(mean + n*covar**0.5)
+
+
+def test_gauss2sigma_int():
+    mean = 1
+    covar = 2.0
+    state = GaussianState([[mean]], [[covar]])
+
+    sigma_points_states, mean_weights, covar_weights = gauss2sigma(state, kappa=0)
+
+    for n, sigma_point_state in zip((0, 1, -1), sigma_points_states):
+        # Resultant sigma points are still ints
+        assert sigma_point_state.state_vector[0, 0] == int(mean + n*covar**0.5)
+        assert isinstance(sigma_point_state.state_vector[0, 0], np.integer)

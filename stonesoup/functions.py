@@ -130,8 +130,11 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
 
     # Calculate sigma point locations
     sigma_points = np.tile(state.state_vector, (1, 2 * ndim_state + 1))
-    sigma_points[:, 1:(ndim_state + 1)] += sqrt_sigma * np.sqrt(c)
-    sigma_points[:, (ndim_state + 1):] -= sqrt_sigma * np.sqrt(c)
+    # Can't use in place addition/subtraction as casting issues may arise when mixing float/int
+    sigma_points[:, 1:(ndim_state + 1)] = \
+        sigma_points[:, 1:(ndim_state + 1)] + sqrt_sigma*np.sqrt(c)
+    sigma_points[:, (ndim_state + 1):] = \
+        sigma_points[:, (ndim_state + 1):] - sqrt_sigma*np.sqrt(c)
 
     # Put these sigma points into s State object list
     sigma_points_states = []
