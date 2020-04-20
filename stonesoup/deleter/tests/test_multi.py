@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from ..error import CovarianceBasedDeleter
-from ..multi import MultiDeleterIntersect, MultiDeleterUnion
+from ..multi import CompositeDeleter
 from ..time import UpdateTimeDeleter
 from ...types.detection import Detection
 from ...types.hypothesis import SingleHypothesis
@@ -14,12 +14,12 @@ from ...types.track import Track
 from ...types.update import GaussianStateUpdate
 
 
-@pytest.fixture(params=[MultiDeleterIntersect, MultiDeleterUnion])
-def multi_deleter_class(request):
+@pytest.fixture(params=[True, False])
+def intersect(request):
     return request.param
 
 
-def test_multi_deleter_single(multi_deleter_class):
+def test_multi_deleter_single(intersect):
     """Test multi deleter classes with a single deleter"""
 
     # Create covariance based deleter
@@ -40,7 +40,7 @@ def test_multi_deleter_single(multi_deleter_class):
     deleter = CovarianceBasedDeleter(cover_deletion_thresh)
 
     # Test intersect deleter
-    multi_deleter = multi_deleter_class([deleter])
+    multi_deleter = CompositeDeleter([deleter], intersect)
     deleted_tracks = multi_deleter.delete_tracks(tracks)
     tracks -= deleted_tracks
 
@@ -48,13 +48,13 @@ def test_multi_deleter_single(multi_deleter_class):
     assert (len(deleted_tracks) == 1)
 
 
-def test_multi_deleter_multiple(multi_deleter_class):
+def test_multi_deleter_multiple(intersect):
     """Test multi deleter classes with multiple deleters"""
 
     cover_deletion_thresh = 99
     deleter = CovarianceBasedDeleter(cover_deletion_thresh)
     deleter2 = UpdateTimeDeleter(datetime.timedelta(minutes=10))
-    multi_deleter = multi_deleter_class([deleter, deleter2])
+    multi_deleter = CompositeDeleter([deleter, deleter2], intersect)
 
     # Create track that is not deleted by either deleter
     track = Track([
@@ -92,7 +92,7 @@ def test_multi_deleter_multiple(multi_deleter_class):
     deleted_tracks = multi_deleter.delete_tracks(tracks)
     tracks -= deleted_tracks
 
-    if isinstance(multi_deleter, MultiDeleterIntersect):
+    if intersect:
         assert len(tracks) == 1
         assert len(deleted_tracks) == 0
     else:
