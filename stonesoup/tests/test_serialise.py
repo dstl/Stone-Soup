@@ -105,6 +105,18 @@ def test_datetime(base, serialised_file):
     assert instance.property_d == new_instance.property_d
 
 
+def test_deque(base, serialised_file):
+    from collections import deque
+
+    max_len = 5
+    instance = deque([3, 4, 5, 6, 7, 8, 9], max_len)
+
+    serialised_str = serialised_file.dumps(instance)
+
+    new_instance = serialised_file.load(serialised_str)
+    assert new_instance == instance
+
+
 def test_path(serialised_file):
     import pathlib
     import tempfile
