@@ -37,6 +37,14 @@ class Platform(Base, ABC):
             :class:`~.MovingPlatform`
 
         """
+    state = Property(State, doc="The platform state at any given point. For a static platform, "
+                                "this would usually contain its position coordinates in the form"
+                                "``[x, y, z]``. For a moving platform it would contain position "
+                                "and velocity interleaved: ``[x, vx, y, vy, z, vz]``")
+    position_mapping = Property(Sequence[int],
+                                doc="Mapping between platform position and state vector. For a "
+                                    "position-only 3d platform this might be ``[0, 1, 2]``. For a "
+                                    "position and velocity platform: ``[0, 2, 4]``")
     rotation_offsets = Property(List[StateVector], default=None,
                                 doc="A list of StateVectors containing the sensor rotation "
                                     "offsets from the platform's primary axis (defined as the "
@@ -49,14 +57,6 @@ class Platform(Base, ABC):
                                     ":attr:`position_mapping`")
     sensors = Property(List["BaseSensor"],  default=None,
                        doc="A list of N mounted sensors. Defaults to an empty list")
-    state = Property(State, doc="The platform state at any given point. For a static platform, "
-                                "this would usually contain its position coordinates in the form"
-                                "``[x, y, z]``. For a moving platform it would contain position "
-                                "and velocity interleaved: ``[x, vx, y, vy, z, vz]``")
-    position_mapping = Property(Sequence[int],
-                                doc="Mapping between platform position and state vector. For a "
-                                    "position-only 3d platform this might be ``[0, 1, 2]``. For a "
-                                    "position and velocity platform: ``[0, 2, 4]``")
     velocity_mapping = Property(Sequence[int], default=None,
                                 doc="Mapping between platform velocity and state dims. If not "
                                     "set, it will default to ``[m+1 for m in position_mapping]``")
