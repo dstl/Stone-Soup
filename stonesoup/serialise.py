@@ -13,11 +13,13 @@ from collections import OrderedDict
 from functools import lru_cache
 from pathlib import Path
 from importlib import import_module
+from warnings import warn
 
 import numpy as np
 import ruamel.yaml
 from ruamel.yaml.constructor import ConstructorError
 
+from stonesoup.sensor.sensor import Sensor
 from .base import Base
 
 
@@ -90,6 +92,8 @@ class YAML:
 
         Store as mapping of declared properties, skipping any which are the
         default value."""
+        if isinstance(node, Sensor) and node._has_internal_platform:
+            warn('Sensors with internal platforms will  not currently serialise')
         return representer.represent_omap(
             cls.yaml_tag(type(node)),
             OrderedDict((name, getattr(node, name))
