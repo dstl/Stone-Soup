@@ -171,19 +171,20 @@ class TensorFlowBoxObjectDetector(Detector):
             [boxes, scores, classes, num_detections],
             feed_dict={image_tensor: image_np_expanded})
 
-        classes = np.squeeze(classes).astype(np.int32)
-        boxes = np.squeeze(boxes)
-        scores = np.squeeze(scores)
+        num_detections = int(num_detections)
+        classes = classes[0, :num_detections].astype(np.int32)
+        boxes = boxes[0, :num_detections]
+        scores = scores[0, :num_detections]
 
         # Empty detection set
         frame_height, frame_width, _ = frame.pixels.shape
         detections = set()
-        for i, box in enumerate(boxes):
+        for box, class_, score in zip(boxes, classes, scores):
             metadata = {
-                "raw_box": boxes[i],
-                "class": self.category_index[classes[i]],
-                "score": scores[i]
-            }
+                "raw_box": box,
+                "class": self.category_index[class_],
+                "score": score
+             }
             # Transform box to be in format (x, y, w, h)
             box_xy = np.array([[box[1]*frame_width],
                                [box[0]*frame_height],
