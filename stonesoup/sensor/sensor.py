@@ -18,9 +18,6 @@ class Sensor(BaseSensor, ABC):
     platform for the Sensor. This restricts the later setting of the :attr:`platform_system` but
     does allow the Sensor to control (and set) its own position and orientation.
 
-    .. note::
-        Note that Sensors with internal platforms do not currently serialise correctly, due to the
-        current implementation of position and velocity as parameters to ``__init__``.
     """
     # this functionality requires knowledge of FixedPlatform so cannot go in the BaseSensor
     # class
