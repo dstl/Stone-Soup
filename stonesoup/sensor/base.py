@@ -54,7 +54,7 @@ class BaseSensor(Base, ABC):
         raise NotImplementedError
 
     @property
-    def position(self) -> StateVector:
+    def position(self) -> Optional[StateVector]:
         """The sensor position on a 3D Cartesian plane, expressed as a 3x1 :class:`StateVector`
         of Cartesian coordinates in the order :math:`x,y,z`.
 
@@ -63,6 +63,8 @@ class BaseSensor(Base, ABC):
             sensor is mounted.
 
             It is settable if, and only if, the sensor holds its own internal platform."""
+        if self.platform is None:
+            return None
         return self.platform.get_sensor_position(self)
 
     @position.setter
@@ -74,7 +76,7 @@ class BaseSensor(Base, ABC):
                                  'default platform')
 
     @property
-    def orientation(self):
+    def orientation(self) -> Optional[StateVector]:
         """A 3x1 StateVector of angles (rad), specifying the sensor orientation in terms of the
         counter-clockwise rotation around each Cartesian axis in the order :math:`x,y,z`.
         The rotation angles are positive if the rotation is in the counter-clockwise
@@ -86,6 +88,8 @@ class BaseSensor(Base, ABC):
             the sensor is mounted.
 
             It is settable if, and only if, the sensor holds its own internal platform."""
+        if self.platform is None:
+            return None
         return self.platform.get_sensor_orientation(self)
 
     @orientation.setter
