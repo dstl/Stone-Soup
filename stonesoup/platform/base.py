@@ -47,7 +47,8 @@ class Platform(Base, ABC):
                                     "offsets from the platform's reference point. Defaults to "
                                     "a zero vector with the same length as the Platform's "
                                     ":attr:`position_mapping`")
-    sensors = Property(List["BaseSensor"], doc="A list of N mounted sensors", default=[])
+    sensors = Property(List["BaseSensor"],  default=None,
+                       doc="A list of N mounted sensors. Defaults to an empty list")
     state = Property(State, doc="The platform state at any given point. For a static platform, "
                                 "this would usually contain its position coordinates in the form"
                                 "``[x, y, z]``. For a moving platform it would contain position "
@@ -69,6 +70,10 @@ class Platform(Base, ABC):
         """
         super().__init__(*args, **kwargs)
         # Set values to defaults if not provided
+
+        if self.sensors is None:
+            self.sensors = []
+
         if self.velocity_mapping is None:
             self.velocity_mapping = [p + 1 for p in self.position_mapping]
 
@@ -269,8 +274,14 @@ class FixedPlatform(Platform):
 
         .. note:: Position and orientation are a read/write properties in this class.
         """
-    orientation = Property(StateVector, default=StateVector([0, 0, 0]),
-                           doc='A fixed orientation of the static platform')
+    orientation = Property(StateVector, default=None,
+                           doc='A fixed orientation of the static platform. '
+                               'Defaults to the zero vector')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.orientation is None:
+            self.orientation = StateVector([0, 0, 0])
 
     def _set_position(self, value: StateVector) -> None:
         self.state_vector[self.position_mapping, :] = value
