@@ -104,7 +104,7 @@ def test_asdkalman():
         @ transition_model.matrix(timestamp=new_timestamp,
                                   time_interval=time_interval).T
         + transition_model.covar(timestamp=new_timestamp,
-                                 time_interval=time_interval), timestamps=[new_timestamp])
+                                 time_interval=time_interval), timestamps=[new_timestamp], act_timestamp=new_timestamp)
 
     # Initialise a kalman predictor
     predictor = ASDKalmanPredictor(transition_model=transition_model)
