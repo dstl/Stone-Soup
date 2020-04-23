@@ -130,7 +130,7 @@ def test_asdgaussianstateprediction():
         ASDGaussianStatePrediction(mean)
 
     # Test state prediction
-    state_prediction = ASDGaussianStatePrediction(multi_state_vector=mean, multi_covar=covar, timestamps=[timestamp])
+    state_prediction = ASDGaussianStatePrediction(multi_state_vector=mean, multi_covar=covar, timestamps=[timestamp], act_timestamp=timestamp)
     assert(np.array_equal(mean, state_prediction.mean))
     assert(np.array_equal(covar, state_prediction.covar))
     assert(state_prediction.ndim == mean.shape[0])

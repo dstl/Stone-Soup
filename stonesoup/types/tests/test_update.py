@@ -97,7 +97,7 @@ def test_asdgaussianstateupdate():
 
     prediction = ASDGaussianStatePrediction(multi_state_vector=state_vector,
                                          multi_covar=covar,
-                                         timestamps=[timestamp])
+                                         timestamps=[timestamp], act_timestamp=timestamp)
     meas_pred = ASDGaussianMeasurementPrediction(
         multi_state_vector=np.array([[2], [2], [1.5], [1.5]]),
         multi_covar=np.ones([4, 4]) * 2,
