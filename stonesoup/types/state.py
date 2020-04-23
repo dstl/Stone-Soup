@@ -250,7 +250,8 @@ class ASDGaussianState(ASDState):
     is described by a Gaussian state distribution.
     """
     correlation_matrices = Property(OrderedDict, default=OrderedDict({}),
-                                    doc="This is the dict of Correlation Matrices which is build during running the Kalman predictor and Kalman updater")
+                                    doc="This is the dict of Correlation Matrices, consisting of P_{l|l}, P_{l|l+1} and "
+                                        +"F_{l+1|l} which is build during running the Kalman predictor and Kalman updater")
 
     multi_covar = Property(CovarianceMatrix)
 

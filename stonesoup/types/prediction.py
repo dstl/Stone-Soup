@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import datetime
+
 from ..base import Property
 from .array import CovarianceMatrix
 from .base import Type
@@ -46,6 +48,7 @@ class ASDGaussianStatePrediction(Prediction, ASDGaussianState):
     This is a simple ASDGaussian state prediction object, which, as the name
     suggests, is described by a Gaussian distribution.
     """
+    act_timestamp = Property(datetime.datetime, doc="The timestamp for which the state is predicted")
 
 class SqrtGaussianStatePrediction(Prediction, SqrtGaussianState):
     """ SqrtGaussianStatePrediction type
