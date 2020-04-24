@@ -1,9 +1,8 @@
 import numpy as np
-import pytest
+
 from datetime import datetime, timedelta
 
 from ...types.detection import Detection
-from ...astronomical_conversions import local_sidereal_time
 from ..preliminaryorbitdetermination import GibbsInitiator, LambertInitiator, \
     RangeAltAzInitiator, GaussInitiator
 
@@ -89,7 +88,7 @@ def test_lambert_initiator():
     r2 = Detection(np.array([[145820], [12758], [0]]), timestamp=time2)
 
     # This time there's a measured angular deviation
-    dtrue_anomaly = 5/180 * np.pi # That's 5 degrees.
+    dtrue_anomaly = 5/180 * np.pi  # That's 5 degrees.
 
     # Set the answers to what the book says
     v1 = np.array([[-2.4356], [0.26741], [0]])
@@ -188,8 +187,8 @@ def test_gauss_initiator():
                           [5115.6], [-2238.7]])
 
     # The iterated improvement will be
-    out_state_i = np.array([[5662.1e3], [6538e3], [3269e3], [-3885.6],
-                            [5121.4], [-2243.3]])
+    # out_state_i = np.array([[5662.1e3], [6538e3], [3269e3], [-3885.6],
+    #                        [5121.4], [-2243.3]])
 
     # Create the initiator
     ginitiator = GaussInitiator()

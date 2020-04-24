@@ -57,7 +57,8 @@ def local_sidereal_time(longitude, datetime_ut=None):
     t0 = (j0 - 2451545)/36525
 
     # The Greenwich sidereal time at 0 UT (in degrees)
-    theta_g0 = (100.4606184 + 36000.77004*t0 + 0.000387933*t0**2 - 2.583e-8*t0**3) % 360
+    theta_g0 = (100.4606184 + 36000.77004*t0 + 0.000387933*t0**2 -
+                2.583e-8*t0**3) % 360
 
     # The Greenwich sidereal time at this UT
     theta_g = theta_g0 + 360.98564724*ut/24
@@ -109,8 +110,8 @@ def topocentric_to_geocentric(latitude, longitude, height, datetime_ut=None,
     # Get the local sidereal time
     lst = local_sidereal_time(longitude, datetime_ut=ldt)
 
-    coeff1 = (radius_p /(np.sqrt(1 - (2*flattening - flattening**2) *
-                                 np.sin(latitude)**2)) + height) * \
+    coeff1 = (radius_p / (np.sqrt(1 - (2*flattening - flattening**2) *
+                                  np.sin(latitude)**2)) + height) * \
         np.cos(latitude)
 
     coeff2 = ((radius_p * (1 - flattening)**2)/(np.sqrt(1 - (2*flattening -
@@ -178,15 +179,15 @@ def topocentric_altaz_to_radec(altitude, azimuth, latitude, longitude,
 
     # calculate RA
     rightascension = local_sidereal_time(longitude, datetime_ut=ldt) - \
-                     hourangle
+        hourangle
 
     return rightascension, declination
 
 
 def topocentric_altaz_to_radecrate(altitude, azimuth, altituderate,
                                    azimuthrate, latitude, longitude,
-                                   datetime_ut=None, inertial_angular_velocity=
-                                   7.292115e-5):
+                                   datetime_ut=None,
+                                   inertial_angular_velocity=7.292115e-5):
     """Convert the topocentric rates of change of altitude and azimuth of
     a target observed from a particular location (specified by the
     latitude and longitude, and time) into the (absolute) rates of change
@@ -246,17 +247,17 @@ def topocentric_altaz_to_radecrate(altitude, azimuth, altituderate,
 
 
 def direction_cosine_unit_vector(ra, dec):
-    """Calculate the direction cosine unit vector from the Right 
+    """Calculate the direction cosine unit vector from the Right
     Ascension and Declination
-    
+
     Parameters
     ----------
     ra : float  # TODO - change this to bearing class?
         The target Right Ascension
     dec : float
         The target's Declination
-        
-    Returns 
+
+    Returns
     -------
     : np.array
         3x1 vector of direction cosines

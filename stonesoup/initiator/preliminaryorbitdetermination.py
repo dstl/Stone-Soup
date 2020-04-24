@@ -4,7 +4,7 @@ import numpy as np
 from datetime import datetime
 
 from ..functions import dotproduct as dot, crossproduct as cross
-from ..orbital_functions import stumpf_s, stumpf_c, universal_anomaly_newton, \
+from ..orbital_functions import stumpf_s, stumpf_c, \
     lagrange_coefficients_from_universal_anomaly
 from ..astronomical_conversions import topocentric_to_geocentric, \
     topocentric_altaz_to_radec, topocentric_altaz_to_radecrate, \
@@ -24,10 +24,10 @@ class OrbitalInitiator(Initiator):
     """
     grav_parameter = Property(
         float, default=3.986004418e14, doc=r"Standard gravitational "
-                                             r"parameter. Defaults to the "
-                                             r"Earth's value (3.986004418 "
-                                             r"\times 10^{14} mathrm{m}^{3} "
-                                             r"\mathrm{s}^{-2})."
+                                           r"parameter. Defaults to the "
+                                           r"Earth's value (3.986004418 "
+                                           r"\times 10^{14} mathrm{m}^{3} "
+                                           r"\mathrm{s}^{-2})."
     )
 
     latitude = Property(
@@ -203,7 +203,7 @@ class GibbsInitiator(OrbitalInitiator):
             track = Track()
             for det, rr in zip(detection, r):
                 brr = det.state_vector
-                bvv = np.sqrt(self.grav_parameter/
+                bvv = np.sqrt(self.grav_parameter /
                               (np.linalg.norm(bign)*np.linalg.norm(bigd))) * \
                     (cross(bigd, brr)/rr + bigs)
 
@@ -305,10 +305,10 @@ class LambertInitiator(OrbitalInitiator):
             # position vector norms
             r = np.linalg.norm(br, axis=1)
 
-            """If the true anomaly is not supplied then one must decide on 
+            """If the true anomaly is not supplied then one must decide on
             either a prograde or a retrograde orbit. There's a clear ambiguity
-            in considering 2 points (it could have gone round either way). 
-            We'll resolve this by assuming that the smallest angular deviation 
+            in considering 2 points (it could have gone round either way).
+            We'll resolve this by assuming that the smallest angular deviation
             is correct, unless the <direction> keyword is supplied."""
             if true_anomaly is None:
                 crossr = cross(br[0], br[1])
@@ -321,9 +321,10 @@ class LambertInitiator(OrbitalInitiator):
                         (direction.lower() == "retrograde" and crossr[2] >= 0):
                     dtheta = 2*np.pi - cterm
                 else:
-                    # if direction isn't specified use the smallest angle (in 0 <
-                    # theta <= pi)
-                    dtheta = min(cterm % (2*np.pi), (2*np.pi-cterm) % (2*np.pi))
+                    # if direction isn't specified use the smallest angle (in 0
+                    # < theta <= pi)
+                    dtheta = min(cterm % (2*np.pi), (2*np.pi-cterm) %
+                                 (2*np.pi))
             else:
                 dtheta = true_anomaly
 
@@ -333,12 +334,13 @@ class LambertInitiator(OrbitalInitiator):
             z = 0
             fratio = 1
             while abs(fratio) > self._z_precision:
-                y = r[0] + r[1] + biga * (z*stumpf_s(z) - 1)/(np.sqrt(stumpf_c(z)))
+                y = r[0] + r[1] + biga * (z*stumpf_s(z) - 1) /\
+                    (np.sqrt(stumpf_c(z)))
 
-                # Need to ensure that the units of the gravitational parameter are
-                # in seconds
-                bigf = (y/stumpf_c(z))**1.5 * stumpf_s(z) + biga * np.sqrt(y) - \
-                    np.sqrt(self.grav_parameter) * deltat.total_seconds()
+                # Need to ensure that the units of the gravitational parameter
+                # are in seconds
+                bigf = (y/stumpf_c(z))**1.5 * stumpf_s(z) + biga * np.sqrt(y) \
+                    - np.sqrt(self.grav_parameter) * deltat.total_seconds()
 
                 if z == 0:
                     bigfp = (np.sqrt(2)/40) * y**1.5 + biga/8 * \
@@ -346,7 +348,7 @@ class LambertInitiator(OrbitalInitiator):
                 else:
                     bigfp = (y/stumpf_c(z))**1.5 * (
                             (1/(2*z))*(stumpf_c(z) -
-                                     3*stumpf_s(z)/(2*stumpf_c(z))) +
+                                       3*stumpf_s(z)/(2*stumpf_c(z))) +
                             (3*stumpf_s(z)**2/(4*stumpf_c(z)))) + biga/8 * \
                             (3*stumpf_s(z)/stumpf_c(z) * np.sqrt(y) +
                              biga*np.sqrt(stumpf_c(z)/y))
@@ -358,7 +360,8 @@ class LambertInitiator(OrbitalInitiator):
             g = biga*np.sqrt(y/self.grav_parameter)
             gdot = 1 - y/r[1]
 
-            bv = np.array([1/g * (br[1] - f*br[0]), 1/g * (gdot*br[1] - br[0])])
+            bv = np.array([1/g * (br[1] - f*br[0]), 1/g * (gdot*br[1] -
+                                                           br[0])])
 
             track = Track()
             for det, brr, bvv in zip(detection, br, bv):
@@ -453,15 +456,11 @@ class RangeAltAzInitiator(OrbitalInitiator):
             bigrdot = cross(omega, bigr)
 
             # Rate of change in RA and Dec
-            radot, decdot = topocentric_altaz_to_radecrate(rn_al_az[1],
-                                                           rn_al_az[2],
-                                                           rn_al_az[4],
-                                                           rn_al_az[5],
-                                                           latitude, longitude,
-                                                           datetime_ut=
-                                                           detection.timestamp,
-                                                           inertial_angular_velocity=
-                                                           self.inertial_angular_velocity)
+            radot, decdot = \
+                topocentric_altaz_to_radecrate(
+                    rn_al_az[1], rn_al_az[2], rn_al_az[4], rn_al_az[5],
+                    latitude, longitude, datetime_ut=detection.timestamp,
+                    inertial_angular_velocity=self.inertial_angular_velocity)
 
             # Direction rate cosine vector
             du_rho = direction_rate_cosine_unit_vector(ra, dec, radot, decdot)
@@ -503,18 +502,17 @@ class GaussInitiator(OrbitalInitiator):
     """
     allowed_range = Property(
         np.array, default=np.array([6378100, 384400000]),
-        doc="This is the range interval within which to restrict consideration "
-            "of orbits when initiating tracks. The default extends between the "
-            "earth's surface and the orbit of the moon."
+        doc="This is the range interval within which to restrict consideration"
+            " of orbits when initiating tracks. The default extends between "
+            "the earth's surface and the orbit of the moon."
     )
 
     itr_improvement_factor = Property(
-        float, default=None, doc="Carry out the iterative improvement to the "
-                                "preliminary orbit estimate via the universal "
-                                "Kepler equation until the change in the slant"
-                                 "ranges falls below this number."
+        float, default=None, doc="Carry out the iterative improvement to the"
+                                 "preliminary orbit estimate via the universal"
+                                 " Kepler equation until the change in the "
+                                 "slant ranges falls below this number."
     )
-
 
     def initiate(self, detections, latitude=None, longitude=None, height=None,
                  uanom_precision=1e-8, **kwargs):
@@ -588,9 +586,9 @@ class GaussInitiator(OrbitalInitiator):
                 timetriple.append(detection.timestamp)
 
                 # extract the position vectors as a list
-                bigr.append(topocentric_to_geocentric(latitude, longitude,
-                                                      height, datetime_ut=
-                                                      detection.timestamp))
+                bigr.append(topocentric_to_geocentric(
+                    latitude, longitude, height,
+                    datetime_ut=detection.timestamp))
 
                 # The cosine unit vector in the direction of the target
                 dcuv.append(direction_cosine_unit_vector(
@@ -630,8 +628,8 @@ class GaussInitiator(OrbitalInitiator):
             smlc = -self.grav_parameter**2 * bigb**2
 
             # Find the roots of this equation:
-            '''Set a range of reasonable values within which to restrict the 
-            roots (in the class). Then pick the (hopefully one) non-complex 
+            '''Set a range of reasonable values within which to restrict the
+            roots (in the class). Then pick the (hopefully one) non-complex
             non-negative root. If more than one is found, raise a warning and
              pick the one with lowest value...'''
             # Set up the coefficient matrix
@@ -669,7 +667,8 @@ class GaussInitiator(OrbitalInitiator):
                         boldr.append(bigrr + rho*dcuvv)
 
                     # middle velocity
-                    boldv2 = (1 / (f1 * g3 - f3 * g1)) * (-f3 * boldr[0] + f1 * boldr[2])
+                    boldv2 = (1 / (f1 * g3 - f3 * g1)) * (-f3 * boldr[0] +
+                                                          f1 * boldr[2])
 
                     # This is the approximate answer. Do we want to invoke the
                     # iterative improvement which uses the universal Kepler
@@ -696,7 +695,8 @@ class GaussInitiator(OrbitalInitiator):
 
                         # Use these to get updated rhos and thereby updated
                         # boldrs. Stop if the rhos don't change enough
-                        drhos = np.subtract(slantrangefromcd(c1, c3, bigd), rhos)
+                        drhos = np.subtract(slantrangefromcd(c1, c3, bigd),
+                                            rhos)
 
                         # Calculate the position vectors of three input points
                         boldr = []
@@ -717,16 +717,11 @@ class GaussInitiator(OrbitalInitiator):
                             rhos += drhos
 
                     """Concatenate r2 and v2 and construct the state and add it
-                     to the tracks. Note that this 'solves' the issue of 
+                     to the tracks. Note that this 'solves' the issue of
                      multiple roots by adding more tracks, which can't both
                      be true. TODO: consider choosing best track?"""
-                    tracks.add(Track(OrbitalState(np.concatenate((boldr[1],
-                                                                  boldv2),
-                                                                 axis=0),
-                                                  timestamp=
-                                                  detection.timestamp)))
-
+                    tracks.add(Track(OrbitalState(
+                        np.concatenate((boldr[1], boldv2), axis=0),
+                        timestamp=detection.timestamp)))
 
         return tracks
-
-
