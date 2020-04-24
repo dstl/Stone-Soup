@@ -455,6 +455,7 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
                                            time_interval=time_interval))
         # ravel appears to be necessary here.
 
+
 class SGP4TransitionModel(OrbitalTransitionModel, NonLinearModel):
     """This class wraps https://pypi.org/project/sgp4/
 
@@ -467,12 +468,6 @@ class SGP4TransitionModel(OrbitalTransitionModel, NonLinearModel):
         CovarianceMatrix, default=CovarianceMatrix(np.zeros((6, 6))),
         doc=r"Transition noise covariance :math:`\Sigma` per unit time "
             r"interval (assumed seconds)")
-
-    _uanom_precision = Property(
-        float, default=1e-8, doc="The stopping point in the progression of "
-                                 "ever smaller f/f' ratio in the the Newton's "
-                                 "method calculation of universal anomaly."
-    )
 
     @property
     def ndim_state(self):
@@ -532,7 +527,7 @@ class SGP4TransitionModel(OrbitalTransitionModel, NonLinearModel):
         return self.transition(orbital_state, time_interval)
 
     def transition(self, orbital_state, time_interval=timedelta(seconds=0)):
-        r"""The transition proceeds as algorithm 3.4 in [1]
+        r"""
 
         Parameters
         ----------
@@ -552,23 +547,20 @@ class SGP4TransitionModel(OrbitalTransitionModel, NonLinearModel):
         If noisy samples from the transition function are required, use
         the :attr:`rvs` method.
         """
-        # Get the position and velocity vectors
-        # Evaluated at initial timestamp
-        tle_ext = Satrec.twoline2rv(orbital_state.state.metadata['line_1'],
-                                    orbital_state.state.metadata['line_2'])
-        jd, fr = jday(orbital_state.state.timestamp.year,
-                      orbital_state.state.timestamp.month,
-                      orbital_state.state.timestamp.day,
-                      orbital_state.state.timestamp.hour,
-                      orbital_state.state.timestamp.minute,
-                      orbital_state.state.timestamp.second)
-        e, bold_r_0, bold_v_0 = tle_ext.sgp4(jd, fr)
 
-        tt = orbital_state.state.timestamp + time_interval
-        jd, fr = jday(tt.year,tt.month,tt.day,
-                      tt.hour,tt.minute,tt.second)
+        # Evaluated at initial timestamp
+        tle_ext = Satrec.twoline2rv(orbital_state.metadata['line_1'],
+                                    orbital_state.metadata['line_2'])
+
+        # Predict over time interval
+        tt = orbital_state.timestamp + time_interval
+
+        jd, fr = jday(tt.year, tt.month, tt.day,
+                      tt.hour, tt.minute, tt.second)
+        # WARNING: These units returned as km and km/s
         e, bold_r, bold_v = tle_ext.sgp4(jd, fr)
 
+        # Update the metadata?
 
         # And put them together
         return np.concatenate((bold_r, bold_v), axis=0)
