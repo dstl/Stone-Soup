@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import datetime
+from copy import deepcopy
 
 import numpy as np
 
@@ -91,8 +92,9 @@ def test_detection_simulator(sensor_model1,
                              sensor_model2,
                              transition_model1):
 
-    platform1 = build_platform([sensor_model1, sensor_model2], 1)
-    platform2 = build_platform([sensor_model1], 2)
+    # take copies of sensor_model1, otherwise sensor is TRANSFERRED from platform1 to platform2
+    platform1 = build_platform([deepcopy(sensor_model1), sensor_model2], 1)
+    platform2 = build_platform([deepcopy(sensor_model1)], 2)
 
     initial_state = State(np.array([[0], [0], [0], [0]]),
                           timestamp=datetime.datetime(2020, 4, 1))
