@@ -4,6 +4,7 @@ from pytest import approx
 
 from ..functions import (
     jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma)
+from ..types.array import StateVector, StateVectors
 from ..types.state import State, GaussianState
 
 
@@ -11,7 +12,7 @@ def test_jacobian():
     """ jacobian function test """
 
     # State related variables
-    state_mean = np.array([[3.0], [1.0]])
+    state_mean = StateVector([[3.0], [1.0]])
 
     def f(x):
         return np.array([[1, 1], [0, 1]])@x.state_vector
@@ -41,10 +42,10 @@ def test_jacobian2():
         return out
 
     x = 3
-    jac = jacobian(fun, State(np.array([[x]])))
+    jac = jacobian(fun, State(StateVector([[x]])))
     assert np.allclose(jac, 4*x)
 
-    x = np.array([[1], [2]])
+    x = StateVector([[1], [2]])
     # Tolerance value to use to test if arrays are equal
     tol = 1.0e-5
 
@@ -65,7 +66,7 @@ def test_jacobian2():
 
 def test_jacobian_large_values():
     # State related variables
-    state = State(np.array([[1E10], [1.0]]))
+    state = State(StateVector([[1E10], [1.0]]))
 
     def f(x):
         return x.state_vector**2
@@ -76,10 +77,10 @@ def test_jacobian_large_values():
 
 def test_gm_reduce_single():
 
-    means = np.array([[1, 2], [3, 4], [5, 6]])
-    covars = np.array([[[1, 1], [1, 0.7]],
+    means = StateVectors([StateVector([1, 2]), StateVector([3, 4]), StateVector([5, 6])])
+    covars = np.stack([[[1, 1], [1, 0.7]],
                        [[1.2, 1.4], [1.3, 2]],
-                       [[2, 1.4], [1.2, 1.2]]])
+                       [[2, 1.4], [1.2, 1.2]]], axis=2)
     weights = np.array([1, 2, 5])
 
     mean, covar = gm_reduce_single(means, covars, weights)

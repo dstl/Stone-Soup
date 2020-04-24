@@ -11,7 +11,7 @@ from ...base import ReversibleModel
 from ....types.state import State
 from ....functions import jacobian as compute_jac
 from ....types.angle import Bearing, Elevation
-from ....types.array import StateVector, Matrix
+from ....types.array import StateVector, StateVectors
 from ....functions import pol2cart
 
 
@@ -212,8 +212,7 @@ def test_models(h, ModelClass, state_vec, R,
     assert isinstance(rvs, StateVector)
     rvs = model.rvs(10)
     assert rvs.shape == (model.ndim_meas, 10)
-    assert isinstance(rvs, Matrix)
-    # StateVector is subclass of Matrix, so need to check explicitly.
+    assert isinstance(rvs, StateVectors)
     assert not isinstance(rvs, StateVector)
 
     # Project a state through the model

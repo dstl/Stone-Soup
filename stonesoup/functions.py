@@ -5,7 +5,7 @@ import numpy as np
 from copy import copy
 
 from .types.numeric import Probability
-from .types.array import Matrix
+from .types.array import StateVector, StateVectors, CovarianceMatrix
 
 
 def tria(matrix):
@@ -129,9 +129,7 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
     c = ndim_state + lamda
 
     # Calculate sigma point locations
-    sigma_points = np.tile(state.state_vector, (1, 2 * ndim_state + 1))
-    # as sigma_points is a 2d it should no longer be a StateVector
-    sigma_points = Matrix(sigma_points)
+    sigma_points = StateVectors([state.state_vector for _ in range(2 * ndim_state + 1)])
     # Can't use in place addition/subtraction as casting issues may arise when mixing float/int
     sigma_points[:, 1:(ndim_state + 1)] = \
         sigma_points[:, 1:(ndim_state + 1)] + sqrt_sigma*np.sqrt(c)
@@ -142,7 +140,7 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
     sigma_points_states = []
     for sigma_point in sigma_points.T:
         state_copy = copy(state)
-        state_copy.state_vector = np.atleast_2d(sigma_point).T
+        state_copy.state_vector = StateVector(sigma_point)
         sigma_points_states.append(state_copy)
 
     # Calculate weights
@@ -178,14 +176,14 @@ def sigma2gauss(sigma_points, mean_weights, covar_weights, covar_noise=None):
         Calculated covariance
     """
 
-    mean = sigma_points@mean_weights[:, np.newaxis]
+    mean = np.average(sigma_points, axis=1, weights=mean_weights)
 
     points_diff = sigma_points - mean
 
     covar = points_diff@(np.diag(covar_weights))@(points_diff.T)
     if covar_noise is not None:
         covar = covar + covar_noise
-    return mean, covar
+    return mean.view(StateVector), covar.view(CovarianceMatrix)
 
 
 def unscented_transform(sigma_points_states, mean_weights, covar_weights,
@@ -231,30 +229,21 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
     : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
         An array containing the transformed sigma point covariance weights
     """
-
-    n_points = len(sigma_points_states)
-    ndim_state = len(sigma_points_states[0].state_vector)
-
     # Reconstruct the sigma_points matrix
-    sigma_points = np.empty((ndim_state, 0))
-    for sigma_points_state in sigma_points_states:
-        sigma_points = np.c_[sigma_points, sigma_points_state.state_vector]
+    sigma_points = StateVectors([
+        sigma_points_state.state_vector for sigma_points_state in sigma_points_states])
 
     # Transform points through f
-    sigma_points_t = np.zeros((ndim_state, n_points))
     if points_noise is None:
-        sigma_points_t = np.asarray(
-            [fun(sigma_points_states[i])
-             for i in range(n_points)]).squeeze(2).T
+        sigma_points_t = StateVectors([
+            fun(sigma_points_state) for sigma_points_state in sigma_points_states])
     else:
-        sigma_points_t = np.asarray(
-            [fun(sigma_points_states[i], points_noise[:, i:i+1])
-             for i in range(n_points)]).squeeze(2).T
-    sigma_points_t = sigma_points_t.view(Matrix)
+        sigma_points_t = StateVectors([
+            fun(sigma_points_state, points_noise)
+            for sigma_points_state, point_noise in zip(sigma_points_states, points_noise.T)])
 
     # Calculate mean and covariance approximation
-    mean, covar = sigma2gauss(
-        sigma_points_t, mean_weights, covar_weights, covar_noise)
+    mean, covar = sigma2gauss(sigma_points_t, mean_weights, covar_weights, covar_noise)
 
     # Calculate cross-covariance
     cross_covar = (
@@ -263,8 +252,7 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
         @(sigma_points_t-mean).T
     )
 
-    return mean, covar, cross_covar,\
-        sigma_points_t, mean_weights, covar_weights
+    return mean, covar, cross_covar, sigma_points_t, mean_weights, covar_weights
 
 
 def cart2pol(x, y):
@@ -495,40 +483,31 @@ def gm_reduce_single(means, covars, weights):
 
     Parameters
     ----------
-    means : np.array of shape (num_components, num_dims)
+    means : :class:`~.StateVectors`
         The means of the GM components
-    covars : np.array of shape (num_components, num_dims, num_dims)
+    covars : np.array of shape (num_dims, num_dims, num_components)
         The covariance matrices of the GM components
     weights : np.array of shape (num_components,)
         The weights of the GM components
 
     Returns
     -------
-    np.array of shape (num_dims, 1)
+    : :class:`~.StateVector`
         The mean of the reduced/single Gaussian
-    np.array of shape (num_dims, num_dims)
+    : :class:`~.CovarianceMatrix`
         The covariance of the reduced/single Gaussian
     """
-
-    # Compute dimensionality variables
-    num_components, num_dims = np.shape(means)
-
     # Normalise weights such that they sum to 1
     weights = weights/Probability.sum(weights)
 
     # Calculate mean
-    mean = np.average(means, axis=0, weights=weights).astype(np.float_)
-    mean.shape = (1, num_dims)
+    mean = np.average(means, axis=1, weights=weights)
 
     # Calculate covar
-    covar = np.zeros((num_dims, num_dims))
-    for i in range(num_components):
-        v = means[i, :] - mean
-        a = np.add(covars[i], v.T@v)
-        b = weights[i]
-        covar = np.add(covar, b*a)
+    delta_means = means - mean
+    covar = np.sum(covars*weights, axis=2, dtype=np.float_) + weights*delta_means@delta_means.T
 
-    return mean.transpose(), covar
+    return mean.view(StateVector), covar.view(CovarianceMatrix)
 
 
 def mod_bearing(x):

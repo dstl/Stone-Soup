@@ -11,7 +11,7 @@ from ...base import Property
 from ...functions import cart2pol, pol2cart, \
     cart2sphere, sphere2cart, cart2angles, \
     rotx, roty, rotz
-from ...types.array import StateVector, CovarianceMatrix, Matrix
+from ...types.array import StateVector, CovarianceMatrix, StateVectors
 from ...types.angle import Bearing, Elevation
 from ..base import LinearModel, NonLinearModel, GaussianModel, ReversibleModel
 from .base import MeasurementModel
@@ -87,7 +87,7 @@ class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel,
         if num_samples == 1:
             return rvs_vectors.view(StateVector)
         else:
-            return rvs_vectors.view(Matrix)
+            return rvs_vectors.view(StateVectors)
 
 
 class NonLinearGaussianMeasurement(MeasurementModel, NonLinearModel, GaussianModel, ABC):
