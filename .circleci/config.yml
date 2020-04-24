@@ -24,6 +24,8 @@ jobs:
             python3 -m venv venv
             . venv/bin/activate
             pip install -e .[dev]
+            pip install astropy
+            pip install sgp4
       - save_cache:
           paths:
             - ./venv
