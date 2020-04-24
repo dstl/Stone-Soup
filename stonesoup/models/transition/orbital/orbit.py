@@ -5,8 +5,7 @@ from numpy import matlib
 from scipy.stats import norm
 from scipy.stats import multivariate_normal
 from datetime import datetime, timedelta
-from ....orbital_functions import stumpf_c, stumpf_s, universal_anomaly_newton, \
-    lagrange_coefficients_from_universal_anomaly
+from ....orbital_functions import lagrange_coefficients_from_universal_anomaly
 
 from ....base import Property
 from ....types.orbitalstate import OrbitalState, TLEOrbitalState
@@ -15,6 +14,7 @@ from ...base import LinearModel, NonLinearModel
 from .base import OrbitalTransitionModel
 
 from sgp4.api import jday, Satrec
+
 
 class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
     r"""This simple transition model uses the mean motion to update the

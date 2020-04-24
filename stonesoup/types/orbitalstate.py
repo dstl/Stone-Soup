@@ -154,8 +154,8 @@ class OrbitalState(State):
 
         elif self.coordinates.lower() == 'keplerian':
             # Convert Keplerian elements to Cartesian
-            self.state_vector = keplerian_to_rv(state_vector, grav_parameter=
-                                                self.grav_parameter)
+            self.state_vector = keplerian_to_rv(
+                state_vector, grav_parameter=self.grav_parameter)
 
         elif self.coordinates.upper() == 'TLE':
             # TODO: ensure this works for parabolas and hyperbolas
@@ -168,14 +168,11 @@ class OrbitalState(State):
 
             # Use given and derived quantities to convert from Keplarian to
             # Cartesian
-            self.state_vector = keplerian_to_rv(np.array([[state_vector[2][0]],
-                                                          [semimajor_axis],
-                                                          [state_vector[0][0]],
-                                                          [state_vector[1][0]],
-                                                          [state_vector[3][0]],
-                                                          [tru_anom]]),
-                                                grav_parameter=
-                                                self.grav_parameter)
+            self.state_vector = keplerian_to_rv(
+                np.array([[state_vector[2][0]], [semimajor_axis],
+                          [state_vector[0][0]], [state_vector[1][0]],
+                          [state_vector[3][0]], [tru_anom]]),
+                grav_parameter=self.grav_parameter)
 
         elif self.coordinates.lower() == 'equinoctial':
             # Calculate the Keplarian element quantities
@@ -190,13 +187,10 @@ class OrbitalState(State):
             tru_anom = tru_anom_from_mean_anom(mean_anomaly, eccentricity)
 
             # Convert from Keplarian to Cartesian
-            self.state_vector = keplerian_to_rv(np.array([[eccentricity],
-                                                          [semimajor_axis],
-                                                          [inclination],[raan],
-                                                          [arg_per],
-                                                          [tru_anom]]),
-                                                grav_parameter=
-                                                self.grav_parameter)
+            self.state_vector = keplerian_to_rv(
+                np.array([[eccentricity], [semimajor_axis], [inclination],
+                          [raan], [arg_per], [tru_anom]]),
+                grav_parameter=self.grav_parameter)
 
         else:
             raise TypeError("Coordinate keyword not recognised")
