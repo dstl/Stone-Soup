@@ -1,40 +1,42 @@
 # -*- coding: utf-8 -*-
-from .base import Feeder
+from .base import DetectionFeeder, GroundTruthFeeder
 from ..base import Property
 from ..buffered_generator import BufferedGenerator
-from ..detector import Detector
+from ..reader import Reader
 
 
-class MultiDetectorFeeder(Feeder):
-    """Multi-detector Feeder
+class MultiDataFeeder(DetectionFeeder, GroundTruthFeeder):
+    """Multi-data Feeder
 
-    This returns detections from multiple detectors as a single stream,
-    yielding from the detector yielding the lowest timestamp first.
+    This returns states from multiple data readers as a single stream,
+    yielding from the reader yielding the lowest timestamp first.
     """
-    detector = None
-    detectors = Property([Detector], doc="Detectors to yield from")
+
+    reader = None
+
+    readers = Property([Reader], doc='Readers to yield from')
 
     @BufferedGenerator.generator_method
-    def detections_gen(self):
-        detector_iters = (iter(detector) for detector in self.detectors)
-        iter_detections = {
-            detector_iter: next(detector_iter)
-            for detector_iter in detector_iters}
+    def data_gen(self):
+        reader_iters = (iter(reader) for reader in self.readers)
+        iter_data = {
+            reader_iter: next(reader_iter)
+            for reader_iter in reader_iters}
 
         min_time = None
-        while iter_detections:  # Whilst still iterators left
-            for detector_iter, (time, detections) in iter_detections.items():
+        while iter_data:  # Whilst still iterators left
+            for reader_iter, (time, data) in iter_data.items():
                 if min_time is None or time < min_time:
                     min_time = time
-                    min_detector_iter = detector_iter
-                    min_detections = detections
+                    min_reader_iter = reader_iter
+                    min_data = data
 
-            yield min_time, min_detections
+            yield min_time, min_data
             min_time = None
 
             try:
                 # Grab next set for this iter
-                iter_detections[min_detector_iter] = next(min_detector_iter)
+                iter_data[min_reader_iter] = next(min_reader_iter)
             except StopIteration:
                 # Empty iterator, remove from dictionary
-                del iter_detections[min_detector_iter]
+                del iter_data[min_reader_iter]
