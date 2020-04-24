@@ -11,18 +11,18 @@ from ...types.state import State
 import numpy as np
 
 
-class TestingSensor(Sensor):
+class DummySensor(Sensor):
     def measure(self, **kwargs):
         pass
 
 
-class TestingBaseSensor(BaseSensor):
+class DummyBaseSensor(BaseSensor):
     def measure(self, **kwargs):
         pass
 
 
 def test_sensor_position_orientation_setting():
-    sensor = TestingSensor(position=StateVector([0, 0, 1]))
+    sensor = DummySensor(position=StateVector([0, 0, 1]))
     assert np.array_equal(sensor.position, StateVector([0, 0, 1]))
     assert np.array_equal(sensor.orientation, StateVector([0, 0, 0]))
     sensor.position = StateVector([0, 1, 0])
@@ -31,7 +31,7 @@ def test_sensor_position_orientation_setting():
     assert np.array_equal(sensor.orientation, StateVector([0, 0, 0]))
 
     position = StateVector([0, 0, 1])
-    sensor = TestingSensor()
+    sensor = DummySensor()
     platform_state = State(state_vector=position + 1, timestamp=datetime.datetime.now())
     platform = FixedPlatform(state=platform_state, position_mapping=[0, 1, 2])
     platform.add_sensor(sensor)
@@ -42,29 +42,29 @@ def test_sensor_position_orientation_setting():
 
 
 def test_default_platform():
-    sensor = TestingSensor(position=StateVector([0, 0, 1]))
+    sensor = DummySensor(position=StateVector([0, 0, 1]))
     assert np.array_equal(sensor.position, StateVector([0, 0, 1]))
     assert np.array_equal(sensor.orientation, StateVector([0, 0, 0]))
 
-    sensor = TestingSensor(orientation=StateVector([0, 0, 1]))
+    sensor = DummySensor(orientation=StateVector([0, 0, 1]))
     assert np.array_equal(sensor.orientation, StateVector([0, 0, 1]))
     assert np.array_equal(sensor.position, StateVector([0, 0, 0]))
 
 
 def test_internal_platform_flag():
-    sensor = TestingSensor(position=StateVector([0, 0, 1]))
+    sensor = DummySensor(position=StateVector([0, 0, 1]))
     assert sensor._has_internal_platform
 
-    sensor = TestingSensor()
+    sensor = DummySensor()
     assert not sensor._has_internal_platform
 
-    sensor = TestingBaseSensor()
+    sensor = DummyBaseSensor()
     assert not sensor._has_internal_platform
 
 
 def test_changing_platform_from_default():
     position = StateVector([0, 0, 1])
-    sensor = TestingSensor(position=StateVector([0, 0, 1]))
+    sensor = DummySensor(position=StateVector([0, 0, 1]))
 
     platform_state = State(state_vector=position+1, timestamp=datetime.datetime.now())
     platform = FixedPlatform(state=platform_state, position_mapping=[0, 1, 2])
@@ -72,7 +72,7 @@ def test_changing_platform_from_default():
         platform.add_sensor(sensor)
 
 
-@pytest.mark.parametrize('sensor', [TestingBaseSensor, TestingSensor])
+@pytest.mark.parametrize('sensor', [DummyBaseSensor, DummySensor])
 def test_sensor_measure(sensor):
     # needed for test coverage... Does no harm
     assert sensor().measure() is None
