@@ -46,7 +46,7 @@ class GaussianMixtureHypothesiser(Hypothesiser):
         detections : list of :class:`Detection`
             Retrieved measurements
         timestamp : datetime
-            Time of the detections/predicted state
+            Time of the detections/predicted states
 
         Returns
         -------

@@ -9,6 +9,7 @@ from ..base import Property
 from .array import StateVector, CovarianceMatrix
 from .base import Type
 from .particle import Particle
+from .numeric import Probability
 
 
 class State(Type):
@@ -148,7 +149,7 @@ class WeightedGaussianState(GaussianState):
     Gaussian State object with an associated weight.  Used as components
     for a GaussianMixtureState.
     """
-    weight = Property(float, default=0, doc="Weight of the Gaussian State.")
+    weight = Property(Probability, default=0, doc="Weight of the Gaussian State.")
 
 
 class TaggedWeightedGaussianState(WeightedGaussianState):

@@ -5,6 +5,7 @@ from ..measures import Measure
 from ..predictor import Predictor
 from ..types.detection import MissedDetection
 from ..types.hypothesis import SingleDistanceHypothesis
+from ..types.multihypothesis import MultipleHypothesis
 from ..updater import Updater
 
 

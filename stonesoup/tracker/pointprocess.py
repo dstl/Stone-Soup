@@ -4,6 +4,7 @@ from ..base import Property
 from ..reader import DetectionReader
 from ..types.state import TaggedWeightedGaussianState
 from ..types.mixture import GaussianMixture
+from ..types.numeric import Probability
 from ..types.track import Track
 from ..updater import Updater
 from ..hypothesiser.gaussianmixture import GaussianMixtureHypothesiser
@@ -37,7 +38,7 @@ class PointProcessMultiTargetTracker(Tracker):
         default=None,
         doc="Reducer used to reduce the number of components in the mixture.")
     extraction_threshold = Property(
-        float,
+        Probability,
         default=0.9,
         doc="Threshold to extract components from the mixture.")
     birth_component = Property(

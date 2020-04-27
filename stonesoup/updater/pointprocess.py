@@ -7,7 +7,7 @@ from ..base import Base, Property
 from .kalman import KalmanUpdater
 from ..types.update import GaussianMixtureUpdate
 from ..types.state import TaggedWeightedGaussianState
-
+from ..types.numeric import Probability
 
 class PointProcessUpdater(Base):
     r"""
@@ -35,12 +35,12 @@ class PointProcessUpdater(Base):
         doc="Flag for normalisation")
 
     prob_detection = Property(
-        float,
+        Probability,
         default=1,
         doc="Probability of a target being detected at the current timestep")
 
     prob_survival = Property(
-        float,
+        Probability,
         default=1,
         doc="Probability of a target surviving until the next timestep")
 
@@ -180,7 +180,7 @@ class LCCUpdater(PointProcessUpdater):
         """
         # Get the predicted weight sum
         predicted_weight_sum =\
-            sum(hypothesis.prediction.weight for hypothesis in
+            Probability.sum(hypothesis.prediction.weight for hypothesis in
                 hypotheses[-1]) * self.prob_survival
         # Second order predicted cumulant c(2)
         predicted_c2 = self.second_order_cumulant * self.prob_survival**2
@@ -201,7 +201,7 @@ class LCCUpdater(PointProcessUpdater):
         l2 = numerator/(denominator**2)
         # Calculate updated c(2)
         detected_c2 = \
-            sum([weight_sum/((weight_sum +
+            Probability.sum([weight_sum/((weight_sum +
                              self.clutter_spatial_density)
                              ** 2)
                 for weight_sum in updated_sum_list])
@@ -211,5 +211,5 @@ class LCCUpdater(PointProcessUpdater):
         return l1
 
     @property
-    def second_order_false_alarm_cumulant(self)
+    def second_order_false_alarm_cumulant(self):
         return self.variance_of_false_alarms - self.mean_number_of_false_alarms

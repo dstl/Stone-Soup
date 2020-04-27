@@ -213,15 +213,15 @@ class ExtendedKalmanPredictor(KalmanPredictor):
         prior : :class:`~.State`
             :math:`\mathbf{x}_{k-1}`
         **kwargs : various, optional
-            These are passed to :meth:`~.TransitionModel.matrix` or
-            :meth:`~.TransitionModel.jacobian`
+            These are passed to :math:`~.TransitionModel.matrix` or
+            :math:`~.TransitionModel.jacobian`
 
         Returns
         -------
         : :class:`numpy.ndarray`
             The transition matrix, :math:`F_k`, if linear (i.e.
-            :meth:`TransitionModel.matrix` exists, or
-            :meth:`~.TransitionModel.jacobian` if not)
+            :math:`TransitionModel.matrix` exists, or
+            :math:`~.TransitionModel.jacobian` if not)
         """
         if isinstance(self.transition_model, LinearModel):
             return self.transition_model.matrix(**kwargs)
@@ -238,7 +238,7 @@ class ExtendedKalmanPredictor(KalmanPredictor):
         prior : :class:`~.State`
             The prior state, :math:`\mathbf{x}_{k-1}`
         **kwargs : various, optional
-            These are passed to :meth:`~.TransitionModel.function`
+            These are passed to :math:`~.TransitionModel.function`
 
         Returns
         -------
