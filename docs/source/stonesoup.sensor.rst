@@ -10,6 +10,9 @@ Sensors
 .. automodule:: stonesoup.sensor.base
     :show-inheritance:
 
+.. automodule:: stonesoup.sensor.sensor
+    :show-inheritance:
+
 
 Passive
 -------

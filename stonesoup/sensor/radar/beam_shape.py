@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from ..base import Property, Base
+from ...base import Property, Base
 
 
 class BeamShape(Base):

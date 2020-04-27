@@ -18,7 +18,9 @@ import numpy as np
 import ruamel.yaml
 from ruamel.yaml.constructor import ConstructorError
 
-from .base import Base
+from .types.array import StateVector
+from .sensor.sensor import Sensor
+from .base import Base, Property
 
 
 class YAML:
@@ -96,10 +98,15 @@ class YAML:
 
         Store as mapping of declared properties, skipping any which are the
         default value."""
+        node_properties = OrderedDict(type(node).properties)
+        # Special case of a sensor with a default platform
+        if isinstance(node, Sensor) and node._has_internal_platform:
+            node_properties['position'] = Property(StateVector)
+            node_properties['orientation'] = Property(StateVector)
         return representer.represent_omap(
             cls.yaml_tag(type(node)),
             OrderedDict((name, getattr(node, name))
-                        for name, property_ in type(node).properties.items()
+                        for name, property_ in node_properties.items()
                         if getattr(node, name) is not property_.default))
 
     @classmethod

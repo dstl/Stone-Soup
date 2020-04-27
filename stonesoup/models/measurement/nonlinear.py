@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from abc import ABC
+from typing import List
 import copy
 
 import numpy as np
@@ -15,8 +17,7 @@ from ..base import LinearModel, NonLinearModel, GaussianModel, ReversibleModel
 from .base import MeasurementModel
 
 
-class CombinedReversibleGaussianMeasurementModel(
-        ReversibleModel, GaussianModel, MeasurementModel):
+class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel, MeasurementModel):
     r"""Combine multiple models into a single model by stacking them.
 
     The assumption is that all models are Gaussian, and must be combination of
@@ -29,8 +30,7 @@ class CombinedReversibleGaussianMeasurementModel(
     :class:`~.LinearModel` or :class:`~.ReversibleModel`.
     """
     mapping = None
-    model_list = Property(
-        [MeasurementModel], doc="List of Measurement Models.")
+    model_list = Property(List[MeasurementModel], doc="List of Measurement Models.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -90,9 +90,7 @@ class CombinedReversibleGaussianMeasurementModel(
             return rvs_vectors.view(Matrix)
 
 
-class NonLinearGaussianMeasurement(MeasurementModel,
-                                   NonLinearModel,
-                                   GaussianModel):
+class NonLinearGaussianMeasurement(MeasurementModel, NonLinearModel, GaussianModel, ABC):
     r"""This class combines the MeasurementModel, NonLinearModel and \
     GaussianModel classes. It is not meant to be instantiated directly \
     but subclasses should be derived from this class.
@@ -272,8 +270,7 @@ class CartesianToElevationBearingRange(
         return out
 
 
-class CartesianToBearingRange(
-        NonLinearGaussianMeasurement, ReversibleModel):
+class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of bearing \
     (:math:`\phi`) and range (:math:`r`), with Gaussian noise in each dimension.

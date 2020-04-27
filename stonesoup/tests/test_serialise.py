@@ -3,6 +3,8 @@ import numpy as np
 import pytest
 from ruamel.yaml.constructor import ConstructorError
 
+from stonesoup.sensor.sensor import Sensor
+from stonesoup.types.array import StateVector
 from ..serialise import YAML
 from ..base import Property
 
@@ -197,3 +199,27 @@ def test_missing_property(base, serialised_file):
 
     with pytest.raises(ConstructorError, match="missing a required argument"):
         serialised_file.load(serialised_str)
+
+
+def test_sensor_serialisation(serialised_file):
+    class TestSensor(Sensor):
+        def measure(self):
+            pass
+
+    sensor = TestSensor()
+    assert sensor.position is None
+    assert sensor.orientation is None
+    serialised_str = serialised_file.dumps(sensor)
+    sensor = serialised_file.load(serialised_str)
+    assert sensor.position is None
+    assert sensor.orientation is None
+
+    pos = StateVector([0, 1, 2])
+    orientation = StateVector([0, np.pi/2, np.pi/4])
+    sensor = TestSensor(position=pos, orientation=orientation)
+    assert np.allclose(sensor.position, pos)
+    assert np.allclose(sensor.orientation, orientation)
+    serialised_str = serialised_file.dumps(sensor)
+    sensor = serialised_file.load(serialised_str)
+    assert np.allclose(sensor.position, pos)
+    assert np.allclose(sensor.orientation, orientation)

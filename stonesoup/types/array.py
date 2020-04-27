@@ -41,14 +41,18 @@ class Matrix(np.ndarray):
 
 
 class StateVector(Matrix):
-    """State vector wrapper for :class:`numpy.ndarray`
+    r"""State vector wrapper for :class:`numpy.ndarray`
 
     This class returns a view to a :class:`numpy.ndarray`, but ensures that
-    its initialised at a *Nx1* vector. It's called same as to
+    its initialised as an :math:`N \times 1` vector. It's called same as
     :func:`numpy.asarray`. The StateVector will attempt to convert the data
-    given to a Nx1 vector if it can easily be done. E.g.,
-    StateVector([1., 2., 3.]), StateVector ([[1., 2., 3.,]]), and
-    StateVector([[1.], [2.], [3.]]) will all return the same 3x1 StateVector.
+    given to a :math:`N \times 1` vector if it can easily be done. E.g.,
+    ``StateVector([1., 2., 3.])``, ``StateVector ([[1., 2., 3.,]])``, and
+    ``StateVector([[1.], [2.], [3.]])`` will all return the same 3x1 StateVector.
+
+    .. note ::
+        It is not recommended to use a StateVector for indexing another vector. Doing so will lead
+        to unexpected effects. Use a :class:`tuple`, :class:`list` or :class:`np.ndarray` for this.
     """
 
     def __new__(cls, *args, **kwargs):
