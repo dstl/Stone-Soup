@@ -15,7 +15,7 @@ from ..types.array import StateVector
 from ..base import Base, Property
 from ..types.state import State
 from ..models.transition import TransitionModel
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from ..sensor.base import BaseSensor
 
 
@@ -358,6 +358,9 @@ class MovingPlatform(Platform):
         elif self.ndim == 2:
             _, bearing = cart2pol(*velocity.flat)
             return StateVector([0, bearing])
+        else:
+            raise ValueError('Orientation of a moving platform is only implemented for 2 and 3 '
+                             'dimensions')
 
     @property
     def is_moving(self) -> bool:
@@ -454,6 +457,8 @@ def _get_rotation_matrix(vel: StateVector) -> np.ndarray:
             theta *= -1
         return np.array([[cos(theta), -sin(theta)],
                          [sin(theta), cos(theta)]])
+    else:
+        raise NotImplementedError
 
 
 def _get_angle(vec: StateVector, axis: np.ndarray) -> float:

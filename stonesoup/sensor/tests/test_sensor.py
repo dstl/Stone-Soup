@@ -41,6 +41,16 @@ def test_sensor_position_orientation_setting():
         sensor.orientation = StateVector([0, 1, 0])
 
 
+def test_warning_on_moving_sensor():
+    sensor = DummySensor()
+    platform_state = State(StateVector([0, 1, 0]), timestamp=datetime.datetime.now())
+    platform1 = FixedPlatform(state=platform_state, position_mapping=[0, 1, 2])
+    platform2 = FixedPlatform(state=platform_state, position_mapping=[0, 1, 2])
+    platform1.add_sensor(sensor)
+    with pytest.warns(UserWarning):
+        platform2.add_sensor(sensor)
+
+
 def test_default_platform():
     sensor = DummySensor(position=StateVector([0, 0, 1]))
     assert np.array_equal(sensor.position, StateVector([0, 0, 1]))
