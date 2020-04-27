@@ -1,17 +1,93 @@
 # -*- coding: utf-8 -*-
+import copy
 
-import scipy as sp
-from numpy.linalg import inv
+import numpy as np
+from scipy.linalg import inv, pinv, block_diag
 
 from ...base import Property
 
 from ...functions import cart2pol, pol2cart, \
     cart2sphere, sphere2cart, cart2angles, \
     rotx, roty, rotz
-from ...types.array import StateVector, CovarianceMatrix
+from ...types.array import StateVector, CovarianceMatrix, Matrix
 from ...types.angle import Bearing, Elevation
-from ..base import NonLinearModel, GaussianModel, ReversibleModel
+from ..base import LinearModel, NonLinearModel, GaussianModel, ReversibleModel
 from .base import MeasurementModel
+
+
+class CombinedReversibleGaussianMeasurementModel(
+        ReversibleModel, GaussianModel, MeasurementModel):
+    r"""Combine multiple models into a single model by stacking them.
+
+    The assumption is that all models are Gaussian, and must be combination of
+    :class:`~.LinearModel` and :class:`~.NonLinearModel` models. They must all
+    expect the same dimension state vector (i.e. have the same
+    :attr:`~.MeasurementModel.ndim_state`), using model mapping as appropriate.
+
+    This also implements the :meth:`inverse_function`, but will raise a
+    :exc:`NotImplementedError` if any model isn't either a
+    :class:`~.LinearModel` or :class:`~.ReversibleModel`.
+    """
+    mapping = None
+    model_list = Property(
+        [MeasurementModel], doc="List of Measurement Models.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        for model in self.model_list:
+            if model.ndim_state != self.ndim_state:
+                raise ValueError("Models must all have the same `ndim_state`")
+
+    @property
+    def ndim_state(self):
+        """Number of state dimensions"""
+        return self.model_list[0].ndim_state
+
+    @property
+    def ndim_meas(self):
+        return sum(model.ndim_meas for model in self.model_list)
+
+    def function(self, state, **kwargs):
+        return np.vstack([model.function(state, **kwargs)
+                          for model in self.model_list]).view(StateVector)
+
+    @staticmethod
+    def _linear_inverse_function(model, state, **kwargs):
+        model_matrix = model.matrix(**kwargs)
+        inv_model_matrix = pinv(model_matrix)
+
+        return inv_model_matrix@state.state_vector
+
+    def inverse_function(self, detection, **kwargs):
+        state = copy.copy(detection)
+        ndim_count = 0
+        state_vector = np.zeros((self.ndim_state, 1)).view(StateVector)
+        for model in self.model_list:
+            state.state_vector = detection.state_vector[ndim_count:model.ndim_meas + ndim_count, :]
+            if isinstance(model, ReversibleModel):
+                state_vector += model.inverse_function(state, **kwargs)
+            elif isinstance(model, LinearModel):
+                state_vector += self._linear_inverse_function(model, state, **kwargs)
+            else:
+                raise NotImplementedError(
+                    "Model {!r} not reversible".format(type(model)))
+            ndim_count += model.ndim_meas
+
+        return state_vector
+
+    def covar(self, **kwargs):
+        return block_diag(
+            *(model.covar(**kwargs) for model in self.model_list)
+            ).view(CovarianceMatrix)
+
+    def rvs(self, num_samples=1, **kwargs):
+        rvs_vectors = np.vstack([model.rvs(num_samples, **kwargs)
+                                 for model in self.model_list])
+        if num_samples == 1:
+            return rvs_vectors.view(StateVector)
+        else:
+            return rvs_vectors.view(Matrix)
 
 
 class NonLinearGaussianMeasurement(MeasurementModel,
@@ -23,7 +99,7 @@ class NonLinearGaussianMeasurement(MeasurementModel,
     """
     noise_covar = Property(CovarianceMatrix, doc="Noise covariance")
     rotation_offset = Property(
-        StateVector, default=StateVector(sp.array([[0], [0], [0]])),
+        StateVector, default=StateVector(np.array([[0], [0], [0]])),
         doc="A 3x1 array of angles (rad), specifying the clockwise rotation\
             around each Cartesian axis in the order :math:`x,y,z`.\
             The rotation angles are positive if the rotation is in the \
@@ -123,7 +199,7 @@ class CartesianToElevationBearingRange(
     """  # noqa:E501
 
     translation_offset = Property(
-        StateVector, default=StateVector(sp.array([[0], [0], [0]])),
+        StateVector, default=StateVector(np.array([[0], [0], [0]])),
         doc="A 3x1 array specifying the Cartesian origin offset in terms of :math:`x,y,z`\
             coordinates.")
 
@@ -139,16 +215,17 @@ class CartesianToElevationBearingRange(
 
         return 3
 
-    def function(self, state_vector, noise=None, **kwargs):
+    def function(self, state, noise=False, **kwargs):
         r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
 
         Parameters
         ----------
-        state_vector: :class:`~.StateVector`
-            An input state vector
-        noise: :class:`numpy.ndarray`
-            An externally generated random process noise sample (the default in
-            `None`, in which case process noise will be generated internally)
+        state: :class:`~.State`
+            An input state
+        noise: :class:`numpy.ndarray` or bool
+            An externally generated random process noise sample (the default is
+            `False`, in which case no noise will be added
+            if 'True', the output of :meth:`~.Model.rvs` is added)
 
         Returns
         -------
@@ -156,11 +233,14 @@ class CartesianToElevationBearingRange(
             The model function evaluated given the provided time interval.
         """
 
-        if noise is None:
-            noise = self.rvs()
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                noise = self.rvs()
+            else:
+                noise = 0
 
         # Account for origin offset
-        xyz = state_vector[self.mapping] - self.translation_offset
+        xyz = state.state_vector[self.mapping] - self.translation_offset
 
         # Rotate coordinates
         xyz_rot = self._rotation_matrix @ xyz
@@ -168,13 +248,11 @@ class CartesianToElevationBearingRange(
         # Convert to Spherical
         rho, phi, theta = cart2sphere(*xyz_rot[:, 0])
 
-        return sp.array([[Elevation(theta)],
-                         [Bearing(phi)],
-                         [rho]]) + noise
+        return StateVector([[Elevation(theta)], [Bearing(phi)], [rho]]) + noise
 
-    def inverse_function(self, state_vector, **kwargs):
+    def inverse_function(self, detection, **kwargs):
 
-        theta, phi, rho = state_vector[:, 0]
+        theta, phi, rho = detection.state_vector[:, 0]
         x, y, z = sphere2cart(rho, phi, theta)
 
         xyz = [[x], [y], [z]]
@@ -183,14 +261,14 @@ class CartesianToElevationBearingRange(
         xyz = [xyz_rot[0][0], xyz_rot[1][0], xyz_rot[2][0]]
         x, y, z = xyz + self.translation_offset[:, 0]
 
-        res = sp.zeros((self.ndim_state, 1))
+        res = np.zeros((self.ndim_state, 1)).view(StateVector)
         res[self.mapping, 0] = x, y, z
 
         return res
 
     def rvs(self, num_samples=1, **kwargs):
         out = super().rvs(num_samples, **kwargs)
-        out = sp.array([[Elevation(0.)], [Bearing(0.)], [0.]]) + out
+        out = np.array([[Elevation(0.)], [Bearing(0.)], [0.]]) + out
         return out
 
 
@@ -251,7 +329,7 @@ class CartesianToBearingRange(
     """  # noqa:E501
 
     translation_offset = Property(
-        StateVector, default=StateVector(sp.array([[0], [0]])),
+        StateVector, default=StateVector(np.array([[0], [0]])),
         doc="A 2x1 array specifying the origin offset in terms of :math:`x,y`\
             coordinates.")
 
@@ -267,14 +345,14 @@ class CartesianToBearingRange(
 
         return 2
 
-    def inverse_function(self, state_vector, **kwargs):
+    def inverse_function(self, detection, **kwargs):
         if not ((self.rotation_offset[0][0] == 0)
                 and (self.rotation_offset[1][0] == 0)):
             raise RuntimeError(
                 "Measurement model assumes 2D space. \
                 Rotation in 3D space is unsupported at this time.")
 
-        phi, rho = state_vector[:, 0]
+        phi, rho = detection.state_vector[:, 0]
         x, y = pol2cart(rho, phi)
 
         xyz = [[x], [y], [0]]
@@ -283,21 +361,22 @@ class CartesianToBearingRange(
         xy = [xyz_rot[0][0], xyz_rot[1][0]]
         x, y = xy + self.translation_offset[:, 0]
 
-        res = sp.zeros((self.ndim_state, 1))
+        res = np.zeros((self.ndim_state, 1)).view(StateVector)
         res[self.mapping, 0] = x, y
 
         return res
 
-    def function(self, state_vector, noise=None, **kwargs):
+    def function(self, state, noise=False, **kwargs):
         r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
 
         Parameters
         ----------
-        state_vector: :class:`~.StateVector`
-            An input state vector
-        noise: :class:`numpy.ndarray`
-            An externally generated random process noise sample (the default in
-            `None`, in which case process noise will be generated internally)
+        state: :class:`~.State`
+            An input state
+        noise: :class:`numpy.ndarray` or bool
+            An externally generated random process noise sample (the default is
+            `False`, in which case no noise will be added
+            if 'True', the output of :meth:`~.Model.rvs` is added)
 
         Returns
         -------
@@ -305,13 +384,16 @@ class CartesianToBearingRange(
             The model function evaluated given the provided time interval.
         """
 
-        if noise is None:
-            noise = self.rvs()
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                noise = self.rvs()
+            else:
+                noise = 0
 
         # Account for origin offset
-        xyz = [[state_vector[self.mapping[0], 0]
+        xyz = [[state.state_vector[self.mapping[0], 0]
                 - self.translation_offset[0, 0]],
-               [state_vector[self.mapping[1], 0]
+               [state.state_vector[self.mapping[1], 0]
                 - self.translation_offset[1, 0]],
                [0]]
 
@@ -321,11 +403,11 @@ class CartesianToBearingRange(
         # Covert to polar
         rho, phi = cart2pol(*xyz_rot[:2, 0])
 
-        return sp.array([[Bearing(phi)], [rho]]) + noise
+        return StateVector([[Bearing(phi)], [rho]]) + noise
 
     def rvs(self, num_samples=1, **kwargs):
         out = super().rvs(num_samples, **kwargs)
-        out = sp.array([[Bearing(0)], [0.]]) + out
+        out = np.array([[Bearing(0)], [0.]]) + out
         return out
 
 
@@ -387,7 +469,7 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
     """  # noqa:E501
 
     translation_offset = Property(
-        StateVector, default=StateVector(sp.array([[0], [0], [0]])),
+        StateVector, default=StateVector(np.array([[0], [0], [0]])),
         doc="A 3x1 array specifying the origin offset in terms of :math:`x,y,z`\
             coordinates.")
 
@@ -403,16 +485,17 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
 
         return 2
 
-    def function(self, state_vector, noise=None, **kwargs):
+    def function(self, state, noise=False, **kwargs):
         r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
 
         Parameters
         ----------
-        state_vector: :class:`~.StateVector`
-            An input state vector
-        noise: :class:`numpy.ndarray`
-            An externally generated random process noise sample (the default in
-            `None`, in which case process noise will be generated internally)
+        state: :class:`~.State`
+            An input state
+        noise: :class:`numpy.ndarray` or bool
+            An externally generated random process noise sample (the default is
+            `False`, in which case no noise will be added
+            if 'True', the output of :meth:`~.Model.rvs` is added)
 
         Returns
         -------
@@ -420,11 +503,14 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
             The model function evaluated given the provided time interval.
         """
 
-        if noise is None:
-            noise = self.rvs()
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                noise = self.rvs()
+            else:
+                noise = 0
 
         # Account for origin offset
-        xyz = state_vector[self.mapping] - self.translation_offset
+        xyz = state.state_vector[self.mapping] - self.translation_offset
 
         # Rotate coordinates
         xyz_rot = self._rotation_matrix @ xyz
@@ -432,10 +518,9 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
         # Convert to Angles
         phi, theta = cart2angles(*xyz_rot[:, 0])
 
-        return sp.array([[Elevation(theta)],
-                         [Bearing(phi)]]) + noise
+        return StateVector([[Elevation(theta)], [Bearing(phi)]]) + noise
 
     def rvs(self, num_samples=1, **kwargs):
         out = super().rvs(num_samples, **kwargs)
-        out = sp.array([[Elevation(0.)], [Bearing(0.)]]) + out
+        out = np.array([[Elevation(0.)], [Bearing(0.)]]) + out
         return out

@@ -2,6 +2,7 @@
 """Mathematical functions used within Stone Soup"""
 
 import numpy as np
+from copy import copy
 
 from .types.numeric import Probability
 from .types.array import Matrix
@@ -44,8 +45,8 @@ def jacobian(fun, x):
         A (non-linear) transition function
         Must be of the form "y = fun(x)", where y can be a scalar or \
         :class:`numpy.ndarray` of shape `(Nd, 1)` or `(Nd,)`
-    x : :class:`numpy.ndarray` of shape `(Ns, 1)`
-        A state vector
+    x : :class:`State`
+        A state with state vector of shape `(Ns, 1)`
 
     Returns
     -------
@@ -53,40 +54,42 @@ def jacobian(fun, x):
         The computed Jacobian
     """
 
-    if isinstance(x, (int, float)):
-        ndim = 1
-    else:
-        ndim = np.shape(x)[0]
+    ndim, _ = np.shape(x.state_vector)
 
-    # For numerical reasons the step size needs to large enough
-    delta = 1.e-8  # 100*ndim*np.finfo(float).eps
+    # For numerical reasons the step size needs to large enough. Aim for 1e-8
+    # relative to spacing between floating point numbers for each dimension
+    delta = 1e8*np.spacing(x.state_vector.astype(np.float_).ravel())
+    # But at least 1e-8
+    # TODO: Is this needed? If not, note special case at zero.
+    delta[delta < 1e-8] = 1e-8
 
-    f1 = fun(x)
-    if isinstance(f1, (int, float)):
-        nrows = 1
-    else:
-        nrows = f1.size
+    f1 = np.atleast_2d(fun(x))
+    nrows, _ = np.shape(f1)
 
+    x2 = copy(x)  # Create a clone of the input
     F2 = np.empty((nrows, ndim))
-    X1 = np.tile(x, ndim)+np.eye(ndim)*delta
+    X1 = np.tile(x.state_vector, ndim)+np.eye(ndim)*delta
 
     for col in range(0, X1.shape[1]):
-        F2[:, [col]] = fun(X1[:, [col]])
+        x2.state_vector = X1[:, [col]]
+        F2[:, [col]] = fun(x2)
 
     jac = np.divide(F2-f1, delta)
     return jac.astype(np.float_)
 
 
-def gauss2sigma(mean, covar, alpha=1.0, beta=2.0, kappa=None):
-    """Approximate a given distribution to a Gaussian, using a
+def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
+    """
+    Approximate a given distribution to a Gaussian, using a
     deterministically selected set of sigma points.
 
     Parameters
     ----------
-    mean : :class:`numpy.ndarray` of shape `(Ns, 1)`
-        Mean of the Gaussian
-    covar : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`
-        Covariance of the Gaussian
+    state : :class:`~State`
+        A state object capable of returning a :class:`~.StateVector` of
+        shape `(Ns, 1)` representing the Gaussian mean and a
+        :class:`~.CovarianceMatrix` of shape `(Ns, Ns)` which is the
+        covariance of the distribution
     alpha : float, optional
         Spread of the sigma points. Typically `1e-3`.
         (default is 1)
@@ -100,21 +103,25 @@ def gauss2sigma(mean, covar, alpha=1.0, beta=2.0, kappa=None):
 
     Returns
     -------
-    : :class:`numpy.ndarray` of shape `(Ns, 2*Ns+1)`
-        An array containing the locations of the sigma points
+    : :class:`list` of length `2*Ns+1`
+        An list of States containing the locations of the sigma points.
+        Note that only the :attr:`state_vector` attribute in these
+        States will be meaningful. Other quantities, like :attr:`covar`
+        will be inherited from the input and don't really make sense
+        for a sigma point.
     : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
         An array containing the sigma point mean weights
     : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
         An array containing the sigma point covariance weights
     """
 
-    ndim_state = np.shape(mean)[0]
+    ndim_state = np.shape(state.state_vector)[0]
 
     if kappa is None:
         kappa = 3.0 - ndim_state
 
     # Compute Square Root matrix via Colesky decomp.
-    sqrt_sigma = np.linalg.cholesky(covar)
+    sqrt_sigma = np.linalg.cholesky(state.covar)
 
     # Calculate scaling factor for all off-center points
     alpha2 = np.power(alpha, 2)
@@ -122,9 +129,19 @@ def gauss2sigma(mean, covar, alpha=1.0, beta=2.0, kappa=None):
     c = ndim_state + lamda
 
     # Calculate sigma point locations
-    sigma_points = np.tile(mean, (1, 2 * ndim_state + 1))
-    sigma_points[:, 1:(ndim_state + 1)] += sqrt_sigma * np.sqrt(c)
-    sigma_points[:, (ndim_state + 1):] -= sqrt_sigma * np.sqrt(c)
+    sigma_points = np.tile(state.state_vector, (1, 2 * ndim_state + 1))
+    # Can't use in place addition/subtraction as casting issues may arise when mixing float/int
+    sigma_points[:, 1:(ndim_state + 1)] = \
+        sigma_points[:, 1:(ndim_state + 1)] + sqrt_sigma*np.sqrt(c)
+    sigma_points[:, (ndim_state + 1):] = \
+        sigma_points[:, (ndim_state + 1):] - sqrt_sigma*np.sqrt(c)
+
+    # Put these sigma points into s State object list
+    sigma_points_states = []
+    for sigma_point in sigma_points.T:
+        state_copy = copy(state)
+        state_copy.state_vector = np.atleast_2d(sigma_point).T
+        sigma_points_states.append(state_copy)
 
     # Calculate weights
     mean_weights = np.ones(2 * ndim_state + 1)
@@ -133,7 +150,7 @@ def gauss2sigma(mean, covar, alpha=1.0, beta=2.0, kappa=None):
     covar_weights = np.copy(mean_weights)
     covar_weights[0] = lamda / c + (1 - alpha2 + beta)
 
-    return sigma_points, mean_weights, covar_weights
+    return sigma_points_states, mean_weights, covar_weights
 
 
 def sigma2gauss(sigma_points, mean_weights, covar_weights, covar_noise=None):
@@ -169,9 +186,10 @@ def sigma2gauss(sigma_points, mean_weights, covar_weights, covar_noise=None):
     return mean, covar
 
 
-def unscented_transform(sigma_points, mean_weights, covar_weights,
+def unscented_transform(sigma_points_states, mean_weights, covar_weights,
                         fun, points_noise=None, covar_noise=None):
-    """ Apply the Unscented Transform to a set of sigma points
+    """
+    Apply the Unscented Transform to a set of sigma points
 
     Apply f to points (with secondary argument points_noise, if available),
     then approximate the resulting mean and covariance. If sigma_noise is
@@ -212,17 +230,23 @@ def unscented_transform(sigma_points, mean_weights, covar_weights,
         An array containing the transformed sigma point covariance weights
     """
 
-    ndim_state, n_points = sigma_points.shape
+    n_points = len(sigma_points_states)
+    ndim_state = len(sigma_points_states[0].state_vector)
+
+    # Reconstruct the sigma_points matrix
+    sigma_points = np.empty((ndim_state, 0))
+    for sigma_points_state in sigma_points_states:
+        sigma_points = np.c_[sigma_points, sigma_points_state.state_vector]
 
     # Transform points through f
     sigma_points_t = np.zeros((ndim_state, n_points))
     if points_noise is None:
         sigma_points_t = np.asarray(
-            [fun(sigma_points[:, i:i+1])
+            [fun(sigma_points_states[i])
              for i in range(n_points)]).squeeze(2).T
     else:
         sigma_points_t = np.asarray(
-            [fun(sigma_points[:, i:i+1], points_noise[:, i:i+1])
+            [fun(sigma_points_states[i], points_noise[:, i:i+1])
              for i in range(n_points)]).squeeze(2).T
     sigma_points_t = sigma_points_t.view(Matrix)
 
@@ -372,23 +396,24 @@ def rotx(theta):
 
     Parameters
     ----------
-    theta: float
-        Rotation angle specified as a real-valued number. The rotation angle \
-        is positive if the rotation is in the clockwise direction \
-        when viewed by an observer looking down the x-axis towards the \
-        origin. Angle units are in radians.
+    theta: Union[float, np.ndarray]
+        Rotation angle specified as a real-valued number or an \
+        :class:`np.ndarray` of reals. The rotation angle is positive if the \
+        rotation is in the clockwise direction when viewed by an observer \
+        looking down the x-axis towards the origin. Angle units are in radians.
 
     Returns
     -------
-    : :class:`numpy.ndarray` of shape (3, 3)
+    : :class:`numpy.ndarray` of shape (3, 3) or (3, 3, n) for array input
         Rotation matrix around x-axis of the form :eq:`Rx`.
     """
 
     c, s = np.cos(theta), np.sin(theta)
-
-    return np.array([[1, 0, 0],
-                     [0, c, -s],
-                     [0, s, c]])
+    zero = np.zeros_like(theta)
+    one = np.ones_like(theta)
+    return np.array([[one, zero, zero],
+                     [zero, c, -s],
+                     [zero, s, c]])
 
 
 def roty(theta):
@@ -407,23 +432,24 @@ def roty(theta):
 
     Parameters
     ----------
-    theta: float
-        Rotation angle specified as a real-valued number. The rotation angle \
-        is positive if the rotation is in the clockwise direction \
-        when viewed by an observer looking down the y-axis towards the \
-        origin. Angle units are in radians.
+    theta: Union[float, np.ndarray]
+        Rotation angle specified as a real-valued number or an \
+        :class:`np.ndarray` of reals. The rotation angle is positive if the \
+        rotation is in the clockwise direction when viewed by an observer \
+        looking down the y-axis towards the origin. Angle units are in radians.
 
     Returns
     -------
-    : :class:`numpy.ndarray` of shape (3, 3)
+    : :class:`numpy.ndarray` of shape (3, 3) or (3, 3, n) for array input
         Rotation matrix around y-axis of the form :eq:`Ry`.
     """
 
     c, s = np.cos(theta), np.sin(theta)
-
-    return np.array([[c, 0, s],
-                     [0, 1, 0],
-                     [-s, 0, c]])
+    zero = np.zeros_like(theta)
+    one = np.ones_like(theta)
+    return np.array([[c, zero, s],
+                     [zero, one, zero],
+                     [-s, zero, c]])
 
 
 def rotz(theta):
@@ -442,23 +468,24 @@ def rotz(theta):
 
     Parameters
     ----------
-    theta: float
-        Rotation angle specified as a real-valued number. The rotation angle \
-        is positive if the rotation is in the clockwise direction \
-        when viewed by an observer looking down the z-axis towards the \
-        origin. Angle units are in radians.
+    theta: Union[float, np.ndarray]
+        Rotation angle specified as a real-valued number or an \
+        :class:`np.ndarray` of reals. The rotation angle is positive if the \
+        rotation is in the clockwise direction when viewed by an observer \
+        looking down the z-axis towards the origin. Angle units are in radians.
 
     Returns
     -------
-    : :class:`numpy.ndarray` of shape (3, 3)
+    : :class:`numpy.ndarray` of shape (3, 3) or (3, 3, n) for array input
         Rotation matrix around z-axis of the form :eq:`Rz`.
     """
 
     c, s = np.cos(theta), np.sin(theta)
-
-    return np.array([[c, -s, 0],
-                     [s, c, 0],
-                     [0, 0, 1]])
+    zero = np.zeros_like(theta)
+    one = np.ones_like(theta)
+    return np.array([[c, -s, zero],
+                     [s, c, zero],
+                     [zero, zero, one]])
 
 
 def gm_reduce_single(means, covars, weights):

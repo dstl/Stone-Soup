@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import uuid
+
 from ..base import Property
 from .state import State, StateMutableSequence
 
@@ -25,3 +27,13 @@ class GroundTruthPath(StateMutableSequence):
         default=None,
         doc="List of groundtruth states to initialise path with. Default "
             "`None` which initialises with an empty list.")
+    id = Property(
+        str,
+        default=None,
+        doc="The unique path ID. Default `None` where random UUID is "
+            "generated.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.id is None:
+            self.id = str(uuid.uuid4())

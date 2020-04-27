@@ -1,15 +1,17 @@
 Sensors
 =======
 
+.. toctree::
+    stonesoup.sensor.radar
+
 .. automodule:: stonesoup.sensor
     :no-members:
 
 .. automodule:: stonesoup.sensor.base
     :show-inheritance:
 
-Radars
-------
-.. automodule:: stonesoup.sensor.radar
+
+Passive
+-------
+.. automodule:: stonesoup.sensor.passive
     :show-inheritance:
-
-

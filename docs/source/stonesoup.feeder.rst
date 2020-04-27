@@ -19,6 +19,12 @@ Geo
 .. automodule:: stonesoup.feeder.geo
     :show-inheritance:
 
+Multi
+-----
+
+.. automodule:: stonesoup.feeder.multi
+    :show-inheritance:
+
 Time Based
 ----------
 
