@@ -89,7 +89,8 @@ def universal_anomaly_newton(o_state_vector, delta_t,
 
 
 def lagrange_coefficients_from_universal_anomaly(o_state_vector, delta_t,
-                             grav_parameter=3.986004418e14, precision=1e-8):
+                                                 grav_parameter=3.986004418e14,
+                                                 precision=1e-8):
     r""" Calculate the Lagrangian coefficients, f and g, and their time
     derivatives, by way of the universal anomaly and the Stumpf functions.
 
@@ -153,7 +154,6 @@ def lagrange_coefficients_from_universal_anomaly(o_state_vector, delta_t,
     gdot = 1 - (chii ** 2 / r) * stumpf_c(z)
 
     return f, g, fdot, gdot
-
 
 
 def eccentric_anomaly_from_mean_anomaly(mean_anomaly, eccentricity,
