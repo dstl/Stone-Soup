@@ -67,8 +67,7 @@ def test_simple_radar():
 
     # Assert correction of generated measurement
     assert(measurement.timestamp == target_state.timestamp)
-    assert(np.equal(measurement.state_vector,
-                    StateVector([phi, rho])).all())
+    assert(np.equal(measurement.state_vector, StateVector([phi, rho])).all())
 
 
 def test_rotating_radar():
