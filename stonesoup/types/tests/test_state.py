@@ -7,7 +7,7 @@ import pytest
 from ..numeric import Probability
 from ..particle import Particle
 from ..state import State, GaussianState, ParticleState, \
-    StateMutableSequence, WeightedGaussianState
+    StateMutableSequence, WeightedGaussianState, SqrtGaussianState
 
 
 def test_state():
@@ -63,6 +63,24 @@ def test_gaussianstate_invalid_covar():
     covar = np.diag([1, 2, 3])  # 3D
     with pytest.raises(ValueError):
         GaussianState(mean, covar)
+
+
+def test_sqrtgaussianstate():
+    """Test the square root Gaussian Type"""
+
+    mean = np.array([[-1.8513], [0.9994], [0], [0]]) * 1e4
+    covar = np.array([[2.2128, 0.1, 0.03, 0.01],
+                      [0.1, 2.2130, 0.03, 0.02],
+                      [0.03, 0.03, 2.123, 0.01],
+                      [0.01, 0.02, 0.01, 2.012]]) * 1e3
+    timestamp = datetime.datetime.now()
+
+    lower_covar = np.linalg.cholesky(covar)
+    state = SqrtGaussianState(mean, covar, timestamp=timestamp)
+    assert(np.array_equal(state.covar, lower_covar))
+
+    another_state = SqrtGaussianState(mean, lower_covar, timestamp=timestamp)
+    assert(np.array_equal(another_state.covar, lower_covar))
 
 
 def test_weighted_gaussian_state():

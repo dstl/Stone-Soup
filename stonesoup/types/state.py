@@ -141,6 +141,24 @@ class GaussianState(State):
         return self.state_vector
 
 
+class SqrtGaussianState(GaussianState):
+    """A Gaussian State type where the covariance matrix is stored in lower
+    triangular form such that :math:`P = LL^T`
+
+    The input covariance matrix is checked for lower triangular form. If
+    returned `False` then the Cholesky factorisation is undertaken.
+
+    Note that this (the "Potter form") is not the most efficient or necessarily
+    the most effective factorisation. It is probably the simplest and may
+    provide useful instructional value, and perhaps act as a base class.
+
+    """
+    def __init__(self, state_vector, covar, *args, **kwargs):
+        super().__init__(state_vector, covar, *args, **kwargs)
+        if not np.allclose(self.covar, np.tril(self.covar)):  # selectable precision?
+            self.covar = np.linalg.cholesky(self.covar)
+
+
 class WeightedGaussianState(GaussianState):
     """Weighted Gaussian State Type
 
