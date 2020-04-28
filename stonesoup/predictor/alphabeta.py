@@ -5,19 +5,19 @@ from ..types.prediction import StatePrediction
 
 
 class AlphaBetaPredictor(Predictor):
-    r"""Alpha-beta predictor which inherits from base
+    r"""Alpha-beta predictor which inherits from base.
 
     A predictor is used to predict a new :class:`~.State` given a prior
-    :class:`~.State`. and a transition model
+    :class:`~.State` and a transition model
 
     .. math::
 
-        f_k( \mathbf{x}_{k-1}) = \mathbf{x}_{k-1} + \Delta T \mathbf{v}_{k-1} \ \mathrm{and} \
-        \mathbf{\nu}_k \sim \mathcal{N}(0,Q_k)
+        f_k( \mathbf{x}_{k-1}) = \mathbf{x}_{k-1} + \Delta T \mathbf{v}_{k-1}, \
+        b_k(\mathbf{x}_{k}) = 0 \ \mathrm{and} \ \mathbf{\nu}_k \sim \mathcal{N}(0,Q_k)
 
     where :math:`\mathbf{x}_{k-1}` is the prior state, :math:`\mathbf{v}_{k-1}` is the prior
-    first derivative of :math:`\mathbf{x}_{k-1}` vector and :math:`\Delta T` is the time interval
-    between measurements.
+    first derivative of :math:`\mathbf{x}_{k-1}` with respect to time and :math:`\Delta T` is the
+    time interval between measurements.
 
     """
 

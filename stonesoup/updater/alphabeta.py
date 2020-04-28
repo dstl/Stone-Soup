@@ -14,7 +14,7 @@ from ..models.measurement.linear import LinearGaussian
 class AlphaBetaUpdater(Updater):
     r"""A class which
     performs measurement update step as in the standard Alpha-Beta Filter. The posterior state mean
-    and velocity are calculated according to,
+    and first order derivative with respect to time are calculated according to,
 
     .. math::
 
