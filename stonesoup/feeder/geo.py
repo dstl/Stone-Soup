@@ -91,7 +91,7 @@ class LongLatToUTMConverter(Feeder):
     """
 
     mapping = Property(
-        (float, float), default=[0, 1],
+        [float, float], default=[0, 1],
         doc="Indexes of long, lat. Default [0, 1]")
     zone_number = Property(
         int, default=None,
