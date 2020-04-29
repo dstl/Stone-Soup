@@ -40,15 +40,15 @@ class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel,
                 raise ValueError("Models must all have the same `ndim_state`")
 
     @property
-    def ndim_state(self):
+    def ndim_state(self) -> int:
         """Number of state dimensions"""
         return self.model_list[0].ndim_state
 
     @property
-    def ndim_meas(self):
+    def ndim_meas(self) -> int:
         return sum(model.ndim_meas for model in self.model_list)
 
-    def function(self, state, **kwargs):
+    def function(self, state, **kwargs) -> StateVector:
         return np.vstack([model.function(state, **kwargs)
                           for model in self.model_list]).view(StateVector)
 
@@ -59,7 +59,7 @@ class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel,
 
         return inv_model_matrix@state.state_vector
 
-    def inverse_function(self, detection, **kwargs):
+    def inverse_function(self, detection, **kwargs) -> StateVector:
         state = copy.copy(detection)
         ndim_count = 0
         state_vector = np.zeros((self.ndim_state, 1)).view(StateVector)
@@ -76,12 +76,12 @@ class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel,
 
         return state_vector
 
-    def covar(self, **kwargs):
+    def covar(self, **kwargs) -> CovarianceMatrix:
         return block_diag(
             *(model.covar(**kwargs) for model in self.model_list)
             ).view(CovarianceMatrix)
 
-    def rvs(self, num_samples=1, **kwargs):
+    def rvs(self, num_samples=1, **kwargs) -> np.ndarray:
         rvs_vectors = np.vstack([model.rvs(num_samples, **kwargs)
                                  for model in self.model_list])
         if num_samples == 1:
@@ -104,7 +104,7 @@ class NonLinearGaussianMeasurement(MeasurementModel, NonLinearModel, GaussianMod
             counter-clockwise direction when viewed by an observer looking\
             along the respective rotation axis, towards the origin.")
 
-    def covar(self, **kwargs):
+    def covar(self, **kwargs) -> CovarianceMatrix:
         """Returns the measurement model noise covariance matrix.
 
         Returns
@@ -117,7 +117,7 @@ class NonLinearGaussianMeasurement(MeasurementModel, NonLinearModel, GaussianMod
         return self.noise_covar
 
     @property
-    def _rotation_matrix(self):
+    def _rotation_matrix(self) -> np.ndarray:
         """_rotation_matrix getter method
 
         Calculates and returns the (3D) axis rotation matrix.
@@ -201,7 +201,7 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
             coordinates.")
 
     @property
-    def ndim_meas(self):
+    def ndim_meas(self) -> int:
         """ndim_meas getter method
 
         Returns
@@ -212,7 +212,7 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
 
         return 3
 
-    def function(self, state, noise=False, **kwargs):
+    def function(self, state, noise=False, **kwargs) -> StateVector:
         r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
 
         Parameters
@@ -247,7 +247,7 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
 
         return StateVector([[Elevation(theta)], [Bearing(phi)], [rho]]) + noise
 
-    def inverse_function(self, detection, **kwargs):
+    def inverse_function(self, detection, **kwargs) -> StateVector:
 
         theta, phi, rho = detection.state_vector[:, 0]
         x, y, z = sphere2cart(rho, phi, theta)
@@ -263,7 +263,7 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
 
         return res
 
-    def rvs(self, num_samples=1, **kwargs):
+    def rvs(self, num_samples=1, **kwargs) -> np.ndarray:
         out = super().rvs(num_samples, **kwargs)
         out = np.array([[Elevation(0.)], [Bearing(0.)], [0.]]) + out
         return out
@@ -330,7 +330,7 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
             coordinates.")
 
     @property
-    def ndim_meas(self):
+    def ndim_meas(self) -> int:
         """ndim_meas getter method
 
         Returns
@@ -341,7 +341,7 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
 
         return 2
 
-    def inverse_function(self, detection, **kwargs):
+    def inverse_function(self, detection, **kwargs) -> StateVector:
         if not ((self.rotation_offset[0][0] == 0)
                 and (self.rotation_offset[1][0] == 0)):
             raise RuntimeError(
@@ -362,7 +362,7 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
 
         return res
 
-    def function(self, state, noise=False, **kwargs):
+    def function(self, state, noise=False, **kwargs) -> StateVector:
         r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
 
         Parameters
@@ -401,7 +401,7 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
 
         return StateVector([[Bearing(phi)], [rho]]) + noise
 
-    def rvs(self, num_samples=1, **kwargs):
+    def rvs(self, num_samples=1, **kwargs) -> np.ndarray:
         out = super().rvs(num_samples, **kwargs)
         out = np.array([[Bearing(0)], [0.]]) + out
         return out
@@ -470,7 +470,7 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
             coordinates.")
 
     @property
-    def ndim_meas(self):
+    def ndim_meas(self) -> int:
         """ndim_meas getter method
 
         Returns
@@ -481,7 +481,7 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
 
         return 2
 
-    def function(self, state, noise=False, **kwargs):
+    def function(self, state, noise=False, **kwargs) -> StateVector:
         r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
 
         Parameters
@@ -516,7 +516,7 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
 
         return StateVector([[Elevation(theta)], [Bearing(phi)]]) + noise
 
-    def rvs(self, num_samples=1, **kwargs):
+    def rvs(self, num_samples=1, **kwargs) -> np.ndarray:
         out = super().rvs(num_samples, **kwargs)
         out = np.array([[Elevation(0.)], [Bearing(0.)]]) + out
         return out
@@ -578,21 +578,21 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
 
     Note
     ----
-    This class implementation assumes a 2D Cartesian plane by default, however\
-    it will operate in 3D so long as all upstream inputs are specified in 3D.
+    This class implementation assuming at 3D cartesian space, it therefore\
+     expects a 6D state space.
     """
 
     translation_offset = Property(
         StateVector,
-        default=StateVector(np.array([[0], [0]])),
-        doc="A 2x1 or 3x1 array specifying the origin offset in terms of :math:`x,y` coordinates.")
+        default=StateVector(np.array([[0], [0], [0]])),
+        doc="A 3x1 array specifying the origin offset in terms of :math:`x,y` coordinates.")
     vel_mapping = Property(
         np.array,
         doc="Mapping to the targets velocity within its state space")
     velocity = Property(
         StateVector,
-        default=StateVector(np.array([[0], [0]])),
-        doc="A 2x1 or 3x1 array specifying the sensor velocity in terms of :math:`x,y` \
+        default=StateVector(np.array([[0], [0], [0]])),
+        doc="A 3x1 array specifying the sensor velocity in terms of :math:`x,y` \
         coordinates.")
 
     @property
@@ -649,13 +649,13 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
 
         return StateVector([[Bearing(phi)], [rho], [rr]]) + noise
 
-    def rvs(self, num_samples=1, **kwargs) -> np.array:
+    def rvs(self, num_samples=1, **kwargs) -> np.ndarray:
         out = super().rvs(num_samples, **kwargs)
         out = np.array([[Bearing(0)], [0.], [0.]]) + out
         return out
 
 
-class CartesianToElevationBearingRangeRate(CartesianToBearingRangeRate):
+class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of elevation \
     (:math:`\theta`),  bearing (:math:`\phi`), range (:math:`r`) and
@@ -786,7 +786,7 @@ class CartesianToElevationBearingRangeRate(CartesianToBearingRangeRate):
                             [rho],
                             [rr]]) + noise
 
-    def rvs(self, num_samples=1, **kwargs) -> np.array:
+    def rvs(self, num_samples=1, **kwargs) -> np.ndarray:
         out = super().rvs(num_samples, **kwargs)
         out = np.array([[Elevation(0)], [Bearing(0)], [0.], [0.]]) + out
         return out
