@@ -95,7 +95,7 @@ class BaseSensor(Base, ABC):
     @orientation.setter
     def orientation(self, value: StateVector):
         if self._has_internal_platform:
-            self.platform.position = value
+            self.platform.orientation = value
         else:
             raise AttributeError('Cannot set sensor position unless the sensor has its own '
                                  'default platform')

@@ -28,7 +28,7 @@ def test_sensor_position_orientation_setting():
     sensor.position = StateVector([0, 1, 0])
     assert np.array_equal(sensor.position, StateVector([0, 1, 0]))
     sensor.orientation = StateVector([0, 1, 0])
-    assert np.array_equal(sensor.orientation, StateVector([0, 0, 0]))
+    assert np.array_equal(sensor.orientation, StateVector([0, 1, 0]))
 
     position = StateVector([0, 0, 1])
     sensor = DummySensor()
