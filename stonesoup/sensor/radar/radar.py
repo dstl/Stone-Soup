@@ -333,7 +333,7 @@ class RadarRangeRateBearingElevation(RadarRangeRateBearing):
         doc="Mapping to the targets velocity information within its state space")
     ndim_state = Property(
         int,
-        default=4,
+        default=6,
         doc="Number of state dimensions. This is utilised by (and follows in format) "
             "the underlying :class:`~.CartesianToElevationBearingRangeRate` model")
     noise_covar = Property(
@@ -489,7 +489,6 @@ class AESARadar(Sensor):
         doc="A 3x1 array of angles (rad), specifying the radar orientation in terms of the "
             "counter-clockwise rotation around the :math:`x,y,z` axis. i.e Roll, Pitch and Yaw. "
             "Default is ``StateVector([0, 0, 0])``")
-
 
     pos_mapping = Property(
         np.array, default=(0, 1, 2),
