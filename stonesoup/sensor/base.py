@@ -104,7 +104,8 @@ class BaseSensor(Base, ABC):
     def _has_internal_platform(self) -> bool:
         return False
 
-    def velocity(self):
+    @property
+    def velocity(self) -> Optional[StateVector]:
         """The sensor velocity on a 3D Cartesian plane, expressed as a 3x1 :class:`StateVector`
         of Cartesian coordinates in the order :math:`x,y,z`.
 
@@ -122,4 +123,3 @@ class BaseSensor(Base, ABC):
         else:
             raise AttributeError('Cannot set platform velocity unless the sensor has its own '
                                  'default platform')
-
