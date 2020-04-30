@@ -310,7 +310,6 @@ class ASDKalmanUpdater(KalmanUpdater):
                 """
         measurement_model = self._check_measurement_model(measurement_model)
 
-        #TODO: PI MUST BE INTRODUCED IF_ACT_MEASUREMENT IS NOT NEWER THEN THE REST
 
         t_index = predicted_state.timestamps.index(predicted_state.act_timestamp)
         pred_meas = measurement_model.function(State(predicted_state.multi_state_vector[t_index * predicted_state.ndim: (t_index +1) * predicted_state.ndim]),noise=0, **kwargs)
@@ -367,10 +366,56 @@ class ASDKalmanUpdater(KalmanUpdater):
         measurement_model = self._check_measurement_model(
             measurement_model)
 
+
+        t_index = predicted_state.timestamps.index(predicted_state.act_timestamp)
+            # calculate the update for the measrement step
+        if t_index!=0:
+            P_l = predicted_state.multi_covar[t_index * predicted_state.ndim: (t_index + 1) * predicted_state.ndim, t_index * predicted_state.ndim: (t_index + 1) * predicted_state.ndim]
+            #HPH + R
+            hh_l = self._measurement_matrix(predicted_state=predicted_state,
+                                            measurement_model=measurement_model,
+                                            **kwargs)
+            innov_cov = hh_l @ predicted_state.multi_covar[t_index * predicted_state.ndim: (t_index +1) * predicted_state.ndim,t_index * predicted_state.ndim: (t_index +1) * predicted_state.ndim] @ hh_l.T + measurement_model.covar()
+
+            kalman_gain_l = predicted_state.multi_covar[t_index * predicted_state.ndim: (t_index +1) * predicted_state.ndim:, t_index * predicted_state.ndim: (t_index +1) * predicted_state.ndim] @ hh_l.T @ np.linalg.inv(innov_cov)
+            P_l = P_l - kalman_gain_l @ innov_cov @ kalman_gain_l.T
+            predicted_state.correlation_matrices[predicted_state.act_timestamp]['P'] = P_l
+            predicted_state.correlation_matrices[predicted_state.act_timestamp]['P_pred'] = predicted_state.correlation_matrices[predicted_state.act_timestamp]['F'] @ P_l @ predicted_state.correlation_matrices[predicted_state.act_timestamp]['F'].T + predicted_state.correlation_matrices[predicted_state.act_timestamp]['P_error']
+            predicted_state.correlation_matrices[predicted_state.act_timestamp]['PFP'] = \
+                predicted_state.correlation_matrices[predicted_state.act_timestamp]['P'] \
+                @ predicted_state.correlation_matrices[predicted_state.act_timestamp]['F'].T \
+                @ np.linalg.inv(predicted_state.correlation_matrices[predicted_state.act_timestamp]['P_pred'])
+            # get all timestamps which has to be recalculated beginning with the newest one
+            timestamps_to_recalculate = [ts for ts in predicted_state.timestamps if ts > predicted_state.act_timestamp]
+            covars = [predicted_state.multi_covar[i * predicted_state.ndim:(i + 1) * predicted_state.ndim, i * predicted_state.ndim:(i + 1) * predicted_state.ndim] for i in
+                      range(t_index)]
+
+            for i, ts in enumerate(timestamps_to_recalculate):
+                prior_ndim = predicted_state.ndim
+                C_list = []
+                C_list.append(np.eye(prior_ndim))
+                corrs = {k: v for k, v in predicted_state.correlation_matrices.items() if k < ts}
+                for item in list(corrs.values())[-1::-1]:
+                    C_list.append(C_list[-1] @ item['PFP'])
+                C_list = C_list[1:]
+                W_column = np.array([ c @ covars[i] for c in C_list])
+                W_column = np.reshape(W_column, (predicted_state.ndim * len(C_list), predicted_state.ndim))
+                W_row = W_column.T
+
+                # set covar
+                predicted_state.multi_covar[i * prior_ndim:(i + 1) * prior_ndim, i * prior_ndim:(i + 1) * prior_ndim] = covars[i]
+
+                # set column
+
+                predicted_state.multi_covar[(i + 1) * prior_ndim:, i * prior_ndim: (i + 1) * prior_ndim] = W_column
+
+                # set row
+                predicted_state.multi_covar[i * prior_ndim: (i + 1) * prior_ndim, (i + 1) * prior_ndim:] = W_row
+
+
         # Attach the measurement prediction to the hypothesis
         hypothesis.measurement_prediction = self.predict_measurement(
             predicted_state, measurement_model=measurement_model, **kwargs)
-
         # Get the predicted measurement mean, innovation covariance and
         # measurement cross-covariance
         pred_meas = hypothesis.measurement_prediction.state_vector
