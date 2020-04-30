@@ -287,3 +287,55 @@ class GaussianHellinger(SquaredGaussianHellinger):
 
         """
         return np.sqrt(super().__call__(state1, state2))
+
+
+class InformationDistance(Measure):
+    r"""Information distance measure
+
+    This measure returns the Euclidean distance between a pair of
+    :class:`~.InformationState` objects.
+
+    The Euclidean distance between a pair of state vectors :math:`u` and
+    :math:`v` is defined as:
+
+    .. math::
+         \sqrt{\sum_{i=1}^{N}{(u_i - v_i)^2}}
+
+    """
+    def __call__(self, state1, state2):
+        r"""Calculate the Euclidean distance between a pair of state vectors
+
+        Parameters
+        ----------
+        state1 : :class:`~.State`
+        state2 : :class:`~.State`
+
+        Returns
+        -------
+        float
+            Euclidean distance between two input :class:`~.State`
+
+        """
+        # Calculate Euclidean distance between two state
+        if state1.proj_matrix is not None:
+            proj_matrix = state1.proj_matrix
+        elif state2.proj_matrix is not None:
+            proj_matrix = state2.proj_matrix
+
+        # state1.state_vector = proj_matrix @ state1.state_vector
+        # state2.state_vector = proj_matrix @ state2.state_vector
+        #
+        # if self.mapping is not None:
+        #     return distance.euclidean(state1.state_vector[self.mapping],
+        #                               state2.state_vector[self.mapping])
+        # else:
+        #     return distance.euclidean(state1.state_vector, state2.state_vector)
+
+        state_vector1 = proj_matrix @ state1.state_vector
+        state_vector2 = proj_matrix @ state2.state_vector
+
+        if self.mapping is not None:
+            return distance.euclidean(state_vector1[self.mapping],
+                                      state_vector2[self.mapping])
+        else:
+            return distance.euclidean(state1.state_vector, state2.state_vector)

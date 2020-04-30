@@ -7,7 +7,7 @@ import numpy as np
 import uuid
 
 from ..base import Property
-from .array import StateVector, CovarianceMatrix
+from .array import StateVector, CovarianceMatrix, InformationMatrix
 from .base import Type
 from .particle import Particles
 from .numeric import Probability
@@ -216,6 +216,15 @@ class SqrtGaussianState(State):
         """
         return self.sqrt_covar @ self.sqrt_covar.T
 GaussianState.register(SqrtGaussianState)  # noqa: E305
+
+
+class InformationState(State):
+    """Information State Type
+
+    Information State object with an associated weight.  Used with the information filter to
+    describe an information state (i.e. an information matrix and an information state vector.)
+    """
+    info_matrix = Property(InformationMatrix, doc='Information matrix of state.')
 
 
 class WeightedGaussianState(GaussianState):

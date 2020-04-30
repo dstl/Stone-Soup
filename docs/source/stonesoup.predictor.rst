@@ -18,3 +18,9 @@ Particle
 
 .. automodule:: stonesoup.predictor.particle
     :show-inheritance:
+
+Information
+-----------
+
+.. automodule:: stonesoup.predictor.information
+    :show-inheritance:

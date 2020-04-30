@@ -2,9 +2,9 @@
 from typing import Any, Union
 
 from ..base import Property
-from .array import CovarianceMatrix
+from .array import CovarianceMatrix, Matrix
 from .base import Type
-from .state import (State, GaussianState, ParticleState, SqrtGaussianState,
+from .state import (State, GaussianState, ParticleState, SqrtGaussianState, InformationState,
                     TaggedWeightedGaussianState, WeightedGaussianState, StateMutableSequence)
 from ..models.transition.base import TransitionModel
 
@@ -88,6 +88,13 @@ class StatePrediction(Prediction, State):
     """
 
 
+class InformationStatePrediction(InformationState, Prediction):
+    """ InformationStatePrediction type
+
+    Information state prediction type, which has time. a state vector and an information matrix.
+    """
+
+
 class StateMeasurementPrediction(MeasurementPrediction, State):
     """ MeasurementPrediction type
 
@@ -158,6 +165,17 @@ class ParticleStatePrediction(Prediction, ParticleState):
 
     This is a simple Particle state prediction object.
     """
+
+
+class InformationMeasurementPrediction(MeasurementPrediction, InformationState):
+    """MeasurementStatePrediction type
+
+    This is a simple Information measurement prediction object.
+    """
+
+    proj_matrix = Property(Matrix,
+                           doc="Projection matrix to information space from measurement space.",
+                           default=None)
 
 
 class ParticleMeasurementPrediction(MeasurementPrediction, ParticleState):
