@@ -321,7 +321,7 @@ class ASDKalmanPredictor(KalmanPredictor):
 
         else:
             # case of out of sequence prediction case
-            print("The measurement is processed as an Out-Of-Sequence measurement.")
+            print("The measurement is processed as an Out-Of-Sequence measurement at timestep " + str(timestamp))
             next_timestamp = prior.timestamps[prior.timestamps.index(timestamp_from_which_is_predicted) - 1]
             time_interval_to_next_timestep = next_timestamp - timestamp
 
@@ -339,20 +339,31 @@ class ASDKalmanPredictor(KalmanPredictor):
             p_pred_k = transition_matrix @ covar_from_where_ist_predicted @ transition_matrix.T \
                        + transition_covar \
                        + control_matrix @ control_noise @ control_matrix.T
-            p_pred_m_plus_1 = transition_matrix_plus_1 @ p_pred_k @ super()._transition_matrix(time_interval=time_interval_to_next_timestep, **kwargs).T
+            transition_covar_m_plus_1 = self.transition_model.covar(
+                time_interval=time_interval_to_next_timestep, **kwargs)
+            control_matrix = self._control_matrix
+            control_noise = self.control_model.control_noise
+            p_pred_m_plus_1 = transition_matrix_plus_1 @ p_pred_k @ transition_matrix_plus_1.T +  transition_covar_m_plus_1+ control_matrix @ control_noise @ control_matrix.T
             p_diff = prior.multi_covar[(t_index - 1) * prior.ndim:t_index * prior.ndim, (t_index - 1) * prior.ndim:t_index * prior.ndim] - p_pred_m_plus_1
 
             W = p_pred_k @ transition_matrix_plus_1.T @ np.linalg.inv(p_pred_m_plus_1)
             x_pred_m = x_pred_k + W @ x_diff
-            p_pred_k = p_pred_k - W @ p_diff @ W.T
+            p_pred_k = p_pred_k + W @ p_diff @ W.T
             x_pred = np.concatenate([prior.multi_state_vector[0:t_index*prior.ndim], x_pred_m, prior.multi_state_vector[t_index*prior.ndim:]])
 
-            P_right_upper = prior.multi_covar[0:t_index*prior.ndim, t_index*prior.ndim:]
             P_right_lower = prior.multi_covar[t_index*prior.ndim:, t_index*prior.ndim:]
-            P_left_upper = prior.multi_covar[0:t_index*prior.ndim, 0:t_index*prior.ndim]
-            P_left_lower = prior.multi_covar[t_index*prior.ndim:, 0:t_index*prior.ndim]
+
 
             # add new correlation matrix with the present time step
+            import sys
+            if np.linalg.cond(p_pred_k) < 1 / sys.float_info.epsilon:
+                i = np.linalg.inv(p_pred_k)
+            else:
+                print("Singular ")
+            if np.linalg.cond(p_pred_m_plus_1) < 1 / sys.float_info.epsilon:
+                i = np.linalg.inv(p_pred_m_plus_1)
+            else:
+                print("Singular m_plis_1")
             old_transition_matrix = correlation_matrices[timestamp_from_which_is_predicted]['F']
             correlation_matrices[timestamp_from_which_is_predicted]['P_pred'] = p_pred_k
             correlation_matrices[timestamp_from_which_is_predicted]['F'] = transition_matrix
@@ -363,7 +374,9 @@ class ASDKalmanPredictor(KalmanPredictor):
             correlation_matrices[timestamp] = {}
             correlation_matrices[timestamp]['F'] = transition_matrix_plus_1
             correlation_matrices[timestamp]['P_pred'] = p_pred_m_plus_1
+            correlation_matrices[timestamp]['P_error'] = transition_covar_m_plus_1+ control_matrix @ control_noise @ control_matrix.T
             correlation_matrices[timestamp]['P'] = p_pred_k
+            correlation_matrices[timestamp]['PFP'] = p_pred_k @ transition_matrix_plus_1 @ np.linalg.inv(p_pred_m_plus_1)
 
 
             # resort the dict
@@ -379,32 +392,36 @@ class ASDKalmanPredictor(KalmanPredictor):
                 prior.ndim * len(C_list), prior.ndim)) @ transition_matrix.T
             correlated_row_normal = correlated_column_normal.T
 
+            p_pred = np.zeros((prior.ndim * (prior.nstep + 1), prior.ndim * (prior.nstep + 1)))
+            p_pred[(t_index + 1)*prior.ndim:, (t_index + 1)*prior.ndim:] = P_right_lower
+            p_pred[(t_index) * prior.ndim: (t_index+1) * prior.ndim, (t_index + 1) * prior.ndim:] = correlated_row_normal
+            p_pred[(t_index+1) * prior.ndim:, t_index * prior.ndim: (t_index + 1) * prior.ndim] = correlated_column_normal
+            p_pred[t_index * prior.ndim: (t_index + 1) * prior.ndim, t_index * prior.ndim: (t_index + 1) * prior.ndim] = p_pred_k
 
-            # other part of the new column/row
-            C_rest_list = []
-            C_rest_list.append(np.eye(prior.ndim))
-            for item in [value for key, value in correlation_matrices.items() if key>timestamp][:-1]:
-                C_rest_list.append(item['PFP'] @ C_rest_list[-1])
+            # get all timestamps which has to be recalculated beginning with the newest one
+            timestamps_to_recalculate = [ts for ts in prior.timestamps if ts >timestamp]
+            covars = [prior.multi_covar[i*prior.ndim:(i+1) * prior.ndim, i*prior.ndim:(i+1) * prior.ndim] for i in range(t_index)]
+            for i, ts in enumerate(timestamps_to_recalculate):
+            #     prior_ndim = prior.ndim
+            #     C_list = []
+            #     C_list.append(np.eye(prior_ndim))
+            #     corrs = {k: v for k, v in correlation_matrices.items() if k < ts}
+            #     for item in list(corrs.values())[-1::-1]:
+            #         C_list.append(C_list[-1] @ item['PFP'])
+            #     C_list = C_list[1:]
+            #     W_column = np.array([ covars[i]@ c.T for c in C_list])
+            #     W_column = np.reshape(W_column, (prior.ndim * len(C_list), prior.ndim))
+            #     W_row = W_column.T
+            #
+            #     # set covar
+                p_pred[i*prior.ndim:(i+1) * prior.ndim, i*prior.ndim:(i+1) * prior.ndim] = covars[i]
+            #
+            #     # set column
+            #     p_pred[(i+1) * prior.ndim:, i * prior.ndim: (i+1)* prior.ndim] = W_column
+            #
+            #     # set row
+            #     p_pred[i * prior.ndim: (i+1) * prior.ndim, (i+1) * prior.ndim:] = W_row
 
-
-            corrs = [prior.multi_covar[i*prior.ndim:(i+1)*prior.ndim,i*prior.ndim:(i+1)*prior.ndim] for i in range(0,t_index)]
-
-            W_P_column_rest = np.array([c @ covar  for c, covar in zip(C_rest_list, corrs)])
-
-            correlated_column_rest = np.reshape(W_P_column_rest, (
-                prior.ndim * len(C_rest_list), prior.ndim))
-            correlated_row_rest = correlated_column_rest.T
-
-            # make one matrix out of the small ones
-            P = np.block([[P_left_upper, correlated_column_rest, P_right_upper],
-                        [correlated_row_rest, p_pred_k, correlated_row_normal],
-                        [P_left_lower, correlated_column_normal, P_right_lower]])
-
-            # # correct of the covariance parts of the following
-            # P[ (t_index-1) * prior.ndim:,(t_index-1) * prior.ndim:t_index  *prior.ndim] = \
-            #     P[ (t_index-1) * prior.ndim:,(t_index-1) * prior.ndim:t_index  *prior.ndim] @ np.linalg.inv(old_transition_matrix.T) @ transition_matrix_plus_1
-
-            p_pred = P
 
 
         timestamps = sorted(prior.timestamps +[timestamp], reverse=True)
