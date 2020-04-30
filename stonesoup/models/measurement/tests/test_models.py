@@ -367,7 +367,7 @@ def h3d_rr(state_vector, pos_map, vel_map, translation_offset, rotation_offset, 
 
 
 @pytest.mark.parametrize(
-    "h, ModelClass, state_vec, ndim_state, pos_mapping, vel_mapping,\
+    "h, modelclass, state_vec, ndim_state, pos_mapping, vel_mapping,\
     noise_covar, position, orientation",
     [
         (   # 3D meas, 6D state
@@ -400,7 +400,7 @@ def h3d_rr(state_vector, pos_map, vel_map, translation_offset, rotation_offset, 
     ],
     ids=["rrRB", "rrRBE"]
 )
-def test_rangeratemodels(h, ModelClass, state_vec, ndim_state, pos_mapping, vel_mapping,
+def test_rangeratemodels(h, modelclass, state_vec, ndim_state, pos_mapping, vel_mapping,
                          noise_covar, position, orientation):
     """ Test for the CartesianToBearingRangeRate and
     CartesianToElevationBearingRangeRate Measurement Models """
@@ -408,7 +408,7 @@ def test_rangeratemodels(h, ModelClass, state_vec, ndim_state, pos_mapping, vel_
     state = State(state_vec)
 
     # Create and a measurement model object
-    model = ModelClass(ndim_state=ndim_state,
+    model = modelclass(ndim_state=ndim_state,
                        mapping=pos_mapping,
                        vel_mapping=vel_mapping,
                        noise_covar=noise_covar,

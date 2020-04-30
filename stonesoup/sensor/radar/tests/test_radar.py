@@ -4,22 +4,22 @@ import pytest
 from pytest import approx
 import numpy as np
 
-from ....functions import cart2pol, rotz, rotx, roty
+from ....functions import rotz, rotx, roty
 from ....types.angle import Bearing, Elevation
 from ....types.array import StateVector, CovarianceMatrix
 from ....types.state import State
 from ....types.groundtruth import GroundTruthState
-from ..radar import RadarRangeBearing, RadarRotatingRangeBearing, AESARadar, \
-    RadarRasterScanRangeBearing, RadarRangeRateBearing, RadarRangeRateBearingElevation
+from ..radar import RadarRangeBearing, RadarRangeBearingElevation, RadarRotatingRangeBearing, \
+    AESARadar, RadarRasterScanRangeBearing, RadarRangeRateBearing, RadarRangeRateBearingElevation
 from ..beam_pattern import StationaryBeam
 from ..beam_shape import Beam2DGaussian
 from ....models.measurement.linear import LinearGaussian
 
 
-def h2d(state_vector, translation_offset, rotation_offset):
+def h2d(state, translation_offset, rotation_offset):
 
-    xyz = [[state_vector[0, 0] - translation_offset[0, 0]],
-           [state_vector[1, 0] - translation_offset[1, 0]],
+    xyz = [[state.state_vector[0, 0] - translation_offset[0, 0]],
+           [state.state_vector[1, 0] - translation_offset[1, 0]],
            [0]]
 
     # Get rotation matrix
@@ -40,35 +40,91 @@ def h2d(state_vector, translation_offset, rotation_offset):
     return np.array([[Bearing(phi)], [rho]])
 
 
-def test_simple_radar():
+def h3d(state, translation_offset, rotation_offset):
 
-    # Input arguments
-    # TODO: pytest parametarization
-    noise_covar = CovarianceMatrix([[0.015, 0],
-                                    [0, 0.1]])
-    radar_position = StateVector([1, 1])
-    radar_orientation = StateVector([0, 0, 0])
-    target_state = State(radar_position + np.array([[1], [1]]), timestamp=datetime.datetime.now())
-    measurement_mapping = np.array([0, 1])
+    xyz = np.array([[state.state_vector[0, 0] - translation_offset[0, 0]],
+                    [state.state_vector[1, 0] - translation_offset[1, 0]],
+                    [state.state_vector[2, 0] - translation_offset[2, 0]]])
 
-    # Create a radar object
-    radar = RadarRangeBearing(position=radar_position,
-                              orientation=radar_orientation,
-                              ndim_state=2,
-                              pos_mapping=measurement_mapping,
-                              noise_covar=noise_covar)
+    # Get rotation matrix
+    theta_z = - rotation_offset[2, 0]
+    cos_z, sin_z = np.cos(theta_z), np.sin(theta_z)
+    rot_z = np.array([[cos_z, -sin_z, 0],
+                      [sin_z, cos_z, 0],
+                      [0, 0, 1]])
 
-    # Assert that the object has been correctly initialised
-    assert(np.equal(radar.position, radar_position).all())
+    theta_y = - rotation_offset[1, 0]
+    cos_y, sin_y = np.cos(theta_y), np.sin(theta_y)
+    rot_y = np.array([[cos_y, 0, sin_y],
+                      [0, 1, 0],
+                      [-sin_y, 0, cos_y]])
+
+    theta_x = - rotation_offset[0, 0]
+    cos_x, sin_x = np.cos(theta_x), np.sin(theta_x)
+    rot_x = np.array([[1, 0, 0],
+                      [0, cos_x, -sin_x],
+                      [0, sin_x, cos_x]])
+
+    rotation_matrix = rot_z@rot_y@rot_x
+
+    xyz_rot = rotation_matrix @ xyz
+    x = xyz_rot[0, 0]
+    y = xyz_rot[1, 0]
+    z = xyz_rot[2, 0]
+
+    rho = np.sqrt(x**2 + y**2 + z**2)
+    phi = np.arctan2(y, x)
+    theta = np.arcsin(z/rho)
+
+    return np.array([[Elevation(theta)], [Bearing(phi)], [rho]])
+
+
+@pytest.mark.parametrize(
+    "h, sensorclass, ndim_state, pos_mapping, noise_covar, position, target",
+    [
+        (
+            h2d,  # h
+            RadarRangeBearing,  # sensorclass
+            2,
+            np.array([0, 1]),  # pos_mapping
+            np.array([[0.015, 0],
+                      [0, 0.1]]),  # noise_covar
+            StateVector([[1], [1]]),  # position
+            np.array([[200], [10]])  # target
+         ),
+        (
+            h3d,  # h
+            RadarRangeBearingElevation,  # sensorclass
+            3,
+            np.array([0, 1, 2]),  # pos_mapping
+            np.array([[0.015, 0, 0],
+                      [0, 0.015, 0],
+                      [0, 0, 0.1]]),  # noise_covar
+            StateVector([[1], [1], [0]]),  # position
+            np.array([[200], [10], [10]])  # target
+        )
+    ],
+    ids=["RadarRangeBearing", "RadarRangeBearingElevation"]
+)
+def test_simple_radar(h, sensorclass, ndim_state, pos_mapping, noise_covar, position, target):
+    # Instantiate the rotating radar
+    radar = sensorclass(ndim_state=ndim_state,
+                        pos_mapping=pos_mapping,
+                        noise_covar=noise_covar,
+                        position=position)
+
+    assert (np.equal(radar.position, position).all())
+
+    target_state = State(target, timestamp=datetime.datetime.now())
 
     # Generate a noiseless measurement for the given target
     measurement = radar.measure(target_state, noise=False)
-    rho, phi = cart2pol(target_state.state_vector[0, 0] - radar_position[0, 0],
-                        target_state.state_vector[1, 0] - radar_position[1, 0])
 
     # Assert correction of generated measurement
-    assert(measurement.timestamp == target_state.timestamp)
-    assert(np.equal(measurement.state_vector, StateVector([phi, rho])).all())
+    assert (measurement.timestamp == target_state.timestamp)
+    assert (np.equal(measurement.state_vector, h(target_state,
+                                                 translation_offset=position,
+                                                 rotation_offset=radar.orientation)).all())
 
 
 def h2d_rr(state, pos_map, vel_map, translation_offset, rotation_offset, velocity):
@@ -213,8 +269,6 @@ def test_range_rate_radar(h, sensorclass, pos_mapping, vel_mapping, noise_covar,
 
     # Assert correction of generated measurement
     assert (measurement.timestamp == target_state.timestamp)
-    print(radar.orientation)
-    print(radar.velocity)
     assert (np.equal(measurement.state_vector, h(target_state,
                                                  pos_map=pos_mapping,
                                                  vel_map=vel_mapping,
@@ -274,7 +328,7 @@ def test_rotating_radar():
                          np.array([[5], [5]]),
                          timestamp=timestamp)
     measurement = radar.measure(target_state, noise=False)
-    eval_m = h2d(target_state.state_vector,
+    eval_m = h2d(target_state,
                  radar.position,
                  radar.orientation+[[0],
                                     [0],
@@ -345,7 +399,7 @@ def test_raster_scan_radar():
                          np.array([[-5], [5]]),
                          timestamp=timestamp)
     measurement = radar.measure(target_state, noise=False)
-    eval_m = h2d(target_state.state_vector,
+    eval_m = h2d(target_state,
                  radar.position,
                  radar.orientation + [[0],
                                       [0],
