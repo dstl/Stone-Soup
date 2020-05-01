@@ -109,7 +109,7 @@ def h3d(state, translation_offset, rotation_offset):
 def test_simple_radar(h, sensorclass, ndim_state, pos_mapping, noise_covar, position, target):
     # Instantiate the rotating radar
     radar = sensorclass(ndim_state=ndim_state,
-                        pos_mapping=pos_mapping,
+                        position_mapping=pos_mapping,
                         noise_covar=noise_covar,
                         position=position)
 
@@ -254,8 +254,8 @@ def test_range_rate_radar(h, sensorclass, pos_mapping, vel_mapping, noise_covar,
 
     # Instantiate the rotating radar
     radar = sensorclass(ndim_state=6,
-                        pos_mapping=pos_mapping,
-                        vel_mapping=vel_mapping,
+                        position_mapping=pos_mapping,
+                        velocity_mapping=vel_mapping,
                         noise_covar=noise_covar,
                         position=position)
 
@@ -306,7 +306,7 @@ def test_rotating_radar():
     radar = RadarRotatingRangeBearing(position=radar_position,
                                       orientation=radar_orientation,
                                       ndim_state=2,
-                                      pos_mapping=measurement_mapping,
+                                      position_mapping=measurement_mapping,
                                       noise_covar=noise_covar,
                                       dwell_center=dwell_center,
                                       rpm=rpm,
@@ -367,7 +367,7 @@ def test_raster_scan_radar():
     radar = RadarRasterScanRangeBearing(position=radar_position,
                                         orientation=radar_orientation,
                                         ndim_state=2,
-                                        pos_mapping=measurement_mapping,
+                                        position_mapping=measurement_mapping,
                                         noise_covar=noise_covar,
                                         dwell_center=dwell_center,
                                         rpm=rpm,
@@ -415,7 +415,7 @@ def test_aesaradar():
                    timestamp=datetime.datetime.now())
 
     radar = AESARadar(antenna_gain=30,
-                      pos_mapping=[0, 2, 4],
+                      position_mapping=[0, 2, 4],
                       position=StateVector([0.0] * 3),
                       orientation=StateVector([0.0] * 3),
                       frequency=100e6,
@@ -510,7 +510,7 @@ def test_failed_detect():
                    timestamp=datetime.datetime.now())
 
     radar = AESARadar(antenna_gain=30,
-                      pos_mapping=[0, 2, 4],
+                      position_mapping=[0, 2, 4],
                       position=StateVector([0.0] * 3),
                       orientation=StateVector([0.0] * 3),
                       frequency=100e6,
@@ -540,7 +540,7 @@ def test_target_rcs():
     rcs_20.rcs = 20
 
     radar = AESARadar(antenna_gain=36,
-                      pos_mapping=[0, 1, 2],
+                      position_mapping=[0, 1, 2],
                       position=StateVector([0.0]*3),
                       orientation=StateVector([0.0] * 3),
                       frequency=10e9,

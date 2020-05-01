@@ -114,7 +114,7 @@ class BaseSensor(Base, ABC):
             sensor is mounted.
 
             It is settable if, and only if, the sensor holds its own internal platform."""
-        return self.platform_system().velocity
+        return self.platform.velocity
 
     @velocity.setter
     def velocity(self, value):

@@ -571,10 +571,11 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
             0 & 0 & \sigma_{\dot{r}}^2
             \end{bmatrix}
 
-    The :py:attr:`mapping` property of the model is a 2 element vector, \
-    whose first (i.e. :py:attr:`mapping[0]`) and second (i.e. \
-    :py:attr:`mapping[0]`) elements contain the state index of the \
-    :math:`x` and :math:`y` coordinates, respectively.
+    The :py:attr:`mapping` property of the model is a 3 element vector, \
+    whose first (i.e. :py:attr:`mapping[0]`), second (i.e. \
+    :py:attr:`mapping[1]`) and third (i.e. :py:attr:`mapping[2]`) elements \
+    contain the state index of the :math:`x`, :math:`y` and :math:`z`  \
+    coordinates, respectively.
 
     Note
     ----
@@ -586,8 +587,9 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
         StateVector,
         default=StateVector(np.array([[0], [0], [0]])),
         doc="A 3x1 array specifying the origin offset in terms of :math:`x,y` coordinates.")
-    vel_mapping = Property(
+    velocity_mapping = Property(
         np.array,
+        default=np.array([[1], [3], [5]]),
         doc="Mapping to the targets velocity within its state space")
     velocity = Property(
         StateVector,
@@ -642,7 +644,7 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
         rho, phi, _ = cart2sphere(*xy_rot[:, 0])
 
         # Determine the net velocity component in the engagement
-        xy_vel = state.state_vector[self.vel_mapping, :] - self.velocity
+        xy_vel = state.state_vector[self.velocity_mapping, :] - self.velocity
 
         # Use polar to calculate range rate
         rr = -np.dot(xy_pos[:, 0], xy_vel[:, 0]) / np.linalg.norm(xy_pos)
@@ -714,15 +716,17 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement):
 
     Note
     ----
-    This class assumes a 3D Cartesian plane.
+    This class implementation assuming at 3D cartesian space, , it therefore\
+    expects a 6D state space.
     """
 
     translation_offset = Property(
         StateVector,
         default=StateVector(np.array([[0], [0], [0]])),
         doc="A 3x1 array specifying the origin offset in terms of :math:`x,y,z` coordinates.")
-    vel_mapping = Property(
+    velocity_mapping = Property(
         np.array,
+        default=np.array([[1], [3], [5]]),
         doc="Mapping to the targets velocity within its state space")
     velocity = Property(
         StateVector,
@@ -776,7 +780,7 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement):
         rho, phi, theta = cart2sphere(*xyz_rot[:, 0])
 
         # Determine the net velocity component in the engagement
-        xyz_vel = state.state_vector[self.vel_mapping, :] - self.velocity
+        xyz_vel = state.state_vector[self.velocity_mapping, :] - self.velocity
 
         # Use polar to calculate range rate
         rr = -np.dot(xyz_pos[:, 0], xyz_vel[:, 0]) / np.linalg.norm(xyz_pos)
