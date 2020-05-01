@@ -136,9 +136,11 @@ class PDAHypothesiser(Hypothesiser):
             # Compute measurement prediction and probability measure
             measurement_prediction = self.updater.predict_measurement(
                 prediction, detection.measurement_model)
-            log_pdf = mn.logpdf(detection.state_vector.ravel(),
-                                measurement_prediction.state_vector.ravel(),
-                                measurement_prediction.covar)
+            # Calculate difference before to handle custom types (mean defaults to zero)
+            # This is required as log pdf coverts arrays to floats
+            log_pdf = mn.logpdf(
+                (detection.state_vector - measurement_prediction.state_vector).ravel(),
+                cov=measurement_prediction.covar)
             pdf = Probability(log_pdf, log_value=True)
             probability = (pdf * self.prob_detect)/self.clutter_spatial_density
 

@@ -224,9 +224,10 @@ class GaussianModel(Model):
             The likelihood of ``state1``, given ``state2``
         """
 
+        # Calculate difference before to handle custom types (mean defaults to zero)
+        # This is required as log pdf coverts arrays to floats
         likelihood = multivariate_normal.logpdf(
-            state1.state_vector.T,
-            mean=self.function(state2, **kwargs).ravel(),
+            (state1.state_vector - self.function(state2, **kwargs)).ravel(),
             cov=self.covar(**kwargs)
         )
         return Probability(likelihood, log_value=True)

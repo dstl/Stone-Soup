@@ -12,6 +12,7 @@ from ....types.state import State
 from ....functions import jacobian as compute_jac
 from ....types.angle import Bearing, Elevation
 from ....types.array import StateVector, Matrix
+from ....functions import pol2cart
 
 
 def h2d(state_vector, translation_offset, rotation_offset):
@@ -215,7 +216,6 @@ def test_models(h, ModelClass, state_vec, R,
     # StateVector is subclass of Matrix, so need to check explicitly.
     assert not isinstance(rvs, StateVector)
 
-    # Project a state throught the model
     # Project a state through the model
     # (without noise)
     meas_pred_wo_noise = model.function(state)
@@ -226,10 +226,8 @@ def test_models(h, ModelClass, state_vec, R,
     # (without noise)
     prob = model.pdf(State(meas_pred_wo_noise), state)
     assert approx(prob) == multivariate_normal.pdf(
-        meas_pred_wo_noise.T,
-        mean=np.array(h(state_vec,
-                        model.translation_offset,
-                        model.rotation_offset)).ravel(),
+        (meas_pred_wo_noise
+         - np.array(h(state_vec, model.translation_offset, model.rotation_offset))).ravel(),
         cov=R)
 
     # Propagate a state vector through the model
@@ -243,13 +241,11 @@ def test_models(h, ModelClass, state_vec, R,
     # (with noise)
     prob = model.pdf(State(meas_pred_w_inoise), state)
     assert approx(prob) == multivariate_normal.pdf(
-        meas_pred_w_inoise.T,
-        mean=np.array(h(state_vec,
-                        model.translation_offset,
-                        model.rotation_offset)).ravel(),
+        (meas_pred_w_inoise
+         - np.array(h(state_vec, model.translation_offset, model.rotation_offset))).ravel(),
         cov=R)
 
-    # Propagate a state vector throught the model
+    # Propagate a state vector through the model
     # (with external noise)
     noise = model.rvs()
     meas_pred_w_enoise = model.function(state,
@@ -261,8 +257,30 @@ def test_models(h, ModelClass, state_vec, R,
     # (with noise)
     prob = model.pdf(State(meas_pred_w_enoise), state)
     assert approx(prob) == multivariate_normal.pdf(
-        meas_pred_w_enoise.T,
-        mean=np.array(h(state_vec,
-                        model.translation_offset,
-                        model.rotation_offset)).ravel(),
+        (meas_pred_w_enoise
+         - np.array(h(state_vec, model.translation_offset, model.rotation_offset))).ravel(),
         cov=R)
+
+
+def test_angle_pdf():
+    model = CartesianToBearingRange(ndim_state=2,
+                                    mapping=(0, 1),
+                                    noise_covar=np.diag([np.radians(10), 2]))
+
+    # Around 0 degrees
+    measurement = State(StateVector([[Bearing(np.radians(1.))], [10.]]))
+    x, y = pol2cart(10, np.radians(-1))
+    state = State(StateVector([[x], [y]]))
+    reference_probability = model.pdf(measurement, state)
+
+    # Check same result around 90 degrees
+    measurement.state_vector[0, 0] += np.radians(90)
+    x, y = pol2cart(10, np.radians(89))
+    state = State(StateVector([[x], [y]]))
+    assert approx(reference_probability) == model.pdf(measurement, state)
+
+    # Check same result around 180 degrees
+    measurement.state_vector[0, 0] += np.radians(90)
+    x, y = pol2cart(10, np.radians(179))
+    state = State(StateVector([[x], [y]]))
+    assert approx(reference_probability) == model.pdf(measurement, state)
