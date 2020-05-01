@@ -216,7 +216,6 @@ def test_models(h, ModelClass, state_vec, R,
     # StateVector is subclass of Matrix, so need to check explicitly.
     assert not isinstance(rvs, StateVector)
 
-    # Project a state throught the model
     # Project a state through the model
     # (without noise)
     meas_pred_wo_noise = model.function(state)
@@ -246,7 +245,7 @@ def test_models(h, ModelClass, state_vec, R,
          - np.array(h(state_vec, model.translation_offset, model.rotation_offset))).ravel(),
         cov=R)
 
-    # Propagate a state vector throught the model
+    # Propagate a state vector through the model
     # (with external noise)
     noise = model.rvs()
     meas_pred_w_enoise = model.function(state,
