@@ -647,7 +647,7 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
         xy_vel = state.state_vector[self.velocity_mapping, :] - self.velocity
 
         # Use polar to calculate range rate
-        rr = -np.dot(xy_pos[:, 0], xy_vel[:, 0]) / np.linalg.norm(xy_pos)
+        rr = np.dot(xy_pos[:, 0], xy_vel[:, 0]) / np.linalg.norm(xy_pos)
 
         return StateVector([[Bearing(phi)], [rho], [rr]]) + noise
 
@@ -657,7 +657,7 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
         return out
 
 
-class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement):
+class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, ReversibleModel):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of elevation \
     (:math:`\theta`),  bearing (:math:`\phi`), range (:math:`r`) and
@@ -783,12 +783,35 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement):
         xyz_vel = state.state_vector[self.velocity_mapping, :] - self.velocity
 
         # Use polar to calculate range rate
-        rr = -np.dot(xyz_pos[:, 0], xyz_vel[:, 0]) / np.linalg.norm(xyz_pos)
+        rr = np.dot(xyz_pos[:, 0], xyz_vel[:, 0]) / np.linalg.norm(xyz_pos)
 
         return StateVector([[Elevation(phi)],
                             [Bearing(theta)],
                             [rho],
                             [rr]]) + noise
+
+    def inverse_function(self, detection, **kwargs) -> StateVector:
+        phi, theta, rho, rho_rate = detection.state_vector
+
+        [x, y, z] = sphere2cart(rho, theta, phi)
+        # because only rho_rate is known, only the components in
+        # x,y and z of the range rate can be found.
+        x_rate = np.cos(phi) * np.cos(theta) * rho_rate
+        y_rate = np.cos(phi) * np.sin(theta) * rho_rate
+        z_rate = np.sin(phi) * rho_rate
+
+        inv_rotation_matrix = inv(self._rotation_matrix)
+
+        out_vector = StateVector([[0.], [0.], [0.], [0.], [0.], [0.]])
+        out_vector[self.mapping] = x, y, z
+        out_vector[self.velocity_mapping] = x_rate, y_rate, z_rate
+
+        out_vector[self.mapping] = inv_rotation_matrix @ out_vector[self.mapping]
+        out_vector[self.velocity_mapping] = inv_rotation_matrix @ out_vector[self.velocity_mapping]
+
+        out_vector[self.mapping] = out_vector[self.mapping] + self.translation_offset
+        print(out_vector)
+        return out_vector
 
     def rvs(self, num_samples=1, **kwargs) -> np.ndarray:
         out = super().rvs(num_samples, **kwargs)

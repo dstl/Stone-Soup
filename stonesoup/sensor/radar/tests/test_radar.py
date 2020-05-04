@@ -4,7 +4,7 @@ import pytest
 from pytest import approx
 import numpy as np
 
-from ....functions import rotz, rotx, roty
+from ....functions import rotz, rotx, roty, cart2sphere
 from ....types.angle import Bearing, Elevation
 from ....types.array import StateVector, CovarianceMatrix
 from ....types.state import State
@@ -135,33 +135,13 @@ def h2d_rr(state, pos_map, vel_map, translation_offset, rotation_offset, velocit
 
     # Get rotation matrix
     theta_z = - rotation_offset[2, 0]
-    cos_z, sin_z = np.cos(theta_z), np.sin(theta_z)
-    rot_z = np.array([[cos_z, -sin_z, 0],
-                      [sin_z, cos_z, 0],
-                      [0, 0, 1]])
-
     theta_y = - rotation_offset[1, 0]
-    cos_y, sin_y = np.cos(theta_y), np.sin(theta_y)
-    rot_y = np.array([[cos_y, 0, sin_y],
-                      [0, 1, 0],
-                      [-sin_y, 0, cos_y]])
-
     theta_x = - rotation_offset[0, 0]
-    cos_x, sin_x = np.cos(theta_x), np.sin(theta_x)
-    rot_x = np.array([[1, 0, 0],
-                      [0, cos_x, -sin_x],
-                      [0, sin_x, cos_x]])
 
-    rotation_matrix = rot_z@rot_y@rot_x
-
+    rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
     xyz_rot = rotation_matrix @ xyz
-    x = xyz_rot[0, 0]
-    y = xyz_rot[1, 0]
-    z = xyz_rot[2, 0]
 
-    rho = np.sqrt(x**2 + y**2 + z**2)
-    phi = np.arctan2(y, x)
-    # theta = np.arcsin(z/rho)
+    rho, phi, _ = cart2sphere(*xyz_rot[:, 0])
 
     # Calculate range rate extension
     # Determine the net velocity component in the engagement
@@ -170,55 +150,31 @@ def h2d_rr(state, pos_map, vel_map, translation_offset, rotation_offset, velocit
                         [0]])
 
     # Use polar to calculate range rate
-    rr = -np.dot(xyz[:, 0], xyz_vel[:, 0]) / np.linalg.norm(xyz)
+    rr = np.dot(xyz[:, 0], xyz_vel[:, 0]) / np.linalg.norm(xyz)
 
     return np.array([[Bearing(phi)], [rho], [rr]])
 
 
 def h3d_rr(state, pos_map, vel_map, translation_offset, rotation_offset, velocity):
 
-    xyz = np.array([[state.state_vector[pos_map[0], 0] - translation_offset[0, 0]],
-                    [state.state_vector[pos_map[1], 0] - translation_offset[1, 0]],
-                    [state.state_vector[pos_map[2], 0] - translation_offset[2, 0]]])
+    xyz = state.state_vector[pos_map, :] - translation_offset
 
     # Get rotation matrix
     theta_z = - rotation_offset[2, 0]
-    cos_z, sin_z = np.cos(theta_z), np.sin(theta_z)
-    rot_z = np.array([[cos_z, -sin_z, 0],
-                      [sin_z, cos_z, 0],
-                      [0, 0, 1]])
-
     theta_y = - rotation_offset[1, 0]
-    cos_y, sin_y = np.cos(theta_y), np.sin(theta_y)
-    rot_y = np.array([[cos_y, 0, sin_y],
-                      [0, 1, 0],
-                      [-sin_y, 0, cos_y]])
-
     theta_x = - rotation_offset[0, 0]
-    cos_x, sin_x = np.cos(theta_x), np.sin(theta_x)
-    rot_x = np.array([[1, 0, 0],
-                      [0, cos_x, -sin_x],
-                      [0, sin_x, cos_x]])
 
-    rotation_matrix = rot_z@rot_y@rot_x
-
+    rotation_matrix = rotz(theta_z)@roty(theta_y)@rotx(theta_x)
     xyz_rot = rotation_matrix @ xyz
-    x = xyz_rot[0, 0]
-    y = xyz_rot[1, 0]
-    z = xyz_rot[2, 0]
 
-    rho = np.sqrt(x**2 + y**2 + z**2)
-    phi = np.arctan2(y, x)
-    theta = np.arcsin(z/rho)
+    rho, phi, theta = cart2sphere(*xyz_rot[:, 0])
 
     # Calculate range rate extension
     # Determine the net velocity component in the engagement
-    xyz_vel = np.array([[state.state_vector[vel_map[0], 0] - velocity[0, 0]],
-                        [state.state_vector[vel_map[1], 0] - velocity[1, 0]],
-                        [state.state_vector[vel_map[2], 0] - velocity[2, 0]]])
+    xyz_vel = state.state_vector[vel_map, :] - velocity
 
     # Use polar to calculate range rate
-    rr = -np.dot(xyz[:, 0], xyz_vel[:, 0]) / np.linalg.norm(xyz)
+    rr = np.dot(xyz[:, 0], xyz_vel[:, 0]) / np.linalg.norm(xyz)
 
     return np.array([[Elevation(theta)], [Bearing(phi)], [rho], [rr]])
 

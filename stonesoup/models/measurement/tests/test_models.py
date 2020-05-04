@@ -313,7 +313,7 @@ def h2d_rr(state_vector, pos_map, vel_map, translation_offset, rotation_offset, 
                         [0]])
 
     # Use polar to calculate range rate
-    rr = -np.dot(xyz[:, 0], xyz_vel[:, 0]) / np.linalg.norm(xyz)
+    rr = np.dot(xyz[:, 0], xyz_vel[:, 0]) / np.linalg.norm(xyz)
 
     return np.array([[Bearing(phi)], [rho], [rr]])
 
@@ -361,7 +361,7 @@ def h3d_rr(state_vector, pos_map, vel_map, translation_offset, rotation_offset, 
                         [state_vector[vel_map[2], 0] - velocity[2, 0]]])
 
     # Use polar to calculate range rate
-    rr = -np.dot(xyz[:, 0], xyz_vel[:, 0]) / np.linalg.norm(xyz)
+    rr = np.dot(xyz[:, 0], xyz_vel[:, 0]) / np.linalg.norm(xyz)
 
     return np.array([[Elevation(theta)], [Bearing(phi)], [rho], [rr]])
 
@@ -373,7 +373,7 @@ def h3d_rr(state_vector, pos_map, vel_map, translation_offset, rotation_offset, 
         (   # 3D meas, 6D state
             h2d_rr,  # h
             CartesianToBearingRangeRate,  # ModelClass
-            np.array([[200], [10], [0], [0], [0], [0]]),  # state_vec
+            np.array([[200.], [10.], [0.], [0.], [0.], [0.]]),  # state_vec
             6,  # ndim_state
             np.array([0, 2, 4]),  # pos_mapping
             np.array([1, 3, 5]),  # vel_mapping
@@ -386,7 +386,7 @@ def h3d_rr(state_vector, pos_map, vel_map, translation_offset, rotation_offset, 
         (   # 4D meas, 6D state
             h3d_rr,  # h
             CartesianToElevationBearingRangeRate,  # ModelClass
-            np.array([[200], [10], [0], [0], [0], [0]]),  # state_vec
+            np.array([[200.], [10.], [0.], [0.], [0.], [0.]]),  # state_vec
             6,  # ndim_state
             np.array([0, 2, 4]),  # pos_mapping
             np.array([1, 3, 5]),  # vel_mapping
@@ -414,7 +414,7 @@ def test_rangeratemodels(h, modelclass, state_vec, ndim_state, pos_mapping, vel_
                        noise_covar=noise_covar,
                        translation_offset=position,
                        rotation_offset=orientation)
-
+    print(model)
     # Project a state through the model
     # (without noise)
     meas_pred_wo_noise = model.function(state)
@@ -436,6 +436,7 @@ def test_rangeratemodels(h, modelclass, state_vec, ndim_state, pos_mapping, vel_
     # Check Jacobian has proper dimensions
     assert H.shape == (model.ndim_meas, ndim_state)
 
+    print(meas_pred_wo_noise)
     # Ensure inverse function returns original
     if isinstance(model, ReversibleModel):
         J = model.inverse_function(State(meas_pred_wo_noise))
@@ -526,3 +527,25 @@ def test_rangeratemodels(h, modelclass, state_vec, ndim_state, pos_mapping, vel_
                         model.rotation_offset,
                         model.velocity)).ravel(),
         cov=noise_covar)
+
+
+def test_inverse_function():
+    measure_model = CartesianToElevationBearingRangeRate(
+        ndim_state=6,
+        mapping=np.array([0, 2, 4]),
+        velocity_mapping=np.array([1, 3, 5]),
+        noise_covar=np.array([[0, 0, 0, 0],
+                              [0, 0, 0, 0],
+                              [0, 0, 0, 0],
+                              [0, 0, 0, 0]]))
+
+    measured_state = State(StateVector([np.pi / 18, np.pi / 18, 10e3, 100.0]))
+
+    inv_measure_state = measure_model.inverse_function(measured_state)
+
+    assert approx(inv_measure_state[0, 0], 0.02) == 9698.46
+    assert approx(inv_measure_state[1, 0], 0.02) == 96.98
+    assert approx(inv_measure_state[2, 0], 0.02) == 1710.1
+    assert approx(inv_measure_state[3, 0], 0.02) == 17.10
+    assert approx(inv_measure_state[4, 0], 0.02) == 1736.48
+    assert approx(inv_measure_state[5, 0], 0.02) == 17.36
