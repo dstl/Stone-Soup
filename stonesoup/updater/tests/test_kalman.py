@@ -175,4 +175,3 @@ def test_sqrt_kalman():
     assert (not np.allclose(posterior.covar, posterior_s.covar, 0, atol=1.e-14))
     assert (not np.allclose(posterior.covar, eval_posterior.covar, rtol=1.e-2))
     assert (np.allclose(posterior_s.covar, eval_posterior.covar, rtol=1.e-2))
-
