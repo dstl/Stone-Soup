@@ -9,6 +9,7 @@ from ..types.update import GaussianMixtureUpdate
 from ..types.state import TaggedWeightedGaussianState
 from ..types.numeric import Probability
 
+
 class PointProcessUpdater(Base):
     r"""
     Base updater class for the implementation of any Gaussian Mixture (GM)
@@ -19,7 +20,6 @@ class PointProcessUpdater(Base):
     """
     updater = Property(
         KalmanUpdater,
-        default=None,
         doc="Underlying updater used to perform the \
              single target Kalman Update.")
 
@@ -136,9 +136,9 @@ class PHDUpdater(PointProcessUpdater):
     References
     ----------
 
-    .. [1] B.-N. Vo and W.-K. Ma, “The Gaussian Mixture Probability Hypothesis
+    [1] B.-N. Vo and W.-K. Ma, “The Gaussian Mixture Probability Hypothesis
     Density Filter,” Signal Processing,IEEE Transactions on, vol. 54, no. 11,
-    pp. 4091–4104, 2006..
+    pp. 4091–4104, 2006. https://ieeexplore.ieee.org/document/1710358.
     """
     @staticmethod
     def _calculate_update_terms(updated_sum_list, hypotheses):
@@ -153,11 +153,11 @@ class LCCUpdater(PointProcessUpdater):
     References
     ----------
 
-    .. [1] D. E. Clark and F. De Melo. “A Linear-Complexity Second-Order
+    [1] D. E. Clark and F. De Melo. “A Linear-Complexity Second-Order
         Multi-Object Filter via Factorial Cumulants”.
         In: 2018 21st International Conference on
         Information Fusion (FUSION). 2018. DOI: 10.
-        23919/ICIF.2018.8455331. ..
+        23919/ICIF.2018.8455331. https://ieeexplore.ieee.org/document/8455331..
     """
     mean_number_of_false_alarms = Property(
         float,
@@ -181,7 +181,7 @@ class LCCUpdater(PointProcessUpdater):
         # Get the predicted weight sum
         predicted_weight_sum =\
             Probability.sum(hypothesis.prediction.weight for hypothesis in
-                hypotheses[-1]) * self.prob_survival
+                            hypotheses[-1]) * self.prob_survival
         # Second order predicted cumulant c(2)
         predicted_c2 = self.second_order_cumulant * self.prob_survival**2
         # Detected predicted weight mu_d
@@ -204,7 +204,7 @@ class LCCUpdater(PointProcessUpdater):
             Probability.sum([weight_sum/((weight_sum +
                              self.clutter_spatial_density)
                              ** 2)
-                for weight_sum in updated_sum_list])
+                            for weight_sum in updated_sum_list])
         misdetected_c2 = (misdetected_weight_sum**2)*l2
         self.second_order_cumulant = misdetected_c2 - detected_c2
         # Return the l1 correction factor for miss detected weight update

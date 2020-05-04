@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-import numpy as np
 from scipy.spatial import distance as dist
+import uuid
 
 from ..base import Property
 from .base import MixtureReducer
 from ..types.state import TaggedWeightedGaussianState, WeightedGaussianState
+from operator import attrgetter
 
 
 class GaussianMixtureReducer(MixtureReducer):
@@ -12,21 +13,16 @@ class GaussianMixtureReducer(MixtureReducer):
     Gaussian Mixture Reducer class:
 
     Reduces the number of components in a Gaussian mixture to increase
-    computational efficiency. See [1] for details
-
+    computational efficiency. See [1] for details.
     Achieved in two ways: pruning and merging.
-
     Pruning is the act of removing low weight components from the mixture
     that fall below a pruning threshold.
-
     Merging is the act of combining similar components in the mixture
-    that fall with a distance threshold into a single component. Mahalanobis
-    distance will be used until the :class:`Measure` becomes available
+    that fall with a distance threshold into a single component.
 
     References
     ----------
-
-    .. [1] B.-N. Vo and W.-K. Ma, “The Gaussian Mixture Probability Hypothesis
+    [1] B.-N. Vo and W.-K. Ma, “The Gaussian Mixture Probability Hypothesis
     Density Filter,” Signal Processing,IEEE Transactions on, vol. 54, no. 11,
     pp. 4091–4104, 2006..
     """
@@ -107,7 +103,7 @@ class GaussianMixtureReducer(MixtureReducer):
         Returns
         -------
         merged_component : :class:`~.WeightedGaussianState`
-            Merged Gaussian Component
+            Merged Gaussian component
 
         """
         weight_sum = component_1.weight+component_2.weight
@@ -143,8 +139,7 @@ class GaussianMixtureReducer(MixtureReducer):
         """
         Merging is the act of combining similar components in the mixture
         that fall with a distance threshold :attr:`merge_threshold` into
-        a single component. Mahalanobis distance will be used until
-        the :class:`Measure` becomes available
+        a single component.
 
         Parameters
         ----------
@@ -162,6 +157,7 @@ class GaussianMixtureReducer(MixtureReducer):
             components_list, key=attrgetter('weight'))
 
         merged_components = []
+        final_merged_components = []
         while remaining_components:
             # Get highest weighted component
             best_component = remaining_components.pop()
@@ -179,5 +175,36 @@ class GaussianMixtureReducer(MixtureReducer):
                     )
             # Add potentially merged component to new mixture
             merged_components.append(best_component)
+        if all(isinstance(component, TaggedWeightedGaussianState)
+               for component in merged_components):
+            # Check for duplicate tags
+            components_tags = set(component.tag for component in merged_components)
+            if len(components_tags) != len(merged_components):
+                # There are duplicatze tags so assign
+                # new tags to the lower weighted shared ones
+                for shared_tag in components_tags:
+                    shared_indices = [i for i, x in enumerate(merged_components)
+                                      if x.tag == shared_tag]
+                    shared_components = [merged_components[i] for i in shared_indices]
+                    # More than 1 component
+                    if len(shared_components) > 1:
+                        # Sort components by weight
+                        sorted_components = sorted(
+                            shared_components, key=attrgetter('weight'))
+                        # Add the highest weight component
+                        final_merged_components.append(sorted_components[0])
+                        for component in sorted_components[1:]:
+                            # Assign a new uuid
+                            component.tag = str(uuid.uuid4())
+                            final_merged_components.append(component)
+                    else:
+                        # Only 1 component with the tag
+                        final_merged_components.append(shared_components[0])
+            else:
+                # No duplicates
+                final_merged_components.extend(merged_components)
+        else:
+            # Just weighted components (no tags)
+            final_merged_components.extend(merged_components)
         # Assign merged components to the mixture
-        return merged_components
+        return final_merged_components

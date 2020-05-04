@@ -127,7 +127,7 @@ def test_GaussianMixture_get_and_set_item():
         )
     mixturestate[0] = new_component
     assert mixturestate[0] == new_component
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         assert mixturestate["Test"]
 
 

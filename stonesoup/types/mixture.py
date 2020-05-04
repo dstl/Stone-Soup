@@ -2,7 +2,7 @@ from collections.abc import Sized, Iterable, Container
 
 from .base import Type
 from ..base import Property
-from .state import WeightedGaussianState
+from .state import TaggedWeightedGaussianState, WeightedGaussianState
 
 
 class GaussianMixture(Type, Sized, Iterable, Container):
@@ -24,10 +24,10 @@ class GaussianMixture(Type, Sized, Iterable, Container):
         super().__init__(*args, **kwargs)
         if self.components is None:
             self.components = []
-            if any(not isinstance(component, WeightedGaussianState)
-                    for component in self.components):
-                raise ValueError("Cannot form GaussianMixtureState out of "
-                                 "non-WeightedGaussianState inputs!")
+        if any(not isinstance(component, (WeightedGaussianState, TaggedWeightedGaussianState))
+                for component in self.components):
+            raise ValueError("Cannot form GaussianMixtureState out of "
+                             "non-WeightedGaussianState inputs!")
 
     def __contains__(self, index):
         # check if 'components' contains any WeightedGaussianState
@@ -53,3 +53,18 @@ class GaussianMixture(Type, Sized, Iterable, Container):
 
     def append(self, component):
         return self.components.append(component)
+
+    def extend(self, new_components):
+        return self.components.extend(new_components)
+
+    @property
+    def component_tags(self):
+        component_tags = set()
+        if all(isinstance(component, TaggedWeightedGaussianState)
+               for component in self.components):
+            for component in self.components:
+                component_tags.add(component.tag)
+        else:
+            raise ValueError("All components must be "
+                             "TaggedWeightedGaussianState!")
+        return component_tags

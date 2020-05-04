@@ -8,7 +8,7 @@ from ..neighbour import (
     NearestNeighbour, GlobalNearestNeighbour, GNNWith2DAssignment)
 from ...types.detection import Detection
 from ...types.state import GaussianState
-
+from ...types.track import Track
 
 @pytest.fixture(params=[
     NearestNeighbour, GlobalNearestNeighbour, GNNWith2DAssignment])
@@ -41,6 +41,7 @@ def test_nearest_neighbour(associator):
                                for hypothesis in associations.values()
                                if hypothesis.measurement]
     assert len(associated_measurements) == len(set(associated_measurements))
+
 
 def test_missed_detection_nearest_neighbour(associator):
     timestamp = datetime.datetime.now()

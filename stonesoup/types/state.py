@@ -142,6 +142,11 @@ class GaussianState(State):
         """The state mean, equivalent to state vector"""
         return self.state_vector
 
+    @property
+    def state(self):
+        """The state mean, equivalent to state vector"""
+        return self.state_vector
+
 
 class WeightedGaussianState(GaussianState):
     """Weighted Gaussian State Type

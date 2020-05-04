@@ -212,7 +212,7 @@ class SimpleDetectionSimulator(DetectionSimulator):
                     np.random.rand(self.measurement_model.ndim_meas, 1) *
                     np.diff(self.meas_range) + self.meas_range[:, :1],
                     timestamp=time)
-                if self.in_state_space(detection):
+                if self.__in_state_space(detection):
                     self.clutter_detections.add(detection)
 
             yield time, self.real_detections | self.clutter_detections

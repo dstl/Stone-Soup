@@ -6,6 +6,7 @@ from ..types.detection import MissedDetection
 from ..types.hypothesis import SingleProbabilityHypothesis
 from ..types.multihypothesis import MultipleHypothesis
 from ..types.numeric import Probability
+from ..types.track import Track
 from ..predictor import Predictor
 from ..updater import Updater
 
@@ -116,7 +117,10 @@ class PDAHypothesiser(Hypothesiser):
         hypotheses = list()
 
         # Common state & measurement prediction
-        prediction = self.predictor.predict(track.state, timestamp=timestamp)
+        if isinstance(track, Track):
+            prediction = self.predictor.predict(track.state, timestamp=timestamp)
+        else:
+            prediction = self.predictor.predict(track, timestamp=timestamp)
 
         # Missed detection hypothesis
         probability = Probability(1 - self.prob_detect*self.prob_gate)
@@ -128,7 +132,7 @@ class PDAHypothesiser(Hypothesiser):
 
         # True detection hypotheses
         for detection in detections:
-             # Re-evaluate prediction
+            # Re-evaluate prediction
             prediction = self.predictor.predict(
                 track.state, timestamp=detection.timestamp)
             # Compute measurement prediction and probability measure

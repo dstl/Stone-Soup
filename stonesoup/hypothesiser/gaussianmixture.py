@@ -26,13 +26,12 @@ class GaussianMixtureHypothesiser(Hypothesiser):
         doc="Updater used to get measurement prediction")
     hypothesiser = Property(
         Hypothesiser,
-        doc="""Underlying Hypothesiser used to generate component-detection
-               hypotheses""")
+        doc="Underlying hypothesiser used to generate detection-target pairs")
     order_by_detection = Property(
         bool,
         default=False,
-        doc="""Flag to order the :class:`MultipleHypothesis` list by detection
-               or component""")
+        doc="Flag to order the :class:`~.MultipleHypothesis` "
+            "list by detection or component")
 
     def hypothesise(self, components, detections, timestamp):
         """Form hypotheses for associations between Detections and Gaussian
@@ -41,7 +40,7 @@ class GaussianMixtureHypothesiser(Hypothesiser):
         Parameters
         ----------
         components : :class:`list`
-            List of :class:`WeightedGaussianState` components
+            List of :class:`~.WeightedGaussianState` components
             representing the state of the target space
         detections : list of :class:`Detection`
             Retrieved measurements
@@ -50,9 +49,10 @@ class GaussianMixtureHypothesiser(Hypothesiser):
 
         Returns
         -------
-        list of :class:`MultipleHypothesis`
-            Each MultipleHypothesis in the list contains SingleHypotheses
-            pertaining to the same Gaussian component unless
+        list of :class:`~.MultipleHypothesis`
+            Each :class:`~.MultipleHypothesis` in the list contains
+            a list of :class:`~SingleHypothesis` pertaining
+            to the same Gaussian component unless
             order_by_detection is true, then they
             pertain to the same Detection.
         """
