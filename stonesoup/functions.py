@@ -95,7 +95,7 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
         (default is 1)
     beta : float, optional
         Used to incorporate prior knowledge of the distribution
-        2 is optimal is the state is normally distributed.
+        2 is optimal if the state is normally distributed.
         (default is 2)
     kappa : float, optional
         Secondary spread scaling parameter
@@ -158,7 +158,7 @@ def sigma2gauss(sigma_points, mean_weights, covar_weights, covar_noise=None):
 
     Parameters
     ----------
-    sigma_points : :class:`numpy.ndarray` of shape `(Ns, 2*Ns+1)`
+    sigma_points : :class:`~.StateVectors` of shape `(Ns, 2*Ns+1)`
         An array containing the locations of the sigma points
     mean_weights : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
         An array containing the sigma point mean weights
@@ -170,7 +170,7 @@ def sigma2gauss(sigma_points, mean_weights, covar_weights, covar_noise=None):
 
     Returns
     -------
-    : :class:`numpy.ndarray` of shape `(Ns, 1)`
+    : :class:`~.StateVector` of shape `(Ns, 1)`
         Calculated mean
     : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`
         Calculated covariance
@@ -197,7 +197,7 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
 
     Parameters
     ----------
-    sigma_points : :class:`numpy.ndarray` of shape `(Ns, 2*Ns+1)`
+    sigma_points : :class:`~.StateVectors` of shape `(Ns, 2*Ns+1)`
         An array containing the locations of the sigma points
     mean_weights : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
         An array containing the sigma point mean weights
@@ -216,13 +216,13 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
 
     Returns
     -------
-    : :class:`numpy.ndarray` of shape `(Ns, 1)`
+    : :class:`~.StateVector` of shape `(Ns, 1)`
         Transformed mean
     : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`
         Transformed covariance
     : :class:`~.CovarianceMatrix` of shape `(Ns,Nm)`
         Calculated cross-covariance matrix
-    : :class:`numpy.ndarray` of shape `(Ns, 2*Ns+1)`
+    : :class:`~.StateVectors` of shape `(Ns, 2*Ns+1)`
         An array containing the locations of the transformed sigma points
     : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
         An array containing the transformed sigma point mean weights
@@ -250,7 +250,7 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
         (sigma_points-sigma_points[:, 0:1])
         @np.diag(mean_weights)
         @(sigma_points_t-mean).T
-    )
+    ).view(CovarianceMatrix)
 
     return mean, covar, cross_covar, sigma_points_t, mean_weights, covar_weights
 
