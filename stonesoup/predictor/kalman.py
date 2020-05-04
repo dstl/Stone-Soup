@@ -94,8 +94,7 @@ class KalmanPredictor(Predictor):
             The predicted state
 
         """
-        return self.transition_model.function(prior.state_vector, noise=0,
-                                              **kwargs)
+        return self.transition_model.function(prior, **kwargs)
 
     @property
     def _control_matrix(self):

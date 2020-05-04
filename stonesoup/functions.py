@@ -97,7 +97,7 @@ def match_sv_types(state_vector, ref_state_vector):
     return StateVector([type(s)(v) for (s, v)
                         in zip(ref_state_vector[:, 0], state_vector[:, 0])])
 
-                        
+
 def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
     """
     Approximate a given distribution to a Gaussian, using a

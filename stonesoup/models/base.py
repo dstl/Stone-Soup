@@ -12,8 +12,8 @@ from ..types.numeric import Probability
 
 def cast_sv_types(func):
     """ Decorator function for casting state vector types"""
-    def func_wrapper(self, state_vector, *args, **kwargs):
-        state_vector = func(self, state_vector, *args, **kwargs)
+    def func_wrapper(self, state, *args, **kwargs):
+        state_vector = func(self, state, *args, **kwargs)
         if self.sv_types is not None:
             return StateVector([t(v) for (t, v)
                                 in zip(self.sv_types, state_vector[:, 0])])
@@ -89,7 +89,7 @@ class LinearModel(Model):
             else:
                 noise = 0
 
-        return self.matrix(**kwargs) @ state_vector + noise
+        return self.matrix(**kwargs) @ state.state_vector + noise
 
 
 class NonLinearModel(Model):
