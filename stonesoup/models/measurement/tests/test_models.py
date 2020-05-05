@@ -108,6 +108,14 @@ def test_models(h, ModelClass, state_vec, R,
     ndim_state = state_vec.size
     state = State(state_vec)
 
+    # Check default translation_offset, rotation_offset and velocity is applied
+    model_test = ModelClass(ndim_state=ndim_state,
+                            mapping=mapping,
+                            noise_covar=R)
+
+    assert len(model_test.translation_offset) == ndim_state
+    assert len(model_test.rotation_offset) == 3
+
     # Create and a measurement model object
     model = ModelClass(ndim_state=ndim_state,
                        mapping=mapping,
@@ -296,6 +304,16 @@ def test_rangeratemodels(h, modelclass, state_vec, ndim_state, pos_mapping, vel_
     CartesianToElevationBearingRangeRate Measurement Models """
 
     state = State(state_vec)
+
+    # Check default translation_offset, rotation_offset and velocity is applied
+    model_test = modelclass(ndim_state=ndim_state,
+                            mapping=pos_mapping,
+                            velocity_mapping=vel_mapping,
+                            noise_covar=noise_covar)
+
+    assert len(model_test.translation_offset) == 3
+    assert len(model_test.rotation_offset) == 3
+    assert len(model_test.velocity) == 3
 
     # Create and a measurement model object
     model = modelclass(ndim_state=ndim_state,
