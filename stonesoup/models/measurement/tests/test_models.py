@@ -4,6 +4,7 @@ from pytest import approx
 import numpy as np
 from scipy.stats import multivariate_normal
 
+from ....functions import rotz, rotx, roty, cart2sphere
 from ..nonlinear import (
     CartesianToElevationBearingRange, CartesianToBearingRange,
     CartesianToElevationBearing, CartesianToBearingRangeRate,
@@ -15,7 +16,7 @@ from ....types.angle import Bearing, Elevation
 from ....types.array import StateVector, Matrix
 
 
-def h2d(state_vector, translation_offset, rotation_offset):
+def h2d(state_vector, pos_map, translation_offset, rotation_offset):
 
     xyz = [[state_vector[0, 0] - translation_offset[0, 0]],
            [state_vector[1, 0] - translation_offset[1, 0]],
@@ -23,109 +24,45 @@ def h2d(state_vector, translation_offset, rotation_offset):
 
     # Get rotation matrix
     theta_z = - rotation_offset[2, 0]
-    cos_z, sin_z = np.cos(theta_z), np.sin(theta_z)
-    rot_z = np.array([[cos_z, -sin_z, 0],
-                      [sin_z, cos_z, 0],
-                      [0, 0, 1]])
-
     theta_y = - rotation_offset[1, 0]
-    cos_y, sin_y = np.cos(theta_y), np.sin(theta_y)
-    rot_y = np.array([[cos_y, 0, sin_y],
-                      [0, 1, 0],
-                      [-sin_y, 0, cos_y]])
-
     theta_x = - rotation_offset[0, 0]
-    cos_x, sin_x = np.cos(theta_x), np.sin(theta_x)
-    rot_x = np.array([[1, 0, 0],
-                      [0, cos_x, -sin_x],
-                      [0, sin_x, cos_x]])
 
-    rotation_matrix = rot_z@rot_y@rot_x
-
+    rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
     xyz_rot = rotation_matrix @ xyz
-    x = xyz_rot[0, 0]
-    y = xyz_rot[1, 0]
-    # z = 0  # xyz_rot[2, 0]
 
-    rho = np.sqrt(x**2 + y**2)
-    phi = np.arctan2(y, x)
+    rho, phi, _ = cart2sphere(*xyz_rot[:, 0])
 
     return np.array([[Bearing(phi)], [rho]])
 
 
-def h3d(state_vector,  translation_offset, rotation_offset):
-
-    xyz = [[state_vector[0, 0] - translation_offset[0, 0]],
-           [state_vector[1, 0] - translation_offset[1, 0]],
-           [state_vector[2, 0] - translation_offset[2, 0]]]
+def h3d(state_vector, pos_map,  translation_offset, rotation_offset):
+    xyz = state_vector[pos_map, :] - translation_offset
 
     # Get rotation matrix
     theta_z = - rotation_offset[2, 0]
-    cos_z, sin_z = np.cos(theta_z), np.sin(theta_z)
-    rot_z = np.array([[cos_z, -sin_z, 0],
-                      [sin_z, cos_z, 0],
-                      [0, 0, 1]])
-
     theta_y = - rotation_offset[1, 0]
-    cos_y, sin_y = np.cos(theta_y), np.sin(theta_y)
-    rot_y = np.array([[cos_y, 0, sin_y],
-                      [0, 1, 0],
-                      [-sin_y, 0, cos_y]])
-
     theta_x = - rotation_offset[0, 0]
-    cos_x, sin_x = np.cos(theta_x), np.sin(theta_x)
-    rot_x = np.array([[1, 0, 0],
-                      [0, cos_x, -sin_x],
-                      [0, sin_x, cos_x]])
 
-    rotation_matrix = rot_z@rot_y@rot_x
-
+    rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
     xyz_rot = rotation_matrix @ xyz
-    x = xyz_rot[0, 0]
-    y = xyz_rot[1, 0]
-    z = xyz_rot[2, 0]
 
-    rho = np.sqrt(x**2 + y**2 + z**2)
-    phi = np.arctan2(y, x)
-    theta = np.arcsin(z/rho)
+    rho, phi, theta = cart2sphere(*xyz_rot[:, 0])
 
     return np.array([[Elevation(theta)], [Bearing(phi)], [rho]])
 
 
-def hbearing(state_vector, translation_offset, rotation_offset):
-    xyz = [[state_vector[0, 0] - translation_offset[0, 0]],
-           [state_vector[1, 0] - translation_offset[1, 0]],
-           [state_vector[2, 0] - translation_offset[2, 0]]]
+def hbearing(state_vector, pos_map, translation_offset, rotation_offset):
+    xyz = state_vector[pos_map, :] - translation_offset
 
     # Get rotation matrix
     theta_z = - rotation_offset[2, 0]
-    cos_z, sin_z = np.cos(theta_z), np.sin(theta_z)
-    rot_z = np.array([[cos_z, -sin_z, 0],
-                      [sin_z, cos_z, 0],
-                      [0, 0, 1]])
-
     theta_y = - rotation_offset[1, 0]
-    cos_y, sin_y = np.cos(theta_y), np.sin(theta_y)
-    rot_y = np.array([[cos_y, 0, sin_y],
-                      [0, 1, 0],
-                      [-sin_y, 0, cos_y]])
-
     theta_x = - rotation_offset[0, 0]
-    cos_x, sin_x = np.cos(theta_x), np.sin(theta_x)
-    rot_x = np.array([[1, 0, 0],
-                      [0, cos_x, -sin_x],
-                      [0, sin_x, cos_x]])
 
-    rotation_matrix = rot_z@rot_y@rot_x
-
+    rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
     xyz_rot = rotation_matrix @ xyz
-    x = xyz_rot[0, 0]
-    y = xyz_rot[1, 0]
-    z = xyz_rot[2, 0]
 
-    rho = np.sqrt(x**2 + y**2 + z**2)
-    phi = np.arctan2(y, x)
-    theta = np.arcsin(z/rho)
+    _, phi, theta = cart2sphere(*xyz_rot[:, 0])
 
     return np.array([[Elevation(theta)], [Bearing(phi)]])
 
@@ -167,7 +104,7 @@ def hbearing(state_vector, translation_offset, rotation_offset):
             np.array([[-3], [0], [np.pi/3]])
         )
     ],
-    ids=["standard", "RBE", "BearingsOnly"]
+    ids=["BearingElevation", "RangeBearingElevation", "BearingsOnly"]
 )
 def test_models(h, ModelClass, state_vec, R,
                 mapping, translation_offset, rotation_offset):
@@ -187,7 +124,7 @@ def test_models(h, ModelClass, state_vec, R,
     # Project a state through the model
     # (without noise)
     meas_pred_wo_noise = model.function(state)
-    eval_m = h(state_vec, model.translation_offset, model.rotation_offset)
+    eval_m = h(state_vec, mapping, model.translation_offset, model.rotation_offset)
     assert np.array_equal(meas_pred_wo_noise, eval_m)
 
     # Ensure ```lg.transfer_function()``` returns H
@@ -222,7 +159,7 @@ def test_models(h, ModelClass, state_vec, R,
     # (without noise)
     meas_pred_wo_noise = model.function(state)
     assert np.array_equal(meas_pred_wo_noise,  h(
-        state_vec, model.translation_offset, model.rotation_offset))
+        state_vec, mapping, model.translation_offset, model.rotation_offset))
 
     # Evaluate the likelihood of the predicted measurement, given the state
     # (without noise)
@@ -230,6 +167,7 @@ def test_models(h, ModelClass, state_vec, R,
     assert approx(prob) == multivariate_normal.pdf(
         meas_pred_wo_noise.T,
         mean=np.array(h(state_vec,
+                        mapping,
                         model.translation_offset,
                         model.rotation_offset)).ravel(),
         cov=R)
@@ -238,7 +176,9 @@ def test_models(h, ModelClass, state_vec, R,
     # (with internal noise)
     meas_pred_w_inoise = model.function(state, noise=True)
     assert not np.array_equal(
-        meas_pred_w_inoise,  h(state_vec, model.translation_offset,
+        meas_pred_w_inoise,  h(state_vec,
+                               mapping,
+                               model.translation_offset,
                                model.rotation_offset))
 
     # Evaluate the likelihood of the predicted state, given the prior
@@ -247,6 +187,7 @@ def test_models(h, ModelClass, state_vec, R,
     assert approx(prob) == multivariate_normal.pdf(
         meas_pred_w_inoise.T,
         mean=np.array(h(state_vec,
+                        mapping,
                         model.translation_offset,
                         model.rotation_offset)).ravel(),
         cov=R)
@@ -257,7 +198,7 @@ def test_models(h, ModelClass, state_vec, R,
     meas_pred_w_enoise = model.function(state,
                                         noise=noise)
     assert np.array_equal(meas_pred_w_enoise,  h(
-        state_vec, model.translation_offset, model.rotation_offset)+noise)
+        state_vec, mapping, model.translation_offset, model.rotation_offset)+noise)
 
     # Evaluate the likelihood of the predicted state, given the prior
     # (with noise)
@@ -265,6 +206,7 @@ def test_models(h, ModelClass, state_vec, R,
     assert approx(prob) == multivariate_normal.pdf(
         meas_pred_w_enoise.T,
         mean=np.array(h(state_vec,
+                        mapping,
                         model.translation_offset,
                         model.rotation_offset)).ravel(),
         cov=R)
@@ -278,33 +220,13 @@ def h2d_rr(state_vector, pos_map, vel_map, translation_offset, rotation_offset, 
 
     # Get rotation matrix
     theta_z = - rotation_offset[2, 0]
-    cos_z, sin_z = np.cos(theta_z), np.sin(theta_z)
-    rot_z = np.array([[cos_z, -sin_z, 0],
-                      [sin_z, cos_z, 0],
-                      [0, 0, 1]])
-
     theta_y = - rotation_offset[1, 0]
-    cos_y, sin_y = np.cos(theta_y), np.sin(theta_y)
-    rot_y = np.array([[cos_y, 0, sin_y],
-                      [0, 1, 0],
-                      [-sin_y, 0, cos_y]])
-
     theta_x = - rotation_offset[0, 0]
-    cos_x, sin_x = np.cos(theta_x), np.sin(theta_x)
-    rot_x = np.array([[1, 0, 0],
-                      [0, cos_x, -sin_x],
-                      [0, sin_x, cos_x]])
 
-    rotation_matrix = rot_z@rot_y@rot_x
-
+    rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
     xyz_rot = rotation_matrix @ xyz
-    x = xyz_rot[0, 0]
-    y = xyz_rot[1, 0]
-    z = xyz_rot[2, 0]
 
-    rho = np.sqrt(x**2 + y**2 + z**2)
-    phi = np.arctan2(y, x)
-    # theta = np.arcsin(z/rho)
+    rho, phi, _ = cart2sphere(*xyz_rot[:, 0])
 
     # Calculate range rate extension
     # Determine the net velocity component in the engagement
@@ -320,39 +242,17 @@ def h2d_rr(state_vector, pos_map, vel_map, translation_offset, rotation_offset, 
 
 def h3d_rr(state_vector, pos_map, vel_map, translation_offset, rotation_offset, velocity):
 
-    xyz = np.array([[state_vector[pos_map[0], 0] - translation_offset[0, 0]],
-                    [state_vector[pos_map[1], 0] - translation_offset[1, 0]],
-                    [state_vector[pos_map[2], 0] - translation_offset[2, 0]]])
+    xyz = state_vector[pos_map, :] - translation_offset
 
     # Get rotation matrix
     theta_z = - rotation_offset[2, 0]
-    cos_z, sin_z = np.cos(theta_z), np.sin(theta_z)
-    rot_z = np.array([[cos_z, -sin_z, 0],
-                      [sin_z, cos_z, 0],
-                      [0, 0, 1]])
-
     theta_y = - rotation_offset[1, 0]
-    cos_y, sin_y = np.cos(theta_y), np.sin(theta_y)
-    rot_y = np.array([[cos_y, 0, sin_y],
-                      [0, 1, 0],
-                      [-sin_y, 0, cos_y]])
-
     theta_x = - rotation_offset[0, 0]
-    cos_x, sin_x = np.cos(theta_x), np.sin(theta_x)
-    rot_x = np.array([[1, 0, 0],
-                      [0, cos_x, -sin_x],
-                      [0, sin_x, cos_x]])
 
-    rotation_matrix = rot_z@rot_y@rot_x
-
+    rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
     xyz_rot = rotation_matrix @ xyz
-    x = xyz_rot[0, 0]
-    y = xyz_rot[1, 0]
-    z = xyz_rot[2, 0]
 
-    rho = np.sqrt(x**2 + y**2 + z**2)
-    phi = np.arctan2(y, x)
-    theta = np.arcsin(z/rho)
+    rho, phi, theta = cart2sphere(*xyz_rot[:, 0])
 
     # Calculate range rate extension
     # Determine the net velocity component in the engagement
@@ -414,7 +314,7 @@ def test_rangeratemodels(h, modelclass, state_vec, ndim_state, pos_mapping, vel_
                        noise_covar=noise_covar,
                        translation_offset=position,
                        rotation_offset=orientation)
-    print(model)
+
     # Project a state through the model
     # (without noise)
     meas_pred_wo_noise = model.function(state)
@@ -436,7 +336,6 @@ def test_rangeratemodels(h, modelclass, state_vec, ndim_state, pos_mapping, vel_
     # Check Jacobian has proper dimensions
     assert H.shape == (model.ndim_meas, ndim_state)
 
-    print(meas_pred_wo_noise)
     # Ensure inverse function returns original
     if isinstance(model, ReversibleModel):
         J = model.inverse_function(State(meas_pred_wo_noise))

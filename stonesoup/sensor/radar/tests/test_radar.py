@@ -16,10 +16,10 @@ from ..beam_shape import Beam2DGaussian
 from ....models.measurement.linear import LinearGaussian
 
 
-def h2d(state, translation_offset, rotation_offset):
+def h2d(state, pos_map, translation_offset, rotation_offset):
 
-    xyz = [[state.state_vector[0, 0] - translation_offset[0, 0]],
-           [state.state_vector[1, 0] - translation_offset[1, 0]],
+    xyz = [[state.state_vector[pos_map[0], 0] - translation_offset[0, 0]],
+           [state.state_vector[pos_map[1], 0] - translation_offset[1, 0]],
            [0]]
 
     # Get rotation matrix
@@ -40,41 +40,19 @@ def h2d(state, translation_offset, rotation_offset):
     return np.array([[Bearing(phi)], [rho]])
 
 
-def h3d(state, translation_offset, rotation_offset):
+def h3d(state, pos_map, translation_offset, rotation_offset):
 
-    xyz = np.array([[state.state_vector[0, 0] - translation_offset[0, 0]],
-                    [state.state_vector[1, 0] - translation_offset[1, 0]],
-                    [state.state_vector[2, 0] - translation_offset[2, 0]]])
+    xyz = state.state_vector[pos_map, :] - translation_offset
 
     # Get rotation matrix
     theta_z = - rotation_offset[2, 0]
-    cos_z, sin_z = np.cos(theta_z), np.sin(theta_z)
-    rot_z = np.array([[cos_z, -sin_z, 0],
-                      [sin_z, cos_z, 0],
-                      [0, 0, 1]])
-
     theta_y = - rotation_offset[1, 0]
-    cos_y, sin_y = np.cos(theta_y), np.sin(theta_y)
-    rot_y = np.array([[cos_y, 0, sin_y],
-                      [0, 1, 0],
-                      [-sin_y, 0, cos_y]])
-
     theta_x = - rotation_offset[0, 0]
-    cos_x, sin_x = np.cos(theta_x), np.sin(theta_x)
-    rot_x = np.array([[1, 0, 0],
-                      [0, cos_x, -sin_x],
-                      [0, sin_x, cos_x]])
 
-    rotation_matrix = rot_z@rot_y@rot_x
-
+    rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
     xyz_rot = rotation_matrix @ xyz
-    x = xyz_rot[0, 0]
-    y = xyz_rot[1, 0]
-    z = xyz_rot[2, 0]
 
-    rho = np.sqrt(x**2 + y**2 + z**2)
-    phi = np.arctan2(y, x)
-    theta = np.arcsin(z/rho)
+    rho, phi, theta = cart2sphere(*xyz_rot[:, 0])
 
     return np.array([[Elevation(theta)], [Bearing(phi)], [rho]])
 
@@ -123,6 +101,7 @@ def test_simple_radar(h, sensorclass, ndim_state, pos_mapping, noise_covar, posi
     # Assert correction of generated measurement
     assert (measurement.timestamp == target_state.timestamp)
     assert (np.equal(measurement.state_vector, h(target_state,
+                                                 pos_map=pos_mapping,
                                                  translation_offset=position,
                                                  rotation_offset=radar.orientation)).all())
 
@@ -176,7 +155,7 @@ def h3d_rr(state, pos_map, vel_map, translation_offset, rotation_offset, velocit
     # Use polar to calculate range rate
     rr = np.dot(xyz[:, 0], xyz_vel[:, 0]) / np.linalg.norm(xyz)
 
-    return np.array([[Elevation(theta)], [Bearing(phi)], [rho], [rr]])
+    return np.array([[theta], [phi], [rho], [rr]])
 
 
 @pytest.mark.parametrize(
@@ -285,6 +264,7 @@ def test_rotating_radar():
                          timestamp=timestamp)
     measurement = radar.measure(target_state, noise=False)
     eval_m = h2d(target_state,
+                 measurement_mapping,
                  radar.position,
                  radar.orientation+[[0],
                                     [0],
@@ -356,6 +336,7 @@ def test_raster_scan_radar():
                          timestamp=timestamp)
     measurement = radar.measure(target_state, noise=False)
     eval_m = h2d(target_state,
+                 [0, 1],
                  radar.position,
                  radar.orientation + [[0],
                                       [0],

@@ -1,9 +1,11 @@
+import pytest
 import numpy as np
 from numpy import deg2rad
 from pytest import approx
 
 from ..functions import (
-    jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma)
+    jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma,
+    rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart)
 from ..types.state import State, GaussianState
 
 
@@ -133,3 +135,63 @@ def test_gauss2sigma_int():
         # Resultant sigma points are still ints
         assert sigma_point_state.state_vector[0, 0] == int(mean + n*covar**0.5)
         assert isinstance(sigma_point_state.state_vector[0, 0], np.integer)
+
+
+@pytest.mark.parametrize(
+    "angle",
+    [
+        (
+            np.array([np.pi]),  # angle
+            np.array([np.pi / 2]),
+            np.array([-np.pi]),
+            np.array([-np.pi / 2]),
+            np.array([np.pi / 4]),
+            np.array([-np.pi / 4]),
+            np.array([np.pi / 8]),
+            np.array([-np.pi / 8]),
+        )
+    ]
+)
+def test_rotations(angle):
+
+    c, s = np.cos(angle), np.sin(angle)
+    zero = np.zeros_like(angle)
+    one = np.ones_like(angle)
+
+    assert np.array_equal(rotx(angle), np.array([[one, zero, zero],
+                                                 [zero, c, -s],
+                                                 [zero, s, c]]))
+    assert np.array_equal(roty(angle), np.array([[c, zero, s],
+                                                 [zero, one, zero],
+                                                 [-s, zero, c]]))
+    assert np.array_equal(rotz(angle), np.array([[c, -s, zero],
+                                                 [s, c, zero],
+                                                 [zero, zero, one]]))
+
+
+@pytest.mark.parametrize(
+    "x, y, z",
+    [  # Cartesian values
+        (1., 0., 0.),
+        (0., 1., 0.),
+        (0., 0., 1.),
+        (1., 1., 0.),
+        (1., 0., 1.),
+        (0., 1., 1.),
+        (1., 1., 1.)
+    ]
+)
+def test_cart_sphere_inversions(x, y, z):
+
+    rho, phi, theta = cart2sphere(x, y, z)
+
+    # Check sphere2cart(cart2sphere(cart)) == cart
+    assert np.allclose(np.array([x, y, z]), sphere2cart(rho, phi, theta))
+
+    # Check cart2angle == cart2sphere for angles
+    assert np.allclose(np.array([phi, theta]), cart2angles(x, y, z))
+
+    # Check that pol2cart(cart2angle(cart)) == cart
+    #   note, this only works correctly when z==0
+    if z == 0:
+        assert np.allclose(np.array([x, y]), pol2cart(rho, phi))
