@@ -97,12 +97,21 @@ class NonLinearGaussianMeasurement(MeasurementModel, NonLinearModel, GaussianMod
     """
     noise_covar = Property(CovarianceMatrix, doc="Noise covariance")
     rotation_offset = Property(
-        StateVector, default=StateVector(np.array([[0], [0], [0]])),
+        StateVector, default=None,
         doc="A 3x1 array of angles (rad), specifying the clockwise rotation\
             around each Cartesian axis in the order :math:`x,y,z`.\
             The rotation angles are positive if the rotation is in the \
             counter-clockwise direction when viewed by an observer looking\
             along the respective rotation axis, towards the origin.")
+
+    def __init__(self, *args, **kwargs):
+        """
+        Ensure that the rotation offset is initiated
+        """
+        super().__init__(*args, **kwargs)
+        # Set values to defaults if not provided
+        if self.rotation_offset is None:
+            self.rotation_offset = StateVector([[0], [0], [0]])
 
     def covar(self, **kwargs) -> CovarianceMatrix:
         """Returns the measurement model noise covariance matrix.
@@ -196,9 +205,18 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
     """  # noqa:E501
 
     translation_offset = Property(
-        StateVector, default=StateVector(np.array([[0], [0], [0]])),
+        StateVector, default=None,
         doc="A 3x1 array specifying the Cartesian origin offset in terms of :math:`x,y,z`\
             coordinates.")
+
+    def __init__(self, *args, **kwargs):
+        """
+        Ensure that the translation offset is initiated
+        """
+        super().__init__(*args, **kwargs)
+        # Set values to defaults if not provided
+        if self.translation_offset is None:
+            self.translation_offset = StateVector([0] * self.ndim)
 
     @property
     def ndim_meas(self) -> int:
@@ -325,9 +343,18 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
     """  # noqa:E501
 
     translation_offset = Property(
-        StateVector, default=StateVector(np.array([[0], [0]])),
+        StateVector, default=None,
         doc="A 2x1 array specifying the origin offset in terms of :math:`x,y`\
             coordinates.")
+
+    def __init__(self, *args, **kwargs):
+        """
+        Ensure that the translation offset is initiated
+        """
+        super().__init__(*args, **kwargs)
+        # Set values to defaults if not provided
+        if self.translation_offset is None:
+            self.translation_offset = StateVector([0] * self.ndim)
 
     @property
     def ndim_meas(self) -> int:
@@ -465,9 +492,18 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
     """  # noqa:E501
 
     translation_offset = Property(
-        StateVector, default=StateVector(np.array([[0], [0], [0]])),
+        StateVector, default=None,
         doc="A 3x1 array specifying the origin offset in terms of :math:`x,y,z`\
             coordinates.")
+
+    def __init__(self, *args, **kwargs):
+        """
+        Ensure that the translation offset is initiated
+        """
+        super().__init__(*args, **kwargs)
+        # Set values to defaults if not provided
+        if self.translation_offset is None:
+            self.translation_offset = StateVector([0] * self.ndim)
 
     @property
     def ndim_meas(self) -> int:
@@ -585,7 +621,7 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
 
     translation_offset = Property(
         StateVector,
-        default=StateVector(np.array([[0], [0], [0]])),
+        default=None,
         doc="A 3x1 array specifying the origin offset in terms of :math:`x,y` coordinates.")
     velocity_mapping = Property(
         np.array,
@@ -593,9 +629,21 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
         doc="Mapping to the targets velocity within its state space")
     velocity = Property(
         StateVector,
-        default=StateVector(np.array([[0], [0], [0]])),
+        default=None,
         doc="A 3x1 array specifying the sensor velocity in terms of :math:`x,y` \
         coordinates.")
+
+    def __init__(self, *args, **kwargs):
+        """
+        Ensure that the translation offset is initiated
+        """
+        super().__init__(*args, **kwargs)
+        # Set values to defaults if not provided
+        if self.translation_offset is None:
+            self.translation_offset = StateVector([0] * 3)
+
+        if self.velocity is None:
+            self.velocity = StateVector([0] * 3)
 
     @property
     def ndim_meas(self) -> int:
@@ -722,7 +770,7 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
 
     translation_offset = Property(
         StateVector,
-        default=StateVector(np.array([[0], [0], [0]])),
+        default=None,
         doc="A 3x1 array specifying the origin offset in terms of :math:`x,y,z` coordinates.")
     velocity_mapping = Property(
         np.array,
@@ -732,6 +780,18 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
         StateVector,
         default=StateVector(np.array([[0], [0], [0]])),
         doc="A 3x1 array specifying the sensor velocity in terms of :math:`x,y,z` coordinates.")
+
+    def __init__(self, *args, **kwargs):
+        """
+        Ensure that the translation offset is initiated
+        """
+        super().__init__(*args, **kwargs)
+        # Set values to defaults if not provided
+        if self.translation_offset is None:
+            self.translation_offset = StateVector([0] * 3)
+
+        if self.velocity is None:
+            self.velocity = StateVector([0] * 3)
 
     @property
     def ndim_meas(self) -> int:
