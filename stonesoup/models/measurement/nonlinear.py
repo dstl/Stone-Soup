@@ -257,7 +257,7 @@ class CartesianToElevationBearingRange(
         xyz = inv_rotation_matrix @ xyz
 
         res = np.zeros((self.ndim_state, 1)).view(StateVector)
-        res[self.mapping] = xyz + self.translation_offset
+        res[self.mapping, :] = xyz + self.translation_offset
 
         return res
 
@@ -355,7 +355,7 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
         xy = xyz[0:2]
 
         res = np.zeros((self.ndim_state, 1)).view(StateVector)
-        res[self.mapping] = xy + self.translation_offset
+        res[self.mapping, :] = xy + self.translation_offset
 
         return res
 
@@ -503,7 +503,7 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
                 noise = 0
 
         # Account for origin offset
-        xyz = state.state_vector[self.mapping] - self.translation_offset
+        xyz = state.state_vector[self.mapping, :] - self.translation_offset
 
         # Rotate coordinates
         xyz_rot = self._rotation_matrix @ xyz
