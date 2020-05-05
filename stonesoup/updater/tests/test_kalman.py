@@ -142,9 +142,10 @@ def test_sqrt_kalman():
         prediction=prediction,
         measurement=measurement))
 
+    updater.sqrt_form = True
     posterior_s = updater.update(SingleHypothesis(
         prediction=prediction,
-        measurement=measurement), sqrt_form=True)
+        measurement=measurement))
 
     assert (np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-14))
     assert (np.allclose(posterior_s.covar, eval_posterior.covar, 0,
@@ -155,13 +156,15 @@ def test_sqrt_kalman():
                                          np.array([[1e24, 1e-24],
                                                    [1e-24, 1e24]]))
 
+    updater.sqrt_form = False
     posterior = updater.update(SingleHypothesis(
         prediction=prediction,
         measurement=measurement))
 
+    updater.sqrt_form = True
     posterior_s = updater.update(SingleHypothesis(
         prediction=prediction,
-        measurement=measurement), sqrt_form=True)
+        measurement=measurement))
 
     # The new posterior will  be
     eval_posterior = GaussianState(

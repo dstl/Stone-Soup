@@ -64,6 +64,18 @@ class KalmanUpdater(Updater):
             "specified on construction, or in the measurement, then error "
             "will be thrown.")
 
+    force_symmetric_covariance = Property(
+        bool, default=False, doc="A flag to force the output covariance matrix"
+                                 "to be symmetric by way of a simple geometric"
+                                 "combination of the matrix and transpose."
+                                 "Default is False.")
+
+    sqrt_form = Property(
+        bool, default=False, doc="If True then the update proceeds via a square"
+                                 "root form of the covariance matrix and so"
+                                 "should be more numerically stable. default is"
+                                 " False")
+
     def _check_measurement_model(self, measurement_model):
         """Check that the measurement model passed actually exists. If not
         attach the one in the updater. If that one's not specified, return an
@@ -151,8 +163,7 @@ class KalmanUpdater(Updater):
                                              predicted_state.timestamp,
                                              cross_covar=meas_cross_cov)
 
-    def update(self, hypothesis, force_symmetric_covariance=False,
-               sqrt_form=False, **kwargs):
+    def update(self, hypothesis, **kwargs):
         r"""The Kalman update method. Given a hypothesised association between
         a predicted state or predicted measurement and an actual measurement,
         calculate the posterior state.
@@ -163,13 +174,6 @@ class KalmanUpdater(Updater):
             the prediction-measurement association hypothesis. This hypothesis
             may carry a predicted measurement, or a predicted state. In the
             latter case a predicted measurement will be calculated.
-        force_symmetric_covariance : :obj:`bool`, optional
-            A flag to force the output covariance matrix to be symmetric by way
-            of a simple geometric combination of the matrix and transpose.
-            Default is `False`
-        sqrt_form : :obj:`bool`, optional
-            If True then the update proceeds via a square root form of the
-            covariance matrix and so should be more numerically stable.
         **kwargs : various
             These are passed to :meth:`predict_measurement`
 
@@ -198,7 +202,7 @@ class KalmanUpdater(Updater):
             hypothesis.measurement_prediction = self.predict_measurement(
                 predicted_state, measurement_model=measurement_model, **kwargs)
 
-        if sqrt_form:
+        if self.sqrt_form:
             sqrtm_prior_cov = scipy.linalg.sqrtm(predicted_state.covar)
             sqrtm_noise_cov = scipy.linalg.sqrtm(measurement_model.covar())
             pred_meas = hypothesis.measurement_prediction.state_vector
@@ -237,7 +241,7 @@ class KalmanUpdater(Updater):
             posterior_covariance = \
                 predicted_state.covar - kalman_gain@innov_cov@kalman_gain.T
 
-        if force_symmetric_covariance:
+        if self.force_symmetric_covariance:
             posterior_covariance = \
                 (posterior_covariance + posterior_covariance.T)/2
 
