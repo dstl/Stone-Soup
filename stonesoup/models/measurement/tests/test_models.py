@@ -10,7 +10,7 @@ from ..nonlinear import (
     CartesianToElevationBearing, CartesianToBearingRangeRate,
     CartesianToElevationBearingRangeRate)
 from ...base import ReversibleModel
-from ....types.state import State
+from ....types.state import State, CovarianceMatrix
 from ....functions import jacobian as compute_jac
 from ....types.angle import Bearing, Elevation
 from ....types.array import StateVector, Matrix
@@ -23,48 +23,42 @@ def h2d(state_vector, pos_map, translation_offset, rotation_offset):
            [0]]
 
     # Get rotation matrix
-    theta_z = - rotation_offset[2, 0]
-    theta_y = - rotation_offset[1, 0]
-    theta_x = - rotation_offset[0, 0]
+    theta_x, theta_y, theta_z = - rotation_offset[:, 0]
 
     rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
     xyz_rot = rotation_matrix @ xyz
 
     rho, phi, _ = cart2sphere(*xyz_rot[:, 0])
 
-    return np.array([[Bearing(phi)], [rho]])
+    return StateVector([Bearing(phi), rho])
 
 
 def h3d(state_vector, pos_map,  translation_offset, rotation_offset):
     xyz = state_vector[pos_map, :] - translation_offset
 
     # Get rotation matrix
-    theta_z = - rotation_offset[2, 0]
-    theta_y = - rotation_offset[1, 0]
-    theta_x = - rotation_offset[0, 0]
+    theta_x, theta_y, theta_z = - rotation_offset[:, 0]
 
     rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
     xyz_rot = rotation_matrix @ xyz
 
     rho, phi, theta = cart2sphere(*xyz_rot[:, 0])
 
-    return np.array([[Elevation(theta)], [Bearing(phi)], [rho]])
+    return StateVector([Elevation(theta), Bearing(phi), rho])
 
 
 def hbearing(state_vector, pos_map, translation_offset, rotation_offset):
     xyz = state_vector[pos_map, :] - translation_offset
 
     # Get rotation matrix
-    theta_z = - rotation_offset[2, 0]
-    theta_y = - rotation_offset[1, 0]
-    theta_x = - rotation_offset[0, 0]
+    theta_x, theta_y, theta_z = - rotation_offset[:, 0]
 
     rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
     xyz_rot = rotation_matrix @ xyz
 
     _, phi, theta = cart2sphere(*xyz_rot[:, 0])
 
-    return np.array([[Elevation(theta)], [Bearing(phi)]])
+    return StateVector([Elevation(theta), Bearing(phi)])
 
 
 @pytest.mark.parametrize(
@@ -74,34 +68,34 @@ def hbearing(state_vector, pos_map, translation_offset, rotation_offset):
         (   # 2D meas, 2D state
             h2d,
             CartesianToBearingRange,
-            np.array([[0], [1]]),
-            np.array([[0.015, 0],
-                      [0, 0.1]]),
+            StateVector([[0], [1]]),
+            CovarianceMatrix([[0.015, 0],
+                              [0, 0.1]]),
             np.array([0, 1]),
-            np.array([[1], [-1]]),
-            np.array([[0], [0], [1]])
+            StateVector([[1], [-1]]),
+            StateVector([[0], [0], [1]])
 
         ),
         (   # 3D meas, 3D state
             h3d,
             CartesianToElevationBearingRange,
-            np.array([[1], [2], [2]]),
-            np.array([[0.05, 0, 0],
-                      [0, 0.015, 0],
-                      [0, 0, 0.1]]),
+            StateVector([[1], [2], [2]]),
+            CovarianceMatrix([[0.05, 0, 0],
+                              [0, 0.015, 0],
+                              [0, 0, 0.1]]),
             np.array([0, 1, 2]),
-            np.array([[0], [0], [0]]),
-            np.array([[.2], [3], [-1]])
+            StateVector([[0], [0], [0]]),
+            StateVector([[.2], [3], [-1]])
         ),
         (   # 2D meas, 3D state
             hbearing,
             CartesianToElevationBearing,
-            np.array([[1], [2], [3]]),
+            StateVector([[1], [2], [3]]),
             np.array([[0.05, 0],
                       [0, 0.015]]),
             np.array([0, 1, 2]),
-            np.array([[0], [0], [0]]),
-            np.array([[-3], [0], [np.pi/3]])
+            StateVector([[0], [0], [0]]),
+            StateVector([[-3], [0], [np.pi/3]])
         )
     ],
     ids=["BearingElevation", "RangeBearingElevation", "BearingsOnly"]
@@ -219,9 +213,7 @@ def h2d_rr(state_vector, pos_map, vel_map, translation_offset, rotation_offset, 
                     [0]])
 
     # Get rotation matrix
-    theta_z = - rotation_offset[2, 0]
-    theta_y = - rotation_offset[1, 0]
-    theta_x = - rotation_offset[0, 0]
+    theta_x, theta_y, theta_z = - rotation_offset[:, 0]
 
     rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
     xyz_rot = rotation_matrix @ xyz
@@ -237,7 +229,7 @@ def h2d_rr(state_vector, pos_map, vel_map, translation_offset, rotation_offset, 
     # Use polar to calculate range rate
     rr = np.dot(xyz[:, 0], xyz_vel[:, 0]) / np.linalg.norm(xyz)
 
-    return np.array([[Bearing(phi)], [rho], [rr]])
+    return StateVector([Bearing(phi), rho, rr])
 
 
 def h3d_rr(state_vector, pos_map, vel_map, translation_offset, rotation_offset, velocity):
@@ -245,9 +237,7 @@ def h3d_rr(state_vector, pos_map, vel_map, translation_offset, rotation_offset, 
     xyz = state_vector[pos_map, :] - translation_offset
 
     # Get rotation matrix
-    theta_z = - rotation_offset[2, 0]
-    theta_y = - rotation_offset[1, 0]
-    theta_x = - rotation_offset[0, 0]
+    theta_x, theta_y, theta_z = - rotation_offset[:, 0]
 
     rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
     xyz_rot = rotation_matrix @ xyz
@@ -263,7 +253,7 @@ def h3d_rr(state_vector, pos_map, vel_map, translation_offset, rotation_offset, 
     # Use polar to calculate range rate
     rr = np.dot(xyz[:, 0], xyz_vel[:, 0]) / np.linalg.norm(xyz)
 
-    return np.array([[Elevation(theta)], [Bearing(phi)], [rho], [rr]])
+    return StateVector([Elevation(theta), Bearing(phi), rho, rr])
 
 
 @pytest.mark.parametrize(
@@ -273,29 +263,29 @@ def h3d_rr(state_vector, pos_map, vel_map, translation_offset, rotation_offset, 
         (   # 3D meas, 6D state
             h2d_rr,  # h
             CartesianToBearingRangeRate,  # ModelClass
-            np.array([[200.], [10.], [0.], [0.], [0.], [0.]]),  # state_vec
+            StateVector([[200.], [10.], [0.], [0.], [0.], [0.]]),  # state_vec
             6,  # ndim_state
             np.array([0, 2, 4]),  # pos_mapping
             np.array([1, 3, 5]),  # vel_mapping
-            np.array([[0.05, 0, 0],
-                      [0, 0.015, 0],
-                      [0, 0, 10]]),  # noise_covar
-            np.array([[1], [-1], [0]]),  # position (translation offset)
-            np.array([[0], [0], [1]])  # orientation (rotation offset)
+            CovarianceMatrix([[0.05, 0, 0],
+                              [0, 0.015, 0],
+                              [0, 0, 10]]),  # noise_covar
+            StateVector([[1], [-1], [0]]),  # position (translation offset)
+            StateVector([[0], [0], [1]])  # orientation (rotation offset)
         ),
         (   # 4D meas, 6D state
             h3d_rr,  # h
             CartesianToElevationBearingRangeRate,  # ModelClass
-            np.array([[200.], [10.], [0.], [0.], [0.], [0.]]),  # state_vec
+            StateVector([[200.], [10.], [0.], [0.], [0.], [0.]]),  # state_vec
             6,  # ndim_state
             np.array([0, 2, 4]),  # pos_mapping
             np.array([1, 3, 5]),  # vel_mapping
-            np.array([[0.05, 0, 0, 0],
-                      [0, 0.05, 0, 0],
-                      [0, 0, 0.015, 0],
-                      [0, 0, 0, 10]]),  # noise_covar
-            np.array([[100], [0], [0]]),  # position (translation offset)
-            np.array([[0], [0], [0]])  # orientation (rotation offset)
+            CovarianceMatrix([[0.05, 0, 0, 0],
+                              [0, 0.05, 0, 0],
+                              [0, 0, 0.015, 0],
+                              [0, 0, 0, 10]]),  # noise_covar
+            StateVector([[100], [0], [0]]),  # position (translation offset)
+            StateVector([[0], [0], [0]])  # orientation (rotation offset)
         )
     ],
     ids=["rrRB", "rrRBE"]
