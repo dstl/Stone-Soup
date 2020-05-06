@@ -319,7 +319,7 @@ class ASDKalmanUpdater(KalmanUpdater):
                                       measurement_model=measurement_model,
                                       **kwargs)
 
-        innov_cov = hh @ predicted_state.multi_covar[t_index * predicted_state.ndim: (t_index +1) * predicted_state.ndim,t_index * predicted_state.ndim: (t_index +1) * predicted_state.ndim] @ hh.T + measurement_model.covar()
+        innov_cov = hh @ predicted_state.multi_covar[t_index * predicted_state.ndim: (t_index +1) * predicted_state.ndim, t_index * predicted_state.ndim: (t_index +1) * predicted_state.ndim] @ hh.T + measurement_model.covar()
 
         meas_cross_cov = predicted_state.multi_covar[:, t_index * predicted_state.ndim: (t_index +1) * predicted_state.ndim] @ hh.T
 
@@ -367,52 +367,6 @@ class ASDKalmanUpdater(KalmanUpdater):
             measurement_model)
 
 
-        t_index = predicted_state.timestamps.index(predicted_state.act_timestamp)
-            # calculate the update for the measrement step
-        if t_index!=0:
-            P_l = predicted_state.multi_covar[t_index * predicted_state.ndim: (t_index + 1) * predicted_state.ndim, t_index * predicted_state.ndim: (t_index + 1) * predicted_state.ndim]
-            #HPH + R
-            hh_l = self._measurement_matrix(predicted_state=predicted_state,
-                                            measurement_model=measurement_model,
-                                            **kwargs)
-            innov_cov = hh_l @ predicted_state.multi_covar[t_index * predicted_state.ndim: (t_index +1) * predicted_state.ndim,t_index * predicted_state.ndim: (t_index +1) * predicted_state.ndim] @ hh_l.T + measurement_model.covar()
-
-            kalman_gain_l = predicted_state.multi_covar[t_index * predicted_state.ndim: (t_index +1) * predicted_state.ndim:, t_index * predicted_state.ndim: (t_index +1) * predicted_state.ndim] @ hh_l.T @ np.linalg.inv(innov_cov)
-            P_l = P_l - kalman_gain_l @ innov_cov @ kalman_gain_l.T
-            predicted_state.correlation_matrices[predicted_state.act_timestamp]['P'] = P_l
-            predicted_state.correlation_matrices[predicted_state.act_timestamp]['P_pred'] = predicted_state.correlation_matrices[predicted_state.act_timestamp]['F'] @ P_l @ predicted_state.correlation_matrices[predicted_state.act_timestamp]['F'].T + predicted_state.correlation_matrices[predicted_state.act_timestamp]['P_error']
-            predicted_state.correlation_matrices[predicted_state.act_timestamp]['PFP'] = \
-                predicted_state.correlation_matrices[predicted_state.act_timestamp]['P'] \
-                @ predicted_state.correlation_matrices[predicted_state.act_timestamp]['F'].T \
-                @ np.linalg.inv(predicted_state.correlation_matrices[predicted_state.act_timestamp]['P_pred'])
-            # get all timestamps which has to be recalculated beginning with the newest one
-            timestamps_to_recalculate = [ts for ts in predicted_state.timestamps if ts > predicted_state.act_timestamp]
-            covars = [predicted_state.multi_covar[i * predicted_state.ndim:(i + 1) * predicted_state.ndim, i * predicted_state.ndim:(i + 1) * predicted_state.ndim] for i in
-                      range(t_index)]
-
-            for i, ts in enumerate(timestamps_to_recalculate):
-                prior_ndim = predicted_state.ndim
-                C_list = []
-                C_list.append(np.eye(prior_ndim))
-                corrs = {k: v for k, v in predicted_state.correlation_matrices.items() if k < ts}
-                for item in list(corrs.values())[-1::-1]:
-                    C_list.append(C_list[-1] @ item['PFP'])
-                C_list = C_list[1:]
-                W_column = np.array([ c @ covars[i] for c in C_list])
-                W_column = np.reshape(W_column, (predicted_state.ndim * len(C_list), predicted_state.ndim))
-                W_row = W_column.T
-
-                # set covar
-                predicted_state.multi_covar[i * prior_ndim:(i + 1) * prior_ndim, i * prior_ndim:(i + 1) * prior_ndim] = covars[i]
-
-                # set column
-
-                predicted_state.multi_covar[(i + 1) * prior_ndim:, i * prior_ndim: (i + 1) * prior_ndim] = W_column
-
-                # set row
-                predicted_state.multi_covar[i * prior_ndim: (i + 1) * prior_ndim, (i + 1) * prior_ndim:] = W_row
-
-
         # Attach the measurement prediction to the hypothesis
         hypothesis.measurement_prediction = self.predict_measurement(
             predicted_state, measurement_model=measurement_model, **kwargs)
@@ -436,23 +390,23 @@ class ASDKalmanUpdater(KalmanUpdater):
                 (posterior_covariance + posterior_covariance.T) / 2
 
 
-        # calculate the rest of the correlation matrix so that the whole matrix is in
-        # the correlation_matrices dictionary.
+        # save the new posterior, if it is no out of sequence measurement
         try:
             predicted_state.correlation_matrices[predicted_state.act_timestamp]
         except KeyError:
             predicted_state.correlation_matrices[predicted_state.act_timestamp] = {}
         t_index = predicted_state.timestamps.index(predicted_state.act_timestamp)
         ndmin = predicted_state.ndim
-        predicted_state.correlation_matrices[predicted_state.act_timestamp]['P'] = posterior_covariance[t_index*ndmin: (t_index+1) * ndmin,t_index*ndmin: (t_index+1) * ndmin]
-
-
-        # update the PFP for the correlations, if it is an out of sequence measurement
-        if t_index != 0:
-            predicted_state.correlation_matrices[predicted_state.act_timestamp]['PFP'] = \
-                predicted_state.correlation_matrices[predicted_state.act_timestamp]['P'] \
-                @ predicted_state.correlation_matrices[predicted_state.act_timestamp]['F'].T \
-                @ predicted_state.correlation_matrices[predicted_state.act_timestamp]['P_pred']
+        if t_index==0:
+            predicted_state.correlation_matrices[predicted_state.act_timestamp]['P'] = posterior_covariance[t_index*ndmin: (t_index+1) * ndmin,t_index*ndmin: (t_index+1) * ndmin]
+        #
+        #
+        # # update the PFP for the correlations, if it is an out of sequence measurement
+        # if t_index != 0:
+        #     predicted_state.correlation_matrices[predicted_state.act_timestamp]['PFP'] = \
+        #         predicted_state.correlation_matrices[predicted_state.act_timestamp]['P'] \
+        #         @ predicted_state.correlation_matrices[predicted_state.act_timestamp]['F'].T \
+        #         @ predicted_state.correlation_matrices[predicted_state.act_timestamp]['P_pred']
 
 
         return ASDGaussianStateUpdate(multi_state_vector=posterior_mean, multi_covar=posterior_covariance,
