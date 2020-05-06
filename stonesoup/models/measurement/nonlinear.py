@@ -680,7 +680,7 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
                 noise = 0
 
         # Account for origin offset in position to enable range and angles to be determined
-        xy_pos = state.state_vector[self.mapping] - self.translation_offset
+        xy_pos = state.state_vector[self.mapping, :] - self.translation_offset
 
         # Rotate coordinates based upon the sensor_velocity
         xy_rot = self._rotation_matrix @ xy_pos
@@ -825,7 +825,7 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
                 noise = 0
 
         # Account for origin offset in position to enable range and angles to be determined
-        xyz_pos = state.state_vector[self.mapping] - self.translation_offset
+        xyz_pos = state.state_vector[self.mapping, :] - self.translation_offset
 
         # Rotate coordinates based upon the sensor_velocity
         xyz_rot = self._rotation_matrix @ xyz_pos
@@ -857,14 +857,15 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
         inv_rotation_matrix = inv(self._rotation_matrix)
 
         out_vector = StateVector([[0.], [0.], [0.], [0.], [0.], [0.]])
-        out_vector[self.mapping] = x, y, z
-        out_vector[self.velocity_mapping] = x_rate, y_rate, z_rate
+        out_vector[self.mapping, :] = x, y, z
+        out_vector[self.velocity_mapping, :] = x_rate, y_rate, z_rate
 
-        out_vector[self.mapping] = inv_rotation_matrix @ out_vector[self.mapping]
-        out_vector[self.velocity_mapping] = inv_rotation_matrix @ out_vector[self.velocity_mapping]
+        out_vector[self.mapping, :] = inv_rotation_matrix @ out_vector[self.mapping, :]
+        out_vector[self.velocity_mapping, :] = \
+            inv_rotation_matrix @ out_vector[self.velocity_mapping, :]
 
-        out_vector[self.mapping] = out_vector[self.mapping] + self.translation_offset
-        print(out_vector)
+        out_vector[self.mapping, :] = out_vector[self.mapping, :] + self.translation_offset
+
         return out_vector
 
     def rvs(self, num_samples=1, **kwargs) -> np.ndarray:
