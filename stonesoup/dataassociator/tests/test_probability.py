@@ -15,7 +15,7 @@ def associator(request, probability_hypothesiser):
     if request.param is PDA:
         return request.param(probability_hypothesiser)
     elif request.param is JPDA:
-        return request.param(probability_hypothesiser, 5)
+        return request.param(probability_hypothesiser)
 
 
 def test_probability(associator):
