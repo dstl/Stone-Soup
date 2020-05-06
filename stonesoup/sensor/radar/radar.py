@@ -455,13 +455,13 @@ class AESARadar(Sensor):
         [r, pos_az, pos_el] = cart2sphere(*relative_vector)
 
         # target position relative to beam position
-        relative_az = pos_az[0] - beam_az
-        relative_el = pos_el[0] - beam_el
+        relative_az = pos_az - beam_az
+        relative_el = pos_el - beam_el
         # calculate power directed towards target
         self.beam_shape.beam_width = spoiled_width  # beam spoiling to width
         directed_power = self.beam_shape.beam_power(relative_az, relative_el)
         # calculate signal to noise ratio
-        snr = self._snr_constant * rcs * spoiled_gain ** 2 * directed_power / (r[0] ** 4)
+        snr = self._snr_constant * rcs * spoiled_gain ** 2 * directed_power / (r ** 4)
         # calculate probability of detection using the North's approximation
         det_prob = 0.5 * erfc(
             (-np.log(self.probability_false_alarm)) ** 0.5 - (

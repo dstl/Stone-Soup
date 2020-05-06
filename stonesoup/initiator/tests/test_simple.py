@@ -114,7 +114,7 @@ def test_linear_measurement():
 
 def test_nonlinear_measurement():
     measurement_model = CartesianToBearingRange(
-        2, (0, 1), np.diag([np.radians(2), 30]))
+        2, [0, 1], np.diag([np.radians(2), 30]))
     measurement_initiator = SimpleMeasurementInitiator(
         GaussianState(np.array([[0], [0]]), np.diag([100, 10])),
         measurement_model
