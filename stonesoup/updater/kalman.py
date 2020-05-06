@@ -24,7 +24,7 @@ class KalmanUpdater(Updater):
     overwrite to specify a more general measurement model
     :math:`h(\mathbf{x})`.
 
-    :meth:`update` first calls :meth:`predict_measurement` function which
+    :math:`update` first calls :math:`predict_measurement` function which
     proceeds by calculating the predicted measurement, innovation covariance
     and measurement cross-covariance,
 
