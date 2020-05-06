@@ -627,7 +627,7 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
         doc="Mapping to the targets velocity within its state space")
     velocity = Property(
         StateVector, default=None,
-        doc="A 3x1 array specifying the sensor velocity in terms of :math:`x,y` \
+        doc="A 3x1 array specifying the sensor velocity in terms of :math:`x,y,z` \
         coordinates.")
 
     def __init__(self, *args, **kwargs):

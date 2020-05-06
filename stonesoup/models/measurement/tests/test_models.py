@@ -76,6 +76,17 @@ def hbearing(state_vector, pos_map, translation_offset, rotation_offset):
             StateVector([[0], [0], [1]])
 
         ),
+        (   # 2D meas, 2D state
+            h2d,
+            CartesianToBearingRange,
+            StateVector([[0], [1]]),
+            CovarianceMatrix([[0.015, 0],
+                              [0, 0.1]]),
+            np.array([0, 1]),
+            None,
+            None
+
+        ),
         (   # 3D meas, 3D state
             h3d,
             CartesianToElevationBearingRange,
@@ -87,6 +98,17 @@ def hbearing(state_vector, pos_map, translation_offset, rotation_offset):
             StateVector([[0], [0], [0]]),
             StateVector([[.2], [3], [-1]])
         ),
+        (   # 3D meas, 3D state
+            h3d,
+            CartesianToElevationBearingRange,
+            StateVector([[1], [2], [2]]),
+            CovarianceMatrix([[0.05, 0, 0],
+                              [0, 0.015, 0],
+                              [0, 0, 0.1]]),
+            np.array([0, 1, 2]),
+            None,
+            None
+        ),
         (   # 2D meas, 3D state
             hbearing,
             CartesianToElevationBearing,
@@ -96,9 +118,21 @@ def hbearing(state_vector, pos_map, translation_offset, rotation_offset):
             np.array([0, 1, 2]),
             StateVector([[0], [0], [0]]),
             StateVector([[-3], [0], [np.pi/3]])
+        ),
+        (   # 2D meas, 3D state
+            hbearing,
+            CartesianToElevationBearing,
+            StateVector([[1], [2], [3]]),
+            np.array([[0.05, 0],
+                      [0, 0.015]]),
+            np.array([0, 1, 2]),
+            None,
+            None
         )
     ],
-    ids=["BearingElevation", "RangeBearingElevation", "BearingsOnly"]
+    ids=["BearingElevation1", "BearingElevation2",
+         "RangeBearingElevation1", "RangeBearingElevation1",
+         "BearingsOnly1", "BearingsOnly2"]
 )
 def test_models(h, ModelClass, state_vec, R,
                 mapping, translation_offset, rotation_offset):
@@ -281,6 +315,19 @@ def h3d_rr(state_vector, pos_map, vel_map, translation_offset, rotation_offset, 
             StateVector([[1], [-1], [0]]),  # position (translation offset)
             StateVector([[0], [0], [1]])  # orientation (rotation offset)
         ),
+        (   # 3D meas, 6D state
+            h2d_rr,  # h
+            CartesianToBearingRangeRate,  # ModelClass
+            StateVector([[200.], [10.], [0.], [0.], [0.], [0.]]),  # state_vec
+            6,  # ndim_state
+            np.array([0, 2, 4]),  # pos_mapping
+            np.array([1, 3, 5]),  # vel_mapping
+            CovarianceMatrix([[0.05, 0, 0],
+                              [0, 0.015, 0],
+                              [0, 0, 10]]),  # noise_covar
+            None,  # position (translation offset)
+            None  # orientation (rotation offset)
+        ),
         (   # 4D meas, 6D state
             h3d_rr,  # h
             CartesianToElevationBearingRangeRate,  # ModelClass
@@ -294,9 +341,23 @@ def h3d_rr(state_vector, pos_map, vel_map, translation_offset, rotation_offset, 
                               [0, 0, 0, 10]]),  # noise_covar
             StateVector([[100], [0], [0]]),  # position (translation offset)
             StateVector([[0], [0], [0]])  # orientation (rotation offset)
+        ),
+        (   # 4D meas, 6D state
+            h3d_rr,  # h
+            CartesianToElevationBearingRangeRate,  # ModelClass
+            StateVector([[200.], [10.], [0.], [0.], [0.], [0.]]),  # state_vec
+            6,  # ndim_state
+            np.array([0, 2, 4]),  # pos_mapping
+            np.array([1, 3, 5]),  # vel_mapping
+            CovarianceMatrix([[0.05, 0, 0, 0],
+                              [0, 0.05, 0, 0],
+                              [0, 0, 0.015, 0],
+                              [0, 0, 0, 10]]),  # noise_covar
+            None,  # position (translation offset)
+            None  # orientation (rotation offset)
         )
     ],
-    ids=["rrRB", "rrRBE"]
+    ids=["rrRB_1", "rrRB_2", "rrRBE_1", "rrRBE_2"]
 )
 def test_rangeratemodels(h, modelclass, state_vec, ndim_state, pos_mapping, vel_mapping,
                          noise_covar, position, orientation):

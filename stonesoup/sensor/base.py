@@ -113,13 +113,6 @@ class BaseSensor(Base, ABC):
             This property delegates the actual calculation of velocity to the platform on which the
             sensor is mounted.
 
-            It is settable if, and only if, the sensor holds its own internal platform."""
+            It is settable if, and only if, the sensor holds its own internal platform which is
+            a MovingPlatfom."""
         return self.platform.velocity
-
-    @velocity.setter
-    def velocity(self, value):
-        if self._has_internal_platform:
-            self.platform.velocity = value
-        else:
-            raise AttributeError('Cannot set platform velocity unless the sensor has its own '
-                                 'default platform')
