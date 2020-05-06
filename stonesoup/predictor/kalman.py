@@ -5,6 +5,7 @@ from functools import lru_cache, partial
 
 from ..base import Property
 from .base import Predictor
+from ..types.state import SqrtGaussianState
 from ..types.prediction import GaussianStatePrediction
 from ..models.base import LinearModel
 from ..models.transition import TransitionModel
@@ -21,8 +22,8 @@ class KalmanPredictor(Predictor):
 
     .. math::
 
-      f_k( \mathbf{x}_{k-1}) = F_k \mathbf{x}_{k-1},  \ b_k( \mathbf{x}_k) =
-      B_k \mathbf{x}_k \ \mathrm{and} \ \mathbf{\nu}_k \sim \mathcal{N}(0,Q_k)
+      f_k( \mathbf{x}_{k-1}) = F_k \mathbf{x}_{k-1},  \ b_k( \mathbf{u}_k) =
+      B_k \mathbf{u}_k \ \mathrm{and} \ \mathbf{\nu}_k \sim \mathcal{N}(0,Q_k)
 
 
     Notes
@@ -37,7 +38,6 @@ class KalmanPredictor(Predictor):
 
 
     """
-
     transition_model = Property(
         LinearGaussianTransitionModel,
         doc="The transition model to be used.")
@@ -65,7 +65,7 @@ class KalmanPredictor(Predictor):
         Parameters
         ----------
         **kwargs : various, optional
-            These are passed to :meth:`~.LinearGaussianTransitionModel.matrix`
+            These are passed to :math:`~.LinearGaussianTransitionModel.matrix`
 
         Returns
         -------
@@ -81,11 +81,11 @@ class KalmanPredictor(Predictor):
 
         Parameters
         ----------
-        prior : :class:`~.State`
+        prior : :class:`~.GaussianState`
             The prior state, :math:`\mathbf{x}_{k-1}`
 
         **kwargs : various, optional
-            These are passed to :meth:`~.LinearGaussianTransitionModel.matrix`
+            These are passed to :math:`~.LinearGaussianTransitionModel.matrix`
 
         Returns
         -------
@@ -124,7 +124,6 @@ class KalmanPredictor(Predictor):
             time interval to predict over
 
         """
-
         # Deal with undefined timestamps
         if timestamp is None or prior.timestamp is None:
             predict_over_interval = None
@@ -132,6 +131,56 @@ class KalmanPredictor(Predictor):
             predict_over_interval = timestamp - prior.timestamp
 
         return predict_over_interval
+
+    def _predicted_covariance(self, trans_m, prior_cov, trans_cov, ctrl_mat,
+                              ctrl_noi):
+        """Private function to return the predicted covariance. Useful in that
+        it can be overwritten in children.
+
+        Parameters
+        ----------
+        trans_m : np.array
+            The transition matrix
+        prior_cov : :class:`~.CovarianceMatrix`
+            The prior covariance matrix
+        trans_cov : :class:`~.CovarianceMatrix`
+            The matrix parameterisation of the noise in the transition model
+        ctrl_mat : np.array
+            The control matrix
+        ctrl_noi : np.array
+            The control noise
+
+        Returns
+        -------
+        : :class:`~.CovarianceMatrix`
+            The predicted covariance matrix
+
+
+        """
+        return trans_m @ prior_cov @ trans_m.T + trans_cov + \
+            ctrl_mat @ ctrl_noi @ ctrl_mat.T
+
+    def _return_predict_output(self, pred_mean, pred_covar, timestamp=None):
+        """Return the output of the prediction in  the correct form. May be
+        overwritten by child processes as necessary.
+
+        Parameters
+        ----------
+        pred_mean : :class:`~.StateVector`
+            The predicted mean
+        pred_covar : :class:`~.CovarianceMatrix`
+            The predicted covariance
+        timestamp : :class:`datetime.datetime`, optional
+            :math:`k`
+
+        Returns
+        -------
+        : :class:`~.GaussianStatePrediction`
+            The predicted state
+
+        """
+        return GaussianStatePrediction(pred_mean, pred_covar,
+                                       timestamp=timestamp)
 
     @lru_cache()
     def predict(self, prior, timestamp=None, **kwargs):
@@ -144,12 +193,12 @@ class KalmanPredictor(Predictor):
         timestamp : :class:`datetime.datetime`, optional
             :math:`k`
         **kwargs :
-            These are passed, via :meth:`~.KalmanFilter.transition_function` to
-            :meth:`~.LinearGaussianTransitionModel.matrix`
+            These are passed, via :math:`~.KalmanFilter.transition_function` to
+            :math:`~.LinearGaussianTransitionModel.matrix`
 
         Returns
         -------
-        : :class:`~.State`
+        : :class:`~.GaussianStatePrediction`
             :math:`\mathbf{x}_{k|k-1}`, the predicted state and the predicted
             state covariance :math:`P_{k|k-1}`
 
@@ -174,11 +223,12 @@ class KalmanPredictor(Predictor):
         control_matrix = self._control_matrix
         control_noise = self.control_model.control_noise
 
-        p_pred = transition_matrix @ prior.covar @ transition_matrix.T \
-            + transition_covar \
-            + control_matrix @ control_noise @ control_matrix.T
-
-        return GaussianStatePrediction(x_pred, p_pred, timestamp=timestamp)
+        # Get the predicted covariance
+        p_pred = self._predicted_covariance(transition_matrix, prior.covar,
+                                            transition_covar, control_matrix,
+                                            control_noise)
+        # And return the state in the correct form
+        return self._return_predict_output(x_pred, p_pred, timestamp=timestamp)
 
 
 class ExtendedKalmanPredictor(KalmanPredictor):
@@ -376,3 +426,65 @@ class UnscentedKalmanPredictor(KalmanPredictor):
 
         # and return a Gaussian state based on these parameters
         return GaussianStatePrediction(x_pred, p_pred, timestamp=timestamp)
+
+
+class SqrtKalmanPredictor(KalmanPredictor):
+    """The version of the Kalman predictor that operates on the square root
+    parameterisation of the Gaussian state, :class:`~.SqrtGaussianState`. The
+    process works in exactly the same way as its parent class, with the
+    exception of the calculation of the predicted covariance, and the class
+    that is returned by the update function. Note that there is an implicit
+    Cholesky factorisation when the output :class:`~.SqrtGaussianState` is
+    returned.
+
+    """
+
+    def _predicted_covariance(self, trans_m, prior_cov, trans_cov, ctrl_mat,
+                              ctrl_noi):
+        """Private function to return the predicted covariance. Useful in that
+        it can be overwritten in children.
+
+        Parameters
+        ----------
+        trans_m : np.array
+            The transition matrix
+        prior_cov : np.array
+            The (lower-triangular version) of the prior covariance matrix
+        trans_cov : :class:`~.CovarianceMatrix`
+            The matrix parameterisation of the noise in the transition model
+        ctrl_mat : np.array
+            The control matrix
+        ctrl_noi : np.array
+            The control noise
+
+        Returns
+        -------
+        : :class:`~.CovarianceMatrix`
+            The predicted covariance matrix
+
+
+        """
+        return trans_m @ prior_cov @ prior_cov @ trans_m.T + trans_cov + \
+            ctrl_mat @ ctrl_noi @ ctrl_mat.T
+
+    def _return_predict_output(self, pred_mean, pred_covar, timestamp=None):
+        """Return the output of the prediction in  the correct form. May be
+        overwritten by child processes as necessary.
+
+        Parameters
+        ----------
+        pred_mean : :class:`~.StateVector`
+            The predicted mean
+        pred_covar : :class:`~.CovarianceMatrix`
+            The predicted covariance
+        timestamp : :class:`datetime.datetime`, optional
+            :math:`k`
+
+        Returns
+        -------
+        : :class:`~.SqrtGaussianState`
+            The predicted state (with the covariance encoded in lower triangular
+            form
+
+        """
+        return SqrtGaussianState(pred_mean, pred_covar, timestamp=timestamp)
