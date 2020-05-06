@@ -29,6 +29,7 @@ Tracker Components
 
     stonesoup.dataassociator
     stonesoup.deleter
+    stonesoup.gater
     stonesoup.hypothesiser
     stonesoup.initiator
     stonesoup.mixturereducer
