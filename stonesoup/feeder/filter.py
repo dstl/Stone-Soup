@@ -45,7 +45,7 @@ class MetadataReducer(DetectionFeeder):
             yield time, unique_detections
 
 
-class MetadataValueFilter(DetectionFeeder):
+class MetadataValueFilter(MetadataReducer):
     """ Reduce detections by filtering out objects based on whether the value
         of a particular metadata field conforms to a given condition.
 
@@ -67,10 +67,6 @@ class MetadataValueFilter(DetectionFeeder):
         will be applicable to this type.
 
     """
-
-    metadata_field = Property(
-        str,
-        doc="Field used to reduce set of detections")
 
     operator = Property(
         FunctionType,
@@ -107,7 +103,7 @@ class MetadataValueFilter(DetectionFeeder):
             yield time, filtered_detections
 
 
-class BoundingBoxDetectionReducer(DetectionFeeder, GroundTruthFeeder):
+class BoundingBoxReducer(DetectionFeeder, GroundTruthFeeder):
     """ Reduce data by selecting only data placed within the limits of a
         n-dimensional bounding box, defined on the data coordinate space.
 

@@ -6,7 +6,7 @@ import pytest
 
 from ..filter import (MetadataReducer,
                       MetadataValueFilter,
-                      BoundingBoxDetectionReducer)
+                      BoundingBoxReducer)
 
 
 def test_metadata_reducer(detector):
@@ -79,11 +79,11 @@ def test_boundingbox_reducer_detections(detector):
 
     # Confirm errors raised on improper instantiation attempt
     with pytest.raises(TypeError):
-        BoundingBoxDetectionReducer()
+        BoundingBoxReducer()
     with pytest.raises(TypeError):
-        BoundingBoxDetectionReducer(detector)
+        BoundingBoxReducer(detector)
 
-    feeder = BoundingBoxDetectionReducer(detector, limits, mapping)
+    feeder = BoundingBoxReducer(detector, limits, mapping)
 
     # Assert correct constructor assignments
     assert np.array_equal(limits, feeder.limits)
@@ -115,16 +115,16 @@ def test_boundingbox_reducer_groundtruth(groundtruth):
 
     # Confirm errors raised on improper instantiation attempt
     with pytest.raises(TypeError):
-        BoundingBoxDetectionReducer()
+        BoundingBoxReducer()
     with pytest.raises(TypeError):
-        BoundingBoxDetectionReducer(groundtruth)
+        BoundingBoxReducer(groundtruth)
 
     # Simple 2D rectangle/bounding box
     limits = np.array([[-100, 100],
                        [-100, 100]])
     mapping = [1, 0]
 
-    feeder = BoundingBoxDetectionReducer(groundtruth, limits, mapping)
+    feeder = BoundingBoxReducer(groundtruth, limits, mapping)
 
     # Assert correct constructor assignments
     assert np.array_equal(limits, feeder.limits)
@@ -156,6 +156,6 @@ def test_boundingbox_reducer_default_mapping(reader):
     limits = np.array([[-1, 1],
                        [-2, 2]])
 
-    feeder = BoundingBoxDetectionReducer(reader, limits)
+    feeder = BoundingBoxReducer(reader, limits)
 
     assert feeder.mapping == (0, 1)
