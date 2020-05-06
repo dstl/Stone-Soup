@@ -126,8 +126,12 @@ class SIAPMetrics(MetricGenerator):
         """
 
         timestamps = manager.list_timestamps()
-        C = self._jt_sum(manager, timestamps) / self._j_sum(
-            manager, timestamps)
+        try:
+            C = self._jt_sum(manager, timestamps) / self._j_sum(
+                manager, timestamps)
+        except ZeroDivisionError:
+            # No truth
+            C = 0
         return TimeRangeMetric(
             title="SIAP C",
             value=C,
@@ -165,8 +169,11 @@ class SIAPMetrics(MetricGenerator):
         """
 
         timestamps = manager.list_timestamps()
-        A = self._na_sum(manager, timestamps) / self._jt_sum(
-            manager, timestamps)
+        try:
+            A = self._na_sum(manager, timestamps) / self._jt_sum(manager, timestamps)
+        except ZeroDivisionError:
+            # No truth
+            A = 0
         return TimeRangeMetric(
             title="SIAP A",
             value=A,
@@ -207,7 +214,11 @@ class SIAPMetrics(MetricGenerator):
             self._n_t(manager, timestamp) - self._na_t(manager, timestamp)
             for timestamp in timestamps)
 
-        S = numerator / self._n_sum(manager, timestamps)
+        try:
+            S = numerator / self._n_sum(manager, timestamps)
+        except ZeroDivisionError:
+            # No tracks
+            S = 0
         return TimeRangeMetric(
             title="SIAP S",
             value=S,
@@ -277,9 +288,14 @@ class SIAPMetrics(MetricGenerator):
                           for truth in manager.groundtruth_paths)
 
         timestamps = manager.list_timestamps()
+        try:
+            LS = numerator / denominator
+        except ZeroDivisionError:
+            # No truth
+            LS = 0
         return TimeRangeMetric(
             title="SIAP LS",
-            value=numerator / denominator,
+            value=LS,
             time_range=TimeRange(min(timestamps), max(timestamps)),
             generator=self)
 
@@ -571,7 +587,11 @@ class SIAPMetrics(MetricGenerator):
                         for truth in manager.groundtruth_paths)
         denominator = sum(self._tt_j(manager, truth).total_seconds()
                           for truth in manager.groundtruth_paths)
-        return numerator / denominator
+        try:
+            return numerator / denominator
+        except ZeroDivisionError:
+            # No truth or tracks
+            return 0
 
     def _t_j(self, truth):
         """Total time truth exists for

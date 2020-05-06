@@ -271,7 +271,6 @@ def test_compute_metric():
     track9 = Track(
         states=[State([[9]], timestamp=tstart + datetime.timedelta(seconds=i))
                 for i in range(35, 40)])
-    manager.groundtruth_paths = truth
     manager.tracks = {track1, track2, track3, track4, track5, track6, track7,
                       track8, track9}
     manager.groundtruth_paths = {truth}
@@ -330,3 +329,71 @@ def test_compute_metric():
     assert ls.time_range.start_timestamp == tstart
     assert ls.time_range.end_timestamp == tend
     assert ls.generator == generator
+
+
+def test_no_truth_divide_by_zero():
+    manager = SimpleManager()
+    generator = SIAPMetrics()
+    # Create truth, tracks and associations, same as test_nu_j
+    tstart = datetime.datetime.now()
+    track1 = Track(
+        states=[State([[1]], timestamp=tstart + datetime.timedelta(seconds=i))
+                for i in range(3)])
+    track2 = Track(
+        states=[State([[2]], timestamp=tstart + datetime.timedelta(seconds=i))
+                for i in range(5, 10)])
+    track3 = Track(
+        states=[State([[3]], timestamp=tstart + datetime.timedelta(seconds=i))
+                for i in range(7, 15)])
+    track4 = Track(
+        states=[State([[4]], timestamp=tstart + datetime.timedelta(seconds=i))
+                for i in range(13, 20)])
+    track5 = Track(
+        states=[State([[5]], timestamp=tstart + datetime.timedelta(seconds=i))
+                for i in range(18, 28)])
+    track6 = Track(
+        states=[State([[6]], timestamp=tstart + datetime.timedelta(seconds=i))
+                for i in range(22, 26)])
+    track7 = Track(
+        states=[State([[7]], timestamp=tstart + datetime.timedelta(seconds=i))
+                for i in range(30, 40)])
+    track8 = Track(
+        states=[State([[8]], timestamp=tstart + datetime.timedelta(seconds=i))
+                for i in range(30, 35)])
+    track9 = Track(
+        states=[State([[9]], timestamp=tstart + datetime.timedelta(seconds=i))
+                for i in range(35, 40)])
+    manager.tracks = {track1, track2, track3, track4, track5, track6, track7,
+                      track8, track9}
+    manager.groundtruth_paths = set()
+    associations = {TimeRangeAssociation({track}, time_range=TimeRange(
+        start_timestamp=min([state.timestamp for state in track.states]),
+        end_timestamp=max([state.timestamp for state in track.states])))
+                    for track in manager.tracks}
+    manager.association_set = AssociationSet(associations)
+
+    metrics = generator.compute_metric(manager)
+
+    assert len(metrics) == 5
+
+
+def test_no_track_divide_by_zero():
+    manager = SimpleManager()
+    generator = SIAPMetrics()
+    # Create truth, tracks and associations, same as test_nu_j
+    tstart = datetime.datetime.now()
+    truth = GroundTruthPath(states=[
+        GroundTruthState([[1]], timestamp=tstart + datetime.timedelta(
+            seconds=i))
+        for i in range(40)])
+    manager.tracks = set()
+    manager.groundtruth_paths = {truth}
+    associations = {TimeRangeAssociation({truth}, time_range=TimeRange(
+        start_timestamp=min([state.timestamp for state in track.states]),
+        end_timestamp=max([state.timestamp for state in track.states])))
+                    for track in manager.tracks}
+    manager.association_set = AssociationSet(associations)
+
+    metrics = generator.compute_metric(manager)
+
+    assert len(metrics) == 5
