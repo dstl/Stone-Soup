@@ -8,9 +8,11 @@ from stonesoup.types.detection import Detection
 from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.types.prediction import (
     GaussianStatePrediction, GaussianMeasurementPrediction)
-from stonesoup.types.state import GaussianState
-from stonesoup.updater.kalman import (
-    KalmanUpdater, ExtendedKalmanUpdater, UnscentedKalmanUpdater)
+from stonesoup.types.state import GaussianState, SqrtGaussianState
+from stonesoup.updater.kalman import ( KalmanUpdater,
+                                       ExtendedKalmanUpdater,
+                                       UnscentedKalmanUpdater,
+                                       SqrtKalmanUpdater)
 
 
 @pytest.mark.parametrize(
@@ -111,7 +113,7 @@ def test_kalman(UpdaterClass, measurement_model, prediction, measurement):
     assert(posterior.timestamp == prediction.timestamp)
 
 
-def test_sqrt_kalman():
+def test_internalsqrt_kalman():
     measurement_model = LinearGaussian(ndim_state=2, mapping=[0],
                                        noise_covar=np.array([[0.04]]))
     prediction = GaussianStatePrediction(np.array([[-6.45], [0.7]]),
@@ -178,3 +180,48 @@ def test_sqrt_kalman():
     assert (not np.allclose(posterior.covar, posterior_s.covar, 0, atol=1.e-14))
     assert (not np.allclose(posterior.covar, eval_posterior.covar, rtol=1.e-2))
     assert (np.allclose(posterior_s.covar, eval_posterior.covar, rtol=1.e-2))
+
+
+def test_sqrt_kalman():
+    measurement_model = LinearGaussian(ndim_state=2, mapping=[0],
+                                       noise_covar=np.array([[0.04]]))
+    prediction = GaussianStatePrediction(np.array([[-6.45], [0.7]]),
+                                         np.array([[4.1123, 0.0013],
+                                                   [0.0013, 0.0365]]))
+    sqrt_prediction = SqrtGaussianState(prediction.state_vector,
+                                        prediction.covar)
+    measurement = Detection(np.array([[-6.23]]))
+
+    # Calculate evaluation variables
+    eval_measurement_prediction = GaussianMeasurementPrediction(
+        measurement_model.matrix() @ prediction.mean,
+        measurement_model.matrix() @ prediction.covar
+        @ measurement_model.matrix().T
+        + measurement_model.covar(),
+        cross_covar=prediction.covar @ measurement_model.matrix().T)
+    kalman_gain = eval_measurement_prediction.cross_covar @ np.linalg.inv(
+        eval_measurement_prediction.covar)
+    eval_posterior = GaussianState(
+        prediction.mean
+        + kalman_gain @ (measurement.state_vector
+                         - eval_measurement_prediction.mean),
+        prediction.covar
+        - kalman_gain @ eval_measurement_prediction.covar @ kalman_gain.T)
+
+    # Compare and contrast
+    updater = KalmanUpdater(measurement_model=measurement_model)
+    sqrt_updater = SqrtKalmanUpdater(measurement_model=measurement_model)
+
+    posterior = updater.update(SingleHypothesis(prediction=prediction,
+                                                measurement=measurement))
+    posterior_s = sqrt_updater.update(SingleHypothesis(
+        prediction=sqrt_prediction, measurement=measurement))
+
+    assert (np.allclose(posterior_s.mean, eval_posterior.mean, 0, atol=1.e-14))
+    assert (np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-14))
+    assert (np.allclose(eval_posterior.covar,
+                        posterior_s.covar @ posterior_s.covar.T, 0,
+                        atol=1.e-14))
+    assert (np.allclose(posterior.covar,
+                        posterior_s.covar @ posterior_s.covar.T, 0,
+                        atol=1.e-14))

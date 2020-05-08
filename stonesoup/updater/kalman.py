@@ -5,6 +5,7 @@ from functools import lru_cache
 
 from ..base import Property
 from .base import Updater
+from ..types.state import SqrtGaussianState
 from ..types.prediction import GaussianMeasurementPrediction
 from ..types.update import GaussianStateUpdate
 from ..models.base import LinearModel
@@ -107,8 +108,8 @@ class KalmanUpdater(Updater):
 
         Parameters
         ----------
-        predicted_state : :class:`~.State`
-            The predicted state :math:`\mathbf{x}_{k|k-1}`
+        predicted_state : :class:`~.GaussianState`
+            The predicted state :math:`\mathbf{x}_{k|k-1}`, :math:`P_{k|k-1}`
         measurement_model : :class:`~.MeasurementModel`
             The measurement model. If omitted, the model in the updater object
             is used
@@ -131,14 +132,14 @@ class KalmanUpdater(Updater):
 
         Parameters
         ----------
-        predicted_state : :class:`~.State`
-            The predicted state :math:`\mathbf{x}_{k|k-1}`
+        predicted_state : :class:`~.GaussianState`
+            The predicted state :math:`\mathbf{x}_{k|k-1}`, :math:`P_{k|k-1}`
         measurement_model : :class:`~.MeasurementModel`
             The measurement model. If omitted, the model in the updater object
             is used
         **kwargs : various
-            These are passed to :meth:`~.MeasurementModel.function` and
-            :meth:`~.MeasurementModel.matrix`
+            These are passed to :math:`~.MeasurementModel.function` and
+            :math:`~.MeasurementModel.matrix`
 
         Returns
         -------
@@ -371,3 +372,124 @@ class UnscentedKalmanUpdater(KalmanUpdater):
         return GaussianMeasurementPrediction(meas_pred_mean, meas_pred_covar,
                                              predicted_state.timestamp,
                                              cross_covar)
+
+
+class SqrtKalmanUpdater(KalmanUpdater):
+    r"""The Square root version of the Kalman Updater.
+
+    The input :class:`~.State` is a :class:`~.SqrtGaussianState` which means
+    that the covariance of the predicted state is stored in square root form.
+    This can be achieved by keeping :attr:`covar` attribute as :math:`L` where
+    the 'full' covariance matrix :math:`P_{k|k-1} = L_{k|k-1} L^T_{k|k-1}`
+    [Eq1].
+
+    In its basic form :math:`L` is the lower triangular matrix returned via
+    Cholesky factorisation. There's no reason why other forms that satisfy Eq 1
+    above.
+
+    """
+    @lru_cache()
+    def predict_measurement(self, predicted_state, measurement_model=None,
+                            **kwargs):
+        r"""Predict the measurement implied by the predicted state mean
+
+        Parameters
+        ----------
+        predicted_state : :class:`~.SqrtGaussianState`
+            The predicted state in square root form
+        measurement_model : :class:`~.MeasurementModel`
+            The measurement model. If omitted, the model in the updater object
+            is used
+        **kwargs : various
+            These are passed to :math:`~.MeasurementModel.function` and
+            :math:`~.MeasurementModel.matrix`
+
+        Returns
+        -------
+        : :class:`GaussianMeasurementPrediction`
+            The measurement prediction, :math:`\mathbf{z}_{k|k-1}`
+
+        """
+        # If a measurement model is not specified then use the one that's
+        # native to the updater
+        measurement_model = self._check_measurement_model(measurement_model)
+
+        pred_meas = measurement_model.function(predicted_state, **kwargs)
+
+        hh = self._measurement_matrix(predicted_state=predicted_state,
+                                      measurement_model=measurement_model,
+                                      **kwargs)
+
+        meas_cross_cov = predicted_state.covar.T @ hh.T
+        innov_cov = meas_cross_cov.T @ meas_cross_cov + measurement_model.covar()
+
+        return GaussianMeasurementPrediction(pred_meas, innov_cov,
+                                             predicted_state.timestamp,
+                                             cross_covar=meas_cross_cov)
+
+    def update(self, hypothesis, **kwargs):
+        r"""The Kalman update method. Given a hypothesised association between
+        a predicted state or predicted measurement and an actual measurement,
+        calculate the posterior state.
+
+        Parameters
+        ----------
+        hypothesis : :class:`~.SingleHypothesis`
+            the prediction-measurement association hypothesis. This hypothesis
+            may carry a predicted measurement, or a predicted state. In the
+            latter case a predicted measurement will be calculated.
+        **kwargs : various
+            These are passed to :meth:`predict_measurement`
+
+        Returns
+        -------
+        : :class:`~.GaussianStateUpdate`
+            The posterior state Gaussian with mean :math:`\mathbf{x}_{k|k}` and
+            covariance :math:`P_{x|x}`
+
+        Reference
+        ---------
+        [1] Andrews A. 1968, A Square Root Formulation of the Kalman Covariance
+        Equations, Technical Note, Journal of American Institute of Aeronautics
+        and Astronautics
+
+        """
+
+        # Get the predicted state out of the hypothesis
+        predicted_state = hypothesis.prediction
+
+        # If there is no measurement prediction in the hypothesis then do the
+        # measurement prediction (and attach it back to the hypothesis).
+        if hypothesis.measurement_prediction is None:
+            # Get the measurement model out of the measurement if it's there.
+            # If not, use the one native to the updater (which might still be
+            # none)
+            measurement_model = hypothesis.measurement.measurement_model
+            measurement_model = self._check_measurement_model(
+                measurement_model)
+
+            # Attach the measurement prediction to the hypothesis
+            hypothesis.measurement_prediction = self.predict_measurement(
+                predicted_state, measurement_model=measurement_model, **kwargs)
+
+        # Get the predicted measurement mean, innovation covariance and
+        # measurement cross-covariance
+        pred_meas = hypothesis.measurement_prediction.state_vector
+        innov_cov = hypothesis.measurement_prediction.covar
+        m_cross_cov = hypothesis.measurement_prediction.cross_covar
+
+        # Complete the calculation of the posterior
+        kalman_gain = predicted_state.covar @ m_cross_cov @ np.linalg.inv(innov_cov)
+
+        posterior_mean = \
+            predicted_state.state_vector \
+            + kalman_gain @ (hypothesis.measurement.state_vector - pred_meas)
+
+        bigu = np.linalg.cholesky(innov_cov)
+        bigv = np.linalg.cholesky(measurement_model.covar())
+
+        posterior_covariance = predicted_state.covar @ (
+                np.identity(predicted_state.ndim) -
+                m_cross_cov @ np.linalg.inv(bigu.T) @ np.linalg.inv(bigu + bigv) @ m_cross_cov.T)
+
+        return SqrtGaussianState(posterior_mean, posterior_covariance)

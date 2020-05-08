@@ -441,8 +441,7 @@ class SqrtKalmanPredictor(KalmanPredictor):
 
     def _predicted_covariance(self, trans_m, prior_cov, trans_cov, ctrl_mat,
                               ctrl_noi):
-        """Private function to return the predicted covariance. Useful in that
-        it can be overwritten in children.
+        """Private function to return the predicted covariance.
 
         Parameters
         ----------
@@ -468,8 +467,8 @@ class SqrtKalmanPredictor(KalmanPredictor):
             ctrl_mat @ ctrl_noi @ ctrl_mat.T
 
     def _return_predict_output(self, pred_mean, pred_covar, timestamp=None):
-        """Return the output of the prediction in  the correct form. May be
-        overwritten by child processes as necessary.
+        """Return the output of the prediction in  the correct (square root)
+        form
 
         Parameters
         ----------
