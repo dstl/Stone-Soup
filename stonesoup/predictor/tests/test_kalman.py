@@ -49,8 +49,8 @@ def test_kalman(PredictorClass, transition_model,
 
     # Define prior state
     prior = GaussianState(prior_mean,
-                       prior_covar,
-                       timestamp=timestamp)
+                          prior_covar,
+                          timestamp=timestamp)
 
     # Calculate evaluation variables
     eval_prediction = GaussianStatePrediction(
@@ -85,7 +85,6 @@ def test_sqrt_kalman():
     timestamp = datetime.datetime.now()
     timediff = 2  # 2sec
     new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
-    time_interval = new_timestamp - timestamp
 
     # Define prior state
     prior_mean = np.array([[-6.45], [0.7]])

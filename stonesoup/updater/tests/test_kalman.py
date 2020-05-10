@@ -9,10 +9,10 @@ from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.types.prediction import (
     GaussianStatePrediction, GaussianMeasurementPrediction)
 from stonesoup.types.state import GaussianState, SqrtGaussianState
-from stonesoup.updater.kalman import ( KalmanUpdater,
-                                       ExtendedKalmanUpdater,
-                                       UnscentedKalmanUpdater,
-                                       SqrtKalmanUpdater)
+from stonesoup.updater.kalman import (KalmanUpdater,
+                                      ExtendedKalmanUpdater,
+                                      UnscentedKalmanUpdater,
+                                      SqrtKalmanUpdater)
 
 
 @pytest.mark.parametrize(
