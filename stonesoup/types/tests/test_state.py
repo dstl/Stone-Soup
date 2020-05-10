@@ -76,7 +76,8 @@ def test_sqrtgaussianstate():
     timestamp = datetime.datetime.now()
 
     lower_covar = np.linalg.cholesky(covar)
-    state = SqrtGaussianState(mean, covar, timestamp=timestamp)
+    state = SqrtGaussianState(mean, covar, timestamp=timestamp,
+                              triangular_form=False)
     assert(np.array_equal(state.covar, lower_covar))
 
     another_state = SqrtGaussianState(mean, lower_covar, timestamp=timestamp)

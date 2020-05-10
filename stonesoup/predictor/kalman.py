@@ -463,7 +463,7 @@ class SqrtKalmanPredictor(KalmanPredictor):
 
 
         """
-        return trans_m @ prior_cov @ prior_cov @ trans_m.T + trans_cov + \
+        return trans_m @ prior_cov @ prior_cov.T @ trans_m.T + trans_cov + \
             ctrl_mat @ ctrl_noi @ ctrl_mat.T
 
     def _return_predict_output(self, pred_mean, pred_covar, timestamp=None):
@@ -486,4 +486,5 @@ class SqrtKalmanPredictor(KalmanPredictor):
             form
 
         """
-        return SqrtGaussianState(pred_mean, pred_covar, timestamp=timestamp)
+        return SqrtGaussianState(pred_mean, pred_covar, timestamp=timestamp,
+                                 triangular_form=False)

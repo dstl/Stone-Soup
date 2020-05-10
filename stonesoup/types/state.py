@@ -148,15 +148,36 @@ class SqrtGaussianState(GaussianState):
     The input covariance matrix is checked for lower triangular form. If
     returned `False` then the Cholesky factorisation is undertaken.
 
+    Warning
+    -------
     Note that this (the "Potter form") is not the most efficient or necessarily
     the most effective factorisation. It is probably the simplest and may
     provide useful instructional value, and perhaps act as a base class.
 
+    This class currently restricted to lower-triangular form but there's no
+    reason in general why :math:`P = WW^T` needs to result in triangular, or
+    even square, form. Indeed, alternatives exits, and may work better.
+
     """
+    triangular_form = Property(bool, default=True,
+                               doc="Supply the covariance matrix in lower "
+                                   "triangular form. If  specified False then"
+                                   "the Cholesky decomposition is undertaken"
+                                   "on initiation.")
+
     def __init__(self, state_vector, covar, *args, **kwargs):
         super().__init__(state_vector, covar, *args, **kwargs)
-        if not np.allclose(self.covar, np.tril(self.covar)):  # selectable precision?
-            self.covar = np.linalg.cholesky(self.covar)
+        if not self.triangular_form:
+            try:  # Check that the input is at least positive semi-definite and
+                # therefore Cholesky-decomposable
+                self.covar = np.linalg.cholesky(self.covar)
+            except TypeError:
+                raise TypeError("Input matrix needs to be positive semi-definite")
+        else:
+            try:  # Check that the input it lower-triangular
+                np.allclose(self.covar, np.tril(self.covar)) is True  # selectable precision?
+            except TypeError:
+                raise TypeError("Input matrix is not lower triangular")
 
 
 class WeightedGaussianState(GaussianState):

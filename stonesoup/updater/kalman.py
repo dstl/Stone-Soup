@@ -157,8 +157,8 @@ class KalmanUpdater(Updater):
                                       measurement_model=measurement_model,
                                       **kwargs)
 
-        innov_cov = hh@predicted_state.covar@hh.T + measurement_model.covar()
         meas_cross_cov = predicted_state.covar @ hh.T
+        innov_cov = hh@meas_cross_cov + measurement_model.covar()
 
         return GaussianMeasurementPrediction(pred_meas, innov_cov,
                                              predicted_state.timestamp,
@@ -203,6 +203,7 @@ class KalmanUpdater(Updater):
             hypothesis.measurement_prediction = self.predict_measurement(
                 predicted_state, measurement_model=measurement_model, **kwargs)
 
+        # If the square root form has been requested
         if self.sqrt_form:
             sqrtm_prior_cov = scipy.linalg.sqrtm(predicted_state.covar)
             sqrtm_noise_cov = scipy.linalg.sqrtm(measurement_model.covar())
@@ -211,9 +212,9 @@ class KalmanUpdater(Updater):
             bigh = self._measurement_matrix(predicted_state=predicted_state,
                                             measurement_model=measurement_model,
                                             **kwargs)
-            statedim = measurement_model.ndim_state
+
             measdim = measurement_model.ndim_meas
-            zeros = np.zeros((statedim, measdim))
+            zeros = np.zeros((measurement_model.ndim_state, measdim))
             biga = np.block([[sqrtm_noise_cov, bigh @ sqrtm_prior_cov], [zeros, sqrtm_prior_cov]])
             [_, upper] = np.linalg.qr(biga.T)
             atheta = upper.T
@@ -225,7 +226,8 @@ class KalmanUpdater(Updater):
                 + kalman_gain @ (np.linalg.inv(sqrtm_innov_cov)) \
                 @ (hypothesis.measurement.state_vector - pred_meas)
             posterior_covariance = sqrtP @ sqrtP.T
-        else:
+
+        else:  # otherwise do the update the regular way
 
             # Get the predicted measurement mean, innovation covariance and
             # measurement cross-covariance
@@ -443,9 +445,9 @@ class SqrtKalmanUpdater(KalmanUpdater):
 
         Returns
         -------
-        : :class:`~.GaussianStateUpdate`
+        : :class:`~.SqrtGaussianState`
             The posterior state Gaussian with mean :math:`\mathbf{x}_{k|k}` and
-            covariance :math:`P_{x|x}`
+            covariance in square root form, :math:`L_{x|x}` where
 
         Reference
         ---------

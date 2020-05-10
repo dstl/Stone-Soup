@@ -189,7 +189,8 @@ def test_sqrt_kalman():
                                          np.array([[4.1123, 0.0013],
                                                    [0.0013, 0.0365]]))
     sqrt_prediction = SqrtGaussianState(prediction.state_vector,
-                                        prediction.covar)
+                                        prediction.covar,
+                                        triangular_form=False)
     measurement = Detection(np.array([[-6.23]]))
 
     # Calculate evaluation variables
@@ -225,3 +226,32 @@ def test_sqrt_kalman():
     assert (np.allclose(posterior.covar,
                         posterior_s.covar @ posterior_s.covar.T, 0,
                         atol=1.e-14))
+
+    # Next create a prediction with a covariance that will cause problems
+    prediction = GaussianStatePrediction(np.array([[-6.45], [0.7]]),
+                                         np.array([[1e24, 1e-24],
+                                                   [1e-24, 1e24]]))
+    sqrt_prediction = SqrtGaussianState(prediction.state_vector,
+                                        prediction.covar,
+                                        triangular_form=False)
+
+    posterior = updater.update(SingleHypothesis(prediction=prediction,
+                                                measurement=measurement))
+    posterior_s = sqrt_updater.update(SingleHypothesis(
+        prediction=sqrt_prediction, measurement=measurement))
+
+    print(posterior.covar)
+    print(posterior_s.covar@posterior_s.covar.T)
+
+    # The new posterior will  be
+    eval_posterior = GaussianState(
+        prediction.mean
+        + kalman_gain @ (measurement.state_vector
+                         - eval_measurement_prediction.mean),
+        np.array([[0.04, 0],
+                  [0, 1e24]]))  # Accessed by looking through the Decimal() quantities...
+    # It's actually [0.039999999999 1e-48], [1e-24 1e24 + 1e-48]] ish
+
+    assert (not np.allclose(posterior.covar, eval_posterior.covar, rtol=5.e-3))
+    assert (np.allclose(posterior_s.covar@posterior_s.covar.T,
+                        eval_posterior.covar, rtol=5.e-3))

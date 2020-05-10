@@ -95,7 +95,8 @@ def test_sqrt_kalman():
                           prior_covar,
                           timestamp=timestamp)
     sqrt_prior = SqrtGaussianState(prior_mean, prior_covar,
-                                   timestamp=timestamp)
+                                   timestamp=timestamp,
+                                   triangular_form=False)
 
     transition_model = ConstantVelocity(noise_diff_coeff=0.1)
 
