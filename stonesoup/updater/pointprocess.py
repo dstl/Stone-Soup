@@ -74,7 +74,7 @@ class PointProcessUpdater(Base):
             for hypothesis in multi_hypothesis:
                 measurement_prediction = \
                     self.updater.predict_measurement(
-                            hypothesis.prediction)
+                            hypothesis.prediction, hypothesis.detection.measurement_model)
                 measurement = hypothesis.measurement
                 prediction = hypothesis.prediction
                 # Calculate new weight and add to weight sum

@@ -183,23 +183,15 @@ class GaussianMixtureReducer(MixtureReducer):
                 # There are duplicatze tags so assign
                 # new tags to the lower weighted shared ones
                 for shared_tag in components_tags:
-                    shared_indices = [i for i, x in enumerate(merged_components)
-                                      if x.tag == shared_tag]
-                    shared_components = [merged_components[i] for i in shared_indices]
-                    # More than 1 component
-                    if len(shared_components) > 1:
-                        # Sort components by weight
-                        sorted_components = sorted(
-                            shared_components, key=attrgetter('weight'))
-                        # Add the highest weight component
-                        final_merged_components.append(sorted_components[0])
-                        for component in sorted_components[1:]:
-                            # Assign a new uuid
-                            component.tag = str(uuid.uuid4())
-                            final_merged_components.append(component)
-                    else:
-                        # Only 1 component with the tag
-                        final_merged_components.append(shared_components[0])
+                    shared_components = sorted(
+                        (component for component in merged_components
+                            if component.tag == shared_tag),
+                        key=attrgetter('weight'))
+                    final_merged_components.append(shared_components[0])
+                    for component in shared_components[1:]:
+                        # Assign a new uuid
+                        component.tag = str(uuid.uuid4())
+                        final_merged_components.append(component)
             else:
                 # No duplicates
                 final_merged_components.extend(merged_components)

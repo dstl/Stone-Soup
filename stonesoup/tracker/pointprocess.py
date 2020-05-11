@@ -122,10 +122,9 @@ class PointProcessMultiTargetTracker(Tracker):
         self : :class:`GaussianMixtureMultiTargetTracker`
             Current GM Multi Target Tracker at time :math:`k`
         """
-        component_tags = [component.tag for component in self.gaussian_mixture]
-        track_indices_to_delete = [tag for tag in self.target_tracks if tag not in component_tags]
+        component_tags = {component.tag for component in self.gaussian_mixture}
         # Delete the track
-        for key in track_indices_to_delete:
+        for key in self.target_tracks.keys() - component_tags:
             del self.target_tracks[key]
 
     @property
@@ -134,13 +133,9 @@ class PointProcessMultiTargetTracker(Tracker):
         Extract all target states from the Gaussian Mixture that
         are above an extraction threshold.
         """
-        if self.gaussian_mixture:
-            extracted_states = \
-                [x for x in self.gaussian_mixture if
-                 x.weight > self.extraction_threshold]
-        else:
-            extracted_states = []
-        return extracted_states
+        return [component
+                for component in self.gaussian_mixture
+                if component.weight > self.extraction_threshold]
 
     @property
     def estimated_number_of_targets(self):

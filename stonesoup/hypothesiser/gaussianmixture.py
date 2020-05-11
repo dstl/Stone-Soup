@@ -1,13 +1,10 @@
-
 # -*- coding: utf-8 -*-
 from .base import Hypothesiser
 from ..base import Property
-from ..predictor import Predictor
 from ..types.multihypothesis import MultipleHypothesis
 from ..types.prediction import (TaggedWeightedGaussianStatePrediction,
                                 WeightedGaussianStatePrediction)
 from ..types.state import TaggedWeightedGaussianState
-from ..updater import Updater
 
 
 class GaussianMixtureHypothesiser(Hypothesiser):
@@ -18,12 +15,6 @@ class GaussianMixtureHypothesiser(Hypothesiser):
     pertaining to an individual component-detection hypothesis
     """
 
-    predictor = Property(
-        Predictor,
-        doc="Predict tracks to detection times")
-    updater = Property(
-        Updater,
-        doc="Updater used to get measurement prediction")
     hypothesiser = Property(
         Hypothesiser,
         doc="Underlying hypothesiser used to generate detection-target pairs")
@@ -56,6 +47,11 @@ class GaussianMixtureHypothesiser(Hypothesiser):
             order_by_detection is true, then they
             pertain to the same Detection.
         """
+
+        # Check to make sure all detections are obtained from the same time
+        timestamps = set([detection.timestamp for detection in detections])
+        if len(timestamps) > 1:
+            raise ValueError("All detections must have the same timestamp")
 
         hypotheses = list()
         for component in components:
@@ -99,13 +95,9 @@ class GaussianMixtureHypothesiser(Hypothesiser):
                 [x for x in single_hypothesis_list if not x])
             for detection in detections:
                 # Create multiple hypothesis per detection
-                indices \
-                    = [x for x in range(len(single_hypothesis_list))
-                        if single_hypothesis_list[x].measurement == detection]
                 detection_multiple_hypothesis = \
-                    MultipleHypothesis(list(
-                                map(single_hypothesis_list.__getitem__,
-                                    indices)))
+                    MultipleHypothesis(list([hypothesis for hypothesis in single_hypothesis_list
+                                            if hypothesis.measurement == detection]))
                 # Add to new list
                 reordered_hypotheses.append(detection_multiple_hypothesis)
             # Add miss detected hypothesis to end

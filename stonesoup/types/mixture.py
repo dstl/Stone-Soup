@@ -38,7 +38,6 @@ class GaussianMixture(Type, Sized, Iterable, Container):
             raise ValueError("Index must be WeightedGaussianState")
 
     def __iter__(self):
-        self.index = 0
         return iter(self.components)
 
     def __getitem__(self, index):

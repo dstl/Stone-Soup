@@ -29,8 +29,7 @@ def test_gm_ordered_by_measurement(predictor, updater):
     measure = measures.Mahalanobis()
     hypothesiser = DistanceHypothesiser(
         predictor, updater, measure=measure, missed_distance=20)
-    hypothesiser = GaussianMixtureHypothesiser(predictor, updater,
-                                               hypothesiser=hypothesiser,
+    hypothesiser = GaussianMixtureHypothesiser(hypothesiser=hypothesiser,
                                                order_by_detection=True)
 
     hypotheses = hypothesiser.hypothesise(gaussian_mixture,
@@ -77,8 +76,7 @@ def test_gm_ordered_by_component(predictor, updater):
     measure = measures.Mahalanobis()
     hypothesiser = DistanceHypothesiser(
         predictor, updater, measure=measure, missed_distance=20)
-    hypothesiser = GaussianMixtureHypothesiser(predictor, updater,
-                                               hypothesiser=hypothesiser,
+    hypothesiser = GaussianMixtureHypothesiser(hypothesiser=hypothesiser,
                                                order_by_detection=False)
 
     hypotheses = hypothesiser.hypothesise(gaussian_mixture,

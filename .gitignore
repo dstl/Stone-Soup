@@ -13,4 +13,3 @@ htmlcov/
 
 # pytest
 .pytest_cache/
-.vscode/settings.json

@@ -45,8 +45,7 @@ def test_point_process_multi_target_tracker_init_w_components(detector, predicto
     measure = measures.Mahalanobis()
     base_hypothesiser = DistanceHypothesiser(
         predictor, updater, measure=measure, missed_distance=16)
-    hypothesiser = GaussianMixtureHypothesiser(predictor, updater,
-                                               hypothesiser=base_hypothesiser,
+    hypothesiser = GaussianMixtureHypothesiser(hypothesiser=base_hypothesiser,
                                                order_by_detection=True)
 
     # Initialise a Gaussian Mixture reducer
@@ -91,8 +90,7 @@ def test_point_process_multi_target_tracker_cycle(detector, predictor):
     measure = measures.Mahalanobis()
     base_hypothesiser = DistanceHypothesiser(
         predictor, updater, measure=measure, missed_distance=16)
-    hypothesiser = GaussianMixtureHypothesiser(predictor, updater,
-                                               hypothesiser=base_hypothesiser,
+    hypothesiser = GaussianMixtureHypothesiser(hypothesiser=base_hypothesiser,
                                                order_by_detection=True)
 
     # Initialise a Gaussian Mixture reducer

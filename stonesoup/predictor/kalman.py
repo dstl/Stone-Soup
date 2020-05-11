@@ -70,7 +70,7 @@ class KalmanPredictor(Predictor):
         Returns
         -------
         : :class:`numpy.ndarray`
-            The transition matrix, :math:`F_k`
+            The transition matrix, :meth:`F_k`
 
         """
         return self.transition_model.matrix(**kwargs)
@@ -82,7 +82,7 @@ class KalmanPredictor(Predictor):
         Parameters
         ----------
         prior : :class:`~.State`
-            The prior state, :math:`\mathbf{x}_{k-1}`
+            The prior state, :meth:`\mathbf{x}_{k-1}`
 
         **kwargs : various, optional
             These are passed to :meth:`~.LinearGaussianTransitionModel.matrix`
@@ -102,7 +102,7 @@ class KalmanPredictor(Predictor):
         Returns
         -------
         : :class:`numpy.ndarray`
-            control matrix, :math:`B_k`
+            control matrix, :meth:`B_k`
 
         """
         return self.control_model.matrix()
@@ -140,9 +140,9 @@ class KalmanPredictor(Predictor):
         Parameters
         ----------
         prior : :class:`~.State`
-            :math:`\mathbf{x}_{k-1}`
+            :meth:`\mathbf{x}_{k-1}`
         timestamp : :class:`datetime.datetime`, optional
-            :math:`k`
+            :meth:`k`
         **kwargs :
             These are passed, via :meth:`~.KalmanFilter.transition_function` to
             :meth:`~.LinearGaussianTransitionModel.matrix`
@@ -150,8 +150,8 @@ class KalmanPredictor(Predictor):
         Returns
         -------
         : :class:`~.State`
-            :math:`\mathbf{x}_{k|k-1}`, the predicted state and the predicted
-            state covariance :math:`P_{k|k-1}`
+            :meth:`\mathbf{x}_{k|k-1}`, the predicted state and the predicted
+            state covariance :meth:`P_{k|k-1}`
 
         """
 
@@ -211,17 +211,17 @@ class ExtendedKalmanPredictor(KalmanPredictor):
         Parameters
         ----------
         prior : :class:`~.State`
-            :math:`\mathbf{x}_{k-1}`
+            :meth:`\mathbf{x}_{k-1}`
         **kwargs : various, optional
-            These are passed to :math:`~.TransitionModel.matrix` or
-            :math:`~.TransitionModel.jacobian`
+            These are passed to :meth:`~.TransitionModel.matrix` or
+            :meth:`~.TransitionModel.jacobian`
 
         Returns
         -------
         : :class:`numpy.ndarray`
-            The transition matrix, :math:`F_k`, if linear (i.e.
-            :math:`TransitionModel.matrix` exists, or
-            :math:`~.TransitionModel.jacobian` if not)
+            The transition matrix, :meth:`F_k`, if linear (i.e.
+            :meth:`TransitionModel.matrix` exists, or
+            :meth:`~.TransitionModel.jacobian` if not)
         """
         if isinstance(self.transition_model, LinearModel):
             return self.transition_model.matrix(**kwargs)
@@ -229,16 +229,16 @@ class ExtendedKalmanPredictor(KalmanPredictor):
             return self.transition_model.jacobian(prior, **kwargs)
 
     def _transition_function(self, prior, **kwargs):
-        r"""This is the application of :math:`f_k(\mathbf{x}_{k-1})`, the
+        r"""This is the application of :meth:`f_k(\mathbf{x}_{k-1})`, the
         transition function, non-linear in general, in the absence of a control
         input
 
         Parameters
         ----------
         prior : :class:`~.State`
-            The prior state, :math:`\mathbf{x}_{k-1}`
+            The prior state, :meth:`\mathbf{x}_{k-1}`
         **kwargs : various, optional
-            These are passed to :math:`~.TransitionModel.function`
+            These are passed to :meth:`~.TransitionModel.function`
 
         Returns
         -------
@@ -250,7 +250,7 @@ class ExtendedKalmanPredictor(KalmanPredictor):
 
     @property
     def _control_matrix(self):
-        r"""Returns the control input model matrix, :math:`B_k`, or its linear
+        r"""Returns the control input model matrix, :meth:`B_k`, or its linear
         approximation via a Jacobian. The :class:`~.ControlModel`, if
         non-linear must therefore be capable of returning a
         :meth:`~.ControlModel.jacobian`,
@@ -331,17 +331,17 @@ class UnscentedKalmanPredictor(KalmanPredictor):
         Parameters
         ----------
         prior : :class:`~.State`
-            Prior state, :math:`\mathbf{x}_{k-1}`
+            Prior state, :meth:`\mathbf{x}_{k-1}`
         timestamp : :class:`datetime.datetime`
-            Time to transit to (:math:`k`)
+            Time to transit to (:meth:`k`)
         **kwargs : various, optional
             These are passed to :meth:`~.TransitionModel.covar`
 
         Returns
         -------
         : :class:`~.GaussianStatePrediction`
-            The predicted state :math:`\mathbf{x}_{k|k-1}` and the predicted
-            state covariance :math:`P_{k|k-1}`
+            The predicted state :meth:`\mathbf{x}_{k|k-1}` and the predicted
+            state covariance :meth:`P_{k|k-1}`
         """
 
         # Get the prediction interval
