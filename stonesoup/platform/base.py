@@ -428,6 +428,80 @@ class MovingPlatform(Platform):
             timestamp=timestamp)
 
 
+class MultiTransitionMovingPlatform(MovingPlatform):
+    """Moving platform with multiple transition models
+
+    A list of transition models are given with corresponding transition times, dictating the
+    movement behaviour of the platform for given durations.
+    """
+
+    transition_models = Property([TransitionModel], doc="List of transition models")
+    transition_times = Property([datetime.timedelta], doc="Durations for each listed transition "
+                                                          "model")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if len(self.transition_models) != len(self.transition_times):
+            raise AttributeError('transition_models and transition_times must be same length')
+
+        self.transition_index = 0
+        self.current_interval = self.transition_times[0]
+
+    @property
+    def transition_model(self):
+        return self.transition_models[self.transition_index]
+
+    def move(self, timestamp=None, **kwargs) -> None:
+        """Propagate the platform position using the :attr:`transition_model`.
+
+        Parameters
+        ----------
+        timestamp: :class:`datetime.datetime`, optional
+            A timestamp signifying the end of the maneuver (the default is ``None``)
+
+        Notes
+        -----
+        This methods updates the value of :attr:`position`.
+
+        Any provided ``kwargs`` are forwarded to the :attr:`transition_model`.
+
+        If :attr:`transition_model` or ``timestamp`` is ``None``, the method has
+        no effect, but will return successfully.
+
+        This method updates :attr:`transition_model`, :attr:`transition_index` and
+        :attr:`current_interval`:
+        If the timestamp provided gives a time delta greater than :attr:`current_interval` the
+        :attr:`transition_model` is called for the rest of its corresponding duration, and the move
+        method is called again on the next transition model (by incrementing
+        :attr:`transition_index`) in :attr:`transition_models` with the residue time delta.
+        If the time delta is less than :attr:`current_interval` the :attr:`transition_model` is
+        called for that duration and :attr:`current_interval` is reduced accordingly.
+        """
+        print(self.transition_index)
+        if self.state.timestamp is None:
+            self.state.timestamp = timestamp
+            return
+        print('timestamp = ', timestamp)
+        print('self.timestamp = ', self.state.timestamp, '\n\n')
+        try:
+            time_interval = timestamp - self.state.timestamp
+        except TypeError:
+            # TypeError: (timestamp or prior.timestamp) is None
+            return
+
+        while time_interval != 0:
+            if time_interval >= self.current_interval:
+                super().move(timestamp=self.state.timestamp+self.current_interval, **kwargs)
+                time_interval -= self.current_interval
+                self.transition_index = (self.transition_index + 1) % len(self.transition_models)
+                self.current_interval = self.transition_times[self.transition_index]
+
+            else:
+                super().move(timestamp=self.state.timestamp+time_interval, **kwargs)
+                self.current_interval -= time_interval
+                time_interval = 0
+
+
 def _get_rotation_matrix(vel: StateVector) -> np.ndarray:
     """ Generates a rotation matrix which can be used to determine the
     corrected sensor offsets.

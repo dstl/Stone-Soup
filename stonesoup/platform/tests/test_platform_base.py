@@ -4,12 +4,12 @@ import datetime
 import numpy as np
 import pytest
 
+from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
+    ConstantVelocity, ConstantTurn
 from stonesoup.sensor.sensor import Sensor
 from stonesoup.types.array import StateVector
+from ..base import MovingPlatform, FixedPlatform, MultiTransitionMovingPlatform
 from ...types.state import State
-from ...models.transition.linear import (
-    ConstantVelocity, CombinedLinearGaussianTransitionModel)
-from ..base import MovingPlatform, FixedPlatform
 
 
 def test_base():
@@ -520,3 +520,96 @@ def test_mapping_types(mapping_type):
                               position_mapping=mapping_type([0, 2, 4]))
     assert np.array_equal(platform.position, StateVector([2, 2, 2]))
     assert np.array_equal(platform.velocity, StateVector([1, -1, 0]))
+
+
+def test_multi_transition():
+    transition_model1 = CombinedLinearGaussianTransitionModel(
+        (ConstantVelocity(0), ConstantVelocity(0)))
+    transition_model2 = ConstantTurn((0, 0), np.radians(4.5))
+
+    transition_models = [transition_model1, transition_model2]
+    transition_times = [datetime.timedelta(seconds=10), datetime.timedelta(seconds=20)]
+
+    platform_state = State(state_vector=[[0], [1], [0], [0]], timestamp=datetime.datetime.now())
+
+    platform = MultiTransitionMovingPlatform(transition_models=transition_models,
+                                             transition_times=transition_times,
+                                             state=platform_state,
+                                             position_mapping=[0, 2],
+                                             sensors=None)
+
+    assert len(platform.transition_models) == 2
+    assert len(platform.transition_times) == 2
+
+    px, py = platform.position[0], platform.position[1]
+    time = datetime.datetime.now()
+    # Starting transition model is index 0
+    assert platform.transition_index == 0
+
+    time += datetime.timedelta(seconds=10)
+    platform.move(timestamp=time)
+    x, y = platform.position[0], platform.position[1]
+    # Platform initially moves horizontally
+    assert x > px
+    assert y == py
+    px, py = x, y
+    # Transition model changes after corresponding interval is done/ Next transition is left-turn
+    assert platform.transition_index == 1
+
+    time += datetime.timedelta(seconds=10)
+    platform.move(timestamp=time)
+    x, y = platform.position[0], platform.position[1]
+    # Platform starts turning left to 45 degrees
+    assert x > px
+    assert y > py
+    # Transition interval is not done. Next transition is left-turn
+    assert platform.transition_index == 1
+
+    time += datetime.timedelta(seconds=10)
+    platform.move(timestamp=time)
+    x, y = platform.position[0], platform.position[1]
+    px, py = x, y
+    # Platform turned left to 90 degrees
+    # Transition interval is done. Next transition is straight-on
+    assert platform.transition_index == 0
+
+    time += datetime.timedelta(seconds=10)
+    platform.move(timestamp=time)
+    x, y = platform.position[0], platform.position[1]
+    # Platform travelling vertically up
+    assert x == px
+    assert y > py
+    # Next transition is left-turn
+    assert platform.transition_index == 1
+
+    # Add new transition model (right-turn) to list
+    transition_model3 = ConstantTurn((0, 0), np.radians(-9))
+    platform.transition_models.append(transition_model3)
+    platform.transition_times.append(datetime.timedelta(seconds=10))
+
+    # New model and transition interval are added to model list and to interval list
+    assert len(platform.transition_models) == 3
+    assert len(platform.transition_times) == 3
+
+    time += datetime.timedelta(seconds=20)
+    platform.move(timestamp=time)
+    # Platform turned left by 90 degrees (now travelling in -x direction)
+    px, py = platform.position[0], platform.position[1]
+    # Next transition is right-turn
+    assert platform.transition_index == 2
+
+    time += datetime.timedelta(seconds=10)
+    platform.move(timestamp=time)
+    x, y = platform.position[0], platform.position[1]
+    px, py = x, y
+    # Next transition straight-on, travelling vertically up again
+    assert platform.transition_index == 0
+
+    time += datetime.timedelta(seconds=10)
+    platform.move(timestamp=time)
+    x, y = platform.position[0], platform.position[1]
+    # Platform travelled vertically up
+    assert x == px
+    assert y > py
+    # Next transition is left-turn
+    assert platform.transition_index == 1
