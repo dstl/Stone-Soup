@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from abc import ABC
-from typing import List
+from typing import List, Union
 import copy
 
 import numpy as np
@@ -11,7 +11,7 @@ from ...base import Property
 from ...functions import cart2pol, pol2cart, \
     cart2sphere, sphere2cart, cart2angles, \
     rotx, roty, rotz
-from ...types.array import StateVector, CovarianceMatrix, Matrix
+from ...types.array import StateVector, CovarianceMatrix, StateVectors
 from ...types.angle import Bearing, Elevation
 from ..base import LinearModel, NonLinearModel, GaussianModel, ReversibleModel
 from .base import MeasurementModel
@@ -81,13 +81,13 @@ class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel,
             *(model.covar(**kwargs) for model in self.model_list)
             ).view(CovarianceMatrix)
 
-    def rvs(self, num_samples=1, **kwargs) -> np.ndarray:
+    def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         rvs_vectors = np.vstack([model.rvs(num_samples, **kwargs)
                                  for model in self.model_list])
         if num_samples == 1:
             return rvs_vectors.view(StateVector)
         else:
-            return rvs_vectors.view(Matrix)
+            return rvs_vectors.view(StateVectors)
 
 
 class NonLinearGaussianMeasurement(MeasurementModel, NonLinearModel, GaussianModel, ABC):
@@ -278,7 +278,7 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
 
         return res
 
-    def rvs(self, num_samples=1, **kwargs) -> np.ndarray:
+    def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
         out = np.array([[Elevation(0.)], [Bearing(0.)], [0.]]) + out
         return out
@@ -424,7 +424,7 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
 
         return StateVector([[Bearing(phi)], [rho]]) + noise
 
-    def rvs(self, num_samples=1, **kwargs) -> np.ndarray:
+    def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
         out = np.array([[Bearing(0)], [0.]]) + out
         return out
@@ -548,7 +548,7 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
 
         return StateVector([[Elevation(theta)], [Bearing(phi)]]) + noise
 
-    def rvs(self, num_samples=1, **kwargs) -> np.ndarray:
+    def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
         out = np.array([[Elevation(0.)], [Bearing(0.)]]) + out
         return out
@@ -692,7 +692,7 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
 
         return StateVector([[Bearing(phi)], [rho], [rr]]) + noise
 
-    def rvs(self, num_samples=1, **kwargs) -> np.ndarray:
+    def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
         out = np.array([[Bearing(0)], [0.], [0.]]) + out
         return out
@@ -864,7 +864,7 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
 
         return out_vector
 
-    def rvs(self, num_samples=1, **kwargs) -> np.ndarray:
+    def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
         out = np.array([[Elevation(0)], [Bearing(0)], [0.], [0.]]) + out
         return out
