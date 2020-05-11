@@ -551,7 +551,7 @@ def test_multi_transition():
     x, y = platform.position[0], platform.position[1]
     # Platform initially moves horizontally
     assert x > px
-    assert y == py
+    assert np.allclose(y, py, atol=1e-6)
     px, py = x, y
     # Transition model changes after corresponding interval is done/ Next transition is left-turn
     assert platform.transition_index == 1
@@ -577,7 +577,7 @@ def test_multi_transition():
     platform.move(timestamp=time)
     x, y = platform.position[0], platform.position[1]
     # Platform travelling vertically up
-    assert x == px
+    assert np.allclose(x, px, atol=1e-6)
     assert y > py
     # Next transition is left-turn
     assert platform.transition_index == 1
@@ -609,7 +609,7 @@ def test_multi_transition():
     platform.move(timestamp=time)
     x, y = platform.position[0], platform.position[1]
     # Platform travelled vertically up
-    assert x == px
+    assert np.allclose(x, px, atol=1e-6)
     assert y > py
     # Next transition is left-turn
     assert platform.transition_index == 1
