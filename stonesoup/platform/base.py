@@ -477,12 +477,9 @@ class MultiTransitionMovingPlatform(MovingPlatform):
         If the time delta is less than :attr:`current_interval` the :attr:`transition_model` is
         called for that duration and :attr:`current_interval` is reduced accordingly.
         """
-        print(self.transition_index)
         if self.state.timestamp is None:
             self.state.timestamp = timestamp
             return
-        print('timestamp = ', timestamp)
-        print('self.timestamp = ', self.state.timestamp, '\n\n')
         try:
             time_interval = timestamp - self.state.timestamp
         except TypeError:
