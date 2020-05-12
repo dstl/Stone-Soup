@@ -31,15 +31,18 @@ def test_standard_statevector_indexing():
 
     # test Slicing
     assert state_vector[1:2, 0] == 2
-    assert isinstance(state_vector[1:2, 0], StateVector)
+    assert isinstance(state_vector[1:2, 0], Matrix)  # (n,)
+    assert isinstance(state_vector[1:2, :], StateVector)  # (n, 1)
     assert np.array_equal(state_vector[:], state_vector)
-    assert isinstance(state_vector[:, 0], StateVector)
+    assert isinstance(state_vector[:, 0], Matrix)  # (n,)
+    assert isinstance(state_vector[:, :], StateVector)  # (n, 1)
     assert np.array_equal(state_vector[0:], state_vector)
-    assert isinstance(state_vector[0:, 0], StateVector)
+    assert isinstance(state_vector[0:, 0], Matrix)  # (n,)
+    assert isinstance(state_vector[0:, :], StateVector)  # (n, 1)
 
     # test list indices
     assert np.array_equal(state_vector[[1, 3]], StateVector([2, 4]))
-    assert isinstance(state_vector[[1, 3], 0], StateVector)
+    assert isinstance(state_vector[[1, 3], 0], Matrix)
 
     # test int indexing
     assert state_vector[2] == 3
