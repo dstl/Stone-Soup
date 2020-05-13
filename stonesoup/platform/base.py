@@ -12,14 +12,14 @@ import numpy as np
 
 from ..functions import cart2sphere, cart2pol, rotz
 from ..types.array import StateVector
-from ..base import Base, Property
-from ..types.state import State
+from ..base import Property
+from ..types.state import State, StateMutableSequence
 from ..models.transition import TransitionModel
 if TYPE_CHECKING:  # pragma: no cover
     from ..sensor.base import BaseSensor
 
 
-class Platform(Base, ABC):
+class Platform(StateMutableSequence, ABC):
     """A platform that can carry a number of different sensors.
 
         The location of platform mounted sensors will be maintained relative to
@@ -37,10 +37,10 @@ class Platform(Base, ABC):
             :class:`~.MovingPlatform`
 
         """
-    state = Property(State, doc="The platform state at any given point. For a static platform, "
-                                "this would usually contain its position coordinates in the form"
-                                "``[x, y, z]``. For a moving platform it would contain position "
-                                "and velocity interleaved: ``[x, vx, y, vy, z, vz]``")
+    states = Property([State], doc="The platform state at any given point. For a static platform,"
+                                   " this would usually contain its position coordinates in the "
+                                   "form ``[x, y, z]``. For a moving platform it would contain "
+                                   "position and velocity interleaved: ``[x, vx, y, vy, z, vz]``")
     position_mapping = Property(Sequence[int],
                                 doc="Mapping between platform position and state vector. For a "
                                     "position-only 3d platform this might be ``[0, 1, 2]``. For a "
@@ -96,15 +96,6 @@ class Platform(Base, ABC):
         # Store the platform weakref in each of the child sensors
         for sensor in self.sensors:
             sensor.platform_system = weakref.ref(self)
-
-    @property
-    def state_vector(self) -> StateVector:
-        """Convenience property to return the state vector of the state."""
-        return self.state.state_vector
-
-    @property
-    def timestamp(self):
-        return self.state.timestamp
 
     @property
     def position(self) -> StateVector:
@@ -418,14 +409,14 @@ class MovingPlatform(Platform):
         if self.transition_model is None:
             raise AttributeError('Platform without a transition model cannot be moved')
 
-        self.state = State(
+        self.states.append(State(
             state_vector=self.transition_model.function(
                 state=self.state,
                 noise=True,
                 timestamp=timestamp,
                 time_interval=time_interval,
                 **kwargs),
-            timestamp=timestamp)
+            timestamp=timestamp))
 
 
 class MultiTransitionMovingPlatform(MovingPlatform):

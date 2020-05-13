@@ -19,7 +19,7 @@ def build_platform(sensors, x_velocity):
     trans_model = CombinedLinearGaussianTransitionModel([model_1d] * 2)
     mounting_offsets = np.zeros((len(sensors), 2))
     position_mapping = np.array([[0, 2]])
-    platform = MovingPlatform(state=state, sensors=sensors,
+    platform = MovingPlatform(states=state, sensors=sensors,
                               transition_model=trans_model,
                               mounting_offsets=mounting_offsets,
                               position_mapping=position_mapping)

@@ -33,7 +33,7 @@ def test_sensor_position_orientation_setting():
     position = StateVector([0, 0, 1])
     sensor = DummySensor()
     platform_state = State(state_vector=position + 1, timestamp=datetime.datetime.now())
-    platform = FixedPlatform(state=platform_state, position_mapping=[0, 1, 2])
+    platform = FixedPlatform(states=platform_state, position_mapping=[0, 1, 2])
     platform.add_sensor(sensor)
     with pytest.raises(AttributeError):
         sensor.position = StateVector([0, 1, 0])
@@ -44,8 +44,8 @@ def test_sensor_position_orientation_setting():
 def test_warning_on_moving_sensor():
     sensor = DummySensor()
     platform_state = State(StateVector([0, 1, 0]), timestamp=datetime.datetime.now())
-    platform1 = FixedPlatform(state=platform_state, position_mapping=[0, 1, 2])
-    platform2 = FixedPlatform(state=platform_state, position_mapping=[0, 1, 2])
+    platform1 = FixedPlatform(states=platform_state, position_mapping=[0, 1, 2])
+    platform2 = FixedPlatform(states=platform_state, position_mapping=[0, 1, 2])
     platform1.add_sensor(sensor)
     with pytest.warns(UserWarning):
         platform2.add_sensor(sensor)
@@ -77,7 +77,7 @@ def test_changing_platform_from_default():
     sensor = DummySensor(position=StateVector([0, 0, 1]))
 
     platform_state = State(state_vector=position+1, timestamp=datetime.datetime.now())
-    platform = FixedPlatform(state=platform_state, position_mapping=[0, 1, 2])
+    platform = FixedPlatform(states=platform_state, position_mapping=[0, 1, 2])
     with pytest.raises(AttributeError):
         platform.add_sensor(sensor)
 
