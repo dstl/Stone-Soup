@@ -429,17 +429,29 @@ class UnscentedKalmanPredictor(KalmanPredictor):
 
 
 class SqrtKalmanPredictor(KalmanPredictor):
-    """The version of the Kalman predictor that operates on the square root
-    parameterisation of the Gaussian state, :class:`~.SqrtGaussianState`. The
-    process works in exactly the same way as its parent class, with the
-    exception of the calculation of the predicted covariance, and the class
-    that is returned by the update function. Note that there is an implicit
-    Cholesky factorisation when the output :class:`~.SqrtGaussianState` is
-    returned.
+    """The version of the Kalman predictor that operates on the square root parameterisation of
+    the Gaussian state, :class:`~.SqrtGaussianState`.
+
+    The prediction is undertaken in one of two ways. The default is to work in exactly the same
+    way as the parent class, with the exception exception that the predicted covariance is
+    subject to a Cholesky factorisation prior to initialisation of the :class:`~.SqrtGaussianState`
+    output. The alternative, accessible via the :attr:`qr_method = True` flag, is to predict via a
+    modified Gram-Schmidt process. See [1] for details.
+
+    Reference
+    ---------
+    1. JK Schmidt, 2010,
 
     """
-    sqrt_transition_noise = Property(bool, default=True, doc="")
-    sqrt_control_noise = Property(bool, default=True,)
+    sqrt_transition_noise = Property(bool, default=True, doc="A flag indicating whether the "
+                                                             "transition noise matrix is "
+                                                             "passed in square root form. Default"
+                                                             "is True.")
+    sqrt_control_noise = Property(bool, default=True, doc="Flag indicating whether the control"
+                                                          "model noise is passed in square root "
+                                                          "form. Default is True. Should be left "
+                                                          "blank if no control model is "
+                                                          "specified.")
 
     qr_method = Property(bool, default=False, doc="A switch to do the prediction via a QR "
                                                   "decomposition, rather than using a Cholesky"
@@ -477,9 +489,9 @@ class SqrtKalmanPredictor(KalmanPredictor):
 
         if self.qr_method:
             # Note that the control matrix aspect of this hasn't been tested
-            m_sq_trans_cov = np.block([trans_m @ prior_cov], [trans_cov], [ctrl_mat@ctrl_noi])
-            [_, sq_trans_cov_out] = np.linalg.qr(m_sq_trans_cov.T)
-            return sq_trans_cov_out.T
+            m_sq_trans_cov = np.block([[trans_m @ prior_cov, trans_cov, ctrl_mat@ctrl_noi]])
+            [_, pred_sqrt_cov] = np.linalg.qr(m_sq_trans_cov.T)
+            return pred_sqrt_cov.T
         else:
             return np.linalg.cholesky(trans_m @ prior_cov @ prior_cov.T @ trans_m.T +
                                       trans_cov @ trans_cov.T +
