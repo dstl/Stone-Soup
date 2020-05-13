@@ -387,7 +387,7 @@ class SqrtKalmanUpdater(KalmanUpdater):
 
     In its basic form :math:`L` is the lower triangular matrix returned via
     Cholesky factorisation. There's no reason why other forms that satisfy Eq 1
-    above.
+    above can't be used.
 
     """
     @lru_cache()
@@ -494,4 +494,5 @@ class SqrtKalmanUpdater(KalmanUpdater):
                 np.identity(predicted_state.ndim) -
                 m_cross_cov @ np.linalg.inv(bigu.T) @ np.linalg.inv(bigu + bigv) @ m_cross_cov.T)
 
-        return SqrtGaussianState(posterior_mean, posterior_covariance)
+        return SqrtGaussianState(posterior_mean, posterior_covariance,
+                                 timestamp=hypothesis.measurement.timestamp)

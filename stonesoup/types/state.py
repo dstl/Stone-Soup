@@ -142,42 +142,46 @@ class GaussianState(State):
 
 
 class SqrtGaussianState(GaussianState):
-    """A Gaussian State type where the covariance matrix is stored in lower
-    triangular form such that :math:`P = LL^T`
+    """A Gaussian State type where the covariance matrix is stored in a form :math:`W` such that
+    :math:`P = WW^T`
 
-    The input covariance matrix is checked for lower triangular form. If
-    returned `False` then the Cholesky factorisation is undertaken.
+    For :math:`P` in general, :math:`W` is not unique and the user may choose the form to their
+    taste. No checks are undertaken to ensure that a sensible square root form has been chosen.
+
+    The flag :attr:`square_root_form` is set to :attr:`True` by default indicating that the input
+    covariance is supplied as :math:`W`. It may, however, be supplied as :math:`P` with the
+    :attr:`square_root_form` set to :attr:`False`. In this instance a Cholesky factorisation is
+    undertaken on :math:`P` and :math:`W` is stored in lower-triangular form. In this case
+    :math:`P` is checked for its positive semi-definiteness (it should be so if it describes a
+    multivariate Gaussian distribution), and a :class:`~.TypeError` is thrown if it does not pass
+    this test.
+
+    Note to developers
+    ------------------
+    Could add a test in the event that :attr:`square_root_form = True` to ensure that :math:`WW^T`
+    returns a positive semi-definite matrix. Such value checking not usually done in Stone Soup.
 
     Warning
     -------
-    Note that this (the "Potter form") is not the most efficient or necessarily
-    the most effective factorisation. It is probably the simplest and may
-    provide useful instructional value, and perhaps act as a base class.
+    The :attr:`sqrt_form` flag is not protected. It, and the covariance matrix, can be altered
+    independently in such a way as to render them inconsistent.
 
-    This class currently restricted to lower-triangular form but there's no
-    reason in general why :math:`P = WW^T` needs to result in triangular, or
-    even square, form. Indeed, alternatives exits, and may work better.
 
     """
-    triangular_form = Property(bool, default=True,
-                               doc="Supply the covariance matrix in lower "
-                                   "triangular form. If  specified False then"
-                                   "the Cholesky decomposition is undertaken"
-                                   "on initiation.")
+    sqrt_form = Property(bool, default=True, doc="Supply the covariance matrix in square root "
+                                                 "form. If  specified False then a Cholesky "
+                                                 "decomposition is undertaken on initiation and"
+                                                 "the covariance is stored in lower-triangular "
+                                                 "form.")
 
     def __init__(self, state_vector, covar, *args, **kwargs):
         super().__init__(state_vector, covar, *args, **kwargs)
-        if not self.triangular_form:
+        if not self.sqrt_form:
             try:  # Check that the input is at least positive semi-definite and
                 # therefore Cholesky-decomposable
                 self.covar = np.linalg.cholesky(self.covar)
             except TypeError:
                 raise TypeError("Input matrix needs to be positive semi-definite")
-        else:
-            try:  # Check that the input it lower-triangular
-                np.allclose(self.covar, np.tril(self.covar)) is True  # selectable precision?
-            except TypeError:
-                raise TypeError("Input matrix is not lower triangular")
 
 
 class WeightedGaussianState(GaussianState):

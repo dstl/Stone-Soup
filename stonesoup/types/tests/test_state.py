@@ -2,6 +2,7 @@
 import datetime
 
 import numpy as np
+import scipy.linalg
 import pytest
 
 from ..numeric import Probability
@@ -75,13 +76,17 @@ def test_sqrtgaussianstate():
                       [0.01, 0.02, 0.01, 2.012]]) * 1e3
     timestamp = datetime.datetime.now()
 
+    # Test that a lower triangular matrix returned when 'full' covar is passed
     lower_covar = np.linalg.cholesky(covar)
-    state = SqrtGaussianState(mean, covar, timestamp=timestamp,
-                              triangular_form=False)
-    assert(np.array_equal(state.covar, lower_covar))
+    state = SqrtGaussianState(mean, covar, timestamp=timestamp, sqrt_form=False)
+    assert (np.array_equal(state.covar, lower_covar))
 
-    another_state = SqrtGaussianState(mean, lower_covar, timestamp=timestamp)
-    assert(np.array_equal(another_state.covar, lower_covar))
+    # Test that a general square root matrix is also a solution
+    general_covar = scipy.linalg.sqrtm(covar)
+    another_state = SqrtGaussianState(mean, general_covar, timestamp=timestamp)
+    assert (np.array_equal(another_state.covar, general_covar))
+    assert(not np.allclose(another_state.covar, lower_covar, 0, atol=1e-10))
+    assert(np.allclose(state.covar@state.covar.T, lower_covar@lower_covar.T, 0, atol=1e-10))
 
 
 def test_weighted_gaussian_state():

@@ -438,6 +438,12 @@ class SqrtKalmanPredictor(KalmanPredictor):
     returned.
 
     """
+    sqrt_transition_noise = Property(bool, default=True, doc="")
+    sqrt_control_noise = Property(bool, default=True,)
+
+    qr_method = Property(bool, default=False, doc="A switch to do the prediction via a QR "
+                                                  "decomposition, rather than using a Cholesky"
+                                                  "decomposition.")
 
     def _predicted_covariance(self, trans_m, prior_cov, trans_cov, ctrl_mat,
                               ctrl_noi):
@@ -448,23 +454,36 @@ class SqrtKalmanPredictor(KalmanPredictor):
         trans_m : np.array
             The transition matrix
         prior_cov : np.array
-            The (lower-triangular version) of the prior covariance matrix
+            The square root form of the prior covariance matrix
         trans_cov : :class:`~.CovarianceMatrix`
-            The matrix parameterisation of the noise in the transition model
+            The square root form of the transition model noise matrix
         ctrl_mat : np.array
             The control matrix
         ctrl_noi : np.array
-            The control noise
+            The control noise in square root form
 
         Returns
         -------
         : :class:`~.CovarianceMatrix`
-            The predicted covariance matrix
-
+            The predicted covariance matrix.
 
         """
-        return trans_m @ prior_cov @ prior_cov.T @ trans_m.T + trans_cov + \
-            ctrl_mat @ ctrl_noi @ ctrl_mat.T
+        # Could also use sp.linalg.sqrtm() in either of these following statements
+        if not self.sqrt_transition_noise:
+            trans_cov = np.linalg.cholesky(trans_cov)
+
+        if not self.sqrt_control_noise:
+            ctrl_noi = np.linalg.cholesky(ctrl_noi)
+
+        if self.qr_method:
+            # Note that the control matrix aspect of this hasn't been tested
+            m_sq_trans_cov = np.block([trans_m @ prior_cov], [trans_cov], [ctrl_mat@ctrl_noi])
+            [_, sq_trans_cov_out] = np.linalg.qr(m_sq_trans_cov.T)
+            return sq_trans_cov_out.T
+        else:
+            return np.linalg.cholesky(trans_m @ prior_cov @ prior_cov.T @ trans_m.T +
+                                      trans_cov @ trans_cov.T +
+                                      ctrl_mat @ ctrl_noi @ ctrl_noi.T @ ctrl_mat.T)
 
     def _return_predict_output(self, pred_mean, pred_covar, timestamp=None):
         """Return the output of the prediction in  the correct (square root)
@@ -486,5 +505,4 @@ class SqrtKalmanPredictor(KalmanPredictor):
             form
 
         """
-        return SqrtGaussianState(pred_mean, pred_covar, timestamp=timestamp,
-                                 triangular_form=False)
+        return SqrtGaussianState(pred_mean, pred_covar, timestamp=timestamp)

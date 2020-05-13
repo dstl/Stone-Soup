@@ -240,9 +240,6 @@ def test_sqrt_kalman():
     posterior_s = sqrt_updater.update(SingleHypothesis(
         prediction=sqrt_prediction, measurement=measurement))
 
-    print(posterior.covar)
-    print(posterior_s.covar@posterior_s.covar.T)
-
     # The new posterior will  be
     eval_posterior = GaussianState(
         prediction.mean

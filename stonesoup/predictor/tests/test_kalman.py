@@ -95,13 +95,14 @@ def test_sqrt_kalman():
                           timestamp=timestamp)
     sqrt_prior = SqrtGaussianState(prior_mean, prior_covar,
                                    timestamp=timestamp,
-                                   triangular_form=False)
+                                   sqrt_form=False)
 
     transition_model = ConstantVelocity(noise_diff_coeff=0.1)
 
     # Initialise a kalman predictor
     predictor = KalmanPredictor(transition_model=transition_model)
-    sqrt_predictor = SqrtKalmanPredictor(transition_model=transition_model)
+    sqrt_predictor = SqrtKalmanPredictor(transition_model=transition_model,
+                                         sqrt_transition_noise=False)
 
     # Perform and assert state prediction
     prediction = predictor.predict(prior=prior, timestamp=new_timestamp)
