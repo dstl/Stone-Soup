@@ -37,10 +37,12 @@ class Platform(StateMutableSequence, ABC):
             :class:`~.MovingPlatform`
 
         """
-    states = Property([State], doc="The platform state at any given point. For a static platform,"
-                                   " this would usually contain its position coordinates in the "
-                                   "form ``[x, y, z]``. For a moving platform it would contain "
-                                   "position and velocity interleaved: ``[x, vx, y, vy, z, vz]``")
+    states = Property([State], doc="A list of States which enables the platform's history to be "
+                                   "accessed in simulators and for plotting. Initiated as a "
+                                   "state, for a static platform, this would usually contain its "
+                                   "position coordinates in the form ``[x, y, z]``. For a moving "
+                                   "platform it would contain position and velocity interleaved: "
+                                   "``[x, vx, y, vy, z, vz]``")
     position_mapping = Property(Sequence[int],
                                 doc="Mapping between platform position and state vector. For a "
                                     "position-only 3d platform this might be ``[0, 1, 2]``. For a "
