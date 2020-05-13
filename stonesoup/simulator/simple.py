@@ -223,3 +223,18 @@ class SwitchDetectionSimulator(SimpleDetectionSimulator):
     @property
     def detection_probability(self):
         return self.detection_probabilities[self.index]
+
+
+class DummyGroundTruthSimulator(GroundTruthSimulator):
+    """A Dummy Ground Truth Simulator which allows simulations to be built
+     where platform, rather than ground truth objects, motions are simulated.
+
+     It returns an empty set at each time step.
+    """
+
+    times = Property([datetime], doc='list to times to return')
+
+    @BufferedGenerator.generator_method
+    def groundtruth_paths_gen(self):
+        for time in self.times:
+            yield time, set()
