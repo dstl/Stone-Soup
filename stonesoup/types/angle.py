@@ -6,7 +6,6 @@ from math import trunc, ceil, floor
 import numpy as np
 
 from ..functions import mod_bearing, mod_elevation
-from .numeric import Probability
 
 
 class Angle(Real):
@@ -158,7 +157,7 @@ class Angle(Real):
             weight_sum = 1
             weights = 1
         else:
-            weight_sum = Probability.sum(weights)
+            weight_sum = np.sum(weights)
 
         result = np.arctan2(
             float(np.sum(np.sin(angles) * weights) / weight_sum),
