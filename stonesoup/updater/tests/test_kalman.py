@@ -190,7 +190,7 @@ def test_sqrt_kalman():
                                                    [0.0013, 0.0365]]))
     sqrt_prediction = SqrtGaussianState(prediction.state_vector,
                                         prediction.covar,
-                                        triangular_form=False)
+                                        sqrt_form=False)
     measurement = Detection(np.array([[-6.23]]))
 
     # Calculate evaluation variables
@@ -233,7 +233,7 @@ def test_sqrt_kalman():
                                                    [1e-24, 1e24]]))
     sqrt_prediction = SqrtGaussianState(prediction.state_vector,
                                         prediction.covar,
-                                        triangular_form=False)
+                                       sqrt_form=False)
 
     posterior = updater.update(SingleHypothesis(prediction=prediction,
                                                 measurement=measurement))
