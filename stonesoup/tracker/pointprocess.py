@@ -23,11 +23,6 @@ class PointProcessMultiTargetTracker(Tracker):
     updater = Property(
         Updater,
         doc="Updater used to update the objects to their new state.")
-    gaussian_mixture = Property(
-        GaussianMixture,
-        default=None,
-        doc="Gaussian Mixture modelling the "
-            "intensity over the target state space.")
     hypothesiser = Property(
         GaussianMixtureHypothesiser,
         doc="Association algorithm to pair predictions to detections")
@@ -44,16 +39,11 @@ class PointProcessMultiTargetTracker(Tracker):
         doc="The birth component. The weight should be "
             "equal to the mean of the expected number of "
             "births per timestep (Poission distributed)")
-    target_tracks = Property(
-        dict,
-        default=dict(),
-        doc="The dictonary containing unique target tracks indexed "
-            "by the UUID of the target")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.gaussian_mixture is None:
-            self.gaussian_mixture = GaussianMixture()
+        self.target_tracks = dict()
+        self.gaussian_mixture = GaussianMixture()
 
     @property
     def tracks(self):
