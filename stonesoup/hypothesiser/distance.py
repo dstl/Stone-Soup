@@ -66,15 +66,13 @@ class DistanceHypothesiser(Hypothesiser):
 
         # Common state & measurement prediction
         prediction = self.predictor.predict(track, timestamp=timestamp)
-        measurement_prediction = self.updater.predict_measurement(
-            prediction)
         # Missed detection hypothesis with distance as 'missed_distance'
         hypotheses.append(
             SingleDistanceHypothesis(
                 prediction,
                 MissedDetection(timestamp=timestamp),
-                self.missed_distance,
-                measurement_prediction))
+                self.missed_distance
+                ))
 
         # True detection hypotheses
         for detection in detections:
