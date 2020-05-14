@@ -103,7 +103,7 @@ def test_sqrt_kalman():
     predictor = KalmanPredictor(transition_model=transition_model)
     sqrt_predictor = SqrtKalmanPredictor(transition_model=transition_model,
                                          sqrt_transition_noise=False)
-                                        # qr_method=True)  # Can swap out this method
+    # qr_method=True)  # Can swap out this method
 
     # Perform and assert state prediction
     prediction = predictor.predict(prior=prior, timestamp=new_timestamp)

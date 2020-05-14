@@ -166,27 +166,6 @@ class KalmanUpdater(Updater):
         """
         return meas_mat @ m_cross_cov + meas_cov
 
-    def _kalman_gain(self, hypothesis):
-        """
-        Calculate the (optimal) Kalman gain from the measurement cross covariance and the
-        innovation covariance
-
-        Parameters
-        ----------
-        hypothesis : :class:`Hypothesis`
-            The association hypothesis which contains the measurement prediction which in turn
-            contains tbe measurement cross covariance, :math:`P_{k|k-1} H_k^T and the innovation
-            covariance, :math:`S = H_k P_{k|k-1} H_k^T + R`
-
-        Returns
-        -------
-        : numpy.array
-            The Kalman gain, :math:`K = P_{k|k-1} H_k^T S^{-1}`
-
-        """
-        return hypothesis.measurement_prediction.cross_covar @ \
-            np.linalg.inv(hypothesis.measurement_prediction.covar)
-
     def _posterior_covariance(self, hypothesis):
         """
         Return the posterior covariance for a given hypothesis
@@ -194,16 +173,26 @@ class KalmanUpdater(Updater):
         Parameters
         ----------
         hypothesis: :class:`~.Hypothesis`
-            A hypothesised association between state prediction and measurement.
+            A hypothesised association between state prediction and measurement. It returns the
+            measurement prediction which in turn contains tbe measurement cross covariance,
+            :math:`P_{k|k-1} H_k^T and the innovation covariance,
+            :math:`S = H_k P_{k|k-1} H_k^T + R`
 
         Returns
         -------
         : :class:`~.CovarianceMatrix`
             The posterior covariance matrix rendered via the Kalman update process.
+        : numpy.array
+            The Kalman gain, :math:`K = P_{k|k-1} H_k^T S^{-1}`
+
         """
-        post_cov = hypothesis.prediction.covar - self._kalman_gain(hypothesis) @ \
-            hypothesis.measurement_prediction.covar @ self._kalman_gain(hypothesis).T
-        return post_cov.view(CovarianceMatrix)
+        kalman_gain = hypothesis.measurement_prediction.cross_covar @ \
+            np.linalg.inv(hypothesis.measurement_prediction.covar)
+
+        post_cov = hypothesis.prediction.covar - kalman_gain @ \
+            hypothesis.measurement_prediction.covar @ kalman_gain.T
+
+        return post_cov.view(CovarianceMatrix), kalman_gain
 
     def _stateupdate(self, posterior_mean, posterior_covariance, hypothesis):
         """
@@ -340,16 +329,13 @@ class KalmanUpdater(Updater):
             # measurement cross-covariance
             pred_meas = hypothesis.measurement_prediction.state_vector
 
-            # Kalman gain
-            kalman_gain = self._kalman_gain(hypothesis)
+            # Kalman gain and posterior covariance
+            posterior_covariance, kalman_gain = self._posterior_covariance(hypothesis)
 
             # Posterior mean
             posterior_mean = \
                 predicted_state.state_vector \
                 + kalman_gain@(hypothesis.measurement.state_vector - pred_meas)
-
-            # And posterior covariance
-            posterior_covariance = self._posterior_covariance(hypothesis)
 
         if self.force_symmetric_covariance:
             posterior_covariance = \
@@ -538,31 +524,12 @@ class SqrtKalmanUpdater(KalmanUpdater):
         """
         return m_cross_cov.T @ m_cross_cov + meas_cov
 
-    def _kalman_gain(self, hypothesis):
-        """
-        Calculate the (optimal) Kalman gain from the measurement cross covariance and the
-        innovation covariance
-
-        Parameters
-        ----------
-        hypothesis : :class:`Hypothesis`
-            The association hypothesis which contains the predicted state covariance in square root form,
-            the measurement prediction which in turn contains tbe measurement cross covariance,
-            :math:`P_{k|k-1} H_k^T and the innovation covariance,
-            :math:`S = H_k P_{k|k-1} H_k^T + R`, not in square root form.
-
-        Returns
-        -------
-        : numpy.array
-            The Kalman gain, :math:`K = P_{k|k-1} H_k^T S^{-1}`
-
-        """
-        return hypothesis.prediction.covar @ hypothesis.measurement_prediction.cross_covar @ \
-            np.linalg.inv(hypothesis.measurement_prediction.covar)
-
     def _posterior_covariance(self, hypothesis):
         """
-        Return the posterior covariance for a given hypothesis
+        Return the posterior covariance for a given hypothesis. Returns the predicted state
+        covariance in square root form, the measurement prediction which in turn contains tbe
+        measurement cross covariance, :math:`P_{k|k-1} H_k^T and the innovation covariance,
+        :math:`S = H_k P_{k|k-1} H_k^T + R`, not in square root form.
 
         Parameters
         ----------
@@ -574,10 +541,17 @@ class SqrtKalmanUpdater(KalmanUpdater):
         : numpy.array
             The posterior covariance matrix rendered via the Kalman update process in
             lower-triangular form.
+        : numpy.array
+            The Kalman gain, :math:`K = P_{k|k-1} H_k^T S^{-1}`
+
         """
         # Do we already have a measurement model?
         measurement_model = \
             self._check_measurement_model(hypothesis.measurement.measurement_model)
+
+        kalman_gain = \
+            hypothesis.prediction.covar @ hypothesis.measurement_prediction.cross_covar @ \
+            np.linalg.inv(hypothesis.measurement_prediction.covar)
 
         # Posterior covariance
         bigu = np.linalg.cholesky(hypothesis.measurement_prediction.covar)
@@ -588,7 +562,7 @@ class SqrtKalmanUpdater(KalmanUpdater):
              hypothesis.measurement_prediction.cross_covar @ np.linalg.inv(bigu.T) @
              np.linalg.inv(bigu + bigv) @ hypothesis.measurement_prediction.cross_covar.T)
 
-        return post_cov
+        return post_cov, kalman_gain
 
     def _stateupdate(self, posterior_mean, posterior_covariance, hypothesis):
         """
@@ -613,4 +587,3 @@ class SqrtKalmanUpdater(KalmanUpdater):
 
         return SqrtGaussianState(posterior_mean, posterior_covariance,
                                  timestamp=hypothesis.measurement.timestamp)
-

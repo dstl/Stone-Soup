@@ -209,7 +209,7 @@ def test_sqrt_kalman():
         prediction.covar
         - kalman_gain @ eval_measurement_prediction.covar @ kalman_gain.T)
 
-    # Compare and contrast
+    # Test Square root form returns the same as standard form
     updater = KalmanUpdater(measurement_model=measurement_model)
     sqrt_updater = SqrtKalmanUpdater(measurement_model=measurement_model)
 
@@ -233,7 +233,7 @@ def test_sqrt_kalman():
                                                    [1e-24, 1e24]]))
     sqrt_prediction = SqrtGaussianState(prediction.state_vector,
                                         prediction.covar,
-                                       sqrt_form=False)
+                                        sqrt_form=False)
 
     posterior = updater.update(SingleHypothesis(prediction=prediction,
                                                 measurement=measurement))
@@ -249,6 +249,7 @@ def test_sqrt_kalman():
                   [0, 1e24]]))  # Accessed by looking through the Decimal() quantities...
     # It's actually [0.039999999999 1e-48], [1e-24 1e24 + 1e-48]] ish
 
+    # Test that the square root form succeeds where the standard form fails
     assert (not np.allclose(posterior.covar, eval_posterior.covar, rtol=5.e-3))
     assert (np.allclose(posterior_s.covar@posterior_s.covar.T,
                         eval_posterior.covar, rtol=5.e-3))
