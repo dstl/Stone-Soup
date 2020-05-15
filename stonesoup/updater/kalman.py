@@ -245,20 +245,22 @@ class ASDKalmanUpdater(KalmanUpdater):
                 """
         measurement_model = self._check_measurement_model(measurement_model)
 
-
         t_index = predicted_state.timestamps.index(predicted_state.act_timestamp)
-        pred_meas = measurement_model.function(predicted_state.multi_state_vector[t_index * predicted_state.ndim: (t_index +1) * predicted_state.ndim],noise=0, **kwargs)
-
+        pred_meas = measurement_model.function(
+            predicted_state.multi_state_vector[t_index * predicted_state.ndim: (t_index + 1) * predicted_state.ndim],
+            noise=0, **kwargs)
 
         hh = self._measurement_matrix(predicted_state=predicted_state,
                                       measurement_model=measurement_model,
                                       **kwargs)
 
-        innov_cov = hh @ predicted_state.multi_covar[t_index * predicted_state.ndim: (t_index +1) * predicted_state.ndim, t_index * predicted_state.ndim: (t_index +1) * predicted_state.ndim] @ hh.T + measurement_model.covar()
+        innov_cov = hh @ predicted_state.multi_covar[
+                         t_index * predicted_state.ndim: (t_index + 1) * predicted_state.ndim,
+                         t_index * predicted_state.ndim: (t_index + 1) * \
+                            predicted_state.ndim] @ hh.T + measurement_model.covar()
 
-        meas_cross_cov = predicted_state.multi_covar[:, t_index * predicted_state.ndim: (t_index +1) * predicted_state.ndim] @ hh.T
-
-
+        meas_cross_cov = predicted_state.multi_covar[:,
+                         t_index * predicted_state.ndim: (t_index + 1) * predicted_state.ndim] @ hh.T
 
         return ASDGaussianMeasurementPrediction(multi_state_vector=pred_meas, multi_covar=innov_cov,
                                                 timestamps=[predicted_state.timestamps[0]], cross_covar=meas_cross_cov)
@@ -293,14 +295,12 @@ class ASDKalmanUpdater(KalmanUpdater):
         # Get the predicted state out of the hypothesis
         predicted_state = hypothesis.prediction
 
-
         # Get the measurement model out of the measurement if it's there.
         # If not, use the one native to the updater (which might still be
         # none)
         measurement_model = hypothesis.measurement.measurement_model
         measurement_model = self._check_measurement_model(
             measurement_model)
-
 
         # Attach the measurement prediction to the hypothesis
         hypothesis.measurement_prediction = self.predict_measurement(
@@ -324,7 +324,6 @@ class ASDKalmanUpdater(KalmanUpdater):
             posterior_covariance = \
                 (posterior_covariance + posterior_covariance.T) / 2
 
-
         # save the new posterior, if it is no out of sequence measurement
         try:
             predicted_state.correlation_matrices[predicted_state.act_timestamp]
@@ -334,7 +333,8 @@ class ASDKalmanUpdater(KalmanUpdater):
         ndmin = predicted_state.ndim
 
         # update covariance after calculating
-        predicted_state.correlation_matrices[predicted_state.act_timestamp]['P'] = posterior_covariance[t_index * ndmin: (t_index + 1) * ndmin, t_index * ndmin: (t_index + 1) * ndmin]
+        predicted_state.correlation_matrices[predicted_state.act_timestamp]['P'] = posterior_covariance[
+            t_index * ndmin: (t_index + 1) * ndmin, t_index * ndmin: (t_index + 1) * ndmin]
         try:
             predicted_state.correlation_matrices[predicted_state.act_timestamp]['PFP'] = \
                 predicted_state.correlation_matrices[predicted_state.act_timestamp]['P'] \

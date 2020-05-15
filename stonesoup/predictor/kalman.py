@@ -209,10 +209,10 @@ class ASDKalmanPredictor(KalmanPredictor):
         predict_over_interval = timestamp - prior.timestamp
         timestamp_from_which_is_predicted = prior.timestamp
         if predict_over_interval.days < 0:
-            predict_over_interval, timestamp_from_which_is_predicted = min([(timestamp - t, t) for t in prior.timestamps if (timestamp - t).days == 0], key=lambda x:x[0])
+            predict_over_interval, timestamp_from_which_is_predicted = min(
+                [(timestamp - t, t) for t in prior.timestamps if (timestamp - t).days == 0], key=lambda x: x[0])
 
         return predict_over_interval, timestamp_from_which_is_predicted
-
 
     def _transition_function(self, prior, timestamp_from_which_is_predicted, **kwargs):
         r"""Applies the linear transition function to a single vector in the
@@ -238,7 +238,8 @@ class ASDKalmanPredictor(KalmanPredictor):
         if t_index == 0:
             return self.transition_model.matrix(**kwargs) @ prior.state_vector
         else:
-            return self.transition_model.matrix(**kwargs) @ prior.multi_state_vector[t_index * prior.ndim: (t_index+1) * prior.ndim]
+            return self.transition_model.matrix(**kwargs) @ prior.multi_state_vector[
+                                                            t_index * prior.ndim: (t_index + 1) * prior.ndim]
 
     @lru_cache()
     def predict(self, prior, timestamp, **kwargs):
@@ -270,17 +271,16 @@ class ASDKalmanPredictor(KalmanPredictor):
         # Build the first correlation matrix just after starting the predictor the first time.
         if len(correlation_matrices) == 0:
             correlation_matrices[prior.timestamp] = {}
-            correlation_matrices[prior.timestamp]['P']=prior.covar
+            correlation_matrices[prior.timestamp]['P'] = prior.covar
 
         # Consider, if the given timestep is an Out-Of-Sequence measurement
         t_index = prior.timestamps.index(timestamp_from_which_is_predicted)
 
         def pred(transition_matrix, transition_covar, state_vector, covar):
-            p = transition_matrix @ covar @ transition_matrix.T + transition_covar +\
+            p = transition_matrix @ covar @ transition_matrix.T + transition_covar + \
                 self.control_model.matrix() @ self.control_model.control_noise @ self.control_model.matrix().T
             x = transition_matrix @ state_vector + self.control_model.control_input()
             return x, p
-
 
         # case that it is a normal prediction
         if t_index == 0:
@@ -337,17 +337,19 @@ class ASDKalmanPredictor(KalmanPredictor):
             # Normal Kalman-like prediction for the state m|m-1.
             x_m_minus_1_given_k = prior.multi_state_vector[t_index * prior_ndim: (t_index + 1) * prior_ndim]
             p_m_minus_1_given_k = prior.multi_covar[t_index * prior_ndim: (t_index + 1) * prior_ndim,
-                                             t_index * prior_ndim: (t_index + 1) * prior_ndim]
+                                  t_index * prior_ndim: (t_index + 1) * prior_ndim]
 
             # prediction to the timestamp m|m-1
             x_pred_m, p_pred_m = pred(transition_matrix_m, transition_covar_m, x_m_minus_1_given_k, p_m_minus_1_given_k)
             # prediction to the timestamp m + 1|m-1
-            x_pred_m_plus_1, p_pred_m_plus_1 = pred(transition_matrix_m_plus_1, transition_covar_m_plus_1, x_pred_m, p_pred_m)
+            x_pred_m_plus_1, p_pred_m_plus_1 = pred(transition_matrix_m_plus_1, transition_covar_m_plus_1, x_pred_m,
+                                                    p_pred_m)
 
             x_m_plus_1_given_k = prior.multi_state_vector[(t_index - 1) * prior_ndim:t_index * prior_ndim]
             x_diff = x_m_plus_1_given_k - x_pred_m_plus_1
 
-            p_m_plus_1_given_k = prior.multi_covar[(t_index - 1) * prior_ndim:t_index * prior_ndim, (t_index - 1) * prior_ndim:t_index * prior_ndim]
+            p_m_plus_1_given_k = prior.multi_covar[(t_index - 1) * prior_ndim:t_index * prior_ndim,
+                                 (t_index - 1) * prior_ndim:t_index * prior_ndim]
             p_diff = p_m_plus_1_given_k - p_pred_m_plus_1
 
             W = p_pred_m @ transition_matrix_m_plus_1.T @ np.linalg.inv(p_pred_m_plus_1)
@@ -355,34 +357,37 @@ class ASDKalmanPredictor(KalmanPredictor):
             p_pred_m_cr = p_pred_m + W @ p_diff @ W.T
 
             # build full state
-            x_pred = np.concatenate([prior.multi_state_vector[0:t_index*prior_ndim], x_pred_m, prior.multi_state_vector[t_index*prior_ndim:]])
+            x_pred = np.concatenate([prior.multi_state_vector[0:t_index * prior_ndim], x_pred_m,
+                                     prior.multi_state_vector[t_index * prior_ndim:]])
 
-            P_right_lower = prior.multi_covar[t_index*prior_ndim:, t_index*prior_ndim:]
-
+            P_right_lower = prior.multi_covar[t_index * prior_ndim:, t_index * prior_ndim:]
 
             # add new correlation matrix with the present time step
             correlation_matrices[timestamp_from_which_is_predicted]['P_pred'] = p_pred_m
             correlation_matrices[timestamp_from_which_is_predicted]['F'] = transition_matrix_m
-            correlation_matrices[timestamp_from_which_is_predicted]['PFP'] = correlation_matrices[timestamp_from_which_is_predicted]['P'] @ transition_matrix_m.T @ np.linalg.inv(p_pred_m)
+            correlation_matrices[timestamp_from_which_is_predicted]['PFP'] = \
+            correlation_matrices[timestamp_from_which_is_predicted]['P'] @ transition_matrix_m.T @ np.linalg.inv(
+                p_pred_m)
 
             correlation_matrices[timestamp] = {}
             correlation_matrices[timestamp]['F'] = transition_matrix_m_plus_1
             correlation_matrices[timestamp]['P_pred'] = p_pred_m_plus_1
             correlation_matrices[timestamp]['P'] = p_pred_m_cr
-            correlation_matrices[timestamp]['PFP'] = p_pred_m_cr @ transition_matrix_m_plus_1.T @ np.linalg.inv(p_pred_m_plus_1)
-
+            correlation_matrices[timestamp]['PFP'] = p_pred_m_cr @ transition_matrix_m_plus_1.T @ np.linalg.inv(
+                p_pred_m_plus_1)
 
             # resort the dict
             correlation_matrices = OrderedDict(sorted(correlation_matrices.items(), reverse=True))
 
             # generate prediction matrix
             p_pred = np.zeros((prior_ndim * (prior.nstep + 1), prior_ndim * (prior.nstep + 1)))
-            p_pred[(t_index + 1)*prior_ndim:, (t_index + 1)*prior_ndim:] = P_right_lower
+            p_pred[(t_index + 1) * prior_ndim:, (t_index + 1) * prior_ndim:] = P_right_lower
 
             # get all timestamps which has to be recalculated beginning with the newest one
             timestamps = sorted(prior.timestamps + [timestamp], reverse=True)
             timestamps_to_recalculate = [ts for ts in timestamps if ts >= timestamp]
-            covars = [prior.multi_covar[i*prior_ndim:(i+1) * prior_ndim, i*prior_ndim:(i+1) * prior_ndim] for i in range(t_index)] + [p_pred_m]
+            covars = [prior.multi_covar[i * prior_ndim:(i + 1) * prior_ndim, i * prior_ndim:(i + 1) * prior_ndim] for i
+                      in range(t_index)] + [p_pred_m]
             for i, ts in enumerate(timestamps_to_recalculate):
                 corrs = {k: v for k, v in correlation_matrices.items() if k <= ts}
                 combined_retrodiction_matrices = self.generate_C_list(corrs, prior_ndim)
@@ -392,20 +397,19 @@ class ASDKalmanPredictor(KalmanPredictor):
                 W_row = W_column.T
 
                 # set covar
-                p_pred[i*prior_ndim:(i+1) * prior_ndim, i*prior_ndim:(i+1) * prior_ndim] = covars[i]
+                p_pred[i * prior_ndim:(i + 1) * prior_ndim, i * prior_ndim:(i + 1) * prior_ndim] = covars[i]
 
                 # set column
-                p_pred[(i+1) * prior_ndim:, i * prior_ndim: (i+1)* prior_ndim] = W_column
+                p_pred[(i + 1) * prior_ndim:, i * prior_ndim: (i + 1) * prior_ndim] = W_column
 
                 # set row
-                p_pred[i * prior_ndim: (i+1) * prior_ndim, (i+1) * prior_ndim:] = W_row
+                p_pred[i * prior_ndim: (i + 1) * prior_ndim, (i + 1) * prior_ndim:] = W_row
 
-
-
-        timestamps = sorted(prior.timestamps +[timestamp], reverse=True)
+        timestamps = sorted(prior.timestamps + [timestamp], reverse=True)
         predicted_state = ASDGaussianStatePrediction(multi_state_vector=x_pred, multi_covar=p_pred,
-                                          correlation_matrices=correlation_matrices,
-                                          timestamps=timestamps, max_nstep=prior.max_nstep, act_timestamp=timestamp)
+                                                     correlation_matrices=correlation_matrices,
+                                                     timestamps=timestamps, max_nstep=prior.max_nstep,
+                                                     act_timestamp=timestamp)
         self.prune_state(predicted_state)
         return predicted_state
 
