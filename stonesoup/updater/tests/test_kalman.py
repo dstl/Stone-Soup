@@ -113,75 +113,6 @@ def test_kalman(UpdaterClass, measurement_model, prediction, measurement):
     assert(posterior.timestamp == prediction.timestamp)
 
 
-def test_internalsqrt_kalman():
-    measurement_model = LinearGaussian(ndim_state=2, mapping=[0],
-                                       noise_covar=np.array([[0.04]]))
-    prediction = GaussianStatePrediction(np.array([[-6.45], [0.7]]),
-                                         np.array([[4.1123, 0.0013],
-                                                   [0.0013, 0.0365]]))
-    measurement = Detection(np.array([[-6.23]]))
-
-    # Calculate evaluation variables
-    eval_measurement_prediction = GaussianMeasurementPrediction(
-        measurement_model.matrix() @ prediction.mean,
-        measurement_model.matrix() @ prediction.covar
-        @ measurement_model.matrix().T
-        + measurement_model.covar(),
-        cross_covar=prediction.covar @ measurement_model.matrix().T)
-    kalman_gain = eval_measurement_prediction.cross_covar @ np.linalg.inv(
-        eval_measurement_prediction.covar)
-    eval_posterior = GaussianState(
-        prediction.mean
-        + kalman_gain @ (measurement.state_vector
-                         - eval_measurement_prediction.mean),
-        prediction.covar
-        - kalman_gain @ eval_measurement_prediction.covar @ kalman_gain.T)
-
-    updater = KalmanUpdater(measurement_model=measurement_model)
-
-    # First test that the square root form does nothing wrong
-    posterior = updater.update(SingleHypothesis(
-        prediction=prediction,
-        measurement=measurement))
-
-    updater.sqrt_form = True
-    posterior_s = updater.update(SingleHypothesis(
-        prediction=prediction,
-        measurement=measurement))
-
-    assert (np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-14))
-    assert (np.allclose(posterior_s.covar, eval_posterior.covar, 0,
-                        atol=1.e-14))
-
-    # Next create a prediction with a covariance that will cause problems
-    prediction = GaussianStatePrediction(np.array([[-6.45], [0.7]]),
-                                         np.array([[1e24, 1e-24],
-                                                   [1e-24, 1e24]]))
-
-    updater.sqrt_form = False
-    posterior = updater.update(SingleHypothesis(
-        prediction=prediction,
-        measurement=measurement))
-
-    updater.sqrt_form = True
-    posterior_s = updater.update(SingleHypothesis(
-        prediction=prediction,
-        measurement=measurement))
-
-    # The new posterior will  be
-    eval_posterior = GaussianState(
-        prediction.mean
-        + kalman_gain @ (measurement.state_vector
-                         - eval_measurement_prediction.mean),
-        np.array([[0.04, 0],
-                  [0, 1e24]]))  # Accessed by looking through the Decimal() quantities...
-    # It's actually [0.039999999999 1e-48], [1e-24 1e24 + 1e-48]] ish
-
-    assert (not np.allclose(posterior.covar, posterior_s.covar, 0, atol=1.e-14))
-    assert (not np.allclose(posterior.covar, eval_posterior.covar, rtol=1.e-2))
-    assert (np.allclose(posterior_s.covar, eval_posterior.covar, rtol=1.e-2))
-
-
 def test_sqrt_kalman():
     measurement_model = LinearGaussian(ndim_state=2, mapping=[0],
                                        noise_covar=np.array([[0.04]]))
@@ -211,14 +142,20 @@ def test_sqrt_kalman():
 
     # Test Square root form returns the same as standard form
     updater = KalmanUpdater(measurement_model=measurement_model)
-    sqrt_updater = SqrtKalmanUpdater(measurement_model=measurement_model)
+    sqrt_updater = SqrtKalmanUpdater(measurement_model=measurement_model,
+                                     sqrt_measurement_noise=False, qr_method=False)
+    qr_updater = SqrtKalmanUpdater(measurement_model=measurement_model,
+                                   sqrt_measurement_noise=False, qr_method=True)
 
     posterior = updater.update(SingleHypothesis(prediction=prediction,
                                                 measurement=measurement))
-    posterior_s = sqrt_updater.update(SingleHypothesis(
-        prediction=sqrt_prediction, measurement=measurement))
+    posterior_s = sqrt_updater.update(SingleHypothesis(prediction=sqrt_prediction,
+                                                       measurement=measurement))
+    posterior_q = qr_updater.update(SingleHypothesis(prediction=sqrt_prediction,
+                                                     measurement=measurement))
 
     assert (np.allclose(posterior_s.mean, eval_posterior.mean, 0, atol=1.e-14))
+    assert (np.allclose(posterior_q.mean, eval_posterior.mean, 0, atol=1.e-14))
     assert (np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-14))
     assert (np.allclose(eval_posterior.covar,
                         posterior_s.covar @ posterior_s.covar.T, 0,
@@ -226,6 +163,11 @@ def test_sqrt_kalman():
     assert (np.allclose(posterior.covar,
                         posterior_s.covar @ posterior_s.covar.T, 0,
                         atol=1.e-14))
+    assert (np.allclose(posterior.covar,
+                        posterior_q.covar @ posterior_q.covar.T, 0,
+                        atol=1.e-14))
+    # I'm not sure this is going to be true in all cases. Keep in order to find edge cases
+    assert (np.allclose(posterior_s.covar, posterior_q.covar, 0, atol=1.e-14))
 
     # Next create a prediction with a covariance that will cause problems
     prediction = GaussianStatePrediction(np.array([[-6.45], [0.7]]),
@@ -239,6 +181,8 @@ def test_sqrt_kalman():
                                                 measurement=measurement))
     posterior_s = sqrt_updater.update(SingleHypothesis(
         prediction=sqrt_prediction, measurement=measurement))
+    posterior_q = qr_updater.update(SingleHypothesis(prediction=sqrt_prediction,
+                                                     measurement=measurement))
 
     # The new posterior will  be
     eval_posterior = GaussianState(
@@ -252,4 +196,6 @@ def test_sqrt_kalman():
     # Test that the square root form succeeds where the standard form fails
     assert (not np.allclose(posterior.covar, eval_posterior.covar, rtol=5.e-3))
     assert (np.allclose(posterior_s.covar@posterior_s.covar.T,
+                        eval_posterior.covar, rtol=5.e-3))
+    assert (np.allclose(posterior_q.covar@posterior_s.covar.T,
                         eval_posterior.covar, rtol=5.e-3))

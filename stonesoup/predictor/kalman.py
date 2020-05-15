@@ -440,7 +440,8 @@ class SqrtKalmanPredictor(KalmanPredictor):
 
     Reference
     ---------
-    1. JK Schmidt, 2010,
+    1. Maybeck, P.S. 1994, Stochastic Models, Estimation, and Control, Vol. 1, NavtechGPS,
+    Springfield, VA.
 
     """
     sqrt_transition_noise = Property(bool, default=True, doc="A flag indicating whether the "

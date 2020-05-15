@@ -180,6 +180,7 @@ class SqrtGaussianState(GaussianState):
             try:  # Check that the input is at least positive semi-definite and
                 # therefore Cholesky-decomposable
                 self.covar = np.linalg.cholesky(self.covar)
+                self.sqrt_form = True
             except TypeError:
                 raise TypeError("Input matrix needs to be positive semi-definite")
 

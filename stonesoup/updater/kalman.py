@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import scipy
 import numpy as np
 from functools import lru_cache
 
@@ -71,12 +70,6 @@ class KalmanUpdater(Updater):
                                  "to be symmetric by way of a simple geometric"
                                  "combination of the matrix and transpose."
                                  "Default is False.")
-
-    sqrt_form = Property(
-        bool, default=False, doc="If True then the update proceeds via a square"
-                                 "root form of the covariance matrix and so"
-                                 "should be more numerically stable. default is"
-                                 " False")
 
     def _check_measurement_model(self, measurement_model):
         """Check that the measurement model passed actually exists. If not
@@ -214,7 +207,6 @@ class KalmanUpdater(Updater):
             timestamp.
 
         """
-
         return GaussianStateUpdate(posterior_mean, posterior_covariance, hypothesis,
                                    hypothesis.measurement.timestamp)
 
@@ -281,7 +273,6 @@ class KalmanUpdater(Updater):
             covariance :math:`P_{x|x}`
 
         """
-
         # Get the predicted state out of the hypothesis
         predicted_state = hypothesis.prediction
 
@@ -299,43 +290,16 @@ class KalmanUpdater(Updater):
             hypothesis.measurement_prediction = self.predict_measurement(
                 predicted_state, measurement_model=measurement_model, **kwargs)
 
-        # If the square root form has been requested
-        if self.sqrt_form:
-            sqrtm_prior_cov = scipy.linalg.sqrtm(predicted_state.covar)
-            sqrtm_noise_cov = scipy.linalg.sqrtm(measurement_model.covar())
-            pred_meas = hypothesis.measurement_prediction.state_vector
+        # Get the predicted measurement mean
+        pred_meas = hypothesis.measurement_prediction.state_vector
 
-            bigh = self._measurement_matrix(predicted_state=predicted_state,
-                                            measurement_model=measurement_model,
-                                            **kwargs)
+        # Kalman gain and posterior covariance
+        posterior_covariance, kalman_gain = self._posterior_covariance(hypothesis)
 
-            measdim = measurement_model.ndim_meas
-            zeros = np.zeros((measurement_model.ndim_state, measdim))
-            biga = np.block([[sqrtm_noise_cov, bigh @ sqrtm_prior_cov], [zeros, sqrtm_prior_cov]])
-            [_, upper] = np.linalg.qr(biga.T)
-            atheta = upper.T
-            sqrtm_innov_cov = atheta[:measdim, :measdim]
-            kalman_gain = atheta[measdim:, :measdim]
-            sqrtP = atheta[measdim:, measdim:]
-
-            posterior_mean = predicted_state.state_vector \
-                + kalman_gain @ (np.linalg.inv(sqrtm_innov_cov)) \
-                @ (hypothesis.measurement.state_vector - pred_meas)
-            posterior_covariance = sqrtP @ sqrtP.T
-
-        else:  # otherwise do the update the regular way
-
-            # Get the predicted measurement mean, innovation covariance and
-            # measurement cross-covariance
-            pred_meas = hypothesis.measurement_prediction.state_vector
-
-            # Kalman gain and posterior covariance
-            posterior_covariance, kalman_gain = self._posterior_covariance(hypothesis)
-
-            # Posterior mean
-            posterior_mean = \
-                predicted_state.state_vector \
-                + kalman_gain@(hypothesis.measurement.state_vector - pred_meas)
+        # Posterior mean
+        posterior_mean = \
+            predicted_state.state_vector \
+            + kalman_gain@(hypothesis.measurement.state_vector - pred_meas)
 
         if self.force_symmetric_covariance:
             posterior_covariance = \
@@ -480,7 +444,21 @@ class SqrtKalmanUpdater(KalmanUpdater):
     Cholesky factorisation. There's no reason why other forms that satisfy Eq 1
     above can't be used.
 
+    References
+    ----------
+    1. (to be added)
+    2. Andrews, A. 1968, A square root formulation of the Kalman covariance equations, AIAA
+    Journal, 6:6, 1165-1166
+
     """
+    qr_method = Property(bool, default=False, doc="A switch to do the update via a QR"
+                                                  "decomposition, rather than using the (vector"
+                                                  "form of) the Potter method.")
+
+    sqrt_measurement_noise = Property(bool, default=True, doc="A flag indicating whether the "
+                                                              "measurement noise matrix is passed"
+                                                              "in square root form. Default is "
+                                                              "True.")
 
     def _measurement_cross_covariance(self, predicted_state, measurement_matrix):
         """
@@ -514,7 +492,8 @@ class SqrtKalmanUpdater(KalmanUpdater):
         meas_mat : numpy.array
             The measurement matrix. Not required in this instance. Ignored.
         meas_cov : :class:~.CovarianceMatrix`
-            Measurement covariance matrix
+            Measurement covariance matrix. The class attribute :attr:`sqrt_measurement_noise`
+            indicates whether this is passed in square root form (True) or full form (False)
 
         Returns
         -------
@@ -522,19 +501,34 @@ class SqrtKalmanUpdater(KalmanUpdater):
             The innovation covariance
 
         """
-        return m_cross_cov.T @ m_cross_cov + meas_cov
+        # If the measurement covariance matrix is square root then square it
+        if self.sqrt_measurement_noise:
+            meas_cov2 = meas_cov @ meas_cov.T
+        else:
+            meas_cov2 = meas_cov
+
+        return m_cross_cov.T @ m_cross_cov + meas_cov2
 
     def _posterior_covariance(self, hypothesis):
         """
-        Return the posterior covariance for a given hypothesis. Returns the predicted state
-        covariance in square root form, the measurement prediction which in turn contains tbe
-        measurement cross covariance, :math:`P_{k|k-1} H_k^T and the innovation covariance,
-        :math:`S = H_k P_{k|k-1} H_k^T + R`, not in square root form.
+        Return the posterior covariance for a given hypothesis. Hypothesis contains the predicted
+        state covariance in square root form, the measurement prediction (which in turn contains
+        the measurement cross covariance, :math:`P_{k|k-1} H_k^T and the innovation covariance,
+        :math:`S = H_k P_{k|k-1} H_k^T + R`, not in square root form). The hypothesis or the
+        updater contain the measurement noise matrix. The :attr:`sqrt_measurement_noise` flag
+        indicates whether we should use the square root form of this matrix (True) or its full
+        form (False).
 
         Parameters
         ----------
         hypothesis: :class:`~.Hypothesis`
-            A hypothesised association between state prediction and measurement.
+            A hypothesised association between state prediction and measurement
+
+        Method
+        ------
+        If the :attr:`qr_method` flag is set to True then the update proceeds via a QR
+        decomposition which requires only one further matrix inversion (see [1]), rather than
+        three plus a Cholesky factorisation, for the method set out in [2].
 
         Returns
         -------
@@ -548,19 +542,42 @@ class SqrtKalmanUpdater(KalmanUpdater):
         # Do we already have a measurement model?
         measurement_model = \
             self._check_measurement_model(hypothesis.measurement.measurement_model)
+        # Square root of the noise covariance, account for the fact that it may be supplied in one
+        # of two ways
+        if self.sqrt_measurement_noise:
+            sqrt_noise_cov = measurement_model.covar()
+        else:
+            sqrt_noise_cov = np.linalg.cholesky(measurement_model.covar())
 
-        kalman_gain = \
-            hypothesis.prediction.covar @ hypothesis.measurement_prediction.cross_covar @ \
-            np.linalg.inv(hypothesis.measurement_prediction.covar)
+        if self.qr_method:
+            # The prior and noise covariances and the measurement matrix
+            sqrt_prior_cov = hypothesis.prediction.covar
+            bigh = measurement_model.matrix()
 
-        # Posterior covariance
-        bigu = np.linalg.cholesky(hypothesis.measurement_prediction.covar)
-        bigv = np.linalg.cholesky(measurement_model.covar())
+            # Set up and execute the QR decomposition
+            measdim = measurement_model.ndim_meas
+            zeros = np.zeros((measurement_model.ndim_state, measdim))
+            biga = np.block([[sqrt_noise_cov, bigh @ sqrt_prior_cov], [zeros, sqrt_prior_cov]])
+            [_, upper] = np.linalg.qr(biga.T)
 
-        post_cov = hypothesis.prediction.covar @ \
-            (np.identity(hypothesis.prediction.ndim) -
-             hypothesis.measurement_prediction.cross_covar @ np.linalg.inv(bigu.T) @
-             np.linalg.inv(bigu + bigv) @ hypothesis.measurement_prediction.cross_covar.T)
+            # Extract meaningful quantities
+            atheta = upper.T
+            sqrt_innov_cov = atheta[:measdim, :measdim]
+            kalman_gain = atheta[measdim:, :measdim] @ (np.linalg.inv(sqrt_innov_cov))
+            post_cov = atheta[measdim:, measdim:]
+        else:
+            # Kalman gain
+            kalman_gain = \
+                hypothesis.prediction.covar @ hypothesis.measurement_prediction.cross_covar @ \
+                np.linalg.inv(hypothesis.measurement_prediction.covar)
+            # Square root of the innovation covariance
+            sqrt_innov_cov = np.linalg.cholesky(hypothesis.measurement_prediction.covar)
+            # Posterior covariance
+            post_cov = hypothesis.prediction.covar @ \
+                (np.identity(hypothesis.prediction.ndim) -
+                 hypothesis.measurement_prediction.cross_covar @ np.linalg.inv(sqrt_innov_cov.T) @
+                 np.linalg.inv(sqrt_innov_cov + sqrt_noise_cov) @
+                 hypothesis.measurement_prediction.cross_covar.T)
 
         return post_cov, kalman_gain
 
