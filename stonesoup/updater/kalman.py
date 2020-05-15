@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+from collections import OrderedDict
 from functools import lru_cache
 
 import numpy as np
@@ -332,21 +332,21 @@ class ASDKalmanUpdater(KalmanUpdater):
             predicted_state.correlation_matrices[predicted_state.act_timestamp] = {}
         t_index = predicted_state.timestamps.index(predicted_state.act_timestamp)
         ndmin = predicted_state.ndim
-        if t_index==0:
-            predicted_state.correlation_matrices[predicted_state.act_timestamp]['P'] = posterior_covariance[t_index*ndmin: (t_index+1) * ndmin,t_index*ndmin: (t_index+1) * ndmin]
-        #
-        #
-        # # update the PFP for the correlations, if it is an out of sequence measurement
-        # if t_index != 0:
-        #     predicted_state.correlation_matrices[predicted_state.act_timestamp]['PFP'] = \
-        #         predicted_state.correlation_matrices[predicted_state.act_timestamp]['P'] \
-        #         @ predicted_state.correlation_matrices[predicted_state.act_timestamp]['F'].T \
-        #         @ predicted_state.correlation_matrices[predicted_state.act_timestamp]['P_pred']
 
+        # update covariance after calculating
+        predicted_state.correlation_matrices[predicted_state.act_timestamp]['P'] = posterior_covariance[t_index * ndmin: (t_index + 1) * ndmin, t_index * ndmin: (t_index + 1) * ndmin]
+        try:
+            predicted_state.correlation_matrices[predicted_state.act_timestamp]['PFP'] = \
+                predicted_state.correlation_matrices[predicted_state.act_timestamp]['P'] \
+                @ predicted_state.correlation_matrices[predicted_state.act_timestamp]['F'].T \
+                @ np.linalg.inv(predicted_state.correlation_matrices[predicted_state.act_timestamp]['P_pred'])
+        except:
+            pass
+        correlation_matrices = OrderedDict(sorted(predicted_state.correlation_matrices.items(), reverse=True))
 
         return ASDGaussianStateUpdate(multi_state_vector=posterior_mean, multi_covar=posterior_covariance,
                                       hypothesis=hypothesis, timestamps=predicted_state.timestamps,
-                                      correlation_matrices=predicted_state.correlation_matrices, max_nstep=predicted_state.max_nstep)
+                                      correlation_matrices=correlation_matrices, max_nstep=predicted_state.max_nstep)
 
 
 class ExtendedKalmanUpdater(KalmanUpdater):
