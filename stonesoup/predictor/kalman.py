@@ -406,6 +406,7 @@ class ASDKalmanPredictor(KalmanPredictor):
                 p_pred[i * prior_ndim: (i + 1) * prior_ndim, (i + 1) * prior_ndim:] = W_row
 
         timestamps = sorted(prior.timestamps + [timestamp], reverse=True)
+        # the act_timestamp parameter is used for the updater to know for which timestamp the prediction is calculated
         predicted_state = ASDGaussianStatePrediction(multi_state_vector=x_pred, multi_covar=p_pred,
                                                      correlation_matrices=correlation_matrices,
                                                      timestamps=timestamps, max_nstep=prior.max_nstep,
