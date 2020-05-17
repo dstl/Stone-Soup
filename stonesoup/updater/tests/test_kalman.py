@@ -217,7 +217,7 @@ def test_asdkalman():
                    noise_covar=np.array([[0.04]]))
     prediction=ASDGaussianStatePrediction(np.array([[-6.45], [0.7]]),
                             multi_covar=np.array([[4.1123, 0.0013],
-                                      [0.0013, 0.0365]]), timestamps=[timestamp], correlation_matrices={timestamp:np.eye(2)},act_timestamp=timestamp)
+                                      [0.0013, 0.0365]]), timestamps=[timestamp], correlation_matrices={timestamp:{'P':np.eye(2)}},act_timestamp=timestamp)
     measurement  = Detection(np.array([[-6.23]]),timestamp=timestamp)
 
     # Calculate evaluation variables

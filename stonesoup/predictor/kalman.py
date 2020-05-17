@@ -300,9 +300,9 @@ class ASDKalmanPredictor(KalmanPredictor):
             x = transition_matrix @ state_vector + self.control_model.control_input()
             return x, p
 
-        # case that it is a normal prediction
-        if t_index == 0:
 
+        if t_index == 0:
+            # case that it is a normal prediction
             # As this is Kalman-like, the control model must be capable of
             # returning a control matrix (B)
 
