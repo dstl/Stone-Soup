@@ -39,8 +39,8 @@ class ASDState(Type):
     For the use of Accumulated State Densities.
     """
 
-    multi_state_vector = Property(StateVector)
-    timestamps = Property(List[datetime.datetime])
+    multi_state_vector = Property(StateVector, doc="State vector of all timestamps")
+    timestamps = Property(List[datetime.datetime], doc="List fo all timestamps which have a state in the ASDState")
     max_nstep = Property(int,
                          doc="Decides when the state is pruned in a prediction step. If 0 then there is no pruning ")
 
@@ -219,7 +219,7 @@ class ASDGaussianState(ASDState):
                                     doc="This is the dict of Correlation Matrices, consisting of P_{l|l}, P_{l|l+1} and "
                                         +"F_{l+1|l} which is build during running the Kalman predictor and Kalman updater")
 
-    multi_covar = Property(CovarianceMatrix)
+    multi_covar = Property(CovarianceMatrix, doc="Covariance of all timesteps which are saved in the state")
 
     @property
     def covar(self):
