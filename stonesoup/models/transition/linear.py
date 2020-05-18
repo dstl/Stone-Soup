@@ -176,7 +176,7 @@ class ConstantNthDerivative(LinearGaussianTransitionModel, TimeVariantModel):
             Q[N, N] = 1
             igrand = Fmat @ Q @ Fmat.T
             covar = np.zeros((N + 1, N + 1))
-            for l in range(0, N + 1):
+            for l in range(0, N + 1):  # noqa: E741
                 for k in range(0, N + 1):
                     covar[l, k] = (igrand[l, k]*dt / (1 + N**2 - l - k))
         covar *= self.noise_diff_coeff
@@ -364,7 +364,7 @@ class NthDerivativeDecay(LinearGaussianTransitionModel, TimeVariantModel):
         return self._continoustransitionmatrix(dt, N, K)
 
     @classmethod
-    def _continouscovar(cls, t, N, K, k, l):
+    def _continouscovar(cls, t, N, K, k, l):  # noqa: E741
         FcCont = cls._continoustransitionmatrix(t, N, K)
         Q = np.zeros((N + 1, N + 1))
         Q[N, N] = 1
@@ -376,7 +376,7 @@ class NthDerivativeDecay(LinearGaussianTransitionModel, TimeVariantModel):
     def _covardiscrete(cls, N, q, K, dt):
         covar = np.zeros((N + 1, N + 1))
         for k in range(0, N + 1):
-            for l in range(0, N + 1):
+            for l in range(0, N + 1):  # noqa: E741
                 covar[k, l] = quad(cls._continouscovar, 0,
                                    dt, args=(N, K, k, l))[0]
         return covar * q
