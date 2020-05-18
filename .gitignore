@@ -5,7 +5,8 @@ dist/
 __pycache__/
 
 # Sphinx documentation
-docs/build/
+/docs/build/
+/docs/source/auto*
 
 # coverage
 .coverage
