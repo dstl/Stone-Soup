@@ -36,14 +36,14 @@ class MetricManager(Base):
     """
 
 
-class MetricTableGenerator(Base):
+class MetricTableGenerator(MetricGenerator):
     """Metric Table base class
 
     Takes a set of :class: `~.Metric` objects and outputs a table of the
     values next to a description and target for each metric"""
 
     @abstractmethod
-    def generate_table(self, **kwargs):
+    def compute_metric(self, **kwargs):
         """Generate table
 
         Parameters
@@ -63,3 +63,17 @@ class PlotGenerator(MetricGenerator):
     PlotGenerators generate metrics that are visualisations. Return
     :class:`~.PlottingMetric` objects.
     """
+
+    @abstractmethod
+    def compute_metric(self, **kwargs):
+        """Generate table
+
+        Parameters
+        ----------
+        : set of :class: `~.Metric` objects
+
+        Returns
+        -------
+        matplotlib.Table object"""
+
+        raise NotImplementedError

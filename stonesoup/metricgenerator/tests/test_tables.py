@@ -32,5 +32,5 @@ def test_siaptable():
                                 generator=metric_generator))
     # Generate table
     table_generator = SIAPTableGenerator(metrics)
-    table = table_generator.generate_table()
+    table = table_generator.compute_metric()
     assert isinstance(table, Table)

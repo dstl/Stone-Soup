@@ -22,7 +22,7 @@ class RedGreenTableGenerator(MetricTableGenerator):
         self.targets = dict
         self.descriptions = dict
 
-    def generate_table(self, **kwargs):
+    def compute_metric(self, **kwargs):
         """Generate table method
 
         Returns a matplotlib Table of metrics with their descriptions, target
