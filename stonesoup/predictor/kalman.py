@@ -46,6 +46,9 @@ class KalmanPredictor(Predictor):
         default=None,
         doc="The control model to be used. Default `None` where the predictor "
             "will create a zero-effect linear :class:`~.ControlModel`.")
+    _prediction_class = Property(classmethod, default=GaussianStatePrediction,
+                                 doc="The output class. May vary in child processes as "
+                                     "necessary.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -65,7 +68,7 @@ class KalmanPredictor(Predictor):
         Parameters
         ----------
         **kwargs : various, optional
-            These are passed to :math:`~.LinearGaussianTransitionModel.matrix`
+            These are passed to :meth:`~.LinearGaussianTransitionModel.matrix`
 
         Returns
         -------
@@ -85,7 +88,7 @@ class KalmanPredictor(Predictor):
             The prior state, :math:`\mathbf{x}_{k-1}`
 
         **kwargs : various, optional
-            These are passed to :math:`~.LinearGaussianTransitionModel.matrix`
+            These are passed to :meth:`~.LinearGaussianTransitionModel.matrix`
 
         Returns
         -------
@@ -139,15 +142,15 @@ class KalmanPredictor(Predictor):
 
         Parameters
         ----------
-        trans_m : np.array
+        trans_m : np.ndarray
             The transition matrix
         prior_cov : :class:`~.CovarianceMatrix`
             The prior covariance matrix
         trans_cov : :class:`~.CovarianceMatrix`
             The matrix parameterisation of the noise in the transition model
-        ctrl_mat : np.array
+        ctrl_mat : np.ndarray
             The control matrix
-        ctrl_noi : np.array
+        ctrl_noi : np.ndarray
             The control noise
 
         Returns
@@ -160,28 +163,6 @@ class KalmanPredictor(Predictor):
         return trans_m @ prior_cov @ trans_m.T + trans_cov + \
             ctrl_mat @ ctrl_noi @ ctrl_mat.T
 
-    def _return_predict_output(self, pred_mean, pred_covar, timestamp=None):
-        """Return the output of the prediction in  the correct form. May be
-        overwritten by child processes as necessary.
-
-        Parameters
-        ----------
-        pred_mean : :class:`~.StateVector`
-            The predicted mean
-        pred_covar : :class:`~.CovarianceMatrix`
-            The predicted covariance
-        timestamp : :class:`datetime.datetime`, optional
-            :math:`k`
-
-        Returns
-        -------
-        : :class:`~.GaussianStatePrediction`
-            The predicted state
-
-        """
-        return GaussianStatePrediction(pred_mean, pred_covar,
-                                       timestamp=timestamp)
-
     @lru_cache()
     def predict(self, prior, timestamp=None, **kwargs):
         r"""The predict function
@@ -193,8 +174,8 @@ class KalmanPredictor(Predictor):
         timestamp : :class:`datetime.datetime`, optional
             :math:`k`
         **kwargs :
-            These are passed, via :math:`~.KalmanFilter.transition_function` to
-            :math:`~.LinearGaussianTransitionModel.matrix`
+            These are passed, via :meth:`~.KalmanFilter.transition_function` to
+            :meth:`~.LinearGaussianTransitionModel.matrix`
 
         Returns
         -------
@@ -228,7 +209,7 @@ class KalmanPredictor(Predictor):
                                             transition_covar, control_matrix,
                                             control_noise)
         # And return the state in the correct form
-        return self._return_predict_output(x_pred, p_pred, timestamp=timestamp)
+        return self._prediction_class(x_pred, p_pred, timestamp=timestamp)
 
 
 class ExtendedKalmanPredictor(KalmanPredictor):
@@ -458,21 +439,25 @@ class SqrtKalmanPredictor(KalmanPredictor):
                                                   "decomposition, rather than using a Cholesky"
                                                   "decomposition.")
 
+    _prediction_class = Property(classmethod, default=SqrtGaussianState,
+                                 doc="The output class. Te predicted state is returned with the "
+                                     "covariance encoded in lower-triangular form.")
+
     def _predicted_covariance(self, trans_m, prior_cov, trans_cov, ctrl_mat,
                               ctrl_noi):
         """Private function to return the predicted covariance.
 
         Parameters
         ----------
-        trans_m : np.array
+        trans_m : np.ndarray
             The transition matrix
-        prior_cov : np.array
+        prior_cov : np.ndarray
             The square root form of the prior covariance matrix
         trans_cov : :class:`~.CovarianceMatrix`
             The square root form of the transition model noise matrix
-        ctrl_mat : np.array
+        ctrl_mat : np.ndarray
             The control matrix
-        ctrl_noi : np.array
+        ctrl_noi : np.ndarray
             The control noise in square root form
 
         Returns
@@ -497,25 +482,3 @@ class SqrtKalmanPredictor(KalmanPredictor):
             return np.linalg.cholesky(trans_m @ prior_cov @ prior_cov.T @ trans_m.T +
                                       trans_cov @ trans_cov.T +
                                       ctrl_mat @ ctrl_noi @ ctrl_noi.T @ ctrl_mat.T)
-
-    def _return_predict_output(self, pred_mean, pred_covar, timestamp=None):
-        """Return the output of the prediction in  the correct (square root)
-        form
-
-        Parameters
-        ----------
-        pred_mean : :class:`~.StateVector`
-            The predicted mean
-        pred_covar : :class:`~.CovarianceMatrix`
-            The predicted covariance
-        timestamp : :class:`datetime.datetime`, optional
-            :math:`k`
-
-        Returns
-        -------
-        : :class:`~.SqrtGaussianState`
-            The predicted state (with the covariance encoded in lower triangular
-            form
-
-        """
-        return SqrtGaussianState(pred_mean, pred_covar, timestamp=timestamp)

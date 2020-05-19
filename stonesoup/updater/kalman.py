@@ -5,9 +5,8 @@ from functools import lru_cache
 from ..base import Property
 from .base import Updater
 from ..types.array import CovarianceMatrix
-from ..types.state import SqrtGaussianState
 from ..types.prediction import GaussianMeasurementPrediction
-from ..types.update import GaussianStateUpdate
+from ..types.update import GaussianStateUpdate, SqrtGaussianStateUpdate
 from ..models.base import LinearModel
 from ..models.measurement.linear import LinearGaussian
 from ..models.measurement import MeasurementModel
@@ -71,6 +70,9 @@ class KalmanUpdater(Updater):
                                  "combination of the matrix and transpose."
                                  "Default is False.")
 
+    _update_class = Property(classmethod, default=GaussianStateUpdate,
+                             doc="The output class type")
+
     def _check_measurement_model(self, measurement_model):
         """Check that the measurement model passed actually exists. If not
         attach the one in the updater. If that one's not specified, return an
@@ -133,7 +135,7 @@ class KalmanUpdater(Updater):
 
         Returns
         -------
-        :  numpy.array
+        :  numpy.ndarray
             The measurement cross-covariance matrix
 
         """
@@ -144,16 +146,16 @@ class KalmanUpdater(Updater):
 
         Parameters
         ----------
-        m_cross_cov : numpy.array
+        m_cross_cov : numpy.ndarray
             The measurement cross covariance matrix
-        meas_mat : numpy.array
+        meas_mat : numpy.ndarray
             Measurement matrix
         meas_cov : :class:~.CovarianceMatrix`
             Measurement covariance matrix
 
         Returns
         -------
-        : numpy.array
+        : numpy.ndarray
             The innovation covariance
 
         """
@@ -175,7 +177,7 @@ class KalmanUpdater(Updater):
         -------
         : :class:`~.CovarianceMatrix`
             The posterior covariance matrix rendered via the Kalman update process.
-        : numpy.array
+        : numpy.ndarray
             The Kalman gain, :math:`K = P_{k|k-1} H_k^T S^{-1}`
 
         """
@@ -186,29 +188,6 @@ class KalmanUpdater(Updater):
             hypothesis.measurement_prediction.covar @ kalman_gain.T
 
         return post_cov.view(CovarianceMatrix), kalman_gain
-
-    def _stateupdate(self, posterior_mean, posterior_covariance, hypothesis):
-        """
-        Return the appropriate state update type
-
-        Parameters
-        ----------
-        posterior_mean : :class:`~.StateVector`
-            The posterior mean, :math:`x_{k|k}
-        posterior_covariance : class:`~.CovarianceMatrix`
-            The posterior covariance, :math:`P_{k|k}`
-        hypothesis : :class:`Hypothesis`
-            The hypothesised association that was used to make the update
-
-        Returns
-        -------
-        : :class:`~.GaussianStateUpdate`
-            The state containing :math:`x_{k|k}`, :math:`P_{k|k}`, the hypothesis and
-            timestamp.
-
-        """
-        return GaussianStateUpdate(posterior_mean, posterior_covariance, hypothesis,
-                                   hypothesis.measurement.timestamp)
 
     @lru_cache()
     def predict_measurement(self, predicted_state, measurement_model=None,
@@ -223,8 +202,8 @@ class KalmanUpdater(Updater):
             The measurement model. If omitted, the model in the updater object
             is used
         **kwargs : various
-            These are passed to :math:`~.MeasurementModel.function` and
-            :math:`~.MeasurementModel.matrix`
+            These are passed to :meth:`~.MeasurementModel.function` and
+            :meth:`~.MeasurementModel.matrix`
 
         Returns
         -------
@@ -305,7 +284,8 @@ class KalmanUpdater(Updater):
             posterior_covariance = \
                 (posterior_covariance + posterior_covariance.T)/2
 
-        return self._stateupdate(posterior_mean, posterior_covariance, hypothesis)
+        return self._update_class(posterior_mean, posterior_covariance, hypothesis,
+                                  timestamp=hypothesis.measurement.timestamp)
 
 
 class ExtendedKalmanUpdater(KalmanUpdater):
@@ -460,6 +440,9 @@ class SqrtKalmanUpdater(KalmanUpdater):
                                                               "in square root form. Default is "
                                                               "True.")
 
+    _update_class = Property(classmethod, default=SqrtGaussianStateUpdate,
+                             doc="The output class type")
+
     def _measurement_cross_covariance(self, predicted_state, measurement_matrix):
         """
         Return the measurement cross covariance matrix, :math:`P_{k~k-1} H_k^T`. This differs
@@ -580,27 +563,3 @@ class SqrtKalmanUpdater(KalmanUpdater):
                  hypothesis.measurement_prediction.cross_covar.T)
 
         return post_cov, kalman_gain
-
-    def _stateupdate(self, posterior_mean, posterior_covariance, hypothesis):
-        """
-        Return the appropriate state update type
-
-        Parameters
-        ----------
-        posterior_mean : :class:`~.StateVector`
-            The posterior mean, :math:`x_{k|k}
-        posterior_covariance : class:`~.CovarianceMatrix`
-            The posterior covariance, :math:`P_{k|k}`
-        hypothesis : :class:`Hypothesis`
-            The hypothesised association that was used to make the update
-
-        Returns
-        -------
-        : :class:`~.GaussianStateUpdate`
-            The state containing :math:`x_{k|k}`, :math:`P_{k|k}`, the hypothesis and
-            timestamp.
-
-        """
-
-        return SqrtGaussianState(posterior_mean, posterior_covariance,
-                                 timestamp=hypothesis.measurement.timestamp)
