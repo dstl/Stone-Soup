@@ -89,7 +89,7 @@ class CSVGroundTruthReader(GroundTruthReader, _CSVReader):
                 state = GroundTruthState(
                     np.array([[row[col_name]] for col_name in self.state_vector_fields],
                              dtype=np.float_),
-                    timestamp=self._get_time(row),
+                    timestamp=time,
                     metadata=self._get_metadata(row))
 
                 id_ = row[self.path_id_field]
