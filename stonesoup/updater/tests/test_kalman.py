@@ -141,10 +141,8 @@ def test_sqrt_kalman():
 
     # Test Square root form returns the same as standard form
     updater = KalmanUpdater(measurement_model=measurement_model)
-    sqrt_updater = SqrtKalmanUpdater(measurement_model=measurement_model,
-                                     sqrt_measurement_noise=False, qr_method=False)
-    qr_updater = SqrtKalmanUpdater(measurement_model=measurement_model,
-                                   sqrt_measurement_noise=False, qr_method=True)
+    sqrt_updater = SqrtKalmanUpdater(measurement_model=measurement_model, qr_method=False)
+    qr_updater = SqrtKalmanUpdater(measurement_model=measurement_model, qr_method=True)
 
     posterior = updater.update(SingleHypothesis(prediction=prediction,
                                                 measurement=measurement))

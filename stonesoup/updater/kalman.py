@@ -435,11 +435,6 @@ class SqrtKalmanUpdater(KalmanUpdater):
                                                   "decomposition, rather than using the (vector"
                                                   "form of) the Potter method.")
 
-    sqrt_measurement_noise = Property(bool, default=True, doc="A flag indicating whether the "
-                                                              "measurement noise matrix is passed"
-                                                              "in square root form. Default is "
-                                                              "True.")
-
     _update_class = SqrtGaussianStateUpdate
 
     def _measurement_cross_covariance(self, predicted_state, measurement_matrix):
