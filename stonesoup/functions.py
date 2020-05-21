@@ -257,8 +257,8 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
     # Calculate cross-covariance
     cross_covar = (
         (sigma_points-sigma_points[:, 0:1])
-        @np.diag(mean_weights)
-        @(sigma_points_t-mean).T
+        @ np.diag(mean_weights)
+        @ (sigma_points_t-mean).T
     )
 
     return mean, covar, cross_covar,\
