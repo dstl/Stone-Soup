@@ -473,7 +473,7 @@ class SqrtKalmanUpdater(KalmanUpdater):
             The measurement cross covariance matrix
         meas_mat : numpy.array
             The measurement matrix. Not required in this instance. Ignored.
-        meas_mod : :class:~.MeasurementModel`
+        meas_mod : :class:`~.MeasurementModel`
             Measurement model. The class attribute :attr:`sqrt_covar` indicates whether this is
             passed in square root form. If it doesn't exist then :attr:`covar` is assumed to exist
             and is used instead.
