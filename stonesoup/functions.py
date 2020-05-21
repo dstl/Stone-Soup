@@ -5,7 +5,7 @@ import numpy as np
 from copy import copy
 
 from .types.numeric import Probability
-from .types.array import Matrix
+from .types.array import Matrix, CovarianceMatrix
 
 
 def tria(matrix):
@@ -259,7 +259,7 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
         (sigma_points-sigma_points[:, 0:1])
         @ np.diag(mean_weights)
         @ (sigma_points_t-mean).T
-    )
+    ).view(CovarianceMatrix)
 
     return mean, covar, cross_covar,\
         sigma_points_t, mean_weights, covar_weights

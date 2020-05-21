@@ -23,7 +23,7 @@ class KalmanUpdater(Updater):
     overwrite to specify a more general measurement model
     :math:`h(\mathbf{x})`.
 
-    :math:`update` first calls :math:`predict_measurement` function which
+    :meth:`update` first calls :meth:`predict_measurement` function which
     proceeds by calculating the predicted measurement, innovation covariance
     and measurement cross-covariance,
 
@@ -458,7 +458,7 @@ class SqrtKalmanUpdater(KalmanUpdater):
 
         Returns
         -------
-        :  numpy.array
+        :  numpy.ndarray
             The measurement cross-covariance matrix
 
         """
@@ -473,13 +473,14 @@ class SqrtKalmanUpdater(KalmanUpdater):
             The measurement cross covariance matrix
         meas_mat : numpy.array
             The measurement matrix. Not required in this instance. Ignored.
-        meas_cov : :class:~.CovarianceMatrix`
-            Measurement covariance matrix. The class attribute :attr:`sqrt_measurement_noise`
-            indicates whether this is passed in square root form (True) or full form (False)
+        meas_mod : :class:~.MeasurementModel`
+            Measurement model. The class attribute :attr:`sqrt_covar` indicates whether this is
+            passed in square root form. If it doesn't exist then :attr:`covar` is assumed to exist
+            and is used instead.
 
         Returns
         -------
-        : numpy.array
+        : numpy.ndarray
             The innovation covariance
 
         """
