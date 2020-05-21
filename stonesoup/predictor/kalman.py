@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import scipy.linalg as la
 from functools import lru_cache, partial
 
 from ..base import Property
 from .base import Predictor
-from ..types.state import SqrtGaussianState
-from ..types.prediction import GaussianStatePrediction
+from ..types.prediction import GaussianStatePrediction, SqrtGaussianStatePrediction
 from ..models.base import LinearModel
 from ..models.transition import TransitionModel
 from ..models.transition.linear import LinearGaussianTransitionModel
@@ -46,9 +46,7 @@ class KalmanPredictor(Predictor):
         default=None,
         doc="The control model to be used. Default `None` where the predictor "
             "will create a zero-effect linear :class:`~.ControlModel`.")
-    _prediction_class = Property(classmethod, default=GaussianStatePrediction,
-                                 doc="The output class. May vary in child processes as "
-                                     "necessary.")
+    _prediction_class = GaussianStatePrediction
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -135,33 +133,33 @@ class KalmanPredictor(Predictor):
 
         return predict_over_interval
 
-    def _predicted_covariance(self, trans_m, prior_cov, trans_cov, ctrl_mat,
-                              ctrl_noi):
+    def _predicted_covariance(self, prior, predict_over_interval, **kwargs):
         """Private function to return the predicted covariance. Useful in that
         it can be overwritten in children.
 
         Parameters
         ----------
-        trans_m : np.ndarray
-            The transition matrix
-        prior_cov : :class:`~.CovarianceMatrix`
-            The prior covariance matrix
-        trans_cov : :class:`~.CovarianceMatrix`
-            The matrix parameterisation of the noise in the transition model
-        ctrl_mat : np.ndarray
-            The control matrix
-        ctrl_noi : np.ndarray
-            The control noise
+        prior : :class:`~.GaussianState`
+            The prior class
+        predict_over_interval : :class`~.timedelta`
 
         Returns
         -------
         : :class:`~.CovarianceMatrix`
             The predicted covariance matrix
 
-
         """
-        return trans_m @ prior_cov @ trans_m.T + trans_cov + \
-            ctrl_mat @ ctrl_noi @ ctrl_mat.T
+        prior_cov = prior.covar
+        trans_m = self._transition_matrix(prior=prior, time_interval=predict_over_interval,
+                                          **kwargs)
+        trans_cov = self.transition_model.covar(time_interval=predict_over_interval, **kwargs)
+
+        # As this is Kalman-like, the control model must be capable of
+        # returning a control matrix (B)
+        ctrl_mat = self._control_matrix
+        ctrl_noi = self.control_model.control_noise
+
+        return trans_m @ prior_cov @ trans_m.T + trans_cov + ctrl_mat @ ctrl_noi @ ctrl_mat.T
 
     @lru_cache()
     def predict(self, prior, timestamp=None, **kwargs):
@@ -193,21 +191,9 @@ class KalmanPredictor(Predictor):
             prior, time_interval=predict_over_interval, **kwargs) \
             + self.control_model.control_input()
 
-        # As this is Kalman-like, the control model must be capable of
-        # returning a control matrix (B)
+        # Prediction of the covariance
+        p_pred = self._predicted_covariance(prior, predict_over_interval)
 
-        transition_matrix = self._transition_matrix(
-            prior=prior, time_interval=predict_over_interval, **kwargs)
-        transition_covar = self.transition_model.covar(
-            time_interval=predict_over_interval, **kwargs)
-
-        control_matrix = self._control_matrix
-        control_noise = self.control_model.control_noise
-
-        # Get the predicted covariance
-        p_pred = self._predicted_covariance(transition_matrix, prior.covar,
-                                            transition_covar, control_matrix,
-                                            control_noise)
         # And return the state in the correct form
         return self._prediction_class(x_pred, p_pred, timestamp=timestamp)
 
@@ -419,66 +405,66 @@ class SqrtKalmanPredictor(KalmanPredictor):
     output. The alternative, accessible via the :attr:`qr_method = True` flag, is to predict via a
     modified Gram-Schmidt process. See [1] for details.
 
+    If transition and control models are possessed of the square root form of the covariance (as
+    :attr:`sqrt_covar` in the case of the transition model and :attr:`sqrt_control_noi` for
+    control models), then these are used directly. If not then they are created from the full
+    matrices using the scipy.linalg :meth:`sqrtm()` method. (Unlike the Cholesky decomposition
+    this works on positive semi-definite matrices, as well as positive definite ones.
+
     Reference
     ---------
     1. Maybeck, P.S. 1994, Stochastic Models, Estimation, and Control, Vol. 1, NavtechGPS,
     Springfield, VA.
 
     """
-    sqrt_transition_noise = Property(bool, default=True, doc="A flag indicating whether the "
-                                                             "transition noise matrix is "
-                                                             "passed in square root form. Default"
-                                                             "is True.")
-    sqrt_control_noise = Property(bool, default=True, doc="Flag indicating whether the control"
-                                                          "model noise is passed in square root "
-                                                          "form. Default is True. Should be left "
-                                                          "blank if no control model is "
-                                                          "specified.")
-
     qr_method = Property(bool, default=False, doc="A switch to do the prediction via a QR "
                                                   "decomposition, rather than using a Cholesky"
                                                   "decomposition.")
 
-    _prediction_class = Property(classmethod, default=SqrtGaussianState,
-                                 doc="The output class. Te predicted state is returned with the "
-                                     "covariance encoded in lower-triangular form.")
+    _prediction_class = SqrtGaussianStatePrediction
 
-    def _predicted_covariance(self, trans_m, prior_cov, trans_cov, ctrl_mat,
-                              ctrl_noi):
+    def _predicted_covariance(self, prior, predict_over_interval, **kwargs):
         """Private function to return the predicted covariance.
 
         Parameters
         ----------
-        trans_m : np.ndarray
-            The transition matrix
-        prior_cov : np.ndarray
-            The square root form of the prior covariance matrix
-        trans_cov : :class:`~.CovarianceMatrix`
-            The square root form of the transition model noise matrix
-        ctrl_mat : np.ndarray
-            The control matrix
-        ctrl_noi : np.ndarray
-            The control noise in square root form
+        prior : :class:`~.SqrtGaussianState`
+            The prior class (which carries the covariance in square root form)
+        predict_over_interval : :class`~.timedelta`
+            The interval over which the model is applied
 
         Returns
         -------
         : :class:`~.CovarianceMatrix`
-            The predicted covariance matrix.
+            The predicted covariance matrix
 
         """
-        # Could also use sp.linalg.sqrtm() in either of these following statements
-        if not self.sqrt_transition_noise:
-            trans_cov = np.linalg.cholesky(trans_cov)
+        sqrt_prior_cov = prior.sqrt_covar
 
-        if not self.sqrt_control_noise:
-            ctrl_noi = np.linalg.cholesky(ctrl_noi)
+        trans_m = self._transition_matrix(prior=prior, time_interval=predict_over_interval,
+                                          **kwargs)
+        if hasattr(self.transition_model, 'sqrt_covar'):
+            sqrt_trans_cov = self.transition_model.sqrt_covar(time_interval=predict_over_interval,
+                                                              **kwargs)
+        else:
+            sqrt_trans_cov = la.sqrtm(self.transition_model.covar(
+                time_interval=predict_over_interval, **kwargs))
+
+        # As this is Kalman-like, the control model must be capable of returning a control matrix
+        # (B)
+        ctrl_mat = self._control_matrix
+        if hasattr(self.control_model, 'sqrt_control_noise'):
+            sqrt_ctrl_noi = self.control_model.sqrt_control_noise
+        else:
+            sqrt_ctrl_noi = la.sqrtm(self.control_model.control_noise)
 
         if self.qr_method:
             # Note that the control matrix aspect of this hasn't been tested
-            m_sq_trans_cov = np.block([[trans_m @ prior_cov, trans_cov, ctrl_mat@ctrl_noi]])
+            m_sq_trans_cov = np.block([[trans_m @ sqrt_prior_cov, sqrt_trans_cov,
+                                        ctrl_mat@sqrt_ctrl_noi]])
             [_, pred_sqrt_cov] = np.linalg.qr(m_sq_trans_cov.T)
             return pred_sqrt_cov.T
         else:
-            return np.linalg.cholesky(trans_m @ prior_cov @ prior_cov.T @ trans_m.T +
-                                      trans_cov @ trans_cov.T +
-                                      ctrl_mat @ ctrl_noi @ ctrl_noi.T @ ctrl_mat.T)
+            return np.linalg.cholesky(trans_m @ sqrt_prior_cov @ sqrt_prior_cov.T @ trans_m.T +
+                                      sqrt_trans_cov @ sqrt_trans_cov.T +
+                                      ctrl_mat @ sqrt_ctrl_noi @ sqrt_ctrl_noi.T @ ctrl_mat.T)

@@ -133,7 +133,7 @@ class GaussianState(State):
         super().__init__(state_vector, covar, *args, **kwargs)
         if self.state_vector.shape[0] != self.covar.shape[0]:
             raise ValueError(
-                "state vector and covar should have same dimensions")
+                "state vector and covariance should have same dimensions")
 
     @property
     def mean(self):
@@ -141,48 +141,38 @@ class GaussianState(State):
         return self.state_vector
 
 
-class SqrtGaussianState(GaussianState):
+class SqrtGaussianState(State):
     """A Gaussian State type where the covariance matrix is stored in a form :math:`W` such that
     :math:`P = WW^T`
 
     For :math:`P` in general, :math:`W` is not unique and the user may choose the form to their
     taste. No checks are undertaken to ensure that a sensible square root form has been chosen.
 
-    The flag :attr:`square_root_form` is set to :attr:`True` by default indicating that the input
-    covariance is supplied as :math:`W`. It may, however, be supplied as :math:`P` with the
-    :attr:`square_root_form` set to :attr:`False`. In this instance a Cholesky factorisation is
-    undertaken on :math:`P` and :math:`W` is stored in lower-triangular form. In this case
-    :math:`P` is checked for its positive semi-definiteness (it should be so if it describes a
-    multivariate Gaussian distribution), and a :class:`~.TypeError` is thrown if it does not pass
-    this test.
-
-    Note to developers
-    ------------------
-    Could add a test in the event that :attr:`square_root_form = True` to ensure that :math:`WW^T`
-    returns a positive semi-definite matrix. Such value checking not usually done in Stone Soup.
-
-    Warning
-    -------
-    The :attr:`sqrt_form` flag is not protected. It, and the covariance matrix, can be altered
-    independently in such a way as to render them inconsistent.
-
-
     """
-    sqrt_form = Property(bool, default=True, doc="Supply the covariance matrix in square root "
-                                                 "form. If  specified False then a Cholesky "
-                                                 "decomposition is undertaken on initiation and"
-                                                 "the covariance is stored in lower-triangular "
-                                                 "form.")
+    sqrt_covar = Property(CovarianceMatrix, doc="A square root form of the Gaussian covariance "
+                                                "matrix.")
 
-    def __init__(self, state_vector, covar, *args, **kwargs):
-        super().__init__(state_vector, covar, *args, **kwargs)
-        if not self.sqrt_form:
-            try:  # Check that the input is at least positive semi-definite and
-                # therefore Cholesky-decomposable
-                self.covar = np.linalg.cholesky(self.covar)
-                self.sqrt_form = True
-            except TypeError:
-                raise TypeError("Input matrix needs to be positive semi-definite")
+    def __init__(self, state_vector, sqrt_covar, *args, **kwargs):
+        sqrt_covar = CovarianceMatrix(sqrt_covar)
+        super().__init__(state_vector, sqrt_covar, *args, **kwargs)
+
+    @property
+    def mean(self):
+        """The state mean, equivalent to state vector"""
+        return self.state_vector
+
+    @property
+    def covar(self):
+        """The full covariance matrix.
+
+        Returns
+        -------
+        : :class:`~.CovarianceMatrix`
+            The covariance matrix calculated via :math:`W W^T`, where :math:`W` is a
+            :class:`~.SqrtCovarianceMatrix`
+
+        """
+        return self.sqrt_covar @ self.sqrt_covar.T
 
 
 class WeightedGaussianState(GaussianState):

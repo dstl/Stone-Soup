@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+import scipy.linalg as la
 from functools import lru_cache
 
 from ..base import Property
@@ -70,8 +71,7 @@ class KalmanUpdater(Updater):
                                  "combination of the matrix and transpose."
                                  "Default is False.")
 
-    _update_class = Property(classmethod, default=GaussianStateUpdate,
-                             doc="The output class type")
+    _update_class = GaussianStateUpdate
 
     def _check_measurement_model(self, measurement_model):
         """Check that the measurement model passed actually exists. If not
@@ -141,7 +141,7 @@ class KalmanUpdater(Updater):
         """
         return predicted_state.covar @ measurement_matrix.T
 
-    def _innovation_covariance(self, m_cross_cov, meas_mat, meas_cov):
+    def _innovation_covariance(self, m_cross_cov, meas_mat, meas_mod):
         """Compute the innovation covariance
 
         Parameters
@@ -159,7 +159,7 @@ class KalmanUpdater(Updater):
             The innovation covariance
 
         """
-        return meas_mat @ m_cross_cov + meas_cov
+        return meas_mat @ m_cross_cov + meas_mod.covar()
 
     def _posterior_covariance(self, hypothesis):
         """
@@ -225,7 +225,7 @@ class KalmanUpdater(Updater):
 
         # The measurement cross covariance and innovation covariance
         meas_cross_cov = self._measurement_cross_covariance(predicted_state, hh)
-        innov_cov = self._innovation_covariance(meas_cross_cov, hh, measurement_model.covar())
+        innov_cov = self._innovation_covariance(meas_cross_cov, hh, measurement_model)
 
         return GaussianMeasurementPrediction(pred_meas, innov_cov,
                                              predicted_state.timestamp,
@@ -440,8 +440,7 @@ class SqrtKalmanUpdater(KalmanUpdater):
                                                               "in square root form. Default is "
                                                               "True.")
 
-    _update_class = Property(classmethod, default=SqrtGaussianStateUpdate,
-                             doc="The output class type")
+    _update_class = SqrtGaussianStateUpdate
 
     def _measurement_cross_covariance(self, predicted_state, measurement_matrix):
         """
@@ -463,9 +462,9 @@ class SqrtKalmanUpdater(KalmanUpdater):
             The measurement cross-covariance matrix
 
         """
-        return predicted_state.covar.T @ measurement_matrix.T
+        return predicted_state.sqrt_covar.T @ measurement_matrix.T
 
-    def _innovation_covariance(self, m_cross_cov, meas_mat, meas_cov):
+    def _innovation_covariance(self, m_cross_cov, meas_mat, meas_mod):
         """Compute the innovation covariance
 
         Parameters
@@ -485,12 +484,12 @@ class SqrtKalmanUpdater(KalmanUpdater):
 
         """
         # If the measurement covariance matrix is square root then square it
-        if self.sqrt_measurement_noise:
-            meas_cov2 = meas_cov @ meas_cov.T
+        if hasattr(meas_mod, 'sqrt_covar'):
+            meas_cov = meas_mod.sqrt_covar @ meas_mod.sqrt_covar.T
         else:
-            meas_cov2 = meas_cov
+            meas_cov = meas_mod.covar()
 
-        return m_cross_cov.T @ m_cross_cov + meas_cov2
+        return m_cross_cov.T @ m_cross_cov + meas_cov
 
     def _posterior_covariance(self, hypothesis):
         """
@@ -527,14 +526,18 @@ class SqrtKalmanUpdater(KalmanUpdater):
             self._check_measurement_model(hypothesis.measurement.measurement_model)
         # Square root of the noise covariance, account for the fact that it may be supplied in one
         # of two ways
-        if self.sqrt_measurement_noise:
-            sqrt_noise_cov = measurement_model.covar()
+        if hasattr(measurement_model, 'sqrt_covar'):
+            sqrt_noise_cov = measurement_model.sqrt_covar
         else:
-            sqrt_noise_cov = np.linalg.cholesky(measurement_model.covar())
+            sqrt_noise_cov = la.sqrtm(measurement_model.covar())
+
+        '''if self.sqrt_measurement_noise:
+            sqrt_noise_cov = measurement_model.covar()
+        else:'''
 
         if self.qr_method:
             # The prior and noise covariances and the measurement matrix
-            sqrt_prior_cov = hypothesis.prediction.covar
+            sqrt_prior_cov = hypothesis.prediction.sqrt_covar
             bigh = measurement_model.matrix()
 
             # Set up and execute the QR decomposition
@@ -551,12 +554,13 @@ class SqrtKalmanUpdater(KalmanUpdater):
         else:
             # Kalman gain
             kalman_gain = \
-                hypothesis.prediction.covar @ hypothesis.measurement_prediction.cross_covar @ \
+                hypothesis.prediction.sqrt_covar @ \
+                hypothesis.measurement_prediction.cross_covar @ \
                 np.linalg.inv(hypothesis.measurement_prediction.covar)
             # Square root of the innovation covariance
-            sqrt_innov_cov = np.linalg.cholesky(hypothesis.measurement_prediction.covar)
+            sqrt_innov_cov = la.sqrtm(hypothesis.measurement_prediction.covar)
             # Posterior covariance
-            post_cov = hypothesis.prediction.covar @ \
+            post_cov = hypothesis.prediction.sqrt_covar @ \
                 (np.identity(hypothesis.prediction.ndim) -
                  hypothesis.measurement_prediction.cross_covar @ np.linalg.inv(sqrt_innov_cov.T) @
                  np.linalg.inv(sqrt_innov_cov + sqrt_noise_cov) @

@@ -93,17 +93,17 @@ def test_sqrt_kalman():
     prior = GaussianState(prior_mean,
                           prior_covar,
                           timestamp=timestamp)
-    sqrt_prior = SqrtGaussianState(prior_mean, prior_covar,
-                                   timestamp=timestamp,
-                                   sqrt_form=False)
+    sqrt_prior_covar = np.linalg.cholesky(prior_covar)
+    sqrt_prior = SqrtGaussianState(prior_mean, sqrt_prior_covar,
+                                   timestamp=timestamp)
 
     transition_model = ConstantVelocity(noise_diff_coeff=0.1)
 
     # Initialise a kalman predictor
     predictor = KalmanPredictor(transition_model=transition_model)
-    sqrt_predictor = SqrtKalmanPredictor(transition_model=transition_model,
-                                         sqrt_transition_noise=False)
-    # qr_method=True)  # Can swap out this method
+    sqrt_predictor = SqrtKalmanPredictor(transition_model=transition_model)
+    # Can swap out this method
+    sqrt_predictor = SqrtKalmanPredictor(transition_model=transition_model, qr_method=True)
 
     # Perform and assert state prediction
     prediction = predictor.predict(prior=prior, timestamp=new_timestamp)
@@ -112,6 +112,7 @@ def test_sqrt_kalman():
 
     assert(np.allclose(prediction.mean, sqrt_prediction.mean, 0, atol=1.e-14))
     assert(np.allclose(prediction.covar,
-                       sqrt_prediction.covar@sqrt_prediction.covar.T, 0,
+                       sqrt_prediction.sqrt_covar@sqrt_prediction.sqrt_covar.T, 0,
                        atol=1.e-14))
+    assert(np.allclose(prediction.covar, sqrt_prediction.covar, 0, atol=1.e-14))
     assert(prediction.timestamp == sqrt_prediction.timestamp)
