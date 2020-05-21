@@ -531,10 +531,6 @@ class SqrtKalmanUpdater(KalmanUpdater):
         else:
             sqrt_noise_cov = la.sqrtm(measurement_model.covar())
 
-        '''if self.sqrt_measurement_noise:
-            sqrt_noise_cov = measurement_model.covar()
-        else:'''
-
         if self.qr_method:
             # The prior and noise covariances and the measurement matrix
             sqrt_prior_cov = hypothesis.prediction.sqrt_covar
