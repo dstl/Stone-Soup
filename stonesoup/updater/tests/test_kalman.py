@@ -52,19 +52,19 @@ def test_kalman(UpdaterClass, measurement_model, prediction, measurement):
 
     # Calculate evaluation variables
     eval_measurement_prediction = GaussianMeasurementPrediction(
-        measurement_model.matrix()@prediction.mean,
-        measurement_model.matrix()@prediction.covar
-        @measurement_model.matrix().T
+        measurement_model.matrix() @ prediction.mean,
+        measurement_model.matrix() @ prediction.covar
+        @ measurement_model.matrix().T
         + measurement_model.covar(),
-        cross_covar=prediction.covar@measurement_model.matrix().T)
-    kalman_gain = eval_measurement_prediction.cross_covar@np.linalg.inv(
+        cross_covar=prediction.covar @ measurement_model.matrix().T)
+    kalman_gain = eval_measurement_prediction.cross_covar @ np.linalg.inv(
         eval_measurement_prediction.covar)
     eval_posterior = GaussianState(
         prediction.mean
-        + kalman_gain@(measurement.state_vector
-                       - eval_measurement_prediction.mean),
+        + kalman_gain @ (measurement.state_vector
+                         - eval_measurement_prediction.mean),
         prediction.covar
-        - kalman_gain@eval_measurement_prediction.covar@kalman_gain.T)
+        - kalman_gain@eval_measurement_prediction.covar @ kalman_gain.T)
 
     # Initialise a kalman updater
     updater = UpdaterClass(measurement_model=measurement_model)
