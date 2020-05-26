@@ -3,9 +3,16 @@ import enum
 
 try:
     import tensorflow as tf
-    if int(tf.__version__.split('.')[0]) > 1:
+
+    try:
+        _tf_version = int(tf.__version__.split('.')[0])
+    except TypeError:
+        # Occurs with Sphinx due to mock imports
+        _tf_version = 1
+    if _tf_version > 1:
         import tensorflow.compat.v1 as tf
         tf.disable_v2_behavior()
+
     import tensornets
     from tensornets import datasets
 except ImportError as error:
