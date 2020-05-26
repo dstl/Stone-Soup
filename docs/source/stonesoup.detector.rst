@@ -10,4 +10,6 @@ Detectors
 .. automodule:: stonesoup.detector.tensorflow
     :show-inheritance:
 
+.. automodule:: stonesoup.detector.tensornets
+    :show-inheritance:
 
