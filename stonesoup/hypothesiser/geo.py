@@ -39,12 +39,12 @@ class DynamicUTMHypothesiserWrapper(Hypothesiser):
 
         if track_zone_number != detection_zone_number:
             lat, long = utm.to_latlon(
-                *state.state_vector[mapping, 0], track_zone_number, northern=track_northern)
+                *state.state_vector[mapping, :], track_zone_number, northern=track_northern)
             easting, northing, _, _ = utm.from_latlon(
                 lat, long, detection_zone_number, force_northern=track_northern)
         else:
             # Same zone number, so not need to convert to lat, lon and back again.
-            easting, northing = state.state_vector[mapping, 0]
+            easting, northing = state.state_vector[mapping, :]
 
         # Add/subtract equator offset for southern if northern value differs
         northing += 10000000 * (track_northern - detection_northern)
