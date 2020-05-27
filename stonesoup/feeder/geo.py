@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import warnings
+import copy
 from abc import abstractmethod
 
 import utm
@@ -95,12 +95,23 @@ class LongLatToUTMConverter(Feeder):
         doc="Indexes of long, lat. Default (0, 1)")
     zone_number = Property(
         int, default=None,
-        doc="UTM zone number to carry out conversion. Default `None`, where it"
-            "will select the zone based on the first detection.")
-    northern = Property(
-        bool, default=None,
-        doc="UTM northern for northern or southern grid. Default `None`, where"
-            "it will be base on the first detection.")
+        doc="UTM zone number to carry out conversion. Default `None`, where it will select the "
+            "zone based on the first detection if :attr:`dynamic` isn't set.")
+    zone_letter = Property(
+        str, default=None,
+        doc="UTM zone letter to carry out conversion. Default `None`, where it will select the "
+            "zone based on the first detection if :attr:`dynamic` isn't set.")
+    dynamic = Property(
+        bool, default=False,
+        doc="In dynamic mode, each detection will be put into the UTM zone that it belongs, "
+            "rather than being assigned to the same zone. The `utm_zone` will be added to the "
+            "detections metadata. This is designed to be used in conjunction with the "
+            ":class:`~.DynamicUTMHypothesiserWrapper`. Default `False`.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.dynamic and (self.zone_number or self.zone_letter):
+            raise ValueError("Cannot have both dynamic and fixed zone")
 
     @BufferedGenerator.generator_method
     def detections_gen(self):
@@ -108,25 +119,22 @@ class LongLatToUTMConverter(Feeder):
 
             utm_detections = set()
             for detection in detections:
-                easting, northing, zone_num, northern = utm.from_latlon(
+                easting, northing, zone_number, zone_letter = utm.from_latlon(
                     *detection.state_vector[self.mapping[::-1], :],
-                    self.zone_number)
-                if self.zone_number is None:
-                    self.zone_number = zone_num
-                if self.northern is None:
-                    self.northern = northern >= 'N'
-                elif (self.northern and northern < 'N') or (
-                            not self.northern and northern >= 'N'):
-                    warnings.warn("Detection cannot be converted to UTM zone")
-                    continue
+                    self.zone_number, self.zone_letter)
+                if self.zone_number is None and not self.dynamic:
+                    self.zone_number = zone_number
+                if self.zone_letter is None and not self.dynamic:
+                    self.zone_letter = zone_letter
 
-                state_vector = detection.state_vector.copy()
-                state_vector[self.mapping, 0] = easting, northing
-                utm_detections.add(
-                    Detection(
-                        state_vector,
-                        timestamp=detection.timestamp,
-                        measurement_model=detection.measurement_model,
-                        metadata=detection.metadata))
+                utm_detection = copy.copy(detection)
+                # Update state vector
+                utm_detection.state_vector = detection.state_vector.copy()
+                utm_detection.state_vector[self.mapping, 0] = easting, northing
+                # Add meta data
+                utm_detection.metadata = detection.metadata.copy()
+                utm_detection.metadata['utm_zone'] = (zone_number, zone_letter)
+
+                utm_detections.add(utm_detection)
 
             yield time, utm_detections
