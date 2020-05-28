@@ -3,11 +3,13 @@ import datetime
 from collections.abc import MutableSequence
 
 import numpy as np
+import uuid
 
 from ..base import Property
 from .array import StateVector, StateVectors, CovarianceMatrix
 from .base import Type
 from .particle import Particle
+from .numeric import Probability
 
 
 class State(Type):
@@ -147,7 +149,21 @@ class WeightedGaussianState(GaussianState):
     Gaussian State object with an associated weight.  Used as components
     for a GaussianMixtureState.
     """
-    weight = Property(float, default=0, doc="Weight of the Gaussian State.")
+    weight = Property(Probability, default=0, doc="Weight of the Gaussian State.")
+
+
+class TaggedWeightedGaussianState(WeightedGaussianState):
+    """Tagged Weighted Gaussian State Type
+
+    Gaussian State object with an associated weight and tag. Used as components
+    for a GaussianMixtureState.
+    """
+    tag = Property(str, default=None, doc="Unique tag of the Gaussian State.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.tag is None:
+            self.tag = str(uuid.uuid4())
 
 
 class ParticleState(Type):
