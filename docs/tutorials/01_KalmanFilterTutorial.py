@@ -2,11 +2,11 @@
 # coding: utf-8
 
 """
-Kalman filter tutorial
+1 - Kalman filter tutorial
 ======================
 """
 
-#%%
+# %%
 # **An exercise in deriving the best estimate of an unknown feature using Kalman filtering:**
 #
 # Let :math:`\textbf{x}_{k}` be a hidden state vector at some (time) :math:`k` and
@@ -98,7 +98,7 @@ Kalman filter tutorial
 # *predict* the state at the next time step, and *update* this with a measurement to get a
 # *posterior* state estimate.
 
-#%%
+# %%
 # **The following is a derivation of the anayltic solution to the recursive equations above,
 # alongside a demonstration of the Kalman Filter within Stone Soup:**
 
@@ -111,7 +111,7 @@ import numpy as np
 # Figure to plot truth (and future data)
 from matplotlib import pyplot as plt
 
-#%%
+# %%
 # Simulate target
 # -----------------
 #
@@ -243,21 +243,21 @@ ax.plot([state.state_vector[0] for state in truth],
         [state.state_vector[2] for state in truth],
         linestyle="--")
 
-#%%
+# %%
 # This model gives us our full transition matrix (shown here for period 1 second):
 transition_model.matrix(time_interval=timedelta(seconds=1))
 
-#%%
+# %%
 # And the *process noise* covariance (shown here for period of 1 second):
 transition_model.covar(time_interval=timedelta(seconds=1))
 
-#%%
+# %%
 # Create Kalman predictor
 # ---------------------------------
 from stonesoup.predictor.kalman import KalmanPredictor
 predictor = KalmanPredictor(transition_model)
 
-#%%
+# %%
 # Simulate measurement
 # --------------------
 # Given a prediction of the target's state and covariance at time :math:`k`, we receive a
@@ -274,13 +274,13 @@ predictor = KalmanPredictor(transition_model)
 #          \Sigma_{expected} &= H_{k}P_{k}H_{k}^T
 #
 
-#%%
+# %%
 # We'll simulate our measurements using a normal distribution with a covariance of 0.25.
 
 
 
 
-#%%
+# %%
 # Simulate measurement errors
 # ---------------------------
 #
@@ -316,22 +316,22 @@ ax.scatter([state.state_vector[0] for state in measurements],
            color='b')
 fig
 
-#%%
+# %%
 # This will give us the observation model :math:`H_{k}`:
 measurement_model.matrix()
 
-#%%
+# %%
 # And observation model covariance :math:`R_{k}`:
 measurement_model.covar()
 
-#%%
+# %%
 # Create Kalman updater
 # ---------------------
 from stonesoup.updater.kalman import KalmanUpdater
 updater = KalmanUpdater(measurement_model)
 
 
-#%%
+# %%
 # For the sake of simplicity, consider just 1 dimension of this problem (determining :math:`x` and
 # :math:`\dot{x}`).
 # We now have two Gaussian distributions: One surrounding our prediction, and the other around the
@@ -371,7 +371,7 @@ updater = KalmanUpdater(measurement_model)
 # This can now be used in another phase of prediction, followed by adjustment from a measurement
 # etc.
 
-#%%
+# %%
 # Running the Kalman Filter
 # --------------------------
 # Now we have the components, we can run our simulated data through the Kalman Filter.
@@ -380,7 +380,7 @@ updater = KalmanUpdater(measurement_model)
 from stonesoup.types.state import GaussianState
 prior = GaussianState([[0], [1], [0], [1]], np.diag([1.5, 0.5, 1.5, 0.5]), timestamp=start_time)
 
-#%%
+# %%
 # With this, we'll now loop through our measurements, predicting and updating at each timestep.
 from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.types.track import Track
@@ -393,14 +393,14 @@ for measurement in measurements:
     track.append(post)
     prior = track[-1]
 
-#%%
+# %%
 # Plot the resulting track
 ax.plot([state.state_vector[0] for state in track],
         [state.state_vector[2] for state in track],
         marker=".")
 fig
 
-#%%
+# %%
 # Adding error ellipses at each estimate
 from matplotlib.patches import Ellipse
 for state in track:
@@ -412,9 +412,10 @@ for state in track:
                       angle=np.rad2deg(orient),
                       alpha=0.2)
     ax.add_artist(ellipse)
-# sphinx_gallery_thumbnail_number = 4
 fig
 
-#%%
+# sphinx_gallery_thumbnail_number = 4
+
+# %%
 # There are situations in which linearisation of the problem is not useful/possible.
 # For this, we require an adjusted process, as tackled by the **Extended Kalman Filter**.
