@@ -70,6 +70,9 @@ class StateVector(Matrix):
 
     Note that code using the pattern `my_state_vector[1, 0]` will continue to work.
 
+    When slicing would result in return of a invalid shape for a StateVector (i.e. not `(n, 1)`)
+    then a :class:`~.Matrix` view will be returned.
+
     .. note ::
         It is not recommended to use a StateVector for indexing another vector. Doing so will lead
         to unexpected effects. Use a :class:`tuple`, :class:`list` or :class:`np.ndarray` for this.
@@ -100,7 +103,8 @@ class StateVector(Matrix):
         #   i.e. isinstance(np.array([1]), int) == True
         if isinstance(item, int):
             item = (item, 0)
-        return super().__getitem__(item)
+        # Cast here, so StateVector isn't returned with invalid shape (e.g. (n, ))
+        return self._cast(super().__getitem__(item))
 
     def __setitem__(self, key, value):
         if isinstance(key, int):
