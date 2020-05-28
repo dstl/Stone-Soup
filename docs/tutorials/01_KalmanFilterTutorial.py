@@ -89,9 +89,9 @@
 # observations up to (time) :math:`k`:
 #
 # .. math::
-#           p(\textbf{x}_{k}\ |\ \textbf{z}_{1:k}) = \frac{p(\textbf{z}_{k}\ |\ \textbf{x}_{k})
-#                                                          p(\textbf{x}_{k}\ |\ \textbf{z}_{1:k-1})}
-#                                                         {p(\textbf{z}_{k})}
+#           p(\textbf{x}_{k}\ |\ \textbf{z}_{1:k}) =
+#           \frac{p(\textbf{z}_{k}\ |\ \textbf{x}_{k})p(\textbf{x}_{k}\ |\ \textbf{z}_{1:k-1})}
+#                {p(\textbf{z}_{k})}
 #
 #
 # Our state estimation process runs recursively: Given a *prior* estimate of a state vector, we
@@ -130,8 +130,8 @@ from matplotlib import pyplot as plt
 # To capture this correlation, we define a *covariance matrix* :math:`\Sigma` where
 # :math:`\Sigma_{ij}` is the degree of correlation between the :math:`ith` and :math:`jth` state
 # variable.
-# For example, :math:`\Sigma_{x\dot{x}}` denotes the correlation between the target's x-position and
-# its velocity in that direction.
+# For example, :math:`\Sigma_{x\dot{x}}` denotes the correlation between the target's x-position
+# and its velocity in that direction.
 #
 # The target's general covariance matrix will be of the form:
 #
@@ -154,7 +154,8 @@ from matplotlib import pyplot as plt
 # In the example, we consider velocity to be constant:
 #
 # .. math::
-#       \textbf{position}_{k} &= \textbf{position}_{k-1} + \textbf{velocity}_{k-1}\ *\ \triangle t\\
+#       \textbf{position}_{k} &= \textbf{position}_{k-1} +
+#       \textbf{velocity}_{k-1}\ *\ \triangle t\\
 #       \textbf{velocity}_{k} &= \textbf{velocity}_{k-1}
 #
 # Therefore, our prediction at time :math:`k` relates to that at time :math:`k-1` by the following:
@@ -231,7 +232,8 @@ ax.set_ylabel("$y$")
 ax.axis('equal')
 
 start_time = datetime.now()
-transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05), ConstantVelocity(0.05)])
+transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05),
+                                                          ConstantVelocity(0.05)])
 truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=start_time)])
 for k in range(1, 21):
     truth.append(GroundTruthState(
@@ -261,8 +263,8 @@ predictor = KalmanPredictor(transition_model)
 # Simulate measurement
 # --------------------
 # Given a prediction of the target's state and covariance at time :math:`k`, we receive a
-# measurement from a sensor (by weighing our "trust" in our own prediciton, and that of the sensor's
-# measurement, we can provide a refined estimate of the target's state at time :math:`k`).
+# measurement from a sensor (by weighing our "trust" in our own prediciton, and that of the
+# sensor's measurement, we can provide a refined estimate of the target's state at time :math:`k`).
 #
 # Obviously, a measurement depends on the actual state of the system. We can infer that, given our
 # prediciton, :math:`\exists` some mapping :math:`H_{k}:\ state\mapsto\ measurement` such that we
@@ -272,13 +274,6 @@ predictor = KalmanPredictor(transition_model)
 # .. math::
 #       \vec{\mu}_{expected} &= H_{k}\hat{x}_{k}\\
 #          \Sigma_{expected} &= H_{k}P_{k}H_{k}^T
-#
-
-# %%
-# We'll simulate our measurements using a normal distribution with a covariance of 0.25.
-
-
-
 
 # %%
 # Simulate measurement errors
@@ -345,8 +340,8 @@ updater = KalmanUpdater(measurement_model)
 # .. math::
 #       K = \Sigma_{state} (\Sigma_{state} + \Sigma_{meas})^{-1}
 #
-# where :math:`\Sigma_{state}` is the covariance matrix of our prediction, and :math:`\Sigma_{meas}`
-# that of the measurement.
+# where :math:`\Sigma_{state}` is the covariance matrix of our prediction, and
+# :math:`\Sigma_{meas}` that of the measurement.
 #
 # Then the mean :math:`\mu'` and standard deviation :math:`\sigma'` of the resulting Gaussian
 # distribution are given by:
@@ -366,8 +361,8 @@ updater = KalmanUpdater(measurement_model)
 #       P'_{k} = P_{k} - K'H_{k}P_{k}\\
 #       K' = P_{k}H_{k}^T (H_{k}P_{k}H_{k}^T + R_{k})^{-1}
 #
-# This defines our best estimate :math:`\hat{x}_{k}'` of the state :math:`\vec{x}_{k}` of the target
-# at time :math:`k`.
+# This defines our best estimate :math:`\hat{x}_{k}'` of the state :math:`\vec{x}_{k}` of the
+# target at time :math:`k`.
 # This can now be used in another phase of prediction, followed by adjustment from a measurement
 # etc.
 
@@ -375,7 +370,7 @@ updater = KalmanUpdater(measurement_model)
 # Running the Kalman Filter
 # --------------------------
 # Now we have the components, we can run our simulated data through the Kalman Filter.
-# 
+#
 # To start, we'll need to create a prior estimate of where we think our target will be.
 from stonesoup.types.state import GaussianState
 prior = GaussianState([[0], [1], [0], [1]], np.diag([1.5, 0.5, 1.5, 0.5]), timestamp=start_time)
