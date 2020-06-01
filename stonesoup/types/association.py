@@ -43,7 +43,7 @@ class SingleTimeAssociation(Association):
 class TimeRangeAssociation(Association):
     """TimeRangeAssociation type
 
-     An :class:`~.AssociationPair` representing the linking of objects over a
+    An :class:`~.AssociationPair` representing the linking of objects over a
     range of times
     """
 
@@ -101,10 +101,10 @@ class AssociationSet(Type):
         Method will return the set of all the :class:`~.Association` type
         objects which contain an association with the provided object
 
-        Paramters
-        ---------
-        : objects:
-            Set of objects
+        Parameters
+        ----------
+        objects: set of objects
+            Set of objects to look for in associations
         Returns
         -------
         : set of :class:`~.Association`

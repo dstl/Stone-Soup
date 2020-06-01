@@ -49,13 +49,11 @@ Contents:
 .. toctree::
     :maxdepth: 2
 
-    dataflow
-    interface
-    types
+    design
     stonesoup
+    auto_tutorials/index
     contributing
     copyright
-    auto_tutorials/index
 
 Indices and tables
 ==================
