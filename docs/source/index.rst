@@ -61,6 +61,7 @@ Contents:
     contributing
     copyright
     auto_tutorials/index
+    auto_demos/index
 
 Indices and tables
 ==================
