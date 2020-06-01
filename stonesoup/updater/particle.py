@@ -80,7 +80,7 @@ class ParticleUpdater(Updater):
 
 
 class MultiModelParticleUpdater(Updater):
-    """Simple Particle Updater
+    """Particle Updater for the Multi Model system
 
         Perform measurement update step in the standard Kalman Filter.
         """
@@ -88,7 +88,7 @@ class MultiModelParticleUpdater(Updater):
     resampler = Property(Resampler,
                          doc='Resampler to prevent particle degeneracy')
 
-    def update(self, hypothesis, predictor=None, always_resample=True, **kwargs):
+    def update(self, hypothesis, predictor=None, **kwargs):
         """Particle Filter update step
 
         Parameters
@@ -96,14 +96,9 @@ class MultiModelParticleUpdater(Updater):
         hypothesis : :class:`~.Hypothesis`
             Hypothesis with predicted state and associated detection used for
             updating.
-        predictor: :class:`~.Predictor`
+        predictor: :class:`~.MultiModelParticlePredictor`
             Predictor which holds the transition matrix, dynamic models and the
             mapping rules.
-        always_resample: :Boolean:
-            if True, then the particle filter will resample every time step.
-            Otherwise, will only resample when 25% or less of the particles
-            are deemed effective.
-            Calculated by 1 / sum(particle.weight^2) for all particles
 
         Returns
         -------
@@ -117,7 +112,7 @@ class MultiModelParticleUpdater(Updater):
 
         for particle in hypothesis.prediction.particles:
             particle.weight *= measurement_model.pdf(
-                hypothesis.measurement.state_vector, particle.state_vector,
+                hypothesis.measurement, particle,
                 **kwargs) * predictor.transition_matrix[particle.parent.dynamic_model][particle.dynamic_model]
 
         # Normalise the weights
@@ -126,15 +121,8 @@ class MultiModelParticleUpdater(Updater):
         for particle in hypothesis.prediction.particles:
             particle.weight /= sum_w
 
-        n_eff = 1 / sum([p.weight * p.weight for p in hypothesis.prediction.particles])
-
-        # Only resamples if less than a quarter of the particles are effective.
-        if n_eff < len(hypothesis.prediction.particles) / 2 or always_resample:
-            # Resample
-            new_particles = self.resampler.resample(
-                hypothesis.prediction.particles)
-        else:
-            new_particles = [particle for particle in hypothesis.prediction.particles]
+        new_particles = self.resampler.resample(
+            hypothesis.prediction.particles)
 
         return ParticleStateUpdate(new_particles,
                                    hypothesis,
@@ -162,7 +150,7 @@ class MultiModelParticleUpdater(Updater):
 
 
 class RaoBlackwellisedParticleUpdater(Updater):
-    """Simple Particle Updater
+    """Particle Updater for the Raoblackwellised scheme
 
         Perform measurement update step in the standard Kalman Filter.
         """
@@ -216,7 +204,7 @@ class RaoBlackwellisedParticleUpdater(Updater):
             particle.model_probabilities = new_model_probabilities
 
             prob_y_given_x = measurement_model.pdf(
-                hypothesis.measurement.state_vector, particle.state_vector,
+                hypothesis.measurement, particle,
                 **kwargs)
 
             particle.weight *= prob_y_given_x
@@ -227,15 +215,8 @@ class RaoBlackwellisedParticleUpdater(Updater):
         for particle in hypothesis.prediction.particles:
             particle.weight /= sum_w
 
-        n_eff = 1 / sum([p.weight * p.weight for p in hypothesis.prediction.particles])
-
-        # Only resamples if less than a quarter of the particles are effective.
-        if n_eff < len(hypothesis.prediction.particles) / 2 or always_resample:
-            # Resample
-            new_particles = self.resampler.resample(
-                hypothesis.prediction.particles)
-        else:
-            new_particles = [particle for particle in hypothesis.prediction.particles]
+        new_particles = self.resampler.resample(
+            hypothesis.prediction.particles)
 
         return ParticleStateUpdate(new_particles,
                                    hypothesis,
@@ -265,6 +246,9 @@ class RaoBlackwellisedParticleUpdater(Updater):
     @staticmethod
     def calculate_model_probabilities(particle, position_mapping,
                                       transition_matrix, model_list, time_interval):
+
+        """Calculates the new model probabilities based
+            on the ones calculated in the previous time step"""
 
         previous_probabilities = particle.model_probabilities
 

@@ -70,7 +70,7 @@ class LinearModel(Model):
             else:
                 noise = 0
 
-        return self.matrix(**kwargs) @ state.state_vector + noise
+        return self.matrix(**kwargs) @ state + noise
 
 
 class NonLinearModel(Model):

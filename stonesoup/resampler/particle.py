@@ -60,7 +60,7 @@ class MultiModelSystematicResampler(Resampler):
 
         Returns
         -------
-        particles : list of :class:`~.Particle`
+        particles : list of :class:`~.MultiModelParticle`
             The resampled particles
         """
 
@@ -95,7 +95,7 @@ class RaoBlackwellisedSystematicResampler(Resampler):
 
         Parameters
         ----------
-        particles : list of :class:`~.Particle`
+        particles : list of :class:`~.RaoBlackwellisedParticle`
             The particles to be resampled according to their weight
 
         Returns

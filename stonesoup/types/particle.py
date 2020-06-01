@@ -41,14 +41,14 @@ class MultiModelParticle(Type):
 
         if state_vector is not None and not isinstance(state_vector, StateVector):
             state_vector = StateVector(state_vector)
-        super().__init__(state_vector, weight, parent, dynamic_model, *args, **kwargs)
+        super().__init__(state_vector, weight, dynamic_model, parent, *args, **kwargs)
 
     @property
     def ndim(self):
         return self.state_vector.shape[0]
 
 
-Particle.parent.cls = Particle  # noqa:E305
+MultiModelParticle.parent.cls = MultiModelParticle
 
 
 class RaoBlackwellisedParticle(Type):
@@ -72,4 +72,4 @@ class RaoBlackwellisedParticle(Type):
                          parent, *args, **kwargs)
 
 
-RaoBlackwellisedParticle.parent.cls = Particle
+RaoBlackwellisedParticle.parent.cls = RaoBlackwellisedParticle
