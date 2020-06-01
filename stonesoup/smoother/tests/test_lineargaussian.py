@@ -44,8 +44,6 @@ def test_backwards_smoother():
     meas_model = LinearGaussian(ndim_state=2, mapping=[0],
                                 noise_covar=np.array([[0.4]]))
 
-    estimates = [initial_state]
-
     # Filter Initial Detection
     track = Track()
     track.append(initial_state)
@@ -59,14 +57,13 @@ def test_backwards_smoother():
     for t in range(1, T):
         time = detections[t].timestamp
         state_pred = predictor.predict(track.state, timestamp=time)
-        estimates.append(state_pred)
         hypothesis = SingleHypothesis(state_pred, detections[t])
         state_post = updater.update(hypothesis)
         track.append(state_post)
 
     # Smooth Track
     smoother = Backward(transition_model=trans_model)
-    smoothed_track = smoother.track_smooth(track, estimates)
+    smoothed_track = smoother.track_smooth(track)
 
     smoothed_state_vectors = [
         state.state_vector for state in smoothed_track]

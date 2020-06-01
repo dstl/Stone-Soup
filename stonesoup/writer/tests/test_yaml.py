@@ -84,36 +84,7 @@ def test_groundtruth_paths_yaml(groundtruth_reader, tmpdir):
                 - [1]
               - timestamp: *id001
               - metadata: {}
-          :
-        ...
-        ---
-        time: &id001 2018-01-01 14:02:00
-        groundtruth_paths: !!set
-          ? !stonesoup.types.groundtruth.GroundTruthPath
-          - states:
-            - !stonesoup.types.groundtruth.GroundTruthState
-              - state_vector: !numpy.ndarray
-                - [2]
-              - timestamp: *id001
-              - metadata: {}
-            - !stonesoup.types.groundtruth.GroundTruthState
-              - state_vector: !numpy.ndarray
-                - [12]
-              - timestamp: *id001
-              - metadata: {}
-          :
-          ? !stonesoup.types.groundtruth.GroundTruthPath
-          - states:
-            - !stonesoup.types.groundtruth.GroundTruthState
-              - state_vector: !numpy.ndarray
-                - [2]
-              - timestamp: *id001
-              - metadata: {}
-            - !stonesoup.types.groundtruth.GroundTruthState
-              - state_vector: !numpy.ndarray
-                - [12]
-              - timestamp: *id001
-              - metadata: {}
+          - id: '0'
           :
         ...
         """)

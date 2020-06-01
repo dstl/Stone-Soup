@@ -26,10 +26,12 @@ setup(name='stonesoup',
       ],
       packages=find_packages(exclude=('docs', '*.tests')),
       install_requires=[
-          'ruamel.yaml>=0.15.45', 'scipy', 'matplotlib', 'utm', 'pymap3d'],
+          'ruamel.yaml>=0.15.45', 'numpy>=1.17', 'scipy', 'matplotlib', 'utm', 'pymap3d'],
       extras_require={
           'dev': [
               'pytest-flake8', 'pytest-cov', 'Sphinx', 'sphinx_rtd_theme',
-              'setuptools>=30'],
+              'setuptools>=30', 'sphinx-gallery', 'pillow'],
+          'video': [
+              'ffmpeg-python', 'moviepy'],
       },
       )

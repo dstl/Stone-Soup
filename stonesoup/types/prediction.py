@@ -2,7 +2,8 @@
 from ..base import Property
 from .array import CovarianceMatrix
 from .base import Type
-from .state import State, GaussianState, ParticleState
+from .state import (State, GaussianState, ParticleState,
+                    TaggedWeightedGaussianState)
 
 
 class Prediction(Type):
@@ -37,6 +38,26 @@ class GaussianStatePrediction(Prediction, GaussianState):
 
     This is a simple Gaussian state prediction object, which, as the name
     suggests, is described by a Gaussian distribution.
+    """
+
+
+class WeightedGaussianStatePrediction(Prediction, TaggedWeightedGaussianState):
+    """ WeightedGaussianStatePrediction type
+
+
+    This is a simple Gaussian state prediction object, which, as the name
+    suggests, is described by a Gaussian distribution
+    with an associated weight.
+    """
+
+
+class TaggedWeightedGaussianStatePrediction(Prediction,
+                                            TaggedWeightedGaussianState):
+    """ TaggedWeightedGaussianStatePrediction type
+
+    This is a simple Gaussian state prediction object, which, as the name
+    suggests, is described by a Gaussian distribution.
+     with an associated weight and unique tag.
     """
 
 

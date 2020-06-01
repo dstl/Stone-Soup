@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-from .base import Sensor3DCartesian
+from stonesoup.sensor.sensor import Sensor
 from ..base import Property
 from ..models.measurement.nonlinear import CartesianToElevationBearing
 from ..types.array import CovarianceMatrix
 from ..types.detection import Detection
 
 
-class PassiveElevationBearing(Sensor3DCartesian):
+class PassiveElevationBearing(Sensor):
     """A simple passive sensor that generates measurements of targets, using a
     :class:`~.CartesianToElevationBearing` model, relative to its position.
 
@@ -33,13 +33,17 @@ class PassiveElevationBearing(Sensor3DCartesian):
             (and follow in format) the underlying \
             :class:`~.CartesianToElevationBearing` model")
 
-    def measure(self, ground_truth, noise=None, **kwargs):
+    def measure(self, ground_truth, noise=True, **kwargs):
         """Generate a measurement for a given state
 
         Parameters
         ----------
         ground_truth : :class:`~.State`
             A ground-truth state
+        noise: :class:`numpy.ndarray` or bool
+            An externally generated random process noise sample (the default is
+            `True`, in which case :meth:`~.Model.rvs` is used
+            if 'False', no noise will be added)
 
         Returns
         -------
@@ -56,7 +60,7 @@ class PassiveElevationBearing(Sensor3DCartesian):
             rotation_offset=self.orientation)
 
         measurement_vector = measurement_model.function(
-            ground_truth.state_vector, noise=noise, **kwargs)
+            ground_truth, noise=noise, **kwargs)
 
         return Detection(measurement_vector,
                          measurement_model=measurement_model,

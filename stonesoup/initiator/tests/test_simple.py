@@ -3,11 +3,12 @@ import datetime
 import numpy as np
 import pytest
 
+from ...models.base import LinearModel
 from ...models.measurement.linear import LinearGaussian
 from ...models.measurement.nonlinear import CartesianToBearingRange
 from ...models.transition.linear import \
     CombinedLinearGaussianTransitionModel, ConstantVelocity
-from ...updater.kalman import KalmanUpdater
+from ...updater.kalman import KalmanUpdater, ExtendedKalmanUpdater
 from ...predictor.kalman import KalmanPredictor
 from ...deleter.time import UpdateTimeDeleter
 from ...hypothesiser.distance import DistanceHypothesiser
@@ -22,7 +23,12 @@ from ..simple import (
 )
 
 
-def test_spi():
+@pytest.mark.parametrize(
+    'measurement_model',
+    [LinearGaussian(2, [0, 1], np.diag([1, 1])),
+     CartesianToBearingRange(2, [1, 0], np.diag([0.1, 1]))],
+    ids=['linear', 'non-linear'])
+def test_spi(measurement_model):
     """Test SinglePointInitiator"""
 
     # Prior state information
@@ -30,11 +36,11 @@ def test_spi():
         np.array([[0], [0]]),
         np.array([[100, 0], [0, 1]]))
 
-    # Define a measurement model
-    measurement_model = LinearGaussian(2, [0], np.array([[1]]))
-
     # Create the Kalman updater
-    kup = KalmanUpdater(measurement_model)
+    if isinstance(measurement_model, LinearModel):
+        kup = KalmanUpdater(measurement_model)
+    else:
+        kup = ExtendedKalmanUpdater(measurement_model)
 
     # Define the Initiator
     initiator = SinglePointInitiator(
@@ -43,8 +49,8 @@ def test_spi():
 
     # Define 2 detections from which tracks are to be initiated
     timestamp = datetime.datetime.now()
-    detections = [Detection(np.array([[4.5]]), timestamp),
-                  Detection(np.array([[-4.5]]), timestamp)]
+    detections = [Detection(np.array([[4.5], [2.0]]), timestamp),
+                  Detection(np.array([[-4.5], [2.0]]), timestamp)]
 
     # Run the initiator based on the available detections
     tracks = initiator.initiate(detections)
@@ -108,7 +114,7 @@ def test_linear_measurement():
 
 def test_nonlinear_measurement():
     measurement_model = CartesianToBearingRange(
-        2, (0, 1), np.diag([np.radians(2), 30]))
+        2, [0, 1], np.diag([np.radians(2), 30]))
     measurement_initiator = SimpleMeasurementInitiator(
         GaussianState(np.array([[0], [0]]), np.diag([100, 10])),
         measurement_model

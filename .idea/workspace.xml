@@ -1,11 +1,153 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="29641738-84e2-4ab8-9863-cba6ff5583f5" name="Default Changelist" comment="">
+    <list default="true" id="e458ae4a-9595-4ae3-9b56-511da48866b5" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/.readthedocs.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/source/_static/css/custom.css" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/source/stonesoup.gater.rst" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/source/stonesoup.sensor.radar.rst" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/tutorials/01_KalmanFilterTutorial.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/tutorials/README.rst" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/deleter/multi.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/deleter/tests/test_multi.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/feeder/multi.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/feeder/tests/test_multi.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/gater/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/gater/base.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/gater/distance.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/gater/tests/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/gater/tests/conftest.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/gater/tests/test_distance.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/hypothesiser/gaussianmixture.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/hypothesiser/tests/test_gaussianmixture.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/initiator/tests/test_wrapper.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/initiator/wrapper.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/metricgenerator/metrictables.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/metricgenerator/tests/test_tables.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/mixturereducer/gaussianmixture.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/mixturereducer/tests/test_gaussian_mixture_reducer.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/models/measurement/tests/test_combined.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/models/transition/tests/test_cts.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/reader/tests/test_video.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/reader/url.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/reader/video.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/sensor/radar/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/sensor/radar/beam_pattern.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/sensor/radar/beam_shape.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/sensor/radar/radar.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/sensor/radar/tests/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/sensor/radar/tests/test_beam_pattern.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/sensor/radar/tests/test_beam_shape.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/sensor/radar/tests/test_radar.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/sensor/sensor.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/sensor/tests/test_sensor.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/simulator/platform.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/simulator/tests/test_platform.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/tracker/pointprocess.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/tracker/tests/test_pointprocess.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/types/mixture.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/types/tests/test_mixture.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/types/tests/test_sensordata.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/updater/pointprocess.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/updater/tests/conftest.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stonesoup/updater/tests/test_pointprocess.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tox.ini" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.circleci/config.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.circleci/config.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/conf.py" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/conf.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/doc_extensions.py" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/doc_extensions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/index.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/index.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/stonesoup.deleter.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/stonesoup.deleter.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/stonesoup.feeder.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/stonesoup.feeder.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/stonesoup.hypothesiser.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/stonesoup.hypothesiser.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/stonesoup.initiator.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/stonesoup.initiator.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/stonesoup.mixturereducer.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/stonesoup.mixturereducer.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/stonesoup.reader.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/stonesoup.reader.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/stonesoup.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/stonesoup.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/stonesoup.sensor.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/stonesoup.sensor.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/stonesoup.simulator.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/stonesoup.simulator.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/stonesoup.tracker.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/stonesoup.tracker.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/stonesoup.types.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/stonesoup.types.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/stonesoup.updater.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/stonesoup.updater.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/base.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/base.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/dataassociator/_assignment.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/dataassociator/_assignment.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/dataassociator/probability.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/dataassociator/probability.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/dataassociator/tests/test_probability.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/dataassociator/tests/test_probability.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/dataassociator/tracktotrack.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/dataassociator/tracktotrack.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/feeder/geo.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/feeder/geo.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/feeder/tests/test_geo.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/feeder/tests/test_geo.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/hypothesiser/distance.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/hypothesiser/distance.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/hypothesiser/filtered.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/gater/filtered.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/hypothesiser/probability.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/hypothesiser/probability.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/hypothesiser/tests/test_filtered.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/gater/tests/test_filtered.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/initiator/simple.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/initiator/simple.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/initiator/tests/test_simple.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/initiator/tests/test_simple.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/metricgenerator/base.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/metricgenerator/base.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/metricgenerator/ospametric.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/metricgenerator/ospametric.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/stonesoup/models/base.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/models/base.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/models/measurement/base.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/models/measurement/base.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/models/measurement/linear.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/models/measurement/linear.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/models/measurement/nonlinear.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/models/measurement/nonlinear.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/models/measurement/tests/test_lg.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/models/measurement/tests/test_lg.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/models/measurement/tests/test_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/models/measurement/tests/test_models.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/stonesoup/models/transition/linear.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/models/transition/linear.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/stonesoup/predictor/multi_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/predictor/multi_model.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/stonesoup/predictor/tests/test_particle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/predictor/tests/test_particle.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/models/transition/tests/test_ca.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/models/transition/tests/test_ca.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/models/transition/tests/test_combined.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/models/transition/tests/test_combined.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/models/transition/tests/test_ct.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/models/transition/tests/test_ct.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/models/transition/tests/test_cv.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/models/transition/tests/test_cv.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/models/transition/tests/test_ou.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/models/transition/tests/test_ou.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/models/transition/tests/test_rw.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/models/transition/tests/test_rw.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/models/transition/tests/test_singer.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/models/transition/tests/test_singer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/models/transition/tests/test_singer_approximate.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/models/transition/tests/test_singer_approximate.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/models/transition/tests/test_time_invariant.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/models/transition/tests/test_time_invariant.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/platform/base.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/platform/base.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/platform/simple.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/platform/tests/test_platform_base.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/platform/tests/test_platform_base.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/platform/tests/test_platform_simple.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/platform/tests/test_platform_simple.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/predictor/kalman.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/predictor/kalman.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/predictor/particle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/predictor/particle.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/predictor/tests/test_kalman.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/predictor/tests/test_kalman.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/reader/generic.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/reader/generic.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/reader/tests/test_generic.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/reader/tests/test_generic.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/resampler/particle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/resampler/particle.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/sensor/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/sensor/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/sensor/base.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/sensor/base.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/sensor/passive.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/sensor/passive.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/sensor/radar.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/sensor/tests/test_passive.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/sensor/tests/test_passive.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/sensor/tests/test_radar.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/serialise.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/serialise.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/simulator/simple.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/simulator/simple.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/simulator/tests/conftest.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/simulator/tests/conftest.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/simulator/tests/test_detections.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/simulator/tests/test_detections.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/smoother/lineargaussian.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/smoother/lineargaussian.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/smoother/tests/test_lineargaussian.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/smoother/tests/test_lineargaussian.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/tests/conftest.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/tests/conftest.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/tests/test_declarative.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/tests/test_declarative.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/tests/test_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/tests/test_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/tests/test_serialise.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/tests/test_serialise.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/tracker/simple.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/tracker/simple.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/tracker/tests/conftest.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/tracker/tests/conftest.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/types/angle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/types/angle.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/types/array.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/types/array.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/types/groundtruth.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/types/groundtruth.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/types/particle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/types/particle.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/types/prediction.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/types/prediction.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/types/sensordata.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/types/sensordata.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/types/state.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/types/state.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/types/tests/test_angle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/types/tests/test_angle.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/types/tests/test_array.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/types/tests/test_array.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/types/tests/test_state.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/types/tests/test_state.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/types/track.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/types/track.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/types/update.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/types/update.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/updater/kalman.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/updater/kalman.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/updater/particle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/updater/particle.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/updater/tests/test_kalman.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/updater/tests/test_kalman.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/updater/tests/test_particle.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/updater/tests/test_particle.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/writer/tests/conftest.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/writer/tests/conftest.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stonesoup/writer/tests/test_yaml.py" beforeDir="false" afterPath="$PROJECT_DIR$/stonesoup/writer/tests/test_yaml.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />

@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
+import numpy as np
 import pytest
 from ruamel.yaml.constructor import ConstructorError
 
+from stonesoup.sensor.sensor import Sensor
+from stonesoup.types.array import StateVector
 from ..serialise import YAML
 from ..base import Property
 
@@ -64,8 +67,6 @@ def test_duplicate_tag_warning(base, serialised_file):
 
 
 def test_numpy(base, serialised_file):
-    import numpy as np
-
     class _TestNumpy(base):
         property_d = Property(np.ndarray)
 
@@ -77,6 +78,17 @@ def test_numpy(base, serialised_file):
     new_instance = serialised_file.load(serialised_str)
     assert isinstance(new_instance.property_d, np.ndarray)
     assert np.allclose(instance.property_d, new_instance.property_d)
+
+
+@pytest.mark.parametrize(
+    'values',
+    [[np.int_(10), np.int16(20), np.int64(-30)],
+     [np.float_(10.0), np.float64(20.1), np.float32(-0.5), np.longfloat(10.5)]],
+    ids=['int', 'float'])
+def test_numpy_dtypes(serialised_file, values):
+    serialised_str = serialised_file.dumps(values)
+    new_values = serialised_file.load(serialised_str)
+    assert new_values == values
 
 
 def test_datetime(base, serialised_file):
@@ -93,6 +105,18 @@ def test_datetime(base, serialised_file):
     new_instance = serialised_file.load(serialised_str)
     assert isinstance(new_instance.property_d, datetime.timedelta)
     assert instance.property_d == new_instance.property_d
+
+
+def test_deque(base, serialised_file):
+    from collections import deque
+
+    max_len = 5
+    instance = deque([3, 4, 5, 6, 7, 8, 9], max_len)
+
+    serialised_str = serialised_file.dumps(instance)
+
+    new_instance = serialised_file.load(serialised_str)
+    assert new_instance == instance
 
 
 def test_path(serialised_file):
@@ -175,3 +199,27 @@ def test_missing_property(base, serialised_file):
 
     with pytest.raises(ConstructorError, match="missing a required argument"):
         serialised_file.load(serialised_str)
+
+
+def test_sensor_serialisation(serialised_file):
+    class TestSensor(Sensor):
+        def measure(self):
+            pass
+
+    sensor = TestSensor()
+    assert sensor.position is None
+    assert sensor.orientation is None
+    serialised_str = serialised_file.dumps(sensor)
+    sensor = serialised_file.load(serialised_str)
+    assert sensor.position is None
+    assert sensor.orientation is None
+
+    pos = StateVector([0, 1, 2])
+    orientation = StateVector([0, np.pi/2, np.pi/4])
+    sensor = TestSensor(position=pos, orientation=orientation)
+    assert np.allclose(sensor.position, pos)
+    assert np.allclose(sensor.orientation, orientation)
+    serialised_str = serialised_file.dumps(sensor)
+    sensor = serialised_file.load(serialised_str)
+    assert np.allclose(sensor.position, pos)
+    assert np.allclose(sensor.orientation, orientation)

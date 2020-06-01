@@ -109,7 +109,7 @@ class LongLatToUTMConverter(Feeder):
             utm_detections = set()
             for detection in detections:
                 easting, northing, zone_num, northern = utm.from_latlon(
-                    *detection.state_vector[self.mapping[::-1], 0],
+                    *detection.state_vector[self.mapping[::-1], :],
                     self.zone_number)
                 if self.zone_number is None:
                     self.zone_number = zone_num
