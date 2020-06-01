@@ -191,35 +191,16 @@ class RaoBlackwellisedMultiModelPredictor(Predictor):
 
         new_particles = []
         for particle in prior.particles:
-
-            # Change the value of the dynamic value randomly according to the defined transition matrix
-            new_dynamic_model = np.random.choice(
-                list(range(len(particle.model_probabilities))),
-                p=particle.model_probabilities)
-
-            # Based on given position mapping create a new state vector that contains only the required states
-            required_state_space = particle.state_vector[
-                    np.array(self.position_mapping[new_dynamic_model])
-            ]
-
-            new_state_vector = self.transition_model[
-                new_dynamic_model].function(
-                required_state_space,
+            new_state_vector = self.transition_model.function(
+                particle,
+                noise=True,
                 time_interval=time_interval,
                 **kwargs)
 
-            # Calculate the indices removed from the state vector to become compatible with the dynamic model
-            for j in range(len(particle.state_vector)):
-                if j not in self.position_mapping[new_dynamic_model]:
-                    new_state_vector = np.insert(new_state_vector, j, 0)
-
-            new_state_vector = np.reshape(new_state_vector, (-1, 1))
-
             new_particles.append(
-                RaoBlackwellisedParticle(new_state_vector,
-                                         weight=particle.weight,
-                                         parent=particle,
-                                         model_probabilities=particle.model_probabilities)
-            )
+                Particle(new_state_vector,
+                         weight=particle.weight,
+                         parent=particle.parent,
+                         model_probabilities=particle.model_probabilities))
 
         return ParticleStatePrediction(new_particles, timestamp=timestamp)

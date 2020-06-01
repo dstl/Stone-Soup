@@ -49,6 +49,12 @@ Numeric Types
 .. automodule:: stonesoup.types.numeric
     :show-inheritance:
 
+Mixture Types
+-------------   
+
+.. automodule:: stonesoup.types.mixture
+    :show-inheritance:
+
 Particle Types
 --------------
 

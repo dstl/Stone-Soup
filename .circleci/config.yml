@@ -78,7 +78,11 @@ jobs:
           command: |
             . venv/bin/activate
             cd docs
-            make html
+            sphinx-build -b html -D sphinx_gallery_conf.junit=../test-reports/sphinx-gallery/junit.xml source build/html
       - store_artifacts:
           path: docs/build/html
           destination: docs
+      - store_test_results:
+          path: docs/build/test-reports
+      - store_artifacts:
+          path: docs/build/test-reports

@@ -4,18 +4,18 @@ import datetime
 import pytest
 import numpy as np
 
-from ..probability import SimplePDA, JPDA
+from ..probability import PDA, JPDA
 from ...types.detection import Detection, MissedDetection
 from ...types.state import GaussianState
 from ...types.track import Track
 
 
-@pytest.fixture(params=[SimplePDA, JPDA])
+@pytest.fixture(params=[PDA, JPDA])
 def associator(request, probability_hypothesiser):
-    if request.param is SimplePDA:
+    if request.param is PDA:
         return request.param(probability_hypothesiser)
     elif request.param is JPDA:
-        return request.param(probability_hypothesiser, 5)
+        return request.param(probability_hypothesiser)
 
 
 def test_probability(associator):

@@ -19,3 +19,9 @@ Probability
 .. automodule:: stonesoup.hypothesiser.probability
     :show-inheritance:
 
+Gaussian Mixture
+----------------
+
+.. automodule:: stonesoup.hypothesiser.gaussianmixture
+    :show-inheritance:
+

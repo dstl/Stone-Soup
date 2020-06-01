@@ -26,33 +26,24 @@ def test_particle():
     lg = LinearGaussian(ndim_state=2, mapping=[0],
                         noise_covar=np.array([[0.04]]))
     timestamp = datetime.datetime.now()
-    particles = [Particle(np.array([[10], [10]]),
-                          1 / 9),
-                 Particle(np.array([[10], [20]]),
-                          1 / 9),
-                 Particle(np.array([[10], [30]]),
-                          1 / 9),
-                 Particle(np.array([[20], [10]]),
-                          1 / 9),
-                 Particle(np.array([[20], [20]]),
-                          1 / 9),
-                 Particle(np.array([[20], [30]]),
-                          1 / 9),
-                 Particle(np.array([[30], [10]]),
-                          1 / 9),
-                 Particle(np.array([[30], [20]]),
-                          1 / 9),
-                 Particle(np.array([[30], [30]]),
-                          1 / 9),
+    particles = [Particle([[10], [10]], 1 / 9),
+                 Particle([[10], [20]], 1 / 9),
+                 Particle([[10], [30]], 1 / 9),
+                 Particle([[20], [10]], 1 / 9),
+                 Particle([[20], [20]], 1 / 9),
+                 Particle([[20], [30]], 1 / 9),
+                 Particle([[30], [10]], 1 / 9),
+                 Particle([[30], [20]], 1 / 9),
+                 Particle([[30], [30]], 1 / 9),
                  ]
 
     prediction = ParticleStatePrediction(particles,
                                          timestamp=timestamp)
-    measurement = Detection(np.array([[20]]), timestamp=timestamp)
+    measurement = Detection([[20]], timestamp=timestamp)
     resampler = SystematicResampler()
     updater = ParticleUpdater(lg, resampler)
     eval_measurement_prediction = ParticleMeasurementPrediction([
-                                            Particle(i.state_vector[0], 1 / 9)
+                                            Particle(i.state_vector[0, :], 1 / 9)
                                             for i in particles],
                                             timestamp=timestamp)
 
@@ -226,3 +217,4 @@ def test_rao_blackwellised_updater():
     # Run assertions to see if the updater algorithm matches that of the manual Rao-Blackwellised calculation.
     assert np.allclose(new_probs_for_particle_1, post.particles[0].model_probabilities)
     assert np.allclose(new_probs_for_particle_2, post.particles[1].model_probabilities)
+    assert np.allclose(updated_state.state_vector, np.array([[20], [20]]))

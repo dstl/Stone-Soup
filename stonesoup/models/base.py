@@ -6,6 +6,7 @@ from scipy.stats import multivariate_normal
 
 from ..base import Base
 from ..functions import jacobian as compute_jac
+from ..types.array import StateVector, StateVectors
 from ..types.numeric import Probability
 
 
@@ -21,7 +22,7 @@ class Model(Base):
         pass
 
     @abstractmethod
-    def function(self, state_vector, noise=None):
+    def function(self, state, noise=False):
         """ Model function"""
         pass
 
@@ -31,7 +32,7 @@ class Model(Base):
         pass
 
     @abstractmethod
-    def pdf(self, state_vector1, state_vector2):
+    def pdf(self, state1, state2):
         """Model pdf/likelihood evaluator method"""
         pass
 
@@ -46,31 +47,30 @@ class LinearModel(Model):
         """ Model matrix"""
         pass
 
-    def function(self, state_vector, noise=None, **kwargs):
+    def function(self, state, noise=False, **kwargs):
         """Model linear function :math:`f_k(x(k),w(k)) = F_k(x_k) + w_k`
 
         Parameters
         ----------
-        state_vector: :class:`~.StateVector`
-            An input state vector
-        noise: :class:`numpy.ndarray`
+        state: :class:`~.State`
+            An input state
+        noise: :class:`numpy.ndarray` or bool
             An externally generated random process noise sample (the default is
-            `None`, in which case process noise will be generated via
-            :meth:`~.Model.rvs`)
+            `False`, in which case no noise will be added
+            if 'True', the output of :meth:`~.Model.rvs` is added)
 
         Returns
         -------
-        : :class:`numpy.ndarray`
-            The model function evaluated.
+        : :class:`State`
+            The updated State with the model function evaluated.
         """
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                noise = self.rvs(**kwargs)
+            else:
+                noise = 0
 
-        if noise is None:
-            # TODO: doesn't make sense for noise=None to generate noise
-            noise = self.rvs(**kwargs)
-        else:
-            noise = 0
-
-        return self.matrix(**kwargs) @ (state_vector + noise)
+        return self.matrix(**kwargs) @ state.state_vector + noise
 
 
 class NonLinearModel(Model):
@@ -78,13 +78,13 @@ class NonLinearModel(Model):
 
     Base/Abstract class for all non-linear models"""
 
-    def jacobian(self, state_vector, **kwargs):
+    def jacobian(self, state, **kwargs):
         """Model jacobian matrix :math:`H_{jac}`
 
         Parameters
         ----------
-        state_vector : :class:`~.StateVector`
-            An input state vector
+        state : :class:`~.State`
+            An input state
 
         Returns
         -------
@@ -94,21 +94,22 @@ class NonLinearModel(Model):
         """
 
         def fun(x):
-            return self.function(x, noise=0)
+            return self.function(x, noise=False)
 
-        return compute_jac(fun, state_vector)
+        return compute_jac(fun, state)
 
     @abstractmethod
-    def function(self, state_vector, noise=None, **kwargs):
+    def function(self, state, noise=False, **kwargs):
         """Model function :math:`f(t,x(t),w(t))`
 
         Parameters
         ----------
-        state_vector: :class:`~.StateVector`
-            An input state vector
-        noise: :class:`numpy.ndarray`
-            An externally generated random process noise sample (the default in
-            `None`, in which case process noise will be generated internally)
+        state: :class:`~.State`
+            An input state
+        noise: :class:`numpy.ndarray` or bool
+            An externally generated random process noise sample (the default is
+            `False`, in which case no noise will be added
+            if 'True', the output of :meth:`~.Model.rvs` is added)
 
         Returns
         -------
@@ -127,15 +128,15 @@ class ReversibleModel(NonLinearModel):
     of the relevant linear-to-non-linear function"""
 
     @abstractmethod
-    def inverse_function(self, state_vector, **kwargs):
+    def inverse_function(self, detection, **kwargs):
         """Takes in the result of the function and
         computes the inverse function, returning the initial
         input of the function.
 
         Parameters
         ----------
-        state_vector: :class:`~.StateVector`
-            Input state vector (non-linear format)
+        detection: :class:`~.Detection`
+            Input state (non-linear format)
 
         Returns
         -------
@@ -190,13 +191,18 @@ class GaussianModel(Model):
         noise = multivariate_normal.rvs(
             np.zeros(self.ndim), self.covar(**kwargs), num_samples)
 
-        return np.atleast_2d(noise).T
+        noise = np.atleast_2d(noise).T
 
-    def pdf(self, state_vector1, state_vector2, **kwargs):
+        if num_samples == 1:
+            return noise.view(StateVector)
+        else:
+            return noise.view(StateVectors)
+
+    def pdf(self, state1, state2, **kwargs):
         r"""Model pdf/likelihood evaluation function
 
-        Evaluates the pdf/likelihood of ``state_vector1``, given the state
-        ``state_vector2`` which is passed to :meth:`~.function`.
+        Evaluates the pdf/likelihood of ``state1``, given the state
+        ``state2`` which is passed to :meth:`~.function()`.
 
         In mathematical terms, this can be written as:
 
@@ -209,18 +215,19 @@ class GaussianModel(Model):
 
         Parameters
         ----------
-        state_vector1 : :class:`~.StateVector`
-        state_vector2 : :class:`~.StateVector`
+        state1 : :class:`~.State`
+        state2 : :class:`~.State`
 
         Returns
         -------
         : :class:`~.Probability`
-            The likelihood of ``state_vector1``, given ``state_vector2``
+            The likelihood of ``state1``, given ``state2``
         """
 
+        # Calculate difference before to handle custom types (mean defaults to zero)
+        # This is required as log pdf coverts arrays to floats
         likelihood = multivariate_normal.logpdf(
-            state_vector1.T,
-            mean=self.function(state_vector2, noise=0, **kwargs).ravel(),
+            (state1.state_vector - self.function(state2, **kwargs)).ravel(),
             cov=self.covar(**kwargs)
         )
         return Probability(likelihood, log_value=True)

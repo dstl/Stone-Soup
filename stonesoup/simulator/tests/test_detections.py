@@ -58,15 +58,18 @@ def test_switch_detection_simulator(
         timestep=timestep)
     meas_range = np.array([[-1, 1], [-1, 1]]) * 5000
 
+    # Create detector with 0 and 1 detection probability.
     detector = SwitchDetectionSimulator(
         groundtruth, measurement_model, meas_range, clutter_rate=3,
         detection_probabilities=[0, 1])
 
+    # Create reference detector with 1 detection probability.
     test_detector = SimpleDetectionSimulator(
         groundtruth, measurement_model, meas_range, clutter_rate=3,
         detection_probability=1
     )
 
+    # Run both detectors
     total_detections = set()
     clutter_detections = set()
     for step, (time, detections) in enumerate(detector):
@@ -77,17 +80,22 @@ def test_switch_detection_simulator(
         assert time == initial_state.timestamp + step * timestep
 
     test_detections = set()
+    test_clutter_detections = set()
     for step, (time, detections) in enumerate(test_detector):
         test_detections |= detections
+        test_clutter_detections |= test_detector.clutter_detections
 
     # Check both real and clutter detections are generated
-    assert len(total_detections) > len(clutter_detections)
+    assert len(total_detections)
+    assert len(clutter_detections)
 
     # Check clutter is generated within specified bounds
-    for clutter in clutter_detections:
+    for clutter in clutter_detections | test_clutter_detections:
         assert (meas_range[:, 0] <= clutter.state_vector.ravel()).all()
         assert (meas_range[:, 1] >= clutter.state_vector.ravel()).all()
 
-    assert detector.clutter_spatial_density == 3e-8
-
-    assert len(total_detections) < len(test_detections)
+    # Ensure switching probability detector has less detections than 100%
+    # detection probability detector i.e. it switched to zero probability
+    # of detection at some point.
+    assert len(total_detections - clutter_detections) \
+        < len(test_detections - test_clutter_detections)

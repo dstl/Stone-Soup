@@ -4,7 +4,7 @@ import pytest
 from ..base import Base, Property
 
 
-@pytest.fixture('session')
+@pytest.fixture(scope='session')
 def base():
     class _TestBase(Base):
         property_a = Property(int)

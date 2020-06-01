@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import scipy as sp
-from scipy.stats import multivariate_normal
+import numpy as np
 
 from ...base import Property
 from ...types.array import CovarianceMatrix
@@ -47,25 +46,23 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
         (:py:attr:`~ndim_meas`, :py:attr:`~ndim_state`)
             The model matrix evaluated given the provided time interval.
         """
-
-        """if the state has acceleration too, need to account for that. Need 1's where there are state dimensions"""
-
-        model_matrix = sp.zeros((self.ndim_meas, self.ndim_state))
+        model_matrix = np.zeros((self.ndim_meas, self.ndim_state))
         for dim_meas, dim_state in enumerate(self.mapping):
             if dim_state is not None:
                 model_matrix[dim_meas, dim_state] = 1
         return model_matrix
 
-    def function(self, state_vector, noise=None, **kwargs):
+    def function(self, state, noise=False, **kwargs):
         """Model function :math:`h(t,x(t),w(t))`
 
         Parameters
         ----------
-        state_vector: :class:`~.StateVector`
-            An input state vector
-        noise: :class:`numpy.ndarray`
-            An externally generated random process noise sample (the default in
-            `None`, in which case process noise will be added via :meth:`rvs`)
+        state: :class:`~.State`
+            An input state
+        noise: :class:`numpy.ndarray` or bool
+            An externally generated random process noise sample (the default is
+            `False`, in which case no noise will be added
+            if 'True', the output of :meth:`~.Model.rvs` is added)
 
         Returns
         -------
@@ -73,10 +70,13 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
             The model function evaluated given the provided time interval.
         """
 
-        if noise is None:
-            noise = self.rvs()  # TODO: change noise=None generates noise!
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                noise = self.rvs()
+            else:
+                noise = 0
 
-        return self.matrix(**kwargs)@state_vector + noise
+        return self.matrix(**kwargs)@state.state_vector + noise
 
     def covar(self, **kwargs):
         """Returns the measurement model noise covariance matrix.
@@ -116,7 +116,7 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
         """
 
         noise = multivariate_normal.rvs(
-            sp.zeros(self.ndim_meas), self.covar(), num_samples)
+            np.zeros(self.ndim_meas), self.covar(), num_samples)
 
         if num_samples == 1:
             return noise.reshape((-1, 1))
