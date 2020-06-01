@@ -44,7 +44,6 @@ class GaussianStatePrediction(Prediction, GaussianState):
 class WeightedGaussianStatePrediction(Prediction, TaggedWeightedGaussianState):
     """ WeightedGaussianStatePrediction type
 
-
     This is a simple Gaussian state prediction object, which, as the name
     suggests, is described by a Gaussian distribution
     with an associated weight.
@@ -56,8 +55,8 @@ class TaggedWeightedGaussianStatePrediction(Prediction,
     """ TaggedWeightedGaussianStatePrediction type
 
     This is a simple Gaussian state prediction object, which, as the name
-    suggests, is described by a Gaussian distribution.
-     with an associated weight and unique tag.
+    suggests, is described by a Gaussian distribution, with an associated
+    weight and unique tag.
     """
 
 
@@ -76,8 +75,8 @@ class GaussianMeasurementPrediction(MeasurementPrediction, GaussianState):
                  cross_covar=None, *args, **kwargs):
         if(cross_covar is not None
            and cross_covar.shape[1] != state_vector.shape[0]):
-            raise ValueError("cross_covar should have the same number of \
-                             columns as the number of rows in state_vector")
+            raise ValueError("cross_covar should have the same number of "
+                             "columns as the number of rows in state_vector")
         super().__init__(state_vector, covar, timestamp,
                          cross_covar, *args, **kwargs)
 

@@ -44,7 +44,7 @@ class Backward(Smoother):
 
         Parameters
         ----------
-        filtered_track : :class:`Track`
+        filtered_track : :class:`~.Track`
             :class:`~.Track` object consisting a of
             :class:`~.GaussianStateUpdate` objects.
 
@@ -52,7 +52,7 @@ class Backward(Smoother):
         -------
         smoothed_track : :class:`~.Track`
             :class:`~.Track` object containing smoothed
-            :class:`~.GaussianState`s.
+            :class:`~.GaussianState` objects.
         """
 
         estimates = self._get_estimates(filtered_track)

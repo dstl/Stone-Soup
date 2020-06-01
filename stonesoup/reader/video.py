@@ -62,7 +62,7 @@ class FrameReader(SensorDataReader):
         Note
         ----
         This is just a wrapper around (and therefore performs identically
-        to) :py:meth:`~frames_gen`.
+        to) :meth:`~frames_gen`.
 
         Yields
         ------
@@ -82,7 +82,7 @@ class VideoClipReader(FileReader, FrameReader):
     Usage of MoviePy allows for the application of clip transformations
     and effects, as per the MoviePy documentation_. Upon instantiation,
     the underlying MoviePy `VideoFileClip` instance can be accessed
-    through the :py:attr:`~clip` class property. This can then be used
+    through the :attr:`~clip` class property. This can then be used
     as expected, e.g.:
 
     .. code-block:: python
