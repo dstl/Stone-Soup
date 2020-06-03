@@ -27,6 +27,7 @@ sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../../'))
 
 from doc_extensions import gallery_scraper
+from sphinx_gallery.sorting import FileNameSortKey
 
 # -- General configuration ------------------------------------------------
 
@@ -63,6 +64,7 @@ sphinx_gallery_conf = {
      'reference_url': {'stonesoup': None},
      'remove_config_comments': True,
      'ignore_repr_types': r'matplotlib.figure',
+     'within_subsection_order': FileNameSortKey
 }
 
 intersphinx_mapping = {

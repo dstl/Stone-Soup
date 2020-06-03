@@ -43,7 +43,7 @@
 # .. math::
 #           \textbf{h}(\textbf{z}_{k}\ |\ \textbf{x}_{k},\ \textbf{v}_{k})
 #
-# which describes how the sensor (providing us with measurments) responds to the state
+# which describes how the sensor (providing us with measurements) responds to the state
 # :math:`\textbf{x}_{k}` of the object (at time :math:`k`), with some noise :math:`\textbf{v}_{k}`
 # (since our measurements come with their own uncertainties).
 #
@@ -99,17 +99,8 @@
 # *posterior* state estimate.
 
 # %%
-# **The following is a derivation of the anayltic solution to the recursive equations above,
+# **The following is a derivation of the analytic solution to the recursive equations above,
 # alongside a demonstration of the Kalman Filter within Stone Soup:**
-
-# Some general imports and set up
-from datetime import datetime
-from datetime import timedelta
-
-import numpy as np
-
-# Figure to plot truth (and future data)
-from matplotlib import pyplot as plt
 
 # %%
 # Simulate target
@@ -144,6 +135,11 @@ from matplotlib import pyplot as plt
 #               \Sigma_{\dot{y}x} & \Sigma_{\dot{y}\dot{x}} & \Sigma_{\dot{y}y} &
 #               \Sigma_{\dot{y}\dot{y}}
 #               \end{bmatrix}
+#
+# This is actually a definition of the variables' join variances.
+# For example for the variables :math:`X, Y`: :math:`Covariance(X, Y) = E[(X-E[X])(Y-E[Y])]`.
+# So, the elements on the diagonal are the variances for the corresponding variables.
+#
 #
 # Simulate target transition
 # ----------------------------
@@ -217,45 +213,72 @@ from matplotlib import pyplot as plt
 # predicted state (distribution) = previous state (distribution) after transition + some noise
 #
 # correlations between state parts = previous correlations after transition + some noise
-#
-# To start we'll create a simple truth path, with position at 1 second interval.
-# This will represent an object moving constantly in both :math:`x` and :math:`y`.
-# First we'll create a transition model. As we are working in two dimensions, we'll combine two 1D
-# constant velocity models.
-from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
+
+# %%
+# To start we'll create a simple :class:`~.GroundTruthPath`, which moves in 1 second intervals.
+# We will represent an object moving with :class:`~.ConstantVelocity` in both :math:`x` and
+# :math:`y` by stacking two 1-dimensional transition models.
+# The class :class:`~.ConstantVelocity` models transition as :math:`x_k = F_k x_{k-1} + w_{k}`
+# where :math:`x = \begin{bmatrix} x_{pos}\\ x_{vel} \end{bmatrix}` and
+# :math:`F_{k=t+\triangle t} = \begin{bmatrix} 1 & \triangle t\\ 0 & 1 \end{bmatrix}`.
+# At each time step, we will create a new :class:`~.GroundTruthState` and append this to a
+# :class:`~.GroundTruthPath`.
+
+# Some general imports and set up
+from datetime import datetime
+from datetime import timedelta
+
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
-                                               ConstantVelocity
+    ConstantVelocity
+from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
+
+start_time = datetime.now()
+
+# Variance of 0.05 in both x and y directions.
+transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05),
+                                                          ConstantVelocity(0.05)])
+
+# The target starts at the origin, with an initial velocity of :math:`1` in both the :math:`x` and
+# :math:`y` directions and begins at the time stamp specified.
+truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=start_time)])
+for k in range(1, 21):
+    # Append a new ground truth state to the ground truth path in 1 second intervals.
+    truth.append(GroundTruthState(
+        transition_model.function(truth[k-1], noise=True, time_interval=timedelta(seconds=1)),
+        timestamp=start_time+timedelta(seconds=k)))
+
+# %%
+# Plotting the ground truth.
+from matplotlib import pyplot as plt
+
+# Making a figure for future plotting.
 fig = plt.figure(figsize=(10, 6))
 ax = fig.add_subplot(1, 1, 1)
 ax.set_xlabel("$x$")
 ax.set_ylabel("$y$")
 ax.axis('equal')
 
-start_time = datetime.now()
-transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05),
-                                                          ConstantVelocity(0.05)])
-truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=start_time)])
-for k in range(1, 21):
-    truth.append(GroundTruthState(
-        transition_model.function(truth[k-1], noise=True, time_interval=timedelta(seconds=1)),
-        timestamp=start_time+timedelta(seconds=k)))
-
-# Plot the result
 ax.plot([state.state_vector[0] for state in truth],
         [state.state_vector[2] for state in truth],
         linestyle="--")
 
 # %%
-# This model gives us our full transition matrix (shown here for period 1 second):
+# This model gives us our full transition matrix (shown here for a period of 1 second):
 transition_model.matrix(time_interval=timedelta(seconds=1))
 
 # %%
-# And the *process noise* covariance (shown here for period of 1 second):
+# And the *process noise* covariance (shown here for a period of 1 second):
 transition_model.covar(time_interval=timedelta(seconds=1))
 
 # %%
 # Create Kalman predictor
 # ---------------------------------
+# Prediction relies on a model for the target's transition, so the :class:`~.KalmanPredictor` takes
+# this as its argument.
+# In reality, the true transitions of the target would be unknown, and we would use a transition
+# model to approximate movement. For the sake of these tutorials, we will use the same model that
+# created the ground truth for the prediction step.
+
 from stonesoup.predictor.kalman import KalmanPredictor
 predictor = KalmanPredictor(transition_model)
 
@@ -263,11 +286,11 @@ predictor = KalmanPredictor(transition_model)
 # Simulate measurement
 # --------------------
 # Given a prediction of the target's state and covariance at time :math:`k`, we receive a
-# measurement from a sensor (by weighing our "trust" in our own prediciton, and that of the
+# measurement from a sensor (by weighing our "trust" in our own prediction, and that of the
 # sensor's measurement, we can provide a refined estimate of the target's state at time :math:`k`).
 #
 # Obviously, a measurement depends on the actual state of the system. We can infer that, given our
-# prediciton, :math:`\exists` some mapping :math:`H_{k}:\ state\mapsto\ measurement` such that we
+# prediction, there is some mapping :math:`H_{k}:\ state\mapsto\ measurement` such that we
 # can define a distribution of possible measurements we might get (and corresponding expected
 # covariance), given :math:`\hat{x}_{k}`:
 #
@@ -292,20 +315,29 @@ predictor = KalmanPredictor(transition_model)
 # Next we'll create our model which will describe errors of measuring in the observable state, and
 # how the hidden state maps to observable state. In this case we can simply map the :math:`x` and
 # :math:`y` directly.
-from stonesoup.types.detection import Detection
+
+import numpy as np
+
 from stonesoup.models.measurement.linear import LinearGaussian
 measurement_model = LinearGaussian(
-    4,  # Number of state dimensions (position and velocity in 2D)
-    (0, 2),  # Mapping measurement vector index to state index
-    np.array([[0.75, 0],  # Covariance matrix for Gaussian PDF
-              [0, 0.75]])
+    ndim_state=4,  # Our state space has 4 dimensions (2 positional and 2 velocity coordinates)
+    mapping=(0, 2),  # The 0 and 2 indices of the state vector correspond to position
+    noise_covar=np.array([[0.75, 0],
+                          [0, 0.75]])  # Covariance matrix. 0.75 metre variance in x and y
     )
+
+# %%
+# Pass the ground truth through the measurement model, and make a list of :class:`~.Detection`
+# types.
+
+from stonesoup.types.detection import Detection
+
 measurements = []
 for state in truth:
     measurement = measurement_model.function(state, noise=True)
     measurements.append(Detection(measurement, timestamp=state.timestamp))
 
-# Plot the result
+# Plot the measurements on top of ground truth.
 ax.scatter([state.state_vector[0] for state in measurements],
            [state.state_vector[1] for state in measurements],
            color='b')
@@ -322,9 +354,11 @@ measurement_model.covar()
 # %%
 # Create Kalman updater
 # ---------------------
+# As the update step combines prediction with measurement, the :class:`~.KalmanUpdater` requires a
+# measurement model as an argument.
+
 from stonesoup.updater.kalman import KalmanUpdater
 updater = KalmanUpdater(measurement_model)
-
 
 # %%
 # For the sake of simplicity, consider just 1 dimension of this problem (determining :math:`x` and
@@ -363,20 +397,31 @@ updater = KalmanUpdater(measurement_model)
 #
 # This defines our best estimate :math:`\hat{x}_{k}'` of the state :math:`\vec{x}_{k}` of the
 # target at time :math:`k`.
+# :math:`K'` is called the 'Kalman gain' and can be considered as a sort weighting factor,
+# determining how much you trust your measurement over your prediction.
 # This can now be used in another phase of prediction, followed by adjustment from a measurement
 # etc.
 
 # %%
 # Running the Kalman Filter
 # --------------------------
+
 # Now we have the components, we can run our simulated data through the Kalman Filter.
-#
-# To start, we'll need to create a prior estimate of where we think our target will be.
+# To start, we'll need to create a prior estimate of where we think our target will be (as the
+# Kalman Filter recursive equations require a prior state at every iteration, hence the first step
+# will need something to kick things off). For this tutorial, we know exactly how our target starts
+# off, so a simple :class:`~.GaussianState` will be a good representative.
+
 from stonesoup.types.state import GaussianState
 prior = GaussianState([[0], [1], [0], [1]], np.diag([1.5, 0.5, 1.5, 0.5]), timestamp=start_time)
 
 # %%
-# With this, we'll now loop through our measurements, predicting and updating at each timestep.
+# With this, we'll now loop through our measurements, predicting and updating at each time step.
+# Now, we predict the next state from the 'prior' state with the Kalman predictor, group this with
+# an incoming measurement to make a :class:`~.SingleHypothesis` type, and use the Kalman updater to
+# make our 'posterior' state estimate (and its corresponding covariances).
+# The resulting estimations at each iteration are appended to a :class:`~.Track` type.
+
 from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.types.track import Track
 
@@ -389,14 +434,16 @@ for measurement in measurements:
     prior = track[-1]
 
 # %%
-# Plot the resulting track
+# Plot the resulting track.
 ax.plot([state.state_vector[0] for state in track],
         [state.state_vector[2] for state in track],
         marker=".")
 fig
 
 # %%
-# Adding error ellipses at each estimate
+# Adding error ellipses at each estimate (representing gaussian distributions to 1 standard
+# deviation).
+
 from matplotlib.patches import Ellipse
 for state in track:
     w, v = np.linalg.eig(measurement_model.matrix()@state.covar@measurement_model.matrix().T)
@@ -412,5 +459,10 @@ fig
 # sphinx_gallery_thumbnail_number = 4
 
 # %%
-# There are situations in which linearisation of the problem is not useful/possible.
-# For this, we require an adjusted process, as tackled by the **Extended Kalman Filter**.
+# There are situations in which a linear expression such as
+# :math:`\hat{x}_{k} = F_{k}\hat{x}_{k-1} + B_{k}\vec{u}_{k}` that models the underlying system is
+# not attainable.
+# Determining posterior covariances and the Kalman gain rely on us expressing transitions and
+# measurements in a linear/matrix form.
+# The **Extended Kalman Filter** handles these situations by linearising the offending non-linear
+# maps, as detailed in the next tutorial.
