@@ -183,7 +183,7 @@ class GaussianModel(Model):
 
         Returns
         -------
-        noise : 2-D array of shape (:attr:`~.ndim`, ``num_samples``)
+        noise : 2-D array of shape (:attr:`ndim`, ``num_samples``)
             A set of Np samples, generated from the model's noise
             distribution.
         """
@@ -202,7 +202,7 @@ class GaussianModel(Model):
         r"""Model pdf/likelihood evaluation function
 
         Evaluates the pdf/likelihood of ``state1``, given the state
-        ``state2`` which is passed to :meth:`~.function()`.
+        ``state2`` which is passed to :meth:`function()`.
 
         In mathematical terms, this can be written as:
 

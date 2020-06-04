@@ -109,7 +109,10 @@ class Property:
                  readonly=False):
         self.cls = cls
         self.default = default
-        self.doc = doc
+        self.doc = self.__doc__ = doc
+        # Fix for when ":" in doc string being interpreted as type in NumpyDoc
+        if doc is not None and ':' in doc:
+            self.__doc__ = ": " + doc
         self._setter = None
         self._getter = None
         self._deleter = None

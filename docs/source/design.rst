@@ -1,5 +1,5 @@
-Data Flows
-==========
+Framework Design
+================
 
 .. figure:: _static/Logical_Data_Flow.png
     :figwidth: 80%

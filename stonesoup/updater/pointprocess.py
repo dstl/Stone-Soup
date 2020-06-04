@@ -47,7 +47,7 @@ class PointProcessUpdater(Base):
     def update(self, hypotheses):
         """
         Updates the current components in a
-        :state:`GaussianMixture` by applying the underlying \
+        :class:`GaussianMixture` by applying the underlying \
         :class:`KalmanUpdater` updater to each component \
         with the supplied measurements.
 
@@ -58,7 +58,7 @@ class PointProcessUpdater(Base):
 
         Returns
         =======
-        updated_components : :state:`GaussianMixtureUpdate`
+        updated_components : :class:`GaussianMixtureUpdate`
             GaussianMixtureMultiTargetTracker with updated \
             components at time :math:`k+1`
         """

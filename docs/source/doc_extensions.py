@@ -25,7 +25,6 @@ def declarative_class(app, what, name, obj, options, lines):
     """Add declared properties to Parameters list for numpydoc"""
     if what == "class" and issubclass(obj, Base):
         param_index = _headings("Parameters", lines)
-        attr_index = _headings("Attributes", lines)
         for name, property_ in obj.properties.items():
             # there may be a better way to do the check below, but the typing API is variable
             # across Python versions, making it tricky and this may do well enough.
@@ -59,9 +58,6 @@ def declarative_class(app, what, name, obj, options, lines):
                 name, doc_type, property_.doc or "").split("\n")
             lines[param_index:param_index] = new_lines
             param_index += len(new_lines)
-            attr_index += len(new_lines)
-            lines.insert(attr_index, name)
-            attr_index += 1
 
 
 def setup(app):

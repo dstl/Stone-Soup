@@ -588,8 +588,8 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
                 (x\dot{x} + y\dot{y})/\sqrt{x^2 + y^2}
                 \end{bmatrix} + \vec{v}_t
 
-    * :math:`\vec{v}_t` is Gaussian distributed with covariance\
-     :math:`R`, i.e.:
+    * :math:`\vec{v}_t` is Gaussian distributed with covariance
+      :math:`R`, i.e.:
 
     .. math::
 
