@@ -123,14 +123,14 @@ for state in truth:
 from stonesoup.functions import pol2cart
 
 x, y = pol2cart(
-    np.hstack(state.state_vector[1, 0] for state in measurements),
-    np.hstack(state.state_vector[0, 0] for state in measurements))
+    np.hstack([state.state_vector[1, 0] for state in measurements]),
+    np.hstack([state.state_vector[0, 0] for state in measurements]))
 ax.scatter(x + sensor_x, y + sensor_y, color='b')
 fig
 
 # %%
-# Create a :class:`~.ParticlePredictor`, which takes a collection of particles, with a given
-# transition model, and predicts them forward as with the :class:`~.KalmanPredictor`.
+# Create a :class:`~.ParticlePredictor`, which takes a collection of particles and propogates them
+# forward according to a given transition model, returning a :class:`~.ParticleStatePrediction`.
 
 from stonesoup.predictor.particle import ParticlePredictor
 predictor = ParticlePredictor(transition_model)
