@@ -90,7 +90,7 @@ sigma_weights
 
 from stonesoup.types.prediction import GaussianStatePrediction
 # Make prediction state that we will use to make our measurement predictions from.
-prediction = GaussianStatePrediction(state_vector=[[20], [1], [20], [1]],
+prediction = GaussianStatePrediction(state_vector=[[0], [1], [20], [1]],
                                      covar=np.diag([5, 1, 5, 1]),
                                      timestamp=datetime.now())
 
@@ -117,7 +117,7 @@ measurement_model = CartesianToBearingRange(
 
 # %%
 # The Extended Kalman Filter would certainly handle the non-linearity of the mapping
-# :math:`cartesian\mapsto \polar`, but would fall short (or in fact too far) in its prediction.
+# :math:`cartesian\mapsto polar`, but would fall short (or in fact too far) in its prediction.
 # Our sensor has a large bearing uncertainty. Consider the shape of this. We essentially have a
 # banana-shaped region of where we might find our measurement: A curve of possible bearings, and
 # a width of ranges.
@@ -141,10 +141,10 @@ ekf_pred_meas = extended_updater.predict_measurement(prediction)
 
 from matplotlib import pyplot as plt
 
-fig2 = plt.figure(figsize=(10, 6))
+fig2 = plt.figure(figsize=(10, 6), tight_layout=True)
 ax = fig2.add_subplot(1, 1, 1, polar=True)
-ax.set_ylim(0, 40)
-ax.set_xlim(0, np.radians(90))
+ax.set_ylim(0, 25)
+ax.set_xlim(0, np.radians(180))
 
 # Plot the sigma points of the state after being converted to measurement space (granted, we are
 # actually still plotting in cartesian space here, just with range/bearing lines superimposed) that
@@ -304,5 +304,5 @@ fig
 # sphinx_gallery_thumbnail_number = 2
 
 # %%
-# Although a bit manic, it is clear that the UKF better represents well the uncertainty of the
-# sensor throughout the filtering process.
+# Although a bit manic, it is clear that the UKF better represents the uncertainty of the sensor
+# throughout the filtering process.
