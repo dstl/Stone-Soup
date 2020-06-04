@@ -84,6 +84,7 @@ sigma_weights
 # %%
 # We might be given data from a sensor that provides accurate range, but incredibly bad bearing
 # measurements of targets.
+
 # %%
 # Set up a prediction state for the sensor to create a predicted measurement from.
 
@@ -114,6 +115,7 @@ measurement_model = CartesianToBearingRange(
     translation_offset=np.array([[sensor_x], [sensor_y]])
 )
 
+# %%
 # The Extended Kalman Filter would certainly handle the non-linearity of the mapping
 # :math:`cartesian\mapsto \polar`, but would fall short (or in fact too far) in its prediction.
 # Our sensor has a large bearing uncertainty. Consider the shape of this. We essentially have a
@@ -250,8 +252,8 @@ for state in truth:
 # Plot the measurements (turning them back in to cartesian coordinates (for the sake of a nice
 # plot)).
 x, y = pol2cart(
-    np.hstack(state.state_vector[1, 0] for state in measurements),
-    np.hstack(state.state_vector[0, 0] for state in measurements))
+    np.hstack([state.state_vector[1, 0] for state in measurements]),
+    np.hstack([state.state_vector[0, 0] for state in measurements]))
 ax.scatter(x + sensor_x, y + sensor_y, color='b')
 fig
 

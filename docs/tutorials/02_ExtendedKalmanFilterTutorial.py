@@ -278,8 +278,8 @@ plt.polar([state.state_vector[0, 0] for state in measurements],
 # Mapping these detections back in cartesian coordinates (the state space's positional subspace).
 from stonesoup.functions import pol2cart
 x, y = pol2cart(
-    np.hstack(state.state_vector[1, 0] for state in measurements),
-    np.hstack(state.state_vector[0, 0] for state in measurements))
+    np.hstack([state.state_vector[1, 0] for state in measurements]),
+    np.hstack([state.state_vector[0, 0] for state in measurements]))
 ax.scatter(x + sensor_x, y + sensor_y, color='b')
 fig
 
