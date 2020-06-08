@@ -543,7 +543,7 @@ def test_multi_transition():
     assert len(platform.transition_models) == 2
     assert len(platform.transition_times) == 2
 
-    #  Check that platform states lenght increases as platform moves
+    #  Check that platform states length increases as platform moves
     assert len(platform) == 1
     time = datetime.datetime.now()
     time += datetime.timedelta(seconds=1)
