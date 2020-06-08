@@ -59,7 +59,7 @@ The figure above shows the overall flow of data from the various components, sho
 how :class:`~.Detection` data can be read directly from a :class:`~.DetectionReader`, or maybe via
 a :class:`~.DetectionSimulator` which uses :class:`~.GroundTruthPath` data. This could also include
 reading data direct from a sensor. Outputs can also be passed into :class:`~.MetricGenerator`, or
-writen to file or database for later analysis. Note that all these components are optional.
+written to file or database for later analysis. Note that all these components are optional.
 
 Algorithm Components
 ^^^^^^^^^^^^^^^^^^^^
@@ -93,7 +93,7 @@ not only has a :attr:`~.GaussianState.state_vector` (Gaussian mean), but also ha
 :attr:`~.GaussianState.covar` (Gaussian covariance) and such describes the state with uncertainty
 in the form of a multivariate Gaussian distribution.
 
-Stone Soup also employs |duck typing|_, a technique than means that data types are flexible. For
+Stone Soup also employs |duck typing|_, a technique that means that data types are flexible. For
 example, a :class:`~.State` (as mentioned above) and :class:`~.GroundTruthPath` (describing how
 target's true state changes over time), both have a similar interface in terms of have a state
 vector and timestamp (in case of :class:`~.GroundTruthPath` the most recent
