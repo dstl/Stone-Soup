@@ -53,7 +53,7 @@ following:
     cd Stone-Soup
     python -m pip install -e .[dev]
 
-Please also see our :ref:`Contributing` page.
+Please also see our :ref:`contributing:Contributing` page.
 
 Contents:
 

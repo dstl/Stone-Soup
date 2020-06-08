@@ -43,6 +43,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.mathjax',
     'sphinx.ext.intersphinx',
+    'sphinx.ext.autosectionlabel',
     'sphinx_gallery.gen_gallery',
 ]
 napoleon_google_docstring = False
@@ -52,6 +53,8 @@ autodoc_default_options = {
     'member-order': 'bysource',
 }
 autodoc_mock_imports = ['ffmpeg', 'moviepy']
+
+autosectionlabel_prefix_document = True
 
 sphinx_gallery_conf = {
      'examples_dirs': ['../tutorials', ],   # path to your example scripts
