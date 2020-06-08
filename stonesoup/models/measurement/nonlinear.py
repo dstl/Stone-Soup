@@ -216,7 +216,7 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
         super().__init__(*args, **kwargs)
         # Set values to defaults if not provided
         if self.translation_offset is None:
-            self.translation_offset = StateVector([0] * self.ndim)
+            self.translation_offset = StateVector([0] * 3)
 
     @property
     def ndim_meas(self) -> int:
@@ -255,7 +255,7 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
                 noise = 0
 
         # Account for origin offset
-        xyz = state.state_vector[self.mapping] - self.translation_offset
+        xyz = state.state_vector[self.mapping, :] - self.translation_offset
 
         # Rotate coordinates
         xyz_rot = self._rotation_matrix @ xyz
@@ -351,7 +351,7 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
         super().__init__(*args, **kwargs)
         # Set values to defaults if not provided
         if self.translation_offset is None:
-            self.translation_offset = StateVector([0] * self.ndim)
+            self.translation_offset = StateVector([0] * 2)
 
     @property
     def ndim_meas(self) -> int:
@@ -499,7 +499,7 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
         super().__init__(*args, **kwargs)
         # Set values to defaults if not provided
         if self.translation_offset is None:
-            self.translation_offset = StateVector([0] * self.ndim_state)
+            self.translation_offset = StateVector([0] * 3)
 
     @property
     def ndim_meas(self) -> int:
