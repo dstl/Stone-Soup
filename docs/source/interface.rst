@@ -54,8 +54,8 @@ Simulation
     :noindex:
 
 
-Tracker Components
-------------------
+Algorithm Components
+--------------------
 .. autoclass:: stonesoup.dataassociator.DataAssociator
     :noindex:
 .. autoclass:: stonesoup.deleter.Deleter

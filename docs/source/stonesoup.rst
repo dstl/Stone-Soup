@@ -32,8 +32,8 @@ Enabling Components
     stonesoup.platform
     stonesoup.sensor
 
-Tracker Components
-^^^^^^^^^^^^^^^^^^
+Algorithm Components
+^^^^^^^^^^^^^^^^^^^^
 .. toctree::
 
     stonesoup.dataassociator
