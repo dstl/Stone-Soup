@@ -43,6 +43,7 @@ jobs:
           command: |
             bash <(curl -s https://codecov.io/bash) \
               -f test-reports/coverage.xml \
+              -F unittests \
               -n ${CIRCLE_BUILD_NUM}
   test-36:
     <<: *test-template
@@ -77,12 +78,19 @@ jobs:
           name: Build Docs
           command: |
             . venv/bin/activate
-            cd docs
-            sphinx-build -b html -D sphinx_gallery_conf.junit=../test-reports/sphinx-gallery/junit.xml source build/html
+            coverage run -m sphinx -b html -D sphinx_gallery_conf.junit=../../../test-reports/sphinx-gallery/junit.xml docs/source docs/build/html
+            coverage xml -o test-reports/coverage.xml
       - store_artifacts:
           path: docs/build/html
           destination: docs
       - store_test_results:
-          path: docs/build/test-reports
+          path: test-reports
       - store_artifacts:
-          path: docs/build/test-reports
+          path: test-reports
+      - run:
+          name: Upload Coverage Results
+          command: |
+            bash <(curl -s https://codecov.io/bash) \
+              -f test-reports/coverage.xml \
+              -F integration \
+              -n ${CIRCLE_BUILD_NUM}
