@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.stats import multivariate_normal
 
-from .base import Initiator, GaussianInitiator
+from .base import GaussianInitiator, ParticleInitiator
 from ..base import Property
 from ..models.measurement import MeasurementModel
 from ..models.base import NonLinearModel, ReversibleModel
@@ -185,7 +185,7 @@ class MultiMeasurementInitiator(GaussianInitiator):
         return sure_tracks
 
 
-class GaussianParticleInitiator(Initiator):
+class GaussianParticleInitiator(ParticleInitiator):
     """Gaussian Particle Initiator class
 
     Utilising Gaussian Initiator, sample from the resultant track's state
