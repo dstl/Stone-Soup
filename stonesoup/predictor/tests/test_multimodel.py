@@ -4,8 +4,8 @@ import datetime
 import numpy as np
 
 from ...models.transition.linear import ConstantVelocity, CombinedLinearGaussianTransitionModel, ConstantAcceleration
-from ...predictor.multi_model import MultiModelPredictor
-from ...types.particle import Particle
+from ...predictor.particle import MultiModelPredictor
+from ...types.particle import MultiModelParticle
 from ...types.state import ParticleState
 
 
@@ -17,57 +17,57 @@ def test_multi_model():
     new_timestamp = timestamp + datetime.timedelta(seconds=time_diff)
 
     # Define prior state.
-    prior_particles = [Particle(np.array([[10], [10], [10], [10], [10], [10], [10], [10], [10]]),
+    prior_particles = [MultiModelParticle(np.array([[10], [10], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[10], [20], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[10], [20], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[10], [30], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[10], [30], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[20], [10], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[20], [10], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[20], [20], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[20], [20], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[20], [30], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[20], [30], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[30], [10], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[30], [10], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[30], [20], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[30], [20], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
-                       Particle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
+                       MultiModelParticle(np.array([[30], [30], [10], [10], [10], [10], [10], [10], [10]]),
                                 1 / 9, dynamic_model=0),
                        ]
 
@@ -124,18 +124,16 @@ def test_multi_model():
 
     prior = ParticleState(prior_particles, timestamp=timestamp)
 
-    predictor = MultiModelPredictor(model_list=model_list,
-                                    position_mapping=position_mapping,
+    predictor = MultiModelPredictor(position_mapping=position_mapping,
                                     transition_matrix=transition,
-                                    transition_model=model_list[0])
+                                    transition_model=model_list)
 
-    prediction = predictor.predict(prior, timestamp=new_timestamp, multi_craft=True)[0]
+    prediction = predictor.predict(prior, timestamp=new_timestamp)
 
     dynamic_model_list = [p.dynamic_model for p in prediction.particles]
     dynamic_model_proportions = [dynamic_model_list.count(i) for i in range(len(transition))]
     dynamic_model_proportions = np.array(dynamic_model_proportions)
-    print(dynamic_model_proportions[dynamic_model_proportions > 0])
 
     assert prediction.timestamp == new_timestamp
     assert np.all([prediction.particles[i].weight == 1 / 9 for i in range(9)])
-    assert len(dynamic_model_proportions[dynamic_model_proportions > 0]) == len(transition)
+    assert len(dynamic_model_proportions) == len(transition)

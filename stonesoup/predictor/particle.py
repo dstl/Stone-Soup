@@ -52,8 +52,7 @@ class ParticlePredictor(Predictor):
             new_particles.append(
                 Particle(new_state_vector,
                          weight=particle.weight,
-                         parent=particle,
-                         dynamic_model=particle.dynamic_model))
+                         parent=particle))
 
         return ParticleStatePrediction(new_particles, timestamp=timestamp)
 
@@ -111,6 +110,7 @@ class MultiModelPredictor(Predictor):
 
                     # Change the value of the dynamic value randomly according to the defined transition matrix
                     new_dynamic_model = np.searchsorted(self.probabilities[model_index], random())
+                    # print(new_dynamic_model)
 
                     self.transition_model = self.model_list[particle.dynamic_model]
 
@@ -120,12 +120,14 @@ class MultiModelPredictor(Predictor):
                                                                 ]
                     new_state_vector = self.transition_model.function(
                         required_state_space,
+                        noise=True,
                         time_interval=time_interval,
                         **kwargs)
                     # Calculate the indices removed from the state vector to become compatible with the dynamic model
                     for j in range(len(particle.state_vector)):
                         if j not in self.position_mapping[particle.dynamic_model]:
                             new_state_vector = np.insert(new_state_vector, j, 0)
+                    # print(new_state_vector)
 
                     new_state_vector = np.reshape(new_state_vector, (-1, 1))
 
@@ -189,6 +191,7 @@ class RaoBlackwellisedMultiModelPredictor(Predictor):
             new_state_vector = self.transition_model[
                 new_dynamic_model].function(
                 required_state_space,
+                noise=True,
                 time_interval=time_interval,
                 **kwargs)
 

@@ -3,9 +3,11 @@ import datetime
 
 import numpy as np
 
-from ...models.transition.linear import ConstantVelocity
+from ...models.transition.linear import ConstantVelocity, CombinedLinearGaussianTransitionModel
 from ...predictor.particle import ParticlePredictor
+from ...predictor.particle import MultiModelPredictor
 from ...types.particle import Particle
+from ...types.particle import MultiModelParticle
 from ...types.prediction import ParticleStatePrediction
 from ...types.state import ParticleState
 
@@ -22,30 +24,30 @@ def test_particle():
 
     # Define prior state
     prior_particles = [Particle(np.array([[10], [10]]),
-                                1 / 9, dynamic_model=0),
+                                1 / 9),
                        Particle(np.array([[10], [20]]),
-                                1 / 9, dynamic_model=0),
+                                1 / 9),
                        Particle(np.array([[10], [30]]),
-                                1 / 9, dynamic_model=0),
+                                1 / 9),
                        Particle(np.array([[20], [10]]),
-                                1 / 9, dynamic_model=0),
+                                1 / 9),
                        Particle(np.array([[20], [20]]),
-                                1 / 9, dynamic_model=0),
+                                1 / 9),
                        Particle(np.array([[20], [30]]),
-                                1 / 9, dynamic_model=0),
+                                1 / 9),
                        Particle(np.array([[30], [10]]),
-                                1 / 9, dynamic_model=0),
+                                1 / 9),
                        Particle(np.array([[30], [20]]),
-                                1 / 9, dynamic_model=0),
+                                1 / 9),
                        Particle(np.array([[30], [30]]),
-                                1 / 9, dynamic_model=0),
+                                1 / 9),
                        ]
     prior = ParticleState(prior_particles, timestamp=timestamp)
 
     eval_particles = [Particle(cv.matrix(timestamp=new_timestamp,
                                          time_interval=time_interval)
                                @ particle.state_vector,
-                               1 / 9, dynamic_model=0)
+                               1 / 9)
                       for particle in prior_particles]
     eval_mean = np.mean(np.hstack([i.state_vector for i in eval_particles]),
                         axis=1).reshape(2, 1)

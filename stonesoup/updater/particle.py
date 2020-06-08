@@ -50,8 +50,6 @@ class ParticleUpdater(Updater):
         for particle in hypothesis.prediction.particles:
             particle.weight /= sum_w
 
-        # Only resamples if less than a quarter of the particles are effective.
-        # Resample
         new_particles = self.resampler.resample(
             hypothesis.prediction.particles)
 
@@ -111,6 +109,11 @@ class MultiModelParticleUpdater(Updater):
             measurement_model = hypothesis.measurement.measurement_model
 
         for particle in hypothesis.prediction.particles:
+
+            hypothesis.measurement.state_vector = np.reshape(
+                hypothesis.measurement.state_vector, (-1, 1)
+            )
+
             particle.weight *= measurement_model.pdf(
                 hypothesis.measurement, particle,
                 **kwargs) * predictor.transition_matrix[particle.parent.dynamic_model][particle.dynamic_model]
@@ -159,7 +162,7 @@ class RaoBlackwellisedParticleUpdater(Updater):
                          doc='Resampler to prevent particle degeneracy')
 
     def update(self, hypothesis, predictor=None, prior_timestamp=None,
-               transition=None, always_resample=True, **kwargs):
+               transition=None, **kwargs):
         """Particle Filter update step
 
         Parameters
@@ -179,11 +182,6 @@ class RaoBlackwellisedParticleUpdater(Updater):
                  [0.01 0.01 0.97 0.01]
                  [0.01 0.01 0.01 0.97]]
             which would represent using four models.
-        always_resample: :Boolean:
-            if True, then the particle filter will resample every time step.
-            Otherwise, will only resample when 50% or less of the particles
-            are deemed effective.
-            Calculated by 1 / sum(particle.weight^2) for all particles
         Returns
         -------
         : :class:`~.ParticleState`
@@ -202,6 +200,10 @@ class RaoBlackwellisedParticleUpdater(Updater):
                 particle, predictor.position_mapping, transition, predictor.transition_model, time_interval)
 
             particle.model_probabilities = new_model_probabilities
+
+            hypothesis.measurement.state_vector = np.reshape(
+                hypothesis.measurement.state_vector, (-1, 1)
+            )
 
             prob_y_given_x = measurement_model.pdf(
                 hypothesis.measurement, particle,
@@ -237,7 +239,6 @@ class RaoBlackwellisedParticleUpdater(Updater):
                 RaoBlackwellisedParticle(new_state_vector,
                                          weight=particle.weight,
                                          parent=particle.parent,
-                                         dynamic_model=particle.dynamicmodel,
                                          model_probabilities=particle.model_probabilities))
 
         return ParticleMeasurementPrediction(
@@ -270,7 +271,7 @@ class RaoBlackwellisedParticleUpdater(Updater):
                 # The noiseless application of m_k onto x_k-1
                 mean = model.function(
                     parent_required_state_space,
-                    time_interval=time_interval, noise=True)
+                    time_interval=time_interval, noise=False)
 
                 # Input the indices that were removed previously
                 for j in range(len(particle.state_vector)):
@@ -281,7 +282,7 @@ class RaoBlackwellisedParticleUpdater(Updater):
                 prob_position_given_model_and_old_position = multivariate_normal.pdf(
                     np.transpose(particle.state_vector),
                     mean=mean,
-                    cov=np.diag([0.75 for i in mean])
+                    cov=np.diag([0.75 for i in range(len(mean))])
                 )
                 # p(m_k-1|x_1:k-1)
                 prob_previous_iteration_given_model = previous_probabilities[l]

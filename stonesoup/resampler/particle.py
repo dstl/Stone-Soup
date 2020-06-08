@@ -66,9 +66,9 @@ class MultiModelSystematicResampler(Resampler):
 
         n_particles = len(particles)
         weight = Probability(1/n_particles)
-        cdf = np.cumsum([p.weight for p in particles])
+        particles_sorted = sorted(particles, key=attrgetter('weight'), reverse=False)
+        cdf = np.cumsum([p.weight for p in particles_sorted])
 
-        particles_listed = list(particles)
         # Pick random starting point
         u_i = np.random.uniform(0, 1 / n_particles)
         new_particles = []
@@ -78,7 +78,7 @@ class MultiModelSystematicResampler(Resampler):
         for j in range(n_particles):
 
             u_j = u_i + (1 / n_particles) * j
-            particle = particles_listed[np.argmax(u_j < cdf)]
+            particle = particles_sorted[np.argmax(u_j < cdf)]
             new_particles.append(
                 MultiModelParticle(particle.state_vector,
                                    weight=weight,
@@ -106,9 +106,9 @@ class RaoBlackwellisedSystematicResampler(Resampler):
 
         n_particles = len(particles)
         weight = Probability(1/n_particles)
-        cdf = np.cumsum([p.weight for p in particles])
+        particles_sorted = sorted(particles, key=attrgetter('weight'), reverse=False)
+        cdf = np.cumsum([p.weight for p in particles_sorted])
 
-        particles_listed = list(particles)
         # Pick random starting point
         u_i = np.random.uniform(0, 1 / n_particles)
         new_particles = []
@@ -118,7 +118,7 @@ class RaoBlackwellisedSystematicResampler(Resampler):
         for j in range(n_particles):
 
             u_j = u_i + (1 / n_particles) * j
-            particle = particles_listed[np.argmax(u_j < cdf)]
+            particle = particles_sorted[np.argmax(u_j < cdf)]
 
             new_particles.append(
                 RaoBlackwellisedParticle(particle.state_vector,
