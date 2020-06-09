@@ -611,8 +611,8 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
 
     Note
     ----
-    This class implementation assuming at 3D cartesian space, it therefore\
-     expects a 6D state space.
+    This class implementation assuming at 3D cartesian space, it therefore \
+    expects a 6D state space.
     """
 
     translation_offset = Property(
@@ -757,7 +757,7 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
 
     Note
     ----
-    This class implementation assuming at 3D cartesian space, it therefore\
+    This class implementation assuming at 3D cartesian space, it therefore \
     expects a 6D state space.
     """
 
