@@ -554,6 +554,103 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
         return out
 
 
+class Cartesian2DToBearing(NonLinearGaussianMeasurement):
+    r"""This is a class implementation of a time-invariant measurement model, where measurements \
+    are assumed to be received in the form of bearing (:math:`\phi`) with Gaussian noise.
+
+    The model is described by the following equations:
+
+    .. math::
+
+      \phi_t = h(\vec{x}_t, v_t)
+
+    * :math:`h` is a non-linear model function of the form:
+
+    .. math::
+
+      h(\vec{x}_t,v_t) = atan2(\mathcal{y},\mathcal{x}) + v_t
+
+    * :math:`v_t` is Gaussian distributed with covariance :math:`R`, i.e.:
+
+    .. math::
+
+      v_t \sim \mathcal{N}(0,\sigma_{\phi}^2)
+
+    The :py:attr:`mapping` property of the model is a 2 element vector, whose first \
+    (i.e. :py:attr:`mapping[0]`) and second (i.e. :py:attr:`mapping[1]`) elements contain the \
+    state index of the :math:`x` and :math:`y` coordinates, respectively.
+
+    """  # noqa:E501
+
+    translation_offset = Property(StateVector, default=StateVector(np.array([[0], [0]])),
+                                  doc="A 2x1 array specifying the origin offset in terms of \
+                                  :math:`x,y` coordinates.")
+
+    def __init__(self, *args, **kwargs):
+        """
+        Ensure that the translation offset is initiated
+        """
+        super().__init__(*args, **kwargs)
+        # Set values to defaults if not provided
+        if self.translation_offset is None:
+            self.translation_offset = StateVector([0] * 2)
+
+    @property
+    def ndim_meas(self):
+        """ndim_meas getter method
+
+            Returns
+            -------
+            :class:`int`
+                The number of measurement dimensions
+            """
+        return 1
+
+    def function(self, state, noise=False, **kwargs):
+        r"""Model function :math:`h(\vec{x}_t,v_t)`
+
+            Parameters
+            ----------
+            state: :class:`~.State`
+                An input state
+            noise: :class:`numpy.ndarray` or bool
+                An externally generated random process noise sample (the default is `False`, in
+                which case no noise will be added.
+                If 'True', the output of :meth:`~.Model.rvs` is added)
+
+            Returns
+            -------
+            :class:`numpy.ndarray` of shape (:py:attr:`~ndim_state`, 1)
+                The model function evaluated given the provided time interval.
+            """
+
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                noise = self.rvs()
+            else:
+                noise = 0
+
+        # Account for origin offset
+        xyz = [[state.state_vector[self.mapping[0], 0]
+                - self.translation_offset[0, 0]],
+               [state.state_vector[self.mapping[1], 0]
+                - self.translation_offset[1, 0]],
+               [0]]
+
+        # Rotate coordinates
+        xyz_rot = self._rotation_matrix @ xyz
+
+        # Covert to polar
+        _, phi = cart2pol(*xyz_rot[:2, 0])
+
+        return StateVector([[Bearing(phi)]]) + noise
+
+    def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
+        out = super().rvs(num_samples, **kwargs)
+        out = np.array([[Bearing(0.)]]) + out
+        return out
+
+
 class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of bearing \

@@ -1,20 +1,36 @@
 # -*- coding: utf-8 -*-
+import numpy as np
 import pytest
 from pytest import approx
-import numpy as np
 from scipy.stats import multivariate_normal
 
-from ....functions import rotz, rotx, roty, cart2sphere
 from ..nonlinear import (
     CartesianToElevationBearingRange, CartesianToBearingRange,
-    CartesianToElevationBearing, CartesianToBearingRangeRate,
+    CartesianToElevationBearing, Cartesian2DToBearing, CartesianToBearingRangeRate,
     CartesianToElevationBearingRangeRate)
 from ...base import ReversibleModel
-from ....types.state import State, CovarianceMatrix
 from ....functions import jacobian as compute_jac
+from ....functions import pol2cart
+from ....functions import rotz, rotx, roty, cart2sphere
 from ....types.angle import Bearing, Elevation
 from ....types.array import StateVector, StateVectors
-from ....functions import pol2cart
+from ....types.state import State, CovarianceMatrix
+
+
+def h1d(state_vector, pos_map, translation_offset, rotation_offset):
+    xyz = [[state_vector[0, 0] - translation_offset[0, 0]],
+           [state_vector[1, 0] - translation_offset[1, 0]],
+           [0]]
+
+    # Get rotation matrix
+    theta_x, theta_y, theta_z = - rotation_offset[:, 0]
+
+    rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
+    xyz_rot = rotation_matrix @ xyz
+
+    _, phi, _ = cart2sphere(*xyz_rot)
+
+    return StateVector([Bearing(phi)])
 
 
 def h2d(state_vector, pos_map, translation_offset, rotation_offset):
@@ -66,6 +82,26 @@ def hbearing(state_vector, pos_map, translation_offset, rotation_offset):
     "h, ModelClass, state_vec, R , mapping,\
      translation_offset, rotation_offset",
     [
+        (   # 1D meas, 2D state
+            h1d,
+            Cartesian2DToBearing,
+            StateVector([[0], [1]]),
+            CovarianceMatrix([[0.015]]),
+            np.array([0, 1]),
+            StateVector([[1], [-1]]),
+            StateVector([[0], [0], [1]])
+
+        ),
+        (   # 1D meas, 2D state
+            h1d,
+            Cartesian2DToBearing,
+            StateVector([[0], [1]]),
+            CovarianceMatrix([[0.015]]),
+            np.array([0, 1]),
+            None,
+            None
+
+        ),
         (   # 2D meas, 2D state
             h2d,
             CartesianToBearingRange,
@@ -131,7 +167,8 @@ def hbearing(state_vector, pos_map, translation_offset, rotation_offset):
             None
         )
     ],
-    ids=["BearingElevation1", "BearingElevation2",
+    ids=["Bearing1", "Bearing2",
+         "BearingElevation1", "BearingElevation2",
          "RangeBearingElevation1", "RangeBearingElevation1",
          "BearingsOnly1", "BearingsOnly2"]
 )
