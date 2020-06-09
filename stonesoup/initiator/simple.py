@@ -73,6 +73,7 @@ class SimpleMeasurementInitiator(GaussianInitiator):
     """
     prior_state = Property(GaussianState, doc="Prior state information")
     measurement_model = Property(MeasurementModel, doc="Measurement model")
+    skip_non_reversible = Property(bool, default=False)
 
     def initiate(self, detections, **kwargs):
         tracks = set()
@@ -90,6 +91,8 @@ class SimpleMeasurementInitiator(GaussianInitiator):
                     model_matrix = measurement_model.jacobian(State(
                         state_vector))
                     inv_model_matrix = np.linalg.pinv(model_matrix)
+                elif self.skip_non_reversible:
+                    continue
                 else:
                     raise Exception("Invalid measurement model used.\
                                     Must be instance of linear or reversible.")
