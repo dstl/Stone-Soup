@@ -5,8 +5,10 @@ from typing import Sequence, Tuple, Union
 
 import numpy as np
 from scipy.linalg import inv, pinv, block_diag
+from scipy.stats import multivariate_normal
 
 from ...base import Property
+from ...types.numeric import Probability
 
 from ...functions import cart2pol, pol2cart, \
     cart2sphere, sphere2cart, cart2angles, \
@@ -962,3 +964,64 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
         out = super().rvs(num_samples, **kwargs)
         out = np.array([[Elevation(0)], [Bearing(0)], [0.], [0.]]) + out
         return out
+
+
+class RangeVelocityBinning(CartesianToElevationBearingRangeRate):
+    range_res = Property(float, doc="Size of the range bins")
+    velocity_res = Property(float, doc="Size of the velocity bins")
+
+    @property
+    def ndim_meas(self):
+        return 4
+
+    def function(self, state, noise=False, **kwargs):
+        out = super().function(state, noise, **kwargs)
+
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                out[0] = np.floor(out[0] / self.range_res) * self.range_res
+                out[1] = np.floor(
+                    out[1] / self.velocity_res) * self.velocity_res
+
+        return out
+
+    def _gaussian_integral(self, a, b, mean, cov):
+        # the cumlative probability ranging from a to b for a normal distribution
+        # \frac{1}{\sigma\sqrt{2\pi}}\int_{a}^{b}e^{-\frac{1}{2}\left(\frac{x-\mu}{\sigma}\right)^{2}}
+        return (multivariate_normal.cdf(a, mean=mean,
+                                        cov=cov) - multivariate_normal.cdf(
+            b, mean=mean, cov=cov))
+
+    def _binned_pdf(self, state_vector, mean, bin_size, cov):
+        # this function finds the probability density at state_vector1
+        # by dividing the intergral of a probability density function, over a bin, by the bin size
+        a = np.floor(state_vector / bin_size) * bin_size + bin_size
+        b = np.floor(state_vector / bin_size) * bin_size
+        return self._gaussian_integral(a, b, mean, cov)
+
+    def pdf(self, state1, state2, **kwargs):
+        # state_vector1 is in measurement space
+        # state_vector2 is in state_space
+        if ((state1.state_vector[0, 0] / self.range_res).is_integer()
+                and (state1.state_vector[
+                         1, 0] / self.velocity_res).is_integer()):
+            mean_vector = self.function(state2, noise=False, **kwargs)
+            # pdf for the binned range and velocity
+            range_pdf = self._binned_pdf(
+                state1.state_vector[0, 0],
+                mean_vector[0, 0],
+                self.range_res,
+                self.covar()[0])
+            velocity_pdf = self._binned_pdf(
+                state1.state_vector[1, 0],
+                mean_vector[1, 0],
+                self.velocity_res,
+                self.covar()[1])
+            # pdf for the angles
+            az_el_pdf = multivariate_normal.pdf(
+                state1.state_vector[2:, 0],
+                mean=mean_vector[2:, 0],
+                cov=self.covar()[2:])
+            return Probability(range_pdf * velocity_pdf * az_el_pdf)
+        else:
+            return Probability(0)
