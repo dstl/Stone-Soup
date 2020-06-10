@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
 from operator import attrgetter
 
-import numpy as np
-
-from ..base import Property
 from .base import TrackToTrackAssociator
-from ..models.measurement import MeasurementModel
+from ..base import Property
+from ..measures import Measure, Euclidean
 from ..types.association import AssociationSet, TimeRangeAssociation
 from ..types.time import TimeRange
 
 
-class EuclideanTrackToTrack(TrackToTrackAssociator):
-    """Euclidean track to track associator
+class TrackToTrack(TrackToTrackAssociator):
+    """Track to track associator
 
     Compares two sets of :class:`~.tracks`, each formed of a sequence of
     :class:`~.State` objects and returns an :class:`~.Association` object for
@@ -46,14 +44,9 @@ class EuclideanTrackToTrack(TrackToTrackAssociator):
         doc="Number of consecutive time instances which track pairs are "
             "required to exceed a specified threshold in order for an "
             "association to be ended. Default is 2")
-    measurement_model_track1 = Property(
-        MeasurementModel,
-        doc="Measurement model which specifies which elements within the "
-            "track state are to be used to calculate distance over")
-    measurement_model_track2 = Property(
-        MeasurementModel,
-        doc="Measurement model which specifies which elements within the "
-            "track state are to be used to calculate distance over")
+    measure = Property(
+        Measure, default=Euclidean(),
+        doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
 
     def associate_tracks(self, tracks_set_1, tracks_set_2):
         """Associate two sets of tracks together.
@@ -102,9 +95,7 @@ class EuclideanTrackToTrack(TrackToTrackAssociator):
                 # Loop through every detection pair and form associations
                 for state1, state2 in zip(track1_states, track2_states):
 
-                    distance = np.linalg.norm(
-                        self.measurement_model_track1.function(state1)
-                        - self.measurement_model_track2.function(state2))
+                    distance = self.measure(state1, state2)
 
                     if distance <= self.association_threshold:
                         n_succesful += 1
@@ -138,8 +129,8 @@ class EuclideanTrackToTrack(TrackToTrackAssociator):
         return AssociationSet(associations)
 
 
-class EuclideanTrackToTruth(TrackToTrackAssociator):
-    """Euclidean track to truth associator
+class TrackToTruth(TrackToTrackAssociator):
+    """Track to truth associator
 
     Compares two sets of :class:`~.tracks`, each formed of a sequence of
     :class:`~.State` objects and returns an :class:`~.Association` object for
@@ -179,14 +170,9 @@ class EuclideanTrackToTruth(TrackToTrackAssociator):
         doc="Number of consecutive time instances which track-truth pairs are "
             "required to exceed a specified threshold in order for an "
             "association to be ended. Default is 2")
-    measurement_model_track = Property(
-        MeasurementModel,
-        doc="Measurement model which specifies which elements within the "
-            "track state are to be used to calculate distance over")
-    measurement_model_truth = Property(
-        MeasurementModel,
-        doc="Measurement model which specifies which elements within the "
-            "truth state are to be used to calculate distance over")
+    measure = Property(
+        Measure, default=Euclidean(),
+        doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
 
     def associate_tracks(self, tracks_set, truth_set):
         """Associate Tracks
@@ -231,9 +217,7 @@ class EuclideanTrackToTruth(TrackToTrackAssociator):
                     except IndexError:
                         continue
 
-                    distance = np.linalg.norm(
-                        self.measurement_model_track.function(track_state)
-                        - self.measurement_model_truth.function(truth_state))
+                    distance = self.measure(track_state, truth_state)
                     if min_dist and distance < min_dist:
                         min_dist = distance
                         min_truth = truth
