@@ -11,7 +11,6 @@ from PyQt5 import QtCore, QtWidgets, Qt
 import matplotlib
 # Make sure that we are using QT5
 import stonesoup
-from engine.yaml_importer import preferred_units
 from stonesoup.types.array import StateVector
 
 matplotlib.use('Qt5Agg')
@@ -137,6 +136,19 @@ def prettify(string: str):
 
 # noinspection PyCompatibility
 class PropertyWidgetBuilder:
+    """
+    Class variable preferred_units is a dict containing property names and preferred display
+    units, and a conversion factor for example if my_angle is stored in radians, but would more
+    naturally displayed in degrees and bandwidth is stored in Hertz, but you would like to display
+    in MHz. Can also be set with a conversion factor of one to just set the display unit.
+    preferred_units = {'my_angle': ('deg', 180/pi),
+                       'bandwidth': ('MHz', 1e6),
+                       'power': ('W', 1)}
+    Note this currently only uses property name for indexing. It could be extended to use class
+    name as well, by making the key a tuple.
+    In my case this is read in from a config file.
+    """
+    preferred_units = {}
 
     @LogFunction()
     def __init__(self, parent: QtWidgets.QWidget, model: stonesoup.types.base.Base,
@@ -146,7 +158,7 @@ class PropertyWidgetBuilder:
         self.property_name = property_name
         self.doc = property_.doc
         self.property_model = None
-        unit, self.conversion_factor = preferred_units.get(self.property_name, (None, 1))
+        unit, self.conversion_factor = self.preferred_units.get(self.property_name, (None, 1))
         self.display = True
 
         LOG.debug(property_name)
