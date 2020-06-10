@@ -82,6 +82,10 @@ class SimpleManager(MetricManager):
         : set of :class:`~.Metric`
             Metrics generated
         """
+
+        if self.associator is not None and self.association_set is None:
+            self.associate_tracks()
+
         metrics = set()
         for generator in self.generators:
             metric = generator.compute_metric(self)
