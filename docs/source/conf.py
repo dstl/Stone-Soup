@@ -54,8 +54,8 @@ autodoc_default_options = {
 autodoc_mock_imports = ['ffmpeg', 'moviepy']
 
 sphinx_gallery_conf = {
-     'examples_dirs': ['../tutorials', ],   # path to your example scripts
-     'gallery_dirs': ['auto_tutorials', ],   # path to where to save gallery generated output
+     'examples_dirs': ['../tutorials', '../examples'],
+     'gallery_dirs': ['auto_tutorials', 'auto_examples'],
      'filename_pattern': re.escape(os.sep),
      'image_scrapers': (gallery_scraper(),),
      'thumbnail_size': (800, 560),

@@ -52,6 +52,7 @@ Contents:
     design
     stonesoup
     auto_tutorials/index
+    auto_examples/index
     contributing
     copyright
 
