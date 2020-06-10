@@ -7,7 +7,8 @@ from scipy.stats import multivariate_normal
 from ..nonlinear import (
     CartesianToElevationBearingRange, CartesianToBearingRange,
     CartesianToElevationBearing, Cartesian2DToBearing, CartesianToBearingRangeRate,
-    CartesianToElevationBearingRangeRate)
+    CartesianToElevationBearingRangeRate, RangeVelocityBinning)
+
 from ...base import ReversibleModel
 from ....functions import jacobian as compute_jac
 from ....functions import pol2cart
@@ -628,3 +629,67 @@ def test_inverse_function():
     assert approx(inv_measure_state[3], 0.02) == 17.10
     assert approx(inv_measure_state[4], 0.02) == 1736.48
     assert approx(inv_measure_state[5], 0.02) == 17.36
+
+
+def test_binning():
+    real_state = State(state_vector=StateVector([10e3, 100., 10e3, 100., 10e3, 100.]))
+
+    measurement_model = RangeVelocityBinning(range_res=10,
+                                             velocity_res=5,
+                                             ndim_state=6,
+                                             mapping=[0, 2, 4],
+                                             velocity_mapping=[1, 3, 5],
+                                             noise_covar=np.array([100,
+                                                                   10,
+                                                                   np.pi/18,
+                                                                   np.pi/18]))
+
+    measured = measurement_model.function(real_state, noise=True)
+    assert (measured[0, 0]/measurement_model.range_res).is_integer()
+    assert (measured[1, 0]/measurement_model.velocity_res).is_integer()
+
+
+def test_binning_pdf():
+    real_state = State(state_vector=StateVector([10e3, 100., 10e3, 100., 10e3, 100.]))
+
+    measurement_model = RangeVelocityBinning(range_res = 10,
+                                             velocity_res = 5,
+                                             ndim_state=6,
+                                             mapping=[0,2,4],
+                                             velocity_mapping=[1,3,5],
+                                             noise_covar=np.array([100,
+                                                                   10,
+                                                                   np.pi/18,
+                                                                   np.pi/18]))
+
+    measured = measurement_model.function(real_state,noise=True)
+    pdf = measurement_model.pdf(State(measured),real_state)
+    assert pdf != 0
+    not_measured = measured.copy()
+    not_measured[0, 0] = not_measured[0,0] + 0.5*measurement_model.range_res
+    pdf = measurement_model.pdf(State(not_measured),real_state)
+    assert pdf == 0
+    not_measured = measured.copy()
+    not_measured[1, 0] = not_measured[1, 0] + 0.5*measurement_model.velocity_res
+    pdf = measurement_model.pdf(State(not_measured), real_state)
+    assert pdf == 0
+
+
+def test_binning_integral():
+    measurement_model = RangeVelocityBinning(range_res=None,
+                                             velocity_res=None,
+                                             ndim_state=None,
+                                             mapping=[],
+                                             velocity_mapping=[],
+                                             noise_covar=None)
+
+    mean = 33.33333
+    a = 40
+    b = 30
+    cov = 10
+    expected = 0.8365720412132509
+    assert approx(measurement_model._gaussian_integral(a, b, mean, cov), 0.02) == expected
+
+    bin_sizes = 10
+    state_vector1 = 39
+    assert approx(measurement_model._binned_pdf(state_vector1, mean, bin_sizes, cov)) == expected
