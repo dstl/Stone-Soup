@@ -7,6 +7,7 @@ import typing
 import weakref
 from enum import Enum
 
+import numpy as np
 from PyQt5 import QtCore, QtWidgets, Qt
 import matplotlib
 # Make sure that we are using QT5
@@ -18,9 +19,9 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure  # noqa E402
 
 
-LOG_ID = 'pairm_gui'
+LOG_ID = 'stonesoup'
 
-LOG = logging.getLogger()
+LOG = logging.getLogger(LOG_ID)
 ROW_HEIGHT_PIXELS = 17
 SPINBOX_SIGNIFICANT_FIGURES = 4
 
@@ -96,7 +97,7 @@ class OneDNumericModel(QtCore.QAbstractListModel):
     def setData(self, index: QtCore.QModelIndex, value: typing.Any,
                 role: int = Qt.Qt.DisplayRole) -> bool:
         assert index.column() == 0
-        self._data[index.row()] = value
+        self._data[index.row()] = float(value)
         self.dataChanged.emit(index, index)
         return True
 
@@ -104,6 +105,55 @@ class OneDNumericModel(QtCore.QAbstractListModel):
         length = len(self._data)
         # print(length)
         return length
+
+
+class NDArrayModel(QtCore.QAbstractTableModel):
+    @LogFunction()
+    def __init__(self, *args, array: np.ndarray = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        LOG.debug(f'NDArrayModel.__init__ array = {array}')
+        if array is None:
+            array = np.zeros((0, 0))
+        self.array = np.asarray(array)
+        LOG.debug(f'NDArrayModel.__init__ self.array = {repr(self.array)}')
+        if not self.array.ndim <= 2:
+            raise ValueError('View not implemented for arrays with more than 2 dimensions')
+
+    @LogFunction()
+    def data(self, index: QtCore.QModelIndex, role: int) -> typing.Any:
+        LOG.debug(f'NDArrayModel.data index = ({index.row()}, {index.column()})')
+        LOG.debug(f'NDArrayModel.data ndim = {self.array.ndim}')
+        LOG.debug(f'NDArrayModel.data role = {role} (Display is {Qt.Qt.DisplayRole})')
+        if role in (Qt.Qt.DisplayRole, Qt.Qt.EditRole):
+            if self.array.ndim == 2:
+                value = self.array[index.row(), index.column()]
+            elif self.array.ndim == 1:
+                value = self.array[index.column()]
+            else:
+                raise NotImplementedError
+            LOG.debug(f'NDArrayModel.data value = {value}')
+            return str(value)
+
+    @LogFunction()
+    def rowCount(self, parent: QtCore.QModelIndex = QtCore.QModelIndex()) -> int:
+        LOG.debug(f'NDArrayModel.rowCount ndim = {self.array.ndim}')
+        if self.array.ndim == 2:
+            rows = self.array.shape[1]
+        elif self.array.ndim == 1:
+            rows = self.array.shape[0]
+        else:
+            raise NotImplementedError
+        return rows
+
+    @LogFunction()
+    def columnCount(self, parent: QtCore.QModelIndex = QtCore.QModelIndex()) -> int:
+        if self.array.ndim == 2:
+            cols = self.array.shape[0]
+        elif self.array.ndim == 1:
+            cols = 1
+        else:
+            raise NotImplementedError
+        return cols
 
 
 class SpinBoxDelegate(QtWidgets.QStyledItemDelegate):
@@ -166,11 +216,11 @@ class PropertyWidgetBuilder:
         self.cls = property_.cls
         if self._is_not_set:
             self.widget = QtWidgets.QLabel('-')
+
         elif self.isnumeric:
             if self.cls is int:
                 self.widget = QtWidgets.QSpinBox(parent=parent)
             else:
-
                 self.widget = QtWidgets.QDoubleSpinBox(parent=parent)
                 self.widget.setDecimals(self._calculate_decimal_places())
                 self.widget.setSingleStep(self._calculate_step_size())
@@ -184,6 +234,7 @@ class PropertyWidgetBuilder:
                 self.widget.valueChanged.connect(self.on_value_change)
             self.widget.setValue(self.value)
             LOG.debug(f'{property_name}: finished getting text from model')
+
         elif self.cls in (typing.List[int], typing.Sequence[int], StateVector, typing.List[float]):
             self.widget = QtWidgets.QListView(parent=parent)
 
@@ -193,10 +244,12 @@ class PropertyWidgetBuilder:
                 self.widget.setItemDelegate(SpinBoxDelegate())
             self.property_model = OneDNumericModel(data=self.value)
             self.widget.setModel(self.property_model)
+
         elif self.cls is bool:
             self.widget = QtWidgets.QCheckBox()
             self.widget.stateChanged.connect(self.on_state_changed)
             self.widget.setChecked(self.value)
+
         elif self._is_enum:
             self.widget = QtWidgets.QComboBox()
             for entry in self.cls:
@@ -204,10 +257,17 @@ class PropertyWidgetBuilder:
             # noinspection PyUnresolvedReferences
             self.widget.currentIndexChanged.connect(self.on_index_change)
             self.widget.setCurrentIndex(self.widget.findData(self.value))
+
+        elif self.cls is np.ndarray:
+            self.widget = QtWidgets.QTableView()
+            self.property_model = NDArrayModel(array=self.value)
+            self.widget.setModel(self.property_model)
+
         elif self.cls is weakref.ref:
             # weakrefs are not useful to display, but also don't want to raise warnings.
             self.widget = None
             self.display = False
+
         else:
             self.widget = None
             LOG.warning(f'Class not implemented: {self.cls} for property {self.property_name}')
