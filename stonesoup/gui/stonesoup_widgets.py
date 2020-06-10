@@ -235,7 +235,7 @@ class PropertyWidgetBuilder:
             self.widget.setValue(self.value)
             LOG.debug(f'{property_name}: finished getting text from model')
 
-        elif self.cls in (typing.List[int], typing.Sequence[int], StateVector, typing.List[float]):
+        elif self._is_numeric_sequence(self.cls):
             self.widget = QtWidgets.QListView(parent=parent)
 
             self.widget.setMaximumHeight(ROW_HEIGHT_PIXELS * len(self.value)
@@ -276,6 +276,19 @@ class PropertyWidgetBuilder:
             if self._is_readonly:
                 self.widget.setEnabled(False)
             self.widget.setToolTip(self.doc)
+
+    @staticmethod
+    def _is_numeric_sequence(cls: type) -> bool:
+        if cls in (typing.List[int], typing.Sequence[int], StateVector, typing.List[float]):
+            return True
+        # the hack below needed because [int] is a list of length 1 containing the types int,
+        # not the type "list of int"
+        try:
+            if isinstance(cls, list) and issubclass(cls[0], numbers.Number):
+                return True
+        except TypeError:
+            return False
+        return False
 
     def _calculate_decimal_places(self) -> int:
         dec = decimal.Decimal(self.value)
@@ -353,18 +366,30 @@ class StoneSoupWidget(QtWidgets.QGroupBox):
         if header == '':
             header = obj.__class__.__name__
         QtWidgets.QGroupBox.__init__(self, header, parent=parent)
+        self.obj = obj
         self.widgets = []
         self.children = []
         # noinspection PyProtectedMember
         for prop_name, prop in obj._properties.items():
             try:
-                is_stone_soup_object = (issubclass(prop.cls, stonesoup.types.base.Base)
-                                        and getattr(obj, prop_name) is not None)
+                is_stone_soup_object = self._is_stone_soup_object(prop.cls, prop_name)
             except TypeError:
                 is_stone_soup_object = False
+            try:
+                is_sequence_of_stone_soup_objects = (isinstance(prop.cls, list)
+                                                     and self._is_stone_soup_object(prop.cls[0],
+                                                                                    prop_name))
+            except TypeError:
+                is_sequence_of_stone_soup_objects = False
             if is_stone_soup_object:
                 self.children.append(StoneSoupWidget(parent=self, obj=getattr(obj, prop_name),
                                                      header=prettify(prop_name)))
+            elif is_sequence_of_stone_soup_objects:
+                list_widget = QtWidgets.QGroupBox(prettify(prop_name))
+                list_widget.setLayout(QtWidgets.QVBoxLayout())
+                for list_entry in getattr(obj, prop_name):
+                    list_widget.layout().addWidget(StoneSoupWidget(parent=self, obj=list_entry))
+                self.children.append(list_widget)
             else:
                 widget = PropertyWidgetBuilder(self, obj, prop_name, prop)
                 self.widgets.append(widget)
@@ -383,3 +408,7 @@ class StoneSoupWidget(QtWidgets.QGroupBox):
 
         for widget in self.widgets:
             direct_layout.addRow(widget.make_label(), widget.widget)
+
+    def _is_stone_soup_object(self, cls, prop_name):
+        val = getattr(self.obj, prop_name)
+        return issubclass(cls, stonesoup.types.base.Base) and bool(val)
