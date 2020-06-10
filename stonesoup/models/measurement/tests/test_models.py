@@ -652,22 +652,22 @@ def test_binning():
 def test_binning_pdf():
     real_state = State(state_vector=StateVector([10e3, 100., 10e3, 100., 10e3, 100.]))
 
-    measurement_model = RangeVelocityBinning(range_res = 10,
-                                             velocity_res = 5,
+    measurement_model = RangeVelocityBinning(range_res=10,
+                                             velocity_res=5,
                                              ndim_state=6,
-                                             mapping=[0,2,4],
-                                             velocity_mapping=[1,3,5],
+                                             mapping=[0, 2, 4],
+                                             velocity_mapping=[1, 3, 5],
                                              noise_covar=np.array([100,
                                                                    10,
                                                                    np.pi/18,
                                                                    np.pi/18]))
 
-    measured = measurement_model.function(real_state,noise=True)
-    pdf = measurement_model.pdf(State(measured),real_state)
+    measured = measurement_model.function(real_state, noise=True)
+    pdf = measurement_model.pdf(State(measured), real_state)
     assert pdf != 0
     not_measured = measured.copy()
-    not_measured[0, 0] = not_measured[0,0] + 0.5*measurement_model.range_res
-    pdf = measurement_model.pdf(State(not_measured),real_state)
+    not_measured[0, 0] = not_measured[0, 0] + 0.5*measurement_model.range_res
+    pdf = measurement_model.pdf(State(not_measured), real_state)
     assert pdf == 0
     not_measured = measured.copy()
     not_measured[1, 0] = not_measured[1, 0] + 0.5*measurement_model.velocity_res
