@@ -119,6 +119,8 @@ class YAML:
                 "while constructing a Stone Soup component", node.start_mark,
                 "unable to import component {!r}".format(tag_suffix),
                 node.start_mark)
+        # Must have deep construct here to ensure mutable sub-objects are fully created.
+        constructor.deep_construct = True
         properties = [
             data
             for data in constructor.construct_yaml_omap(node)][0]
