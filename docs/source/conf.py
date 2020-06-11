@@ -43,6 +43,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.mathjax',
     'sphinx.ext.intersphinx',
+    'sphinx.ext.autosectionlabel',
     'sphinx_gallery.gen_gallery',
 ]
 napoleon_google_docstring = False
@@ -52,6 +53,8 @@ autodoc_default_options = {
     'member-order': 'bysource',
 }
 autodoc_mock_imports = ['ffmpeg', 'moviepy']
+
+autosectionlabel_prefix_document = True
 
 sphinx_gallery_conf = {
      'examples_dirs': ['../tutorials', '../demos'],
@@ -87,7 +90,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Stone Soup'
-copyright = '2017-2019 Stone Soup contributors'
+copyright = '2017-2020 Stone Soup contributors'
 author = 'Dstl'
 
 # The version info for the project you're documenting, acts as replacement for
