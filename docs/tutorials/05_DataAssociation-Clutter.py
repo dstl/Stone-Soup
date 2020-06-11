@@ -52,6 +52,7 @@ predictor = KalmanPredictor(transition_model)
 import numpy as np
 
 from scipy.stats import uniform
+
 from stonesoup.types.detection import TrueDetection
 from stonesoup.types.detection import Clutter
 from stonesoup.models.measurement.linear import LinearGaussian
@@ -76,8 +77,8 @@ for state in truth:
     truth_x = state.state_vector[0]
     truth_y = state.state_vector[2]
     for _ in range(np.random.randint(10)):
-        x = uniform.rvs(truth_x - 10, truth_x + 10)
-        y = uniform.rvs(truth_y - 10, truth_y + 10)
+        x = uniform.rvs(truth_x - 10, 20)
+        y = uniform.rvs(truth_y - 10, 20)
         measurement_set.add(Clutter(np.array([[x], [y]]), timestamp=state.timestamp))
 
     all_measurements.append(measurement_set)
