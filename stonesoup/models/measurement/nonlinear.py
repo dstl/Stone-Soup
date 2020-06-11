@@ -582,7 +582,7 @@ class Cartesian2DToBearing(NonLinearGaussianMeasurement):
 
     """  # noqa:E501
 
-    translation_offset = Property(StateVector, default=StateVector(np.array([[0], [0]])),
+    translation_offset = Property(StateVector, default=None,
                                   doc="A 2x1 array specifying the origin offset in terms of \
                                   :math:`x,y` coordinates.")
 
