@@ -8,12 +8,12 @@ import weakref
 from enum import Enum
 
 import numpy as np
-from PyQt5 import QtCore, QtWidgets, Qt
-import matplotlib
-# Make sure that we are using QT5
+from .qt import QtCore, QtWidgets, Qt
 import stonesoup
 from stonesoup.types.array import StateVector
 
+import matplotlib
+# Make sure that we are using QT5
 matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas  # noqa E402
 from matplotlib.figure import Figure  # noqa E402

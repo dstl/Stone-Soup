@@ -3,8 +3,7 @@ import os
 import sys
 from datetime import datetime, timedelta
 
-from PyQt5 import QtWidgets, QtCore
-import numpy as np
+from stonesoup.gui.qt import QtWidgets, QtCore
 
 from stonesoup.gui.stonesoup_widgets import MplCanvas, StoneSoupWidget
 from stonesoup.gui import stonesoup_widgets
