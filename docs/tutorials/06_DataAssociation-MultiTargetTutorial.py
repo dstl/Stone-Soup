@@ -60,7 +60,6 @@ for truth in truths:
     ax.plot([state.state_vector[0] for state in truth],
             [state.state_vector[2] for state in truth],
             linestyle="--",)
-fig
 
 # %%
 # And create the Kalman predictor.

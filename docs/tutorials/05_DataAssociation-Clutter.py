@@ -114,7 +114,6 @@ for set_ in all_measurements:
                [state.state_vector[1] for state in set_ if isinstance(state, Clutter)],
                color='y',
                marker='2')
-fig
 
 # %%
 # Distance Hypothesiser and Nearest Neighbour
