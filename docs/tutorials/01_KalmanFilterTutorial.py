@@ -286,7 +286,7 @@ predictor = KalmanPredictor(transition_model)
 # Simulate measurement
 # --------------------
 # Given a prediction of the target's state and covariance at time :math:`k`, we receive a
-# measurement from a sensor (by weighing our "trust" in our own prediction, and that of the
+# measurement from a sensor (by weighting our "trust" in our own prediction, and that of the
 # sensor's measurement, we can provide a refined estimate of the target's state at time :math:`k`).
 #
 # Obviously, a measurement depends on the actual state of the system. We can infer that, given our
