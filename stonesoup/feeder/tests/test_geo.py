@@ -10,11 +10,6 @@ from ...types.detection import Detection
 from ...types.groundtruth import GroundTruthState, GroundTruthPath
 
 
-@pytest.fixture(params=['detector', 'groundtruth'])
-def reader(request):
-    return request.getfixturevalue(request.param)
-
-
 @pytest.fixture()
 def detector():
     class Detector(DetectionReader):
