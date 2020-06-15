@@ -16,9 +16,11 @@ def test_passive_sensor():
                                    [0, np.deg2rad(0.1)]])
     detector_position = StateVector([1, 1, 0])
     detector_orientation = StateVector([0, 0, 0])
+    truth = set()
     target_state = State(detector_position +
                          np.array([[1], [1], [0]]),
                          timestamp=datetime.datetime.now())
+    truth.add(target_state)
     measurement_mapping = np.array([0, 1, 2])
 
     # Create a radar object
@@ -33,7 +35,8 @@ def test_passive_sensor():
     assert (np.equal(detector.position, detector_position).all())
 
     # Generate a noiseless measurement for the given target
-    measurement = detector.measure(target_state, noise=False)
+    measurement = detector.measure(truth, noise=False)
+    measurement = next(iter(measurement))  # Get measurement from set
 
     # Account
     xyz = target_state.state_vector - detector_position
@@ -54,3 +57,14 @@ def test_passive_sensor():
     assert (measurement.timestamp == target_state.timestamp)
     assert (np.equal(measurement.state_vector,
                      StateVector([theta, phi])).all())
+
+    target_state = State(detector_position +
+                         np.array([[-1], [-1], [0]]),
+                         timestamp=datetime.datetime.now())
+    truth.add(target_state)
+
+    # Generate a noiseless measurement for each of the given target states
+    measurements = detector.measure(truth, noise=False)
+
+    # Two measurements for 2 truth states
+    assert len(measurements) == 2

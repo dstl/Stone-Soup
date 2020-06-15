@@ -93,10 +93,13 @@ def test_simple_radar(h, sensorclass, ndim_state, pos_mapping, noise_covar, posi
 
     assert (np.equal(radar.position, position).all())
 
+    truth = set()
     target_state = State(target, timestamp=datetime.datetime.now())
+    truth.add(target_state)
 
     # Generate a noiseless measurement for the given target
-    measurement = radar.measure(target_state, noise=False)
+    measurement = radar.measure(truth, noise=False)
+    measurement = next(iter(measurement))  # Get measurement from set
 
     # Assert correction of generated measurement
     assert (measurement.timestamp == target_state.timestamp)
@@ -104,6 +107,15 @@ def test_simple_radar(h, sensorclass, ndim_state, pos_mapping, noise_covar, posi
                                                  pos_map=pos_mapping,
                                                  translation_offset=position,
                                                  rotation_offset=radar.orientation)).all())
+
+    target_state = State(target, timestamp=datetime.datetime.now())
+    truth.add(target_state)
+
+    # Generate a noiseless measurement for each of the given target states
+    measurements = radar.measure(truth)
+
+    # Two measurements for 2 truth states
+    assert len(measurements) == 2
 
 
 def h2d_rr(state, pos_map, vel_map, translation_offset, rotation_offset, velocity):
@@ -196,11 +208,14 @@ def test_range_rate_radar(h, sensorclass, pos_mapping, vel_mapping, noise_covar,
 
     assert (np.equal(radar.position, position).all())
 
+    truth = set()
     target_state = State(np.array([[200], [10], [0], [0], [0], [0]]),
                          timestamp=datetime.datetime.now())
+    truth.add(target_state)
 
     # Generate a noiseless measurement for the given target
-    measurement = radar.measure(target_state, noise=False)
+    measurement = radar.measure(truth, noise=False)
+    measurement = next(iter(measurement))  # Get measurement from set
 
     # Assert correction of generated measurement
     assert (measurement.timestamp == target_state.timestamp)
@@ -210,6 +225,16 @@ def test_range_rate_radar(h, sensorclass, pos_mapping, vel_mapping, noise_covar,
                                                  translation_offset=position,
                                                  rotation_offset=radar.orientation,
                                                  velocity=radar.velocity)).all())
+
+    target_state = State(np.array([[200], [10], [0], [0], [0], [0]]),
+                         timestamp=datetime.datetime.now())
+    truth.add(target_state)
+
+    # Generate a noiseless measurement for each of the given target states
+    measurements = radar.measure(truth)
+
+    # Two measurements for 2 truth states
+    assert len(measurements) == 2
 
 
 def test_rotating_radar():
@@ -232,9 +257,10 @@ def test_rotating_radar():
     max_range = 100     # Max range of 100m
     fov_angle = np.pi/3       # FOV angle of pi/3
 
-    target_state = State(radar_position +
-                         np.array([[5], [5]]),
-                         timestamp=timestamp)
+    truth = set()
+    target_state = State(radar_position + np.array([[5], [5]]), timestamp=timestamp)
+    truth.add(target_state)
+
     measurement_mapping = np.array([0, 1])
 
     # Create a radar object
@@ -252,17 +278,21 @@ def test_rotating_radar():
     assert(np.equal(radar.position, radar_position).all())
 
     # Generate a noiseless measurement for the given target
-    measurement = radar.measure(target_state, noise=False)
+    measurement = radar.measure(truth, noise=False)
 
-    # Assert measurement is None since target is not in FOV
-    assert(measurement is None)
+    # Assert no measurements since target is not in FOV
+    assert len(measurement) == 0
 
     # Rotate radar such that the target is in FOV
     timestamp = timestamp + datetime.timedelta(seconds=0.5)
-    target_state = State(radar_position +
-                         np.array([[5], [5]]),
-                         timestamp=timestamp)
-    measurement = radar.measure(target_state, noise=False)
+
+    truth = set()
+    target_state = State(radar_position + np.array([[5], [5]]), timestamp=timestamp)
+    truth.add(target_state)
+
+    measurement = radar.measure(truth, noise=False)
+    measurement = next(iter(measurement))
+
     eval_m = h2d(target_state,
                  measurement_mapping,
                  radar.position,
@@ -273,6 +303,15 @@ def test_rotating_radar():
     # Assert correction of generated measurement
     assert(measurement.timestamp == target_state.timestamp)
     assert(np.equal(measurement.state_vector, eval_m).all())
+
+    target_state = State(radar_position + np.array([[4], [4]]), timestamp=timestamp)
+    truth.add(target_state)
+
+    # Generate a noiseless measurement for each of the given target states
+    measurements = radar.measure(truth)
+
+    # Two measurements for 2 truth states
+    assert len(measurements) == 2
 
 
 def test_raster_scan_radar():
@@ -296,7 +335,10 @@ def test_raster_scan_radar():
     # This will be mean the dwell center will reach at the limits -pi/2 and
     # pi/2. As the edge of the beam will reach the full FOV
 
+    truth = set()
     target_state = State(radar_position + np.array([[-5], [5]]), timestamp=timestamp)
+    truth.add(target_state)
+
     measurement_mapping = np.array([0, 1])
 
     # Create a radar object
@@ -315,26 +357,33 @@ def test_raster_scan_radar():
     assert np.array_equal(radar.position, radar_position)
 
     # Generate a noiseless measurement for the given target
-    measurement = radar.measure(target_state, noise=False)
+    measurement = radar.measure(truth, noise=False)
 
-    # Assert measurement is None since target is not in FOV
-    assert measurement is None
+    # Assert no measurements since target is not in FOV
+    assert len(measurement) == 0
 
     # Rotate radar
     timestamp = timestamp + datetime.timedelta(seconds=0.5)
-    target_state = State(radar_position +
-                         np.array([[-5], [5]]),
-                         timestamp=timestamp)
-    measurement = radar.measure(target_state, noise=False)
-    # Assert measurement is None since target is not in FOV
-    assert measurement is None
+
+    truth = set()
+    target_state = State(radar_position + np.array([[-5], [5]]), timestamp=timestamp)
+    truth.add(target_state)
+
+    measurement = radar.measure(truth, noise=False)
+
+    # Assert no measurements since target is not in FOV
+    assert len(measurement) == 0
 
     # Rotate radar such that the target is in FOV
     timestamp = timestamp + datetime.timedelta(seconds=1.0)
-    target_state = State(radar_position +
-                         np.array([[-5], [5]]),
-                         timestamp=timestamp)
-    measurement = radar.measure(target_state, noise=False)
+
+    truth = set()
+    target_state = State(radar_position + np.array([[-5], [5]]), timestamp=timestamp)
+    truth.add(target_state)
+
+    measurement = radar.measure(truth, noise=False)
+    measurement = next(iter(measurement))
+
     eval_m = h2d(target_state,
                  [0, 1],
                  radar.position,
@@ -348,8 +397,7 @@ def test_raster_scan_radar():
 
 
 def test_aesaradar():
-    target = State([75e3, 0, 10e3, 0, 20e3, 0],
-                   timestamp=datetime.datetime.now())
+    target = State([75e3, 0, 10e3, 0, 20e3, 0], timestamp=datetime.datetime.now())
 
     radar = AESARadar(antenna_gain=30,
                       position_mapping=[0, 2, 4],
@@ -383,8 +431,7 @@ def test_swer(repeats=10000):
     # initialise list or rcs (radar cross sections)
     list_rcs = np.zeros(repeats)
     # generic target
-    target = State([75e3, 0, 10e3, 0, 20e3, 0],
-                   timestamp=datetime.datetime.now())
+    target = State([75e3, 0, 10e3, 0, 20e3, 0], timestamp=datetime.datetime.now())
     # define sensor
     radar = AESARadar(antenna_gain=30,
                       frequency=100e6,
@@ -435,16 +482,30 @@ def test_detection():
                           mapping=[0, 1, 2],
                           ndim_state=3))
 
+    truth = set()
     target = State([50e3, 10e3, 20e3], timestamp=datetime.datetime.now())
-    measurement = radar.measure(target)
+    truth.add(target)
+
+    measurement = radar.measure(truth)
+    measurement = next(iter(measurement))  # Get measurement from set
 
     assert np.allclose(measurement.state_vector,
                        StateVector([50e3, 10e3, 20e3]), atol=5)
 
+    target = State([50e3, 10e3, 20e3], timestamp=datetime.datetime.now())
+    truth.add(target)
+
+    # Generate a noiseless measurement for each of the given target states
+    measurements = radar.measure(truth)
+
+    # Two measurements for 2 truth states
+    assert len(measurements) == 2
+
 
 def test_failed_detect():
-    target = State([75e3, 0, 10e3, 0, 20e3, 0],
-                   timestamp=datetime.datetime.now())
+    truth = set()
+    target = State([75e3, 0, 10e3, 0, 20e3, 0], timestamp=datetime.datetime.now())
+    truth.add(target)
 
     radar = AESARadar(antenna_gain=30,
                       position_mapping=[0, 2, 4],
@@ -466,7 +527,8 @@ def test_failed_detect():
                                                        mapping=[0, 2, 4],
                                                        ndim_state=6))
 
-    assert radar.measure(target) is None
+    # Assert no measurements since target is not in range
+    assert len(radar.measure(truth)) == 0
 
 
 def test_target_rcs():
