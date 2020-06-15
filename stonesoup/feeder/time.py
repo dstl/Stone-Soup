@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import bisect
 import datetime
+import heapq
 from warnings import warn
 
 from ..base import Property
@@ -18,25 +18,25 @@ class TimeBufferedFeeder(DetectionFeeder, GroundTruthFeeder):
 
     @BufferedGenerator.generator_method
     def data_gen(self):
-        data_iter = iter(self.reader)
-        time_data_buffer = [next(data_iter)]
+        time_data_buffer = []
 
-        for time_data in data_iter:
+        for time_data in self.reader:
             # Drop "old" detections
             if len(time_data_buffer) >= self.buffer_size and \
                     time_data < time_data_buffer[0]:
                 warn('"Old" detection dropped')
                 continue
 
-            # Insert in order
-            bisect.insort(time_data_buffer, time_data)
-
             # Yield oldest when buffer full
-            if len(time_data_buffer) > self.buffer_size:
-                yield time_data_buffer.pop(0)
+            if len(time_data_buffer) >= self.buffer_size:
+                yield heapq.heappushpop(time_data_buffer, time_data)
+            else:
+                # Else just insert
+                heapq.heappush(time_data_buffer, time_data)
 
         # No more new data: yield remaining buffer
-        yield from time_data_buffer
+        while time_data_buffer:
+            yield heapq.heappop(time_data_buffer)
 
 
 class TimeSyncFeeder(DetectionFeeder, GroundTruthFeeder):
