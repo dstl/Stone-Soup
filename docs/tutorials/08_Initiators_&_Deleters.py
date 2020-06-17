@@ -4,8 +4,8 @@
 """
 8 - Initiators & Deleters
 =========================
-So far we have provided a prior in all our examples, defining were we think our tracks will start.
-This also has been for a fixed number of tracks. In practice, targets may be "born" and "die"
+So far we have provided a prior in all our examples, defining where we think our tracks will start.
+This has also been for a fixed number of tracks. In practice, targets may be "born" and "die"
 all the time. This could be because they are going in/out of range of the sensor's field of view.
 The location/state of the targets' "birth" may also not be known and varying.
 """
@@ -150,7 +150,8 @@ data_associator = GNNWith2DAssignment(hypothesiser)
 # Here we are going to create an error based deleter, which will delete any :class:`~.Track` where
 # trace of the covariance is over a certain threshold i.e. when we have a high uncertainty. This
 # simply requires a threshold to be defined, that will depend on units and number of dimensions of
-# your state vector.
+# your state vector. So the higher the threshold value, the longer tracks that haven't been
+# updated will remain.
 from stonesoup.deleter.error import CovarianceBasedDeleter
 deleter = CovarianceBasedDeleter(4)
 
@@ -158,11 +159,11 @@ deleter = CovarianceBasedDeleter(4)
 # Creating an Initiator
 # ---------------------
 # Here we are going to use a measurement based initiator, which will create a track from the
-# unassociated :class:`~.Detection` objects. This still requires a prior to be defined for the
-# :class:`~.Track`, but elements of the state vector that are measured are replaced by that of the
-# measurement, and the measurement's uncertainty (these defined by the
-# :class:`~.MeasurementModel`). In this example, as our sensor measures position, we only need to
-# be concerned about the values provided for the velocity and it's variance.
+# unassociated :class:`~.Detection` objects. A prior needs to be defined for the entire state
+# but elements of the state that are measured are replaced by state of the measurement, including
+# the measurement's uncertainty (noise covariance defined by the :class:`~.MeasurementModel`). In
+# this example, as our sensor measures position, we only need to modify the values for the velocity
+# and # its variance.
 #
 # As we are dealing with clutter, here we are going to be using a multi-measurement initiator. This
 # requires that multiple measurements are added to a track before being initiated. In this example,
