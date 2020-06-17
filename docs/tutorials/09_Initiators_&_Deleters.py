@@ -2,7 +2,7 @@
 # coding: utf-8
 
 """
-8 - Initiators & Deleters
+9 - Initiators & Deleters
 =========================
 So far we have provided a prior in all our examples, defining where we think our tracks will start.
 This has also been for a fixed number of tracks. In practice, targets may be "born" and "die"
