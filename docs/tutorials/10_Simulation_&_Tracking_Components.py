@@ -26,10 +26,10 @@ transition_model = CombinedLinearGaussianTransitionModel(
 measurement_model = LinearGaussian(4, [0, 2], np.diag([0.25, 0.25]))
 
 # %%
-# And with those models, create a multi target ground truth simulator, feeding into a simple
-# detections simulator. These have a number of configurable parameters: defining where tracks are
-# born and at what rate, death probability, and where clutter is generated and at what rate, and
-# detection probability, etc.
+# And with those models, create a multi target ground truth simulator. This has a number of
+# configurable parameters, e.g. defining where tracks are born and at what rate, death probability.
+# This implements similar logic to the code in previous tutorial section
+# :ref:`auto_tutorials/09_Initiators_&_Deleters:Simulating Multiple Targets`
 import datetime
 
 from stonesoup.simulator.simple import MultiTargetGroundTruthSimulator, SimpleDetectionSimulator
@@ -47,6 +47,11 @@ groundtruth_sim = MultiTargetGroundTruthSimulator(
     death_probability=0.05
 )
 
+# %%
+# This simulated ground truth will then be passed to a simple detection simulator. This again has a
+# number of configurable parameters, e.g. where clutter is generated and at what rate, and
+# detection probability. This implements similar logic to the code in the previous tutorial section
+# :ref:`auto_tutorials/09_Initiators_&_Deleters:Generate Detections and Clutter`
 detection_sim = SimpleDetectionSimulator(
     groundtruth=groundtruth_sim,
     measurement_model=measurement_model,
@@ -54,7 +59,6 @@ detection_sim = SimpleDetectionSimulator(
     meas_range=np.array([[-1, 1], [-1, 1]])*30,  # Area to generate clutter
     clutter_rate=1,
 )
-
 
 # %%
 # Creating the Tracker Components
@@ -92,7 +96,7 @@ initiator = MultiMeasurementInitiator(
 # --------------------------------
 # With the components created, the multi-target tracker component will be created, constructed from
 # the components created above. This is logically the same as tracking code in the previous
-# tutorial.
+# tutorial section :ref:`auto_tutorials/09_Initiators_&_Deleters:Running the Tracker`
 from stonesoup.tracker.simple import MultiTargetTracker
 
 tracker = MultiTargetTracker(
