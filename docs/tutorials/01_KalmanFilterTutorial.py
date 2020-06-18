@@ -8,7 +8,7 @@
 
 # %%
 # This notebook is designed to introduce some of the basic features of Stone Soup using a single
-# target scenario and a Kalman Filter as an example
+# target scenario and a Kalman filter as an example
 #
 # Background and notation
 # -----------------------
@@ -143,6 +143,8 @@ ax.plot([state.state_vector[0] for state in truth],
 #                     0 & 0 & 0 & 1\\
 #                     \end{bmatrix}
 #
+# and
+#
 # .. math::
 #           Q_k &= \begin{bmatrix}
 #                   \frac{\triangle t^3}{3} & \frac{\triangle t^2}{2} & 0 & 0\\
@@ -172,16 +174,26 @@ transition_model.covar(time_interval=timedelta(seconds=1))
 # ^^^^^^^^^^^^^^^^^^^^^
 #
 # We'll use one of Stone Soup's measurement models in order to generate
-# measurements from the ground truth. For the moment we assume a sensor which can detect the
-# position, but not velocity, of a target. We're going to need a :class:`~.Detection` type to
+# measurements from the ground truth. For the moment we assume a 'linear' sensor which detects the
+# position, but not velocity, of a target, such that :math:`\mathbf{z}_k = H_k \mathbf{x}_k`, with
+#
+# .. math::
+#           H_k &= \begin{bmatrix}
+#                     1 & 0 & 0 & 0\\
+#                     0  & 0 & 1 & 0\\
+#                       \end{bmatrix}
+#
+# for the present simulation.
+#
+# We're going to need a :class:`~.Detection` type to
 # store the detections, and a :class:`~.LinearGaussian` measurement model.
 from stonesoup.types.detection import Detection
 from stonesoup.models.measurement.linear import LinearGaussian
 
 # %%
-# The measurement model is set up by indicating the number of dimensions in the state vector and
-# the dimensions that are measured. Also specified is the covariance of the noise (which is additive
-# Gaussian), and for the present we assume homogenous and independent noise, so
+# The linear Gaussian measurement model is set up by indicating the number of dimensions in the state vector and
+# the dimensions that are measured (so specifying :math:`H_k`). Also specified is the covariance of the
+# noise (which is additive Gaussian), and for the we assume homogenous and independent noise, so
 #
 # .. math::
 #
@@ -197,6 +209,10 @@ measurement_model = LinearGaussian(
     np.array([[0.75, 0],  # Covariance matrix for Gaussian PDF
               [0, 0.75]])
     )
+measurement_model.matrix()
+
+# %%
+# Generate the measurements
 measurements = []
 for state in truth:
     measurement = measurement_model.function(state, noise=True)
@@ -249,7 +265,10 @@ fig
 # %%
 # Constructing a predictor and updater in Stone Soup is simple. In a nice division of
 # responsibility, a :class:`~.Predictor` takes a :class:`~.TransitionModel` as input and
-# an :class:`~.Updater` takes a :class:`~.MeasurementModel` as input. Like this:
+# an :class:`~.Updater` takes a :class:`~.MeasurementModel` as input. Note that for now we're using the
+# same models used to generate the ground truth and the simulated measurements. This won't usually
+# be possible and it's an interesting exercise to explore what happens when these parameters are
+# mismatched.
 from stonesoup.predictor.kalman import KalmanPredictor
 predictor = KalmanPredictor(transition_model)
 
@@ -310,3 +329,10 @@ for state in track:
 fig
 
 # sphinx_gallery_thumbnail_number = 4
+
+# %%
+#
+# References
+# ----------
+#
+# 1.
