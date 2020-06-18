@@ -10,13 +10,14 @@
 # Making an assignment between a single track and a single measurement can be problematic. In the
 # previous tutorials you may have encountered the phenomenon of *track seduction*. This occurs
 # when clutter points are mis-associated with a prediction. If this happens repeatedly (as can be the case
-# in high-clutter or low :math:`p_d` situations) the track can deviate significantly from the truth.
+# in high-clutter or low-:math:`p_d` situations) the track can deviate significantly from the truth.
 #
 # Rather than make a firm assignment at each timestep, we could work out the probability that each
 # measurement should be assigned to a particular target. We could then propagate some measure of these
 # collective probabilities in the hope that this will mitigate the effect of track seduction.
 #
 # Pictorially:
+#
 # - Calculate a posterior for each hypothesis;
 #
 # .. image:: ../_static/PDA_Hypothesis_Diagram.png
@@ -40,7 +41,13 @@
 # not only the uncertainty in state, but also in the association.
 
 # %%
-# Simulate ground truth.
+# A Probabilistic Data Association example
+# ----------------------------------------
+#
+# Ground truth
+# ^^^^^^^^^^^^
+#
+# So, as before, we'll first begin by simulating some ground truth.
 from datetime import datetime
 from datetime import timedelta
 
@@ -58,7 +65,7 @@ for k in range(1, 21):
         timestamp=start_time+timedelta(seconds=k)))
 
 # %%
-# Simulate clutter.
+# Add clutter.
 import numpy as np
 
 from scipy.stats import uniform
@@ -95,6 +102,7 @@ for state in truth:
         measurement_set.add(Clutter(np.array([[x], [y]]), timestamp=state.timestamp))
 
     all_measurements.append(measurement_set)
+
 # %%
 # Plot the ground truth and measurements with clutter.
 from matplotlib import pyplot as plt
@@ -130,8 +138,8 @@ from stonesoup.updater.kalman import KalmanUpdater
 updater = KalmanUpdater(measurement_model)
 
 # %%
-# Create Probabilistic Data Associator
-# ------------------------------------
+# Initialise Probabilistic Data Associator
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # The :class:`~.PDAHypothesiser` and :class:`~.PDA` generate track predictions and calculate
 # probabilities for all prediction-detection pairs for a single prediction and multiple detections.
 from stonesoup.hypothesiser.probability import PDAHypothesiser
@@ -144,8 +152,9 @@ from stonesoup.dataassociator.probability import PDA
 data_associator = PDA(hypothesiser=hypothesiser)
 
 # %%
-# Running the PDA Filter
-# ----------------------
+# Run the PDA Filter
+# ^^^^^^^^^^^^^^^^^^
+#
 # With these components, we can run the simulated data and clutter through the Kalman filter.
 
 # Create prior
