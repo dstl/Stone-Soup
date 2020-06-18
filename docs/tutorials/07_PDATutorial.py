@@ -7,32 +7,37 @@
 """
 
 # %%
-# Associating a single hypothesis to a track has the disadvantage that posterior uncertainties
-# can be underestimated.
-# The probabilistic data associator overcomes this issue by:
+# Making an assignment between a single track and a single measurement can be problematic. In the
+# previous tutorials you may have encountered the phenomenon of *track seduction*. This occurs
+# when clutter points are mis-associated with a prediction. If this happens repeatedly (as can be the case
+# in high-clutter or low :math:`p_d` situations) the track can deviate significantly from the truth.
 #
-# - Calculating a posterior for each hypothesis;
+# Rather than make a firm assignment at each timestep, we could work out the probability that each
+# measurement should be assigned to a particular target. We could then propagate some measure of these
+# collective probabilities in the hope that this will mitigate the effect of track seduction.
+#
+# Pictorially:
+# - Calculate a posterior for each hypothesis;
 #
 # .. image:: ../_static/PDA_Hypothesis_Diagram.png
 #   :width: 500
 #   :alt: Image showing NN association for one track
 #
-# - Weighting each posterior state according to the probability that its corresponding hypothesis
-#   was true (and the prediction (null hypothesis) according to the missed-detection probability),
-#   normalising such that the sum of the weights is 1;
+# - Weight each posterior state according to the probability that its corresponding hypothesis
+#   was true (including the probability of missed-detection);
 #
 # .. image:: ../_static/PDA_Weighting_Diagram.png
 #   :width: 500
 #   :alt: Image showing NN association for one track
 #
-# - Merging the resulting estimate states in to a single posterior Gaussian approximation(taking
-#   the minimum mean squared error estimate).
+# - Merge the resulting estimate states in to a single posterior approximation.
 #
 # .. image:: ../_static/PDA_Merge_Diagram.png
 #   :width: 500
 #   :alt: Image showing NN association for one track
 #
-# This results in a better approximation to the posterior state covariances.
+# This results in a more robust approximation to the posterior state covariances that incorporates
+# not only the uncertainty in state, but also in the association.
 
 # %%
 # Simulate ground truth.
@@ -51,11 +56,6 @@ for k in range(1, 21):
     truth.append(GroundTruthState(
         transition_model.function(truth[k-1], noise=True, time_interval=timedelta(seconds=1)),
         timestamp=start_time+timedelta(seconds=k)))
-
-# %%
-# And create the Kalman predictor.
-from stonesoup.predictor.kalman import KalmanPredictor
-predictor = KalmanPredictor(transition_model)
 
 # %%
 # Simulate clutter.
@@ -95,12 +95,6 @@ for state in truth:
         measurement_set.add(Clutter(np.array([[x], [y]]), timestamp=state.timestamp))
 
     all_measurements.append(measurement_set)
-
-# %%
-# And create the Kalman updater.
-from stonesoup.updater.kalman import KalmanUpdater
-updater = KalmanUpdater(measurement_model)
-
 # %%
 # Plot the ground truth and measurements with clutter.
 from matplotlib import pyplot as plt
@@ -125,6 +119,15 @@ for set_ in all_measurements:
                [state.state_vector[1] for state in set_ if isinstance(state, Clutter)],
                color='y',
                marker='2')
+
+
+# %%
+# Create the predictor and updater
+from stonesoup.predictor.kalman import KalmanPredictor
+predictor = KalmanPredictor(transition_model)
+
+from stonesoup.updater.kalman import KalmanUpdater
+updater = KalmanUpdater(measurement_model)
 
 # %%
 # Create Probabilistic Data Associator
@@ -195,10 +198,6 @@ for n, measurements in enumerate(all_measurements):
 ax.plot([state.state_vector[0, 0] for state in track[1:]],  # Skip plotting the prior
         [state.state_vector[2, 0] for state in track[1:]],
         marker=".")
-fig
-
-# %%
-# Plotting ellipses representing the gaussian estimate state at each update.
 from matplotlib.patches import Ellipse
 for state in track[1:]:  # Skip the prior
     w, v = np.linalg.eig(measurement_model.matrix()@state.covar@measurement_model.matrix().T)
