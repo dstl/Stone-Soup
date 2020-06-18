@@ -2,23 +2,28 @@
 # coding: utf-8
 
 """
-5 - Data Association - Clutter tutorial
+5 - Data Association - clutter tutorial
 =======================================
 """
 
 # %%
-# **Tracking a single target in a sea of clutter and missed detections:**
+# Tracking a single target in the presence of clutter and missed detections
+# -------------------------------------------------------------------------
 #
-# In the process of tracking a target, we might receive a collection of incoming measurements from
-# our sensor at any single point in time, some of which not originating from the target we are
-# tracking. In this tutorial we explore a method to determine which measurement in this *clutter*
-# we should take to update our prediction with. In particular, we use the **nearest neighbour**
-# data association method, which greedily picks a detection that falls 'closest' to where we
-# predict an incoming measurement should be, according to a particular metric.
+# Tracking is frequently complicated by the presence of detections which are not
+# associated with the target of interest. These may range from sensor-generated noise to
+# returns off intervening physical objects, or environmental effects. We refer to these collectively
+# as *clutter* if they have only nuisance value and need to be filtered out.
+#
+# In this tutorial we introduce the use of data association algorithms in Stone Soup and demonstrate
+# how they can mitigate confusion due to clutter. To begin with we use a **nearest neighbour**
+# method, which is simple and associates a prediction and a detection based only on their proximity
+# as quantified by a particular metric.
 
 # %%
 # As in previous tutorials, we start with a target moving linearly in the 2D cartesian plane.
-
+import numpy as np
+from scipy.stats import uniform
 from datetime import datetime
 from datetime import timedelta
 
@@ -36,23 +41,14 @@ for k in range(1, 21):
         timestamp=start_time+timedelta(seconds=k)))
 
 # %%
-# And create the Kalman predictor.
-
-from stonesoup.predictor.kalman import KalmanPredictor
-predictor = KalmanPredictor(transition_model)
-
-# %%
 # Simulating clutter
-# ------------------
-# Next, generate some measurements with uniform probability of detection, and add in some clutter
+# ^^^^^^^^^^^^^^^^^^
+# Next, generate some measurements and add in some clutter
 # at each time-step. We use the :class:`~.TrueDetection` and :class:`~.Clutter` subclasses of
 # :class:`~.Detection` to help with discerning data types later in plotting. We'll introduce the
-# possibility that, at any time-step, our sensor receives no true detection from the target.
-
-import numpy as np
-
-from scipy.stats import uniform
-
+# possibility that, at any time-step, our sensor receives no detection from the target (i.e.
+# :math:`p_d < 1`). A fixed number of clutter points are generated uniformly distributed across
+# a region around the target.
 from stonesoup.types.detection import TrueDetection
 from stonesoup.types.detection import Clutter
 from stonesoup.models.measurement.linear import LinearGaussian
@@ -84,14 +80,7 @@ for state in truth:
     all_measurements.append(measurement_set)
 
 # %%
-# And create the Kalman updater.
-
-from stonesoup.updater.kalman import KalmanUpdater
-updater = KalmanUpdater(measurement_model)
-
-# %%
 # Plot the ground truth and measurements with clutter.
-
 from matplotlib import pyplot as plt
 fig = plt.figure(figsize=(10, 6))
 ax = fig.add_subplot(1, 1, 1)
@@ -115,25 +104,27 @@ for set_ in all_measurements:
                color='y',
                marker='2')
 
+
 # %%
 # Distance Hypothesiser and Nearest Neighbour
-# -------------------------------------------
-# At each time-step, which measurement should our tracker pick-up and update with?
-# The simplest method would be to rank each detection at a time-step, and pick the highest ranking
-# to contribute to the track.
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# An appropriate metric to rank points around a state described by Gaussian distributions would be
-# the *Mahalanobis distance*. This metric measures the distance of a point relative to a given
+# Perhaps the simplest way to associate a detection with a predition is to measure a 'distance'
+# to each detection and hypothesise that the detection with the lowest distance
+# is correctly associated with that prediction.
+#
+# An appropriate distance metric for states described by Gaussian distributions is the
+# *Mahalanobis distance*. This quantifies the distance of a point relative to a given
 # distribution.
-# In the case of a point :math:`\vec{x} = (x_{1}, ..., x_{N})^T`, and distribution with mean
-# :math:`\vec{\mu} = (\mu_{1}, ..., \mu_{N})^T` and covariance matrix :math:`P`, the Mahalanobis
-# distance of :math:`\vec{x}` from the distribution is given by:
+# In the case of a point :math:`\mathbf{x} = [x_{1}, ..., x_{N}]^T`, and distribution with mean
+# :math:`\boldsymbol{\mu} = [\mu_{1}, ..., \mu_{N}]^T` and covariance matrix :math:`P`, the Mahalanobis
+# distance of :math:`\mathbf{x}` from the distribution is given by:
 #
 # .. math::
-#       \sqrt{(\vec{x} - \vec{\mu})^T P^{-1} (\vec{x} - \vec{\mu})}
+#       \sqrt{(\mathbf{x} - \boldsymbol{\mu})^T P^{-1} (\mathbf{x} - \boldsymbol{\mu})}
 #
-# It is the multi-dimensional measure of how many standard deviations a point is away from a
-# distribution's mean.
+# which equates to the multi-dimensional measure of how many standard deviations a point is away from the
+# mean.
 #
 # The :class:`~.DistanceHypothesiser` pairs incoming detections with track predictions, and scores
 # each according to the detection's 'distance' (according to a given :class:`Measure` class) from
@@ -142,10 +133,16 @@ for set_ in all_measurements:
 # %%
 # Create a hypothesiser that ranks detections against predicted measurement according to the
 # Mahalanobis distance, where those that fall outside of :math:`3` standard deviations of the
-# predicted state's mean are ignored.
+# predicted measurement's mean are ignored.
+#
 # The hypothesiser must use a predicted state given by the predictor, create a measurement
 # prediction using the updater, and compare this to a detection given a specific metric. Hence, it
-# takes the predictor, updater, measure (metric) and missed distance as its arguments.
+# takes the predictor, updater, measure (metric) and missed distance as its arguments. So we need to create
+# a predictor and updater, and initialise a measure.
+from stonesoup.predictor.kalman import KalmanPredictor
+predictor = KalmanPredictor(transition_model)
+from stonesoup.updater.kalman import KalmanUpdater
+updater = KalmanUpdater(measurement_model)
 
 from stonesoup.hypothesiser.distance import DistanceHypothesiser
 from stonesoup.measures import Mahalanobis
@@ -169,7 +166,7 @@ data_associator = NearestNeighbour(hypothesiser)
 
 # %%
 # Running the Kalman Filter
-# -------------------------
+# ^^^^^^^^^^^^^^^^^^^^^^^^^
 # With these components, we can run the simulated data and clutter through the Kalman filter.
 
 # Create prior
@@ -196,14 +193,9 @@ for n, measurements in enumerate(all_measurements):
 
 # %%
 # Plot the resulting track
-
 ax.plot([state.state_vector[0, 0] for state in track[1:]],  # Skip plotting the prior
         [state.state_vector[2, 0] for state in track[1:]],
         marker=".")
-fig
-
-# %%
-# Plotting ellipses representing the gaussian estimate state at each update.
 
 from matplotlib.patches import Ellipse
 for state in track[1:]:  # Skip the prior
