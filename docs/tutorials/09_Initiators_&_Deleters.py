@@ -5,17 +5,17 @@
 9 - Initiators & Deleters
 =========================
 So far we have provided a prior in all our examples, defining where we think our tracks will start.
-This has also been for a fixed number of tracks. In practice, targets may be "born" and "die"
-all the time. This could be because they are going in/out of range of the sensor's field of view.
-The location/state of the targets' "birth" may also not be known and varying.
+This has also been for a fixed number of tracks. In practice, targets may appear and disappear
+all the time. This could be because they exter/exit the sensor's field of view.
+The location/state of the targets' birth may also be unknown and varying.
 """
 
 # %%
-# Simulating Multiple Targets
+# Simulating multiple targets
 # ---------------------------
-# Here we'll simulate multiple targets moving at a constant velocity. A poisson distribution will
-# be used to decide how many new targets are born at a particular timestamp, and simple random draw
-# will be used to decide if the targets will be removed. Each target will have an random position
+# Here we'll simulate multiple targets moving at a constant velocity. A Poisson distribution will
+# be used to sample the number of new targets which are born at a particular timestep, and simple draw
+# from a uniform distribution will be used to decide if a target will be removed. Each target will have an random position
 # and velocity on birth.
 from datetime import datetime
 from datetime import timedelta
@@ -148,8 +148,8 @@ data_associator = GNNWith2DAssignment(hypothesiser)
 # Creating a Deleter
 # ------------------
 # Here we are going to create an error based deleter, which will delete any :class:`~.Track` where
-# trace of the covariance is over a certain threshold i.e. when we have a high uncertainty. This
-# simply requires a threshold to be defined, that will depend on units and number of dimensions of
+# trace of the covariance is over a certain threshold, i.e. when we have a high uncertainty. This
+# simply requires a threshold to be defined, which will depend on units and number of dimensions of
 # your state vector. So the higher the threshold value, the longer tracks that haven't been
 # updated will remain.
 from stonesoup.deleter.error import CovarianceBasedDeleter
@@ -163,7 +163,7 @@ deleter = CovarianceBasedDeleter(4)
 # but elements of the state that are measured are replaced by state of the measurement, including
 # the measurement's uncertainty (noise covariance defined by the :class:`~.MeasurementModel`). In
 # this example, as our sensor measures position, we only need to modify the values for the velocity
-# and # its variance.
+# and its variance.
 #
 # As we are dealing with clutter, here we are going to be using a multi-measurement initiator. This
 # requires that multiple measurements are added to a track before being initiated. In this example,
@@ -186,7 +186,7 @@ initiator = MultiMeasurementInitiator(
 # Loop through the predict, hypothesise, associate and update steps like before, but note on update
 # which detections we've used at each time step. In each loop the deleter is called, returning
 # tracks that are to be removed. Then the initiator is called with the unassociated detections, by
-# taking the associated detections from the full set. The order of the deletion and initiation is
+# removing the associated detections from the full set. The order of the deletion and initiation is
 # important, so tracks that have just been created, aren't deleted straight away. (The
 # implementation below is the same as :class:`~.MultiTargetTracker`)
 
