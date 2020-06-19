@@ -46,8 +46,9 @@
 #
 # This is known as the *Chapman-Kolmogorov* equation. In Stone Soup we refer to this process as
 # *prediction* and to an object that undertakes it as a :class:`~.Predictor`. A predictor requires
-# a *state transition model*, namely a function which undertakes a noise term. Stone Soup has
-# transition models derived from the :class:`~.TransitionModel` class.
+# a *state transition model*, namely a function which undertakes
+# :math:`\mathbf{x}_{k|k-1} = f(\mathbf{x}_{k-1}, \mathbf{w}_k)`, where :math:`\mathbf{w}_k` is a
+# noise term. Stone Soup has transition models derived from the :class:`~.TransitionModel` class.
 #
 # Update
 # ^^^^^^
