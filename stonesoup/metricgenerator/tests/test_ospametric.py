@@ -5,7 +5,6 @@ import numpy as np
 
 from ..manager import SimpleManager
 from ..ospametric import GOSPAMetric, OSPAMetric
-from ...models.measurement.linear import LinearGaussian
 from ...types.detection import Detection
 from ...types.groundtruth import GroundTruthPath, GroundTruthState
 from ...types.state import State
@@ -16,9 +15,7 @@ def test_gospametric_extractstates():
     """Test GOSPA extract states."""
     generator = GOSPAMetric(
         c=10.0,
-        p=1,
-        measurement_model_truth=LinearGaussian(1, [0], None),
-        measurement_model_track=LinearGaussian(1, [0], None))
+        p=1)
     # Test state extraction
     time_start = datetime.datetime.now()
     detections = [Detection(state_vector=np.array([[i]]), timestamp=time_start)
@@ -41,9 +38,7 @@ def test_gospametric_compute_assignments():
     num_states = 5
     generator = GOSPAMetric(
         c=10.0,
-        p=1,
-        measurement_model_truth=LinearGaussian(1, [0], None),
-        measurement_model_track=LinearGaussian(1, [0], None))
+        p=1)
     time_now = datetime.datetime.now()
     track_obj = Track([State(state_vector=[[i]], timestamp=time_now)
                       for i in range(num_states)])
@@ -67,9 +62,7 @@ def test_gospametric_cost_matrix():
     num_states = 5
     generator = GOSPAMetric(
         c=10.0,
-        p=1,
-        measurement_model_truth=LinearGaussian(1, [0], None),
-        measurement_model_track=LinearGaussian(1, [0], None))
+        p=1)
     time_now = datetime.datetime.now()
     track_obj = Track([State(state_vector=[[i]], timestamp=time_now)
                       for i in range(num_states)])
@@ -93,9 +86,7 @@ def test_gospametric_compute_gospa_metric():
     num_states = 5
     generator = GOSPAMetric(
         c=10.0,
-        p=1,
-        measurement_model_truth=LinearGaussian(1, [0], None),
-        measurement_model_track=LinearGaussian(1, [0], None))
+        p=1)
     time_now = datetime.datetime.now()
     track_obj = Track([State(state_vector=[[i]], timestamp=time_now)
                       for i in range(num_states)])
@@ -115,9 +106,7 @@ def test_gospametric_computemetric():
     """Test GOSPA compute metric."""
     generator = GOSPAMetric(
         c=10.0,
-        p=1,
-        measurement_model_truth=LinearGaussian(1, [0], None),
-        measurement_model_track=LinearGaussian(1, [0], None))
+        p=1)
     time = datetime.datetime.now()
     # Multiple tracks and truths present at two timesteps
     tracks = {Track(states=[State(state_vector=[[i + 0.5]], timestamp=time),
@@ -161,9 +150,7 @@ def test_ospametric_extractstates():
     """Test OSPA metric extract states."""
     generator = OSPAMetric(
         c=10,
-        p=1,
-        measurement_model_truth=LinearGaussian(1, [0], None),
-        measurement_model_track=LinearGaussian(1, [0], None))
+        p=1)
 
     # Test state extraction
     time_start = datetime.datetime.now()
@@ -187,9 +174,7 @@ def test_ospametric_computecostmatrix():
     """Test OSPA metric compute cost matrix."""
     generator = OSPAMetric(
         c=10,
-        p=1,
-        measurement_model_truth=LinearGaussian(1, [0], None),
-        measurement_model_track=LinearGaussian(1, [0], None))
+        p=1)
 
     time = datetime.datetime.now()
     track = Track(states=[
@@ -212,9 +197,7 @@ def test_ospametric_computeospadistance():
     """Test OSPA metric compute OSPA distance."""
     generator = OSPAMetric(
         c=10,
-        p=1,
-        measurement_model_truth=LinearGaussian(1, [0], None),
-        measurement_model_track=LinearGaussian(1, [0], None))
+        p=1)
 
     time = datetime.datetime.now()
     track = Track(states=[
@@ -236,9 +219,7 @@ def test_ospametric_computemetric():
     """Test OSPA compute metric."""
     generator = OSPAMetric(
         c=10,
-        p=1,
-        measurement_model_truth=LinearGaussian(1, [0], None),
-        measurement_model_track=LinearGaussian(1, [0], None))
+        p=1)
 
     time = datetime.datetime.now()
     # Multiple tracks and truths present at two timesteps

@@ -128,6 +128,7 @@ class gallery_scraper():
                 if to_rgba(fig_attr) != to_rgba(default_attr) and \
                         attr not in kwargs:
                     these_kwargs[attr] = fig_attr
+            these_kwargs['bbox_inches'] = "tight"
             fig.savefig(image_path, **these_kwargs)
             image_paths.append(image_path)
         return figure_rst(image_paths, gallery_conf['src_dir'])

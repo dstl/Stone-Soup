@@ -3,8 +3,7 @@ import datetime
 
 import pytest
 
-from ..tracktotrack import EuclideanTrackToTrack, EuclideanTrackToTruth
-from ...models.measurement.linear import LinearGaussian
+from ..tracktotrack import TrackToTrack, TrackToTruth
 from ...types.state import State
 from ...types.track import Track
 
@@ -43,12 +42,10 @@ def tracks():
 
 
 def test_euclidiantracktotrack(tracks):
-    associator = EuclideanTrackToTrack(
+    associator = TrackToTrack(
         association_threshold=10,
         consec_pairs_confirm=3,
-        consec_misses_end=2,
-        measurement_model_track1=LinearGaussian(2, [0, 1], None),
-        measurement_model_track2=LinearGaussian(2, [0, 1], None))
+        consec_misses_end=2)
     start_time = datetime.datetime(2019, 1, 1, 14, 0, 0)
 
     association_set = associator.associate_tracks({tracks[0], tracks[2]},
@@ -64,12 +61,10 @@ def test_euclidiantracktotrack(tracks):
 
 
 def test_euclidiantracktotruth(tracks):
-    associator = EuclideanTrackToTruth(
+    associator = TrackToTruth(
         association_threshold=10,
         consec_pairs_confirm=3,
-        consec_misses_end=2,
-        measurement_model_track=LinearGaussian(2, [0, 1], None),
-        measurement_model_truth=LinearGaussian(2, [0, 1], None))
+        consec_misses_end=2)
     start_time = datetime.datetime(2019, 1, 1, 14, 0, 0)
 
     association_set = associator.associate_tracks(

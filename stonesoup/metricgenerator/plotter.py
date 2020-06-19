@@ -67,6 +67,8 @@ class TwoDPlotter(PlotGenerator):
 
         fig = plt.figure()
         axis = fig.add_subplot(1, 1, 1)
+        custom_legend = []
+        custom_legend_labels = []
 
         data = np.array([detection.state_vector for detection in detections
                          if not isinstance(detection, Clutter)])
@@ -74,6 +76,9 @@ class TwoDPlotter(PlotGenerator):
             axis.plot(data[:, self.detection_indices[0]],
                       data[:, self.detection_indices[1]],
                       linestyle='', marker='o')
+            custom_legend.append(
+                matplotlib.lines.Line2D([0], [0], color='0', linestyle='', marker='o'))
+            custom_legend_labels.append('Detections')
 
         data = np.array([detection.state_vector for detection in
                          detections if isinstance(detection, Clutter)])
@@ -81,13 +86,11 @@ class TwoDPlotter(PlotGenerator):
             axis.plot(data[:, self.detection_indices[0]],
                       data[:, self.detection_indices[1]],
                       linestyle='', marker='2')
+            custom_legend.append(
+                matplotlib.lines.Line2D([0], [0], color='0', linestyle='', marker='2'))
+            custom_legend_labels.append('Clutter')
 
-        for path in groundtruth_paths:
-            data = np.array([state.state_vector for state in path])
-            axis.plot(data[:, self.gtruth_indices[0]],
-                      data[:, self.gtruth_indices[1]],
-                      linestyle=':', marker='')
-
+        has_particles = False  # Used later to add legend if any track has particles
         for track in tracks:
             if len([state for state in track.states if not isinstance(
                     state, Prediction)]) < 2:
@@ -105,23 +108,31 @@ class TwoDPlotter(PlotGenerator):
                 axis.plot(data[:, self.track_indices[0]],
                           data[:, self.track_indices[1]], linestyle='',
                           marker=".", markersize=1, alpha=0.25)
+                has_particles = True
+
+        if tracks:
+            custom_legend.append(
+                matplotlib.lines.Line2D([0], [0], color='0', linestyle='-', marker='.'))
+            custom_legend_labels.append('Tracks')
+
+        if has_particles:
+            custom_legend.append(matplotlib.lines.Line2D([0], [0], color='0', linestyle='',
+                                                         marker='.', markersize=1))
+            custom_legend_labels.append('Particles')
+
+        for path in groundtruth_paths:
+            data = np.array([state.state_vector for state in path])
+            axis.plot(data[:, self.gtruth_indices[0]],
+                      data[:, self.gtruth_indices[1]],
+                      linestyle=':', marker='')
+        if groundtruth_paths:
+            custom_legend.append(
+                matplotlib.lines.Line2D([0], [0], color='0', linestyle=':', marker=''))
+            custom_legend_labels.append('Ground Truth')
 
         axis.set_xlabel("$x$")
         axis.set_ylabel("$y$")
-        custom_legend = [
-            matplotlib.lines.Line2D([0], [0], color='0', linestyle='',
-                                    marker='o'),
-            matplotlib.lines.Line2D([0], [0], color='0', linestyle='',
-                                    marker='2'),
-            matplotlib.lines.Line2D([0], [0], color='0', linestyle=':',
-                                    marker=''),
-            matplotlib.lines.Line2D([0], [0], color='0', linestyle='-',
-                                    marker='.'),
-            matplotlib.lines.Line2D([0], [0], color='0', linestyle='',
-                                    marker='.', markersize=1),
-        ]
-        axis.legend(custom_legend,
-                    ['Detections', 'Clutter', 'Path', 'Track', 'Particles'])
+        axis.legend(custom_legend, custom_legend_labels)
 
         timestamps = []
         for state in tracks.union(groundtruth_paths, detections):

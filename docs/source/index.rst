@@ -63,6 +63,7 @@ Contents:
     design
     stonesoup
     auto_tutorials/index
+    auto_examples/index
     auto_demos/index
     contributing
     copyright

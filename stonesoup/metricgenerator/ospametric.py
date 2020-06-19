@@ -5,7 +5,7 @@ from scipy.optimize import linear_sum_assignment
 
 from .base import MetricGenerator
 from ..base import Property
-from ..models.measurement import MeasurementModel
+from ..measures import Measure, Euclidean
 from ..types.state import State, StateMutableSequence
 from ..types.time import TimeRange
 from ..types.metric import SingleTimeMetric, TimeRangeMetric
@@ -27,14 +27,9 @@ class GOSPAMetric(MetricGenerator):
     """
     p = Property(float, doc="1<=p<infty, exponent.")
     c = Property(float, doc="c>0, cutoff distance.")
-    measurement_model_truth = Property(
-        MeasurementModel,
-        doc="Measurement model which specifies which elements within the"
-            "truth state are to be used to calculate distance over")
-    measurement_model_track = Property(
-        MeasurementModel,
-        doc="Measurement model which specifies which elements within"
-            "the truth state are to be used to calculate distance over")
+    measure = Property(
+        Measure, default=Euclidean(),
+        doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -287,12 +282,10 @@ class GOSPAMetric(MetricGenerator):
         for i_track, track_state, in enumerate(track_states):
             for i_truth, truth_state in enumerate(truth_states):
 
-                euc_distance = np.linalg.norm(
-                    self.measurement_model_track.function(track_state)
-                    - self.measurement_model_truth.function(truth_state))
+                distance = self.measure(track_state, truth_state)
 
-                if euc_distance < self.c:
-                    cost_matrix[i_track, i_truth] = euc_distance
+                if distance < self.c:
+                    cost_matrix[i_track, i_truth] = distance
 
         return cost_matrix
 
