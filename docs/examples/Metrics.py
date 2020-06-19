@@ -104,14 +104,14 @@ from stonesoup.measures import Euclidean
 ospa_generator = OSPAMetric(c=10, p=1, measure=Euclidean([0, 2]))
 
 # %%
-# And finally we create a Single Integrated Air Picture (SIAP) metrics. Despite it's name, this is
-# applicable to tracking in general and not just in relation to an air picture. This is made up
+# And finally we create some Single Integrated Air Picture (SIAP) metrics. Despite it's name, this
+# is applicable to tracking in general and not just in relation to an air picture. This is made up
 # of multiple individual metrics. [#]_
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
 siap_generator = SIAPMetrics()
 
 # %%
-# The SIAP Metric requires a way to associate tracks to truth, so we'll use a Track to Truth
+# The SIAP Metrics requires a way to associate tracks to truth, so we'll use a Track to Truth
 # associator, which uses Euclidean distance measure by default.
 from stonesoup.dataassociator.tracktotrack import TrackToTruth
 associator = TrackToTruth(association_threshold=30)
@@ -124,8 +124,8 @@ plot_generator = TwoDPlotter([0, 2], [0, 2], [0, 1])
 
 # %%
 # Once we've created a set of metrics, these are added to a Metric Manager, along with the
-# associator. The associator is added here, such in a case where you have multiple metrics that
-# require a track to truth associator, that it avoids repeating this costly process for each.
+# associator. The associator can be used by multiple metric generators, only being run once as this
+# can be a computationally expensive process; in this case, only SIAP Metrics requires it.
 from stonesoup.metricgenerator.manager import SimpleManager
 metric_manager = SimpleManager([basic_generator, ospa_generator, siap_generator, plot_generator],
                                associator=associator)
