@@ -337,10 +337,3 @@ for state in track:
 fig
 
 # sphinx_gallery_thumbnail_number = 3
-
-# %%
-#
-# References
-# ----------
-#
-# 1.
