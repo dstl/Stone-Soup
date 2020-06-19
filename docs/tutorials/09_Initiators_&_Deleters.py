@@ -6,7 +6,7 @@
 =========================
 So far we have provided a prior in all our examples, defining where we think our tracks will start.
 This has also been for a fixed number of tracks. In practice, targets may appear and disappear
-all the time. This could be because they exter/exit the sensor's field of view.
+all the time. This could be because they enter/exit the sensor's field of view.
 The location/state of the targets' birth may also be unknown and varying.
 """
 
@@ -14,8 +14,9 @@ The location/state of the targets' birth may also be unknown and varying.
 # Simulating multiple targets
 # ---------------------------
 # Here we'll simulate multiple targets moving at a constant velocity. A Poisson distribution will
-# be used to sample the number of new targets which are born at a particular timestep, and simple draw
-# from a uniform distribution will be used to decide if a target will be removed. Each target will have an random position
+# be used to sample the number of new targets which are born at a particular timestep, and simple
+# draw from a uniform distribution will be used to decide if a target will be removed. Each target
+# will have an random position
 # and velocity on birth.
 from datetime import datetime
 from datetime import timedelta
@@ -213,6 +214,7 @@ for n, measurements in enumerate(all_measurements):
 
 # %%
 # Plot the resulting tracks.
+from matplotlib.patches import Ellipse
 
 tracks_list = list(tracks)
 for track in tracks:
@@ -220,13 +222,7 @@ for track in tracks:
     ax.plot([state.state_vector[0, 0] for state in track],
             [state.state_vector[2, 0] for state in track],
             marker=".")
-fig
 
-# %%
-# Plotting ellipses representing the gaussian estimate state at each update.
-
-from matplotlib.patches import Ellipse
-for track in tracks:
     for state in track[1:]:  # Skip the prior
         w, v = np.linalg.eig(measurement_model.matrix()@state.covar@measurement_model.matrix().T)
         max_ind = np.argmax(v[0, :])
@@ -239,4 +235,4 @@ for track in tracks:
         ax.add_artist(ellipse)
 fig
 
-# sphinx_gallery_thumbnail_number = 4
+# sphinx_gallery_thumbnail_number = 3
