@@ -12,13 +12,13 @@
 #
 # Tracking is frequently complicated by the presence of detections which are not
 # associated with the target of interest. These may range from sensor-generated noise to
-# returns off intervening physical objects, or environmental effects. We refer to these collectively
-# as *clutter* if they have only nuisance value and need to be filtered out.
+# returns off intervening physical objects, or environmental effects. We refer to these
+# collectively as *clutter* if they have only nuisance value and need to be filtered out.
 #
-# In this tutorial we introduce the use of data association algorithms in Stone Soup and demonstrate
-# how they can mitigate confusion due to clutter. To begin with we use a **nearest neighbour**
-# method, which is simple and associates a prediction and a detection based only on their proximity
-# as quantified by a particular metric.
+# In this tutorial we introduce the use of data association algorithms in Stone Soup and
+# demonstrate how they can mitigate confusion due to clutter. To begin with we use a
+# **nearest neighbour** method, which is simple and associates a prediction and a detection based
+# only on their proximity as quantified by a particular metric.
 
 # %%
 # As in previous tutorials, we start with a target moving linearly in the 2D cartesian plane.
@@ -47,8 +47,8 @@ for k in range(1, 21):
 # at each time-step. We use the :class:`~.TrueDetection` and :class:`~.Clutter` subclasses of
 # :class:`~.Detection` to help with discerning data types later in plotting. We'll introduce the
 # possibility that, at any time-step, our sensor receives no detection from the target (i.e.
-# :math:`p_d < 1`). A fixed number of clutter points are generated uniformly distributed across
-# a region around the target.
+# :math:`p_d < 1`). A fixed number of clutter points are generated and uniformly distributed across
+# a :math:`\pm20` rectangular space centred on the true position of the target.
 from stonesoup.types.detection import TrueDetection
 from stonesoup.types.detection import Clutter
 from stonesoup.models.measurement.linear import LinearGaussian
@@ -117,14 +117,14 @@ for set_ in all_measurements:
 # *Mahalanobis distance*. This quantifies the distance of a point relative to a given
 # distribution.
 # In the case of a point :math:`\mathbf{x} = [x_{1}, ..., x_{N}]^T`, and distribution with mean
-# :math:`\boldsymbol{\mu} = [\mu_{1}, ..., \mu_{N}]^T` and covariance matrix :math:`P`, the Mahalanobis
-# distance of :math:`\mathbf{x}` from the distribution is given by:
+# :math:`\boldsymbol{\mu} = [\mu_{1}, ..., \mu_{N}]^T` and covariance matrix :math:`P`, the
+# Mahalanobis distance of :math:`\mathbf{x}` from the distribution is given by:
 #
 # .. math::
 #       \sqrt{(\mathbf{x} - \boldsymbol{\mu})^T P^{-1} (\mathbf{x} - \boldsymbol{\mu})}
 #
-# which equates to the multi-dimensional measure of how many standard deviations a point is away from the
-# mean.
+# which equates to the multi-dimensional measure of how many standard deviations a point is away
+# from the mean.
 #
 # The :class:`~.DistanceHypothesiser` pairs incoming detections with track predictions, and scores
 # each according to the detection's 'distance' (according to a given :class:`Measure` class) from
@@ -137,8 +137,8 @@ for set_ in all_measurements:
 #
 # The hypothesiser must use a predicted state given by the predictor, create a measurement
 # prediction using the updater, and compare this to a detection given a specific metric. Hence, it
-# takes the predictor, updater, measure (metric) and missed distance as its arguments. So we need to create
-# a predictor and updater, and initialise a measure.
+# takes the predictor, updater, measure (metric) and missed distance as its arguments. So we need
+# to create a predictor and updater, and initialise a measure.
 from stonesoup.predictor.kalman import KalmanPredictor
 predictor = KalmanPredictor(transition_model)
 from stonesoup.updater.kalman import KalmanUpdater
