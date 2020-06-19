@@ -132,8 +132,9 @@ updater = KalmanUpdater(measurement_model)
 # Initial hypotheses are calculated (per track) in the same manner as the PDA.
 # Therefore, in Stone Soup, the JPDA filter uses the :class:`~.PDAHypothesiser` to create these
 # hypotheses.
-# The :class:`~.JPDA` assocaitor then adjusts hypothesis weights according to the method described
-# above.
+# Unlike the :class:`~.PDA` data associator, in Stone Soup, the :class:`~.JPDA` associator takes
+# this collection of hypotheses and adjusts their weights according to the method described above,
+# before returning key-value pairs of tracks and detections to be associated with them.
 from stonesoup.hypothesiser.probability import PDAHypothesiser
 # This doesn't need to be created again, but for the sake of visualising the process, it has been
 # added.

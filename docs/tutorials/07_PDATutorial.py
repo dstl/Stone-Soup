@@ -9,12 +9,13 @@
 # %%
 # Making an assignment between a single track and a single measurement can be problematic. In the
 # previous tutorials you may have encountered the phenomenon of *track seduction*. This occurs
-# when clutter points are mis-associated with a prediction. If this happens repeatedly (as can be the case
-# in high-clutter or low-:math:`p_d` situations) the track can deviate significantly from the truth.
+# when clutter points are mis-associated with a prediction. If this happens repeatedly (as can be
+# the case in high-clutter or low-:math:`p_d` situations) the track can deviate significantly from
+# the truth.
 #
-# Rather than make a firm assignment at each timestep, we could work out the probability that each
-# measurement should be assigned to a particular target. We could then propagate some measure of these
-# collective probabilities in the hope that this will mitigate the effect of track seduction.
+# Rather than make a firm assignment at each time-step, we could work out the probability that each
+# measurement should be assigned to a particular target. We could then propagate some measure of
+# these collective probabilities in the hope that this will mitigate the effect of track seduction.
 #
 # Pictorially:
 #
@@ -140,8 +141,12 @@ updater = KalmanUpdater(measurement_model)
 # %%
 # Initialise Probabilistic Data Associator
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# The :class:`~.PDAHypothesiser` and :class:`~.PDA` generate track predictions and calculate
-# probabilities for all prediction-detection pairs for a single prediction and multiple detections.
+# The :class:`~.PDAHypothesiser` and :class:`~.PDA` associator generate track predictions and
+# calculate probabilities for all prediction-detection pairs for a single prediction and multiple
+# detections.
+# The :class:`~.PDAHypothesiser` returns a collection of :class:`~.SingleProbabilityHypothesis`
+# types. The :class:`~.PDA` takes these hypotheses and returns a dictionary of key-value pairings
+# of each track and detection which it is to be associated with.
 from stonesoup.hypothesiser.probability import PDAHypothesiser
 hypothesiser = PDAHypothesiser(predictor=predictor,
                                updater=updater,
@@ -219,4 +224,4 @@ for state in track[1:]:  # Skip the prior
     ax.add_artist(ellipse)
 fig
 
-# sphinx_gallery_thumbnail_number = 3
+# sphinx_gallery_thumbnail_number = 2
