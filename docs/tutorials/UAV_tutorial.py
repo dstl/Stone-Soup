@@ -24,7 +24,6 @@ UAV Tracking Tutorial
 #
 # We are assuming a ground based radar:
 #
-# - No need to use a platform or mount sensors on it.
 # - Radar has course elevation resolution and fine bearing resolution.
 # - Use range standard deviation of 3.14 m as a replacement for range resolution.
 
@@ -66,150 +65,61 @@ predictor = ExtendedKalmanPredictor(transition_model)
 updater = ExtendedKalmanUpdater(measurement_model=meas_model)
 
 # %%
-# Define Function
-# ---------------
-# Reads in our pickle file, which contains a pandas dataframe
-import pandas as pd
-import pickle as pkl
-
-def readPkl(fdir, fname):
-    # Reads pkl data file and changes column headings as appropriate
-    data = pd.read_pickle(fdir+fname)
-    data.rename(columns={'raw_lon' : 'longitude',
-                         'raw_lat' : 'latitude',
-                         'alt' : 'altitude (m)'},
-                inplace = True)
-    data['Vx m/s'] = (np.sin(np.deg2rad(data['heading'])) *
-                      data['speed'])
-    data['Vy m/s'] = (np.cos(np.deg2rad(data['heading'])) *
-                      data['speed'])
-    return data
-
-# %%
-# Define Detector 
-# ---------------
-# Detector reads in the ground truth, generates range, bearing
-# and elevation measurements and adds noise to these based on the measurement
-# covariance. More involved detector could:
+# Setup CSV reader & feeder
+# -------------------------
+# This part uses 2 Stone Soup detector type of classes:
+#
+# - :class:`~.CSVGroundTruthReader` - reads our CSV file which contains: timestamp,
+#   latitude, longitude, altitude and other miscellaneous data.
+# - :class:`~.LLAtoENUConverter` - this is a feeder, but it converts our lat, long, 
+#   alt data into Cartesian.
+#
+# The Cartesian data will be converted to Range, Bearing, Altitude later on.
+# More involved detector could:
 #
 # - Add clutter
 # - Handle :math:`P_d` -> Could be based on radial velocity
 # - Handle radar revisit times
-# - Add unknown & multiple targets
+# - Add unknown number & multiple targets
+#
+from stonesoup.reader.generic import CSVGroundTruthReader
 
-#import datetime
-from stonesoup.buffered_generator import BufferedGenerator
-from stonesoup.reader import DetectionReader
-from stonesoup.types.detection import Detection
-from numpy.random import multivariate_normal
-import pymap3d as pm
-from stonesoup.types.angle import Bearing, Elevation
+ground_truth_reader = CSVGroundTruthReader(
+    path='UAV_Rot.csv',
+    state_vector_fields=['longitude', 'Vx m/s', 'latitude', 'Vy m/s', 'altitude (m)'],
+    time_field='time',
+    path_id_field='groupNb',
+)
 
-class Detector(DetectionReader):
-        def init_vals(self, df, C0, obs_pt=(50.297311666, -110.945686, 0)):
-            '''Initializes variables inside the Detector.
-
-            Parameters
-            ----------
-            df : Pandas dataframe.
-                Data frame with lat/long/altitude info.
-            C0 : numpy.array
-                Covariance matrix for noisy measurements.
-            obs_pt : TYPE, optional
-                DESCRIPTION. The default is (50.297311666, -110.945686, 0).
-
-            Returns
-            -------
-            None.
-
-            '''
-            self.df=df
-            self.obs_pt = obs_pt
-            truth, measurements, aer = self.genRBE(C0)
-            self.truth = truth
-            self.measurements = measurements
-            self.aer = aer
-        
-        def genRBW():
-            '''
-            
-
-            Returns
-            -------
-            None.
-
-            '''
-        def genRBE(self, C0):
-            ''' Generates Range, Bearing and Elevation data based on the 
-            observation point. Noisy measurement are generated based on
-            the covariance matrix passed in.
-            
-            Input
-            -----
-            C0 = Covariance matrix for noisy measurements
-            
-            Returns
-            -------
-            truth - list of truth range (m), bearing (rad) measurements
-            meas_pol_list - list polar measurements: range (m), bearing (rad)
-            aer = list of (azimuth (deg), elevation (deg), range (m)) tuples.
-            '''
-        
-            alt = self.df['altitude (m)'].tolist()
-        
-            longs = self.df['longitude'].tolist()
-            lats = self.df['latitude'].tolist()
-            timestamp = self.df.index
-        
-            lla = list(zip(lats, longs, alt))
-            aer=[]
-            
-            for x in lla:
-                a, e, r = pm.geodetic2aer(*x, *self.obs_pt)
-                # Convert heading from North to StoneSoup Polar heading
-                # i.e. angle off horiz x axis.
-                a = 90.-a
-                if a > 180.0:
-                    a = a - 360
-                elif a < -180:
-                    a = a + 360
-                aer.append((a, e, r))
-            aer2 = list(zip(*aer))
-        
-            measurements = []
-            truth = []
-            Nsamp = len(self.df)
-            noise = multivariate_normal([0]*C0.shape[0], C0, Nsamp)
-            for count, item in enumerate(aer):
-        
-                meas = np.array([[Elevation(np.deg2rad(item[1])),
-                                  Bearing(np.deg2rad(item[0])),
-                                  float(item[2])]]).T
-                noisy_meas = meas + noise[[count],:].T
-                truth.append(Detection(meas, timestamp=timestamp[count]))
-                measurements.append(Detection(noisy_meas,
-                                              timestamp=timestamp[count]))
-        
-            return truth, measurements, aer
-
-        @BufferedGenerator.generator_method
-        def detections_gen(self):
-            for meas in self.measurements:
-                yield meas.timestamp, {meas}
+from stonesoup.feeder.geo import LLAtoENUConverter
+sensor_location = [-30.948, 50.297311666, 0]  # Radar position [long, lat, alt]
+ground_truth_reader = LLAtoENUConverter(ground_truth_reader, sensor_location, [0, 2, 4])
 
 # %%
-# Create Detector
-# -----------------
+# Define Sensor, Platform and Detector
+# ------------------------------------
+# The sensor converts the Cartesian coordinates into range, bearing and elevation.
+# The sensor is then mounted onto a platform (stationary in this case)
+
+from stonesoup.platform.base import FixedPlatform
+from stonesoup.sensor.radar.radar import RadarRangeBearingElevation
+from stonesoup.simulator.platform import PlatformDetectionSimulator
+from stonesoup.types.state import State
+
+sensor = RadarRangeBearingElevation(
+    [0, 2, 4],
+    meas_covar,
+    6,
+)
+platform = FixedPlatform(
+    State([0, 0, 0, 0, 0, 0]),  # Sensor at reference point, zero velocity
+    [0, 2, 4],
+    sensors=[sensor]
+)
+
 # Create the detector and initialize it.
+detector = PlatformDetectionSimulator(ground_truth_reader, [platform])
 
-#import UAV_Tut_Aux as uta
-
-fdir = ".\\"
-fname = "UAV_Rot.pkl"
-df = readPkl(fdir, fname)
-obs_pos = (50.297311666, -30.948, 0) # Radar position
-detector = Detector()
-detector.init_vals(df, meas_covar, obs_pt=obs_pos)
 
 # %%
 # Setup Initiator and Deletor classes for the Tracker
@@ -243,8 +153,6 @@ class Initiator(SimpleMeasurementInitiator):
             el_az_range = np.sqrt(np.diag(model_covar)) #elev, az, range
             
             std_pos = detection.state_vector[2, 0]*el_az_range[1]
-            stdx = np.abs(std_pos*el_az_range[1]*np.sin(el_az_range[1]))
-            stdy = np.abs(std_pos*el_az_range[1]*np.cos(el_az_range[1]))
             stdx = np.abs(std_pos*np.sin(el_az_range[1]))
             stdy = np.abs(std_pos*np.cos(el_az_range[1]))
             stdz = np.abs(detection.state_vector[2, 0]*el_az_range[0])
@@ -317,39 +225,24 @@ meas_X=[]
 meas_Y=[]
 true_X = []
 true_Y = []
-Range=[]
-Bearing=[]
-times = []
-MRange=[]
-MBearing=[]
-track_list = []
-for item in detector.truth:
-    xyz = meas_model.inverse_function(State(item.state_vector,item.timestamp))
-    
-    true_X.append(xyz[0])
-    true_Y.append(xyz[2])
 for time, tracks in tracker:
-    times.append(time)
+    for ground_truth in ground_truth_reader.groundtruth_paths:
+        true_X.append(ground_truth.state_vector[0])
+        true_Y.append(ground_truth.state_vector[2])
+
     # Because this is a single target tracker, I know there is only 1 track.
-    track_list.append(list(tracks)[0])
     for track in tracks:
 
         #Get the corresponding measurement
-        Tmeas = track.states[-1].hypothesis.measurement.state_vector
-        MRange.append(Tmeas[2])
-        MBearing.append(Tmeas[1])
+        detection = track.states[-1].hypothesis.measurement
         # Convert measurement into xy
-        xyz = meas_model.inverse_function(State(Tmeas,time))
+        xyz = meas_model.inverse_function(detection)
         meas_X.append(xyz[0])
         meas_Y.append(xyz[2])
         
         vec = track.states[-1].state_vector
         est_X.append(vec[0])
         est_Y.append(vec[2])
-        sv = State(track.states[-1].state_vector, time)
-        tmp = meas_model.function(sv)
-        Range.append(tmp[2])
-        Bearing.append(tmp[1])
 
 fig = plt.figure(figsize=(10, 6))
 ax1 = fig.add_subplot(1, 1, 1)
@@ -366,3 +259,13 @@ ax2.plot(est_X, est_Y, 'r.', label='Estimates')
 ax2.set_xlabel('X (m)')
 ax2.set_ylabel('Y (m)')
 ax2.legend()
+
+# %%
+# To Investigate
+# --------------
+# What happens when:
+#
+# - Increase the bearing std deviation?
+# - Increase the model process noise?
+# - Move the radar?
+#
