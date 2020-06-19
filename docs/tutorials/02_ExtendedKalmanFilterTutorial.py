@@ -2,201 +2,62 @@
 # coding: utf-8
 
 """
-2 - Extended Kalman filter tutorial
-======================
+2 - Working with non-linear models: extended Kalman filter tutorial
+===================================================================
 """
 
 # %%
-# **Linear approximation to non-linear systems:**
+# The previous tutorial <link>, as well as introducing various aspects of the Stone Soup framework,
+# detailed the use of a Kalman filter. A significant problem in using the Kalman filter is that it
+# requires transition and sensor models to be linear-Gaussian. In practice, many models are
+# not like this and so alternatives are required. We examine the most commonly-used of such
+# alternatives, the extended Kalman filter (EKF), in this tutorial.
 #
-# To derive the recursive equations utilised by a Kalman Filter, we made the assumption that the
-# transition of state :math:`\vec{x}_{k-1}` at 'time' :math:`k-1` to state :math:`\vec{x}_{k}` at
-# time :math:`k` and a measurement :math:`\vec{\mu}_{expected}` at this time could be modelled
-# linearly:
+# Background
+# ----------
 #
-# .. math::
-#                \vec{x}_{k} &= F_{k}\vec{x}_{k-1} + B_{k}\vec{u}_{k}\\
-#       \vec{\mu}_{expected} &= H_{k}\hat{x}_{k}
-#
-# (as well as assuming that the control factor could be modelled linearly by a control matrix and
-# vector :math:`B_{k}` and :math:`\vec{u}_{k}` respectively).
-#
-# For example, the case where a target moves at constant velocity in the :math:`(x,y)` plane:
+# Recall that the Kalman filter makes the following linear assumptions of the predicted state and
+# predicted measurement:
 #
 # .. math::
-#       \begin{bmatrix}
-#       x_{t + \triangle t}\\
-#       \dot{x}_{t + \triangle t}\\
-#       y_{t + \triangle t}\\
-#       \dot{y}_{t + \triangle t}\\
-#       \end{bmatrix}
-#       =
-#       \begin{bmatrix}
-#       1 & \triangle t & 0 & 0\\
-#       0 & 1 & 0 & 0\\
-#       0 & 0 & 1 & \triangle t\\
-#       0 & 0 & 0 & 1\\
-#       \end{bmatrix}
-#       \begin{bmatrix}x_{t}\\
-#       \dot{x}_{t}\\
-#       y_{t}\\
-#       \dot{y}_{t}\\
-#       \end{bmatrix}
-#       +
-#       noise
+#       \mathbf{x}_{k|k-1} &= F_{k} \mathbf{x}_{k-1} + B_{k}\mathbf{u}_{k}\\
+#       \mathbf{z}_{k|k-1} &= H_{k} \mathbf{x}_{k|k-1}
 #
-# and the simple instance of measuring position in the same coordinate space as the state:
+# The EKF gets round the fact that :math:`f(\cdot)` and :math:`h(\cdot)` are not of this form by
+# making linear approximations about :math:`\mathbf{x}_{k−1} = \boldsymbol{\mu}_{k−1}` or
+# :math:`\mathbf{x}_{k|k−1} = \boldsymbol{\mu}_{k|k−1}`. It does this by way of a Taylor expansion,
 #
 # .. math::
-#       \begin{bmatrix}
-#       x_{measure}\\
-#       y_{measure}\\
-#       \end{bmatrix}
-#       =
-#       \begin{bmatrix}
-#       1 & 0 & 0 & 0\\
-#       0 & 0 & 1 & 0\\
-#       \end{bmatrix}
-#       \begin{bmatrix}
-#       x_{state}\\
-#       \dot{x}_{state}\\
-#       y_{state}\\
-#       \dot{y}_{state}\\
-#       \end{bmatrix}
-#       +
-#       noise
+#       g(\mathbf{x})\rvert_{\mathbf{x}=\mathbf{u}} \approx \sum\limits_{|\alpha| \ge 0}
+#       \frac{ (\mathbf{x} - \mathbf{u})^{\alpha}}{\alpha !} (\mathcal{D}^{\alpha})(\mathbf{u})
 #
-# However, consider a target moving in a circle.
-# Perhaps :math:`(x,y) = (cos(t), sin(t))`.
-# There is no linear mapping :math:`F:\ state\mapsto\ state` as:
-#
-# .. math::
-#       x_{t + \triangle t} &= \cos(t + \triangle t)\\
-#                           &= \cos(\triangle t)\cos(t) - \sin(\triangle t)\sin(t)\\
-#                           &= \cos(\triangle t)x_{t} \pm \sin(\triangle t)\sqrt{1-x_{t}^2}
-#
-# which certainly is not a linear expression of :math:`x_{t}` (there is no matrix :math:`F` such
-# that :math:`x_{k} = Fx_{k-1} + noise`).
-#
-# Similarly, maybe our sensor takes the cartesian state space :math:`(x, y)` and returns the
-# bearing and range of the target :math:`(\theta, r)`.
-# So at 'time' :math:`k`, given a state :math:`\begin{bmatrix}x_{k}\\y_{k}\\\end{bmatrix}` we
-# receive:
-#
-# .. math::
-#       \begin{bmatrix}
-#       \theta\\
-#       r\\
-#       \end{bmatrix}
-#       =
-#       \begin{bmatrix}
-#       \arctan(\frac{y}{x})\\
-#       \sqrt{x^2 + y^2}
-#       \end{bmatrix}
-#       +
-#       noise
-#
-# Clearly this is not expressible linearly in :math:`x` and :math:`y`.
-#
-# Granted, there is nothing wrong in determining a new state from a prior, as we simply apply the
-# function :math:`F` to it. What gets in the way, however, is that our Kalman Filter's recursive
-# equations rely on a matrix expression for posterior covariances and to determine the Kalman
-# gain:
-#
-# .. math::
-#       \hat{x}_{k}' = \hat{x}_{k} + K'(\vec{z_{k}} - H_{k}\hat{x}_{k})\\
-#       P'_{k} = P_{k} - K'H_{k}P_{k}\\
-#       K' = P_{k}H_{k}^T (H_{k}P_{k}H_{k}^T + R_{k})^{-1}
-#
-# Therefore we cannot use the Kalman Filter as before.
-# Instead, we approximate the offending non-linear map using a Taylor expansion:
-#
-# .. math::
-#       g(\textbf{x}) \approx g(\textbf{u}) +
-#                             (\textbf{x}-\textbf{u})^T Dg(\textbf{u}) +
-#                             \frac{1}{2!}(\textbf{x}-\textbf{u})^T
-#                             D^2 g(\textbf{u})(\textbf{x}-\textbf{u}) +
-#                             ...
-#
-# Truncating at the first term we have:
-#
-# .. math::
-#       g(\textbf{x}) \approx g(\textbf{u}) + (\textbf{x}-\textbf{u})^T Dg(\textbf{u})\\
-#
-# for points 'close' to :math:`\textbf{u}`.
-#
-# This is starting to look like :math:`\vec{x}_{k} = F_{k}\vec{x}_{k-1} + B_{k}\vec{u}_{k}`
-# (where :math:`F_{k}` is replaced by :math:`Dg(\textbf{u})`).
-# In the case of a vector function, :math:`D` is the Jacobian matrix (denoted :math:`\textbf{J}`).
-#
-# By expanding near the prior/prediction mean (depending on whether transition or measurement are
-# non-linear), the task is simplified to calculating the Jacobian matrix at each iteration, where:
-#
-# .. math::
-#       \textbf{J}(\textbf{g})
-#       =
-#       \begin{bmatrix}
-#       \frac{\partial g_{1}}{\partial x_{1}} & \dots & \frac{\partial g_{1}}{\partial x_{n}}\\
-#       \vdots & \ddots & \vdots\\
-#       \frac{\partial g_{m}}{\partial x_{1}} & \dots & \frac{\partial g_{m}}{\partial x_{n}}\\
-#       \end{bmatrix}
-#
-# for :math:`\textbf{g}: \textbf{R}^n \mapsto \textbf{R}^m`.
-#
-# For example, the above measurements were modelled as:
-#
-# .. math::
-#       \textbf{g}(x,y) = \begin{bmatrix}
-#                          f(x,y)\\
-#                          g(x,y)\\
-#                          \end{bmatrix}
-#                       = \begin{bmatrix}
-#                          \arctan(\frac{y}{x})\\
-#                          \sqrt{x^2 + y^2}\\
-#                          \end{bmatrix}
-#
-# So,
-#
-# .. math::
-#       \textbf{J}(\textbf{g}(x,y))
-#       =
-#       \begin{bmatrix}
-#       \frac{\partial f(x,y)}{\partial x} & \frac{\partial f(x,y)}{\partial y}\\
-#       \frac{\partial g(x,y)}{\partial x} & \frac{\partial g(x,y)}{\partial y}\\
-#       \end{bmatrix}
-#       =
-#       \begin{bmatrix}
-#       \frac{-y}{y^2 + x^2} & \frac{1}{x}\sec^2 (\frac{y}{y})\\
-#       \frac{x}{\sqrt{x^2 + y^2}} & \frac{y}{\sqrt{x^2 + y^2}}
-#       \end{bmatrix}
-#
-# The Jacobian is then used as an approximation to the measurement matrix :math:`H`  as in:
-#
-# .. math::
-#       \vec{\mu}_{expected} &= H_{k}\hat{x}_{k}\\
-#          \Sigma_{expected} &= H_{k}P_{k}H_{k}^T
-#
-# This process can be used to handle non-linear transitions, control and measurements.
-# Using this linear approximation, the predict and update stages proceed as with the ordinary
-# Kalman Filter.
+# This is usually truncated about the first term meaning that either
+# :math:`F(\mathbf{x}_{k-1}) \approx \mathbf{J}(f)\rvert_{\mathbf{x}=\boldsymbol{\mu}_{k-1}}` or
+# :math:`H(\mathbf{x}_{k|k-1}) \approx \mathbf{J}(f)\rvert_{\mathbf{x}=\boldsymbol{\mu}_{k|k-1}}`
+# or both, where :math:`\mathbf{J}(\cdot)` is the Jacobian matrix. Stone Soup implements the EKF
+# for non-linear functions using a finite difference method to find :math:`\mathbf{J}(\cdot)`
+# in the appropriate places. We'll now see this in action.
 
 # %%
-# Simulate target
-# ---------------
-# As with the Kalman Filter tutorial, we will model a target moving with constant velocity.
+# Simulation
+# ----------
+#
+# We're going to use the same target model as previously, but this time we use a non-linear sensor
+# model.
+import numpy as np
+from datetime import datetime, timedelta
+start_time = datetime.now()
 
-from datetime import datetime
-from datetime import timedelta
-
+# %%
+# Create a target
+# ^^^^^^^^^^^^^^^
+#
+# As in the previous tutorial, the target moves with near constant velocity NE from 0,0.
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
     ConstantVelocity
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
-
-start_time = datetime.now()
-
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05),
                                                           ConstantVelocity(0.05)])
-
 truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=start_time)])
 
 for k in range(1, 21):
@@ -205,7 +66,7 @@ for k in range(1, 21):
         timestamp=start_time+timedelta(seconds=k)))
 
 # %%
-# Plotting the ground truth path.
+# Plot this
 from matplotlib import pyplot as plt
 
 fig = plt.figure(figsize=(10, 6))
@@ -219,31 +80,27 @@ ax.plot([state.state_vector[0] for state in truth],
         linestyle="--")
 
 # %%
-# Create Extended Kalman predictor
-# --------------------------------
-# In Stone Soup the :class:`~.ExtendedKalmanPredictor` will check for linearity before predicting
-# forward. If the system is linear, it will predict as with the normal Kalman Filter (without
-# bothering to taylor expand and truncate (as this would be pointless)).
-
-from stonesoup.predictor.kalman import ExtendedKalmanPredictor
-predictor = ExtendedKalmanPredictor(transition_model)
-
-# %%
-# Simulate measurement
-# --------------------
-# We will model a non-linear measurement. Our sensor takes the cartesian state space and
-# returns bearing, range pairs. This is modelled by the :class:`~.CartesianToBearingRange`
-# measurement model.
+# A bearing-range sensor
+# ^^^^^^^^^^^^^^^^^^^^^^
 #
-# i.e. :math:`H: \begin{pmatrix}x\\ \dot{x}\\ y\\ \dot{y}\end{pmatrix} \mapsto
-# \begin{pmatrix}\theta\\ r\end{pmatrix}` (the mapping will ignore velocities, only positional
-# coordinates are important here).
-
-import numpy as np
-
+# We're going to simulate a 2d bearing-range sensor. An example of this is available in Stone Soup
+# via the :class:`~.CartesianToBearingRange` class. As the name suggests, this takes the Cartesian
+# state input and returns a relative bearing and range to target. Specifically,
+#
+# .. math::
+#       \begin{bmatrix}
+#       \theta\\
+#       r\\
+#       \end{bmatrix}
+#       =
+#       \begin{bmatrix}
+#       \arctan(\frac{(y-y_p)}{(x-x_p)})\\
+#       \sqrt{(x-x_p)^2 + (y-y_p)^2}
+#       \end{bmatrix}
+#
+# where :math:`x_p,y_p` is the position of the sensor and :math:`x,y` that of the target.
 from stonesoup.models.measurement.nonlinear import CartesianToBearingRange
-
-sensor_x = 10  # Placing the sensor off-centre
+sensor_x = 50  # Placing the sensor off-centre
 sensor_y = 0
 
 measurement_model = CartesianToBearingRange(
@@ -256,7 +113,7 @@ measurement_model = CartesianToBearingRange(
 )
 
 # %%
-
+# We create a set of detections using this sensor model.
 from stonesoup.types.detection import Detection
 
 measurements = []
@@ -265,17 +122,7 @@ for state in truth:
     measurements.append(Detection(measurement, timestamp=state.timestamp))
 
 # %%
-# Plotting our detections. Bearing and range lines are superimposed on to the cartesian space. The
-# actual measurement space would be two perpendicular axes for bearing and range, which is a little
-# harder to visualise from.
-
-fig2 = plt.figure(figsize=(10, 6))
-fig2.add_subplot(1, 1, 1, polar=True)
-plt.polar([state.state_vector[0, 0] for state in measurements],
-          [state.state_vector[1, 0] for state in measurements])
-
-# %%
-# Mapping these detections back in cartesian coordinates (the state space's positional subspace).
+# And map them back onto the Cartesian reference frame for plotting.
 from stonesoup.functions import pol2cart
 x, y = pol2cart(
     np.hstack([state.state_vector[1, 0] for state in measurements]),
@@ -284,26 +131,30 @@ ax.scatter(x + sensor_x, y + sensor_y, color='b')
 fig
 
 # %%
-# Create Extended Kalman updater
-# ------------------------------
-# As our measurement model is a non-linear mapping from state space to measurement space, the
-# ordinary Kalman Filter update step will not work. As described above, an approximation of the
-# measurement model will be required. Therefore we use the :class:`~.ExtendedKalmanUpdater` to
-# update our prediction with a measurement at each step.
+# Set up the extended Kalman filter elements
+# ------------------------------------------
+#
+# Analogously to the Kalman filter, we now create the predictor and updater. As is our custom
+# the predictor takes a transition model and the updater a measurement model. Note that if either
+# of these models are linear then the extended predictor/updater defaults to its Kalman equivalent.
+# In fact the extended Kalman filter classes inherit nearly all of their functionality from the
+# Kalman classes. The only difference being that instead of returning a matrix, in the extended
+# version the :meth:`matrix()` function returns the Jacobian.
+from stonesoup.predictor.kalman import ExtendedKalmanPredictor
+predictor = ExtendedKalmanPredictor(transition_model)
 
 from stonesoup.updater.kalman import ExtendedKalmanUpdater
 updater = ExtendedKalmanUpdater(measurement_model)
 
 # %%
-# Running the Extended Kalman Filter
+# Run the extended Kalman filter
 # ----------------------------------
-# First, we create a prior state as in the Kalman Filter tutorial.
-
+# First, we'll create a prior state.
 from stonesoup.types.state import GaussianState
-prior = GaussianState([[1], [1], [1], [1]], np.diag([1, 1, 1, 1]), timestamp=start_time)
+prior = GaussianState([[1], [1], [1], [1]], np.diag([1.5, 0.5, 1.5, 0.5]), timestamp=start_time)
 
 # %%
-
+# Next iterate over hypotheses and place in a track.
 from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.types.track import Track
 
@@ -315,15 +166,11 @@ for measurement in measurements:
     track.append(post)
     prior = track[-1]
 
-# Plot the resulting track.
+# %%
+# Plot the resulting track complete with error ellipses at each estimate.
 ax.plot([state.state_vector[0, 0] for state in track],
         [state.state_vector[2, 0] for state in track],
         marker=".")
-fig
-
-# %%
-# Adding error ellipses at each estimate.
-
 from matplotlib.patches import Ellipse
 HH = np.array([[1.,  0.,  0.,  0.],
                [0.,  0.,  1.,  0.]])
@@ -345,4 +192,5 @@ fig
 # problems. However, in highly non-linear systems these simplifications can lead to large errors in
 # both the posterior state mean and covariance. In instances where we have noisy transition, or
 # perhaps unreliable measurement, this could lead to a sub-optimal performance or even divergence
-# of the filter. The **Unscented Kalman Filter** addresses these issues.
+# of the filter. In the next tuorial, we see how the **Unscented Kalman Filter** can begin to addresses
+# these issues.
