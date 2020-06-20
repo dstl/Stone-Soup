@@ -20,8 +20,9 @@ Tracking AIS Reports Using Stone Soup
 # %%
 # Building the detector
 # ---------------------
-# First we will prepare our detector for the |AIS|_ data, which is in CSV file, using the
-# Stone Soup generic CSV reader.
+# First we will prepare our detector for the |AIS|_ data, which is in a
+# :download:`CSV file <../../demos/SolentAIS_20160112_130211.csv>`, using the Stone Soup generic
+# CSV reader.
 
 from stonesoup.reader.generic import CSVDetectionReader
 detector = CSVDetectionReader(
