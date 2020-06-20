@@ -72,9 +72,6 @@
 # for the next measurement timestep, and so on
 
 # %%
-# (include diagram?).
-
-# %%
 # A nearly-constant velocity example
 # ----------------------------------
 #
@@ -173,9 +170,6 @@ transition_model.covar(time_interval=timedelta(seconds=1))
 # output.
 
 # %%
-# (Cup of tea icon)
-
-# %%
 # Simulate measurements
 # ^^^^^^^^^^^^^^^^^^^^^
 #
@@ -235,9 +229,6 @@ fig
 # At this stage you should have a moderately linear ground truth path (dotted line) with a series
 # of simulated measurements overplotted (blue circles). Take a moment to fiddle with the numbers in
 # :math:`Q` and :math:`R` to see what it does to the path and measurements.
-
-# %%
-# (Cup of tea icon)
 
 # %%
 # Construct a Kalman filter
