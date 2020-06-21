@@ -205,12 +205,40 @@ fig
 # In an attempt to build some intuition we can look a little deeper at the UT. Let's do this by considering
 # the bearing-range sensor used above. We'll create a new 'prior'.
 #
-new_prior_state = GaussianState([[2.5], [1], [1.5], [0]], np.diag([5, 1, 0.4, 1]),
+new_prior_state = GaussianState([[np.radians(90)], [10]], np.diag([0.1, 1]),
                                     timestamp=datetime.now())
 # %%
 # Create sigma points. 'alpha' (defines the point spread) is somewhat non-standard
 from stonesoup.functions import gauss2sigma
 sigma_points, sigma_weights, sigma_covars = gauss2sigma(new_prior_state, alpha=0.3)
+
+
+# %%
+# Plot this...
+fig2 = plt.figure(figsize=(10, 6), tight_layout=True)
+ax = fig2.add_subplot(1, 1, 1, polar=True)
+ax.set_ylim(0, 25)
+ax.set_xlim(0, np.radians(180))
+
+# Plot gaussian distribution (for positional coordinates of the state (remember that state space
+# also has velocity coordinates) to one standard deviation).
+w, v = np.linalg.eig(new_prior_state.covar)
+max_ind = np.argmax(v[0, :])
+orient = np.arctan2(v[max_ind, 1], v[max_ind, 0])
+ellipse = Ellipse(xy=(new_prior_state.state_vector[0],  # x-coord
+                      new_prior_state.state_vector[1]),  # y-coord
+                  width=np.sqrt(w[0])*2, height=np.sqrt(w[1])*2,
+                  angle=np.rad2deg(orient),
+                  alpha=0.2,
+                  color='b')
+ax.add_artist(ellipse)
+
+
+
+
+
+
+
 
 # %%
 # Set-up for plotting.
