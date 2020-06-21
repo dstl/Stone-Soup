@@ -2,7 +2,7 @@
 # coding: utf-8
 
 """
-2 - Working with non-linear models: extended Kalman filter tutorial
+2 - Non-linear models: extended Kalman filter tutorial
 ===================================================================
 """
 
@@ -31,9 +31,9 @@
 #       g(\mathbf{x})\rvert_{\mathbf{x}=\mathbf{u}} \approx \sum\limits_{|\alpha| \ge 0}
 #       \frac{ (\mathbf{x} - \mathbf{u})^{\alpha}}{\alpha !} (\mathcal{D}^{\alpha})(\mathbf{u})
 #
-# This is usually truncated about the first term meaning that either
+# This is usually truncated after the first term meaning that either
 # :math:`F(\mathbf{x}_{k-1}) \approx \mathbf{J}(f)\rvert_{\mathbf{x}=\boldsymbol{\mu}_{k-1}}` or
-# :math:`H(\mathbf{x}_{k|k-1}) \approx \mathbf{J}(f)\rvert_{\mathbf{x}=\boldsymbol{\mu}_{k|k-1}}`
+# :math:`H(\mathbf{x}_{k|k-1}) \approx \mathbf{J}(h)\rvert_{\mathbf{x}=\boldsymbol{\mu}_{k|k-1}}`
 # or both, where :math:`\mathbf{J}(\cdot)` is the Jacobian matrix. Stone Soup implements the EKF
 # for non-linear functions using a finite difference method to find :math:`\mathbf{J}(\cdot)`
 # in the appropriate places. We'll now see this in action.
@@ -151,7 +151,7 @@ updater = ExtendedKalmanUpdater(measurement_model)
 # ----------------------------------
 # First, we'll create a prior state.
 from stonesoup.types.state import GaussianState
-prior = GaussianState([[1], [1], [1], [1]], np.diag([1.5, 0.5, 1.5, 0.5]), timestamp=start_time)
+prior = GaussianState([[0], [1], [0], [1]], np.diag([1.5, 0.5, 1.5, 0.5]), timestamp=start_time)
 
 # %%
 # Next iterate over hypotheses and place in a track.
