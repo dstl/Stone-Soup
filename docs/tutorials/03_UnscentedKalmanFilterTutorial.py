@@ -28,17 +28,17 @@
 # %%
 # Background
 # ----------
-# There's a fair amount of theory on how the UT and the UKF work; see for example [1,2,3]. We
-# restrict ourselves here to how Stone Soup does things.
+# Limited detail on how Stone Soup does the UKF is provided below. See [1] for fuller, better
+# details of the UKF.
 #
 # For dimension :math:`N_d`, a set of :math:`2 N_d + 1` sigma points are calculated at:
 #
 # .. math::
-#           \mathbf{s}_j = \mathbf{x}, \ \ j = 0
+#           \mathbf{s}_j &= \mathbf{x}, \ \ j = 0
 #
-#           \mathbf{s}_j = \mathbf{x} + \alpha \sqrt{\kappa} A_j, \ \ j = 1, ..., N_d
+#           \mathbf{s}_j &= \mathbf{x} + \alpha \sqrt{\kappa} A_j, \ \ j = 1, ..., N_d
 #
-#           \mathbf{s}_j = \mathbf{x} - \alpha \sqrt{\kappa} A_j, \ \ j = N_d + 1, ..., 2 N_d
+#           \mathbf{s}_j &= \mathbf{x} - \alpha \sqrt{\kappa} A_j, \ \ j = N_d + 1, ..., 2 N_d
 #
 # where :math:`A_j` is the :math:`j` th column of :math:`A`, a *square root matrix* of the covariance,
 # :math:`P = AA^T`, of the state to be approximated, and :math:`\mathbf{x}` is its mean.
@@ -46,11 +46,11 @@
 # Two sets of weights, mean and covariance, are calculated:
 #
 # .. math::
-#           W^m_0 = \frac{\lambda}{c}
+#           W^m_0 &= \frac{\lambda}{c}
 #
-#           W^c_0 = \frac{\lambda}{c} + (1 - \alpha^2 + \beta)
+#           W^c_0 &= \frac{\lambda}{c} + (1 - \alpha^2 + \beta)
 #
-#           W^m_j = W^c_j = \frac{1}{2 c}
+#           W^m_j &= W^c_j = \frac{1}{2 c}
 #
 # where :math:`\lambda = \alpha^2 (N_d + \kappa) - N_d`, :math:`c = N_d + \lambda`. The parameters
 # :math:`\alpha, \ \beta, \ \kappa` are user-selectable parameters with default values of
@@ -60,15 +60,15 @@
 # distribution is reconstructed as:
 #
 # .. math::
-#           \mathbf{x}^\prime = \sum\limits^{2 N_d}_{0} W^{m}_j \mathbf{s}^{\prime}_j
+#           \mathbf{x}^\prime &= \sum\limits^{2 N_d}_{0} W^{m}_j \mathbf{s}^{\prime}_j
 #
-#           P = (\mathbf{s}^{\prime} - \mathbf{x}^\prime) \, diag(W^c) \, (\mathbf{s}^{\prime} -
+#           P &= (\mathbf{s}^{\prime} - \mathbf{x}^\prime) \, diag(W^c) \, (\mathbf{s}^{\prime} -
 #           \mathbf{x}^\prime)^T + Q
 #
 
 # %%
-# A simple example
-# ----------------
+# Nearly-constant velocity example
+# --------------------------------
 # This example is equivalent to that in the previous (EKF) tutorial. As with that one, you are invited
 # to play with the parameters and watch what happens.
 #
@@ -190,9 +190,10 @@ HH = np.array([[1.,  0.,  0.,  0.],
 for state in track:
     w, v = np.linalg.eig(HH@state.covar@HH.T)
     max_ind = np.argmax(v[0, :])
+    min_ind = np.argmin(v[0, :])
     orient = np.arctan2(v[max_ind, 1], v[max_ind, 0])
     ellipse = Ellipse(xy=(state.state_vector[0], state.state_vector[2]),
-                      width=np.sqrt(w[0])*2, height=np.sqrt(w[1])*2,
+                      width=np.sqrt(w[max_ind])*2, height=np.sqrt(w[min_ind])*2,
                       angle=np.rad2deg(orient),
                       alpha=0.2,
                       color='r')
@@ -200,178 +201,144 @@ for state in track:
 fig
 
 # %%
-# An look in more depth
-# ------------------------
-# In an attempt to build some intuition we can look a little deeper at the UT. Let's do this by considering
-# the bearing-range sensor used above. We'll create a new 'prior'.
+# The UT in slightly more depth
+# -----------------------------
+# Now try and get a sense of what actually happens to the uncertainty when a non-linear combination of
+# functions happens. Instead of deriving this analytically (and potentially getting bogged-down in the
+# maths), let's just use a sampling method.
 #
-new_prior_state = GaussianState([[np.radians(90)], [10]], np.diag([0.1, 1]),
-                                    timestamp=datetime.now())
-# %%
-# Create sigma points. 'alpha' (defines the point spread) is somewhat non-standard
-from stonesoup.functions import gauss2sigma
-sigma_points, sigma_weights, sigma_covars = gauss2sigma(new_prior_state, alpha=0.3)
-
-
-# %%
-# Plot this...
-fig2 = plt.figure(figsize=(10, 6), tight_layout=True)
-ax = fig2.add_subplot(1, 1, 1, polar=True)
-ax.set_ylim(0, 25)
-ax.set_xlim(0, np.radians(180))
-
-# Plot gaussian distribution (for positional coordinates of the state (remember that state space
-# also has velocity coordinates) to one standard deviation).
-w, v = np.linalg.eig(new_prior_state.covar)
-max_ind = np.argmax(v[0, :])
-orient = np.arctan2(v[max_ind, 1], v[max_ind, 0])
-ellipse = Ellipse(xy=(new_prior_state.state_vector[0],  # x-coord
-                      new_prior_state.state_vector[1]),  # y-coord
-                  width=np.sqrt(w[0])*2, height=np.sqrt(w[1])*2,
-                  angle=np.rad2deg(orient),
-                  alpha=0.2,
-                  color='b')
-ax.add_artist(ellipse)
-
-
-
-
-
-
-
-
-# %%
-# Set-up for plotting.
-fig1 = plt.figure(figsize=(10, 6))
-ax = fig1.add_subplot(1, 1, 1)
-ax.set_ylim(0, 3)
-ax.set_xlim(0, 5)
-
-# Plot gaussian distribution (for positional coordinates of the state (remember that state space
-# also has velocity coordinates) to one standard deviation).
-w, v = np.linalg.eig(some_gaussian_state.covar)
-max_ind = np.argmax(v[0, :])
-orient = np.arctan2(v[max_ind, 1], v[max_ind, 0])
-ellipse = Ellipse(xy=(some_gaussian_state.state_vector[0],  # x-coord
-                      some_gaussian_state.state_vector[2]),  # y-coord
-                  width=np.sqrt(w[0])*2, height=np.sqrt(w[2])*2,
-                  angle=np.rad2deg(orient),
-                  alpha=0.2,
-                  color='b')
-ax.add_artist(ellipse)
-
-# Plot sigma points that describe this distribution (ellipse).
-x = [sigma.state_vector[0, 0] for sigma in sigma_points]
-y = [sigma.state_vector[2, 0] for sigma in sigma_points]
-ax.scatter(x, y, color='r', s=3)
-
-# %%
-# Where the individual sigma point weights are given by:
-sigma_weights
-
-# %%
-# We might be given data from a sensor that provides accurate range, but incredibly bad bearing
-# measurements of targets.
-
-# %%
-# Set up a prediction state for the sensor to create a predicted measurement from.
-
+#  We can start with a prediction, which is Gauss-distributed in state space
 from stonesoup.types.prediction import GaussianStatePrediction
 # Make prediction state that we will use to make our measurement predictions from.
-prediction = GaussianStatePrediction(state_vector=[[0], [1], [20], [1]],
-                                     covar=np.diag([5, 1, 5, 1]),
+prediction = GaussianStatePrediction(state_vector=[[0], [0], [20], [0]],
+                                     covar=np.diag([1.5, 0.5, 1.5, 0.5]),
                                      timestamp=datetime.now())
 
-from stonesoup.functions import cart2pol
-psigmas, pweights, pcovars = gauss2sigma(prediction, alpha=0.3)
-rthetas = [cart2pol(sigma.state_vector[0, 0], sigma.state_vector[2, 0]) for sigma in psigmas]
-rs = [coord[0] for coord in rthetas]
-thetas = [coord[1] for coord in rthetas]
-
 # %%
-# Create terrible bearing, range sensor.
-
-from stonesoup.models.measurement.nonlinear import CartesianToBearingRange
-
-sensor_x = 0
+# We'll recapitulate the fact that the sensor position is where it previously was. But this time we'll
+# make the measurement much noisier
+sensor_x = 50
 sensor_y = 0
 
 measurement_model = CartesianToBearingRange(
     ndim_state=4,
     mapping=(0, 2),
-    noise_covar=np.diag([np.radians(10), 0.001]),  # bad bearing, good range uncertainties
+    noise_covar=np.diag([np.radians(3), 1]),  # bearing variance = 3 degrees
     translation_offset=np.array([[sensor_x], [sensor_y]])
 )
 
 # %%
-# The Extended Kalman Filter would certainly handle the non-linearity of the mapping
-# :math:`cartesian\mapsto polar`, but would fall short (or in fact too far) in its prediction.
-# Our sensor has a large bearing uncertainty. Consider the shape of this. We essentially have a
-# banana-shaped region of where we might find our measurement: A curve of possible bearings, and
-# a width of ranges.
-# The Unscented Kalman Filter will have sampled (made some sigma points) in the state space
-# (cartesian), and converted them to measurement space (polar) to form a new distribution.
-# However, the EKF will have simply converted the state distribution's mean to measurement space,
-# and approximated a covariance by taking the 1st order linearisation of the mapping from cartesian
-# to polar.
-# This results in the UKF giving a distribution that is 'shifted' back slightly from the EKF's,
-# better describing the banana distribution we would expect, and highlighting its advantage over
-# the EKF.
+# The next tutorial will go into much more detail on sampling methods. For the moment we'll just
+# assert that we're generating 1000 points from the state prediction above.
+# We need these imports and parameters
+from scipy.stats import multivariate_normal
 
+from stonesoup.types.particle import Particle
+from stonesoup.types.numeric import Probability  # Similar to a float type
+from stonesoup.types.state import ParticleState
+
+number_particles = 1000
+
+# Sample from the Gaussian prediction distribution
+samples = multivariate_normal.rvs(prediction.state_vector.ravel(),
+                                  prediction.covar,
+                                  size=number_particles)
+particles = [
+    Particle(sample.reshape(-1, 1), weight=Probability(1/number_particles)) for sample in samples]
+# Create prior particle state.
+pred_samples = ParticleState(particles, timestamp=start_time)
+
+from stonesoup.resampler.particle import SystematicResampler
+resampler = SystematicResampler()
+from stonesoup.updater.particle import ParticleUpdater
+pupdater = ParticleUpdater(measurement_model, resampler)
+
+predict_meas_samples = pupdater.predict_measurement(pred_samples)
+
+# %%
+# Don't worry what all this means for the moment. It's a convenient way of showing the 'true'
+# distribution of the predicted measurement - which is rendered as a blue cloud. Note that
+# no noise is added by the :meth:`predict_measurement` method so we add some noise below.
+# This is additive Gaussian in the sensor coordinates.
+fig2 = plt.figure(figsize=(10, 6), tight_layout=True)
+ax = fig2.add_subplot(1, 1, 1, polar=True)
+ax.set_ylim(30, 60)
+ax.set_xlim(0, np.radians(180))
+
+data = np.array([particle.state_vector for particle in predict_meas_samples.particles])
+noise = multivariate_normal.rvs(np.array([0, 0]), measurement_model.covar(), size=len(data))
+
+#ax.plot( (data[:,1].ravel()+noise[:,1])*np.cos(data[:, 0].ravel()+noise[:,0]) + sensor_x,
+#         (data[:, 1].ravel()+noise[:,1])*np.sin(data[:, 0].ravel()+noise[:,0] + sensor_y),
+#         linestyle='', marker=".", markersize=1, alpha=0.5)
+
+ax.plot(data[:, 0].ravel()+noise[:,0], data[:,1].ravel()+noise[:,1], linestyle='', marker=".",
+       markersize=0.5, alpha=0.4)
+
+fig2
+
+# %%
+# We can now see what happens when we create EKF and UKF updaters and compare their effect.
 # Create updaters
 from stonesoup.updater.kalman import UnscentedKalmanUpdater, ExtendedKalmanUpdater
-unscented_updater = UnscentedKalmanUpdater(measurement_model, alpha=0.3)
+unscented_updater = UnscentedKalmanUpdater(measurement_model, alpha=1, beta=2) # Try lower :math:`\alpha = 0.5` and much :math:`\beta = 100`
 extended_updater = ExtendedKalmanUpdater(measurement_model)
 
 # Get predicted measurements from the state prediction.
 ukf_pred_meas = unscented_updater.predict_measurement(prediction)
 ekf_pred_meas = extended_updater.predict_measurement(prediction)
 
-from matplotlib import pyplot as plt
+#fig3 = plt.figure(figsize=(10, 6), tight_layout=True)
+#ax = fig3.add_subplot(1, 1, 1)
+#ax.set_ylim(0, 35)
+#ax.set_xlim(-25,35)
 
-fig2 = plt.figure(figsize=(10, 6), tight_layout=True)
-ax = fig2.add_subplot(1, 1, 1, polar=True)
-ax.set_ylim(0, 25)
-ax.set_xlim(0, np.radians(180))
 
-# Plot the sigma points of the state after being converted to measurement space (granted, we are
-# actually still plotting in cartesian space here, just with range/bearing lines superimposed) that
-# are used by the UKF.
-ax.scatter([thetas], [rs], color='b', s=3)
-
+# %%
+# Plot the predicted measurement ellipses due to the EKF (green) and UKF (red)
 # Plot UKF's predicted measurement distribution (red)
 w, v = np.linalg.eig(ukf_pred_meas.covar)
 max_ind = np.argmax(v[0, :])
+min_ind = np.argmin(v[0, :])
 orient = np.arctan2(v[max_ind, 1], v[max_ind, 0])
 ukf_ellipse = Ellipse(xy=(ukf_pred_meas.state_vector[0], ukf_pred_meas.state_vector[1]),
-                      width=np.sqrt(w[0])*2, height=np.sqrt(w[1])*2,
+                      width=np.sqrt(w[max_ind])*2, height=np.sqrt(w[min_ind])*2,
                       angle=np.rad2deg(orient),
-                      alpha=0.2,
+                      alpha=0.4,
                       color='r')
 ax.add_artist(ukf_ellipse)
+
 
 # Plot EKF's predicted measurement distribution (green)
 w, v = np.linalg.eig(ekf_pred_meas.covar)
 max_ind = np.argmax(v[0, :])
+min_ind = np.argmin(v[0, :])
 orient = np.arctan2(v[max_ind, 1], v[max_ind, 0])
 ekf_ellipse = Ellipse(xy=(ekf_pred_meas.state_vector[0], ekf_pred_meas.state_vector[1]),
-                      width=np.sqrt(w[0])*2, height=np.sqrt(w[1])*2,
+                      width=np.sqrt(w[max_ind])*2, height=np.sqrt(w[min_ind])*2,
                       angle=np.rad2deg(orient),
-                      alpha=0.2,
+                      alpha=0.4,
                       color='g')
 ax.add_artist(ekf_ellipse)
 
+fig2
+
 # %%
-# If we were to continue with applying the EKF, it is clear that deviation would be inevitable.
-# The clear shift of the UKF's distribution (red) closer to the sensor shows its better
-# approximation of the banana-shaped distribution that we would expect.
+# You may have to spend some time fiddling with the parameters to see major differences between the
+# EKF and UKF. Indeed the point to make is not that there is any great magic about the UKF. Its
+# power is that it harnesses some extra free parameters to give a more flexible description of the
+# transformed distribution.
+
+# %%
+# Note I took out the plotting of the sigma points. Might want to put them back in.
 
 # %%
 # References
 # ----------
 #
-# 1. Julier & Uhlman
-#
+# 1. Julier S., Uhlmann J., Durrant-Whyte H.F. 2000, A new method for the nonlinear transformation
+# of means and covariances in filters and estimators," in IEEE Transactions on Automatic Control,
+# vol. 45, no. 3, pp. 477-482, doi: 10.1109/9.847726.
 
 # sphinx_gallery_thumbnail_number = 2
 

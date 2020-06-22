@@ -39,8 +39,8 @@
 # in the appropriate places. We'll now see this in action.
 
 # %%
-# Simulation
-# ----------
+# Nearly-constant velocity example
+# --------------------------------
 #
 # We're going to use the same target model as previously, but this time we use a non-linear sensor
 # model.
@@ -132,7 +132,7 @@ fig
 
 # %%
 # Set up the extended Kalman filter elements
-# ------------------------------------------
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # Analogously to the Kalman filter, we now create the predictor and updater. As is our custom
 # the predictor takes a transition model and the updater a measurement model. Note that if either
@@ -148,7 +148,7 @@ updater = ExtendedKalmanUpdater(measurement_model)
 
 # %%
 # Run the extended Kalman filter
-# ----------------------------------
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # First, we'll create a prior state.
 from stonesoup.types.state import GaussianState
 prior = GaussianState([[0], [1], [0], [1]], np.diag([1.5, 0.5, 1.5, 0.5]), timestamp=start_time)
@@ -177,20 +177,28 @@ HH = np.array([[1.,  0.,  0.,  0.],
 for state in track:
     w, v = np.linalg.eig(HH@state.covar@HH.T)
     max_ind = np.argmax(v[0, :])
+    min_ind = np.argmin(v[0, :])
     orient = np.arctan2(v[max_ind, 1], v[max_ind, 0])
     ellipse = Ellipse(xy=(state.state_vector[0], state.state_vector[2]),
-                      width=np.sqrt(w[0])*2, height=np.sqrt(w[1])*2,
+                      width=np.sqrt(w[max_ind])*2, height=np.sqrt(w[min_ind])*2,
                       angle=np.rad2deg(orient),
                       alpha=0.2)
     ax.add_artist(ellipse)
 fig
-
-# sphinx_gallery_thumbnail_number = 2
 
 # %%
 # The first order approximations used by the EKF provide a simple way to handle non-linear tracking
 # problems. However, in highly non-linear systems these simplifications can lead to large errors in
 # both the posterior state mean and covariance. In instances where we have noisy transition, or
 # perhaps unreliable measurement, this could lead to a sub-optimal performance or even divergence
-# of the filter. In the next tuorial, we see how the **Unscented Kalman Filter** can begin to addresses
+# of the filter. In the next tutorial, we see how the **Unscented Kalman Filter** can begin to addresses
 # these issues.
+
+# %%
+# References
+# ----------
+#
+# 1.
+
+# sphinx_gallery_thumbnail_number = 2
+
