@@ -7,9 +7,9 @@ import cv2
 from copy import copy
 
 from object_detection.utils import visualization_utils as vis_util
-# from stonesoup.feeder.filter import MetadataValueFilter
+from stonesoup.feeder.filter import MetadataValueFilter
 
-from stonesoup.reader.video import VideoClipReader  # , FFmpegVideoStreamReader
+from stonesoup.reader.video import VideoClipReader , FFmpegVideoStreamReader
 from stonesoup.detector.tensorflow import TensorFlowBoxObjectDetector
 
 
@@ -54,7 +54,7 @@ def draw_detections(frame, detections, category_index, score_threshold=0.5):
 # What model to download.
 # Models can bee found here:
 # github.com/tensorflow/models/blob/master/research/object_detection/g3doc/detection_model_zoo.md
-MODEL_NAME = 'ssd_inception_v2_coco_2018_01_28'
+MODEL_NAME = 'faster_rcnn_resnet50_coco_2018_01_28'
 MODEL_FILE = MODEL_NAME + '.tar.gz'
 MODELS_DOWNLOAD_BASE = 'http://download.tensorflow.org/models/object_detection/'
 PATH_TO_CKPT = MODEL_NAME + '/frozen_inference_graph.pb'
@@ -86,8 +86,8 @@ def arrange_bgr(image):
     return image[:, :, [2, 1, 0]]  # Rearrange RGB to BGR
 
 
-VIDEO_PATH = r'.\sample.mp4'
-start_time = datetime.timedelta(minutes=0, seconds=0)
+VIDEO_PATH = r'.\sample5.mp4'
+start_time = datetime.timedelta(minutes=0, seconds=10)
 end_time = None  # datetime.timedelta(minutes=3, seconds=20)
 video_reader = VideoClipReader(VIDEO_PATH, start_time, end_time)
 video_reader.clip = video_reader.clip.fl_image(arrange_bgr)
@@ -100,14 +100,19 @@ run_async = False
 # # The following options ensure real-time streaming
 # in_opts = {'threads': 1, 'fflags': 'nobuffer'}
 # out_opts = {'format': 'rawvideo', 'pix_fmt': 'bgr24'}
-# video_reader = FFmpegVideoStreamReader(STREAM_URL, input_opts=in_opts, output_opts=out_opts)
+# video_reader = FFmpegVideoStreamReader(STREAM_URL, output_opts=out_opts)
 # run_async = True
 ######################################################################################
 
+import tensorflow as tf
+config = tf.ConfigProto()
+config.gpu_options.allow_growth=True
 detector = TensorFlowBoxObjectDetector(video_reader, PATH_TO_CKPT,
-                                       PATH_TO_LABELS, run_async=run_async)
+                                       PATH_TO_LABELS, run_async=run_async,
+                                       session_config=config)
 category_index = detector.category_index
-# detector = MetadataValueFilter(detector, 'class', lambda x: x['name'] == 'car')
+detector = MetadataValueFilter(detector, 'class', lambda x: x['name'] == 'person')
+detector = MetadataValueFilter(detector, 'score', lambda x: x > 0.9)
 for timestamp, detections in detector:
 
     print(timestamp)
