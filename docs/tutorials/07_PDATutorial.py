@@ -10,7 +10,7 @@
 # %%
 # Making an assignment between a single track and a single measurement can be problematic. In the
 # previous tutorials you may have encountered the phenomenon of *track seduction*. This occurs
-# when clutter points are mis-associated with a prediction. If this happens repeatedly (as can be
+# when clutter, or other track, points are mis-associated with a prediction. If this happens repeatedly (as can be
 # the case in high-clutter or low-:math:`p_d` situations) the track can deviate significantly from
 # the truth.
 #
@@ -43,8 +43,8 @@
 # not only the uncertainty in state, but also in the association.
 
 # %%
-# A Probabilistic Data Association example
-# ----------------------------------------
+# A PDA filter example
+# --------------------
 #
 # Ground truth
 # ^^^^^^^^^^^^
@@ -224,5 +224,11 @@ for state in track[1:]:  # Skip the prior
                       alpha=0.2)
     ax.add_artist(ellipse)
 fig
+
+# %%
+# References
+# ----------
+# 1. Bar-Shalom Y, Daum F, Huang F 2009, The Probabilistic Data Association Filter, IEEE Control
+# Systems Magazine
 
 # sphinx_gallery_thumbnail_number = 2

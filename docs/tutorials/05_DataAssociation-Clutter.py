@@ -3,7 +3,7 @@
 
 """
 =======================================
-5 - Data Association - clutter tutorial
+5 - Data association - clutter tutorial
 =======================================
 """
 
@@ -173,8 +173,8 @@ for set_ in all_measurements:
 #
 # The hypothesiser must use a predicted state given by the predictor, create a measurement
 # prediction using the updater, and compare this to a detection given a specific metric. Hence, it
-# takes the predictor, updater, measure (metric) and missed distance as its arguments. So we need
-# to create a predictor and updater, and initialise a measure.
+# takes the predictor, updater, measure (metric) and missed distance as its arguments. We therefore need
+# to create a predictor and updater, and to initialise a measure.
 from stonesoup.predictor.kalman import KalmanPredictor
 predictor = KalmanPredictor(transition_model)
 from stonesoup.updater.kalman import KalmanUpdater
@@ -201,8 +201,8 @@ from stonesoup.dataassociator.neighbour import NearestNeighbour
 data_associator = NearestNeighbour(hypothesiser)
 
 # %%
-# Run the Kalman Filter
-# ^^^^^^^^^^^^^^^^^^^^^
+# Run the Kalman filter with the associator
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # With these components, we can run the simulated data and clutter through the Kalman filter.
 
 # Create prior
