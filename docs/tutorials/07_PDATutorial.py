@@ -2,7 +2,8 @@
 # coding: utf-8
 
 """
-7 - Probabilistic Data Association Tutorial
+===========================================
+7 - Probabilistic data association tutorial
 ===========================================
 """
 
