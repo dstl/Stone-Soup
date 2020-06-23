@@ -2,8 +2,8 @@
 # coding: utf-8
 
 """
-UAV Tracking Tutorial
-===========================================
+UAV Tracking Demonstation
+=========================
 """
 
 # %%
@@ -17,10 +17,10 @@ UAV Tracking Tutorial
 #
 # Items to note:
 #
-# - Assumes a single target track, which simplifies track management
-# - There is no clutter, and no missed detections -> No Data Association
-# - Need an initiator and deleter for the
-# - GPS updates are 1 sec., we assumes radar revisit is the same (little unrealistic)
+# - Assumes a single target track, which simplifies track management.
+# - There is no clutter, and no missed detections. So 1:1 Data Association.
+# - Need an initiator and deleter for the tracker.
+# - GPS updates are 1 sec., we assume radar revisit is the same (little unrealistic)
 #
 # We are assuming a ground based radar:
 #
@@ -72,15 +72,16 @@ updater = ExtendedKalmanUpdater(measurement_model=meas_model)
 # - :class:`~.CSVGroundTruthReader` - reads our CSV file which contains: timestamp,
 #   latitude, longitude, altitude and other miscellaneous data.
 # - :class:`~.LLAtoENUConverter` - this is a feeder, but it converts our lat, long, 
-#   alt data into Cartesian.
+#   alt data into Cartesian (ENU).
 #
-# The Cartesian data will be converted to Range, Bearing, Altitude later on.
+# The Cartesian(ENU) data will be converted to Range, Bearing, Altitude later on.
 # More involved detector could:
 #
-# - Add clutter
-# - Handle :math:`P_d` -> Could be based on radial velocity
-# - Handle radar revisit times
-# - Add unknown number & multiple targets
+# - Add clutter.
+# - Handle :math:`P_d` behaviour. Could be based on radial velocity or other
+#   parameters.
+# - Handle radar revisit times.
+# - Add unknown number & multiple targets.
 #
 from stonesoup.reader.generic import CSVGroundTruthReader
 
@@ -122,8 +123,8 @@ detector = PlatformDetectionSimulator(ground_truth_reader, [platform])
 
 
 # %%
-# Setup Initiator and Deletor classes for the Tracker
-# ---------------------------------------------------
+# Setup Initiator class for the Tracker
+# ---------------------------------------
 # This is just an heuristic initiation:
 # Assume most of the deviation is caused by the Bearing measurement error.
 # This is then converted into x, y components using the target bearing. For z,
@@ -179,6 +180,12 @@ prior_state = GaussianState(
 initiator = Initiator(prior_state, meas_model)
 #initiator = SimpleMeasurementInitiator(prior_state, meas_model)
 
+# %%
+# Setup Deletor for the Tracker
+# -----------------------------
+# In the simple case of 1 target, we never want to delete the track. Because
+# this Deletor is so simple I haven't bothered using a subtype/inheritance.
+# Instead I make use of Python's duck typing. 
 class MyDeleter:
     def delete_tracks(self, tracks):
         return {}
@@ -189,7 +196,7 @@ deleter = MyDeleter()
 # Setup Hypothesiser and Associator
 # ---------------------------------
 # Since we know there is only one measurement per scan, we can just use the
-# :class:`~.NearestNeigbour` associator to achieve our desired result.
+# :class:`~.NearestNeighbour` associator to achieve our desired result.
 from stonesoup.measures import Euclidean
 from stonesoup.dataassociator.neighbour import NearestNeighbour
 from stonesoup.hypothesiser.distance import DistanceHypothesiser
