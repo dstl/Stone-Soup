@@ -7,10 +7,10 @@
 """
 
 # %%
-# The previous tutorial <link>, as well as introducing various aspects of the Stone Soup framework,
+# Ss well as introducing various aspects of the Stone Soup framework, the previous tutorial
 # detailed the use of a Kalman filter. A significant problem in using the Kalman filter is that it
-# requires transition and sensor models to be linear-Gaussian. In practice, many models are
-# not like this and so alternatives are required. We examine the most commonly-used of such
+# requires transition and sensor models to be linear-Gaussian. In practice, many models are not
+# like this and so alternatives are required. We examine the most commonly-used of such
 # alternatives, the extended Kalman filter (EKF), in this tutorial.
 #
 # Background
@@ -122,7 +122,7 @@ for state in truth:
     measurements.append(Detection(measurement, timestamp=state.timestamp))
 
 # %%
-# And map them back onto the Cartesian reference frame for plotting.
+# Map them back onto the Cartesian reference frame for plotting.
 from stonesoup.functions import pol2cart
 x, y = pol2cart(
     np.hstack([state.state_vector[1, 0] for state in measurements]),
@@ -186,19 +186,12 @@ for state in track:
     ax.add_artist(ellipse)
 fig
 
+# sphinx_gallery_thumbnail_number = 2
+
 # %%
 # The first order approximations used by the EKF provide a simple way to handle non-linear tracking
 # problems. However, in highly non-linear systems these simplifications can lead to large errors in
 # both the posterior state mean and covariance. In instances where we have noisy transition, or
 # perhaps unreliable measurement, this could lead to a sub-optimal performance or even divergence
-# of the filter. In the next tutorial, we see how the **Unscented Kalman Filter** can begin to addresses
-# these issues.
-
-# %%
-# References
-# ----------
-#
-# 1.
-
-# sphinx_gallery_thumbnail_number = 2
-
+# of the filter. In the next tutorial, we see how the **Unscented Kalman Filter** can begin to
+# addresses these issues.

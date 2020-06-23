@@ -12,12 +12,13 @@
 # Gaussians, albeit with considerable flexibility in coping with the non-linear transforms.
 #
 # Sampling methods offer an attractive alternative to such parametric methods in that there is
-# no need for complicated though approximate covariance calculations. In this tutorial we look at a class of *sequential
-# Monte Carlo sampling* methods, and in particular, the *particle filter*.
+# no need for complicated though approximate covariance calculations. In this tutorial we look at a
+# class of *sequential Monte Carlo sampling* methods, and in particular, the *particle filter*.
 #
-# Colloquially we can think of a particle filter as a series of point samples being recursed through
-# the predict-update stages of a Bayesian filter. The diversity of samples compensates for the lack
-# of a covariance estimate, though often at the expense of increased computation requirements.
+# Colloquially we can think of a particle filter as a series of point samples being recursed
+# through the predict-update stages of a Bayesian filter. The diversity of samples compensates for
+# the lack of a covariance estimate, though often at the expense of increased computation
+# requirements.
 #
 # Background
 # ----------
@@ -32,10 +33,10 @@
 # where :math:`w_{k}^i` are weights such that :math:`\sum\limits_{i} w_{k}^i = 1`. This posterior
 # can be calculated, and subsequently maintained, by successive applications of the
 # Chapman-Kolomogorov equation and Bayes rule in an analogous manner to the Kalman family of
-# filters of previous tutorials <link>. There is considerable flexibility in how to sample from these
-# various distributions and the interested reader can refer to [1] for more detail.
+# filters of previous tutorials. There is considerable flexibility in how to sample from these
+# various distributions and the interested reader can refer to [#]_ for more detail.
 #
-# The present tutorial focusses on a so-called *sequential importance resampling* filter. This is
+# The present tutorial focuses on a so-called *sequential importance resampling* filter. This is
 # facilitated by a number of Stone Soup classes. The weight-update equation is,
 #
 # .. math::
@@ -50,12 +51,12 @@
 # sample from.
 #
 # A common occurrence in such methods is that of *sample impoverishment*. After a few iterations,
-# all but a small number of the particles will have negligible weight. This affects accuracy, wastes
-# computation on particles with little effect on the estimate. Resampling schemes \en many exist \en
-# are designed to redistribute particles to areas where the posterior probability is higher. In
-# Stone Soup such resampling is accomplised by a :class:`Resampler`. More detail is provided in the
+# all but a small number of the particles will have negligible weight. This affects accuracy and
+# wastes computation on particles with little effect on the estimate. Many re-sampling schemes
+# exist and are designed to redistribute particles to areas where the posterior probability is
+# higher. In Stone Soup such re-sampling is accomplished by a :class:`~.Resampler`. More detail is
+# provided in the
 # example below.
-#
 
 # %%
 #
@@ -137,12 +138,12 @@ fig
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Analogously to the Kalman family, we create a :class:`~.ParticlePredictor` and a
 # :class:`~.ParticleUpdater` which take responsibility for the predict and update steps
-# repectively. These require a :class:`TransitionModel` and :class:`MeasurementModel`, also as
-# before. To cope with sample sparsity we also include a resampler, in this instance
+# respectively. These require a :class:`TransitionModel` and :class:`MeasurementModel` as before.
+# To cope with sample sparsity we also include a re-sampler, in this instance
 # :class:`SystematicResampler`, which is passed to the updater. It should be noted that there are
-# many resampling schemes, and almost as many choices as to when to undertake resampling. The
-# systematic resampler is described in [2], and in what follows below resampling is undertaken at
-# each timestep.
+# many re-sampling schemes, and almost as many choices as to when to undertake re-sampling. The
+# systematic re-sampler is described in [#]_, and in what follows below re-sampling is undertaken
+# at each time-step.
 from stonesoup.predictor.particle import ParticlePredictor
 predictor = ParticlePredictor(transition_model)
 from stonesoup.resampler.particle import SystematicResampler
@@ -154,7 +155,7 @@ updater = ParticleUpdater(measurement_model, resampler)
 # Initialise a prior
 # ^^^^^^^^^^^^^^^^^^
 # To start we create a prior estimate. This is a set of :class:`~.Particle` and we sample from
-# Gaussian distribution (using same parameters we had in the previous examples).
+# Gaussian distribution (using the same parameters we had in the previous examples).
 
 from scipy.stats import multivariate_normal
 
@@ -202,18 +203,18 @@ for state in track:
     ax.plot(data[:, 0], data[:, 2], linestyle='', marker=".", markersize=1, alpha=0.5)
 fig
 
+# sphinx_gallery_thumbnail_number = 3
+
 # %%
 # You should ignore the colours. It's a thing that python does with successive writes to the
 # figure in matplotlib and will be turned off when we figure out how to do that.
 
-# sphinx_gallery_thumbnail_number = 4
-
 # %%
 # References
 # ----------
-# 1. Sanjeev Arulampalam M., Maskell S., Gordon N., Clapp T. 2002, Tutorial on Particle Filters
-# for Online Nonlinear/Non-Gaussian Bayesian Tracking,  IEEE transactions on signal processing,
-# vol. 50, no. 2
+# .. [#] Sanjeev Arulampalam M., Maskell S., Gordon N., Clapp T. 2002, Tutorial on Particle Filters
+#        for Online Nonlinear/Non-Gaussian Bayesian Tracking,  IEEE transactions on signal
+#        processing, vol. 50, no. 2
 #
-# 2. Carpenter J., Clifford P., Fearnhead P. 1999, An improved particle filter for non-linear
-# problems, IEE Proc., Radar Sonar Navigation, 146:2–7
+# .. [#] Carpenter J., Clifford P., Fearnhead P. 1999, An improved particle filter for non-linear
+#        problems, IEE Proc., Radar Sonar Navigation, 146:2–7
