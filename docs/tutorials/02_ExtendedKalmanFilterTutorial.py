@@ -186,7 +186,7 @@ for state in track:
     ax.add_artist(ellipse)
 fig
 
-# sphinx_gallery_thumbnail_number = 2
+# sphinx_gallery_thumbnail_number = 3
 
 # %%
 # The first order approximations used by the EKF provide a simple way to handle non-linear tracking
