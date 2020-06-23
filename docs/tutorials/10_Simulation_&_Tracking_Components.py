@@ -2,100 +2,180 @@
 # coding: utf-8
 
 """
-10 - Simulation & Tracking Components
-=====================================
-Running through the tutorials, the simulation code and tracking code has developed as new elements
-have been added. In the last tutorial, this ended with a simulation of varying number of targets,
-and a multi-target tracking handling initialisation and deletion of tracks. This tutorial just
-wraps up these elements by showing the Stone Soup components that implement the similar simulation
-and tracking features in existing components.
+=============================================================
+10 - Tracking in simulation: bringing all components together
+=============================================================
+The previous tutorials have introduced various aspects of Stone Soup covering inference and data
+association for multiple-target trackers, using simulated data. This tutorial consolidates those
+aspects in a notebook which can be modified to individual need. It contains all aspects
+introduced in previous tutorials, and nothing new.
 """
 
 # %%
-# Creating Simulation
-# -------------------
-# First create models as seen in previous tutorials
-import numpy as np
-
-from stonesoup.models.transition.linear import (
-    CombinedLinearGaussianTransitionModel, ConstantVelocity)
-from stonesoup.models.measurement.linear import LinearGaussian
-
-transition_model = CombinedLinearGaussianTransitionModel(
-    [ConstantVelocity(0.05), ConstantVelocity(0.05)])
-measurement_model = LinearGaussian(4, [0, 2], np.diag([0.25, 0.25]))
+# Process
+# -------
+# This notebook, as with the previous, proceeds according to the following steps:
+#
+# 1. Create the simulation
+#   * Initialise the 'playing field'
+#   * Choose number of targets and initial states
+#   * Create some transition models
+#   * Create some sensor models
+# 2. Initialise the tracker components
+#   * Initialise predictors
+#   * Initialise updaters
+#   * Initialise data associations, hypothesisers
+#   * Initiators and deleters
+#   * Create the tracker
+# 3. Run the tracker
+#   * Plot the output
 
 # %%
-# And with those models, create a multi target ground truth simulator. This has a number of
-# configurable parameters, e.g. defining where tracks are born and at what rate, death probability.
-# This implements similar logic to the code in previous tutorial section
-# :ref:`auto_tutorials/09_Initiators_&_Deleters:Simulating Multiple Targets`
+# Create the simulation
+# -----------------------
+
+# %%
+# Separate out the imports
+import numpy as np
 import datetime
 
-from stonesoup.simulator.simple import MultiTargetGroundTruthSimulator, SimpleDetectionSimulator
+# %%
+# Initialise ground truth
+# ^^^^^^^^^^^^^^^^^^^^^^^
+# Here are some configurable parameters associated with the ground truth, e.g. defining where
+# tracks are born and at what rate, death probability. This follows similar logic to the code
+# in previous tutorial section :ref:`auto_tutorials/09_Initiators_&_Deleters:Simulating Multiple
+# Targets`.
 from stonesoup.types.array import StateVector, CovarianceMatrix
 from stonesoup.types.state import GaussianState
+initial_state_mean = StateVector([[0], [0], [0], [0]])
+initial_state_covariance = CovarianceMatrix(np.diag([4, 0.5, 4, 0.5]))
+timestep_size = datetime.timedelta(seconds=5)
+number_of_steps = 20
+birth_rate = 0.3
+death_probability = 0.05
+initial_state = GaussianState(initial_state_mean, initial_state_covariance)
 
+# %%
+# Create the transition model - default set to 2d nearly-constant velocity with small (0.05)
+# variance.
+from stonesoup.models.transition.linear import (
+    CombinedLinearGaussianTransitionModel, ConstantVelocity)
+transition_model = CombinedLinearGaussianTransitionModel(
+    [ConstantVelocity(0.05), ConstantVelocity(0.05)])
+
+## %
+# Put this all together in a multi-target simulator.
+from stonesoup.simulator.simple import MultiTargetGroundTruthSimulator
 groundtruth_sim = MultiTargetGroundTruthSimulator(
     transition_model=transition_model,
-    initial_state=GaussianState(
-        StateVector([[0], [0], [0], [0]]),
-        CovarianceMatrix(np.diag([4, 0.5, 4, 0.5]))),
-    timestep=datetime.timedelta(seconds=5),
-    number_steps=20,
-    birth_rate=0.3,
-    death_probability=0.05
+    initial_state=initial_state,
+    timestep=timestep_size,
+    number_steps=number_of_steps,
+    birth_rate=birth_rate,
+    death_probability=death_probability
 )
 
 # %%
-# This simulated ground truth will then be passed to a simple detection simulator. This again has a
+# Initialise the sensor models
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# The simulated ground truth will then be passed to a simple detection simulator. This again has a
 # number of configurable parameters, e.g. where clutter is generated and at what rate, and
 # detection probability. This implements similar logic to the code in the previous tutorial section
-# :ref:`auto_tutorials/09_Initiators_&_Deleters:Generate Detections and Clutter`
+# :ref:`auto_tutorials/09_Initiators_&_Deleters:Generate Detections and Clutter`.
+from stonesoup.simulator.simple import SimpleDetectionSimulator
+from stonesoup.models.measurement.linear import LinearGaussian
+
+# initialise the measurement model
+measurement_model_covariance = np.diag([0.25, 0.25])
+measurement_model = LinearGaussian(4, [0, 2], measurement_model_covariance)
+
+# probability of detection
+probability_detection = 0.9
+
+# clutter will be generated uniformly in this are around the target
+clutter_area = np.array([[-1, 1], [-1, 1]])*30
+clutter_rate = 1
+
+# %%
+# The detection simulator
 detection_sim = SimpleDetectionSimulator(
     groundtruth=groundtruth_sim,
     measurement_model=measurement_model,
-    detection_probability=0.9,
-    meas_range=np.array([[-1, 1], [-1, 1]])*30,  # Area to generate clutter
-    clutter_rate=1,
+    detection_probability=probability_detection,
+    meas_range=clutter_area,
+    clutter_rate=clutter_rate
 )
 
 # %%
-# Creating the Tracker Components
-# -------------------------------
-# Similar tracking components will be created as in the previous tutorials, using same models used
-# in simulation above. In this example, Kalman filter is used with Global Nearest Neighbour.
+# One might pause and check to see what's been generated at this stage.
+
+# %%
+# Create the tracker components
+# -----------------------------
+# In this example a Kalman filter is used with global nearest neighbour (GNN) associator. Other options
+# are, of course, available.
+#
+
+# %%
+# Predictor
+# ^^^^^^^^^
+# Initialise the predictor using the same transition model as generated the ground truth. Note you don't
+# have to do this.
 from stonesoup.predictor.kalman import KalmanPredictor
 predictor = KalmanPredictor(transition_model)
 
+# %%
+# Updater
+# ^^^^^^^
+# Initialise the updater using the same measurement model as generated the simulated detections. Note, again, you
+# don't have to do this.
 from stonesoup.updater.kalman import KalmanUpdater
 updater = KalmanUpdater(measurement_model)
 
+# %%
+# Data associator
+# ^^^^^^^^^^^^^^^
+# Initialise a hypothesiser which will rank predicted measurement - measurement pairs according to some measure.
+# Initialise a Mahalanobis distance measure to facilitate this ranking.
 from stonesoup.hypothesiser.distance import DistanceHypothesiser
 from stonesoup.measures import Mahalanobis
 hypothesiser = DistanceHypothesiser(predictor, updater, measure=Mahalanobis(), missed_distance=3)
 
+# %%
+# Initialise the GNN with the hypothesiser. (TODO: Note that we should include a :class:`~.Gater` here.)
 from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
 data_associator = GNNWith2DAssignment(hypothesiser)
 
-from stonesoup.deleter.error import CovarianceBasedDeleter
-deleter = CovarianceBasedDeleter(2)
 
+# %%
+# Initiator and Deleter
+# ^^^^^^^^^^^^^^^^^^^^^
+# Initialise deleter - get rid of anything with a covariance greater than 2 (2 what?)
+from stonesoup.deleter.error import CovarianceBasedDeleter
+covariance_limit_for_delete = 2
+deleter = CovarianceBasedDeleter(covariance_limit_for_delete)
+
+# Set a standard prior state abd the minimum number of detections required to qualify for initiation
+s_prior_state=GaussianState([[0], [0], [0], [0]], np.diag([0, 0.5, 0, 0.5]))
+min_detections = 3
+# Initialise the initiator - use the 'full tracker' components specified above in the initiator. But
+# note that other ones could be used if needed.
 from stonesoup.initiator.simple import MultiMeasurementInitiator
 initiator = MultiMeasurementInitiator(
-    prior_state=GaussianState([[0], [0], [0], [0]], np.diag([0, 0.5, 0, 0.5])),
+    prior_state=s_prior_state,
     measurement_model=measurement_model,
     deleter=deleter,
     data_associator=data_associator,
     updater=updater,
-    min_points=3,
+    min_points=min_detections
 )
 
 # %%
-# Creating and Running the Tracker
-# --------------------------------
-# With the components created, the multi-target tracker component will be created, constructed from
-# the components created above. This is logically the same as tracking code in the previous
+# Run the Tracker
+# ---------------
+# With the components created, the multi-target tracker component is created, constructed from
+# the components specified above. This is logically the same as tracking code in the previous
 # tutorial section :ref:`auto_tutorials/09_Initiators_&_Deleters:Running the Tracker`
 from stonesoup.tracker.simple import MultiTargetTracker
 
@@ -108,8 +188,10 @@ tracker = MultiTargetTracker(
 )
 
 # %%
-# And finally plotting the output using a Stone Soup plotting metric generator. This will produce a
-# plot very similar to that seen across all these tutorials.
+# Plot the outputs
+# ^^^^^^^^^^^^^^^^
+# We plot the output using a Stone Soup :class:`MetricGenerator` which does plots (in this instance
+# :class:`TwoDPlotter`. This will produce plots equivalent to that seen in previous tutorials.
 groundtruth = set()
 detections = set()
 tracks = set()
@@ -124,4 +206,14 @@ fig = plotter.plot_tracks_truth_detections(tracks, groundtruth, detections).valu
 
 ax = fig.axes[0]
 ax.set_xlim([-30, 30])
-_ = ax.set_ylim([-30, 30])
+_ = ax.set_ylim([-30, 30]) # ?0
+
+# %%
+# Questions that arise
+# --------------------
+#
+# What happens if I want to fix the detections, i.e. not use a 'detection generator'?
+#
+# Did we introduce the :class:`Tracker` anywhere before?
+#
+# Are there ellipses in the 2d plotter?
