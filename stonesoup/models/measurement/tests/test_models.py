@@ -7,7 +7,7 @@ from scipy.stats import multivariate_normal
 from ..nonlinear import (
     CartesianToElevationBearingRange, CartesianToBearingRange,
     CartesianToElevationBearing, Cartesian2DToBearing, CartesianToBearingRangeRate,
-    CartesianToElevationBearingRangeRate, RangeVelocityBinning)
+    CartesianToElevationBearingRangeRate, RangeRangeRateBinning)
 
 from ...base import ReversibleModel
 from ....functions import jacobian as compute_jac
@@ -634,30 +634,30 @@ def test_inverse_function():
 def test_binning():
     real_state = State(state_vector=StateVector([10e3, 100., 10e3, 100., 10e3, 100.]))
 
-    measurement_model = RangeVelocityBinning(range_res=10,
-                                             velocity_res=5,
-                                             ndim_state=6,
-                                             mapping=[0, 2, 4],
-                                             velocity_mapping=[1, 3, 5],
-                                             noise_covar=np.array([100,
+    measurement_model = RangeRangeRateBinning(range_res=10,
+                                              range_rate_res=5,
+                                              ndim_state=6,
+                                              mapping=[0, 2, 4],
+                                              velocity_mapping=[1, 3, 5],
+                                              noise_covar=np.array([100,
                                                                    10,
                                                                    np.pi/18,
                                                                    np.pi/18]))
 
     measured = measurement_model.function(real_state, noise=True)
     assert (measured[0, 0]/measurement_model.range_res).is_integer()
-    assert (measured[1, 0]/measurement_model.velocity_res).is_integer()
+    assert (measured[1, 0]/measurement_model.range_rate_res).is_integer()
 
 
 def test_binning_pdf():
     real_state = State(state_vector=StateVector([10e3, 100., 10e3, 100., 10e3, 100.]))
 
-    measurement_model = RangeVelocityBinning(range_res=10,
-                                             velocity_res=5,
-                                             ndim_state=6,
-                                             mapping=[0, 2, 4],
-                                             velocity_mapping=[1, 3, 5],
-                                             noise_covar=np.array([100,
+    measurement_model = RangeRangeRateBinning(range_res=10,
+                                              range_rate_res=5,
+                                              ndim_state=6,
+                                              mapping=[0, 2, 4],
+                                              velocity_mapping=[1, 3, 5],
+                                              noise_covar=np.array([100,
                                                                    10,
                                                                    np.pi/18,
                                                                    np.pi/18]))
@@ -670,18 +670,18 @@ def test_binning_pdf():
     pdf = measurement_model.pdf(State(not_measured), real_state)
     assert pdf == 0
     not_measured = measured.copy()
-    not_measured[1, 0] = not_measured[1, 0] + 0.5*measurement_model.velocity_res
+    not_measured[1, 0] = not_measured[1, 0] + 0.5*measurement_model.range_rate_res
     pdf = measurement_model.pdf(State(not_measured), real_state)
     assert pdf == 0
 
 
 def test_binning_integral():
-    measurement_model = RangeVelocityBinning(range_res=None,
-                                             velocity_res=None,
-                                             ndim_state=None,
-                                             mapping=[],
-                                             velocity_mapping=[],
-                                             noise_covar=None)
+    measurement_model = RangeRangeRateBinning(range_res=None,
+                                              range_rate_res=None,
+                                              ndim_state=None,
+                                              mapping=[],
+                                              velocity_mapping=[],
+                                              noise_covar=None)
 
     mean = 33.33333
     a = 40
