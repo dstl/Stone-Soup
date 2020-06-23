@@ -1111,10 +1111,9 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
 
         The probability for the binned dimensions, the last 2, can be written as:
 
-        ..math::
+        .. math::
 
-            p = P(a $\leq$ \mathcal{N} $\leq$ b)
-
+            p = P(a \leq \mathcal{N} \leq b)
 
         In this equation a and b are the edges of the bin.
 
