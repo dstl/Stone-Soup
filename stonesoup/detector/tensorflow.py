@@ -1,8 +1,18 @@
 # -*- coding: utf-8 -*-
+
+try:
+    import tensorflow as tf
+    from object_detection.utils import label_map_util as lm_util
+except ImportError as error:
+    raise ImportError(
+        "Usage of the TensorFlow detectors requires that TensorFlow and the research module of "
+        "the TensorFlow Model Garden are installed. A quick guide on how  to set these up can be "
+        "found here: "
+        "https://tensorflow2objectdetectioninstallation.readthedocs.io/en/latest/ ")\
+        from error
+
 import threading
 import numpy as np
-import tensorflow as tf
-from object_detection.utils import label_map_util as lm_util
 from copy import copy
 from pathlib import Path
 
@@ -35,7 +45,9 @@ class TensorFlowBoxObjectDetector(Detector):
     
     Important
     ---------
-    Use of this class requires that TensorFlow is installed. Only TensorFlow v1.x is supported.
+    Use of this class requires that TensorFlow and the research module of the TensorFlow Model 
+    Garden are installed. A quick guide on how to set these up can be found 
+    `here <https://tensorflow2objectdetectioninstallation.readthedocs.io/en/latest/>`_. 
     
     """  # noqa
 
@@ -61,7 +73,7 @@ class TensorFlowBoxObjectDetector(Detector):
         default=False)
 
     session_config = Property(
-        tf.ConfigProto,
+        tf.compat.v1.ConfigProto,
         doc="A `ConfigProto <https://www.tensorflow.org/code/tensorflow/core/protobuf/config"
             ".proto>`_ protocol buffer with configuration options for the TensorFlow session. "
             "Defaults to ``None``",
@@ -74,12 +86,12 @@ class TensorFlowBoxObjectDetector(Detector):
         # Initialise TF graph and category index
         self._graph = tf.Graph()
         with self._graph.as_default():
-            od_graph_def = tf.GraphDef()
-            with tf.gfile.GFile(str(self.model_path), 'rb') as fid:
+            od_graph_def = tf.compat.v1.GraphDef()
+            with tf.compat.v1.gfile.GFile(str(self.model_path), 'rb') as fid:
                 serialized_graph = fid.read()
                 od_graph_def.ParseFromString(serialized_graph)
                 tf.import_graph_def(od_graph_def, name='')
-            self._sess = tf.Session(graph=self._graph, config=self.session_config)
+            self._sess = tf.compat.v1.Session(graph=self._graph, config=self.session_config)
         self.category_index = lm_util.create_category_index_from_labelmap(
             self.labels_path,
             use_display_name=True)
