@@ -188,7 +188,7 @@ initiator = Initiator(prior_state, meas_model)
 # Instead I make use of Python's duck typing. 
 class MyDeleter:
     def delete_tracks(self, tracks):
-        return {}
+        return set()
  
 deleter = MyDeleter()
 
