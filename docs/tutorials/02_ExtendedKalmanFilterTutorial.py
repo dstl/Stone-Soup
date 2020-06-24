@@ -28,14 +28,14 @@
 # :math:`\mathbf{x}_{k|k−1} = \boldsymbol{\mu}_{k|k−1}`. It does this by way of a Taylor expansion,
 #
 # .. math::
-#       g(\mathbf{x})\rvert_{\mathbf{x}=\mathbf{u}} \approx \sum\limits_{|\alpha| \ge 0}
-#       \frac{ (\mathbf{x} - \mathbf{u})^{\alpha}}{\alpha !} (\mathcal{D}^{\alpha})(\mathbf{u})
+#       g(\mathbf{x})\rvert_{\mathbf{x}=\boldsymbol{\mu}} \approx \sum\limits_{|\alpha| \ge 0}
+#       \frac{ (\mathbf{x} - \boldsymbol{\mu})^{\alpha}}{\alpha !} (\mathcal{D}^{\alpha} g)(\boldsymbol{\mu})
 #
 # This is usually truncated after the first term meaning that either
-# :math:`F(\mathbf{x}_{k-1}) \approx \mathbf{J}(f)\rvert_{\mathbf{x}=\boldsymbol{\mu}_{k-1}}` or
-# :math:`H(\mathbf{x}_{k|k-1}) \approx \mathbf{J}(h)\rvert_{\mathbf{x}=\boldsymbol{\mu}_{k|k-1}}`
-# or both, where :math:`\mathbf{J}(\cdot)` is the Jacobian matrix. Stone Soup implements the EKF
-# for non-linear functions using a finite difference method to find :math:`\mathbf{J}(\cdot)`
+# :math:`F(\mathbf{x}_{k-1}) \approx J(f)\rvert_{\mathbf{x}=\boldsymbol{\mu}_{k-1}}` or
+# :math:`H(\mathbf{x}_{k|k-1}) \approx J(h)\rvert_{\mathbf{x}=\boldsymbol{\mu}_{k|k-1}}`
+# or both, where :math:`J(\cdot)` is the Jacobian matrix. Stone Soup implements the EKF
+# for non-linear functions using a finite difference method to find :math:`J(\cdot)`
 # in the appropriate places. We'll now see this in action.
 
 # %%
@@ -47,6 +47,11 @@
 import numpy as np
 from datetime import datetime, timedelta
 start_time = datetime.now()
+
+# %%
+
+# import random
+# random.seed(1991)
 
 # %%
 # Create a target
@@ -189,9 +194,19 @@ fig
 # sphinx_gallery_thumbnail_number = 3
 
 # %%
+# Key points
+# ----------
+# 1. Non-linear models can be incorporated into the tracking scheme through the use of the appropriate
+#    combination of :class:`~.Predictor`/:class:`~.TransitionModel` or
+#    :class:`~.Updater`/:class:`~.MeasurementModel`
+# 2. Because Stone Soup uses inheritance, the amount of engineering required to achieve this is minimal and
+#    the interface is the same. A user can apply the EKF components in exactly the same way as the KF.
+
+# %%
 # The first order approximations used by the EKF provide a simple way to handle non-linear tracking
 # problems. However, in highly non-linear systems these simplifications can lead to large errors in
 # both the posterior state mean and covariance. In instances where we have noisy transition, or
 # perhaps unreliable measurement, this could lead to a sub-optimal performance or even divergence
-# of the filter. In the next tutorial, we see how the **Unscented Kalman Filter** can begin to
+# of the filter. In the next tutorial, we see how the **unscented Kalman filter** can begin to
 # addresses these issues.
+

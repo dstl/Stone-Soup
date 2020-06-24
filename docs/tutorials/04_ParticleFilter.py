@@ -66,7 +66,8 @@
 #
 # Ground truth
 # ^^^^^^^^^^^^
-# Import the necessary libraries and initialise Stone Soup ground-truth and transition models.
+# Import the necessary libraries
+
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -74,6 +75,13 @@ from datetime import datetime
 from datetime import timedelta
 start_time = datetime.now()
 
+# %%
+
+# import random
+# random.seed(1991)
+
+# %%
+# Initialise Stone Soup ground-truth and transition models.
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
     ConstantVelocity
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
@@ -204,6 +212,16 @@ for state in track:
 fig
 
 # sphinx_gallery_thumbnail_number = 3
+
+# %%
+# Key points
+# ----------
+# 1. Sampling methods offer an attractive alternative to Kalman-based filtering for recursive
+#    state estimation.
+# 2. The particle filter trades off a more subtle quantification of a non-Gaussian
+#    estimate against increased computational effort.
+# 3. Very often particle filters encounter sample impoverishment and require a resampling step.
+
 
 # %%
 # References

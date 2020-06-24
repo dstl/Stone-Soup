@@ -2,6 +2,7 @@
 # coding: utf-8
 
 """
+=======================================================
 3 - Non-linear models: unscented Kalman filter tutorial
 =======================================================
 """
@@ -18,9 +19,6 @@
 # A transformed Gaussian is then reconstructed from the new sigma points. This forms the basis for
 # the unscented Kalman filter (UKF).
 #
-# Without proof, the posterior mean and covariance will be accurate to the 3rd order Taylor
-# expansion for all non-linearities that need approximation. [#]_
-#
 # This tutorial will first run a simulation in an entirely equivalent fashion to the previous
 # (EKF) tutorial. We'll then look into more precise details concerning the UT and try and develop
 # some intuition into the reasons for its effectiveness.
@@ -28,7 +26,7 @@
 # %%
 # Background
 # ----------
-# Limited detail on how Stone Soup does the UKF is provided below. See [#]_ for fuller, better
+# Limited detail on how Stone Soup does the UKF is provided below. See Julier et al. (2000)[#]_ for fuller, better
 # details of the UKF.
 #
 # For dimension :math:`N_d`, a set of :math:`2 N_d + 1` sigma points are calculated at:
@@ -66,6 +64,8 @@
 #           P &= (\mathbf{s}^{\prime} - \mathbf{x}^\prime) \, diag(W^c) \, (\mathbf{s}^{\prime} -
 #           \mathbf{x}^\prime)^T + Q
 #
+# The posterior mean and covariance are accurate to the 3rd order Taylor expansion for all
+# non-linear models. [#]_
 
 # %%
 # Nearly-constant velocity example
@@ -79,6 +79,11 @@ from matplotlib import pyplot as plt  # Set-up for plotting
 
 from datetime import datetime, timedelta
 start_time = datetime.now()
+
+# %%
+
+# import random
+# random.seed(1991)
 
 # %%
 # Create ground truth
@@ -236,7 +241,7 @@ from stonesoup.types.particle import Particle
 from stonesoup.types.numeric import Probability  # Similar to a float type
 from stonesoup.types.state import ParticleState
 
-number_particles = 1000
+number_particles = 2000
 
 # Sample from the Gaussian prediction distribution
 samples = multivariate_normal.rvs(prediction.state_vector.ravel(),
@@ -310,7 +315,7 @@ orient = np.arctan2(v[max_ind, 1], v[max_ind, 0])
 ekf_ellipse = Ellipse(xy=(ekf_pred_meas.state_vector[0], ekf_pred_meas.state_vector[1]),
                       width=np.sqrt(w[max_ind])*2, height=np.sqrt(w[min_ind])*2,
                       angle=np.rad2deg(orient),
-                      alpha=0.4,
+                      alpha=0.3,
                       color='g')
 ax.add_artist(ekf_ellipse)
 
@@ -325,9 +330,15 @@ fig2
 # transformed distribution.
 
 # %%
+# Key points
+# ----------
+# 1. The unscented Kalman filter offers a powerful alternative to the EKF when undertaking tracking
+#    in non-linear regimes.
+
+# %%
 # References
 # ----------
-# .. [#] https://www.seas.harvard.edu/courses/cs281/papers/unscented.pdf
 # .. [#] Julier S., Uhlmann J., Durrant-Whyte H.F. 2000, A new method for the nonlinear
 #        transformation of means and covariances in filters and estimators," in IEEE Transactions
 #        on Automatic Control, vol. 45, no. 3, pp. 477-482, doi: 10.1109/9.847726.
+# .. [#] https://www.seas.harvard.edu/courses/cs281/papers/unscented.pdf
