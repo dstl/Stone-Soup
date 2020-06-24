@@ -2,7 +2,8 @@
 # coding: utf-8
 
 """
-8 - Joint Probabilistic Data Association Tutorial
+=================================================
+8 - Joint probabilistic data association tutorial
 =================================================
 """
 
@@ -219,3 +220,9 @@ for track in tracks:
 multi_fig
 
 # sphinx_gallery_thumbnail_number = 2
+
+# %%
+# References
+# ----------
+# 1. Bar-Shalom Y, Daum F, Huang F 2009, The Probabilistic Data Association Filter, IEEE Control
+# Systems Magazine
