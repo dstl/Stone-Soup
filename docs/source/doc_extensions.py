@@ -67,8 +67,11 @@ def setup(app):
 import os
 import matplotlib
 import matplotlib.pyplot as plt
+from textwrap import indent
 
-from sphinx_gallery.scrapers import figure_rst
+from sphinx_gallery.scrapers import (
+    figure_rst, _anim_rst, _matplotlib_fig_titles, HLIST_HEADER,
+    HLIST_IMAGE_MATPLOTLIB)
 
 
 class gallery_scraper():
@@ -99,11 +102,19 @@ class gallery_scraper():
             The ReSTructuredText that will be rendered to HTML containing
             the images. This is often produced by :func:`figure_rst`.
         """
-
+        from matplotlib.animation import Animation
         from matplotlib.figure import Figure
-
         image_path_iterator = block_vars['image_path_iterator']
-        image_paths = list()
+        image_rsts = []
+
+        # Check for animations
+        anims = list()
+        if gallery_conf.get('matplotlib_animations', False):
+            for ani in block_vars['example_globals'].values():
+                if isinstance(ani, Animation):
+                    anims.append(ani)
+
+        # Then standard images
         new_figures = set(plt.get_fignums()) - self.plotted_figures
         last_line = block[1].strip().split('\n')[-1]
         output = block_vars['example_globals'].get(last_line)
@@ -118,6 +129,17 @@ class gallery_scraper():
             # save a figure that's not the current figure.
             fig = plt.figure(fig_num)
             self.plotted_figures.add(fig_num)
+            # Deal with animations
+            cont = False
+            for anim in anims:
+                if anim._fig is fig:
+                    image_rsts.append(_anim_rst(anim, image_path, gallery_conf))
+                    cont = True
+                    break
+            if cont:
+                continue
+            # get fig titles
+            fig_titles = _matplotlib_fig_titles(fig)
             to_rgba = matplotlib.colors.colorConverter.to_rgba
             # shallow copy should be fine here, just want to avoid changing
             # "kwargs" for subsequent figures processed by the loop
@@ -130,5 +152,16 @@ class gallery_scraper():
                     these_kwargs[attr] = fig_attr
             these_kwargs['bbox_inches'] = "tight"
             fig.savefig(image_path, **these_kwargs)
-            image_paths.append(image_path)
-        return figure_rst(image_paths, gallery_conf['src_dir'])
+            image_rsts.append(
+                figure_rst([image_path], gallery_conf['src_dir'], fig_titles))
+        rst = ''
+        if len(image_rsts) == 1:
+            rst = image_rsts[0]
+        elif len(image_rsts) > 1:
+            image_rsts = [re.sub(r':class: sphx-glr-single-img',
+                                 ':class: sphx-glr-multi-img',
+                                 image) for image in image_rsts]
+            image_rsts = [HLIST_IMAGE_MATPLOTLIB + indent(image, u' ' * 6)
+                          for image in image_rsts]
+            rst = HLIST_HEADER + ''.join(image_rsts)
+        return rst

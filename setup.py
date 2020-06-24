@@ -30,7 +30,7 @@ setup(name='stonesoup',
       extras_require={
           'dev': [
               'pytest-flake8', 'pytest-cov', 'Sphinx', 'sphinx_rtd_theme',
-              'setuptools>=30', 'sphinx-gallery', 'pillow', 'folium'],
+              'setuptools>=30', 'sphinx-gallery>=0.7', 'pillow', 'folium'],
           'video': [
               'ffmpeg-python', 'moviepy'],
       },
