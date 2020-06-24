@@ -26,8 +26,8 @@
 # %%
 # Background
 # ----------
-# Limited detail on how Stone Soup does the UKF is provided below. See Julier et al. (2000)[#]_ for fuller, better
-# details of the UKF.
+# Limited detail on how Stone Soup does the UKF is provided below. See Julier et al. (2000) [#]_
+# for fuller, better details of the UKF.
 #
 # For dimension :math:`N_d`, a set of :math:`2 N_d + 1` sigma points are calculated at:
 #

@@ -340,6 +340,8 @@ for state in track:
     ax.add_artist(ellipse)
 fig
 
+# sphinx_gallery_thumbnail_number = 3
+
 # %%
 # Key points
 # ----------
@@ -358,5 +360,3 @@ fig
 #        the ASME, Journal of Basic Engineering, 82 (series D), 35
 #        (https://pdfs.semanticscholar.org/bb55/c1c619c30f939fc792b049172926a4a0c0f7.pdf?_ga=2.51363242.2056055521.1592932441-1812916183.1592932441)
 # .. [#] Anderson & Moore 2012, Optimal filtering, (http://users.cecs.anu.edu.au/~john/papers/BOOK/B02.PDF)
-
-# sphinx_gallery_thumbnail_number = 3
