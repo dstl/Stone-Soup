@@ -6,7 +6,7 @@ try:
 except ImportError as error:
     raise ImportError(
         "Usage of the TensorFlow detectors requires that TensorFlow and the research module of "
-        "the TensorFlow Model Garden are installed. A quick guide on how  to set these up can be "
+        "the TensorFlow Model Garden are installed. A quick guide on how to set these up can be "
         "found here: "
         "https://tensorflow2objectdetectioninstallation.readthedocs.io/en/latest/ ")\
         from error
