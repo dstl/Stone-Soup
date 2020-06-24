@@ -225,10 +225,10 @@ for state in track[1:]:  # Skip the prior
     ax.add_artist(ellipse)
 fig
 
+# sphinx_gallery_thumbnail_number = 2
+
 # %%
 # References
 # ----------
 # 1. Bar-Shalom Y, Daum F, Huang F 2009, The Probabilistic Data Association Filter, IEEE Control
 # Systems Magazine
-
-# sphinx_gallery_thumbnail_number = 2
