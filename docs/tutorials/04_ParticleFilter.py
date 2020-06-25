@@ -45,8 +45,8 @@
 #                {q(\mathbf{x}^i_k|\mathbf{x}^1_{k-1},\mathbf{z}^i_{1:k})}
 #
 # where :math:`p(\mathbf{z}_k | \mathbf{x}^i_k)` is the likelihood distribution (as defined by the
-# :class:`MeasurementModel`) and :math:`p(\mathbf{x}^i_k|\mathbf{x}^1_{k-1})` is the transition
-# probability distribution (:class:`TransitionModel`). The :math:`q(\cdot)` distribution -- the
+# :class:`~.MeasurementModel`) and :math:`p(\mathbf{x}^i_k|\mathbf{x}^1_{k-1})` is the transition
+# probability distribution (:class:`~.TransitionModel`). The :math:`q(\cdot)` distribution -- the
 # importance density -- should approximate the posterior distribution, while still being easy to
 # sample from.
 #
@@ -66,7 +66,8 @@
 #
 # Ground truth
 # ^^^^^^^^^^^^
-# Import the necessary libraries and initialise Stone Soup ground-truth and transition models.
+# Import the necessary libraries
+
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -74,6 +75,12 @@ from datetime import datetime
 from datetime import timedelta
 start_time = datetime.now()
 
+# %%
+
+# np.random.seed(1991)
+
+# %%
+# Initialise Stone Soup ground-truth and transition models.
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
     ConstantVelocity
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
@@ -138,9 +145,10 @@ fig
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Analogously to the Kalman family, we create a :class:`~.ParticlePredictor` and a
 # :class:`~.ParticleUpdater` which take responsibility for the predict and update steps
-# respectively. These require a :class:`TransitionModel` and :class:`MeasurementModel` as before.
+# respectively. These require a :class:`~.TransitionModel` and :class:`~.MeasurementModel` as
+# before.
 # To cope with sample sparsity we also include a re-sampler, in this instance
-# :class:`SystematicResampler`, which is passed to the updater. It should be noted that there are
+# :class:`~.SystematicResampler`, which is passed to the updater. It should be noted that there are
 # many re-sampling schemes, and almost as many choices as to when to undertake re-sampling. The
 # systematic re-sampler is described in [#]_, and in what follows below re-sampling is undertaken
 # at each time-step.
@@ -204,6 +212,15 @@ for state in track:
 fig
 
 # sphinx_gallery_thumbnail_number = 3
+
+# %%
+# Key points
+# ----------
+# 1. Sampling methods offer an attractive alternative to Kalman-based filtering for recursive
+#    state estimation.
+# 2. The particle filter trades off a more subtle quantification of a non-Gaussian
+#    estimate against increased computational effort.
+# 3. Very often particle filters encounter sample impoverishment and require a resampling step.
 
 # %%
 # References

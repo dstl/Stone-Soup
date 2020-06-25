@@ -2,6 +2,7 @@
 # coding: utf-8
 
 """
+==========================================================
 1 - An introduction to Stone Soup: using the Kalman filter
 ==========================================================
 """
@@ -103,6 +104,12 @@ from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionM
 start_time = datetime.now()
 
 # %%
+# We note that it can sometimes be useful to fix our random number generator in order to probe a
+# particular example repeatedly. That option is available by uncommenting the next line.
+
+# np.random.seed(1991)
+
+# %%
 # The :class:`~.ConstantVelocity` class creates a one-dimensional nearly constant velocity model
 # with specified noise. The :class:`~.CombinedLinearGaussianTransitionModel` class takes a number
 # of 1d models and combines them in a linear Gaussian model of arbitrary dimension. We want a 2d
@@ -175,7 +182,10 @@ transition_model.covar(time_interval=timedelta(seconds=1))
 #
 # We'll use one of Stone Soup's measurement models in order to generate
 # measurements from the ground truth. For the moment we assume a 'linear' sensor which detects the
-# position, but not velocity, of a target, such that :math:`\mathbf{z}_k = H_k \mathbf{x}_k`, with
+# position, but not velocity, of a target, such that
+#
+# :math:`\mathbf{z}_k = H_k \mathbf{x}_k + \boldsymbol{\nu}_k`,
+# :math:`\boldsymbol{\nu}_k \sim \mathcal{N}(0,R)`, with
 #
 # .. math::
 #           H_k &= \begin{bmatrix}
@@ -183,8 +193,18 @@ transition_model.covar(time_interval=timedelta(seconds=1))
 #                     0  & 0 & 1 & 0\\
 #                       \end{bmatrix}
 #
-# for the present simulation.
+# and
 #
+# .. math::
+#
+#           R &= \begin{bmatrix}
+#                   1 & 0\\
+#                     0 & 1\\
+#                \end{bmatrix} \omega
+#
+# where :math:`\omega` is set to 0.75 initially (but again, feel free to play around).
+
+# %%
 # We're going to need a :class:`~.Detection` type to
 # store the detections, and a :class:`~.LinearGaussian` measurement model.
 from stonesoup.types.detection import Detection
@@ -192,24 +212,17 @@ from stonesoup.models.measurement.linear import LinearGaussian
 
 # %%
 # The linear Gaussian measurement model is set up by indicating the number of dimensions in the
-# state vector and the dimensions that are measured (so specifying :math:`H_k`). Also specified is
-# the covariance of the noise (which is additive Gaussian), and for the we assume homogenous and
-# independent noise, so
-#
-# .. math::
-#
-#           R = \begin{bmatrix}
-#                   1 & 0\\
-#                     0 & 1\\
-#                \end{bmatrix} \omega
-#
-# where :math:`\omega` is set to 0.75 initially (but again, feel free to play around).
+# state vector and the dimensions that are measured (so specifying :math:`H_k`) and the noise
+# covariance matrix :math:`R`.
 measurement_model = LinearGaussian(
     ndim_state=4,  # Number of state dimensions (position and velocity in 2D)
     mapping=(0, 2),  # Mapping measurement vector index to state index
     noise_covar=np.array([[0.75, 0],  # Covariance matrix for Gaussian PDF
                           [0, 0.75]])
     )
+
+# %%
+# Check the output is as we expect
 measurement_model.matrix()
 
 # %%
@@ -235,7 +248,7 @@ fig
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # We're now ready to build a tracker. We'll use a Kalman filter as it's conceptually the simplest
-# to start with. The Kalman filter is described extensively elsewhere (references), so for the
+# to start with. The Kalman filter is described extensively elsewhere [#]_, [#]_, so for the
 # moment we just assert that the prediction step proceeds as:
 #
 # .. math::
@@ -288,7 +301,7 @@ prior = GaussianState([[0], [1], [0], [1]], np.diag([1.5, 0.5, 1.5, 0.5]), times
 # %%
 # In this instance data association is done somewhat implicitly. There is one prediction and
 # one detection per timestep so no need to think too deeply. Stone Soup discourages such
-# (undesirable) practice and requires that a :class:`~.Prediction` and :class:`Detection` are
+# (undesirable) practice and requires that a :class:`~.Prediction` and :class:`~.Detection` are
 # associated explicitly. This is done by way of a :class:`~.Hypothesis`, the most simple of which
 # is a :class:`~.SingleHypothesis` which associates a single predicted state with a single
 # detection. There is much more detail on how the :class:`~.Hypothesis` class is used in later
@@ -328,3 +341,24 @@ for state in track:
 fig
 
 # sphinx_gallery_thumbnail_number = 3
+
+# %%
+# Key points
+# ----------
+# 1. Stone Soup is built on a variety of types of :class:`~.State` object. These can be used to
+#    represent hidden states, observations, estimates, ground truth, and more.
+# 2. Bayesian recursion is undertaken by the successive application of three classes of object.
+#    These are the :class:`~.Predictor`, the :class:`~.Associator`, and the :class:`~.Updater`.
+#    Broadly speaking Predictors apply a :class:`~.TransitionModel`, Associators use a
+#    :class:`~.Hypothesiser` to associate prediction with a measurement, and Updaters use this
+#    association together with the :class:`~.MeasurementModel` to calculate the posterior state
+#    estimate.
+
+# %%
+# References
+# ----------
+# .. [#] Kalman 1960, A New Approach to Linear Filtering and Prediction Problems, Transactions of
+#        the ASME, Journal of Basic Engineering, 82 (series D), 35
+#        (https://pdfs.semanticscholar.org/bb55/c1c619c30f939fc792b049172926a4a0c0f7.pdf?_ga=2.51363242.2056055521.1592932441-1812916183.1592932441)
+# .. [#] Anderson & Moore 2012, Optimal filtering,
+#        (http://users.cecs.anu.edu.au/~john/papers/BOOK/B02.PDF)
