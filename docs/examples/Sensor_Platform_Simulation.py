@@ -64,7 +64,7 @@ start_time = datetime.now()
 from stonesoup.platform.base import FixedPlatform
 
 # Define the initial platform position, in this case the origin
-platform_state_vector = StateVector([[ 0], [0], [0]])
+platform_state_vector = StateVector([[0], [0], [0]])
 position_mapping = (0, 1, 2)
 
 # Create the initial state (position, time), notice it is set to the simulation start time defined earlier
@@ -90,7 +90,7 @@ platform.orientation
 # Radar will be created which is capable of measuring the range, bearing and elevation of the target relative to the
 # sensor.
 #
-# The :class:`~.RadarElevationBearingRange`  provides a sensor wrapper around the
+# The :class:`~.RadarRangeBearingElevation`  provides a sensor wrapper around the
 # :class:`~.CartesianToElevationBearingRange` measurement model. The measurement model provides a time-invariant
 # measurement model, where measurements are assumed to be received in the form of elevation (:math:`\theta`),
 # bearing (:math:`\phi`) and range (:math:`r`) with Gaussian noise in each dimension.
@@ -198,9 +198,9 @@ platform.rotation_offsets
 #   * :math:`\dot{z}` is Gaussian distributed around 0 :math:`ms^{-1}` with variance of 1 :math:`ms^{-1}`
 #
 # We will also configure our simulator to randomly create and delete targets, based on a birth rate and death rate we
-# specify. In this example we set the birth rate to be 30%, i.e. on any given time step there is a 30% chance of a new
-# target being initiated. We have set the death rate to 5%, i.e. on any given time step that is the chance that a target
-# will be removed from the simulation.
+# specify. In this example we set the birth rate to be 0.10, i.e. on any given time step there is a 10% chance of a new
+# target being initiated. We have set the death rate to 0.01, i.e. on any given time step there is a 1% chance that a
+# target will be removed from the simulation.
 #
 # The above setup will provide a case which loosely approximates an air surveillance radar at an airport.
 from stonesoup.simulator.simple import MultiTargetGroundTruthSimulator
@@ -218,7 +218,7 @@ groundtruth_sim = MultiTargetGroundTruthSimulator(
     initial_state=initial_target_state,  # add our initial state for targets
     timestep=timedelta(seconds=1),  # time between measurements
     number_steps=120,  # 2 minute
-    birth_rate=0.05,  # 5% chance of a new target being birthed
+    birth_rate=0.10,  # 5% chance of a new target being birthed
     death_probability=0.01  # 1% chance of a target being killed
 )
 
@@ -240,9 +240,9 @@ sim = PlatformDetectionSimulator(groundtruth=groundtruth_sim, platforms=[platfor
 # Creating the Tracker Components
 # -------------------------------
 # As stated above the aim of this example is to show how :class:`~.Platform`, :class:`~.Sensor` and
-# :class:`~.Simulator` work within Stone Soup. We will therefore quickly build an Unscented Kalman Filter which uses
-# JPDA, initiates measurements using a minimum of 3 detections and deletes any track where the error covariance exceeds
-# a threshold of 10000m. There are a number of tutorials for how to build the tracking components provided in the
+# :class:`~.Simulator` work within Stone Soup. We will therefore quickly build an Unscented Kalman Filter which
+# initiates measurements using a simple heuristic initiation and deletes any track where no detection is associated for
+# 2 consecutive time steps. There are a number of tutorials for how to build the tracking components provided in the
 # :ref:`auto_tutorials`.
 
 # Create an Unscented Kalman Predictor
@@ -254,11 +254,10 @@ updater = UnscentedKalmanUpdater(measurement_model=None)
 # %%
 # Setup Initiator class for the Tracker
 # -------------------------------------
-# This is just an heuristic initiation:
-# Assume most of the deviation is caused by the Bearing measurement error.
-# This is then converted into x, y components using the target bearing. For z,
-# we simply use range*elev_std_dev (ignore any bearing or range related components).
-# Velocity covariances are just based on expected velocity range of targets.
+# We will now build a simple heuristic initiator.
+# This assumes most of the deviation is caused by the Bearing measurement error. It converts the bearing error error
+# into x,y components using the target bearing. For z, we simply use range*elev_std_dev (this ignores any bearing or
+# range related components). Velocity covariances are just based on expected velocity range of targets.
 from stonesoup.types.state import GaussianState
 from stonesoup.types.update import GaussianStateUpdate
 from stonesoup.initiator.simple import SimpleMeasurementInitiator
@@ -276,7 +275,7 @@ class Initiator(SimpleMeasurementInitiator):
                             detection)
             model_covar = measurement_model.covar()
 
-            el_az_range = np.sqrt(np.diag(model_covar)) #elev, az, range
+            el_az_range = np.sqrt(np.diag(model_covar))  # elev, az, range
 
             std_pos = detection.state_vector[2, 0]*el_az_range[1]
             stdx = np.abs(std_pos*np.sin(el_az_range[1]))
@@ -317,7 +316,7 @@ initiator = Initiator(prior_state, measurement_model=meas_model)
 
 from stonesoup.hypothesiser.distance import DistanceHypothesiser
 from stonesoup.measures import Mahalanobis
-hypothesiser = DistanceHypothesiser(predictor, updater, measure=Mahalanobis(), missed_distance=20)
+hypothesiser = DistanceHypothesiser(predictor, updater, measure=Mahalanobis(), missed_distance=3)
 
 from stonesoup.dataassociator.neighbour import NearestNeighbour
 data_associator = NearestNeighbour(hypothesiser)
