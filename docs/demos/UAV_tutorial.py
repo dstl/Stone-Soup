@@ -67,6 +67,8 @@ updater = ExtendedKalmanUpdater(measurement_model=meas_model)
 # %%
 # Setup CSV reader & feeder
 # -------------------------
+# Setup the reader and feeder to read the GPS data in
+# :download:`CSV file <../../demos/UAV_Rot.csv>`.
 # This part uses 2 Stone Soup detector type of classes:
 #
 # - :class:`~.CSVGroundTruthReader` - reads our CSV file which contains: timestamp,
@@ -75,10 +77,10 @@ updater = ExtendedKalmanUpdater(measurement_model=meas_model)
 #   alt data into Cartesian (ENU).
 #
 # The Cartesian(ENU) data will be converted to Range, Bearing, Altitude later on.
-# More involved detector could:
+# A more involved detector could:
 #
 # - Add clutter.
-# - Handle :math:`P_d` behaviour. Could be based on radial velocity or other
+# - Handle :math:`P_d` behaviour. It could be based on radial velocity or other
 #   parameters.
 # - Handle radar revisit times.
 # - Add unknown number & multiple targets.
@@ -127,14 +129,16 @@ detector = PlatformDetectionSimulator(ground_truth_reader, [platform])
 # ---------------------------------------
 # This is just an heuristic initiation:
 # Assume most of the deviation is caused by the Bearing measurement error.
-# This is then converted into x, y components using the target bearing. For z,
-# we simply use range*elev_std_dev (ignore any bearing or range related components).
-# Velocity covariances are just based on expected velocity range of targets.
+# This is then converted into x, y components using the target bearing. For the
+# deviation in z,
+# we simply use :math:`R\times\sigma_{elev}` (ignore any bearing and range 
+# deviation components). Velocity covariances are simply based on the expected
+# velocity range of the targets.
 #
 # **NOTE** - The Extended Kalman filter can be very sensitive to the state
-# initiation. I tried using the default :class:`~.SimpleMeasurementInitiator` but it tended
-# diverge over the course of the track, especially when large bearing measurement
-# covariances.
+# initiation. Using the default :class:`~.SimpleMeasurementInitiator`, the estimates
+# tended to diverge over the course of the track when larger bearing measurement
+# covariances were used.
 from stonesoup.types.state import GaussianState, State
 from stonesoup.types.update import GaussianStateUpdate
 from stonesoup.initiator.simple import SimpleMeasurementInitiator
@@ -181,11 +185,11 @@ initiator = Initiator(prior_state, meas_model)
 #initiator = SimpleMeasurementInitiator(prior_state, meas_model)
 
 # %%
-# Setup Deletor for the Tracker
+# Setup Deleter for the Tracker
 # -----------------------------
 # In the simple case of 1 target, we never want to delete the track. Because
-# this Deletor is so simple I haven't bothered using a subtype/inheritance.
-# Instead I make use of Python's duck typing. 
+# this Deletor is so simple we haven't bothered using a subtype/inheritance
+# and instead make use of Python's duck typing. 
 class MyDeleter:
     def delete_tracks(self, tracks):
         return set()
