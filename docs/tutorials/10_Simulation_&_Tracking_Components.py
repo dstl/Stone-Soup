@@ -108,9 +108,6 @@ detection_sim = SimpleDetectionSimulator(
 )
 
 # %%
-# One might pause and check to see what's been generated at this stage.
-
-# %%
 # Create the tracker components
 # -----------------------------
 # In this example a Kalman filter is used with global nearest neighbour (GNN) associator. Other options
@@ -208,12 +205,3 @@ ax = fig.axes[0]
 ax.set_xlim([-30, 30])
 _ = ax.set_ylim([-30, 30]) # ?0
 
-# %%
-# Questions that arise
-# --------------------
-#
-# What happens if I want to fix the detections, i.e. not use a 'detection generator'?
-#
-# Did we introduce the :class:`Tracker` anywhere before?
-#
-# Are there ellipses in the 2d plotter?
