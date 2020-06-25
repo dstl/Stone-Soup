@@ -66,7 +66,7 @@ def h3d(state, pos_map, translation_offset, rotation_offset):
                 2,
                 np.array([0, 1]),  # pos_mapping
                 np.array([[0.015, 0],
-                      [0, 0.1]]),  # noise_covar
+                          [0, 0.1]]),  # noise_covar
                 StateVector([[1], [1]]),  # position
                 np.array([[200], [10]])  # target
          ),
@@ -76,8 +76,8 @@ def h3d(state, pos_map, translation_offset, rotation_offset):
                 3,
                 np.array([0, 1, 2]),  # pos_mapping
                 np.array([[0.015, 0, 0],
-                      [0, 0.015, 0],
-                      [0, 0, 0.1]]),  # noise_covar
+                          [0, 0.015, 0],
+                          [0, 0, 0.1]]),  # noise_covar
                 StateVector([[1], [1], [0]]),  # position
                 np.array([[200], [10], [10]])  # target
         )
@@ -167,8 +167,8 @@ def h3d_rr(state, pos_map, vel_map, translation_offset, rotation_offset, velocit
                 np.array([0, 2, 4]),  # pos_mapping
                 np.array([1, 3, 5]),  # vel_mapping
                 np.array([[0.05, 0, 0],
-                      [0, 0.015, 0],
-                      [0, 0, 10]]),  # noise_covar
+                          [0, 0.015, 0],
+                          [0, 0, 10]]),  # noise_covar
                 StateVector([[100], [0], [0]])  # position
          ),
         (
@@ -177,9 +177,9 @@ def h3d_rr(state, pos_map, vel_map, translation_offset, rotation_offset, velocit
                 np.array([0, 2, 4]),  # pos_mapping
                 np.array([1, 3, 5]),  # vel_mapping
                 np.array([[0.05, 0, 0, 0],
-                      [0, 0.05, 0, 0],
-                      [0, 0, 0.015, 0],
-                      [0, 0, 0, 10]]),  # noise_covar
+                          [0, 0.05, 0, 0],
+                          [0, 0, 0.015, 0],
+                          [0, 0, 0, 10]]),  # noise_covar
                 StateVector([[100], [0], [0]])  # position
         )
     ],
