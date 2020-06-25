@@ -104,8 +104,8 @@ from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionM
 start_time = datetime.now()
 
 # %%
-# We note that it can sometimes be useful to fix our random number generator in order to probe a particular
-# example repeatedly. That option is available by commenting out the next lines.
+# We note that it can sometimes be useful to fix our random number generator in order to probe a
+# particular example repeatedly. That option is available by uncommenting the next lines.
 
 # import random
 # random.seed(1991)
@@ -215,13 +215,14 @@ from stonesoup.models.measurement.linear import LinearGaussian
 # The linear Gaussian measurement model is set up by indicating the number of dimensions in the
 # state vector and the dimensions that are measured (so specifying :math:`H_k`) and the noise
 # covariance matrix :math:`R`.
-#
 measurement_model = LinearGaussian(
     ndim_state=4,  # Number of state dimensions (position and velocity in 2D)
     mapping=(0, 2),  # Mapping measurement vector index to state index
     noise_covar=np.array([[0.75, 0],  # Covariance matrix for Gaussian PDF
                           [0, 0.75]])
     )
+
+# %%
 # Check the output is as we expect
 measurement_model.matrix()
 
@@ -301,7 +302,7 @@ prior = GaussianState([[0], [1], [0], [1]], np.diag([1.5, 0.5, 1.5, 0.5]), times
 # %%
 # In this instance data association is done somewhat implicitly. There is one prediction and
 # one detection per timestep so no need to think too deeply. Stone Soup discourages such
-# (undesirable) practice and requires that a :class:`~.Prediction` and :class:`Detection` are
+# (undesirable) practice and requires that a :class:`~.Prediction` and :class:`~.Detection` are
 # associated explicitly. This is done by way of a :class:`~.Hypothesis`, the most simple of which
 # is a :class:`~.SingleHypothesis` which associates a single predicted state with a single
 # detection. There is much more detail on how the :class:`~.Hypothesis` class is used in later
@@ -347,11 +348,12 @@ fig
 # ----------
 # 1. Stone Soup is built on a variety of types of :class:`~.State` object. These can be used to
 #    represent hidden states, observations, estimates, ground truth, and more.
-# 2. Bayesian recursion is undertaken by the successive application of three classes of object. These
-#    are the :class:`~.Predictor`, the :class:`~.Associator`, and the :class:`~.Updater`. Broadly speaking
-#    Predictors apply a :class:`~.TransitionModel`, Associators use a :class:`~.Hypothesiser` to associate
-#    prediction with a measurement, and Updaters use this association together with the
-#    :class:`~.MeasurementModel` to calculate the posterior state estimate.
+# 2. Bayesian recursion is undertaken by the successive application of three classes of object.
+#    These are the :class:`~.Predictor`, the :class:`~.Associator`, and the :class:`~.Updater`.
+#    Broadly speaking Predictors apply a :class:`~.TransitionModel`, Associators use a
+#    :class:`~.Hypothesiser` to associate prediction with a measurement, and Updaters use this
+#    association together with the :class:`~.MeasurementModel` to calculate the posterior state
+#    estimate.
 
 # %%
 # References
@@ -359,4 +361,5 @@ fig
 # .. [#] Kalman 1960, A New Approach to Linear Filtering and Prediction Problems, Transactions of
 #        the ASME, Journal of Basic Engineering, 82 (series D), 35
 #        (https://pdfs.semanticscholar.org/bb55/c1c619c30f939fc792b049172926a4a0c0f7.pdf?_ga=2.51363242.2056055521.1592932441-1812916183.1592932441)
-# .. [#] Anderson & Moore 2012, Optimal filtering, (http://users.cecs.anu.edu.au/~john/papers/BOOK/B02.PDF)
+# .. [#] Anderson & Moore 2012, Optimal filtering,
+#        (http://users.cecs.anu.edu.au/~john/papers/BOOK/B02.PDF)

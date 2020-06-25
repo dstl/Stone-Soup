@@ -7,7 +7,7 @@
 """
 
 # %%
-# Ss well as introducing various aspects of the Stone Soup framework, the previous tutorial
+# As well as introducing various aspects of the Stone Soup framework, the previous tutorial
 # detailed the use of a Kalman filter. A significant problem in using the Kalman filter is that it
 # requires transition and sensor models to be linear-Gaussian. In practice, many models are not
 # like this and so alternatives are required. We examine the most commonly-used of such
@@ -144,7 +144,7 @@ fig
 # of these models are linear then the extended predictor/updater defaults to its Kalman equivalent.
 # In fact the extended Kalman filter classes inherit nearly all of their functionality from the
 # Kalman classes. The only difference being that instead of returning a matrix, in the extended
-# version the :meth:`matrix()` function returns the Jacobian.
+# version the :meth:`~.matrix()` function returns the Jacobian.
 from stonesoup.predictor.kalman import ExtendedKalmanPredictor
 predictor = ExtendedKalmanPredictor(transition_model)
 

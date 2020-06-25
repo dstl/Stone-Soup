@@ -232,7 +232,7 @@ measurement_model = CartesianToBearingRange(
 
 # %%
 # The next tutorial will go into much more detail on sampling methods. For the moment we'll just
-# assert that we're generating 1000 points from the state prediction above.
+# assert that we're generating 2000 points from the state prediction above.
 #
 # We need these imports and parameters:
 from scipy.stats import multivariate_normal
@@ -262,7 +262,7 @@ predict_meas_samples = pupdater.predict_measurement(pred_samples)
 # %%
 # Don't worry what all this means for the moment. It's a convenient way of showing the 'true'
 # distribution of the predicted measurement - which is rendered as a blue cloud. Note that
-# no noise is added by the :meth:`predict_measurement` method so we add some noise below.
+# no noise is added by the :meth:`~.predict_measurement` method so we add some noise below.
 # This is additive Gaussian in the sensor coordinates.
 fig2 = plt.figure(figsize=(10, 6), tight_layout=True)
 ax = fig2.add_subplot(1, 1, 1, polar=True)
@@ -294,7 +294,9 @@ ukf_pred_meas = unscented_updater.predict_measurement(prediction)
 ekf_pred_meas = extended_updater.predict_measurement(prediction)
 
 # %%
-# Plot EKF (green) and UKF (red) predicted measurement distribution.
+# Plot UKF (red) and EKF (green) predicted measurement distributions.
+
+# Plot UKF's predicted measurement distribution
 w, v = np.linalg.eig(ukf_pred_meas.covar)
 max_ind = np.argmax(v[0, :])
 min_ind = np.argmin(v[0, :])
@@ -307,7 +309,7 @@ ukf_ellipse = Ellipse(xy=(ukf_pred_meas.state_vector[0], ukf_pred_meas.state_vec
 ax.add_artist(ukf_ellipse)
 
 
-# Plot EKF's predicted measurement distribution (green)
+# Plot EKF's predicted measurement distribution
 w, v = np.linalg.eig(ekf_pred_meas.covar)
 max_ind = np.argmax(v[0, :])
 min_ind = np.argmin(v[0, :])
