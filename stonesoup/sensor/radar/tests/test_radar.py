@@ -9,8 +9,8 @@ from ....types.angle import Bearing, Elevation
 from ....types.array import StateVector, CovarianceMatrix
 from ....types.state import State
 from ....types.groundtruth import GroundTruthState
-from ..radar import RadarRangeBearing, RadarRangeBearingElevation, RadarRotatingRangeBearing, \
-    AESARadar, RadarRasterScanRangeBearing, RadarRangeRateBearing, RadarRangeRateBearingElevation
+from ..radar import RadarBearingRange, RadarElevationBearingRange, RadarRotatingBearingRange, \
+    AESARadar, RadarRasterScanBearingRange, RadarBearingRangeRate, RadarElevationBearingRangeRate
 from ..beam_pattern import StationaryBeam
 from ..beam_shape import Beam2DGaussian
 from ....models.measurement.linear import LinearGaussian
@@ -61,28 +61,28 @@ def h3d(state, pos_map, translation_offset, rotation_offset):
     "h, sensorclass, ndim_state, pos_mapping, noise_covar, position, target",
     [
         (
-            h2d,  # h
-            RadarRangeBearing,  # sensorclass
-            2,
-            np.array([0, 1]),  # pos_mapping
-            np.array([[0.015, 0],
+                h2d,  # h
+                RadarBearingRange,  # sensorclass
+                2,
+                np.array([0, 1]),  # pos_mapping
+                np.array([[0.015, 0],
                       [0, 0.1]]),  # noise_covar
-            StateVector([[1], [1]]),  # position
-            np.array([[200], [10]])  # target
+                StateVector([[1], [1]]),  # position
+                np.array([[200], [10]])  # target
          ),
         (
-            h3d,  # h
-            RadarRangeBearingElevation,  # sensorclass
-            3,
-            np.array([0, 1, 2]),  # pos_mapping
-            np.array([[0.015, 0, 0],
+                h3d,  # h
+                RadarElevationBearingRange,  # sensorclass
+                3,
+                np.array([0, 1, 2]),  # pos_mapping
+                np.array([[0.015, 0, 0],
                       [0, 0.015, 0],
                       [0, 0, 0.1]]),  # noise_covar
-            StateVector([[1], [1], [0]]),  # position
-            np.array([[200], [10], [10]])  # target
+                StateVector([[1], [1], [0]]),  # position
+                np.array([[200], [10], [10]])  # target
         )
     ],
-    ids=["RadarRangeBearing", "RadarRangeBearingElevation"]
+    ids=["RadarBearingRange", "RadarElevationBearingRange"]
 )
 def test_simple_radar(h, sensorclass, ndim_state, pos_mapping, noise_covar, position, target):
     # Instantiate the rotating radar
@@ -162,28 +162,28 @@ def h3d_rr(state, pos_map, vel_map, translation_offset, rotation_offset, velocit
     "h, sensorclass, pos_mapping, vel_mapping, noise_covar, position",
     [
         (
-            h2d_rr,  # h
-            RadarRangeRateBearing,  # sensorclass
-            np.array([0, 2, 4]),  # pos_mapping
-            np.array([1, 3, 5]),  # vel_mapping
-            np.array([[0.05, 0, 0],
+                h2d_rr,  # h
+                RadarBearingRangeRate,  # sensorclass
+                np.array([0, 2, 4]),  # pos_mapping
+                np.array([1, 3, 5]),  # vel_mapping
+                np.array([[0.05, 0, 0],
                       [0, 0.015, 0],
                       [0, 0, 10]]),  # noise_covar
-            StateVector([[100], [0], [0]])  # position
+                StateVector([[100], [0], [0]])  # position
          ),
         (
-            h3d_rr,
-            RadarRangeRateBearingElevation,
-            np.array([0, 2, 4]),  # pos_mapping
-            np.array([1, 3, 5]),  # vel_mapping
-            np.array([[0.05, 0, 0, 0],
+                h3d_rr,
+                RadarElevationBearingRangeRate,
+                np.array([0, 2, 4]),  # pos_mapping
+                np.array([1, 3, 5]),  # vel_mapping
+                np.array([[0.05, 0, 0, 0],
                       [0, 0.05, 0, 0],
                       [0, 0, 0.015, 0],
                       [0, 0, 0, 10]]),  # noise_covar
-            StateVector([[100], [0], [0]])  # position
+                StateVector([[100], [0], [0]])  # position
         )
     ],
-    ids=["RadarRangeRateBearing", "RadarRangeRateBearingElevation"]
+    ids=["RadarBearingRangeRate", "RadarElevationBearingRangeRate"]
 )
 def test_range_rate_radar(h, sensorclass, pos_mapping, vel_mapping, noise_covar, position):
 
@@ -238,7 +238,7 @@ def test_rotating_radar():
     measurement_mapping = np.array([0, 1])
 
     # Create a radar object
-    radar = RadarRotatingRangeBearing(position=radar_position,
+    radar = RadarRotatingBearingRange(position=radar_position,
                                       orientation=radar_orientation,
                                       ndim_state=2,
                                       position_mapping=measurement_mapping,
@@ -300,7 +300,7 @@ def test_raster_scan_radar():
     measurement_mapping = np.array([0, 1])
 
     # Create a radar object
-    radar = RadarRasterScanRangeBearing(position=radar_position,
+    radar = RadarRasterScanBearingRange(position=radar_position,
                                         orientation=radar_orientation,
                                         ndim_state=2,
                                         position_mapping=measurement_mapping,

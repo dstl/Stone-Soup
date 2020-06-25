@@ -9,7 +9,7 @@ from ...types.state import State
 from ..base import MovingPlatform, FixedPlatform
 from ...models.transition.linear import (
     ConstantVelocity, CombinedLinearGaussianTransitionModel)
-from ...sensor.radar.radar import RadarRangeBearing
+from ...sensor.radar.radar import RadarBearingRange
 from ...types.array import StateVector, CovarianceMatrix
 
 
@@ -144,29 +144,29 @@ def radars_2d():
     measurement_mapping = np.array([0, 2])
 
     # Create 5 simple radar sensor objects
-    radar1 = RadarRangeBearing(
+    radar1 = RadarBearingRange(
         ndim_state=4,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar,
     )
 
-    radar2 = RadarRangeBearing(
+    radar2 = RadarBearingRange(
         ndim_state=4,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar
     )
-    radar3 = RadarRangeBearing(
+    radar3 = RadarBearingRange(
         ndim_state=4,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar
     )
 
-    radar4 = RadarRangeBearing(
+    radar4 = RadarBearingRange(
         ndim_state=4,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar
     )
-    radar5 = RadarRangeBearing(
+    radar5 = RadarBearingRange(
         ndim_state=4,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar
@@ -184,39 +184,39 @@ def radars_3d():
     measurement_mapping = np.array([0, 2, 4])
 
     # Create 5 simple radar sensor objects
-    radar1 = RadarRangeBearing(
+    radar1 = RadarBearingRange(
         ndim_state=6,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar
     )
 
-    radar2 = RadarRangeBearing(
+    radar2 = RadarBearingRange(
         ndim_state=6,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar
     )
-    radar3 = RadarRangeBearing(
+    radar3 = RadarBearingRange(
         ndim_state=6,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar
     )
 
-    radar4 = RadarRangeBearing(
+    radar4 = RadarBearingRange(
         ndim_state=6,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar
     )
-    radar5 = RadarRangeBearing(
+    radar5 = RadarBearingRange(
         ndim_state=6,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar
     )
-    radar6 = RadarRangeBearing(
+    radar6 = RadarBearingRange(
         ndim_state=6,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar
     )
-    radar7 = RadarRangeBearing(
+    radar7 = RadarBearingRange(
         ndim_state=6,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar

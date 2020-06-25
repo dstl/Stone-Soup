@@ -22,7 +22,7 @@ from ...types.numeric import Probability
 import scipy.constants as const
 
 
-class RadarRangeBearing(Sensor):
+class RadarBearingRange(Sensor):
     """A simple radar sensor that generates measurements of targets, using a
     :class:`~.CartesianToBearingRange` model, relative to its position.
 
@@ -79,7 +79,7 @@ class RadarRangeBearing(Sensor):
                          timestamp=ground_truth.timestamp)
 
 
-class RadarRotatingRangeBearing(RadarRangeBearing):
+class RadarRotatingBearingRange(RadarBearingRange):
     """A simple rotating radar, with set field-of-view (FOV) angle, range and\
      rotations per minute (RPM), that generates measurements of targets, using\
      a :class:`~.CartesianToBearingRange` model, relative to its\
@@ -202,9 +202,9 @@ class RadarRotatingRangeBearing(RadarRangeBearing):
         )
 
 
-class RadarRangeBearingElevation(RadarRangeBearing):
+class RadarElevationBearingRange(RadarBearingRange):
     """A  radar sensor that generates measurements of targets, using a
-    :class:`~.CartesianToBearingElevationRange` model, relative to its position.
+    :class:`~.CartesianToElevationBearingRange` model, relative to its position.
 
     Note
     ----
@@ -255,7 +255,7 @@ class RadarRangeBearingElevation(RadarRangeBearing):
                          timestamp=ground_truth.timestamp)
 
 
-class RadarRangeRateBearing(RadarRangeBearing):
+class RadarBearingRangeRate(RadarBearingRange):
     """ A radar sensor that generates measurements of targets, using a
     :class:`~.CartesianToBearingRangeRate` model, relative to its position
     and velocity.
@@ -315,7 +315,7 @@ class RadarRangeRateBearing(RadarRangeBearing):
                          timestamp=ground_truth.timestamp)
 
 
-class RadarRangeRateBearingElevation(RadarRangeRateBearing):
+class RadarElevationBearingRangeRate(RadarBearingRangeRate):
     """ A radar sensor that generates measurements of targets, using a
     :class:`~.CartesianToElevationBearingRangeRate` model, relative to its position
     and velocity.
@@ -374,13 +374,13 @@ class RadarRangeRateBearingElevation(RadarRangeRateBearing):
                          timestamp=ground_truth.timestamp)
 
 
-class RadarRasterScanRangeBearing(RadarRotatingRangeBearing):
+class RadarRasterScanBearingRange(RadarRotatingBearingRange):
     """A simple raster scan radar, with set field-of-regard (FoR) angle, \
      field-of-view (FoV) angle, range and rotations per minute (RPM), that \
      generates measurements of targets, using a \
-     :class:`~.RangeBearingGaussianToCartesian` model, relative to its position
+     :class:`~.CartesianToBearingRange` model, relative to its position
 
-     This is a simple extension of the RadarRotatingRangeBearing class with \
+     This is a simple extension of the RadarRotatingBearingRange class with \
      the rotate function changed to restrict the  dwell-center to within the \
      field of regard.
      It's important to note that this only works (has  been tested) in an 2D \
