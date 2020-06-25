@@ -51,13 +51,18 @@ Video processing, Object detection & Tracking
 #     cd Stone-Soup
 #     python -m pip install -e .[dev,video,tensorflow]
 #
-# We will also use pytube_ to download a Youtube video for the purposes of this tutorial. In the
-# same Terminal window, run the following command to install `pytube`:
-#
-# .. code::
-#
-#     pip install pytube3
-
+# Pytube
+# ~~~~~~
+# We will also use pytube_ to download a Youtube video for the purposes of this tutorial. We will
+# be installing pytube using the code below
+try:
+    from pytube import YouTube
+except ImportError as e:
+    import subprocess
+    import sys
+    print("Installing pytube")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", 'pytube3'])
+    from pytube import YouTube
 
 # %%
 # Using the Stone Soup :class:`~.FrameReader` classes
@@ -81,7 +86,6 @@ Video processing, Object detection & Tracking
 # shown bellow will download the video and save it your working directory as ``sample1.mp4``.
 
 import os
-from pytube import YouTube
 VIDEO_FILENAME = 'sample1'
 VIDEO_EXTENTION = '.mp4'
 VIDEO_PATH = os.path.join(os.getcwd(), VIDEO_FILENAME+VIDEO_EXTENTION)
@@ -150,8 +154,6 @@ from copy import copy
 from PIL import Image
 from matplotlib import pyplot as plt
 from matplotlib import animation
-import matplotlib
-# matplotlib.use('TkAgg')
 
 fig, ax = plt.subplots(num="VideoClipReader output")
 artists = []
@@ -490,6 +492,7 @@ deleter = UpdateTimeStepsDeleter(time_steps_since_update=15)
 #   For more information on the above classes and how they operate you can refer to the Stone
 #   `Initiators & Deleters <https://stonesoup.readthedocs.io/en/latest/auto_tutorials/09_Initiators_&_Deleters.html>`_
 #   tutorial.
+#
 # %%
 # Building the tracker
 # ~~~~~~~~~~~~~~~~~~~~
@@ -578,7 +581,6 @@ for timestamp, tracks in tracker:
     artist = ax3.imshow(image, animated=True)
     artists3.append([artist])
 ani3 = animation.ArtistAnimation(fig3, artists3, interval=20, blit=True, repeat_delay=200)
-plt.show()
 
 # %%
 # .. _clean_up:
@@ -602,4 +604,4 @@ def clean_up():
 # Comment-out this line to skip the clean-up process
 clean_up()
 
-# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/animation.gif'
+# sphinx_gallery_thumbnail_number = 3
