@@ -66,7 +66,8 @@ sphinx_gallery_conf = {
      'reference_url': {'stonesoup': None},
      'remove_config_comments': True,
      'ignore_repr_types': r'matplotlib.figure',
-     'within_subsection_order': FileNameSortKey
+     'within_subsection_order': FileNameSortKey,
+     'matplotlib_animations': True,
 }
 
 intersphinx_mapping = {
