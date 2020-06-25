@@ -31,10 +31,14 @@
 #       g(\mathbf{x})\rvert_{\mathbf{x}=\boldsymbol{\mu}} \approx \sum\limits_{|\alpha| \ge 0}
 #       \frac{ (\mathbf{x} - \boldsymbol{\mu})^{\alpha}}{\alpha !} (\mathcal{D}^{\alpha} g)(\boldsymbol{\mu})
 #
-# This is usually truncated after the first term meaning that either
+# This is usually truncated after the first term, meaning that either
 # :math:`F(\mathbf{x}_{k-1}) \approx J(f)\rvert_{\mathbf{x}=\boldsymbol{\mu}_{k-1}}` or
 # :math:`H(\mathbf{x}_{k|k-1}) \approx J(h)\rvert_{\mathbf{x}=\boldsymbol{\mu}_{k|k-1}}`
-# or both, where :math:`J(\cdot)` is the Jacobian matrix. Stone Soup implements the EKF
+# or both, where :math:`J(\cdot)` is the Jacobian matrix. The calculation of the covariances,
+# including the innovation covariance, then proceeds in exactly the same way as in the Kalman
+# filter using these approximations.
+#
+# Stone Soup implements the EKF
 # for non-linear functions using a finite difference method to find :math:`J(\cdot)`
 # in the appropriate places. We'll now see this in action.
 
