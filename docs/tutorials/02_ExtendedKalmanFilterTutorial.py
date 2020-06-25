@@ -50,8 +50,7 @@ start_time = datetime.now()
 
 # %%
 
-# import random
-# random.seed(1991)
+# np.random.seed(1991)
 
 # %%
 # Create a target

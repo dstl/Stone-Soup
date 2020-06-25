@@ -44,6 +44,8 @@ from stonesoup.types.detection import TrueDetection
 from stonesoup.types.detection import Clutter
 from stonesoup.models.measurement.linear import LinearGaussian
 
+# np.random.seed(1991)
+
 truths = set()
 
 start_time = datetime.now()

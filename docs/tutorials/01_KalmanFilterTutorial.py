@@ -105,10 +105,9 @@ start_time = datetime.now()
 
 # %%
 # We note that it can sometimes be useful to fix our random number generator in order to probe a
-# particular example repeatedly. That option is available by uncommenting the next lines.
+# particular example repeatedly. That option is available by uncommenting the next line.
 
-# import random
-# random.seed(1991)
+# np.random.seed(1991)
 
 # %%
 # The :class:`~.ConstantVelocity` class creates a one-dimensional nearly constant velocity model

@@ -62,6 +62,8 @@ from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionM
                                                ConstantVelocity
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 
+# np.random.seed(1991)
+
 start_time = datetime.now()
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),
                                                           ConstantVelocity(0.005)])

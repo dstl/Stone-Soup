@@ -73,6 +73,9 @@ from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 # %%
 # Generate ground truth
 # ^^^^^^^^^^^^^^^^^^^^^
+
+# np.random.seed(1991)
+
 truths = set()
 
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),

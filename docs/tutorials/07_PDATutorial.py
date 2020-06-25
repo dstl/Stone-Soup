@@ -50,12 +50,16 @@
 # ^^^^^^^^^^^^
 #
 # So, as before, we'll first begin by simulating some ground truth.
+import numpy as np
+
 from datetime import datetime
 from datetime import timedelta
 
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
                                                ConstantVelocity
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
+
+# np.random.seed(1991)
 
 start_time = datetime.now()
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),
@@ -68,8 +72,6 @@ for k in range(1, 21):
 
 # %%
 # Add clutter.
-import numpy as np
-
 from scipy.stats import uniform
 
 from stonesoup.types.detection import TrueDetection

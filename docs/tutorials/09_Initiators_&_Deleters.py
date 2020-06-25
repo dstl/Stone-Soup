@@ -28,6 +28,8 @@ from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionM
                                                ConstantVelocity
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 
+# np.random.seed(1991)
+
 start_time = datetime.now()
 truths = set()  # Truths across all time
 current_truths = set()  # Truths alive at current time
