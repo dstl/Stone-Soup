@@ -53,16 +53,12 @@ Video processing, Object detection & Tracking
 #
 # Pytube
 # ~~~~~~
-# We will also use pytube_ to download a Youtube video for the purposes of this tutorial. We will
-# be installing pytube using the code below
-try:
-    from pytube import YouTube
-except ImportError as e:
-    import subprocess
-    import sys
-    print("Installing pytube")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", 'pytube3'])
-    from pytube import YouTube
+# We will also use pytube_ to download a Youtube video for the purposes of this tutorial. In the
+# same Terminal window, run the following command to install ``pytube``:
+#
+# .. code::
+#
+#     pip install pytube3
 
 # %%
 # Using the Stone Soup :class:`~.FrameReader` classes
@@ -86,6 +82,7 @@ except ImportError as e:
 # shown bellow will download the video and save it your working directory as ``sample1.mp4``.
 
 import os
+from pytube import YouTube
 VIDEO_FILENAME = 'sample1'
 VIDEO_EXTENTION = '.mp4'
 VIDEO_PATH = os.path.join(os.getcwd(), VIDEO_FILENAME+VIDEO_EXTENTION)
@@ -202,10 +199,9 @@ ani = animation.ArtistAnimation(fig, artists, interval=20, blit=True, repeat_del
 # .. warning::
 #
 #   **The downloaded model has a size of approximately 500 MB**. Therefore it is advised that you
-#   run the script on a stable (ideally not mobile) internet connection. In addition, at the end of
-#   the script (see :ref:`clean_up` section), we perform a clean up process which deletes all files
-#   upon successful execution. Comment-out the code under :ref:`clean_up` to avoid having to
-#   re-download the file.
+#   run the script on a stable (ideally not mobile) internet connection. The files will only be
+#   downloaded the first time the script is run. In consecutive runs the code will skip this step,
+#   provided that ``PATH_TO_CKPT`` and ``PATH_TO_LABELS`` are valid paths.
 
 import urllib
 import tarfile
@@ -486,14 +482,13 @@ initiator = MultiMeasurementInitiator(prior_state, measurement_model, deleter_in
 # For confirmed tracks we used again a :class:`~.UpdateTimeStepsDeleter`, but this time configured
 # to delete tracks after they have not bee associated to a measurement in the last 15 frames.
 deleter = UpdateTimeStepsDeleter(time_steps_since_update=15)
-#%%
+# %%
 # .. note::
 #
 #   For more information on the above classes and how they operate you can refer to the Stone
 #   `Initiators & Deleters <https://stonesoup.readthedocs.io/en/latest/auto_tutorials/09_Initiators_&_Deleters.html>`_
 #   tutorial.
 #
-# %%
 # Building the tracker
 # ~~~~~~~~~~~~~~~~~~~~
 # Now that we have defined all our tracker components we proceed to build our multi-target tracker:
@@ -581,27 +576,5 @@ for timestamp, tracks in tracker:
     artist = ax3.imshow(image, animated=True)
     artists3.append([artist])
 ani3 = animation.ArtistAnimation(fig3, artists3, interval=20, blit=True, repeat_delay=200)
-
-# %%
-# .. _clean_up:
-#
-# Clean up
-# --------
-# Optionally, you may wish to remove all the downloaded files once the scipt finishes. In our case,
-# since the script is hosted on our Github repository and gets run by the CI tools, we want to
-# avoid hosting the files. For this reason we run the following code to remove all the files. Note
-# however that if you plan to run the script multiple times, you may wish to comment out the code,
-# so as to avoid having to re-download the files on each run.
-import shutil
-
-
-def clean_up():
-    frame_reader.clip.close()   # Close the video file
-    os.remove(VIDEO_PATH)       # Remove the video file
-    shutil.rmtree(MODEL_NAME)   # Remove TensorFlow related files
-
-
-# Comment-out this line to skip the clean-up process
-clean_up()
 
 # sphinx_gallery_thumbnail_number = 3
