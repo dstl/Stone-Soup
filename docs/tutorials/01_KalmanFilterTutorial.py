@@ -9,7 +9,7 @@
 
 # %%
 # This notebook is designed to introduce some of the basic features of Stone Soup using a single
-# target scenario and a Kalman filter as an example
+# target scenario and a Kalman filter as an example.
 #
 # Background and notation
 # -----------------------
@@ -108,7 +108,7 @@ start_time = datetime.now()
 # We note that it can sometimes be useful to fix our random number generator in order to probe a
 # particular example repeatedly. That option is available by uncommenting the next line.
 
-# np.random.seed(1991)
+np.random.seed(1991)
 
 # %%
 # The :class:`~.ConstantVelocity` class creates a one-dimensional constant velocity model with
@@ -119,15 +119,14 @@ start_time = datetime.now()
 #           F_{k} &= \begin{bmatrix}
 #                     1 & \triangle t \\
 #                     0 & 1 \\
-#                     \end{bmatrix}
-#
+#                     \end{bmatrix} \\
 #           Q_k &= \begin{bmatrix}
 #                   \frac{\triangle t^3}{3} & \frac{\triangle t^2}{2} \\
 #                   \frac{\triangle t^2}{2} & \triangle t \\
 #                  \end{bmatrix} q
 #
 # where :math:`q`, the input parameter to :class:`~.ConstantVelocity`, is the magnitude of the
-# noise per :math:`\triangle t`-sized timestep passed asvinput to the constant velocity model.
+# noise per :math:`\triangle t`-sized timestep.
 
 # %%
 # The :class:`~.CombinedLinearGaussianTransitionModel` class takes a number
@@ -138,8 +137,7 @@ start_time = datetime.now()
 #                        F_k^{1} &  & \mathbf{0} \\
 #                        & \ddots &  \\
 #                        \mathbf{0} & & F_k^d \\
-#                        \end{bmatrix}
-#
+#                        \end{bmatrix}\\
 #           Q_{k}^{D} &= \begin{bmatrix}
 #                        Q_k^{1} &  & \mathbf{0} \\
 #                        & \ddots &  \\
@@ -196,14 +194,13 @@ transition_model.covar(time_interval=timedelta(seconds=1))
 #           H_k &= \begin{bmatrix}
 #                     1 & 0 & 0 & 0\\
 #                     0  & 0 & 1 & 0\\
-#                       \end{bmatrix}
-#
+#                       \end{bmatrix}\\
 #           R &= \begin{bmatrix}
 #                   1 & 0\\
 #                     0 & 1\\
 #                \end{bmatrix} \omega
 #
-# where :math:`\omega` is set to 0.75 initially (but again, feel free to play around).
+# where :math:`\omega` is set to 5 initially (but again, feel free to play around).
 
 # %%
 # We're going to need a :class:`~.Detection` type to
@@ -218,13 +215,16 @@ from stonesoup.models.measurement.linear import LinearGaussian
 measurement_model = LinearGaussian(
     ndim_state=4,  # Number of state dimensions (position and velocity in 2D)
     mapping=(0, 2),  # Mapping measurement vector index to state index
-    noise_covar=np.array([[0.75, 0],  # Covariance matrix for Gaussian PDF
-                          [0, 0.75]])
+    noise_covar=np.array([[5, 0],  # Covariance matrix for Gaussian PDF
+                          [0, 5]])
     )
 
 # %%
 # Check the output is as we expect
 measurement_model.matrix()
+
+# %%
+measurement_model.covar()
 
 # %%
 # Generate the measurements
@@ -332,12 +332,14 @@ ax.plot([state.state_vector[0] for state in track],
 from matplotlib.patches import Ellipse
 for state in track:
     w, v = np.linalg.eig(measurement_model.matrix()@state.covar@measurement_model.matrix().T)
-    max_ind = np.argmax(v[0, :])
-    orient = np.arctan2(v[max_ind, 1], v[max_ind, 0])
+    max_ind = np.argmax(w)
+    min_ind = np.argmin(w)
+    orient = np.arctan2(v[1,max_ind], v[0,max_ind])
     ellipse = Ellipse(xy=(state.state_vector[0], state.state_vector[2]),
-                      width=np.sqrt(w[0])*2, height=np.sqrt(w[1])*2,
+                      width=2*np.sqrt(w[max_ind]), height=2*np.sqrt(w[min_ind]),
                       angle=np.rad2deg(orient),
-                      alpha=0.2)
+                      alpha=0.2,
+                      color='r')
     ax.add_artist(ellipse)
 fig
 
