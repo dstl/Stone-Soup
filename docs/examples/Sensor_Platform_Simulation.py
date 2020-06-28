@@ -140,7 +140,7 @@ noise_covar = CovarianceMatrix(np.array(np.diag([np.deg2rad(3)**2,
 # The radar needs to be informed of where x, y, and z are in the target state space
 radar_mapping = (0, 2, 4)
 
-# Instantiate the rotating radar
+# Instantiate the radar
 radar = RadarRangeBearingElevation(ndim_state=6,
                                    position_mapping=radar_mapping,
                                    noise_covar=noise_covar)
