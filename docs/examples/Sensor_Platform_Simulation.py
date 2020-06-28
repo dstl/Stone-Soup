@@ -10,9 +10,6 @@ This example looks at how platforms and sensors can be used within the Stone Sou
 # %%
 # Building a Simulated Sensor Platform
 # ------------------------------------
-# This example is going to look at how *Platforms* and *Sensors* can be combined with the simulation capabilites within
-# Stone Soup.
-#
 # The focus of this example is to show how to setup and configure simulations, as such the application of a tracker
 # will not be covered in detail. For more information about trackers and how to configure them review of the
 # tutorials and demonstrations is recommended.
@@ -49,13 +46,13 @@ start_time = datetime.now()
 # -----------------
 # The first element we need to create is a platform. For this first example we will build a static (or *fixed*) platform
 # which is located at the origin. For this example we are going to work in a 6-dimensional state space our platform will
-# have the following :math:`\vec{x}`.
+# have the following :math:`\mathbf{x}`.
 #
 # .. math::
-#           \begin{align}\vec{x} = \begin{bmatrix}
-#                                   x\\ \dot{x}\\ y\\ \dot{y}\\ z\\ \dot{z} \end{bmatrix}
-#                                = \begin{bmatrix}
-#                                   0\\ 0\\ 0\\ 0\\ 0\\ 0 \end{bmatrix}\end{align}
+#           \begin{align}\mathbf{x} = \begin{bmatrix}
+#                                       x\\ \dot{x}\\ y\\ \dot{y}\\ z\\ \dot{z} \end{bmatrix}
+#                                   = \begin{bmatrix}
+#                                       0\\ 0\\ 0\\ 0\\ 0\\ 0 \end{bmatrix}\end{align}
 #
 # Because the platform is static we only need to define :math:`(x, y, z)`, any internal interaction with the platform
 # which requires knowledge of platform velocity :math:`(\dot{x}, \dot{y}, \dot{z})` will be returned :math:`(0, 0, 0)`.
@@ -98,26 +95,26 @@ platform.orientation
 # The model is described by the following equations:
 #
 # .. math::
-#           \begin{align} \vec{y}_t = h(\vec{x}_t, \vec{v}_t) \end{align}
+#           \begin{align} \mathbf{z}_k = h(\mathbf{x}_k, \dot{\mathbf{x}}_k) \end{align}
 #
-# where :math:`\vec{y}_t` is a measurement vector of the form:
+# where :math:`\mathbf{z}_k` is a measurement vector of the form:
 #
 # .. math::
-#           \begin{align} \vec{y}_t = \begin{bmatrix} \theta \\ \phi \\ r \end{bmatrix} \end{align}
+#           \begin{align} \mathbf{z}_k = \begin{bmatrix} \theta \\ \phi \\ r \end{bmatrix} \end{align}
 #
 # and :math:`h` is a non-linear model function of the form:
 #
 # .. math::
-#           \begin{align} h(\vec{x}_t,\vec{v}_t) = \begin{bmatrix}
-#                                               asin(\mathcal{z}/\sqrt{\mathcal{x}^2 + \mathcal{y}^2 +\mathcal{z}^2}) \\
-#                                               atan2(\mathcal{y},\mathcal{x}) \\
-#                                               \sqrt{\mathcal{x}^2 + \mathcal{y}^2 + \mathcal{z}^2}
-#                                               \end{bmatrix} + \vec{v}_t \end{align}
+#           \begin{align} h(\mathbf{x}_k,\dot{\mathbf{x}}_k) = \begin{bmatrix}
+#                                        \arcsin{(\mathcal{z}/\sqrt{\mathcal{x}^2 + \mathcal{y}^2 +\mathcal{z}^2})} \\
+#                                        \arctan{(\mathcal{y},\mathcal{x})} \\
+#                                        \sqrt{\mathcal{x}^2 + \mathcal{y}^2 + \mathcal{z}^2}
+#                                        \end{bmatrix} + \dot{\mathbf{x}}_k \end{align}
 #
-# and finaly :math:`\vec{v}_t` is Gaussian distributed with covariance :math:`R`, i.e.:
+# and finaly :math:`\mathbf{z}_k` is Gaussian distributed with covariance :math:`R`, i.e.:
 #
 # .. math::
-#           \begin{align} \vec{v}_t \sim \mathcal{N}(0,R) \end{align}
+#           \begin{align} \mathbf{z}_k \sim \mathcal{N}(0,R) \end{align}
 #
 # .. math::
 #           \begin{align} R = \begin{bmatrix}
@@ -134,11 +131,11 @@ from stonesoup.sensor.radar.radar import RadarRangeBearingElevation
 # First we need to configure a radar
 
 # Generate a radar sensor with a suitable measurement accuracy
-noise_covar = CovarianceMatrix(np.array(np.diag([np.deg2rad(5)**2,#
-                                                 np.deg2rad(0.14)**2,
+noise_covar = CovarianceMatrix(np.array(np.diag([np.deg2rad(3)**2,
+                                                 np.deg2rad(0.15)**2,
                                                  25**2])))
-# this radar measures range with an accuracy of +/- 25m, and elevation accuracy +/- 5
-# degrees and bearing accuracy of +/- 0.14 degrees
+# this radar measures range with an accuracy of +/- 25m, and elevation accuracy +/- 3
+# degrees and bearing accuracy of +/- 0.15 degrees
 
 # The radar needs to be informed of where x, y, and z are in the target state space
 radar_mapping = (0, 2, 4)
@@ -189,13 +186,13 @@ platform.rotation_offsets
 #
 # In this example targets are initiated with values based upon a mean state and a covariance, using a Gaussian
 # assumption. This is done by creating a :class:`~.GaussianState` object which describes the distribution from which we
-# want our targets to be drawn from. For this example targets will be drawn from:
-#   * :math:`x` is Gaussian distributed around the platform location with variance of 2km
-#   * :math:`y` is Gaussian distributed around the platform location with variance of 2km
-#   * :math:`z` is Gaussian distributed around an altitude of 9km with variance of 0.1km
-#   * :math:`\dot{x}` is Gaussian distributed around 100 :math:`ms^{-1}` with variance of 50 :math:`ms^{-1}`
-#   * :math:`\dot{y}` is Gaussian distributed around 100 :math:`ms^{-1}` with variance of 50 :math:`ms^{-1}`
-#   * :math:`\dot{z}` is Gaussian distributed around 0 :math:`ms^{-1}` with variance of 1 :math:`ms^{-1}`
+# want our targets to be drawn from. For this example targets will be generated using the following parameters:
+#   * :math:`x` is Gaussian distributed around the platform location with variance of :math:`\mathrm{2}km`
+#   * :math:`y` is Gaussian distributed around the platform location with variance of :math:`\mathrm{2}km`
+#   * :math:`z` is Gaussian distributed around an altitude of :math:`\mathrm{9}km` with variance of :math:`\mathrm{0.1}km`
+#   * :math:`\dot{x}` is Gaussian distributed around :math:`\mathrm{100}ms^{-1}` with variance of :math:`\mathrm{50}ms^{-1}`
+#   * :math:`\dot{y}` is Gaussian distributed around :math:`\mathrm{100}ms^{-1}` with variance of :math:`\mathrm{50}ms^{-1}`
+#   * :math:`\dot{z}` is Gaussian distributed around :math:`\mathrm{0}ms^{-1}` with variance of :math:`\mathrm{1}ms^{-1}`
 #
 # We will also configure our simulator to randomly create and delete targets, based on a birth rate and death rate we
 # specify. In this example we set the birth rate to be 0.10, i.e. on any given time step there is a 10% chance of a new
@@ -252,12 +249,18 @@ predictor = UnscentedKalmanPredictor(transition_model)
 updater = UnscentedKalmanUpdater(measurement_model=None)
 
 # %%
+# When we build our updater you will notice that we do not provide a measurement model. This is because we defined a
+# measurement model for our sensor, each detection made with this sensor is the attributed the measurement model of the
+# sensor.
+
+
+# %%
 # Setup Initiator class for the Tracker
 # -------------------------------------
 # We will now build a simple heuristic initiator.
-# This assumes most of the deviation is caused by the Bearing measurement error. It converts the bearing error error
-# into x,y components using the target bearing. For z, we simply use range*elev_std_dev (this ignores any bearing or
-# range related components). Velocity covariances are just based on expected velocity range of targets.
+# This assumes most of the deviation is caused by the bearing measurement error. It converts the bearing error error
+# into :math:`x, y` components using the target bearing. For z, we simply use :math:`r*\sigma_{\theta}^2` (this ignores
+# any bearing or range related components). Velocity covariances are just based on expected velocity range of targets.
 from stonesoup.types.state import GaussianState
 from stonesoup.types.update import GaussianStateUpdate
 from stonesoup.initiator.simple import SimpleMeasurementInitiator
@@ -357,7 +360,7 @@ for time, ctracks in kalman_tracker.tracks_gen():
         detections.append(loc)
 
 # %%
-# Plotting the tracker output we get:
+# Plot the ground truth location (red), detections (black) and tracks (blue)
 fig = plt.figure(figsize=(10, 6))
 ax = fig.add_subplot(1, 1, 1)
 ax.set_xlabel("$East$")
@@ -368,13 +371,24 @@ ax.set_xlim(-10000, 10000)
 for key in groundtruth_paths:
     X = [coord[0] for coord in groundtruth_paths[key]]
     Y = [coord[1] for coord in groundtruth_paths[key]]
-    ax.plot(X, Y, color='r')
+    ax.plot(X, Y, color='r')  # Plot true locations in red
 
 for key in kalman_tracks:
     X = [coord[0] for coord in kalman_tracks[key]]
     Y = [coord[1] for coord in kalman_tracks[key]]
-    ax.plot(X, Y, color='y')
+    ax.plot(X, Y, color='b')  # Plot track estimates in blue
 
 X = [coord[0] for coord in detections]
 Y = [coord[1] for coord in detections]
-ax.scatter(X, Y, color='k')
+ax.scatter(X, Y, color='k')  # Plot detections in black
+
+
+# %%
+# Key points
+# ----------
+# 1. Sensor platforms, which combine :class:`~.Sensor` and :class:`~.Platform` can be created in Stone Soup and used
+#    as part of a tracking simulation.
+# 2. When using a :class:`~.Sensor` to generate detections there is no need to provide an :class:`~.Updater` with a
+#    :class:`~.MeasurementModel` as each detection is attributed with the relevant sensors measurement model.
+# 3. Sensors will generate detections of all platforms within the simulation, not just ground truth objects.
+
