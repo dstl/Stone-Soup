@@ -215,7 +215,7 @@ groundtruth_sim = MultiTargetGroundTruthSimulator(
     initial_state=initial_target_state,  # add our initial state for targets
     timestep=timedelta(seconds=1),  # time between measurements
     number_steps=120,  # 2 minute
-    birth_rate=0.10,  # 5% chance of a new target being birthed
+    birth_rate=0.10,  # 10% chance of a new target being birthed
     death_probability=0.01  # 1% chance of a target being killed
 )
 
