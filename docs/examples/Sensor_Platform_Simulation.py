@@ -360,7 +360,9 @@ for time, ctracks in kalman_tracker.tracks_gen():
         detections.append(loc)
 
 # %%
-# Plot the ground truth location (red), detections (black) and tracks (blue)
+# Plotting the outputs
+# --------------------
+# First we will plot the ground truth paths (red) which have been generated in the simulation step.
 fig = plt.figure(figsize=(10, 6))
 ax = fig.add_subplot(1, 1, 1)
 ax.set_xlabel("$East$")
@@ -368,6 +370,39 @@ ax.set_ylabel("$North$")
 ax.set_ylim(-10000, 10000)
 ax.set_xlim(-10000, 10000)
 
+for key in groundtruth_paths:
+    X = [coord[0] for coord in groundtruth_paths[key]]
+    Y = [coord[1] for coord in groundtruth_paths[key]]
+    ax.plot(X, Y, color='r')  # Plot true locations in red
+
+# %%
+# If we now overlay the detections (black) onto the ground truth paths (red) we can see how the sensor performs,
+# generating detections based upon the :class:`~.MeasurementModel` we provided it with.
+fig = plt.figure(figsize=(10, 6))
+ax = fig.add_subplot(1, 1, 1)
+ax.set_xlabel("$East$")
+ax.set_ylabel("$North$")
+ax.set_ylim(-10000, 10000)
+ax.set_xlim(-10000, 10000)
+
+for key in groundtruth_paths:
+    X = [coord[0] for coord in groundtruth_paths[key]]
+    Y = [coord[1] for coord in groundtruth_paths[key]]
+    ax.plot(X, Y, color='r')  # Plot true locations in red
+
+X = [coord[0] for coord in detections]
+Y = [coord[1] for coord in detections]
+ax.scatter(X, Y, color='k')  # Plot detections in black
+
+# %%
+# Now we overlay the ground truth locations (red), detections (black) and tracks (blue). This shows all the stages of
+# the tracker simulation we have built in a single figure.
+fig = plt.figure(figsize=(10, 6))
+ax = fig.add_subplot(1, 1, 1)
+ax.set_xlabel("$East$")
+ax.set_ylabel("$North$")
+ax.set_ylim(-10000, 10000)
+ax.set_xlim(-10000, 10000)
 for key in groundtruth_paths:
     X = [coord[0] for coord in groundtruth_paths[key]]
     Y = [coord[1] for coord in groundtruth_paths[key]]
@@ -382,6 +417,33 @@ X = [coord[0] for coord in detections]
 Y = [coord[1] for coord in detections]
 ax.scatter(X, Y, color='k')  # Plot detections in black
 
+# %%
+# Finally we can plot the estimated tracks (blue) along side the ground truth paths (red). Because we used a noisy
+# sensor this view makes it easier to quickly see the tracker performance.
+fig = plt.figure(figsize=(10, 6))
+ax = fig.add_subplot(1, 1, 1)
+ax.set_xlabel("$East$")
+ax.set_ylabel("$North$")
+ax.set_ylim(-10000, 10000)
+ax.set_xlim(-10000, 10000)
+for key in groundtruth_paths:
+    X = [coord[0] for coord in groundtruth_paths[key]]
+    Y = [coord[1] for coord in groundtruth_paths[key]]
+    ax.plot(X, Y, color='r')  # Plot true locations in red
+
+for key in kalman_tracks:
+    X = [coord[0] for coord in kalman_tracks[key]]
+    Y = [coord[1] for coord in kalman_tracks[key]]
+    ax.plot(X, Y, color='b')  # Plot track estimates in blue
+
+# sphinx_gallery_thumbnail_number = 3
+
+# %%
+# To familiarise yourself with sensors it is recommended that you investigate changing the parameters within the sensor
+# Measurement Model in order to see the impact on detections and ultimately tracker performance. For this example we
+# used a *hard* association logic coupled with a relatively noisy sensor. A suggested further exercise is to modify this
+# example to use a *soft* association step such as Probabilistic Data Association (:class:`~.PDA`) or
+# Joint Probabilistic Data Association (:class:`~.JPDA`).
 
 # %%
 # Key points
