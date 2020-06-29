@@ -78,7 +78,7 @@ start_time = datetime.now()
 # First import the Moving platform
 from stonesoup.platform.base import MovingPlatform
 
-# Define the inital platform position, in this case the origin
+# Define the initial platform position, in this case the origin
 initial_loc = StateVector([[0], [0], [0], [50], [8000], [0]])
 initial_state = State(initial_loc, start_time)
 
@@ -93,7 +93,7 @@ sensor_platform = MovingPlatform(states=initial_state,
                                  transition_model=transition_model)
 
 # %%
-# With out platform generated we now need to build a set of sensors which will be mounted onto the platform. In this
+# With our platform generated we now need to build a set of sensors which will be mounted onto the platform. In this
 # case we will exploit a :class:`~.RadarElevationBearingRangeRate` and a :class:`~.PassiveElevationBearing` sensor
 # (e.g. an optical sensor, which has no capability to directly measure range).
 #
