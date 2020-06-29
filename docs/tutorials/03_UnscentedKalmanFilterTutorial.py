@@ -10,11 +10,11 @@
 # %%
 # The previous tutorial showed how the extended Kalman filter propagates estimates using a
 # first-order linearisation of the transition and/or sensor models. Clearly there are limits to
-# such an approximation, and in situtations where models deviate significantly from linearity,
+# such an approximation, and in situations where models deviate significantly from linearity,
 # performance can suffer.
 #
 # In such situations it can be beneficial to seek alternative approximations. One such comes via
-# the so-called *unscented transform* (UT). In this we charaterise a Gaussian distribution using a
+# the so-called *unscented transform* (UT). In this we characterise a Gaussian distribution using a
 # series of weighted samples, *sigma points*, and propagate these through the non-linear function.
 # A transformed Gaussian is then reconstructed from the new sigma points. This forms the basis for
 # the unscented Kalman filter (UKF).
