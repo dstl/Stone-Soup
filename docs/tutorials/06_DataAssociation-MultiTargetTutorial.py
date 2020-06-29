@@ -11,10 +11,10 @@
 # Tracking multiple targets through clutter
 # -----------------------------------------
 #
-# As we've seen, more often than not, the difficult part of state estimation concerns the ambiguous association of
-# predicted states with measurements. This happens whenever there is more that one target under
-# consideration, there are false alarms or clutter, targets can appear and disappear. That is to
-# say it happens everywhere.
+# As we've seen, more often than not, the difficult part of state estimation concerns the ambiguous
+# association of predicted states with measurements. This happens whenever there is more that one
+# target under consideration, there are false alarms or clutter, targets can appear and disappear.
+# That is to say it happens everywhere.
 #
 # In this tutorial we introduce **global nearest neighbour** data association, which
 # attempts to find a globally-consistent collection of hypotheses such that some overall score of
@@ -37,9 +37,9 @@
 #   :alt: Image showing NN association of two tracks
 #
 # In the diagram above, the top detection is selected for association with the blue track,
-# as this has the highest score (:math:`0.5`), and (as each measurement is associated at most
-# once) the remaining detection must then be associated with the orange track, giving a net global
-# score of :math:`0.51`.
+# as this has the highest score/probability (:math:`0.5`), and (as each measurement is associated
+# at most once) the remaining detection must then be associated with the orange track, giving a net
+# global score/probability of :math:`0.51`.
 #
 # The :class:`~.GlobalNearestNeighbour` evaluates all possible (distance-based) hypotheses
 # (measurement-prediction pairs), removes those that are invalid, and selects the subset with the
@@ -51,8 +51,9 @@
 #   :alt: Image showing GNN association of two tracks
 #
 # In the diagram above, the blue track is associated to the bottom detection even though the top
-# detection scores higher relative to it. This association leads to a global score of :math:`0.6` -
-# a better net score than the :math:`0.51` returned by the nearest neighbour algorithm.
+# detection scores higher relative to it. This association leads to a global score/probability of
+# :math:`0.6` - a better net score/probability than the :math:`0.51` returned by the nearest
+# neighbour algorithm.
 
 
 # %%
@@ -221,11 +222,12 @@ from matplotlib.patches import Ellipse
 for track in tracks:
     for state in track[1:]:  # Skip the prior
         w, v = np.linalg.eig(measurement_model.matrix()@state.covar@measurement_model.matrix().T)
-        max_ind = np.argmax(v[0, :])
-        orient = np.arctan2(v[max_ind, 1], v[max_ind, 0])
+        max_ind = np.argmax(w)
+        min_ind = np.argmin(w)
+        orient = np.arctan2(v[1, max_ind], v[0, max_ind])
         ellipse = Ellipse(xy=state.state_vector[(0, 2), 0],
-                          width=np.sqrt(w[0])*2,
-                          height=np.sqrt(w[1])*2,
+                          width=2*np.sqrt(w[max_ind]),
+                          height=2*np.sqrt(w[min_ind]),
                           angle=np.rad2deg(orient),
                           alpha=0.2)
         ax.add_artist(ellipse)

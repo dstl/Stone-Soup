@@ -10,13 +10,13 @@
 # %%
 # Making an assignment between a single track and a single measurement can be problematic. In the
 # previous tutorials you may have encountered the phenomenon of *track seduction*. This occurs
-# when clutter, or other track, points are mis-associated with a prediction. If this happens repeatedly (as can be
-# the case in high-clutter or low-:math:`p_d` situations) the track can deviate significantly from
-# the truth.
+# when clutter, or other track, points are mis-associated with a prediction. If this happens
+# repeatedly (as can be the case in high-clutter or low-:math:`p_d` situations) the track can
+# deviate significantly from the truth.
 #
 # Rather than make a firm assignment at each time-step, we could work out the probability that each
-# measurement should be assigned to a particular target. We could then propagate some measure of
-# these collective probabilities in the hope that this will mitigate the effect of track seduction.
+# measurement should be assigned to a particular target. We could then propagate a measure of
+# these collective probabilities to mitigate the effect of track seduction.
 #
 # Pictorially:
 #
@@ -218,10 +218,12 @@ ax.plot([state.state_vector[0, 0] for state in track[1:]],  # Skip plotting the 
 from matplotlib.patches import Ellipse
 for state in track[1:]:  # Skip the prior
     w, v = np.linalg.eig(measurement_model.matrix()@state.covar@measurement_model.matrix().T)
-    max_ind = np.argmax(v[0, :])
-    orient = np.arctan2(v[max_ind, 1], v[max_ind, 0])
+    max_ind = np.argmax(w)
+    min_ind = np.argmin(w)
+    orient = np.arctan2(v[1, max_ind], v[0, max_ind])
     ellipse = Ellipse(xy=state.state_vector[(0, 2), 0],
-                      width=np.sqrt(w[0])*2, height=np.sqrt(w[1])*2,
+                      width=2*np.sqrt(w[max_ind]),
+                      height=2*np.sqrt(w[min_ind]),
                       angle=np.rad2deg(orient),
                       alpha=0.2)
     ax.add_artist(ellipse)

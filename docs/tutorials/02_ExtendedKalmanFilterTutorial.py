@@ -2,8 +2,9 @@
 # coding: utf-8
 
 """
-2 - Non-linear models: extended Kalman filter tutorial
-===================================================================
+=============================================
+2 - Non-linear models: extended Kalman filter
+=============================================
 """
 
 # %%
@@ -11,7 +12,7 @@
 # detailed the use of a Kalman filter. A significant problem in using the Kalman filter is that it
 # requires transition and sensor models to be linear-Gaussian. In practice, many models are not
 # like this and so alternatives are required. We examine the most commonly-used of such
-# alternatives, the extended Kalman filter (EKF), in this tutorial.
+# alternatives, the extended Kalman filter [#]_ (EKF), in this tutorial.
 #
 # Background
 # ----------
@@ -31,10 +32,29 @@
 #       g(\mathbf{x})\rvert_{\mathbf{x}=\boldsymbol{\mu}} \approx \sum\limits_{|\alpha| \ge 0}
 #       \frac{ (\mathbf{x} - \boldsymbol{\mu})^{\alpha}}{\alpha !} (\mathcal{D}^{\alpha} g)(\boldsymbol{\mu})
 #
-# This is usually truncated after the first term meaning that either
-# :math:`F(\mathbf{x}_{k-1}) \approx J(f)\rvert_{\mathbf{x}=\boldsymbol{\mu}_{k-1}}` or
-# :math:`H(\mathbf{x}_{k|k-1}) \approx J(h)\rvert_{\mathbf{x}=\boldsymbol{\mu}_{k|k-1}}`
-# or both, where :math:`J(\cdot)` is the Jacobian matrix. Stone Soup implements the EKF
+# This is usually truncated after the first term, meaning that either
+# :math:`\tilde{F}(\mathbf{x}_{k-1}) \approx J(f)\rvert_{\mathbf{x}=\boldsymbol{\mu}_{k-1}}` or
+# :math:`\tilde{H}(\mathbf{x}_{k|k-1}) \approx J(h)\rvert_{\mathbf{x}=\boldsymbol{\mu}_{k|k-1}}`
+# or both, where :math:`J(\cdot)` is the Jacobian matrix. The calculation of the covariances,
+# including the innovation covariance, then proceeds in exactly the same way as in the Kalman
+# filter using these approximations,
+#
+# .. math::
+#           \mathbf{x}_{k|k-1} &= f_{k}(\mathbf{x}_{k-1}) \\
+#                 P_{k|k-1} &= \tilde{F}_{k}P_{k-1}\tilde{F}_{k}^T + Q_{k}\\
+#       \mathbf{x}_{k} &= \mathbf{x}_{k|k-1} + \tilde{K}_k(\mathbf{z}_k - h_k(\mathbf{x}_{k|k-1}))\\
+#       P_{k} &= P_{k|k-1} - \tilde{K}_k \tilde{H}_{k} P_{k|k-1}\\
+#
+# where,
+#
+# .. math::
+#       \tilde{K}_k &= P_{k|k-1} \tilde{H}_{k}^T \tilde{S}_k^{-1}\\
+#       \tilde{S}_k &= \tilde{H}_{k} P_{k|k-1} \tilde{H}_{k}^T + R_{k}
+#
+# (we omit the control term in this analysis but it also can be incorporated as a non-linear
+# approximation of the same form.)
+#
+# Stone Soup implements the EKF
 # for non-linear functions using a finite difference method to find :math:`J(\cdot)`
 # in the appropriate places. We'll now see this in action.
 
@@ -50,7 +70,7 @@ start_time = datetime.now()
 
 # %%
 
-# np.random.seed(1991)
+np.random.seed(1991)
 
 # %%
 # Create a target
@@ -98,11 +118,13 @@ ax.plot([state.state_vector[0] for state in truth],
 #       \end{bmatrix}
 #       =
 #       \begin{bmatrix}
-#       \arctan(\frac{(y-y_p)}{(x-x_p)})\\
+#       \arctan\left(\frac{y-y_p}{x-x_p}\right)\\
 #       \sqrt{(x-x_p)^2 + (y-y_p)^2}
 #       \end{bmatrix}
 #
-# where :math:`x_p,y_p` is the position of the sensor and :math:`x,y` that of the target.
+# where :math:`x_p,y_p` is the 2d Cartesian position of the sensor and :math:`x,y` that of the
+# target. Note also that the arctan function has to resolve the quadrant ambiguity and so is
+# implemented as the :class:`~.numpy.arctan2`:math:`(y/x)` function in Python.
 from stonesoup.models.measurement.nonlinear import CartesianToBearingRange
 sensor_x = 50  # Placing the sensor off-centre
 sensor_y = 0
@@ -180,13 +202,14 @@ HH = np.array([[1.,  0.,  0.,  0.],
                [0.,  0.,  1.,  0.]])
 for state in track:
     w, v = np.linalg.eig(HH@state.covar@HH.T)
-    max_ind = np.argmax(v[0, :])
-    min_ind = np.argmin(v[0, :])
-    orient = np.arctan2(v[max_ind, 1], v[max_ind, 0])
+    max_ind = np.argmax(w)
+    min_ind = np.argmin(w)
+    orient = np.arctan2(v[1,max_ind], v[0,max_ind])
     ellipse = Ellipse(xy=(state.state_vector[0], state.state_vector[2]),
-                      width=np.sqrt(w[max_ind])*2, height=np.sqrt(w[min_ind])*2,
+                      width=2*np.sqrt(w[max_ind]), height=2*np.sqrt(w[min_ind]),
                       angle=np.rad2deg(orient),
-                      alpha=0.2)
+                      alpha=0.2,
+                      color='r')
     ax.add_artist(ellipse)
 fig
 
@@ -209,3 +232,8 @@ fig
 # of the filter. In the next tutorial, we see how the **unscented Kalman filter** can begin to
 # addresses these issues.
 
+# %%
+# References
+# ----------
+# .. [#] Anderson & Moore 2012, Optimal filtering,
+#        (http://users.cecs.anu.edu.au/~john/papers/BOOK/B02.PDF)

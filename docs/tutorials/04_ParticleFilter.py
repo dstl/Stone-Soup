@@ -2,9 +2,9 @@
 # coding: utf-8
 
 """
-==============================================
-4 - Sampling methods: particle filter tutorial
-==============================================
+=====================================
+4 - Sampling methods: particle filter
+=====================================
 """
 
 # %%
@@ -77,7 +77,7 @@ start_time = datetime.now()
 
 # %%
 
-# np.random.seed(1991)
+np.random.seed(1991)
 
 # %%
 # Initialise Stone Soup ground-truth and transition models.
@@ -119,7 +119,7 @@ sensor_y = 0
 measurement_model = CartesianToBearingRange(
     ndim_state=4,
     mapping=(0, 2),
-    noise_covar=np.diag([np.radians(0.2), 1]),  # bad bearing, good range uncertainties
+    noise_covar=np.diag([np.radians(0.2), 1]),
     translation_offset=np.array([[sensor_x], [sensor_y]])
 )
 

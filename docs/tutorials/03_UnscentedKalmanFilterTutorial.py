@@ -2,19 +2,19 @@
 # coding: utf-8
 
 """
-=======================================================
-3 - Non-linear models: unscented Kalman filter tutorial
-=======================================================
+==============================================
+3 - Non-linear models: unscented Kalman filter
+==============================================
 """
 
 # %%
 # The previous tutorial showed how the extended Kalman filter propagates estimates using a
 # first-order linearisation of the transition and/or sensor models. Clearly there are limits to
-# such an approximation, and in situtations where models deviate significantly from linearity,
+# such an approximation, and in situations where models deviate significantly from linearity,
 # performance can suffer.
 #
 # In such situations it can be beneficial to seek alternative approximations. One such comes via
-# the so-called *unscented transform* (UT). In this we charaterise a Gaussian distribution using a
+# the so-called *unscented transform* (UT). In this we characterise a Gaussian distribution using a
 # series of weighted samples, *sigma points*, and propagate these through the non-linear function.
 # A transformed Gaussian is then reconstructed from the new sigma points. This forms the basis for
 # the unscented Kalman filter (UKF).
@@ -29,14 +29,14 @@
 # Limited detail on how Stone Soup does the UKF is provided below. See Julier et al. (2000) [#]_
 # for fuller, better details of the UKF.
 #
-# For dimension :math:`N_d`, a set of :math:`2 N_d + 1` sigma points are calculated at:
+# For dimension :math:`D`, a set of :math:`2 D + 1` sigma points are calculated at:
 #
 # .. math::
 #           \mathbf{s}_j &= \mathbf{x}, \ \ j = 0
 #
-#           \mathbf{s}_j &= \mathbf{x} + \alpha \sqrt{\kappa} A_j, \ \ j = 1, ..., N_d
+#           \mathbf{s}_j &= \mathbf{x} + \alpha \sqrt{\kappa} A_j, \ \ j = 1, ..., D
 #
-#           \mathbf{s}_j &= \mathbf{x} - \alpha \sqrt{\kappa} A_j, \ \ j = N_d + 1, ..., 2 N_d
+#           \mathbf{s}_j &= \mathbf{x} - \alpha \sqrt{\kappa} A_j, \ \ j = D + 1, ..., 2 D
 #
 # where :math:`A_j` is the :math:`j` th column of :math:`A`, a *square root matrix* of the
 # covariance, :math:`P = AA^T`, of the state to be approximated, and :math:`\mathbf{x}` is its
@@ -51,21 +51,20 @@
 #
 #           W^m_j &= W^c_j = \frac{1}{2 c}
 #
-# where :math:`\lambda = \alpha^2 (N_d + \kappa) - N_d`, :math:`c = N_d + \lambda`. The parameters
+# where :math:`c = \alpha^2 (D + \kappa)`, :math:`\lambda = c - D`. The parameters
 # :math:`\alpha, \ \beta, \ \kappa` are user-selectable parameters with default values of
-# :math:`1, \ 2, \ 3 - N_d`.
+# :math:`0.5, \ 2, \ 3 - D`.
 #
 # After the sigma points are transformed :math:`\mathbf{s^{\prime}} = f( \mathbf{s} )`, the
 # distribution is reconstructed as:
 #
 # .. math::
-#           \mathbf{x}^\prime &= \sum\limits^{2 N_d}_{0} W^{m}_j \mathbf{s}^{\prime}_j
-#
-#           P &= (\mathbf{s}^{\prime} - \mathbf{x}^\prime) \, diag(W^c) \, (\mathbf{s}^{\prime} -
+#           \mathbf{x}^\prime &= \sum\limits^{2 D}_{0} W^{m}_j \mathbf{s}^{\prime}_j \\
+#           P^\prime &= (\mathbf{s}^{\prime} - \mathbf{x}^\prime) \, diag(W^c) \, (\mathbf{s}^{\prime} -
 #           \mathbf{x}^\prime)^T + Q
 #
-# The posterior mean and covariance are accurate to the 3rd order Taylor expansion for all
-# non-linear models. [#]_
+# The posterior mean and covariance are accurate to the 2nd order Taylor expansion for any
+# non-linear model. [#]_
 
 # %%
 # Nearly-constant velocity example
@@ -82,7 +81,7 @@ start_time = datetime.now()
 
 # %%
 
-# np.random.seed(1991)
+np.random.seed(1991)
 
 # %%
 # Create ground truth
@@ -192,11 +191,11 @@ HH = np.array([[1.,  0.,  0.,  0.],
                [0.,  0.,  1.,  0.]])
 for state in track:
     w, v = np.linalg.eig(HH@state.covar@HH.T)
-    max_ind = np.argmax(v[0, :])
-    min_ind = np.argmin(v[0, :])
-    orient = np.arctan2(v[max_ind, 1], v[max_ind, 0])
+    max_ind = np.argmax(w)
+    min_ind = np.argmin(w)
+    orient = np.arctan2(v[1,max_ind], v[0,max_ind])
     ellipse = Ellipse(xy=(state.state_vector[0], state.state_vector[2]),
-                      width=np.sqrt(w[max_ind])*2, height=np.sqrt(w[min_ind])*2,
+                      width=2*np.sqrt(w[max_ind]), height=2*np.sqrt(w[min_ind]),
                       angle=np.rad2deg(orient),
                       alpha=0.2,
                       color='r')
@@ -212,20 +211,20 @@ fig
 # We can start with a prediction, which is Gauss-distributed in state space, that we will use to
 # make our measurement predictions from.
 from stonesoup.types.prediction import GaussianStatePrediction
-prediction = GaussianStatePrediction(state_vector=[[50], [0], [20], [0]],
+prediction = GaussianStatePrediction(state_vector=[[0], [0], [20], [0]],
                                      covar=np.diag([1.5, 0.5, 1.5, 0.5]),
                                      timestamp=datetime.now())
 
 # %%
 # We'll recapitulate the fact that the sensor position is where it previously was. But this time
 # we'll make the measurement much noisier.
-sensor_x = 50
+sensor_x = 0
 sensor_y = 0
 
 measurement_model = CartesianToBearingRange(
     ndim_state=4,
     mapping=(0, 2),
-    noise_covar=np.diag([np.radians(8), 0.1]),  # bearing variance = 8 degrees (accurate range)
+    noise_covar=np.diag([np.radians(5), 0.1]),  # bearing variance = 5 degrees (accurate range)
     translation_offset=np.array([[sensor_x], [sensor_y]])
 )
 
@@ -285,7 +284,7 @@ fig2
 #
 # Create updaters:
 from stonesoup.updater.kalman import UnscentedKalmanUpdater, ExtendedKalmanUpdater
-unscented_updater = UnscentedKalmanUpdater(measurement_model, alpha=1, beta=2)
+unscented_updater = UnscentedKalmanUpdater(measurement_model, alpha=0.5, beta=4)
 extended_updater = ExtendedKalmanUpdater(measurement_model)
 
 # Get predicted measurements from the state prediction.
@@ -297,11 +296,11 @@ ekf_pred_meas = extended_updater.predict_measurement(prediction)
 
 # Plot UKF's predicted measurement distribution
 w, v = np.linalg.eig(ukf_pred_meas.covar)
-max_ind = np.argmax(v[0, :])
-min_ind = np.argmin(v[0, :])
-orient = np.arctan2(v[max_ind, 1], v[max_ind, 0])
+max_ind = np.argmax(w)
+min_ind = np.argmin(w)
+orient = np.arctan2(v[1, max_ind], v[0, max_ind])
 ukf_ellipse = Ellipse(xy=(ukf_pred_meas.state_vector[0], ukf_pred_meas.state_vector[1]),
-                      width=np.sqrt(w[max_ind])*2, height=np.sqrt(w[min_ind])*2,
+                      width=2*np.sqrt(w[max_ind]), height=2*np.sqrt(w[min_ind]),
                       angle=np.rad2deg(orient),
                       alpha=0.4,
                       color='r')
@@ -310,13 +309,13 @@ ax.add_artist(ukf_ellipse)
 
 # Plot EKF's predicted measurement distribution
 w, v = np.linalg.eig(ekf_pred_meas.covar)
-max_ind = np.argmax(v[0, :])
-min_ind = np.argmin(v[0, :])
-orient = np.arctan2(v[max_ind, 1], v[max_ind, 0])
+max_ind = np.argmax(w)
+min_ind = np.argmin(w)
+orient = np.arctan2(v[1, max_ind], v[0, max_ind])
 ekf_ellipse = Ellipse(xy=(ekf_pred_meas.state_vector[0], ekf_pred_meas.state_vector[1]),
-                      width=np.sqrt(w[max_ind])*2, height=np.sqrt(w[min_ind])*2,
+                      width=2*np.sqrt(w[max_ind]), height=2*np.sqrt(w[min_ind]),
                       angle=np.rad2deg(orient),
-                      alpha=0.3,
+                      alpha=0.5,
                       color='g')
 ax.add_artist(ekf_ellipse)
 
@@ -342,4 +341,6 @@ fig2
 # .. [#] Julier S., Uhlmann J., Durrant-Whyte H.F. 2000, A new method for the nonlinear
 #        transformation of means and covariances in filters and estimators," in IEEE Transactions
 #        on Automatic Control, vol. 45, no. 3, pp. 477-482, doi: 10.1109/9.847726.
-# .. [#] https://www.seas.harvard.edu/courses/cs281/papers/unscented.pdf
+# .. [#] Julier S.J. 2002, The scaled unscented transformation, Proceedings of the 2002 American
+#        Control Conference (IEEE Cat. No.CH37301), Anchorage, AK, USA, 2002, pp. 4555-4559 vol.6,
+#        doi: 10.1109/ACC.2002.1025369.

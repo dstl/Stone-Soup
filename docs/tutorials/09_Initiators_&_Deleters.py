@@ -16,8 +16,7 @@ The location/state of the targets' birth may also be unknown and varying.
 # Here we'll simulate multiple targets moving at a constant velocity. A Poisson distribution will
 # be used to sample the number of new targets which are born at a particular timestep, and simple
 # draw from a uniform distribution will be used to decide if a target will be removed. Each target
-# will have an random position
-# and velocity on birth.
+# will have a random position and velocity on birth.
 from datetime import datetime
 from datetime import timedelta
 
@@ -165,8 +164,9 @@ deleter = CovarianceBasedDeleter(4)
 # unassociated :class:`~.Detection` objects. A prior needs to be defined for the entire state
 # but elements of the state that are measured are replaced by state of the measurement, including
 # the measurement's uncertainty (noise covariance defined by the :class:`~.MeasurementModel`). In
-# this example, as our sensor measures position, we only need to modify the values for the velocity
-# and its variance.
+# this example, as our sensor measures position (as defined in measurement model
+# :attr:`~.LinearGaussian.mapping` attribute earlier), we only need to modify the values for the
+# velocity and its variance.
 #
 # As we are dealing with clutter, here we are going to be using a multi-measurement initiator. This
 # requires that multiple measurements are added to a track before being initiated. In this example,
@@ -227,11 +227,12 @@ for track in tracks:
 
     for state in track[1:]:  # Skip the prior
         w, v = np.linalg.eig(measurement_model.matrix()@state.covar@measurement_model.matrix().T)
-        max_ind = np.argmax(v[0, :])
-        orient = np.arctan2(v[max_ind, 1], v[max_ind, 0])
+        max_ind = np.argmax(w)
+        min_ind = np.argmin(w)
+        orient = np.arctan2(v[1, max_ind], v[0, max_ind])
         ellipse = Ellipse(xy=state.state_vector[(0, 2), 0],
-                          width=np.sqrt(w[0])*2,
-                          height=np.sqrt(w[1])*2,
+                          width=2*np.sqrt(w[max_ind]),
+                          height=2*np.sqrt(w[min_ind]),
                           angle=np.rad2deg(orient),
                           alpha=0.2)
         ax.add_artist(ellipse)
