@@ -111,7 +111,7 @@ platform.orientation
 #                                        \sqrt{\mathcal{x}^2 + \mathcal{y}^2 + \mathcal{z}^2}
 #                                        \end{bmatrix} + \dot{\mathbf{x}}_k \end{align}
 #
-# and finaly :math:`\mathbf{z}_k` is Gaussian distributed with covariance :math:`R`, i.e.:
+# and finally :math:`\mathbf{z}_k` is Gaussian distributed with covariance :math:`R`, i.e.:
 #
 # .. math::
 #           \begin{align} \mathbf{z}_k \sim \mathcal{N}(0,R) \end{align}
@@ -215,7 +215,7 @@ groundtruth_sim = MultiTargetGroundTruthSimulator(
     initial_state=initial_target_state,  # add our initial state for targets
     timestep=timedelta(seconds=1),  # time between measurements
     number_steps=120,  # 2 minute
-    birth_rate=0.10,  # 10% chance of a new target being birthed
+    birth_rate=0.10,  # 10% chance of a new target being born
     death_probability=0.01  # 1% chance of a target being killed
 )
 
@@ -249,9 +249,10 @@ predictor = UnscentedKalmanPredictor(transition_model)
 updater = UnscentedKalmanUpdater(measurement_model=None)
 
 # %%
-# When we build our updater you will notice that we do not provide a measurement model. This is because we defined a
-# measurement model for our sensor, each detection made with this sensor is the attributed the measurement model of the
-# sensor.
+# When we build our updater you will notice that we do not provide a measurement model. This is because we
+# have defined a measurement model which is attached to our radar sensor, each detection made by this sensor
+# will have our radar measurement model associated with it. In Stone Soup the :class:`~.Updater` checks the
+# detections provided and will use any measurement model attached to the detection.
 
 
 # %%
@@ -375,9 +376,13 @@ for key in groundtruth_paths:
     Y = [coord[1] for coord in groundtruth_paths[key]]
     ax.plot(X, Y, color='r')  # Plot true locations in red
 
+# plot platform location
+ax.scatter(0, 0, color='y')
+
 # %%
 # If we now overlay the detections (black) onto the ground truth paths (red) we can see how the sensor performs,
-# generating detections based upon the :class:`~.MeasurementModel` we provided it with.
+# generating detections based upon the :class:`~.MeasurementModel` we provided it with. The platform location is
+# shown in yellow.
 fig = plt.figure(figsize=(10, 6))
 ax = fig.add_subplot(1, 1, 1)
 ax.set_xlabel("$East$")
@@ -393,10 +398,13 @@ for key in groundtruth_paths:
 X = [coord[0] for coord in detections]
 Y = [coord[1] for coord in detections]
 ax.scatter(X, Y, color='k')  # Plot detections in black
+
+# plot platform location
+ax.scatter(0, 0, color='y')
 
 # %%
 # Now we overlay the ground truth locations (red), detections (black) and tracks (blue). This shows all the stages of
-# the tracker simulation we have built in a single figure.
+# the tracker simulation we have built in a single figure. The platform location is shown in yellow.
 fig = plt.figure(figsize=(10, 6))
 ax = fig.add_subplot(1, 1, 1)
 ax.set_xlabel("$East$")
@@ -417,9 +425,13 @@ X = [coord[0] for coord in detections]
 Y = [coord[1] for coord in detections]
 ax.scatter(X, Y, color='k')  # Plot detections in black
 
+# plot platform location
+ax.scatter(0, 0, color='y')
+
 # %%
 # Finally we can plot the estimated tracks (blue) along side the ground truth paths (red). Because we used a noisy
-# sensor this view makes it easier to quickly see the tracker performance.
+# sensor this view makes it easier to quickly see the tracker performance. The platform location is
+# shown in yellow.
 fig = plt.figure(figsize=(10, 6))
 ax = fig.add_subplot(1, 1, 1)
 ax.set_xlabel("$East$")
@@ -435,6 +447,9 @@ for key in kalman_tracks:
     X = [coord[0] for coord in kalman_tracks[key]]
     Y = [coord[1] for coord in kalman_tracks[key]]
     ax.plot(X, Y, color='b')  # Plot track estimates in blue
+
+# plot platform location
+ax.scatter(0, 0, color='y')
 
 # sphinx_gallery_thumbnail_number = 3
 
