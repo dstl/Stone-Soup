@@ -240,10 +240,12 @@ ax.plot([state.state_vector[0, 0] for state in track[1:]],  # Skip plotting the 
 from matplotlib.patches import Ellipse
 for state in track[1:]:  # Skip the prior
     w, v = np.linalg.eig(measurement_model.matrix()@state.covar@measurement_model.matrix().T)
-    max_ind = np.argmax(v[0, :])
-    orient = np.arctan2(v[max_ind, 1], v[max_ind, 0])
+    max_ind = np.argmax(w)
+    min_ind = np.argmin(w)
+    orient = np.arctan2(v[1, max_ind], v[0, max_ind])
     ellipse = Ellipse(xy=state.state_vector[(0, 2), 0],
-                      width=np.sqrt(w[0])*2, height=np.sqrt(w[1])*2,
+                      width=2*np.sqrt(w[max_ind]),
+                      height=2*np.sqrt(w[min_ind]),
                       angle=np.rad2deg(orient),
                       alpha=0.2)
     ax.add_artist(ellipse)
