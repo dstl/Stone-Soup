@@ -645,8 +645,8 @@ def test_binning():
                                                                    np.pi/18]))
 
     measured = measurement_model.function(real_state, noise=True)
-    assert (measured[0, 0]/measurement_model.range_res).is_integer()
-    assert (measured[1, 0]/measurement_model.range_rate_res).is_integer()
+    assert (measured[2, 0]/measurement_model.range_res).is_integer()
+    assert (measured[3, 0]/measurement_model.range_rate_res).is_integer()
 
 
 def test_binning_pdf():
@@ -666,11 +666,11 @@ def test_binning_pdf():
     pdf = measurement_model.pdf(State(measured), real_state)
     assert pdf != 0
     not_measured = measured.copy()
-    not_measured[0, 0] = not_measured[0, 0] + 0.5*measurement_model.range_res
+    not_measured[2, 0] = not_measured[2, 0] + 0.5*measurement_model.range_res
     pdf = measurement_model.pdf(State(not_measured), real_state)
     assert pdf == 0
     not_measured = measured.copy()
-    not_measured[1, 0] = not_measured[1, 0] + 0.5*measurement_model.range_rate_res
+    not_measured[3, 0] = not_measured[3, 0] + 0.5*measurement_model.range_rate_res
     pdf = measurement_model.pdf(State(not_measured), real_state)
     assert pdf == 0
 

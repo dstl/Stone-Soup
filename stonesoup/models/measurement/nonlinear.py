@@ -798,7 +798,7 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of elevation \
     (:math:`\theta`),  bearing (:math:`\phi`), range (:math:`r`) and
-    range-rate (:math:'\dot{r}'), with Gaussian noise in each dimension.
+    range-rate (:math:`\dot{r}`), with Gaussian noise in each dimension.
 
     The model is described by the following equations:
 
@@ -970,7 +970,7 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be in the form of elevation \
     (:math:`\theta`),  bearing (:math:`\phi`), range (:math:`r`) and
-    range-rate (:math:'\dot{r}'), with Gaussian noise in each dimension and the
+    range-rate (:math:`\dot{r}`), with Gaussian noise in each dimension and the
     range and range-rate are binned based on the
     range resolution and range-rate resolution respectively.
 
@@ -1019,11 +1019,14 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
             0 & 0 & 0 & \sigma_{\dot{r}}^2
             \end{bmatrix}
 
+    The covariances for radar is determined by different factors. The angle error
+    is effected by the radar beam width. Range error is effected by the SNR and pulse bandwidth.
+    The error for the range rate is depending on the dwell time.
     The range and range rate are binned using
 
     .. math::
 
-        x = floor(x/\Delta x)*\Delta x
+        x = \textrm{floor(x/\Delta x)*\Delta x
 
     The :py:attr:`mapping` property of the model is a 3 element vector, \
     whose first (i.e. :py:attr:`mapping[0]`), second (i.e. \
@@ -1039,7 +1042,7 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
 
     Note
     ----
-    This class implementation assuming at 3D cartesian space, it therefore \
+    This class implementation assumes a 3D cartesian space, it therefore \
     expects a 6D state space.
     """
 
@@ -1060,8 +1063,8 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
 
         noise: :class:`numpy.ndarray` or bool
             An externally generated random process noise sample (the default is
-            `False`, in which case no noise will be added and no binning takes place
-            if 'True', the output of :meth:`~.Model.rvs` is added and the
+            ``False``, in which case no noise will be added and no binning takes place
+            if ``True``, the output of :math:`~.Model.rvs` is added and the
             range and range rate are binned)
 
         Returns
@@ -1074,18 +1077,16 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
 
         if isinstance(noise, bool) or noise is None:
             if noise:
-                out[0] = np.floor(out[0] / self.range_res) * self.range_res
-                out[1] = np.floor(
-                    out[1] / self.range_rate_res) * self.range_rate_res
+                out[2] = np.floor(out[2] / self.range_res) * self.range_res
+                out[3] = np.floor(out[3] / self.range_rate_res) * self.range_rate_res
 
         return out
 
     def _gaussian_integral(self, a, b, mean, cov):
         # the cumlative probability ranging from a to b for a normal distribution
         # \frac{1}{\sigma\sqrt{2\pi}}\int_{a}^{b}e^{-\frac{1}{2}\left(\frac{x-\mu}{\sigma}\right)^{2}}
-        return (multivariate_normal.cdf(a, mean=mean,
-                                        cov=cov) - multivariate_normal.cdf(
-            b, mean=mean, cov=cov))
+        return (multivariate_normal.cdf(a, mean=mean, cov=cov)
+                - multivariate_normal.cdf(b, mean=mean, cov=cov))
 
     def _binned_pdf(self, state_vector, mean, bin_size, cov):
         # this function finds the probability density at state_vector1
@@ -1128,28 +1129,31 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
             The likelihood of ``state1``, given ``state2``
         """
 
-        # state_vector1 is in measurement space
-        # state_vector2 is in state_space
-        if ((state1.state_vector[0, 0] / self.range_res).is_integer()
+        # state1 is in measurement space
+        # state2 is in state_space
+        if ((state1.state_vector[2, 0] / self.range_res).is_integer()
                 and (state1.state_vector[
-                         1, 0] / self.range_rate_res).is_integer()):
+                         3, 0] / self.range_rate_res).is_integer()):
             mean_vector = self.function(state2, noise=False, **kwargs)
-            # pdf for the binned range and velocity
-            range_pdf = self._binned_pdf(
-                state1.state_vector[0, 0],
-                mean_vector[0, 0],
-                self.range_res,
-                self.covar()[0])
-            velocity_pdf = self._binned_pdf(
-                state1.state_vector[1, 0],
-                mean_vector[1, 0],
-                self.range_rate_res,
-                self.covar()[1])
+
             # pdf for the angles
             az_el_pdf = multivariate_normal.pdf(
-                state1.state_vector[2:, 0],
-                mean=mean_vector[2:, 0],
-                cov=self.covar()[2:])
+                state1.state_vector[:2, 0],
+                mean=mean_vector[:2, 0],
+                cov=self.covar()[:2])
+
+            # pdf for the binned range and velocity
+            range_pdf = self._binned_pdf(
+                state1.state_vector[2, 0],
+                mean_vector[2, 0],
+                self.range_res,
+                self.covar()[2])
+            velocity_pdf = self._binned_pdf(
+                state1.state_vector[3, 0],
+                mean_vector[3, 0],
+                self.range_rate_res,
+                self.covar()[3])
+
             return Probability(range_pdf * velocity_pdf * az_el_pdf)
         else:
             return Probability(0)
