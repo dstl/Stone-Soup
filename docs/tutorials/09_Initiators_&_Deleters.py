@@ -16,8 +16,7 @@ The location/state of the targets' birth may also be unknown and varying.
 # Here we'll simulate multiple targets moving at a constant velocity. A Poisson distribution will
 # be used to sample the number of new targets which are born at a particular timestep, and simple
 # draw from a uniform distribution will be used to decide if a target will be removed. Each target
-# will have an random position
-# and velocity on birth.
+# will have a random position and velocity on birth.
 from datetime import datetime
 from datetime import timedelta
 
@@ -165,8 +164,9 @@ deleter = CovarianceBasedDeleter(4)
 # unassociated :class:`~.Detection` objects. A prior needs to be defined for the entire state
 # but elements of the state that are measured are replaced by state of the measurement, including
 # the measurement's uncertainty (noise covariance defined by the :class:`~.MeasurementModel`). In
-# this example, as our sensor measures position, we only need to modify the values for the velocity
-# and its variance.
+# this example, as our sensor measures position (as defined in measurement model
+# :attr:`~.LinearGaussian.mapping` attribute earlier), we only need to modify the values for the
+# velocity and its variance.
 #
 # As we are dealing with clutter, here we are going to be using a multi-measurement initiator. This
 # requires that multiple measurements are added to a track before being initiated. In this example,

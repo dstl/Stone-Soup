@@ -11,10 +11,10 @@
 # Tracking multiple targets through clutter
 # -----------------------------------------
 #
-# As we've seen, more often than not, the difficult part of state estimation concerns the ambiguous association of
-# predicted states with measurements. This happens whenever there is more that one target under
-# consideration, there are false alarms or clutter, targets can appear and disappear. That is to
-# say it happens everywhere.
+# As we've seen, more often than not, the difficult part of state estimation concerns the ambiguous
+# association of predicted states with measurements. This happens whenever there is more that one
+# target under consideration, there are false alarms or clutter, targets can appear and disappear.
+# That is to say it happens everywhere.
 #
 # In this tutorial we introduce **global nearest neighbour** data association, which
 # attempts to find a globally-consistent collection of hypotheses such that some overall score of
@@ -37,9 +37,9 @@
 #   :alt: Image showing NN association of two tracks
 #
 # In the diagram above, the top detection is selected for association with the blue track,
-# as this has the highest score (:math:`0.5`), and (as each measurement is associated at most
-# once) the remaining detection must then be associated with the orange track, giving a net global
-# score of :math:`0.51`.
+# as this has the highest score/probability (:math:`0.5`), and (as each measurement is associated
+# at most once) the remaining detection must then be associated with the orange track, giving a net
+# global score/probability of :math:`0.51`.
 #
 # The :class:`~.GlobalNearestNeighbour` evaluates all possible (distance-based) hypotheses
 # (measurement-prediction pairs), removes those that are invalid, and selects the subset with the
@@ -51,8 +51,9 @@
 #   :alt: Image showing GNN association of two tracks
 #
 # In the diagram above, the blue track is associated to the bottom detection even though the top
-# detection scores higher relative to it. This association leads to a global score of :math:`0.6` -
-# a better net score than the :math:`0.51` returned by the nearest neighbour algorithm.
+# detection scores higher relative to it. This association leads to a global score/probability of
+# :math:`0.6` - a better net score/probability than the :math:`0.51` returned by the nearest
+# neighbour algorithm.
 
 
 # %%

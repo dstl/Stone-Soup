@@ -10,13 +10,13 @@
 # %%
 # Making an assignment between a single track and a single measurement can be problematic. In the
 # previous tutorials you may have encountered the phenomenon of *track seduction*. This occurs
-# when clutter, or other track, points are mis-associated with a prediction. If this happens repeatedly (as can be
-# the case in high-clutter or low-:math:`p_d` situations) the track can deviate significantly from
-# the truth.
+# when clutter, or other track, points are mis-associated with a prediction. If this happens
+# repeatedly (as can be the case in high-clutter or low-:math:`p_d` situations) the track can
+# deviate significantly from the truth.
 #
 # Rather than make a firm assignment at each time-step, we could work out the probability that each
-# measurement should be assigned to a particular target. We could then propagate some measure of
-# these collective probabilities in the hope that this will mitigate the effect of track seduction.
+# measurement should be assigned to a particular target. We could then propagate a measure of
+# these collective probabilities to mitigate the effect of track seduction.
 #
 # Pictorially:
 #
