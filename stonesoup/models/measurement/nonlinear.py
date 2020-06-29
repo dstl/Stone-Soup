@@ -932,15 +932,15 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
         # Use polar to calculate range rate
         rr = np.dot(xyz_pos[:, 0], xyz_vel[:, 0]) / np.linalg.norm(xyz_pos)
 
-        return StateVector([[Elevation(phi)],
-                            [Bearing(theta)],
+        return StateVector([[Elevation(theta)],
+                            [Bearing(phi)],
                             [rho],
                             [rr]]) + noise
 
     def inverse_function(self, detection, **kwargs) -> StateVector:
-        phi, theta, rho, rho_rate = detection.state_vector
+        theta, phi, rho, rho_rate = detection.state_vector
 
-        x, y, z = sphere2cart(rho, theta, phi)
+        x, y, z = sphere2cart(rho, phi, theta)
         # because only rho_rate is known, only the components in
         # x,y and z of the range rate can be found.
         x_rate = np.cos(phi) * np.cos(theta) * rho_rate
