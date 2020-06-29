@@ -63,8 +63,8 @@
 #           P^\prime &= (\mathbf{s}^{\prime} - \mathbf{x}^\prime) \, diag(W^c) \, (\mathbf{s}^{\prime} -
 #           \mathbf{x}^\prime)^T + Q
 #
-# The posterior mean and covariance are accurate to the 3rd order Taylor expansion for all
-# non-linear models. [#]_
+# The posterior mean and covariance are accurate to the 2nd order Taylor expansion for any
+# non-linear model. [#]_
 
 # %%
 # Nearly-constant velocity example
@@ -341,4 +341,6 @@ fig2
 # .. [#] Julier S., Uhlmann J., Durrant-Whyte H.F. 2000, A new method for the nonlinear
 #        transformation of means and covariances in filters and estimators," in IEEE Transactions
 #        on Automatic Control, vol. 45, no. 3, pp. 477-482, doi: 10.1109/9.847726.
-# .. [#] https://www.seas.harvard.edu/courses/cs281/papers/unscented.pdf
+# .. [#] Julier S.J. 2002, The scaled unscented transformation, Proceedings of the 2002 American
+#        Control Conference (IEEE Cat. No.CH37301), Anchorage, AK, USA, 2002, pp. 4555-4559 vol.6,
+#        doi: 10.1109/ACC.2002.1025369.
