@@ -19,8 +19,10 @@ Stone Soup is currently in *beta* and under continuing development, where
 feedback and contributions are welcomed to improve the component interface
 design and grow the number components available.
 
-Please see the example
-`Stone Soup Notebooks <https://github.com/dstl/Stone-Soup-Notebooks>`_.
+Please see the Stone Soup :ref:`auto_tutorials/index:Tutorials` for learning
+about tracking and using Stone Soup, :ref:`auto_examples/index:Examples` for
+examples of Stone Soup features, and :ref:`auto_demos/index:Demonstrations`
+for demonstrations of using Stone Soup.
 
 For community support, head over to the
 `Stone Soup room on Gitter <https://gitter.im/dstl/Stone-Soup>`_.

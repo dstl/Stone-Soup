@@ -20,7 +20,7 @@ class MetadataReducer(DetectionFeeder):
     Note
     ====
     * If :class:`~.GroundTruthPath` type is extended to have a metadata attribute, this class
-    will be applicable to this type.
+      will be applicable to this type.
 
     """
 
@@ -64,7 +64,7 @@ class MetadataValueFilter(MetadataReducer):
         Note
         ====
         * If :class:`~.GroundTruthPath` type is extended to have a metadata attribute, this class
-        will be applicable to this type.
+          will be applicable to this type.
 
     """
 

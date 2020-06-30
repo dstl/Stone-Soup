@@ -165,7 +165,7 @@ fig
 # of these models are linear then the extended predictor/updater defaults to its Kalman equivalent.
 # In fact the extended Kalman filter classes inherit nearly all of their functionality from the
 # Kalman classes. The only difference being that instead of returning a matrix, in the extended
-# version the :meth:`~.matrix()` function returns the Jacobian.
+# version the :meth:`~.MeasurementModel.matrix()` function returns the Jacobian.
 from stonesoup.predictor.kalman import ExtendedKalmanPredictor
 predictor = ExtendedKalmanPredictor(transition_model)
 

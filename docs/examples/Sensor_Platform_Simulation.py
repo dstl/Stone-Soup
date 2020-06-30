@@ -152,9 +152,12 @@ radar = RadarRangeBearingElevation(ndim_state=6,
 # Sensors can be mounted with two additional parameters; the mounting offset and rotation offset.
 #
 # The mounting offset:
+#
 #     * defines how the sensors position is offset from the platform,
 #     * defaults to a position offset of zero.
+#
 # The rotation_offset:
+#
 #     * defines the sensors orientation relative to that of the platform,
 #     * defaults to a zero orientation offset.
 #
@@ -187,6 +190,7 @@ platform.rotation_offsets
 # In this example targets are initiated with values based upon a mean state and a covariance, using a Gaussian
 # assumption. This is done by creating a :class:`~.GaussianState` object which describes the distribution from which we
 # want our targets to be drawn from. For this example targets will be generated using the following parameters:
+#
 #   * :math:`x` is Gaussian distributed around the platform location with variance of :math:`\mathrm{2}km`
 #   * :math:`y` is Gaussian distributed around the platform location with variance of :math:`\mathrm{2}km`
 #   * :math:`z` is Gaussian distributed around an altitude of :math:`\mathrm{9}km` with variance of :math:`\mathrm{0.1}km`
@@ -240,7 +244,7 @@ sim = PlatformDetectionSimulator(groundtruth=groundtruth_sim, platforms=[platfor
 # :class:`~.Simulator` work within Stone Soup. We will therefore quickly build an Unscented Kalman Filter which
 # initiates measurements using a simple heuristic initiation and deletes any track where no detection is associated for
 # 2 consecutive time steps. There are a number of tutorials for how to build the tracking components provided in the
-# :ref:`auto_tutorials`.
+# :ref:`auto_tutorials/index:Tutorials`.
 
 # Create an Unscented Kalman Predictor
 predictor = UnscentedKalmanPredictor(transition_model)
