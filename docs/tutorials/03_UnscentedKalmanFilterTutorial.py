@@ -260,8 +260,8 @@ predict_meas_samples = pupdater.predict_measurement(pred_samples)
 # %%
 # Don't worry what all this means for the moment. It's a convenient way of showing the 'true'
 # distribution of the predicted measurement - which is rendered as a blue cloud. Note that
-# no noise is added by the :meth:`~.predict_measurement` method so we add some noise below.
-# This is additive Gaussian in the sensor coordinates.
+# no noise is added by the :meth:`~.UnscentedKalmanUpdater.predict_measurement` method so we add
+# some noise below. This is additive Gaussian in the sensor coordinates.
 fig2 = plt.figure(figsize=(10, 6), tight_layout=True)
 ax = fig2.add_subplot(1, 1, 1, polar=True)
 ax.set_ylim(0, 30)
