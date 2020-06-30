@@ -51,6 +51,7 @@ These dependencies are required for building Stone Soup documentation.
 | ---- | ------- |
 | [Sphinx](https://www.sphinx-doc.org/) | BSD |
 | [sphinx-gallery](https://sphinx-gallery.github.io/) | BSD |
+| [pillow](https://pillow.readthedocs.io/en/stable/index.html) | [PIL Software License](https://pillow.readthedocs.io/en/stable/about.html#license) |
 | [folium](https://python-visualization.github.io/folium/) | MIT |
 
 ## License
