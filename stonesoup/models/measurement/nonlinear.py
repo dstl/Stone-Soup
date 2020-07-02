@@ -998,8 +998,8 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
     .. math::
 
       h(\vec{x}_t,\vec{v}_t) = \begin{bmatrix}
-                asin(\mathcal{z}/\sqrt{\mathcal{x}^2 + \mathcal{y}^2 +\mathcal{z}^2}) \\
-                atan2(\mathcal{y},\mathcal{x}) \\
+                \textrm{asin}(\mathcal{z}/\sqrt{\mathcal{x}^2 + \mathcal{y}^2 +\mathcal{z}^2}) \\
+                \textrm{atan2}(\mathcal{y},\mathcal{x}) \\
                 \sqrt{\mathcal{x}^2 + \mathcal{y}^2 + \mathcal{z}^2} \\
                 (x\dot{x} + y\dot{y} + z\dot{z})/\sqrt{x^2 + y^2 + z^2}
                 \end{bmatrix} + \vec{v}_t
@@ -1026,7 +1026,7 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
 
     .. math::
 
-        x = \textrm{floor(x/\Delta x)*\Delta x
+        x = \textrm{floor}(x/\Delta x)*\Delta x
 
     The :py:attr:`mapping` property of the model is a 3 element vector, \
     whose first (i.e. :py:attr:`mapping[0]`), second (i.e. \
