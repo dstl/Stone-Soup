@@ -56,8 +56,10 @@ This is equivalent to the following:
 """
 import inspect
 import sys
+import weakref
 from abc import ABCMeta
 from collections import OrderedDict
+from copy import deepcopy
 from types import MappingProxyType
 
 
@@ -305,3 +307,22 @@ class Base(metaclass=BaseMeta):
         params = ("{}={!r}".format(name, getattr(self, name))
                   for name in type(self).properties)
         return "{}({})".format(type(self).__name__, ", ".join(params))
+
+    def __deepcopy__(self, memodict={}):
+        # Create a new class
+        new = object.__new__(type(self))
+        memodict[id(self)] = new   # add the new class to the memo
+        # Insert a deepcopy of all instance attributes
+        new.__dict__.update(deepcopy(self.__dict__, memodict))
+        # Manually update any weakrefs to point to copies, if they exist.
+        for name, prop in new.__dict__.items():
+            if isinstance(prop, weakref.ref):
+                original_target = prop()  # call the weakref to get a reference
+                try:
+                    # if we are copying the parent as well, the copy should be in memodict
+                    copy_of_target = memodict[id(original_target)]
+                    new.__setattr__(name, weakref.ref(copy_of_target))
+                except KeyError:
+                    # if we can't find the parent, then leave the original ref in place
+                    pass
+        return new
