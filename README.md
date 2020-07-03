@@ -53,7 +53,7 @@ These dependencies are required for building Stone Soup documentation.
 | [sphinx-gallery](https://sphinx-gallery.github.io/) | BSD |
 | [pillow](https://pillow.readthedocs.io/en/stable/index.html) | [PIL Software License](https://pillow.readthedocs.io/en/stable/about.html#license) |
 | [folium](https://python-visualization.github.io/folium/) | MIT |
-| [pytube](https://python-pytube.readthedocs.io/en/latest/) | MIT |
+| [pytube3](https://python-pytube.readthedocs.io/en/latest/) | MIT |
 
 ## License
 Stone Soup is released under MIT License. Please see [License](LICENSE) for details.
