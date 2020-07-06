@@ -75,7 +75,7 @@ class SimpleMeasurementInitiator(GaussianInitiator):
     measurement_model = Property(MeasurementModel, doc="Measurement model")
     skip_non_reversible = Property(bool, default=False)
     diag_load = Property(float,
-                         default = 0.0,
+                         default=0.0,
                          doc="Float value for diagonal loading")
 
     def initiate(self, detections, **kwargs):
@@ -115,7 +115,7 @@ class SimpleMeasurementInitiator(GaussianInitiator):
             prior_covar[mapped_dimensions, :] = 0
             C0 = inv_model_matrix @ model_covar @ inv_model_matrix.T
             C0 = C0 + prior_covar + \
-                 np.diag(np.array([self.diag_load]*C0.shape[0]))
+                np.diag(np.array([self.diag_load]*C0.shape[0]))
             tracks.add(Track([GaussianStateUpdate(
                 prior_state_vector + state_vector,
                 C0,

@@ -135,7 +135,7 @@ def test_nonlinear_measurement():
         assert track.timestamp == timestamp
         Ry = measurement_model.jacobian(track.state) @ track.covar @ \
             measurement_model.jacobian(track.state).T
-        assert  Ry == approx(measurement_model.covar())
+        assert Ry == approx(measurement_model.covar())
 
 
 def test_linear_measurement_non_direct():
@@ -182,6 +182,7 @@ def test_linear_measurement_non_direct():
         assert np.diag([12.5, 10]) == approx(track.covar)
         assert measurement_model.matrix() @ track.covar @ \
             measurement_model.matrix().T == approx(measurement_model.covar())
+
 
 def test_linear_measurement_extra_state_dim():
     class _LinearMeasurementModel:
