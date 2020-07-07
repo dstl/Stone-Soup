@@ -342,7 +342,8 @@ class MovingPlatform(Platform):
         this approximations and so raises an :class:`AttributeError`
         """
         if not self.is_moving:
-            raise AttributeError('Orientation of a zero-velocity moving platform is not defined')
+            raise NotImplementedError('Orientation of a zero-velocity moving platform is not'
+                                      'defined')
         velocity = self.velocity
 
         if self.ndim == 3:
@@ -350,7 +351,7 @@ class MovingPlatform(Platform):
             return StateVector([0, bearing, elevation])
         elif self.ndim == 2:
             _, bearing = cart2pol(*velocity.flat)
-            return StateVector([0, bearing])
+            return StateVector([0, 0, bearing])
         else:
             raise ValueError('Orientation of a moving platform is only implemented for 2 and 3 '
                              'dimensions')
