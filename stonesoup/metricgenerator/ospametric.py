@@ -1,4 +1,4 @@
-from itertools import chain
+from itertools import chain, zip_longest
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -51,28 +51,8 @@ class GOSPAMetric(MetricGenerator):
 
         """
 
-        metric = self.process_datasets(manager.tracks,
-                                       manager.groundtruth_paths)
-        return metric
-
-    def process_datasets(self, dataset_1, dataset_2):
-        """Process a dataset of point patterns to provide metric over time
-
-        Parameters
-        ----------
-        dataset_1: object containing :class:`~.state`
-        dataset_2: object containing :class:`~.state`
-
-        Returns
-        -------
-        metrics: :class:`~.Metric`
-            Containing the metric at each timestamp in the form of a list of
-            :class:`~.Metric` objects
-        """
-
-        states_1 = self.extract_states(dataset_1)
-        states_2 = self.extract_states(dataset_2)
-        return self.compute_over_time(states_1, states_2)
+        return self.compute_over_time(
+            self.extract_states(manager.tracks), self.extract_states(manager.groundtruth_paths))
 
     @staticmethod
     def extract_states(object_with_states):
@@ -262,28 +242,39 @@ class GOSPAMetric(MetricGenerator):
 
         return truth_to_measured, measured_to_truth, opt_cost
 
-    def compute_cost_matrix(self, track_states, truth_states):
-        """
-        Creates the cost matrix between two lists of states
+    def compute_cost_matrix(self, track_states, truth_states, complete=False):
+        """Creates the cost matrix between two lists of states
+
+        This distance measure here will return distances minimum of either
+        :attr:`~.c` or the distance calculated from :attr:`~.Measure`.
 
         Parameters
         ----------
         track_states: list of states
         truth_states: list of states
+        complete: bool
+            Cost matrix will be square, with :attr:`~.c` present for where
+            there is a mismatch in cardinality
 
         Returns
         ----------
-        cost_matrix: Matrix of euclidian distance between each element in each
-        list of states
+        cost_matrix: np.ndarray
+            Matrix of distance between each element in each list of states
         """
 
-        cost_matrix = np.ones([len(track_states), len(truth_states)]) * self.c
+        if complete:
+            m = n = max((len(track_states), len(truth_states)))
+        else:
+            m, n = len(track_states), len(truth_states)
 
-        for i_track, track_state, in enumerate(track_states):
-            for i_truth, truth_state in enumerate(truth_states):
+        cost_matrix = np.full((m, n), self.c, dtype=np.float_)  # c could be int, so force to float
+
+        for i_track, track_state, in zip_longest(range(m), track_states):
+            for i_truth, truth_state in zip_longest(range(n), truth_states):
+                if None in (track_state, truth_state):
+                    continue
 
                 distance = self.measure(track_state, truth_state)
-
                 if distance < self.c:
                     cost_matrix[i_track, i_truth] = distance
 
@@ -486,7 +477,6 @@ class OSPAMetric(GOSPAMetric):
 
         Returns
         -------
-
         SingleTimeMetric
             The OSPA distance
 
@@ -499,19 +489,23 @@ class OSPAMetric(GOSPAMetric):
             raise ValueError(
                 'All states must be from the same time to perform OSPA')
 
-        if not track_states or not truth_states:
+        if not track_states and not truth_states:
             distance = 0
-        else:
-            cost_matrix = self.compute_cost_matrix(track_states, truth_states)
-
+        elif self.p < np.inf:
+            cost_matrix = self.compute_cost_matrix(track_states, truth_states, complete=True)
             # Solve cost matrix with Hungarian/Munkres using
-            # scipy.optimize.linear_sum_assignemnt
+            row_ind, col_ind = linear_sum_assignment(cost_matrix)
             # Length of longest set of states
             n = max(len(track_states), len(truth_states))
-            row_ind, col_ind = linear_sum_assignment(cost_matrix)
             # Calculate metric
-            distance = ((1 / n) * cost_matrix[row_ind, col_ind].sum()) ** (
-                        1 / self.p)
+            distance = ((1/n) * np.sum(cost_matrix[row_ind, col_ind]**self.p))**(1/self.p)
+        else:  # self.p == np.inf
+            if len(track_states) == len(truth_states):
+                cost_matrix = self.compute_cost_matrix(track_states, truth_states)
+                row_ind, col_ind = linear_sum_assignment(cost_matrix)
+                distance = np.max(cost_matrix[row_ind, col_ind])
+            else:
+                distance = self.c
 
         return SingleTimeMetric(title='OSPA distance', value=distance,
                                 timestamp=timestamps.pop(), generator=self)
