@@ -34,9 +34,9 @@ def test_gospametric_extractstates():
     assert set(truth_states) == set(t.states[0] for t in truths)
 
 
-def test_gospametric_compute_assignments():
+@pytest.mark.parametrize('num_states', (2, 5))
+def test_gospametric_compute_assignments(num_states):
     """Test GOSPA assignment algorithm."""
-    num_states = 5
     generator = GOSPAMetric(
         c=10.0,
         p=1)
@@ -47,15 +47,43 @@ def test_gospametric_compute_assignments():
                                 for i in range(num_states)])
     cost_matrix = generator.compute_cost_matrix(track_obj.states,
                                                 truth_obj.states)
-    neg_cost_matrix = -1. * (cost_matrix)
+    neg_cost_matrix = -1.*cost_matrix
     meas_to_truth, truth_to_meas, opt_cost =\
         generator.compute_assignments(neg_cost_matrix,
                                       10 * num_states * num_states)
 
-    assert (opt_cost == 0.0)
+    assert opt_cost == 0.0
     assert np.array_equal(meas_to_truth, truth_to_meas)
     assert np.array_equal(meas_to_truth,
-                          np.array([[i for i in range(num_states)]]))
+                          np.array([i for i in range(num_states)]))
+
+    # Missing 1 track
+    cost_matrix = generator.compute_cost_matrix(track_obj.states[:-1],
+                                                truth_obj.states)
+    neg_cost_matrix = -1.*cost_matrix
+    meas_to_truth, truth_to_meas, opt_cost = \
+        generator.compute_assignments(neg_cost_matrix,
+                                      10 * num_states * num_states)
+
+    assert opt_cost == 0.0
+    assert np.array_equal(meas_to_truth, truth_to_meas[:-1])
+    assert truth_to_meas[-1] == -1
+    assert np.array_equal(meas_to_truth,
+                          np.array([i for i in range(num_states - 1)]))
+
+    # Missing 1 truth
+    cost_matrix = generator.compute_cost_matrix(track_obj.states,
+                                                truth_obj.states[:-1])
+    neg_cost_matrix = -1.*cost_matrix
+    meas_to_truth, truth_to_meas, opt_cost = \
+        generator.compute_assignments(neg_cost_matrix,
+                                      10 * num_states * num_states)
+
+    assert opt_cost == 0.0
+    assert np.array_equal(meas_to_truth[:-1], truth_to_meas)
+    assert meas_to_truth[-1] == -1
+    assert np.array_equal(meas_to_truth[:-1],
+                          np.array([i for i in range(num_states - 1)]))
 
 
 def test_gospametric_cost_matrix():
