@@ -321,8 +321,9 @@ class Base(metaclass=BaseMeta):
                 try:
                     # if we are copying the parent as well, the copy should be in memodict
                     copy_of_target = memodict[id(original_target)]
-                    new.__setattr__(name, weakref.ref(copy_of_target))
                 except KeyError:
                     # if we can't find the parent, then leave the original ref in place
                     pass
+                else:
+                    new.__setattr__(name, weakref.ref(copy_of_target))
         return new
