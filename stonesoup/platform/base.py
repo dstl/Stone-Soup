@@ -347,7 +347,7 @@ class MovingPlatform(Platform):
 
         if self.ndim == 3:
             _, bearing, elevation = cart2sphere(*velocity.flat)
-            return StateVector([0, bearing, elevation])
+            return StateVector([0, elevation, bearing])
         elif self.ndim == 2:
             _, bearing = cart2pol(*velocity.flat)
             return StateVector([0, bearing])

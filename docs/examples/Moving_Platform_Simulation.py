@@ -350,10 +350,11 @@ for time, ctracks in tracker:
             color = 'y'
         else:
             r = 10000000
+            # extract the platform rotation offsets
+            _, el_offset, az_offset = sensor_platform.orientation
+            # obtain measurement angles and map to cartesian
             e, a = detection.state_vector
-            # Use z as x as sensor rotated 90 degrees
-            _, y, x = sphere2cart(r, a, e)
-            color = 'g'
+            x, y, _ = sphere2cart(r, a + az_offset, e + el_offset)
         X = [sensor_platform.state_vector[0], x]
         Y = [sensor_platform.state_vector[2], y]
         artists.extend(ax.plot(X, Y, color=color))
