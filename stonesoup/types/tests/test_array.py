@@ -48,6 +48,14 @@ def test_standard_statevector_indexing():
     assert state_vector[2] == 3
     assert not isinstance(state_vector[2], StateVector)
 
+    # test behaviour of ravel and flatten functions
+    state_vector_ravel = state_vector.ravel()
+    state_vector_flatten = state_vector.flatten()
+    assert isinstance(state_vector_ravel, Matrix)
+    assert isinstance(state_vector_flatten, Matrix)
+    assert state_vector_flatten[0] == 1
+    assert state_vector_ravel[0] == 1
+
 
 def test_setting():
     state_vector_array = np.array([[1], [2], [3], [4]])
