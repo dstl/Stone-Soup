@@ -4,12 +4,12 @@ import datetime
 import numpy as np
 import pytest
 
+from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
+    ConstantVelocity, ConstantTurn
 from stonesoup.sensor.sensor import Sensor
 from stonesoup.types.array import StateVector
+from ..base import MovingPlatform, FixedPlatform, MultiTransitionMovingPlatform
 from ...types.state import State
-from ...models.transition.linear import (
-    ConstantVelocity, CombinedLinearGaussianTransitionModel)
-from ..base import MovingPlatform, FixedPlatform
 
 
 def test_base():
@@ -22,7 +22,7 @@ def test_base():
     platform_state2d = State(np.array([[2],
                                        [2]]),
                              timestamp)
-    platform = FixedPlatform(state=platform_state2d, position_mapping=np.array([0, 1]))
+    platform = FixedPlatform(states=platform_state2d, position_mapping=np.array([0, 1]))
     platform.move(new_timestamp)
     new_statevector = np.array([[2],
                                 [2]])
@@ -39,7 +39,7 @@ def test_base():
                                        [2],
                                        [2]]),
                              timestamp)
-    platform = FixedPlatform(state=platform_state3d, position_mapping=[0, 1, 2])
+    platform = FixedPlatform(states=platform_state3d, position_mapping=[0, 1, 2])
     platform.move(new_timestamp)
     new_statevector = np.array([[2],
                                 [2],
@@ -61,7 +61,7 @@ def test_base():
                                        [2],
                                        [1]]),
                              timestamp)
-    platform = MovingPlatform(state=platform_state2d, transition_model=model_2d,
+    platform = MovingPlatform(states=platform_state2d, transition_model=model_2d,
                               position_mapping=[0, 2])
     platform.move(new_timestamp)
 
@@ -87,7 +87,7 @@ def test_base():
                                      [0],
                                      [1]]),
                            timestamp)
-    platform = MovingPlatform(state=platform_state, transition_model=model_3d,
+    platform = MovingPlatform(states=platform_state, transition_model=model_3d,
                               position_mapping=[0, 2, 4])
     platform.move(new_timestamp)
 
@@ -116,7 +116,7 @@ def test_add_sensor(class_):
     platform_args = {'transition_model': None} if class_ is MovingPlatform else {}
 
     sensor = DummySensor()
-    platform = class_(state=platform_state, position_mapping=[0, 2, 4],
+    platform = class_(states=platform_state, position_mapping=[0, 2, 4],
                       **platform_args)
     platform.add_sensor(sensor)
     assert (len(platform.mounting_offsets) == 1
@@ -151,7 +151,7 @@ def test_velocity_properties(velocity_mapping):
                                      [0],
                                      [0]]),
                            timestamp)
-    platform = MovingPlatform(state=platform_state, transition_model=model_3d,
+    platform = MovingPlatform(states=platform_state, transition_model=model_3d,
                               position_mapping=[0, 2, 4])
     old_position = platform.position
     assert not platform.is_moving
@@ -172,7 +172,7 @@ def test_velocity_properties(velocity_mapping):
                                      [0],
                                      [1]]),
                            timestamp)
-    platform = MovingPlatform(state=platform_state, transition_model=None,
+    platform = MovingPlatform(states=platform_state, transition_model=None,
                               position_mapping=[0, 2, 4])
     assert platform.is_moving
     assert np.array_equal(platform.velocity, StateVector([1, 1, 1]))
@@ -189,7 +189,7 @@ def test_velocity_properties(velocity_mapping):
                                      [2],
                                      [0]]),
                            timestamp)
-    platform = MovingPlatform(state=platform_state, transition_model=None,
+    platform = MovingPlatform(states=platform_state, transition_model=None,
                               position_mapping=[0, 2, 4])
     with pytest.raises(AttributeError):
         _ = platform.velocity
@@ -202,7 +202,7 @@ def test_velocity_properties(velocity_mapping):
                                      [0],
                                      [1]]),
                            timestamp)
-    platform = MovingPlatform(state=platform_state, transition_model=None,
+    platform = MovingPlatform(states=platform_state, transition_model=None,
                               position_mapping=[0, 2, 4], velocity_mapping=velocity_mapping)
     assert platform.is_moving
     assert np.array_equal(platform.velocity, StateVector([1, 1, 1]))
@@ -220,7 +220,7 @@ def test_velocity_properties(velocity_mapping):
                                      [0]]),
                            timestamp)
 
-    platform = MovingPlatform(state=platform_state, transition_model=None,
+    platform = MovingPlatform(states=platform_state, transition_model=None,
                               position_mapping=[0, 2, 4], velocity_mapping=velocity_mapping)
     with pytest.raises(AttributeError):
         _ = platform.velocity
@@ -230,13 +230,13 @@ def test_orientation_dimensionality_error():
     platform_state = State(StateVector([2, 1, 1, 1, 2, 0, 1, 0]),
                            timestamp=datetime.datetime.now())
 
-    platform = MovingPlatform(state=platform_state, position_mapping=[0, 1, 2, 3],
+    platform = MovingPlatform(states=platform_state, position_mapping=[0, 1, 2, 3],
                               transition_model=None)
 
     with pytest.raises(ValueError):
         _ = platform.orientation
 
-    platform = MovingPlatform(state=platform_state, position_mapping=[0], transition_model=None)
+    platform = MovingPlatform(states=platform_state, position_mapping=[0], transition_model=None)
 
     with pytest.raises(ValueError):
         _ = platform.orientation
@@ -247,7 +247,7 @@ def test_moving_with_no_initial_timestamp():
     platform_state = State(StateVector([2, 1, 1, 1, 2, 0]),
                            timestamp=None)
 
-    platform = MovingPlatform(state=platform_state, position_mapping=[0, 2, 4],
+    platform = MovingPlatform(states=platform_state, position_mapping=[0, 2, 4],
                               transition_model=None)
 
     assert platform.timestamp is None
@@ -286,7 +286,7 @@ def test_platform_orientation_3d(state, orientation):
     new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
 
     platform_state = State(state, timestamp)
-    platform = MovingPlatform(state=platform_state, transition_model=model_3d,
+    platform = MovingPlatform(states=platform_state, transition_model=model_3d,
                               position_mapping=[0, 2, 4])
     assert np.allclose(platform.orientation, orientation)
     # moving with a constant velocity model should not change the orientation
@@ -317,7 +317,7 @@ def test_platform_orientation_2d(state, orientation):
     new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
 
     platform_state = State(state, timestamp)
-    platform = MovingPlatform(state=platform_state, transition_model=model_2d,
+    platform = MovingPlatform(states=platform_state, transition_model=model_2d,
                               position_mapping=[0, 2])
     assert np.allclose(platform.orientation, orientation)
     # moving with a constant velocity model should not change the orientation
@@ -332,7 +332,7 @@ def test_orientation_error():
                                      [2],
                                      [0]]),
                            timestamp)
-    platform = MovingPlatform(state=platform_state, transition_model=None,
+    platform = MovingPlatform(states=platform_state, transition_model=None,
                               position_mapping=[0, 1, 2])
     with pytest.raises(AttributeError):
         _ = platform.orientation
@@ -343,7 +343,7 @@ def test_orientation_error():
                                      [2],
                                      [0]]),
                            timestamp)
-    platform = MovingPlatform(state=platform_state, transition_model=None,
+    platform = MovingPlatform(states=platform_state, transition_model=None,
                               position_mapping=[0, 2, 4])
     with pytest.raises(AttributeError):
         _ = platform.orientation
@@ -353,7 +353,9 @@ def test_orientation_error():
                                      [2],
                                      [0]]),
                            timestamp)
-    platform = MovingPlatform(state=platform_state, transition_model=None, position_mapping=[0, 2])
+    platform = MovingPlatform(states=platform_state,
+                              transition_model=None,
+                              position_mapping=[0, 2])
     with pytest.raises(AttributeError):
         _ = platform.orientation
 
@@ -369,7 +371,7 @@ def test_setting_position():
     model_3d = CombinedLinearGaussianTransitionModel(
         [model_1d, model_1d, model_1d])
 
-    platform = MovingPlatform(state=platform_state, transition_model=model_3d,
+    platform = MovingPlatform(states=platform_state, transition_model=model_3d,
                               position_mapping=[0, 1, 2])
     with pytest.raises(AttributeError):
         platform.position = [0, 0, 0]
@@ -380,7 +382,7 @@ def test_setting_position():
                                      [2],
                                      [0]]),
                            timestamp)
-    platform = MovingPlatform(state=platform_state, transition_model=None,
+    platform = MovingPlatform(states=platform_state, transition_model=None,
                               position_mapping=[0, 1, 2])
     assert np.array_equal(platform.position, StateVector([2, 2, 0]))
     platform.position = StateVector([0, 0, 0])
@@ -392,7 +394,7 @@ def test_setting_position():
                                      [2],
                                      [0]]),
                            timestamp)
-    platform = FixedPlatform(state=platform_state, position_mapping=[0, 1, 2])
+    platform = FixedPlatform(states=platform_state, position_mapping=[0, 1, 2])
     assert np.array_equal(platform.position, StateVector([2, 2, 0]))
     platform.position = StateVector([0, 0, 0])
     assert np.array_equal(platform.position, StateVector([0, 0, 0]))
@@ -408,7 +410,7 @@ def test_setting_position():
                                      [2],
                                      [0]]),
                            timestamp)
-    platform = MovingPlatform(state=platform_state, transition_model=model_3d,
+    platform = MovingPlatform(states=platform_state, transition_model=model_3d,
                               position_mapping=[0, 2, 4])
     with pytest.raises(AttributeError):
         platform.position = [0, 0, 0]
@@ -420,7 +422,7 @@ def test_setting_position():
                                      [2],
                                      [0]]),
                            timestamp)
-    platform = FixedPlatform(state=platform_state, position_mapping=[0, 2, 4])
+    platform = FixedPlatform(states=platform_state, position_mapping=[0, 2, 4])
     assert np.array_equal(platform.position, StateVector([2, 2, 2]))
     platform.position = StateVector([0, 0, 1])
     assert np.array_equal(platform.position, StateVector([0, 0, 1]))
@@ -436,7 +438,7 @@ def test_setting_position():
                                      [2],
                                      [0]]),
                            timestamp)
-    platform = MovingPlatform(state=platform_state, transition_model=None,
+    platform = MovingPlatform(states=platform_state, transition_model=None,
                               position_mapping=[0, 2, 4])
     assert np.array_equal(platform.position, StateVector([2, 2, 2]))
     platform.position = StateVector([0, 0, 1])
@@ -454,7 +456,7 @@ def test_setting_orientation():
                                      [2],
                                      [0]]),
                            timestamp)
-    platform = MovingPlatform(state=platform_state, transition_model=None,
+    platform = MovingPlatform(states=platform_state, transition_model=None,
                               position_mapping=[0, 1, 2])
     with pytest.raises(AttributeError):
         platform.orientation = [0, 0, 0]
@@ -464,7 +466,7 @@ def test_setting_orientation():
                                      [0]]),
                            timestamp)
     platform_orientation = StateVector([0, 0, 0])
-    platform = FixedPlatform(state=platform_state, position_mapping=[0, 1, 2],
+    platform = FixedPlatform(states=platform_state, position_mapping=[0, 1, 2],
                              orientation=platform_orientation)
     assert np.array_equal(platform.orientation, StateVector([0, 0, 0]))
     platform.orientation = StateVector([0, 1, 0])
@@ -477,7 +479,7 @@ def test_setting_orientation():
                                      [2],
                                      [0]]),
                            timestamp)
-    platform = MovingPlatform(state=platform_state, transition_model=None,
+    platform = MovingPlatform(states=platform_state, transition_model=None,
                               position_mapping=[0, 1, 2])
     with pytest.raises(AttributeError):
         platform.orientation = [0, 0]
@@ -490,7 +492,7 @@ def test_setting_orientation():
                                      [0]]),
                            timestamp)
     platform_orientation = StateVector([0, 0, 0])
-    platform = FixedPlatform(state=platform_state, position_mapping=[0, 2, 4],
+    platform = FixedPlatform(states=platform_state, position_mapping=[0, 2, 4],
                              orientation=platform_orientation)
     assert np.array_equal(platform.orientation, StateVector([0, 0, 0]))
     platform.orientation = StateVector([0, 1, 0])
@@ -504,7 +506,7 @@ def test_mapping_types(mapping_type):
                                      [2],
                                      [0]]),
                            timestamp)
-    platform = FixedPlatform(state=platform_state, position_mapping=mapping_type([0, 1, 2]))
+    platform = FixedPlatform(states=platform_state, position_mapping=mapping_type([0, 1, 2]))
     assert np.array_equal(platform.position, StateVector([2, 2, 0]))
     platform.position = StateVector([0, 0, 1])
     assert np.array_equal(platform.position, StateVector([0, 0, 1]))
@@ -516,7 +518,113 @@ def test_mapping_types(mapping_type):
                                      [2],
                                      [0]]),
                            timestamp)
-    platform = MovingPlatform(state=platform_state, transition_model=None,
+    platform = MovingPlatform(states=platform_state, transition_model=None,
                               position_mapping=mapping_type([0, 2, 4]))
     assert np.array_equal(platform.position, StateVector([2, 2, 2]))
     assert np.array_equal(platform.velocity, StateVector([1, -1, 0]))
+
+
+def test_multi_transition():
+    transition_model1 = CombinedLinearGaussianTransitionModel(
+        (ConstantVelocity(0), ConstantVelocity(0)))
+    transition_model2 = ConstantTurn((0, 0), np.radians(4.5))
+
+    transition_models = [transition_model1, transition_model2]
+    transition_times = [datetime.timedelta(seconds=10), datetime.timedelta(seconds=20)]
+
+    platform_state = State(state_vector=[[0], [1], [0], [0]], timestamp=datetime.datetime.now())
+
+    platform = MultiTransitionMovingPlatform(transition_models=transition_models,
+                                             transition_times=transition_times,
+                                             states=platform_state,
+                                             position_mapping=[0, 2],
+                                             sensors=None)
+
+    assert len(platform.transition_models) == 2
+    assert len(platform.transition_times) == 2
+
+    #  Check that platform states length increases as platform moves
+    assert len(platform) == 1
+    time = datetime.datetime.now()
+    time += datetime.timedelta(seconds=1)
+    platform.move(timestamp=time)
+    assert len(platform) == 2
+    time += datetime.timedelta(seconds=1)
+    platform.move(timestamp=time)
+    assert len(platform) == 3
+    time += datetime.timedelta(seconds=1)
+    platform.move(timestamp=time)
+    assert len(platform) == 4
+
+    px, py = platform.position[0], platform.position[1]
+
+    # Starting transition model is index 0
+    assert platform.transition_index == 0
+
+    time += datetime.timedelta(seconds=7)
+    platform.move(timestamp=time)
+    x, y = platform.position[0], platform.position[1]
+    # Platform initially moves horizontally
+    assert x > px
+    assert np.allclose(y, py, atol=1e-6)
+    px, py = x, y
+    # Transition model changes after corresponding interval is done/ Next transition is left-turn
+    assert platform.transition_index == 1
+
+    time += datetime.timedelta(seconds=10)
+    platform.move(timestamp=time)
+    x, y = platform.position[0], platform.position[1]
+    # Platform starts turning left to 45 degrees
+    assert x > px
+    assert y > py
+    # Transition interval is not done. Next transition is left-turn
+    assert platform.transition_index == 1
+
+    time += datetime.timedelta(seconds=10)
+    platform.move(timestamp=time)
+    x, y = platform.position[0], platform.position[1]
+    px, py = x, y
+    # Platform turned left to 90 degrees
+    # Transition interval is done. Next transition is straight-on
+    assert platform.transition_index == 0
+
+    time += datetime.timedelta(seconds=10)
+    platform.move(timestamp=time)
+    x, y = platform.position[0], platform.position[1]
+    # Platform travelling vertically up
+    assert np.allclose(x, px, atol=1e-6)
+    assert y > py
+    # Next transition is left-turn
+    assert platform.transition_index == 1
+
+    # Add new transition model (right-turn) to list
+    transition_model3 = ConstantTurn((0, 0), np.radians(-9))
+    platform.transition_models.append(transition_model3)
+    platform.transition_times.append(datetime.timedelta(seconds=10))
+
+    # New model and transition interval are added to model list and to interval list
+    assert len(platform.transition_models) == 3
+    assert len(platform.transition_times) == 3
+
+    time += datetime.timedelta(seconds=20)
+    platform.move(timestamp=time)
+    # Platform turned left by 90 degrees (now travelling in -x direction)
+    px, py = platform.position[0], platform.position[1]
+    # Next transition is right-turn
+    assert platform.transition_index == 2
+
+    time += datetime.timedelta(seconds=10)
+    platform.move(timestamp=time)
+    x, y = platform.position[0], platform.position[1]
+    px, py = x, y
+    # Next transition straight-on, travelling vertically up again
+    assert platform.transition_index == 0
+
+    time += datetime.timedelta(seconds=10)
+    platform.move(timestamp=time)
+    x, y = platform.position[0], platform.position[1]
+    # Platform travelled vertically up
+    assert np.allclose(x, px, atol=1e-6)
+    assert y > py
+    # Next transition is left-turn
+    assert platform.transition_index == 1

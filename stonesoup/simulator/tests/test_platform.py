@@ -19,7 +19,7 @@ def build_platform(sensors, x_velocity):
     trans_model = CombinedLinearGaussianTransitionModel([model_1d] * 2)
     mounting_offsets = np.zeros((len(sensors), 2))
     position_mapping = np.array([[0, 2]])
-    platform = MovingPlatform(state=state, sensors=sensors,
+    platform = MovingPlatform(states=state, sensors=sensors,
                               transition_model=trans_model,
                               mounting_offsets=mounting_offsets,
                               position_mapping=position_mapping)
@@ -85,7 +85,7 @@ def test_platform_ground_truth_detection_simulator(sensor_model1,
         for detection in detections:
             for i in range(0, len(detection.state_vector)):
                 # Detection at location of ground truth.
-                assert int(detection.state_vector[i][0]) == int(n/2)
+                assert int(detection.state_vector[i]) == int(n/2)
 
 
 def test_detection_simulator(sensor_model1,
@@ -108,4 +108,4 @@ def test_detection_simulator(sensor_model1,
         assert len(detections) == 2  # Detection count at each step.
         for detection in detections:
             # Detection at location of ground truth or at platform.
-            assert int(detection.state_vector[0][0]) in (int(n/3), 2*int(n/3))
+            assert int(detection.state_vector[0]) in (int(n/3), 2*int(n/3))

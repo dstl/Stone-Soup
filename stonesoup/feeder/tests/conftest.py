@@ -4,8 +4,14 @@ import datetime
 import pytest
 
 from ...buffered_generator import BufferedGenerator
-from ...reader import DetectionReader
+from ...reader import DetectionReader, GroundTruthReader
 from ...types.detection import Detection
+from ...types.groundtruth import GroundTruthPath, GroundTruthState
+
+
+@pytest.fixture(params=['detector', 'groundtruth'])
+def reader(request):
+    return request.getfixturevalue(request.param)
 
 
 @pytest.fixture()
@@ -102,3 +108,54 @@ def detector():
             }
 
     return Detector()
+
+
+@pytest.fixture()
+def groundtruth():
+    class GroundTruth(GroundTruthReader):
+        @BufferedGenerator.generator_method
+        def groundtruth_paths_gen(self):
+
+            time = datetime.datetime(2020, 1, 1, 0)
+            time_step = datetime.timedelta(seconds=1)
+            state = GroundTruthState(state_vector=[[0], [0]],
+                                     timestamp=time,
+                                     metadata={'colour': 'red',
+                                               'score': 0})
+            redpath = GroundTruthPath(id='red')
+            redpath.append(state)
+            state = GroundTruthState(state_vector=[[0], [0]],
+                                     timestamp=time,
+                                     metadata={'colour': 'yellow',
+                                               'score': 0})
+            yellowpath = GroundTruthPath(id='yellow')
+            yellowpath.append(state)
+            yield time, {redpath, yellowpath}
+
+            time += time_step
+            state = GroundTruthState(state_vector=[[1], [0]],
+                                     timestamp=time,
+                                     metadata={'colour': 'red',
+                                               'score': 2})
+            redpath.append(state)
+            state = GroundTruthState(state_vector=[[0], [101]],
+                                     timestamp=time,
+                                     metadata={'colour': 'yellow',
+                                               'score': 5})
+            yellowpath.append(state)
+            yield time, {redpath, yellowpath}
+
+            time -= time_step
+            state = GroundTruthState(state_vector=[[101], [0]],
+                                     timestamp=time,
+                                     metadata={'colour': 'red',
+                                               'score': 3})
+            redpath.append(state)
+            state = GroundTruthState(state_vector=[[0], [101]],
+                                     timestamp=time,
+                                     metadata={'colour': 'yellow',
+                                               'score': 10})
+            yellowpath.append(state)
+            yield time, {redpath, yellowpath}
+
+    return GroundTruth()

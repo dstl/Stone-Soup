@@ -48,7 +48,7 @@ def test_passive_sensor():
     xyz_rot = rot_mat @ xyz
 
     # Convert to Angles
-    phi, theta = cart2angles(*xyz_rot[:, 0])
+    phi, theta = cart2angles(*xyz_rot)
 
     # Assert correction of generated measurement
     assert (measurement.timestamp == target_state.timestamp)

@@ -3,6 +3,15 @@ Base Data Types
 
 Stone Soup base data types.
 
+.. autoclass:: stonesoup.types.array.Matrix
+    :noindex:
+
+.. autoclass:: stonesoup.types.array.StateVector
+    :noindex:
+
+.. autoclass:: stonesoup.types.association.Association
+    :noindex:
+
 .. autoclass:: stonesoup.types.detection.Detection
     :noindex:
 
@@ -13,6 +22,9 @@ Stone Soup base data types.
     :noindex:
 
 .. autoclass:: stonesoup.types.hypothesis.Hypothesis
+    :noindex:
+
+.. autoclass:: stonesoup.types.multihypothesis.MultipleHypothesis
     :noindex:
 
 .. autoclass:: stonesoup.types.metric.Metric

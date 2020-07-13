@@ -18,5 +18,11 @@ class Particle(Type):
     def __init__(self, state_vector, weight, parent=None, *args, **kwargs):
         if parent:
             parent.parent = None
+        if state_vector is not None and not isinstance(state_vector, StateVector):
+            state_vector = StateVector(state_vector)
         super().__init__(state_vector, weight, parent, *args, **kwargs)
+
+    @property
+    def ndim(self):
+        return self.state_vector.shape[0]
 Particle.parent.cls = Particle  # noqa:E305

@@ -1,10 +1,9 @@
 import datetime
+import numpy as np
 from operator import attrgetter
 
-import numpy as np
-
-from ..distance import DistanceHypothesiser
-from ..filtered import FilteredDetectionsHypothesiser
+from ..filtered import FilteredDetectionsGater
+from ...hypothesiser.distance import DistanceHypothesiser
 from ...types.detection import Detection
 from ...types.hypothesis import SingleHypothesis
 from ...types.track import Track
@@ -24,7 +23,7 @@ def test_filtereddetections(predictor, updater):
     hypothesiser = DistanceHypothesiser(
         predictor, updater, measure=measure, missed_distance=0.2,
         include_all=True)
-    hypothesiser_wrapper = FilteredDetectionsHypothesiser(
+    hypothesiser_wrapper = FilteredDetectionsGater(
         hypothesiser, "MMSI", match_missing=True)
 
     track = Track([GaussianStateUpdate(
@@ -63,7 +62,7 @@ def test_filtereddetections_empty_detections(predictor, updater):
     timestamp = datetime.datetime.now()
     hypothesiser = DistanceHypothesiser(predictor, updater,
                                         measure=measure, missed_distance=0.2)
-    hypothesiser_wrapper = FilteredDetectionsHypothesiser(
+    hypothesiser_wrapper = FilteredDetectionsGater(
         hypothesiser, "MMSI", match_missing=False)
 
     track = Track([GaussianStateUpdate(
@@ -94,7 +93,7 @@ def test_filtereddetections_no_track_metadata(predictor, updater):
     hypothesiser = DistanceHypothesiser(
         predictor, updater, measure=measure, missed_distance=0.2,
         include_all=True)
-    hypothesiser_wrapper = FilteredDetectionsHypothesiser(
+    hypothesiser_wrapper = FilteredDetectionsGater(
         hypothesiser, "MMSI", match_missing=True)
 
     track = Track([GaussianStateUpdate(
@@ -135,7 +134,7 @@ def test_filtereddetections_no_matching_metadata(predictor, updater):
     timestamp = datetime.datetime.now()
     hypothesiser = DistanceHypothesiser(predictor, updater,
                                         measure=measure, missed_distance=0.2)
-    hypothesiser_wrapper = FilteredDetectionsHypothesiser(
+    hypothesiser_wrapper = FilteredDetectionsGater(
         hypothesiser, "MMSI", match_missing=True)
 
     track = Track([GaussianStateUpdate(

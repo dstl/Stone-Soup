@@ -6,7 +6,7 @@ from scipy.stats import multivariate_normal
 
 from ..base import Base
 from ..functions import jacobian as compute_jac
-from ..types.array import Matrix, StateVector
+from ..types.array import StateVector, StateVectors
 from ..types.numeric import Probability
 
 
@@ -183,7 +183,7 @@ class GaussianModel(Model):
 
         Returns
         -------
-        noise : 2-D array of shape (:attr:`~.ndim`, ``num_samples``)
+        noise : 2-D array of shape (:attr:`ndim`, ``num_samples``)
             A set of Np samples, generated from the model's noise
             distribution.
         """
@@ -191,18 +191,21 @@ class GaussianModel(Model):
         noise = multivariate_normal.rvs(
             np.zeros(self.ndim), self.covar(**kwargs), num_samples)
 
-        noise = np.atleast_2d(noise).T
+        noise = np.atleast_2d(noise)
+
+        if self.ndim > 1:
+            noise = noise.T  # numpy.rvs method squeezes 1-dimensional matrices to integers
 
         if num_samples == 1:
             return noise.view(StateVector)
         else:
-            return noise.view(Matrix)
+            return noise.view(StateVectors)
 
     def pdf(self, state1, state2, **kwargs):
         r"""Model pdf/likelihood evaluation function
 
         Evaluates the pdf/likelihood of ``state1``, given the state
-        ``state2`` which is passed to :meth:`~.function()`.
+        ``state2`` which is passed to :meth:`function()`.
 
         In mathematical terms, this can be written as:
 
@@ -224,9 +227,10 @@ class GaussianModel(Model):
             The likelihood of ``state1``, given ``state2``
         """
 
+        # Calculate difference before to handle custom types (mean defaults to zero)
+        # This is required as log pdf coverts arrays to floats
         likelihood = multivariate_normal.logpdf(
-            state1.state_vector.T,
-            mean=self.function(state2, **kwargs).ravel(),
+            (state1.state_vector - self.function(state2, **kwargs)).ravel(),
             cov=self.covar(**kwargs)
         )
         return Probability(likelihood, log_value=True)

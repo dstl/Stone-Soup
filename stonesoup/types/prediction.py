@@ -2,7 +2,8 @@
 from ..base import Property
 from .array import CovarianceMatrix
 from .base import Type
-from .state import State, GaussianState, ParticleState, SqrtGaussianState
+from .state import (State, GaussianState, ParticleState, SqrtGaussianState,
+                    TaggedWeightedGaussianState)
 
 
 class Prediction(Type):
@@ -45,6 +46,25 @@ class SqrtGaussianStatePrediction(Prediction, SqrtGaussianState):
 
     This is a Gaussian state prediction object, with the covariance held
     as the square root of the covariance matrix
+    """
+
+
+class WeightedGaussianStatePrediction(Prediction, TaggedWeightedGaussianState):
+    """ WeightedGaussianStatePrediction type
+
+    This is a simple Gaussian state prediction object, which, as the name
+    suggests, is described by a Gaussian distribution
+    with an associated weight.
+    """
+
+
+class TaggedWeightedGaussianStatePrediction(Prediction,
+                                            TaggedWeightedGaussianState):
+    """ TaggedWeightedGaussianStatePrediction type
+
+    This is a simple Gaussian state prediction object, which, as the name
+    suggests, is described by a Gaussian distribution, with an associated
+    weight and unique tag.
     """
 
 

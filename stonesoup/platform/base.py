@@ -12,14 +12,14 @@ import numpy as np
 
 from ..functions import cart2sphere, cart2pol, rotz
 from ..types.array import StateVector
-from ..base import Base, Property
-from ..types.state import State
+from ..base import Property
+from ..types.state import State, StateMutableSequence
 from ..models.transition import TransitionModel
 if TYPE_CHECKING:  # pragma: no cover
     from ..sensor.base import BaseSensor
 
 
-class Platform(Base, ABC):
+class Platform(StateMutableSequence, ABC):
     """A platform that can carry a number of different sensors.
 
         The location of platform mounted sensors will be maintained relative to
@@ -37,25 +37,27 @@ class Platform(Base, ABC):
             :class:`~.MovingPlatform`
 
         """
-    state = Property(State, doc="The platform state at any given point. For a static platform, "
-                                "this would usually contain its position coordinates in the form"
-                                "``[x, y, z]``. For a moving platform it would contain position "
-                                "and velocity interleaved: ``[x, vx, y, vy, z, vz]``")
+    states = Property([State], doc="A list of States which enables the platform's history to be "
+                                   "accessed in simulators and for plotting. Initiated as a "
+                                   "state, for a static platform, this would usually contain its "
+                                   "position coordinates in the form ``[x, y, z]``. For a moving "
+                                   "platform it would contain position and velocity interleaved: "
+                                   "``[x, vx, y, vy, z, vz]``")
     position_mapping = Property(Sequence[int],
                                 doc="Mapping between platform position and state vector. For a "
                                     "position-only 3d platform this might be ``[0, 1, 2]``. For a "
                                     "position and velocity platform: ``[0, 2, 4]``")
-    rotation_offsets = Property(List[StateVector], default=None,
+    rotation_offsets = Property(List[StateVector], default=None, readonly=True,
                                 doc="A list of StateVectors containing the sensor rotation "
                                     "offsets from the platform's primary axis (defined as the "
                                     "direction of motion). Defaults to a zero vector with the "
                                     "same length as the Platform's :attr:`position_mapping`")
-    mounting_offsets = Property(List[StateVector], default=None,
+    mounting_offsets = Property(List[StateVector], default=None, readonly=True,
                                 doc="A list of StateVectors containing the sensor translation "
                                     "offsets from the platform's reference point. Defaults to "
                                     "a zero vector with the same length as the Platform's "
                                     ":attr:`position_mapping`")
-    sensors = Property(List["BaseSensor"],  default=None,
+    sensors = Property(List["BaseSensor"],  default=None, readonly=True,
                        doc="A list of N mounted sensors. Defaults to an empty list")
     velocity_mapping = Property(Sequence[int], default=None,
                                 doc="Mapping between platform velocity and state dims. If not "
@@ -72,16 +74,16 @@ class Platform(Base, ABC):
         # Set values to defaults if not provided
 
         if self.sensors is None:
-            self.sensors = []
+            self._property_sensors = []
 
         if self.velocity_mapping is None:
             self.velocity_mapping = [p + 1 for p in self.position_mapping]
 
         if self.mounting_offsets is None:
-            self.mounting_offsets = [StateVector([0] * self.ndim)] * len(self.sensors)
+            self._property_mounting_offsets = [StateVector([0] * self.ndim)] * len(self.sensors)
 
         if self.rotation_offsets is None:
-            self.rotation_offsets = [StateVector([0] * 3)] * len(self.sensors)
+            self._property_rotation_offsets = [StateVector([0] * 3)] * len(self.sensors)
 
         if len(self.sensors) != len(self.mounting_offsets):
             raise ValueError(
@@ -98,15 +100,6 @@ class Platform(Base, ABC):
             sensor.platform_system = weakref.ref(self)
 
     @property
-    def state_vector(self) -> StateVector:
-        """Convenience property to return the state vector of the state."""
-        return self.state.state_vector
-
-    @property
-    def timestamp(self):
-        return self.state.timestamp
-
-    @property
     def position(self) -> StateVector:
         """Return the position of the platform.
 
@@ -119,6 +112,22 @@ class Platform(Base, ABC):
     @position.setter
     def position(self, value: StateVector) -> None:
         self._set_position(value)
+
+    @staticmethod
+    def _tuple_or_none(value):
+        return None if value is None else tuple(value)
+
+    @sensors.getter
+    def get_sensors(self):
+        return self._tuple_or_none(self._property_sensors)
+
+    @mounting_offsets.getter
+    def get_mounting_offsets(self):
+        return self._tuple_or_none(self._property_mounting_offsets)
+
+    @rotation_offsets.getter
+    def get_rotation_offsets(self):
+        return self._tuple_or_none(self._property_rotation_offsets)
 
     @property
     def ndim(self) -> int:
@@ -193,7 +202,7 @@ class Platform(Base, ABC):
             A StateVector with the rotation offset of the new sensor. If not supplied, defaults to
             a zero vector.
         """
-        self.sensors.append(sensor)
+        self._property_sensors.append(sensor)
         sensor.platform_system = weakref.ref(self)
 
         if mounting_offset is None:
@@ -201,8 +210,30 @@ class Platform(Base, ABC):
         if rotation_offset is None:
             rotation_offset = StateVector([0] * 3)
 
-        self.mounting_offsets.append(mounting_offset)
-        self.rotation_offsets.append(rotation_offset)
+        self._property_mounting_offsets.append(mounting_offset)
+        self._property_rotation_offsets.append(rotation_offset)
+
+    def remove_sensor(self, sensor: "BaseSensor") -> None:
+        """ Remove a sensor from the platform
+
+        Parameters
+        ----------
+        sensor : :class:`~.BaseSensor`
+            The sensor object to remove
+        """
+        self.pop_sensor(self._property_sensors.index(sensor))
+
+    def pop_sensor(self, index: int):
+        """ Remove a sensor from the platform by index
+
+                Parameters
+                ----------
+                index : int
+                    The index of the sensor to remove
+                """
+        self._property_sensors.pop(index)
+        self._property_mounting_offsets.pop(index)
+        self._property_rotation_offsets.pop(index)
 
     def get_sensor_position(self, sensor: "BaseSensor") -> StateVector:
         """Return the position of the given sensor, which should be already attached to the
@@ -418,14 +449,85 @@ class MovingPlatform(Platform):
         if self.transition_model is None:
             raise AttributeError('Platform without a transition model cannot be moved')
 
-        self.state = State(
+        self.states.append(State(
             state_vector=self.transition_model.function(
                 state=self.state,
                 noise=True,
                 timestamp=timestamp,
                 time_interval=time_interval,
                 **kwargs),
-            timestamp=timestamp)
+            timestamp=timestamp))
+
+
+class MultiTransitionMovingPlatform(MovingPlatform):
+    """Moving platform with multiple transition models
+
+    A list of transition models are given with corresponding transition times, dictating the
+    movement behaviour of the platform for given durations.
+    """
+
+    transition_models = Property([TransitionModel], doc="List of transition models")
+    transition_times = Property([datetime.timedelta], doc="Durations for each listed transition "
+                                                          "model")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if len(self.transition_models) != len(self.transition_times):
+            raise AttributeError('transition_models and transition_times must be same length')
+
+        self.transition_index = 0
+        self.current_interval = self.transition_times[0]
+
+    @property
+    def transition_model(self):
+        return self.transition_models[self.transition_index]
+
+    def move(self, timestamp=None, **kwargs) -> None:
+        """Propagate the platform position using the :attr:`transition_model`.
+
+        Parameters
+        ----------
+        timestamp: :class:`datetime.datetime`, optional
+            A timestamp signifying the end of the maneuver (the default is ``None``)
+
+        Notes
+        -----
+        This methods updates the value of :attr:`position`.
+
+        Any provided ``kwargs`` are forwarded to the :attr:`transition_model`.
+
+        If :attr:`transition_model` or ``timestamp`` is ``None``, the method has
+        no effect, but will return successfully.
+
+        This method updates :attr:`transition_model`, :attr:`transition_index` and
+        :attr:`current_interval`:
+        If the timestamp provided gives a time delta greater than :attr:`current_interval` the
+        :attr:`transition_model` is called for the rest of its corresponding duration, and the move
+        method is called again on the next transition model (by incrementing
+        :attr:`transition_index`) in :attr:`transition_models` with the residue time delta.
+        If the time delta is less than :attr:`current_interval` the :attr:`transition_model` is
+        called for that duration and :attr:`current_interval` is reduced accordingly.
+        """
+        if self.state.timestamp is None:
+            self.state.timestamp = timestamp
+            return
+        try:
+            time_interval = timestamp - self.state.timestamp
+        except TypeError:
+            # TypeError: (timestamp or prior.timestamp) is None
+            return
+
+        while time_interval != 0:
+            if time_interval >= self.current_interval:
+                super().move(timestamp=self.state.timestamp+self.current_interval, **kwargs)
+                time_interval -= self.current_interval
+                self.transition_index = (self.transition_index + 1) % len(self.transition_models)
+                self.current_interval = self.transition_times[self.transition_index]
+
+            else:
+                super().move(timestamp=self.state.timestamp+time_interval, **kwargs)
+                self.current_interval -= time_interval
+                time_interval = 0
 
 
 def _get_rotation_matrix(vel: StateVector) -> np.ndarray:

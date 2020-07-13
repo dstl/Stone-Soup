@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-
-from pytest import approx
-from numpy import deg2rad
-import numpy as np
-from ...functions import (mod_elevation, mod_bearing)
 from math import trunc, ceil, floor
 
+from pytest import approx, xfail
+from numpy import deg2rad
+import numpy as np
+
 from ..angle import Bearing, Elevation, Latitude, Longitude
+from ...functions import (mod_elevation, mod_bearing)
 
 
 def pytest_generate_tests(metafunc):
@@ -114,3 +114,17 @@ class TestAngle:
     def test_degrees(self, class_, func):
         b1 = class_(np.pi/4)  # pi/4 radians = 45 degrees
         assert b1.degrees == 45.0
+
+    def test_average(self, class_, func):
+        val = np.pi/4
+        b1 = class_(val) - 0.1
+        b2 = class_(val) + 0.1
+        assert class_.average([b1, b2]) == approx(val)
+
+        if func is mod_bearing:
+            val = -np.pi
+            b1 = class_(val) - 0.1
+            b2 = class_(val) + 0.1
+            assert class_.average([b1, b2]) == approx(val)
+        else:
+            raise xfail("Can't handle average when wrapping over ±pi")

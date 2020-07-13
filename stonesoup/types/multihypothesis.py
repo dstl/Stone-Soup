@@ -18,11 +18,11 @@ class MultipleHypothesis(Type, Sized, Iterable, Container):
 
     single_hypotheses = Property(
         [SingleHypothesis], default=None,
-        doc="The initial list of :class:`~.SingleHypothesis`. Default `None`"
+        doc="The initial list of :class:`~.SingleHypothesis`. Default `None` "
             "which initialises with empty list.")
     normalise = Property(
         bool, default=False,
-        doc="Normalise probabilities of :class:`~.SingleHypothesis`. Default"
+        doc="Normalise probabilities of :class:`~.SingleHypothesis`. Default "
             "is `False`.")
     total_weight = Property(
         float, default=1,

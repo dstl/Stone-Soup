@@ -19,11 +19,15 @@ import os
 import re
 import stonesoup
 
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../../'))
+
+from doc_extensions import gallery_scraper
+from sphinx_gallery.sorting import FileNameSortKey
 
 # -- General configuration ------------------------------------------------
 
@@ -38,7 +42,10 @@ extensions = [
     'sphinx.ext.viewcode',
     'doc_extensions',
     'sphinx.ext.napoleon',
-    'sphinx.ext.mathjax'
+    'sphinx.ext.mathjax',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.autosectionlabel',
+    'sphinx_gallery.gen_gallery',
 ]
 napoleon_google_docstring = False
 
@@ -46,7 +53,29 @@ autodoc_default_options = {
     'members': None,
     'member-order': 'bysource',
 }
-autodoc_mock_imports = ['ffmpeg', 'moviepy']
+autodoc_mock_imports = ['ffmpeg', 'moviepy', 'tensorflow', 'object_detection']
+
+autosectionlabel_prefix_document = True
+
+sphinx_gallery_conf = {
+     'examples_dirs': ['../tutorials', '../examples', '../demos'],
+     'gallery_dirs': ['auto_tutorials', 'auto_examples', 'auto_demos'],
+     'filename_pattern': re.escape(os.sep),
+     'image_scrapers': (gallery_scraper(),),
+     'abort_on_example_error': False,
+     'reference_url': {'stonesoup': None},
+     'remove_config_comments': True,
+     'ignore_repr_types': r'matplotlib\.(?:figure|animation)',
+     'within_subsection_order': FileNameSortKey,
+     'matplotlib_animations': True,
+}
+
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/{.major}'.format(sys.version_info), None),
+    'matplotlib': ('https://matplotlib.org/', None),
+    'numpy': ('https://docs.scipy.org/doc/numpy', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -64,7 +93,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Stone Soup'
-copyright = '2017-2019 Stone Soup contributors'
+copyright = '2017-2020 Stone Soup contributors'
 author = 'Dstl'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -155,6 +184,8 @@ html_theme = 'sphinx_rtd_theme'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+html_css_files = ['css/custom.css']
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied

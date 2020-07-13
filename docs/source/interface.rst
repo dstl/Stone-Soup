@@ -35,7 +35,7 @@ Data Output
 .. autoclass:: stonesoup.writer.TrackWriter
     :noindex:
 
-Simulators
+Simulation
 ^^^^^^^^^^
 .. autoclass:: stonesoup.simulator.DetectionSimulator
     :inherited-members:
@@ -46,15 +46,23 @@ Simulators
 .. autoclass:: stonesoup.simulator.SensorSimulator
     :inherited-members:
     :noindex:
+.. autoclass:: stonesoup.platform.Platform
+    :inherited-members:
+    :noindex:
+.. autoclass:: stonesoup.sensor.sensor.Sensor
+    :inherited-members:
+    :noindex:
 
 
-Tracker Components
-------------------
+Algorithm Components
+--------------------
 .. autoclass:: stonesoup.dataassociator.DataAssociator
     :noindex:
 .. autoclass:: stonesoup.deleter.Deleter
     :noindex:
 .. autoclass:: stonesoup.hypothesiser.Hypothesiser
+    :noindex:
+.. autoclass:: stonesoup.gater.Gater
     :noindex:
 .. autoclass:: stonesoup.initiator.Initiator
     :noindex:

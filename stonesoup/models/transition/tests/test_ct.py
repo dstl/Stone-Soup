@@ -12,17 +12,18 @@ from ....types.state import State
 def test_ctmodel():
     """ ConstantTurn Transition Model test """
     state = State(np.array([[3.0], [1.0], [2.0], [1.0]]))
-    noise_diff_coeffs = np.array([0.01, 0.01])
+    turn_noise_diff_coeffs = np.array([0.01, 0.01])
     turn_rate = 0.1
-    base(ConstantTurn, state, noise_diff_coeffs, turn_rate)
+    base(ConstantTurn, state, turn_noise_diff_coeffs, turn_rate)
 
 
-def base(model, state, noise_diff_coeffs, turn_rate):
+def base(model, state, turn_noise_diff_coeffs, turn_rate):
     """ Base test for n-dimensional ConstantAcceleration Transition Models """
 
     # Create an ConstantTurn model object
     model = model
-    model_obj = model(noise_diff_coeffs=noise_diff_coeffs, turn_rate=turn_rate)
+    model_obj = model(turn_noise_diff_coeffs=turn_noise_diff_coeffs,
+                      turn_rate=turn_rate)
 
     # State related variables
     state_vec = state.state_vector
@@ -32,7 +33,7 @@ def base(model, state, noise_diff_coeffs, turn_rate):
     time_interval = new_timestamp - old_timestamp
 
     # Model-related components
-    noise_diff_coeffs = noise_diff_coeffs  # m/s^3
+    turn_noise_diff_coeffs = turn_noise_diff_coeffs  # m/s^3
     turn_rate = turn_rate
     turn_ratedt = turn_rate*timediff
     F = np.array(
@@ -45,24 +46,24 @@ def base(model, state, noise_diff_coeffs, turn_rate):
              [0, np.sin(turn_ratedt),
               0, np.cos(turn_ratedt)]])
 
-    qx = noise_diff_coeffs[0]
-    qy = noise_diff_coeffs[1]
-    Q = np.array([[qx**2 * timediff**3 / 3,
-                   qx**2 * timediff**2 / 2,
+    qx = turn_noise_diff_coeffs[0]
+    qy = turn_noise_diff_coeffs[1]
+    Q = np.array([[qx * timediff**3 / 3,
+                   qx * timediff**2 / 2,
                    0,
                    0],
-                  [qx**2 * timediff**2 / 2,
-                   qx**2 * timediff,
+                  [qx * timediff**2 / 2,
+                   qx * timediff,
                    0,
                    0],
                   [0,
                    0,
-                   qy**2 * timediff**3 / 3,
-                   qy**2 * timediff**2 / 2],
+                   qy * timediff**3 / 3,
+                   qy * timediff**2 / 2],
                   [0,
                    0,
-                   qy**2 * timediff**2 / 2,
-                   qy**2 * timediff]])
+                   qy * timediff**2 / 2,
+                   qy * timediff]])
 
     # Ensure ```model_obj.transfer_function(time_interval)``` returns F
     assert np.array_equal(F, model_obj.matrix(

@@ -52,17 +52,12 @@ def test_kalman(PredictorClass, transition_model,
                           prior_covar,
                           timestamp=timestamp)
 
+    transition_model_matrix = transition_model.matrix(time_interval=time_interval)
+    transition_model_covar = transition_model.covar(time_interval=time_interval)
     # Calculate evaluation variables
     eval_prediction = GaussianStatePrediction(
-        transition_model.matrix(timestamp=new_timestamp,
-                                time_interval=time_interval) @ prior.mean,
-        transition_model.matrix(timestamp=new_timestamp,
-                                time_interval=time_interval)
-        @ prior.covar
-        @ transition_model.matrix(timestamp=new_timestamp,
-                                  time_interval=time_interval).T
-        + transition_model.covar(timestamp=new_timestamp,
-                                 time_interval=time_interval))
+        transition_model_matrix @ prior.mean,
+        transition_model_matrix@prior.covar@transition_model_matrix.T + transition_model_covar)
 
     # Initialise a kalman predictor
     predictor = PredictorClass(transition_model=transition_model)
