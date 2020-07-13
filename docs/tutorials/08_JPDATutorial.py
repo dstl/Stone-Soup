@@ -8,8 +8,11 @@
 """
 
 # %%
-# A joint probabilistic data association (JPDA) filter handles multi-target tracking through
-# clutter. Similar to the PDA, the JPDA algorithm calculates hypothesis pairs for every measurement
+# When we have multiple targets we're going to want to arrive at a globally-consistent collection
+# of associations for PDA, in much the same way as we did for the global nearest neighbour
+# associator. This is the purpose of the *joint* probabilistic data association (JPDA) filter.
+#
+# Similar to the PDA, the JPDA algorithm calculates hypothesis pairs for every measurement
 # for every track. The weight of a track-measurement hypothesis is calculated by the normalised sum
 # of conditional probabilities that every other track is associated to every other measurement
 # (including missed detection). For example, with 3 tracks :math:`(A, B, C)` and 3 measurements
