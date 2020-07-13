@@ -396,7 +396,7 @@ class UnscentedKalmanPredictor(KalmanPredictor):
 
 
 class SqrtKalmanPredictor(KalmanPredictor):
-    """The version of the Kalman predictor that operates on the square root parameterisation of
+    r"""The version of the Kalman predictor that operates on the square root parameterisation of
     the Gaussian state, :class:`~.SqrtGaussianState`.
 
     The prediction is undertaken in one of two ways. The default is to work in exactly the same
@@ -411,10 +411,10 @@ class SqrtKalmanPredictor(KalmanPredictor):
     matrices using the scipy.linalg :meth:`sqrtm()` method. (Unlike the Cholesky decomposition
     this works on positive semi-definite matrices, as well as positive definite ones.
 
-    Reference
-    ---------
+    References
+    ----------
     1. Maybeck, P.S. 1994, Stochastic Models, Estimation, and Control, Vol. 1, NavtechGPS,
-    Springfield, VA.
+       Springfield, VA.
 
     """
     qr_method = Property(bool, default=False, doc="A switch to do the prediction via a QR "

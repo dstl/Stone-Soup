@@ -428,7 +428,7 @@ class SqrtKalmanUpdater(KalmanUpdater):
     ----------
     1. (to be added)
     2. Andrews, A. 1968, A square root formulation of the Kalman covariance equations, AIAA
-    Journal, 6:6, 1165-1166
+       Journal, 6:6, 1165-1166
 
     """
     qr_method = Property(bool, default=False, doc="A switch to do the update via a QR"
