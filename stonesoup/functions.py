@@ -583,7 +583,7 @@ def dotproduct(a, b):
     for a_i, b_i in zip(a, b):
         out += a_i*b_i
 
-    return out[0]
+    return out
 
 
 def crossproduct(a, b):

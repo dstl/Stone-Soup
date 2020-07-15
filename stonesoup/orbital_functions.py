@@ -362,20 +362,20 @@ def keplerian_to_rv(state_vector, grav_parameter=3.986004418e14):
     """
 
     # Calculate the position vector in perifocal coordinates
-    rx = perifocal_position(state_vector[0][0], state_vector[1][0],
-                            state_vector[5][0])
+    rx = perifocal_position(state_vector[0, 0], state_vector[1, 0],
+                            state_vector[5, 0])
 
     # Calculate the velocity vector in perifocal coordinates
-    vx = perifocal_velocity(state_vector[0][0], state_vector[1][0],
-                            state_vector[5][0], grav_parameter=grav_parameter)
+    vx = perifocal_velocity(state_vector[0, 0], state_vector[1, 0],
+                            state_vector[5, 0], grav_parameter=grav_parameter)
 
     # Transform position (perifocal) and velocity (perifocal)
     # into geocentric
-    r = perifocal_to_geocentric_matrix(state_vector[2][0], state_vector[3][0],
-                                       state_vector[4][0]) @ rx
+    r = perifocal_to_geocentric_matrix(state_vector[2, 0], state_vector[3, 0],
+                                       state_vector[4, 0]) @ rx
 
-    v = perifocal_to_geocentric_matrix(state_vector[2][0], state_vector[3][0],
-                                       state_vector[4][0]) @ vx
+    v = perifocal_to_geocentric_matrix(state_vector[2, 0], state_vector[3, 0],
+                                       state_vector[4, 0]) @ vx
 
     # And put them into the state vector
     return np.concatenate((r, v), axis=0)

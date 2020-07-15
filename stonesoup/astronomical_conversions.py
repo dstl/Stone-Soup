@@ -271,7 +271,7 @@ def direction_cosine_unit_vector(ra, dec):
     sra = np.sin(ra)
 
     # Unit vector direction
-    return np.array([cdec*cra, cdec*sra, sdec])
+    return np.array([[cdec*cra], [cdec*sra], [sdec]])
 
 
 def direction_rate_cosine_unit_vector(ra, dec, radot, decdot):
@@ -301,6 +301,6 @@ def direction_rate_cosine_unit_vector(ra, dec, radot, decdot):
     sra = np.sin(ra)
 
     # Direction cosine rates vector
-    return np.array([-radot * sra * cdec - decdot * cra * sdec,
-                     radot * cra * cdec - decdot * sra * sdec,
-                     decdot * cdec])
+    return np.array([[-radot * sra * cdec - decdot * cra * sdec],
+                     [radot * cra * cdec - decdot * sra * sdec],
+                     [decdot * cdec]])

@@ -43,7 +43,7 @@ def test_spi(measurement_model):
         kup = ExtendedKalmanUpdater(measurement_model)
 
     # Create the Kalman updater
-    kup = KalmanUpdater(measurement_model)
+    # kup = KalmanUpdater(measurement_model)
 
     # Define the Initiator
     initiator = SinglePointInitiator(
