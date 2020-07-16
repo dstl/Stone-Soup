@@ -551,3 +551,36 @@ def mod_elevation(x):
     elif N == 3:
         x = x - 2.0 * np.pi
     return x
+
+
+def dotproduct(a, b):
+    r"""A convenience function that saves having to remember a lot of
+    counterintuitive formatting stuff inflicted on us by numpy.
+
+    The result for vectors of length :math:`n` is
+    :math:`\Sigma_i^n a_i b_i`.
+
+    Inputs are state vectors, i.e. the second dimension is 1
+
+    Parameters
+    ----------
+    a, b : StateVector, StateVector
+        Two column vectors of equal length
+
+    Returns
+    -------
+    : float
+        A scalar value representing the dot product of the vectors.
+    """
+    if np.shape(a)[1] != 1 or np.shape(b)[1] != 1 or np.ndim(a) != 2 or \
+            np.ndim(b) != 2:
+        raise ValueError("Inputs must be column vectors")
+
+    if np.shape(a)[0] != np.shape(b)[0]:
+        raise ValueError("Input vectors must be the same length")
+
+    out = 0
+    for a_i, b_i in zip(a, b):
+        out += a_i*b_i
+
+    return out
