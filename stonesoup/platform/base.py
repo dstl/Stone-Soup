@@ -353,8 +353,8 @@ class MovingPlatform(Platform):
             _, bearing = cart2pol(*velocity.flat)
             return StateVector([0, 0, bearing])
         else:
-            raise ValueError('Orientation of a moving platform is only implemented for 2 and 3 '
-                             'dimensions')
+            raise NotImplementedError('Orientation of a moving platform is only implemented for 2'
+                                      'and 3 dimensions')
 
     @property
     def is_moving(self) -> bool:

@@ -233,12 +233,12 @@ def test_orientation_dimensionality_error():
     platform = MovingPlatform(states=platform_state, position_mapping=[0, 1, 2, 3],
                               transition_model=None)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(NotImplementedError):
         _ = platform.orientation
 
     platform = MovingPlatform(states=platform_state, position_mapping=[0], transition_model=None)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(NotImplementedError):
         _ = platform.orientation
 
 
