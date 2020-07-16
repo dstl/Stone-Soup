@@ -40,6 +40,7 @@ def test_platform_detection_simulator(sensor_model1,
                                           [platform1, platform2])
 
     for n, (time, detections) in enumerate(detector):
+
         # Detection count at each step.
         assert len(detections) == 1
         # platform1 position.
