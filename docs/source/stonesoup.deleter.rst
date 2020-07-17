@@ -18,3 +18,9 @@ Time Based
 .. automodule:: stonesoup.deleter.time
     :show-inheritance:
     :inherited-members:
+
+Multi
+-----
+.. automodule:: stonesoup.deleter.multi
+    :show-inheritance:
+    :inherited-members:

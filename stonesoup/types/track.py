@@ -43,6 +43,11 @@ class Track(StateMutableSequence):
         self._update_metadata_from_state(value)
         return super().insert(index, value)
 
+    def append(self, value):
+        # Update metadata
+        self._update_metadata_from_state(value)
+        return self.states.append(value)
+
     @property
     def metadata(self):
         """Returns metadata associated with a track.

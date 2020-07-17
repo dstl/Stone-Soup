@@ -62,7 +62,7 @@ class FrameReader(SensorDataReader):
         Note
         ----
         This is just a wrapper around (and therefore performs identically
-        to) :py:meth:`~frames_gen`.
+        to) :meth:`~frames_gen`.
 
         Yields
         ------
@@ -82,7 +82,7 @@ class VideoClipReader(FileReader, FrameReader):
     Usage of MoviePy allows for the application of clip transformations
     and effects, as per the MoviePy documentation_. Upon instantiation,
     the underlying MoviePy `VideoFileClip` instance can be accessed
-    through the :py:attr:`~clip` class property. This can then be used
+    through the :attr:`~clip` class property. This can then be used
     as expected, e.g.:
 
     .. code-block:: python
@@ -105,7 +105,7 @@ class VideoClipReader(FileReader, FrameReader):
     start_time = Property(datetime.timedelta,
                           doc="Start time expressed as duration "
                               "from the start of the clip",
-                          default=0)
+                          default=datetime.timedelta(seconds=0))
     end_time = Property(datetime.timedelta,
                         doc="End time expressed as duration "
                             "from the start of the clip",
@@ -113,10 +113,9 @@ class VideoClipReader(FileReader, FrameReader):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
+        end_time_sec = self.end_time.total_seconds() if self.end_time is not None else None
         self.clip = mpy.VideoFileClip(str(self.path)) \
-            .subclip(self.start_time.total_seconds(),
-                     self.end_time.total_seconds())
+            .subclip(self.start_time.total_seconds(), end_time_sec)
 
     @BufferedGenerator.generator_method
     def frames_gen(self):

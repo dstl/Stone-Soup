@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
-from .base import Hypothesiser
+from .base import Gater
 from ..base import Property
 
 
-class FilteredDetectionsHypothesiser(Hypothesiser):
+class FilteredDetectionsGater(Gater):
     """Wrapper for Hypothesisers - filters input data
 
     Wrapper for any type of hypothesiser - filters the 'detections' before
     they are fed into the hypothesiser.
     """
 
-    hypothesiser = Property(
-        Hypothesiser, doc="Hypothesiser that is being wrapped.")
     metadata_filter = Property(
         str, doc="Metadata attribute used to filter which detections "
                  "tracks are valid for association.")

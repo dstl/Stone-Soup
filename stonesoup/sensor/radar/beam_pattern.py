@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
+from typing import Sequence
 
 from ...base import Property, Base
 
@@ -39,11 +40,16 @@ class BeamSweep(BeamTransitionModel):
 
     angle_per_s = Property(float, doc="The speed that the beam scans at")
     frame = Property(
-        list, doc="Dimensions of search frame as [azimuth,elevation]")
+        Sequence[float], doc="Dimensions of search frame as [azimuth,elevation]")
     separation = Property(float, doc="Separation of lines in elevation")
     centre = Property(
-        list, default=[0, 0],
-        doc="Centre of the search frame in [azimuth,elevation]")
+        Sequence[float], default=None,
+        doc="Centre of the search frame in [azimuth,elevation]. Defaults to [0, 0]")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.centre is None:
+            self.centre = [0, 0]
 
     @property
     def length_frame(self):

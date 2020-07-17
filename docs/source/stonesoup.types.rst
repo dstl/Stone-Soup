@@ -16,6 +16,18 @@ Array Types
 .. automodule:: stonesoup.types.array
     :show-inheritance:
 
+Angle Types
+-----------
+
+.. automodule:: stonesoup.types.angle
+    :show-inheritance:
+
+Association Types
+-----------------
+
+.. automodule:: stonesoup.types.association
+    :show-inheritance:
+
 Detection Types
 ---------------
 
@@ -41,6 +53,12 @@ Metric Types
 ------------
 
 .. automodule:: stonesoup.types.metric
+    :show-inheritance:
+
+Mixture Types
+-------------
+
+.. automodule:: stonesoup.types.mixture
     :show-inheritance:
 
 Numeric Types
