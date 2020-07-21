@@ -601,12 +601,12 @@ class AESARadar(Sensor):
     def _swerling_1(rcs):
         return -rcs * np.log(np.random.rand())
 
-    def gen_probability(self, sky_state):
+    def gen_probability(self, truth):
         """Generates probability of detection of a given State.
 
         Parameters
         ----------
-        sky_state : The target state.
+        truth : The target state.
 
         Returns
         -------
@@ -623,9 +623,9 @@ class AESARadar(Sensor):
         spoiled_width : `float`
             Beam width with beam spoiling applied.
         """
-        if getattr(sky_state, 'rcs', None) is not None:
+        if getattr(truth, 'rcs', None) is not None:
             # use state's rcs if it has one
-            rcs = sky_state.rcs
+            rcs = truth.rcs
         else:
             rcs = self.rcs
         # apply swerling 1 case?
@@ -634,14 +634,14 @@ class AESARadar(Sensor):
 
         # e-scan beam steer
         [beam_az, beam_el] = self.beam_transition_model.move_beam(
-            sky_state.timestamp)  # [az,el]
+            truth.timestamp)  # [az,el]
 
         # effects of e-scan on gain and beam width
         spoiled_gain = 10 ** (self.antenna_gain / 10) * np.cos(beam_az) * np.cos(beam_el)
         spoiled_width = self.beam_width / (np.cos(beam_az) * np.cos(beam_el))
         # state relative to radar (in cartesian space)
 
-        relative_vector = sky_state.state_vector[self.position_mapping, :] - self.position
+        relative_vector = truth.state_vector[self.position_mapping, :] - self.position
 
         relative_vector = self._rotation_matrix @ relative_vector
 
@@ -663,12 +663,12 @@ class AESARadar(Sensor):
         return det_prob, snr, rcs, directed_power,\
             10 * np.log10(spoiled_gain), spoiled_width
 
-    def measure(self, sky_states, noise=True, **kwargs):
+    def measure(self, ground_truths, noise=True, **kwargs):
         """Generate a measurement for a given state
 
         Parameters
         ----------
-        sky_states : :class:`~.State`
+        ground_truths : :class:`~.State`
             A set of :class:`~.GroundTruthState` in 3-D cartesian space
         noise: :class:`numpy.ndarray` or bool
             An externally generated random process noise sample (the default is
@@ -685,17 +685,19 @@ class AESARadar(Sensor):
         """
 
         detections = set()
-        for sky_state in sky_states:
-            det_prob = self.gen_probability(sky_state)[0]
+
+        measurement_model = copy.deepcopy(self.measurement_model)
+        measurement_model.translation_offset = self.position.copy()
+        measurement_model.rotation_offset = self.rotation_offset.copy()
+
+        for truth in ground_truths:
+            det_prob = self.gen_probability(truth)[0]
             # Is the state detected?
             if np.random.rand() <= det_prob:
-                measurement_model = copy.deepcopy(self.measurement_model)
-                measurement_model.translation_offset = self.position.copy()
-                measurement_model.rotation_offset = self.rotation_offset.copy()
-                measured_pos = self.measurement_model.function(sky_state, noise=noise)
+                measured_pos = measurement_model.function(truth, noise=noise)
 
                 detection = Detection(measured_pos,
-                                      timestamp=sky_state.timestamp,
+                                      timestamp=truth.timestamp,
                                       measurement_model=measurement_model)
                 detections.add(detection)
 
