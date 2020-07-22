@@ -50,7 +50,7 @@ class MatlabWrapper(Wrapper):
     * General remarks:
         - The currect version of the class is only intended for use with \
             synchronous MATLAB engine creation.
-    """  # noqa: E501
+    """  # noqa
 
     matlab_engine = Property(
         matlab.engine.MatlabEngine, default=None,
@@ -82,7 +82,7 @@ class MatlabWrapper(Wrapper):
         -------
         :class:`matlab.engine.MatlabEngine`
             Python object for communicating with MATLAB.
-        """  # noqa: E501
+        """  # noqa
 
         return matlab.engine.start_matlab(*args, *kwargs)
 
@@ -112,7 +112,7 @@ class MatlabWrapper(Wrapper):
           initialise the shared connection in MATLAB. See \
           `here <https://uk.mathworks.com/help/matlab/ref/matlab.engine.shareengine.html>`_ 
           for more information.
-        """  # noqa: E501
+        """  # noqa
 
         return matlab.engine.connect_matlab(name, *kwargs)
 
@@ -156,7 +156,7 @@ class MatlabWrapper(Wrapper):
         :class:`matlab array`
             The converted array
 
-        """  # noqa: E501
+        """  # noqa
 
         # If it's a numpy array, convert to list; if it's anything
         #  else then throw an error
