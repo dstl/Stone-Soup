@@ -148,8 +148,9 @@ def test_sensor_assignment(radar_platform_target):
     radar_2 = copy.deepcopy(radar_1)
     radar_3 = copy.deepcopy(radar_1)
 
-    platform.add_sensor(radar_2)
-    platform.add_sensor(radar_3)
+    with pytest.warns(UserWarning, match="Sensor has been moved from one platform to another"):
+        platform.add_sensor(radar_2)
+        platform.add_sensor(radar_3)
 
     assert len(platform.sensors) == 3
     validate_lengths(platform)
@@ -166,7 +167,8 @@ def test_sensor_assignment(radar_platform_target):
     validate_lengths(platform)
     assert platform.sensors == (radar_1, radar_3)
 
-    platform.add_sensor(radar_2)
+    with pytest.warns(UserWarning, match="Sensor has been moved from one platform to another"):
+        platform.add_sensor(radar_2)
     assert len(platform.sensors) == 3
     validate_lengths(platform)
     assert platform.sensors == (radar_1, radar_3, radar_2)

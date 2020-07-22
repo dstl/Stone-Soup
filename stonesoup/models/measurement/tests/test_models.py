@@ -18,9 +18,9 @@ from ....types.state import State, CovarianceMatrix
 
 
 def h1d(state_vector, pos_map, translation_offset, rotation_offset):
-    xyz = [[state_vector[0, 0] - translation_offset[0, 0]],
-           [state_vector[1, 0] - translation_offset[1, 0]],
-           [0]]
+    xyz = StateVector([[state_vector[0, 0] - translation_offset[0, 0]],
+                      [state_vector[1, 0] - translation_offset[1, 0]],
+                      [0]])
 
     # Get rotation matrix
     theta_x, theta_y, theta_z = - rotation_offset[:, 0]
@@ -35,9 +35,9 @@ def h1d(state_vector, pos_map, translation_offset, rotation_offset):
 
 def h2d(state_vector, pos_map, translation_offset, rotation_offset):
 
-    xyz = [[state_vector[0, 0] - translation_offset[0, 0]],
-           [state_vector[1, 0] - translation_offset[1, 0]],
-           [0]]
+    xyz = StateVector([[state_vector[0, 0] - translation_offset[0, 0]],
+                      [state_vector[1, 0] - translation_offset[1, 0]],
+                      [0]])
 
     # Get rotation matrix
     theta_x, theta_y, theta_z = - rotation_offset[:, 0]
@@ -304,9 +304,9 @@ def test_angle_pdf():
 
 def h2d_rr(state_vector, pos_map, vel_map, translation_offset, rotation_offset, velocity):
 
-    xyz = np.array([[state_vector[pos_map[0], 0] - translation_offset[0, 0]],
-                    [state_vector[pos_map[1], 0] - translation_offset[1, 0]],
-                    [0]])
+    xyz = StateVector([[state_vector[pos_map[0], 0] - translation_offset[0, 0]],
+                      [state_vector[pos_map[1], 0] - translation_offset[1, 0]],
+                      [0]])
 
     # Get rotation matrix
     theta_x, theta_y, theta_z = - rotation_offset[:, 0]

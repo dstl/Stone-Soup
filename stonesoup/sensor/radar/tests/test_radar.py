@@ -18,9 +18,9 @@ from ....models.measurement.linear import LinearGaussian
 
 def h2d(state, pos_map, translation_offset, rotation_offset):
 
-    xyz = [[state.state_vector[pos_map[0], 0] - translation_offset[0, 0]],
-           [state.state_vector[pos_map[1], 0] - translation_offset[1, 0]],
-           [0]]
+    xyz = StateVector([[state.state_vector[pos_map[0], 0] - translation_offset[0, 0]],
+                      [state.state_vector[pos_map[1], 0] - translation_offset[1, 0]],
+                      [0]])
 
     # Get rotation matrix
     theta_z = -rotation_offset[2, 0]
@@ -108,9 +108,9 @@ def test_simple_radar(h, sensorclass, ndim_state, pos_mapping, noise_covar, posi
 
 def h2d_rr(state, pos_map, vel_map, translation_offset, rotation_offset, velocity):
 
-    xyz = np.array([[state.state_vector[pos_map[0], 0] - translation_offset[0, 0]],
-                    [state.state_vector[pos_map[1], 0] - translation_offset[1, 0]],
-                    [0]])
+    xyz = StateVector([[state.state_vector[pos_map[0], 0] - translation_offset[0, 0]],
+                      [state.state_vector[pos_map[1], 0] - translation_offset[1, 0]],
+                      [0]])
 
     # Get rotation matrix
     theta_z = - rotation_offset[2, 0]
