@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from functools import lru_cache, partial
+from functools import partial
 
-from ..base import Property
 from .base import Predictor
+from ._utils import predict_lru_cache
+from ..base import Property
 from ..types.prediction import GaussianStatePrediction
 from ..models.base import LinearModel
 from ..models.transition import TransitionModel
@@ -133,7 +134,7 @@ class KalmanPredictor(Predictor):
 
         return predict_over_interval
 
-    @lru_cache()
+    @predict_lru_cache()
     def predict(self, prior, timestamp=None, **kwargs):
         r"""The predict function
 
@@ -324,7 +325,7 @@ class UnscentedKalmanPredictor(KalmanPredictor):
         return (self.transition_model.function(prior_state, **kwargs)
                 + self.control_model.control_input())
 
-    @lru_cache()
+    @predict_lru_cache()
     def predict(self, prior, timestamp=None, **kwargs):
         r"""The unscented version of the predict step
 

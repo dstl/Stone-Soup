@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-from functools import lru_cache
-
 from .base import Predictor
+from ._utils import predict_lru_cache
 from ..types.particle import Particle
 from ..types.prediction import ParticleStatePrediction
 
@@ -12,7 +11,7 @@ class ParticlePredictor(Predictor):
     An implementation of a Particle Filter predictor.
     """
 
-    @lru_cache()
+    @predict_lru_cache()
     def predict(self, prior, control_input=None, timestamp=None, **kwargs):
         """Particle Filter prediction step
 

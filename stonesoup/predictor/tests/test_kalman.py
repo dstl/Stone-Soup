@@ -8,6 +8,7 @@ from ...predictor.kalman import (
     KalmanPredictor, ExtendedKalmanPredictor, UnscentedKalmanPredictor)
 from ...types.prediction import GaussianStatePrediction
 from ...types.state import GaussianState
+from ...types.track import Track
 
 
 @pytest.mark.parametrize(
@@ -72,3 +73,22 @@ def test_kalman(PredictorClass, transition_model,
     assert(prediction.timestamp == new_timestamp)
 
     # TODO: Test with Control Model
+
+
+def test_lru_cache():
+    predictor = KalmanPredictor(ConstantVelocity(noise_diff_coeff=0))
+
+    timestamp = datetime.datetime.now()
+    state = GaussianState([[0.], [1.]], np.diag([1., 1.]), timestamp)
+    track = Track([state])
+
+    prediction_time = timestamp + datetime.timedelta(seconds=1)
+    prediction1 = predictor.predict(track, prediction_time)
+    assert np.array_equal(prediction1.state_vector, np.array([[1.], [1.]]))
+
+    prediction2 = predictor.predict(track, prediction_time)
+    assert prediction2 is prediction1
+
+    track.append(GaussianState([[1.], [1.]], np.diag([1., 1.]), prediction_time))
+    prediction3 = predictor.predict(track, prediction_time)
+    assert prediction3 is not prediction1
