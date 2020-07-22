@@ -16,5 +16,5 @@ class Wrapper(Base):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if(self.dir_path is None):
+        if self.dir_path is None:
             self.dir_path = stonesoup.__file__.strip('__init__.py')
