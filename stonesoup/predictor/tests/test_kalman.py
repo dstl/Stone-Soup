@@ -66,11 +66,11 @@ def test_kalman(PredictorClass, transition_model,
     prediction = predictor.predict(prior=prior,
                                    timestamp=new_timestamp)
 
-    assert(np.allclose(prediction.mean,
-                       eval_prediction.mean, 0, atol=1.e-14))
-    assert(np.allclose(prediction.covar,
-                       eval_prediction.covar, 0, atol=1.e-14))
-    assert(prediction.timestamp == new_timestamp)
+    assert np.allclose(prediction.mean,
+                       eval_prediction.mean, 0, atol=1.e-14)
+    assert np.allclose(prediction.covar,
+                       eval_prediction.covar, 0, atol=1.e-14)
+    assert prediction.timestamp == new_timestamp
 
     # TODO: Test with Control Model
 
@@ -105,9 +105,9 @@ def test_sqrt_kalman():
     sqrt_prediction = sqrt_predictor.predict(prior=sqrt_prior,
                                              timestamp=new_timestamp)
 
-    assert(np.allclose(prediction.mean, sqrt_prediction.mean, 0, atol=1.e-14))
-    assert(np.allclose(prediction.covar,
+    assert np.allclose(prediction.mean, sqrt_prediction.mean, 0, atol=1.e-14)
+    assert np.allclose(prediction.covar,
                        sqrt_prediction.sqrt_covar@sqrt_prediction.sqrt_covar.T, 0,
-                       atol=1.e-14))
-    assert(np.allclose(prediction.covar, sqrt_prediction.covar, 0, atol=1.e-14))
-    assert(prediction.timestamp == sqrt_prediction.timestamp)
+                       atol=1.e-14)
+    assert np.allclose(prediction.covar, sqrt_prediction.covar, 0, atol=1.e-14)
+    assert prediction.timestamp == sqrt_prediction.timestamp

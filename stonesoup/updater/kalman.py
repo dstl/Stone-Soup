@@ -426,7 +426,8 @@ class SqrtKalmanUpdater(KalmanUpdater):
 
     References
     ----------
-    1. (to be added)
+    1. Schmidt, S.F. 1970, Computational techniques in Kalman filtering, NATO advisory group for
+       aerospace research and development, London 1970
     2. Andrews, A. 1968, A square root formulation of the Kalman covariance equations, AIAA
        Journal, 6:6, 1165-1166
 
@@ -535,13 +536,13 @@ class SqrtKalmanUpdater(KalmanUpdater):
             # Set up and execute the QR decomposition
             measdim = measurement_model.ndim_meas
             zeros = np.zeros((measurement_model.ndim_state, measdim))
-            biga = np.block([[sqrt_noise_cov, bigh @ sqrt_prior_cov], [zeros, sqrt_prior_cov]])
-            [_, upper] = np.linalg.qr(biga.T)
+            biga = np.block([[sqrt_noise_cov, bigh@sqrt_prior_cov], [zeros, sqrt_prior_cov]])
+            _, upper = np.linalg.qr(biga.T)
 
             # Extract meaningful quantities
             atheta = upper.T
             sqrt_innov_cov = atheta[:measdim, :measdim]
-            kalman_gain = atheta[measdim:, :measdim] @ (np.linalg.inv(sqrt_innov_cov))
+            kalman_gain = atheta[measdim:, :measdim]@(np.linalg.inv(sqrt_innov_cov))
             post_cov = atheta[measdim:, measdim:]
         else:
             # Kalman gain

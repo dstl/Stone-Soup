@@ -175,6 +175,7 @@ class SqrtGaussianState(State):
 
         """
         return self.sqrt_covar @ self.sqrt_covar.T
+GaussianState.register(SqrtGaussianState)  # noqa: E305
 
 
 class WeightedGaussianState(GaussianState):

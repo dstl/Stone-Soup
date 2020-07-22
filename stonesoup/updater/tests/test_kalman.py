@@ -151,20 +151,20 @@ def test_sqrt_kalman():
     posterior_q = qr_updater.update(SingleHypothesis(prediction=sqrt_prediction,
                                                      measurement=measurement))
 
-    assert (np.allclose(posterior_s.mean, eval_posterior.mean, 0, atol=1.e-14))
-    assert (np.allclose(posterior_q.mean, eval_posterior.mean, 0, atol=1.e-14))
-    assert (np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-14))
-    assert (np.allclose(eval_posterior.covar,
-                        posterior_s.sqrt_covar @ posterior_s.sqrt_covar.T, 0,
-                        atol=1.e-14))
-    assert (np.allclose(posterior.covar,
-                        posterior_s.sqrt_covar @ posterior_s.sqrt_covar.T, 0,
-                        atol=1.e-14))
-    assert (np.allclose(posterior.covar,
-                        posterior_q.sqrt_covar @ posterior_q.sqrt_covar.T, 0,
-                        atol=1.e-14))
+    assert np.allclose(posterior_s.mean, eval_posterior.mean, 0, atol=1.e-14)
+    assert np.allclose(posterior_q.mean, eval_posterior.mean, 0, atol=1.e-14)
+    assert np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-14)
+    assert np.allclose(eval_posterior.covar,
+                       posterior_s.sqrt_covar@posterior_s.sqrt_covar.T, 0,
+                       atol=1.e-14)
+    assert np.allclose(posterior.covar,
+                       posterior_s.sqrt_covar@posterior_s.sqrt_covar.T, 0,
+                       atol=1.e-14)
+    assert np.allclose(posterior.covar,
+                       posterior_q.sqrt_covar@posterior_q.sqrt_covar.T, 0,
+                       atol=1.e-14)
     # I'm not sure this is going to be true in all cases. Keep in order to find edge cases
-    assert (np.allclose(posterior_s.covar, posterior_q.covar, 0, atol=1.e-14))
+    assert np.allclose(posterior_s.covar, posterior_q.covar, 0, atol=1.e-14)
 
     # Next create a prediction with a covariance that will cause problems
     prediction = GaussianStatePrediction(np.array([[-6.45], [0.7]]),
@@ -190,8 +190,8 @@ def test_sqrt_kalman():
     # It's actually [0.039999999999 1e-48], [1e-24 1e24 + 1e-48]] ish
 
     # Test that the square root form succeeds where the standard form fails
-    assert (not np.allclose(posterior.covar, eval_posterior.covar, rtol=5.e-3))
-    assert (np.allclose(posterior_s.sqrt_covar@posterior_s.sqrt_covar.T,
-                        eval_posterior.covar, rtol=5.e-3))
-    assert (np.allclose(posterior_q.sqrt_covar@posterior_s.sqrt_covar.T,
-                        eval_posterior.covar, rtol=5.e-3))
+    assert not np.allclose(posterior.covar, eval_posterior.covar, rtol=5.e-3)
+    assert np.allclose(posterior_s.sqrt_covar@posterior_s.sqrt_covar.T,
+                       eval_posterior.covar, rtol=5.e-3)
+    assert np.allclose(posterior_q.sqrt_covar@posterior_s.sqrt_covar.T,
+                       eval_posterior.covar, rtol=5.e-3)

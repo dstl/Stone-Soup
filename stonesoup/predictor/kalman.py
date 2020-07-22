@@ -462,9 +462,9 @@ class SqrtKalmanPredictor(KalmanPredictor):
             # Note that the control matrix aspect of this hasn't been tested
             m_sq_trans_cov = np.block([[trans_m @ sqrt_prior_cov, sqrt_trans_cov,
                                         ctrl_mat@sqrt_ctrl_noi]])
-            [_, pred_sqrt_cov] = np.linalg.qr(m_sq_trans_cov.T)
+            _, pred_sqrt_cov = np.linalg.qr(m_sq_trans_cov.T)
             return pred_sqrt_cov.T
         else:
-            return np.linalg.cholesky(trans_m @ sqrt_prior_cov @ sqrt_prior_cov.T @ trans_m.T +
-                                      sqrt_trans_cov @ sqrt_trans_cov.T +
-                                      ctrl_mat @ sqrt_ctrl_noi @ sqrt_ctrl_noi.T @ ctrl_mat.T)
+            return np.linalg.cholesky(trans_m@sqrt_prior_cov@sqrt_prior_cov.T@trans_m.T +
+                                      sqrt_trans_cov@sqrt_trans_cov.T +
+                                      ctrl_mat@sqrt_ctrl_noi@sqrt_ctrl_noi.T@ctrl_mat.T)

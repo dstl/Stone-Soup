@@ -83,8 +83,8 @@ class GaussianMeasurementPrediction(MeasurementPrediction, GaussianState):
                  cross_covar=None, *args, **kwargs):
         if(cross_covar is not None
            and cross_covar.shape[1] != state_vector.shape[0]):
-            raise ValueError("cross_covar should have the same number of \
-                             columns as the number of rows in state_vector")
+            raise ValueError("cross_covar should have the same number of "
+                             "columns as the number of rows in state_vector")
         super().__init__(state_vector, covar, timestamp,
                          cross_covar, *args, **kwargs)
 
