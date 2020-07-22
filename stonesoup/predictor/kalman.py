@@ -26,17 +26,14 @@ class KalmanPredictor(Predictor):
       f_k( \mathbf{x}_{k-1}) = F_k \mathbf{x}_{k-1},  \ b_k( \mathbf{u}_k) =
       B_k \mathbf{u}_k \ \mathrm{and} \ \mathbf{\nu}_k \sim \mathcal{N}(0,Q_k)
 
-
     Notes
     -----
     In the Kalman filter, transition and control models must be linear.
-
 
     Raises
     ------
     ValueError
         If no :class:`~.TransitionModel` is specified.
-
 
     """
 
@@ -48,6 +45,8 @@ class KalmanPredictor(Predictor):
         default=None,
         doc="The control model to be used. Default `None` where the predictor "
             "will create a zero-effect linear :class:`~.ControlModel`.")
+
+    # This attribute tells the :meth:`predict()` method what type of prediction to return
     _prediction_class = GaussianStatePrediction
 
     def __init__(self, *args, **kwargs):
@@ -403,13 +402,13 @@ class SqrtKalmanPredictor(KalmanPredictor):
     the Gaussian state, :class:`~.SqrtGaussianState`.
 
     The prediction is undertaken in one of two ways. The default is to work in exactly the same
-    way as the parent class, with the exception exception that the predicted covariance is
+    way as the parent class, with the exception that the predicted covariance is
     subject to a Cholesky factorisation prior to initialisation of the :class:`~.SqrtGaussianState`
     output. The alternative, accessible via the :attr:`qr_method = True` flag, is to predict via a
     modified Gram-Schmidt process. See [1] for details.
 
     If transition and control models are possessed of the square root form of the covariance (as
-    :attr:`sqrt_covar` in the case of the transition model and :attr:`sqrt_control_noi` for
+    :attr:`sqrt_covar` in the case of the transition model and :attr:`sqrt_control_noise` for
     control models), then these are used directly. If not then they are created from the full
     matrices using the scipy.linalg :meth:`sqrtm()` method. (Unlike the Cholesky decomposition
     this works on positive semi-definite matrices, as well as positive definite ones.
@@ -424,6 +423,7 @@ class SqrtKalmanPredictor(KalmanPredictor):
                                                   "decomposition, rather than using a Cholesky"
                                                   "decomposition.")
 
+    # This predictor returns a square root form of the Gaussian state prediction
     _prediction_class = SqrtGaussianStatePrediction
 
     def _predicted_covariance(self, prior, predict_over_interval, **kwargs):

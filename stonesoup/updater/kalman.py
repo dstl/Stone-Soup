@@ -71,6 +71,7 @@ class KalmanUpdater(Updater):
                                  "combination of the matrix and transpose."
                                  "Default is False.")
 
+    # This attribute tells the :meth:`update()` method what class to return
     _update_class = GaussianStateUpdate
 
     def _check_measurement_model(self, measurement_model):
@@ -436,6 +437,7 @@ class SqrtKalmanUpdater(KalmanUpdater):
                                                   "decomposition, rather than using the (vector"
                                                   "form of) the Potter method.")
 
+    # In this instance the square root form is returned by the :meth:`update()`
     _update_class = SqrtGaussianStateUpdate
 
     def _measurement_cross_covariance(self, predicted_state, measurement_matrix):
