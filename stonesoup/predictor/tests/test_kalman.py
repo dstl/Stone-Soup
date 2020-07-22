@@ -9,7 +9,6 @@ from ...predictor.kalman import (
     SqrtKalmanPredictor)
 from ...types.prediction import GaussianStatePrediction
 from ...types.state import GaussianState, SqrtGaussianState
-from ...types.state import GaussianState
 from ...types.track import Track
 
 

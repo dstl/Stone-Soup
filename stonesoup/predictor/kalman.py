@@ -2,13 +2,11 @@
 
 import numpy as np
 import scipy.linalg as la
-from functools import lru_cache, partial
+from functools import partial
 
-from ..base import Property
 from .base import Predictor
 from ._utils import predict_lru_cache
 from ..base import Property
-from ..types.prediction import GaussianStatePrediction
 from ..types.prediction import GaussianStatePrediction, SqrtGaussianStatePrediction
 from ..models.base import LinearModel
 from ..models.transition import TransitionModel
