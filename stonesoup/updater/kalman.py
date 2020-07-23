@@ -483,9 +483,9 @@ class SqrtKalmanUpdater(KalmanUpdater):
 
         """
         # If the measurement covariance matrix is square root then square it
-        if hasattr(meas_mod, 'sqrt_covar'):
+        try:
             meas_cov = meas_mod.sqrt_covar @ meas_mod.sqrt_covar.T
-        else:
+        except AttributeError:
             meas_cov = meas_mod.covar()
 
         return m_cross_cov.T @ m_cross_cov + meas_cov
@@ -525,9 +525,9 @@ class SqrtKalmanUpdater(KalmanUpdater):
             self._check_measurement_model(hypothesis.measurement.measurement_model)
         # Square root of the noise covariance, account for the fact that it may be supplied in one
         # of two ways
-        if hasattr(measurement_model, 'sqrt_covar'):
+        try:
             sqrt_noise_cov = measurement_model.sqrt_covar
-        else:
+        except AttributeError:
             sqrt_noise_cov = la.sqrtm(measurement_model.covar())
 
         if self.qr_method:

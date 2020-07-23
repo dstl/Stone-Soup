@@ -456,9 +456,9 @@ class SqrtKalmanPredictor(KalmanPredictor):
         # As this is Kalman-like, the control model must be capable of returning a control matrix
         # (B)
         ctrl_mat = self._control_matrix
-        if hasattr(self.control_model, 'sqrt_control_noise'):
+        try:
             sqrt_ctrl_noi = self.control_model.sqrt_control_noise
-        else:
+        except AttributeError:
             sqrt_ctrl_noi = la.sqrtm(self.control_model.control_noise)
 
         if self.qr_method:
