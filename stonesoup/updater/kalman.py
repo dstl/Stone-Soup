@@ -12,6 +12,7 @@ from ..models.base import LinearModel
 from ..models.measurement.linear import LinearGaussian
 from ..models.measurement import MeasurementModel
 from ..functions import gauss2sigma, unscented_transform
+from ..measures import Euclidean
 
 
 class KalmanUpdater(Updater):
@@ -562,3 +563,31 @@ class SqrtKalmanUpdater(KalmanUpdater):
                  hypothesis.measurement_prediction.cross_covar.T)
 
         return post_cov, kalman_gain
+
+
+class IteratedKalmanUpdater(KalmanUpdater):
+    r"""This version of the Kalman updater runs an iteration over the linearisation of the
+    sensor function in order to refine the posterior state estimate. Specifically,
+
+    .. math::
+
+        x_{k,i+1} &= x_{k|k-1} + K_i(z - h(x_{k,i}) - H_i (x_{k|k-1} - x_{k,i}))
+
+        P_{k,i+1} &= (I - K_i H_i) P_{k|k-1}
+
+    where,
+
+    .. math::
+
+        H_i &= h^{\prime}(x_{k,i}), \ K_i = P_{k|k-1} H_i^T (H_i P_{k|k-1} H_i^T + R)^{-1}
+
+    and
+
+    .. math::
+
+        x_{k,0} = x_{k|k-1} \ \mathrm{and} \ P_{k,0} = P_{k|k-1}
+
+    """
+
+    tolerance = Property(float, default=1e-8, doc="The stopping criterion. Include as a measure? ")
+
