@@ -446,10 +446,10 @@ class SqrtKalmanPredictor(KalmanPredictor):
 
         trans_m = self._transition_matrix(prior=prior, time_interval=predict_over_interval,
                                           **kwargs)
-        if hasattr(self.transition_model, 'sqrt_covar'):
+        try:
             sqrt_trans_cov = self.transition_model.sqrt_covar(time_interval=predict_over_interval,
                                                               **kwargs)
-        else:
+        except AttributeError:
             sqrt_trans_cov = la.sqrtm(self.transition_model.covar(
                 time_interval=predict_over_interval, **kwargs))
 
