@@ -1,8 +1,12 @@
 from collections.abc import Sized, Iterable, Container
 
-from .base import Type
+import numpy as np
+
 from ..base import Property
-from .state import TaggedWeightedGaussianState, WeightedGaussianState
+from ..functions import gm_reduce_single
+from .base import Type
+from .array import StateVectors
+from .state import TaggedWeightedGaussianState, WeightedGaussianState, GaussianState
 
 
 class GaussianMixture(Type, Sized, Iterable, Container):
@@ -67,3 +71,39 @@ class GaussianMixture(Type, Sized, Iterable, Container):
             raise ValueError("All components must be "
                              "TaggedWeightedGaussianState!")
         return component_tags
+
+    @property
+    def state_vectors(self):
+        if np.any(self.components):
+            return StateVectors([component.state_vector for component in self.components])
+        else:
+            return None
+
+    @property
+    def covars(self):
+        if np.any(self.components):
+            return np.stack([component.covar for component in self.components], axis=2)
+        else:
+            return None
+
+    @property
+    def weights(self):
+        if np.any(self.components):
+            return np.array([component.weight for component in self.components])
+        else:
+            return None
+
+    def reduce(self):
+        if np.any(self.components):
+            state_vectors = []
+            covars = []
+            weights = []
+            for component in self.components:
+                state_vectors.append(component.state_vector)
+                covars.append(component.covar)
+                weights.append(component.weight)
+            mean, covar = gm_reduce_single(
+                StateVectors(state_vectors), np.stack(covars, axis=2), np.array(weights))
+            return GaussianState(mean, covar)
+        else:
+            return None
