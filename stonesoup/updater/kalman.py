@@ -11,7 +11,7 @@ from ..models.base import LinearModel
 from ..models.measurement.linear import LinearGaussian
 from ..models.measurement import MeasurementModel
 from ..functions import gauss2sigma, unscented_transform
-from ..measures import Euclidean
+from ..measures import Measure, Euclidean
 
 
 class KalmanUpdater(Updater):
@@ -367,4 +367,23 @@ class IteratedKalmanUpdater(KalmanUpdater):
     """
 
     tolerance = Property(float, default=1e-8, doc="The stopping criterion. Include as a measure? ")
+    measure = Property(Measure, default=Euclidean, doc="")
+
+    def update(self, hypothesis, force_symmetric_covariance=False, **kwargs):
+
+        predicted_state = hypothesis.prediction
+
+        measurement_model = hypothesis.measurement.measurement_model
+        measurement_model = self._check_measurement_model(measurement_model)
+        meas_mat = measurement_model.matrix()  # jacobian - must know where this is
+        inv_innov_cov = np.linalg.inv(self._innov_cov)
+
+        Ki = predicted_state.covar @ meas_mat.T @ inv_innov_cov
+
+        while self.measure.distance(hypothesis.measurement_prediction, hypothesis.measurement) > self.tolerance:
+            xi = predicted_state.state_vector + \
+                 Ki @ (hypothesis.measurement.state_vector - hypothesis.measurement_prediction.state_vector -
+                       meas_mat @ ())
+
+        return super().update(hypothesis, force_symmetric_covariance=False, **kwargs)
 
