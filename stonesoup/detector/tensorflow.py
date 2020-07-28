@@ -156,7 +156,7 @@ class TensorFlowBoxObjectDetector(Detector):
         # We're only interested in the first num_detections.
         num_detections = int(output_dict.pop('num_detections'))
         output_dict = {key: value[0, :num_detections].numpy()
-                           for key, value in output_dict.items()}
+                       for key, value in output_dict.items()}
         output_dict['num_detections'] = num_detections
 
         # detection_classes should be ints.
