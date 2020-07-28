@@ -18,6 +18,7 @@ from pathlib import Path
 from .base import Detector
 from ..base import Property
 from ..buffered_generator import BufferedGenerator
+from ..types.array import StateVector
 from ..types.detection import Detection
 
 
@@ -157,18 +158,15 @@ class TensorFlowBoxObjectDetector(Detector):
         num_detections = int(output_dict.pop('num_detections'))
         output_dict = {key: value[0, :num_detections].numpy()
                        for key, value in output_dict.items()}
-        output_dict['num_detections'] = num_detections
 
-        # detection_classes should be ints.
-        output_dict['detection_classes'] = output_dict['detection_classes'].astype(np.int64)
-
-        classes = output_dict['detection_classes']
+        # Extract classes, boxes and scores
+        classes = output_dict['detection_classes'].astype(np.int64)  # classes should be ints.
         boxes = output_dict['detection_boxes']
         scores = output_dict['detection_scores']
 
-        # Empty detection set
-        frame_height, frame_width, _ = frame.pixels.shape
+        # Form detections
         detections = set()
+        frame_height, frame_width, _ = frame.pixels.shape
         for box, class_, score in zip(boxes, classes, scores):
             metadata = {
                 "raw_box": box,
@@ -176,12 +174,11 @@ class TensorFlowBoxObjectDetector(Detector):
                 "score": score
             }
             # Transform box to be in format (x, y, w, h)
-            box_xy = np.array([[box[1]*frame_width],
-                               [box[0]*frame_height],
-                               [(box[3] - box[1])*frame_width],
-                               [(box[2] - box[0])*frame_height]])
-
-            detection = Detection(state_vector=box_xy,
+            state_vector = StateVector([box[1]*frame_width,
+                                        box[0]*frame_height,
+                                        (box[3] - box[1])*frame_width,
+                                        (box[2] - box[0])*frame_height])
+            detection = Detection(state_vector=state_vector,
                                   timestamp=frame.timestamp,
                                   metadata=metadata)
             detections.add(detection)

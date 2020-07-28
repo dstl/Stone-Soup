@@ -7,8 +7,8 @@ except ImportError:
     # Catch optional dependencies import error
     pytest.skip(
         "Skipping due to missing optional dependencies. Usage of the TensorFlow detectors "
-        "requires that TensorFlow and the research module of the TensorFlow Object Detection API "
-        "are installed. A quick guide on how to set these up can be found here: "
+        "requires that TensorFlow and the TensorFlow Object Detection API are installed. A quick "
+        "guide on how to set these up can be found here: "
         "https://tensorflow-object-detection-api-tutorial.readthedocs.io/en/latest/install.html",
         allow_module_level=True
     )
