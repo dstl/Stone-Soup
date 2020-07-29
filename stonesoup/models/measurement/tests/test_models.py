@@ -615,5 +615,5 @@ def test_rangerate_with_platform():
     np.testing.assert_almost_equal(cart_value, np.zeros((6, 1)), 3)
 
     np.testing.assert_almost_equal(measurement_pol_1.state_vector[3],  # range rate
-                                   -platform_1_prior_state_vector[1],  # only velocity component of platform
-                                   5)  # to 5 decimal places
+                                   -platform_1_prior_state_vector[1],
+                                   4)  # to 4 decimal places

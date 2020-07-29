@@ -958,7 +958,8 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
             inv_rotation_matrix @ out_vector[self.velocity_mapping, :]
 
         out_vector[self.mapping, :] = out_vector[self.mapping, :] + self.translation_offset
-        out_vector[self.velocity_mapping, :] = out_vector[self.velocity_mapping, :] + self.velocity
+        out_vector[self.velocity_mapping, :] = out_vector[self.velocity_mapping, :] + \
+            self.velocity
 
         return out_vector
 
