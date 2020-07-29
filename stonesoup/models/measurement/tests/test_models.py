@@ -562,3 +562,58 @@ def test_inverse_function():
     assert approx(inv_measure_state[3], 0.02) == 17.10
     assert approx(inv_measure_state[4], 0.02) == 1736.48
     assert approx(inv_measure_state[5], 0.02) == 17.36
+
+
+def test_rangerate_with_platform():
+    # Import external dependencies
+    import datetime
+
+    # Import from Stone Soup
+    from stonesoup.types.state import State
+    from stonesoup.types.array import StateVector, CovarianceMatrix
+    from stonesoup.models.transition.linear import (
+        ConstantVelocity,
+        CombinedLinearGaussianTransitionModel
+    )
+    from stonesoup.platform.base import MovingPlatform
+    from stonesoup.sensor.radar.radar import RadarRangeRateBearingElevation
+
+    pos_mapping = np.array([0, 2, 4])
+    vel_mapping = np.array([1, 3, 5])
+    noise_covar = CovarianceMatrix(np.eye(4) * 1e-10)
+
+    accurate_radar = RadarRangeRateBearingElevation(ndim_state=6,
+                                                    position_mapping=pos_mapping,
+                                                    velocity_mapping=vel_mapping,
+                                                    noise_covar=noise_covar)
+
+    timestamp_init = datetime.datetime.now()
+    # Platform 1 is moving towards the origin from the south
+    platform_1_prior_state_vector = StateVector([[-10], [5], [0], [0.], [0], [0]])
+    platform_1_state = State(platform_1_prior_state_vector, timestamp_init)
+
+    mounting_offsets = [StateVector([[0], [0], [0]])]
+    rotation_offsets = [StateVector([[0], [0], [0]])]
+
+    transition_model = CombinedLinearGaussianTransitionModel(
+        (ConstantVelocity(0.), ConstantVelocity(0.), ConstantVelocity(0.)))
+
+    # create a platform with the simple radar mounted
+    platform_1 = MovingPlatform(states=platform_1_state,
+                                position_mapping=pos_mapping,
+                                velocity_mapping=vel_mapping,
+                                transition_model=transition_model,
+                                sensors=[accurate_radar],
+                                mounting_offsets=mounting_offsets,
+                                rotation_offsets=rotation_offsets)
+
+    target_state = State(StateVector([[0], [0], [0], [0], [0], [0]]), timestamp_init)
+
+    measurement_pol_1 = platform_1.sensors[0].measure(target_state)
+    cart_value = measurement_pol_1.measurement_model.inverse_function(measurement_pol_1)
+
+    np.testing.assert_almost_equal(cart_value, np.zeros((6, 1)), 3)
+
+    np.testing.assert_almost_equal(measurement_pol_1.state_vector[3],  # range rate
+                                   -platform_1_prior_state_vector[1],  # only velocity component of platform
+                                   5)  # to 5 decimal places

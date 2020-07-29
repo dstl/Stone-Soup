@@ -943,9 +943,9 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
         x, y, z = sphere2cart(rho, phi, theta)
         # because only rho_rate is known, only the components in
         # x,y and z of the range rate can be found.
-        x_rate = np.cos(phi) * np.cos(theta) * rho_rate
-        y_rate = np.cos(phi) * np.sin(theta) * rho_rate
-        z_rate = np.sin(phi) * rho_rate
+        x_rate = np.cos(theta) * np.cos(phi) * rho_rate
+        y_rate = np.cos(theta) * np.sin(phi) * rho_rate
+        z_rate = np.sin(theta) * rho_rate
 
         inv_rotation_matrix = inv(self._rotation_matrix)
 
@@ -958,6 +958,7 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
             inv_rotation_matrix @ out_vector[self.velocity_mapping, :]
 
         out_vector[self.mapping, :] = out_vector[self.mapping, :] + self.translation_offset
+        out_vector[self.velocity_mapping, :] = out_vector[self.velocity_mapping, :] + self.velocity
 
         return out_vector
 
