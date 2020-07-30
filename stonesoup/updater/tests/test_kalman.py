@@ -12,7 +12,8 @@ from stonesoup.types.state import GaussianState, SqrtGaussianState
 from stonesoup.updater.kalman import (KalmanUpdater,
                                       ExtendedKalmanUpdater,
                                       UnscentedKalmanUpdater,
-                                      SqrtKalmanUpdater)
+                                      SqrtKalmanUpdater,
+                                      IteratedKalmanUpdater)
 
 
 @pytest.mark.parametrize(
@@ -45,8 +46,17 @@ from stonesoup.updater.kalman import (KalmanUpdater,
                                               [0.0013, 0.0365]])),
             Detection(np.array([[-6.23]]))
         ),
+        (   # Iterated Kalman
+            IteratedKalmanUpdater,
+            LinearGaussian(ndim_state=2, mapping=[0],
+                           noise_covar=np.array([[0.04]])),
+            GaussianStatePrediction(np.array([[-6.45], [0.7]]),
+                                    np.array([[4.1123, 0.0013],
+                                              [0.0013, 0.0365]])),
+            Detection(np.array([[-6.23]]))
+        ),
     ],
-    ids=["standard", "extended", "unscented"]
+    ids=["standard", "extended", "unscented", "iterated"]
 )
 def test_kalman(UpdaterClass, measurement_model, prediction, measurement):
 
