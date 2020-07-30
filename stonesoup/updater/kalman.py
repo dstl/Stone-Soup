@@ -171,7 +171,7 @@ class KalmanUpdater(Updater):
         ----------
         hypothesis: :class:`~.Hypothesis`
             A hypothesised association between state prediction and measurement. It returns the
-            measurement prediction which in turn contains tbe measurement cross covariance,
+            measurement prediction which in turn contains the measurement cross covariance,
             :math:`P_{k|k-1} H_k^T and the innovation covariance,
             :math:`S = H_k P_{k|k-1} H_k^T + R`
 
@@ -271,16 +271,13 @@ class KalmanUpdater(Updater):
             hypothesis.measurement_prediction = self.predict_measurement(
                 predicted_state, measurement_model=measurement_model, **kwargs)
 
-        # Get the predicted measurement mean
-        pred_meas = hypothesis.measurement_prediction.state_vector
-
         # Kalman gain and posterior covariance
         posterior_covariance, kalman_gain = self._posterior_covariance(hypothesis)
 
         # Posterior mean
-        posterior_mean = \
-            predicted_state.state_vector \
-            + kalman_gain@(hypothesis.measurement.state_vector - pred_meas)
+        posterior_mean = predicted_state.state_vector + \
+            kalman_gain@(hypothesis.measurement.state_vector -
+                         hypothesis.measurement_prediction.state_vector)
 
         if self.force_symmetric_covariance:
             posterior_covariance = \
@@ -565,7 +562,7 @@ class SqrtKalmanUpdater(KalmanUpdater):
         return post_cov, kalman_gain
 
 
-class IteratedKalmanUpdater(KalmanUpdater):
+class IteratedKalmanUpdater(ExtendedKalmanUpdater):
     r"""This version of the Kalman updater runs an iteration over the linearisation of the
     sensor function in order to refine the posterior state estimate. Specifically,
 
@@ -585,28 +582,58 @@ class IteratedKalmanUpdater(KalmanUpdater):
 
     .. math::
 
-        x_{k,0} = x_{k|k-1} \ \mathrm{and} \ P_{k,0} = P_{k|k-1}
+        x_{k,0} &= x_{k|k-1} \ \mathrm{and} \ P_{k,0} = P_{k|k-1}
 
+    It inherits from the ExtendedKalmanUpdater as it uses the same linearisation of the sensor
+    function via the :meth:`_measurement_matrix()` function.
     """
 
-    tolerance = Property(float, default=1e-8, doc="The stopping criterion. Include as a measure? ")
-    measure = Property(Measure, default=Euclidean, doc="")
+    tolerance = Property(float, default=1e-6,
+                         doc="The value of the difference in the measure used as a stopping "
+                             "criterion.")
+    measure = Property(Measure, default=Euclidean(), doc="")
 
-    def update(self, hypothesis, force_symmetric_covariance=False, **kwargs):
+    def update(self, hypothesis, **kwargs):
+        r"""The iterated Kalman update method. Given a hypothesised association between a predicted
+        state or predicted measurement and an actual measurement,
+        calculate the posterior state.
 
-        predicted_state = hypothesis.prediction
+        Parameters
+        ----------
+        hypothesis : :class:`~.SingleHypothesis`
+            the prediction-measurement association hypothesis. This hypothesis
+            may carry a predicted measurement, or a predicted state. In the
+            latter case a predicted measurement will be calculated.
+        **kwargs : various
+            These are passed to the measurement model function
 
-        measurement_model = hypothesis.measurement.measurement_model
-        measurement_model = self._check_measurement_model(measurement_model)
-        meas_mat = measurement_model.matrix()  # jacobian - must know where this is
-        inv_innov_cov = np.linalg.inv(self._innov_cov)
+        Returns
+        -------
+        : :class:`~.GaussianStateUpdate`
+            The posterior state Gaussian with mean :math:`\mathbf{x}_{k|k}` and
+            covariance :math:`P_{x|x}`
 
-        Ki = predicted_state.covar @ meas_mat.T @ inv_innov_cov
+        """
 
-        while self.measure.distance(hypothesis.measurement_prediction, hypothesis.measurement) > self.tolerance:
-            xi = predicted_state.state_vector + \
-                 Ki @ (hypothesis.measurement.state_vector - hypothesis.measurement_prediction.state_vector -
-                       meas_mat @ ())
+        # Record the starting point
+        prev_state = hypothesis.prediction
 
-        return super().update(hypothesis, force_symmetric_covariance=False, **kwargs)
+        # Get the measurement model
+        measurement_model = self._check_measurement_model(hypothesis.measurement.measurement_model)
 
+        # The first iteration is just the application of the EKF
+        post_state = super().update(hypothesis, **kwargs)
+
+        # Now update the measurement prediction mean and loop
+        while self.measure(prev_state, post_state) > self.tolerance:
+
+            hh = self._measurement_matrix(post_state, measurement_model=measurement_model)
+
+            post_state.hypothesis.measurement_prediction.state_vector = \
+                measurement_model.function(post_state, noise=None) + \
+                hh@(hypothesis.prediction.state_vector - post_state.state_vector)
+
+            prev_state = post_state  # Does this require a copy?
+            post_state = super().update(post_state.hypothesis, **kwargs)
+
+        return post_state
