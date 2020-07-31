@@ -627,11 +627,19 @@ class IteratedKalmanUpdater(ExtendedKalmanUpdater):
         # Now update the measurement prediction mean and loop
         while self.measure(prev_state, post_state) > self.tolerance:
 
+            # These lines effectively bypass the predict_measurement function in update()
+            # by attaching new linearised quantities to the measurement_prediction. Those
+            # would otherwise be calculated (from the original prediction) by the update() method.
             hh = self._measurement_matrix(post_state, measurement_model=measurement_model)
 
             post_state.hypothesis.measurement_prediction.state_vector = \
                 measurement_model.function(post_state, noise=None) + \
                 hh@(hypothesis.prediction.state_vector - post_state.state_vector)
+
+            cross_cov = self._measurement_cross_covariance(hypothesis.prediction, hh)
+            post_state.hypothesis.measurement_prediction.cross_covar = cross_cov
+            post_state.hypothesis.measurement_prediction.covar = \
+                self._innovation_covariance(cross_cov, hh, measurement_model)
 
             prev_state = post_state  # Does this require a copy?
             post_state = super().update(post_state.hypothesis, **kwargs)
