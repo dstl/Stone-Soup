@@ -70,10 +70,23 @@ class SimpleMeasurementInitiator(GaussianInitiator):
 
     This then replaces mapped values in the :attr:`prior_state` to form the
     initial :class:`~.GaussianState` of the :class:`~.Track`.
+
+    The diagonal loading value is used to try to ensure that the estimated
+    covariance matrix is positive definite, especially for subsequent Cholesky
+    decompositions.
     """
     prior_state = Property(GaussianState, doc="Prior state information")
     measurement_model = Property(MeasurementModel, doc="Measurement model")
     skip_non_reversible = Property(bool, default=False)
+    diag_load = Property(float,
+                         default=0.0,
+                         doc="Positive float value for diagonal loading")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.diag_load < 0:
+            raise ValueError(
+                "diag_load value can't be less than 0.0")
 
     def initiate(self, detections, **kwargs):
         tracks = set()
@@ -110,11 +123,12 @@ class SimpleMeasurementInitiator(GaussianInitiator):
                 model_matrix.T @ np.ones((model_matrix.shape[0], 1)))
             prior_state_vector[mapped_dimensions, :] = 0
             prior_covar[mapped_dimensions, :] = 0
-
+            C0 = inv_model_matrix @ model_covar @ inv_model_matrix.T
+            C0 = C0 + prior_covar + \
+                np.diag(np.array([self.diag_load]*C0.shape[0]))
             tracks.add(Track([GaussianStateUpdate(
                 prior_state_vector + state_vector,
-                prior_covar
-                + inv_model_matrix @ model_covar @ model_matrix.astype(bool),
+                C0,
                 SingleHypothesis(None, detection),
                 timestamp=detection.timestamp)
             ]))

@@ -2,6 +2,7 @@ import datetime
 
 import numpy as np
 import pytest
+from pytest import approx
 
 from ...models.base import LinearModel
 from ...models.measurement.linear import LinearGaussian
@@ -109,7 +110,9 @@ def test_linear_measurement():
 
         assert track.timestamp == timestamp
 
-        assert np.array_equal(track.covar, np.diag([50, 10]))
+        assert np.diag([50, 10]) == approx(track.covar)
+        assert measurement_model.matrix() @ track.covar @ \
+            measurement_model.matrix().T == approx(measurement_model.covar())
 
 
 def test_nonlinear_measurement():
@@ -130,6 +133,9 @@ def test_nonlinear_measurement():
 
     for track in tracks:
         assert track.timestamp == timestamp
+        Ry = measurement_model.jacobian(track.state) @ track.covar @ \
+            measurement_model.jacobian(track.state).T
+        assert Ry == approx(measurement_model.covar())
 
 
 def test_linear_measurement_non_direct():
@@ -173,7 +179,9 @@ def test_linear_measurement_non_direct():
 
         assert track.timestamp == timestamp
 
-        assert np.array_equal(track.covar, np.diag([25, 10]))
+        assert np.diag([12.5, 10]) == approx(track.covar)
+        assert measurement_model.matrix() @ track.covar @ \
+            measurement_model.matrix().T == approx(measurement_model.covar())
 
 
 def test_linear_measurement_extra_state_dim():
@@ -221,7 +229,9 @@ def test_linear_measurement_extra_state_dim():
 
         assert track.timestamp == timestamp
 
-        assert np.array_equal(track.covar, np.diag([10, 10, 50]))
+        assert np.diag([10, 10, 50]) == approx(track.covar)
+        assert measurement_model.matrix() @ track.covar @ \
+            measurement_model.matrix().T == approx(measurement_model.covar())
 
 
 def test_multi_measurement():
