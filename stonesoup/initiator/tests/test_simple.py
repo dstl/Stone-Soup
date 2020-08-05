@@ -142,6 +142,7 @@ def test_linear_measurement_non_direct():
     class _LinearMeasurementModel:
         ndim_state = 2
         ndmim_meas = 2
+        mapping = (0, 1)
 
         @staticmethod
         def matrix():
@@ -188,6 +189,8 @@ def test_linear_measurement_extra_state_dim():
     class _LinearMeasurementModel:
         ndim_state = 3
         ndmim_meas = 2
+
+        mapping = (0, 2)
 
         @staticmethod
         def matrix():
