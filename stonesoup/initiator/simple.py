@@ -119,8 +119,8 @@ class SimpleMeasurementInitiator(GaussianInitiator):
             prior_state_vector = self.prior_state.state_vector.copy()
             prior_covar = self.prior_state.covar.copy()
 
-            mapped_dimensions, _ = np.nonzero(
-                model_matrix.T @ np.ones((model_matrix.shape[0], 1)))
+            mapped_dimensions = measurement_model.mapping
+
             prior_state_vector[mapped_dimensions, :] = 0
             prior_covar[mapped_dimensions, :] = 0
             C0 = inv_model_matrix @ model_covar @ inv_model_matrix.T
