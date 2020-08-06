@@ -15,7 +15,7 @@ class YAMLReader(FileReader, BufferedGenerator):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._yaml = YAML()
+        self._yaml = YAML(typ='safe')
 
     @BufferedGenerator.generator_method
     def data_gen(self):
