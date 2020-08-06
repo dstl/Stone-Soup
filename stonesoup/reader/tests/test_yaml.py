@@ -73,6 +73,7 @@ def test_groundtruth_paths_yaml(tmpdir):
                     - [11]
                     - [12]
                   - timestamp: *id001
+              - id: 1
               :
             ...
             ---
@@ -90,6 +91,7 @@ def test_groundtruth_paths_yaml(tmpdir):
                     - [21]
                     - [22]
                   - timestamp: *id001
+              - id: 1
               :
               ? !stonesoup.types.groundtruth.GroundTruthPath
               - states:
@@ -98,6 +100,7 @@ def test_groundtruth_paths_yaml(tmpdir):
                     - [31]
                     - [32]
                   - timestamp: *id001
+              - id: 2
               :
             ...
             """))
@@ -105,6 +108,7 @@ def test_groundtruth_paths_yaml(tmpdir):
     reader = YAMLGroundTruthReader(filename.strpath)
 
     ptime = None
+    total_paths = set()
     for n, (time, paths) in enumerate(reader):
         assert len(paths) == n
         for path in paths:
@@ -114,7 +118,9 @@ def test_groundtruth_paths_yaml(tmpdir):
             assert path[-1].timestamp == time
             if len(path) > 1:
                 assert path[-2].timestamp == ptime
+        total_paths |= paths
         ptime = time
+    assert len(total_paths) == 2
 
 
 def test_tracks_yaml(tmpdir):
@@ -135,6 +141,7 @@ def test_tracks_yaml(tmpdir):
                     - [11]
                     - [12]
                   - timestamp: *id001
+              - id: 1
               :
             ...
             ---
@@ -152,6 +159,7 @@ def test_tracks_yaml(tmpdir):
                     - [21]
                     - [22]
                   - timestamp: *id001
+              - id: 1
               :
               ? !stonesoup.types.track.Track
               - states:
@@ -160,6 +168,7 @@ def test_tracks_yaml(tmpdir):
                     - [31]
                     - [32]
                   - timestamp: *id001
+              - id: 2
               :
             ...
             """))
@@ -167,6 +176,7 @@ def test_tracks_yaml(tmpdir):
     reader = YAMLTrackReader(filename.strpath)
 
     ptime = None
+    total_tracks = set()
     for n, (time, tracks) in enumerate(reader):
         assert len(tracks) == n
         for track in tracks:
@@ -176,4 +186,6 @@ def test_tracks_yaml(tmpdir):
             assert track.timestamp == time
             if len(track) > 1:
                 assert track[-2].timestamp == ptime
+        total_tracks |= tracks
         ptime = time
+    assert len(total_tracks) == 2
