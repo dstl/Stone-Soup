@@ -2,7 +2,7 @@
 from ..base import Property
 from .base import Type
 from .hypothesis import Hypothesis
-from .state import State, GaussianState, ParticleState
+from .state import State, GaussianState, ParticleState, SqrtGaussianState
 from .mixture import GaussianMixture
 
 
@@ -30,6 +30,15 @@ class GaussianStateUpdate(Update, GaussianState):
 
     This is a simple Gaussian state update object, which, as the name
     suggests, is described by a Gaussian distribution.
+    """
+
+
+class SqrtGaussianStateUpdate(Update, SqrtGaussianState):
+    """ SqrtGaussianStateUpdate type
+
+    This is equivalent to a Gaussian state update object, but with the
+    covariance of the Gaussian distribution stored in matrix square root
+    form.
     """
 
 
