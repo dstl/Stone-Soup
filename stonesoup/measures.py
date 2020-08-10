@@ -182,18 +182,18 @@ class SquaredGaussianHellinger(Measure):
     :math:`Q \sim N(\mu_2,\Sigma_2)` is defined as:
 
     .. math::
-            H^{2}(P, Q) &=& 1 - {\frac{\det(\Sigma_1)^{\frac{1}{4}}\det(\Sigma_2)^{\frac{1}{4}}}
+            H^{2}(P, Q) &= 1 - {\frac{\det(\Sigma_1)^{\frac{1}{4}}\det(\Sigma_2)^{\frac{1}{4}}}
             {\det\left(\frac{\Sigma_1+\Sigma_2}{2}\right)^{\frac{1}{2}}}}
             \exp\left(-\frac{1}{8}(\mu_1-\mu_2)^T
             \left(\frac{\Sigma_1+\Sigma_2}{2}\right)^{-1}(\mu_1-\mu_2)\right)\\
-&\equiv&  1 - \sqrt{\frac{\det(\Sigma_1)^{\frac{1}{2}}\det(\Sigma_2)^{\frac{1}{2}}}
+            &\equiv  1 - \sqrt{\frac{\det(\Sigma_1)^{\frac{1}{2}}\det(\Sigma_2)^{\frac{1}{2}}}
             {\det\left(\frac{\Sigma_1+\Sigma_2}{2}\right)}}
             \exp\left(-\frac{1}{8}(\mu_1-\mu_2)^T
             \left(\frac{\Sigma_1+\Sigma_2}{2}\right)^{-1}(\mu_1-\mu_2)\right)
 
     Note
     ----
-    This distance is bounded between 0 and :math:`\sqrt{2}`?
+    This distance is bounded between 0 and 1
     """
     def __call__(self, state1, state2):
         r""" Calculate the Squared Hellinger distance multivariate normal
@@ -250,7 +250,7 @@ class GaussianHellinger(SquaredGaussianHellinger):
     is defined as:
 
     .. math::
-            \sqrt{1 - {\frac{\det(\Sigma_1)^{\frac{1}{4}}\det(\Sigma_2)^{\frac{1}{4}}}
+            H(P,Q) = \sqrt{1 - {\frac{\det(\Sigma_1)^{\frac{1}{4}}\det(\Sigma_2)^{\frac{1}{4}}}
             {\det\left(\frac{\Sigma_1+\Sigma_2}{2}\right)^{\frac{1}{2}}}}
             \exp\left(-\frac{1}{8}(\mu_1-\mu_2)^T
             \left(\frac{\Sigma_1+\Sigma_2}{2}\right)^{-1}(\mu_1-\mu_2)\right)}
