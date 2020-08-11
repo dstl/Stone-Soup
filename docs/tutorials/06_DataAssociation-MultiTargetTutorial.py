@@ -41,8 +41,8 @@
 # at most once) the remaining detection must then be associated with the orange track, giving a net
 # global score/probability of :math:`0.51`.
 #
-# The :class:`~.GlobalNearestNeighbour` evaluates all possible (distance-based) hypotheses
-# (measurement-prediction pairs), removes those that are invalid, and selects the subset with the
+# The :class:`~.GlobalNearestNeighbour` evaluates all valid (distance-based) hypotheses
+# (measurement-prediction pairs) and selects the subset with the
 # greatest net 'score' (the collection of hypotheses pairs which have a minimum sum of distances
 # overall).
 #

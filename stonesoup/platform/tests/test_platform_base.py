@@ -233,12 +233,12 @@ def test_orientation_dimensionality_error():
     platform = MovingPlatform(states=platform_state, position_mapping=[0, 1, 2, 3],
                               transition_model=None)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(NotImplementedError):
         _ = platform.orientation
 
     platform = MovingPlatform(states=platform_state, position_mapping=[0], transition_model=None)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(NotImplementedError):
         _ = platform.orientation
 
 
@@ -294,16 +294,16 @@ def test_platform_orientation_3d(state, orientation):
     assert np.allclose(platform.orientation, orientation)
 
 
-orientation_tests_2d = [(StateVector([0, 1, 0, 0]), StateVector([0, 0])),
-                        (StateVector([0, 0, 0, 1]), StateVector([0, np.pi/2])),
-                        (StateVector([0, 2, 0, 0]), StateVector([0, 0])),
-                        (StateVector([0, 0, 0, 2]), StateVector([0, np.pi/2])),
-                        (StateVector([0, 1, 0, 1]), StateVector([0, np.pi/4])),
-                        (StateVector([0, -1, 0, 0]), StateVector([0, np.pi])),
-                        (StateVector([0, 0, 0, -1]), StateVector([0, -np.pi/2])),
-                        (StateVector([0, -2, 0, 0]), StateVector([0, np.pi])),
-                        (StateVector([0, 0, 0, -2]), StateVector([0, -np.pi/2])),
-                        (StateVector([0, -1, 0, -1]), StateVector([0, -3*np.pi/4])),
+orientation_tests_2d = [(StateVector([0, 1, 0, 0]), StateVector([0, 0, 0])),
+                        (StateVector([0, 0, 0, 1]), StateVector([0, 0, np.pi/2])),
+                        (StateVector([0, 2, 0, 0]), StateVector([0, 0, 0])),
+                        (StateVector([0, 0, 0, 2]), StateVector([0, 0, np.pi/2])),
+                        (StateVector([0, 1, 0, 1]), StateVector([0, 0, np.pi/4])),
+                        (StateVector([0, -1, 0, 0]), StateVector([0, 0, np.pi])),
+                        (StateVector([0, 0, 0, -1]), StateVector([0, 0, -np.pi/2])),
+                        (StateVector([0, -2, 0, 0]), StateVector([0, 0, np.pi])),
+                        (StateVector([0, 0, 0, -2]), StateVector([0, 0, -np.pi/2])),
+                        (StateVector([0, -1, 0, -1]), StateVector([0, 0, -3*np.pi/4])),
                         ]
 
 
@@ -345,7 +345,7 @@ def test_orientation_error():
                            timestamp)
     platform = MovingPlatform(states=platform_state, transition_model=None,
                               position_mapping=[0, 2, 4])
-    with pytest.raises(AttributeError):
+    with pytest.raises(NotImplementedError):
         _ = platform.orientation
 
     platform_state = State(np.array([[2],
@@ -356,7 +356,7 @@ def test_orientation_error():
     platform = MovingPlatform(states=platform_state,
                               transition_model=None,
                               position_mapping=[0, 2])
-    with pytest.raises(AttributeError):
+    with pytest.raises(NotImplementedError):
         _ = platform.orientation
 
 

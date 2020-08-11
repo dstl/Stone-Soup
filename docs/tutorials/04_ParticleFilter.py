@@ -32,7 +32,7 @@
 #
 # where :math:`w_{k}^i` are weights such that :math:`\sum\limits_{i} w_{k}^i = 1`. This posterior
 # can be calculated, and subsequently maintained, by successive applications of the
-# Chapman-Kolomogorov equation and Bayes rule in an analogous manner to the Kalman family of
+# Chapman-Kolmogorov equation and Bayes rule in an analogous manner to the Kalman family of
 # filters of previous tutorials. There is considerable flexibility in how to sample from these
 # various distributions and the interested reader can refer to [#]_ for more detail.
 #
@@ -52,9 +52,9 @@
 #
 # A common occurrence in such methods is that of *sample impoverishment*. After a few iterations,
 # all but a small number of the particles will have negligible weight. This affects accuracy and
-# wastes computation on particles with little effect on the estimate. Many re-sampling schemes
+# wastes computation on particles with little effect on the estimate. Many resampling schemes
 # exist and are designed to redistribute particles to areas where the posterior probability is
-# higher. In Stone Soup such re-sampling is accomplished by a :class:`~.Resampler`. More detail is
+# higher. In Stone Soup such resampling is accomplished by a :class:`~.Resampler`. More detail is
 # provided in the
 # example below.
 
@@ -147,10 +147,10 @@ fig
 # :class:`~.ParticleUpdater` which take responsibility for the predict and update steps
 # respectively. These require a :class:`~.TransitionModel` and :class:`~.MeasurementModel` as
 # before.
-# To cope with sample sparsity we also include a re-sampler, in this instance
+# To cope with sample sparsity we also include a resampler, in this instance
 # :class:`~.SystematicResampler`, which is passed to the updater. It should be noted that there are
-# many re-sampling schemes, and almost as many choices as to when to undertake re-sampling. The
-# systematic re-sampler is described in [#]_, and in what follows below re-sampling is undertaken
+# many resampling schemes, and almost as many choices as to when to undertake resampling. The
+# systematic resampler is described in [#]_, and in what follows below resampling is undertaken
 # at each time-step.
 from stonesoup.predictor.particle import ParticlePredictor
 predictor = ParticlePredictor(transition_model)
@@ -187,7 +187,7 @@ prior = ParticleState(particles, timestamp=start_time)
 # %%
 # Run the tracker
 # ^^^^^^^^^^^^^^^
-# We now run the predict and update steps, propagating the collection of particles and re-sampling
+# We now run the predict and update steps, propagating the collection of particles and resampling
 # when told to (at every step).
 from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.types.track import Track

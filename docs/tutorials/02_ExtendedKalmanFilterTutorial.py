@@ -124,7 +124,7 @@ ax.plot([state.state_vector[0] for state in truth],
 #
 # where :math:`x_p,y_p` is the 2d Cartesian position of the sensor and :math:`x,y` that of the
 # target. Note also that the arctan function has to resolve the quadrant ambiguity and so is
-# implemented as the :class:`~.numpy.arctan2`:math:`(y/x)` function in Python.
+# implemented as the :class:`~.numpy.arctan2`:math:`(y,x)` function in Python.
 from stonesoup.models.measurement.nonlinear import CartesianToBearingRange
 sensor_x = 50  # Placing the sensor off-centre
 sensor_y = 0
