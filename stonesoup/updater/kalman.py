@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import warnings
 import numpy as np
 import scipy.linalg as la
 from functools import lru_cache
@@ -589,7 +590,14 @@ class IteratedKalmanUpdater(ExtendedKalmanUpdater):
     tolerance = Property(float, default=1e-6,
                          doc="The value of the difference in the measure used as a stopping "
                              "criterion.")
-    measure = Property(Measure, default=Euclidean(), doc="")
+    measure = Property(Measure, default=Euclidean(), doc="The measure to use to test the "
+                                                         "iteration stopping criterion. Defaults "
+                                                         "to the Euclidean distance between "
+                                                         "current and prior posterior state "
+                                                         "estimate.")
+    max_iterations = Property(int, default=10000, doc="Number of iterations before while loop is"
+                                                      "exited and a non-convergence warning is "
+                                                      "returned")
 
     def update(self, hypothesis, **kwargs):
         r"""The iterated Kalman update method. Given a hypothesised association between a predicted
@@ -623,7 +631,12 @@ class IteratedKalmanUpdater(ExtendedKalmanUpdater):
         post_state = super().update(hypothesis, **kwargs)
 
         # Now update the measurement prediction mean and loop
+        iterations = 0
         while self.measure(prev_state, post_state) > self.tolerance:
+
+            if iterations > self.max_iterations:
+                warnings.warn("Iterated Kalman update did not converge")
+                break
 
             # These lines effectively bypass the predict_measurement function in update()
             # by attaching new linearised quantities to the measurement_prediction. Those
@@ -639,7 +652,7 @@ class IteratedKalmanUpdater(ExtendedKalmanUpdater):
             post_state.hypothesis.measurement_prediction.covar = \
                 self._innovation_covariance(cross_cov, hh, measurement_model)
 
-            prev_state = post_state  # Does this require a copy?
+            prev_state = post_state
             post_state = super().update(post_state.hypothesis, **kwargs)
 
         return post_state
