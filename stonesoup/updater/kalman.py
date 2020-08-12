@@ -217,10 +217,8 @@ class KalmanUpdater(Updater):
         # native to the updater
         measurement_model = self._check_measurement_model(measurement_model)
 
-        # Get the predicted measurement
         pred_meas = measurement_model.function(predicted_state, **kwargs)
 
-        # The measurement model matrix
         hh = self._measurement_matrix(predicted_state=predicted_state,
                                       measurement_model=measurement_model,
                                       **kwargs)
