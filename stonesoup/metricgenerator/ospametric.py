@@ -1,4 +1,4 @@
-from itertools import chain
+from itertools import chain, zip_longest
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -51,28 +51,8 @@ class GOSPAMetric(MetricGenerator):
 
         """
 
-        metric = self.process_datasets(manager.tracks,
-                                       manager.groundtruth_paths)
-        return metric
-
-    def process_datasets(self, dataset_1, dataset_2):
-        """Process a dataset of point patterns to provide metric over time
-
-        Parameters
-        ----------
-        dataset_1: object containing :class:`~.state`
-        dataset_2: object containing :class:`~.state`
-
-        Returns
-        -------
-        metrics: :class:`~.Metric`
-            Containing the metric at each timestamp in the form of a list of
-            :class:`~.Metric` objects
-        """
-
-        states_1 = self.extract_states(dataset_1)
-        states_2 = self.extract_states(dataset_2)
-        return self.compute_over_time(states_1, states_2)
+        return self.compute_over_time(
+            self.extract_states(manager.tracks), self.extract_states(manager.groundtruth_paths))
 
     @staticmethod
     def extract_states(object_with_states):
@@ -161,11 +141,12 @@ class GOSPAMetric(MetricGenerator):
 
         Returns
         ---------
-        truth_to_measured: Vector of size 1xm, which has indices of the
-                    measured objects or '-1' if unassigned.
-        measured_to_truth: Vector of size 1xn, which has indices of the
-                            truth objects or '-1' if unassigned.
-        opt_cost: Scalar value of the optimal assignment
+        truth_to_measured: np.ndarray
+            Vector of size m, which has indices of the measured objects or '-1' if unassigned.
+        measured_to_truth: np.ndarray
+            Vector of size n, which has indices of the truth objects or '-1' if unassigned.
+        opt_cost: float
+            Scalar value of the optimal assignment
         """
 
         m_truth, n_measured = cost_matrix.shape
@@ -173,24 +154,24 @@ class GOSPAMetric(MetricGenerator):
         unassigned_idx = -1
 
         opt_cost = 0.0
-        measured_to_truth = -1 * np.ones([1, n_measured], dtype=np.int64)
-        truth_to_measured = -1 * np.ones([1, m_truth], dtype=np.int64)
+        measured_to_truth = np.full((n_measured, ), unassigned_idx)
+        truth_to_measured = np.full((m_truth, ), unassigned_idx)
 
         if m_truth == 1:
             # Corner case 1: if there is only one truth state.
-            opt_cost = np.max(cost_matrix)
-            max_cost_idx = np.where(cost_matrix == opt_cost)[1]
-            truth_to_measured[0, 0] = max_cost_idx[0]
-            measured_to_truth[0, truth_to_measured[0, 0]] = 1
+            max_cost_idx = np.argmax(cost_matrix, axis=1).item()
+            opt_cost = cost_matrix[0, max_cost_idx]
+            truth_to_measured[0] = max_cost_idx
+            measured_to_truth[max_cost_idx] = 0
 
             return truth_to_measured, measured_to_truth, opt_cost
 
         if n_measured == 1:
             # Corner case 1: if there is only one measured state.
-            opt_cost = np.max(cost_matrix)
-            max_cost_idx = np.where(cost_matrix == opt_cost)[1]
-            measured_to_truth[0, 0] = max_cost_idx[0]
-            truth_to_measured[0, measured_to_truth[0, 0]] = 1
+            max_cost_idx = np.argmax(cost_matrix, axis=0).item()
+            opt_cost = cost_matrix[max_cost_idx, 0]
+            measured_to_truth[0] = max_cost_idx
+            truth_to_measured[max_cost_idx] = 0
 
             return truth_to_measured, measured_to_truth, opt_cost
 
@@ -203,87 +184,83 @@ class GOSPAMetric(MetricGenerator):
             # So swap cost matrix
             cost_matrix = cost_matrix.transpose()
             m_truth, n_measured = cost_matrix.shape
-            tmp = measured_to_truth
-            measured_to_truth = truth_to_measured
-            truth_to_measured = tmp
+            measured_to_truth, truth_to_measured = truth_to_measured, measured_to_truth
             swap_dim_flag = True
 
         # Initial cost for each measured state
-        c_measured = np.zeros([1, n_measured])
+        c_measured = np.zeros((n_measured, ))
         k_iter = 0
 
-        while not np.all(truth_to_measured != unassigned_idx):
-            if k_iter > max_iter:
-                # Raise max iterations reached warning.
-                break
+        while not np.all(truth_to_measured != unassigned_idx) and k_iter <= max_iter:
             for i in range(m_truth):
-                if truth_to_measured[0, i] == unassigned_idx:
+                if truth_to_measured[i] == unassigned_idx:
                     # Unassigned truth object 'i' bids for the best
                     # measured object j_star
 
                     # Value for each measured object for truth 'i'
                     tmp_mat = cost_matrix[i, :] - c_measured
-                    val_i_j = np.sort(tmp_mat[0, :])[::-1]
-                    j = np.argsort(tmp_mat[0, :])[::-1]
-
+                    j = np.argsort(tmp_mat)[::-1]
                     # Best measurement for truth 'i'
                     j_star = j[0]
-
                     # 1st and 2nd best value for truth 'i'
-                    v_i_j_star = val_i_j[0]
-                    w_i_j_star = val_i_j[1]
+                    v_i_j_star, w_i_j_star = tmp_mat[j[:2]]
+
                     # Bid for measured j_star
-                    if w_i_j_star != (-1. * np.inf):
-                        c_measured[0, j_star] = c_measured[
-                            0, j_star] + v_i_j_star - w_i_j_star + epsil
+                    if w_i_j_star != -np.inf:
+                        c_measured[j_star] += v_i_j_star - w_i_j_star + epsil
                     else:
-                        c_measured[0, j_star] = c_measured[
-                            0, j_star] + v_i_j_star + epsil
+                        c_measured[j_star] += v_i_j_star + epsil
 
                     # If j_star is unassigned
-                    if measured_to_truth[0, j_star] != unassigned_idx:
+                    if measured_to_truth[j_star] != unassigned_idx:
+                        opt_cost -= cost_matrix[measured_to_truth[j_star], j_star]
+                        truth_to_measured[measured_to_truth[j_star]] = unassigned_idx
 
-                        opt_cost = opt_cost - \
-                            cost_matrix[measured_to_truth[0, j_star], j_star]
-                        truth_to_measured[0, measured_to_truth[
-                            0, j_star]] = unassigned_idx
-
-                    measured_to_truth[0, j_star] = i
-                    truth_to_measured[0, i] = j_star
+                    measured_to_truth[j_star] = i
+                    truth_to_measured[i] = j_star
 
                     # update the cost of new assignment
-                    opt_cost = opt_cost + cost_matrix[i, j_star]
+                    opt_cost += cost_matrix[i, j_star]
             k_iter += 1
 
         if swap_dim_flag:
-            tmp = measured_to_truth
-            measured_to_truth = truth_to_measured
-            truth_to_measured = tmp
+            measured_to_truth, truth_to_measured = truth_to_measured, measured_to_truth
 
         return truth_to_measured, measured_to_truth, opt_cost
 
-    def compute_cost_matrix(self, track_states, truth_states):
-        """
-        Creates the cost matrix between two lists of states
+    def compute_cost_matrix(self, track_states, truth_states, complete=False):
+        """Creates the cost matrix between two lists of states
+
+        This distance measure here will return distances minimum of either
+        :attr:`~.c` or the distance calculated from :attr:`~.Measure`.
 
         Parameters
         ----------
         track_states: list of states
         truth_states: list of states
+        complete: bool
+            Cost matrix will be square, with :attr:`~.c` present for where
+            there is a mismatch in cardinality
 
         Returns
         ----------
-        cost_matrix: Matrix of euclidian distance between each element in each
-        list of states
+        cost_matrix: np.ndarray
+            Matrix of distance between each element in each list of states
         """
 
-        cost_matrix = np.ones([len(track_states), len(truth_states)]) * self.c
+        if complete:
+            m = n = max((len(track_states), len(truth_states)))
+        else:
+            m, n = len(track_states), len(truth_states)
 
-        for i_track, track_state, in enumerate(track_states):
-            for i_truth, truth_state in enumerate(truth_states):
+        cost_matrix = np.full((m, n), self.c, dtype=np.float_)  # c could be int, so force to float
+
+        for i_track, track_state, in zip_longest(range(m), track_states):
+            for i_truth, truth_state in zip_longest(range(n), truth_states):
+                if None in (track_state, truth_state):
+                    continue
 
                 distance = self.measure(track_state, truth_state)
-
                 if distance < self.c:
                     cost_matrix[i_track, i_truth] = distance
 
@@ -326,66 +303,54 @@ class GOSPAMetric(MetricGenerator):
 
         opt_cost = 0.0
         dummy_cost = (self.c ** self.p) / self.alpha
+        unassigned_index = -1
 
         if num_truth_states == 0:
             # When truth states are empty all measured states are false
             opt_cost = -1.0 * num_measured_states * dummy_cost
-            # num_false = opt_cost
+        elif num_measured_states == 0:
+            # When measured states are empty all truth
+            # states are missed
+            opt_cost = -1. * num_truth_states * dummy_cost
+            if self.alpha == 2:
+                gospa_metric['missed'] = opt_cost
         else:
-            if num_measured_states == 0:
-                # When measured states are empty all truth
-                # states are missed
-                opt_cost = -1. * num_truth_states * dummy_cost
-                if self.alpha == 2:
-                    self.missed = opt_cost
-            else:
-                # Use auction algorithm when both truth_states
-                # and measured_states are non-empty
-                cost_matrix = -1. * np.power(cost_matrix, self.p)
-                truth_to_measured_assignment, measured_to_truth_assignment,\
-                    opt_cost_tmp =\
-                    self.compute_assignments(cost_matrix,
-                                             10 * num_truth_states *
-                                             num_measured_states)
-                # Now use assignments to compute bids
-                for i in range(num_truth_states):
-                    if truth_to_measured_assignment[0, i] != -1:
-                        opt_cost = opt_cost +\
-                            cost_matrix[i, truth_to_measured_assignment[0, i]]
+            # Use auction algorithm when both truth_states
+            # and measured_states are non-empty
+            cost_matrix = -1. * np.power(cost_matrix, self.p)
+            truth_to_measured_assignment, measured_to_truth_assignment, _ =\
+                self.compute_assignments(cost_matrix,
+                                         10 * num_truth_states * num_measured_states)
+            # Now use assignments to compute bids
+            for i in range(num_truth_states):
+                if truth_to_measured_assignment[i] != unassigned_index:
+                    opt_cost += cost_matrix[i, truth_to_measured_assignment[i]]
 
-                        if self.alpha == 2:
-                            const_assign = \
-                                truth_to_measured_assignment[0, i]
-                            const_cmp = (-1 * self.c**self.p)
+                    if self.alpha == 2:
+                        const_assign = truth_to_measured_assignment[i]
+                        const_cmp = (-1 * self.c**self.p)
 
-                            gospa_metric['localisation'] = \
-                                gospa_metric['localisation'] +\
-                                cost_matrix[i, const_assign] *\
-                                np.double(
-                                    cost_matrix[i, const_assign] > const_cmp)
+                        gospa_metric['localisation'] += \
+                            cost_matrix[i, const_assign]*(cost_matrix[i, const_assign] > const_cmp)
 
-                            gospa_metric['missed'] = gospa_metric['missed'] -\
-                                dummy_cost * np.double(
-                                    cost_matrix[i, const_assign] == const_cmp)
+                        gospa_metric['missed'] -= \
+                            dummy_cost*(cost_matrix[i, const_assign] == const_cmp)
 
-                            gospa_metric['false'] = gospa_metric['false'] -\
-                                dummy_cost * np.double(
-                                    cost_matrix[i, const_assign] == const_cmp)
-                    else:
-                        opt_cost = opt_cost - dummy_cost
-                        if self.alpha == 2:
-                            gospa_metric['missed'] = gospa_metric[
-                                'missed'] - dummy_cost
+                        gospa_metric['false'] -= \
+                            dummy_cost*(cost_matrix[i, const_assign] == const_cmp)
+                else:
+                    opt_cost = opt_cost - dummy_cost
+                    if self.alpha == 2:
+                        gospa_metric['missed'] -= dummy_cost
 
-                opt_cost = opt_cost - \
-                    np.sum(measured_to_truth_assignment == -1) * dummy_cost
-                if self.alpha == 2:
-                    gospa_metric['false'] = gospa_metric['false'] - \
-                        np.sum(measured_to_truth_assignment == -1) * dummy_cost
+            opt_cost -= np.sum(measured_to_truth_assignment == unassigned_index) * dummy_cost
+            if self.alpha == 2:
+                gospa_metric['false'] -= \
+                    np.sum(measured_to_truth_assignment == unassigned_index)*dummy_cost
         gospa_metric['distance'] = np.power((-1. * opt_cost), 1 / self.p)
-        gospa_metric['localisation'] = -1. * gospa_metric['localisation']
-        gospa_metric['missed'] = -1 * gospa_metric['missed']
-        gospa_metric['false'] = -1 * gospa_metric['false']
+        gospa_metric['localisation'] *= -1.
+        gospa_metric['missed'] *= -1.
+        gospa_metric['false'] *= -1.
 
         single_time_gospa_metric = SingleTimeMetric(
                 title='GOSPA Metric', value=gospa_metric,
@@ -486,7 +451,6 @@ class OSPAMetric(GOSPAMetric):
 
         Returns
         -------
-
         SingleTimeMetric
             The OSPA distance
 
@@ -495,23 +459,28 @@ class OSPAMetric(GOSPAMetric):
         timestamps = {
             state.timestamp
             for state in chain(truth_states, track_states)}
-        if len(timestamps) != 1:
+        if len(timestamps) > 1:
             raise ValueError(
                 'All states must be from the same time to perform OSPA')
 
-        if not track_states or not truth_states:
+        if not track_states and not truth_states:  # pragma: no cover
+            # For completeness, but can't generate metric without timestamp.
             distance = 0
-        else:
-            cost_matrix = self.compute_cost_matrix(track_states, truth_states)
-
+        elif self.p < np.inf:
+            cost_matrix = self.compute_cost_matrix(track_states, truth_states, complete=True)
             # Solve cost matrix with Hungarian/Munkres using
-            # scipy.optimize.linear_sum_assignemnt
+            row_ind, col_ind = linear_sum_assignment(cost_matrix)
             # Length of longest set of states
             n = max(len(track_states), len(truth_states))
-            row_ind, col_ind = linear_sum_assignment(cost_matrix)
             # Calculate metric
-            distance = ((1 / n) * cost_matrix[row_ind, col_ind].sum()) ** (
-                        1 / self.p)
+            distance = ((1/n) * np.sum(cost_matrix[row_ind, col_ind]**self.p))**(1/self.p)
+        else:  # self.p == np.inf
+            if len(track_states) == len(truth_states):
+                cost_matrix = self.compute_cost_matrix(track_states, truth_states)
+                row_ind, col_ind = linear_sum_assignment(cost_matrix)
+                distance = np.max(cost_matrix[row_ind, col_ind])
+            else:
+                distance = self.c
 
         return SingleTimeMetric(title='OSPA distance', value=distance,
                                 timestamp=timestamps.pop(), generator=self)
