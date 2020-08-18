@@ -48,7 +48,7 @@ def test_hellinger():
     v = StateVector([[11.], [10.], [10.], [2.]])
     state_v = GaussianState(v, vi, timestamp=t)
     measure = measures.GaussianHellinger()
-    assert np.isclose(measure(state_u, state_v), 0.864, atol=1e-3)
+    assert np.isclose(measure(state_u, state_v), 0.940, atol=1e-3)
 
 
 @pytest.mark.xfail(reason="Singular Matrix with all zero covariances.")
@@ -69,7 +69,7 @@ def test_squared_hellinger():
     measure = measures.SquaredGaussianHellinger()
     v = StateVector([[11.], [10.], [10.], [2.]])
     state_v = GaussianState(v, vi, timestamp=t)
-    assert np.isclose(measure(state_u, state_v), 0.746, atol=1e-3)
+    assert np.isclose(measure(state_u, state_v), 0.884, atol=1e-3)
 
 
 def test_hellinger_full_mapping():
@@ -77,7 +77,7 @@ def test_hellinger_full_mapping():
     v = StateVector([[11.], [10.], [10.], [2.]])
     state_v = GaussianState(v, vi, timestamp=t)
     measure = measures.GaussianHellinger(mapping=mapping)
-    assert np.isclose(measure(state_u, state_v), 0.863, atol=1e-3)
+    assert np.isclose(measure(state_u, state_v), 0.940, atol=1e-3)
 
 
 def test_hellinger_partial_mapping():
@@ -85,10 +85,10 @@ def test_hellinger_partial_mapping():
     v = StateVector([[11.], [10.], [10.], [2.]])
     state_v = GaussianState(v, vi, timestamp=t)
     measure = measures.GaussianHellinger(mapping=mapping)
-    assert np.isclose(measure(state_u, state_v), 0.7979, atol=1e-3)
+    assert np.isclose(measure(state_u, state_v), 0.913, atol=1e-3)
     mapping = np.array([0, 3])
     measure = measures.GaussianHellinger(mapping=mapping)
-    assert np.isclose(measure(state_u, state_v), 0.378, atol=1e-3)
+    assert np.isclose(measure(state_u, state_v), 0.386, atol=1e-3)
 
 
 def test_mahalanobis_full_mapping():
