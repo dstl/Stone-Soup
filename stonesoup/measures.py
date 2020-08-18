@@ -230,7 +230,7 @@ class SquaredGaussianHellinger(Measure):
 
         sigma1_plus_sigma2 = sigma1 + sigma2
         mu1_minus_mu2 = mu1 - mu2
-        E = mu1_minus_mu2.T @ np.linalg.inv(sigma1_plus_sigma2) @ mu1_minus_mu2
+        E = mu1_minus_mu2.T @ np.linalg.inv(sigma1_plus_sigma2/2) @ mu1_minus_mu2
         epsilon = -0.125*E
         numerator = np.sqrt(np.linalg.det(sigma1 @ sigma2))
         denominator = np.linalg.det(sigma1_plus_sigma2/2)
