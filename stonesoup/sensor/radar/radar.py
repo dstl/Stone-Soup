@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 import copy
-
-import numpy as np
-
 from math import erfc
 
-from stonesoup.sensor.sensor import Sensor
-from ...functions import cart2sphere, rotx, roty, rotz
-from ...base import Property
+import scipy.constants as const
+import numpy as np
 
+from ...sensor.sensor import Sensor
+from ...functions import cart2sphere, rotx, roty, rotz, mod_bearing
+from ...base import Property
 from ...models.measurement.nonlinear import \
     (CartesianToBearingRange, CartesianToElevationBearingRange,
      CartesianToBearingRangeRate, CartesianToElevationBearingRangeRate)
@@ -19,7 +18,6 @@ from .beam_shape import BeamShape
 from .beam_pattern import BeamTransitionModel
 from ...models.measurement.base import MeasurementModel
 from ...types.numeric import Probability
-import scipy.constants as const
 
 
 class RadarRangeBearing(Sensor):
@@ -195,11 +193,8 @@ class RadarRotatingRangeBearing(RadarRangeBearing):
 
         # Update dwell center
         rps = self.rpm / 60  # rotations per sec
-        self.dwell_center = State(
-            StateVector([[self.dwell_center.state_vector[0, 0]
-                          + duration.total_seconds() * rps * 2 * np.pi]]),
-            timestamp
-        )
+        angle = self.dwell_center.state_vector[0, 0] + duration.total_seconds()*rps*2*np.pi
+        self.dwell_center = State(StateVector([[mod_bearing(angle)]]), timestamp)
 
 
 class RadarRangeBearingElevation(RadarRangeBearing):
