@@ -99,8 +99,14 @@ class SimpleMeasurementInitiator(GaussianInitiator):
 
             if isinstance(measurement_model, NonLinearModel):
                 if isinstance(measurement_model, ReversibleModel):
-                    state_vector = measurement_model.inverse_function(
-                        detection)
+                    try:
+                        state_vector = measurement_model.inverse_function(
+                            detection)
+                    except NotImplementedError:
+                        if not self.skip_non_reversible:
+                            raise
+                        else:
+                            continue
                     model_matrix = measurement_model.jacobian(State(
                         state_vector))
                     inv_model_matrix = np.linalg.pinv(model_matrix)
