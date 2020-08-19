@@ -182,14 +182,18 @@ class SquaredGaussianHellinger(Measure):
     :math:`Q \sim N(\mu_2,\Sigma_2)` is defined as:
 
     .. math::
-            1 - \sqrt{\frac{det(\Sigma_1)^{1/4}det(\Sigma_2)^{1/4}}
-            {det(\Sigma_1+\Sigma_2/2)^{1/2}}}
-            exp\bigg(\frac{-1}{8}(\mu_1-\mu_2)^T
-            (\frac{\Sigma_1+\Sigma_2}{2})^{-1}(\mu_1-\mu_2)\bigg)
+            H^{2}(P, Q) &= 1 - {\frac{\det(\Sigma_1)^{\frac{1}{4}}\det(\Sigma_2)^{\frac{1}{4}}}
+            {\det\left(\frac{\Sigma_1+\Sigma_2}{2}\right)^{\frac{1}{2}}}}
+            \exp\left(-\frac{1}{8}(\mu_1-\mu_2)^T
+            \left(\frac{\Sigma_1+\Sigma_2}{2}\right)^{-1}(\mu_1-\mu_2)\right)\\
+            &\equiv  1 - \sqrt{\frac{\det(\Sigma_1)^{\frac{1}{2}}\det(\Sigma_2)^{\frac{1}{2}}}
+            {\det\left(\frac{\Sigma_1+\Sigma_2}{2}\right)}}
+            \exp\left(-\frac{1}{8}(\mu_1-\mu_2)^T
+            \left(\frac{\Sigma_1+\Sigma_2}{2}\right)^{-1}(\mu_1-\mu_2)\right)
 
     Note
     ----
-    This distance is bounded between 0 and :math:`\sqrt{2}`
+    This distance is bounded between 0 and 1
     """
     def __call__(self, state1, state2):
         r""" Calculate the Squared Hellinger distance multivariate normal
@@ -225,20 +229,13 @@ class SquaredGaussianHellinger(Measure):
             sigma2 = state2.covar
 
         sigma1_plus_sigma2 = sigma1 + sigma2
-        if np.linalg.det(sigma1_plus_sigma2) > 1e-10:
-            mu1_minus_mu2 = mu1 - mu2
-            E = mu1_minus_mu2.T*(np.linalg.inv(sigma1_plus_sigma2)
-                                 / mu1_minus_mu2)
-            epsilon = -0.125*E
-            numerator = np.sqrt(np.linalg.det(sigma1*sigma2))
-            denominator = np.linalg.det(sigma1_plus_sigma2/2)
-            squared_hellinger = 1 - (
-                np.sqrt(numerator/denominator)*np.exp(epsilon))
-        else:
-            mu1_minus_mu2 = mu1 - mu2
-            temp = mu1_minus_mu2.T * mu1_minus_mu2
-            squared_hellinger = temp
-        squared_hellinger = squared_hellinger[0, 0]
+        mu1_minus_mu2 = mu1 - mu2
+        E = mu1_minus_mu2.T @ np.linalg.inv(sigma1_plus_sigma2/2) @ mu1_minus_mu2
+        epsilon = -0.125*E
+        numerator = np.sqrt(np.linalg.det(sigma1 @ sigma2))
+        denominator = np.linalg.det(sigma1_plus_sigma2/2)
+        squared_hellinger = 1 - np.sqrt(numerator/denominator)*np.exp(epsilon)
+        squared_hellinger = squared_hellinger.item()
         return squared_hellinger
 
 
@@ -253,10 +250,10 @@ class GaussianHellinger(SquaredGaussianHellinger):
     is defined as:
 
     .. math::
-            \sqrt{1 - \sqrt{\frac{det(\Sigma_1)^{1/4}det(\Sigma_2)^{1/4}}
-            {det(\Sigma_1+\Sigma_2/2)^{1/2}}}
-            exp\bigg(\frac{-1}{8}(\mu_1-\mu_2)^T
-            (\frac{\Sigma_1+\Sigma_2}{2})^{-1}(\mu_1-\mu_2)\bigg)}
+            H(P,Q) = \sqrt{1 - {\frac{\det(\Sigma_1)^{\frac{1}{4}}\det(\Sigma_2)^{\frac{1}{4}}}
+            {\det\left(\frac{\Sigma_1+\Sigma_2}{2}\right)^{\frac{1}{2}}}}
+            \exp\left(-\frac{1}{8}(\mu_1-\mu_2)^T
+            \left(\frac{\Sigma_1+\Sigma_2}{2}\right)^{-1}(\mu_1-\mu_2)\right)}
 
     Note
     ----
