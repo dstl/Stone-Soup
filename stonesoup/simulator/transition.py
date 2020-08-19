@@ -19,7 +19,7 @@ def get_smooth_transition_models(initial_state, x_coords, y_coords, times, turn_
     initial_state: :class:`~.State` The initial state of the platform.
     x_coords: A list of int/float x-coordinates (cartesian) in the order that the target must
         follow.
-    y_coords: A list of int/float y-coordinates (cartesian)in the order that the target must
+    y_coords: A list of int/float y-coordinates (cartesian) in the order that the target must
         follow.
     times: A list of :class:`~.datetime.datetime` dictating the times at which the target
         must be at each corresponding coordinate.
@@ -133,15 +133,15 @@ def get_smooth_transition_models(initial_state, x_coords, y_coords, times, turn_
 
 
 class Point2PointConstantAcceleration:
-    """Constant acceleration transition model for 2D cartesian coordinates
+    r"""Constant acceleration transition model for 2D cartesian coordinates
 
     The platform is assumed to move with constant acceleration between two given cartesian
     coordinates.
     Motion is determined by the kinematic formulae:
 
         .. math::
-            v &= u + at
-            s &= ut + \frac{1]{2}at^2
+            v &= u + at \\
+            s &= ut + \frac{1}{2} at^2
 
     If the required constant acceleration leads to the platform overshooting (and coming back to)
     the destination coordinates, a :class:`~.Point2PointStop` transition model is called instead.
@@ -198,14 +198,14 @@ class Point2PointConstantAcceleration:
 
 
 class Point2PointStop:
-    """Constant acceleration transition model for 2D cartesian coordinates
+    r"""Constant acceleration transition model for 2D cartesian coordinates
 
     The platform is assumed to move with constant acceleration between two given cartesian
     coordinates.
     Motion is determined by the kinematic formulae:
 
         .. math::
-            v &= u + at
+            v &= u + at \\
             v^2 &= u^2 + 2as
 
     The platform is decelerated to 0 velocity at the destination point and waits for the remaining
