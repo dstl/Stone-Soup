@@ -7,7 +7,7 @@ import numpy as np
 from datetime import datetime
 
 
-def local_sidereal_time(longitude, datetime_ut=None):
+def local_sidereal_time(longitude, datetime=None):
     """Find the sidereal time for a given longitude and time
 
     Parameters
@@ -15,7 +15,7 @@ def local_sidereal_time(longitude, datetime_ut=None):
     longitude : float
         The longitude of the point of interest, in radians East of
         the prime meridian
-    datetime_ut : datetime.datetime (default, datetime.now())
+    datetime : datetime.datetime (default, datetime.utcnow())
         The time in UT at which to calculate. Defaults to the time at
         which the calculation is made in UTC.
 
@@ -34,10 +34,14 @@ def local_sidereal_time(longitude, datetime_ut=None):
     # TODO: Work out how to take the true local time and convert to UT
     # TODO: using timezones
 
-    if datetime_ut is None:
+    if datetime is None:
         ldt = datetime.utcnow()
     else:
-        ldt = datetime_ut
+        # Correct to utc. If no timezone given then assume it's given in utc.
+        if datetime.utcoffset() is not None:
+            ldt = datetime - datetime.utcoffset()
+        else:
+            ldt = datetime  # assumes time is already given in utc
 
     # J0 is the Julian day at 0 UT which can be found via
     j0 = ldt.toordinal() + 1721424.5

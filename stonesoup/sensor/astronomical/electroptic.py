@@ -15,7 +15,7 @@ class AllSkyTelescope(Sensor, ABC):
     An simple instance of a telescope. This is a sensor with a location
     (longitude, latitude, elevation) capable of observing astronomical objects.
     This instance is simple in that it returns independent measurements of
-    the azimuth, altitude and range. There is no field of view (hence the all-sky)
+    the azimuth, altitude. There is no field of view (hence the all-sky)
     but there is a minimum altitude.
 
     The uncertainty is Gaussian in azimuth/altitude.
@@ -85,10 +85,9 @@ class AllSkyTelescope(Sensor, ABC):
         azal = measurement_model.function(target, noise=self.noise)
 
         # Check to see if the target is above minimum altitude for observation
-        if azal[1] > self.minAlt:
-            # If so, detect the target with a probability pd
-            if np.random.uniform() < self.p_d:
-                measurement_vector = np.append(measurement_vector, azal)
+        # if so, detect the target with a probability pd
+        if azal[1] > self.minAlt and np.random.uniform() < self.p_d:
+            measurement_vector = np.append(measurement_vector, azal)
 
         return Detection(measurement_vector, measurement_model=measurement_model,
                          timestamp=self.timestamp)

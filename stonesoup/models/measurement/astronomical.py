@@ -1,8 +1,8 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 
 from datetime import datetime
 from typing import Union
-
 
 from astropy import constants as const
 from astropy import units as u
@@ -13,6 +13,7 @@ from ...types.array import StateVector, StateVectors
 from ...types.angle import Bearing, Elevation
 from .base import MeasurementModel
 from .nonlinear import CartesianToElevationBearing
+from ...astronomical_conversions import local_sidereal_time
 
 
 class ECItoAzAlt(CartesianToElevationBearing):
@@ -28,38 +29,36 @@ class ECItoAzAlt(CartesianToElevationBearing):
     conventions that are worth knowing.
 
     """
+    ndim_state = Property(int, default=6, doc="The ECI coordinate is usually provided as ")
     mapping = Property(np.ndarray, default=[0, 1, 2], doc="The positional variables in the target"
                                                           "state vector")
 
     timestamp = Property(datetime, default=946728000.0,
-                         doc="Timestamp, defaults to 2000-01-01 12:00:00")
+                         doc="Timestamp, defaults to 2000-01-01 12:00:00. Can be aware or naive. "
+                             "If aware, will try to correct for timezone.")
 
     # Position from which the measurement is taken
     latitude = Property(float, default=0.0,
                         doc="Observatory latitude (radians)")
     longitude = Property(float, default=0.0,
                          doc="Observatory longitude (radians)")
-    elevation = Property(float, default=0.9,
+    elevation = Property(float, default=0.0,
                          doc="Observatory elevation (m)")
 
-    def sidtime_rad(self):
+    def __init__(self, *args, **kwargs):
         """
-        Local mean sidereal time at the measurement in units of radians
 
-        Returns
-        -------
-         : float
-            local mean sidereal time (radians)
         """
-        time = tim.Time(self.timestamp)
-        sid_t = time.sidereal_time('mean',
-                                   longitude=self.longitude)  # The sidereal
-        # time - rendered in units of hour angle
-        return sid_t.to(u.rad)  # local mean sidereal time in radian
+        super().__init__(*args, **kwargs)
 
-    @property
-    def position_vector(self):
-        """ Returns the ECI position of the sensor
+    def position_vector(self, timestamp=datetime(2000, 1, 1, 12, 0, 0)):
+        """ Returns the ECI position at the time the measurement is made.
+
+        Parameters
+        ----------
+        timestamp: datetime
+            The time at which the position vector is calculated. defaults to 2000-01-01 12:00:00.
+            Can be aware or naive. If aware, will try to correct for timezone.
 
         Returns
         -------
@@ -68,14 +67,14 @@ class ECItoAzAlt(CartesianToElevationBearing):
 
         """
 
-        fl = 0.0335  # The oblateness or flattening of the Earth.
-        r_e = const.R_earth.to(u.m).value  # Earth radius
+        fl = 0.003353  # The oblateness or flattening of the Earth.
+        r_e = 6378137  # Earth's equatorial radius
 
         ssqlat = np.sin(self.latitude)**2
         clat = np.cos(self.latitude)
         slat = np.sin(self.latitude)
 
-        sit = self.sidtime_rad().value
+        sit = local_sidereal_time(self.longitude, datetime=timestamp)
         csit = np.cos(sit)  # cos of the sidereal time
         ssit = np.sin(sit)  # sin of the sidereal time
 
@@ -87,8 +86,14 @@ class ECItoAzAlt(CartesianToElevationBearing):
                          [r_c * clat * ssit],
                          [r_s * slat]])
 
-    def matrix_eci_to_topoh(self):
-        """ This matrix rotates the ECI ECI coordinate to the topocentric horizon frame
+    def matrix_eci_to_topoh(self, timestamp=datetime(2000, 1, 1, 12, 0, 0)):
+        """ This matrix rotates the ECI coordinate to the topocentric horizon frame
+
+        Parameters
+        ----------
+        timestamp: datetime
+            The time at which the matrix is calculated. defaults to 2000-01-01 12:00:00.
+            Can be aware or naive. If aware, will try to correct for timezone.
 
         Returns
         -------
@@ -96,7 +101,7 @@ class ECItoAzAlt(CartesianToElevationBearing):
             the matrix that rotates the ECI coordinate to the topocentric horizon coordinate
         """
 
-        theta = self.sidtime_rad().value
+        theta = local_sidereal_time(self.longitude, datetime=timestamp)
         phi = self.latitude
 
         stheta = np.sin(theta)
@@ -108,8 +113,10 @@ class ECItoAzAlt(CartesianToElevationBearing):
                          [-sphi*ctheta, -sphi*stheta, cphi],
                          [cphi*ctheta, cphi*stheta, sphi]])
 
-    def function(self, state, noise=False, **kwargs) -> StateVector:
-        r"""The function which returns az, alt given an target with ECI coordinates and a measurement
+    def function(self, state, noise=False, timestamp=datetime(2000, 1, 1, 12, 0, 0), **kwargs) \
+            -> StateVector:
+        r"""The function which returns az, alt given an target with ECI coordinates and a
+        measurement
         position and time.
 
         Parameters
@@ -120,10 +127,13 @@ class ECItoAzAlt(CartesianToElevationBearing):
             An externally generated random process noise sample (the default is
             `False`, in which case no noise will be added
             if 'True', the output of :meth:`~.Model.rvs` is added)
+        timestamp: datetime
+            The time at which the observation is made. defaults to 2000-01-01 12:00:00.
+            Can be aware or naive. If aware, will try to correct for timezone.
 
         Returns
         -------
-        :class:`numpy.ndarray` of shape (:py:attr:`~ndim_state`, 1)
+        :class:`~.StateVector` of shape (:py:attr:`~ndim_state`, 1)
             The model function evaluated given the provided time interval.
         """
         if isinstance(noise, bool) or noise is None:
@@ -133,11 +143,11 @@ class ECItoAzAlt(CartesianToElevationBearing):
                 noise = 0
 
         # Compute the relative position in ECI
-        rp = state.state_vector[self.mapping, :] - self.position_vector
+        rp = state.state_vector[self.mapping, :] - self.position_vector(timestamp)
 
         # To get it into topocentric horizon coordinates we need the
         # transformation matrix
-        rt = self.matrix_eci_to_topoh() @ rp
+        rt = self.matrix_eci_to_topoh(timestamp) @ rp
         rmag = np.sqrt(rt[0] ** 2 + rt[1] ** 2 + rt[2] ** 2)
         nrt = rt / rmag
 
@@ -153,5 +163,5 @@ class ECItoAzAlt(CartesianToElevationBearing):
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
-        out = np.array([[Bearing(0.)], [Elevation(0.)], [0.]]) + out
+        out = np.array([[Bearing(0.)], [Elevation(0.)]]) + out
         return out
