@@ -88,7 +88,7 @@ ax.plot((X[0], X[0] + 2*ux), (Y[0], Y[0] + 2*uy), color='lightgreen', linewidth=
 # target may never turn enough to hit the destination.
 
 from stonesoup.simulator.transition import get_smooth_transition_models
-transition_models, transition_times = get_smooth_transition_models(target=platform_state,
+transition_models, transition_times = get_smooth_transition_models(initial_state=platform_state,
                                                                    x_coords=X,
                                                                    y_coords=Y,
                                                                    times=times,
@@ -179,7 +179,7 @@ initial_vx = (X[1]-X[0]) / 3600  # initial x-speed
 initial_vy = 0  # initial y-speed
 platform_state = State((X[0], initial_vx, Y[0], initial_vy), timestamp=start)
 
-transition_models, transition_times = get_smooth_transition_models(target=platform_state,
+transition_models, transition_times = get_smooth_transition_models(initial_state=platform_state,
                                                                    x_coords=X,
                                                                    y_coords=Y,
                                                                    times=times,
