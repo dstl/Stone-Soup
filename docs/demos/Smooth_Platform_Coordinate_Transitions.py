@@ -87,27 +87,27 @@ ax.plot((X[0], X[0] + 2*ux), (Y[0], Y[0] + 2*uy), color='lightgreen', linewidth=
 # Along with the constraint that the turn must be possible - if the turn-rate is too low, the
 # target may never turn enough to hit the destination.
 
-from stonesoup.simulator.transition import get_smooth_transition_models
-transition_models, transition_times = get_smooth_transition_models(initial_state=platform_state,
-                                                                   x_coords=X,
-                                                                   y_coords=Y,
-                                                                   times=times,
-                                                                   turn_rate=np.radians(25))
+from stonesoup.simulator.transition import create_smooth_transition_models
+transition_models, transition_times = create_smooth_transition_models(initial_state=platform_state,
+                                                                      x_coords=X,
+                                                                      y_coords=Y,
+                                                                      times=times,
+                                                                      turn_rate=np.radians(25))
 
 # %%
 # This gives the transition times/models:
 from stonesoup.models.transition.linear import ConstantTurn
-for i in range(len(transition_models)):
-    model = transition_models[i]
-    if not isinstance(model, ConstantTurn):
-        if model.over_shot:
-            model = model.new_model
-    print('Duration: ', transition_times[i].total_seconds(), 's ', 'Model: ', type(model), end=' ')
-    if isinstance(model, ConstantTurn):
-        print('turn-rate: ', model.turn_rate)
+for transition_time, transition_model in zip(transition_times, transition_models):
+    if not isinstance(transition_model, ConstantTurn):
+        if transition_model.over_shot:
+            model = transition_model.new_model
+    print('Duration: ', transition_time.total_seconds(), 's ',
+          'Model: ', type(transition_model), end=' ')
+    if isinstance(transition_model, ConstantTurn):
+        print('turn-rate: ', transition_model.turn_rate)
     else:
-        print('x-acceleration: ', model.ax, end=', ')
-        print('y-acceleration: ', model.ay)
+        print('x-acceleration: ', transition_model.ax, end=', ')
+        print('y-acceleration: ', transition_model.ay)
 
 # %%
 # The last transition model calls a :class:`~.Point2PointStop` transition model to bring the target
@@ -179,11 +179,11 @@ initial_vx = (X[1]-X[0]) / 3600  # initial x-speed
 initial_vy = 0  # initial y-speed
 platform_state = State((X[0], initial_vx, Y[0], initial_vy), timestamp=start)
 
-transition_models, transition_times = get_smooth_transition_models(initial_state=platform_state,
-                                                                   x_coords=X,
-                                                                   y_coords=Y,
-                                                                   times=times,
-                                                                   turn_rate=np.radians(0.1))
+transition_models, transition_times = create_smooth_transition_models(initial_state=platform_state,
+                                                                      x_coords=X,
+                                                                      y_coords=Y,
+                                                                      times=times,
+                                                                      turn_rate=np.radians(0.1))
 platform = MultiTransitionMovingPlatform(states=platform_state,
                                          position_mapping=(0, 2),
                                          transition_models=transition_models,

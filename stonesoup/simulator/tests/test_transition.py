@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from stonesoup.simulator.transition import get_smooth_transition_models
+from stonesoup.simulator.transition import create_smooth_transition_models
 from stonesoup.types.state import State
 from stonesoup.types.array import StateVector
 
@@ -43,11 +43,11 @@ def test_transitions_list(coords, turn_rate):
     state_vector = StateVector([x, vx, y, vy])
     target = State(state_vector=state_vector, timestamp=start)
 
-    transition_models, transition_times = get_smooth_transition_models(initial_state=target,
-                                                                       x_coords=x_coords,
-                                                                       y_coords=y_coords,
-                                                                       times=times,
-                                                                       turn_rate=turn_rate)
+    transition_models, transition_times = create_smooth_transition_models(initial_state=target,
+                                                                          x_coords=x_coords,
+                                                                          y_coords=y_coords,
+                                                                          times=times,
+                                                                          turn_rate=turn_rate)
     for i in range(len(transition_models)):
         target.state_vector = transition_models[i].function(state=target,
                                                             time_interval=transition_times[i])

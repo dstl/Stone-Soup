@@ -9,29 +9,34 @@ from stonesoup.models.transition.linear import ConstantTurn, ConstantVelocity,\
 from stonesoup.types.array import StateVector
 
 
-def get_smooth_transition_models(initial_state, x_coords, y_coords, times, turn_rate):
+def create_smooth_transition_models(initial_state, x_coords, y_coords, times, turn_rate):
     """Generate a list of constant-turn and constant acceleration transition models alongside a
     list of transition times to provide smooth transitions between 2D cartesian coordinates and
     time pairs.
+    An assumption is that the initial_state's x, y coordinates are the first elements of x_ccords
+    and y_coords respectively. Ie. The platform starts at the first coordinates.
 
     Parameters
     ----------
     initial_state: :class:`~.State` The initial state of the platform.
-    x_coords: A list of int/float x-coordinates (cartesian) in the order that the target must
-        follow.
-    y_coords: A list of int/float y-coordinates (cartesian) in the order that the target must
-        follow.
-    times: A list of :class:`~.datetime.datetime` dictating the times at which the target
-        must be at each corresponding coordinate.
+    x_coords:
+        A list of int/float x-coordinates (cartesian) in the order that the target must follow.
+    y_coords:
+        A list of int/float y-coordinates (cartesian) in the order that the target must follow.
+    times:
+        A list of :class:`~.datetime.datetime` dictating the times at which the target must be at
+        each corresponding coordinate.
     turn_rate: Float
         Angular turn rate (radians/second) measured anti-clockwise from positive x-axis.
 
     Returns
     -------
-    transition_models: A list of :class:`~.ConstantTurn` and
-        :class:`~.Point2PointConstantAcceleration` transition models.
-    transition_times: A list of :class:`~.datetime.timedelta` dictating the transition time
-        for each corresponding transition model in transition_models.
+    transition_models:
+        A list of :class:`~.ConstantTurn` and :class:`~.Point2PointConstantAcceleration` transition
+        models.
+    transition_times:
+        A list of :class:`~.datetime.timedelta` dictating the transition time for each
+        corresponding transition model in transition_models.
 
     Notes
     -----
@@ -40,18 +45,18 @@ def get_smooth_transition_models(initial_state, x_coords, y_coords, times, turn_
 
     state = deepcopy(initial_state)  # don't alter platform state with calculations
 
-    if len(x_coords) != len(y_coords) or len(x_coords) != len(times):
+    if not len(x_coords) == len(y_coords) == len(times):
         raise ValueError('x_coords, y_coords and times must be same length')
 
     transition_models = []
     transition_times = []
 
-    for i in range(1, len(times)):  # make models to reach next coordinates from previous.
+    for x_coord, y_coord, time in zip(x_coords[1:], y_coords[1:], times[1:]):
 
-        dx = x_coords[i] - state.state_vector[0]  # distance to next x-coord
-        dy = y_coords[i] - state.state_vector[2]  # distance to next y-coord
+        dx = x_coord - state.state_vector[0]  # distance to next x-coord
+        dy = y_coord - state.state_vector[2]  # distance to next y-coord
 
-        if i == 0 and dx == 0 and dy == 0:
+        if dx == 0 and dy == 0:
             a = 0  # if initial and second target coordinates are same, set arbitrary bearing of 0
 
         vx = state.state_vector[1]  # initial x-speed
@@ -61,23 +66,23 @@ def get_smooth_transition_models(initial_state, x_coords, y_coords, times, turn_
             a = np.arctan2(vy, vx)  # initial bearing
 
         if dx == 0 and dy == 0 and vx == 0 and vy == 0:  # if at destination with 0 speed, stay
-            transition_times.append(times[i])
+            transition_times.append(time)
             transition_models.append(CombinedLinearGaussianTransitionModel((ConstantVelocity(0),
                                                                             ConstantVelocity(0))))
             continue
 
-        d = np.sqrt(dx ** 2 + dy ** 2)  # distance to next coord
+        d = np.sqrt(dx**2 + dy**2)  # distance to next coord
 
-        v = np.sqrt(vx ** 2 + vy ** 2)  # initial speed
+        v = np.sqrt(vx**2 + vy**2)  # initial speed
 
         b = np.arctan2(dy, dx) - a  # bearing to next coord (anti-clockwise from positive x-axis)
 
         w = turn_rate  # turn rate (anti-clockwise from positive x-axis)
 
         if b > np.radians(180):
-            b -= 2 * np.pi  # get bearing in (0, 180) instead
+            b -= 2*np.pi  # get bearing in (0, 180) instead
         elif b <= np.radians(-180):
-            b += 2 * np.pi  # get bearing in (-180, 0] instead
+            b += 2*np.pi  # get bearing in (-180, 0] instead
 
         if b < 0:
             w = -w  # if bearing is in [-180, 0), turn right instead
@@ -86,18 +91,18 @@ def get_smooth_transition_models(initial_state, x_coords, y_coords, times, turn_
 
         if b >= 0:
             p = d * np.cos(b)
-            q = r - d * np.sin(b)
+            q = r - d*np.sin(b)
         else:
-            p = -d * np.cos(b)
-            q = r + d * np.sin(b)
+            p = -d*np.cos(b)
+            q = r + d*np.sin(b)
 
         alpha = np.arctan2(p, q)
-        beta = np.arccos(r / np.sqrt(p ** 2 + q ** 2))
+        beta = np.arccos(r / np.sqrt(p**2 + q**2))
 
-        angle = (alpha + beta) % (2 * np.pi) - 2 * np.pi  # actual angle turned
+        angle = (alpha + beta) % (2*np.pi) - 2*np.pi  # actual angle turned
 
         if w > 0:
-            angle = (alpha - beta + 2 * np.pi) % (2 * np.pi)  # quadrant adjustment
+            angle = (alpha - beta + 2*np.pi) % (2*np.pi)  # quadrant adjustment
 
         t1 = angle / w  # turn time
 
@@ -110,18 +115,18 @@ def get_smooth_transition_models(initial_state, x_coords, y_coords, times, turn_
             transition_times.append(timedelta(seconds=t1))
             transition_models.append(turn_model)
 
-        dx = x_coords[i] - state.state_vector[0]  # get remaining distance to next x-coord
-        dy = y_coords[i] - state.state_vector[2]  # get remaining distance to next y-coord
+        dx = x_coord - state.state_vector[0]  # get remaining distance to next x-coord
+        dy = y_coord - state.state_vector[2]  # get remaining distance to next y-coord
 
-        d = np.sqrt(dx ** 2 + dy ** 2)  # remaining distance to next coord
+        d = np.sqrt(dx**2 + dy**2)  # remaining distance to next coord
 
-        t2 = (times[i] - state.timestamp).total_seconds()  # time remaining before platform should
+        t2 = (time - state.timestamp).total_seconds()  # time remaining before platform should
         # be at next coord
 
-        if d > 0:  # if platform is not already at coord[i], add linear acceleration model
+        if d > 0:  # if platform is not already at target coord, add linear acceleration model
 
             accel_model = Point2PointConstantAcceleration(state=state,
-                                                          destination=(x_coords[i], y_coords[i]),
+                                                          destination=(x_coord, y_coord),
                                                           duration=timedelta(seconds=t2))
             state.state_vector = accel_model.function(state=state,
                                                       time_interval=timedelta(seconds=t2))
@@ -143,6 +148,8 @@ class Point2PointConstantAcceleration:
             v &= u + at \\
             s &= ut + \frac{1}{2} at^2
 
+    Where :math:`u, v, a, t, s` are initial speed, final speed, acceleration, transition time and
+    distance travelled respectively.
     If the required constant acceleration leads to the platform overshooting (and coming back to)
     the destination coordinates, a :class:`~.Point2PointStop` transition model is called instead.
     """
@@ -155,8 +162,8 @@ class Point2PointConstantAcceleration:
 
         t = duration.total_seconds()  # duration of acceleration
 
-        self.ax = 2*(dx - ux*t)/t**2  # x-acceleration
-        self.ay = 2*(dy - uy*t)/t**2  # y-acceleration
+        self.ax = 2*(dx - ux*t) / t**2  # x-acceleration
+        self.ay = 2*(dy - uy*t) / t**2  # y-acceleration
 
         vx = ux + self.ax*t  # final x-speed
         vy = uy + self.ay*t  # final y-speed
@@ -208,6 +215,8 @@ class Point2PointStop:
             v &= u + at \\
             v^2 &= u^2 + 2as
 
+    Where :math:`u, v, a, t, s` are initial speed, final speed, acceleration, transition time and
+    distance travelled respectively.
     The platform is decelerated to 0 velocity at the destination point and waits for the remaining
     duration.
     """
@@ -223,16 +232,16 @@ class Point2PointStop:
         if dx == 0:
             self.ax = 0  # x-acceleration (0 if already at destination x-coord)
         else:
-            self.ax = -(ux**2)/(2*dx)
+            self.ax = -(ux**2) / (2*dx)
         if dy == 0:
             self.ay = 0  # y-acceleration (0 if already at destination y-coord)
         else:
-            self.ay = -(uy**2)/(2*dy)
+            self.ay = -(uy**2) / (2*dy)
 
         if self.ax != 0:
-            self.t = -ux/self.ax  # deceleration time
+            self.t = -ux / self.ax  # deceleration time
         elif self.ay != 0:
-            self.t = -uy/self.ay  # deceleration time (if already at x-coord)
+            self.t = -uy / self.ay  # deceleration time (if already at x-coord)
         else:
             self.t = 0  # at destination so acceleration time is 0
 
@@ -251,16 +260,16 @@ class Point2PointStop:
         uy = state.state_vector[3]  # initial y-speed
 
         if t < decel_time_remaining:  # still some deceleration needed
-            dx = ux * t + 0.5 * self.ax * (t ** 2)
-            dy = uy * t + 0.5 * self.ay * (t ** 2)
-            vx = ux + self.ax * t
-            vy = uy + self.ay * t
+            dx = ux*t + (0.5*self.ax)*t**2
+            dy = uy*t + (0.5*self.ay)*t**2
+            vx = ux + self.ax*t
+            vy = uy + self.ay*t
             return StateVector([x + dx, vx, y + dy, vy])
         elif decel_time_remaining > 0:  # otherwise decelerate for rest of time needed, and stay
-            dx = ux * decel_time_remaining + 0.5 * self.ax * (decel_time_remaining ** 2)
-            dy = uy * decel_time_remaining + 0.5 * self.ay * (decel_time_remaining ** 2)
-            vx = ux + self.ax * decel_time_remaining
-            vy = uy + self.ay * decel_time_remaining
+            dx = ux*decel_time_remaining + (0.5*self.ax)*(decel_time_remaining**2)
+            dy = uy*decel_time_remaining + (0.5*self.ay)*(decel_time_remaining**2)
+            vx = ux + self.ax*decel_time_remaining
+            vy = uy + self.ay*decel_time_remaining
             return StateVector([x + dx, vx, y + dy, vy])
         else:
             return state.state_vector  # if already at destination, stay
