@@ -5,6 +5,7 @@ from stonesoup.models.measurement.astronomical import ECItoAzAlt
 from stonesoup.types.array import StateVector, CovarianceMatrix
 from stonesoup.types.orbitalstate import OrbitalState
 from stonesoup.types.angle import  Bearing, Elevation
+from stonesoup.models.measurement.nonlinear import CartesianToElevationBearing
 
 
 def test_ecitoazaltel():
@@ -26,7 +27,7 @@ def test_ecitoazaltel():
     z_gt = StateVector([Bearing(129.8*np.pi/180), Elevation(41.41*np.pi/180)])
 
     # Set up model
-    cov = CovarianceMatrix([[0.1, 0], [0, 0.1]])  # 0.01 rad uncertainty in alt and az
+    cov = CovarianceMatrix([[0.01, 0], [0, 0.01]])  # 0.01 rad uncertainty in alt and az
     measurement_model = ECItoAzAlt(cov, latitude=-40*np.pi/180, longitude=-91.25*np.pi/180)
     # This returns a local sidereal time of 110.0 radians
 
@@ -34,6 +35,3 @@ def test_ecitoazaltel():
     z = measurement_model.function(ostate, timestamp=time)
 
     assert np.allclose(z, z_gt, rtol=0.001)
-
-    # Test the rvs() function next ??
-    print(measurement_model.rvs(10))

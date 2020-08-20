@@ -11,7 +11,6 @@ from astropy import time as tim
 from ...base import Property
 from ...types.array import StateVector, StateVectors
 from ...types.angle import Bearing, Elevation
-from .base import MeasurementModel
 from .nonlinear import CartesianToElevationBearing
 from ...astronomical_conversions import local_sidereal_time
 
@@ -161,7 +160,7 @@ class ECItoAzAlt(CartesianToElevationBearing):
 
         return StateVector([[Bearing(azi)], [Elevation(alt)]]) + noise
 
-    def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
+    """def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
         out = np.array([[Bearing(0.)], [Elevation(0.)]]) + out
-        return out
+        return out"""
