@@ -6,11 +6,13 @@ from datetime import datetime
 
 from ...base import Property
 from ...types.detection import Detection
-from ..sensor import Sensor
+from ...types.array import StateVector
+from ...types.angle import Elevation, Bearing
+from ..passive import PassiveElevationBearing
 from ...models.measurement.astronomical import ECItoAzAlt
 
 
-class AllSkyTelescope(Sensor, ABC):
+class AllSkyTelescope(PassiveElevationBearing):
     """
     An simple instance of a telescope. This is a sensor with a location
     (longitude, latitude, elevation) capable of observing astronomical objects.
@@ -21,44 +23,40 @@ class AllSkyTelescope(Sensor, ABC):
     The uncertainty is Gaussian in azimuth/altitude.
 
     """
-
-    timestamp = Property(datetime, default=946728000.0,
-                         doc="Timestamp, defaults to 2000-01-01 12:00:00")
-
     # Position of the observatory
     latitude = Property(float, default=0.0,
                         doc="Observatory latitude (radians)")
     longitude = Property(float, default=0.0,
                          doc="Observatory longitude (radians)")
-    elevation = Property(float, default=0.9,
+    elevation = Property(float, default=0.0,
                          doc="Observatory elevation (m)")
 
     # Properties of the detector
-    p_fa = Property(float, default=1e-10, doc="Probability of false alarm")
+    e_fa = Property(float, default=1e-10, doc="Expected number of false alarms per observation "
+                                              "(Poisson distributed)")
     p_d = Property(float, default=0.999999,
                    doc="Probability of target detection")
-    r_fa = Property(float, default=300000,
-                    doc="Expected false alarm range (m)")
 
     minAlt = Property(float, default=np.pi/8,
                       doc="Minimum altitude above the horizon for an "
-                          "observation")
-    # The noise covariance
-    noise = Property(np.array, default=None, doc="Covariance of the noise")
+                          "observation (rad)")
 
-    def observe(self, target):
+    def observe(self, target, timestamp=datetime(2000, 1, 1, 12, 0, 0)):
         """Make an observation
 
         Parameters
         ----------
-        target : :class:~`Platform`
+        target : :class:`~.Platform`
             a target - with a location defined in interpretable coordinates
             that may be in the field of view
+        timestamp : :class:`~.datetime.datetime`
+            The time and date as a datetime object. Assumed to be utm if naive. If tzinfo is
+            present, then local time is assumed and corrected for. Default is 2000-01-01, 12:00:00.
 
         Returns
         -------
-        : list of :class:~`State`
-            a set of observations math:`z = [Azimuth, Altitude]^T` (rad,
+        : list of :class:~`Detection`
+            a set of observations math:`z = [:class:`~.Elevation`, :class:`~.Bearing`]^T` (rad,
             rad), or an empty list
 
         Notes
@@ -69,25 +67,27 @@ class AllSkyTelescope(Sensor, ABC):
 
         """
 
+        # initialise the model
+        measurement_model = ECItoAzAlt(self.noise_covar, latitude=self.latitude,
+                                       longitude=self.longitude, elevation=self.elevation)
+
         measurement_vector = []  # Initialise empty list
 
         # Decide whether a false alarm is to be returned
-        for ii in range(np.random.poisson(self.p_fa)):
+        for ii in range(np.random.poisson(self.e_fa)):
             # Uniform in altitude, azimuth is simplest
             # And then Poissonian with parameter noise[2][2]?
-            measurement_vector = [measurement_vector,
-                                  np.array([[np.random.uniform(0, 2*np.pi)],
-                                            [np.random.uniform(self.minAlt, np.pi)]])]
+            measurement_vector = np.append(
+                measurement_vector,
+                Detection(StateVector([[Elevation(np.random.uniform(self.minAlt, np.pi/2)),
+                                        Bearing(np.random.uniform(-np.pi, np.pi))]]),
+                          measurement_model=measurement_model, timestamp=timestamp))
 
-        measurement_model = ECItoAzAlt(timestamp=self.timestamp, latitude=self.latitude,
-                                       longitude=self.longitude, elevation=self.elevation)
-
-        azal = measurement_model.function(target, noise=self.noise)
+        alaz = measurement_model.function(target, noise=True, timestamp=timestamp)
 
         # Check to see if the target is above minimum altitude for observation
         # if so, detect the target with a probability pd
-        if azal[1] > self.minAlt and np.random.uniform() < self.p_d:
-            measurement_vector = np.append(measurement_vector, azal)
+        if alaz[0] > self.minAlt and np.random.uniform() < self.p_d:
+            measurement_vector = np.append(measurement_vector, Detection(alaz))
 
-        return Detection(measurement_vector, measurement_model=measurement_model,
-                         timestamp=self.timestamp)
+        return measurement_vector

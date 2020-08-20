@@ -5,7 +5,7 @@ from stonesoup.models.measurement.astronomical import ECItoAzAlt
 from stonesoup.types.array import StateVector, CovarianceMatrix
 from stonesoup.types.orbitalstate import OrbitalState
 from stonesoup.types.angle import  Bearing, Elevation
-from stonesoup.models.measurement.nonlinear import CartesianToElevationBearing
+from stonesoup.types.detection import Detection
 
 
 def test_ecitoazaltel():
@@ -35,3 +35,5 @@ def test_ecitoazaltel():
     z = measurement_model.function(ostate, timestamp=time)
 
     assert np.allclose(z, z_gt, rtol=0.001)
+
+    print(measurement_model.pdf(Detection(z), ostate))
