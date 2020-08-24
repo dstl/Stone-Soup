@@ -83,17 +83,17 @@ class DistanceHypothesiser(Hypothesiser):
 
             if hasattr(detection, 'components') == True:              
                 # Compute measurement prediction and distance measure for Soft measurements (PHD-EF filter)
-                for WeightedGaussianState in detection.components:
+                for sub_detection in detection.components:
                     measurement_prediction = self.updater.predict_measurement(
                             prediction, detection.measurement_model)
-                    distance = self.measure(measurement_prediction, WeightedGaussianState)
+                    distance = self.measure(measurement_prediction, sub_detection)
                     
                     if self.include_all or distance < self.missed_distance:
                     # True detection hypothesis
                         hypotheses.append(
                             SingleDistanceHypothesis(
                                 prediction,
-                                GaussianMixtureDetection([WeightedGaussianState], timestamp=detection.timestamp, measurement_model=detection.measurement_model, metadata=detection.metadata),
+                                GaussianMixtureDetection([sub_detection], timestamp=detection.timestamp, measurement_model=detection.measurement_model, metadata=detection.metadata),
                                 distance,
                                 measurement_prediction))
             else:
