@@ -9,7 +9,7 @@ from ...types.detection import Detection
 from ...types.array import StateVector
 from ...types.angle import Elevation, Bearing
 from ..passive import PassiveElevationBearing
-from ...models.measurement.astronomical import ECItoAzAlt
+from ...models.measurement.astronomical import ECItoAltAz
 
 
 class AllSkyTelescope(PassiveElevationBearing):
@@ -37,7 +37,7 @@ class AllSkyTelescope(PassiveElevationBearing):
     p_d = Property(float, default=0.999999,
                    doc="Probability of target detection")
 
-    minAlt = Property(float, default=np.pi/8,
+    min_alt = Property(float, default=np.pi/32,
                       doc="Minimum altitude above the horizon for an "
                           "observation (rad)")
 
@@ -68,7 +68,7 @@ class AllSkyTelescope(PassiveElevationBearing):
         """
 
         # initialise the model
-        measurement_model = ECItoAzAlt(self.noise_covar, latitude=self.latitude,
+        measurement_model = ECItoAltAz(self.noise_covar, latitude=self.latitude,
                                        longitude=self.longitude, elevation=self.elevation)
 
         measurement_vector = []  # Initialise empty list
@@ -79,7 +79,7 @@ class AllSkyTelescope(PassiveElevationBearing):
             # And then Poissonian with parameter noise[2][2]?
             measurement_vector = np.append(
                 measurement_vector,
-                Detection(StateVector([[Elevation(np.random.uniform(self.minAlt, np.pi/2)),
+                Detection(StateVector([[Elevation(np.random.uniform(self.min_alt, np.pi/2)),
                                         Bearing(np.random.uniform(-np.pi, np.pi))]]),
                           measurement_model=measurement_model, timestamp=timestamp))
 
@@ -87,7 +87,7 @@ class AllSkyTelescope(PassiveElevationBearing):
 
         # Check to see if the target is above minimum altitude for observation
         # if so, detect the target with a probability pd
-        if alaz[0] > self.minAlt and np.random.uniform() < self.p_d:
+        if alaz[0] > self.min_alt and np.random.uniform() < self.p_d:
             measurement_vector = np.append(measurement_vector, Detection(alaz))
 
         return measurement_vector

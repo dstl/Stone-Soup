@@ -1,14 +1,14 @@
 # coding: utf-8
 import numpy as np
 from datetime import datetime
-from stonesoup.models.measurement.astronomical import ECItoAzAlt
+from stonesoup.models.measurement.astronomical import ECItoAltAz
 from stonesoup.types.array import StateVector, CovarianceMatrix
 from stonesoup.types.orbitalstate import OrbitalState
 from stonesoup.types.angle import  Bearing, Elevation
 from stonesoup.types.detection import Detection
 
 
-def test_ecitoazaltel():
+def test_ecitoaltaz():
     """This is example 5.9 in [1]
 
     References
@@ -24,11 +24,11 @@ def test_ecitoazaltel():
     ostate = OrbitalState(np.array([[-2032400], [4591200], [-4544800], [0], [0], [0]]),
                           coordinates="Cartesian", timestamp=time)
     # The answer is az = 129.8 degrees, alt = 41.41 degrees
-    z_gt = StateVector([Bearing(129.8*np.pi/180), Elevation(41.41*np.pi/180)])
+    z_gt = StateVector([Elevation(41.41*np.pi/180), Bearing(129.8*np.pi/180)])
 
     # Set up model
-    cov = CovarianceMatrix([[0.01, 0], [0, 0.01]])  # 0.01 rad uncertainty in alt and az
-    measurement_model = ECItoAzAlt(cov, latitude=-40*np.pi/180, longitude=-91.25*np.pi/180)
+    cov = CovarianceMatrix([[0.01, 0], [0, 0.01]])  # 0.1 rad uncertainty in alt and az
+    measurement_model = ECItoAltAz(cov, latitude=-40*np.pi/180, longitude=-91.25*np.pi/180)
     # This returns a local sidereal time of 110.0 radians
 
     # Execute measurement

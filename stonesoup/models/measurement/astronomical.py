@@ -15,7 +15,7 @@ from .nonlinear import CartesianToElevationBearing
 from ...astronomical_conversions import local_sidereal_time
 
 
-class ECItoAzAlt(CartesianToElevationBearing):
+class ECItoAltAz(CartesianToElevationBearing):
     """
     A measurement model which converts a target with coordinates in Earth-centered inertial (ECI)
     coordinates to local altitude and azimuth. Inherits from :class:`~.CartesianToElevationBearing`
@@ -158,9 +158,4 @@ class ECItoAzAlt(CartesianToElevationBearing):
         if nrt[0] / np.cos(alt) < 0:
             azi = 2 * np.pi - azi
 
-        return StateVector([[Bearing(azi)], [Elevation(alt)]]) + noise
-
-    """def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
-        out = super().rvs(num_samples, **kwargs)
-        out = np.array([[Bearing(0.)], [Elevation(0.)]]) + out
-        return out"""
+        return StateVector([[Elevation(alt)], [Bearing(azi)]]) + noise
