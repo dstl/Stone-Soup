@@ -4,9 +4,10 @@ import numpy as np
 import pytest
 from pytest import approx
 
-from ...models.base import LinearModel
+from ...models.base import LinearModel, ReversibleModel
 from ...models.measurement.linear import LinearGaussian
-from ...models.measurement.nonlinear import CartesianToBearingRange
+from ...models.measurement.nonlinear import CartesianToBearingRange, Cartesian2DToBearing,\
+    CombinedReversibleGaussianMeasurementModel
 from ...models.transition.linear import \
     CombinedLinearGaussianTransitionModel, ConstantVelocity
 from ...updater.kalman import KalmanUpdater, ExtendedKalmanUpdater
@@ -115,27 +116,45 @@ def test_linear_measurement():
             measurement_model.matrix().T == approx(measurement_model.covar())
 
 
-def test_nonlinear_measurement():
-    measurement_model = CartesianToBearingRange(
-        2, [0, 1], np.diag([np.radians(2), 30]))
+@pytest.mark.parametrize("meas_model", (CartesianToBearingRange, Cartesian2DToBearing))
+@pytest.mark.parametrize("skip_non_linear", (None, True, False))
+def test_nonlinear_measurement(meas_model, skip_non_linear):
+
+    meas_params = [2, [0, 1], np.diag([np.radians(2), 30])]
+    measurement_model = meas_model(*meas_params)
+    combined_measurement_model = CombinedReversibleGaussianMeasurementModel([measurement_model])
+
     measurement_initiator = SimpleMeasurementInitiator(
-        GaussianState(np.array([[0], [0]]), np.diag([100, 10])),
-        measurement_model
-    )
+        prior_state=GaussianState(np.array([[0], [0]]), np.diag([100, 10])),
+        measurement_model=measurement_model,
+        skip_non_reversible=skip_non_linear)
+    combined_measurement_initiator = SimpleMeasurementInitiator(
+        prior_state=GaussianState(np.array([[0], [0]]), np.diag([100, 10])),
+        measurement_model=combined_measurement_model,
+        skip_non_reversible=skip_non_linear)
 
     timestamp = datetime.datetime.now()
     detections = [Detection(np.array([[5, 2]]), timestamp),
                   Detection(np.array([[-5, -2]]), timestamp)]
 
-    tracks = measurement_initiator.initiate(detections)
-
-    assert len(tracks) == 2
-
-    for track in tracks:
-        assert track.timestamp == timestamp
-        Ry = measurement_model.jacobian(track.state) @ track.covar @ \
-            measurement_model.jacobian(track.state).T
-        assert Ry == approx(measurement_model.covar())
+    if not (isinstance(measurement_model, ReversibleModel) or skip_non_linear):
+        with pytest.raises(Exception):
+            measurement_initiator.initiate(detections)  # Non-reversible and not skipping
+        with pytest.raises(NotImplementedError):
+            combined_measurement_initiator.initiate(detections)  # Reversible but not implemented
+    elif not isinstance(measurement_model, ReversibleModel) and skip_non_linear:
+        assert len(measurement_initiator.initiate(detections)) == 0  # Skipping for non-reversible
+        assert len(combined_measurement_initiator.initiate(detections)) == 0
+    else:
+        all_tracks = [measurement_initiator.initiate(detections),
+                      combined_measurement_initiator.initiate(detections)]  # Otherwise tracks made
+        for tracks in all_tracks:
+            assert len(tracks) == 2
+            for track in tracks:
+                assert track.timestamp == timestamp
+                jac = measurement_model.jacobian(track.state)
+                Ry = jac @ track.covar @ jac.T
+                assert Ry == approx(measurement_model.covar())
 
 
 def test_linear_measurement_non_direct():
