@@ -591,7 +591,7 @@ class IteratedKalmanUpdater(ExtendedKalmanUpdater):
     function via the :meth:`_measurement_matrix()` function.
     """
 
-    tolerance = Property(float, default=1e-8,
+    tolerance = Property(float, default=1e-6,
                          doc="The value of the difference in the measure used as a stopping "
                              "criterion.")
     measure = Property(Measure, default=Euclidean(), doc="The measure to use to test the "
@@ -599,9 +599,9 @@ class IteratedKalmanUpdater(ExtendedKalmanUpdater):
                                                          "to the Euclidean distance between "
                                                          "current and prior posterior state "
                                                          "estimate.")
-    max_iterations = Property(int, default=100000, doc="Number of iterations before while loop is"
-                                                       "exited and a non-convergence warning is "
-                                                       "returned")
+    max_iterations = Property(int, default=1000, doc="Number of iterations before while loop is"
+                                                     "exited and a non-convergence warning is "
+                                                     "returned")
 
     def update(self, hypothesis, **kwargs):
         r"""The iterated Kalman update method. Given a hypothesised association between a predicted
