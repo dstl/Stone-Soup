@@ -3,7 +3,7 @@ from .base import Hypothesiser
 from ..base import Property
 from ..measures import Measure
 from ..predictor import Predictor
-from ..types.detection import MissedDetection
+from ..types.detection import MissedDetection, GaussianMixtureDetection
 from ..types.hypothesis import SingleDistanceHypothesis
 from ..types.multihypothesis import MultipleHypothesis
 from ..updater import Updater
@@ -81,18 +81,34 @@ class DistanceHypothesiser(Hypothesiser):
             prediction = self.predictor.predict(
                 track, timestamp=detection.timestamp)
 
-            # Compute measurement prediction and distance measure
-            measurement_prediction = self.updater.predict_measurement(
-                prediction, detection.measurement_model)
-            distance = self.measure(measurement_prediction, detection)
+            if hasattr(detection, 'components') == True:              
+                # Compute measurement prediction and distance measure for Soft measurements (PHD-EF filter)
+                for WeightedGaussianState in detection.components:
+                    measurement_prediction = self.updater.predict_measurement(
+                            prediction, detection.measurement_model)
+                    distance = self.measure(measurement_prediction, WeightedGaussianState)
+                    
+                    if self.include_all or distance < self.missed_distance:
+                    # True detection hypothesis
+                        hypotheses.append(
+                            SingleDistanceHypothesis(
+                                prediction,
+                                GaussianMixtureDetection([WeightedGaussianState], timestamp=detection.timestamp, measurement_model=detection.measurement_model, metadata=detection.metadata),
+                                distance,
+                                measurement_prediction))
+            else:
+                # Compute measurement prediction and distance measure 
+                measurement_prediction = self.updater.predict_measurement(
+                        prediction, detection.measurement_model)
+                distance = self.measure(measurement_prediction, detection)
 
-            if self.include_all or distance < self.missed_distance:
-                # True detection hypothesis
-                hypotheses.append(
-                    SingleDistanceHypothesis(
-                        prediction,
-                        detection,
-                        distance,
-                        measurement_prediction))
+                if self.include_all or distance < self.missed_distance:
+                    # True detection hypothesis
+                    hypotheses.append(
+                        SingleDistanceHypothesis(
+                            prediction,
+                            detection,
+                            distance,
+                            measurement_prediction))
 
         return MultipleHypothesis(sorted(hypotheses, reverse=True))
