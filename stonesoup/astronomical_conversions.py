@@ -7,7 +7,7 @@ import numpy as np
 from datetime import datetime
 
 
-def local_sidereal_time(longitude, datetime=None):
+def local_sidereal_time(longitude, timestamp=None):
     """Find the sidereal time for a given longitude and time
 
     Parameters
@@ -15,7 +15,7 @@ def local_sidereal_time(longitude, datetime=None):
     longitude : float
         The longitude of the point of interest, in radians East of
         the prime meridian
-    datetime : datetime.datetime (default, datetime.utcnow())
+    timestamp : datetime.datetime (default, datetime.utcnow())
         The time in UT at which to calculate. Defaults to the time at
         which the calculation is made in UTC.
 
@@ -31,17 +31,14 @@ def local_sidereal_time(longitude, datetime=None):
 
     """
 
-    # TODO: Work out how to take the true local time and convert to UT
-    # TODO: using timezones
-
-    if datetime is None:
+    if timestamp is None:
         ldt = datetime.utcnow()
     else:
         # Correct to utc. If no timezone given then assume it's given in utc.
-        if datetime.utcoffset() is not None:
-            ldt = datetime - datetime.utcoffset()
+        if timestamp.utcoffset() is not None:
+            ldt = timestamp - timestamp.utcoffset()
         else:
-            ldt = datetime  # assumes time is already given in utc
+            ldt = timestamp  # assumes time is already given in utc
 
     # J0 is the Julian day at 0 UT which can be found via
     j0 = ldt.toordinal() + 1721424.5
@@ -71,7 +68,7 @@ def local_sidereal_time(longitude, datetime=None):
     return (theta_g + longitude) % (2*np.pi)
 
 
-def topocentric_to_geocentric(latitude, longitude, height, datetime_ut=None,
+def topocentric_to_geocentric(latitude, longitude, height, timestamp=None,
                               radius_p=6378137, flattening=0.00335281):
     r"""Compute the geocentric position of a position given in topocentric
     coordinates.
@@ -85,9 +82,11 @@ def topocentric_to_geocentric(latitude, longitude, height, datetime_ut=None,
     height : float (m)
         Altitude above 'sea level', i.e. the surface of the oblate
         spheriod that is the the primary body
-    datetime_ut : datetime.datetime
-        The datetime object representing the time in UT when the
-        transformation is to be made. Default is datetime.utcnow()
+    timestamp : datetime.datetime
+        The datetime object representing the time when the
+        transformation is to be made. Default is datetime.utcnow(). If timezone information via
+        tzinfo is included then :meth:`local_sidereal_time()` will correct to UT. Otherwise UT is
+        assumed.
     radius_p : float (m)
         The equatorial radius of the primary body. This defaults to the
         approximate average value for the Earth: 6,378,137 m
@@ -104,30 +103,21 @@ def topocentric_to_geocentric(latitude, longitude, height, datetime_ut=None,
         The geocentric position vector, :math:`[r_x r_y r_z]^T`
 
     """
-
-    # If the date time isn't specified use now().
-    if datetime_ut is None:
-        ldt = datetime.now()
-    else:
-        ldt = datetime_ut
-
     # Get the local sidereal time
-    lst = local_sidereal_time(longitude, datetime_ut=ldt)
+    lst = local_sidereal_time(longitude, timestamp=timestamp)
 
-    coeff1 = (radius_p / (np.sqrt(1 - (2*flattening - flattening**2) *
-                                  np.sin(latitude)**2)) + height) * \
-        np.cos(latitude)
+    coeff1 = (radius_p/(np.sqrt(1 - (2*flattening - flattening**2)*np.sin(latitude)**2)) + height)\
+        * np.cos(latitude)
 
-    coeff2 = ((radius_p * (1 - flattening)**2)/(np.sqrt(1 - (2*flattening -
-                                                             flattening**2) *
-                                                        (np.sin(latitude)**2)))
-              + height) * np.sin(latitude)
+    coeff2 = ((radius_p * (1 - flattening)**2)/(np.sqrt(1 - (2*flattening - flattening**2) *
+                                                        (np.sin(latitude)**2))) + height) * \
+        np.sin(latitude)
 
     return np.array([[coeff1*np.cos(lst)], [coeff1*np.sin(lst)], [coeff2]])
 
 
 def topocentric_altaz_to_radec(altitude, azimuth, latitude, longitude,
-                               datetime_ut=None):
+                               timestamp=None):
     """Convert the topocentric altitude and azimuth of a target observed
     from a particular location (specified by the latitude and longitude,
     and time) into the (absolute) right ascension and declination
@@ -142,24 +132,17 @@ def topocentric_altaz_to_radec(altitude, azimuth, latitude, longitude,
         Geodetic latitude
     longitude : float (radians)
         Geodetic longitiude
-    datetime_ut : datetime.datetime
-        The datetime object representing the time in UT when the
-        calculation is to be made. Default is datetime.utcnow()
+    timestamp : datetime.datetime
+        The datetime object representing the time when the transformation is to be made. Default
+        is datetime.utcnow(). If timezone information via tzinfo is included then
+        :meth:`local_sidereal_time()` will correct to UT. Otherwise UT is assumed.
 
     Returns
     -------
-
     RA, Dec : (radians, radians)
         The right ascension and declination of the target
 
     """
-
-    # If the date time isn't specified use now().
-    if datetime_ut is None:
-        ldt = datetime.utcnow()
-    else:
-        ldt = datetime_ut
-
     # Ensure the azimuth sits between 0 and 2pi
     azimuth = azimuth % (2*np.pi)
 
@@ -182,15 +165,14 @@ def topocentric_altaz_to_radec(altitude, azimuth, latitude, longitude,
                               np.cos(declination))
 
     # calculate RA
-    rightascension = local_sidereal_time(longitude, datetime_ut=ldt) - \
-        hourangle
+    rightascension = local_sidereal_time(longitude, timestamp=timestamp) - hourangle
 
     return rightascension, declination
 
 
 def topocentric_altaz_to_radecrate(altitude, azimuth, altituderate,
                                    azimuthrate, latitude, longitude,
-                                   datetime_ut=None,
+                                   timestamp=None,
                                    inertial_angular_velocity=7.292115e-5):
     """Convert the topocentric rates of change of altitude and azimuth of
     a target observed from a particular location (specified by the
@@ -211,24 +193,23 @@ def topocentric_altaz_to_radecrate(altitude, azimuth, altituderate,
         Geodetic latitude
     longitude : float (radians)
         Geodetic longitiude
-    datetime_ut : datetime.datetime
-        The datetime object representing the time in UT when the
-        calculation is to be made. Default is datetime.utcnow()
+    timestamp : datetime.datetime
+        The datetime object representing the time when the transformation is to be made. Default
+        is datetime.utcnow(). If timezone information via tzinfo is included then
+        :meth:`local_sidereal_time()` will correct to UT. Otherwise UT is assumed.
     inertial_angular_velocity : float (radians/s),
         The angular velocity of the primary body in its inertial frame.
         Defaults to the value of the Earth, 7.292115e-5 rad s^{-1}
 
     Returns
     -------
-
     dRA/dt, dDec/dt : (radians/s, radians/s)
         The rates of change of right ascension and declination of the
         target
 
     """
-
     ra, dec = topocentric_altaz_to_radec(altitude, azimuth, latitude,
-                                         longitude, datetime_ut=datetime_ut)
+                                         longitude, timestamp=timestamp)
 
     # Caching some trig
     slat = np.sin(latitude)

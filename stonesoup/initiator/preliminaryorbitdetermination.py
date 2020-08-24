@@ -440,7 +440,7 @@ class RangeAltAzInitiator(OrbitalInitiator):
             rn_al_az = detection.state_vector
             # Oberver's position
             bigr = topocentric_to_geocentric(latitude, longitude, height,
-                                             datetime_ut=detection.timestamp)
+                                             timestamp=detection.timestamp)
             # Target's position on the sky
             ra, dec = topocentric_altaz_to_radec(rn_al_az[1], rn_al_az[2],
                                                  latitude, longitude,
@@ -459,7 +459,7 @@ class RangeAltAzInitiator(OrbitalInitiator):
             radot, decdot = \
                 topocentric_altaz_to_radecrate(
                     rn_al_az[1], rn_al_az[2], rn_al_az[4], rn_al_az[5],
-                    latitude, longitude, datetime_ut=detection.timestamp,
+                    latitude, longitude, timestamp=detection.timestamp,
                     inertial_angular_velocity=self.inertial_angular_velocity)
 
             # Direction rate cosine vector
@@ -587,7 +587,7 @@ class GaussInitiator(OrbitalInitiator):
                 # extract the position vectors as a list
                 bigr.append(topocentric_to_geocentric(
                     latitude, longitude, height,
-                    datetime_ut=detection.timestamp))
+                    timestamp=detection.timestamp))
 
                 # The cosine unit vector in the direction of the target
                 dcuv.append(direction_cosine_unit_vector(

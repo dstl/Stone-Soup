@@ -1,15 +1,9 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-
 from datetime import datetime
-from typing import Union
-
-from astropy import constants as const
-from astropy import units as u
-from astropy import time as tim
 
 from ...base import Property
-from ...types.array import StateVector, StateVectors
+from ...types.array import StateVector
 from ...types.angle import Bearing, Elevation
 from .nonlinear import CartesianToElevationBearing
 from ...astronomical_conversions import local_sidereal_time
@@ -73,7 +67,7 @@ class ECItoAltAz(CartesianToElevationBearing):
         clat = np.cos(self.latitude)
         slat = np.sin(self.latitude)
 
-        sit = local_sidereal_time(self.longitude, datetime=timestamp)
+        sit = local_sidereal_time(self.longitude, timestamp=timestamp)
         csit = np.cos(sit)  # cos of the sidereal time
         ssit = np.sin(sit)  # sin of the sidereal time
 
@@ -100,7 +94,7 @@ class ECItoAltAz(CartesianToElevationBearing):
             the matrix that rotates the ECI coordinate to the topocentric horizon coordinate
         """
 
-        theta = local_sidereal_time(self.longitude, datetime=timestamp)
+        theta = local_sidereal_time(self.longitude, timestamp=timestamp)
         phi = self.latitude
 
         stheta = np.sin(theta)

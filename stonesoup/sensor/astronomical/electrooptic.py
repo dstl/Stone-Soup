@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from abc import ABC
-
 import numpy as np
 from datetime import datetime
 
@@ -38,8 +36,8 @@ class AllSkyTelescope(PassiveElevationBearing):
                    doc="Probability of target detection")
 
     min_alt = Property(float, default=np.pi/32,
-                      doc="Minimum altitude above the horizon for an "
-                          "observation (rad)")
+                       doc="Minimum altitude above the horizon for an "
+                           "observation (rad)")
 
     def observe(self, target, timestamp=datetime(2000, 1, 1, 12, 0, 0)):
         """Make an observation

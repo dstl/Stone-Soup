@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
-from pytest import approx
 import numpy as np
 
 from stonesoup.sensor.astronomical.electrooptic import AllSkyTelescope
 from stonesoup.types.orbitalstate import OrbitalState
-from stonesoup.types.array import StateVector, CovarianceMatrix
-from stonesoup.types.angle import Elevation, Bearing
+from stonesoup.types.array import CovarianceMatrix
 
 
 def test_electrooptic():
@@ -20,7 +18,6 @@ def test_electrooptic():
     ostate = OrbitalState(np.array([[-2032400], [4591200], [-4544800], [0], [0], [0]]),
                           coordinates="Cartesian", timestamp=time)
     # The answer is az = 129.8 degrees, alt = 41.41 degrees
-    z_gt = StateVector([Elevation(41.41 * np.pi / 180), Bearing(129.8 * np.pi / 180)])
 
     # Set up model
     cov = CovarianceMatrix([[0.01, 0], [0, 0.01]])  # 0.1 rad uncertainty in alt and az
@@ -38,4 +35,5 @@ def test_electrooptic():
 
     measurements = sensor.observe(ostate, timestamp=time)
 
+    # Just assert that we get some measurements or none.
     assert len(measurements) >= 0
