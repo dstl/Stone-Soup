@@ -567,7 +567,7 @@ class IteratedKalmanUpdater(ExtendedKalmanUpdater):
 
     .. math::
 
-        x_{k,i+1} &= x_{k|k-1} + K_i(z - h(x_{k,i}) - H_i (x_{k|k-1} - x_{k,i}))
+        x_{k,i+1} &= x_{k|k-1} + K_i [z - h(x_{k,i}) - H_i (x_{k|k-1} - x_{k,i}) ]
 
         P_{k,i+1} &= (I - K_i H_i) P_{k|k-1}
 
@@ -575,19 +575,23 @@ class IteratedKalmanUpdater(ExtendedKalmanUpdater):
 
     .. math::
 
-        H_i &= h^{\prime}(x_{k,i}), \ K_i = P_{k|k-1} H_i^T (H_i P_{k|k-1} H_i^T + R)^{-1}
+        H_i &= h^{\prime}(x_{k,i}),
+
+        K_i &= P_{k|k-1} H_i^T (H_i P_{k|k-1} H_i^T + R)^{-1}
 
     and
 
     .. math::
 
-        x_{k,0} &= x_{k|k-1} \ \mathrm{and} \ P_{k,0} = P_{k|k-1}
+        x_{k,0} &= x_{k|k-1}
+
+        P_{k,0} &= P_{k|k-1}
 
     It inherits from the ExtendedKalmanUpdater as it uses the same linearisation of the sensor
     function via the :meth:`_measurement_matrix()` function.
     """
 
-    tolerance = Property(float, default=1e-6,
+    tolerance = Property(float, default=1e-8,
                          doc="The value of the difference in the measure used as a stopping "
                              "criterion.")
     measure = Property(Measure, default=Euclidean(), doc="The measure to use to test the "
@@ -595,9 +599,9 @@ class IteratedKalmanUpdater(ExtendedKalmanUpdater):
                                                          "to the Euclidean distance between "
                                                          "current and prior posterior state "
                                                          "estimate.")
-    max_iterations = Property(int, default=10000, doc="Number of iterations before while loop is"
-                                                      "exited and a non-convergence warning is "
-                                                      "returned")
+    max_iterations = Property(int, default=100000, doc="Number of iterations before while loop is"
+                                                       "exited and a non-convergence warning is "
+                                                       "returned")
 
     def update(self, hypothesis, **kwargs):
         r"""The iterated Kalman update method. Given a hypothesised association between a predicted
@@ -654,5 +658,8 @@ class IteratedKalmanUpdater(ExtendedKalmanUpdater):
 
             prev_state = post_state
             post_state = super().update(post_state.hypothesis, **kwargs)
+
+            # increment counter
+            iterations += 1
 
         return post_state
