@@ -93,13 +93,25 @@ class GaussianMixtureHypothesiser(Hypothesiser):
             # Get miss detected components
             miss_detections_hypothesis = MultipleHypothesis(
                 [x for x in single_hypothesis_list if not x])
+            
+            # Get Soft detections
+            soft_detect_list = [x for x in single_hypothesis_list if x]
             for detection in detections:
-                # Create multiple hypothesis per detection
-                detection_multiple_hypothesis = \
-                    MultipleHypothesis(list([hypothesis for hypothesis in single_hypothesis_list
+                if hasattr(detection, 'components') == True:      
+                    for sub_detection in detection.components:
+                        # Create multiple hypothesis per GM component
+                        detection_multiple_hypothesis = \
+                            MultipleHypothesis(list([hypothesis for hypothesis in soft_detect_list
+                                                if hypothesis.measurement.components == sub_detection])) 
+                        # Add to new list
+                        reordered_hypotheses.append(detection_multiple_hypothesis)                
+                else:
+                    # Create multiple hypothesis per detection
+                    detection_multiple_hypothesis = \
+                        MultipleHypothesis(list([hypothesis for hypothesis in single_hypothesis_list
                                             if hypothesis.measurement == detection]))
-                # Add to new list
-                reordered_hypotheses.append(detection_multiple_hypothesis)
+                    # Add to new list
+                    reordered_hypotheses.append(detection_multiple_hypothesis)                    
             # Add miss detected hypothesis to end
             reordered_hypotheses.append(miss_detections_hypothesis)
             # Assign reordered list to original list
