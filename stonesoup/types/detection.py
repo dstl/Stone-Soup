@@ -2,6 +2,7 @@
 from ..base import Property
 from .groundtruth import GroundTruthPath
 from .state import State, GaussianState, StateVector
+from .mixture import GaussianMixture
 from ..models.measurement import MeasurementModel
 
 
@@ -22,6 +23,11 @@ class Detection(State):
 
 class GaussianDetection(Detection, GaussianState):
     """GaussianDetection type"""
+
+
+class GaussianMixtureDetection(Detection, GaussianMixture):
+    """GaussianMixtureDetection type"""
+    state_vector = None  # Remove state_vector inherited from Detection
 
 
 class Clutter(Detection):
