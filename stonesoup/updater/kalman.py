@@ -621,7 +621,7 @@ class IteratedKalmanUpdater(ExtendedKalmanUpdater):
         -------
         : :class:`~.GaussianStateUpdate`
             The posterior state Gaussian with mean :math:`\mathbf{x}_{k|k}` and
-            covariance :math:`P_{x|x}`
+            covariance :math:`P_{k|k}`
 
         """
 
