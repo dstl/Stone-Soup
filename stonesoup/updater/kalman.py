@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import warnings
 import numpy as np
 import scipy.linalg as la
 from functools import lru_cache
@@ -12,6 +13,7 @@ from ..models.base import LinearModel
 from ..models.measurement.linear import LinearGaussian
 from ..models.measurement import MeasurementModel
 from ..functions import gauss2sigma, unscented_transform
+from ..measures import Measure, Euclidean
 
 
 class KalmanUpdater(Updater):
@@ -170,7 +172,7 @@ class KalmanUpdater(Updater):
         ----------
         hypothesis: :class:`~.Hypothesis`
             A hypothesised association between state prediction and measurement. It returns the
-            measurement prediction which in turn contains tbe measurement cross covariance,
+            measurement prediction which in turn contains the measurement cross covariance,
             :math:`P_{k|k-1} H_k^T and the innovation covariance,
             :math:`S = H_k P_{k|k-1} H_k^T + R`
 
@@ -216,10 +218,8 @@ class KalmanUpdater(Updater):
         # native to the updater
         measurement_model = self._check_measurement_model(measurement_model)
 
-        # Get the predicted measurement
         pred_meas = measurement_model.function(predicted_state, **kwargs)
 
-        # The measurement model matrix
         hh = self._measurement_matrix(predicted_state=predicted_state,
                                       measurement_model=measurement_model,
                                       **kwargs)
@@ -270,16 +270,13 @@ class KalmanUpdater(Updater):
             hypothesis.measurement_prediction = self.predict_measurement(
                 predicted_state, measurement_model=measurement_model, **kwargs)
 
-        # Get the predicted measurement mean
-        pred_meas = hypothesis.measurement_prediction.state_vector
-
         # Kalman gain and posterior covariance
         posterior_covariance, kalman_gain = self._posterior_covariance(hypothesis)
 
         # Posterior mean
-        posterior_mean = \
-            predicted_state.state_vector \
-            + kalman_gain@(hypothesis.measurement.state_vector - pred_meas)
+        posterior_mean = predicted_state.state_vector + \
+            kalman_gain@(hypothesis.measurement.state_vector -
+                         hypothesis.measurement_prediction.state_vector)
 
         if self.force_symmetric_covariance:
             posterior_covariance = \
@@ -562,3 +559,107 @@ class SqrtKalmanUpdater(KalmanUpdater):
                  hypothesis.measurement_prediction.cross_covar.T)
 
         return post_cov, kalman_gain
+
+
+class IteratedKalmanUpdater(ExtendedKalmanUpdater):
+    r"""This version of the Kalman updater runs an iteration over the linearisation of the
+    sensor function in order to refine the posterior state estimate. Specifically,
+
+    .. math::
+
+        x_{k,i+1} &= x_{k|k-1} + K_i [z - h(x_{k,i}) - H_i (x_{k|k-1} - x_{k,i}) ]
+
+        P_{k,i+1} &= (I - K_i H_i) P_{k|k-1}
+
+    where,
+
+    .. math::
+
+        H_i &= h^{\prime}(x_{k,i}),
+
+        K_i &= P_{k|k-1} H_i^T (H_i P_{k|k-1} H_i^T + R)^{-1}
+
+    and
+
+    .. math::
+
+        x_{k,0} &= x_{k|k-1}
+
+        P_{k,0} &= P_{k|k-1}
+
+    It inherits from the ExtendedKalmanUpdater as it uses the same linearisation of the sensor
+    function via the :meth:`_measurement_matrix()` function.
+    """
+
+    tolerance = Property(float, default=1e-6,
+                         doc="The value of the difference in the measure used as a stopping "
+                             "criterion.")
+    measure = Property(Measure, default=Euclidean(), doc="The measure to use to test the "
+                                                         "iteration stopping criterion. Defaults "
+                                                         "to the Euclidean distance between "
+                                                         "current and prior posterior state "
+                                                         "estimate.")
+    max_iterations = Property(int, default=1000, doc="Number of iterations before while loop is"
+                                                     "exited and a non-convergence warning is "
+                                                     "returned")
+
+    def update(self, hypothesis, **kwargs):
+        r"""The iterated Kalman update method. Given a hypothesised association between a predicted
+        state or predicted measurement and an actual measurement,
+        calculate the posterior state.
+
+        Parameters
+        ----------
+        hypothesis : :class:`~.SingleHypothesis`
+            the prediction-measurement association hypothesis. This hypothesis
+            may carry a predicted measurement, or a predicted state. In the
+            latter case a predicted measurement will be calculated.
+        **kwargs : various
+            These are passed to the measurement model function
+
+        Returns
+        -------
+        : :class:`~.GaussianStateUpdate`
+            The posterior state Gaussian with mean :math:`\mathbf{x}_{k|k}` and
+            covariance :math:`P_{k|k}`
+
+        """
+
+        # Record the starting point
+        prev_state = hypothesis.prediction
+
+        # Get the measurement model
+        measurement_model = self._check_measurement_model(hypothesis.measurement.measurement_model)
+
+        # The first iteration is just the application of the EKF
+        post_state = super().update(hypothesis, **kwargs)
+
+        # Now update the measurement prediction mean and loop
+        iterations = 0
+        while self.measure(prev_state, post_state) > self.tolerance:
+
+            if iterations > self.max_iterations:
+                warnings.warn("Iterated Kalman update did not converge")
+                break
+
+            # These lines effectively bypass the predict_measurement function in update()
+            # by attaching new linearised quantities to the measurement_prediction. Those
+            # would otherwise be calculated (from the original prediction) by the update() method.
+            hh = self._measurement_matrix(post_state, measurement_model=measurement_model)
+
+            post_state.hypothesis.measurement_prediction.state_vector = \
+                measurement_model.function(post_state, noise=None) + \
+                hh@(hypothesis.prediction.state_vector - post_state.state_vector)
+
+            cross_cov = self._measurement_cross_covariance(hypothesis.prediction, hh)
+            post_state.hypothesis.measurement_prediction.cross_covar = cross_cov
+            post_state.hypothesis.measurement_prediction.covar = \
+                self._innovation_covariance(cross_cov, hh, measurement_model)
+
+            prev_state = post_state
+            post_state = super().update(post_state.hypothesis, **kwargs)
+
+            # increment counter
+            iterations += 1
+
+        return post_state
