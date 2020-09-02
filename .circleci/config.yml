@@ -3,7 +3,6 @@ workflows:
   version: 2
   test:
     jobs:
-      - test-35
       - test-36
       - test-37
       - test-38
@@ -11,9 +10,9 @@ workflows:
     jobs:
       - docs
 jobs:
-  test-35: &test-template
+  test-36: &test-template
     docker:
-      - image: circleci/python:3.5
+      - image: circleci/python:3.6
     steps:
       - checkout
       - restore_cache:
@@ -45,10 +44,6 @@ jobs:
               -f test-reports/coverage.xml \
               -F unittests \
               -n ${CIRCLE_BUILD_NUM}
-  test-36:
-    <<: *test-template
-    docker:
-      - image: circleci/python:3.6
   test-37:
     <<: *test-template
     docker:
