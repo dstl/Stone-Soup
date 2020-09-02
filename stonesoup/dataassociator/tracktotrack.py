@@ -30,22 +30,22 @@ class TrackToTrack(TrackToTrackAssociator):
     combinations
     """
 
-    association_threshold = Property(
-        float, default=10,
+    association_threshold: float = Property(
+        default=10,
         doc="Threshold distance measure which states must be within for an "
             "association to be recorded.Default is 10")
-    consec_pairs_confirm = Property(
-        int, default=3,
+    consec_pairs_confirm: int = Property(
+        default=3,
         doc="Number of consecutive time instances which track pairs are "
             "required to be within a specified threshold in order for an "
             "association to be formed. Default is 3")
-    consec_misses_end = Property(
-        int, default=2,
+    consec_misses_end: int = Property(
+        default=2,
         doc="Number of consecutive time instances which track pairs are "
             "required to exceed a specified threshold in order for an "
             "association to be ended. Default is 2")
-    measure = Property(
-        Measure, default=Euclidean(),
+    measure: Measure = Property(
+        default=Euclidean(),
         doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
 
     def associate_tracks(self, tracks_set_1, tracks_set_2):
@@ -153,25 +153,22 @@ class TrackToTruth(TrackToTrackAssociator):
     Tracks (one-2-many relationship).
     """
 
-    association_threshold = Property(
-        float,
+    association_threshold: float = Property(
         default=10,
         doc="Threshold distance measure which states must be within for an "
             "association to be recorded.Default is 10")
-    consec_pairs_confirm = Property(
-        int,
+    consec_pairs_confirm: int = Property(
         default=3,
         doc="Number of consecutive time instances which track-truth pairs are "
             "required to be within a specified threshold in order for an "
             "association to be formed. Default is 3")
-    consec_misses_end = Property(
-        int,
+    consec_misses_end: int = Property(
         default=2,
         doc="Number of consecutive time instances which track-truth pairs are "
             "required to exceed a specified threshold in order for an "
             "association to be ended. Default is 2")
-    measure = Property(
-        Measure, default=Euclidean(),
+    measure: Measure = Property(
+        default=Euclidean(),
         doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
 
     def associate_tracks(self, tracks_set, truth_set):

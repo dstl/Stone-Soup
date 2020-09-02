@@ -11,7 +11,7 @@ from .file import FileReader
 
 class YAMLReader(FileReader, BufferedGenerator):
     """YAML Reader"""
-    path = Property(Path, doc="File to read data from")
+    path: Path = Property(doc="File to read data from")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

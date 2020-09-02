@@ -60,18 +60,16 @@ class KalmanUpdater(Updater):
 
     # TODO: at present this will throw an error if a measurement model is not
     # TODO: specified in either individual measurements or the Updater object
-    measurement_model = Property(
-        LinearGaussian, default=None,
+    measurement_model: LinearGaussian = Property(
+        default=None,
         doc="A linear Gaussian measurement model. This need not be defined if "
             "a measurement model is provided in the measurement. If no model "
             "specified on construction, or in the measurement, then error "
             "will be thrown.")
-
-    force_symmetric_covariance = Property(
-        bool, default=False, doc="A flag to force the output covariance matrix"
-                                 "to be symmetric by way of a simple geometric"
-                                 "combination of the matrix and transpose."
-                                 "Default is False.")
+    force_symmetric_covariance: bool = Property(
+        default=False,
+        doc="A flag to force the output covariance matrix to be symmetric by way of a simple "
+            "geometric combination of the matrix and transpose. Default is False.")
 
     # This attribute tells the :meth:`update()` method what class to return
     _update_class = GaussianStateUpdate
@@ -297,8 +295,8 @@ class ExtendedKalmanUpdater(KalmanUpdater):
     """
     # TODO: Enforce the fact that this version of MeasurementModel must be
     # TODO: capable of executing :attr:`jacobian()`
-    measurement_model = Property(
-        MeasurementModel, default=None,
+    measurement_model: MeasurementModel = Property(
+        default=None,
         doc="A measurement model. This need not be defined if a measurement "
             "model is provided in the measurement. If no model specified on "
             "construction, or in the measurement, then error will be thrown. "
@@ -346,25 +344,21 @@ class UnscentedKalmanUpdater(KalmanUpdater):
 
     """
     # Can be non-linear and non-differentiable
-    measurement_model = Property(
-        MeasurementModel,
+    measurement_model: MeasurementModel = Property(
         default=None,
         doc="The measurement model to be used. This need not be defined if a "
             "measurement model is provided in the measurement. If no model "
             "specified on construction, or in the measurement, then error "
             "will be thrown.")
-    alpha = Property(
-        float,
+    alpha: float = Property(
         default=0.5,
         doc="Primary sigma point spread scaling parameter. Default is 0.5.")
-    beta = Property(
-        float,
+    beta: float = Property(
         default=2,
         doc="Used to incorporate prior knowledge of the distribution. If the "
             "true distribution is Gaussian, the value of 2 is optimal. "
             "Default is 2")
-    kappa = Property(
-        float,
+    kappa: float = Property(
         default=0,
         doc="Secondary spread scaling parameter. Default is calculated as "
             "3-Ns")
@@ -430,9 +424,10 @@ class SqrtKalmanUpdater(KalmanUpdater):
        Journal, 6:6, 1165-1166
 
     """
-    qr_method = Property(bool, default=False, doc="A switch to do the update via a QR"
-                                                  "decomposition, rather than using the (vector"
-                                                  "form of) the Potter method.")
+    qr_method: bool = Property(
+        default=False,
+        doc="A switch to do the update via a QR decomposition, rather than using the (vector form "
+            "of) the Potter method.")
 
     # In this instance the square root form is returned by the :meth:`update()`
     _update_class = SqrtGaussianStateUpdate
@@ -591,17 +586,17 @@ class IteratedKalmanUpdater(ExtendedKalmanUpdater):
     function via the :meth:`_measurement_matrix()` function.
     """
 
-    tolerance = Property(float, default=1e-6,
-                         doc="The value of the difference in the measure used as a stopping "
-                             "criterion.")
-    measure = Property(Measure, default=Euclidean(), doc="The measure to use to test the "
-                                                         "iteration stopping criterion. Defaults "
-                                                         "to the Euclidean distance between "
-                                                         "current and prior posterior state "
-                                                         "estimate.")
-    max_iterations = Property(int, default=1000, doc="Number of iterations before while loop is"
-                                                     "exited and a non-convergence warning is "
-                                                     "returned")
+    tolerance: float = Property(
+        default=1e-6,
+        doc="The value of the difference in the measure used as a stopping criterion.")
+    measure: Measure = Property(
+        default=Euclidean(),
+        doc="The measure to use to test the iteration stopping criterion. Defaults to the "
+            "Euclidean distance between current and prior posterior state estimate.")
+    max_iterations: int = Property(
+        default=1000,
+        doc="Number of iterations before while loop is exited and a non-convergence warning is "
+            "returned")
 
     def update(self, hypothesis, **kwargs):
         r"""The iterated Kalman update method. Given a hypothesised association between a predicted

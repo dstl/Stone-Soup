@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import warnings
 from abc import abstractmethod
+from typing import Tuple
 
 import utm
 from pymap3d import geodetic2enu, geodetic2ned
@@ -11,10 +12,10 @@ from ..buffered_generator import BufferedGenerator
 
 
 class _LLARefConverter(DetectionFeeder, GroundTruthFeeder):
-    reference_point = Property(
-        (float, float, float), doc="(Long, Lat, Altitude)")
-    mapping = Property(
-        (float, float, float), default=(0, 1, 2),
+    reference_point: Tuple[float, float, float] = Property(
+        doc="(Long, Lat, Altitude)")
+    mapping: Tuple[int, int, int] = Property(
+        default=(0, 1, 2),
         doc="Indexes of long, lat, altitude. Default (0, 1, 2)")
 
     @property
@@ -76,15 +77,15 @@ class LongLatToUTMConverter(DetectionFeeder, GroundTruthFeeder):
 
     """
 
-    mapping = Property(
-        (float, float), default=(0, 1),
+    mapping: Tuple[int, int] = Property(
+        default=(0, 1),
         doc="Indexes of long, lat. Default (0, 1)")
-    zone_number = Property(
-        int, default=None,
+    zone_number: int = Property(
+        default=None,
         doc="UTM zone number to carry out conversion. Default `None`, where it will select the "
             "zone based on the first yielded data.")
-    northern = Property(
-        bool, default=None,
+    northern: bool = Property(
+        default=None,
         doc="UTM northern for northern or southern grid. Default `None`, where it will be based "
             "on the first yielded data.")
 

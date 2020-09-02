@@ -18,17 +18,14 @@ class PassiveElevationBearing(Sensor):
 
     """
 
-    ndim_state = Property(
-        int,
+    ndim_state: int = Property(
         doc="Number of state dimensions. This is utilised by (and follows in\
             format) the underlying :class:`~.CartesianToElevationBearing`\
             model")
-    mapping = Property(
-        [np.array],
+    mapping: np.ndarray = Property(
         doc="Mapping between the targets state space and the sensors\
             measurement capability")
-    noise_covar = Property(
-        CovarianceMatrix,
+    noise_covar: CovarianceMatrix = Property(
         doc="The sensor noise covariance matrix. This is utilised by\
             (and follow in format) the underlying \
             :class:`~.CartesianToElevationBearing` model")

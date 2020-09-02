@@ -1,4 +1,5 @@
 from collections.abc import Sized, Iterable, Container
+from typing import MutableSequence
 
 from .base import Type
 from ..base import Property
@@ -14,8 +15,7 @@ class GaussianMixture(Type, Sized, Iterable, Container):
     :class:`WeightedGaussianState`.
     """
 
-    components = Property(
-        [WeightedGaussianState],
+    components: MutableSequence[WeightedGaussianState] = Property(
         default=None,
         doc="""The initial list of :class:`WeightedGaussianState` components.
         Default `None` which initialises with empty list.""")

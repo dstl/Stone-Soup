@@ -106,7 +106,7 @@ def test_probability(serialised_file):
 
 def test_numpy(base, serialised_file):
     class _TestNumpy(base):
-        property_d = Property(np.ndarray)
+        property_d: np.ndarray = Property()
 
     instance = _TestNumpy(1, "two",
                           property_d=np.array([[1, 2], [3, 4], [5, 6]]))
@@ -148,7 +148,7 @@ def test_datetime(base, serialised_file):
     import datetime
 
     class _TestNumpy(base):
-        property_d = Property(datetime.timedelta)
+        property_d: datetime.datetime = Property()
 
     instance = _TestNumpy(1, "two",
                           property_d=datetime.timedelta(seconds=500))

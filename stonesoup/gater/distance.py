@@ -12,12 +12,12 @@ class DistanceGater(Gater):
     hypothised measurement, then removes any hypotheses whose calculated distance exceeds the
     specified gate threshold.
     """
-    measure = Property(Measure,
-                       doc="Measure class used to calculate the distance between the measurement "
-                           "prediction and the hypothesised measurement.")
-    gate_threshold = Property(float,
-                              doc="The gate threshold. Hypotheses whose calculated distance "
-                                  "exceeds this threshold will be filtered out.")
+    measure: Measure = Property(
+        doc="Measure class used to calculate the distance between the measurement "
+            "prediction and the hypothesised measurement.")
+    gate_threshold: float = Property(
+        doc="The gate threshold. Hypotheses whose calculated distance "
+            "exceeds this threshold will be filtered out.")
 
     def hypothesise(self, track, detections, *args, **kwargs):
 

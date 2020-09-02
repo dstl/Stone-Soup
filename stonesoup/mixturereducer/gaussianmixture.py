@@ -27,14 +27,10 @@ class GaussianMixtureReducer(MixtureReducer):
     pp. 4091–4104, 2006..
     """
 
-    prune_threshold = Property(float, default=1e-9,
-                               doc="Threshold for pruning.")
-    merge_threshold = Property(float, default=16,
-                               doc='Threshold for merging')
-    merging = Property(bool, default=True,
-                       doc='Flag for merging')
-    pruning = Property(bool, default=True,
-                       doc='Flag for pruning')
+    prune_threshold: float = Property(default=1e-9, doc="Threshold for pruning.")
+    merge_threshold: float = Property(default=16, doc='Threshold for merging')
+    merging: bool = Property(default=True, doc='Flag for merging')
+    pruning: bool = Property(default=True, doc='Flag for pruning')
 
     def reduce(self, components_list):
         """

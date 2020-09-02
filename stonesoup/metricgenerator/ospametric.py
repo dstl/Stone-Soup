@@ -25,10 +25,10 @@ class GOSPAMetric(MetricGenerator):
         Generalized optimal sub-pattern assignment metric, 2016,
         [online] Available: http://arxiv.org/abs/1601.05585.
     """
-    p = Property(float, doc="1<=p<infty, exponent.")
-    c = Property(float, doc="c>0, cutoff distance.")
-    measure = Property(
-        Measure, default=Euclidean(),
+    p: float = Property(doc="1<=p<infty, exponent.")
+    c: float = Property(doc="c>0, cutoff distance.")
+    measure: Measure = Property(
+        default=Euclidean(),
         doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
 
     def __init__(self, *args, **kwargs):
@@ -374,8 +374,8 @@ class OSPAMetric(GOSPAMetric):
         2008
     """
 
-    c = Property(float, doc='Maximum distance for possible association')
-    p = Property(float, doc='norm associated to distance')
+    c: float = Property(doc='Maximum distance for possible association')
+    p: float = Property(doc='norm associated to distance')
 
     def compute_over_time(self, measured_states, truth_states):
         """Compute the OSPA metric at every timestep from a list of measured

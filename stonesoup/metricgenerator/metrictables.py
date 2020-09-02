@@ -1,10 +1,11 @@
 from operator import attrgetter
+from typing import Collection
 
 import numpy as np
 import matplotlib
 from matplotlib import pyplot as plt
 
-from .base import MetricTableGenerator
+from .base import MetricTableGenerator, MetricGenerator
 from ..base import Property
 
 
@@ -16,7 +17,7 @@ class RedGreenTableGenerator(MetricTableGenerator):
     well the tracker performed in relation to each metric, where
     red is worse and green is better"""
 
-    metrics = Property(set, doc="Set of metrics to put in the table")
+    metrics: Collection[MetricGenerator] = Property(doc="Set of metrics to put in the table")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

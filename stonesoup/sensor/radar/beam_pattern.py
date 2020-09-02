@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 import datetime
-from typing import Sequence
+from typing import Sequence, Tuple
 
 from ...base import Property, Base
 
 
 class BeamTransitionModel(Base):
     """Base class for Beam Transition Model"""
-    centre = Property(list, doc="Centre of the beam pattern")
+    centre: Sequence = Property(doc="Centre of the beam pattern")
 
     def move_beam(self, timestamp, **kwargs):
         """Gives position of beam at given time"""
@@ -34,22 +34,18 @@ class StationaryBeam(BeamTransitionModel):
 
 class BeamSweep(BeamTransitionModel):
     """This describes a beam moving in a raster pattern"""
-    init_time = Property(
-        datetime.datetime, default=None,
-        doc="The time the frame is started")
-
-    angle_per_s = Property(float, doc="The speed that the beam scans at")
-    frame = Property(
-        Sequence[float], doc="Dimensions of search frame as [azimuth,elevation]")
-    separation = Property(float, doc="Separation of lines in elevation")
-    centre = Property(
-        Sequence[float], default=None,
+    init_time: datetime.datetime = Property(default=None, doc="The time the frame is started")
+    angle_per_s: float = Property(doc="The speed that the beam scans at")
+    frame: Tuple[float, float] = Property(doc="Dimensions of search frame as [azimuth,elevation]")
+    separation: float = Property(doc="Separation of lines in elevation")
+    centre: Tuple[float, float] = Property(
+        default=None,
         doc="Centre of the search frame in [azimuth,elevation]. Defaults to [0, 0]")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.centre is None:
-            self.centre = [0, 0]
+            self.centre = (0, 0)
 
     @property
     def length_frame(self):

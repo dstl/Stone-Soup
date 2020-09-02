@@ -20,7 +20,7 @@ class Updater(Base):
 
     """
 
-    measurement_model = Property(MeasurementModel, doc="measurement model")
+    measurement_model: MeasurementModel = Property(doc="measurement model")
 
     @abstractmethod
     def predict_measurement(

@@ -7,7 +7,7 @@ from ...base import Property, Base
 
 class BeamShape(Base):
     """Base class for beam shape"""
-    peak_power = Property(float, doc="peak power of the main lobe in Watts")
+    peak_power: float = Property(doc="peak power of the main lobe in Watts")
 
     def beam_power(self, azimuth, elevation, **kwargs):
         """beam power sent in the direction of the target.
@@ -28,8 +28,7 @@ class Beam2DGaussian(BeamShape):
      from the centre. :math:`B_w` is the beam width and :math:`P_p` is the peak
      power.
      """
-    beam_width = Property(float, default=None,
-                          doc='Width of the radar beam')
+    beam_width: float = Property(default=None, doc='Width of the radar beam')
 
     def beam_power(self, azimuth, elevation, **kwargs):
         """

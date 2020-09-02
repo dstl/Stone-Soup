@@ -12,8 +12,7 @@ class Update(Type):
     The base update class. Updates are returned by :class:'~.Updater' objects
     and contain the information that was used to perform the updating"""
 
-    hypothesis = Property(Hypothesis,
-                          doc="Hypothesis used for updating")
+    hypothesis: Hypothesis = Property(doc="Hypothesis used for updating")
 
 
 class StateUpdate(Update, State):

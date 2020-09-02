@@ -75,9 +75,8 @@ class GaussianMeasurementPrediction(MeasurementPrediction, GaussianState):
     suggests, is described by a Gaussian distribution.
     """
 
-    cross_covar = Property(CovarianceMatrix,
-                           doc="The state-measurement cross covariance matrix",
-                           default=None)
+    cross_covar: CovarianceMatrix = Property(
+        default=None, doc="The state-measurement cross covariance matrix")
 
     def __init__(self, state_vector, covar, timestamp=None,
                  cross_covar=None, *args, **kwargs):
