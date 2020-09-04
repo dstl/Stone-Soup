@@ -3,10 +3,10 @@ import os
 import sys
 from datetime import datetime, timedelta
 
+import stonesoup.gui.gui_logging
 from stonesoup.gui.qt import QtWidgets, QtCore
 
 from stonesoup.gui.stonesoup_widgets import MplCanvas, StoneSoupWidget
-from stonesoup.gui import stonesoup_widgets
 from stonesoup.models.transition.linear import ConstantVelocity, \
     CombinedLinearGaussianTransitionModel
 from stonesoup.predictor.kalman import KalmanPredictor
@@ -122,8 +122,8 @@ class DisplayWidget(QtWidgets.QWidget):
 
 def main():
     logging.basicConfig()
-    log = logging.getLogger(stonesoup_widgets.LOG_ID)
-    log.setLevel(logging.INFO)
+    log = logging.getLogger(stonesoup.gui.gui_logging.LOG_ID)
+    log.setLevel(logging.DEBUG)
     log.info('Starting the GUI')
 
     q_app = QtWidgets.QApplication(sys.argv)
