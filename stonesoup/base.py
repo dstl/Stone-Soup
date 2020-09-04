@@ -220,6 +220,11 @@ class BaseMeta(ABCMeta):
             # Optional arguments must follow mandatory
             if cls._properties[name].default is not Property.empty:
                 cls._properties.move_to_end(name)
+        for name, prop in cls._properties.items():
+            if not (isinstance(prop.cls, type) or
+                    str(prop.cls).startswith('typing.')):
+                raise ValueError(f'Invalid type specification ({str(prop.cls)}) '
+                                 f'for property {name} of class {cls.__name__}')
 
         cls._validate_init()
         cls._generate_signature()

@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import datetime
 
+import typing
+
 from .base import Type
 from .time import TimeRange
 from ..base import Property
@@ -10,8 +12,8 @@ class Metric(Type):
     """Metric type"""
 
     title: str = Property(doc='Name of the metric')
-    value: any = Property(doc='Value of the metric')
-    generator: any = Property(doc='Generator used to create the metric')
+    value: typing.Any = Property(doc='Value of the metric')
+    generator: typing.Any = Property(doc='Generator used to create the metric')
 
 
 class PlottingMetric(Metric):
