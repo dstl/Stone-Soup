@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from typing import List, Any
+
 import pytest
 
 from ..base import Property, Base
@@ -203,3 +205,73 @@ def test_readonly():
     assert test_object_default.readonly_property_default == 0
     with pytest.raises(AttributeError):
         test_object_default.readonly_property_default = 20
+
+
+def test_type_hint_checking():
+    """ Check that errors are raised for some common type hint errors """
+    # no error
+    class TestCorrect1(Base):
+        i: int = Property(doc='Test')
+    _ = TestCorrect1(i=1)
+
+    # no error
+    class TestCorrect2(Base):
+        i = Property(int, doc='Test')
+    _ = TestCorrect2(i=1)
+
+    # specify both as a type hint AND and argument. Argument wins.
+    class TestCorrect2(Base):
+        i: float = Property(int, doc='Test')
+    obj = TestCorrect2(i=1)
+    assert obj._properties['i'].cls is int
+
+    # error for [int]
+    with pytest.raises(ValueError):
+        class TestIncorrect1(Base):
+            i: [int] = Property(doc='Test')
+        _ = TestIncorrect1(i=1)
+
+    with pytest.raises(ValueError):
+        class TestIncorrect1(Base):
+            i = Property([int], doc='Test')
+        _ = TestIncorrect1(i=1)
+
+    # No error for List[int]
+    class TestCorrect1(Base):
+        i: List[int] = Property(doc='Test')
+    _ = TestCorrect1(i=1)
+
+    class TestCorrect2(Base):
+        i = Property(List[int], doc='Test')
+    _ = TestCorrect2(i=1)
+
+    with pytest.raises(ValueError):
+        class TestCorrect1(Base):
+            i: 'string' = Property(doc='Test')  # noqa: F821
+        _ = TestCorrect1(i=1)
+
+    with pytest.raises(ValueError):
+        class TestCorrect2(Base):
+            i = Property('string', doc='Test')
+        _ = TestCorrect2(i=1)
+
+    # errors for any
+    with pytest.raises(ValueError):
+        class TestCorrect1(Base):
+            i: any = Property(doc='Test')
+        _ = TestCorrect1(i=1)
+
+    with pytest.raises(ValueError):
+        class TestCorrect1(Base):
+            i = Property(any, doc='Test')
+        _ = TestCorrect1(i=1)
+
+    # no error for typing.Any
+    class TestCorrect1(Base):
+        i: Any = Property(doc='Test')
+    _ = TestCorrect1(i=1)
+
+    # no error
+    class TestCorrect2(Base):
+        i = Property(Any, doc='Test')
+    _ = TestCorrect2(i=1)
