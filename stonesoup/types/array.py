@@ -111,6 +111,12 @@ class StateVector(Matrix):
             key = (key, 0)
         return super().__setitem__(key, value)
 
+    def flatten(self, *args, **kwargs):
+        return self._cast(super().flatten(*args, **kwargs))
+
+    def ravel(self, *args, **kwargs):
+        return self._cast(super().ravel(*args, **kwargs))
+
 
 class StateVectors(Matrix):
     """Wrapper for :class:`numpy.ndarray for multiple State Vectors`

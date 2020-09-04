@@ -191,7 +191,10 @@ class GaussianModel(Model):
         noise = multivariate_normal.rvs(
             np.zeros(self.ndim), self.covar(**kwargs), num_samples)
 
-        noise = np.atleast_2d(noise).T
+        noise = np.atleast_2d(noise)
+
+        if self.ndim > 1:
+            noise = noise.T  # numpy.rvs method squeezes 1-dimensional matrices to integers
 
         if num_samples == 1:
             return noise.view(StateVector)

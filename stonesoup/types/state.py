@@ -135,12 +135,47 @@ class GaussianState(State):
         super().__init__(state_vector, covar, *args, **kwargs)
         if self.state_vector.shape[0] != self.covar.shape[0]:
             raise ValueError(
-                "state vector and covar should have same dimensions")
+                "state vector and covariance should have same dimensions")
 
     @property
     def mean(self):
         """The state mean, equivalent to state vector"""
         return self.state_vector
+
+
+class SqrtGaussianState(State):
+    """A Gaussian State type where the covariance matrix is stored in a form :math:`W` such that
+    :math:`P = WW^T`
+
+    For :math:`P` in general, :math:`W` is not unique and the user may choose the form to their
+    taste. No checks are undertaken to ensure that a sensible square root form has been chosen.
+
+    """
+    sqrt_covar = Property(CovarianceMatrix, doc="A square root form of the Gaussian covariance "
+                                                "matrix.")
+
+    def __init__(self, state_vector, sqrt_covar, *args, **kwargs):
+        sqrt_covar = CovarianceMatrix(sqrt_covar)
+        super().__init__(state_vector, sqrt_covar, *args, **kwargs)
+
+    @property
+    def mean(self):
+        """The state mean, equivalent to state vector"""
+        return self.state_vector
+
+    @property
+    def covar(self):
+        """The full covariance matrix.
+
+        Returns
+        -------
+        : :class:`~.CovarianceMatrix`
+            The covariance matrix calculated via :math:`W W^T`, where :math:`W` is a
+            :class:`~.SqrtCovarianceMatrix`
+
+        """
+        return self.sqrt_covar @ self.sqrt_covar.T
+GaussianState.register(SqrtGaussianState)  # noqa: E305
 
 
 class WeightedGaussianState(GaussianState):

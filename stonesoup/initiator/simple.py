@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.stats import multivariate_normal
 
-from .base import Initiator, GaussianInitiator
+from .base import GaussianInitiator, ParticleInitiator
 from ..base import Property
 from ..models.measurement import MeasurementModel
 from ..models.base import NonLinearModel, ReversibleModel
@@ -70,9 +70,23 @@ class SimpleMeasurementInitiator(GaussianInitiator):
 
     This then replaces mapped values in the :attr:`prior_state` to form the
     initial :class:`~.GaussianState` of the :class:`~.Track`.
+
+    The diagonal loading value is used to try to ensure that the estimated
+    covariance matrix is positive definite, especially for subsequent Cholesky
+    decompositions.
     """
     prior_state = Property(GaussianState, doc="Prior state information")
     measurement_model = Property(MeasurementModel, doc="Measurement model")
+    skip_non_reversible = Property(bool, default=False)
+    diag_load = Property(float,
+                         default=0.0,
+                         doc="Positive float value for diagonal loading")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.diag_load < 0:
+            raise ValueError(
+                "diag_load value can't be less than 0.0")
 
     def initiate(self, detections, **kwargs):
         tracks = set()
@@ -85,11 +99,19 @@ class SimpleMeasurementInitiator(GaussianInitiator):
 
             if isinstance(measurement_model, NonLinearModel):
                 if isinstance(measurement_model, ReversibleModel):
-                    state_vector = measurement_model.inverse_function(
-                        detection)
+                    try:
+                        state_vector = measurement_model.inverse_function(
+                            detection)
+                    except NotImplementedError:
+                        if not self.skip_non_reversible:
+                            raise
+                        else:
+                            continue
                     model_matrix = measurement_model.jacobian(State(
                         state_vector))
                     inv_model_matrix = np.linalg.pinv(model_matrix)
+                elif self.skip_non_reversible:
+                    continue
                 else:
                     raise Exception("Invalid measurement model used.\
                                     Must be instance of linear or reversible.")
@@ -103,15 +125,16 @@ class SimpleMeasurementInitiator(GaussianInitiator):
             prior_state_vector = self.prior_state.state_vector.copy()
             prior_covar = self.prior_state.covar.copy()
 
-            mapped_dimensions, _ = np.nonzero(
-                model_matrix.T @ np.ones((model_matrix.shape[0], 1)))
+            mapped_dimensions = measurement_model.mapping
+
             prior_state_vector[mapped_dimensions, :] = 0
             prior_covar[mapped_dimensions, :] = 0
-
+            C0 = inv_model_matrix @ model_covar @ inv_model_matrix.T
+            C0 = C0 + prior_covar + \
+                np.diag(np.array([self.diag_load]*C0.shape[0]))
             tracks.add(Track([GaussianStateUpdate(
                 prior_state_vector + state_vector,
-                prior_covar
-                + inv_model_matrix @ model_covar @ model_matrix.astype(bool),
+                C0,
                 SingleHypothesis(None, detection),
                 timestamp=detection.timestamp)
             ]))
@@ -185,7 +208,7 @@ class MultiMeasurementInitiator(GaussianInitiator):
         return sure_tracks
 
 
-class GaussianParticleInitiator(Initiator):
+class GaussianParticleInitiator(ParticleInitiator):
     """Gaussian Particle Initiator class
 
     Utilising Gaussian Initiator, sample from the resultant track's state

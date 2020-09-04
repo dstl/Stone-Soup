@@ -1,3 +1,5 @@
+from operator import attrgetter
+
 import numpy as np
 import matplotlib
 from matplotlib import pyplot as plt
@@ -33,13 +35,13 @@ class RedGreenTableGenerator(MetricTableGenerator):
         cellText = [["Metric", "Description", "Target", "Value"]]
         cellColors = [[white, white, white, white]]
 
-        for metric in self.metrics:
+        for metric in sorted(self.metrics, key=attrgetter('title')):
             #  Add metric details to table row
             metric_name = metric.title
             description = self.descriptions[metric_name]
             target = self.targets[metric_name]
             value = metric.value
-            cellText.append([metric_name, description, target, value])
+            cellText.append([metric_name, description, target, "{:.2f}".format(value)])
 
             # Generate color for value cell based on closeness to target value
             # Closeness to infinity cannot be represented as a color
@@ -67,9 +69,10 @@ class RedGreenTableGenerator(MetricTableGenerator):
 
         # "Plot" table
         fig = plt.figure(figsize=(20, 1))
+        fig.subplots_adjust(left=0.4, top=0.6)
         ax = fig.add_subplot(1, 1, 1)
-        plt.axis("off")
-        table = matplotlib.table.table(ax, cellText, cellColors)
+        ax.axis('off')
+        table = matplotlib.table.table(ax, cellText, cellColors, loc='center')
         table.auto_set_column_width([0, 1, 2, 3])
         table.scale(1, 4)
 

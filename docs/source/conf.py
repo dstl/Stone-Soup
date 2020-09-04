@@ -27,6 +27,7 @@ sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../../'))
 
 from doc_extensions import gallery_scraper
+from sphinx_gallery.sorting import FileNameSortKey
 
 # -- General configuration ------------------------------------------------
 
@@ -43,6 +44,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.mathjax',
     'sphinx.ext.intersphinx',
+    'sphinx.ext.autosectionlabel',
     'sphinx_gallery.gen_gallery',
 ]
 napoleon_google_docstring = False
@@ -51,18 +53,21 @@ autodoc_default_options = {
     'members': None,
     'member-order': 'bysource',
 }
-autodoc_mock_imports = ['ffmpeg', 'moviepy']
+autodoc_mock_imports = ['ffmpeg', 'moviepy', 'tensorflow', 'object_detection']
+
+autosectionlabel_prefix_document = True
 
 sphinx_gallery_conf = {
-     'examples_dirs': ['../tutorials', ],   # path to your example scripts
-     'gallery_dirs': ['auto_tutorials', ],   # path to where to save gallery generated output
+     'examples_dirs': ['../tutorials', '../examples', '../demos'],
+     'gallery_dirs': ['auto_tutorials', 'auto_examples', 'auto_demos'],
      'filename_pattern': re.escape(os.sep),
      'image_scrapers': (gallery_scraper(),),
-     'thumbnail_size': (800, 560),
      'abort_on_example_error': False,
      'reference_url': {'stonesoup': None},
      'remove_config_comments': True,
-     'ignore_repr_types': r'matplotlib.figure',
+     'ignore_repr_types': r'matplotlib\.(?:figure|animation)',
+     'within_subsection_order': FileNameSortKey,
+     'matplotlib_animations': True,
 }
 
 intersphinx_mapping = {
@@ -88,7 +93,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Stone Soup'
-copyright = '2017-2019 Stone Soup contributors'
+copyright = '2017-2020 Stone Soup contributors'
 author = 'Dstl'
 
 # The version info for the project you're documenting, acts as replacement for

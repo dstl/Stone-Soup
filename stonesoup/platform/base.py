@@ -47,17 +47,17 @@ class Platform(StateMutableSequence, ABC):
                                 doc="Mapping between platform position and state vector. For a "
                                     "position-only 3d platform this might be ``[0, 1, 2]``. For a "
                                     "position and velocity platform: ``[0, 2, 4]``")
-    rotation_offsets = Property(List[StateVector], default=None,
+    rotation_offsets = Property(List[StateVector], default=None, readonly=True,
                                 doc="A list of StateVectors containing the sensor rotation "
                                     "offsets from the platform's primary axis (defined as the "
                                     "direction of motion). Defaults to a zero vector with the "
                                     "same length as the Platform's :attr:`position_mapping`")
-    mounting_offsets = Property(List[StateVector], default=None,
+    mounting_offsets = Property(List[StateVector], default=None, readonly=True,
                                 doc="A list of StateVectors containing the sensor translation "
                                     "offsets from the platform's reference point. Defaults to "
                                     "a zero vector with the same length as the Platform's "
                                     ":attr:`position_mapping`")
-    sensors = Property(List["BaseSensor"],  default=None,
+    sensors = Property(List["BaseSensor"],  default=None, readonly=True,
                        doc="A list of N mounted sensors. Defaults to an empty list")
     velocity_mapping = Property(Sequence[int], default=None,
                                 doc="Mapping between platform velocity and state dims. If not "
@@ -74,16 +74,16 @@ class Platform(StateMutableSequence, ABC):
         # Set values to defaults if not provided
 
         if self.sensors is None:
-            self.sensors = []
+            self._property_sensors = []
 
         if self.velocity_mapping is None:
             self.velocity_mapping = [p + 1 for p in self.position_mapping]
 
         if self.mounting_offsets is None:
-            self.mounting_offsets = [StateVector([0] * self.ndim)] * len(self.sensors)
+            self._property_mounting_offsets = [StateVector([0] * self.ndim)] * len(self.sensors)
 
         if self.rotation_offsets is None:
-            self.rotation_offsets = [StateVector([0] * 3)] * len(self.sensors)
+            self._property_rotation_offsets = [StateVector([0] * 3)] * len(self.sensors)
 
         if len(self.sensors) != len(self.mounting_offsets):
             raise ValueError(
@@ -112,6 +112,22 @@ class Platform(StateMutableSequence, ABC):
     @position.setter
     def position(self, value: StateVector) -> None:
         self._set_position(value)
+
+    @staticmethod
+    def _tuple_or_none(value):
+        return None if value is None else tuple(value)
+
+    @sensors.getter
+    def get_sensors(self):
+        return self._tuple_or_none(self._property_sensors)
+
+    @mounting_offsets.getter
+    def get_mounting_offsets(self):
+        return self._tuple_or_none(self._property_mounting_offsets)
+
+    @rotation_offsets.getter
+    def get_rotation_offsets(self):
+        return self._tuple_or_none(self._property_rotation_offsets)
 
     @property
     def ndim(self) -> int:
@@ -186,7 +202,7 @@ class Platform(StateMutableSequence, ABC):
             A StateVector with the rotation offset of the new sensor. If not supplied, defaults to
             a zero vector.
         """
-        self.sensors.append(sensor)
+        self._property_sensors.append(sensor)
         sensor.platform_system = weakref.ref(self)
 
         if mounting_offset is None:
@@ -194,8 +210,30 @@ class Platform(StateMutableSequence, ABC):
         if rotation_offset is None:
             rotation_offset = StateVector([0] * 3)
 
-        self.mounting_offsets.append(mounting_offset)
-        self.rotation_offsets.append(rotation_offset)
+        self._property_mounting_offsets.append(mounting_offset)
+        self._property_rotation_offsets.append(rotation_offset)
+
+    def remove_sensor(self, sensor: "BaseSensor") -> None:
+        """ Remove a sensor from the platform
+
+        Parameters
+        ----------
+        sensor : :class:`~.BaseSensor`
+            The sensor object to remove
+        """
+        self.pop_sensor(self._property_sensors.index(sensor))
+
+    def pop_sensor(self, index: int):
+        """ Remove a sensor from the platform by index
+
+                Parameters
+                ----------
+                index : int
+                    The index of the sensor to remove
+                """
+        self._property_sensors.pop(index)
+        self._property_mounting_offsets.pop(index)
+        self._property_rotation_offsets.pop(index)
 
     def get_sensor_position(self, sensor: "BaseSensor") -> StateVector:
         """Return the position of the given sensor, which should be already attached to the
@@ -342,7 +380,8 @@ class MovingPlatform(Platform):
         this approximations and so raises an :class:`AttributeError`
         """
         if not self.is_moving:
-            raise AttributeError('Orientation of a zero-velocity moving platform is not defined')
+            raise NotImplementedError('Orientation of a zero-velocity moving platform is not'
+                                      'defined')
         velocity = self.velocity
 
         if self.ndim == 3:
@@ -350,10 +389,10 @@ class MovingPlatform(Platform):
             return StateVector([0, bearing, elevation])
         elif self.ndim == 2:
             _, bearing = cart2pol(*velocity.flat)
-            return StateVector([0, bearing])
+            return StateVector([0, 0, bearing])
         else:
-            raise ValueError('Orientation of a moving platform is only implemented for 2 and 3 '
-                             'dimensions')
+            raise NotImplementedError('Orientation of a moving platform is only implemented for 2'
+                                      'and 3 dimensions')
 
     @property
     def is_moving(self) -> bool:
