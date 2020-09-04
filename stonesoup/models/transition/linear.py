@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
-import math
+
 from functools import lru_cache
 
+import math
 import numpy as np
 import scipy as sp
-from scipy.linalg import block_diag
 from scipy.integrate import quad
+from scipy.linalg import block_diag
 
-from ...base import Property
-from ...types.array import CovarianceMatrix
+from .base import TransitionModel, _CombinedGaussianTransitionModel
 from ..base import (LinearModel, GaussianModel, TimeVariantModel,
                     TimeInvariantModel)
-from .base import TransitionModel
+from ...base import Property
+from ...types.array import CovarianceMatrix
 
 
 class LinearGaussianTransitionModel(
@@ -30,7 +31,7 @@ class LinearGaussianTransitionModel(
         return self.matrix().shape[0]
 
 
-class CombinedLinearGaussianTransitionModel(LinearGaussianTransitionModel):
+class CombinedLinearGaussianTransitionModel(LinearModel, _CombinedGaussianTransitionModel):
     r"""Combine multiple models into a single model by stacking them.
 
     The assumption is that all models are Linear and Gaussian.
@@ -38,20 +39,6 @@ class CombinedLinearGaussianTransitionModel(LinearGaussianTransitionModel):
     If any of the models are time variant the keyword argument "time_interval"
     must be supplied to all methods
     """
-
-    model_list = Property(
-        [LinearGaussianTransitionModel], doc="List of Transition Models.")
-
-    @property
-    def ndim_state(self):
-        """ndim_state getter method
-
-        Returns
-        -------
-        : :class:`int`
-            The number of combined model state dimensions.
-        """
-        return sum(model.ndim_state for model in self.model_list)
 
     def matrix(self, **kwargs):
         """Model matrix :math:`F`
@@ -65,19 +52,6 @@ class CombinedLinearGaussianTransitionModel(LinearGaussianTransitionModel):
         transition_matrices = [
             model.matrix(**kwargs) for model in self.model_list]
         return block_diag(*transition_matrices)
-
-    def covar(self, **kwargs):
-        """Returns the transition model noise covariance matrix.
-
-        Returns
-        -------
-        : :class:`stonesoup.types.state.CovarianceMatrix` of shape\
-        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
-            The process noise covariance.
-        """
-
-        covar_list = [model.covar(**kwargs) for model in self.model_list]
-        return block_diag(*covar_list)
 
 
 class LinearGaussianTimeInvariantTransitionModel(LinearGaussianTransitionModel,

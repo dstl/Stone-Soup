@@ -12,3 +12,9 @@ Linear
 .. automodule:: stonesoup.models.transition.linear
     :show-inheritance:
     :inherited-members:
+
+NonLinear
+---------
+.. automodule:: stonesoup.models.transition.nonlinear
+    :show-inheritance:
+    :inherited-members:
