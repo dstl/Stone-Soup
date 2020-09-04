@@ -222,7 +222,7 @@ class BaseMeta(ABCMeta):
                 cls._properties.move_to_end(name)
         for name, prop in cls._properties.items():
             if not (isinstance(prop.cls, type) or
-                    str(prop.cls).startswith('typing.')):
+                    (hasattr(prop.cls, '__module__') and prop.cls.__module__ == 'typing')):
                 raise ValueError(f'Invalid type specification ({str(prop.cls)}) '
                                  f'for property {name} of class {cls.__name__}')
 
