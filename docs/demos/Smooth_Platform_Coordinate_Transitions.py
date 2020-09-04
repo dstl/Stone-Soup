@@ -198,13 +198,6 @@ for i in range(int((times[-1] - times[0]).total_seconds()/sim_rate)):
     platform.move(timestamp=start+timedelta(seconds=sim_rate*i))
 platform_coords.append((platform.state.state_vector[0], platform.state.state_vector[2]))
 
-# ax.plot([coord[0] for coord in platform_coords],
-#         [coord[1] for coord in platform_coords],
-#         color='lightskyblue',
-#         marker='.',
-#         markerfacecolor='blue',
-#         markeredgecolor='blue',
-#         linewidth=3)
 ax.plot([coord[0] for coord in platform_coords],
         [coord[1] for coord in platform_coords],
         color='blue',
