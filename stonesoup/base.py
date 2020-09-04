@@ -205,10 +205,24 @@ class BaseMeta(ABCMeta):
         for key, value in namespace.items():
             if isinstance(value, Property):
                 cls._properties[key] = value
-                if value.cls is None and '__annotations__' in namespace:
+                if '__annotations__' in namespace:
+                    annotation_cls = namespace['__annotations__'].get(key, None)
+                else:
+                    annotation_cls = None
+                if value.cls is not None and annotation_cls is not None:
+                    raise ValueError(f'Type was specified both by type hint '
+                                     f'({str(annotation_cls)}) and argument ({str(value.cls)}) '
+                                     f'for property {key} of class {name}')
+                elif value.cls is None and annotation_cls is not None:
                     value.cls = namespace['__annotations__'][key]
                     if isinstance(value.cls, str) and value.cls == name:
                         value.cls = cls
+                elif value.cls is not None and annotation_cls is None:
+                    # Just use value.cls in this case
+                    pass
+                elif value.cls is None and annotation_cls is None:
+                    raise ValueError(f'Type was not specified '
+                                     f'for property {key} of class {name}')
         cls._properties.update(
             (key, value) for key, value in namespace.items()
             if isinstance(value, Property))
@@ -220,7 +234,7 @@ class BaseMeta(ABCMeta):
             # Optional arguments must follow mandatory
             if cls._properties[name].default is not Property.empty:
                 cls._properties.move_to_end(name)
-        for name, prop in cls._properties.items():
+        for prop_name, prop in cls._properties.items():
             if not (isinstance(prop.cls, type) or
                     (hasattr(prop.cls, '__module__') and prop.cls.__module__ == 'typing')):
                 raise ValueError(f'Invalid type specification ({str(prop.cls)}) '

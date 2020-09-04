@@ -210,68 +210,75 @@ def test_readonly():
 def test_type_hint_checking():
     """ Check that errors are raised for some common type hint errors """
     # no error
-    class TestCorrect1(Base):
+    class TestClass(Base):
         i: int = Property(doc='Test')
-    _ = TestCorrect1(i=1)
+    _ = TestClass(i=1)
 
     # no error
-    class TestCorrect2(Base):
+    class TestClass(Base):
         i = Property(int, doc='Test')
-    _ = TestCorrect2(i=1)
+    _ = TestClass(i=1)
 
-    # specify both as a type hint AND and argument. Argument wins.
-    class TestCorrect2(Base):
-        i: float = Property(int, doc='Test')
-    obj = TestCorrect2(i=1)
-    assert obj._properties['i'].cls is int
+    # specify both as a type hint AND and argument
+    with pytest.raises(ValueError):
+        class TestClass(Base):
+            i: float = Property(int, doc='Test')
+        obj = TestClass(i=1)
+        assert obj._properties['i'].cls is int
+
+    with pytest.raises(ValueError):
+        # Type is not specified
+        class TestClass(Base):
+            i = Property(doc='Test')
+        _ = TestClass(i=1)
 
     # error for [int]
     with pytest.raises(ValueError):
-        class TestIncorrect1(Base):
+        class TestClass(Base):
             i: [int] = Property(doc='Test')
-        _ = TestIncorrect1(i=1)
+        _ = TestClass(i=1)
 
     with pytest.raises(ValueError):
-        class TestIncorrect1(Base):
+        class TestClass(Base):
             i = Property([int], doc='Test')
-        _ = TestIncorrect1(i=1)
+        _ = TestClass(i=1)
 
     # No error for List[int]
-    class TestCorrect1(Base):
+    class TestClass(Base):
         i: List[int] = Property(doc='Test')
-    _ = TestCorrect1(i=1)
+    _ = TestClass(i=1)
 
-    class TestCorrect2(Base):
+    class TestClass(Base):
         i = Property(List[int], doc='Test')
-    _ = TestCorrect2(i=1)
+    _ = TestClass(i=1)
 
     with pytest.raises(ValueError):
-        class TestCorrect1(Base):
+        class TestClass(Base):
             i: 'string' = Property(doc='Test')  # noqa: F821
-        _ = TestCorrect1(i=1)
+        _ = TestClass(i=1)
 
     with pytest.raises(ValueError):
-        class TestCorrect2(Base):
+        class TestClass(Base):
             i = Property('string', doc='Test')
-        _ = TestCorrect2(i=1)
+        _ = TestClass(i=1)
 
     # errors for any
     with pytest.raises(ValueError):
-        class TestCorrect1(Base):
+        class TestClass(Base):
             i: any = Property(doc='Test')
-        _ = TestCorrect1(i=1)
+        _ = TestClass(i=1)
 
     with pytest.raises(ValueError):
-        class TestCorrect1(Base):
+        class TestClass(Base):
             i = Property(any, doc='Test')
-        _ = TestCorrect1(i=1)
+        _ = TestClass(i=1)
 
     # no error for typing.Any
-    class TestCorrect1(Base):
+    class TestClass(Base):
         i: Any = Property(doc='Test')
-    _ = TestCorrect1(i=1)
+    _ = TestClass(i=1)
 
     # no error
-    class TestCorrect2(Base):
+    class TestClass(Base):
         i = Property(Any, doc='Test')
-    _ = TestCorrect2(i=1)
+    _ = TestClass(i=1)
