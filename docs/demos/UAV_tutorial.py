@@ -105,11 +105,11 @@ ground_truth_reader = LLAtoENUConverter(ground_truth_reader, sensor_location, [0
 # The sensor is then mounted onto a platform (stationary in this case)
 
 from stonesoup.platform.base import FixedPlatform
-from stonesoup.sensor.radar.radar import RadarRangeBearingElevation
+from stonesoup.sensor.radar.radar import RadarElevationBearingRange
 from stonesoup.simulator.platform import PlatformDetectionSimulator
 from stonesoup.types.state import State
 
-sensor = RadarRangeBearingElevation(
+sensor = RadarElevationBearingRange(
     [0, 2, 4],
     meas_covar,
     6,

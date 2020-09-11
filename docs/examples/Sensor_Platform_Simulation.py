@@ -126,7 +126,7 @@ platform.orientation
 # We now create our radar.
 
 # Import a radar sensor model
-from stonesoup.sensor.radar.radar import RadarRangeBearingElevation
+from stonesoup.sensor.radar.radar import RadarElevationBearingRange
 
 # First we need to configure a radar
 
@@ -141,7 +141,7 @@ noise_covar = CovarianceMatrix(np.array(np.diag([np.deg2rad(3)**2,
 radar_mapping = (0, 2, 4)
 
 # Instantiate the radar
-radar = RadarRangeBearingElevation(ndim_state=6,
+radar = RadarElevationBearingRange(ndim_state=6,
                                    position_mapping=radar_mapping,
                                    noise_covar=noise_covar)
 # %%

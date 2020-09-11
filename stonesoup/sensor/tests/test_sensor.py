@@ -3,7 +3,7 @@ import datetime
 
 import pytest
 
-from stonesoup.sensor.radar.radar import RadarRangeRateBearingElevation
+from stonesoup.sensor.radar.radar import RadarElevationBearingRangeRate
 from ...platform.base import FixedPlatform
 from ..base import BaseSensor
 from ..sensor import Sensor
@@ -96,7 +96,7 @@ def radar_platform_target():
     vel_mapping = np.array([1, 3, 5])
     noise_covar = CovarianceMatrix(np.eye(4))
 
-    radar = RadarRangeRateBearingElevation(ndim_state=6,
+    radar = RadarElevationBearingRangeRate(ndim_state=6,
                                            position_mapping=pos_mapping,
                                            velocity_mapping=vel_mapping,
                                            noise_covar=noise_covar)

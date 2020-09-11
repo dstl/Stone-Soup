@@ -101,7 +101,7 @@ sensor_platform = MovingPlatform(states=initial_state,
 # (:math:`r`) and range-rate (:math:`\dot{r}`) of the target platform.
 
 # Import a range rate bearing elevation capable radar
-from stonesoup.sensor.radar.radar import RadarRangeRateBearingElevation
+from stonesoup.sensor.radar.radar import RadarElevationBearingRangeRate
 
 # Create a radar sensor
 radar_noise_covar = CovarianceMatrix(np.diag(
@@ -110,7 +110,7 @@ radar_noise_covar = CovarianceMatrix(np.diag(
               100.,  # Range
               25.])))  # Range Rate
 
-radar = RadarRangeRateBearingElevation(ndim_state=6,
+radar = RadarElevationBearingRangeRate(ndim_state=6,
                                        position_mapping=(0, 2, 4),
                                        velocity_mapping=(1, 3, 5),
                                        noise_covar=radar_noise_covar)
