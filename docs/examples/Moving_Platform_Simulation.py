@@ -355,6 +355,7 @@ for time, ctracks in tracker:
             # obtain measurement angles and map to cartesian
             e, a = detection.state_vector
             x, y, _ = sphere2cart(r, a + az_offset, e + el_offset)
+            color = 'g'
         X = [sensor_platform.state_vector[0], x]
         Y = [sensor_platform.state_vector[2], y]
         artists.extend(ax.plot(X, Y, color=color))
