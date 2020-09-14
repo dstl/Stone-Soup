@@ -125,9 +125,14 @@ def create_smooth_transition_models(initial_state, x_coords, y_coords, times, tu
 
         if d > 0:  # if platform is not already at target coord, add linear acceleration model
 
-            accel_model = Point2PointConstantAcceleration(state=state,
-                                                          destination=(x_coord, y_coord),
-                                                          duration=timedelta(seconds=t2))
+            try:
+                accel_model = Point2PointConstantAcceleration(state=state,
+                                                              destination=(x_coord, y_coord),
+                                                              duration=timedelta(seconds=t2))
+            except OvershootError:
+                accel_model = Point2PointStop(state=state,
+                                              destination=(x_coord, y_coord),
+                                              duration=timedelta(seconds=t2))
             state.state_vector = accel_model.function(state=state,
                                                       time_interval=timedelta(seconds=t2))
             state.timestamp += timedelta(seconds=t2)
@@ -135,6 +140,10 @@ def create_smooth_transition_models(initial_state, x_coords, y_coords, times, tu
             transition_models.append(accel_model)
 
     return transition_models, transition_times
+
+
+class OvershootError(Exception):
+    pass
 
 
 class Point2PointConstantAcceleration:
@@ -171,10 +180,7 @@ class Point2PointConstantAcceleration:
         self.over_shot = False
 
         if np.sign(ux) != np.sign(vx) or np.sign(uy) != np.sign(vy):
-            # if the resultant speeds have changed sign, the platform must have turned-back on
-            # itself hence must have overshot the destination
-            self.over_shot = True
-            self.new_model = Point2PointStop(state, destination, duration)  # use a different model
+            raise OvershootError()
 
     @property
     def ndim_state(self):
@@ -184,10 +190,6 @@ class Point2PointConstantAcceleration:
         return np.diag([1, 1, 1, 1])
 
     def function(self, state, time_interval, **kwargs):
-
-        if self.over_shot:
-            #  use other model if constant acceleration leads to overshooting
-            return self.new_model.function(state, time_interval)
 
         x = state.state_vector[0]
         y = state.state_vector[2]
