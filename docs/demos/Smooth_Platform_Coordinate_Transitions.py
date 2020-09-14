@@ -98,9 +98,6 @@ transition_models, transition_times = create_smooth_transition_models(initial_st
 # This gives the transition times/models:
 from stonesoup.models.transition.linear import ConstantTurn
 for transition_time, transition_model in zip(transition_times, transition_models):
-    if not isinstance(transition_model, ConstantTurn):
-        if transition_model.over_shot:
-            model = transition_model.new_model
     print('Duration: ', transition_time.total_seconds(), 's ',
           'Model: ', type(transition_model), end=' ')
     if isinstance(transition_model, ConstantTurn):
