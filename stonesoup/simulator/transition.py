@@ -130,6 +130,7 @@ def create_smooth_transition_models(initial_state, x_coords, y_coords, times, tu
                                                               destination=(x_coord, y_coord),
                                                               duration=timedelta(seconds=t2))
             except OvershootError:
+                # if linear accel leads to overshoot, apply model to stop at target coord instead
                 accel_model = Point2PointStop(state=state,
                                               destination=(x_coord, y_coord),
                                               duration=timedelta(seconds=t2))
@@ -159,8 +160,6 @@ class Point2PointConstantAcceleration:
 
     Where :math:`u, v, a, t, s` are initial speed, final speed, acceleration, transition time and
     distance travelled respectively.
-    If the required constant acceleration leads to the platform overshooting (and coming back to)
-    the destination coordinates, a :class:`~.Point2PointStop` transition model is called instead.
     """
 
     def __init__(self, state, destination, duration):
@@ -176,8 +175,6 @@ class Point2PointConstantAcceleration:
 
         vx = ux + self.ax*t  # final x-speed
         vy = uy + self.ay*t  # final y-speed
-
-        self.over_shot = False
 
         if np.sign(ux) != np.sign(vx) or np.sign(uy) != np.sign(vy):
             raise OvershootError()
