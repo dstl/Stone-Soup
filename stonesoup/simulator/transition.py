@@ -187,7 +187,7 @@ class Point2PointConstantAcceleration:
         return 4
 
     def covar(self, **kwargs):
-        return np.diag([1, 1, 1, 1])
+        raise NotImplementedError('Covariance not defined')
 
     def function(self, state, time_interval, **kwargs):
 
@@ -222,6 +222,13 @@ class Point2PointStop:
     The platform is decelerated to 0 velocity at the destination point and waits for the remaining
     duration.
     """
+
+    @property
+    def ndim_state(self):
+        return 4
+
+    def covar(self, **kwargs):
+        raise NotImplementedError('Covariance not defined')
 
     def __init__(self, state, destination, duration):
         dx = destination[0] - state.state_vector[0]  # x-distance to destination
