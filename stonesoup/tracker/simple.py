@@ -138,7 +138,7 @@ class MultiTargetTracker(Tracker):
 
 class MultiTargetMixtureTracker(Tracker):
     """A simple multi target tracker that receives associations from a
-    (Guassian) Mixture associator.
+    (Gaussian) Mixture associator.
 
     Track multiple objects using Stone Soup components. The tracker works by
     first calling the :attr:`data_associator` with the active tracks, and then
