@@ -68,8 +68,7 @@ def create_smooth_transition_models(initial_state, x_coords, y_coords, times, tu
             a = np.arctan2(vy, vx)  # initial bearing
 
         if dx == 0 and dy == 0 and vx == 0 and vy == 0:  # if at destination with 0 speed, stay
-            transition_times.append(
-                timedelta(seconds=(time - times[times.index(time) - 1]).total_seconds()))
+            transition_times.append(time - times[times.index(time) - 1])
             transition_models.append(CombinedLinearGaussianTransitionModel((ConstantVelocity(0),
                                                                             ConstantVelocity(0))))
             continue
