@@ -41,6 +41,8 @@ def create_smooth_transition_models(initial_state, x_coords, y_coords, times, tu
     Notes
     -----
     x_coords, y_coords and times must be of same length.
+    This method assumes a cartesian state space with velocities eg. (x, vx, y, vy). It returns
+    transition models for 2 cartesian coordinates and their corresponding velocities.
     """
 
     state = deepcopy(initial_state)  # don't alter platform state with calculations
