@@ -58,16 +58,17 @@ autodoc_mock_imports = ['ffmpeg', 'moviepy', 'tensorflow', 'object_detection']
 autosectionlabel_prefix_document = True
 
 sphinx_gallery_conf = {
-     'examples_dirs': ['../tutorials', '../examples', '../demos'],
-     'gallery_dirs': ['auto_tutorials', 'auto_examples', 'auto_demos'],
-     'filename_pattern': re.escape(os.sep),
-     'image_scrapers': (gallery_scraper(),),
-     'abort_on_example_error': False,
-     'reference_url': {'stonesoup': None},
-     'remove_config_comments': True,
-     'ignore_repr_types': r'matplotlib\.(?:figure|animation)',
-     'within_subsection_order': FileNameSortKey,
-     'matplotlib_animations': True,
+    'examples_dirs': ['../tutorials', '../examples', '../demos'],
+    'gallery_dirs': ['auto_tutorials', 'auto_examples', 'auto_demos'],
+    'filename_pattern': re.escape(os.sep),
+    'image_scrapers': (gallery_scraper(),),
+    'abort_on_example_error': False,
+    'reference_url': {'stonesoup': None},
+    'remove_config_comments': True,
+    'ignore_repr_types': r'matplotlib\.(?:figure|animation)',
+    'within_subsection_order': FileNameSortKey,
+    'matplotlib_animations': True,
+    'notebook_images': 'https://stonesoup.rtfd.io/en/latest/'
 }
 
 intersphinx_mapping = {
