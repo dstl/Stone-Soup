@@ -15,8 +15,7 @@ class NearestNeighbour(DataAssociator):
     Neighbour method.
     """
 
-    hypothesiser = Property(
-        Hypothesiser,
+    hypothesiser: Hypothesiser = Property(
         doc="Generate a set of hypotheses for each prediction-detection pair")
 
     def associate(self, tracks, detections, time):
@@ -77,8 +76,7 @@ class GlobalNearestNeighbour(DataAssociator):
     Nearest Neighbour method, assuming a distance-based hypothesis score.
     """
 
-    hypothesiser = Property(
-        Hypothesiser,
+    hypothesiser: Hypothesiser = Property(
         doc="Generate a set of hypotheses for each prediction-detection pair")
 
     def associate(self, tracks, detections, time):
@@ -119,8 +117,7 @@ class GNNWith2DAssignment(DataAssociator):
     distances and a "shortest path" assignment algorithm.
     """
 
-    hypothesiser = Property(
-        Hypothesiser,
+    hypothesiser: Hypothesiser = Property(
         doc="Generate a set of hypotheses for each prediction-detection pair")
 
     def associate(self, tracks, detections, time):

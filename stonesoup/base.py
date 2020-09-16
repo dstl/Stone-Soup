@@ -12,8 +12,8 @@ An example would be:
 
     class Foo(Base):
         '''Example Foo class'''
-        foo = Property(str, doc="foo string parameter")
-        bar = Property(int, default=10, doc="bar int parameter, default is 10")
+        foo: str = Property(doc="foo string parameter")
+        bar: int = Property(default=10, doc="bar int parameter, default is 10")
 
 
 This is equivalent to the following:
@@ -44,8 +44,8 @@ This is equivalent to the following:
 
         class Foo(Base):
         '''Example Foo class'''
-        foo = Property(str, doc="foo string parameter")
-        bar = Property(int, default=10, doc="bar int parameter, default is 10")
+        foo: str = Property(doc="foo string parameter")
+        bar: int = Property(default=10, doc="bar int parameter, default is 10")
 
         def __init__(self, foo, bar=bar.default, *args, **kwargs):
             if bar < 0:
@@ -55,7 +55,6 @@ This is equivalent to the following:
 
 """
 import inspect
-import sys
 import weakref
 from abc import ABCMeta
 from collections import OrderedDict
@@ -107,7 +106,7 @@ class Property:
     empty = inspect.Parameter.empty
     _property_name = None
 
-    def __init__(self, cls, *, default=inspect.Parameter.empty, doc=None,
+    def __init__(self, cls=None, *, default=inspect.Parameter.empty, doc=None,
                  readonly=False):
         self.cls = cls
         self.default = default
@@ -203,6 +202,27 @@ class BaseMeta(ABCMeta):
             if type(bcls) is mcls:
                 bcls._subclasses.add(cls)
                 cls._properties.update(bcls._properties)
+        for key, value in namespace.items():
+            if isinstance(value, Property):
+                cls._properties[key] = value
+                if '__annotations__' in namespace:
+                    annotation_cls = namespace['__annotations__'].get(key, None)
+                else:
+                    annotation_cls = None
+                if value.cls is not None and annotation_cls is not None:
+                    raise ValueError(f'Type was specified both by type hint '
+                                     f'({str(annotation_cls)}) and argument ({str(value.cls)}) '
+                                     f'for property {key} of class {name}')
+                elif value.cls is None and annotation_cls is not None:
+                    value.cls = namespace['__annotations__'][key]
+                    if isinstance(value.cls, str) and value.cls == name:
+                        value.cls = cls
+                elif value.cls is not None and annotation_cls is None:
+                    # Just use value.cls in this case
+                    pass
+                elif value.cls is None and annotation_cls is None:
+                    raise ValueError(f'Type was not specified '
+                                     f'for property {key} of class {name}')
         cls._properties.update(
             (key, value) for key, value in namespace.items()
             if isinstance(value, Property))
@@ -214,10 +234,11 @@ class BaseMeta(ABCMeta):
             # Optional arguments must follow mandatory
             if cls._properties[name].default is not Property.empty:
                 cls._properties.move_to_end(name)
-
-        if sys.version_info <= (3, 6):  # pragma: no cover
-            for name, property_ in cls._properties.items():
-                property_.__set_name__(cls, name)
+        for prop_name, prop in cls._properties.items():
+            if not (isinstance(prop.cls, type) or
+                    (hasattr(prop.cls, '__module__') and prop.cls.__module__ == 'typing')):
+                raise ValueError(f'Invalid type specification ({str(prop.cls)}) '
+                                 f'for property {name} of class {cls.__name__}')
 
         cls._validate_init()
         cls._generate_signature()

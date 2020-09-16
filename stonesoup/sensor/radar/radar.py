@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import copy
 from math import erfc
+from typing import Tuple
 
 import scipy.constants as const
 import numpy as np
@@ -30,19 +31,17 @@ class RadarBearingRange(Sensor):
 
     """
 
-    ndim_state = Property(
-        int, default=2,
+    ndim_state: int = Property(
+        default=2,
         doc="Number of state dimensions. This is utilised by (and follows in format) "
             "the underlying :class:`~.CartesianToBearingRange` model")
-    position_mapping = Property(
-        [np.array],
-        doc="Mapping between the targets state space and the sensors\
-            measurement capability")
-    noise_covar = Property(
-        CovarianceMatrix,
-        doc="The sensor noise covariance matrix. This is utilised by\
-            (and follow in format) the underlying \
-            :class:`~.CartesianToBearingRange` model")
+    position_mapping: Tuple[int, int] = Property(
+        doc="Mapping between the targets state space and the sensors "
+            "measurement capability")
+    noise_covar: CovarianceMatrix = Property(
+        doc="The sensor noise covariance matrix. This is utilised by "
+            "(and follow in format) the underlying "
+            ":class:`~.CartesianToBearingRange` model")
 
     def measure(self, ground_truth, noise=True, **kwargs):
         """Generate a measurement for a given state
@@ -89,24 +88,18 @@ class RadarRotatingBearingRange(RadarBearingRange):
 
     """
 
-    dwell_center = Property(
-        State, doc="A state object, whose `state_vector`\
-        property describes the rotation angle of the center of the sensor's\
-        current FOV (i.e. the dwell center) relative to the positive x-axis\
-        of the sensor frame/orientation. The angle is positive if the rotation\
-        is in the counter-clockwise direction when viewed by an observer\
-        looking down the z-axis of the sensor frame, towards the origin.\
-        Angle units are in radians"
+    dwell_center: State = Property(
+        doc="A state object, whose `state_vector` "
+            "property describes the rotation angle of the center of the sensor's "
+            "current FOV (i.e. the dwell center) relative to the positive x-axis "
+            "of the sensor frame/orientation. The angle is positive if the rotation "
+            "is in the counter-clockwise direction when viewed by an observer "
+            "looking down the z-axis of the sensor frame, towards the origin. "
+            "Angle units are in radians"
     )
-    rpm = Property(
-        float,
-        doc="The number of antenna rotations per minute (RPM)")
-    max_range = Property(
-        float,
-        doc="The maximum detection range of the radar (in meters)")
-    fov_angle = Property(
-        float,
-        doc="The radar field of view (FOV) angle (in radians).")
+    rpm: float = Property(doc="The number of antenna rotations per minute (RPM)")
+    max_range: float = Property(doc="The maximum detection range of the radar (in meters)")
+    fov_angle: float = Property(doc="The radar field of view (FOV) angle (in radians).")
 
     def measure(self, ground_truth, noise=True, **kwargs):
         """Generate a measurement for a given state
@@ -207,15 +200,14 @@ class RadarElevationBearingRange(RadarBearingRange):
 
     """
 
-    ndim_state = Property(
-        int, default=3,
+    ndim_state: int = Property(
+        default=3,
         doc="Number of state dimensions. This is utilised by (and follows in format) "
             "the underlying :class:`~.CartesianToBearingRange` model")
-    noise_covar = Property(
-        CovarianceMatrix,
-        doc="The sensor noise covariance matrix. This is utilised by\
-                (and follow in format) the underlying \
-                :class:`~.CartesianToElevationBearingRange` model")
+    noise_covar: CovarianceMatrix = Property(
+        doc="The sensor noise covariance matrix. This is utilised by "
+            "(and follow in format) the underlying "
+            ":class:`~.CartesianToElevationBearingRange` model")
 
     def measure(self, ground_truth, noise=True, **kwargs):
         """Generate a measurement for a given state
@@ -262,18 +254,17 @@ class RadarBearingRangeRate(RadarBearingRange):
 
     """
 
-    velocity_mapping = Property(
-        np.array, default=(1, 3, 5),
+    velocity_mapping: Tuple[int, int, int] = Property(
+        default=(1, 3, 5),
         doc="Mapping to the target's velocity information within its state space")
-    ndim_state = Property(
-        int, default=3,
+    ndim_state: int = Property(
+        default=3,
         doc="Number of state dimensions. This is utilised by (and follows in format) "
             "the underlying :class:`~.CartesianToBearingRangeRate` model")
-    noise_covar = Property(
-        CovarianceMatrix,
-        doc="The sensor noise covariance matrix. This is utilised by\
-                    (and follow in format) the underlying \
-                    :class:`~.CartesianToBearingRangeRate` model")
+    noise_covar: CovarianceMatrix = Property(
+        doc="The sensor noise covariance matrix. This is utilised by "
+            "(and follow in format) the underlying "
+            ":class:`~.CartesianToBearingRangeRate` model")
 
     def measure(self, ground_truth, noise=True, **kwargs) -> Detection:
         """Generate a measurement for a given state
@@ -321,18 +312,17 @@ class RadarElevationBearingRangeRate(RadarBearingRangeRate):
 
     """
 
-    velocity_mapping = Property(
-        np.array, default=(1, 3, 5),
+    velocity_mapping: Tuple[int, int, int] = Property(
+        default=(1, 3, 5),
         doc="Mapping to the target's velocity information within its state space")
-    ndim_state = Property(
-        int, default=6,
+    ndim_state: int = Property(
+        default=6,
         doc="Number of state dimensions. This is utilised by (and follows in format) "
             "the underlying :class:`~.CartesianToElevationBearingRangeRate` model")
-    noise_covar = Property(
-        CovarianceMatrix,
-        doc="The sensor noise covariance matrix. This is utilised by\
-                        (and follow in format) the underlying \
-                        :class:`~.CartesianToElevationBearingRangeRate` model")
+    noise_covar: CovarianceMatrix = Property(
+        doc="The sensor noise covariance matrix. This is utilised by "
+            "(and follow in format) the underlying "
+            ":class:`~.CartesianToElevationBearingRangeRate` model")
 
     def measure(self, ground_truth, noise=True, **kwargs) -> Detection:
         """Generate a measurement for a given state
@@ -388,8 +378,7 @@ class RadarRasterScanBearingRange(RadarRotatingBearingRange):
 
     """
 
-    for_angle = Property(
-        float, doc="The radar field of regard (FoR) angle (in radians).")
+    for_angle: float = Property(doc="The radar field of regard (FoR) angle (in radians).")
 
     def rotate(self, timestamp):
         """Rotate the sensor's antenna
@@ -477,67 +466,51 @@ class AESARadar(Sensor):
     The current implementation of this class assumes a 3D Cartesian plane.
     This model does not generate false alarms.
     """
-    rotation_offset = Property(
-        StateVector, default=None,
+    rotation_offset: StateVector = Property(
+        default=None,
         doc="A 3x1 array of angles (rad), specifying the radar orientation in terms of the "
             "counter-clockwise rotation around the :math:`x,y,z` axis. i.e Roll, Pitch and Yaw. "
             "Default is ``StateVector([0, 0, 0])``")
-
-    position_mapping = Property(
-        np.array, default=(0, 1, 2),
+    position_mapping: Tuple[int, int, int] = Property(
+        default=(0, 1, 2),
         doc="Mapping between or positions and state "
             "dimensions. [x,y,z]")
-
-    measurement_model = Property(
-        MeasurementModel, default=None,
+    measurement_model: MeasurementModel = Property(
+        default=None,
         doc="The Measurement model used to generate "
             "measurements.")
-
-    beam_shape = Property(
-        BeamShape,
+    beam_shape: BeamShape = Property(
         doc="Object describing the shape of the beam.")
-
-    beam_transition_model = Property(
-        BeamTransitionModel,
-        doc="Object describing the "
-            "movement of the beam in azimuth and "
-            "elevation from the perspective of "
-            "the radar.")
+    beam_transition_model: BeamTransitionModel = Property(
+        doc="Object describing the movement of the beam in azimuth and elevation from the "
+            "perspective of the radar.")
     # SNR variables
-    number_pulses = Property(
-        int, default=1,
-        doc="The number of pulses in the"
-            " radar burst.")
-    duty_cycle = Property(
-        float,
-        doc="Duty cycle is the fraction of the time "
-            "the radar it transmitting.")
-    band_width = Property(
-        float, doc="Bandwidth of the receiver in hertz.")
-    receiver_noise = Property(
-        float, doc="Noise figure of the radar in decibels.")
-    frequency = Property(
-        float, doc="Transmitted frequency in hertz.")
-    antenna_gain = Property(
-        float, doc="Total Antenna gain in decibels.")
-    beam_width = Property(
-        float, doc="Radar beam width in radians.")
-    loss = Property(
-        float, default=0, doc="Loss in decibels.")
-
-    swerling_on = Property(
-        bool, default=False,
+    number_pulses: int = Property(
+        default=1, doc="The number of pulses in the radar burst.")
+    duty_cycle: float = Property(
+        doc="Duty cycle is the fraction of the time the radar it transmitting.")
+    band_width: float = Property(
+        doc="Bandwidth of the receiver in hertz.")
+    receiver_noise: float = Property(
+        doc="Noise figure of the radar in decibels.")
+    frequency: float = Property(
+        doc="Transmitted frequency in hertz.")
+    antenna_gain: float = Property(
+        doc="Total Antenna gain in decibels.")
+    beam_width: float = Property(
+        doc="Radar beam width in radians.")
+    loss: float = Property(
+        default=0, doc="Loss in decibels.")
+    swerling_on: bool = Property(
+        default=False,
         doc="Is the Swerling 1 case used. If True the RCS"
             " of the target will change for each timestep. "
             "The random RCS follows the probability "
             "distribution of the Swerling 1 case.")
-    rcs = Property(
-        float, default=None,
-        doc="The radar cross section of targets in meters squared.")
-
-    probability_false_alarm = Property(
-        Probability, default=1e-6,
-        doc="Probability of false alarm used in the North's approximation")
+    rcs: float = Property(
+        default=None, doc="The radar cross section of targets in meters squared.")
+    probability_false_alarm: Probability = Property(
+        default=1e-6, doc="Probability of false alarm used in the North's approximation")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

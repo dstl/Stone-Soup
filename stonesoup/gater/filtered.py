@@ -10,11 +10,9 @@ class FilteredDetectionsGater(Gater):
     they are fed into the hypothesiser.
     """
 
-    metadata_filter = Property(
-        str, doc="Metadata attribute used to filter which detections "
-                 "tracks are valid for association.")
-    match_missing = Property(
-        bool,
+    metadata_filter: str = Property(
+        doc="Metadata attribute used to filter which detections tracks are valid for association.")
+    match_missing: bool = Property(
         default=True,
         doc="Match detections with missing metadata. Default 'True'.")
 

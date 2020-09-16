@@ -14,8 +14,7 @@ class MetricsWriter(Writer):
     Writes out metrics to some form of storage for analysis.
     """
 
-    metric_generator = Property(
-        MetricGenerator, doc="Source of metric to be written out")
+    metric_generator: MetricGenerator = Property(doc="Source of metric to be written out")
 
 
 class TrackWriter(Writer):
@@ -24,4 +23,4 @@ class TrackWriter(Writer):
     Writes out tracks to some form of storage for analysis.
     """
 
-    tracker = Property(Tracker, doc="Source of tracks to be written out")
+    tracker: Tracker = Property(doc="Source of tracks to be written out")

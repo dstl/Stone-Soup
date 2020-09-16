@@ -8,9 +8,7 @@ from ..base import Property
 
 class FileReader(Reader):
     """Base class for file based readers."""
-    path = Property(
-        Path,
-        doc="Path to file to be opened. Str will be converted to path.")
+    path: Path = Property(doc="Path to file to be opened. Str will be converted to path.")
 
     def __init__(self, path, *args, **kwargs):
         if not isinstance(path, Path):
@@ -27,9 +25,8 @@ class BinaryFileReader(FileReader):
 
 class TextFileReader(FileReader):
     """Base class for text file readers."""
-    encoding = Property(
-        str, default="utf-8",
-        doc="File encoding. Must be valid coding. Default 'utf-8'.")
+    encoding: str = Property(
+        default="utf-8", doc="File encoding. Must be valid coding. Default 'utf-8'.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

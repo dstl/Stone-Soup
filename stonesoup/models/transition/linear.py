@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-
+import math
+from typing import Sequence
 from functools import lru_cache
 
-import math
 import numpy as np
-import scipy as sp
 from scipy.integrate import quad
 from scipy.linalg import block_diag
 
@@ -58,12 +57,10 @@ class LinearGaussianTimeInvariantTransitionModel(LinearGaussianTransitionModel,
                                                  TimeInvariantModel):
     r"""Generic Linear Gaussian Time Invariant Transition Model."""
 
-    transition_matrix = Property(
-        sp.ndarray, doc="Transition matrix :math:`\\mathbf{F}`.")
-    control_matrix = Property(
-        sp.ndarray, default=None, doc="Control matrix :math:`\\mathbf{B}`.")
-    covariance_matrix = Property(
-        sp.ndarray,
+    transition_matrix: np.ndarray = Property(doc="Transition matrix :math:`\\mathbf{F}`.")
+    control_matrix: np.ndarray = Property(
+        default=None, doc="Control matrix :math:`\\mathbf{B}`.")
+    covariance_matrix: CovarianceMatrix = Property(
         doc="Transition noise covariance matrix :math:`\\mathbf{Q}`.")
 
     def matrix(self, **kwargs):
@@ -115,12 +112,11 @@ class ConstantNthDerivative(LinearGaussianTransitionModel, TimeVariantModel):
     calculated as the terms of the taylor expansion of each state variable.
     """
 
-    constant_derivative = Property(
-        int, doc="The order of the derivative with respect to time to be kept\
-                    constant, eg if 2 identical to constant acceleration")
-    noise_diff_coeff = Property(
-        float, doc="The Nth derivative noise diffusion \
-                   coefficient (Variance) :math:`q`")
+    constant_derivative: int = Property(
+        doc="The order of the derivative with respect to time to be kept constant, eg if 2 "
+            "identical to constant acceleration")
+    noise_diff_coeff: float = Property(
+        doc="The Nth derivative noise diffusion coefficient (Variance) :math:`q`")
 
     @property
     def ndim_state(self):
@@ -164,8 +160,7 @@ class RandomWalk(ConstantNthDerivative):
         The target is assumed to be (almost) stationary, where
         target velocity is modelled as white noise.
         """
-    noise_diff_coeff = Property(
-        float, doc="The position noise diffusion coefficient :math:`q`")
+    noise_diff_coeff: float = Property(doc="The position noise diffusion coefficient :math:`q`")
 
     @property
     def constant_derivative(self):
@@ -217,8 +212,7 @@ class ConstantVelocity(ConstantNthDerivative):
                         \frac{dt^2}{2} & dt
                 \end{bmatrix} q
     """
-    noise_diff_coeff = Property(
-        float, doc="The velocity noise diffusion coefficient :math:`q`")
+    noise_diff_coeff: float = Property(doc="The velocity noise diffusion coefficient :math:`q`")
 
     @property
     def constant_derivative(self):
@@ -276,8 +270,8 @@ class ConstantAcceleration(ConstantNthDerivative):
                         \frac{dt^3}{6} & \frac{dt^2}{2} & dt
                       \end{bmatrix} q
     """
-    noise_diff_coeff = Property(
-        float, doc="The acceleration noise diffusion coefficient :math:`q`")
+    noise_diff_coeff: float = Property(
+        doc="The acceleration noise diffusion coefficient :math:`q`")
 
     @property
     def constant_derivative(self):
@@ -306,13 +300,11 @@ class NthDerivativeDecay(LinearGaussianTransitionModel, TimeVariantModel):
     simply, but examples for N=1 and N=2 are given in
     :class:`~.OrnsteinUhlenbeck` and :class:`~.Singer` respectively.
         """
-    decay_derivative = Property(
-        int, doc="The derivative with respect to time to decay exponentially, "
-                 "eg if 2 identical to singer")
-    noise_diff_coeff = Property(
-        float, doc="The noise diffusion coefficient :math:`q`")
-    damping_coeff = Property(
-        float, doc="The Nth derivative damping coefficient :math:`K`")
+    decay_derivative: int = Property(
+        doc="The derivative with respect to time to decay exponentially, eg if 2 identical to "
+            "singer")
+    noise_diff_coeff: float = Property(doc="The noise diffusion coefficient :math:`q`")
+    damping_coeff: float = Property(doc="The Nth derivative damping coefficient :math:`K`")
 
     @property
     def ndim_state(self):
@@ -415,10 +407,8 @@ class OrnsteinUhlenbeck(NthDerivativeDecay):
                 \end{bmatrix} q
     """
 
-    noise_diff_coeff = Property(
-        float, doc="The velocity noise diffusion coefficient :math:`q`")
-    damping_coeff = Property(
-        float, doc="The velocity damping coefficient :math:`K`")
+    noise_diff_coeff: float = Property(doc="The velocity noise diffusion coefficient :math:`q`")
+    damping_coeff: float = Property(doc="The velocity damping coefficient :math:`K`")
 
     @property
     def decay_derivative(self):
@@ -487,10 +477,9 @@ class Singer(NthDerivativeDecay):
                     \end{bmatrix}
     """
 
-    noise_diff_coeff = Property(
-        float, doc="The acceleration noise diffusion coefficient :math:`q`")
-    damping_coeff = Property(
-        float, doc=r"The reciprocal of the decorrelation time :math:`\alpha`")
+    noise_diff_coeff: float = Property(
+        doc="The acceleration noise diffusion coefficient :math:`q`")
+    damping_coeff: float = Property(doc=r"The reciprocal of the decorrelation time :math:`\alpha`")
 
     @property
     def decay_derivative(self):
@@ -602,13 +591,12 @@ class ConstantTurnSandwich(LinearGaussianTransitionModel, TimeVariantModel):
     known (nearly) constant turn rate.
     """
 
-    turn_noise_diff_coeffs = Property(
-        np.ndarray,
+    turn_noise_diff_coeffs: np.ndarray = Property(
         doc="The acceleration noise diffusion coefficients :math:`q`")
-    turn_rate = Property(
-        float, doc=r"The turn rate :math:`\omega`")
-    model_list = Property(
-        [LinearGaussianTransitionModel], doc="List of Transition Models.")
+    turn_rate: float = Property(
+        doc=r"The turn rate :math:`\omega`")
+    model_list: Sequence[LinearGaussianTransitionModel] = Property(
+        doc="List of Transition Models.")
 
     @property
     def ndim_state(self):

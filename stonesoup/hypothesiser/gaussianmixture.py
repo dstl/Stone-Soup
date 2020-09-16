@@ -15,11 +15,9 @@ class GaussianMixtureHypothesiser(Hypothesiser):
     pertaining to an individual component-detection hypothesis
     """
 
-    hypothesiser = Property(
-        Hypothesiser,
+    hypothesiser: Hypothesiser = Property(
         doc="Underlying hypothesiser used to generate detection-target pairs")
-    order_by_detection = Property(
-        bool,
+    order_by_detection: bool = Property(
         default=False,
         doc="Flag to order the :class:`~.MultipleHypothesis` "
             "list by detection or component")

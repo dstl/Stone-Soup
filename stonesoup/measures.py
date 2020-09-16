@@ -13,8 +13,7 @@ class Measure(Base):
     A measure provides a means to assess the seperation between two
     :class:`~.State` objects state1 and state2.
     """
-    mapping = Property(
-        np.array,
+    mapping: np.ndarray = Property(
         default=None,
         doc="Mapping array which specifies which elements within the"
             " state vectors are to be assessed as part of the measure"
@@ -94,9 +93,7 @@ class EuclideanWeighted(Measure):
     :class:`Measure` objects must be created with the specific weighting
 
     """
-    weighting = Property(
-        [np.array],
-        doc="Weighting vector for the Euclidean calculation")
+    weighting: np.ndarray = Property(doc="Weighting vector for the Euclidean calculation")
 
     def __call__(self, state1, state2):
         r"""Calculate the weighted Euclidean distance between a pair of state

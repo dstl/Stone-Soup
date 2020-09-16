@@ -13,8 +13,7 @@ class CovarianceBasedDeleter(Deleter):
     exceeds a given threshold.
     """
 
-    covar_trace_thresh = Property(
-        float, doc="Covariance matrix trace threshold")
+    covar_trace_thresh: float = Property(doc="Covariance matrix trace threshold")
 
     def check_for_deletion(self, track, **kwargs):
         """Check if a given track should be deleted

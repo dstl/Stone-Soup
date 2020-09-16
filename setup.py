@@ -25,6 +25,7 @@ setup(name='stonesoup',
           'Topic :: Scientific/Engineering',
       ],
       packages=find_packages(exclude=('docs', '*.tests')),
+      python_requires='>=3.6',
       install_requires=[
           'ruamel.yaml>=0.15.45', 'numpy>=1.17', 'scipy', 'matplotlib', 'utm', 'pymap3d'],
       extras_require={

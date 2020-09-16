@@ -37,11 +37,9 @@ class KalmanPredictor(Predictor):
 
     """
 
-    transition_model = Property(
-        LinearGaussianTransitionModel,
+    transition_model: LinearGaussianTransitionModel = Property(
         doc="The transition model to be used.")
-    control_model = Property(
-        LinearControlModel,
+    control_model: LinearControlModel = Property(
         default=None,
         doc="The control model to be used. Default `None` where the predictor "
             "will create a zero-effect linear :class:`~.ControlModel`.")
@@ -214,11 +212,8 @@ class ExtendedKalmanPredictor(KalmanPredictor):
     # In this version the models can be non-linear, but must have access to the
     # :attr:`jacobian()` function
     # TODO: Enforce the presence of :attr:`jacobian()`
-    transition_model = Property(
-        TransitionModel,
-        doc="The transition model to be used.")
-    control_model = Property(
-        ControlModel,
+    transition_model: TransitionModel = Property(doc="The transition model to be used.")
+    control_model: ControlModel = Property(
         default=None,
         doc="The control model to be used. Default `None` where the predictor "
             "will create a zero-effect linear :class:`~.ControlModel`.")
@@ -293,26 +288,20 @@ class UnscentedKalmanPredictor(KalmanPredictor):
     Gaussian mean and covariance, then putting these through the (in general
     non-linear) transition function, then reconstructing the Gaussian.
     """
-    transition_model = Property(
-        TransitionModel,
-        doc="The transition model to be used.")
-    control_model = Property(
-        ControlModel,
+    transition_model: TransitionModel = Property(doc="The transition model to be used.")
+    control_model: ControlModel = Property(
         default=None,
         doc="The control model to be used. Default `None` where the predictor "
             "will create a zero-effect linear :class:`~.ControlModel`.")
-    alpha = Property(
-        float,
+    alpha: float = Property(
         default=0.5,
         doc="Primary sigma point spread scaling parameter. Default is 0.5.")
-    beta = Property(
-        float,
+    beta: float = Property(
         default=2,
         doc="Used to incorporate prior knowledge of the distribution. If the "
             "true distribution is Gaussian, the value of 2 is optimal. "
             "Default is 2")
-    kappa = Property(
-        float,
+    kappa: float = Property(
         default=0,
         doc="Secondary spread scaling parameter. Default is calculated as "
             "3-Ns")
@@ -419,9 +408,10 @@ class SqrtKalmanPredictor(KalmanPredictor):
        Springfield, VA.
 
     """
-    qr_method = Property(bool, default=False, doc="A switch to do the prediction via a QR "
-                                                  "decomposition, rather than using a Cholesky"
-                                                  "decomposition.")
+    qr_method: bool = Property(
+        default=False,
+        doc="A switch to do the prediction via a QR decomposition, rather than using a Cholesky "
+            "decomposition.")
 
     # This predictor returns a square root form of the Gaussian state prediction
     _prediction_class = SqrtGaussianStatePrediction

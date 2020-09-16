@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import uuid
+from typing import MutableSequence, MutableMapping
 
 from ..base import Property
 from .state import State, StateMutableSequence
@@ -7,8 +8,8 @@ from .state import State, StateMutableSequence
 
 class GroundTruthState(State):
     """Ground Truth State type"""
-    metadata = Property(dict, default=None,
-                        doc='Dictionary of metadata items for Detections.')
+    metadata: MutableMapping = Property(
+        default=None, doc='Dictionary of metadata items for Detections.')
 
     def __init__(self, state_vector, *args, **kwargs):
         super().__init__(state_vector, *args, **kwargs)
@@ -22,13 +23,11 @@ class GroundTruthPath(StateMutableSequence):
     A :class:`~.StateMutableSequence` representing a track.
     """
 
-    states = Property(
-        [GroundTruthState],
+    states: MutableSequence[GroundTruthState] = Property(
         default=None,
         doc="List of groundtruth states to initialise path with. Default "
             "`None` which initialises with an empty list.")
-    id = Property(
-        str,
+    id: str = Property(
         default=None,
         doc="The unique path ID. Default `None` where random UUID is "
             "generated.")

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import Optional
 
 try:
     import tensorflow as tf
@@ -71,7 +72,7 @@ class TensorFlowBoxObjectDetector(Detector):
         default=False)
 
     session_config = Property(
-        tf.compat.v1.ConfigProto,
+        Optional[tf.compat.v1.ConfigProto],
         doc="A `ConfigProto <https://www.tensorflow.org/code/tensorflow/core/protobuf/config"
             ".proto>`_ protocol buffer with configuration options for the TensorFlow session. "
             "Defaults to ``None``",

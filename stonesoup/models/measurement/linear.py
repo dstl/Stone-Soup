@@ -24,7 +24,7 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
 
     """
 
-    noise_covar = Property(CovarianceMatrix, doc="Noise covariance")
+    noise_covar: CovarianceMatrix = Property(doc="Noise covariance")
 
     @property
     def ndim_meas(self):

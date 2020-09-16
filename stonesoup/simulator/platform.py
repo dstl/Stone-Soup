@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import Sequence
 
 from ..base import Property
 from ..reader import GroundTruthReader
@@ -14,12 +15,10 @@ class PlatformDetectionSimulator(DetectionSimulator):
     according to a list of platforms by calling each sensor in these platforms.
 
     """
-    groundtruth = Property(GroundTruthReader,
-                           doc='Source of ground truth tracks used to generate'
-                               ' detections for.')
-    platforms = Property([Platform],
-                         doc='List of platforms in :class:`~.Platform` to '
-                             'generate sensor detections from.')
+    groundtruth: GroundTruthReader = Property(
+        doc='Source of ground truth tracks used to generate detections for.')
+    platforms: Sequence[Platform] = Property(
+        doc='List of platforms in :class:`~.Platform` to generate sensor detections from.')
 
     @BufferedGenerator.generator_method
     def detections_gen(self):

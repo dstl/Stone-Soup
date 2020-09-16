@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from typing import MutableMapping
+
 from ..base import Property
 from .groundtruth import GroundTruthPath
 from .state import State, GaussianState, StateVector
@@ -7,12 +9,12 @@ from ..models.measurement import MeasurementModel
 
 class Detection(State):
     """Detection type"""
-    measurement_model = Property(MeasurementModel, default=None,
-                                 doc="The measurement model used to generate the detection\
-                         (the default is ``None``)")
+    measurement_model: MeasurementModel = Property(
+        default=None,
+        doc="The measurement model used to generate the detection (the default is ``None``)")
 
-    metadata = Property(dict, default=None,
-                        doc='Dictionary of metadata items for Detections.')
+    metadata: MutableMapping = Property(
+        default=None, doc='Dictionary of metadata items for Detections.')
 
     def __init__(self, state_vector, *args, **kwargs):
         super().__init__(state_vector, *args, **kwargs)
@@ -39,8 +41,7 @@ class TrueDetection(Detection):
     detections for metrics and analysis purposes.
     """
 
-    groundtruth_path = Property(
-        GroundTruthPath,
+    groundtruth_path: GroundTruthPath = Property(
         doc="Ground truth path that this detection came from")
 
 
@@ -52,9 +53,7 @@ class MissedDetection(Detection):
     detections are associated with the specified track).
     """
 
-    state_vector = Property(
-        StateVector, default=None,
-        doc="State vector. Default `None`.")
+    state_vector: StateVector = Property(default=None, doc="State vector. Default `None`.")
 
     def __init__(self, state_vector=None, *args, **kwargs):
         super().__init__(state_vector, *args, **kwargs)
