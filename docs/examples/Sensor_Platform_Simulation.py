@@ -49,10 +49,10 @@ start_time = datetime.now()
 # have the following :math:`\mathbf{x}`.
 #
 # .. math::
-#           \begin{align}\mathbf{x} = \begin{bmatrix}
-#                                       x\\ \dot{x}\\ y\\ \dot{y}\\ z\\ \dot{z} \end{bmatrix}
-#                                   = \begin{bmatrix}
-#                                       0\\ 0\\ 0\\ 0\\ 0\\ 0 \end{bmatrix}\end{align}
+#           \mathbf{x} = \begin{bmatrix}
+#                          x\\ \dot{x}\\ y\\ \dot{y}\\ z\\ \dot{z} \end{bmatrix}
+#                      = \begin{bmatrix}
+#                          0\\ 0\\ 0\\ 0\\ 0\\ 0 \end{bmatrix}
 #
 # Because the platform is static we only need to define :math:`(x, y, z)`, any internal interaction with the platform
 # which requires knowledge of platform velocity :math:`(\dot{x}, \dot{y}, \dot{z})` will be returned :math:`(0, 0, 0)`.
@@ -95,33 +95,33 @@ platform.orientation
 # The model is described by the following equations:
 #
 # .. math::
-#           \begin{align} \mathbf{z}_k = h(\mathbf{x}_k, \dot{\mathbf{x}}_k) \end{align}
+#           \mathbf{z}_k = h(\mathbf{x}_k, \dot{\mathbf{x}}_k)
 #
 # where :math:`\mathbf{z}_k` is a measurement vector of the form:
 #
 # .. math::
-#           \begin{align} \mathbf{z}_k = \begin{bmatrix} \theta \\ \phi \\ r \end{bmatrix} \end{align}
+#           \mathbf{z}_k = \begin{bmatrix} \theta \\ \phi \\ r \end{bmatrix}
 #
 # and :math:`h` is a non-linear model function of the form:
 #
 # .. math::
-#           \begin{align} h(\mathbf{x}_k,\dot{\mathbf{x}}_k) = \begin{bmatrix}
-#                                        \arcsin{(\mathcal{z}/\sqrt{\mathcal{x}^2 + \mathcal{y}^2 +\mathcal{z}^2})} \\
-#                                        \arctan{(\mathcal{y},\mathcal{x})} \\
-#                                        \sqrt{\mathcal{x}^2 + \mathcal{y}^2 + \mathcal{z}^2}
-#                                        \end{bmatrix} + \dot{\mathbf{x}}_k \end{align}
+#           h(\mathbf{x}_k,\dot{\mathbf{x}}_k) = \begin{bmatrix}
+#                     \arcsin{(\mathcal{z}/\sqrt{\mathcal{x}^2 + \mathcal{y}^2 +\mathcal{z}^2})} \\
+#                     \arctan{(\mathcal{y},\mathcal{x})} \\
+#                     \sqrt{\mathcal{x}^2 + \mathcal{y}^2 + \mathcal{z}^2}
+#                     \end{bmatrix} + \dot{\mathbf{x}}_k
 #
 # and finally :math:`\mathbf{z}_k` is Gaussian distributed with covariance :math:`R`, i.e.:
 #
 # .. math::
-#           \begin{align} \mathbf{z}_k \sim \mathcal{N}(0,R) \end{align}
+#           \mathbf{z}_k \sim \mathcal{N}(0,R)
 #
 # .. math::
-#           \begin{align} R = \begin{bmatrix}
-#                           \sigma_{\theta}^2 & 0 & 0 \\
-#                           0 & \sigma_{\phi}^2 & 0 \\
-#                           0 & 0 & \sigma_{r}^2
-#                           \end{bmatrix} \end{align}
+#           R = \begin{bmatrix}
+#             \sigma_{\theta}^2 & 0 & 0 \\
+#             0 & \sigma_{\phi}^2 & 0 \\
+#             0 & 0 & \sigma_{r}^2
+#             \end{bmatrix}
 #
 # We now create our radar.
 
@@ -153,13 +153,13 @@ radar = RadarElevationBearingRange(ndim_state=6,
 #
 # The mounting offset:
 #
-#     * defines how the sensors position is offset from the platform,
-#     * defaults to a position offset of zero.
+#  * defines how the sensors position is offset from the platform,
+#  * defaults to a position offset of zero.
 #
 # The rotation_offset:
 #
-#     * defines the sensors orientation relative to that of the platform,
-#     * defaults to a zero orientation offset.
+#  * defines the sensors orientation relative to that of the platform,
+#  * defaults to a zero orientation offset.
 #
 # The default assumption is that the sensor is located at the center point of the platform and orientated to align with
 # the platform body. In this example we are happy to use the default assumptions and therefore the sensor can be added.
@@ -191,12 +191,12 @@ platform.rotation_offsets
 # assumption. This is done by creating a :class:`~.GaussianState` object which describes the distribution from which we
 # want our targets to be drawn from. For this example targets will be generated using the following parameters:
 #
-#   * :math:`x` is Gaussian distributed around the platform location with variance of :math:`\mathrm{2}km`
-#   * :math:`y` is Gaussian distributed around the platform location with variance of :math:`\mathrm{2}km`
-#   * :math:`z` is Gaussian distributed around an altitude of :math:`\mathrm{9}km` with variance of :math:`\mathrm{0.1}km`
-#   * :math:`\dot{x}` is Gaussian distributed around :math:`\mathrm{100}ms^{-1}` with variance of :math:`\mathrm{50}ms^{-1}`
-#   * :math:`\dot{y}` is Gaussian distributed around :math:`\mathrm{100}ms^{-1}` with variance of :math:`\mathrm{50}ms^{-1}`
-#   * :math:`\dot{z}` is Gaussian distributed around :math:`\mathrm{0}ms^{-1}` with variance of :math:`\mathrm{1}ms^{-1}`
+#  * :math:`x` is Gaussian distributed around the platform location with variance of :math:`\mathrm{2}km`
+#  * :math:`y` is Gaussian distributed around the platform location with variance of :math:`\mathrm{2}km`
+#  * :math:`z` is Gaussian distributed around an altitude of :math:`\mathrm{9}km` with variance of :math:`\mathrm{0.1}km`
+#  * :math:`\dot{x}` is Gaussian distributed around :math:`\mathrm{100}ms^{-1}` with variance of :math:`\mathrm{50}ms^{-1}`
+#  * :math:`\dot{y}` is Gaussian distributed around :math:`\mathrm{100}ms^{-1}` with variance of :math:`\mathrm{50}ms^{-1}`
+#  * :math:`\dot{z}` is Gaussian distributed around :math:`\mathrm{0}ms^{-1}` with variance of :math:`\mathrm{1}ms^{-1}`
 #
 # We will also configure our simulator to randomly create and delete targets, based on a birth rate and death rate we
 # specify. In this example we set the birth rate to be 0.10, i.e. on any given time step there is a 10% chance of a new

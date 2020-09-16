@@ -139,7 +139,7 @@ np.random.seed(1991)
 # The :class:`~.CombinedLinearGaussianTransitionModel` class takes a number
 # of 1d models and combines them in a linear Gaussian model of arbitrary dimension, :math:`D`.
 #
-#  .. math::
+# .. math::
 #           F_{k}^{D} &= \begin{bmatrix}
 #                        F_k^{1} &  & \mathbf{0} \\
 #                        & \ddots &  \\
@@ -193,7 +193,6 @@ transition_model.covar(time_interval=timedelta(seconds=1))
 # We'll use one of Stone Soup's measurement models in order to generate
 # measurements from the ground truth. For the moment we assume a 'linear' sensor which detects the
 # position, but not velocity, of a target, such that
-#
 # :math:`\mathbf{z}_k = H_k \mathbf{x}_k + \boldsymbol{\nu}_k`,
 # :math:`\boldsymbol{\nu}_k \sim \mathcal{N}(0,R)`, with
 #
