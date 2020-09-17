@@ -33,6 +33,6 @@ setup(name='stonesoup',
               'pytest-flake8', 'pytest-cov', 'Sphinx', 'sphinx_rtd_theme',
               'setuptools>=30', 'sphinx-gallery>=0.8', 'pillow', 'folium'],
           'video': ['ffmpeg-python', 'moviepy'],
-          'tensorflow': ['tensorflow']
+          'tensorflow': ['tensorflow>=2.2.0']
       },
       )
