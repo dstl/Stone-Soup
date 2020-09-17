@@ -57,23 +57,23 @@ start_time = datetime.now()
 # a 6 dimensional state space according to the following :math:`\mathbf{x}`.
 #
 # .. math::
-#           \begin{align}\mathbf{x} = \begin{bmatrix}
-#                                       x\\ \dot{x}\\ y\\ \dot{y}\\ z\\ \dot{z} \end{bmatrix}
-#                                   = \begin{bmatrix}
-#                                       0\\ 0\\ 0\\ 50\\ 8000\\ 0 \end{bmatrix}\end{align}
+#           \mathbf{x} = \begin{bmatrix}
+#                          x\\ \dot{x}\\ y\\ \dot{y}\\ z\\ \dot{z} \end{bmatrix}
+#                      = \begin{bmatrix}
+#                          0\\ 0\\ 0\\ 50\\ 8000\\ 0 \end{bmatrix}
 #
 # The platform will be initiated with a near constant velocity model which has been parameterised to have zero noise.
 # Therefore the platform location at time :math:`k` is given by :math:`F_{k}x_{k-1}` where :math:`F_{k}` is given by:
 #
 # .. math::
-#           \begin{align}F_{k} = \begin{bmatrix}
-#                         1 & \triangle k & 0 & 0 & 0 & 0\\
-#                         0 & 1 & 0 & 0 & 0 & 0\\
-#                         0 & 0 & 1 & \triangle k & 0 & 0\\
-#                         0 & 0 & 0 & 1 & 0 & 0\\
-#                         0 & 0 & 0 & 0 & 1 & \triangle k \\
-#                         0 & 0 & 0 & 0 & 0 & 1\\
-#                           \end{bmatrix}\end{align}
+#           F_{k} = \begin{bmatrix}
+#            1 & \triangle k & 0 & 0 & 0 & 0\\
+#            0 & 1 & 0 & 0 & 0 & 0\\
+#            0 & 0 & 1 & \triangle k & 0 & 0\\
+#            0 & 0 & 0 & 1 & 0 & 0\\
+#            0 & 0 & 0 & 0 & 1 & \triangle k \\
+#            0 & 0 & 0 & 0 & 0 & 1\\
+#              \end{bmatrix}
 
 # First import the Moving platform
 from stonesoup.platform.base import MovingPlatform
@@ -130,22 +130,22 @@ sensor_platform.add_sensor(radar,
 # The imager sensor model is described by the following equations:
 #
 # .. math::
-#           \begin{align} \mathbf{z}_k = h(\mathbf{x}_k, \dot{\mathbf{x}}_k) \end{align}
+#           \mathbf{z}_k = h(\mathbf{x}_k, \dot{\mathbf{x}}_k)
 #
 # where:
 #
 # * :math:`\mathbf{z}_k` is a measurement vector of the form:
 #
 # .. math::
-#           \begin{align} \mathbf{z}_k = \begin{bmatrix} \theta \\ \phi \end{bmatrix} \end{align}
+#           \mathbf{z}_k = \begin{bmatrix} \theta \\ \phi \end{bmatrix}
 #
 # * :math:`h` is a non - linear model function of the form:
 #
 # .. math::
-#           \begin{align} h(\mathbf{x}_k,\dot{\mathbf{x}}_k) = \begin{bmatrix}
-#                   \arcsin(\mathcal{z} /\sqrt{\mathcal{x} ^ 2 + \mathcal{y} ^ 2 +\mathcal{z} ^ 2}) \\
-#                   \arctan(\mathcal{y},\mathcal{x}) \ \
-#                   \end{bmatrix} + \dot{\mathbf{x}}_k \end{align}
+#           h(\mathbf{x}_k,\dot{\mathbf{x}}_k) = \begin{bmatrix}
+#               \arcsin(\mathcal{z} /\sqrt{\mathcal{x} ^ 2 + \mathcal{y} ^ 2 +\mathcal{z} ^ 2}) \\
+#               \arctan(\mathcal{y},\mathcal{x}) \ \
+#               \end{bmatrix} + \dot{\mathbf{x}}_k
 #
 # * :math:`\mathbf{z}_k` is Gaussian distributed with covariance :math:`R`, i.e.:
 #
@@ -153,10 +153,10 @@ sensor_platform.add_sensor(radar,
 #           \mathbf{z}_k  \sim \mathcal{N}(0, R)
 #
 # .. math::
-#           \begin{align} R = \begin{bmatrix}
-#                           \sigma_{\theta}^2 & 0 \\
-#                           0 & \sigma_{\phi}^2  \\
-#                           \end{bmatrix} \end{align}
+#           R = \begin{bmatrix}
+#             \sigma_{\theta}^2 & 0 \\
+#             0 & \sigma_{\phi}^2  \\
+#             \end{bmatrix}
 
 # Import a passive sensor capability
 from stonesoup.sensor.passive import PassiveElevationBearing

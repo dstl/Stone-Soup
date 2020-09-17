@@ -161,7 +161,7 @@ covariance_limit_for_delete = 2
 deleter = CovarianceBasedDeleter(covariance_limit_for_delete)
 
 # %%
-# Set a standard prior state abd the minimum number of detections required to qualify for
+# Set a standard prior state and the minimum number of detections required to qualify for
 # initiation
 s_prior_state=GaussianState([[0], [0], [0], [0]], np.diag([0, 0.5, 0, 0.5]))
 min_detections = 3
