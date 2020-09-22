@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-from stonesoup.sensor.sensor import Sensor
+from typing import Set, Union
+
 from ..base import Property
 from ..models.measurement.nonlinear import CartesianToElevationBearing
+from ..sensor.sensor import Sensor
 from ..types.array import CovarianceMatrix
 from ..types.detection import Detection
+from ..types.groundtruth import GroundTruthState
 
 
 class PassiveElevationBearing(Sensor):
@@ -33,12 +36,13 @@ class PassiveElevationBearing(Sensor):
             (and follow in format) the underlying \
             :class:`~.CartesianToElevationBearing` model")
 
-    def measure(self, ground_truths, noise=True, **kwargs):
+    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
+                **kwargs) -> Set[Detection]:
         """Generate a measurement for a given state
 
         Parameters
         ----------
-        ground_truths : :class:`~.State`
+        ground_truths : Set[:class:`~.GroundTruthState`]
             A set of :class:`~.GroundTruthState`
         noise: :class:`numpy.ndarray` or bool
             An externally generated random process noise sample (the default is
@@ -47,7 +51,7 @@ class PassiveElevationBearing(Sensor):
 
         Returns
         -------
-        :class:`~.Detection`
+        Set[:class:`~.Detection`]
             A measurement generated from the given state. The timestamp of the\
             measurement is set equal to that of the provided state.
         """
