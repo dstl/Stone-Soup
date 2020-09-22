@@ -52,8 +52,9 @@ class PassiveElevationBearing(Sensor):
         Returns
         -------
         Set[:class:`~.Detection`]
-            A measurement generated from the given state. The timestamp of the\
-            measurement is set equal to that of the provided state.
+            A set of measurements generated from the given states. The timestamps of the
+            measurements are set equal to that of the corresponding states that they were
+            calculated from.
         """
 
         measurement_model = CartesianToElevationBearing(
