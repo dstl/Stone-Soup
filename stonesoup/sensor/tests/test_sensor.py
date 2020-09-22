@@ -126,7 +126,7 @@ def test_platform_deepcopy(radar_platform_target):
     radar_1, platform_1, target_state = radar_platform_target
 
     # Make a measurement with a platform
-    _ = platform_1.sensors[0].measure(target_state)
+    _ = platform_1.sensors[0].measure({target_state})
 
     assert platform_1.sensors[0] is radar_1
 
@@ -138,7 +138,7 @@ def test_platform_deepcopy(radar_platform_target):
 
     assert platform_2.sensors[0].platform is platform_2
     # check no error in measurement
-    _ = platform_2.sensors[0].measure(target_state)
+    _ = platform_2.sensors[0].measure({target_state})
 
 
 def test_sensor_assignment(radar_platform_target):

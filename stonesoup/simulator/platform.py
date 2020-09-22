@@ -27,14 +27,6 @@ class PlatformDetectionSimulator(DetectionSimulator):
                 platform.move(time)
             for platform in self.platforms:
                 for sensor in platform.sensors:
-                    detections = set()
-                    for truth in truths.union(self.platforms):
-
-                        # Make sure platform's sensors do not measure itself
-                        if truth is platform:
-                            continue
-
-                        detection = sensor.measure(truth)
-                        if detection is not None:
-                            detections.add(detection)
+                    truths_to_be_measured = truths.union(self.platforms) - {platform}
+                    detections = sensor.measure(truths_to_be_measured)
                     yield time, detections
