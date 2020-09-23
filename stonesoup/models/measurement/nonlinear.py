@@ -1079,13 +1079,13 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
         if isinstance(noise, bool) or noise is None:
             if noise:
                 out[2] = np.floor(out[2] / self.range_res) * self.range_res + self.range_res/2
-                out[3] = np.floor(out[3] / self.range_rate_res) * self.range_rate_res + self.range_rate_res/2
+                out[3] = np.floor(out[3] / self.range_rate_res) * \
+                         self.range_rate_res + self.range_rate_res/2
 
         return out
 
     def _gaussian_integral(self, a, b, mean, cov):
         # the cumlative probability ranging from a to b for a normal distribution
-        # \frac{1}{\sigma\sqrt{2\pi}}\int_{a}^{b}e^{-\frac{1}{2}\left(\frac{x-\mu}{\sigma}\right)^{2}}
         return (multivariate_normal.cdf(a, mean=mean, cov=cov)
                 - multivariate_normal.cdf(b, mean=mean, cov=cov))
 
@@ -1133,7 +1133,8 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
         # state1 is in measurement space
         # state2 is in state_space
         if (((state1.state_vector[2, 0]-self.range_res/2) / self.range_res).is_integer()
-                and ((state1.state_vector[3, 0]-self.range_rate_res/2) / self.range_rate_res).is_integer()):
+                and ((state1.state_vector[3, 0]-self.range_rate_res/2) /
+                     self.range_rate_res).is_integer()):
             mean_vector = self.function(state2, noise=False, **kwargs)
 
             # pdf for the angles

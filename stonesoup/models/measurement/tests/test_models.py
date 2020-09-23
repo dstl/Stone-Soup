@@ -645,8 +645,10 @@ def test_binning():
                                                                    np.pi/18]))
 
     measured = measurement_model.function(real_state, noise=True)
-    assert ((measured[2, 0]-measurement_model.range_res/2)/measurement_model.range_res).is_integer()
-    assert ((measured[3, 0]-measurement_model.range_rate_res/2)/measurement_model.range_rate_res).is_integer()
+    assert ((measured[2, 0]-measurement_model.range_res/2) /
+            measurement_model.range_res).is_integer()
+    assert ((measured[3, 0]-measurement_model.range_rate_res/2) /
+            measurement_model.range_rate_res).is_integer()
 
 
 def test_binning_pdf():
