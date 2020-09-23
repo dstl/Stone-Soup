@@ -1080,7 +1080,7 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
             if noise:
                 out[2] = np.floor(out[2] / self.range_res) * self.range_res + self.range_res/2
                 out[3] = np.floor(out[3] / self.range_rate_res) * \
-                         self.range_rate_res + self.range_rate_res/2
+                    self.range_rate_res + self.range_rate_res/2
 
         return out
 
