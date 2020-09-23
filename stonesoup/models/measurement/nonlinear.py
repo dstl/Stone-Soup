@@ -1019,14 +1019,14 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
             0 & 0 & 0 & \sigma_{\dot{r}}^2
             \end{bmatrix}
 
-    The covariances for radar is determined by different factors. The angle error
-    is effected by the radar beam width. Range error is effected by the SNR and pulse bandwidth.
-    The error for the range rate is depending on the dwell time.
-    The range and range rate are binned using
+    The covariances for radar are determined by different factors. The angle error
+    is affected by the radar beam width. Range error is affected by the SNR and pulse bandwidth.
+    The error for the range rate is dependent on the dwell time.
+    The range and range rate are binned to the centre of the cell using
 
     .. math::
 
-        x = \textrm{floor}(x/\Delta x)*\Delta x
+        x = \textrm{floor}(x/\Delta x)*\Delta x + \frac{\Delta x}{2}
 
     The :py:attr:`mapping` property of the model is a 3 element vector, \
     whose first (i.e. :py:attr:`mapping[0]`), second (i.e. \
@@ -1071,14 +1071,15 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
         -------
         :class:`numpy.ndarray` of shape (:py:attr:`~ndim_state`, 1)
             The model function evaluated given the provided time interval.
+
         """
 
         out = super().function(state, noise, **kwargs)
 
         if isinstance(noise, bool) or noise is None:
             if noise:
-                out[2] = np.floor(out[2] / self.range_res) * self.range_res
-                out[3] = np.floor(out[3] / self.range_rate_res) * self.range_rate_res
+                out[2] = np.floor(out[2] / self.range_res) * self.range_res + self.range_res/2
+                out[3] = np.floor(out[3] / self.range_rate_res) * self.range_rate_res + self.range_rate_res/2
 
         return out
 
@@ -1131,9 +1132,8 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
 
         # state1 is in measurement space
         # state2 is in state_space
-        if ((state1.state_vector[2, 0] / self.range_res).is_integer()
-                and (state1.state_vector[
-                         3, 0] / self.range_rate_res).is_integer()):
+        if (((state1.state_vector[2, 0]-self.range_res/2) / self.range_res).is_integer()
+                and ((state1.state_vector[3, 0]-self.range_rate_res/2) / self.range_rate_res).is_integer()):
             mean_vector = self.function(state2, noise=False, **kwargs)
 
             # pdf for the angles
