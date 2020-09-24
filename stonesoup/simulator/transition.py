@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
-from datetime import timedelta
 from copy import deepcopy
+from datetime import timedelta
+from typing import Tuple
 
 import numpy as np
 
-from stonesoup.models.transition.linear import ConstantTurn, ConstantVelocity,\
+from ..base import Property
+from ..models.transition.base import TransitionModel
+from ..models.transition.linear import ConstantTurn, ConstantVelocity, \
     CombinedLinearGaussianTransitionModel
-from stonesoup.types.array import StateVector
+from ..types.array import StateVector
+from ..types.state import State
 
 
 def create_smooth_transition_models(initial_state, x_coords, y_coords, times, turn_rate):
@@ -149,7 +153,7 @@ class OvershootError(Exception):
     pass
 
 
-class Point2PointConstantAcceleration:
+class Point2PointConstantAcceleration(TransitionModel):
     r"""Constant acceleration transition model for 2D cartesian coordinates
 
     The platform is assumed to move with constant acceleration between two given cartesian
@@ -164,13 +168,20 @@ class Point2PointConstantAcceleration:
     distance travelled respectively.
     """
 
-    def __init__(self, state, destination, duration):
-        dx = destination[0] - state.state_vector[0]  # x-distance to destination
-        dy = destination[1] - state.state_vector[2]  # y-distance to destination
-        ux = state.state_vector[1]  # initial x-speed
-        uy = state.state_vector[3]  # initial y-speed
+    state = Property(State, doc="The initial state, assumed to have x and y cartesian position and"
+                                "velocities")
+    destination = Property(Tuple[float, float], doc="Destination coordinates in 2D cartesian"
+                                                    "coordinates (x, y)")
+    duration = Property(timedelta, doc="Duration of transition in seconds")
 
-        t = duration.total_seconds()  # duration of acceleration
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        dx = self.destination[0] - self.state.state_vector[0]  # x-distance to destination
+        dy = self.destination[1] - self.state.state_vector[2]  # y-distance to destination
+        ux = self.state.state_vector[1]  # initial x-speed
+        uy = self.state.state_vector[3]  # initial y-speed
+
+        t = self.duration.total_seconds()  # duration of acceleration
 
         self.ax = 2*(dx - ux*t) / t**2  # x-acceleration
         self.ay = 2*(dy - uy*t) / t**2  # y-acceleration
@@ -187,6 +198,12 @@ class Point2PointConstantAcceleration:
 
     def covar(self, **kwargs):
         raise NotImplementedError('Covariance not defined')
+
+    def pdf(self, state1, state2, **kwargs):
+        raise NotImplementedError('pdf not defined')
+
+    def rvs(self, num_samples=1, **kwargs):
+        raise NotImplementedError('rvs not defined')
 
     def function(self, state, time_interval, **kwargs):
 
@@ -205,7 +222,7 @@ class Point2PointConstantAcceleration:
         return StateVector([x+dx, vx, y+dy, vy])
 
 
-class Point2PointStop:
+class Point2PointStop(TransitionModel):
     r"""Constant acceleration transition model for 2D cartesian coordinates
 
     The platform is assumed to move with constant acceleration between two given cartesian
@@ -222,20 +239,18 @@ class Point2PointStop:
     duration.
     """
 
-    @property
-    def ndim_state(self):
-        return 4
+    state = Property(State, doc="The initial state, assumed to have x and y cartesian position and"
+                                "velocities")
+    destination = Property(Tuple[float, float], doc="Destination coordinates in 2D cartesian"
+                                                    "coordinates (x, y)")
+    duration = Property(timedelta, doc="Duration of transition in seconds")
 
-    def covar(self, **kwargs):
-        raise NotImplementedError('Covariance not defined')
-
-    def __init__(self, state, destination, duration):
-        dx = destination[0] - state.state_vector[0]  # x-distance to destination
-        dy = destination[1] - state.state_vector[2]  # y-distance to destination
-        ux = state.state_vector[1]  # initial x-speed
-        uy = state.state_vector[3]  # initial y-speed
-
-        self.destination = destination
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        dx = self.destination[0] - self.state.state_vector[0]  # x-distance to destination
+        dy = self.destination[1] - self.state.state_vector[2]  # y-distance to destination
+        ux = self.state.state_vector[1]  # initial x-speed
+        uy = self.state.state_vector[3]  # initial y-speed
 
         if dx == 0:
             self.ax = 0  # x-acceleration (0 if already at destination x-coord)
@@ -253,8 +268,21 @@ class Point2PointStop:
         else:
             self.t = 0  # at destination so acceleration time is 0
 
-        self.duration = duration.total_seconds()  # full transition duration
-        self.start_time = state.timestamp
+        self.duration = self.duration.total_seconds()  # full transition duration
+        self.start_time = self.state.timestamp
+
+    @property
+    def ndim_state(self):
+        return 4
+
+    def covar(self, **kwargs):
+        raise NotImplementedError('Covariance not defined')
+
+    def pdf(self, state1, state2, **kwargs):
+        raise NotImplementedError('pdf not defined')
+
+    def rvs(self, num_samples=1, **kwargs):
+        raise NotImplementedError('rvs not defined')
 
     def function(self, state, time_interval, **kwargs):
 
