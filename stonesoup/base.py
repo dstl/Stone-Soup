@@ -238,7 +238,7 @@ class BaseMeta(ABCMeta):
             if not (isinstance(prop.cls, type) or
                     (hasattr(prop.cls, '__module__') and prop.cls.__module__ == 'typing')):
                 raise ValueError(f'Invalid type specification ({str(prop.cls)}) '
-                                 f'for property {name} of class {cls.__name__}')
+                                 f'for property {prop_name} of class {cls.__name__}')
 
         cls._validate_init()
         cls._generate_signature()
