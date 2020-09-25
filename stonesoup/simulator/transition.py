@@ -138,8 +138,7 @@ def create_smooth_transition_models(initial_state, x_coords, y_coords, times, tu
             except OvershootError:
                 # if linear accel leads to overshoot, apply model to stop at target coord instead
                 accel_model = Point2PointStop(state=state,
-                                              destination=(x_coord, y_coord),
-                                              duration=timedelta(seconds=t2))
+                                              destination=(x_coord, y_coord))
             state.state_vector = accel_model.function(state=state,
                                                       time_interval=timedelta(seconds=t2))
             state.timestamp += timedelta(seconds=t2)
@@ -243,7 +242,6 @@ class Point2PointStop(TransitionModel):
                                 "velocities")
     destination = Property(Tuple[float, float], doc="Destination coordinates in 2D cartesian"
                                                     "coordinates (x, y)")
-    duration = Property(timedelta, doc="Duration of transition in seconds")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -268,7 +266,6 @@ class Point2PointStop(TransitionModel):
         else:
             self.t = 0  # at destination so acceleration time is 0
 
-        self.duration = self.duration.total_seconds()  # full transition duration
         self.start_time = self.state.timestamp
 
     @property
