@@ -18,3 +18,9 @@ Platform Simulator
 
 .. automodule:: stonesoup.simulator.platform
     :show-inheritance:
+
+Transition Simulator
+--------------------
+
+.. automodule:: stonesoup.simulator.transition
+    :show-inheritance:
