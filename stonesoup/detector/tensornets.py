@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import enum
 
+import numpy as np
 try:
     import tensorflow as tf
 
@@ -20,11 +21,9 @@ except ImportError as error:
         "Usage of 'stonesoup.detector.tensornets' requires that the optional"
         "package dependencies 'tensorflow' and 'tensornets' are installed.") \
         from error
-import numpy as np
 
-from .base import Detector
+from ._video import _VideoAsyncDetector
 from ..base import Property
-from ..buffered_generator import BufferedGenerator
 from ..types.detection import Detection
 
 
@@ -49,7 +48,7 @@ class Networks(enum.Enum):
     YOLOv3COCO = enum.auto()  #: YOLOv3 tranined against COCO dataset
 
 
-class TensorNetsObjectDetector(Detector):
+class TensorNetsObjectDetector(_VideoAsyncDetector):
     """TensorNets Object Detection class
 
     This uses pre-trained networks from TensorNets for object detection in video
@@ -84,12 +83,6 @@ class TensorNetsObjectDetector(Detector):
         else:
             raise NotImplementedError("Unsupported network {!r}".format(self.net))
         return self._session.run(fetches, {self._inputs: self._model.preprocess(image)})
-
-    @BufferedGenerator.generator_method
-    def detections_gen(self):
-        for timestamp, frame in self.sensor:
-            detections = self._get_detections_from_frame(frame)
-            yield timestamp, detections
 
     def _get_detections_from_frame(self, frame):
         image_np_expanded = np.expand_dims(frame.pixels, axis=0)
