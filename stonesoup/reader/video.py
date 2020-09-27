@@ -5,8 +5,12 @@ This is a collection of video readers for Stone Soup, allowing quick reading
 of video data/streams.
 """
 
-from abc import abstractmethod
 import datetime
+import threading
+from abc import abstractmethod
+from queue import Queue
+from typing import Mapping, Tuple, Sequence
+
 import numpy as np
 try:
     import ffmpeg
@@ -19,15 +23,12 @@ except ImportError as error:
         "'python -m pip install stonesoup[video]'")\
         from error
 
-import threading
-from queue import Queue
 
+from .base import SensorDataReader
+from .file import FileReader
 from ..base import Property
 from ..buffered_generator import BufferedGenerator
 from ..types.sensordata import ImageFrame
-from .base import SensorDataReader
-from .file import FileReader
-from .url import UrlReader
 
 
 class FrameReader(SensorDataReader):
@@ -126,7 +127,7 @@ class VideoClipReader(FileReader, FrameReader):
             yield timestamp, frame
 
 
-class FFmpegVideoStreamReader(UrlReader, FrameReader):
+class FFmpegVideoStreamReader(FrameReader):
     """ FFmpegVideoStreamReader
 
     A threaded reader that uses ffmpeg-python_ to read frames from video
@@ -151,49 +152,69 @@ class FFmpegVideoStreamReader(UrlReader, FrameReader):
     .. _ffmpeg-python: https://github.com/kkroening/ffmpeg-python
     .. _FFmpeg: https://www.ffmpeg.org/download.html
 
-    """  # noqa:E501
+    """
 
-    buffer_size = Property(int,
-                           doc="Size of the frame buffer. The frame "
-                               "buffer is used to cache frames in cases "
-                               "where the stream generates frames faster "
-                               "than they are ingested by the reader. "
-                               "If `buffer_size` is less than or equal to "
-                               "zero, the buffer size is infinite.",
-                           default=1)
-
-    input_opts = Property(dict,
-                          doc="FFmpeg input options, provided in the form of "
-                              "a dictionary, whose keys correspond to option "
-                              "names. (e.g. ``{'fflags': 'nobuffer'}``). "
-                              "The default is ``{}``.",
-                          default={})
-    output_opts = Property(dict,
-                           doc="FFmpeg output options, provided in the form "
-                               "of a dictionary, whose keys correspond to "
-                               "option names. The default is "
-                               "``{'f': 'rawvideo', 'pix_fmt': 'rgb24'}``.",
-                           default={'f': 'rawvideo', 'pix_fmt': 'rgb24'})
+    input_file: str = Property(
+        doc="Input source to read video stream from, passed as input file argument. This can "
+            "include any valid FFmpeg input e.g. rtsp URL, device name when using 'dshow'/'v4l2'")
+    buffer_size: int = Property(
+        default=1,
+        doc="Size of the frame buffer. The frame buffer is used to cache frames in cases where "
+            "the stream generates frames faster than they are ingested by the reader. If "
+            "`buffer_size` is less than or equal to zero, the buffer size is infinite.")
+    input_opts: Mapping[str, str] = Property(
+        default=None,
+        doc="FFmpeg input options, provided in the form of a dictionary, whose keys correspond to "
+            "option names. (e.g. ``{'fflags': 'nobuffer'}``). The default is ``{}``.")
+    output_opts: Mapping[str, str] = Property(
+        default=None,
+        doc="FFmpeg output options, provided in the form of a dictionary, whose keys correspond "
+            "to option names. The default is ``{'f': 'rawvideo', 'pix_fmt': 'rgb24'}``.")
+    filter: Tuple[str, Sequence[str], Mapping[str, str]] = Property(
+        default=None,
+        doc="FFmpeg filter options, provided in the form of filter name, sequence of arguments, "
+            "mapping of key/value pairs (e.g. ``('scale', ('320', '240'), {})``). Default `None` "
+            "where no filter will be applied. Note that :attr:`frame_size` may need to be set in "
+            "when video size changed by filter.")
+    frame_size: Tuple[int, int] = Property(
+        default=None,
+        doc="Tuple of frame width and height. Default `None` where it will be detected using "
+            "`ffprobe` against the input, but this may yield wrong width/height (e.g. when "
+            "filters are applied), and such this option can be used to override.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if self.input_opts is None:
+            self.input_opts = {}
+        if self.output_opts is None:
+            self.output_opts = {'f': 'rawvideo', 'pix_fmt': 'rgb24'}
 
         self.buffer = Queue(maxsize=self.buffer_size)
 
+        if self.frame_size is not None:
+            self._stream_info = {
+                'width': self.frame_size[0],
+                'height': self.frame_size[1]}
+        else:
+            # Probe stream information
+            self._stream_info = next(
+                s
+                for s in ffmpeg.probe(self.input_file, **self.input_opts)['streams']
+                if s['codec_type'] == 'video')
+
         # Initialise stream
+        self.stream = ffmpeg.input(self.input_file, **self.input_opts)
+        if self.filter is not None:
+            self.stream = self.stream.filter(
+                self.filter[0],
+                *self.filter[1],
+                **self.filter[2])
         self.stream = (
-            ffmpeg
-            .input(self.url.geturl(), **self.input_opts)
+            self.stream
             .output('pipe:', **self.output_opts)
             .global_args('-y', '-loglevel', 'panic')
             .run_async(pipe_stdout=True)
         )
-
-        # Probe stream information
-        self._stream_info = next(
-            s for s
-            in ffmpeg.probe(self.url.geturl())['streams']
-            if s['codec_type'] == 'video')
 
         # Initialise capture thread
         self._capture_thread = threading.Thread(target=self._run)
