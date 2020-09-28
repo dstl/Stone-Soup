@@ -12,7 +12,7 @@ from ..types.time import TimeRange
 class SIAPMetrics(MetricGenerator):
     """SIAP Metrics
 
-    Computes the Single Integrated Air Picture (SAIP) metrics as defined by the
+    Computes the Single Integrated Air Picture (SIAP) metrics as defined by the
     Systems Engineering Task Force. The implementation provided here is
     derived from [1] and focuses on providing the SIAP attribute measures.
 
