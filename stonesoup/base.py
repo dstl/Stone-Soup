@@ -197,11 +197,14 @@ class BaseMeta(ABCMeta):
 
         cls._subclasses = set()
         cls._properties = OrderedDict()
-        # Update subclass lists, and update properties (in reverse order)
+        # Update subclass lists, and update properties from direct bases (in reverse order as
+        # first defined class must take precedence, and dictionary update overwrites)
         for bcls in reversed(cls.mro()[1:]):
             if type(bcls) is mcls:
                 bcls._subclasses.add(cls)
-                cls._properties.update(bcls._properties)
+                if bcls in bases:
+                    cls._properties.update(bcls._properties)
+
         for key, value in namespace.items():
             if isinstance(value, Property):
                 cls._properties[key] = value
