@@ -39,6 +39,7 @@ class ASDGaussianStateUpdate(Update, ASDGaussianState):
     suggests, is described by a Gaussian distribution.
     """
 
+
 class ParticleStateUpdate(Update, ParticleState):
     """ParticleStateUpdate type
 

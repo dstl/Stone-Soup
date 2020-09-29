@@ -55,7 +55,7 @@ def test_kalman(UpdaterClass, measurement_model, prediction, measurement):
     eval_measurement_prediction = GaussianMeasurementPrediction(
         measurement_model.matrix()@prediction.mean,
         measurement_model.matrix()@prediction.covar
-        @measurement_model.matrix().T
+        @ measurement_model.matrix().T
         + measurement_model.covar(),
         cross_covar=prediction.covar@measurement_model.matrix().T)
     kalman_gain = eval_measurement_prediction.cross_covar@np.linalg.inv(
@@ -115,21 +115,24 @@ def test_kalman(UpdaterClass, measurement_model, prediction, measurement):
 
 def test_asdkalman():
     timestamp = datetime.datetime.now()
-    measurement_model=LinearGaussian(ndim_state=2, mapping=[0],
-                   noise_covar=np.array([[0.04]]))
-    prediction=ASDGaussianStatePrediction(np.array([[-6.45], [0.7]]),
-                            multi_covar=np.array([[4.1123, 0.0013],
-                                      [0.0013, 0.0365]]), timestamps=[timestamp], correlation_matrices={timestamp:{'P':np.eye(2)}},act_timestamp=timestamp)
-    measurement  = Detection(np.array([[-6.23]]),timestamp=timestamp)
+    measurement_model = LinearGaussian(
+        ndim_state=2, mapping=[0],noise_covar=np.array([[0.04]]))
+    prediction = ASDGaussianStatePrediction(
+        np.array([[-6.45], [0.7]]), multi_covar=
+        np.array([[4.1123, 0.0013], [0.0013, 0.0365]]), timestamps=[timestamp],
+        correlation_matrices={timestamp : {'P' : np.eye(2)}},
+        act_timestamp=timestamp)
+    measurement = Detection(np.array([[-6.23]]), timestamp=timestamp)
 
     # Calculate evaluation variables
     Pi = np.block([[np.eye(prediction.ndim)],
-                   [np.zeros((prediction.multi_covar.shape[0] - prediction.ndim, prediction.ndim))]])
+                   [np.zeros((prediction.multi_covar.shape[0] -
+                              prediction.ndim, prediction.ndim))]])
     cross_cov = prediction.multi_covar @ Pi @ measurement_model.matrix().T
     eval_measurement_prediction = ASDGaussianMeasurementPrediction(
-        measurement_model.matrix()@prediction.mean,
+        measurement_model.matrix() @ prediction.mean,
         multi_covar=measurement_model.matrix()@prediction.covar
-        @measurement_model.matrix().T
+        @ measurement_model.matrix().T
         + measurement_model.covar(),
         cross_covar=cross_cov, timestamps=prediction.timestamps)
 
@@ -156,7 +159,6 @@ def test_asdkalman():
     assert(np.allclose(measurement_prediction.cross_covar,
                        eval_measurement_prediction.cross_covar,
                        0, atol=1.e-14))
-
 
     # Perform and assert state update
 

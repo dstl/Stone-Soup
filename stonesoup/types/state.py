@@ -39,12 +39,17 @@ class ASDState(Type):
     For the use of Accumulated State Densities.
     """
 
-    multi_state_vector = Property(StateVector, doc="State vector of all timestamps")
-    timestamps = Property(List[datetime.datetime], doc="List fo all timestamps which have a state in the ASDState")
+    multi_state_vector = Property(StateVector,
+                                  doc="State vector of all timestamps")
+    timestamps = Property(List[datetime.datetime],
+                          doc="List fo all timestamps which have a state in"
+                          + " the ASDState")
     max_nstep = Property(int,
-                         doc="Decides when the state is pruned in a prediction step. If 0 then there is no pruning ")
+                         doc="Decides when the state is pruned in a prediction"
+                         + "step. If 0 then there is no pruning ")
 
-    def __init__(self, multi_state_vector, timestamps, max_nstep=0, *args, **kwargs):
+    def __init__(self, multi_state_vector, timestamps,
+                 max_nstep=0, *args, **kwargs):
         if multi_state_vector is not None and timestamps is not None:
             multi_state_vector = StateVector(multi_state_vector)
             if not isinstance(timestamps,list):
@@ -52,7 +57,8 @@ class ASDState(Type):
             else:
                 timestamps = timestamps
             self.max_nstep = max_nstep
-        super().__init__(multi_state_vector, timestamps, max_nstep, *args, **kwargs)
+        super().__init__(multi_state_vector, timestamps,
+                         max_nstep, *args, **kwargs)
 
     @property
     def state_vector(self):
@@ -61,7 +67,9 @@ class ASDState(Type):
 
     @state_vector.setter
     def state_vector(self, value):
-        """set the state vector. In this case the multi_state_vector is overwritten."""
+        """set the state vector. In this case the multi_state_vector
+        is overwritten.
+        """
         self.multi_state_vector = StateVector(value)
 
     @property
@@ -71,7 +79,9 @@ class ASDState(Type):
 
     @timestamp.setter
     def timestamp(self, value):
-        """insert a new timestamp in the list of timestamps if it is not in there already"""
+        """insert a new timestamp in the list of timestamps if it is not in
+        there already
+        """
         if value not in self.timestamps:
             self.timestamps.insert(0, value)
 
@@ -87,12 +97,14 @@ class ASDState(Type):
 
     @property
     def state_list(self):
-        """Generates a list of all States in the ASD State one for each timestep"""
+        """Generates a list of all States in the ASD State one for each
+            timestep
+        """
         ndim = self.ndim
         vectors = [StateVector(self.multi_state_vector[i:i + ndim]) for i in
                    range(0, self.multi_state_vector.shape[0] - ndim, ndim)]
-        states = [State(state_vector=vector, timestamp=timestamp) for vector, timestamp in
-                  zip(vectors, self.timestamps)]
+        states = [State(state_vector=vector, timestamp=timestamp)
+                  for vector, timestamp in zip(vectors, self.timestamps)]
         return states
 
 
@@ -212,14 +224,17 @@ class GaussianState(State):
 class ASDGaussianState(ASDState):
     """ASDGaussian State type
 
-    This is a simple Accumulated State Density Gaussian state object, which, as the name suggests,
-    is described by a Gaussian state distribution.
+    This is a simple Accumulated State Density Gaussian state object, which as
+    the name suggests is described by a Gaussian state distribution.
     """
-    correlation_matrices = Property(OrderedDict, default=collections.OrderedDict({}),
-                                    doc="This is the dict of Correlation Matrices, consisting of P_{l|l}, P_{l|l+1} and "
-                                        +"F_{l+1|l} which is build during running the Kalman predictor and Kalman updater")
+    correlation_matrices = Property(collections.OrderedDict,
+                                    default=collections.OrderedDict({}), doc=
+                                    "Dict of Correlation Matrices, consisting "
+                                    + "of P_{l|l}, P_{l|l+1} and F_{l+1|l} "
+                                    + "built in the Kalman predictor "
+                                    + "and Kalman updater")
 
-    multi_covar = Property(CovarianceMatrix, doc="Covariance of all timesteps which are saved in the state")
+    multi_covar = Property(CovarianceMatrix, doc="Covariance of all timesteps")
 
     @property
     def covar(self):
@@ -238,9 +253,10 @@ class ASDGaussianState(ASDState):
     def state_list(self):
         ndim = self.ndim
         states = super().state_list
-        covars = [CovarianceMatrix(self.multi_covar[i:i + ndim, i:i + ndim]) for i in
-                  range(0, self.multi_covar.shape[0] - ndim, ndim)]
-        states = [GaussianState(state_vector=state.state_vector, timestamp=state.timestamp, covar=matrix) for
+        covars = [CovarianceMatrix(self.multi_covar[i:i + ndim, i:i + ndim])
+                  for i in range(0, self.multi_covar.shape[0] - ndim, ndim)]
+        states = [GaussianState(state_vector=state.state_vector,
+                  timestamp=state.timestamp, covar=matrix) for
                   state, matrix in zip(states, covars)]
         return states
 

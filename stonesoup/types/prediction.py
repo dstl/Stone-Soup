@@ -41,13 +41,17 @@ class GaussianStatePrediction(Prediction, GaussianState):
     suggests, is described by a Gaussian distribution.
     """
 
+
 class ASDGaussianStatePrediction(Prediction, ASDGaussianState):
     """ ASDGaussianStatePrediction type
 
     This is a simple ASDGaussian state prediction object, which, as the name
     suggests, is described by a Gaussian distribution.
     """
-    act_timestamp = Property(datetime.datetime, doc="The timestamp for which the state is predicted")
+    act_timestamp = Property(
+        datetime.datetime, doc=
+        "The timestamp for which the state is predicted")
+
 
 class GaussianMeasurementPrediction(MeasurementPrediction, GaussianState):
     """ GaussianMeasurementPrediction type
