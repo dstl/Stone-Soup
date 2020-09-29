@@ -6,8 +6,8 @@ import pytest
 
 from ...types.prediction import (
     StatePrediction, StateMeasurementPrediction,
-    GaussianStatePrediction, GaussianMeasurementPrediction, ASDGaussianStatePrediction,
-    ASDGaussianMeasurementPrediction)
+    GaussianStatePrediction, GaussianMeasurementPrediction,
+    ASDGaussianStatePrediction, ASDGaussianMeasurementPrediction)
 
 
 def test_stateprediction():
@@ -112,6 +112,7 @@ def test_gaussianmeasurementprediction():
     assert(np.array_equal(cross_covar, measurement_prediction.cross_covar))
     assert(measurement_prediction.ndim == mean.shape[0])
     assert(measurement_prediction.timestamp == timestamp)
+
 
 def test_asdgaussianstateprediction():
     """ GaussianStatePrediction test """

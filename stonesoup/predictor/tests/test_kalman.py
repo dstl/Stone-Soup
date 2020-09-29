@@ -139,23 +139,22 @@ def test_asdkalman():
     transition_model = ConstantVelocity(noise_diff_coeff=0.1)
     prior_mean = np.array([[-6.45], [0.7]])
     prior_covar = np.array([[4.1123, 0.0013],
-              [0.0013, 0.0365]])
+                            [0.0013, 0.0365]])
     timestamp = datetime.datetime.now()
     timediff = 2  # 2sec
     new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
     time_interval = new_timestamp - timestamp
 
     # Define prior state
-    prior = ASDGaussianState(prior_mean,
-                          multi_covar = prior_covar,
-                          timestamps=timestamp)
+    prior = ASDGaussianState(prior_mean, multi_covar=prior_covar,
+                             timestamps=timestamp)
 
     # Calculate evaluation variables
     eval_prediction = ASDGaussianStatePrediction(
         transition_model.matrix(timestamp=new_timestamp,
                                 time_interval=time_interval) @ prior.mean,
         multi_covar=transition_model.matrix(timestamp=new_timestamp,
-                                time_interval=time_interval)
+                                            time_interval=time_interval)
         @ prior.covar
         @ transition_model.matrix(timestamp=new_timestamp,
                                   time_interval=time_interval).T

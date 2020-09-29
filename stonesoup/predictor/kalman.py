@@ -309,7 +309,6 @@ class ASDKalmanPredictor(KalmanPredictor):
                 self.control_model.control_input()
             return x, p
 
-
         if t_index == 0:
             # case that it is a normal prediction
             # As this is Kalman-like, the control model must be capable of
@@ -470,7 +469,7 @@ class ASDKalmanPredictor(KalmanPredictor):
 
                 # set column
                 p_pred[(i + 1) * prior_ndim:, i * prior_ndim:
-                                              (i + 1) * prior_ndim] = W_column
+                       (i + 1) * prior_ndim] = W_column
 
                 # set row
                 p_pred[i * prior_ndim: (i + 1) * prior_ndim,

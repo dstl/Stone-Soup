@@ -214,11 +214,12 @@ def test_sqrt_kalman():
 def test_asdkalman():
     timestamp = datetime.datetime.now()
     measurement_model = LinearGaussian(
-        ndim_state=2, mapping=[0],noise_covar=np.array([[0.04]]))
+        ndim_state=2, mapping=[0], noise_covar=np.array([[0.04]]))
     prediction = ASDGaussianStatePrediction(
-        np.array([[-6.45], [0.7]]), multi_covar=
-        np.array([[4.1123, 0.0013], [0.0013, 0.0365]]), timestamps=[timestamp],
-        correlation_matrices={timestamp : {'P' : np.eye(2)}},
+        np.array([[-6.45], [0.7]]),
+        multi_covar=np.array([[4.1123, 0.0013], [0.0013, 0.0365]]),
+        timestamps=[timestamp],
+        correlation_matrices={timestamp: {'P': np.eye(2)}},
         act_timestamp=timestamp)
     measurement = Detection(np.array([[-6.23]]), timestamp=timestamp)
 
@@ -234,7 +235,7 @@ def test_asdkalman():
         + measurement_model.covar(),
         cross_covar=cross_cov, timestamps=prediction.timestamps)
 
-    kalman_gain = eval_measurement_prediction.cross_covar@np.linalg.inv(
+    kalman_gain = eval_measurement_prediction.cross_covar @ np.linalg.inv(
         eval_measurement_prediction.covar)
     eval_posterior = GaussianState(
         prediction.mean

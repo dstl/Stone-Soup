@@ -312,33 +312,34 @@ class ASDKalmanUpdater(KalmanUpdater):
                 """
         measurement_model = self._check_measurement_model(measurement_model)
 
-        t_index = predicted_state.timestamps.index(predicted_state.act_timestamp)
+        t_index = predicted_state.timestamps.index(
+            predicted_state.act_timestamp)
         pred_meas = measurement_model.function(
-            State(predicted_state.multi_state_vector[t_index * predicted_state.ndim:
-                                               (t_index + 1) *
-                                               predicted_state.ndim]),
+            State(
+                predicted_state.multi_state_vector[t_index * predicted_state.ndim:
+                                                   (t_index + 1) * predicted_state.ndim]),
             noise=0, **kwargs)
 
         hh = self._measurement_matrix(predicted_state=predicted_state,
                                       measurement_model=measurement_model,
                                       **kwargs)
 
-        innov_cov = hh @ predicted_state.multi_covar[
-                         t_index * predicted_state.ndim:
-                         (t_index + 1) * predicted_state.ndim,
-                         t_index * predicted_state.ndim: (t_index + 1) *
-                         predicted_state.ndim] @ hh.T + \
-                         measurement_model.covar()
+        innov_cov = (
+            hh
+            @ predicted_state.multi_covar[t_index * predicted_state.ndim:
+                                          (t_index + 1) * predicted_state.ndim,
+                                          t_index * predicted_state.ndim:
+                                          (t_index + 1) * predicted_state.ndim]
+            @ hh.T + measurement_model.covar())
 
-        meas_cross_cov = predicted_state.multi_covar[:,
-                         t_index * predicted_state.ndim: (t_index + 1) *
+        meas_cross_cov = predicted_state.multi_covar[
+                         :, t_index * predicted_state.ndim: (t_index + 1) *
                          predicted_state.ndim] @ hh.T
 
-        return ASDGaussianMeasurementPrediction(multi_state_vector=pred_meas,
-                                                multi_covar=innov_cov,
-                                                timestamps=[
-                                                predicted_state.timestamps[0]],
-                                                cross_covar=meas_cross_cov)
+        return ASDGaussianMeasurementPrediction(
+            multi_state_vector=pred_meas, multi_covar=innov_cov,
+            timestamps=[predicted_state.timestamps[0]],
+            cross_covar=meas_cross_cov)
 
     def update(self, hypothesis, force_symmetric_covariance=False, **kwargs):
         r"""The Kalman update method. Given a hypothesised association between
@@ -407,14 +408,16 @@ class ASDKalmanUpdater(KalmanUpdater):
             predicted_state.correlation_matrices[
                 predicted_state.act_timestamp] = {}
         t_index = predicted_state.timestamps.index(
-                predicted_state.act_timestamp)
+            predicted_state.act_timestamp)
         ndmin = predicted_state.ndim
 
         # update covariance after calculating
         predicted_state.correlation_matrices[
             predicted_state.act_timestamp]['P'] = posterior_covariance[
-            t_index * ndmin: (t_index + 1) * ndmin, t_index * ndmin:
-                                                    (t_index + 1) * ndmin]
+                                                  t_index * ndmin:
+                                                  (t_index + 1) * ndmin,
+                                                  t_index * ndmin:
+                                                  (t_index + 1) * ndmin]
         try:
             predicted_state.correlation_matrices[
                 predicted_state.act_timestamp]['PFP'] = \
@@ -424,17 +427,16 @@ class ASDKalmanUpdater(KalmanUpdater):
                     predicted_state.act_timestamp]['F'].T \
                 @ np.linalg.inv(predicted_state.correlation_matrices[
                                     predicted_state.act_timestamp]['P_pred'])
-        except:
+        except KeyError:
             pass
         correlation_matrices = OrderedDict(sorted(
             predicted_state.correlation_matrices.items(), reverse=True))
 
         return ASDGaussianStateUpdate(multi_state_vector=posterior_mean,
                                       multi_covar=posterior_covariance,
-                                      hypothesis=hypothesis, timestamps=
-                                      predicted_state.timestamps,
-                                      correlation_matrices=
-                                      correlation_matrices,
+                                      hypothesis=hypothesis,
+                                      timestamps=predicted_state.timestamps,
+                                      correlation_matrices=correlation_matrices,
                                       max_nstep=predicted_state.max_nstep)
 
 
