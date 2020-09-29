@@ -130,7 +130,9 @@ def test_asdgaussianstateprediction():
         ASDGaussianStatePrediction(mean)
 
     # Test state prediction
-    state_prediction = ASDGaussianStatePrediction(multi_state_vector=mean, multi_covar=covar, timestamps=[timestamp], act_timestamp=timestamp)
+    state_prediction = ASDGaussianStatePrediction(
+        multi_state_vector=mean, multi_covar=covar,
+        timestamps=[timestamp], act_timestamp=timestamp)
     assert(np.array_equal(mean, state_prediction.mean))
     assert(np.array_equal(covar, state_prediction.covar))
     assert(state_prediction.ndim == mean.shape[0])
@@ -152,15 +154,10 @@ def test_asdgaussianmeasurementprediction():
                             [0.0002, 2.2130, 0, 0],
                             [0.3897, -0.00004, 0.0128, 0],
                             [0, 0.3897, 0.0013, 0.0135]]) * 1e3
-    wrong_cross_covar = np.array([[2.2128, 0, 0],
-                                  [0.0002, 2.2130, 0],
-                                  [0.3897, -0.00004, 0.0128],
-                                  [0, 0.3897, 0.0013]]) * 1e3
     timestamp = datetime.datetime.now()
 
     with pytest.raises(TypeError):
         ASDGaussianMeasurementPrediction(mean)
-
 
     # Test measurement prediction initiation with cross_covar
     measurement_prediction = ASDGaussianMeasurementPrediction(

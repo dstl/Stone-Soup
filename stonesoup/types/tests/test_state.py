@@ -251,8 +251,9 @@ def test_asd_state():
     # Test mutliple timesteps
     timestamp1 = datetime.datetime.now()
     timestamp2 = datetime.datetime.now()
-    state_vector = np.array([[0], [1],[2],[3]])
-    state = ASDState(state_vector, timestamps=[timestamp1, timestamp2], max_nstep=10)
+    state_vector = np.array([[0], [1], [2], [3]])
+    state = ASDState(state_vector,
+                     timestamps=[timestamp1, timestamp2], max_nstep=10)
     assert state.timestamps == [timestamp1, timestamp2]
     assert np.array_equal(state.multi_state_vector, state_vector)
     assert np.array_equal(state.state_vector, state_vector[0:2])
@@ -275,7 +276,7 @@ def test_asd_gaussian_state():
     timestamp = datetime.datetime.now()
 
     # Test state initiation without timestamp
-    state = ASDGaussianState(mean, multi_covar=covar,timestamps=[timestamp] )
+    state = ASDGaussianState(mean, multi_covar=covar, timestamps=[timestamp])
     assert(np.array_equal(mean, state.mean))
     assert(np.array_equal(covar, state.covar))
     assert(state.ndim == mean.shape[0])
@@ -288,17 +289,20 @@ def test_asd_gaussian_state():
 
     timestamp1 = datetime.datetime.now()
     timestamp2 = datetime.datetime.now()
-    state_vector = np.array([[0], [1], [2], [3],[4],[5],[6],[7]])
-    covar = np.array([[2.2128, 0, 0, 0,2.2128, 0, 0, 0],
-                      [0.0002, 2.2130, 0, 0,0.0002, 2.2130, 0, 0],
-                      [0.3897, -0.00004, 0.0128, 0,0.3897, -0.00004, 0.0128, 0],
+    state_vector = np.array([[0], [1], [2], [3], [4], [5], [6], [7]])
+    covar = np.array([[2.2128, 0, 0, 0, 2.2128, 0, 0, 0],
+                      [0.0002, 2.2130, 0, 0, 0.0002, 2.2130, 0, 0],
+                      [0.3897, -0.00004, 0.0128, 0, 0.3897, -0.00004,
+                       0.0128, 0],
                       [0, 0.3897, 0.0013, 0.0135,0, 0.3897, 0.0013, 0.0135],
                       [2.2128, 0, 0, 0, 2.2128, 0, 0, 0],
                       [0.0002, 2.2130, 0, 0, 0.0002, 2.2130, 0, 0],
-                      [0.3897, -0.00004, 0.0128, 0, 0.3897, -0.00004, 0.0128, 0],
+                      [0.3897, -0.00004, 0.0128, 0,
+                       0.3897, -0.00004, 0.0128, 0],
                       [0, 0.3897, 0.0013, 0.0135, 0, 0.3897, 0.0013, 0.0135]
                       ]) * 1e3
-    state = ASDGaussianState(state_vector, multi_covar=covar, timestamps=[timestamp1, timestamp2], max_nstep=10)
+    state = ASDGaussianState(state_vector, multi_covar=covar,
+                             timestamps=[timestamp1, timestamp2], max_nstep=10)
     assert state.timestamps == [timestamp1, timestamp2]
     assert state.timestamp == timestamp1
     assert(np.array_equal(state_vector[0:4], state.mean))
@@ -313,5 +317,6 @@ def test_asd_weighted_gaussian_state():
     weight = 0.3
     timestamp = datetime.datetime.now()
 
-    a = ASDWeightedGaussianState(mean, multi_covar=covar, weight=weight, timestamps=[timestamp])
+    a = ASDWeightedGaussianState(
+        mean, multi_covar=covar, weight=weight, timestamps=[timestamp])
     assert a.weight == weight

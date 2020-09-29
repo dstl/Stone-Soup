@@ -134,7 +134,8 @@ def test_sqrt_kalman():
 
 
 def test_asdkalman():
-    # simplified. In this case only the normal prediction is tested. There is no testing of the correlations
+    # simplified. In this case only the normal prediction is tested.
+    # There is no testing of the correlations
     transition_model = ConstantVelocity(noise_diff_coeff=0.1)
     prior_mean = np.array([[-6.45], [0.7]])
     prior_covar = np.array([[4.1123, 0.0013],
@@ -159,7 +160,8 @@ def test_asdkalman():
         @ transition_model.matrix(timestamp=new_timestamp,
                                   time_interval=time_interval).T
         + transition_model.covar(timestamp=new_timestamp,
-                                 time_interval=time_interval), timestamps=[new_timestamp], act_timestamp=new_timestamp)
+                                 time_interval=time_interval),
+        timestamps=[new_timestamp], act_timestamp=new_timestamp)
 
     # Initialise a kalman predictor
     predictor = ASDKalmanPredictor(transition_model=transition_model)
