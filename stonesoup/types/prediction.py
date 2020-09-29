@@ -49,8 +49,8 @@ class ASDGaussianStatePrediction(Prediction, ASDGaussianState):
     suggests, is described by a Gaussian distribution.
     """
     act_timestamp = Property(
-        datetime.datetime, doc=
-        "The timestamp for which the state is predicted")
+        datetime.datetime, doc="The timestamp for which "
+                               + "the state is predicted")
 
 
 class GaussianMeasurementPrediction(MeasurementPrediction, GaussianState):
@@ -74,7 +74,8 @@ class GaussianMeasurementPrediction(MeasurementPrediction, GaussianState):
                          cross_covar, *args, **kwargs)
 
 
-class ASDGaussianMeasurementPrediction(MeasurementPrediction, ASDGaussianState):
+class ASDGaussianMeasurementPrediction(
+                                    MeasurementPrediction, ASDGaussianState):
     """ASD Gaussian Measurement Prediction"""
     cross_covar = Property(CovarianceMatrix,
                            doc="The state-measurement cross covariance matrix",

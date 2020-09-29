@@ -10,10 +10,11 @@ from ...types.particle import Particle
 from ...types.prediction import (
     GaussianStatePrediction, GaussianMeasurementPrediction,
     StatePrediction, StateMeasurementPrediction,
-    ParticleStatePrediction, ParticleMeasurementPrediction, ASDGaussianStatePrediction,
-    ASDGaussianMeasurementPrediction)
+    ParticleStatePrediction, ParticleMeasurementPrediction,
+    ASDGaussianStatePrediction, ASDGaussianMeasurementPrediction)
 from ...types.update import (
-    StateUpdate, GaussianStateUpdate, ParticleStateUpdate, ASDGaussianStateUpdate)
+    StateUpdate, GaussianStateUpdate,
+    ParticleStateUpdate, ASDGaussianStateUpdate)
 
 
 def test_stateupdate():
@@ -96,8 +97,9 @@ def test_asdgaussianstateupdate():
     timestamp = datetime.datetime.now()
 
     prediction = ASDGaussianStatePrediction(multi_state_vector=state_vector,
-                                         multi_covar=covar,
-                                         timestamps=[timestamp], act_timestamp=timestamp)
+                                            multi_covar=covar,
+                                            timestamps=[timestamp],
+                                            act_timestamp=timestamp)
     meas_pred = ASDGaussianMeasurementPrediction(
         multi_state_vector=np.array([[2], [2], [1.5], [1.5]]),
         multi_covar=np.ones([4, 4]) * 2,
@@ -105,12 +107,12 @@ def test_asdgaussianstateupdate():
     measurement = Detection(state_vector=np.array([[5], [7]]),
                             timestamp=timestamp)
     state_update = ASDGaussianStateUpdate(multi_state_vector=state_vector,
-                                       multi_covar=covar,
-                                       hypothesis=SingleHypothesis(
+                                          multi_covar=covar,
+                                          hypothesis=SingleHypothesis(
                                            prediction=prediction,
                                            measurement=measurement,
                                            measurement_prediction=meas_pred),
-                                       timestamps=[timestamp])
+                                          timestamps=[timestamp])
 
     assert np.array_equal(state_vector, state_update.state_vector)
     assert np.array_equal(covar, state_update.covar)
@@ -119,6 +121,7 @@ def test_asdgaussianstateupdate():
                           state_update.hypothesis.measurement_prediction)
     assert np.array_equal(measurement, state_update.hypothesis.measurement)
     assert np.array_equal(timestamp, state_update.timestamp)
+
 
 def test_particlestateupdate():
     """ParticleStateUpdate test"""

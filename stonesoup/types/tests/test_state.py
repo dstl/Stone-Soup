@@ -7,7 +7,8 @@ import pytest
 from ..numeric import Probability
 from ..particle import Particle
 from ..state import State, GaussianState, ParticleState, \
-    StateMutableSequence, WeightedGaussianState, ASDState, ASDGaussianState, ASDWeightedGaussianState
+    StateMutableSequence, WeightedGaussianState, ASDState, \
+    ASDGaussianState, ASDWeightedGaussianState
 
 
 def test_state():
@@ -245,7 +246,7 @@ def test_asd_gaussian_state():
                       [0.0002, 2.2130, 0, 0, 0.0002, 2.2130, 0, 0],
                       [0.3897, -0.00004, 0.0128, 0, 0.3897, -0.00004,
                        0.0128, 0],
-                      [0, 0.3897, 0.0013, 0.0135,0, 0.3897, 0.0013, 0.0135],
+                      [0, 0.3897, 0.0013, 0.0135, 0, 0.3897, 0.0013, 0.0135],
                       [2.2128, 0, 0, 0, 2.2128, 0, 0, 0],
                       [0.0002, 2.2130, 0, 0, 0.0002, 2.2130, 0, 0],
                       [0.3897, -0.00004, 0.0128, 0,
@@ -261,6 +262,7 @@ def test_asd_gaussian_state():
     assert(state.ndim == state_vector.shape[0]/2)
     assert state.nstep == 2
     assert state.max_nstep == 10
+
 
 def test_asd_weighted_gaussian_state():
     mean = np.array([[1], [2], [3], [4]])  # 4D

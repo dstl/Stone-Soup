@@ -2,7 +2,7 @@
 import collections
 import datetime
 from collections.abc import MutableSequence
-from typing import List, OrderedDict
+from typing import List
 
 import numpy as np
 
@@ -52,7 +52,7 @@ class ASDState(Type):
                  max_nstep=0, *args, **kwargs):
         if multi_state_vector is not None and timestamps is not None:
             multi_state_vector = StateVector(multi_state_vector)
-            if not isinstance(timestamps,list):
+            if not isinstance(timestamps, list):
                 timestamps = list([timestamps])
             else:
                 timestamps = timestamps
@@ -228,11 +228,11 @@ class ASDGaussianState(ASDState):
     the name suggests is described by a Gaussian state distribution.
     """
     correlation_matrices = Property(collections.OrderedDict,
-                                    default=collections.OrderedDict({}), doc=
-                                    "Dict of Correlation Matrices, consisting "
-                                    + "of P_{l|l}, P_{l|l+1} and F_{l+1|l} "
-                                    + "built in the Kalman predictor "
-                                    + "and Kalman updater")
+                                    default=collections.OrderedDict({}),
+                                    doc="Dict of Correlation Matrices, "
+                                         "consisting of P_{l|l}, P_{l|l+1} and"
+                                         " F_{l+1|l} built in the Kalman "
+                                         "predictor and Kalman updater")
 
     multi_covar = Property(CovarianceMatrix, doc="Covariance of all timesteps")
 
@@ -277,6 +277,7 @@ class ASDWeightedGaussianState(ASDGaussianState):
     for a GaussianMixtureState.
     """
     weight = Property(float, default=0, doc="Weight of the Gaussian State.")
+
 
 class ParticleState(Type):
     """Particle State type

@@ -9,11 +9,12 @@ from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.types.detection import Detection
 from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.types.prediction import (
-    GaussianStatePrediction, GaussianMeasurementPrediction, ASDGaussianMeasurementPrediction,
-    ASDGaussianStatePrediction)
+    GaussianStatePrediction, GaussianMeasurementPrediction,
+    ASDGaussianMeasurementPrediction, ASDGaussianStatePrediction)
 from stonesoup.types.state import GaussianState
 from stonesoup.updater.kalman import (
-    KalmanUpdater, ExtendedKalmanUpdater, UnscentedKalmanUpdater, ASDKalmanUpdater)
+    KalmanUpdater, ExtendedKalmanUpdater,
+    UnscentedKalmanUpdater, ASDKalmanUpdater)
 
 
 @pytest.mark.parametrize(
@@ -113,14 +114,15 @@ def test_kalman(UpdaterClass, measurement_model, prediction, measurement):
     assert(np.array_equal(posterior.hypothesis.measurement, measurement))
     assert(posterior.timestamp == prediction.timestamp)
 
+
 def test_asdkalman():
     timestamp = datetime.datetime.now()
     measurement_model = LinearGaussian(
-        ndim_state=2, mapping=[0],noise_covar=np.array([[0.04]]))
+        ndim_state=2, mapping=[0], noise_covar=np.array([[0.04]]))
     prediction = ASDGaussianStatePrediction(
         np.array([[-6.45], [0.7]]), multi_covar=
         np.array([[4.1123, 0.0013], [0.0013, 0.0365]]), timestamps=[timestamp],
-        correlation_matrices={timestamp : {'P' : np.eye(2)}},
+        correlation_matrices={timestamp: {'P': np.eye(2)}},
         act_timestamp=timestamp)
     measurement = Detection(np.array([[-6.23]]), timestamp=timestamp)
 
@@ -136,7 +138,7 @@ def test_asdkalman():
         + measurement_model.covar(),
         cross_covar=cross_cov, timestamps=prediction.timestamps)
 
-    kalman_gain = eval_measurement_prediction.cross_covar@np.linalg.inv(
+    kalman_gain = eval_measurement_prediction.cross_covar @ np.linalg.inv(
         eval_measurement_prediction.covar)
     eval_posterior = GaussianState(
         prediction.mean
