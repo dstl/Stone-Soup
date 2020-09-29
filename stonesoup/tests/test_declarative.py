@@ -24,6 +24,16 @@ def test_subclass_remove_property(base):
     assert _TestSubclassRemoveProperty("2").property_a == 2
 
 
+def test_sub_subclass_remove_property(base):
+    class _TestSubclassRemoveProperty(base):
+        property_a = 2
+    assert _TestSubclassRemoveProperty("2").property_a == 2
+
+    class _TestSubSubclassRemoveProperty(_TestSubclassRemoveProperty):
+        pass
+    assert _TestSubSubclassRemoveProperty("2").property_a == 2
+
+
 def test_init_unordered(base):
     with pytest.raises(TypeError):
         class _TestUnordered(base):

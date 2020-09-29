@@ -197,48 +197,49 @@ class BaseMeta(ABCMeta):
 
         cls._subclasses = set()
         cls._properties = OrderedDict()
-        # Update subclass lists, and update properties (in reverse order)
-        for bcls in reversed(cls.mro()[1:]):
-            if type(bcls) is mcls:
-                bcls._subclasses.add(cls)
-                cls._properties.update(bcls._properties)
+        # Update subclass lists, and update properties from direct bases (in reverse order as
+        # first defined class must take precedence, and dictionary update overwrites)
+        for base_class in reversed(cls.mro()[1:]):
+            if type(base_class) is mcls:
+                base_class._subclasses.add(cls)
+                if base_class in bases:
+                    cls._properties.update(base_class._properties)
+
         for key, value in namespace.items():
             if isinstance(value, Property):
-                cls._properties[key] = value
-                if '__annotations__' in namespace:
-                    annotation_cls = namespace['__annotations__'].get(key, None)
-                else:
-                    annotation_cls = None
+                annotation_cls = namespace.get('__annotations__', {}).get(key, None)
                 if value.cls is not None and annotation_cls is not None:
                     raise ValueError(f'Type was specified both by type hint '
                                      f'({str(annotation_cls)}) and argument ({str(value.cls)}) '
                                      f'for property {key} of class {name}')
                 elif value.cls is None and annotation_cls is not None:
-                    value.cls = namespace['__annotations__'][key]
-                    if isinstance(value.cls, str) and value.cls == name:
-                        value.cls = cls
+                    value.cls = annotation_cls
                 elif value.cls is not None and annotation_cls is None:
                     # Just use value.cls in this case
                     pass
                 elif value.cls is None and annotation_cls is None:
                     raise ValueError(f'Type was not specified '
                                      f'for property {key} of class {name}')
-        cls._properties.update(
-            (key, value) for key, value in namespace.items()
-            if isinstance(value, Property))
-        for name in list(cls._properties):
-            # Remove items which are no longer properties
-            if name in namespace and not isinstance(namespace[name], Property):
-                del cls._properties[name]
-                continue
+
+                if isinstance(value.cls, str) and value.cls == name:
+                    value.cls = cls
+
+                if not (isinstance(value.cls, type)
+                        or getattr(value.cls, '__module__', "") == 'typing'):
+                    raise ValueError(f'Invalid type specification ({str(value.cls)}) '
+                                     f'for property {key} of class {cls.__name__}')
+
+                # Finally set property.
+                cls._properties[key] = value
+
+            elif key in cls._properties:
+                # New definition of "key" which isn't a Property any more.
+                del cls._properties[key]
+
+        for prop_name in list(cls._properties):
             # Optional arguments must follow mandatory
-            if cls._properties[name].default is not Property.empty:
-                cls._properties.move_to_end(name)
-        for prop_name, prop in cls._properties.items():
-            if not (isinstance(prop.cls, type) or
-                    (hasattr(prop.cls, '__module__') and prop.cls.__module__ == 'typing')):
-                raise ValueError(f'Invalid type specification ({str(prop.cls)}) '
-                                 f'for property {prop_name} of class {cls.__name__}')
+            if cls._properties[prop_name].default is not Property.empty:
+                cls._properties.move_to_end(prop_name)
 
         cls._validate_init()
         cls._generate_signature()
