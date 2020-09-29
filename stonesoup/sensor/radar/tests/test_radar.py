@@ -308,7 +308,7 @@ def test_rotating_radar():
     truth.add(target_state)
 
     # Generate a noiseless measurement for each of the given target states
-    measurements = radar.measure(truth)
+    measurements = radar.measure(truth, noise=False)
 
     # Two measurements for 2 truth states
     assert len(measurements) == 2
