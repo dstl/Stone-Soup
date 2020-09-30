@@ -266,24 +266,24 @@ class ASDKalmanPredictor(KalmanPredictor):
     def predict(self, prior, timestamp, **kwargs):
         r"""The predict function
 
-                Parameters
-                ----------
-                prior : :class:`~.ASDState`
-                    :math:`\mathbf{x}_{k-1}`
-                timestamp : :class:`datetime.datetime`,
-                    :math:`k`
-                **kwargs :
-                    These are passed, via
-                    :meth:`~.KalmanFilter.transition_function` to
-                    :meth:`~.LinearGaussianTransitionModel.matrix`
+        Parameters
+        ----------
+        prior : :class:`~.ASDState`
+            :math:`\mathbf{x}_{k-1}`
+        timestamp : :class:`datetime.datetime`,
+            :math:`k`
+        **kwargs :
+            These are passed, via
+            :meth:`~.KalmanFilter.transition_function` to
+            :meth:`~.LinearGaussianTransitionModel.matrix`
 
-                Returns
-                -------
-                : :class:`~.ASDState`
-                    :math:`\mathbf{x}_{k|k-1}`, the predicted state and the
-                    predicted state covariance :math:`P_{k|k-1}`
+        Returns
+        -------
+        : :class:`~.ASDState`
+            :math:`\mathbf{x}_{k|k-1}`, the predicted state and the
+            predicted state covariance :math:`P_{k|k-1}`
 
-                """
+        """
 
         correlation_matrices = copy.deepcopy(prior.correlation_matrices)
 
@@ -502,18 +502,18 @@ class ASDKalmanPredictor(KalmanPredictor):
         r"""Simple ASD pruning function. Deletes one timesteps from the multi
         state if it is longer then max_nstep
 
-                Parameters
-                ----------
-                prior : :class:`~.ASDState`
-                    :math:`\mathbf{x}_{k|k-1}`
+        Parameters
+        ----------
+        prior : :class:`~.ASDState`
+            :math:`\mathbf{x}_{k|k-1}`
 
-                Returns
-                -------
-                : :class:`~.ASDState`
-                    :math:`\mathbf{x}_{k|k-1}`, the pruned state and the pruned
-                    state covariance :math:`P_{k|k-1}`
+        Returns
+        -------
+        : :class:`~.ASDState`
+            :math:`\mathbf{x}_{k|k-1}`, the pruned state and the pruned
+            state covariance :math:`P_{k|k-1}`
 
-                """
+        """
         if predicted_state.nstep > predicted_state.max_nstep != 0:
             index = predicted_state.max_nstep * predicted_state.ndim
             predicted_state.multi_state_vector = \
