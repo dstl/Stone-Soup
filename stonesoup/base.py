@@ -58,7 +58,7 @@ import inspect
 import weakref
 from abc import ABCMeta
 from collections import OrderedDict
-from copy import deepcopy
+from copy import deepcopy, copy
 from types import MappingProxyType
 
 
@@ -104,7 +104,6 @@ class Property:
         Alias to :class:`inspect.Parameter.empty`
     """
     empty = inspect.Parameter.empty
-    _property_name = None
 
     def __init__(self, cls=None, *, default=inspect.Parameter.empty, doc=None,
                  readonly=False):
@@ -114,21 +113,11 @@ class Property:
         # Fix for when ":" in doc string being interpreted as type in NumpyDoc
         if doc is not None and ':' in doc:
             self.__doc__ = ": " + doc
+        self._property_name = None
         self._setter = None
         self._getter = None
         self._deleter = None
-
-        if readonly:
-            def _setter(instance, value):
-                # if the value hasn't been set before then we can set it once
-                if not hasattr(instance, self._property_name):
-                    setattr(instance, self._property_name, value)
-                else:
-                    # if the value has been set, raise an AttributeError
-                    raise AttributeError(
-                        '{} is readonly'.format(self._property_name))
-
-            self._setter = _setter
+        self.readonly = readonly
 
     def __get__(self, instance, owner):
         if instance is None:
@@ -139,6 +128,14 @@ class Property:
             return self._getter(instance)
 
     def __set__(self, instance, value):
+        if self.readonly:
+            if not hasattr(instance, self._property_name):
+                setattr(instance, self._property_name, value)
+            else:
+                # if the value has been set, raise an AttributeError
+                raise AttributeError(
+                    '{} is readonly'.format(self._property_name))
+
         if self._setter is None:
             setattr(instance, self._property_name, value)
         else:
@@ -157,15 +154,21 @@ class Property:
 
     def deleter(self, method):  # real signature unknown
         """ Descriptor to change the deleter on a property. """
-        self._deleter = method
+        new_property = copy(self)
+        new_property._deleter = method
+        return new_property
 
     def getter(self, method):  # real signature unknown
         """ Descriptor to change the getter on a property. """
-        self._getter = method
+        new_property = copy(self)
+        new_property._getter = method
+        return new_property
 
     def setter(self, method):  # real signature unknown
         """ Descriptor to change the setter on a property. """
-        self._setter = method
+        new_property = copy(self)
+        new_property._setter = method
+        return new_property
 
 
 class BaseMeta(ABCMeta):
