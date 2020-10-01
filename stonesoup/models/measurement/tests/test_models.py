@@ -55,6 +55,7 @@ def h3d(state_vector, pos_map,  translation_offset, rotation_offset):
 
     # Get rotation matrix
     theta_x, theta_y, theta_z = - rotation_offset[:, 0]
+    theta_y = - theta_y
 
     rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
     xyz_rot = rotation_matrix @ xyz
