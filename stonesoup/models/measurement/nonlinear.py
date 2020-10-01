@@ -138,7 +138,7 @@ class NonLinearGaussianMeasurement(MeasurementModel, NonLinearModel, GaussianMod
         """
 
         theta_x = -self.rotation_offset[0, 0]
-        theta_y = -self.rotation_offset[1, 0]
+        theta_y = self.rotation_offset[1, 0]
         theta_z = -self.rotation_offset[2, 0]
 
         return rotz(theta_z)@roty(theta_y)@rotx(theta_x)
