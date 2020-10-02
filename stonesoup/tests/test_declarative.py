@@ -103,7 +103,7 @@ def test_readonly_with_setter():
         readonly_property_no_default: float = Property()
 
         @readonly_property_default.setter
-        def set_readonly_default(self, value):
+        def readonly_property_default(self, value):
             # assign on first write only
             if not hasattr(self, '_property_readonly_property_default'):
                 self._property_readonly_property_default = value
@@ -113,7 +113,7 @@ def test_readonly_with_setter():
                 raise AttributeError
 
         @readonly_property_no_default.setter
-        def set_readonly_no_default(self, value):
+        def readonly_property_no_default(self, value):
             # assign on first write only
             if not hasattr(self, '_property_readonly_property_no_default'):
                 self._property_readonly_property_no_default = value
@@ -148,7 +148,7 @@ def test_basic_setter():
         times_two: float = Property(default=5)
 
         @times_two.setter
-        def set_times_two(self, value):
+        def times_two(self, value):
             self._property_times_two = value * 2
 
     test_object = TestSetter(times_two=10)
@@ -170,13 +170,13 @@ def test_basic_getter():
         base_value: float = Property(default=5)
 
         @times_two.getter
-        def get_times_two(self):
+        def times_two(self):
             return self.base_value * 2
 
         # Force the saved value to always be None. Again, don't do this: use a
         # python property
         @times_two.setter
-        def set_times_two(self, value):
+        def times_two(self, value):
             if value is not None:
                 raise ValueError
             self._property_times_two = value
@@ -196,6 +196,65 @@ def test_readonly():
     class TestReadonly(Base):
         readonly_property_default: float = Property(default=0, readonly=True)
         readonly_property_no_default: float = Property(readonly=True)
+
+    test_object = TestReadonly(readonly_property_default=10,
+                               readonly_property_no_default=20)
+
+    # first test read
+    assert test_object.readonly_property_default == 10
+    assert test_object.readonly_property_no_default == 20
+
+    # then test that write raises an exception
+    with pytest.raises(AttributeError):
+        test_object.readonly_property_default = 20
+    with pytest.raises(AttributeError):
+        test_object.readonly_property_no_default = 10
+
+    # now test when the default is used
+    test_object_default = TestReadonly(readonly_property_no_default=20)
+    assert test_object_default.readonly_property_default == 0
+    with pytest.raises(AttributeError):
+        test_object_default.readonly_property_default = 20
+
+
+def test_readonly_subclass():
+
+    class TestParent(Base):
+        readonly_property_default: float = Property(default=0, readonly=True)
+        readonly_property_no_default: float = Property(readonly=True)
+
+    class TestReadonly(TestParent):
+        pass
+
+    test_object = TestReadonly(readonly_property_default=10,
+                               readonly_property_no_default=20)
+
+    # first test read
+    assert test_object.readonly_property_default == 10
+    assert test_object.readonly_property_no_default == 20
+
+    # then test that write raises an exception
+    with pytest.raises(AttributeError):
+        test_object.readonly_property_default = 20
+    with pytest.raises(AttributeError):
+        test_object.readonly_property_no_default = 10
+
+    # now test when the default is used
+    test_object_default = TestReadonly(readonly_property_no_default=20)
+    assert test_object_default.readonly_property_default == 0
+    with pytest.raises(AttributeError):
+        test_object_default.readonly_property_default = 20
+
+
+def test_readonly_with_getter():
+
+    class TestReadonly(Base):
+        readonly_property_default: float = Property(default=0, readonly=True)
+        readonly_property_no_default: float = Property(readonly=True)
+
+        @readonly_property_default.getter
+        def readonly_property_default(self):
+            return self._property_readonly_property_default
 
     test_object = TestReadonly(readonly_property_default=10,
                                readonly_property_no_default=20)

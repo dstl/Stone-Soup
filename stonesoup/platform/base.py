@@ -123,15 +123,15 @@ class Platform(StateMutableSequence, ABC):
         return None if value is None else tuple(value)
 
     @sensors.getter
-    def get_sensors(self):
+    def sensors(self):
         return self._tuple_or_none(self._property_sensors)
 
     @mounting_offsets.getter
-    def get_mounting_offsets(self):
+    def mounting_offsets(self):
         return self._tuple_or_none(self._property_mounting_offsets)
 
     @rotation_offsets.getter
-    def get_rotation_offsets(self):
+    def rotation_offsets(self):
         return self._tuple_or_none(self._property_rotation_offsets)
 
     @property
