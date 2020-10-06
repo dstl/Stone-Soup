@@ -1,5 +1,7 @@
 import datetime
 
+import pytest
+
 from ..tracktotruthmetrics import SIAPMetrics
 from ...types.association import TimeRangeAssociation, AssociationSet
 from ...types.track import Track
@@ -372,7 +374,10 @@ def test_no_truth_divide_by_zero():
                     for track in manager.tracks}
     manager.association_set = AssociationSet(associations)
 
-    metrics = generator.compute_metric(manager)
+    with pytest.warns(UserWarning) as warning:
+        metrics = generator.compute_metric(manager)
+
+    assert warning[0].message.args[0] == "No truth to generate SIAP Metric"
 
     assert len(metrics) == 5
 
@@ -394,6 +399,9 @@ def test_no_track_divide_by_zero():
                     for track in manager.tracks}
     manager.association_set = AssociationSet(associations)
 
-    metrics = generator.compute_metric(manager)
+    with pytest.warns(UserWarning) as warning:
+        metrics = generator.compute_metric(manager)
+
+    assert warning[0].message.args[0] == "No tracks to generate SIAP Metric"
 
     assert len(metrics) == 5

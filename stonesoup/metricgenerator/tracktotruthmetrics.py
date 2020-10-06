@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
+import warnings
 from operator import attrgetter
 
 import numpy as np
@@ -47,6 +48,16 @@ class SIAPMetrics(MetricGenerator):
                    self.LT(manager),
                    self.LS(manager)]
         return metrics
+
+    @staticmethod
+    def _warn_no_truth(manager):
+        if len(manager.groundtruth_paths) == 0:
+            warnings.warn("No truth to generate SIAP Metric", stacklevel=2)
+
+    @staticmethod
+    def _warn_no_tracks(manager):
+        if len(manager.tracks) == 0:
+            warnings.warn("No tracks to generate SIAP Metric", stacklevel=2)
 
     def C_single_time(self, manager, timestamp):
         r"""SIAP metric C at a specific time
@@ -130,7 +141,7 @@ class SIAPMetrics(MetricGenerator):
             C = self._jt_sum(manager, timestamps) / self._j_sum(
                 manager, timestamps)
         except ZeroDivisionError:
-            # No truth
+            self._warn_no_truth(manager)
             C = 0
         return TimeRangeMetric(
             title="SIAP C",
@@ -172,7 +183,8 @@ class SIAPMetrics(MetricGenerator):
         try:
             A = self._na_sum(manager, timestamps) / self._jt_sum(manager, timestamps)
         except ZeroDivisionError:
-            # No truth
+            self._warn_no_truth(manager)
+            self._warn_no_tracks(manager)
             A = 0
         return TimeRangeMetric(
             title="SIAP A",
@@ -217,7 +229,7 @@ class SIAPMetrics(MetricGenerator):
         try:
             S = numerator / self._n_sum(manager, timestamps)
         except ZeroDivisionError:
-            # No tracks
+            self._warn_no_tracks(manager)
             S = 0
         return TimeRangeMetric(
             title="SIAP S",
@@ -245,6 +257,8 @@ class SIAPMetrics(MetricGenerator):
         r = self._r(manager)
         if r == 0:
             value = np.inf
+            self._warn_no_truth(manager)
+            self._warn_no_tracks(manager)
         else:
             value = 1 / r
 
@@ -291,7 +305,7 @@ class SIAPMetrics(MetricGenerator):
         try:
             LS = numerator / denominator
         except ZeroDivisionError:
-            # No truth
+            self._warn_no_truth(manager)
             LS = 0
         return TimeRangeMetric(
             title="SIAP LS",
