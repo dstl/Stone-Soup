@@ -5,6 +5,7 @@ from ..types.multihypothesis import MultipleHypothesis
 from ..types.prediction import (TaggedWeightedGaussianStatePrediction,
                                 WeightedGaussianStatePrediction)
 from ..types.state import TaggedWeightedGaussianState
+from ..types.detection import GaussianMixtureDetection
 
 
 class GaussianMixtureHypothesiser(Hypothesiser):
@@ -93,25 +94,28 @@ class GaussianMixtureHypothesiser(Hypothesiser):
             # Get miss detected components
             miss_detections_hypothesis = MultipleHypothesis(
                 [x for x in single_hypothesis_list if not x])
-            
+
             # Get Soft detections
-            soft_detect_list = [x for x in single_hypothesis_list if x]
+            soft_detect_list = [x for x in single_hypothesis_list
+                                if isinstance(x.measurement, GaussianMixtureDetection)]
+            hard_detect_list = [x for x in single_hypothesis_list
+                                if not isinstance(x.measurement, GaussianMixtureDetection)]
             for detection in detections:
-                if hasattr(detection, 'components') == True:      
+                if isinstance(detection, GaussianMixtureDetection):
                     for sub_detection in detection.components:
                         # Create multiple hypothesis per GM component
-                        detection_multiple_hypothesis = \
-                            MultipleHypothesis(list([hypothesis for hypothesis in soft_detect_list
-                                                if hypothesis.measurement.components == sub_detection])) 
+                        detection_multiple_hypothesis = MultipleHypothesis(list(
+                                [hypothesis for hypothesis in soft_detect_list
+                                 if hypothesis.measurement.components == sub_detection]))
                         # Add to new list
-                        reordered_hypotheses.append(detection_multiple_hypothesis)                
+                        reordered_hypotheses.append(detection_multiple_hypothesis)
                 else:
                     # Create multiple hypothesis per detection
-                    detection_multiple_hypothesis = \
-                        MultipleHypothesis(list([hypothesis for hypothesis in single_hypothesis_list
-                                            if hypothesis.measurement == detection]))
+                    detection_multiple_hypothesis = MultipleHypothesis(list(
+                            [hypothesis for hypothesis in hard_detect_list
+                             if hypothesis.measurement == detection]))
                     # Add to new list
-                    reordered_hypotheses.append(detection_multiple_hypothesis)                    
+                    reordered_hypotheses.append(detection_multiple_hypothesis)
             # Add miss detected hypothesis to end
             reordered_hypotheses.append(miss_detections_hypothesis)
             # Assign reordered list to original list
