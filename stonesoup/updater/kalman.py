@@ -233,7 +233,7 @@ class KalmanUpdater(Updater):
                                              cross_covar=meas_cross_cov)
 
     @lru_cache()
-    def soft_predict_measurement(self, predicted_state, GM_measurement, measurement_model=None, 
+    def soft_predict_measurement(self, predicted_state, GM_measurement, measurement_model=None,
                                  **kwargs):
         r"""Predict the measurement implied by the predicted state mean
 
@@ -241,7 +241,7 @@ class KalmanUpdater(Updater):
         ----------
         predicted_state : :class:`~.State`
             The predicted state :math:`\mathbf{x}_{k|k-1}`
-        GM_measurement : GM component of soft measurements    
+        GM_measurement : GM component of soft measurements
         measurement_model : :class:`~.MeasurementModel`
             The measurement model. If omitted, the model in the updater object
             is used
@@ -275,7 +275,7 @@ class KalmanUpdater(Updater):
         return GaussianMeasurementPrediction(pred_meas, innov_cov,
                                              predicted_state.timestamp,
                                              cross_covar=meas_cross_cov)
-        
+
     def update(self, hypothesis, **kwargs):
         r"""The Kalman update method. Given a hypothesised association between
         a predicted state or predicted measurement and an actual measurement,
@@ -332,7 +332,8 @@ class KalmanUpdater(Updater):
         return self._update_class(posterior_mean, posterior_covariance, hypothesis,
                                   timestamp=hypothesis.measurement.timestamp)
 
-    def soft_update(self, hypothesis, soft_measurement_prediction, force_symmetric_covariance=False, **kwargs):
+    def soft_update(self, hypothesis, soft_measurement_prediction,
+                    force_symmetric_covariance=False, **kwargs):
         r"""The Kalman update method. Given a hypothesised association between
         a predicted state or predicted measurement and an actual measurement,
         calculate the posterior state.
@@ -343,7 +344,7 @@ class KalmanUpdater(Updater):
             the prediction-measurement association hypothesis. This hypothesis
             may carry a predicted measurement, or a predicted state. In the
             latter case a predicted measurement will be calculated.
-        soft_measurement_prediction : 
+        soft_measurement_prediction :
         force_symmetric_covariance : :obj:`bool`, optional
             A flag to force the output covariance matrix to be symmetric by way
             of a simple geometric combination of the matrix and transpose.
@@ -392,7 +393,7 @@ class KalmanUpdater(Updater):
         posterior_mean = \
             predicted_state.state_vector \
             + kalman_gain@(hypothesis.measurement.components[0].state_vector - pred_meas)
-            
+
         if force_symmetric_covariance:
             posterior_covariance = \
                 (posterior_covariance + posterior_covariance.T)/2
@@ -508,7 +509,6 @@ class UnscentedKalmanUpdater(KalmanUpdater):
             The measurement prediction
 
         """
-
         measurement_model = self._check_measurement_model(measurement_model)
 
         sigma_points, mean_weights, covar_weights = \
