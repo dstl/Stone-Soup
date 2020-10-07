@@ -8,6 +8,7 @@ from .kalman import KalmanUpdater
 from ..types.update import GaussianMixtureUpdate
 from ..types.state import TaggedWeightedGaussianState
 from ..types.numeric import Probability
+from ..types.detection import GaussianMixtureDetection
 
 
 class PointProcessUpdater(Base):
@@ -145,7 +146,7 @@ class PHDUpdater(PointProcessUpdater):
         return 1
 
 
-class SoftProcessUpdater(Base):
+class SoftHardProcessUpdater(Base):
     r"""
     Base updater class for the implementation of PHD-EF filter.
     """
@@ -193,39 +194,91 @@ class SoftProcessUpdater(Base):
             GaussianMixtureMultiTargetTracker with updated \
             components at time :math:`k+1`
         """
+
         updated_components = list()
-        weight_sum_list = list()        
-        single_hypothesis_list = list()
-        number_detections = set()
+        weight_sum_list = list()
+        soft_hypothesis_list = list()
+        num_soft_sub_detections = set()
+        hard_hypothesis_index = set()
+
+        hard_hypothesis = 0
         for multi_hypothesis in hypotheses[:-1]:
             for hypothesis in multi_hypothesis:
-                single_hypothesis_list.append(hypothesis)
-                number_detections.add(hypothesis.measurement[0].tag)
-        # Loop over all GM components of soft measurements 
-        for num_detect in number_detections:
+                if isinstance(hypothesis.measurement, GaussianMixtureDetection):
+                    soft_hypothesis_list.append(hypothesis)
+                    num_soft_sub_detections.add(hypothesis.measurement[0].tag)
+                else:
+                    hard_hypothesis_index.add(hard_hypothesis)
+            hard_hypothesis += 1
+        # print("Index of hard MultiHypothesis", hard_hypothesis_index)
+
+        # Loop over all hard measurements
+        for num_hard_detect in hard_hypothesis_index:
+            # Initialise weight sum for measurement to clutter intensity
+            weight_sum = 0
+            for hypothesis in hypotheses[num_hard_detect]:
+                # print("+++++++++", len(hypotheses[num_hard_detect]))
+                # print("Index", num_hard_detect)
+                updated_measurement_components = list()
+                # For every valid single hypothesis, update that GM component with
+                # measurements and calculate new weight
+                measurement_prediction = self.updater.predict_measurement(
+                        hypothesis.prediction, hypothesis.measurement.measurement_model)
+                measurement = hypothesis.measurement
+                prediction = hypothesis.prediction
+                # Calculate new weight and add to weight sum
+                q = multivariate_normal.pdf(
+                        measurement.state_vector.flatten(),
+                        mean=measurement_prediction.mean.flatten(),
+                        cov=measurement_prediction.covar
+                    )
+                new_weight = self.prob_detection * prediction.weight * q * self.prob_survival
+                weight_sum += new_weight
+                # Perform single target Kalman Update
+                temp_updated_component = self.updater.update(hypothesis)
+                updated_component = TaggedWeightedGaussianState(
+                        tag=prediction.tag if prediction.tag != "birth" else None,
+                        weight=new_weight,
+                        state_vector=temp_updated_component.mean,
+                        covar=temp_updated_component.covar,
+                        timestamp=temp_updated_component.timestamp
+                )
+                # Add updated component to mixture
+                updated_measurement_components.append(updated_component)
+            weight_sum_list.append(weight_sum)
+            for component in updated_measurement_components:
+                if self.normalisation:
+                    component.weight /= \
+                        (weight_sum + self.clutter_spatial_density)
+                updated_components.append(component)
+
+        # Loop over all GM components of soft measurements
+        for num_soft_detect in num_soft_sub_detections:
             updated_measurement_components = list()
             # Initialise weight sum for measurement to clutter intensity
             weight_sum = 0
             # For every valid single hypothesis, update that GM component with
             # measurements and calculate new weight
-            for hypothesis in single_hypothesis_list:
-                if (hypothesis.measurement.components[0].tag == num_detect):
+            for hypothesis in soft_hypothesis_list:
+                if (hypothesis.measurement.components[0].tag == num_soft_detect):
                     soft_measurement_prediction = \
                         self.updater.soft_predict_measurement(
-                            hypothesis.prediction, hypothesis.measurement.components[0], hypothesis.measurement.measurement_model)
+                            hypothesis.prediction,
+                            hypothesis.measurement.components[0],
+                            hypothesis.measurement.measurement_model)
                     measurement = hypothesis.measurement
                     prediction = hypothesis.prediction
                     # Calculate new weight and add to weight sum
                     q = multivariate_normal.pdf(
                         measurement.components[0].state_vector.flatten(),
                         mean=soft_measurement_prediction.mean.flatten(),
-                        cov=soft_measurement_prediction.covar 
-                    )
-                    new_weight = self.prob_detection\
-                        * prediction.weight * hypothesis.measurement.components[0].weight * q * self.prob_survival
+                        cov=soft_measurement_prediction.covar)
+                    new_weight = self.prob_detection * prediction.weight * \
+                        hypothesis.measurement.components[0].weight * q * self.prob_survival
                     weight_sum += new_weight
                     # Perform single target Kalman Update
-                    temp_updated_component = self.updater.soft_update(hypothesis, soft_measurement_prediction)
+                    temp_updated_component = self.updater.soft_update(hypothesis,
+                                                                      soft_measurement_prediction)
                     updated_component = TaggedWeightedGaussianState(
                         tag=prediction.tag if prediction.tag != "birth" else None,
                         weight=new_weight,
@@ -264,9 +317,9 @@ class SoftProcessUpdater(Base):
     @abstractmethod
     def _calculate_update_terms(self, updated_sum_list, hypotheses):
         raise NotImplementedError
- 
-       
-class SOFTUpdater(SoftProcessUpdater):
+
+
+class SOFTHARDUpdater(SoftHardProcessUpdater):
     """
     A implementation of the PHD-EF filter
     """
