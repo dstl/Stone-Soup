@@ -111,9 +111,9 @@ class GaussianMixtureHypothesiser(Hypothesiser):
                         reordered_hypotheses.append(detection_multiple_hypothesis)
                 else:
                     # Create multiple hypothesis per detection
-                    detection_multiple_hypothesis = MultipleHypothesis(list(
-                            [hypothesis for hypothesis in hard_detect_list
-                             if hypothesis.measurement == detection]))
+                    detection_multiple_hypothesis = MultipleHypothesis(
+                            [hyp for hyp in hard_detect_list
+                             if hyp.measurement == detection])
                     # Add to new list
                     reordered_hypotheses.append(detection_multiple_hypothesis)
             # Add miss detected hypothesis to end
