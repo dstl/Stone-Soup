@@ -5,22 +5,18 @@ from ..types.multihypothesis import MultipleHypothesis
 from ..types.prediction import (TaggedWeightedGaussianStatePrediction,
                                 WeightedGaussianStatePrediction)
 from ..types.state import TaggedWeightedGaussianState
-from ..types.detection import GaussianMixtureDetection
 
 
 class GaussianMixtureHypothesiser(Hypothesiser):
     """Gaussian Mixture Prediction Hypothesiser based on an underlying Hypothesiser
-
     Generates a list of :class:`MultipleHypothesis`, where each
     MultipleHypothesis in the list contains SingleHypotheses
     pertaining to an individual component-detection hypothesis
     """
 
-    hypothesiser = Property(
-        Hypothesiser,
+    hypothesiser: Hypothesiser = Property(
         doc="Underlying hypothesiser used to generate detection-target pairs")
-    order_by_detection = Property(
-        bool,
+    order_by_detection: bool = Property(
         default=False,
         doc="Flag to order the :class:`~.MultipleHypothesis` "
             "list by detection or component")
@@ -28,7 +24,6 @@ class GaussianMixtureHypothesiser(Hypothesiser):
     def hypothesise(self, components, detections, timestamp):
         """Form hypotheses for associations between Detections and Gaussian
         Mixture components.
-
         Parameters
         ----------
         components : :class:`list`
@@ -38,7 +33,6 @@ class GaussianMixtureHypothesiser(Hypothesiser):
             Retrieved measurements
         timestamp : datetime
             Time of the detections/predicted states
-
         Returns
         -------
         list of :class:`~.MultipleHypothesis`
@@ -94,28 +88,13 @@ class GaussianMixtureHypothesiser(Hypothesiser):
             # Get miss detected components
             miss_detections_hypothesis = MultipleHypothesis(
                 [x for x in single_hypothesis_list if not x])
-
-            # Get Soft detections
-            soft_detect_list = [x for x in single_hypothesis_list
-                                if isinstance(x.measurement, GaussianMixtureDetection)]
-            hard_detect_list = [x for x in single_hypothesis_list
-                                if not isinstance(x.measurement, GaussianMixtureDetection)]
             for detection in detections:
-                if isinstance(detection, GaussianMixtureDetection):
-                    for sub_detection in detection.components:
-                        # Create multiple hypothesis per GM component
-                        detection_multiple_hypothesis = MultipleHypothesis(list(
-                                [hypothesis for hypothesis in soft_detect_list
-                                 if hypothesis.measurement.components == sub_detection]))
-                        # Add to new list
-                        reordered_hypotheses.append(detection_multiple_hypothesis)
-                else:
-                    # Create multiple hypothesis per detection
-                    detection_multiple_hypothesis = MultipleHypothesis(list(
-                            [hypothesis for hypothesis in hard_detect_list
-                             if hypothesis.measurement == detection]))
-                    # Add to new list
-                    reordered_hypotheses.append(detection_multiple_hypothesis)
+                # Create multiple hypothesis per detection
+                detection_multiple_hypothesis = \
+                    MultipleHypothesis(list([hypothesis for hypothesis in single_hypothesis_list
+                                            if hypothesis.measurement == detection]))
+                # Add to new list
+                reordered_hypotheses.append(detection_multiple_hypothesis)
             # Add miss detected hypothesis to end
             reordered_hypotheses.append(miss_detections_hypothesis)
             # Assign reordered list to original list
