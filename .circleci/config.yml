@@ -6,6 +6,7 @@ workflows:
       - test-36
       - test-37
       - test-38
+      - test-39
   docs:
     jobs:
       - docs
@@ -52,13 +53,17 @@ jobs:
     <<: *test-template
     docker:
       - image: circleci/python:3.8
+  test-39:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.9
   docs:
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/python:3.9
     steps:
       - checkout
       - restore_cache:
-          key: v1-dependencies-test-38-{{ checksum "setup.py" }}
+          key: v1-dependencies-test-39-{{ checksum "setup.py" }}
       - run:
           name: Install Dependencies
           command: |
@@ -68,7 +73,7 @@ jobs:
       - save_cache:
           paths:
             - ./venv
-          key: v1-dependencies-test-38-{{ checksum "setup.py" }}
+          key: v1-dependencies-test-39-{{ checksum "setup.py" }}
       - run:
           name: Build Docs
           command: |
