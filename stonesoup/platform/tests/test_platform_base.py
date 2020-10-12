@@ -563,6 +563,7 @@ def test_multi_transition():
 
     time += datetime.timedelta(seconds=7)
     platform.move(timestamp=time)
+    assert len(platform) == 5
     x, y = platform.position[0], platform.position[1]
     # Platform initially moves horizontally
     assert x > px
@@ -573,6 +574,7 @@ def test_multi_transition():
 
     time += datetime.timedelta(seconds=10)
     platform.move(timestamp=time)
+    assert len(platform) == 6
     x, y = platform.position[0], platform.position[1]
     # Platform starts turning left to 45 degrees
     assert x > px
@@ -582,6 +584,7 @@ def test_multi_transition():
 
     time += datetime.timedelta(seconds=10)
     platform.move(timestamp=time)
+    assert len(platform) == 7
     x, y = platform.position[0], platform.position[1]
     px, py = x, y
     # Platform turned left to 90 degrees
@@ -590,6 +593,7 @@ def test_multi_transition():
 
     time += datetime.timedelta(seconds=10)
     platform.move(timestamp=time)
+    assert len(platform) == 8
     x, y = platform.position[0], platform.position[1]
     # Platform travelling vertically up
     assert np.allclose(x, px, atol=1e-6)
@@ -608,6 +612,7 @@ def test_multi_transition():
 
     time += datetime.timedelta(seconds=20)
     platform.move(timestamp=time)
+    assert len(platform) == 9
     # Platform turned left by 90 degrees (now travelling in -x direction)
     px, py = platform.position[0], platform.position[1]
     # Next transition is right-turn
@@ -615,6 +620,7 @@ def test_multi_transition():
 
     time += datetime.timedelta(seconds=10)
     platform.move(timestamp=time)
+    assert len(platform) == 10
     x, y = platform.position[0], platform.position[1]
     px, py = x, y
     # Next transition straight-on, travelling vertically up again
@@ -622,6 +628,7 @@ def test_multi_transition():
 
     time += datetime.timedelta(seconds=10)
     platform.move(timestamp=time)
+    assert len(platform) == 11
     x, y = platform.position[0], platform.position[1]
     # Platform travelled vertically up
     assert np.allclose(x, px, atol=1e-6)
