@@ -185,7 +185,7 @@ class SIAPMetrics(MetricGenerator):
         except ZeroDivisionError:
             self._warn_no_truth(manager)
             self._warn_no_tracks(manager)
-            A = 0
+            A = 1
         return TimeRangeMetric(
             title="SIAP A",
             value=A,
