@@ -522,17 +522,33 @@ class MultiTransitionMovingPlatform(MovingPlatform):
             # TypeError: (timestamp or prior.timestamp) is None
             return
 
+        temp_state = self.state
         while time_interval != 0:
             if time_interval >= self.current_interval:
-                super().move(timestamp=self.state.timestamp+self.current_interval, **kwargs)
+                temp_state = State(
+                    state_vector=self.transition_model.function(
+                        state=temp_state,
+                        noise=True,
+                        time_interval=self.current_interval,
+                        **kwargs),
+                    timestamp=timestamp
+                )
                 time_interval -= self.current_interval
                 self.transition_index = (self.transition_index + 1) % len(self.transition_models)
                 self.current_interval = self.transition_times[self.transition_index]
 
             else:
-                super().move(timestamp=self.state.timestamp+time_interval, **kwargs)
+                temp_state = State(
+                    state_vector=self.transition_model.function(
+                        state=temp_state,
+                        noise=True,
+                        time_interval=time_interval,
+                        **kwargs),
+                    timestamp=timestamp
+                )
                 self.current_interval -= time_interval
                 time_interval = 0
+        self.states.append(temp_state)
 
 
 def _get_rotation_matrix(vel: StateVector) -> np.ndarray:
