@@ -9,11 +9,12 @@ from ....orbital_functions import lagrange_coefficients_from_universal_anomaly
 
 from ....base import Property
 from ....types.orbitalstate import OrbitalState, TLEOrbitalState
-from ....types.array import CovarianceMatrix
+from ....types.array import StateVector, CovarianceMatrix
 from ...base import LinearModel, NonLinearModel
 from .base import OrbitalTransitionModel
 
 from sgp4.api import jday, Satrec
+from sgp4.exporter import export_tle
 
 
 class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
@@ -372,7 +373,7 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
         bold_v = f_dot * bold_r_0 + g_dot * bold_v_0
 
         # And put them together
-        return np.concatenate((bold_r, bold_v), axis=0)
+        return StateVector(np.concatenate((bold_r, bold_v), axis=0))
 
     def rvs(self, num_samples=1, orbital_state=None,
             time_interval=timedelta(seconds=0)):
@@ -498,6 +499,26 @@ class SGP4TransitionModel(OrbitalTransitionModel, NonLinearModel):
         """
         return CovarianceMatrix(self.noise * time_interval.total_seconds())
 
+    def _advance_by_metadata(self, orbitalstate, time_interval):
+        # Evaluated at initial timestamp
+        tle_ext = Satrec.twoline2rv(orbitalstate.metadata['line_1'],
+                                    orbitalstate.metadata['line_2'])
+
+        # Predict over time interval
+        tt = orbitalstate.timestamp + time_interval
+
+        jd, fr = jday(tt.year, tt.month, tt.day,
+                      tt.hour, tt.minute, tt.second)
+
+        # WARNING: These units returned as km and km/s
+        e, bold_r, bold_v = tle_ext.sgp4(jd, fr)
+
+        # update the metadata - how?
+        line1, line2 = export_tle(tle_ext)
+        metadata = {"line_1": line1, "line_2": line2}
+
+        return e, bold_r, bold_v, metadata
+
     def function(self, orbital_state, noise=0,
                  time_interval=timedelta(seconds=0)):
         r"""Just passes parameters to the transition function
@@ -548,22 +569,10 @@ class SGP4TransitionModel(OrbitalTransitionModel, NonLinearModel):
         the :attr:`rvs` method.
         """
 
-        # Evaluated at initial timestamp
-        tle_ext = Satrec.twoline2rv(orbital_state.metadata['line_1'],
-                                    orbital_state.metadata['line_2'])
-
-        # Predict over time interval
-        tt = orbital_state.timestamp + time_interval
-
-        jd, fr = jday(tt.year, tt.month, tt.day,
-                      tt.hour, tt.minute, tt.second)
-        # WARNING: These units returned as km and km/s
-        e, bold_r, bold_v = tle_ext.sgp4(jd, fr)
-
-        # Update the metadata?
+        e, bold_r, bold_v, _ = self._advance_by_metadata(orbital_state, time_interval)
 
         # And put them together
-        return np.concatenate((bold_r, bold_v), axis=0)
+        return StateVector(np.concatenate((bold_r, bold_v), axis=0))
 
     def rvs(self, num_samples=1, orbital_state=None,
             time_interval=timedelta(seconds=0)):

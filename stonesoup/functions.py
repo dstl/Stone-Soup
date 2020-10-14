@@ -175,7 +175,6 @@ def sigma2gauss(sigma_points, mean_weights, covar_weights, covar_noise=None):
     : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`
         Calculated covariance
     """
-
     mean = np.average(sigma_points, axis=1, weights=mean_weights)
 
     points_diff = sigma_points - mean
