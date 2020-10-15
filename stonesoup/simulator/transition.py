@@ -132,12 +132,12 @@ def create_smooth_transition_models(initial_state, x_coords, y_coords, times, tu
         if d > 0:  # if platform is not already at target coord, add linear acceleration model
 
             try:
-                accel_model = Point2PointConstantAcceleration(state=state,
+                accel_model = Point2PointConstantAcceleration(state=deepcopy(state),
                                                               destination=(x_coord, y_coord),
                                                               duration=timedelta(seconds=t2))
             except OvershootError:
                 # if linear accel leads to overshoot, apply model to stop at target coord instead
-                accel_model = Point2PointStop(state=state,
+                accel_model = Point2PointStop(state=deepcopy(state),
                                               destination=(x_coord, y_coord))
             state.state_vector = accel_model.function(state=state,
                                                       time_interval=timedelta(seconds=t2))
