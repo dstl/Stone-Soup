@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 from numbers import Real
+
 import numpy as np
 import pytest
 
-from stonesoup.types.interval import ClosedContinuousInterval, DisjointIntervals
+from ...types.interval import ClosedContinuousInterval, DisjointIntervals
 
 
 def test_intervals():
@@ -142,8 +143,8 @@ def test_intervals():
     assert len(merged_int) == 2
     assert np.isclose(merged_int.length, 3.5)
 
-    l = DisjointIntervals(intervals = [b, a])
-    l.sort()
-    assert l.intervals == [a, b]
-    l.sort(reverse=True)
-    assert l.intervals == [b, a]
+    m = DisjointIntervals(intervals=[b, a])
+    m.sort()
+    assert m.intervals == [a, b]
+    m.sort(reverse=True)
+    assert m.intervals == [b, a]
