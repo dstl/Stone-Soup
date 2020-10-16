@@ -276,3 +276,26 @@ def test_sensor_serialisation(serialised_file):
     sensor = serialised_file.load(serialised_str)
     assert np.allclose(sensor.position, pos)
     assert np.allclose(sensor.orientation, orientation)
+
+
+def test_dump(tmpdir, serialised_file):
+    data = [1, 2, 3]
+    with open(tmpdir.join('dump_file.yml'), 'w') as yaml_file:
+        serialised_file.dump(data, yaml_file)
+
+    with open(tmpdir.join('dump_file.yml')) as yaml_file:
+        read_data = serialised_file.load(yaml_file)
+
+    assert read_data == data
+
+
+def test_dump_all(tmpdir, serialised_file):
+    documents = [[i, i + 1, i + 2] for i in range(5)]
+    with open(tmpdir.join('dump_file.yml'), 'w') as yaml_file:
+        serialised_file.dump_all(documents, yaml_file)
+
+    with open(tmpdir.join('dump_file.yml')) as yaml_file:
+        read_documents = serialised_file.load_all(yaml_file)
+
+        for read_document, document in zip(read_documents, documents):
+            assert read_document == document
