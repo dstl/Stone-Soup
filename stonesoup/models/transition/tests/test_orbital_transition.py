@@ -28,16 +28,15 @@ def test_meanmotion_transition():
     """Tests SimpleMeanMotionTransitionModel()"""
 
     initial_state = TLEOrbitalState(out_tle, timestamp=time1)
-    final_state = OrbitalState(propagator_sm.transition(initial_state, deltat),
-                               timestamp=time1 + deltat)
+    final_state = TLEOrbitalState(propagator_sm.transition(initial_state, deltat),
+                                  timestamp=time1 + deltat)
 
     # Check something's happened
-    assert not np.all(initial_state.two_line_element ==
-                      final_state.two_line_element)
+    assert not np.all(initial_state.two_line_element == final_state.two_line_element)
 
     # Check the final state is correct
-    final_meananomaly = np.remainder(out_tle[4][0] + 3600*out_tle[5][0],
-                                     2*np.pi)
+    final_meananomaly = np.remainder(out_tle[4][0] + 3600*out_tle[5][0], 2*np.pi)
+
     assert np.isclose(initial_state.mean_anomaly, out_tle[4][0], rtol=1e-8)
     assert np.isclose(final_state.mean_anomaly, final_meananomaly, rtol=1e-8)
 
@@ -92,8 +91,8 @@ def test_meanm_cart_transition():
     while time < datetime(2011, 11, 12, 13, 45, 31) + timedelta(hours=10):
         state1 = OrbitalState(propagator_c.transition(state1, dt),
                               timestamp=time, grav_parameter=398600)
-        state2 = OrbitalState(propagator_sm.transition(state2, dt),
-                              timestamp=time, grav_parameter=398600)
+        state2 = TLEOrbitalState(propagator_sm.transition(state2, dt),
+                                 timestamp=time, grav_parameter=398600)
         assert (np.allclose(state1.state_vector, state2.state_vector,
                             rtol=1e-8))
         time = time + dt
@@ -108,7 +107,7 @@ def test_sampling():
     initial_state.grav_parameter = 398600
 
     # noise it up
-    propagator_sm.transition_noise = 1
+    propagator_sm.noise = np.diag([1e-10, 1e-10, 1e-10, 1e-10, 1e-2, 1e-10])
     # take some samples
     samp_states_sm = propagator_sm.rvs(num_samples=10,
                                        orbital_state=initial_state,

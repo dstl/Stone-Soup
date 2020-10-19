@@ -30,7 +30,7 @@ def test_SGP4TransitionModel():
     state_vector[1, 0] = tle_ext.nodeo
     state_vector[2, 0] = tle_ext.ecco
     state_vector[3, 0] = tle_ext.argpo
-    state_vector[4, 0] = tle_ext.no
+    state_vector[4, 0] = tle_ext.mo
     state_vector[5, 0] = tle_ext.no_kozai
 
     # Initialise the state
