@@ -1085,15 +1085,14 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
         return out
 
     def _gaussian_integral(self, a, b, mean, cov):
-        # the cumlative probability ranging from a to b for a normal distribution
+        # this function is the cumulative probability ranging from a to b for a normal distribution
         return (multivariate_normal.cdf(a, mean=mean, cov=cov)
                 - multivariate_normal.cdf(b, mean=mean, cov=cov))
 
-    def _binned_pdf(self, state_vector, mean, bin_size, cov):
-        # this function finds the probability density at state_vector1
-        # by dividing the intergral of a probability density function, over a bin, by the bin size
-        a = np.floor(state_vector / bin_size) * bin_size + bin_size
-        b = np.floor(state_vector / bin_size) * bin_size
+    def _binned_pdf(self, measured_value, mean, bin_size, cov):
+        # this function finds the probability density of the bin the measured_value is in
+        a = np.floor(measured_value / bin_size) * bin_size + bin_size
+        b = np.floor(measured_value / bin_size) * bin_size
         return self._gaussian_integral(a, b, mean, cov)
 
     def pdf(self, state1, state2, **kwargs):
