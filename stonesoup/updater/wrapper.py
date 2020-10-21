@@ -32,6 +32,6 @@ class UpdaterWrapper(Updater):
         updater = self._pick_updater(self, hypothesis.measurement.measurement_model)
         return updater.update(hypothesis, **kwargs)
 
-    def soft_update(self, hypothesis, soft_measurement_prediction, **kwargs):
+    def soft_update(self, hypothesis, **kwargs):
         updater = self._pick_updater(self, hypothesis.measurement.measurement_model)
-        return updater.soft_update(hypothesis, soft_measurement_prediction, **kwargs)
+        return updater.soft_update(hypothesis, **kwargs)
