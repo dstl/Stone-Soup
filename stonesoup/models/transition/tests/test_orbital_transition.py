@@ -28,7 +28,8 @@ def test_meanmotion_transition():
     """Tests SimpleMeanMotionTransitionModel()"""
 
     initial_state = TLEOrbitalState(out_tle, timestamp=time1)
-    final_state = TLEOrbitalState(propagator_sm.transition(initial_state, deltat),
+    final_state = TLEOrbitalState(propagator_sm.transition(initial_state, noise=False,
+                                                           time_interval=deltat),
                                   timestamp=time1 + deltat)
 
     # Check something's happened
@@ -58,7 +59,7 @@ def test_cartesiantransitionmodel():
     initial_state = OrbitalState(ini_cart, coordinates="Cartesian",
                                  timestamp=time1, grav_parameter=398600)
 
-    final_state = OrbitalState(propagator_c.transition(initial_state, deltat),
+    final_state = OrbitalState(propagator_c.transition(initial_state, time_interval=deltat),
                                timestamp=time1+deltat, grav_parameter=398600)
 
     # Check something's happened
@@ -89,9 +90,9 @@ def test_meanm_cart_transition():
 
     # Dumb way to do things
     while time < datetime(2011, 11, 12, 13, 45, 31) + timedelta(hours=10):
-        state1 = OrbitalState(propagator_c.transition(state1, dt),
+        state1 = OrbitalState(propagator_c.transition(state1, time_interval=dt),
                               timestamp=time, grav_parameter=398600)
-        state2 = TLEOrbitalState(propagator_sm.transition(state2, dt),
+        state2 = TLEOrbitalState(propagator_sm.transition(state2, noise=False, time_interval=dt),
                                  timestamp=time, grav_parameter=398600)
         assert (np.allclose(state1.state_vector, state2.state_vector,
                             rtol=1e-8))
@@ -107,17 +108,13 @@ def test_sampling():
     initial_state.grav_parameter = 398600
 
     # noise it up
-    propagator_sm.noise = np.diag([1e-10, 1e-10, 1e-10, 1e-10, 1e-2, 1e-10])
+    propagator_sm.process_noise = np.diag([1e-10, 1e-10, 1e-10, 1e-10, 1e-2, 1e-10])
     # take some samples
-    samp_states_sm = propagator_sm.rvs(num_samples=10,
-                                       orbital_state=initial_state,
-                                       time_interval=deltat)
+    samp_states_sm = propagator_sm.rvs(num_samples=10, time_interval=deltat)
 
     # Do it in Cartesian
-    propagator_c.noise = np.diag([10, 10, 10, 10e-3, 10e-3, 10e-3])
-    samp_states_c = propagator_c.rvs(num_samples=100,
-                                     orbital_state=initial_state,
-                                     time_interval=deltat)
+    propagator_c.process_noise = np.diag([10, 10, 10, 10e-3, 10e-3, 10e-3])
+    samp_states_c = propagator_c.rvs(num_samples=100, time_interval=deltat)
 
     for state in samp_states_c.T:
         assert(propagator_c.pdf(OrbitalState(state,

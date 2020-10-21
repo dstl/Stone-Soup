@@ -1,3 +1,4 @@
+from .....types.array import StateVector
 from .....types.orbitalstate import TLEOrbitalState
 from ..orbit import SGP4TransitionModel
 
@@ -46,8 +47,5 @@ def test_SGP4TransitionModel():
     testSGP4 = SGP4TransitionModel()
     outrv = testSGP4.transition(test_tle)
 
-    # Note that if we use outrv  - which is a StateVector to update the State,
-    # we're going to have to ensure consistency of the metadata
-
     # Check position vectors are equal
-    assert (np.array_equal(r, outrv[0:3]))
+    assert (np.array_equal(StateVector(r), outrv[0:3]))

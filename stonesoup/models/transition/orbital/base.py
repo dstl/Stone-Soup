@@ -2,11 +2,11 @@ import numpy as np
 from abc import abstractmethod
 from datetime import timedelta
 
-from numpy import matlib
 from scipy.stats import multivariate_normal
 
 from ..base import TransitionModel
-from ....types.array import CovarianceMatrix
+from ....base import Property
+from ....types.array import CovarianceMatrix, StateVector, StateVectors
 
 
 class OrbitalTransitionModel(TransitionModel):
@@ -14,6 +14,22 @@ class OrbitalTransitionModel(TransitionModel):
     transition model on an orbital element state vector. Input is an
     :class:~`OrbitalState`, and the various daughter classes will
     implement their chosen state transitions."""
+
+    process_noise = Property(
+        CovarianceMatrix, default=CovarianceMatrix(np.zeros((6, 6))),
+        doc=r"Transition (or process) noise covariance :math:`\Sigma` per unit time "
+            r"interval (assumed seconds)")
+
+    def _noiseinrightform(self, noise=False, time_interval=timedelta(seconds=1)):
+        """Take the noise parameter/matrix and return the noise in the correct form"""
+
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                noise = self.rvs(time_interval=time_interval)
+            else:
+                noise = 0
+
+        return noise
 
     @property
     @abstractmethod
@@ -36,10 +52,9 @@ class OrbitalTransitionModel(TransitionModel):
             The transition covariance matrix
 
         """
-        return CovarianceMatrix(self.noise * time_interval.total_seconds())
+        return CovarianceMatrix(self.process_noise * time_interval.total_seconds())
 
-    def rvs(self, num_samples=1, orbital_state=None,
-            time_interval=timedelta(seconds=0)):
+    def rvs(self, num_samples=1, time_interval=timedelta(seconds=0)):
         r"""Sample from the transited state. Do this in a fairly simple-minded
         way by way of additive white noise in Cartesian coordinates.
 
@@ -54,10 +69,6 @@ class OrbitalTransitionModel(TransitionModel):
         ----------
         num_samples : int, optional
             Number of samples, (default is 1)
-        orbital_state: :class:`~.OrbitalState`, optional
-            The orbital state class (default is None, in which case a
-            Gauss-distributed samples are generated at Cartesian
-            :math:`[0,0,0,0,0,0]^T`)
         time_interval : :class:`~.datetime.timedelta`, optional
             The time over which the transition occurs, (default is 0)
 
@@ -65,8 +76,7 @@ class OrbitalTransitionModel(TransitionModel):
         -------
         : numpy.array, dimension (6, num_samples)
             num_samples random samples of the state vector drawn from
-            a normal distribution defined by the transited mean
-            anomaly, :math:`M_{t_1}` and the covariances
+            a normal distribution defined by the covariance matrix
             :math:`\Sigma`.
 
         """
@@ -76,15 +86,14 @@ class OrbitalTransitionModel(TransitionModel):
         # multivariate_normal.rvs() does stupid in the case of a single sample
         # so we have to put this back
         if num_samples == 1:
-            samples = np.array([samples])
-
-        if orbital_state is None:
-            return samples.T
+            samples = np.array([samples]).T
         else:
-            new_cstate_vector = self.transition(
-                orbital_state, time_interval=time_interval)
-            return matlib.repmat(new_cstate_vector, 1, num_samples) + \
-                samples.T
+            samples = samples.T
+
+        if num_samples == 1:
+            return samples.view(StateVector)
+        else:
+            return samples.view(StateVectors)
 
     def pdf(self, test_state, orbital_state,
             time_interval=timedelta(seconds=0)):
@@ -112,9 +121,9 @@ class OrbitalTransitionModel(TransitionModel):
 
         return multivariate_normal.pdf(test_state.cartesian_state_vector.
                                        ravel(),
-                                       mean=self.transition(orbital_state,
-                                                            time_interval).
-                                       ravel(),
+                                       mean=self.transition(
+                                           orbital_state, noise=False,
+                                           time_interval=time_interval).ravel(),
                                        cov=self.covar(
                                            time_interval=time_interval))
         # ravel appears to be necessary here.

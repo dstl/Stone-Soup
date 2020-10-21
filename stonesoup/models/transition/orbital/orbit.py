@@ -5,12 +5,11 @@ from datetime import timedelta
 from ....orbital_functions import lagrange_coefficients_from_universal_anomaly
 
 from ....base import Property
-from ....types.array import StateVector, CovarianceMatrix
+from ....types.array import StateVector
 from ...base import LinearModel, NonLinearModel
 from .base import OrbitalTransitionModel
 
 from sgp4.api import jday, Satrec
-from sgp4.exporter import export_tle
 
 
 class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
@@ -52,11 +51,6 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
 
     """
 
-    noise = Property(
-        CovarianceMatrix, default=CovarianceMatrix(np.zeros((6, 6))),
-        doc=r"Transition noise covariance :math:`\Sigma` per unit time "
-            r"interval (assumed seconds)")
-
     def matrix(self):
         pass
 
@@ -70,7 +64,7 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
         """
         return 6
 
-    def function(self, orbital_state, noise=0,
+    def function(self, orbital_state, noise=False,
                  time_interval=timedelta(seconds=0)):
         r"""Execute the transition function
 
@@ -78,9 +72,10 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
         ----------
         orbital_state : :class:`~.OrbitalState`
             The prior orbital state
-        noise : float, optional
-            The nominal standard deviation function parameter. This isn't
-            passed to the transition function though, so can be left out.
+        noise : bool or StateVector, optional
+            A boolean parameter or a state vector. If the latter this represents an additive noise
+            (or bias) term added to the transited state. If True the noise vector is sampled via
+            the :meth:`rvs()` function. If False, noise is not added.
         time_interval: :math:`dt` :attr:`datetime.timedelta`, optional
             The time interval over which to test the new state, (default is 0
             seconds)
@@ -94,14 +89,12 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
         Note
         ----
             This merely passes the parameters to the :attr:`.transition()`
-            function. The noise parameter has no effect, is included merely
-            for compatibility with parent classes.  Units of mean motion must
-            be :math:`\mathrm{rad} \, s^{-1}`
+            function.  Units of mean motion must be :math:`\mathrm{rad} \, s^{-1}`
 
         """
-        self.transition(orbital_state, time_interval)
+        self.transition(orbital_state, noise=noise, time_interval=time_interval)
 
-    def transition(self, orbital_state,
+    def transition(self, orbital_state, noise=False,
                    time_interval=timedelta(seconds=0)):
         r"""Execute the transition function
 
@@ -109,6 +102,10 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
         ----------
         orbital_state: :class:`~.OrbitalState`
             The prior orbital state
+        noise : bool or StateVector, optional
+            A boolean parameter or a state vector. If the latter this represents an additive noise
+            (or bias) term added to the transited state. If True the noise vector is sampled via
+            the :meth:`rvs()` function. If False, noise is not added.
         time_interval: :attr:`datetime.timedelta`, optional
             The time interval over which to calculate the new state
             (default: 0 seconds)
@@ -123,12 +120,9 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
         ----
         Units of mean motion must be :math:`\mathrm{rad} \, s^{-1}`
 
-        Warning
-        -------
-        Doesn't do the addition of noise. Use the sampling
-        (:attr:`rvs()`) function instead
-
         """
+        noise = self._noiseinrightform(noise, time_interval=time_interval)
+
         # Question: would it be quicker to do an array sum?
 
         mean_anomaly = orbital_state.mean_anomaly
@@ -140,7 +134,8 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
         new_mean_anomaly = np.remainder(
             mean_anomaly + mean_motion * time_interval.total_seconds(),
             2 * np.pi)
-        return np.insert(np.delete(tle_state, 4, 0), 4, new_mean_anomaly, axis=0)
+        return StateVector(np.insert(np.delete(tle_state, 4, 0), 4, new_mean_anomaly, axis=0)) \
+            + noise
 
 
 class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
@@ -158,11 +153,6 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
     Ed.), Elsevier Publishing
 
     """
-    noise = Property(
-        CovarianceMatrix, default=CovarianceMatrix(np.zeros((6, 6))),
-        doc=r"Transition noise covariance :math:`\Sigma` per unit time "
-            r"interval (assumed seconds)")
-
     _uanom_precision = Property(
         float, default=1e-8, doc="The stopping point in the progression of "
                                  "ever smaller f/f' ratio in the the Newton's "
@@ -181,17 +171,17 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
         """
         return 6
 
-    def function(self, orbital_state, noise=0,
-                 time_interval=timedelta(seconds=0)):
+    def function(self, orbital_state, noise=False, time_interval=timedelta(seconds=0)):
         r"""Just passes parameters to the transition function
 
         Parameters
         ----------
         orbital_state : :class:`~.OrbitalState`
             The prior orbital state
-        noise : CovarianceMatrix, optional
-            The nominal covariance matrix. This isn't passed to the transition
-            function though, so can be left out.
+        noise : bool or StateVector, optional
+            A boolean parameter or a state vector. If the latter this represents an additive noise
+            (or bias) term added to the transited state. If True the noise vector is sampled via
+            the :meth:`rvs()` function. If False, noise is not added.
         time_interval: :math:`\delta t` :attr:`datetime.timedelta`, optional
             The time interval over which to test the new state (default is 0
             seconds)
@@ -207,15 +197,19 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
         function. The noise parameter has no effect, is included merely
         for compatibility with parent classes.
         """
-        return self.transition(orbital_state, time_interval)
+        return self.transition(orbital_state, noise=noise, time_interval=time_interval)
 
-    def transition(self, orbital_state, time_interval=timedelta(seconds=0)):
+    def transition(self, orbital_state, noise=False, time_interval=timedelta(seconds=0)):
         r"""The transition proceeds as algorithm 3.4 in [1]
 
         Parameters
         ----------
         orbital_state : :class:`~.OrbitalState`
             The prior orbital state
+        noise : bool or StateVector, optional
+            A boolean parameter or a state vector. If the latter this represents an additive noise
+            (or bias) term added to the transited state. If True the noise vector is sampled via
+            the :meth:`rvs()` function. If False, noise is not added.
         time_interval: :math:`\delta t` :attr:`datetime.timedelta`, optional
             The time interval over which to test the new state (default
             is 0 seconds)
@@ -224,12 +218,9 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
         -------
         : StateVector
             The orbital state vector returned by the transition function
-
-        Warning
-        -------
-        If noisy samples from the transition function are required, use
-        the :attr:`rvs` method.
         """
+        noise = self._noiseinrightform(noise, time_interval=time_interval)
+
         # Get the position and velocity vectors
         bold_r_0 = orbital_state.cartesian_state_vector[0:3]
         bold_v_0 = orbital_state.cartesian_state_vector[3:6]
@@ -246,7 +237,7 @@ class CartesianTransitionModel(OrbitalTransitionModel, NonLinearModel):
         bold_v = f_dot * bold_r_0 + g_dot * bold_v_0
 
         # And put them together
-        return StateVector(np.concatenate((bold_r, bold_v), axis=0))
+        return StateVector(np.concatenate((bold_r, bold_v), axis=0)) + noise
 
 
 class SGP4TransitionModel(OrbitalTransitionModel, NonLinearModel):
@@ -255,9 +246,9 @@ class SGP4TransitionModel(OrbitalTransitionModel, NonLinearModel):
     Note that the transition works slightly differently from other versions. The TLE needs to be
     included in the metadata, and it is not updated. The content of the orbital state vector need
     not be consistent with the TLE and is ignored in this transition model. The state vector
-    returned is in the TEME Cartesian frame.
+    returned is in the TEME Cartesian frame in km, km s^{-1}.
 
-    This presents a problem for the rvs function. As inherited, that function samples from the
+    This presents an issue for the rvs function. As inherited, that function adds noise to the
     transitioned state - so needs to be in TEME Cartesian coordinates.
 
     References
@@ -265,10 +256,6 @@ class SGP4TransitionModel(OrbitalTransitionModel, NonLinearModel):
     1. https://pypi.org/project/sgp4/
 
     """
-    noise = Property(
-        CovarianceMatrix, default=CovarianceMatrix(np.zeros((6, 6))),
-        doc=r"Transition noise covariance :math:`\Sigma` per unit time "
-            r"interval (assumed seconds). In TEME coordinates.")
 
     @property
     def ndim_state(self):
@@ -296,13 +283,9 @@ class SGP4TransitionModel(OrbitalTransitionModel, NonLinearModel):
         # WARNING: These units returned as km and km/s
         e, bold_r, bold_v = tle_ext.sgp4(jd, fr)
 
-        # update the metadata? No - just need to reattach
-        # line1, line2 = export_tle(tle_ext)
-        # metadata = {"line_1": line1, "line_2": line2}
-
         return e, bold_r, bold_v
 
-    def function(self, orbital_state, noise=0,
+    def function(self, orbital_state, noise=False,
                  time_interval=timedelta(seconds=0)):
         r"""Just passes parameters to the transition function
 
@@ -310,9 +293,10 @@ class SGP4TransitionModel(OrbitalTransitionModel, NonLinearModel):
         ----------
         orbital_state : :class:`~.OrbitalState`
             The prior orbital state
-        noise : CovarianceMatrix, optional
-            The nominal covariance matrix. This isn't passed to the transition
-            function though, so can be left out.
+        noise : bool or StateVector, optional
+            A boolean parameter or a state vector. If the latter this represents an additive noise
+            (or bias) term added to the transited state. If True the noise vector is sampled via
+            the :meth:`rvs()` function. If False, noise is not added.
         time_interval: :math:`\delta t` :attr:`datetime.timedelta`, optional
             The time interval over which to test the new state (default is 0
             seconds)
@@ -322,21 +306,20 @@ class SGP4TransitionModel(OrbitalTransitionModel, NonLinearModel):
         : StateVector
             The orbital state vector returned by the transition function
 
-        Note
-        ----
-        This merely passes the parameters to the :attr:`.transition()`
-        function. The noise parameter has no effect, is included merely
-        for compatibility with parent classes.
         """
-        return self.transition(orbital_state, time_interval)
+        return self.transition(orbital_state, noise=noise, time_interval=time_interval)
 
-    def transition(self, orbital_state, time_interval=timedelta(seconds=0)):
+    def transition(self, orbital_state, noise=False, time_interval=timedelta(seconds=0)):
         r"""
 
         Parameters
         ----------
         orbital_state : :class:`~.OrbitalState`
             The prior orbital state
+        noise : bool or StateVector, optional
+            A boolean parameter or a state vector. If the latter this represents an additive noise
+            (or bias) term added to the transited state. If True the noise vector is sampled via
+            the :meth:`rvs()` function. If False, noise is not added.
         time_interval: :math:`\delta t` :attr:`datetime.timedelta`, optional
             The time interval over which to test the new state (default
             is 0 seconds)
@@ -346,13 +329,10 @@ class SGP4TransitionModel(OrbitalTransitionModel, NonLinearModel):
         : StateVector
             The orbital state vector returned by the transition function
 
-        Warning
-        -------
-        If noisy samples from the transition function are required, use
-        the :attr:`rvs` method.
         """
+        noise = self._noiseinrightform(noise, time_interval=time_interval)
 
-        e, bold_r, bold_v, _ = self._advance_by_metadata(orbital_state, time_interval)
+        e, bold_r, bold_v = self._advance_by_metadata(orbital_state, time_interval)
 
         # And put them together
-        return StateVector(np.concatenate((bold_r, bold_v), axis=0))
+        return StateVector(np.concatenate((bold_r, bold_v), axis=0)) + noise
