@@ -332,8 +332,7 @@ class KalmanUpdater(Updater):
         return self._update_class(posterior_mean, posterior_covariance, hypothesis,
                                   timestamp=hypothesis.measurement.timestamp)
 
-    def soft_update(self, hypothesis, soft_measurement_prediction,
-                    force_symmetric_covariance=False, **kwargs):
+    def soft_update(self, hypothesis, force_symmetric_covariance=False, **kwargs):
         r"""The Kalman update method. Given a hypothesised association between
         a predicted state or predicted measurement and an actual measurement,
         calculate the posterior state.
@@ -373,14 +372,16 @@ class KalmanUpdater(Updater):
                 measurement_model)
 
             # Attach the measurement prediction to the hypothesis
-            hypothesis.measurement_prediction = self.predict_measurement(
-                predicted_state, measurement_model=measurement_model, **kwargs)
+            hypothesis.measurement_prediction = self.soft_predict_measurement(
+                    predicted_state,
+                    hypothesis.measurement.components[0],
+                    hypothesis.measurement.measurement_model)
 
         # Get the predicted measurement mean, innovation covariance, and
         # measurement cross-covariance
         pred_meas = hypothesis.measurement_prediction.state_vector
         m_cross_cov = hypothesis.measurement_prediction.cross_covar
-        innov_cov = soft_measurement_prediction.covar
+        innov_cov = hypothesis.measurement_prediction.covar
 
         # Kalman gain
         kalman_gain = m_cross_cov @ np.linalg.inv(innov_cov)
@@ -398,7 +399,8 @@ class KalmanUpdater(Updater):
             posterior_covariance = \
                 (posterior_covariance + posterior_covariance.T)/2
 
-        return GaussianStateUpdate(posterior_mean, posterior_covariance,
+        return GaussianStateUpdate(posterior_mean,
+                                   posterior_covariance,
                                    hypothesis,
                                    hypothesis.measurement.timestamp)
 
