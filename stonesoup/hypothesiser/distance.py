@@ -85,11 +85,14 @@ class DistanceHypothesiser(Hypothesiser):
                 # Compute measurement prediction and distance measure for
                 # Soft measurements (PHD-EF filter)
                 for sub_detection in detection.components:
-                    measurement_prediction = self.updater.predict_measurement(
-                            prediction, detection.measurement_model)
-                    distance = self.measure(measurement_prediction, sub_detection)
-                    # True detection hypothesis
+                    soft_measurement_prediction = \
+                        self.updater.soft_predict_measurement(
+                            prediction,
+                            sub_detection,
+                            detection.measurement_model)
+                    distance = self.measure(soft_measurement_prediction, sub_detection)
                     if self.include_all or distance < self.missed_distance:
+                        # True detection hypothesis
                         hypotheses.append(
                             SingleDistanceHypothesis(
                                 prediction,
@@ -99,7 +102,7 @@ class DistanceHypothesiser(Hypothesiser):
                                         measurement_model=detection.measurement_model,
                                         metadata=detection.metadata),
                                 distance,
-                                measurement_prediction))
+                                soft_measurement_prediction))
             else:
                 # Compute measurement prediction and distance measure
                 measurement_prediction = self.updater.predict_measurement(
