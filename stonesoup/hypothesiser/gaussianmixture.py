@@ -5,7 +5,7 @@ from ..types.multihypothesis import MultipleHypothesis
 from ..types.prediction import (TaggedWeightedGaussianStatePrediction,
                                 WeightedGaussianStatePrediction)
 from ..types.state import TaggedWeightedGaussianState
-from ..types.detection import GaussianMixtureDetection
+from ..types.detection import GaussianMixtureDetection, MissedDetection
 
 
 class GaussianMixtureHypothesiser(Hypothesiser):
@@ -78,6 +78,7 @@ class GaussianMixtureHypothesiser(Hypothesiser):
                         covar=hypothesis.prediction.covar,
                         timestamp=hypothesis.prediction.timestamp
                     )
+
             # Create Multiple Hypothesis and add to list
             if len(component_hypotheses) > 0:
                 hypotheses.append(MultipleHypothesis(component_hypotheses))
@@ -96,17 +97,20 @@ class GaussianMixtureHypothesiser(Hypothesiser):
                 [hyp for hyp in single_hypothesis_list if not hyp])
 
             # Get Soft detections
-            soft_detect_list = [x for x in single_hypothesis_list
-                                if isinstance(x.measurement, GaussianMixtureDetection)]
-            hard_detect_list = [x for x in single_hypothesis_list
-                                if not isinstance(x.measurement, GaussianMixtureDetection)]
+            soft_detect_list = [hyp for hyp in single_hypothesis_list
+                                if isinstance(hyp.measurement, GaussianMixtureDetection)]
+            # Get hard detections
+            hard_detect_list = [hyp for hyp in single_hypothesis_list
+                                if (not isinstance(hyp.measurement, GaussianMixtureDetection) and
+                                    not isinstance(hyp.measurement, MissedDetection))]
+
             for detection in detections:
                 if isinstance(detection, GaussianMixtureDetection):
                     for sub_detection in detection.components:
                         # Create multiple hypothesis per GM component
                         detection_multiple_hypothesis = MultipleHypothesis(
                                 [hyp for hyp in soft_detect_list
-                                 if hyp.measurement.components == sub_detection])
+                                 if hyp.measurement.components[0] == sub_detection])
                         # Add to new list
                         reordered_hypotheses.append(detection_multiple_hypothesis)
                 else:
