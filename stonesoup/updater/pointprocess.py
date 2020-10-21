@@ -146,35 +146,10 @@ class PHDUpdater(PointProcessUpdater):
         return 1
 
 
-class SoftHardProcessUpdater(Base):
-    r"""
-    Base updater class for the implementation of PHD-EF filter.
+class PHDEFUpdater(PHDUpdater):
     """
-    updater = Property(
-        KalmanUpdater,
-        doc="Underlying updater used to perform the \
-             single target Kalman Update.")
-
-    clutter_spatial_density = Property(
-        float,
-        default=1e-26,
-        doc="Spatial density of the clutter process uniformly\
-             distributed across the state space.")
-
-    normalisation = Property(
-        bool,
-        default=True,
-        doc="Flag for normalisation")
-
-    prob_detection = Property(
-        Probability,
-        default=1,
-        doc="Probability of a target being detected at the current timestep")
-
-    prob_survival = Property(
-        Probability,
-        default=1,
-        doc="Probability of a target surviving until the next timestep")
+    A implementation of the PHD-EF filter
+    """
 
     def update(self, hypotheses):
         """
@@ -277,8 +252,7 @@ class SoftHardProcessUpdater(Base):
                         hypothesis.measurement.components[0].weight * q * self.prob_survival
                     weight_sum += new_weight
                     # Perform single target Kalman Update
-                    temp_updated_component = self.updater.soft_update(hypothesis,
-                                                                      soft_measurement_prediction)
+                    temp_updated_component = self.updater.soft_update(hypothesis)
                     updated_component = TaggedWeightedGaussianState(
                         tag=prediction.tag if prediction.tag != "birth" else None,
                         weight=new_weight,
@@ -313,19 +287,6 @@ class SoftHardProcessUpdater(Base):
         # Return updated components
         return GaussianMixtureUpdate(hypothesis=hypotheses,
                                      components=updated_components)
-
-    @abstractmethod
-    def _calculate_update_terms(self, updated_sum_list, hypotheses):
-        raise NotImplementedError
-
-
-class SOFTHARDUpdater(SoftHardProcessUpdater):
-    """
-    A implementation of the PHD-EF filter
-    """
-    @staticmethod
-    def _calculate_update_terms(updated_sum_list, hypotheses):
-        return 1
 
 
 class LCCUpdater(PointProcessUpdater):
