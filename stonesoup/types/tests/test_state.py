@@ -99,9 +99,33 @@ def test_weighted_gaussian_state():
     mean = StateVector([[1], [2], [3], [4]])  # 4D
     covar = CovarianceMatrix(np.diag([1, 2, 3]))  # 3D
     weight = 0.3
+    timestamp = datetime.datetime.now()
     with pytest.raises(ValueError):
-        a = WeightedGaussianState(mean, covar, weight)
-        assert a.weight == weight
+        WeightedGaussianState(mean, covar, timestamp, weight)
+
+    # Test initialization using a GuassianState
+    mean = StateVector([[1], [2], [3], [4]])  # 4D
+    covar = CovarianceMatrix(np.diag([1, 2, 3, 4]))
+    weight = 0.3
+    gs = GaussianState(mean, covar, timestamp=timestamp)
+    wgs = WeightedGaussianState.from_gaussian_state(gaussian_state=gs, weight=weight)
+    assert np.array_equal(gs.state_vector, wgs.state_vector)
+    assert np.array_equal(gs.covar, wgs.covar)
+    assert gs.timestamp == wgs.timestamp
+    assert weight == wgs.weight
+    assert wgs.state_vector is not gs.state_vector
+    assert wgs.covar is not gs.covar
+
+    # Test copy flag
+    wgs = WeightedGaussianState.from_gaussian_state(gaussian_state=gs, copy=False)
+    assert wgs.state_vector is gs.state_vector
+    assert wgs.covar is gs.covar
+
+    # Test gaussian_state property
+    gs2 = wgs.gaussian_state
+    assert np.array_equal(gs.state_vector, gs2.state_vector)
+    assert np.array_equal(gs.covar, gs2.covar)
+    assert gs.timestamp == gs2.timestamp
 
 
 def test_particlestate():
