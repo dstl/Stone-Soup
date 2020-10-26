@@ -930,7 +930,6 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
 
         # Use polar to calculate range rate
         rr = np.dot(xyz_pos[:, 0], xyz_vel[:, 0]) / np.linalg.norm(xyz_pos)
-
         return StateVector([[Elevation(theta)],
                             [Bearing(phi)],
                             [rho],
@@ -1093,7 +1092,7 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
         # this function finds the probability density of the bin the measured_value is in
         a = np.floor(measured_value / bin_size) * bin_size + bin_size
         b = np.floor(measured_value / bin_size) * bin_size
-        return self._gaussian_integral(a, b, mean, cov)
+        return self._gaussian_integral(a, b, mean, cov)/bin_size
 
     def pdf(self, state1, state2, **kwargs):
         r"""Model pdf/likelihood evaluation function
