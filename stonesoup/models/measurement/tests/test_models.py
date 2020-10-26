@@ -698,6 +698,7 @@ def test_binning_integral():
     assert (approx(measurement_model._binned_pdf(state_vector1, mean, bin_sizes, cov)) ==
             expected_pdf)
 
+
 @pytest.mark.parametrize('sensor_state, target_state, expected_measurement',
                          position_measurement_sets)
 def test_noiseless_binning_predictions(sensor_state, target_state, expected_measurement):
