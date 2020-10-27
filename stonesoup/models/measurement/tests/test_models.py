@@ -639,10 +639,10 @@ def test_binning():
                                               ndim_state=6,
                                               mapping=[0, 2, 4],
                                               velocity_mapping=[1, 3, 5],
-                                              noise_covar=np.array([100,
-                                                                   10,
-                                                                   np.pi/18,
-                                                                   np.pi/18]))
+                                              noise_covar=np.array([np.pi/18,
+                                                                    np.pi/18,
+                                                                    100,
+                                                                    10]))
 
     measured = measurement_model.function(real_state, noise=True)
     assert ((measured[2, 0]-measurement_model.range_res/2) /
@@ -659,10 +659,10 @@ def test_binning_pdf():
                                               ndim_state=6,
                                               mapping=[0, 2, 4],
                                               velocity_mapping=[1, 3, 5],
-                                              noise_covar=np.array([100,
-                                                                   10,
-                                                                   np.pi/18,
-                                                                   np.pi/18]))
+                                              noise_covar=np.array([np.pi/18,
+                                                                    np.pi/18,
+                                                                    100,
+                                                                    10]))
 
     measured = measurement_model.function(real_state, noise=True)
     pdf = measurement_model.pdf(State(measured), real_state)
@@ -750,4 +750,26 @@ def test_compare_rrrb_to_ctebrr():
 
     out = compare_model.function(state, noise=False)
     exp_pdf = compare_model.pdf(State(out), state)
+    assert np.isclose(float(act_pdf), float(exp_pdf))
+
+
+def test_calc_pdf():
+    real_state = State(state_vector=StateVector([10033.33333, 133.33333,
+                                                 0., 0.,
+                                                 0., 0.]))
+
+    measurement_model = RangeRangeRateBinning(range_res=10,
+                                              range_rate_res=10,
+                                              ndim_state=6,
+                                              mapping=[0, 2, 4],
+                                              velocity_mapping=[1, 3, 5],
+                                              noise_covar=np.array([1,
+                                                                    1,
+                                                                    10,
+                                                                    10]))
+
+    act_pdf = measurement_model.pdf(State([0., 0., 10035.0, 135.0]), real_state)
+
+    exp_pdf = 1/(2*np.pi)*0.08365720412132509**2
+
     assert np.isclose(float(act_pdf), float(exp_pdf))

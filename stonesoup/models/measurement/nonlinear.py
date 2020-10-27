@@ -1134,7 +1134,6 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
                 and ((state1.state_vector[3, 0]-self.range_rate_res/2) /
                      self.range_rate_res).is_integer()):
             mean_vector = self.function(state2, noise=False, **kwargs)
-
             # pdf for the angles
             az_el_pdf = multivariate_normal.pdf(
                 state1.state_vector[:2, 0],
@@ -1152,7 +1151,6 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
                 mean_vector[3, 0],
                 self.range_rate_res,
                 self.covar()[3])
-
             return Probability(range_pdf * velocity_pdf * az_el_pdf)
         else:
             return Probability(0)
