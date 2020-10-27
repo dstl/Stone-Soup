@@ -327,7 +327,8 @@ class SGP4TransitionModel(OrbitalTransitionModel, NonLinearModel):
         Returns
         -------
         : StateVector
-            The orbital state vector returned by the transition function
+            The orbital state vector returned by the transition function. In Cartesian coordinates
+            in km, km s^{-1}
 
         """
         noise = self._noiseinrightform(noise, time_interval=time_interval)

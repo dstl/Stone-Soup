@@ -11,7 +11,7 @@ from datetime import datetime
 
 def test_SGP4TransitionModel():
     # Propagate a TLE, evaluate position at an initial time
-    initial_date = datetime(2019, 12, 9, 12, 0, 0)
+    initial_date = datetime(2008, 9, 20, 12, 25, 40, 104192)
 
     # https://en.wikipedia.org/wiki/Two-line_element_set
     line_1 = \
@@ -25,18 +25,8 @@ def test_SGP4TransitionModel():
     # 2: String format
     tle_dict = {'line_1': line_1, 'line_2': line_2}
 
-    # A state vector in TLE format
-    state_vector = np.zeros(shape=(6, 1))
-    state_vector[0, 0] = tle_ext.inclo
-    state_vector[1, 0] = tle_ext.nodeo
-    state_vector[2, 0] = tle_ext.ecco
-    state_vector[3, 0] = tle_ext.argpo
-    state_vector[4, 0] = tle_ext.mo
-    state_vector[5, 0] = tle_ext.no_kozai
-
     # Initialise the state
-    test_tle = TLEOrbitalState(state_vector, timestamp=initial_date,
-                               metadata=tle_dict)
+    test_tle = TLEOrbitalState(None, metadata=tle_dict)
 
     # Evaluate position at initial date using external SGP4
     jd, fr = jday(initial_date.year, initial_date.month, initial_date.day,

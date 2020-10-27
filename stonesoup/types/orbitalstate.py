@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+from datetime import datetime
+
 from ..orbital_functions import keplerian_to_rv, tru_anom_from_mean_anom
 
 from ..base import Property
 from .array import CovarianceMatrix, StateVector
 from .state import State
+from .angle import Bearing, Elevation
 
 
 class OrbitalState(State):
@@ -759,31 +762,77 @@ class TLEOrbitalState(OrbitalState):
     )
 
     def __init__(self, state_vector, *args, **kwargs):
-        if np.less(state_vector[2, 0], 0.0) | np.greater(state_vector[2, 0],
-                                                         1.0):
-            raise ValueError("Eccentricity should be between 0 and 1: got {}"
-                             .format(state_vector[0, 0]))
-        if np.less(state_vector[0, 0], 0.0) | np.greater(state_vector[0, 0],
-                                                         np.pi):
-            raise ValueError("Inclination should be between 0 and pi: got {}"
-                             .format(state_vector[1, 0]))
-        if np.less(state_vector[1, 0], 0.0) | np.greater(state_vector[1, 0],
-                                                         2*np.pi):
-            raise ValueError("Longitude of Ascending Node should be between 0 "
-                             "and 2*pi: got {}"
-                             .format(state_vector[2, 0]))
-        if np.less(state_vector[3, 0], 0.0) | np.greater(state_vector[3, 0],
-                                                         2*np.pi):
-            raise ValueError("Argument of Periapsis should be between 0 and "
-                             "2*pi: got {}"
-                             .format(state_vector[3, 0]))
-        if np.less(state_vector[4, 0], 0.0) | np.greater(state_vector[4, 0],
-                                                         2*np.pi):
-            raise ValueError("Mean Anomaly should be between 0 and 2*pi: got "
-                             "{}"
-                             .format(state_vector[4, 0]))
 
-        super().__init__(state_vector, coordinates='TLE', *args, **kwargs)
+        if state_vector is None or len(state_vector) == 0:
+            # in this instance check the metadata
+            state_vector = StateVector([0, 0, 0, 0, 0, 0])
+            super().__init__(state_vector, *args, **kwargs)
+
+            if self.metadata is not None or len(self.metadata) != 0:
+                line1 = self.metadata['line_1']
+                line2 = self.metadata['line_2']
+
+                # Resolve the timestamp
+                year = 2000 + int(line1[17:20])
+                day = line1[20:23]
+
+                hour = float(line1[23:32]) * 24
+                fhour = int(np.floor(hour))
+
+                minu = (hour - fhour) * 60
+                fminu = int(np.floor(minu))
+
+                seco = (minu - fminu) * 60
+                fseco = int(np.floor(seco))
+
+                mics = (seco - fseco) * 1e6
+                fmics = int(np.round(mics))
+
+                timestamp = datetime.strptime(
+                    str(year) + " " + str(day) + " " + str(fhour) + " " + str(fminu) + " " +
+                    str(fseco) + " " + str(
+                        fmics), "%Y %j %H %M %S %f")
+
+                state_vector = StateVector([Elevation(float(line2[8:16]) * np.pi / 180),
+                                            Bearing(float(line2[17:25]) * np.pi / 180),
+                                            float('.' + line2[26:33]),
+                                            Bearing(float(line2[34:42]) * np.pi / 180),
+                                            Bearing(float(line2[43:51]) * np.pi / 180),
+                                            float(line2[52:63]) * 2 * np.pi / 86400])
+
+                super().__init__(state_vector, timestamp=timestamp, coordinates='TLE', *args,
+                                 **kwargs)
+
+            else:
+                raise TypeError("State vector and metadata cannot both be empty")
+
+        else:
+
+            if np.less(state_vector[2, 0], 0.0) | np.greater(state_vector[2, 0],
+                                                             1.0):
+                raise ValueError("Eccentricity should be between 0 and 1: got {}"
+                                 .format(state_vector[0, 0]))
+            if np.less(state_vector[0, 0], 0.0) | np.greater(state_vector[0, 0],
+                                                             np.pi):
+                raise ValueError("Inclination should be between 0 and pi: got {}"
+                                 .format(state_vector[1, 0]))
+            if np.less(state_vector[1, 0], 0.0) | np.greater(state_vector[1, 0],
+                                                             2*np.pi):
+                raise ValueError("Longitude of Ascending Node should be between 0 "
+                                 "and 2*pi: got {}"
+                                 .format(state_vector[2, 0]))
+            if np.less(state_vector[3, 0], 0.0) | np.greater(state_vector[3, 0],
+                                                             2*np.pi):
+                raise ValueError("Argument of Periapsis should be between 0 and "
+                                 "2*pi: got {}"
+                                 .format(state_vector[3, 0]))
+            if np.less(state_vector[4, 0], 0.0) | np.greater(state_vector[4, 0],
+                                                             2*np.pi):
+                raise ValueError("Mean Anomaly should be between 0 and 2*pi: got "
+                                 "{}"
+                                 .format(state_vector[4, 0]))
+
+            super().__init__(state_vector, coordinates='TLE', *args, **kwargs)
 
 
 class EquinoctialOrbitalState(OrbitalState):
