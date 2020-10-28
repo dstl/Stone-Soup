@@ -132,9 +132,15 @@ class ClosedContinuousInterval:
                     else:
                         return None
                 elif other.left in self and other.right not in self:
-                    return ClosedContinuousInterval(self.left, other.left)
+                    if self.left == other.left:
+                        return None
+                    else:
+                        return ClosedContinuousInterval(self.left, other.left)
                 elif other.left not in self and other.right in self:
-                    return ClosedContinuousInterval(other.right, self.right)
+                    if self.right == other.right:
+                        return None
+                    else:
+                        return ClosedContinuousInterval(other.right, self.right)
                 else:
                     intervals = []
                     try:
@@ -236,18 +242,19 @@ class DisjointIntervals:
 
     def __sub__(self, other):
         if isinstance(other, DisjointIntervals):
-            new_intervals = self.intervals
+            new_intervals = copy.copy(self.intervals)
             for other_interval in other.intervals:
                 for i in range(len(new_intervals)):
                     if new_intervals[i].check_disjoint(other_interval):
                         new_intervals[i] = new_intervals[i] - other_interval
-            new_intervals = [interval for interval in new_intervals if interval is not None]
+                new_intervals = [interval for interval in new_intervals if interval is not None]
             if len(new_intervals) == 0:
                 return None
             else:
                 return DisjointIntervals.get_merged_intervals(new_intervals)
         elif isinstance(other, ClosedContinuousInterval):
-            new_intervals = [interval - other for interval in self.intervals]
+            new_intervals = [interval - other for interval in copy.copy(self.intervals)]
+            new_intervals = [interval for interval in new_intervals if interval is not None]
             if len(new_intervals) == 0:
                 return None
             else:
@@ -263,12 +270,15 @@ class DisjointIntervals:
         if isinstance(interval, ClosedContinuousInterval):
             self._intervals.append(interval)
             self.merge_overlaps()
-        elif isinstance(interval, DisjointIntervals):
-            self.add_intervals(interval)
+        else:
+            raise ValueError('interval must be a ClosedContinuousInterval type')
 
     def add_intervals(self, intervals):
-        self._intervals.extend(intervals.intervals)
-        self.merge_overlaps()
+        if isinstance(intervals, DisjointIntervals):
+            self._intervals.extend(intervals.intervals)
+            self.merge_overlaps()
+        else:
+            raise ValueError('intervals must be a DisjointIntervals type')
 
     def remove_interval(self, interval):
         if interval not in self.intervals:

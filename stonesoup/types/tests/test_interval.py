@@ -119,6 +119,9 @@ def test_intervals():
     assert len(d) == 1
     assert np.isclose(d.length, 3)
 
+    with pytest.raises(ValueError, match="intervals must be a DisjointIntervals type"):
+        d.add_intervals(c)
+
     j = ClosedContinuousInterval(4, 5)
     d.add_interval(j)
     assert len(d) == 2
@@ -148,3 +151,50 @@ def test_intervals():
     assert m.intervals == [a, b]
     m.sort(reverse=True)
     assert m.intervals == [b, a]
+
+    n = ClosedContinuousInterval(2, 1)
+    assert n.left == 1
+    assert n.right == 2
+
+    with pytest.raises(ValueError, match="a and b must be different"):
+        ClosedContinuousInterval(1, 1)
+
+    d = a + b
+    e = a + j
+    q = d + e
+    assert isinstance(q, DisjointIntervals)
+    assert len(q) == 3
+    assert np.isclose(q.length, 3)
+
+    assert 'a string' not in a
+
+    r = d - e
+    assert isinstance(r, ClosedContinuousInterval)
+    assert np.isclose(r.length, 1)
+
+    s = d - c
+
+    assert isinstance(s, DisjointIntervals)
+    assert len(s) == 2
+    assert np.isclose(s.length, 1)
+
+    t = ClosedContinuousInterval(0, 3)
+    d = a + b
+    u = d - t
+
+    assert u is None
+
+    v = DisjointIntervals(intervals=[ClosedContinuousInterval(0, 1.5),
+                                     ClosedContinuousInterval(1.9, 3)])
+
+    w = d - v
+    assert w is None
+
+    d = a + b
+
+    d.add_intervals(DisjointIntervals(intervals=[j, t]))
+    assert len(d) == 2
+    assert np.isclose(d.length, 4)
+
+    with pytest.raises(ValueError, match="intervals must be a DisjointIntervals type"):
+        d.add_intervals(c)
