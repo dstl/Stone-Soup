@@ -94,7 +94,7 @@ class StateMutableSequence(Type, abc.MutableSequence):
                 items.append(state)
             return StateMutableSequence(items[::index.step])
         elif isinstance(index, datetime.datetime):
-            for state in self.states:
+            for state in reversed(self.states):
                 if state.timestamp == index:
                     return state
             else:
@@ -174,6 +174,8 @@ class SqrtGaussianState(State):
 
         """
         return self.sqrt_covar @ self.sqrt_covar.T
+
+
 GaussianState.register(SqrtGaussianState)  # noqa: E305
 
 
@@ -233,4 +235,6 @@ class ParticleState(Type):
                      ddof=0, aweights=[p.weight for p in self.particles])
         # Fix one dimensional covariances being returned with zero dimension
         return cov
+
+
 State.register(ParticleState)  # noqa: E305
