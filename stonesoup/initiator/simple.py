@@ -3,18 +3,18 @@ from scipy.stats import multivariate_normal
 
 from .base import GaussianInitiator, ParticleInitiator
 from ..base import Property
-from ..models.measurement import MeasurementModel
+from ..dataassociator import DataAssociator
+from ..deleter import Deleter
 from ..models.base import NonLinearModel, ReversibleModel
+from ..models.measurement import MeasurementModel
 from ..types.hypothesis import SingleHypothesis
 from ..types.numeric import Probability
 from ..types.particle import Particle
 from ..types.state import State, GaussianState
 from ..types.track import Track
 from ..types.update import GaussianStateUpdate, ParticleStateUpdate
-from ..updater.kalman import ExtendedKalmanUpdater
-from ..dataassociator import DataAssociator
-from ..deleter import Deleter
 from ..updater import Updater
+from ..updater.kalman import ExtendedKalmanUpdater
 
 
 class SinglePointInitiator(GaussianInitiator):
@@ -128,8 +128,7 @@ class SimpleMeasurementInitiator(GaussianInitiator):
             prior_state_vector[mapped_dimensions, :] = 0
             prior_covar[mapped_dimensions, :] = 0
             C0 = inv_model_matrix @ model_covar @ inv_model_matrix.T
-            C0 = C0 + prior_covar + \
-                np.diag(np.array([self.diag_load]*C0.shape[0]))
+            C0 = C0 + prior_covar + np.diag(np.array([self.diag_load] * C0.shape[0]))
             tracks.add(Track([GaussianStateUpdate(
                 prior_state_vector + state_vector,
                 C0,
@@ -163,10 +162,14 @@ class MultiMeasurementInitiator(GaussianInitiator):
         doc="Updater used to update the track object to the new state.")
     min_points: int = Property(
         default=2, doc="Minimum number of track points required to confirm a track.")
+    initiator: SimpleMeasurementInitiator = Property(default=None,
+                                                     doc="Initiator used to create tracks")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.holding_tracks = set()
+        if self.initiator is None:
+            self.initiator = SimpleMeasurementInitiator(self.prior_state, self.measurement_model)
 
     def initiate(self, detections, **kwargs):
         sure_tracks = set()
@@ -186,7 +189,8 @@ class MultiMeasurementInitiator(GaussianInitiator):
                     state_post = self.updater.update(hypothesis)
                     track.append(state_post)
                     if len(track) >= self.min_points:
-                        sure_tracks.add(track)
+                        new_track = Track(track[-1:])
+                        sure_tracks.add(new_track)
                         self.holding_tracks.remove(track)
                     associated_detections.add(hypothesis.measurement)
                 else:
@@ -194,11 +198,7 @@ class MultiMeasurementInitiator(GaussianInitiator):
 
             self.holding_tracks -= \
                 self.deleter.delete_tracks(self.holding_tracks)
-
-        simple_initiator = SimpleMeasurementInitiator(
-            self.prior_state, self.measurement_model)
-        self.holding_tracks |= \
-            simple_initiator.initiate(detections_set - associated_detections)
+        self.holding_tracks |= self.initiator.initiate(detections_set - associated_detections)
 
         return sure_tracks
 
