@@ -133,7 +133,6 @@ class SIAPMetrics(MetricGenerator):
         and
             :math:`J({t})` is the number of true objects at timestamp :math:`{t}`.
 
-
         Parameters
         ----------
         manager : MetricManager
@@ -219,7 +218,6 @@ class SIAPMetrics(MetricGenerator):
         and
             :math:`J{T_m}({t})` is the number of objects being tracked at timestamp :math:`{t}`.
 
-
         Parameters
         ----------
         manager : MetricManager
@@ -300,7 +298,6 @@ class SIAPMetrics(MetricGenerator):
         and
             :math:`N({t})` is the number of tracks timestamp :math:`{t}`.
 
-
         Parameters
         ----------
         manager : MetricManager
@@ -339,8 +336,6 @@ class SIAPMetrics(MetricGenerator):
             :math:`{t}`
         and
             :math:`N({t})` is the number of tracks timestamp :math:`{t}`.
-
-
 
         Parameters
         ----------
@@ -457,7 +452,6 @@ class SIAPMetrics(MetricGenerator):
             :math:`N{A}({t})` is the number of tracks assigned to true objects at timestamp
             :math:`{t}`.
 
-
         Parameters
         ----------
         manager : MetricManager
@@ -492,14 +486,13 @@ class SIAPMetrics(MetricGenerator):
 
               PA = \frac{\sum_{t_{start}}^{t_{end}}{\sum_{n\in D(t)}PA_{n}(t)}}
                         {\sum_{t_{start}}^{t_{end}}{NA(t)}}
+
         where
             :math:`D(t)` is the set of tracks held at timestamp :math:`t` :math:`PA_{n}(t)` is the
             Euclidean distance of track n to its associated truth at timestamp :math:`{t}`
         and
             :math:`N{A}({t})` is the number of tracks assigned to true objects at timestamp
             :math:`{t}`.
-
-
 
         Parameters
         ----------
@@ -546,7 +539,6 @@ class SIAPMetrics(MetricGenerator):
             :math:`N{A}({t})` is the number of tracks assigned to true objects at timestamp
             :math:`{t}`.
 
-
         Parameters
         ----------
         manager : MetricManager
@@ -581,6 +573,7 @@ class SIAPMetrics(MetricGenerator):
 
               VA = \frac{\sum_{t_{start}}^{t_{end}}{\sum_{n\in D(t)}VA_{n}(t)}}
                         {\sum_{t_{start}}^{t_{end}}{NA(t)}}
+
         where
             :math:`D(t)` is the set of tracks held at timestamp :math:`t` :math:`VA_{n}(t)` is the
             Euclidean distance of track n's velocity components to its associated truth's
@@ -993,5 +986,3 @@ class SIAPMetrics(MetricGenerator):
 
         timestamps = [s.timestamp for s in truth.states]
         return max(timestamps) - min(timestamps)
-
-    # TODO add methods to calculate Position Accuracy and Velocity Accuracy
