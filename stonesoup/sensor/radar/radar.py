@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import copy
-from math import erfc
 from typing import Tuple, Set, Union
 
 import numpy as np
 import scipy.constants as const
+from math import erfc
 
 from .beam_pattern import BeamTransitionModel
 from .beam_shape import BeamShape
@@ -16,7 +16,7 @@ from ...models.measurement.nonlinear import \
      CartesianToBearingRangeRate, CartesianToElevationBearingRangeRate)
 from ...sensor.sensor import Sensor
 from ...types.array import CovarianceMatrix
-from ...types.detection import Detection
+from ...types.detection import TrueDetection
 from ...types.groundtruth import GroundTruthState
 from ...types.numeric import Probability
 from ...types.state import State, StateVector
@@ -45,7 +45,7 @@ class RadarBearingRange(Sensor):
             ":class:`~.CartesianToBearingRange` model")
 
     def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[Detection]:
+                **kwargs) -> Set[TrueDetection]:
         """Generate a measurement for a given state
 
         Parameters
@@ -59,10 +59,11 @@ class RadarBearingRange(Sensor):
 
         Returns
         -------
-        Set[:class:`~.Detection`]
+        Set[:class:`~.TrueDetection`]
             A set of measurements generated from the given states. The timestamps of the
             measurements are set equal to that of the corresponding states that they were
-            calculated from.
+            calculated from. Each measurement stores the ground truth path that it was produced
+            from.
         """
         measurement_model = CartesianToBearingRange(
             ndim_state=self.ndim_state,
@@ -74,9 +75,10 @@ class RadarBearingRange(Sensor):
         detections = set()
         for truth in ground_truths:
             measurement_vector = measurement_model.function(truth, noise=noise, **kwargs)
-            detection = Detection(measurement_vector,
-                                  measurement_model=measurement_model,
-                                  timestamp=truth.timestamp)
+            detection = TrueDetection(measurement_vector,
+                                      measurement_model=measurement_model,
+                                      timestamp=truth.timestamp,
+                                      groundtruth_path=truth)
             detections.add(detection)
 
         return detections
@@ -108,7 +110,7 @@ class RadarRotatingBearingRange(RadarBearingRange):
     fov_angle: float = Property(doc="The radar field of view (FOV) angle (in radians).")
 
     def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[Detection]:
+                **kwargs) -> Set[TrueDetection]:
         """Generate a measurement for a given state
 
         Parameters
@@ -122,10 +124,11 @@ class RadarRotatingBearingRange(RadarBearingRange):
 
         Returns
         -------
-        Set[:class:`~.Detection`]
+        Set[:class:`~.TrueDetection`]
             A set of measurements generated from the given states. If a state falls in the sensor's
             field of view, a measurement is added. The timestamps of the measurements are set equal
-            to that of the corresponding states that they were calculated from.
+            to that of the corresponding states that they were calculated from. Each measurement
+            stores the ground truth path that it was produced from.
         """
 
         # Read timestamp from ground truth
@@ -133,8 +136,7 @@ class RadarRotatingBearingRange(RadarBearingRange):
 
         # Rotate the radar antenna and compute new heading
         self.rotate(timestamp)
-        antenna_heading = self.orientation[2, 0] + \
-            self.dwell_center.state_vector[0, 0]
+        antenna_heading = self.orientation[2, 0] + self.dwell_center.state_vector[0, 0]
 
         # Set rotation offset of underlying measurement model
         rot_offset = \
@@ -175,9 +177,10 @@ class RadarRotatingBearingRange(RadarBearingRange):
             # Else add measurement
             measurement_vector += measurement_noise  # Add noise
 
-            detection = Detection(measurement_vector,
-                                  measurement_model=measurement_model,
-                                  timestamp=truth.timestamp)
+            detection = TrueDetection(measurement_vector,
+                                      measurement_model=measurement_model,
+                                      timestamp=truth.timestamp,
+                                      groundtruth_path=truth)
             detections.add(detection)
 
         return detections
@@ -198,7 +201,7 @@ class RadarRotatingBearingRange(RadarBearingRange):
 
         # Update dwell center
         rps = self.rpm / 60  # rotations per sec
-        angle = self.dwell_center.state_vector[0, 0] + duration.total_seconds()*rps*2*np.pi
+        angle = self.dwell_center.state_vector[0, 0] + duration.total_seconds() * rps * 2 * np.pi
         self.dwell_center = State(StateVector([[mod_bearing(angle)]]), timestamp)
 
 
@@ -222,7 +225,7 @@ class RadarElevationBearingRange(RadarBearingRange):
             ":class:`~.CartesianToElevationBearingRange` model")
 
     def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[Detection]:
+                **kwargs) -> Set[TrueDetection]:
         """Generate a measurement for a given state
 
         Parameters
@@ -236,10 +239,11 @@ class RadarElevationBearingRange(RadarBearingRange):
 
         Returns
         -------
-        Set[:class:`~.Detection`]
+        Set[:class:`~.TrueDetection`]
             A set of measurements generated from the given states. The timestamps of the
             measurements are set equal to that of the corresponding states that they were
-            calculated from.
+            calculated from. Each measurement stores the ground truth path that it was produced
+            from.
         """
         measurement_model = CartesianToElevationBearingRange(
             ndim_state=self.ndim_state,
@@ -251,9 +255,10 @@ class RadarElevationBearingRange(RadarBearingRange):
         detections = set()
         for truth in ground_truths:
             measurement_vector = measurement_model.function(truth, noise=noise, **kwargs)
-            detection = Detection(measurement_vector,
-                                  measurement_model=measurement_model,
-                                  timestamp=truth.timestamp)
+            detection = TrueDetection(measurement_vector,
+                                      measurement_model=measurement_model,
+                                      timestamp=truth.timestamp,
+                                      groundtruth_path=truth)
             detections.add(detection)
 
         return detections
@@ -284,7 +289,7 @@ class RadarBearingRangeRate(RadarBearingRange):
             ":class:`~.CartesianToBearingRangeRate` model")
 
     def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[Detection]:
+                **kwargs) -> Set[TrueDetection]:
         """Generate a measurement for a given state
 
         Parameters
@@ -298,10 +303,11 @@ class RadarBearingRangeRate(RadarBearingRange):
 
         Returns
         -------
-        Set[:class:`~.Detection`]
+        Set[:class:`~.TrueDetection`]
             A set of measurements generated from the given states. The timestamps of the
             measurements are set equal to that of the corresponding states that they were
-            calculated from.
+            calculated from. Each measurement stores the ground truth path that it was produced
+            from.
         """
         measurement_model = CartesianToBearingRangeRate(
             ndim_state=self.ndim_state,
@@ -315,9 +321,10 @@ class RadarBearingRangeRate(RadarBearingRange):
         detections = set()
         for truth in ground_truths:
             measurement_vector = measurement_model.function(truth, noise=noise, **kwargs)
-            detection = Detection(measurement_vector,
-                                  measurement_model=measurement_model,
-                                  timestamp=truth.timestamp)
+            detection = TrueDetection(measurement_vector,
+                                      measurement_model=measurement_model,
+                                      timestamp=truth.timestamp,
+                                      groundtruth_path=truth)
             detections.add(detection)
 
         return detections
@@ -347,7 +354,7 @@ class RadarElevationBearingRangeRate(RadarBearingRangeRate):
             ":class:`~.CartesianToElevationBearingRangeRate` model")
 
     def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[Detection]:
+                **kwargs) -> Set[TrueDetection]:
         """Generate a measurement for a given state
 
         Parameters
@@ -361,10 +368,11 @@ class RadarElevationBearingRangeRate(RadarBearingRangeRate):
 
         Returns
         -------
-        Set[:class:`~.Detection`]
+        Set[:class:`~.TrueDetection`]
             A set of measurements generated from the given states. The timestamps of the
             measurements are set equal to that of the corresponding states that they were
-            calculated from.
+            calculated from. Each measurement stores the ground truth path that it was produced
+            from.
         """
         measurement_model = CartesianToElevationBearingRangeRate(
             ndim_state=self.ndim_state,
@@ -378,9 +386,10 @@ class RadarElevationBearingRangeRate(RadarBearingRangeRate):
         detections = set()
         for truth in ground_truths:
             measurement_vector = measurement_model.function(truth, noise=noise, **kwargs)
-            detection = Detection(measurement_vector,
-                                  measurement_model=measurement_model,
-                                  timestamp=truth.timestamp)
+            detection = TrueDetection(measurement_vector,
+                                      measurement_model=measurement_model,
+                                      timestamp=truth.timestamp,
+                                      groundtruth_path=truth)
             detections.add(detection)
 
         return detections
@@ -420,8 +429,8 @@ class RadarRasterScanBearingRange(RadarRotatingBearingRange):
 
         super().rotate(timestamp)
 
-        dwell_center_max = self.for_angle/2.0 - self.fov_angle/2.0
-        dwell_center_min = -self.for_angle/2.0 + self.fov_angle/2.0
+        dwell_center_max = self.for_angle / 2.0 - self.fov_angle / 2.0
+        dwell_center_min = -self.for_angle / 2.0 + self.fov_angle / 2.0
 
         # If the FoV is outside of the FoR:
         #   Correct the dwell_center
@@ -637,11 +646,10 @@ class AESARadar(Sensor):
         det_prob = 0.5 * erfc(
             (-np.log(self.probability_false_alarm)) ** 0.5 - (
                     snr + 1 / 2) ** 0.5)
-        return det_prob, snr, rcs, directed_power,\
-            10 * np.log10(spoiled_gain), spoiled_width
+        return det_prob, snr, rcs, directed_power, 10 * np.log10(spoiled_gain), spoiled_width
 
     def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[Detection]:
+                **kwargs) -> Set[TrueDetection]:
         """Generate a measurement for a given state
 
         Parameters
@@ -655,10 +663,11 @@ class AESARadar(Sensor):
 
         Returns
         -------
-        Set[:class:`~.Detection`]
+        Set[:class:`~.TrueDetection`]
             A set of measurements generated from the given states. If np.random.rand() is less than
             the probability of detection a measurement is added. The timestamps of the measurements
-            are set equal to that of the corresponding states that they were calculated from.
+            are set equal to that of the corresponding states that they were calculated from. Each
+            measurement stores the ground truth path that it was produced from.
         """
 
         detections = set()
@@ -673,9 +682,10 @@ class AESARadar(Sensor):
             if np.random.rand() <= det_prob:
                 measured_pos = measurement_model.function(truth, noise=noise)
 
-                detection = Detection(measured_pos,
-                                      timestamp=truth.timestamp,
-                                      measurement_model=measurement_model)
+                detection = TrueDetection(measured_pos,
+                                          timestamp=truth.timestamp,
+                                          measurement_model=measurement_model,
+                                          groundtruth_path=truth)
                 detections.add(detection)
 
         return detections

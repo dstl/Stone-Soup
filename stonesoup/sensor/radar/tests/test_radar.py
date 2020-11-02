@@ -1,47 +1,47 @@
 # -*- coding: utf-8 -*-
 import datetime
+
+import numpy as np
 import pytest
 from pytest import approx
-import numpy as np
 
-from ....functions import rotz, rotx, roty, cart2sphere
-from ....types.angle import Bearing, Elevation
-from ....types.array import StateVector, CovarianceMatrix
-from ....types.state import State
-from ....types.groundtruth import GroundTruthState
-from ..radar import RadarBearingRange, RadarElevationBearingRange, RadarRotatingBearingRange, \
-    AESARadar, RadarRasterScanBearingRange, RadarBearingRangeRate, RadarElevationBearingRangeRate
+from stonesoup.types.detection import TrueDetection
 from ..beam_pattern import StationaryBeam
 from ..beam_shape import Beam2DGaussian
+from ..radar import RadarBearingRange, RadarElevationBearingRange, RadarRotatingBearingRange, \
+    AESARadar, RadarRasterScanBearingRange, RadarBearingRangeRate, RadarElevationBearingRangeRate
+from ....functions import rotz, rotx, roty, cart2sphere
 from ....models.measurement.linear import LinearGaussian
+from ....types.angle import Bearing, Elevation
+from ....types.array import StateVector, CovarianceMatrix
+from ....types.groundtruth import GroundTruthState, GroundTruthPath
+from ....types.state import State
 
 
 def h2d(state, pos_map, translation_offset, rotation_offset):
-
     xyz = StateVector([[state.state_vector[pos_map[0], 0] - translation_offset[0, 0]],
-                      [state.state_vector[pos_map[1], 0] - translation_offset[1, 0]],
-                      [0]])
+                       [state.state_vector[pos_map[1], 0] - translation_offset[1, 0]],
+                       [0]])
 
     # Get rotation matrix
     theta_z = -rotation_offset[2, 0]
     theta_y = -rotation_offset[1, 0]
     theta_x = -rotation_offset[0, 0]
 
-    rotation_matrix = rotz(theta_z)@roty(theta_y)@rotx(theta_x)
+    rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
 
     xyz_rot = rotation_matrix @ xyz
     x = xyz_rot[0, 0]
     y = xyz_rot[1, 0]
     # z = 0  # xyz_rot[2, 0]
 
-    rho = np.sqrt(x**2 + y**2)
+    rho = np.sqrt(x ** 2 + y ** 2)
     phi = np.arctan2(y, x)
 
     return np.array([[Bearing(phi)], [rho]])
 
 
 def h3d(state, pos_map, translation_offset, rotation_offset):
-
     xyz = state.state_vector[pos_map, :] - translation_offset
 
     # Get rotation matrix
@@ -69,7 +69,7 @@ def h3d(state, pos_map, translation_offset, rotation_offset):
                           [0, 0.1]]),  # noise_covar
                 StateVector([[1], [1]]),  # position
                 np.array([[200], [10]])  # target
-         ),
+        ),
         (
                 h3d,  # h
                 RadarElevationBearingRange,  # sensorclass
@@ -93,9 +93,10 @@ def test_simple_radar(h, sensorclass, ndim_state, pos_mapping, noise_covar, posi
 
     assert (np.equal(radar.position, position).all())
 
-    truth = set()
-    target_state = State(target, timestamp=datetime.datetime.now())
-    truth.add(target_state)
+    target_state = GroundTruthState(target, timestamp=datetime.datetime.now())
+    target_truth = GroundTruthPath([target_state])
+
+    truth = {target_truth}
 
     # Generate a noiseless measurement for the given target
     measurement = radar.measure(truth, noise=False)
@@ -108,8 +109,15 @@ def test_simple_radar(h, sensorclass, ndim_state, pos_mapping, noise_covar, posi
                                                  translation_offset=position,
                                                  rotation_offset=radar.orientation)).all())
 
-    target_state = State(target, timestamp=datetime.datetime.now())
-    truth.add(target_state)
+    # Assert is TrueDetection type
+    assert isinstance(measurement, TrueDetection)
+    assert measurement.groundtruth_path is target_truth
+    assert isinstance(measurement.groundtruth_path, GroundTruthPath)
+
+    target2_state = GroundTruthState(target, timestamp=datetime.datetime.now())
+    target2_truth = GroundTruthPath([target2_state])
+
+    truth.add(target2_truth)
 
     # Generate a noiseless measurement for each of the given target states
     measurements = radar.measure(truth)
@@ -117,12 +125,16 @@ def test_simple_radar(h, sensorclass, ndim_state, pos_mapping, noise_covar, posi
     # Two measurements for 2 truth states
     assert len(measurements) == 2
 
+    # Measurements store ground truth paths
+    for measurement in measurements:
+        assert measurement.groundtruth_path in truth
+        assert isinstance(measurement.groundtruth_path, GroundTruthPath)
+
 
 def h2d_rr(state, pos_map, vel_map, translation_offset, rotation_offset, velocity):
-
     xyz = StateVector([[state.state_vector[pos_map[0], 0] - translation_offset[0, 0]],
-                      [state.state_vector[pos_map[1], 0] - translation_offset[1, 0]],
-                      [0]])
+                       [state.state_vector[pos_map[1], 0] - translation_offset[1, 0]],
+                       [0]])
 
     # Get rotation matrix
     theta_z = - rotation_offset[2, 0]
@@ -147,7 +159,6 @@ def h2d_rr(state, pos_map, vel_map, translation_offset, rotation_offset, velocit
 
 
 def h3d_rr(state, pos_map, vel_map, translation_offset, rotation_offset, velocity):
-
     xyz = state.state_vector[pos_map, :] - translation_offset
 
     # Get rotation matrix
@@ -155,7 +166,7 @@ def h3d_rr(state, pos_map, vel_map, translation_offset, rotation_offset, velocit
     theta_y = - rotation_offset[1, 0]
     theta_x = - rotation_offset[0, 0]
 
-    rotation_matrix = rotz(theta_z)@roty(theta_y)@rotx(theta_x)
+    rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
     xyz_rot = rotation_matrix @ xyz
 
     rho, phi, theta = cart2sphere(*xyz_rot)
@@ -182,7 +193,7 @@ def h3d_rr(state, pos_map, vel_map, translation_offset, rotation_offset, velocit
                           [0, 0.015, 0],
                           [0, 0, 10]]),  # noise_covar
                 StateVector([[100], [0], [0]])  # position
-         ),
+        ),
         (
                 h3d_rr,
                 RadarElevationBearingRangeRate,
@@ -198,7 +209,6 @@ def h3d_rr(state, pos_map, vel_map, translation_offset, rotation_offset, velocit
     ids=["RadarBearingRangeRate", "RadarElevationBearingRangeRate"]
 )
 def test_range_rate_radar(h, sensorclass, pos_mapping, vel_mapping, noise_covar, position):
-
     # Instantiate the rotating radar
     radar = sensorclass(ndim_state=6,
                         position_mapping=pos_mapping,
@@ -208,10 +218,10 @@ def test_range_rate_radar(h, sensorclass, pos_mapping, vel_mapping, noise_covar,
 
     assert (np.equal(radar.position, position).all())
 
-    truth = set()
-    target_state = State(np.array([[200], [10], [0], [0], [0], [0]]),
-                         timestamp=datetime.datetime.now())
-    truth.add(target_state)
+    target_state = GroundTruthState(np.array([[200], [10], [0], [0], [0], [0]]),
+                                    timestamp=datetime.datetime.now())
+    target_truth = GroundTruthPath([target_state])
+    truth = {target_truth}
 
     # Generate a noiseless measurement for the given target
     measurement = radar.measure(truth, noise=False)
@@ -226,9 +236,16 @@ def test_range_rate_radar(h, sensorclass, pos_mapping, vel_mapping, noise_covar,
                                                  rotation_offset=radar.orientation,
                                                  velocity=radar.velocity)).all())
 
-    target_state = State(np.array([[200], [10], [0], [0], [0], [0]]),
-                         timestamp=datetime.datetime.now())
-    truth.add(target_state)
+    # Assert is TrueDetection type
+    assert isinstance(measurement, TrueDetection)
+    assert measurement.groundtruth_path is target_truth
+    assert isinstance(measurement.groundtruth_path, GroundTruthPath)
+
+    target2_state = GroundTruthState(np.array([[200], [10], [0], [0], [0], [0]]),
+                                     timestamp=datetime.datetime.now())
+    target2_truth = GroundTruthPath([target2_state])
+
+    truth.add(target2_truth)
 
     # Generate a noiseless measurement for each of the given target states
     measurements = radar.measure(truth)
@@ -236,9 +253,12 @@ def test_range_rate_radar(h, sensorclass, pos_mapping, vel_mapping, noise_covar,
     # Two measurements for 2 truth states
     assert len(measurements) == 2
 
+    # Measurements store ground truth paths
+    for measurement in measurements:
+        assert measurement.groundtruth_path in truth
+
 
 def test_rotating_radar():
-
     # Input arguments
     # TODO: pytest parametarization
     timestamp = datetime.datetime.now()
@@ -253,13 +273,14 @@ def test_rotating_radar():
     # The radar antenna is facing opposite the radar orientation
     dwell_center = State(StateVector([[-np.pi]]),
                          timestamp=timestamp)
-    rpm = 20            # 20 Rotations Per Minute
-    max_range = 100     # Max range of 100m
-    fov_angle = np.pi/3       # FOV angle of pi/3
+    rpm = 20  # 20 Rotations Per Minute
+    max_range = 100  # Max range of 100m
+    fov_angle = np.pi / 3  # FOV angle of pi/3
 
-    truth = set()
-    target_state = State(radar_position + np.array([[5], [5]]), timestamp=timestamp)
-    truth.add(target_state)
+    target_state = GroundTruthState(radar_position + np.array([[5], [5]]), timestamp=timestamp)
+    target_truth = GroundTruthPath([target_state])
+
+    truth = {target_truth}
 
     measurement_mapping = np.array([0, 1])
 
@@ -275,7 +296,7 @@ def test_rotating_radar():
                                       fov_angle=fov_angle)
 
     # Assert that the object has been correctly initialised
-    assert(np.equal(radar.position, radar_position).all())
+    assert (np.equal(radar.position, radar_position).all())
 
     # Generate a noiseless measurement for the given target
     measurement = radar.measure(truth, noise=False)
@@ -286,9 +307,10 @@ def test_rotating_radar():
     # Rotate radar such that the target is in FOV
     timestamp = timestamp + datetime.timedelta(seconds=0.5)
 
-    truth = set()
-    target_state = State(radar_position + np.array([[5], [5]]), timestamp=timestamp)
-    truth.add(target_state)
+    target_state = GroundTruthState(radar_position + np.array([[5], [5]]), timestamp=timestamp)
+    target_truth = GroundTruthPath([target_state])
+
+    truth = {target_truth}
 
     measurement = radar.measure(truth, noise=False)
     measurement = next(iter(measurement))
@@ -296,22 +318,34 @@ def test_rotating_radar():
     eval_m = h2d(target_state,
                  measurement_mapping,
                  radar.position,
-                 radar.orientation+[[0],
-                                    [0],
-                                    [radar.dwell_center.state_vector[0, 0]]])
+                 radar.orientation + [[0],
+                                      [0],
+                                      [radar.dwell_center.state_vector[0, 0]]])
 
     # Assert correction of generated measurement
-    assert(measurement.timestamp == target_state.timestamp)
-    assert(np.equal(measurement.state_vector, eval_m).all())
+    assert (measurement.timestamp == target_state.timestamp)
+    assert (np.equal(measurement.state_vector, eval_m).all())
 
-    target_state = State(radar_position + np.array([[4], [4]]), timestamp=timestamp)
-    truth.add(target_state)
+    # Assert is TrueDetection type
+    assert isinstance(measurement, TrueDetection)
+    assert measurement.groundtruth_path is target_truth
+    assert isinstance(measurement.groundtruth_path, GroundTruthPath)
+
+    target2_state = GroundTruthState(radar_position + np.array([[4], [4]]), timestamp=timestamp)
+    target2_truth = GroundTruthPath([target2_state])
+
+    truth.add(target2_truth)
 
     # Generate a noiseless measurement for each of the given target states
     measurements = radar.measure(truth, noise=False)
 
     # Two measurements for 2 truth states
     assert len(measurements) == 2
+
+    # Measurements store ground truth paths
+    for measurement in measurements:
+        assert measurement.groundtruth_path in truth
+        assert isinstance(measurement.groundtruth_path, GroundTruthPath)
 
 
 def test_raster_scan_radar():
@@ -335,9 +369,10 @@ def test_raster_scan_radar():
     # This will be mean the dwell center will reach at the limits -pi/2 and
     # pi/2. As the edge of the beam will reach the full FOV
 
-    truth = set()
-    target_state = State(radar_position + np.array([[-5], [5]]), timestamp=timestamp)
-    truth.add(target_state)
+    target_state = GroundTruthState(radar_position + np.array([[-5], [5]]), timestamp=timestamp)
+    target_truth = GroundTruthPath([target_state])
+
+    truth = {target_truth}
 
     measurement_mapping = np.array([0, 1])
 
@@ -365,9 +400,10 @@ def test_raster_scan_radar():
     # Rotate radar
     timestamp = timestamp + datetime.timedelta(seconds=0.5)
 
-    truth = set()
-    target_state = State(radar_position + np.array([[-5], [5]]), timestamp=timestamp)
-    truth.add(target_state)
+    target_state = GroundTruthState(radar_position + np.array([[-5], [5]]), timestamp=timestamp)
+    target_truth = GroundTruthPath([target_state])
+
+    truth = {target_truth}
 
     measurement = radar.measure(truth, noise=False)
 
@@ -377,9 +413,10 @@ def test_raster_scan_radar():
     # Rotate radar such that the target is in FOV
     timestamp = timestamp + datetime.timedelta(seconds=1.0)
 
-    truth = set()
-    target_state = State(radar_position + np.array([[-5], [5]]), timestamp=timestamp)
-    truth.add(target_state)
+    target_state = GroundTruthState(radar_position + np.array([[-5], [5]]), timestamp=timestamp)
+    target_truth = GroundTruthPath([target_state])
+
+    truth = {target_truth}
 
     measurement = radar.measure(truth, noise=False)
     measurement = next(iter(measurement))
@@ -394,6 +431,11 @@ def test_raster_scan_radar():
     # Assert correction of generated measurement
     assert measurement.timestamp == target_state.timestamp
     assert np.array_equal(measurement.state_vector, eval_m)
+
+    # Assert is TrueDetection type
+    assert isinstance(measurement, TrueDetection)
+    assert measurement.groundtruth_path is target_truth
+    assert isinstance(measurement.groundtruth_path, GroundTruthPath)
 
 
 def test_aesaradar():
@@ -447,8 +489,8 @@ def test_swer(repeats=10000):
                       beam_transition_model=StationaryBeam(
                           centre=[np.deg2rad(15), np.deg2rad(20)]),
                       measurement_model=None,
-                      position=StateVector([0.0]*3),
-                      orientation=StateVector([0.0]*3))
+                      position=StateVector([0.0] * 3),
+                      orientation=StateVector([0.0] * 3))
     # populate list of random rcs
     for i in range(0, repeats):
         list_rcs[i] = radar.gen_probability(target)[2]
@@ -482,9 +524,10 @@ def test_detection():
                           mapping=[0, 1, 2],
                           ndim_state=3))
 
-    truth = set()
-    target = State([50e3, 10e3, 20e3], timestamp=datetime.datetime.now())
-    truth.add(target)
+    target_state = GroundTruthState([50e3, 10e3, 20e3], timestamp=datetime.datetime.now())
+    target_truth = GroundTruthPath([target_state])
+
+    truth = {target_truth}
 
     measurement = radar.measure(truth)
     measurement = next(iter(measurement))  # Get measurement from set
@@ -492,8 +535,15 @@ def test_detection():
     assert np.allclose(measurement.state_vector,
                        StateVector([50e3, 10e3, 20e3]), atol=5)
 
-    target = State([50e3, 10e3, 20e3], timestamp=datetime.datetime.now())
-    truth.add(target)
+    # Assert is TrueDetection type
+    assert isinstance(measurement, TrueDetection)
+    assert measurement.groundtruth_path is target_truth
+    assert isinstance(measurement.groundtruth_path, GroundTruthPath)
+
+    target2_state = GroundTruthState([50e3, 10e3, 20e3], timestamp=datetime.datetime.now())
+    target2_truth = GroundTruthPath([target2_state])
+
+    truth.add(target2_truth)
 
     # Generate a noiseless measurement for each of the given target states
     measurements = radar.measure(truth)
@@ -501,11 +551,17 @@ def test_detection():
     # Two measurements for 2 truth states
     assert len(measurements) == 2
 
+    # Measurements store ground truth paths
+    for measurement in measurements:
+        assert measurement.groundtruth_path in truth
+        assert isinstance(measurement.groundtruth_path, GroundTruthPath)
+
 
 def test_failed_detect():
-    truth = set()
-    target = State([75e3, 0, 10e3, 0, 20e3, 0], timestamp=datetime.datetime.now())
-    truth.add(target)
+    target_state = GroundTruthState([75e3, 0, 10e3, 0, 20e3, 0], timestamp=datetime.datetime.now())
+    target_truth = GroundTruthPath([target_state])
+
+    truth = {target_truth}
 
     radar = AESARadar(antenna_gain=30,
                       position_mapping=[0, 2, 4],
@@ -540,7 +596,7 @@ def test_target_rcs():
 
     radar = AESARadar(antenna_gain=36,
                       position_mapping=[0, 1, 2],
-                      position=StateVector([0.0]*3),
+                      position=StateVector([0.0] * 3),
                       orientation=StateVector([0.0] * 3),
                       frequency=10e9,
                       number_pulses=10,

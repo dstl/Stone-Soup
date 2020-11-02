@@ -7,7 +7,7 @@ from ..base import Property
 from ..models.measurement.nonlinear import CartesianToElevationBearing
 from ..sensor.sensor import Sensor
 from ..types.array import CovarianceMatrix
-from ..types.detection import Detection
+from ..types.detection import TrueDetection
 from ..types.groundtruth import GroundTruthState
 
 
@@ -34,7 +34,7 @@ class PassiveElevationBearing(Sensor):
             :class:`~.CartesianToElevationBearing` model")
 
     def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[Detection]:
+                **kwargs) -> Set[TrueDetection]:
         """Generate a measurement for a given state
 
         Parameters
@@ -48,10 +48,11 @@ class PassiveElevationBearing(Sensor):
 
         Returns
         -------
-        Set[:class:`~.Detection`]
+        Set[:class:`~.TrueDetection`]
             A set of measurements generated from the given states. The timestamps of the
             measurements are set equal to that of the corresponding states that they were
-            calculated from.
+            calculated from. Each measurement stores the ground truth path that it was produced
+            from.
         """
 
         measurement_model = CartesianToElevationBearing(
@@ -63,11 +64,11 @@ class PassiveElevationBearing(Sensor):
 
         detections = set()
         for truth in ground_truths:
-
             measurement_vector = measurement_model.function(truth, noise=noise, **kwargs)
-            detection = Detection(measurement_vector,
-                                  measurement_model=measurement_model,
-                                  timestamp=truth.timestamp)
+            detection = TrueDetection(measurement_vector,
+                                      measurement_model=measurement_model,
+                                      timestamp=truth.timestamp,
+                                      groundtruth_path=truth)
             detections.add(detection)
 
         return detections
