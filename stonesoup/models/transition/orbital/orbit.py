@@ -92,7 +92,7 @@ class SimpleMeanMotionTransitionModel(OrbitalTransitionModel, LinearModel):
             function.  Units of mean motion must be :math:`\mathrm{rad} \, s^{-1}`
 
         """
-        self.transition(orbital_state, noise=noise, time_interval=time_interval)
+        return self.transition(orbital_state, noise=noise, time_interval=time_interval)
 
     def transition(self, orbital_state, noise=False,
                    time_interval=timedelta(seconds=0)):
