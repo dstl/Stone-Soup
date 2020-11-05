@@ -765,7 +765,7 @@ class TLEOrbitalState(OrbitalState):
 
         if state_vector is None or len(state_vector) == 0:
             # in this instance check the metadata
-            state_vector = StateVector([0, 0, 0, 0, 0, 0])
+            state_vector = StateVector([0, 0, 0, 0, 0, 1e-3])
             super().__init__(state_vector, *args, **kwargs)
 
             if self.metadata is not None or len(self.metadata) != 0:
