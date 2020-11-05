@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from scipy import ndarray
+import numpy as np
 from scipy.stats import multivariate_normal
 
 from .base import ControlModel
@@ -22,13 +22,10 @@ class LinearControlModel(ControlModel, LinearModel):
 
     """
 
-    control_vector = Property(
-        ndarray, doc="Control vector at time :math:`k`")
-    control_matrix = Property(
-        ndarray,
+    control_vector: np.ndarray = Property(doc="Control vector at time :math:`k`")
+    control_matrix: np.ndarray = Property(
         doc="Control input model matrix at time :math:`k`, :math:`B_k`")
-    control_noise = Property(
-        ndarray,
+    control_noise: np.ndarray = Property(
         default=None,
         doc="Control input noise covariance at time :math:`k`")
 

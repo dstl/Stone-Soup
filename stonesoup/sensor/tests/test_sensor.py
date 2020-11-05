@@ -3,7 +3,7 @@ import datetime
 
 import pytest
 
-from stonesoup.sensor.radar.radar import RadarRangeRateBearingElevation
+from stonesoup.sensor.radar.radar import RadarElevationBearingRangeRate
 from ...platform.base import FixedPlatform
 from ..base import BaseSensor
 from ..sensor import Sensor
@@ -96,7 +96,7 @@ def radar_platform_target():
     vel_mapping = np.array([1, 3, 5])
     noise_covar = CovarianceMatrix(np.eye(4))
 
-    radar = RadarRangeRateBearingElevation(ndim_state=6,
+    radar = RadarElevationBearingRangeRate(ndim_state=6,
                                            position_mapping=pos_mapping,
                                            velocity_mapping=vel_mapping,
                                            noise_covar=noise_covar)
@@ -126,7 +126,7 @@ def test_platform_deepcopy(radar_platform_target):
     radar_1, platform_1, target_state = radar_platform_target
 
     # Make a measurement with a platform
-    _ = platform_1.sensors[0].measure(target_state)
+    _ = platform_1.sensors[0].measure({target_state})
 
     assert platform_1.sensors[0] is radar_1
 
@@ -138,7 +138,7 @@ def test_platform_deepcopy(radar_platform_target):
 
     assert platform_2.sensors[0].platform is platform_2
     # check no error in measurement
-    _ = platform_2.sensors[0].measure(target_state)
+    _ = platform_2.sensors[0].measure({target_state})
 
 
 def test_sensor_assignment(radar_platform_target):
@@ -148,8 +148,9 @@ def test_sensor_assignment(radar_platform_target):
     radar_2 = copy.deepcopy(radar_1)
     radar_3 = copy.deepcopy(radar_1)
 
-    platform.add_sensor(radar_2)
-    platform.add_sensor(radar_3)
+    with pytest.warns(UserWarning, match="Sensor has been moved from one platform to another"):
+        platform.add_sensor(radar_2)
+        platform.add_sensor(radar_3)
 
     assert len(platform.sensors) == 3
     validate_lengths(platform)
@@ -166,7 +167,8 @@ def test_sensor_assignment(radar_platform_target):
     validate_lengths(platform)
     assert platform.sensors == (radar_1, radar_3)
 
-    platform.add_sensor(radar_2)
+    with pytest.warns(UserWarning, match="Sensor has been moved from one platform to another"):
+        platform.add_sensor(radar_2)
     assert len(platform.sensors) == 3
     validate_lengths(platform)
     assert platform.sensors == (radar_1, radar_3, radar_2)

@@ -57,23 +57,23 @@ start_time = datetime.now()
 # a 6 dimensional state space according to the following :math:`\mathbf{x}`.
 #
 # .. math::
-#           \begin{align}\mathbf{x} = \begin{bmatrix}
-#                                       x\\ \dot{x}\\ y\\ \dot{y}\\ z\\ \dot{z} \end{bmatrix}
-#                                   = \begin{bmatrix}
-#                                       0\\ 0\\ 0\\ 50\\ 8000\\ 0 \end{bmatrix}\end{align}
+#           \mathbf{x} = \begin{bmatrix}
+#                          x\\ \dot{x}\\ y\\ \dot{y}\\ z\\ \dot{z} \end{bmatrix}
+#                      = \begin{bmatrix}
+#                          0\\ 0\\ 0\\ 50\\ 8000\\ 0 \end{bmatrix}
 #
 # The platform will be initiated with a near constant velocity model which has been parameterised to have zero noise.
 # Therefore the platform location at time :math:`k` is given by :math:`F_{k}x_{k-1}` where :math:`F_{k}` is given by:
 #
 # .. math::
-#           \begin{align}F_{k} = \begin{bmatrix}
-#                         1 & \triangle k & 0 & 0 & 0 & 0\\
-#                         0 & 1 & 0 & 0 & 0 & 0\\
-#                         0 & 0 & 1 & \triangle k & 0 & 0\\
-#                         0 & 0 & 0 & 1 & 0 & 0\\
-#                         0 & 0 & 0 & 0 & 1 & \triangle k \\
-#                         0 & 0 & 0 & 0 & 0 & 1\\
-#                           \end{bmatrix}\end{align}
+#           F_{k} = \begin{bmatrix}
+#            1 & \triangle k & 0 & 0 & 0 & 0\\
+#            0 & 1 & 0 & 0 & 0 & 0\\
+#            0 & 0 & 1 & \triangle k & 0 & 0\\
+#            0 & 0 & 0 & 1 & 0 & 0\\
+#            0 & 0 & 0 & 0 & 1 & \triangle k \\
+#            0 & 0 & 0 & 0 & 0 & 1\\
+#              \end{bmatrix}
 
 # First import the Moving platform
 from stonesoup.platform.base import MovingPlatform
@@ -101,7 +101,7 @@ sensor_platform = MovingPlatform(states=initial_state,
 # (:math:`r`) and range-rate (:math:`\dot{r}`) of the target platform.
 
 # Import a range rate bearing elevation capable radar
-from stonesoup.sensor.radar.radar import RadarRangeRateBearingElevation
+from stonesoup.sensor.radar.radar import RadarElevationBearingRangeRate
 
 # Create a radar sensor
 radar_noise_covar = CovarianceMatrix(np.diag(
@@ -110,7 +110,7 @@ radar_noise_covar = CovarianceMatrix(np.diag(
               100.,  # Range
               25.])))  # Range Rate
 
-radar = RadarRangeRateBearingElevation(ndim_state=6,
+radar = RadarElevationBearingRangeRate(ndim_state=6,
                                        position_mapping=(0, 2, 4),
                                        velocity_mapping=(1, 3, 5),
                                        noise_covar=radar_noise_covar)
@@ -130,22 +130,22 @@ sensor_platform.add_sensor(radar,
 # The imager sensor model is described by the following equations:
 #
 # .. math::
-#           \begin{align} \mathbf{z}_k = h(\mathbf{x}_k, \dot{\mathbf{x}}_k) \end{align}
+#           \mathbf{z}_k = h(\mathbf{x}_k, \dot{\mathbf{x}}_k)
 #
 # where:
 #
 # * :math:`\mathbf{z}_k` is a measurement vector of the form:
 #
 # .. math::
-#           \begin{align} \mathbf{z}_k = \begin{bmatrix} \theta \\ \phi \end{bmatrix} \end{align}
+#           \mathbf{z}_k = \begin{bmatrix} \theta \\ \phi \end{bmatrix}
 #
 # * :math:`h` is a non - linear model function of the form:
 #
 # .. math::
-#           \begin{align} h(\mathbf{x}_k,\dot{\mathbf{x}}_k) = \begin{bmatrix}
-#                   \arcsin(\mathcal{z} /\sqrt{\mathcal{x} ^ 2 + \mathcal{y} ^ 2 +\mathcal{z} ^ 2}) \\
-#                   \arctan(\mathcal{y},\mathcal{x}) \ \
-#                   \end{bmatrix} + \dot{\mathbf{x}}_k \end{align}
+#           h(\mathbf{x}_k,\dot{\mathbf{x}}_k) = \begin{bmatrix}
+#               \arcsin(\mathcal{z} /\sqrt{\mathcal{x} ^ 2 + \mathcal{y} ^ 2 +\mathcal{z} ^ 2}) \\
+#               \arctan(\mathcal{y},\mathcal{x}) \ \
+#               \end{bmatrix} + \dot{\mathbf{x}}_k
 #
 # * :math:`\mathbf{z}_k` is Gaussian distributed with covariance :math:`R`, i.e.:
 #
@@ -153,10 +153,10 @@ sensor_platform.add_sensor(radar,
 #           \mathbf{z}_k  \sim \mathcal{N}(0, R)
 #
 # .. math::
-#           \begin{align} R = \begin{bmatrix}
-#                           \sigma_{\theta}^2 & 0 \\
-#                           0 & \sigma_{\phi}^2  \\
-#                           \end{bmatrix} \end{align}
+#           R = \begin{bmatrix}
+#             \sigma_{\theta}^2 & 0 \\
+#             0 & \sigma_{\phi}^2  \\
+#             \end{bmatrix}
 
 # Import a passive sensor capability
 from stonesoup.sensor.passive import PassiveElevationBearing
@@ -350,9 +350,11 @@ for time, ctracks in tracker:
             color = 'y'
         else:
             r = 10000000
+            # extract the platform rotation offsets
+            _, el_offset, az_offset = sensor_platform.orientation
+            # obtain measurement angles and map to cartesian
             e, a = detection.state_vector
-            # Use z as x as sensor rotated 90 degrees
-            _, y, x = sphere2cart(r, a, e)
+            x, y, _ = sphere2cart(r, a + az_offset, e + el_offset)
             color = 'g'
         X = [sensor_platform.state_vector[0], x]
         Y = [sensor_platform.state_vector[2], y]

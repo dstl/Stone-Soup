@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from typing import Tuple
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.lines
@@ -17,14 +19,11 @@ class TwoDPlotter(PlotGenerator):
     Plots of :class:`~.Track`, :class:`~.Detection` and
     :class:`~.GroundTruthPath` objects in two dimensions.
     """
-    track_indices = Property(
-        list,
+    track_indices: Tuple[int, int] = Property(
         doc="Elements of track state vector to plot as x and y")
-    gtruth_indices = Property(
-        list,
+    gtruth_indices: Tuple[int, int] = Property(
         doc="Elements of ground truth path state vector to plot as x and y")
-    detection_indices = Property(
-        list,
+    detection_indices: Tuple[int, int] = Property(
         doc="Elements of detection state vector to plot as x and y")
 
     def compute_metric(self, manager, *args, **kwargs):

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
+import warnings
 from operator import attrgetter
 
 import numpy as np
@@ -12,7 +13,7 @@ from ..types.time import TimeRange
 class SIAPMetrics(MetricGenerator):
     """SIAP Metrics
 
-    Computes the Single Integrated Air Picture (SAIP) metrics as defined by the
+    Computes the Single Integrated Air Picture (SIAP) metrics as defined by the
     Systems Engineering Task Force. The implementation provided here is
     derived from [1] and focuses on providing the SIAP attribute measures.
 
@@ -47,6 +48,16 @@ class SIAPMetrics(MetricGenerator):
                    self.LT(manager),
                    self.LS(manager)]
         return metrics
+
+    @staticmethod
+    def _warn_no_truth(manager):
+        if len(manager.groundtruth_paths) == 0:
+            warnings.warn("No truth to generate SIAP Metric", stacklevel=2)
+
+    @staticmethod
+    def _warn_no_tracks(manager):
+        if len(manager.tracks) == 0:
+            warnings.warn("No tracks to generate SIAP Metric", stacklevel=2)
 
     def C_single_time(self, manager, timestamp):
         r"""SIAP metric C at a specific time
@@ -126,8 +137,12 @@ class SIAPMetrics(MetricGenerator):
         """
 
         timestamps = manager.list_timestamps()
-        C = self._jt_sum(manager, timestamps) / self._j_sum(
-            manager, timestamps)
+        try:
+            C = self._jt_sum(manager, timestamps) / self._j_sum(
+                manager, timestamps)
+        except ZeroDivisionError:
+            self._warn_no_truth(manager)
+            C = 0
         return TimeRangeMetric(
             title="SIAP C",
             value=C,
@@ -165,8 +180,12 @@ class SIAPMetrics(MetricGenerator):
         """
 
         timestamps = manager.list_timestamps()
-        A = self._na_sum(manager, timestamps) / self._jt_sum(
-            manager, timestamps)
+        try:
+            A = self._na_sum(manager, timestamps) / self._jt_sum(manager, timestamps)
+        except ZeroDivisionError:
+            self._warn_no_truth(manager)
+            self._warn_no_tracks(manager)
+            A = 1
         return TimeRangeMetric(
             title="SIAP A",
             value=A,
@@ -207,7 +226,11 @@ class SIAPMetrics(MetricGenerator):
             self._n_t(manager, timestamp) - self._na_t(manager, timestamp)
             for timestamp in timestamps)
 
-        S = numerator / self._n_sum(manager, timestamps)
+        try:
+            S = numerator / self._n_sum(manager, timestamps)
+        except ZeroDivisionError:
+            self._warn_no_tracks(manager)
+            S = 0
         return TimeRangeMetric(
             title="SIAP S",
             value=S,
@@ -234,6 +257,8 @@ class SIAPMetrics(MetricGenerator):
         r = self._r(manager)
         if r == 0:
             value = np.inf
+            self._warn_no_truth(manager)
+            self._warn_no_tracks(manager)
         else:
             value = 1 / r
 
@@ -277,9 +302,14 @@ class SIAPMetrics(MetricGenerator):
                           for truth in manager.groundtruth_paths)
 
         timestamps = manager.list_timestamps()
+        try:
+            LS = numerator / denominator
+        except ZeroDivisionError:
+            self._warn_no_truth(manager)
+            LS = 0
         return TimeRangeMetric(
             title="SIAP LS",
-            value=numerator / denominator,
+            value=LS,
             time_range=TimeRange(min(timestamps), max(timestamps)),
             generator=self)
 
@@ -571,7 +601,11 @@ class SIAPMetrics(MetricGenerator):
                         for truth in manager.groundtruth_paths)
         denominator = sum(self._tt_j(manager, truth).total_seconds()
                           for truth in manager.groundtruth_paths)
-        return numerator / denominator
+        try:
+            return numerator / denominator
+        except ZeroDivisionError:
+            # No truth or tracks
+            return 0
 
     def _t_j(self, truth):
         """Total time truth exists for

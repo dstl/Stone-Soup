@@ -14,7 +14,7 @@ The location/state of the targets' birth may also be unknown and varying.
 # Simulating multiple targets
 # ---------------------------
 # Here we'll simulate multiple targets moving at a constant velocity. A Poisson distribution will
-# be used to sample the number of new targets which are born at a particular timestep, and simple
+# be used to sample the number of new targets which are born at a particular timestep, and a simple
 # draw from a uniform distribution will be used to decide if a target will be removed. Each target
 # will have a random position and velocity on birth.
 from datetime import datetime

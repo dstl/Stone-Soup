@@ -105,11 +105,11 @@ ground_truth_reader = LLAtoENUConverter(ground_truth_reader, sensor_location, [0
 # The sensor is then mounted onto a platform (stationary in this case)
 
 from stonesoup.platform.base import FixedPlatform
-from stonesoup.sensor.radar.radar import RadarRangeBearingElevation
+from stonesoup.sensor.radar.radar import RadarElevationBearingRange
 from stonesoup.simulator.platform import PlatformDetectionSimulator
 from stonesoup.types.state import State
 
-sensor = RadarRangeBearingElevation(
+sensor = RadarElevationBearingRange(
     [0, 2, 4],
     meas_covar,
     6,
@@ -154,9 +154,9 @@ class Initiator(SimpleMeasurementInitiator):
             state_vector = measurement_model.inverse_function(
                             detection)
             model_covar = measurement_model.covar()
-            
+
             el_az_range = np.sqrt(np.diag(model_covar)) #elev, az, range
-            
+
             std_pos = detection.state_vector[2, 0]*el_az_range[1]
             stdx = np.abs(std_pos*np.sin(el_az_range[1]))
             stdy = np.abs(std_pos*np.cos(el_az_range[1]))
@@ -168,7 +168,7 @@ class Initiator(SimpleMeasurementInitiator):
             if stdz > MAX_DEV:
                 print('Warning - Z Deviation exceeds limit!!')
             C0 = np.diag(np.array([stdx, 30.0, stdy, 30.0, stdz, 30.0])**2)
-        
+
             tracks.add(Track([GaussianStateUpdate(
                 state_vector,
                 C0,
@@ -176,8 +176,8 @@ class Initiator(SimpleMeasurementInitiator):
                 timestamp=detection.timestamp)
             ]))
         return tracks
-            
-   
+
+
 prior_state = GaussianState(
         np.array([[0], [0], [0], [0], [0], [0]]),
         np.diag([0, 30.0, 0, 30.0, 0, 30.0])**2)
@@ -193,7 +193,7 @@ initiator = Initiator(prior_state, meas_model)
 class MyDeleter:
     def delete_tracks(self, tracks):
         return set()
- 
+
 deleter = MyDeleter()
 
 # %%
@@ -250,7 +250,7 @@ for time, tracks in tracker:
         xyz = meas_model.inverse_function(detection)
         meas_X.append(xyz[0])
         meas_Y.append(xyz[2])
-        
+
         vec = track.states[-1].state_vector
         est_X.append(vec[0])
         est_Y.append(vec[2])

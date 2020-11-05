@@ -32,10 +32,8 @@
 # For dimension :math:`D`, a set of :math:`2 D + 1` sigma points are calculated at:
 #
 # .. math::
-#           \mathbf{s}_j &= \mathbf{x}, \ \ j = 0
-#
-#           \mathbf{s}_j &= \mathbf{x} + \alpha \sqrt{\kappa} A_j, \ \ j = 1, ..., D
-#
+#           \mathbf{s}_j &= \mathbf{x}, \ \ j = 0 \\
+#           \mathbf{s}_j &= \mathbf{x} + \alpha \sqrt{\kappa} A_j, \ \ j = 1, ..., D \\
 #           \mathbf{s}_j &= \mathbf{x} - \alpha \sqrt{\kappa} A_j, \ \ j = D + 1, ..., 2 D
 #
 # where :math:`A_j` is the :math:`j` th column of :math:`A`, a *square root matrix* of the
@@ -45,10 +43,8 @@
 # Two sets of weights, mean and covariance, are calculated:
 #
 # .. math::
-#           W^m_0 &= \frac{\lambda}{c}
-#
-#           W^c_0 &= \frac{\lambda}{c} + (1 - \alpha^2 + \beta)
-#
+#           W^m_0 &= \frac{\lambda}{c} \\
+#           W^c_0 &= \frac{\lambda}{c} + (1 - \alpha^2 + \beta) \\
 #           W^m_j &= W^c_j = \frac{1}{2 c}
 #
 # where :math:`c = \alpha^2 (D + \kappa)`, :math:`\lambda = c - D`. The parameters
@@ -276,8 +272,6 @@ ax.plot(data[:, 0].ravel()+noise[:, 0],
         marker=".",
         markersize=1.5,
         alpha=0.4)
-
-fig2
 
 # %%
 # We can now see what happens when we create EKF and UKF updaters and compare their effect.

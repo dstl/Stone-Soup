@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import uuid
+from typing import MutableSequence
 
 from ..base import Property
 from .multihypothesis import MultipleHypothesis
@@ -13,14 +14,12 @@ class Track(StateMutableSequence):
     A :class:`~.StateMutableSequence` representing a track.
     """
 
-    states = Property(
-        [State],
+    states: MutableSequence[State] = Property(
         default=None,
         doc="The initial states of the track. Default `None` which initialises"
             "with empty list.")
 
-    id = Property(
-        str,
+    id: str = Property(
         default=None,
         doc="The unique track ID")
 

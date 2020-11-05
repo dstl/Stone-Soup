@@ -19,8 +19,7 @@ class PDA(DataAssociator):
     probability that it is associated to each specific detection.
     """
 
-    hypothesiser = Property(
-        Hypothesiser,
+    hypothesiser: Hypothesiser = Property(
         doc="Generate a set of hypotheses for each prediction-detection pair")
 
     def associate(self, tracks, detections, time):
@@ -73,8 +72,7 @@ class JPDA(DataAssociator):
     takes place in the function :meth:`enumerate_JPDA_hypotheses`.
     """
 
-    hypothesiser = Property(
-        PDAHypothesiser,
+    hypothesiser: PDAHypothesiser = Property(
         doc="Generate a set of hypotheses for each prediction-detection pair")
 
     def associate(self, tracks, detections, time):

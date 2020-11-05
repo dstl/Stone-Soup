@@ -25,13 +25,14 @@ setup(name='stonesoup',
           'Topic :: Scientific/Engineering',
       ],
       packages=find_packages(exclude=('docs', '*.tests')),
+      python_requires='>=3.6',
       install_requires=[
           'ruamel.yaml>=0.15.45', 'numpy>=1.17', 'scipy', 'matplotlib', 'utm', 'pymap3d'],
       extras_require={
           'dev': [
               'pytest-flake8', 'pytest-cov', 'Sphinx', 'sphinx_rtd_theme',
-              'setuptools>=30', 'sphinx-gallery>=0.7', 'pillow', 'folium'],
+              'setuptools>=30', 'sphinx-gallery>=0.8', 'pillow', 'folium'],
           'video': ['ffmpeg-python', 'moviepy'],
-          'tensorflow': ['tensorflow']
+          'tensorflow': ['tensorflow>=2.2.0']
       },
       )

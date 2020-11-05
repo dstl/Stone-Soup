@@ -2,6 +2,8 @@
 """Contains deleters which use a composite of deleters to decide whether a track is to be deleted
 """
 
+from typing import Collection
+
 from ..base import Property
 from .base import Deleter
 
@@ -14,9 +16,9 @@ class CompositeDeleter(Deleter):
     at least one deleter listed.
     """
 
-    deleters = Property([Deleter], doc="List of deleters to be applied to the track")
-    intersect = Property(
-        bool, default=True,
+    deleters: Collection[Deleter] = Property(doc="List of deleters to be applied to the track")
+    intersect: bool = Property(
+        default=True,
         doc="Boolean that determines whether the composite deleter will intersect or unify "
             "deletion results. Default is `True`, applying an intersection.")
 

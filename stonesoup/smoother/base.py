@@ -8,8 +8,7 @@ from ..models.transition import TransitionModel
 class Smoother(Base):
     """Smoother Base Class."""
 
-    transition_model = Property(
-        TransitionModel, default=None, doc="Transition Model.")
+    transition_model: TransitionModel = Property(default=None, doc="Transition Model.")
 
     @abstractmethod
     def smooth(self, *args, **kwargs):

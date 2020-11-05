@@ -38,7 +38,7 @@ Video processing, Object detection & Tracking
 # across a range of tasks, such machine learning. TensorFlow includes an Object Detection API that
 # makes it easy to construct, train and deploy object detection models, as well as a collection of
 # pre-trained models that can be used for out-of-the-box inference. A quick TensorFlow installation
-# tutorial can be found `here <https://tensorflow2objectdetectioninstallation.readthedocs.io/en/latest/>`__.
+# tutorial can be found `here <https://tensorflow-object-detection-api-tutorial.readthedocs.io/en/latest/install.html>`__.
 #
 # Stone Soup
 # ~~~~~~~~~~
@@ -187,10 +187,9 @@ ani = animation.ArtistAnimation(fig, artists, interval=20, blit=True, repeat_del
 # %%
 # Downloading the model
 # ~~~~~~~~~~~~~~~~~~~~~
-# The code snippet shown below is used to download the object detection model checkpoint file
-# (.pb) that we will feed into the :class:`~.TensorFlowBoxObjectDetector` , as well as the label
-# file (.pbtxt) which contains a list of strings used to add the correct label to each detection
-# (e.g. car).
+# The code snippet shown below is used to download the object detection model that we will feed
+# into the :class:`~.TensorFlowBoxObjectDetector`, as well as the label file (.pbtxt) which
+# contains a list of strings used to add the correct label to each detection (e.g. car).
 #
 # The particular detection algorithm we will use is the Faster-RCNN, with an Inception
 # Resnet v2 backbone and running in Atrous mode with low proposals, pre-trained on the MSCOCO
@@ -201,44 +200,52 @@ ani = animation.ArtistAnimation(fig, artists, interval=20, blit=True, repeat_del
 #   **The downloaded model has a size of approximately 500 MB**. Therefore it is advised that you
 #   run the script on a stable (ideally not mobile) internet connection. The files will only be
 #   downloaded the first time the script is run. In consecutive runs the code will skip this step,
-#   provided that ``PATH_TO_CKPT`` and ``PATH_TO_LABELS`` are valid paths.
+#   provided that ``PATH_TO_MODEL`` and ``PATH_TO_LABELS`` are valid paths.
 
-import urllib
-import tarfile
-MODEL_NAME = 'faster_rcnn_inception_resnet_v2_atrous_lowproposals_coco_2018_01_28'
-MODEL_TAR = MODEL_NAME + '.tar.gz'
-MODELS_DOWNLOAD_BASE = 'http://download.tensorflow.org/models/object_detection/'
-PATH_TO_CKPT = os.path.join(os.getcwd(), MODEL_NAME + '/frozen_inference_graph.pb')
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'    # Suppress TensorFlow logging (1)
+import pathlib
+import tensorflow as tf
+
+tf.get_logger().setLevel('ERROR')           # Suppress TensorFlow logging (2)
+
+# Enable GPU dynamic memory allocation
+gpus = tf.config.experimental.list_physical_devices('GPU')
+for gpu in gpus:
+    tf.config.experimental.set_memory_growth(gpu, True)
 
 # Download and extract model
-if not os.path.exists(PATH_TO_CKPT):
-    print("Downloading model. This may take a while...")
-    urllib.request.urlretrieve(MODELS_DOWNLOAD_BASE + MODEL_TAR, MODEL_TAR)
-    tar_file = tarfile.open(MODEL_TAR)
-    for file in tar_file.getmembers():
-        file_name = os.path.basename(file.name)
-        if 'frozen_inference_graph.pb' in file_name:
-            tar_file.extract(file, os.getcwd())
-    tar_file.close()
-    os.remove(MODEL_TAR)
+def download_model(model_name):
+    base_url = 'http://download.tensorflow.org/models/object_detection/'
+    model_file = model_name + '.tar.gz'
+    model_dir = tf.keras.utils.get_file(fname=model_name,
+                                        origin=base_url + model_file,
+                                        untar=True)
+    model_dir = pathlib.Path(model_dir)/"saved_model"
+    return str(model_dir)
 
-LABEL_FILE = 'mscoco_label_map.pbtxt'
-LABELS_DOWNLOAD_BASE = \
-    'https://raw.githubusercontent.com/tensorflow/models/master/research/object_detection/data/'
-PATH_TO_LABELS = os.path.join(os.getcwd(), "{}/{}".format(MODEL_NAME, LABEL_FILE))
+MODEL_NAME = 'faster_rcnn_inception_resnet_v2_atrous_lowproposals_coco_2018_01_28'
+PATH_TO_MODEL = download_model(MODEL_NAME)
 
-# Download labels
-if not os.path.exists(PATH_TO_LABELS):
-    print("Downloading label file...")
-    urllib.request.urlretrieve(LABELS_DOWNLOAD_BASE + LABEL_FILE, PATH_TO_LABELS)
+# Download labels file
+def download_labels(filename):
+    base_url = 'https://raw.githubusercontent.com/tensorflow/models/master/research/object_detection/data/'
+    label_dir = tf.keras.utils.get_file(fname=filename,
+                                        origin=base_url + filename,
+                                        untar=False)
+    label_dir = pathlib.Path(label_dir)
+    return str(label_dir)
+
+LABEL_FILENAME = 'mscoco_label_map.pbtxt'
+PATH_TO_LABELS = download_labels(LABEL_FILENAME)
 
 
 # %%
 # Building the detector
 # ~~~~~~~~~~~~~~~~~~~~~
 # Next, we proceed to initialise our detector object. To do this, we require the ``frame_reader``
-# object we built previously, as well as a path to the (downloaded) model checkpoint (.pb) and
-# label (.pbtxt) files, which we have already defined above under the ``PATH_TO_CKPT`` and
+# object we built previously, as well as a path to the (downloaded) ``saved_model`` directory and
+# label (.pbtxt) file, which we have already defined above under the ``PATH_TO_MODEL`` and
 # ``PATH_TO_LABELS`` variables.
 #
 # The :class:`~.TensorFlowBoxObjectDetector` object can optionally be configured to digest frames
@@ -247,22 +254,11 @@ if not os.path.exists(PATH_TO_LABELS):
 # a live feed (e.g. the :class:`~.FFmpegVideoStreamReader`), where real-time processing is
 # paramount. Since we are using a :class:`~.VideoClipReader` in this example, we set
 # ``run_async=False``, which is also the default setting.
-#
-# Finally, the ``session_config`` parameter can be used to provide a `ConfigProto
-# <https://www.tensorflow.org/code/tensorflow/core/protobuf/config.proto>`_ protocol buffer with
-# configuration options for the TensorFlow session run by the detector. Below we show an example of
-# how this can be used to prevent TensorFlow from mapping all of the GPU memory, which can lead to
-# cuDNN errors when the host GPU is used by other processes.
-
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'    # Suppress TensorFlow logging
-import tensorflow as tf
 from stonesoup.detector.tensorflow import TensorFlowBoxObjectDetector
 
-config = tf.compat.v1.ConfigProto()
-config.gpu_options.allow_growth = True      # Allow dynamic allocation of GPU memory to TF session
 run_async = False                           # Configure the detector to run in synchronous mode
-detector = TensorFlowBoxObjectDetector(frame_reader, PATH_TO_CKPT, PATH_TO_LABELS,
-                                       run_async=run_async, session_config=config)
+detector = TensorFlowBoxObjectDetector(frame_reader, PATH_TO_MODEL, PATH_TO_LABELS,
+                                       run_async=run_async)
 
 # %%
 # Filtering-out unwanted detections

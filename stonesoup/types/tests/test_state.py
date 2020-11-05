@@ -2,6 +2,7 @@
 import datetime
 
 import numpy as np
+import scipy.linalg
 import pytest
 
 from ..angle import Bearing
@@ -9,7 +10,7 @@ from ..array import StateVector, CovarianceMatrix
 from ..numeric import Probability
 from ..particle import Particle
 from ..state import State, GaussianState, ParticleState, \
-    StateMutableSequence, WeightedGaussianState
+    StateMutableSequence, WeightedGaussianState, SqrtGaussianState
 
 
 def test_state():
@@ -65,6 +66,33 @@ def test_gaussianstate_invalid_covar():
     covar = CovarianceMatrix(np.diag([1, 2, 3]))  # 3D
     with pytest.raises(ValueError):
         GaussianState(mean, covar)
+
+
+def test_sqrtgaussianstate():
+    """Test the square root Gaussian Type"""
+
+    mean = np.array([[-1.8513], [0.9994], [0], [0]]) * 1e4
+    covar = np.array([[2.2128, 0.1, 0.03, 0.01],
+                      [0.1, 2.2130, 0.03, 0.02],
+                      [0.03, 0.03, 2.123, 0.01],
+                      [0.01, 0.02, 0.01, 2.012]]) * 1e3
+    timestamp = datetime.datetime.now()
+
+    # Test that a lower triangular matrix returned when 'full' covar is passed
+    lower_covar = np.linalg.cholesky(covar)
+    state = SqrtGaussianState(mean, lower_covar, timestamp=timestamp)
+    assert np.array_equal(state.sqrt_covar, lower_covar)
+    assert np.allclose(state.covar, covar, 0, atol=1e-10)
+    assert np.allclose(state.sqrt_covar @ state.sqrt_covar.T, covar, 0, atol=1e-10)
+    assert np.allclose(state.sqrt_covar @ state.sqrt_covar.T, lower_covar @ lower_covar.T, 0,
+                       atol=1e-10)
+
+    # Test that a general square root matrix is also a solution
+    general_covar = scipy.linalg.sqrtm(covar)
+    another_state = SqrtGaussianState(mean, general_covar, timestamp=timestamp)
+    assert np.array_equal(another_state.sqrt_covar, general_covar)
+    assert np.allclose(state.covar, covar, 0, atol=1e-10)
+    assert not np.allclose(another_state.sqrt_covar, lower_covar, 0, atol=1e-10)
 
 
 def test_weighted_gaussian_state():

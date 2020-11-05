@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from abc import ABC
-from typing import List, Union
 import copy
+from typing import Sequence, Tuple, Union
 
 import numpy as np
 from scipy.linalg import inv, pinv, block_diag
@@ -30,7 +30,7 @@ class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel,
     :class:`~.LinearModel` or :class:`~.ReversibleModel`.
     """
     mapping = None
-    model_list = Property(List[MeasurementModel], doc="List of Measurement Models.")
+    model_list: Sequence[GaussianModel] = Property(doc="List of Measurement Models.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -95,14 +95,14 @@ class NonLinearGaussianMeasurement(MeasurementModel, NonLinearModel, GaussianMod
     GaussianModel classes. It is not meant to be instantiated directly \
     but subclasses should be derived from this class.
     """
-    noise_covar = Property(CovarianceMatrix, doc="Noise covariance")
-    rotation_offset = Property(
-        StateVector, default=None,
-        doc="A 3x1 array of angles (rad), specifying the clockwise rotation\
-            around each Cartesian axis in the order :math:`x,y,z`.\
-            The rotation angles are positive if the rotation is in the \
-            counter-clockwise direction when viewed by an observer looking\
-            along the respective rotation axis, towards the origin.")
+    noise_covar: CovarianceMatrix = Property(doc="Noise covariance")
+    rotation_offset: StateVector = Property(
+        default=None,
+        doc="A 3x1 array of angles (rad), specifying the clockwise rotation "
+            "around each Cartesian axis in the order :math:`x,y,z`. "
+            "The rotation angles are positive if the rotation is in the "
+            "counter-clockwise direction when viewed by an observer looking "
+            "along the respective rotation axis, towards the origin.")
 
     def __init__(self, *args, **kwargs):
         """
@@ -138,7 +138,7 @@ class NonLinearGaussianMeasurement(MeasurementModel, NonLinearModel, GaussianMod
         """
 
         theta_x = -self.rotation_offset[0, 0]
-        theta_y = -self.rotation_offset[1, 0]
+        theta_y = self.rotation_offset[1, 0]
         theta_z = -self.rotation_offset[2, 0]
 
         return rotz(theta_z)@roty(theta_y)@rotx(theta_x)
@@ -204,10 +204,10 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
 
     """  # noqa:E501
 
-    translation_offset = Property(
-        StateVector, default=None,
-        doc="A 3x1 array specifying the Cartesian origin offset in terms of :math:`x,y,z`\
-            coordinates.")
+    translation_offset: StateVector = Property(
+        default=None,
+        doc="A 3x1 array specifying the Cartesian origin offset in terms of :math:`x,y,z` "
+            "coordinates.")
 
     def __init__(self, *args, **kwargs):
         """
@@ -339,10 +339,9 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
 
     """  # noqa:E501
 
-    translation_offset = Property(
-        StateVector, default=None,
-        doc="A 2x1 array specifying the origin offset in terms of :math:`x,y`\
-            coordinates.")
+    translation_offset: StateVector = Property(
+        default=None,
+        doc="A 2x1 array specifying the origin offset in terms of :math:`x,y` coordinates.")
 
     def __init__(self, *args, **kwargs):
         """
@@ -487,10 +486,9 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
 
     """  # noqa:E501
 
-    translation_offset = Property(
-        StateVector, default=None,
-        doc="A 3x1 array specifying the origin offset in terms of :math:`x,y,z`\
-            coordinates.")
+    translation_offset: StateVector = Property(
+        default=None,
+        doc="A 3x1 array specifying the origin offset in terms of :math:`x,y,z` coordinates.")
 
     def __init__(self, *args, **kwargs):
         """
@@ -582,9 +580,9 @@ class Cartesian2DToBearing(NonLinearGaussianMeasurement):
 
     """  # noqa:E501
 
-    translation_offset = Property(StateVector, default=None,
-                                  doc="A 2x1 array specifying the origin offset in terms of \
-                                  :math:`x,y` coordinates.")
+    translation_offset: StateVector = Property(
+        default=None,
+        doc="A 2x1 array specifying the origin offset in terms of :math:`x,y` coordinates.")
 
     def __init__(self, *args, **kwargs):
         """
@@ -712,16 +710,15 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
     expects a 6D state space.
     """
 
-    translation_offset = Property(
-        StateVector, default=None,
+    translation_offset: StateVector = Property(
+        default=None,
         doc="A 3x1 array specifying the origin offset in terms of :math:`x,y` coordinates.")
-    velocity_mapping = Property(
-        np.array, default=(1, 3, 5),
+    velocity_mapping: Tuple[int, int, int] = Property(
+        default=(1, 3, 5),
         doc="Mapping to the targets velocity within its state space")
-    velocity = Property(
-        StateVector, default=None,
-        doc="A 3x1 array specifying the sensor velocity in terms of :math:`x,y,z` \
-        coordinates.")
+    velocity: StateVector = Property(
+        default=None,
+        doc="A 3x1 array specifying the sensor velocity in terms of :math:`x,y,z` coordinates.")
 
     def __init__(self, *args, **kwargs):
         """
@@ -858,14 +855,14 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
     expects a 6D state space.
     """
 
-    translation_offset = Property(
-        StateVector, default=None,
+    translation_offset: StateVector = Property(
+        default=None,
         doc="A 3x1 array specifying the origin offset in terms of :math:`x,y,z` coordinates.")
-    velocity_mapping = Property(
-        np.array, default=(1, 3, 5),
+    velocity_mapping: Tuple[int, int, int] = Property(
+        default=(1, 3, 5),
         doc="Mapping to the targets velocity within its state space")
-    velocity = Property(
-        StateVector, default=None,
+    velocity: StateVector = Property(
+        default=None,
         doc="A 3x1 array specifying the sensor velocity in terms of :math:`x,y,z` coordinates.")
 
     def __init__(self, *args, **kwargs):
