@@ -44,9 +44,6 @@ class KalmanPredictor(Predictor):
         doc="The control model to be used. Default `None` where the predictor "
             "will create a zero-effect linear :class:`~.ControlModel`.")
 
-    # This attribute tells the :meth:`predict()` method what type of prediction to return
-    _prediction_class = GaussianStatePrediction
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -58,6 +55,39 @@ class KalmanPredictor(Predictor):
                                                     np.zeros([ndims, 1]),
                                                     np.zeros([ndims, ndims]),
                                                     np.zeros([ndims, ndims]))
+
+    @staticmethod
+    def _prediction_class(prior):
+        """
+        This attribute tells the :meth:`predict()` method what type of prediction to return
+        """
+        import importlib
+
+        # Get prediction class name
+        class_name = type(prior).__name__
+        if 'Prediction' in class_name:
+            pass
+        elif 'Update' in class_name:
+            class_name = class_name.replace('Update', 'Prediction')
+        else:
+            class_name = class_name + 'Prediction'
+
+        # Get prediction type
+        pred_module = importlib.import_module('stonesoup.types.prediction')
+        pred_class = getattr(pred_module, class_name)
+        return pred_class
+
+    def _get_prediction(self, prior, state_vector, covar, timestamp):
+
+        # Get prediction type
+        pred_class = self._prediction_class(prior)
+        kwargs = {prop: getattr(prior, prop)
+                  for prop in pred_class.__dict__['_properties'].keys()}
+        kwargs['state_vector'] = state_vector
+        kwargs['covar'] = covar
+        kwargs['timestamp'] = timestamp
+
+        return pred_class(**kwargs)
 
     def _transition_matrix(self, **kwargs):
         """Return the transition matrix
@@ -195,7 +225,7 @@ class KalmanPredictor(Predictor):
         p_pred = self._predicted_covariance(prior, predict_over_interval)
 
         # And return the state in the correct form
-        return self._prediction_class(x_pred, p_pred, timestamp=timestamp)
+        return self._get_prediction(prior, x_pred, p_pred, timestamp=timestamp)
 
 
 class ExtendedKalmanPredictor(KalmanPredictor):
@@ -383,7 +413,7 @@ class UnscentedKalmanPredictor(KalmanPredictor):
         )
 
         # and return a Gaussian state based on these parameters
-        return GaussianStatePrediction(x_pred, p_pred, timestamp=timestamp)
+        return self._get_prediction(prior, x_pred, p_pred, timestamp=timestamp)
 
 
 class SqrtKalmanPredictor(KalmanPredictor):
@@ -413,8 +443,20 @@ class SqrtKalmanPredictor(KalmanPredictor):
         doc="A switch to do the prediction via a QR decomposition, rather than using a Cholesky "
             "decomposition.")
 
-    # This predictor returns a square root form of the Gaussian state prediction
-    _prediction_class = SqrtGaussianStatePrediction
+    # # This predictor returns a square root form of the Gaussian state prediction
+    # _prediction_class = SqrtGaussianStatePrediction
+
+    def _get_prediction(self, prior, state_vector, covar, timestamp):
+
+        # Get prediction type
+        pred_class = self._prediction_class(prior)
+        kwargs = {prop: getattr(prior, prop)
+                  for prop in pred_class.__dict__['_properties'].keys()}
+        kwargs['state_vector'] = state_vector
+        kwargs['sqrt_covar'] = covar
+        kwargs['timestamp'] = timestamp
+
+        return pred_class(**kwargs)
 
     def _predicted_covariance(self, prior, predict_over_interval, **kwargs):
         """Private function to return the predicted covariance.
