@@ -147,24 +147,57 @@ def test_j_sum():
 
 def test_jt():
     manager = SimpleManager()
-    metric = SIAPMetrics()
+    metric = SIAPMetrics(position_mapping=[0, 1])
     tstart = datetime.datetime.now()
-    associations = {TimeRangeAssociation([], time_range=TimeRange(
-        start_timestamp=tstart,
-        end_timestamp=tstart + datetime.timedelta(seconds=3))),
-                    TimeRangeAssociation([], time_range=TimeRange(
-                        start_timestamp=tstart,
-                        end_timestamp=tstart + datetime.timedelta(seconds=5)))}
-    manager.association_set = AssociationSet(associations)
+    truth1 = GroundTruthPath(
+        states=[GroundTruthState([[i], [0]], timestamp=tstart + datetime.timedelta(seconds=i))
+                for i in range(20)]
+    )
+    truth2 = GroundTruthPath(
+        states=[GroundTruthState([[i], [10]], timestamp=tstart + datetime.timedelta(seconds=i))
+                for i in range(20)]
+    )
+    track1 = Track(
+        states=[State([[i], [1]], timestamp=tstart + datetime.timedelta(seconds=i))
+                for i in range(20)]
+    )
+    track2 = Track(
+        states=[State([[i], [10.5]], timestamp=tstart + datetime.timedelta(seconds=i))
+                for i in range(20)]
+    )
+    assocs = [TimeRangeAssociation(
+        {truth1, track1},
+        time_range=TimeRange(start_timestamp=tstart + datetime.timedelta(seconds=5),
+                             end_timestamp=tstart + datetime.timedelta(seconds=5+i)))
+        for i in range(15)]
+
+    assocs.extend([TimeRangeAssociation(
+        {truth2, track2},
+        time_range=TimeRange(start_timestamp=tstart + datetime.timedelta(seconds=10),
+                             end_timestamp=tstart + datetime.timedelta(seconds=10+i)))
+        for i in range(10)])
+
+    manager.groundtruth_paths = {truth1, truth2}
+    manager.tracks = {track1, track2}
+    manager.association_set = AssociationSet(assocs)
+
+    timestamps = [tstart + datetime.timedelta(seconds=i) for i in range(20)]
+
+    count = 0
 
     # test _jt_t
-    assert metric._jt_t(manager, tstart) == 2
-    assert metric._jt_t(manager, tstart + datetime.timedelta(seconds=5)) == 1
+    for timestamp in timestamps:
+        value = metric._jt_t(manager, timestamp)
+        if timestamps.index(timestamp) < 5:
+            assert value == 0
+        elif timestamps.index(timestamp) < 10:
+            assert value == 1
+        else:
+            assert value == 2
+        count += value
 
     # test _jt_sum
-    assert metric._jt_sum(manager,
-                          [tstart + datetime.timedelta(seconds=i)
-                           for i in range(5)]) == 9
+    assert metric._jt_sum(manager, timestamps) == count
 
 
 def test__na():
@@ -381,8 +414,6 @@ def test_compute_metric():
 
     metrics = generator.compute_metric(manager)
     tend = tstart + datetime.timedelta(seconds=39)
-
-    print([metric.title for metric in metrics])
 
     assert len(metrics) == 14
 

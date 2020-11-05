@@ -673,7 +673,6 @@ class SIAPMetrics(MetricGenerator):
         measure = EuclideanWeighted(mapping=mapping, weighting=weighting)
         distance_sum = 0
         for assoc in manager.association_set.associations_at_timestamp(timestamp):
-            print('num of assoc objects:', len(assoc.objects))
             track, truth = assoc.objects
             distance_sum += measure(track[timestamp], truth[timestamp])
         return distance_sum
@@ -732,10 +731,14 @@ class SIAPMetrics(MetricGenerator):
             Number of truth objects with states at timestamp
         """
 
-        return sum(
-            1
-            for assoc in manager.association_set.associations
-            if timestamp in assoc.time_range)
+        assocs = manager.association_set.associations_at_timestamp(timestamp)
+        n_associated_truths = 0
+        for truth in manager.groundtruth_paths:
+            for assoc in assocs:
+                if truth in assoc.objects:
+                    n_associated_truths += 1
+                    break
+        return n_associated_truths
 
     def _jt_sum(self, manager, timestamps):
         """Sum number of truth objects being tracked at a given timestamp
