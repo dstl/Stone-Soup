@@ -501,7 +501,7 @@ class GaussInitiator(OrbitalInitiator):
 
     """
     allowed_range = Property(
-        np.array, default=np.array([6378100, 384400000]),
+        np.ndarray, default=np.array([6378100, 384400000]),
         doc="This is the range interval within which to restrict consideration"
             " of orbits when initiating tracks. The default extends between "
             "the earth's surface and the orbit of the moon."

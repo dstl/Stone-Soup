@@ -3,8 +3,8 @@ import numpy as np
 from datetime import datetime, timedelta
 
 from ...types.detection import Detection
-from ..preliminaryorbitdetermination import GibbsInitiator, LambertInitiator, RangeAltAzInitiator, \
-    GaussInitiator
+from ..preliminaryorbitdetermination import GibbsInitiator, LambertInitiator, \
+    RangeAltAzInitiator, GaussInitiator
 
 
 def test_gibbsinitiator():
