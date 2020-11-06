@@ -1287,7 +1287,7 @@ class IDSIAPMetrics(SIAPMetrics):
 
         where
             :math:`J{A}({t}) = J{T}({t}) - J{C}({t}) - J{I}({t}) - J{U}({t})` is the number of
-            number of truths tracked with ambiguous ID at timestamp :math:`{t}`, 
+            number of truths tracked with ambiguous ID at timestamp :math:`{t}`,
             :math:`J{C}({t}), J{I}({t}), J{U}({t})` are the number of truths tracked with correct,
             incorrect and unkown (no) ID at timestamp :math:`t` respectively.
 
