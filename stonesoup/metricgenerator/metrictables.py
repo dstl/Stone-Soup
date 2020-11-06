@@ -102,7 +102,10 @@ class SIAPTableGenerator(RedGreenTableGenerator):
             "SIAP PA": (0, np.inf),
             "SIAP VA": (0, np.inf),
             "SIAP nt": (0, np.inf),
-            "SIAP nj": (0, np.inf)
+            "SIAP nj": (0, np.inf),
+            "SIAP CID": (0, 1),
+            "SIAP IDC": (0, 1),
+            "SIAP IDA": (0, 1)
         }
 
     def set_default_targets(self):
@@ -115,7 +118,10 @@ class SIAPTableGenerator(RedGreenTableGenerator):
             "SIAP PA": 0,
             "SIAP VA": 0,
             "SIAP nt": None,
-            "SIAP nj": None
+            "SIAP nj": None,
+            "SIAP CID": None,
+            "SIAP IDC": 1,
+            "SIAP IDA": 0
         }
 
     def set_default_descriptions(self):
@@ -134,5 +140,9 @@ class SIAPTableGenerator(RedGreenTableGenerator):
                        "truth",
             "SIAP VA": "The average error in velocity of track to truth",
             "SIAP nt": "The total number of tracks",
-            "SIAP nj": "The total number of ground truth paths"
+            "SIAP nj": "The total number of ground truth paths",
+            "SIAP CID": "ID Completeness, the percentage of live objects with assigned IDs",
+            "SIAP IDC": "ID Correctness, the percentage of live objects with correct ID"
+                        "assignments",
+            "SIAP IDA": "ID Ambiguity, the percentage of live objects with ambiguous ID"
         }
