@@ -1164,7 +1164,7 @@ class IDSIAPMetrics(SIAPMetrics):
 
         where
             :math:`J{C}({t})` is the number of number of truths tracked with correct ID at
-            timestamp :math:`{t}`.
+            timestamp :math:`{t}`
         and
             :math:`J{T}({t})` is the number of true objects being tracked at timestamp :math:`{t}`.
 
@@ -1203,7 +1203,7 @@ class IDSIAPMetrics(SIAPMetrics):
 
         where
             :math:`J{C}({t})` is the number of number of truths tracked with correct ID at
-            timestamp :math:`{t}`.
+            timestamp :math:`{t}`
         and
             :math:`J{T}({t})` is the number of true objects being tracked at timestamp :math:`{t}`.
 
@@ -1245,7 +1245,7 @@ class IDSIAPMetrics(SIAPMetrics):
 
         where
             :math:`J{A}({t}) = J{T}({t}) - J{C}({t}) - J{I}({t}) - J{U}({t})` is the number of
-            number of truths tracked with ambiguous ID at timestamp :math:`{t}`
+            number of truths tracked with ambiguous ID at timestamp :math:`{t}`,
             :math:`J{C}({t}), J{I}({t}), J{U}({t})` are the number of truths tracked with correct,
             incorrect and unkown (no) ID at timestamp :math:`t` respectively.
 
@@ -1287,7 +1287,7 @@ class IDSIAPMetrics(SIAPMetrics):
 
         where
             :math:`J{A}({t}) = J{T}({t}) - J{C}({t}) - J{I}({t}) - J{U}({t})` is the number of
-            number of truths tracked with ambiguous ID at timestamp :math:`{t}`
+            number of truths tracked with ambiguous ID at timestamp :math:`{t}`, 
             :math:`J{C}({t}), J{I}({t}), J{U}({t})` are the number of truths tracked with correct,
             incorrect and unkown (no) ID at timestamp :math:`t` respectively.
 
@@ -1358,6 +1358,9 @@ class IDSIAPMetrics(SIAPMetrics):
                 count += 1
         return count
 
+    def _ju_check(self, track, *args):
+        return track.metadata.get(self.track_id) is None
+
     def _ju_t(self, manager, timestamp):
         """Calculate the number of truths tracked with unknown ID at timestamp
 
@@ -1373,11 +1376,7 @@ class IDSIAPMetrics(SIAPMetrics):
         int
             Number of truths assigned tracks with the unknown (no) ID at timestamp
         """
-
-        def check_function(track, *args):
-            return track.metadata.get(self.track_id) is None
-
-        return self._check_j_t(manager, timestamp, check_function)
+        return self._check_j_t(manager, timestamp, self._ju_check)
 
     def _ju_sum(self, manager, timestamps):
         """Calculate the sum of the number of truths tracked with unknown ID over all timestamps
@@ -1396,6 +1395,11 @@ class IDSIAPMetrics(SIAPMetrics):
         """
         return sum(self._ju_t(manager, timestamp) for timestamp in timestamps)
 
+    def _jc_check(self, track, truth):
+        track_id = track.metadata.get(self.track_id)
+        truth_id = truth.metadata.get(self.truth_id)
+        return track_id is not None and truth_id is not None and track_id == truth_id
+
     def _jc_t(self, manager, timestamp):
         """Calculate the number of truths tracked with correct ID at timestamp
 
@@ -1411,11 +1415,7 @@ class IDSIAPMetrics(SIAPMetrics):
         int
             Number of truths assigned tracks with the correct ID at timestamp
         """
-
-        def check_function(track, truth):
-            return track.metadata.get(self.track_id) == truth.metadata.get(self.truth_id)
-
-        return self._check_j_t(manager, timestamp, check_function)
+        return self._check_j_t(manager, timestamp, self._jc_check)
 
     def _jc_sum(self, manager, timestamps):
         """Calculate the sum of the number of truths tracked with correct ID over all timestamps
@@ -1434,6 +1434,11 @@ class IDSIAPMetrics(SIAPMetrics):
         """
         return sum(self._jc_t(manager, timestamp) for timestamp in timestamps)
 
+    def _ji_check(self, track, truth):
+        track_id = track.metadata.get(self.track_id)
+        truth_id = truth.metadata.get(self.truth_id)
+        return track_id is not None and track_id != truth_id
+
     def _ji_t(self, manager, timestamp):
         """Calculate the number of truths tracked with incorrect ID at timestamp
 
@@ -1449,12 +1454,7 @@ class IDSIAPMetrics(SIAPMetrics):
         int
             Number of truths assigned tracks with the incorrect ID at timestamp
         """
-
-        def check_function(track, truth):
-            return track.metadata.get(self.track_id) is not None and track.metadata.get(
-                self.track_id) != truth.metadata.get(self.truth_id)
-
-        return self._check_j_t(manager, timestamp, check_function)
+        return self._check_j_t(manager, timestamp, self._ji_check)
 
     def _ji_sum(self, manager, timestamps):
         """Calculate the sum of the number of truths tracked with incorrect ID over all timestamps
