@@ -34,7 +34,7 @@ from stonesoup.types.state import State, GaussianState
 from stonesoup.types.array import StateVector
 from stonesoup.types.array import CovarianceMatrix
 from stonesoup.models.transition.linear import (
-    CombinedLinearGaussianTransitionModel, ConstantVelocity)
+    CombinedLinearGaussianTransitionModel, ConstantVelocity, ConstantAcceleration, RandomWalk)
 from stonesoup.predictor.particle import ParticlePredictor
 from stonesoup.resampler.particle import SystematicResampler
 from stonesoup.updater.particle import ParticleUpdater
@@ -110,9 +110,9 @@ radar_noise_covar = CovarianceMatrix(np.diag(
               100.,  # Range
               25.])))  # Range Rate
 
-radar = RadarElevationBearingRangeRate(ndim_state=6,
-                                       position_mapping=(0, 2, 4),
-                                       velocity_mapping=(1, 3, 5),
+radar = RadarElevationBearingRangeRate(ndim_state=9,
+                                       position_mapping=(0, 3, 6),
+                                       velocity_mapping=(1, 4, 7),
                                        noise_covar=radar_noise_covar)
 
 # radar mountings
@@ -164,8 +164,8 @@ from stonesoup.sensor.passive import PassiveElevationBearing
 imager_noise_covar = CovarianceMatrix(np.diag(np.array([np.deg2rad(0.05),  # Elevation
                                                         np.deg2rad(0.05)])))  # Bearing
 
-imager = PassiveElevationBearing(ndim_state=6,
-                                 mapping=(0, 2, 4),
+imager = PassiveElevationBearing(ndim_state=9,
+                                 mapping=(0, 3, 6),
                                  noise_covar=imager_noise_covar)
 
 # imager mounting offset
@@ -209,21 +209,28 @@ sensor_platform.sensors
 # seconds, and it will turn through 45 degrees over the course of the turn manoeuvre.
 
 # Import a Constant Turn model to enable target to perform basic manoeuvre
-from stonesoup.models.transition.linear import ConstantTurn
+from stonesoup.models.transition.linear import ConstantTurnSandwich
 
 straight_level = CombinedLinearGaussianTransitionModel(
-    [ConstantVelocity(0.), ConstantVelocity(0.), ConstantVelocity(0.)])
+    [ConstantAcceleration(0.), ConstantAcceleration(0.), ConstantAcceleration(0.)])
 
 # Configure the aircraft turn behaviour
 turn_noise_diff_coeffs = np.array([0., 0.])
 
 turn_rate = np.pi/32  # specified in radians per seconds...
 
-turn_model = ConstantTurn(turn_noise_diff_coeffs=turn_noise_diff_coeffs, turn_rate=turn_rate)
+turn_model = CombinedLinearGaussianTransitionModel([
+    ConstantTurnSandwich(
+        turn_noise_diff_coeffs=turn_noise_diff_coeffs,
+        turn_rate=turn_rate,
+        model_list=[RandomWalk(0.)]  # x acceleration between x pos/vel and y pos/vel
+    ),
+    RandomWalk(0.)  # y acceleration
+    ])
 
 # Configure turn model to maintain current altitude
 turning = CombinedLinearGaussianTransitionModel(
-    [turn_model, ConstantVelocity(0.)])
+    [turn_model, ConstantAcceleration(0.)])
 
 manoeuvre_list = [straight_level, turning]
 manoeuvre_times = [timedelta(seconds=8),
@@ -236,13 +243,13 @@ manoeuvre_times = [timedelta(seconds=8),
 # Import a multi-transition moving platform
 from stonesoup.platform.base import MultiTransitionMovingPlatform
 
-initial_target_location = StateVector([[0], [-40], [1800], [0], [8000], [0]])
+initial_target_location = StateVector([[0], [-40], [0], [1800], [0], [5], [8000], [0], [0]])
 initial_target_state = State(initial_target_location, start_time)
 target = MultiTransitionMovingPlatform(transition_models=manoeuvre_list,
                                        transition_times=manoeuvre_times,
                                        states=initial_target_state,
-                                       position_mapping=(0, 2, 4),
-                                       velocity_mapping=(1, 3, 5),
+                                       position_mapping=(0, 3, 6),
+                                       velocity_mapping=(1, 4, 7),
                                        sensors=None)
 
 # %%
@@ -280,7 +287,7 @@ sim = PlatformDetectionSimulator(groundtruth=truths, platforms=[sensor_platform,
 # detection it receives and applying only the relevant measurement model.
 
 target_transition_model = CombinedLinearGaussianTransitionModel(
-    [ConstantVelocity(5), ConstantVelocity(5), ConstantVelocity(1)])
+    [ConstantAcceleration(5), ConstantAcceleration(5), ConstantAcceleration(1)])
 
 # First add a Particle Predictor
 predictor = ParticlePredictor(target_transition_model)
@@ -293,7 +300,9 @@ updater = ParticleUpdater(measurement_model=None,
 # Create a particle initiator
 from stonesoup.initiator.simple import GaussianParticleInitiator, SinglePointInitiator
 single_point_initiator = SinglePointInitiator(
-    GaussianState([[0], [-40], [2000], [0], [8000], [0]], np.diag([10000, 1000, 10000, 1000, 10000, 1000])),
+    GaussianState(
+        [[0], [-40], [0], [2000], [0], [5], [8000], [0], [0]],
+        np.diag([10000, 1000, 100, 10000, 1000, 100, 10000, 1000, 100])),
     None)
 
 initiator = GaussianParticleInitiator(number_particles=500,
@@ -346,27 +355,27 @@ for time, ctracks in tracker:
 
     for detection in sim.detections:
         if isinstance(detection.measurement_model, CartesianToElevationBearingRangeRate):
-            x, y = detection.measurement_model.inverse_function(detection)[[0, 2]]
+            e, a, r, _ = detection.state_vector
             color = 'y'
         else:
-            r = 10000000
-            # extract the platform rotation offsets
-            _, el_offset, az_offset = sensor_platform.orientation
-            # obtain measurement angles and map to cartesian
-            e, a = detection.state_vector
-            x, y, _ = sphere2cart(r, a + az_offset, e + el_offset)
+            (e, a), r = detection.state_vector, 10000000
             color = 'g'
+        # extract the platform rotation offsets
+        _, el_offset, az_offset = sensor_platform.orientation
+        x, y, _ = \
+            StateVector(sphere2cart(r, a + az_offset, e + el_offset)) \
+            + detection.measurement_model.translation_offset
         X = [sensor_platform.state_vector[0], x]
         Y = [sensor_platform.state_vector[2], y]
         artists.extend(ax.plot(X, Y, color=color))
 
     X = [state.state_vector[0] for state in target]
-    Y = [state.state_vector[2] for state in target]
+    Y = [state.state_vector[3] for state in target]
     artists.extend(ax.plot(X, Y, color='r'))
 
     for track in ctracks:
         X = [state.state_vector[0] for state in track]
-        Y = [state.state_vector[2] for state in track]
+        Y = [state.state_vector[3] for state in track]
         artists.extend(ax.plot(X, Y, color='k'))
 
     frames.append(artists)
