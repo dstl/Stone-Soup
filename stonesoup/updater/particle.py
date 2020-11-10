@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from functools import lru_cache
 import numpy as np
+from scipy.linalg import block_diag
 from scipy.stats import multivariate_normal
 
 from .base import Updater
@@ -244,8 +245,7 @@ class RaoBlackwellisedParticleUpdater(Updater):
         return ParticleMeasurementPrediction(
             new_particles, timestamp=state_prediction.timestamp)
 
-    @staticmethod
-    def calculate_model_probabilities(particle, position_mapping,
+    def calculate_model_probabilities(self, particle, position_mapping,
                                       transition_matrix, model_list, time_interval):
 
         """Calculates the new model probabilities based
@@ -279,10 +279,12 @@ class RaoBlackwellisedParticleUpdater(Updater):
                         mean = np.insert(mean, j, 0)
                 mean = mean.reshape((1, -1))[0]
 
+                cov_matrices = [self.measurement_model.noise_covar for i in range(len(model.model_list))]
+
                 prob_position_given_model_and_old_position = multivariate_normal.pdf(
                     np.transpose(particle.state_vector),
                     mean=mean,
-                    cov=np.diag([0.75 for i in range(len(mean))])
+                    cov=block_diag(*cov_matrices)
                 )
                 # p(m_k-1|x_1:k-1)
                 prob_previous_iteration_given_model = previous_probabilities[l]
