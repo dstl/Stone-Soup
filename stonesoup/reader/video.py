@@ -170,12 +170,12 @@ class FFmpegVideoStreamReader(FrameReader):
         default=None,
         doc="FFmpeg output options, provided in the form of a dictionary, whose keys correspond "
             "to option names. The default is ``{'f': 'rawvideo', 'pix_fmt': 'rgb24'}``.")
-    filter: Tuple[str, Sequence[str], Mapping[str, str]] = Property(
+    filters: Sequence[Tuple[str, Sequence[str], Mapping[str, str]]] = Property(
         default=None,
-        doc="FFmpeg filter options, provided in the form of filter name, sequence of arguments, "
-            "mapping of key/value pairs (e.g. ``('scale', ('320', '240'), {})``). Default `None` "
-            "where no filter will be applied. Note that :attr:`frame_size` may need to be set in "
-            "when video size changed by filter.")
+        doc="FFmpeg filters, provided in the form of a list of filter name, sequence of "
+            "arguments, mapping of key/value pairs (e.g. ``[('scale', ('320', '240'), {})]``). "
+            "Default `None` where no filter will be applied. Note that :attr:`frame_size` may "
+            "need to be set in when video size changed by filter.")
     frame_size: Tuple[int, int] = Property(
         default=None,
         doc="Tuple of frame width and height. Default `None` where it will be detected using "
@@ -188,6 +188,8 @@ class FFmpegVideoStreamReader(FrameReader):
             self.input_opts = {}
         if self.output_opts is None:
             self.output_opts = {'f': 'rawvideo', 'pix_fmt': 'rgb24'}
+        if self.filters is None:
+            self.filters = []
 
         self.buffer = Queue(maxsize=self.buffer_size)
 
@@ -204,11 +206,11 @@ class FFmpegVideoStreamReader(FrameReader):
 
         # Initialise stream
         self.stream = ffmpeg.input(self.input_file, **self.input_opts)
-        if self.filter is not None:
+        for filter_ in self.filters:
+            filter_name, filter_args, filter_kwargs = filter_
             self.stream = self.stream.filter(
-                self.filter[0],
-                *self.filter[1],
-                **self.filter[2])
+                filter_name, *filter_args, **filter_kwargs
+            )
         self.stream = (
             self.stream
             .output('pipe:', **self.output_opts)
