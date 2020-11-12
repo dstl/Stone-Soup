@@ -35,7 +35,7 @@ def h2d(state, pos_map, translation_offset, rotation_offset):
     y = xyz_rot[1, 0]
     # z = 0  # xyz_rot[2, 0]
 
-    rho = np.sqrt(x ** 2 + y ** 2)
+    rho = np.sqrt(x**2 + y**2)
     phi = np.arctan2(y, x)
 
     return np.array([[Bearing(phi)], [rho]])

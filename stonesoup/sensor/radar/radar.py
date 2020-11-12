@@ -201,7 +201,7 @@ class RadarRotatingBearingRange(RadarBearingRange):
 
         # Update dwell center
         rps = self.rpm / 60  # rotations per sec
-        angle = self.dwell_center.state_vector[0, 0] + duration.total_seconds() * rps * 2 * np.pi
+        angle = self.dwell_center.state_vector[0, 0] + duration.total_seconds()*rps*2*np.pi
         self.dwell_center = State(StateVector([[mod_bearing(angle)]]), timestamp)
 
 
@@ -429,8 +429,8 @@ class RadarRasterScanBearingRange(RadarRotatingBearingRange):
 
         super().rotate(timestamp)
 
-        dwell_center_max = self.for_angle / 2.0 - self.fov_angle / 2.0
-        dwell_center_min = -self.for_angle / 2.0 + self.fov_angle / 2.0
+        dwell_center_max = self.for_angle/2.0 - self.fov_angle/2.0
+        dwell_center_min = -self.for_angle/2.0 + self.fov_angle/2.0
 
         # If the FoV is outside of the FoR:
         #   Correct the dwell_center
