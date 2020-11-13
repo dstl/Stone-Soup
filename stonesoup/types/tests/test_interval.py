@@ -27,34 +27,39 @@ def test_intervals():
         reversed(a)
 
     with pytest.raises(ValueError):
-        a.element_iter(1.1)
+        next(a.element_iter(1.1))
+
     elements = []
-    for element in a.element_iter(0.2):
+    a_iter = a.element_iter(0.2)
+    for element in a_iter:
         assert isinstance(element, Real)
         elements.append(element)
     assert len(elements) == 6
 
     with pytest.raises(ValueError):
-        a.reversed_element_iter(1.1)
+        next(a.reversed_element_iter(1.1))
     elements = []
-    for element in a.reversed_element_iter(0.2):
+    a_iter = a.reversed_element_iter(0.2)
+    for element in a_iter:
         assert isinstance(element, Real)
         elements.append(element)
     assert len(elements) == 6
 
     with pytest.raises(ValueError):
-        a.interval_iter(1.1)
+        next(a.interval_iter(1.1))
     intervals = []
-    for interval in a.interval_iter(0.2):
+    a_iter = a.interval_iter(0.2)
+    for interval in a_iter:
         assert isinstance(interval, ClosedContinuousInterval)
         assert np.isclose(interval.length, 0.2)
         intervals.append(interval)
     assert len(intervals) == 5
 
     with pytest.raises(ValueError):
-        a.reversed_interval_iter(1.1)
+        next(a.reversed_interval_iter(1.1))
     intervals = []
-    for interval in a.reversed_interval_iter(0.2):
+    a_iter = a.reversed_interval_iter(0.2)
+    for interval in a_iter:
         assert isinstance(interval, ClosedContinuousInterval)
         assert np.isclose(interval.length, 0.2)
         intervals.append(interval)
@@ -62,9 +67,16 @@ def test_intervals():
 
     assert 0.5 in a
     assert 1.1 not in a
+    assert ClosedContinuousInterval(0.1, 0.2) in a
+    assert ClosedContinuousInterval(-0.1, 0.2)not in a
+    assert ClosedContinuousInterval(0.1, 1.1) not in a
+    assert b not in a
 
     str_a = str(a)
     assert str_a == '[0, 1]'
+
+    repr_a = a.__repr__()
+    assert repr_a == 'ClosedContinuousInterval[0, 1]'
 
     d = a + b
 
@@ -82,6 +94,11 @@ def test_intervals():
     assert np.isclose(f.length, 2.5)
 
     g = d + c
+
+    assert isinstance(g, ClosedContinuousInterval)
+    assert np.isclose(g.length, 3)
+
+    g = c + d
 
     assert isinstance(g, ClosedContinuousInterval)
     assert np.isclose(g.length, 3)
@@ -156,7 +173,7 @@ def test_intervals():
     assert n.left == 1
     assert n.right == 2
 
-    with pytest.raises(ValueError, match="a and b must be different"):
+    with pytest.raises(ValueError, match="left and right values must be different"):
         ClosedContinuousInterval(1, 1)
 
     d = a + b
@@ -196,5 +213,40 @@ def test_intervals():
     assert len(d) == 2
     assert np.isclose(d.length, 4)
 
+    d = a + b
+
     with pytest.raises(ValueError, match="intervals must be a DisjointIntervals type"):
         d.add_intervals(c)
+
+    with pytest.raises(ValueError):
+        d.add_interval(None)
+
+    with pytest.raises(ValueError):
+        d.remove_interval(c)
+
+    assert str(d) == str([str(a), str(b)])
+
+    assert d.__repr__() == 'DisjointIntervals{intervals}'.format(intervals=str(d))
+
+    assert a - b == a
+
+    assert a - ClosedContinuousInterval(-1, 2) is None
+
+    assert b - b is None
+
+    e = b - d
+
+    assert e is None
+
+    with pytest.raises(NotImplementedError):
+        b - None
+
+    e = b - DisjointIntervals([ClosedContinuousInterval(2, 2.4), ClosedContinuousInterval(2.6, 3)])
+    assert isinstance(e, ClosedContinuousInterval)
+    assert np.isclose(e.length, 0.2)
+
+    e = a + b
+
+    assert d == e
+
+    assert a != b

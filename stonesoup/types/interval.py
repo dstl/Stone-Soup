@@ -1,32 +1,31 @@
 # -*- coding: utf-8 -*-
 import copy
+import operator
 from itertools import combinations
 from numbers import Real
 from typing import Sequence, Union
 
+from stonesoup.base import Property
+from stonesoup.types import Type
 
-class ClosedContinuousInterval:
+
+class ClosedContinuousInterval(Type):
     """
     Continuous interval class.
 
     Represents a continuous, closed interval of real numbers.
     Represented by a lower and upper bound.
     """
-    def __init__(self, a: Union[int, float], b: Union[int, float]):
-        if a == b:
-            raise ValueError('a and b must be different')
-        elif b < a:
-            a, b = b, a
-        self._left = a
-        self._right = b
 
-    @property
-    def left(self):
-        return self._left
+    left: Union[int, float] = Property(doc="Lower bound of interval")
+    right: Union[int, float] = Property(doc="Upper bound of interval")
 
-    @property
-    def right(self):
-        return self._right
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.left == self.right:
+            raise ValueError('left and right values must be different')
+        elif self.right < self.left:
+            self.left, self.right = self.right, self.left
 
     @property
     def length(self):
@@ -54,24 +53,20 @@ class ClosedContinuousInterval:
     def element_iter(self, spacing):
         if spacing > self.length:
             raise ValueError('Spacing must be smaller than, or equal to the size of the interval')
-        element_list = []
         value = self.left
         while value <= self.right:
-            element_list.append(value)
+            yield value
             value += spacing
-        return iter(element_list)
 
     def interval_iter(self, interval_size):
         if interval_size > self.length:
             raise ValueError('Sub-interval size must be smaller than, or equal to the size of the'
                              ' interval')
-        interval_list = []
         current_interval = ClosedContinuousInterval(self.left, self.left + interval_size)
         while current_interval.right <= self.right:
-            interval_list.append(current_interval)
             current_interval = ClosedContinuousInterval(current_interval.right,
                                                         current_interval.right + interval_size)
-        return iter(interval_list)
+            yield current_interval
 
     def __reversed__(self):
         raise NotImplementedError('Cannot index a continuous interval. Use the'
@@ -81,12 +76,10 @@ class ClosedContinuousInterval:
     def reversed_element_iter(self, spacing):
         if spacing > self.length:
             raise ValueError('Spacing must be smaller than, or equal to the size of the interval')
-        element_list = []
         value = self.right
         while value >= self.left:
-            element_list.append(value)
+            yield value
             value -= spacing
-        return iter(element_list)
 
     def reversed_interval_iter(self, interval_size):
         if interval_size > self.length:
@@ -103,11 +96,20 @@ class ClosedContinuousInterval:
     def __contains__(self, item):
         if isinstance(item, Real):
             return self.left <= item <= self.right
+        elif isinstance(item, ClosedContinuousInterval):
+            return isinstance(self - item, DisjointIntervals)
         else:
             return False
 
     def __str__(self):
-        return '[' + str(self.left) + ', ' + str(self.right) + ']'
+        return '[{left}, {right}]'.format(left=self.left, right=self.right)
+
+    def __repr__(self):
+        return 'ClosedContinuousInterval{interval}'.format(interval=str(self))
+
+    def __eq__(self, other):
+        return isinstance(other, ClosedContinuousInterval) and \
+               (self.left, self.right) == (other.left, other.right)
 
     def __add__(self, other):
         if isinstance(other, ClosedContinuousInterval):
@@ -166,6 +168,8 @@ class ClosedContinuousInterval:
             for interval in other.intervals:
                 new_interval -= interval
             return new_interval
+        else:
+            raise NotImplementedError
 
     def check_disjoint(self, other):
         """
@@ -184,7 +188,7 @@ class ClosedContinuousInterval:
             return False
 
 
-class DisjointIntervals:
+class DisjointIntervals(Type):
     """
     Disjoint closed continuous intervals class.
 
@@ -192,11 +196,17 @@ class DisjointIntervals:
     Represented by a list of ClosedContinuousInterval types.
     """
 
-    def __init__(self, intervals: Sequence[ClosedContinuousInterval]):
-        self._intervals = intervals
+    intervals: Sequence[ClosedContinuousInterval] = Property(
+        doc="Container of :class:`ClosedContinuousInterval`")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def __str__(self):
         return str([str(interval) for interval in self.intervals])
+
+    def __repr__(self):
+        return 'DisjointIntervals{intervals}'.format(intervals=str(self))
 
     def __len__(self):
         return len(self.intervals)
@@ -221,7 +231,8 @@ class DisjointIntervals:
         raise NotImplementedError('Cannot index continuous intervals')
 
     def _iter(self, reverse):
-        return iter(sorted(self.intervals, key=lambda interval: interval.left, reverse=reverse))
+        for interval in sorted(self.intervals, key=operator.attrgetter('left'), reverse=reverse):
+            yield interval
 
     def __iter__(self):
         return self._iter(reverse=False)
@@ -230,7 +241,11 @@ class DisjointIntervals:
         return self._iter(reverse=True)
 
     def __contains__(self, item):
-        return any(item in interval for interval in self.intervals)
+        return any(item in interval for interval in self.get_merged_intervals(self.intervals))
+
+    def __eq__(self, other):
+        return isinstance(other, DisjointIntervals) and \
+               all(any(int1 == int2 for int2 in other) for int1 in self)
 
     def __add__(self, other):
         if isinstance(other, DisjointIntervals):
@@ -262,20 +277,16 @@ class DisjointIntervals:
         else:
             raise NotImplementedError
 
-    @property
-    def intervals(self):
-        return self._intervals
-
     def add_interval(self, interval):
         if isinstance(interval, ClosedContinuousInterval):
-            self._intervals.append(interval)
+            self.intervals.append(interval)
             self.merge_overlaps()
         else:
             raise ValueError('interval must be a ClosedContinuousInterval type')
 
     def add_intervals(self, intervals):
         if isinstance(intervals, DisjointIntervals):
-            self._intervals.extend(intervals.intervals)
+            self.intervals.extend(intervals.intervals)
             self.merge_overlaps()
         else:
             raise ValueError('intervals must be a DisjointIntervals type')
@@ -304,11 +315,7 @@ class DisjointIntervals:
             else:
                 self.remove_interval(int_1)
                 self.remove_interval(int_2)
-                new_interval = int_1 + int_2
-                if isinstance(new_interval, ClosedContinuousInterval):
-                    self.add_interval(new_interval)
-                else:
-                    self.add_intervals(new_interval)
+                self.add_interval(int_1 + int_2)
 
     @staticmethod
     def get_merged_intervals(intervals: Sequence[ClosedContinuousInterval]):
@@ -322,11 +329,8 @@ class DisjointIntervals:
             else:
                 new_intervals.remove(int_1)
                 new_intervals.remove(int_2)
-                new_interval = int_1 + int_2
-                if isinstance(new_interval, ClosedContinuousInterval):
-                    new_intervals.append(new_interval)
-                else:
-                    new_intervals.extend(new_interval.intervals)
+                new_intervals.append(int_1 + int_2)
+
         if len(new_intervals) == 1:
             return new_intervals[0]
         else:
