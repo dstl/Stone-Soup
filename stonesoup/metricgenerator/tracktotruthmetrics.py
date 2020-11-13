@@ -21,9 +21,23 @@ class SIAPMetrics(MetricGenerator):
 
     The SIAP metrics provided require provision of ground truth information.
 
+    Additionally, when relevant metadata properties :attr:`track_id` and :attr:`truth_id` are
+    provided, calculates the ID-based SIAPS: ID Completeness (CID), ID Correctness (IDC) and ID
+    Ambiguity (IDA).
+    This implementation assumes that track and ground truth path IDs are implemented via metadata,
+    whereby the strings :attr:`track_id` and :attr:`truth_id` are keys to track and truth metadata
+    entries with ID data respectively.
+
     In the original paper the calculations are dependent upon :math:`m` which corresponds to the
     identifying number of the sense capability which is being assessed. This is not used in this
     implementation, with the assumption being that the fused sensor set is being assessed.
+
+    Note:
+    :class:`~.Track` types store metadata outside of their `states` attribute. Therefore the ID
+    SIAPs make metadata comparisons via the tracks last ID metadata value (as calling
+    `track.metadata` will return the track's metadata at the end of its life). To provide a better
+    implementation, one might modify :class:`~.Track` types to contain a list of `state` types that
+    hold their own metadata.
 
     Reference
         [1] Single Integrated Air Picture (SIAP) Metrics Implementation,
@@ -46,6 +60,11 @@ class SIAPMetrics(MetricGenerator):
                                             doc="Mapping array which specifies which elements"
                                                 "within state space state vectors correspond to"
                                                 "velocity")
+
+    truth_id: str = Property(default=None,
+                             doc="Metadata key for ID of each ground truth path in dataset")
+    track_id: str = Property(default=None,
+                             doc="Metadata key for ID of each track in dataset")
 
     def compute_metric(self, manager, *args, **kwargs):
         """Compute metric
@@ -105,6 +124,40 @@ class SIAPMetrics(MetricGenerator):
                                            generator=self))
 
         metrics.extend(t_metrics)
+
+        if self.track_id is not None:
+            CID = self.CID_time_range(manager)
+            metrics.append(CID)
+
+            t_CID = []
+            for timestamp in timestamps:
+                t_CID.append(self.CID_single_time(manager, timestamp))
+            metrics.append(TimeRangeMetric(title='T CID',
+                                           value=t_CID,
+                                           time_range=TimeRange(min(timestamps),
+                                                                max(timestamps)),
+                                           generator=self))
+
+            if self.truth_id is not None:
+                IDC = self.IDC_time_range(manager)
+                IDA = self.IDA_time_range(manager)
+                metrics.extend([IDC, IDA])
+
+                t_IDC = []
+                t_IDA = []
+                for timestamp in timestamps:
+                    t_IDC.append(self.IDC_single_time(manager, timestamp))
+                    t_IDA.append(self.IDA_single_time(manager, timestamp))
+                metrics.append(TimeRangeMetric(title='T IDC',
+                                               value=t_IDC,
+                                               time_range=TimeRange(min(timestamps),
+                                                                    max(timestamps)),
+                                               generator=self))
+                metrics.append(TimeRangeMetric(title='T IDA',
+                                               value=t_IDA,
+                                               time_range=TimeRange(min(timestamps),
+                                                                    max(timestamps)),
+                                               generator=self))
         return metrics
 
     @staticmethod
@@ -650,6 +703,255 @@ class SIAPMetrics(MetricGenerator):
             time_range=TimeRange(min(timestamps), max(timestamps)),
             generator=self)
 
+    def CID_single_time(self, manager, timestamp):
+        r"""SIAP metric CID at a specific time
+
+        Returns an assessment of the number of targets currently being tracked with assigned tracks
+        with known IDs, compared to the number of targets being tracked at a specific timestamp,
+        :math:`{t}`. The output is a percentage, range 0:1, with a target score of ?
+
+        .. math::
+
+              CID_{t} = \frac{J{T}({t}) - J{U}({t})}{JT({t})}
+
+        where
+            :math:`J{T}({t})` is the number of true objects being tracked at timestamp :math:`{t}`
+        and
+            :math:`J{U}({t})` is the number of number of truths tracked with unknown ID at
+            timestamp :math:`{t}`.
+
+        Parameters
+        ----------
+        manager : MetricManager
+            containing the data to be used to create the metric(s)
+        timestamp: datetime.datetime
+            timestamp at which to compute the metric
+
+        Returns
+        -------
+        SingleTimeMetric
+            Contains the metric information
+        """
+        numerator = self._jt_t(manager, timestamp) - self._ju_t(manager, timestamp)
+
+        try:
+            CID = numerator / self._jt_t(manager, timestamp)
+        except ZeroDivisionError:
+            CID = 0
+        return SingleTimeMetric(title="SIAP CID at timestamp",
+                                value=CID,
+                                timestamp=timestamp,
+                                generator=self)
+
+    def CID_time_range(self, manager):
+        r"""SIAP metric CID over time
+
+        The average percentage of targets being tracked with assigned tracks with known IDs across
+        the dataset. The target score is 1.
+
+        .. math::
+
+              CID = \frac{\sum_{t_{start}}^{t_{end}}[J{T}({t}) - J{U}({T})]}
+              {\sum_{t_{start}}^{t_{end}}J{T}({t})}
+
+        where
+            :math:`J{T}({t})` is the number of true objects being tracked at timestamp :math:`{t}`
+        and
+            :math:`J{U}({t})` is the number of number of truths tracked with unknown ID at
+            timestamp :math:`{t}`.
+
+        Parameters
+        ----------
+        manager: MetricManager
+            Containing the data to be used to create the metric
+
+        Returns
+        -------
+        TimeRangeMetric
+            Contains the metric information
+        """
+        timestamps = manager.list_timestamps()
+        numerator = sum({self._jt_t(manager, timestamp) - self._ju_t(manager, timestamp)
+                         for timestamp in timestamps})
+        try:
+            CID = numerator / self._jt_sum(manager, timestamps)
+        except ZeroDivisionError:
+            self._warn_no_truth(manager)
+            self._warn_no_tracks(manager)
+            CID = 0
+        return TimeRangeMetric(
+            title="SIAP CID",
+            value=CID,
+            time_range=TimeRange(min(timestamps), max(timestamps)),
+            generator=self)
+
+    def IDC_single_time(self, manager, timestamp):
+        r"""SIAP metric IDc at a specific time
+
+        Returns an assessment of the number of targets currently being tracked with the correct ID,
+        compared to the number of targets being tracked at a specific timestamp, :math:`{t}`. The
+        output is a percentage, range 0:1, with a target score of 1
+
+        .. math::
+
+              IDC_{t} = \frac{J{C}({t})}{JT({t})}
+
+        where
+            :math:`J{C}({t})` is the number of number of truths tracked with correct ID at
+            timestamp :math:`{t}`
+        and
+            :math:`J{T}({t})` is the number of true objects being tracked at timestamp :math:`{t}`.
+
+        Parameters
+        ----------
+        manager : MetricManager
+            containing the data to be used to create the metric(s)
+        timestamp: datetime.datetime
+            timestamp at which to compute the metric
+
+        Returns
+        -------
+        SingleTimeMetric
+            Contains the metric information
+        """
+        numerator = self._jc_t(manager, timestamp)
+
+        try:
+            IDC = numerator / self._jt_t(manager, timestamp)
+        except ZeroDivisionError:
+            IDC = 0
+        return SingleTimeMetric(title="SIAP IDC at timestamp",
+                                value=IDC,
+                                timestamp=timestamp,
+                                generator=self)
+
+    def IDC_time_range(self, manager):
+        r"""SIAP metric IDC over time
+
+        The average percentage of targets being tracked with the correct ID across the dataset. The
+        target score is 1.
+
+        .. math::
+
+              IDC = \frac{\sum_{t_{start}}^{t_{end}}J{C}({t})}{\sum_{t_{start}}^{t_{end}}J{T}({t})}
+
+        where
+            :math:`J{C}({t})` is the number of number of truths tracked with correct ID at
+            timestamp :math:`{t}`
+        and
+            :math:`J{T}({t})` is the number of true objects being tracked at timestamp :math:`{t}`.
+
+        Parameters
+        ----------
+        manager: MetricManager
+            Containing the data to be used to create the metric
+
+        Returns
+        -------
+        TimeRangeMetric
+            Contains the metric information
+        """
+        timestamps = manager.list_timestamps()
+        numerator = self._jc_sum(manager, timestamps)
+        try:
+            IDC = numerator / self._jt_sum(manager, timestamps)
+        except ZeroDivisionError:
+            self._warn_no_truth(manager)
+            self._warn_no_tracks(manager)
+            IDC = 0
+        return TimeRangeMetric(
+            title="SIAP IDC",
+            value=IDC,
+            time_range=TimeRange(min(timestamps), max(timestamps)),
+            generator=self)
+
+    def IDA_single_time(self, manager, timestamp):
+        r"""SIAP metric IDc at a specific time
+
+        Returns an assessment of the number of targets currently being tracked with ambiguous ID,
+        compared to the number of targets being tracked at a specific timestamp, :math:`{t}`.
+        An object’s ID is considered ambiguous if it has multiple tracks with correct and incorrect
+        IDs.The output is a percentage, range 0:1, with a target score of 1
+
+        .. math::
+
+              IDA_{t} = \frac{J{A}({t})}{JT({t})}
+
+        where
+            :math:`J{A}({t}) = J{T}({t}) - J{C}({t}) - J{I}({t}) - J{U}({t})` is the number of
+            number of truths tracked with ambiguous ID at timestamp :math:`{t}`,
+            :math:`J{C}({t}), J{I}({t}), J{U}({t})` are the number of truths tracked with correct,
+            incorrect and unkown (no) ID at timestamp :math:`t` respectively.
+
+        and
+            :math:`J{T}({t})` is the number of true objects being tracked at timestamp :math:`{t}`.
+
+        Parameters
+        ----------
+        manager : MetricManager
+            containing the data to be used to create the metric(s)
+        timestamp: datetime.datetime
+            timestamp at which to compute the metric
+
+        Returns
+        -------
+        SingleTimeMetric
+            Contains the metric information
+        """
+        numerator = self._ja_t(manager, timestamp)
+
+        try:
+            IDA = numerator / self._jt_t(manager, timestamp)
+        except ZeroDivisionError:
+            IDA = 0
+        return SingleTimeMetric(title="SIAP IDA at timestamp",
+                                value=IDA,
+                                timestamp=timestamp,
+                                generator=self)
+
+    def IDA_time_range(self, manager):
+        r"""SIAP metric IDC over time
+
+        The average percentage of targets being tracked with ambiguous ID across the dataset. The
+        target score is 1.
+
+        .. math::
+
+              IDA = \frac{\sum_{t_{start}}^{t_{end}}J{A}({t})}{\sum_{t_{start}}^{t_{end}}J{T}({t})}
+
+        where
+            :math:`J{A}({t}) = J{T}({t}) - J{C}({t}) - J{I}({t}) - J{U}({t})` is the number of
+            number of truths tracked with ambiguous ID at timestamp :math:`{t}`,
+            :math:`J{C}({t}), J{I}({t}), J{U}({t})` are the number of truths tracked with correct,
+            incorrect and unkown (no) ID at timestamp :math:`t` respectively.
+
+        and
+            :math:`J{T}({t})` is the number of true objects being tracked at timestamp :math:`{t}`.
+
+        Parameters
+        ----------
+        manager: MetricManager
+            Containing the data to be used to create the metric
+
+        Returns
+        -------
+        TimeRangeMetric
+            Contains the metric information
+        """
+        timestamps = manager.list_timestamps()
+        numerator = self._ja_sum(manager, timestamps)
+        try:
+            IDA = numerator / self._jt_sum(manager, timestamps)
+        except ZeroDivisionError:
+            self._warn_no_truth(manager)
+            self._warn_no_tracks(manager)
+            IDA = 0
+        return TimeRangeMetric(
+            title="SIAP IDA",
+            value=IDA,
+            time_range=TimeRange(min(timestamps), max(timestamps)),
+            generator=self)
+
     def _assoc_distances_sum_t(self, manager, timestamp, mapping, weighting):
         """Sum of spatial (positon or velocity) distance between each truth and its associations
         Parameters
@@ -988,335 +1290,6 @@ class SIAPMetrics(MetricGenerator):
 
         timestamps = [s.timestamp for s in truth.states]
         return max(timestamps) - min(timestamps)
-
-
-class IDSIAPMetrics(SIAPMetrics):
-    """SIAP Metrics
-
-    Computes the Single Integrated Air Picture (SIAP) metrics as in :class:`~.SIAPMetrics`.
-    Additionally, when relevant metadata properties :attr:`track_id` and :attr:`truth_id` are
-    provided, calculates the ID-based SIAPS: ID Completeness (CID), ID Correctness (IDC) and ID
-    Ambiguity (IDA).
-
-    The SIAP metrics provided require provision of ground truth information.
-
-    In the original paper the calculations are dependent upon :math:`m` which corresponds to the
-    identifying number of the sense capability which is being assessed. This is not used in this
-    implementation, with the assumption being that the fused sensor set is being assessed.
-
-    This implementation assumes that track and ground truth path IDs are implemented via metadata,
-    whereby the strings :attr:`track_id` and :attr:`truth_id` are keys to track and truth metadata
-    entries with ID data respectively.
-
-    Note:
-    :class:`~.Track` types store metadata outside of their `states` attribute. Therefore these ID
-    SIAPs make metadata comparisons via the tracks last ID metadata value (as calling
-    `track.metadata` will return the track's metadata at the end of its life). To provide a better
-    implementation, one might modify :class:`~.Track` types to contain a list of `state` types that
-    hold their own metadata.
-    """
-    truth_id: str = Property(doc="Metadata key for ID of each ground truth path in dataset")
-    track_id: str = Property(doc="Metadata key for ID of each track in dataset")
-
-    def compute_metric(self, manager, *args, **kwargs):
-        """Compute metric
-
-        Parameters
-        ----------
-        manager : MetricManager
-            containing the data to be used to create the metric(s)
-
-        Returns
-        -------
-        : list of :class:`~.Metric` objects
-            Generated metrics
-        """
-        metrics = super().compute_metric(manager, *args, **kwargs)
-
-        if self.track_id is not None:
-            CID = self.CID_time_range(manager)
-            metrics.append(CID)
-
-            timestamps = manager.list_timestamps()
-            t_CID = []
-            for timestamp in timestamps:
-                t_CID.append(self.CID_single_time(manager, timestamp))
-            metrics.append(TimeRangeMetric(title='T CID',
-                                           value=t_CID,
-                                           time_range=TimeRange(min(timestamps),
-                                                                max(timestamps)),
-                                           generator=self))
-
-            if self.truth_id is not None:
-                IDC = self.IDC_time_range(manager)
-                IDA = self.IDA_time_range(manager)
-                metrics.extend([IDC, IDA])
-
-                t_IDC = []
-                t_IDA = []
-                for timestamp in timestamps:
-                    t_IDC.append(self.IDC_single_time(manager, timestamp))
-                    t_IDA.append(self.IDA_single_time(manager, timestamp))
-                metrics.append(TimeRangeMetric(title='T IDC',
-                                               value=t_IDC,
-                                               time_range=TimeRange(min(timestamps),
-                                                                    max(timestamps)),
-                                               generator=self))
-                metrics.append(TimeRangeMetric(title='T IDA',
-                                               value=t_IDA,
-                                               time_range=TimeRange(min(timestamps),
-                                                                    max(timestamps)),
-                                               generator=self))
-        return metrics
-
-    def CID_single_time(self, manager, timestamp):
-        r"""SIAP metric CID at a specific time
-
-        Returns an assessment of the number of targets currently being tracked with assigned tracks
-        with known IDs, compared to the number of targets being tracked at a specific timestamp,
-        :math:`{t}`. The output is a percentage, range 0:1, with a target score of ?
-
-        .. math::
-
-              CID_{t} = \frac{J{T}({t}) - J{U}({t})}{JT({t})}
-
-        where
-            :math:`J{T}({t})` is the number of true objects being tracked at timestamp :math:`{t}`
-        and
-            :math:`J{U}({t})` is the number of number of truths tracked with unknown ID at
-            timestamp :math:`{t}`.
-
-        Parameters
-        ----------
-        manager : MetricManager
-            containing the data to be used to create the metric(s)
-        timestamp: datetime.datetime
-            timestamp at which to compute the metric
-
-        Returns
-        -------
-        SingleTimeMetric
-            Contains the metric information
-        """
-        numerator = self._jt_t(manager, timestamp) - self._ju_t(manager, timestamp)
-
-        try:
-            CID = numerator / self._jt_t(manager, timestamp)
-        except ZeroDivisionError:
-            CID = 0
-        return SingleTimeMetric(title="SIAP CID at timestamp",
-                                value=CID,
-                                timestamp=timestamp,
-                                generator=self)
-
-    def CID_time_range(self, manager):
-        r"""SIAP metric CID over time
-
-        The average percentage of targets being tracked with assigned tracks with known IDs across
-        the dataset. The target score is 1.
-
-        .. math::
-
-              CID = \frac{\sum_{t_{start}}^{t_{end}}[J{T}({t}) - J{U}({T})]}
-              {\sum_{t_{start}}^{t_{end}}J{T}({t})}
-
-        where
-            :math:`J{T}({t})` is the number of true objects being tracked at timestamp :math:`{t}`
-        and
-            :math:`J{U}({t})` is the number of number of truths tracked with unknown ID at
-            timestamp :math:`{t}`.
-
-        Parameters
-        ----------
-        manager: MetricManager
-            Containing the data to be used to create the metric
-
-        Returns
-        -------
-        TimeRangeMetric
-            Contains the metric information
-        """
-        timestamps = manager.list_timestamps()
-        numerator = sum({self._jt_t(manager, timestamp) - self._ju_t(manager, timestamp)
-                         for timestamp in timestamps})
-        try:
-            CID = numerator / self._jt_sum(manager, timestamps)
-        except ZeroDivisionError:
-            self._warn_no_truth(manager)
-            self._warn_no_tracks(manager)
-            CID = 0
-        return TimeRangeMetric(
-            title="SIAP CID",
-            value=CID,
-            time_range=TimeRange(min(timestamps), max(timestamps)),
-            generator=self)
-
-    def IDC_single_time(self, manager, timestamp):
-        r"""SIAP metric IDc at a specific time
-
-        Returns an assessment of the number of targets currently being tracked with the correct ID,
-        compared to the number of targets being tracked at a specific timestamp, :math:`{t}`. The
-        output is a percentage, range 0:1, with a target score of 1
-
-        .. math::
-
-              IDC_{t} = \frac{J{C}({t})}{JT({t})}
-
-        where
-            :math:`J{C}({t})` is the number of number of truths tracked with correct ID at
-            timestamp :math:`{t}`
-        and
-            :math:`J{T}({t})` is the number of true objects being tracked at timestamp :math:`{t}`.
-
-        Parameters
-        ----------
-        manager : MetricManager
-            containing the data to be used to create the metric(s)
-        timestamp: datetime.datetime
-            timestamp at which to compute the metric
-
-        Returns
-        -------
-        SingleTimeMetric
-            Contains the metric information
-        """
-        numerator = self._jc_t(manager, timestamp)
-
-        try:
-            IDC = numerator / self._jt_t(manager, timestamp)
-        except ZeroDivisionError:
-            IDC = 0
-        return SingleTimeMetric(title="SIAP IDC at timestamp",
-                                value=IDC,
-                                timestamp=timestamp,
-                                generator=self)
-
-    def IDC_time_range(self, manager):
-        r"""SIAP metric IDC over time
-
-        The average percentage of targets being tracked with the correct ID across the dataset. The
-        target score is 1.
-
-        .. math::
-
-              IDC = \frac{\sum_{t_{start}}^{t_{end}}J{C}({t})}{\sum_{t_{start}}^{t_{end}}J{T}({t})}
-
-        where
-            :math:`J{C}({t})` is the number of number of truths tracked with correct ID at
-            timestamp :math:`{t}`
-        and
-            :math:`J{T}({t})` is the number of true objects being tracked at timestamp :math:`{t}`.
-
-        Parameters
-        ----------
-        manager: MetricManager
-            Containing the data to be used to create the metric
-
-        Returns
-        -------
-        TimeRangeMetric
-            Contains the metric information
-        """
-        timestamps = manager.list_timestamps()
-        numerator = self._jc_sum(manager, timestamps)
-        try:
-            IDC = numerator / self._jt_sum(manager, timestamps)
-        except ZeroDivisionError:
-            self._warn_no_truth(manager)
-            self._warn_no_tracks(manager)
-            IDC = 0
-        return TimeRangeMetric(
-            title="SIAP IDC",
-            value=IDC,
-            time_range=TimeRange(min(timestamps), max(timestamps)),
-            generator=self)
-
-    def IDA_single_time(self, manager, timestamp):
-        r"""SIAP metric IDc at a specific time
-
-        Returns an assessment of the number of targets currently being tracked with ambiguous ID,
-        compared to the number of targets being tracked at a specific timestamp, :math:`{t}`.
-        An object’s ID is considered ambiguous if it has multiple tracks with correct and incorrect
-        IDs.The output is a percentage, range 0:1, with a target score of 1
-
-        .. math::
-
-              IDA_{t} = \frac{J{A}({t})}{JT({t})}
-
-        where
-            :math:`J{A}({t}) = J{T}({t}) - J{C}({t}) - J{I}({t}) - J{U}({t})` is the number of
-            number of truths tracked with ambiguous ID at timestamp :math:`{t}`,
-            :math:`J{C}({t}), J{I}({t}), J{U}({t})` are the number of truths tracked with correct,
-            incorrect and unkown (no) ID at timestamp :math:`t` respectively.
-
-        and
-            :math:`J{T}({t})` is the number of true objects being tracked at timestamp :math:`{t}`.
-
-        Parameters
-        ----------
-        manager : MetricManager
-            containing the data to be used to create the metric(s)
-        timestamp: datetime.datetime
-            timestamp at which to compute the metric
-
-        Returns
-        -------
-        SingleTimeMetric
-            Contains the metric information
-        """
-        numerator = self._ja_t(manager, timestamp)
-
-        try:
-            IDA = numerator / self._jt_t(manager, timestamp)
-        except ZeroDivisionError:
-            IDA = 0
-        return SingleTimeMetric(title="SIAP IDA at timestamp",
-                                value=IDA,
-                                timestamp=timestamp,
-                                generator=self)
-
-    def IDA_time_range(self, manager):
-        r"""SIAP metric IDC over time
-
-        The average percentage of targets being tracked with ambiguous ID across the dataset. The
-        target score is 1.
-
-        .. math::
-
-              IDA = \frac{\sum_{t_{start}}^{t_{end}}J{A}({t})}{\sum_{t_{start}}^{t_{end}}J{T}({t})}
-
-        where
-            :math:`J{A}({t}) = J{T}({t}) - J{C}({t}) - J{I}({t}) - J{U}({t})` is the number of
-            number of truths tracked with ambiguous ID at timestamp :math:`{t}`,
-            :math:`J{C}({t}), J{I}({t}), J{U}({t})` are the number of truths tracked with correct,
-            incorrect and unkown (no) ID at timestamp :math:`t` respectively.
-
-        and
-            :math:`J{T}({t})` is the number of true objects being tracked at timestamp :math:`{t}`.
-
-        Parameters
-        ----------
-        manager: MetricManager
-            Containing the data to be used to create the metric
-
-        Returns
-        -------
-        TimeRangeMetric
-            Contains the metric information
-        """
-        timestamps = manager.list_timestamps()
-        numerator = self._ja_sum(manager, timestamps)
-        try:
-            IDA = numerator / self._jt_sum(manager, timestamps)
-        except ZeroDivisionError:
-            self._warn_no_truth(manager)
-            self._warn_no_tracks(manager)
-            IDA = 0
-        return TimeRangeMetric(
-            title="SIAP IDA",
-            value=IDA,
-            time_range=TimeRange(min(timestamps), max(timestamps)),
-            generator=self)
 
     def _check_j_t(self, manager, timestamp, check_function):
         """Calculate the number of truths whose assigned tracks at timestamp :math:`t` all satisfy

@@ -2,23 +2,25 @@ import datetime
 
 import pytest
 
-from stonesoup.types.metric import TimeRangeMetric
-from ..tracktotruthmetrics import SIAPMetrics, IDSIAPMetrics
-from ...types.association import TimeRangeAssociation, AssociationSet
-from ...types.track import Track
-from ...types.groundtruth import GroundTruthPath, GroundTruthState
+from ..tracktotruthmetrics import SIAPMetrics
 from ...metricgenerator.manager import SimpleManager
-from ...types.time import TimeRange
+from ...types.association import TimeRangeAssociation, AssociationSet
+from ...types.groundtruth import GroundTruthPath, GroundTruthState
+from ...types.metric import TimeRangeMetric
 from ...types.state import State
+from ...types.time import TimeRange
+from ...types.track import Track
 
 
 def metric_generators():
-    return [SIAPMetrics(position_mapping=[0, 2], velocity_mapping=[1, 3]),
-            IDSIAPMetrics(position_mapping=[0, 2], velocity_mapping=[1, 3],
-                          truth_id='identify', track_id='ident')]
+    """A list of metric generators to be used in tests"""
+    return [SIAPMetrics(position_mapping=[0, 2],
+                        velocity_mapping=[1, 3],
+                        truth_id='identify',
+                        track_id='ident')]
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP", "ID SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
 def test_num_tracks_tracks(generator):
     manager = SimpleManager()
     metric = SIAPMetrics(position_mapping=[0, 1])
@@ -66,7 +68,7 @@ def test_num_tracks_tracks(generator):
     assert num_truths.value == 2
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP", "ID SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
 @pytest.mark.parametrize("mapping", ['position_mapping', 'velocity_mapping'])
 def test_assoc_distances_sum_t(generator, mapping):
     manager = SimpleManager()
@@ -121,7 +123,7 @@ def test_assoc_distances_sum_t(generator, mapping):
         assert distance_sum == 2
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP", "ID SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
 def test_j_t(generator):
     manager = SimpleManager()
     tstart = datetime.datetime.now()
@@ -139,7 +141,7 @@ def test_j_t(generator):
     assert generator._j_t(manager, tstart + datetime.timedelta(seconds=4)) == 1
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP", "ID SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
 def test_j_sum(generator):
     manager = SimpleManager()
     tstart = datetime.datetime.now()
@@ -158,7 +160,7 @@ def test_j_sum(generator):
                                       for i in range(7)]) == 8
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP", "ID SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
 def test_jt(generator):
     manager = SimpleManager()
     tstart = datetime.datetime.now()
@@ -215,7 +217,7 @@ def test_jt(generator):
     assert generator._jt_sum(manager, timestamps) == count
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP", "ID SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
 def test__na(generator):
     manager = SimpleManager()
     tstart = datetime.datetime.now()
@@ -249,7 +251,7 @@ def test__na(generator):
                                        for i in range(4)]) == 7
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP", "ID SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
 def test_n(generator):
     manager = SimpleManager()
     tstart = datetime.datetime.now()
@@ -275,7 +277,7 @@ def test_n(generator):
                                       for i in range(5)]) == 11
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP", "ID SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
 def test_tt_j(generator):
     manager = SimpleManager()
     tstart = datetime.datetime.now()
@@ -309,7 +311,7 @@ def test_tt_j(generator):
     assert generator._tt_j(manager, truth) == datetime.timedelta(seconds=11)
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP", "ID SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
 def test_nu_j(generator):
     manager = SimpleManager()
     tstart = datetime.datetime.now()
@@ -370,7 +372,7 @@ def test_nu_j(generator):
     assert generator._r(manager) == 5 / 33
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP", "ID SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
 def test_t_j(generator):
     tstart = datetime.datetime.now()
     truth = GroundTruthPath(states=[
@@ -381,10 +383,10 @@ def test_t_j(generator):
     assert generator._t_j(truth) == datetime.timedelta(seconds=39)
 
 
-def test_id():
+@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
+def test_id(generator):
     tstart = datetime.datetime.now()
     manager = SimpleManager()
-    generator = metric_generators()[1]
 
     truth1 = GroundTruthPath(states=[
         GroundTruthState([[1], [0], [0], [0]], timestamp=tstart + datetime.timedelta(
@@ -452,7 +454,7 @@ def test_id():
     assert generator._ja_sum(manager, manager.list_timestamps()) == 5
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP", "ID SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
 def test_compute_metric(generator):
     manager = SimpleManager()
     # Create truth, tracks and associations, same as test_nu_j
@@ -506,10 +508,7 @@ def test_compute_metric(generator):
     metrics = generator.compute_metric(manager)
     tend = tstart + datetime.timedelta(seconds=39)
 
-    if isinstance(generator, IDSIAPMetrics):
-        assert len(metrics) == 20
-    else:
-        assert len(metrics) == 14
+    assert len(metrics) == 20
 
     c = metrics[0]
     assert c.title == "SIAP C"
@@ -687,87 +686,85 @@ def test_compute_metric(generator):
     assert ts.time_range.end_timestamp == tend
     assert ts.generator == generator
 
-    if isinstance(generator, IDSIAPMetrics):
+    cid = metrics[14]
+    assert cid.title == "SIAP CID"
+    assert cid.value == \
+           sum({generator._jt_t(manager, timestamp) - generator._ju_t(manager, timestamp)
+                for timestamp in manager.list_timestamps()}) \
+           / generator._jt_sum(manager, manager.list_timestamps())
+    assert cid.time_range.start_timestamp == tstart
+    assert cid.time_range.end_timestamp == tend
+    assert cid.generator == generator
 
-        cid = metrics[14]
-        assert cid.title == "SIAP CID"
-        assert cid.value == \
-               sum({generator._jt_t(manager, timestamp) - generator._ju_t(manager, timestamp)
-                    for timestamp in manager.list_timestamps()}) \
-               / generator._jt_sum(manager, manager.list_timestamps())
-        assert cid.time_range.start_timestamp == tstart
-        assert cid.time_range.end_timestamp == tend
-        assert cid.generator == generator
+    tcid = metrics[15]
+    assert tcid.title == "T CID"
+    for i in range(len(manager.list_timestamps())):
+        t_metric = tcid.value[i]
+        timestamp = manager.list_timestamps()[i]
+        assert t_metric.title == "SIAP CID at timestamp"
+        numerator = generator._jt_t(manager, timestamp) - generator._ju_t(manager, timestamp)
+        if generator._jt_t(manager, timestamp) != 0:
+            assert t_metric.value == numerator / generator._jt_t(manager, timestamp)
+        else:
+            assert t_metric.value == 0
+        assert t_metric.timestamp == timestamp
+        assert t_metric.generator == generator
+    assert tcid.time_range.start_timestamp == tstart
+    assert tcid.time_range.end_timestamp == tend
+    assert tcid.generator == generator
 
-        tcid = metrics[15]
-        assert tcid.title == "T CID"
-        for i in range(len(manager.list_timestamps())):
-            t_metric = tcid.value[i]
-            timestamp = manager.list_timestamps()[i]
-            assert t_metric.title == "SIAP CID at timestamp"
-            numerator = generator._jt_t(manager, timestamp) - generator._ju_t(manager, timestamp)
-            if generator._jt_t(manager, timestamp) != 0:
-                assert t_metric.value == numerator / generator._jt_t(manager, timestamp)
-            else:
-                assert t_metric.value == 0
-            assert t_metric.timestamp == timestamp
-            assert t_metric.generator == generator
-        assert tcid.time_range.start_timestamp == tstart
-        assert tcid.time_range.end_timestamp == tend
-        assert tcid.generator == generator
+    idc = metrics[16]
+    assert idc.title == "SIAP IDC"
+    assert idc.value == generator._jc_sum(manager, manager.list_timestamps()) \
+           / generator._jt_sum(manager, manager.list_timestamps())
+    assert idc.time_range.start_timestamp == tstart
+    assert idc.time_range.end_timestamp == tend
+    assert idc.generator == generator
 
-        idc = metrics[16]
-        assert idc.title == "SIAP IDC"
-        assert idc.value == generator._jc_sum(manager, manager.list_timestamps()) \
-               / generator._jt_sum(manager, manager.list_timestamps())
-        assert idc.time_range.start_timestamp == tstart
-        assert idc.time_range.end_timestamp == tend
-        assert idc.generator == generator
+    ida = metrics[17]
+    assert ida.title == "SIAP IDA"
+    assert ida.value == generator._ja_sum(manager, manager.list_timestamps()) \
+           / generator._jt_sum(manager, manager.list_timestamps())
+    assert ida.time_range.start_timestamp == tstart
+    assert ida.time_range.end_timestamp == tend
+    assert ida.generator == generator
 
-        ida = metrics[17]
-        assert ida.title == "SIAP IDA"
-        assert ida.value == generator._ja_sum(manager, manager.list_timestamps()) \
-               / generator._jt_sum(manager, manager.list_timestamps())
-        assert ida.time_range.start_timestamp == tstart
-        assert ida.time_range.end_timestamp == tend
-        assert ida.generator == generator
+    tidc = metrics[18]
+    assert tidc.title == "T IDC"
+    for i in range(len(manager.list_timestamps())):
+        t_metric = tidc.value[i]
+        timestamp = manager.list_timestamps()[i]
+        assert t_metric.title == "SIAP IDC at timestamp"
+        numerator = generator._jc_t(manager, timestamp)
+        if generator._jt_t(manager, timestamp) != 0:
+            assert t_metric.value == numerator / generator._jt_t(manager, timestamp)
+        else:
+            assert t_metric.value == 0
+        assert t_metric.timestamp == timestamp
+        assert t_metric.generator == generator
+    assert tidc.time_range.start_timestamp == tstart
+    assert tidc.time_range.end_timestamp == tend
+    assert tidc.generator == generator
 
-        tidc = metrics[18]
-        assert tidc.title == "T IDC"
-        for i in range(len(manager.list_timestamps())):
-            t_metric = tidc.value[i]
-            timestamp = manager.list_timestamps()[i]
-            assert t_metric.title == "SIAP IDC at timestamp"
-            numerator = generator._jc_t(manager, timestamp)
-            if generator._jt_t(manager, timestamp) != 0:
-                assert t_metric.value == numerator / generator._jt_t(manager, timestamp)
-            else:
-                assert t_metric.value == 0
-            assert t_metric.timestamp == timestamp
-            assert t_metric.generator == generator
-        assert tidc.time_range.start_timestamp == tstart
-        assert tidc.time_range.end_timestamp == tend
-        assert tidc.generator == generator
-
-        tida = metrics[19]
-        assert tida.title == "T IDA"
-        for i in range(len(manager.list_timestamps())):
-            t_metric = tida.value[i]
-            timestamp = manager.list_timestamps()[i]
-            assert t_metric.title == "SIAP IDA at timestamp"
-            numerator = generator._ja_t(manager, timestamp)
-            if generator._jt_t(manager, timestamp) != 0:
-                assert t_metric.value == numerator / generator._jt_t(manager, timestamp)
-            else:
-                assert t_metric.value == 0
-            assert t_metric.timestamp == timestamp
-            assert t_metric.generator == generator
-        assert tida.time_range.start_timestamp == tstart
-        assert tida.time_range.end_timestamp == tend
-        assert tida.generator == generator
+    tida = metrics[19]
+    assert tida.title == "T IDA"
+    for i in range(len(manager.list_timestamps())):
+        t_metric = tida.value[i]
+        timestamp = manager.list_timestamps()[i]
+        assert t_metric.title == "SIAP IDA at timestamp"
+        numerator = generator._ja_t(manager, timestamp)
+        if generator._jt_t(manager, timestamp) != 0:
+            assert t_metric.value == numerator / generator._jt_t(manager, timestamp)
+        else:
+            assert t_metric.value == 0
+        assert t_metric.timestamp == timestamp
+        assert t_metric.generator == generator
+    assert tida.time_range.start_timestamp == tstart
+    assert tida.time_range.end_timestamp == tend
+    assert tida.generator == generator
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP", "ID SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
 def test_no_truth_divide_by_zero(generator):
     manager = SimpleManager()
     # Create truth, tracks and associations, same as test_nu_j
@@ -810,13 +807,12 @@ def test_no_truth_divide_by_zero(generator):
 
     assert warning[0].message.args[0] == "No truth to generate SIAP Metric"
 
-    if isinstance(generator, IDSIAPMetrics):
-        assert len(metrics) == 20
-    else:
-        assert len(metrics) == 14
+    assert len(metrics) == 20
+
+    print([metric.title for metric in metrics])
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP", "ID SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
 def test_no_track_divide_by_zero(generator):
     manager = SimpleManager()
     # Create truth, tracks and associations, same as test_nu_j
@@ -838,7 +834,50 @@ def test_no_track_divide_by_zero(generator):
 
     assert warning[0].message.args[0] == "No tracks to generate SIAP Metric"
 
-    if isinstance(generator, IDSIAPMetrics):
-        assert len(metrics) == 20
-    else:
-        assert len(metrics) == 14
+    assert len(metrics) == 20
+
+
+def test_absent_params():
+    manager = SimpleManager()
+    generator = SIAPMetrics()
+
+    tstart = datetime.datetime.now()
+    truth = GroundTruthPath(states=[
+        GroundTruthState([[1], [0], [0], [0]], timestamp=tstart + datetime.timedelta(
+            seconds=i), metadata={'identify': 'ally'})
+        for i in range(40)])
+    track1 = Track(
+        states=[State([[1], [0], [0], [0]], timestamp=tstart + datetime.timedelta(seconds=i))
+                for i in range(3)])
+    track1._metadata = {'ident': 'ally'}
+    track2 = Track(
+        states=[State([[2], [0], [0], [0]], timestamp=tstart + datetime.timedelta(seconds=i))
+                for i in range(5, 10)])
+    track2._metadata = {'ident': 'enemy'}
+
+    manager.tracks = {track1, track2}
+    manager.groundtruth_paths = {truth}
+    associations = {TimeRangeAssociation({truth, track}, time_range=TimeRange(
+        start_timestamp=min([state.timestamp for state in track.states]),
+        end_timestamp=max([state.timestamp for state in track.states])))
+                    for track in manager.tracks}
+    manager.association_set = AssociationSet(associations)
+
+    metrics = generator.compute_metric(manager)
+
+    metric_names = {'SIAP C', 'SIAP A', 'SIAP S', 'SIAP LT', 'SIAP LS', 'SIAP nt', 'SIAP nj',
+                    'SIAP PA', 'T PA', 'SIAP VA', 'T VA', 'T C', 'T A', 'T S', 'SIAP CID',
+                    'T CID', 'SIAP IDC', 'SIAP IDA', 'T IDC', 'T IDA'}
+
+    absent_names = {'SIAP PA', 'T PA', 'SIAP VA', 'T VA', 'SIAP CID', 'T CID', 'SIAP IDC',
+                    'SIAP IDA', 'T IDC', 'T IDA'}
+
+    assert all(metric.title in (metric_names - absent_names) for metric in metrics)
+
+    generator = SIAPMetrics(track_id='ident')
+
+    metrics = generator.compute_metric(manager)
+
+    absent_names = {'SIAP PA', 'T PA', 'SIAP VA', 'T VA', 'SIAP IDC', 'T IDC', 'SIAP IDA', 'T IDA'}
+
+    assert all(metric.title in (metric_names - absent_names) for metric in metrics)
