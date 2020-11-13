@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import copy
+from math import erfc
 from typing import Tuple, Set, Union
 
 import numpy as np
 import scipy.constants as const
-from math import erfc
 
 from .beam_pattern import BeamTransitionModel
 from .beam_shape import BeamShape
