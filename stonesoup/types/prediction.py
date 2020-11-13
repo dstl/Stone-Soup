@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from typing import Any, Union
+
 from ..base import Property
 from .array import CovarianceMatrix
 from .base import Type
@@ -6,7 +8,22 @@ from .state import (State, GaussianState, ParticleState, SqrtGaussianState,
                     TaggedWeightedGaussianState)
 
 
-def _from_state(cls, state, prediction_type=None, **kwargs):
+def _from_state(
+        cls,
+        state: State,
+        prediction_type: Union['Prediction', 'MeasurementPrediction', None] = None,
+        **kwargs: Any) -> Union['Prediction', 'MeasurementPrediction']:
+    """Return new (Measurement)Prediction instance of suitable type using existing properties
+
+    Parameters
+    ----------
+    state: State
+        :class:`~.State` to use existing properties from, and identify prediction type from
+    prediction_type: :class:`~.Update`, optional
+        Type to use for prediction, overriding one from :attr:`class_mapping`.
+    \\*\\*kwargs: Mapping
+        New property names and associate value for use in newly created prediction.
+    """
     try:
         state_type = next(type_ for type_ in type(state).mro() if type_ in cls.class_mapping)
     except StopIteration:

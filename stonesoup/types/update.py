@@ -1,9 +1,45 @@
 # -*- coding: utf-8 -*-
+from typing import Any, Optional
+
 from ..base import Property
 from .base import Type
 from .hypothesis import Hypothesis
 from .state import State, GaussianState, ParticleState, SqrtGaussianState
 from .mixture import GaussianMixture
+
+
+def _from_state(
+        cls, state: State, update_type: Optional['Update'] = None, **kwargs: Any) -> 'Update':
+    """Return new Update instance of suitable type using existing properties
+
+    Parameters
+    ----------
+    state: State
+        :class:`~.State` to use existing properties from, and identify update type from
+    update_type: :class:`~.Update`, optional
+        Type to use for update, overriding one from :attr:`class_mapping`.
+    \\*\\*kwargs: Mapping
+        New property names and associate value for use in newly created update.
+    """
+    try:
+        state_type = next(type_ for type_ in type(state).mro() if type_ in cls.class_mapping)
+    except StopIteration:
+        raise TypeError(f'{cls.__name__} type not defined for {type(state).__name__}')
+    if update_type is None:
+        update_type = cls.class_mapping[state_type]
+
+    # Use current state kwargs that also properties of update type
+    new_kwargs = {
+        name: getattr(state, name)
+        for name in state_type.properties.keys() & update_type.properties.keys()}
+    # And replace them with any newly defined kwargs
+    new_kwargs.update(kwargs)
+
+    # Special case for SqrtGaussian
+    if issubclass(state_type, SqrtGaussianState):
+        new_kwargs['sqrt_covar'] = new_kwargs.pop('covar')
+
+    return update_type(**new_kwargs)
 
 
 class Update(Type):
@@ -13,6 +49,14 @@ class Update(Type):
     and contain the information that was used to perform the updating"""
 
     hypothesis: Hypothesis = Property(doc="Hypothesis used for updating")
+
+    class_mapping = {}
+    from_state = classmethod(_from_state)
+
+    def __init_subclass__(cls, **kwargs):
+        state_type = cls.__bases__[-1]
+        Update.class_mapping[state_type] = cls
+        super().__init_subclass__(**kwargs)
 
 
 class StateUpdate(Update, State):

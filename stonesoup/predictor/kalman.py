@@ -45,6 +45,7 @@ class KalmanPredictor(Predictor):
             "will create a zero-effect linear :class:`~.ControlModel`.")
 
     # This attribute tells the :meth:`predict()` method what type of prediction to return
+    # Default to None, where it'll be based on prior state type
     _prediction_class = None
 
     def __init__(self, *args, **kwargs):

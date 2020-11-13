@@ -8,7 +8,7 @@ from ..base import Property
 from .base import Updater
 from ..types.array import CovarianceMatrix
 from ..types.prediction import MeasurementPrediction
-from ..types.update import GaussianStateUpdate, SqrtGaussianStateUpdate
+from ..types.update import Update, SqrtGaussianStateUpdate
 from ..models.base import LinearModel
 from ..models.measurement.linear import LinearGaussian
 from ..models.measurement import MeasurementModel
@@ -72,7 +72,8 @@ class KalmanUpdater(Updater):
             "geometric combination of the matrix and transpose. Default is False.")
 
     # This attribute tells the :meth:`update()` method what class to return
-    _update_class = GaussianStateUpdate
+    # Default to None, where it'll be based on predicted state type
+    _update_class = None
 
     def _check_measurement_model(self, measurement_model):
         """Check that the measurement model passed actually exists. If not
@@ -279,8 +280,10 @@ class KalmanUpdater(Updater):
             posterior_covariance = \
                 (posterior_covariance + posterior_covariance.T)/2
 
-        return self._update_class(posterior_mean, posterior_covariance, hypothesis,
-                                  timestamp=hypothesis.measurement.timestamp)
+        return Update.from_state(
+            hypothesis.prediction, self._update_class,
+            state_vector=posterior_mean, covar=posterior_covariance,
+            timestamp=hypothesis.measurement.timestamp, hypothesis=hypothesis)
 
 
 class ExtendedKalmanUpdater(KalmanUpdater):
