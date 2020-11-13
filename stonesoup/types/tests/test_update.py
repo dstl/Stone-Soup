@@ -11,8 +11,10 @@ from ...types.prediction import (
     GaussianStatePrediction, GaussianMeasurementPrediction,
     StatePrediction, StateMeasurementPrediction,
     ParticleStatePrediction, ParticleMeasurementPrediction)
+from ..state import (
+    State, GaussianState, SqrtGaussianState, TaggedWeightedGaussianState, ParticleState)
 from ...types.update import (
-    StateUpdate, GaussianStateUpdate, ParticleStateUpdate)
+    Update, StateUpdate, GaussianStateUpdate, SqrtGaussianStateUpdate, ParticleStateUpdate)
 
 
 def test_stateupdate():
@@ -131,3 +133,42 @@ def test_particlestateupdate():
                           state_update.hypothesis.measurement_prediction)
     assert np.array_equal(measurement, state_update.hypothesis.measurement)
     assert np.array_equal(timestamp, state_update.timestamp)
+
+
+def test_from_state():
+    state = State([[0]], timestamp=datetime.datetime.now())
+    update = Update.from_state(state, state_vector=[[1]], hypothesis=None)
+    assert isinstance(update, StateUpdate)
+    assert update.timestamp == state.timestamp
+    assert update.state_vector[0] == 1
+
+    state = GaussianState([[0]], covar=[[2]], timestamp=datetime.datetime.now())
+    update = Update.from_state(state, state_vector=[[1]], covar=[[3]], hypothesis=None)
+    assert isinstance(update, GaussianStateUpdate)
+    assert update.timestamp == state.timestamp
+    assert update.state_vector[0] == 1
+    assert update.covar[0] == 3
+
+    state = SqrtGaussianState([[0]], sqrt_covar=[[2]], timestamp=datetime.datetime.now())
+    update = Update.from_state(state, state_vector=[[1]], covar=[[np.sqrt(3)]], hypothesis=None)
+    assert isinstance(update, SqrtGaussianStateUpdate)
+    assert update.timestamp == state.timestamp
+    assert update.state_vector[0] == 1
+    assert update.covar[0] == pytest.approx(3)
+
+    state = TaggedWeightedGaussianState(
+        [[0]], covar=[[2]], weight=0.5, timestamp=datetime.datetime.now())
+    update = Update.from_state(state, state_vector=[[1]], covar=[[3]], hypothesis=None)
+    assert isinstance(update, GaussianStateUpdate)
+    assert update.timestamp == state.timestamp
+    assert update.state_vector[0] == 1
+    assert update.covar[0] == 3
+
+    state = ParticleState([Particle([[0]], weight=0.5)], timestamp=datetime.datetime.now())
+    update = Update.from_state(state, particles=[Particle([[1]], weight=0.8)], hypothesis=None)
+    assert isinstance(update, ParticleStateUpdate)
+    assert update.timestamp == state.timestamp
+    assert update.state_vector[0] == 1
+
+    with pytest.raises(TypeError, match='Update type not defined for str'):
+        Update.from_state("a", state_vector=2)
