@@ -7,7 +7,7 @@ from functools import lru_cache
 from ..base import Property
 from .base import Updater
 from ..types.array import CovarianceMatrix
-from ..types.prediction import GaussianMeasurementPrediction
+from ..types.prediction import MeasurementPrediction
 from ..types.update import GaussianStateUpdate, SqrtGaussianStateUpdate
 from ..models.base import LinearModel
 from ..models.measurement.linear import LinearGaussian
@@ -226,9 +226,8 @@ class KalmanUpdater(Updater):
         meas_cross_cov = self._measurement_cross_covariance(predicted_state, hh)
         innov_cov = self._innovation_covariance(meas_cross_cov, hh, measurement_model)
 
-        return GaussianMeasurementPrediction(pred_meas, innov_cov,
-                                             predicted_state.timestamp,
-                                             cross_covar=meas_cross_cov)
+        return MeasurementPrediction.from_state(
+            predicted_state, state_vector=pred_meas, covar=innov_cov, cross_covar=meas_cross_cov)
 
     def update(self, hypothesis, **kwargs):
         r"""The Kalman update method. Given a hypothesised association between
@@ -398,9 +397,9 @@ class UnscentedKalmanUpdater(KalmanUpdater):
                                 measurement_model.function,
                                 covar_noise=measurement_model.covar())
 
-        return GaussianMeasurementPrediction(meas_pred_mean, meas_pred_covar,
-                                             predicted_state.timestamp,
-                                             cross_covar)
+        return MeasurementPrediction.from_state(
+            predicted_state, state_vector=meas_pred_mean, covar=meas_pred_covar,
+            cross_covar=cross_covar)
 
 
 class SqrtKalmanUpdater(KalmanUpdater):
