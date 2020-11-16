@@ -26,7 +26,7 @@ def tracks():
                  timestamp=start_time + datetime.timedelta(seconds=i))
            for i in range(1, 7)]))
 
-    # 3rd is at a different time so shoult not associate with anything
+    # 3rd is at a different time so should not associate with anything
     tracks.append(Track(states=[
         State(state_vector=[[i], [i]],
               timestamp=start_time + datetime.timedelta(seconds=i + 20))
