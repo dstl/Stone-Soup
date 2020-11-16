@@ -45,20 +45,20 @@ class SIAPMetrics(MetricGenerator):
     """
 
     position_weighting: np.ndarray = Property(default=None,
-                                              doc="Weighting(s) to be used by euclidean measure in"
-                                                  "position kinematic accuracy calculations. If"
-                                                  "None, weights are all 1")
+                                              doc="Weighting(s) to be used by euclidean measure "
+                                                  "in position kinematic accuracy calculations. "
+                                                  "If None, weights are all 1")
     velocity_weighting: np.ndarray = Property(default=None,
-                                              doc="Weighting(s) to be used by euclidean measure in"
-                                                  "velocity kinematic accuracy calculations. If"
-                                                  "None, weights are all 1")
+                                              doc="Weighting(s) to be used by euclidean measure "
+                                                  "in velocity kinematic accuracy calculations. "
+                                                  "If None, weights are all 1")
     position_mapping: np.ndarray = Property(default=None,
-                                            doc="Mapping array which specifies which elements"
-                                                "within state space state vectors correspond to"
+                                            doc="Mapping array which specifies which elements "
+                                                "within state space state vectors correspond to "
                                                 "position")
     velocity_mapping: np.ndarray = Property(default=None,
-                                            doc="Mapping array which specifies which elements"
-                                                "within state space state vectors correspond to"
+                                            doc="Mapping array which specifies which elements "
+                                                "within state space state vectors correspond to "
                                                 "velocity")
 
     truth_id: str = Property(default=None,
