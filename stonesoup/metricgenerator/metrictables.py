@@ -46,15 +46,14 @@ class RedGreenTableGenerator(MetricTableGenerator):
 
             # Generate color for value cell based on closeness to target value
             # Closeness to infinity cannot be represented as a color
-            if not target == np.inf:
+            if target is not None and not target == np.inf:
                 red_value = 1
                 green_value = 1
                 # A value of 1 for both red & green produces yellow
 
                 metric_range = \
                     self.ranges[metric_name][1] - self.ranges[metric_name][0]
-                closeness = abs(value - self.targets[metric_name]) \
-                    * (1 / metric_range)
+                closeness = abs(value - self.targets[metric_name]) * (1 / metric_range)
 
                 if closeness > 1:  # Infinite range metric exceeded bound
                     closeness = 1
@@ -96,10 +95,17 @@ class SIAPTableGenerator(RedGreenTableGenerator):
         self.ranges = {
             "SIAP C": (0, 1),
             "SIAP A": (0, 10),  # True maximum is infinity
-                                # everything >10 will be treated as "worst"
+            # everything >10 will be treated as "worst"
             "SIAP S": (0, 1),
             "SIAP LT": (0, np.inf),
-            "SIAP LS": (0, 1)
+            "SIAP LS": (0, 1),
+            "SIAP PA": (0, np.inf),
+            "SIAP VA": (0, np.inf),
+            "SIAP nt": (0, np.inf),
+            "SIAP nj": (0, np.inf),
+            "SIAP CID": (0, 1),
+            "SIAP IDC": (0, 1),
+            "SIAP IDA": (0, 1)
         }
 
     def set_default_targets(self):
@@ -108,7 +114,14 @@ class SIAPTableGenerator(RedGreenTableGenerator):
             "SIAP A": 1,
             "SIAP S": 0,
             "SIAP LT": np.inf,
-            "SIAP LS": 1
+            "SIAP LS": 1,
+            "SIAP PA": 0,
+            "SIAP VA": 0,
+            "SIAP nt": None,
+            "SIAP nj": None,
+            "SIAP CID": None,
+            "SIAP IDC": 1,
+            "SIAP IDA": 0
         }
 
     def set_default_descriptions(self):
@@ -122,5 +135,14 @@ class SIAPTableGenerator(RedGreenTableGenerator):
             "SIAP LT": "1/R where R is the average number of excess tracks "
                        "assigned, the higher this value the better",
             "SIAP LS": "The percentage of time spent tracking true objects "
-                       "across the dataset"
+                       "across the dataset",
+            "SIAP PA": "The kinematic accuracy, given by average positional error of track to "
+                       "truth",
+            "SIAP VA": "The average error in velocity of track to truth",
+            "SIAP nt": "The total number of tracks",
+            "SIAP nj": "The total number of ground truth paths",
+            "SIAP CID": "ID Completeness, the percentage of live objects with assigned IDs",
+            "SIAP IDC": "ID Correctness, the percentage of live objects with correct ID"
+                        "assignments",
+            "SIAP IDA": "ID Ambiguity, the percentage of live objects with ambiguous ID"
         }

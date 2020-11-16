@@ -94,7 +94,7 @@ class StateMutableSequence(Type, abc.MutableSequence):
                 items.append(state)
             return StateMutableSequence(items[::index.step])
         elif isinstance(index, datetime.datetime):
-            for state in self.states:
+            for state in reversed(self.states):
                 if state.timestamp == index:
                     return state
             else:
