@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.stats import multivariate_normal
 
-from .base import GaussianInitiator, ParticleInitiator
+from .base import GaussianInitiator, ParticleInitiator, Initiator
 from ..base import Property
 from ..dataassociator import DataAssociator
 from ..deleter import Deleter
@@ -162,8 +162,11 @@ class MultiMeasurementInitiator(GaussianInitiator):
         doc="Updater used to update the track object to the new state.")
     min_points: int = Property(
         default=2, doc="Minimum number of track points required to confirm a track.")
-    initiator: SimpleMeasurementInitiator = Property(default=None,
-                                                     doc="Initiator used to create tracks")
+    initiator: Initiator = Property(
+        default=None,
+        doc="Initiator used to create tracks. If None, a :class:`SimpleMeasurementInitiator` will "
+            "be created using :attr:`prior_state` and :attr:`measurement_model`. Otherwise, these "
+            "attributes are ignored.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
