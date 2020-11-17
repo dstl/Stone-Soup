@@ -122,7 +122,7 @@ def test_gaussianmeasurementprediction():
 @pytest.mark.parametrize('prediction_type', (Prediction, MeasurementPrediction))
 def test_from_state(prediction_type):
     state = State([[0]], timestamp=datetime.datetime.now())
-    prediction = prediction_type.from_state(state, state_vector=[[1]])
+    prediction = prediction_type.from_state(state, [[1]])
     if prediction_type is Prediction:
         assert isinstance(prediction, StatePrediction)
     else:
@@ -130,8 +130,8 @@ def test_from_state(prediction_type):
     assert prediction.timestamp == state.timestamp
     assert prediction.state_vector[0] == 1
 
-    state = GaussianState([[0]], covar=[[2]], timestamp=datetime.datetime.now())
-    prediction = prediction_type.from_state(state, state_vector=[[1]], covar=[[3]])
+    state = GaussianState([[0]], [[2]], timestamp=datetime.datetime.now())
+    prediction = prediction_type.from_state(state, [[1]], [[3]])
     if prediction_type is Prediction:
         assert isinstance(prediction, GaussianStatePrediction)
     else:
@@ -140,20 +140,20 @@ def test_from_state(prediction_type):
     assert prediction.state_vector[0] == 1
     assert prediction.covar[0] == 3
 
-    state = SqrtGaussianState([[0]], sqrt_covar=[[2]], timestamp=datetime.datetime.now())
+    state = SqrtGaussianState([[0]], [[2]], timestamp=datetime.datetime.now())
     if prediction_type is Prediction:
-        prediction = prediction_type.from_state(state, state_vector=[[1]], covar=[[np.sqrt(3)]])
+        prediction = prediction_type.from_state(state, [[1]], [[np.sqrt(3)]])
         assert isinstance(prediction, SqrtGaussianStatePrediction)
     else:
-        prediction = prediction_type.from_state(state, state_vector=[[1]], covar=[[3]])
+        prediction = prediction_type.from_state(state, [[1]], [[3]])
         assert isinstance(prediction, GaussianMeasurementPrediction)
     assert prediction.timestamp == state.timestamp
     assert prediction.state_vector[0] == 1
     assert prediction.covar[0] == pytest.approx(3)
 
     state = TaggedWeightedGaussianState(
-        [[0]], covar=[[2]], weight=0.5, timestamp=datetime.datetime.now())
-    prediction = prediction_type.from_state(state, state_vector=[[1]], covar=[[3]])
+        [[0]], [[2]], weight=0.5, timestamp=datetime.datetime.now())
+    prediction = prediction_type.from_state(state, [[1]], [[3]])
     if prediction_type is Prediction:
         assert isinstance(prediction, TaggedWeightedGaussianStatePrediction)
     else:

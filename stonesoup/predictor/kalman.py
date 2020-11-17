@@ -44,10 +44,6 @@ class KalmanPredictor(Predictor):
         doc="The control model to be used. Default `None` where the predictor "
             "will create a zero-effect linear :class:`~.ControlModel`.")
 
-    # This attribute tells the :meth:`predict()` method what type of prediction to return
-    # Default to None, where it'll be based on prior state type
-    _prediction_class = None
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -196,8 +192,7 @@ class KalmanPredictor(Predictor):
         p_pred = self._predicted_covariance(prior, predict_over_interval)
 
         # And return the state in the correct form
-        return Prediction.from_state(
-            prior, self._prediction_class, state_vector=x_pred, covar=p_pred, timestamp=timestamp)
+        return Prediction.from_state(prior, x_pred, p_pred, timestamp=timestamp)
 
 
 class ExtendedKalmanPredictor(KalmanPredictor):
@@ -385,8 +380,7 @@ class UnscentedKalmanPredictor(KalmanPredictor):
         )
 
         # and return a Gaussian state based on these parameters
-        return Prediction.from_state(
-            prior, self._prediction_class, state_vector=x_pred, covar=p_pred, timestamp=timestamp)
+        return Prediction.from_state(prior, x_pred, p_pred, timestamp=timestamp)
 
 
 class SqrtKalmanPredictor(KalmanPredictor):

@@ -11,6 +11,7 @@ from .state import (State, GaussianState, ParticleState, SqrtGaussianState,
 def _from_state(
         cls,
         state: State,
+        *args: Any,
         prediction_type: Union['Prediction', 'MeasurementPrediction', None] = None,
         **kwargs: Any) -> Union['Prediction', 'MeasurementPrediction']:
     """Return new (Measurement)Prediction instance of suitable type using existing properties
@@ -19,10 +20,14 @@ def _from_state(
     ----------
     state: State
         :class:`~.State` to use existing properties from, and identify prediction type from
-    prediction_type: :class:`~.Update`, optional
+    \\*args: Sequence
+        Arguments to pass to newly created prediction, replacing those with same name on ``state``
+        parameter.
+    prediction_type: :class:`~.Prediction` or :class:`~.MeasurementPrediction`, optional
         Type to use for prediction, overriding one from :attr:`class_mapping`.
     \\*\\*kwargs: Mapping
-        New property names and associate value for use in newly created prediction.
+        New property names and associate value for use in newly created prediction, replacing those
+        on the ``state`` parameter.
     """
     try:
         state_type = next(type_ for type_ in type(state).mro() if type_ in cls.class_mapping)
@@ -31,18 +36,17 @@ def _from_state(
     if prediction_type is None:
         prediction_type = cls.class_mapping[state_type]
 
+    args_property_names = {
+        name for n, name in enumerate(prediction_type.properties) if n < len(args)}
     # Use current state kwargs that also properties of prediction type
     new_kwargs = {
         name: getattr(state, name)
-        for name in state_type.properties.keys() & prediction_type.properties.keys()}
+        for name in state_type.properties.keys() & prediction_type.properties.keys()
+        if name not in args_property_names}
     # And replace them with any newly defined kwargs
     new_kwargs.update(kwargs)
 
-    # Special case for SqrtGaussian
-    if cls is Prediction and issubclass(state_type, SqrtGaussianState):
-        new_kwargs['sqrt_covar'] = new_kwargs.pop('covar')
-
-    return prediction_type(**new_kwargs)
+    return prediction_type(*args, **new_kwargs)
 
 
 class Prediction(Type):

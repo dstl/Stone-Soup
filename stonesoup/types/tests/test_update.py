@@ -137,28 +137,28 @@ def test_particlestateupdate():
 
 def test_from_state():
     state = State([[0]], timestamp=datetime.datetime.now())
-    update = Update.from_state(state, state_vector=[[1]], hypothesis=None)
+    update = Update.from_state(state, [[1]], hypothesis=None)
     assert isinstance(update, StateUpdate)
     assert update.timestamp == state.timestamp
     assert update.state_vector[0] == 1
 
-    state = GaussianState([[0]], covar=[[2]], timestamp=datetime.datetime.now())
-    update = Update.from_state(state, state_vector=[[1]], covar=[[3]], hypothesis=None)
+    state = GaussianState([[0]], [[2]], timestamp=datetime.datetime.now())
+    update = Update.from_state(state, [[1]], [[3]], hypothesis=None)
     assert isinstance(update, GaussianStateUpdate)
     assert update.timestamp == state.timestamp
     assert update.state_vector[0] == 1
     assert update.covar[0] == 3
 
-    state = SqrtGaussianState([[0]], sqrt_covar=[[2]], timestamp=datetime.datetime.now())
-    update = Update.from_state(state, state_vector=[[1]], covar=[[np.sqrt(3)]], hypothesis=None)
+    state = SqrtGaussianState([[0]], [[2]], timestamp=datetime.datetime.now())
+    update = Update.from_state(state, [[1]], [[np.sqrt(3)]], hypothesis=None)
     assert isinstance(update, SqrtGaussianStateUpdate)
     assert update.timestamp == state.timestamp
     assert update.state_vector[0] == 1
     assert update.covar[0] == pytest.approx(3)
 
     state = TaggedWeightedGaussianState(
-        [[0]], covar=[[2]], weight=0.5, timestamp=datetime.datetime.now())
-    update = Update.from_state(state, state_vector=[[1]], covar=[[3]], hypothesis=None)
+        [[0]], [[2]], weight=0.5, timestamp=datetime.datetime.now())
+    update = Update.from_state(state, [[1]], [[3]], hypothesis=None)
     assert isinstance(update, GaussianStateUpdate)
     assert update.timestamp == state.timestamp
     assert update.state_vector[0] == 1

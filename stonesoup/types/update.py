@@ -9,17 +9,25 @@ from .mixture import GaussianMixture
 
 
 def _from_state(
-        cls, state: State, update_type: Optional['Update'] = None, **kwargs: Any) -> 'Update':
+        cls,
+        state: State,
+        *args: Any,
+        update_type: Optional['Update'] = None,
+        **kwargs: Any) -> 'Update':
     """Return new Update instance of suitable type using existing properties
 
     Parameters
     ----------
     state: State
         :class:`~.State` to use existing properties from, and identify update type from
+    \\*args: Sequence
+        Arguments to pass to newly created update, replacing those with same name on ``state``
+        parameter.
     update_type: :class:`~.Update`, optional
         Type to use for update, overriding one from :attr:`class_mapping`.
     \\*\\*kwargs: Mapping
-        New property names and associate value for use in newly created update.
+        New property names and associate value for use in newly created update, replacing those
+        on the ``state`` parameter.
     """
     try:
         state_type = next(type_ for type_ in type(state).mro() if type_ in cls.class_mapping)
@@ -28,18 +36,16 @@ def _from_state(
     if update_type is None:
         update_type = cls.class_mapping[state_type]
 
-    # Use current state kwargs that also properties of update type
+    args_property_names = {name for n, name in enumerate(update_type.properties) if n < len(args)}
+    # Use current state kwargs that also properties of update type, it not provided in args
     new_kwargs = {
         name: getattr(state, name)
-        for name in state_type.properties.keys() & update_type.properties.keys()}
+        for name in state_type.properties.keys() & update_type.properties.keys()
+        if name not in args_property_names}
     # And replace them with any newly defined kwargs
     new_kwargs.update(kwargs)
 
-    # Special case for SqrtGaussian
-    if issubclass(state_type, SqrtGaussianState):
-        new_kwargs['sqrt_covar'] = new_kwargs.pop('covar')
-
-    return update_type(**new_kwargs)
+    return update_type(*args, **new_kwargs)
 
 
 class Update(Type):
