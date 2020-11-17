@@ -9,7 +9,8 @@ import datetime
 import threading
 from abc import abstractmethod
 from queue import Queue
-from typing import Mapping, Tuple, Sequence
+from typing import Mapping, Tuple, Sequence, Any
+from urllib.parse import ParseResult
 
 import numpy as np
 try:
@@ -26,6 +27,7 @@ except ImportError as error:
 
 from .base import SensorDataReader
 from .file import FileReader
+from .url import UrlReader
 from ..base import Property
 from ..buffered_generator import BufferedGenerator
 from ..types.sensordata import ImageFrame
@@ -127,7 +129,7 @@ class VideoClipReader(FileReader, FrameReader):
             yield timestamp, frame
 
 
-class FFmpegVideoStreamReader(FrameReader):
+class FFmpegVideoStreamReader(UrlReader, FrameReader):
     """ FFmpegVideoStreamReader
 
     A threaded reader that uses ffmpeg-python_ to read frames from video
@@ -154,8 +156,8 @@ class FFmpegVideoStreamReader(FrameReader):
 
     """
 
-    input_file: str = Property(
-        doc="Input source to read video stream from, passed as input file argument. This can "
+    url: ParseResult = Property(
+        doc="Input source to read video stream from, passed as input url argument. This can "
             "include any valid FFmpeg input e.g. rtsp URL, device name when using 'dshow'/'v4l2'")
     buffer_size: int = Property(
         default=1,
@@ -170,7 +172,7 @@ class FFmpegVideoStreamReader(FrameReader):
         default=None,
         doc="FFmpeg output options, provided in the form of a dictionary, whose keys correspond "
             "to option names. The default is ``{'f': 'rawvideo', 'pix_fmt': 'rgb24'}``.")
-    filters: Sequence[Tuple[str, Sequence[str], Mapping[str, str]]] = Property(
+    filters: Sequence[Tuple[str, Sequence[Any], Mapping[Any, Any]]] = Property(
         default=None,
         doc="FFmpeg filters, provided in the form of a list of filter name, sequence of "
             "arguments, mapping of key/value pairs (e.g. ``[('scale', ('320', '240'), {})]``). "
@@ -201,11 +203,11 @@ class FFmpegVideoStreamReader(FrameReader):
             # Probe stream information
             self._stream_info = next(
                 s
-                for s in ffmpeg.probe(self.input_file, **self.input_opts)['streams']
+                for s in ffmpeg.probe(self.url.geturl(), **self.input_opts)['streams']
                 if s['codec_type'] == 'video')
 
         # Initialise stream
-        self.stream = ffmpeg.input(self.input_file, **self.input_opts)
+        self.stream = ffmpeg.input(self.url.geturl(), **self.input_opts)
         for filter_ in self.filters:
             filter_name, filter_args, filter_kwargs = filter_
             self.stream = self.stream.filter(
