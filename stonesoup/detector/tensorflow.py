@@ -12,13 +12,13 @@ except ImportError as error:
         "https://tensorflow-object-detection-api-tutorial.readthedocs.io/en/latest/install.html")\
         from error
 
-from ._video import _VideoAsyncDetector
+from ._video import _VideoAsyncBoxDetector
 from ..base import Property
 from ..types.array import StateVector
 from ..types.detection import Detection
 
 
-class TensorFlowBoxObjectDetector(_VideoAsyncDetector):
+class TensorFlowBoxObjectDetector(_VideoAsyncBoxDetector):
     """TensorFlowBoxObjectDetector
 
     A box object detector that generates detections of objects in the form of bounding boxes 

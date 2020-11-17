@@ -22,7 +22,7 @@ except ImportError as error:
         "package dependencies 'tensorflow' and 'tensornets' are installed.") \
         from error
 
-from ._video import _VideoAsyncDetector
+from ._video import _VideoAsyncBoxDetector
 from ..base import Property
 from ..types.detection import Detection
 
@@ -48,7 +48,7 @@ class Networks(enum.Enum):
     YOLOv3COCO = enum.auto()  #: YOLOv3 tranined against COCO dataset
 
 
-class TensorNetsObjectDetector(_VideoAsyncDetector):
+class TensorNetsBoxObjectDetector(_VideoAsyncBoxDetector):
     """TensorNets Object Detection class
 
     This uses pre-trained networks from TensorNets for object detection in video

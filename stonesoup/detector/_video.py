@@ -8,7 +8,7 @@ from ..base import Property
 from ..buffered_generator import BufferedGenerator
 
 
-class _VideoAsyncDetector(Detector):
+class _VideoAsyncBoxDetector(Detector):
     """Video Async Detector Abstract Class
 
     Abstract class for use with Video based detectors, which includes an async
