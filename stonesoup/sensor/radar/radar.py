@@ -132,7 +132,11 @@ class RadarRotatingBearingRange(RadarBearingRange):
         """
 
         # Read timestamp from ground truth
-        timestamp = next(iter(ground_truths.copy())).timestamp
+        try:
+            timestamp = next(iter(ground_truths.copy())).timestamp
+        except StopIteration:
+            # No ground truths to get timestamp from
+            return set()
 
         # Rotate the radar antenna and compute new heading
         self.rotate(timestamp)

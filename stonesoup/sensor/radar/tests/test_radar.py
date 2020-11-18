@@ -347,6 +347,8 @@ def test_rotating_radar():
         assert measurement.groundtruth_path in truth
         assert isinstance(measurement.groundtruth_path, GroundTruthPath)
 
+    assert radar.measure(set()) == set()
+
 
 def test_raster_scan_radar():
     # Input arguments
