@@ -112,7 +112,7 @@ class OrbitalState(State):
         CovarianceMatrix, default=None,
         doc="The covariance matrix. Care should be exercised in that its "
             "coordinate frame isn't defined, and output will be highly "
-            "dependant on which parameterisation is chosen."
+            "dependent on which parameterisation is chosen."
     )
 
     metadata = Property(
