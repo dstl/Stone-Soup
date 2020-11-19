@@ -572,13 +572,10 @@ def test_compute_metric(generator):
 
     pa = metrics[7]
     assert pa.title == "SIAP PA"
-    assert pa.value == \
-           sum(generator._assoc_distances_sum_t(manager,
-                                                timestamp,
-                                                generator.position_mapping,
-                                                1)
-               for timestamp in manager.list_timestamps()) \
-           / generator._na_sum(manager, manager.list_timestamps())
+    assert pa.value == sum(generator._assoc_distances_sum_t(manager, timestamp,
+                                                            generator.position_mapping, 1)
+                           for timestamp in manager.list_timestamps()) / \
+        generator._na_sum(manager, manager.list_timestamps())
     assert pa.time_range.start_timestamp == tstart
     assert pa.time_range.end_timestamp == tend
     assert pa.generator == generator
@@ -688,10 +685,10 @@ def test_compute_metric(generator):
 
     cid = metrics[14]
     assert cid.title == "SIAP CID"
-    assert cid.value == \
-           sum({generator._jt_t(manager, timestamp) - generator._ju_t(manager, timestamp)
-                for timestamp in manager.list_timestamps()}) \
-           / generator._jt_sum(manager, manager.list_timestamps())
+    assert cid.value == sum({generator._jt_t(manager, timestamp) -
+                             generator._ju_t(manager, timestamp) for timestamp in
+                             manager.list_timestamps()}) / \
+        generator._jt_sum(manager, manager.list_timestamps())
     assert cid.time_range.start_timestamp == tstart
     assert cid.time_range.end_timestamp == tend
     assert cid.generator == generator
@@ -715,16 +712,16 @@ def test_compute_metric(generator):
 
     idc = metrics[16]
     assert idc.title == "SIAP IDC"
-    assert idc.value == generator._jc_sum(manager, manager.list_timestamps()) \
-           / generator._jt_sum(manager, manager.list_timestamps())
+    assert idc.value == generator._jc_sum(manager, manager.list_timestamps()) / \
+        generator._jt_sum(manager, manager.list_timestamps())
     assert idc.time_range.start_timestamp == tstart
     assert idc.time_range.end_timestamp == tend
     assert idc.generator == generator
 
     ida = metrics[17]
     assert ida.title == "SIAP IDA"
-    assert ida.value == generator._ja_sum(manager, manager.list_timestamps()) \
-           / generator._jt_sum(manager, manager.list_timestamps())
+    assert ida.value == generator._ja_sum(manager, manager.list_timestamps()) / \
+        generator._jt_sum(manager, manager.list_timestamps())
     assert ida.time_range.start_timestamp == tstart
     assert ida.time_range.end_timestamp == tend
     assert ida.generator == generator
