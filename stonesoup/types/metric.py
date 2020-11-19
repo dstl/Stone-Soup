@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import datetime
 
+import typing
+
 from .base import Type
 from .time import TimeRange
 from ..base import Property
@@ -9,9 +11,9 @@ from ..base import Property
 class Metric(Type):
     """Metric type"""
 
-    title = Property(str, doc='Name of the metric')
-    value = Property(any, doc='Value of the metric')
-    generator = Property(any, doc='Generator used to create the metric')
+    title: str = Property(doc='Name of the metric')
+    value: typing.Any = Property(doc='Value of the metric')
+    generator: typing.Any = Property(doc='Generator used to create the metric')
 
 
 class PlottingMetric(Metric):
@@ -22,16 +24,16 @@ class PlottingMetric(Metric):
 class SingleTimeMetric(Metric):
     """Metric for a specific timestamp"""
 
-    timestamp = Property(datetime.datetime, default=None,
-                         doc="Timestamp of the state. Default None.")
+    timestamp: datetime.datetime = Property(
+        default=None, doc="Timestamp of the state. Default None.")
 
 
 class TimeRangeMetric(Metric):
     """ Metric for a range of times (e.g. for example an entire run)"""
 
-    time_range = Property(TimeRange, default=None,
-                          doc="Time range over which metric assessment will be"
-                              "conducted over. Default is None")
+    time_range: TimeRange = Property(
+        default=None,
+        doc="Time range over which metric assessment will be conducted over. Default is None")
 
 
 class TimeRangePlottingMetric(TimeRangeMetric, PlottingMetric):

@@ -3,9 +3,8 @@ import datetime
 import weakref
 from abc import abstractmethod, ABC
 from functools import lru_cache
-
 from math import cos, sin
-from typing import Sequence, Optional, List, TYPE_CHECKING
+from typing import Sequence, MutableSequence, Optional, TYPE_CHECKING
 
 from scipy.linalg import expm
 import numpy as np
@@ -15,6 +14,7 @@ from ..types.array import StateVector
 from ..base import Property
 from ..types.state import State, StateMutableSequence
 from ..models.transition import TransitionModel
+
 if TYPE_CHECKING:  # pragma: no cover
     from ..sensor.base import BaseSensor
 
@@ -37,31 +37,36 @@ class Platform(StateMutableSequence, ABC):
             :class:`~.MovingPlatform`
 
         """
-    states = Property([State], doc="A list of States which enables the platform's history to be "
-                                   "accessed in simulators and for plotting. Initiated as a "
-                                   "state, for a static platform, this would usually contain its "
-                                   "position coordinates in the form ``[x, y, z]``. For a moving "
-                                   "platform it would contain position and velocity interleaved: "
-                                   "``[x, vx, y, vy, z, vz]``")
-    position_mapping = Property(Sequence[int],
-                                doc="Mapping between platform position and state vector. For a "
-                                    "position-only 3d platform this might be ``[0, 1, 2]``. For a "
-                                    "position and velocity platform: ``[0, 2, 4]``")
-    rotation_offsets = Property(List[StateVector], default=None, readonly=True,
-                                doc="A list of StateVectors containing the sensor rotation "
-                                    "offsets from the platform's primary axis (defined as the "
-                                    "direction of motion). Defaults to a zero vector with the "
-                                    "same length as the Platform's :attr:`position_mapping`")
-    mounting_offsets = Property(List[StateVector], default=None, readonly=True,
-                                doc="A list of StateVectors containing the sensor translation "
-                                    "offsets from the platform's reference point. Defaults to "
-                                    "a zero vector with the same length as the Platform's "
-                                    ":attr:`position_mapping`")
-    sensors = Property(List["BaseSensor"],  default=None, readonly=True,
-                       doc="A list of N mounted sensors. Defaults to an empty list")
-    velocity_mapping = Property(Sequence[int], default=None,
-                                doc="Mapping between platform velocity and state dims. If not "
-                                    "set, it will default to ``[m+1 for m in position_mapping]``")
+    states: Sequence[State] = Property(
+        doc="A list of States which enables the platform's history to be "
+            "accessed in simulators and for plotting. Initiated as a "
+            "state, for a static platform, this would usually contain its "
+            "position coordinates in the form ``[x, y, z]``. For a moving "
+            "platform it would contain position and velocity interleaved: "
+            "``[x, vx, y, vy, z, vz]``")
+    position_mapping: Sequence[int] = Property(
+        doc="Mapping between platform position and state vector. For a "
+            "position-only 3d platform this might be ``[0, 1, 2]``. For a "
+            "position and velocity platform: ``[0, 2, 4]``")
+    rotation_offsets: MutableSequence[StateVector] = Property(
+        default=None, readonly=True,
+        doc="A list of StateVectors containing the sensor rotation "
+            "offsets from the platform's primary axis (defined as the "
+            "direction of motion). Defaults to a zero vector with the "
+            "same length as the Platform's :attr:`position_mapping`")
+    mounting_offsets: MutableSequence[StateVector] = Property(
+        default=None, readonly=True,
+        doc="A list of StateVectors containing the sensor translation "
+            "offsets from the platform's reference point. Defaults to "
+            "a zero vector with the same length as the Platform's "
+            ":attr:`position_mapping`")
+    sensors: MutableSequence['BaseSensor'] = Property(
+        default=None, readonly=True,
+        doc="A list of N mounted sensors. Defaults to an empty list")
+    velocity_mapping: Sequence[int] = Property(
+        default=None,
+        doc="Mapping between platform velocity and state dims. If not "
+            "set, it will default to ``[m+1 for m in position_mapping]``")
 
     # TODO: Determine where a platform coordinate frame should be maintained
 
@@ -118,15 +123,15 @@ class Platform(StateMutableSequence, ABC):
         return None if value is None else tuple(value)
 
     @sensors.getter
-    def get_sensors(self):
+    def sensors(self):
         return self._tuple_or_none(self._property_sensors)
 
     @mounting_offsets.getter
-    def get_mounting_offsets(self):
+    def mounting_offsets(self):
         return self._tuple_or_none(self._property_mounting_offsets)
 
     @rotation_offsets.getter
-    def get_rotation_offsets(self):
+    def rotation_offsets(self):
         return self._tuple_or_none(self._property_rotation_offsets)
 
     @property
@@ -305,9 +310,9 @@ class FixedPlatform(Platform):
 
         .. note:: Position and orientation are a read/write properties in this class.
         """
-    orientation = Property(StateVector, default=None,
-                           doc='A fixed orientation of the static platform. '
-                               'Defaults to the zero vector')
+    orientation: StateVector = Property(
+        default=None,
+        doc='A fixed orientation of the static platform. Defaults to the zero vector')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -344,8 +349,7 @@ class MovingPlatform(Platform):
 
     .. note:: Position and orientation are a read only properties in this class.
     """
-    transition_model = Property(
-        TransitionModel, doc="Transition model")
+    transition_model: TransitionModel = Property(doc="Transition model")
 
     @property
     def velocity(self) -> StateVector:
@@ -380,18 +384,19 @@ class MovingPlatform(Platform):
         this approximations and so raises an :class:`AttributeError`
         """
         if not self.is_moving:
-            raise AttributeError('Orientation of a zero-velocity moving platform is not defined')
+            raise NotImplementedError('Orientation of a zero-velocity moving platform is not'
+                                      'defined')
         velocity = self.velocity
 
         if self.ndim == 3:
             _, bearing, elevation = cart2sphere(*velocity.flat)
-            return StateVector([0, bearing, elevation])
+            return StateVector([0, elevation, bearing])
         elif self.ndim == 2:
             _, bearing = cart2pol(*velocity.flat)
-            return StateVector([0, bearing])
+            return StateVector([0, 0, bearing])
         else:
-            raise ValueError('Orientation of a moving platform is only implemented for 2 and 3 '
-                             'dimensions')
+            raise NotImplementedError('Orientation of a moving platform is only implemented for 2'
+                                      'and 3 dimensions')
 
     @property
     def is_moving(self) -> bool:
@@ -466,9 +471,9 @@ class MultiTransitionMovingPlatform(MovingPlatform):
     movement behaviour of the platform for given durations.
     """
 
-    transition_models = Property([TransitionModel], doc="List of transition models")
-    transition_times = Property([datetime.timedelta], doc="Durations for each listed transition "
-                                                          "model")
+    transition_models: Sequence[TransitionModel] = Property(doc="List of transition models")
+    transition_times: Sequence[datetime.timedelta] = Property(doc="Durations for each listed "
+                                                                  "transition model")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -517,17 +522,33 @@ class MultiTransitionMovingPlatform(MovingPlatform):
             # TypeError: (timestamp or prior.timestamp) is None
             return
 
+        temp_state = self.state
         while time_interval != 0:
             if time_interval >= self.current_interval:
-                super().move(timestamp=self.state.timestamp+self.current_interval, **kwargs)
+                temp_state = State(
+                    state_vector=self.transition_model.function(
+                        state=temp_state,
+                        noise=True,
+                        time_interval=self.current_interval,
+                        **kwargs),
+                    timestamp=timestamp
+                )
                 time_interval -= self.current_interval
                 self.transition_index = (self.transition_index + 1) % len(self.transition_models)
                 self.current_interval = self.transition_times[self.transition_index]
 
             else:
-                super().move(timestamp=self.state.timestamp+time_interval, **kwargs)
+                temp_state = State(
+                    state_vector=self.transition_model.function(
+                        state=temp_state,
+                        noise=True,
+                        time_interval=time_interval,
+                        **kwargs),
+                    timestamp=timestamp
+                )
                 self.current_interval -= time_interval
                 time_interval = 0
+        self.states.append(temp_state)
 
 
 def _get_rotation_matrix(vel: StateVector) -> np.ndarray:

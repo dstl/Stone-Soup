@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 from operator import attrgetter
 from types import FunctionType
-
-import numpy as np
+from typing import Sequence, Tuple
 
 from .base import DetectionFeeder, GroundTruthFeeder
 from ..base import Property
@@ -24,9 +23,7 @@ class MetadataReducer(DetectionFeeder):
 
     """
 
-    metadata_field = Property(
-        str,
-        doc="Field used to reduce set of detections")
+    metadata_field: str = Property(doc="Field used to reduce set of detections")
 
     @BufferedGenerator.generator_method
     def data_gen(self):
@@ -68,8 +65,7 @@ class MetadataValueFilter(MetadataReducer):
 
     """
 
-    operator = Property(
-        FunctionType,
+    operator: FunctionType = Property(
         doc="A unary operator/function of the form :code:`b = f(val)`, "
             "where :code:`val` is the value of the selected "
             ":py:attr:`~metadata_field`. The function MUST return a "
@@ -80,8 +76,7 @@ class MetadataValueFilter(MetadataReducer):
             "Any custom function that conforms to the above specifications can"
             " be used as an operator, e.g. :code:`operator=lambda x: x < 0.1`")
 
-    keep_unmatched = Property(
-        bool,
+    keep_unmatched: bool = Property(
         doc="If set to :code:`True`, any detections that do not have a "
             "metadata field matching the name :py:attr:`~metadata_field` "
             "(meaning they also cannot be processed by the "
@@ -136,8 +131,7 @@ class BoundingBoxReducer(DetectionFeeder, GroundTruthFeeder):
 
     """
 
-    limits = Property(
-        np.ndarray,
+    limits: Sequence[Tuple[float, float]] = Property(
         doc="Array of points that define the bounds of the desired bounding "
             "box. Expressed as a 2D array of min/max coordinate pairs (e.g. "
             ":code:`limits = [[x_min, x_max], [y_min, y_max], ...]`), where "
@@ -145,8 +139,7 @@ class BoundingBoxReducer(DetectionFeeder, GroundTruthFeeder):
             "limits. Points that fall ON or WITHIN the box's bounds are "
             "considered as valid and are thus forwarded through the feeder, "
             "whereas points that fall OUTSIDE the box will be filtered out.")
-    mapping = Property(
-        np.ndarray,
+    mapping: Sequence[int] = Property(
         default=None,
         doc="Mapping between the state and bounding box coordinates. "
             "Should be specified as a vector of length equal to the number of "

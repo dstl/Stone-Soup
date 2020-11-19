@@ -2,6 +2,7 @@
 import datetime
 
 import numpy as np
+import pytest
 
 from ..manager import SimpleManager
 from ..ospametric import GOSPAMetric, OSPAMetric
@@ -33,9 +34,9 @@ def test_gospametric_extractstates():
     assert set(truth_states) == set(t.states[0] for t in truths)
 
 
-def test_gospametric_compute_assignments():
+@pytest.mark.parametrize('num_states', (2, 5))
+def test_gospametric_compute_assignments(num_states):
     """Test GOSPA assignment algorithm."""
-    num_states = 5
     generator = GOSPAMetric(
         c=10.0,
         p=1)
@@ -46,15 +47,43 @@ def test_gospametric_compute_assignments():
                                 for i in range(num_states)])
     cost_matrix = generator.compute_cost_matrix(track_obj.states,
                                                 truth_obj.states)
-    neg_cost_matrix = -1. * (cost_matrix)
+    neg_cost_matrix = -1.*cost_matrix
     meas_to_truth, truth_to_meas, opt_cost =\
         generator.compute_assignments(neg_cost_matrix,
                                       10 * num_states * num_states)
 
-    assert (opt_cost == 0.0)
+    assert opt_cost == 0.0
     assert np.array_equal(meas_to_truth, truth_to_meas)
     assert np.array_equal(meas_to_truth,
-                          np.array([[i for i in range(num_states)]]))
+                          np.array([i for i in range(num_states)]))
+
+    # Missing 1 track
+    cost_matrix = generator.compute_cost_matrix(track_obj.states[:-1],
+                                                truth_obj.states)
+    neg_cost_matrix = -1.*cost_matrix
+    meas_to_truth, truth_to_meas, opt_cost = \
+        generator.compute_assignments(neg_cost_matrix,
+                                      10 * num_states * num_states)
+
+    assert opt_cost == 0.0
+    assert np.array_equal(meas_to_truth, truth_to_meas[:-1])
+    assert truth_to_meas[-1] == -1
+    assert np.array_equal(meas_to_truth,
+                          np.array([i for i in range(num_states - 1)]))
+
+    # Missing 1 truth
+    cost_matrix = generator.compute_cost_matrix(track_obj.states,
+                                                truth_obj.states[:-1])
+    neg_cost_matrix = -1.*cost_matrix
+    meas_to_truth, truth_to_meas, opt_cost = \
+        generator.compute_assignments(neg_cost_matrix,
+                                      10 * num_states * num_states)
+
+    assert opt_cost == 0.0
+    assert np.array_equal(meas_to_truth[:-1], truth_to_meas)
+    assert meas_to_truth[-1] == -1
+    assert np.array_equal(meas_to_truth[:-1],
+                          np.array([i for i in range(num_states - 1)]))
 
 
 def test_gospametric_cost_matrix():
@@ -192,6 +221,21 @@ def test_ospametric_computecostmatrix():
                                                  [3., 2., 1., 0., 1.],
                                                  [4., 3., 2., 1., 0.]]))
 
+    cost_matrix = generator.compute_cost_matrix(track.states, truth.states[:-1])
+    assert np.array_equal(cost_matrix, np.array([[0., 1., 2., 3.],
+                                                 [1., 0., 1., 2.],
+                                                 [2., 1., 0., 1.],
+                                                 [3., 2., 1., 0.],
+                                                 [4., 3., 2., 1.]]))
+
+    # One more track than truths
+    cost_matrix = generator.compute_cost_matrix(track.states, truth.states[:-1], complete=True)
+    assert np.array_equal(cost_matrix, np.array([[0., 1., 2., 3., 10.],
+                                                 [1., 0., 1., 2., 10.],
+                                                 [2., 1., 0., 1., 10.],
+                                                 [3., 2., 1., 0., 10.],
+                                                 [4., 3., 2., 1., 10.]]))
+
 
 def test_ospametric_computeospadistance():
     """Test OSPA metric compute OSPA distance."""
@@ -215,22 +259,23 @@ def test_ospametric_computeospadistance():
     assert metric.generator == generator
 
 
-def test_ospametric_computemetric():
+@pytest.mark.parametrize('p', (1, 2, np.inf), ids=('p=1', 'p=2', 'p=inf'))
+def test_ospametric_computemetric(p):
     """Test OSPA compute metric."""
     generator = OSPAMetric(
         c=10,
-        p=1)
+        p=p)
 
     time = datetime.datetime.now()
     # Multiple tracks and truths present at two timesteps
     tracks = {Track(states=[State(state_vector=[[i + 0.5]], timestamp=time),
-                            State(state_vector=[[i + 1]],
+                            State(state_vector=[[i + 1.2]],
                                   timestamp=time + datetime.timedelta(
                                      seconds=1))])
               for i in range(5)}
     truths = {GroundTruthPath(
-        states=[State(state_vector=[[i]], timestamp=time),
-                GroundTruthState(state_vector=[[i]],
+        states=[GroundTruthState(state_vector=[[i]], timestamp=time),
+                GroundTruthState(state_vector=[[i + 1]],
                                  timestamp=time+datetime.timedelta(
                                      seconds=1))])
               for i in range(5)}
@@ -238,22 +283,61 @@ def test_ospametric_computemetric():
     manager = SimpleManager([generator])
     manager.add_data([tracks, truths])
     main_metric = generator.compute_metric(manager)
+    first_association, second_association = main_metric.value
 
     assert main_metric.title == "OSPA distances"
     assert main_metric.time_range.start_timestamp == time
     assert main_metric.time_range.end_timestamp == time + datetime.timedelta(
         seconds=1)
-    first_association = [i for i in main_metric.value
-                         if i.timestamp == time][0]
+
     assert first_association.title == "OSPA distance"
-    assert first_association.value == 0.5
+    assert first_association.value == pytest.approx(0.5)
     assert first_association.timestamp == time
     assert first_association.generator == generator
-    second_association = [i for i in main_metric.value if
-                          i.timestamp ==
-                          time + datetime.timedelta(seconds=1)][
-        0]
+
     assert second_association.title == "OSPA distance"
-    assert second_association.value == 1
+    assert second_association.value == pytest.approx(0.2)
+    assert second_association.timestamp == time + datetime.timedelta(seconds=1)
+    assert second_association.generator == generator
+
+
+@pytest.mark.parametrize(
+    'p,first_value,second_value',
+    ((1, 2.4, 2.16), (2, 4.49444, 4.47571), (np.inf, 10, 10)),
+    ids=('p=1', 'p=2', 'p=inf'))
+def test_ospa_computemetric_cardinality_error(p, first_value, second_value):
+    generator = OSPAMetric(
+        c=10,
+        p=p)
+
+    time = datetime.datetime.now()
+    # Multiple tracks and truths present at two timesteps
+    tracks = {Track(states=[State(state_vector=[[i + 0.5]], timestamp=time),
+                            State(state_vector=[[i + 1.2]],
+                                  timestamp=time + datetime.timedelta(seconds=1))])
+              for i in range(4)}
+    truths = {GroundTruthPath(
+        states=[GroundTruthState(state_vector=[[i]], timestamp=time),
+                GroundTruthState(state_vector=[[i + 1]],
+                                 timestamp=time+datetime.timedelta(seconds=1))])
+              for i in range(5)}
+
+    manager = SimpleManager([generator])
+    manager.add_data([tracks, truths])
+    main_metric = generator.compute_metric(manager)
+    first_association, second_association = main_metric.value
+
+    assert main_metric.title == "OSPA distances"
+    assert main_metric.time_range.start_timestamp == time
+    assert main_metric.time_range.end_timestamp == time + datetime.timedelta(
+        seconds=1)
+
+    assert first_association.title == "OSPA distance"
+    assert first_association.value == pytest.approx(first_value)
+    assert first_association.timestamp == time
+    assert first_association.generator == generator
+
+    assert second_association.title == "OSPA distance"
+    assert second_association.value == pytest.approx(second_value)
     assert second_association.timestamp == time + datetime.timedelta(seconds=1)
     assert second_association.generator == generator

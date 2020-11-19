@@ -18,29 +18,20 @@ class PointProcessUpdater(Base):
     Cardinalised Probability Hypothesis Density (CPHD) or
     Linear Complexity with Cumulants (LCC) filters
     """
-    updater = Property(
-        KalmanUpdater,
+    updater: KalmanUpdater = Property(
         doc="Underlying updater used to perform the \
              single target Kalman Update.")
-
-    clutter_spatial_density = Property(
-        float,
+    clutter_spatial_density: float = Property(
         default=1e-26,
         doc="Spatial density of the clutter process uniformly\
              distributed across the state space.")
-
-    normalisation = Property(
-        bool,
+    normalisation: bool = Property(
         default=True,
         doc="Flag for normalisation")
-
-    prob_detection = Property(
-        Probability,
+    prob_detection: Probability = Property(
         default=1,
         doc="Probability of a target being detected at the current timestep")
-
-    prob_survival = Property(
-        Probability,
+    prob_survival: Probability = Property(
         default=1,
         doc="Probability of a target surviving until the next timestep")
 
@@ -159,16 +150,12 @@ class LCCUpdater(PointProcessUpdater):
         Information Fusion (FUSION). 2018. DOI: 10.
         23919/ICIF.2018.8455331. https://ieeexplore.ieee.org/document/8455331..
     """
-    mean_number_of_false_alarms = Property(
-        float,
+    mean_number_of_false_alarms: float = Property(
         default=1,
         doc="Mean number of false alarms (clutter) expected per timestep")
-
-    variance_of_false_alarms = Property(
-        float,
+    variance_of_false_alarms: float = Property(
         default=1,
-        doc="Variance on the number of false alarms (clutter) \
-             expected per timestep")
+        doc="Variance on the number of false alarms (clutter) expected per timestep")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

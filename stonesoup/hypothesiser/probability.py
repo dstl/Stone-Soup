@@ -18,22 +18,14 @@ class PDAHypothesiser(Hypothesiser):
     detections.
     """
 
-    predictor = Property(
-        Predictor,
-        doc="Predict tracks to detection times")
-    updater = Property(
-        Updater,
-        doc="Updater used to get measurement prediction")
-    clutter_spatial_density = Property(
-        float,
-        doc="Spatial density of clutter - tied to probability of false "
-            "detection")
-    prob_detect = Property(
-        Probability,
+    predictor: Predictor = Property(doc="Predict tracks to detection times")
+    updater: Updater = Property(doc="Updater used to get measurement prediction")
+    clutter_spatial_density: float = Property(
+        doc="Spatial density of clutter - tied to probability of false detection")
+    prob_detect: Probability = Property(
         default=Probability(0.85),
         doc="Target Detection Probability")
-    prob_gate = Property(
-        Probability,
+    prob_gate: Probability = Property(
         default=Probability(0.95),
         doc="Gate Probability - prob. gate contains true measurement "
             "if detected")

@@ -114,8 +114,14 @@ def test_elevation():
         assert rad_out[ind] == approx(mod_elevation(val))
 
 
-def test_gauss2sigma_float():
-    mean = 1.0
+@pytest.mark.parametrize(
+    "mean",
+    [
+        1,      # int
+        1.0     # float
+    ]
+)
+def test_gauss2sigma(mean):
     covar = 2.0
     state = GaussianState([[mean]], [[covar]])
 
@@ -123,19 +129,6 @@ def test_gauss2sigma_float():
 
     for n, sigma_point_state in zip((0, 1, -1), sigma_points_states):
         assert sigma_point_state.state_vector[0, 0] == approx(mean + n*covar**0.5)
-
-
-def test_gauss2sigma_int():
-    mean = 1
-    covar = 2.0
-    state = GaussianState([[mean]], [[covar]])
-
-    sigma_points_states, mean_weights, covar_weights = gauss2sigma(state, kappa=0)
-
-    for n, sigma_point_state in zip((0, 1, -1), sigma_points_states):
-        # Resultant sigma points are still ints
-        assert sigma_point_state.state_vector[0, 0] == int(mean + n*covar**0.5)
-        assert isinstance(sigma_point_state.state_vector[0, 0], np.integer)
 
 
 @pytest.mark.parametrize(

@@ -9,7 +9,7 @@ from ...types.state import State
 from ..base import MovingPlatform, FixedPlatform
 from ...models.transition.linear import (
     ConstantVelocity, CombinedLinearGaussianTransitionModel)
-from ...sensor.radar.radar import RadarRangeBearing
+from ...sensor.radar.radar import RadarBearingRange
 from ...types.array import StateVector, CovarianceMatrix
 
 
@@ -144,29 +144,29 @@ def radars_2d():
     measurement_mapping = np.array([0, 2])
 
     # Create 5 simple radar sensor objects
-    radar1 = RadarRangeBearing(
+    radar1 = RadarBearingRange(
         ndim_state=4,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar,
     )
 
-    radar2 = RadarRangeBearing(
+    radar2 = RadarBearingRange(
         ndim_state=4,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar
     )
-    radar3 = RadarRangeBearing(
+    radar3 = RadarBearingRange(
         ndim_state=4,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar
     )
 
-    radar4 = RadarRangeBearing(
+    radar4 = RadarBearingRange(
         ndim_state=4,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar
     )
-    radar5 = RadarRangeBearing(
+    radar5 = RadarBearingRange(
         ndim_state=4,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar
@@ -184,39 +184,39 @@ def radars_3d():
     measurement_mapping = np.array([0, 2, 4])
 
     # Create 5 simple radar sensor objects
-    radar1 = RadarRangeBearing(
+    radar1 = RadarBearingRange(
         ndim_state=6,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar
     )
 
-    radar2 = RadarRangeBearing(
+    radar2 = RadarBearingRange(
         ndim_state=6,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar
     )
-    radar3 = RadarRangeBearing(
+    radar3 = RadarBearingRange(
         ndim_state=6,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar
     )
 
-    radar4 = RadarRangeBearing(
+    radar4 = RadarBearingRange(
         ndim_state=6,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar
     )
-    radar5 = RadarRangeBearing(
+    radar5 = RadarBearingRange(
         ndim_state=6,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar
     )
-    radar6 = RadarRangeBearing(
+    radar6 = RadarBearingRange(
         ndim_state=6,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar
     )
-    radar7 = RadarRangeBearing(
+    radar7 = RadarBearingRange(
         ndim_state=6,
         position_mapping=measurement_mapping,
         noise_covar=noise_covar
@@ -422,11 +422,11 @@ def test_3d_platform(state, expected, move, radars_3d, mounting_offsets_3d,
 @pytest.fixture(scope='session')
 def rotation_offsets_2d():
     # Generate sensor mounting offsets for testing purposes
-    offsets = [[0, 0],
-               [np.pi / 4, 0],
-               [0, np.pi / 4],
-               [-np.pi / 4, 0],
-               [0, -np.pi / 4]]
+    offsets = [[0, 0, 0],
+               [0, 0, np.pi / 4],
+               [0, 0, -np.pi / 4],
+               [0, 0, np.pi / 2],
+               [0, 0, -np.pi / 2]]
     return [StateVector(offset) for offset in offsets]
 
 
@@ -445,72 +445,70 @@ def rotation_offsets_3d():
 
 def expected_orientations_3d():
     pi = np.pi
-    offset_3d_movement = np.arctan(1/np.sqrt(2))
+    offset_3d_movement = np.arctan(1 / np.sqrt(2))
 
-    return [
-        np.array([[0., 0., 0.], [pi/4, 0., 0.], [0., pi/4, 0.], [-pi/4, 0., 0.],
-                  [0., -pi/4, 0.], [0., 0., pi/4], [0., 0., -pi/4]]),
-        np.array([[0., 0., pi/2], [pi/4, 0., pi/2], [0., pi/4, pi/2], [-pi/4, 0., pi/2],
-                  [0., -pi/4, pi/2], [0., 0., 3 * pi/4], [0., 0., pi/4]]),
-        np.array([[0., pi/2, 0.],
-                  [pi/4, pi/2, 0.], [0., 3 * pi/4, 0.], [-pi/4, pi/2, 0.],
-                  [0., pi/4, 0.], [0., pi/2, pi/4], [0., pi/2, -pi/4]]),
-        np.array([[0., 0., 0.], [pi/4, 0., 0.], [0., pi/4, 0.], [-pi/4, 0., 0.],
-                  [0., -pi/4, 0.], [0., 0., pi/4], [0., 0., -pi/4]]),
-        np.array([[0., 0., pi/2], [pi/4, 0., pi/2], [0., pi/4, pi/2], [-pi/4, 0., pi/2],
-                  [0., -pi/4, pi/2], [0., 0., 3 * pi/4], [0., 0., pi/4]]),
-        np.array([[0., pi/2, 0.], [pi/4, pi/2, 0.], [0., 3 * pi/4, 0.], [-pi/4, pi/2, 0.],
-                  [0., pi/4, 0.], [0., pi/2, pi/4], [0., pi/2, -pi/4]]),
-        np.array([[0., 0., pi/4], [pi/4, 0., pi/4], [0., pi/4, pi/4], [-pi/4, 0., pi/4],
-                  [0., -pi/4, pi/4], [0., 0., pi/2], [0., 0., 0.]]),
-        np.array([[0., pi/2, pi/4], [pi/4, pi/2, pi/4], [0., 3 * pi/4, pi/4], [-pi/4, pi/2, pi/4],
-                  [0., pi/4, pi/4], [0., pi/2, pi/2], [0., pi/2, 0.]]),
-        np.array([[0., pi/4, offset_3d_movement], [pi/4, pi/4, offset_3d_movement],
-                  [0., pi/2, offset_3d_movement], [-pi/4, pi/4, offset_3d_movement],
-                  [0., 0., offset_3d_movement], [0., pi/4, pi/4 + offset_3d_movement],
-                  [0., pi/4, -pi/4 + offset_3d_movement]]),
-        np.array([[0., pi, 0.], [pi/4, pi, 0.], [0., 5 * pi/4, 0.], [-pi/4, pi, 0.],
-                  [0., 3 * pi/4, 0.], [0., pi, pi/4], [0., pi, -pi/4]]),
-        np.array([[0., -pi/2, 0.], [pi/4, -pi/2, 0.], [0., -pi/4, 0.], [-pi/4, -pi/2, 0.],
-                  [0., -3 * pi/4, 0.], [0., -pi/2, pi/4], [0., -pi/2, -pi/4]]),
-        np.array([[0., 0., -pi/2], [pi/4, 0., -pi/2], [0., pi/4, -pi/2], [-pi/4, 0., -pi/2],
-                  [0., -pi/4, -pi/2], [0., 0., -pi/4], [0., 0., -3 * pi/4]]),
-        np.array([[0., pi, 0.], [pi/4, pi, 0.], [0., 5 * pi/4, 0.], [-pi/4, pi, 0.],
-                  [0., 3 * pi/4, 0.], [0., pi, pi/4], [0., pi, -pi/4]]),
-        np.array([[0., -pi/2, 0.], [pi/4, -pi/2, 0.], [0., -pi/4, 0.], [-pi/4, -pi/2, 0.],
-                  [0., -3 * pi/4, 0.], [0., -pi/2, pi/4], [0., -pi/2, -pi/4]]),
-        np.array([[0., 0., -pi/2], [pi/4, 0., -pi/2], [0., pi/4, -pi/2], [-pi/4, 0., -pi/2],
-                  [0., -pi/4, -pi/2], [0., 0., -pi/4], [0., 0., -3 * pi/4]]),
-        np.array([[0., pi, -pi/4], [pi/4, pi, -pi/4], [0., 5 * pi/4, -pi/4], [-pi/4, pi, -pi/4],
-                  [0., 3 * pi/4, -pi/4], [0., pi, 0.], [0., pi, -pi/2]]),
-        np.array([[0., -pi/2, -pi/4], [pi/4, -pi/2, -pi/4], [0., -pi/4, -pi/4],
-                  [-pi/4, -pi/2, -pi/4], [0., -3 * pi/4, -pi/4], [0., -pi/2, 0.],
-                  [0., -pi/2, -pi/2]]),
-    ]
+    return [np.array([[0., 0., 0.], [pi/4, 0., 0.], [0., pi/4, 0.], [-pi/4, 0., 0.],
+                      [0., -pi/4, 0.], [0., 0., pi/4], [0., 0., -pi/4]]),
+            np.array([[0., pi/2, 0.], [pi/4, pi/2, 0.], [0., 3*pi/4, 0.], [-pi/4, pi/2, 0.],
+                      [0., pi/4, 0.], [0., pi/2, pi/4], [0., pi/2, -pi/4]]),
+            np.array([[0., 0., pi/2], [pi/4, 0., pi/2], [0., pi/4, pi/2], [-pi/4, 0., pi/2],
+                      [0., -pi/4, pi/2], [0., 0., 3*pi/4], [0., 0., pi/4]]),
+            np.array([[0., 0., 0.], [pi/4, 0., 0.], [0., pi/4, 0.], [-pi/4, 0., 0.],
+                      [0., -pi/4, 0.], [0., 0., pi/4], [0., 0., -pi/4]]),
+            np.array([[0., pi/2, 0.], [pi/4, pi/2, 0.], [0., 3*pi/4, 0.], [-pi/4, pi/2, 0.],
+                      [0., pi/4, 0.], [0., pi/2, pi/4], [0., pi/2, -pi/4]]),
+            np.array([[0., 0., pi/2], [pi/4, 0., pi/2], [0., pi/4, pi/2], [-pi/4, 0., pi/2],
+                      [0., -pi/4, pi/2], [0., 0., 3*pi/4], [0., 0., pi/4]]),
+            np.array([[0., pi/4, 0.], [pi/4, pi/4, 0.], [0., pi/2, 0.], [-pi/4, pi/4, 0.],
+                      [0., 0., 0.], [0., pi/4, pi/4], [0., pi/4, -pi/4]]),
+            np.array([[0., pi/4, pi/2], [pi/4, pi/4, pi/2], [0., pi/2, pi/2],
+                      [-pi/4, pi/4, pi/2], [0., 0., pi/2], [0., pi/4, 3*pi/4], [0., pi/4, pi/4]]),
+            np.array([[0., offset_3d_movement, pi/4], [pi/4, offset_3d_movement, pi/4],
+                      [0., pi/4+offset_3d_movement, pi/4], [-pi/4, offset_3d_movement, pi/4],
+                      [0., -pi/4+offset_3d_movement, pi/4], [0., offset_3d_movement, pi/2],
+                      [0., offset_3d_movement, 0.]]),
+            np.array([[0., 0., pi], [pi/4, 0., pi], [0., pi/4, pi], [-pi/4, 0., pi],
+                      [0., -pi/4, pi], [0., 0., 5*pi/4], [0., 0., 3*pi/4]]),
+            np.array([[0., 0., -pi/2], [pi/4, 0., -pi/2], [0., pi/4, -pi/2], [-pi/4, 0., -pi/2],
+                      [0., -pi/4, -pi/2], [0., 0., -pi/4], [0., 0., -3*pi/4]]),
+            np.array([[0., -pi/2, 0.], [pi/4, -pi/2, 0.], [0., -pi/4, 0.], [-pi/4, -pi/2, 0.],
+                      [0., -3*pi/4, 0.], [0., -pi/2, pi/4], [0., -pi/2, -pi/4]]),
+            np.array([[0., 0., pi], [pi/4, 0., pi], [0., pi/4, pi], [-pi/4, 0., pi],
+                      [0., -pi/4, pi], [0., 0., 5*pi/4], [0., 0., 3*pi/4]]),
+            np.array([[0., 0., -pi/2], [pi/4, 0., -pi/2], [0., pi/4, -pi/2], [-pi/4, 0., -pi/2],
+                      [0., -pi/4, -pi/2], [0., 0., -pi/4], [0., 0., -3*pi/4]]),
+            np.array([[0., -pi/2, 0.], [pi/4, -pi/2, 0.], [0., -pi/4, 0.], [-pi/4, -pi/2, 0.],
+                      [0., -3*pi/4, 0.], [0., -pi/2, pi/4], [0., -pi/2, -pi/4]]),
+            np.array([[0., -pi/4, pi], [pi/4, -pi/4, pi], [0., 0., pi], [-pi/4, -pi/4, pi],
+                      [0., -pi/2, pi], [0., -pi/4, 5*pi/4], [0., -pi/4, 3*pi/4]]),
+            np.array([[0., -pi/4, -pi/2], [pi/4, -pi/4, -pi/2], [0., 0., -pi/2],
+                      [-pi/4, -pi/4, -pi/2], [0., -pi/2, -pi/2], [0., -pi/4, -pi/4],
+                      [0., -pi/4, -3*pi/4]])]
 
 
 def expected_orientations_2d():
     pi = np.pi
     return [
-        np.array([[0., 0.], [pi/4, 0.], [0., pi/4], [-pi/4, 0.], [0., -pi/4]]),
-        np.array([[0., pi/2], [pi/4, pi/2], [0., 3 * pi/4], [-pi/4, pi/2],
-                  [0., pi/4]]),
-        np.array([[0., 0.], [pi/4, 0.], [0., pi/4], [-pi/4, 0.],
-                  [0., -pi/4]]),
-        np.array([[0., pi/2], [pi/4, pi/2], [0., 3 * pi/4], [-pi/4, pi/2],
-                  [0., pi/4]]),
-        np.array([[0., pi/4], [pi/4, pi/4], [0., pi/2], [-pi/4, pi/4],
-                  [0., 0.]]),
-        np.array([[0., pi], [pi/4, pi], [0., 5*pi/4], [-pi/4, pi],
-                  [0., 3 * pi/4]]),
-        np.array([[0., -pi/2], [pi/4, -pi/2], [0., -pi/4], [-pi/4, -pi/2],
-                  [0., -3 * pi/4]]),
-        np.array([[0., pi], [pi/4, pi], [0., 5 * pi/4], [-pi/4, pi],
-                  [0., 3 * pi/4]]),
-        np.array([[0., -pi/2], [pi/4, -pi/2], [0., -pi/4], [-pi/4, -pi/2],
-                  [0., -3 * pi/4]]),
-        np.array([[0., -3 * pi/4], [pi/4, -3 * pi/4], [0., -pi/2], [-pi/4, -3 * pi/4],
-                  [0., -pi]])
+        np.array([[0., 0., 0.], [0., 0., pi/4],  [0., 0., -pi/4], [0., 0., pi/2],
+                  [0., 0., -pi/2]]),
+        np.array([[0., 0., pi/2],  [0., 0., 3 * pi/4], [0., 0., pi/4], [0., 0., pi],
+                  [0., 0., 0.]]),
+        np.array([[0., 0., 0.],  [0., 0., pi/4], [0., 0., -pi/4], [0., 0., pi/2],
+                  [0., 0., -pi/2]]),
+        np.array([[0., 0., pi/2],  [0., 0., 3 * pi/4], [0., 0., pi/4], [0., 0., pi],
+                  [0., 0., 0.]]),
+        np.array([[0., 0., pi/4], [0., 0., pi/2], [0., 0., 0.], [0., 0., 3 * pi/4],
+                  [0., 0., -pi/4]]),
+        np.array([[0., 0., pi],  [0., 0., 5*pi/4], [0., 0., 3 * pi/4], [0., 0., 3 * pi/2],
+                  [0., 0., pi/2]]),
+        np.array([[0., 0., -pi/2], [0., 0., -pi/4], [0., 0., -3 * pi/4], [0., 0., 0.],
+                  [0., 0., -pi]]),
+        np.array([[0., 0., pi], [0., 0., 5 * pi/4], [0., 0., 3 * pi/4], [0., 0., 3 * pi/2],
+                  [0., 0., pi/2]]),
+        np.array([[0., 0., -pi/2],  [0., 0., -pi/4], [0., 0., -3 * pi/4], [0., 0., 0.],
+                  [0., 0., -pi]]),
+        np.array([[0., 0., -3 * pi/4],  [0., 0., -pi/2], [0., 0., -pi], [0., 0., -pi/4],
+                  [0., 0., -5 * pi/4]])
     ]
 
 
