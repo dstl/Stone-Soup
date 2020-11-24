@@ -1045,8 +1045,8 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
     expects a 6D state space.
     """
 
-    range_res = Property(float, doc="Size of the range bins")
-    range_rate_res = Property(float, doc="Size of the velocity bins")
+    range_res = Property(float, doc="Size of the range bins in m/s")
+    range_rate_res = Property(float, doc="Size of the velocity bins in m")
 
     @property
     def ndim_meas(self):
@@ -1063,7 +1063,7 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
         noise: :class:`numpy.ndarray` or bool
             An externally generated random process noise sample (the default is
             ``False``, in which case no noise will be added and no binning takes place
-            if ``True``, the output of :math:`~.Model.rvs` is added and the
+            if ``True``, the output of :attr:`~.Model.rvs` is added and the
             range and range rate are binned)
 
         Returns

@@ -4,9 +4,9 @@
 r"""
 RangeRangeRateBinning measurement model example
 ===============================================
-`RangeRangeRateBinning` is a cartesian to sphere measurement model. It takes a 6D state of position and
-velocity in 3D cartesian space and produces a 4D state of elevation (:math:`\theta`),  bearing (:math:`\phi`), range (:math:`r`) and
-range-rate (:math:`\dot{r}`),
+:class:`~.RangeRangeRateBinning` is a Cartesian to spherical measurement model. It takes a 6D
+state of position and velocity in 3D cartesian space and produces a 4D state of elevation
+(:math:`\theta`),  bearing (:math:`\phi`), range (:math:`r`) and range-rate (:math:`\dot{r}`),
 
 .. math::
       \vec{y}_t = \begin{bmatrix}
@@ -16,12 +16,14 @@ range-rate (:math:`\dot{r}`),
                 \dot{r}
             \end{bmatrix}
 
-This example demonstrates the RangeRangeRateBinning measurement model, showing the effect of binning
+This example demonstrates the RangeRangeRateBinning measurement model, showing the effect of
+binning
 """
 
 import numpy as np
 from matplotlib import pyplot as plt
 import datetime
+
 
 # show and plot_states will help plot the results of RangeRangeRateBinning
 
@@ -33,12 +35,14 @@ def show(title='', x_label='', y_label=''):
     plt.xlabel(x_label, fontsize=15)
     plt.ylabel(y_label, fontsize=15)
 
+
 def plot_states(state_vectors, mapping, plot=plt.plot, line='+-'):
     array = np.zeros([len(state_vectors), len(mapping)])
     for state_vector, index in zip(state_vectors, range(0, len(state_vectors))):
         for j in range(0, len(mapping)):
             array[index, j] = state_vector[mapping[j]]
     plot(array[:, 0], array[:, 1], line)
+
 
 # %%
 # Measurement model
