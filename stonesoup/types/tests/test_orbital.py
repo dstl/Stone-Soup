@@ -53,6 +53,7 @@ Equinoctial
 
 """
 import numpy as np
+from ...types.array import StateVector
 from ..orbitalstate import OrbitalState
 from ..orbitalstate import KeplerianOrbitalState, TLEOrbitalState, \
     EquinoctialOrbitalState
@@ -143,3 +144,20 @@ def test_equ_init():
     equ = EquinoctialOrbitalState(out_equ,
                                   grav_parameter=cartesian_s.grav_parameter)
     assert(np.allclose(equ.state_vector, orb_st_vec, rtol=1e-2))
+
+
+def test_tle_via_metadata():
+    """Initiate the orbitstate from a TLE (like you'd get from SpaceTrack).
+    The TLE is an test TLE from copied verbatim with the following Cartesian
+    state"""
+
+    outstate = StateVector([-3.75652102e+06, 5.62622198e+06, 4.88985712e+05, -4.20560647e+03,
+                            -2.29106828e+03, -5.98628657e+03])
+
+    lin1 = "1 25544U 98067A   18182.57105324 +.00001714 +00000-0 +33281-4 0  9991"
+    lin2 = "2 25544 051.6426 307.0095 0003698 252.8831 281.8833 15.53996196120757"
+
+    tle_metadata = {'line_1': lin1, 'line_2': lin2}
+    tle_state = TLEOrbitalState(None, metadata=tle_metadata)
+
+    assert (np.allclose(tle_state.state_vector, outstate, rtol=1e-4))
