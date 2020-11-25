@@ -17,8 +17,8 @@ from stonesoup.types.array import StateVector
 )
 def test_stumpf(z, outs, outc):
     """Test the Stumpf functions"""
-    assert stumpf_s(z) == outs
-    assert stumpf_c(z) == outc
+    assert np.isclose(stumpf_s(z), outs, rtol=1e-10)
+    assert np.isclose(stumpf_c(z), outc, rtol=1e-10)
 
 
 def test_universal_anomaly_and_lagrange():
