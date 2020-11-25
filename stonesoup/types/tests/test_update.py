@@ -4,16 +4,17 @@ import datetime
 import numpy as np
 import pytest
 
-from ...types.detection import Detection
-from ...types.hypothesis import SingleHypothesis
-from ...types.particle import Particle
-from ...types.prediction import (
+from ..detection import Detection
+from ..hypothesis import SingleHypothesis
+from ..particle import Particle
+from ..prediction import (
     GaussianStatePrediction, GaussianMeasurementPrediction,
     StatePrediction, StateMeasurementPrediction,
     ParticleStatePrediction, ParticleMeasurementPrediction)
 from ..state import (
     State, GaussianState, SqrtGaussianState, TaggedWeightedGaussianState, ParticleState)
-from ...types.update import (
+from ..track import Track
+from ..update import (
     Update, StateUpdate, GaussianStateUpdate, SqrtGaussianStateUpdate, ParticleStateUpdate)
 
 
@@ -172,3 +173,12 @@ def test_from_state():
 
     with pytest.raises(TypeError, match='Update type not defined for str'):
         Update.from_state("a", state_vector=2)
+
+
+def test_from_state_sequence():
+    sequence = Track([GaussianState([[0]], [[2]], timestamp=datetime.datetime.now())])
+    update = Update.from_state(sequence, [[1]], [[3]], hypothesis=None)
+    assert isinstance(update, GaussianStateUpdate)
+    assert update.timestamp == sequence.timestamp
+    assert update.state_vector[0] == 1
+    assert update.covar[0] == 3

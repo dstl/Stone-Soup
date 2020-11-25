@@ -13,6 +13,7 @@ from ..prediction import (
     ParticleStatePrediction, ParticleMeasurementPrediction)
 from ..state import (
     State, GaussianState, SqrtGaussianState, TaggedWeightedGaussianState, ParticleState)
+from ..track import Track
 
 
 def test_stateprediction():
@@ -176,3 +177,16 @@ def test_from_state(prediction_type):
 
     with pytest.raises(TypeError, match=f'{prediction_type.__name__} type not defined for str'):
         prediction_type.from_state("a", state_vector=2)
+
+
+@pytest.mark.parametrize('prediction_type', (Prediction, MeasurementPrediction))
+def test_from_state_sequence(prediction_type):
+    sequence = Track([GaussianState([[0]], [[2]], timestamp=datetime.datetime.now())])
+    prediction = prediction_type.from_state(sequence, [[1]], [[3]])
+    if prediction_type is Prediction:
+        assert isinstance(prediction, GaussianStatePrediction)
+    else:
+        assert isinstance(prediction, GaussianMeasurementPrediction)
+    assert prediction.timestamp == sequence.timestamp
+    assert prediction.state_vector[0] == 1
+    assert prediction.covar[0] == 3

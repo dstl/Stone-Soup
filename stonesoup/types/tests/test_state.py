@@ -257,3 +257,22 @@ def test_state_mutable_sequence_slice():
 
     with pytest.raises(IndexError):
         sequence[timestamp-delta]
+
+
+def test_state_mutable_sequence_sequence_init():
+    """Test initialising with an existing sequence"""
+    state_vector = StateVector([[0]])
+    timestamp = datetime.datetime(2018, 1, 1, 14)
+    delta = datetime.timedelta(minutes=1)
+    sequence = StateMutableSequence(
+        StateMutableSequence([State(state_vector, timestamp=timestamp + delta * n)
+                              for n in range(10)]))
+
+    assert not isinstance(sequence.states, list)
+
+    assert sequence.state is sequence.states[-1]
+    assert np.array_equal(sequence.state_vector, state_vector)
+    assert sequence.timestamp == timestamp + delta * 9
+
+    del sequence[-1]
+    assert sequence.timestamp == timestamp + delta * 8
