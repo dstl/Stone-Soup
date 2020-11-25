@@ -5,7 +5,7 @@ from ..base import Property
 from .array import CovarianceMatrix
 from .base import Type
 from .state import (State, GaussianState, ParticleState, SqrtGaussianState,
-                    TaggedWeightedGaussianState)
+                    TaggedWeightedGaussianState, StateMutableSequence)
 
 
 def _from_state(
@@ -29,6 +29,9 @@ def _from_state(
         New property names and associate value for use in newly created prediction, replacing those
         on the ``state`` parameter.
     """
+    # Handle being initialised with state sequence
+    if isinstance(state, StateMutableSequence):
+        state = state.state
     try:
         state_type = next(type_ for type_ in type(state).mro() if type_ in cls.class_mapping)
     except StopIteration:
