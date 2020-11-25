@@ -192,7 +192,7 @@ class MultiMeasurementInitiator(GaussianInitiator):
                     state_post = self.updater.update(hypothesis)
                     track.append(state_post)
                     if len(track) >= self.min_points:
-                        new_track = Track(track[-1:])
+                        new_track = Track([track.state])
                         sure_tracks.add(new_track)
                         self.holding_tracks.remove(track)
                     associated_detections.add(hypothesis.measurement)

@@ -4,7 +4,7 @@ from typing import Any, Optional
 from ..base import Property
 from .base import Type
 from .hypothesis import Hypothesis
-from .state import State, GaussianState, ParticleState, SqrtGaussianState
+from .state import State, GaussianState, ParticleState, SqrtGaussianState, StateMutableSequence
 from .mixture import GaussianMixture
 
 
@@ -29,6 +29,9 @@ def _from_state(
         New property names and associate value for use in newly created update, replacing those
         on the ``state`` parameter.
     """
+    # Handle being initialised with state sequence
+    if isinstance(state, StateMutableSequence):
+        state = state.state
     try:
         state_type = next(type_ for type_ in type(state).mro() if type_ in cls.class_mapping)
     except StopIteration:
