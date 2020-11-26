@@ -53,43 +53,72 @@ Equinoctial
 
 """
 import numpy as np
+import pytest
+from datetime import datetime
+
 from ...types.array import StateVector
 from ..orbitalstate import OrbitalState
 from ..orbitalstate import KeplerianOrbitalState, TLEOrbitalState, \
     EquinoctialOrbitalState
 
+# Time
+dtime = datetime.now()
+
 # Orbital state vector in km and km/s
-orb_st_vec = np.array([[-6045], [-3490], [2500], [-3.457], [6.618], [2.533]])
+orb_st_vec = StateVector([-6045, -3490, 2500, -3.457, 6.618, 2.533])
 cartesian_s = OrbitalState(orb_st_vec, coordinates='Cartesian')
 # ensure that the Gravitational parameter is in km^3 s^-2
 cartesian_s.grav_parameter = cartesian_s.grav_parameter/1e9
 
 # The Keplarian elements should be (to 4sf)
-out_kep = np.array([[0.1712], [8788], [2.674], [4.456], [0.3503], [0.4965]])
+out_kep = StateVector([0.1712, 8788, 2.674, 4.456, 0.3503, 0.4965])
 keplerian_s = OrbitalState(out_kep, coordinates='Keplerian',
-                           grav_parameter=cartesian_s.grav_parameter)
+                           grav_parameter=cartesian_s.grav_parameter, timestamp=dtime)
 
 # The TLE should be (to 4sf)
-out_tle = np.array([[2.674], [4.456], [0.1712], [0.3503], [0.3504],
-                    [0.0007662]])
+out_tle = StateVector([2.674, 4.456, 0.1712, 0.3503, 0.3504, 0.0007662])
 
 # Equinoctial elements are (again, 4sf)
-out_equ = np.array([[8788], [-0.1704], [0.01605], [-4.062], [-1.065], [5.157]])
+out_equ = StateVector([8788, -0.1704, 0.01605, -4.062, -1.065, 5.157])
+
+
+def test_incorrect_initialisation():
+    """Run a bunch of tests to show that initialisations with the worng parameters will fail.
+    """
+
+    bad_stvec = orb_st_vec[0:4]
+    with pytest.raises(ValueError):
+        OrbitalState(bad_stvec)
+
+    with pytest.raises(TypeError):
+        OrbitalState(orb_st_vec, coordinates='Nonsense')
+
+    '''with pytest.raises(ValueError):
+        # Push the relevant quantities outside of their limits one at a time
+        bad_out_kep = out_kep
+        out_kep[5] = out_kep[]
+        KeplerianOrbitalState(orb_st_vec)
+        TLEOrbitalState(orb_st_vec)
+        EquinoctialOrbitalState(orb_st_vec)'''
 
 
 # The next three tests ensure that the initialisations in different forms
 # yield the same results
 def test_kep_cart():
+
     # Test that Keplerian initialisation yields same state vector
     # Firstly just flipping back and forth
     keplerian_sn = OrbitalState(cartesian_s.keplerian_elements,
                                 coordinates='Keplerian',
                                 grav_parameter=cartesian_s.grav_parameter)
-    assert(np.allclose(cartesian_s.state_vector, keplerian_sn.state_vector,
+    assert(np.allclose(cartesian_s.state_vector, keplerian_sn.cartesian_state_vector,
                        rtol=1e-4))
 
     # independent initialisation
     assert(np.allclose(keplerian_s.state_vector, orb_st_vec, rtol=2e-3))
+
+    # Test timestamp
+    assert keplerian_s.epoch == dtime
 
 
 def test_tle_cart():

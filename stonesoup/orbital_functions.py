@@ -14,10 +14,8 @@ def stumpf_s(z):
     elif z < 0:
         sqz = np.sqrt(-z)
         return (np.sinh(sqz) - sqz) / sqz ** 3
-    elif z == 0:
+    else:  # which means z== 0:
         return 1 / 6
-    else:
-        raise ValueError("Shouldn't get to this point")
 
 
 def stumpf_c(z):
@@ -28,10 +26,8 @@ def stumpf_c(z):
     elif z < 0:
         sqz = np.sqrt(-z)
         return (np.cosh(sqz) - 1) / sqz ** 2
-    elif z == 0:
+    else:  # which means z == 0:
         return 1 / 2
-    else:
-        raise ValueError("Shouldn't get to this point")
 
 
 def universal_anomaly_newton(o_state_vector, delta_t,
@@ -362,20 +358,57 @@ def keplerian_to_rv(state_vector, grav_parameter=3.986004418e14):
     """
 
     # Calculate the position vector in perifocal coordinates
-    rx = perifocal_position(state_vector[0, 0], state_vector[1, 0],
-                            state_vector[5, 0])
+    rx = perifocal_position(state_vector[0], state_vector[1], state_vector[5])
 
     # Calculate the velocity vector in perifocal coordinates
-    vx = perifocal_velocity(state_vector[0, 0], state_vector[1, 0],
-                            state_vector[5, 0], grav_parameter=grav_parameter)
+    vx = perifocal_velocity(state_vector[0], state_vector[1], state_vector[5],
+                            grav_parameter=grav_parameter)
 
     # Transform position (perifocal) and velocity (perifocal)
     # into geocentric
-    r = perifocal_to_geocentric_matrix(state_vector[2, 0], state_vector[3, 0],
-                                       state_vector[4, 0]) @ rx
+    r = perifocal_to_geocentric_matrix(state_vector[2], state_vector[3], state_vector[4]) @ rx
 
-    v = perifocal_to_geocentric_matrix(state_vector[2, 0], state_vector[3, 0],
-                                       state_vector[4, 0]) @ vx
+    v = perifocal_to_geocentric_matrix(state_vector[2], state_vector[3], state_vector[4]) @ vx
 
     # And put them into the state vector
     return np.concatenate((r, v), axis=0)
+
+
+def mod_inclination(x):
+    r"""Calculates the modulus of an inclination. Inclination angles are within the \
+    range :math:`0` to :math:`\pi`.
+
+    Parameters
+    ----------
+    x: float
+        inclination angle in radians
+
+    Returns
+    -------
+    float
+        Angle in radians in the range math: :math:`0` to :math:`+\pi`
+    """
+
+    x = x % np.pi
+
+    return x
+
+
+def mod_elongitude(x):
+    r"""Calculates the modulus of an ecliptic longitude in which angles are within the
+    range :math:`0` to :math:`2*\pi`.
+
+    Parameters
+    ----------
+    x: float
+        inclination angle in radians
+
+    Returns
+    -------
+    float
+        Angle in radians in the range math: :math:`0` to :math:`+\pi`
+    """
+
+    x = x % (2*np.pi)
+
+    return x
