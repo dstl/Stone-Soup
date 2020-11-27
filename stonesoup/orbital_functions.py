@@ -4,6 +4,7 @@
 """
 import numpy as np
 from .functions import dotproduct
+from .types.array import StateVector
 
 
 def stumpf_s(z):
@@ -348,7 +349,7 @@ def keplerian_to_rv(state_vector, grav_parameter=3.986004418e14):
         Standard gravitational parameter :math:`\mu = G M`
     Returns
     -------
-    : numpy.array
+    : :class:`~.StateVector`
         Orbital state vector as :math:`[r_x, r_y, r_z, v_x, v_y, v_z]`
 
     Warning
@@ -371,7 +372,7 @@ def keplerian_to_rv(state_vector, grav_parameter=3.986004418e14):
     v = perifocal_to_geocentric_matrix(state_vector[2], state_vector[3], state_vector[4]) @ vx
 
     # And put them into the state vector
-    return np.concatenate((r, v), axis=0)
+    return StateVector(np.concatenate((r, v), axis=0))
 
 
 def mod_inclination(x):
