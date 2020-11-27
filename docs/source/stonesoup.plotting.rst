@@ -1,0 +1,4 @@
+Plotting
+========
+
+.. automodule:: stonesoup.plotting

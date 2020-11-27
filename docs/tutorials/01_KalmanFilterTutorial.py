@@ -166,14 +166,11 @@ for k in range(1, 21):
 
 # %%
 # Thus the ground truth is generated and we can plot the result
-fig = plt.figure(figsize=(10, 6))
-ax = fig.add_subplot(1, 1, 1)
-ax.set_xlabel("$x$")
-ax.set_ylabel("$y$")
-ax.axis('equal')
-ax.plot([state.state_vector[0] for state in truth],
-        [state.state_vector[2] for state in truth],
-        linestyle="--")
+
+from stonesoup.plotting import Plotting
+plotter = Plotting()
+plotter.plot_ground_truths(truth, [0, 2])
+
 
 # %%
 # We can check the :math:`F_k` and :math:`Q_k` matrices (generated over a 1s period).
@@ -237,14 +234,12 @@ measurement_model.covar()
 measurements = []
 for state in truth:
     measurement = measurement_model.function(state, noise=True)
-    measurements.append(Detection(measurement, timestamp=state.timestamp))
+    measurements.append(Detection(measurement, timestamp=state.timestamp, measurement_model=measurement_model))
 
 # %%
 # Plot the result
-ax.scatter([state.state_vector[0] for state in measurements],
-           [state.state_vector[1] for state in measurements],
-           color='b')
-fig
+plotter.plot_measurements(measurements, [0, 2])
+plotter.fig
 
 # %%
 # At this stage you should have a moderately linear ground truth path (dotted line) with a series
@@ -332,23 +327,9 @@ for measurement in measurements:
 
 # %%
 # Plot the resulting track, including uncertainty ellipses
-ax.plot([state.state_vector[0] for state in track],
-        [state.state_vector[2] for state in track],
-        marker=".")
 
-from matplotlib.patches import Ellipse
-for state in track:
-    w, v = np.linalg.eig(measurement_model.matrix()@state.covar@measurement_model.matrix().T)
-    max_ind = np.argmax(w)
-    min_ind = np.argmin(w)
-    orient = np.arctan2(v[1,max_ind], v[0,max_ind])
-    ellipse = Ellipse(xy=(state.state_vector[0], state.state_vector[2]),
-                      width=2*np.sqrt(w[max_ind]), height=2*np.sqrt(w[min_ind]),
-                      angle=np.rad2deg(orient),
-                      alpha=0.2,
-                      color='r')
-    ax.add_artist(ellipse)
-fig
+plotter.plot_tracks(track, [0, 2], uncertainty=True)
+plotter.fig
 
 # sphinx_gallery_thumbnail_number = 3
 

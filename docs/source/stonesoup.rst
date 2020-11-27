@@ -10,6 +10,7 @@ Stone Soup Framework
     stonesoup.config
     stonesoup.functions
     stonesoup.measures
+    stonesoup.plotting
     stonesoup.serialise
 
 Components
