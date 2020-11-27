@@ -93,13 +93,25 @@ def test_incorrect_initialisation():
     with pytest.raises(TypeError):
         OrbitalState(orb_st_vec, coordinates='Nonsense')
 
-    '''with pytest.raises(ValueError):
-        # Push the relevant quantities outside of their limits one at a time
-        bad_out_kep = out_kep
-        out_kep[5] = out_kep[]
-        KeplerianOrbitalState(orb_st_vec)
-        TLEOrbitalState(orb_st_vec)
-        EquinoctialOrbitalState(orb_st_vec)'''
+    with pytest.raises(TypeError):
+        TLEOrbitalState(None, metadata={})
+
+    # Push the relevant quantities outside of their limits one at a time
+    bad_out_kep = np.copy(out_kep)
+    bad_out_kep[0] = 1.2
+    with pytest.raises(ValueError):
+        KeplerianOrbitalState(bad_out_kep)
+    bad_out_tle = np.copy(out_tle)
+    bad_out_tle[2] = 1.2
+    with pytest.raises(ValueError):
+        TLEOrbitalState(bad_out_tle)
+    bad_out_equ = np.copy(out_equ)
+    bad_out_equ[2] = -1.5
+    with pytest.raises(ValueError):
+        EquinoctialOrbitalState(bad_out_equ)
+    bad_out_equ[1] = -1.5
+    with pytest.raises(ValueError):
+        EquinoctialOrbitalState(bad_out_equ)
 
 
 # The next three tests ensure that the initialisations in different forms
@@ -124,16 +136,17 @@ def test_kep_cart():
 def test_tle_cart():
     tle_sn = OrbitalState(cartesian_s.two_line_element, coordinates='TLE',
                           grav_parameter=cartesian_s.grav_parameter)
-    assert(np.allclose(cartesian_s.two_line_element, tle_sn.two_line_element,
-                       rtol=1e-3))
+    # Note that we need to convert to floats to do the comparison because np.allclose invokes the
+    # np.isfinite() function which throws an error on Angle types
+    assert(np.allclose(np.float64(cartesian_s.two_line_element),
+                       np.float64(tle_sn.two_line_element), rtol=1e-3))
 
 
 def test_equ_cart():
-    equ_sn = OrbitalState(cartesian_s.equinoctial_elements,
-                          coordinates='Equinoctial',
+    equ_sn = OrbitalState(cartesian_s.equinoctial_elements, coordinates='Equinoctial',
                           grav_parameter=cartesian_s.grav_parameter)
-    assert(np.allclose(cartesian_s.equinoctial_elements,
-                       equ_sn.equinoctial_elements, rtol=1e-3))
+    assert(np.allclose(np.float64(cartesian_s.equinoctial_elements),
+                       np.float64(equ_sn.equinoctial_elements), rtol=1e-3))
 
 
 # Now we need to test that the output is actually correct.
@@ -142,12 +155,12 @@ def test_cart_kep():
     # Simple assertion
     assert(np.all(cartesian_s.state_vector == orb_st_vec))
     # Check Keplerian elements come out right
-    assert(np.allclose(cartesian_s.keplerian_elements, out_kep, rtol=1e-3))
+    assert(np.allclose(np.float64(cartesian_s.keplerian_elements), out_kep, rtol=1e-3))
 
 
 # The test TLE output
 def test_cart_tle():
-    assert(np.allclose(cartesian_s.two_line_element, out_tle, rtol=1e-3))
+    assert(np.allclose(np.float64(cartesian_s.two_line_element), out_tle, rtol=1e-3))
 
 
 # Test some specific quantities
@@ -155,8 +168,7 @@ def test_cart_tle():
 def test_keplerian_init():
     """Keplerian elements"""
 
-    k = KeplerianOrbitalState(out_kep,
-                              grav_parameter=cartesian_s.grav_parameter)
+    k = KeplerianOrbitalState(out_kep, grav_parameter=cartesian_s.grav_parameter)
     assert(np.allclose(k.state_vector, orb_st_vec, rtol=1e-2))
 
 
@@ -164,6 +176,7 @@ def test_tle_init():
     """Init TLE derived class"""
 
     tle = TLEOrbitalState(out_tle, grav_parameter=cartesian_s.grav_parameter)
+    # First enforce the correct type
     assert(np.allclose(tle.state_vector, orb_st_vec, rtol=1e-2))
 
 

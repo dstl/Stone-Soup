@@ -329,7 +329,7 @@ def keplerian_to_rv(state_vector, grav_parameter=3.986004418e14):
 
     Parameters
     ----------
-    state_vector : numpy.array()
+    state_vector : :class:`~.StateVector`
         defined as
 
         .. math::

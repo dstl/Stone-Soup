@@ -128,7 +128,7 @@ class OrbitalState(State):
 
         Parameters
         ----------
-        state_vector : :class:`numpy.array`
+        state_vector : :class:`StateVector`
             The input vector whose elements depend on the parameterisation
             used. See 'Keywords' below. Must have dimension 6x1.
 
@@ -157,11 +157,25 @@ class OrbitalState(State):
 
         elif self.coordinates.lower() == 'keplerian':
             # Convert Keplerian elements to Cartesian
+
+            # First enforce the correct type
+            state_vector[2] = Inclination(state_vector[2])
+            state_vector[3] = EclipticLongitude(state_vector[3])
+            state_vector[4] = EclipticLongitude(state_vector[4])
+            state_vector[5] = EclipticLongitude(state_vector[5])
+
             self.state_vector = keplerian_to_rv(
                 state_vector, grav_parameter=self.grav_parameter)
 
         elif self.coordinates.upper() == 'TLE':
             # TODO: ensure this works for parabolas and hyperbolas
+
+            # First enforce the correct type
+            state_vector[0] = Inclination(state_vector[0])
+            state_vector[1] = EclipticLongitude(state_vector[1])
+            state_vector[3] = EclipticLongitude(state_vector[3])
+            state_vector[4] = EclipticLongitude(state_vector[4])
+
             # Get the semi-major axis from the mean motion
             semimajor_axis = np.cbrt(self.grav_parameter/state_vector[5]**2)
 
@@ -176,6 +190,10 @@ class OrbitalState(State):
                                                 grav_parameter=self.grav_parameter)
 
         elif self.coordinates.lower() == 'equinoctial':
+
+            # First enforce the correct type for mean longitude
+            state_vector[5] = EclipticLongitude(state_vector[5])
+
             # Calculate the Keplarian element quantities
             semimajor_axis = state_vector[0]
             raan = np.arctan2(state_vector[3], state_vector[4])
@@ -353,22 +371,23 @@ class OrbitalState(State):
         r"""
         Returns
         -------
-        : float
-            Orbital inclination, :math:`i \; (0 \le i < \pi)`
+        : :class:`~.Inclination`
+            Orbital inclination, :math:`i \; (0 \le i < \pi)`, [rad]
 
         """
         boldh = self.specific_angular_momentum
         h = self.mag_specific_angular_momentum
 
         # Note no quadrant ambiguity
-        return np.arccos(np.clip(boldh[2].item()/h, -1, 1))
+        return Inclination(np.arccos(np.clip(boldh[2].item()/h, -1, 1)))
 
     @property
     def longitude_ascending_node(self):
         r"""
         Returns
         -------
-        : float
+        : :class:`~.EclipticLongitude`
+
             The longitude (or right ascension) of ascending node,
             :math:`\Omega \; (0 \le \Omega < 2\pi)`
 
@@ -379,17 +398,17 @@ class OrbitalState(State):
 
         # Quadrant ambiguity
         if boldn[1].item() >= 0:
-            return np.arccos(np.clip(boldn[0].item()/n, -1, 1))
+            return EclipticLongitude(np.arccos(np.clip(boldn[0].item()/n, -1, 1)))
         else:  # boldn[1].item() < 0:
-            return 2*np.pi - np.arccos(np.clip(boldn[0].item()/n, -1, 1))
+            return EclipticLongitude(2*np.pi - np.arccos(np.clip(boldn[0].item()/n, -1, 1)))
 
     @property
     def argument_periapsis(self):
         r"""
         Returns
         -------
-        : float
-            The argument of periapsis, :math:`\omega \; (0 \le \omega < 2\pi)`
+        : :class:`~.EclipticLongitude`
+            The argument of periapsis, :math:`\omega \; (0 \le \omega < 2\pi)` in radians
 
         """
 
@@ -407,19 +426,19 @@ class OrbitalState(State):
         # the occasional floating-point errors which push the ratio outside the
         # -1,1 region.
         if bolde[2].item() >= 0:
-            return np.arccos(np.clip(np.dot(boldn.T, bolde).item() /
-                             (n * self.eccentricity), -1, 1))
+            return EclipticLongitude(np.arccos(np.clip(np.dot(boldn.T, bolde).item() /
+                                                       (n * self.eccentricity), -1, 1)))
         else:  # bolde[2].item() < 0:
-            return 2*np.pi - np.arccos(np.clip(np.dot(boldn.T, bolde).item() /
-                                       (n * self.eccentricity), -1, 1))
+            return EclipticLongitude(2*np.pi - np.arccos(np.clip(np.dot(boldn.T, bolde).item() /
+                                                                 (n * self.eccentricity), -1, 1)))
 
     @property
     def true_anomaly(self):
         r"""
         Returns
         -------
-        : float
-            The true anomaly, :math:`\theta \; (0 \le \theta < 2\pi)`
+        : :class:`~.EclipticLongitude`
+            The true anomaly, :math:`\theta \; (0 \le \theta < 2\pi)` in radians
 
         """
         # Resolve the quadrant ambiguity.The clip function is required to
@@ -429,21 +448,21 @@ class OrbitalState(State):
                                  self.state_vector[3:6]).item() / self.speed
 
         if radial_velocity >= 0:
-            return np.arccos(np.clip(
-                np.dot(self._eccentricity_vector.T / self.eccentricity,
-                       self.state_vector[0:3] / self.range).item(), -1, 1))
+            return EclipticLongitude(np.arccos(np.clip(
+                np.dot(self._eccentricity_vector.T / self.eccentricity, self.state_vector[0:3] /
+                       self.range).item(), -1, 1)))
         else:  # radial_velocity < 0:
-            return 2*np.pi - np.arccos(np.clip(
-                np.dot(self._eccentricity_vector.T / self.eccentricity,
-                       self.state_vector[0:3] / self.range).item(), -1, 1))
+            return EclipticLongitude(2*np.pi - np.arccos(np.clip(
+                np.dot(self._eccentricity_vector.T / self.eccentricity, self.state_vector[0:3] /
+                       self.range).item(), -1, 1)))
 
     @property
     def eccentric_anomaly(self):
         r"""
         Returns
         -------
-        : float
-            The eccentric anomaly, :math:`E \; (0 \le E < 2\pi)`
+        : :class:`~.EclipticLongitude`
+            The eccentric anomaly, :math:`E \; (0 \le E < 2\pi)` in radians
 
         Note
         ----
@@ -452,18 +471,18 @@ class OrbitalState(State):
             anomaly using an iterative procedure.
 
         """
-        return np.remainder(2 * np.arctan(np.sqrt((1 - self.eccentricity) /
-                                                  (1 + self.eccentricity)) *
-                                          np.tan(self.true_anomaly / 2)),
-                            2*np.pi)
+        return EclipticLongitude(np.remainder(2 * np.arctan(np.sqrt((1 - self.eccentricity) /
+                                                                    (1 + self.eccentricity)) *
+                                                            np.tan(self.true_anomaly / 2)),
+                                              2*np.pi))
 
     @property
     def mean_anomaly(self):
         r"""
         Returns
         -------
-        : float
-            Mean anomaly, :math:`M \; (0 \le M < 2\pi`)
+        : :class:`~.EclipticLongitude`
+            Mean anomaly, :math:`M \; (0 \le M < 2\pi`), in radians
 
         Note
         ----
@@ -472,8 +491,8 @@ class OrbitalState(State):
 
         """
 
-        return self.eccentric_anomaly - self.eccentricity * \
-            np.sin(self.eccentric_anomaly)  # Kepler's equation
+        return EclipticLongitude(self.eccentric_anomaly - self.eccentricity *
+                                 np.sin(self.eccentric_anomaly))  # Kepler's equation
 
     @property
     def period(self):
@@ -587,13 +606,13 @@ class OrbitalState(State):
         r"""
         Returns
         -------
-        : float
+        : :class:`~.EclipticLongitude`
             The mean longitude, defined as :math:`\lambda = M_0 + \omega +
-            \Omega`
+            \Omega`(rad)
 
         """
-        return self.mean_anomaly + self.argument_periapsis + \
-            self.longitude_ascending_node
+        return EclipticLongitude(self.mean_anomaly + self.argument_periapsis +
+                                 self.longitude_ascending_node)
 
     # The following return vectors of complete sets of elements
     @property
@@ -706,18 +725,6 @@ class KeplerianOrbitalState(OrbitalState):
         if np.less(state_vector[0], 0.0) | np.greater(state_vector[0], 1.0):
             raise ValueError("Eccentricity should be between 0 and 1: got {}"
                              .format(state_vector[0]))
-        if np.less(state_vector[2], 0.0) | np.greater(state_vector[2], np.pi):
-            raise ValueError("Inclination should be between 0 and pi: got {}"
-                             .format(state_vector[2]))
-        if np.less(state_vector[3], 0.0) | np.greater(state_vector[3], 2*np.pi):
-            raise ValueError("Longitude of Ascending Node should be between 0 "
-                             "and 2*pi: got {}".format(state_vector[3]))
-        if np.less(state_vector[4], 0.0) | np.greater(state_vector[4], 2*np.pi):
-            raise ValueError("Argument of Periapsis should be between 0 and "
-                             "2*pi: got {}".format(state_vector[4]))
-        if np.less(state_vector[5], 0.0) | np.greater(state_vector[5], 2*np.pi):
-            raise ValueError("True Anomaly should be between 0 and 2*pi: got "
-                             "{}".format(state_vector[5, 0]))
 
         # And go ahead and initialise as previously
         super().__init__(state_vector, coordinates='keplerian', *args,
@@ -750,7 +757,7 @@ class TLEOrbitalState(OrbitalState):
             state_vector = StateVector([0, 0, 0, 0, 0, 1e-3])
             super().__init__(state_vector, *args, **kwargs)
 
-            if self.metadata is not None or len(self.metadata) != 0:
+            if self.metadata is not None and len(self.metadata) != 0:
                 line1 = self.metadata['line_1']
                 line2 = self.metadata['line_2']
 
@@ -793,18 +800,6 @@ class TLEOrbitalState(OrbitalState):
             if np.less(state_vector[2], 0.0) | np.greater(state_vector[2], 1.0):
                 raise ValueError("Eccentricity should be between 0 and 1: got {}"
                                  .format(state_vector[0]))
-            if np.less(state_vector[0], 0.0) | np.greater(state_vector[0], np.pi):
-                raise ValueError("Inclination should be between 0 and pi: got {}"
-                                 .format(state_vector[1]))
-            if np.less(state_vector[1], 0.0) | np.greater(state_vector[1], 2*np.pi):
-                raise ValueError("Longitude of Ascending Node should be between 0 "
-                                 "and 2*pi: got {}".format(state_vector[2]))
-            if np.less(state_vector[3], 0.0) | np.greater(state_vector[3], 2*np.pi):
-                raise ValueError("Argument of Periapsis should be between 0 and "
-                                 "2*pi: got {}".format(state_vector[3]))
-            if np.less(state_vector[4], 0.0) | np.greater(state_vector[4], 2*np.pi):
-                raise ValueError("Mean Anomaly should be between 0 and 2*pi: got "
-                                 "{}".format(state_vector[4]))
 
             super().__init__(state_vector, coordinates='TLE', *args, **kwargs)
 
@@ -836,9 +831,6 @@ class EquinoctialOrbitalState(OrbitalState):
         if np.less(state_vector[2], -1.0) | np.greater(state_vector[2], 1.0):
             raise ValueError("Vertical Eccentricity should be between -1 and "
                              "1: got {}".format(state_vector[2]))
-        if np.less(state_vector[5], 0.0) | np.greater(state_vector[5], 2*np.pi):
-            raise ValueError("Mean Longitude should be between 0 and 2*pi: got"
-                             " {}".format(state_vector[5]))
 
         super().__init__(state_vector, coordinates='Equinoctial', *args,
                          **kwargs)
