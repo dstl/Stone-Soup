@@ -7,8 +7,8 @@ from functools import lru_cache
 from ..base import Property
 from .base import Updater
 from ..types.array import CovarianceMatrix
-from ..types.prediction import GaussianMeasurementPrediction
-from ..types.update import GaussianStateUpdate, SqrtGaussianStateUpdate
+from ..types.prediction import MeasurementPrediction
+from ..types.update import Update
 from ..models.base import LinearModel
 from ..models.measurement.linear import LinearGaussian
 from ..models.measurement import MeasurementModel
@@ -70,9 +70,6 @@ class KalmanUpdater(Updater):
         default=False,
         doc="A flag to force the output covariance matrix to be symmetric by way of a simple "
             "geometric combination of the matrix and transpose. Default is False.")
-
-    # This attribute tells the :meth:`update()` method what class to return
-    _update_class = GaussianStateUpdate
 
     def _check_measurement_model(self, measurement_model):
         """Check that the measurement model passed actually exists. If not
@@ -226,9 +223,8 @@ class KalmanUpdater(Updater):
         meas_cross_cov = self._measurement_cross_covariance(predicted_state, hh)
         innov_cov = self._innovation_covariance(meas_cross_cov, hh, measurement_model)
 
-        return GaussianMeasurementPrediction(pred_meas, innov_cov,
-                                             predicted_state.timestamp,
-                                             cross_covar=meas_cross_cov)
+        return MeasurementPrediction.from_state(
+            predicted_state, pred_meas, innov_cov, cross_covar=meas_cross_cov)
 
     def update(self, hypothesis, **kwargs):
         r"""The Kalman update method. Given a hypothesised association between
@@ -280,8 +276,10 @@ class KalmanUpdater(Updater):
             posterior_covariance = \
                 (posterior_covariance + posterior_covariance.T)/2
 
-        return self._update_class(posterior_mean, posterior_covariance, hypothesis,
-                                  timestamp=hypothesis.measurement.timestamp)
+        return Update.from_state(
+            hypothesis.prediction,
+            posterior_mean, posterior_covariance,
+            timestamp=hypothesis.measurement.timestamp, hypothesis=hypothesis)
 
 
 class ExtendedKalmanUpdater(KalmanUpdater):
@@ -398,9 +396,8 @@ class UnscentedKalmanUpdater(KalmanUpdater):
                                 measurement_model.function,
                                 covar_noise=measurement_model.covar())
 
-        return GaussianMeasurementPrediction(meas_pred_mean, meas_pred_covar,
-                                             predicted_state.timestamp,
-                                             cross_covar)
+        return MeasurementPrediction.from_state(
+            predicted_state, meas_pred_mean, meas_pred_covar, cross_covar=cross_covar)
 
 
 class SqrtKalmanUpdater(KalmanUpdater):
@@ -428,9 +425,6 @@ class SqrtKalmanUpdater(KalmanUpdater):
         default=False,
         doc="A switch to do the update via a QR decomposition, rather than using the (vector form "
             "of) the Potter method.")
-
-    # In this instance the square root form is returned by the :meth:`update()`
-    _update_class = SqrtGaussianStateUpdate
 
     def _measurement_cross_covariance(self, predicted_state, measurement_matrix):
         """

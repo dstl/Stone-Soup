@@ -52,7 +52,7 @@ groundtruth_sim = MultiTargetGroundTruthSimulator(
 detection_sim = SimpleDetectionSimulator(
     groundtruth=groundtruth_sim,
     measurement_model=measurement_model,
-    meas_range=np.array([[-1, 1], [-1, 1]])*5000,  # Area to generate clutter
+    meas_range=np.array([[-1, 1], [-1, 1]]) * 5000,  # Area to generate clutter
     detection_probability=0.9,
     clutter_rate=1,
 )
@@ -92,6 +92,7 @@ tracker = MultiTargetTracker(
 # computes the number of tracks, number to targets and the ratio of tracks to targets. Basic but
 # useful information, that requires no additional properties.
 from stonesoup.metricgenerator.basicmetrics import BasicMetrics
+
 basic_generator = BasicMetrics()
 
 # %%
@@ -101,6 +102,7 @@ basic_generator = BasicMetrics()
 # cardinality penalty. [#]_
 from stonesoup.metricgenerator.ospametric import OSPAMetric
 from stonesoup.measures import Euclidean
+
 ospa_generator = OSPAMetric(c=10, p=1, measure=Euclidean([0, 2]))
 
 # %%
@@ -108,18 +110,21 @@ ospa_generator = OSPAMetric(c=10, p=1, measure=Euclidean([0, 2]))
 # is applicable to tracking in general and not just in relation to an air picture. This is made up
 # of multiple individual metrics. [#]_
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
-siap_generator = SIAPMetrics()
+
+siap_generator = SIAPMetrics(position_mapping=[0, 2], velocity_mapping=[1, 3])
 
 # %%
 # The SIAP Metrics requires a way to associate tracks to truth, so we'll use a Track to Truth
 # associator, which uses Euclidean distance measure by default.
 from stonesoup.dataassociator.tracktotrack import TrackToTruth
+
 associator = TrackToTruth(association_threshold=30)
 
 # %%
 # As a final example of a metric, we'll create a plotting metric, which is a visual way to view the
 # output of our tracker.
 from stonesoup.metricgenerator.plotter import TwoDPlotter
+
 plot_generator = TwoDPlotter([0, 2], [0, 2], [0, 1])
 
 # %%
@@ -127,6 +132,7 @@ plot_generator = TwoDPlotter([0, 2], [0, 2], [0, 1])
 # associator. The associator can be used by multiple metric generators, only being run once as this
 # can be a computationally expensive process; in this case, only SIAP Metrics requires it.
 from stonesoup.metricgenerator.manager import SimpleManager
+
 metric_manager = SimpleManager([basic_generator, ospa_generator, siap_generator, plot_generator],
                                associator=associator)
 
@@ -173,10 +179,40 @@ _ = ax.set_xlabel("Time")
 # we'll use a special SIAP table generator. This will colour code the results for quick visual
 # indication, as well as provide a description for each metric.
 from stonesoup.metricgenerator.metrictables import SIAPTableGenerator
+
 _ = SIAPTableGenerator(
     {metric for metric in metrics if metric.title.startswith("SIAP")}).compute_metric()
 
-# sphinx_gallery_thumbnail_number = 3
+# %%
+# Plotting appropriate SIAP values at each timestamp gives:
+
+fig2, axes = plt.subplots(5)
+
+fig2.subplots_adjust(hspace=1)
+
+t_siaps = {metric for metric in metrics if metric.title.startswith('T ')}
+
+times = metric_manager.list_timestamps()
+
+for siap, axis in zip(t_siaps, axes):
+    name = siap.title[2:]
+    if name == 'C':
+        title = 'Completeness'
+    elif name == 'A':
+        title = 'Ambiguity'
+    elif name == 'S':
+        title = 'Spuriousness'
+    elif name == 'PA':
+        title = 'Positional Accuracy'
+    elif name == 'VA':
+        title = 'Velocity Accuracy'
+    else:
+        raise ValueError(f'Unknown title:{name}')
+    axis.set(title=title, xlabel='Time', ylabel=name)
+    axis.tick_params(length=1)
+    axis.plot(times, [t_siap.value for t_siap in siap.value])
+
+# sphinx_gallery_thumbnail_number = 4
 
 # %%
 # .. rubric:: Footnotes

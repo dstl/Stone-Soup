@@ -5,8 +5,8 @@ from pytest import approx
 
 from ..functions import (
     jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma,
-    rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart)
-from ..types.array import StateVector, StateVectors
+    rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart, dotproduct)
+from ..types.array import StateVector, StateVectors, Matrix
 from ..types.state import State, GaussianState
 
 
@@ -189,3 +189,33 @@ def test_cart_sphere_inversions(x, y, z):
     #   note, this only works correctly when z==0
     if z == 0:
         assert np.allclose(np.array([x, y]), pol2cart(rho, phi))
+
+
+@pytest.mark.parametrize(
+    "state_vector1, state_vector2",
+    [  # Cartesian values
+        (StateVector([2, 4]), StateVector([2, 1])),
+        (StateVector([-1, 1, -4]), StateVector([-2, 1, 1])),
+        (StateVector([-2, 0, 3, -1]), StateVector([1, 0, -1, 4])),
+        (StateVector([-1, 0]), StateVector([1, -2, 3])),
+        (Matrix([[1, 0], [0, 1]]), Matrix([[3, 1], [1, -3]]))
+     ]
+)
+def test_dotproduct(state_vector1, state_vector2):
+
+    # Test that they raise the right error if not 1d, i.e. vectors
+    if np.shape(state_vector1)[1] != 1 | np.shape(state_vector2)[1] != 1:
+        with pytest.raises(ValueError):
+            dotproduct(state_vector1, state_vector2)
+    else:
+        if len(state_vector1) != len(state_vector2):
+            # If they're different lengths check that the correct error is thrown
+            with pytest.raises(ValueError):
+                dotproduct(state_vector1, state_vector2)
+        else:
+            # This is what the dotproduct function actually does
+            out = 0
+            for a_i, b_i in zip(state_vector1, state_vector2):
+                out += a_i * b_i
+
+            assert dotproduct(state_vector1, state_vector2) == out

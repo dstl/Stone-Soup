@@ -99,9 +99,33 @@ def test_weighted_gaussian_state():
     mean = StateVector([[1], [2], [3], [4]])  # 4D
     covar = CovarianceMatrix(np.diag([1, 2, 3]))  # 3D
     weight = 0.3
+    timestamp = datetime.datetime.now()
     with pytest.raises(ValueError):
-        a = WeightedGaussianState(mean, covar, weight)
-        assert a.weight == weight
+        WeightedGaussianState(mean, covar, timestamp, weight)
+
+    # Test initialization using a GuassianState
+    mean = StateVector([[1], [2], [3], [4]])  # 4D
+    covar = CovarianceMatrix(np.diag([1, 2, 3, 4]))
+    weight = 0.3
+    gs = GaussianState(mean, covar, timestamp=timestamp)
+    wgs = WeightedGaussianState.from_gaussian_state(gaussian_state=gs, weight=weight)
+    assert np.array_equal(gs.state_vector, wgs.state_vector)
+    assert np.array_equal(gs.covar, wgs.covar)
+    assert gs.timestamp == wgs.timestamp
+    assert weight == wgs.weight
+    assert wgs.state_vector is not gs.state_vector
+    assert wgs.covar is not gs.covar
+
+    # Test copy flag
+    wgs = WeightedGaussianState.from_gaussian_state(gaussian_state=gs, copy=False)
+    assert wgs.state_vector is gs.state_vector
+    assert wgs.covar is gs.covar
+
+    # Test gaussian_state property
+    gs2 = wgs.gaussian_state
+    assert np.array_equal(gs.state_vector, gs2.state_vector)
+    assert np.array_equal(gs.covar, gs2.covar)
+    assert gs.timestamp == gs2.timestamp
 
 
 def test_particlestate():
@@ -233,3 +257,22 @@ def test_state_mutable_sequence_slice():
 
     with pytest.raises(IndexError):
         sequence[timestamp-delta]
+
+
+def test_state_mutable_sequence_sequence_init():
+    """Test initialising with an existing sequence"""
+    state_vector = StateVector([[0]])
+    timestamp = datetime.datetime(2018, 1, 1, 14)
+    delta = datetime.timedelta(minutes=1)
+    sequence = StateMutableSequence(
+        StateMutableSequence([State(state_vector, timestamp=timestamp + delta * n)
+                              for n in range(10)]))
+
+    assert not isinstance(sequence.states, list)
+
+    assert sequence.state is sequence.states[-1]
+    assert np.array_equal(sequence.state_vector, state_vector)
+    assert sequence.timestamp == timestamp + delta * 9
+
+    del sequence[-1]
+    assert sequence.timestamp == timestamp + delta * 8

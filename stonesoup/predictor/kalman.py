@@ -7,7 +7,7 @@ from functools import partial
 from .base import Predictor
 from ._utils import predict_lru_cache
 from ..base import Property
-from ..types.prediction import GaussianStatePrediction, SqrtGaussianStatePrediction
+from ..types.prediction import Prediction, SqrtGaussianStatePrediction
 from ..models.base import LinearModel
 from ..models.transition import TransitionModel
 from ..models.transition.linear import LinearGaussianTransitionModel
@@ -43,9 +43,6 @@ class KalmanPredictor(Predictor):
         default=None,
         doc="The control model to be used. Default `None` where the predictor "
             "will create a zero-effect linear :class:`~.ControlModel`.")
-
-    # This attribute tells the :meth:`predict()` method what type of prediction to return
-    _prediction_class = GaussianStatePrediction
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -195,7 +192,7 @@ class KalmanPredictor(Predictor):
         p_pred = self._predicted_covariance(prior, predict_over_interval)
 
         # And return the state in the correct form
-        return self._prediction_class(x_pred, p_pred, timestamp=timestamp)
+        return Prediction.from_state(prior, x_pred, p_pred, timestamp=timestamp)
 
 
 class ExtendedKalmanPredictor(KalmanPredictor):
@@ -383,7 +380,7 @@ class UnscentedKalmanPredictor(KalmanPredictor):
         )
 
         # and return a Gaussian state based on these parameters
-        return GaussianStatePrediction(x_pred, p_pred, timestamp=timestamp)
+        return Prediction.from_state(prior, x_pred, p_pred, timestamp=timestamp)
 
 
 class SqrtKalmanPredictor(KalmanPredictor):

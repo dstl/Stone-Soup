@@ -62,7 +62,7 @@ class StateMutableSequence(Type, abc.MutableSequence):
     def __init__(self, states=None, *args, **kwargs):
         if states is None:
             states = []
-        elif not isinstance(states, list):
+        elif not isinstance(states, abc.Sequence):
             # Ensure states is a list
             states = [states]
         super().__init__(states, *args, **kwargs)
@@ -94,7 +94,7 @@ class StateMutableSequence(Type, abc.MutableSequence):
                 items.append(state)
             return StateMutableSequence(items[::index.step])
         elif isinstance(index, datetime.datetime):
-            for state in self.states:
+            for state in reversed(self.states):
                 if state.timestamp == index:
                     return state
             else:
@@ -130,7 +130,9 @@ class GaussianState(State):
     covar: CovarianceMatrix = Property(doc='Covariance matrix of state.')
 
     def __init__(self, state_vector, covar, *args, **kwargs):
-        covar = CovarianceMatrix(covar)
+        # Don't cast away subtype of covar if not necessary
+        if not isinstance(covar, CovarianceMatrix):
+            covar = CovarianceMatrix(covar)
         super().__init__(state_vector, covar, *args, **kwargs)
         if self.state_vector.shape[0] != self.covar.shape[0]:
             raise ValueError(
@@ -184,6 +186,48 @@ class WeightedGaussianState(GaussianState):
     for a GaussianMixtureState.
     """
     weight: Probability = Property(default=0, doc="Weight of the Gaussian State.")
+
+    @property
+    def gaussian_state(self):
+        """The Gaussian state."""
+        return GaussianState(self.state_vector,
+                             self.covar,
+                             timestamp=self.timestamp)
+
+    @classmethod
+    def from_gaussian_state(cls, gaussian_state, *args, copy=True, **kwargs):
+        r"""
+        Returns a WeightedGaussianState instance based on the gaussian_state.
+
+        Parameters
+        ----------
+        gaussian_state : :class:`~.GaussianState`
+            The guassian_state used to create the new WeightedGaussianState.
+        \*args : See main :class:`~.WeightedGaussianState`
+            args are passed to :class:`~.WeightedGaussianState` __init__()
+        copy : Boolean, optional
+            If True, the WeightedGaussianState is created with copies of the elements
+            of gaussian_state. The default is True.
+        \*\*kwargs : See main :class:`~.WeightedGaussianState`
+            kwargs are passed to :class:`~.WeightedGaussianState` __init__()
+
+        Returns
+        -------
+        :class:`~.WeightedGaussianState`
+            Instance of WeightedGaussianState.
+        """
+        state_vector = gaussian_state.state_vector
+        covar = gaussian_state.covar
+        timestamp = gaussian_state.timestamp
+        if copy:
+            state_vector = state_vector.copy()
+            covar = covar.copy()
+        return cls(
+            state_vector=state_vector,
+            covar=covar,
+            timestamp=timestamp,
+            *args, **kwargs
+        )
 
 
 class TaggedWeightedGaussianState(WeightedGaussianState):

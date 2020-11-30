@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from itertools import chain
 from typing import Sequence
 
 from .base import MetricManager, MetricGenerator
@@ -108,8 +109,7 @@ class SimpleManager(MetricManager):
         """
 
         # Make a list of all the unique timestamps used
-        timestamps = {state.timestamp for state in self.tracks}
-        timestamps |= {state.timestamp
-                       for path in self.groundtruth_paths
-                       for state in path}
+        timestamps = {state.timestamp
+                      for sequence in chain(self.tracks, self.groundtruth_paths)
+                      for state in sequence}
         return sorted(timestamps)

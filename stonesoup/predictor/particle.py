@@ -2,7 +2,7 @@
 from .base import Predictor
 from ._utils import predict_lru_cache
 from ..types.particle import Particle
-from ..types.prediction import ParticleStatePrediction
+from ..types.prediction import Prediction
 
 
 class ParticlePredictor(Predictor):
@@ -50,4 +50,4 @@ class ParticlePredictor(Predictor):
                          weight=particle.weight,
                          parent=particle.parent))
 
-        return ParticleStatePrediction(new_particles, timestamp=timestamp)
+        return Prediction.from_state(prior, particles=new_particles, timestamp=timestamp)

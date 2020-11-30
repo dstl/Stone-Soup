@@ -180,6 +180,7 @@ def sigma2gauss(sigma_points, mean_weights, covar_weights, covar_noise=None):
     : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`
         Calculated covariance
     """
+
     mean = np.average(sigma_points, axis=1, weights=mean_weights)
 
     points_diff = sigma_points - mean
@@ -588,35 +589,3 @@ def dotproduct(a, b):
         out += a_i*b_i
 
     return out
-
-
-def crossproduct(a, b):
-    r"""A convenience function that saves having to remember a lot of
-    counterintuitive formatting stuff inflicted on us by numpy.
-
-    The result is valid for state vectors of dimension (3,1) and is
-
-    .. math:
-
-        \bigbracket{ a_2 b_3 - a_3 b_2, \\
-                     a_3 b_1 - a_1 b_3, \\
-                     a_1 b2 - a_2 b_1 }
-
-    Parameters
-    ----------
-    a, b : StateVector, StateVector
-        Two state vectors of dimension (3, 1)
-
-    Returns
-    -------
-    : StateVector
-        Column vector of dimension (3, 1)
-
-    """
-    if np.shape(a)[0] != 3 or np.shape(b)[0] != 3 or np.shape(a)[1] != 1 or \
-            np.shape(b)[1] != 1:
-        raise ValueError("Inputs must be column vectors")
-
-    return StateVector([a[1]*b[2] - b[1]*a[2],
-                        a[2]*b[0] - b[2]*a[0],
-                        a[0]*b[1] - b[0]*a[1]])
