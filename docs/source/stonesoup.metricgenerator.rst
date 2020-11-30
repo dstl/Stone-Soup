@@ -12,3 +12,7 @@ Metric Generators
 
 .. automodule:: stonesoup.metricgenerator.base
     :show-inheritance:
+
+Metric Managers
+---------------
+.. automodule:: stonesoup.metricgenerator.manager
