@@ -18,6 +18,8 @@ Enabling Components
     :noindex:
 .. autoclass:: stonesoup.tracker.Tracker
     :noindex:
+.. autoclass:: stonesoup.wrapper.Wrapper
+    :noindex:
 
 Data Input
 ^^^^^^^^^^
