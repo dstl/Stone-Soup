@@ -22,7 +22,7 @@ def test_adddata():
         states=State(np.array([[2]]), timestamp=datetime.datetime.now()))]
     dets = [Detection(np.array([[3]]), timestamp=datetime.datetime.now())]
 
-    manager.add_data([tracks, truths, dets])
+    manager.add_data(truths, tracks, dets)
 
     assert manager.tracks == set(tracks)
     assert manager.groundtruth_paths == set(truths)
@@ -36,7 +36,7 @@ def test_adddata():
         states=State(np.array([[22]]), timestamp=datetime.datetime.now()))]
     dets2 = [Detection(np.array([[23]]), timestamp=datetime.datetime.now())]
 
-    manager.add_data([tracks2, truths2, dets2], overwrite=False)
+    manager.add_data(truths2, tracks2, dets2, overwrite=False)
 
     assert manager.tracks == set(tracks + tracks2)
     assert manager.groundtruth_paths == set(truths + truths2)
@@ -44,9 +44,8 @@ def test_adddata():
 
     # Check adding additional data including repeated data
     manager = SimpleManager([])
-    manager.add_data([tracks, truths, dets])
-    manager.add_data([tracks + tracks2, truths + truths2, dets + dets2],
-                     overwrite=True)
+    manager.add_data(truths, tracks, dets)
+    manager.add_data(truths + truths2, tracks + tracks2, dets + dets2, overwrite=True)
 
     assert manager.tracks == set(tracks2 + tracks)
     assert manager.groundtruth_paths == set(truths2 + truths)
@@ -69,7 +68,7 @@ def test_associate_tracks():
         states=State(np.array([[1]]), timestamp=datetime.datetime.now()))}
     truths = {GroundTruthPath(
         states=State(np.array([[2]]), timestamp=datetime.datetime.now()))}
-    manager.add_data((tracks, truths))
+    manager.add_data(truths, tracks)
 
     manager.associate_tracks()
 
@@ -84,7 +83,7 @@ def test_listtimestamps():
         states=[State(np.array([[1]]), timestamp=timestamp1)])]
     truths = [GroundTruthPath(
         states=[State(np.array([[2]]), timestamp=timestamp2)])]
-    manager.add_data((tracks, truths))
+    manager.add_data(truths, tracks)
 
     assert manager.list_timestamps() == [timestamp1, timestamp2]
 

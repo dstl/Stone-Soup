@@ -144,7 +144,7 @@ metric_manager = SimpleManager([basic_generator, ospa_generator, siap_generator,
 # manager.
 for time, tracks in tracker.tracks_gen():
     metric_manager.add_data(
-        [groundtruth_sim.groundtruth_paths, detection_sim.detections, tracks],
+        groundtruth_sim.groundtruth_paths, tracks, detection_sim.detections,
         overwrite=False,  # Don't overwrite, instead add above as additional data
     )
 
