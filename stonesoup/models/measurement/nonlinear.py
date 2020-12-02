@@ -38,6 +38,8 @@ class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel,
         for model in self.model_list:
             if model.ndim_state != self.ndim_state:
                 raise ValueError("Models must all have the same `ndim_state`")
+            if model.covar(**kwargs) is None:
+                raise ValueError("Gaussian models must have defined covariances")
 
     @property
     def ndim_state(self) -> int:

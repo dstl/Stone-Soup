@@ -107,3 +107,11 @@ def test_mismatch_ndim_state():
             CartesianToBearingRange(3, [0, 1], np.diag([1, 10])),
             CartesianToBearingRange(4, [0, 1], np.diag([1, 10])),
         ])
+
+
+def test_none_covar():
+    with pytest.raises(ValueError, match="Gaussian models must have defined covariances"):
+        CombinedReversibleGaussianMeasurementModel([
+            CartesianToBearingRange(3, [0, 1], None),
+            CartesianToBearingRange(4, [0, 1], np.diag([1, 10]))
+        ])

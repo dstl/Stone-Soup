@@ -188,8 +188,13 @@ class GaussianModel(Model):
             distribution.
         """
 
+        covar = self.covar(**kwargs)
+
+        if covar is None:
+            raise ValueError("Cannot generate rvs from None-type covariance")
+
         noise = multivariate_normal.rvs(
-            np.zeros(self.ndim), self.covar(**kwargs), num_samples)
+            np.zeros(self.ndim), covar, num_samples)
 
         noise = np.atleast_2d(noise)
 
@@ -227,11 +232,16 @@ class GaussianModel(Model):
             The likelihood of ``state1``, given ``state2``
         """
 
+        covar = self.covar(**kwargs)
+
+        if covar is None:
+            raise ValueError("Cannot generate pdf from None-type covariance")
+
         # Calculate difference before to handle custom types (mean defaults to zero)
         # This is required as log pdf coverts arrays to floats
         likelihood = multivariate_normal.logpdf(
             (state1.state_vector - self.function(state2, **kwargs)).ravel(),
-            cov=self.covar(**kwargs)
+            cov=covar
         )
         return Probability(likelihood, log_value=True)
 
