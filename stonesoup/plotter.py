@@ -15,7 +15,8 @@ class Plotter:
     """Plotting class for building graphs of Stone Soup simulations
 
     A plotting class which is used to simplify the process of plotting ground truths,
-    measurements, clutter and tracks. Legends are automatically generated with each plot.
+    measurements, clutter and tracks. Tracks can be plotted with uncertainty ellipses or
+    particles if required. Legends are automatically generated with each plot.
     """
 
     def __init__(self):
@@ -34,7 +35,10 @@ class Plotter:
         """Plots ground truth(s)
 
         Plots each ground truth path passed in to :attr:`truths` and generates a legend
-        automatically.
+        automatically. Ground truths are plotted as dashed lines with default colors.
+
+        Users can change linestyle, color and marker using keyword arguments. Any changes
+        will apply to all ground truths.
 
         Parameters
         ----------
@@ -70,7 +74,12 @@ class Plotter:
     def plot_measurements(self, measurements, mapping, measurement_model=None, **kwargs):
         """Plots measurements
 
-        Plots detections and clutter, generating a legend automatically.
+        Plots detections and clutter, generating a legend automatically. Detections are plotted as
+        blue circles by default unless the detection type is clutter.
+        If the detection type is :class:`~.Clutter` it is plotted as a yellow 'tri-up' marker.
+
+        Users can change the color and marker of detections using keyword arguments but not for
+        clutter detections.
 
         Parameters
         ----------
@@ -152,8 +161,13 @@ class Plotter:
     def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, **kwargs):
         """Plots track(s)
 
-        Plots each track generated. If ``uncertainty=True``, uncertainty ellipses are plotted.
-        If ``particle=True``, particles are plotted. Legend is generated automatically.
+        Plots each track generated, generating a legend automatically. If ``uncertainty=True``,
+        uncertainty ellipses are plotted. If ``particle=True``, particles are plotted.
+        Tracks are plotted as solid lines with point markers and default colors.
+        Uncertainty ellipses are plotted with a default color which is the same for all tracks.
+
+        Users can change linestyle, color and marker using keyword arguments. Uncertainty ellipses
+        will also be plotted with the user defined colour and any changes will apply to all tracks.
 
         Parameters
         ----------

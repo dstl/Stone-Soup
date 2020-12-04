@@ -165,7 +165,11 @@ for k in range(1, 21):
         timestamp=start_time+timedelta(seconds=k)))
 
 # %%
-# Thus the ground truth is generated and we can plot the result
+# Thus the ground truth is generated and we can plot the result.
+#
+# Stone Soup has an in-built plotting class which can be used to plot
+# ground truths, measurements and tracks in a consistent format. It can be accessed by importing
+# the class :class:`Plotter` from Stone Soup as below.
 
 from stonesoup.plotter import Plotter
 plotter = Plotter()
