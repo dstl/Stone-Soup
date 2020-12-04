@@ -57,8 +57,8 @@ for k in range(20):
         current_truths.add(truth)
         truths.add(truth)
 
-from stonesoup.plotting import Plotting
-plotter = Plotting()
+from stonesoup.plotter import Plotter
+plotter = Plotter()
 plotter.ax.set_ylim(-5, 25)
 plotter.plot_ground_truths(truths, [0, 2])
 

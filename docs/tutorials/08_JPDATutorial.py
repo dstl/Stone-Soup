@@ -70,8 +70,8 @@ for k in range(1, 21):
 truths.add(truth)
 
 # Plot ground truth.
-from stonesoup.plotting import Plotting
-plotter = Plotting()
+from stonesoup.plotter import Plotter
+plotter = Plotter()
 plotter.ax.set_ylim(0, 25)
 plotter.plot_ground_truths(truths, [0, 2])
 

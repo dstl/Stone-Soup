@@ -92,8 +92,8 @@ for k in range(1, 21):
 # %%
 # Plot this
 
-from stonesoup.plotting import Plotting
-plotter = Plotting()
+from stonesoup.plotter import Plotter
+plotter = Plotter()
 plotter.plot_ground_truths(truth, [0, 2])
 
 # %%

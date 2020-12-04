@@ -112,8 +112,8 @@ for state in truth:
 # %%
 # Plot the ground truth and measurements with clutter.
 
-from stonesoup.plotting import Plotting
-plotter = Plotting()
+from stonesoup.plotter import Plotter
+plotter = Plotter()
 plotter.ax.set_ylim(0, 25)
 plotter.plot_ground_truths(truth, [0, 2])
 

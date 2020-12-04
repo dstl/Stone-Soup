@@ -99,8 +99,8 @@ for k in range(1, 21):
 # %%
 # Set-up plot to render ground truth, as before.
 
-from stonesoup.plotting import Plotting
-plotter = Plotting()
+from stonesoup.plotter import Plotter
+plotter = Plotter()
 plotter.plot_ground_truths(truth, [0, 2])
 
 # %%

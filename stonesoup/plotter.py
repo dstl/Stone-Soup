@@ -11,7 +11,7 @@ from .types import detection
 from .models.base import LinearModel, NonLinearModel
 
 
-class Plotting:
+class Plotter:
     """Plotting class for building graphs of Stone Soup simulations
 
     A plotting class which is used to simplify the process of plotting ground truths,
