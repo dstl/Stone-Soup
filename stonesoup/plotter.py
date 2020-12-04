@@ -17,6 +17,17 @@ class Plotter:
     A plotting class which is used to simplify the process of plotting ground truths,
     measurements, clutter and tracks. Tracks can be plotted with uncertainty ellipses or
     particles if required. Legends are automatically generated with each plot.
+
+    Attributes
+    ----------
+    fig: matplotlib.figure.Figure
+        Generated figure for graphs to be plotted on
+    ax: matplotlib.axes.Axes
+        Generated axes for graphs to be plotted on
+    handles_list: list of :class:`matplotlib.legend_handler.HandlerBase`
+        A list of generated legend handles
+    labels_list: list of str
+        A list of generated legend labels
     """
 
     def __init__(self):
@@ -258,11 +269,11 @@ class Plotter:
 
         Parameters
         ----------
-        ax : axes
+        ax : matplotlib.axes.Axes
             Looks at the plot axes defined
-        label_list : list
+        label_list : list of str
             Takes in list of strings intended to label ellipses in legend
-        color_list : list
+        color_list : list of str
             Takes in list of colors corresponding to string/label
             Must be the same length as label_list
         \\*\\*kwargs: dict
