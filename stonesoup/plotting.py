@@ -14,7 +14,7 @@ from .models.base import LinearModel, NonLinearModel
 class Plotting:
     """Plotting class for building graphs of Stone Soup simulations
 
-    A plotting class which is used to simplify to process of plotting ground truths,
+    A plotting class which is used to simplify the process of plotting ground truths,
     measurements, clutter and tracks. Legends are automatically generated with each plot.
     """
 
@@ -33,7 +33,7 @@ class Plotting:
     def plot_ground_truths(self, truths, mapping, **kwargs):
         """Plots ground truth(s)
 
-        Plots each ground truth and generates legend automatically.
+        Plots each ground truth path passed in to :attr:`truths` and generates a legend automatically.
 
         Parameters
         ----------
@@ -78,8 +78,7 @@ class Plotting:
         mapping: list
             List of 2 items specifying the mapping of the x and y components of the state space.
         measurement_model : :class:`~.Model`, optional
-            User can define the measurement model used if it cannot be found from measurements
-            (the default is None).
+            User-defined measurement model to be used in finding measurement state inverses if they cannot be found from the measurements themselves.
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function for detections. Defaults are
             ``marker='o'`` and ``color='b'``.
@@ -239,8 +238,8 @@ class Plotting:
     # Ellipse legend patch (used in Tutorial 3)
     @staticmethod
     def ellipse_legend(ax, label_list, color_list, **kwargs):
-        """Adds an ellipse patch to the legend on the axes. One patch added for each item in `label_list`
-        with the corresponding color from `color_list`.
+        """Adds an ellipse patch to the legend on the axes. One patch added for each item in 
+        `label_list` with the corresponding color from `color_list`.
 
         Parameters
         ----------
