@@ -33,13 +33,15 @@ class Plotting:
     def plot_ground_truths(self, truths, mapping, **kwargs):
         """Plots ground truth(s)
 
-        Plots each ground truth path passed in to :attr:`truths` and generates a legend automatically.
+        Plots each ground truth path passed in to :attr:`truths` and generates a legend
+        automatically.
 
         Parameters
         ----------
         truths : set of :class:`~.GroundTruthPath`
-            Set of  ground truths which will be plotted. If truths is not a set it is made a set
-            of one so it can be iterated.
+            Set of  ground truths which will be plotted. If not a set, and instead a single
+            :class:`~.GroundTruthPath` type, the argument is modified to be a set to allow for
+            iteration.
         mapping: list
             List of 2 items specifying the mapping of the x and y components of the state space.
         \\*\\*kwargs: dict
@@ -73,12 +75,12 @@ class Plotting:
         Parameters
         ----------
         measurements : list of :class:`~.Detection`
-            Detections which will be plotted. If measurements is a set of lists it is flattened
-            into one list by the function Plotting.flatten.
+            Detections which will be plotted. If measurements is a set of lists it is flattened.
         mapping: list
             List of 2 items specifying the mapping of the x and y components of the state space.
         measurement_model : :class:`~.Model`, optional
-            User-defined measurement model to be used in finding measurement state inverses if they cannot be found from the measurements themselves.
+            User-defined measurement model to be used in finding measurement state inverses if
+            they cannot be found from the measurements themselves.
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function for detections. Defaults are
             ``marker='o'`` and ``color='b'``.
@@ -132,7 +134,7 @@ class Plotting:
                     self.ax.scatter(*state_vec[mapping],
                                     **measurement_kwargs)
                 else:
-                    warnings.warn('Detection type error')
+                    warnings.warn(f'Unknown type {type(state)}')
                     continue
 
         # Generate legend items for measurements
@@ -156,8 +158,8 @@ class Plotting:
         Parameters
         ----------
         tracks : set of :class:`~.Track`
-            Set of tracks which will be plotted. If tracks is not a set it is made a set of
-            length 1 so it can be iterated.
+            Set of tracks which will be plotted. If not a set, and instead a single
+            :class:`~.Track` type, the argument is modified to be a set to allow for iteration.
         mapping: list
             List of 2 items specifying the mapping of the x and y components of the state space.
         uncertainty : bool
@@ -223,8 +225,7 @@ class Plotting:
                                  markersize=1, alpha=0.5)
 
             # Generate legend items for particles
-            particle_handle = Line2D([], [], linestyle='', color="black", marker='.',
-                                     markersize=1)
+            particle_handle = Line2D([], [], linestyle='', color="black", marker='.', markersize=1)
             particle_label = "Particles"
             self.handles_list.append(particle_handle)
             self.labels_list.append(particle_label)
@@ -238,7 +239,7 @@ class Plotting:
     # Ellipse legend patch (used in Tutorial 3)
     @staticmethod
     def ellipse_legend(ax, label_list, color_list, **kwargs):
-        """Adds an ellipse patch to the legend on the axes. One patch added for each item in 
+        """Adds an ellipse patch to the legend on the axes. One patch added for each item in
         `label_list` with the corresponding color from `color_list`.
 
         Parameters
