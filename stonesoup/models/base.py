@@ -190,7 +190,8 @@ class GaussianModel(Model):
 
         covar = self.covar(**kwargs)
 
-        if covar is None:
+        # If model has None-type covariance or contains None, it does not represent a Gaussian
+        if covar is None or None in covar:
             raise ValueError("Cannot generate rvs from None-type covariance")
 
         noise = multivariate_normal.rvs(
@@ -234,7 +235,8 @@ class GaussianModel(Model):
 
         covar = self.covar(**kwargs)
 
-        if covar is None:
+        # If model has None-type covariance or contains None, it does not represent a Gaussian
+        if covar is None or None in covar:
             raise ValueError("Cannot generate pdf from None-type covariance")
 
         # Calculate difference before to handle custom types (mean defaults to zero)
