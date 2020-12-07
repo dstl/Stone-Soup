@@ -3,10 +3,10 @@ import copy
 import operator
 from itertools import combinations
 from numbers import Real
-from typing import Sequence, Union, MutableSequence
+from typing import Sequence, Union, MutableSequence, Tuple
 
-from stonesoup.base import Property
-from stonesoup.types import Type
+from ..base import Property
+from ..types import Type
 
 
 class Interval(Type):
@@ -15,8 +15,11 @@ class Interval(Type):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.left > self.right:
-            raise ValueError('left > right')
+        if self.left >= self.right:
+            raise ValueError('Must have left < right')
+
+    def __hash__(self):
+        return hash((self.left, self.right))
 
     @property
     def length(self):
@@ -40,47 +43,90 @@ class Interval(Type):
         return isinstance(other, Interval) and (self.left, self.right) == (other.left, other.right)
 
     def __and__(self, other):
-        if isinstance(other, Interval):
-            if self.overlap(other):
-                new_interval = (max(self.left, other.left), min(self.right, other.right))
-                if new_interval[0] == new_interval[1]:
-                    return None
-                else:
-                    return Interval(*new_interval)
-            else:
-                return None
-        else:
+
+        if not isinstance(other, Interval):
             raise ValueError("Can only intersect with Interval types")
 
-    def __or__(self, other):
-        if isinstance(other, Interval):
-            if self.overlap(other):
-                return [Interval(min(self.left, other.left), max(self.right, other.right))]
+        if not self.isdisjoint(other):
+            new_interval = (max(self.left, other.left), min(self.right, other.right))
+            if new_interval[0] == new_interval[1]:
+                return None
             else:
-                return copy.copy(self), copy.copy(other)
+                return Interval(*new_interval)
         else:
+            return None
+
+    def __or__(self, other):
+
+        if not isinstance(other, Interval):
             raise ValueError("Can only union with Interval types")
+
+        if not self.isdisjoint(other):
+            return [Interval(min(self.left, other.left), max(self.right, other.right))]
+        else:
+            return [copy.copy(self), copy.copy(other)]
 
     def __sub__(self, other):
 
+        if other is None:
+            return [copy.copy(self)]
+        elif not isinstance(other, Interval):
+            raise ValueError("Can only subtract Interval types from Interval types")
+        elif self.isdisjoint(other):
+            return [copy.copy(self)]
+        elif other.left <= self.left and self.right <= other.right:
+            return [None]
+        elif other.left <= self.left:
+            return [Interval(other.right, self.right)]
+        elif self.right <= other.right:
+            return [Interval(self.left, other.left)]
+        else:
+            return [Interval(self.left, other.left), Interval(other.right, self.right)]
+
+    def __xor__(self, other):
+
         if not isinstance(other, Interval):
             raise ValueError("Can only subtract Interval types from Interval types")
-        elif not self.overlap(other):
-            return copy.copy(self)
-        elif other.left <= self.left and self.right <= other.right:
-            return None
-        elif other.left <= self.left:
-            return Interval(other.right, self.right)
-        elif self.right <= other.right:
-            return Interval(self.left, other.left)
-        else:
-            return Interval(self.left, other.left), Interval(other.right, self.right)
 
-    def overlap(self, other):
+        if self.isdisjoint(other):
+            return [copy.copy(self), copy.copy(other)]
+
+        # Union will return list with one interval
+        return (self | other)[0] - (self & other)
+
+    def __le__(self, other):
+
+        if not isinstance(other, Interval):
+            raise ValueError("Can only compare Interval types to Interval types")
+
+        return self in other
+
+    def __lt__(self, other):
+
+        if not isinstance(other, Interval):
+            raise ValueError("Can only compare Interval types to Interval types")
+
+        return other.left < self.left and self.right < other.right
+
+    def __ge__(self, other):
+
+        if not isinstance(other, Interval):
+            raise ValueError("Can only compare Interval types to Interval types")
+
+        return other <= self
+
+    def __gt__(self, other):
+
+        if not isinstance(other, Interval):
+            raise ValueError("Can only compare Interval types to Interval types")
+
+        return other < self
+
+    def isdisjoint(self, other):
         """
         Check whether two intervals overlap (are not disjoint).
-        Returns False if they do not overlap.
-        Note: returns True if intervals endpoints 'meet'. For example [0, 1] meets [1, 2].
+        Returns True if they do not overlap.
+        Note: returns False if intervals endpoints 'meet'. For example [0, 1] meets [1, 2].
         """
         if not isinstance(other, Interval):
             raise ValueError("Interval types can only overlap with Interval types")
@@ -88,8 +134,9 @@ class Interval(Type):
         lb = min(self.left, other.left)
         ub = max(self.right, other.right)
 
-        return (ub - lb < self.length + other.length) \
-               or (self.right == other.left) or (other.right == self.left)
+        return not ((ub - lb < self.length + other.length)
+                    or (self.right == other.left)
+                    or (other.right == self.left))
 
 
 class Intervals(Type):
@@ -109,9 +156,8 @@ class Intervals(Type):
 
         if self.intervals is None:
             self.intervals = list()
-
-        if not isinstance(self.intervals, MutableSequence):
-            if isinstance(self.intervals, Interval):
+        elif not isinstance(self.intervals, MutableSequence):
+            if isinstance(self.intervals, (Interval, Tuple)):
                 self.intervals = [self.intervals]
             else:
                 raise ValueError("Must contain Interval types")
@@ -128,19 +174,22 @@ class Intervals(Type):
 
         self.intervals = self.get_merged_intervals(self.intervals)
 
+    def __hash__(self):
+        return hash(tuple(self.intervals))
+
     @staticmethod
     def overlap(intervals):
         for int_1, int_2 in combinations(intervals, 2):
-            if int_1.overlap(int_2):
+            if not int_1.isdisjoint(int_2):
                 return int_1, int_2
         return None
 
-    @staticmethod
-    def meet(intervals):
-        for int_1, int_2 in combinations(intervals, 2):
-            if int_1.meet(int_2):
-                return int_1, int_2
-        return None
+    def isdisjoint(self, other):
+
+        if not isinstance(other, Intervals):
+            raise ValueError("Can only compare Intervals to Intervals")
+
+        return all(interval.isdisjoint(other_int) for other_int in other for interval in self)
 
     @staticmethod
     def get_merged_intervals(intervals):
@@ -163,22 +212,24 @@ class Intervals(Type):
         return sorted(new_intervals, key=operator.attrgetter('left'))
 
     def __contains__(self, item):
-        if not isinstance(item, (Real, Interval)):
+
+        if not isinstance(item, (Real, Interval, Intervals)):
             return False
+
+        if isinstance(item, Intervals):
+            return all(any(other_int in interval for interval in self) for other_int in item)
+
         return any(item in interval for interval in self)
 
     def __str__(self):
-        return str([[interval.left, interval.right] for interval in self.intervals])
+        return str([[interval.left, interval.right] for interval in self])
 
     def __repr__(self):
         return 'Intervals{intervals}'.format(intervals=str(self))
 
-    def __len__(self):
-        return len(self.intervals)
-
     @property
     def length(self):
-        return sum(interval.length for interval in self.intervals)
+        return sum(interval.length for interval in self)
 
     def _iter(self, reverse):
         for interval in sorted(self.intervals, key=operator.attrgetter('left'), reverse=reverse):
@@ -191,27 +242,24 @@ class Intervals(Type):
         return self._iter(reverse=True)
 
     def __eq__(self, other):
-        return isinstance(other, Intervals) and \
-               all(any(int1 == int2 for int2 in other) for int1 in self)
 
-    def __or__(self, other):
+        if isinstance(other, Interval):
+            other = Intervals(other)
 
-        if not isinstance(other, Intervals):
-            raise ValueError('Can only union with Intervals types')
-
-        new_intervals = self.intervals + other.intervals
-        new_intervals = self.get_merged_intervals(new_intervals)
-        new_intervals = Intervals(new_intervals)
-        return new_intervals
+        return isinstance(other, Intervals) and all(
+            any(int1 == int2 for int2 in other) for int1 in self)
 
     def __and__(self, other):
 
-        if not isinstance(other, Intervals):
-            raise ValueError('Can only intersect with Intervals types')
+        if not isinstance(other, (Interval, Intervals)):
+            raise ValueError("Can only intersect with Intervals types")
+
+        if isinstance(other, Interval):
+            other = Intervals(other)
 
         new_intervals = list()
-        for interval in self.intervals:
-            for other_interval in other.intervals:
+        for interval in self:
+            for other_interval in other:
                 new_interval = interval & other_interval
                 if new_interval:
                     new_intervals.append(new_interval)
@@ -219,24 +267,120 @@ class Intervals(Type):
         new_intervals = Intervals(new_intervals)
         return new_intervals
 
-    def remove_interval(self, interval):
-        if interval not in self.intervals:
-            raise ValueError('Interval not in list')
-        else:
-            self.intervals.remove(interval)
+    def __or__(self, other):
 
-def test_int():
-    a = Interval(0, 1)
-    b = Interval(0.5, 1.5)
-    c = Interval(2, 3)
-    I = Intervals([a, b, c])
+        if not isinstance(other, (Interval, Intervals)):
+            raise ValueError('Can only union with Intervals types')
 
-    assert a|b == [Interval(0, 1.5)]
-    assert a&b == Interval(0.5, 1)
-    assert a|c == [a, c]
-    assert a&c is None
+        if isinstance(other, Interval):
+            other = Intervals(other)
 
-    J = Intervals([(1.5, 6)])
+        new_intervals = self.intervals + other.intervals
+        new_intervals = self.get_merged_intervals(new_intervals)
+        new_intervals = Intervals(new_intervals)
+        return new_intervals
 
-    print(a - b)
-    assert False
+    def __sub__(self, other):
+
+        if other is None:
+            return self.copy()
+        elif not isinstance(other, (Interval, Intervals)):
+            raise ValueError("Can only subtract Intervals from Intervals")
+
+        if isinstance(other, Interval):
+            other = Intervals(other)
+
+        new_intervals = copy.copy(self.intervals)
+
+        for other_interval in other:
+            temp_intervals = list()
+
+            for interval in new_intervals:
+                diff = interval - other_interval
+                if diff[0] is not None:
+                    temp_intervals.extend(diff)
+            new_intervals = temp_intervals
+        new_intervals = Intervals(new_intervals)
+        return new_intervals
+
+    def __xor__(self, other):
+
+        if not isinstance(other, (Interval, Intervals)):
+            raise ValueError("Can only compare Intervals from Intervals")
+
+        if isinstance(other, Interval):
+            other = Intervals(other)
+
+        return (self | other) - (self & other)
+
+    def __le__(self, other):
+
+        if not isinstance(other, (Interval, Intervals)):
+            raise ValueError("Can only compare Intervals to Intervals")
+
+        if isinstance(other, Interval):
+            other = Intervals(other)
+
+        return all(any(interval <= other_int for other_int in other) for interval in self)
+
+    def __lt__(self, other):
+
+        if not isinstance(other, (Interval, Intervals)):
+            raise ValueError("Can only compare Intervals to Intervals")
+
+        if isinstance(other, Interval):
+            other = Intervals(other)
+
+        return all(any(interval < other_int for other_int in other) for interval in self)
+
+    def __ge__(self, other):
+
+        if not isinstance(other, (Interval, Intervals)):
+            raise ValueError("Can only compare Intervals to Intervals")
+
+        if isinstance(other, Interval):
+            other = Intervals(other)
+
+        return other <= self
+
+    def __gt__(self, other):
+
+        if not isinstance(other, (Interval, Intervals)):
+            raise ValueError("Can only compare Intervals to Intervals")
+
+        if isinstance(other, Interval):
+            other = Intervals(other)
+
+        return other < self
+
+    def copy(self):
+        return Intervals(copy.copy(self.intervals))
+
+    def __len__(self):
+        return len(self.intervals)
+
+    def remove(self, elem):
+        if not isinstance(elem, Interval):
+            raise ValueError("Intervals only contain Interval types")
+        try:
+            self.intervals.remove(elem)
+        except ValueError:
+            raise ValueError("Interval not in list")
+
+    def discard(self, elem):
+        try:
+            self.remove(elem)
+        except ValueError:
+            pass
+
+    def pop(self):
+        if len(self) == 0:
+            raise KeyError("Contains no intervals")
+
+        interval = next(iter(self))
+        self.intervals.remove(interval)
+
+        return interval
+
+    def clear(self):
+        self.intervals = list()
