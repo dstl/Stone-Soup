@@ -114,48 +114,47 @@ class Plotter:
         clutter_handle = None
         clutter_label = None
 
-        for item in measurements:
-            if isinstance(item, set):
-                measurements_set = chain.from_iterable(measurements)  # Flatten into one set
+        if any(isinstance(item, set) for item in measurements):
+            measurements_set = chain.from_iterable(measurements)  # Flatten into one set
+        else:
+            measurements_set = measurements
+
+        for state in measurements_set:
+            meas_model = state.measurement_model  # measurement_model from detections
+            if meas_model is None:
+                meas_model = measurement_model  # measurement_model from input
+
+            if isinstance(meas_model, LinearModel):
+                model_matrix = meas_model.matrix()
+                inv_model_matrix = np.linalg.pinv(model_matrix)
+                state_vec = inv_model_matrix @ state.state_vector
+
+            elif isinstance(meas_model, NonLinearModel):
+                try:
+                    state_vec = meas_model.inverse_function(state)
+                except (NotImplementedError, AttributeError):
+                    warnings.warn('Nonlinear measurement model used with no inverse '
+                                  'function available')
+                    continue
             else:
-                measurements_set = measurements
+                warnings.warn('Measurement model type not specified for all detections')
+                continue
 
-            for state in measurements_set:
-                meas_model = state.measurement_model  # measurement_model from detections
-                if meas_model is None:
-                    meas_model = measurement_model  # measurement_model from input
+            if isinstance(state, detection.Clutter):
+                # Plot clutter
+                self.ax.scatter(*state_vec[mapping],
+                                color='y', marker='2')
+                if clutter_handle is None:
+                    clutter_handle = Line2D([], [], linestyle='', marker='2', color='y')
+                    clutter_label = "Clutter"
 
-                if isinstance(meas_model, LinearModel):
-                    model_matrix = meas_model.matrix()
-                    inv_model_matrix = np.linalg.pinv(model_matrix)
-                    state_vec = inv_model_matrix @ state.state_vector
-
-                elif isinstance(meas_model, NonLinearModel):
-                    try:
-                        state_vec = meas_model.inverse_function(state)
-                    except (NotImplementedError, AttributeError):
-                        warnings.warn('Nonlinear measurement model used with no inverse '
-                                      'function available')
-                        continue
-                else:
-                    warnings.warn('Measurement model type not specified for all detections')
-                    continue
-
-                if isinstance(state, detection.Clutter):
-                    # Plot clutter
-                    self.ax.scatter(*state_vec[mapping],
-                                    color='y', marker='2')
-                    if clutter_handle is None:
-                        clutter_handle = Line2D([], [], linestyle='', marker='2', color='y')
-                        clutter_label = "Clutter"
-
-                elif isinstance(state, detection.Detection):
-                    # Plot detections
-                    self.ax.scatter(*state_vec[mapping],
-                                    **measurement_kwargs)
-                else:
-                    warnings.warn(f'Unknown type {type(state)}')
-                    continue
+            elif isinstance(state, detection.Detection):
+                # Plot detections
+                self.ax.scatter(*state_vec[mapping],
+                                **measurement_kwargs)
+            else:
+                warnings.warn(f'Unknown type {type(state)}')
+                continue
 
         # Generate legend items for measurements
         self.handles_list.append(measurements_handle)
