@@ -314,7 +314,7 @@ def test_tt_j(generator):
 @pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
 def test_nu_j(generator):
     manager = SimpleManager()
-    tstart = datetime.datetime.now()
+    tstart = datetime.datetime(2020, 1, 1, 0)
     truth = GroundTruthPath(states=[
         GroundTruthState([[1], [0], [0], [0]], timestamp=tstart + datetime.timedelta(
             seconds=i))
