@@ -10,6 +10,12 @@ from ..types import Type
 
 
 class Interval(Type):
+    """
+    Closed continuous interval class.
+
+    Represents a continuous, closed interval of real numbers.
+    Represented by a lower and upper bound.
+    """
     left: Union[int, float] = Property(doc="Lower bound of interval")
     right: Union[int, float] = Property(doc="Upper bound of interval")
 
@@ -43,6 +49,7 @@ class Interval(Type):
         return isinstance(other, Interval) and (self.left, self.right) == (other.left, other.right)
 
     def __and__(self, other):
+        """Set-like intersection"""
 
         if not isinstance(other, Interval):
             raise ValueError("Can only intersect with Interval types")
@@ -57,6 +64,7 @@ class Interval(Type):
             return None
 
     def __or__(self, other):
+        """Set-like union"""
 
         if not isinstance(other, Interval):
             raise ValueError("Can only union with Interval types")
@@ -67,6 +75,7 @@ class Interval(Type):
             return [copy.copy(self), copy.copy(other)]
 
     def __sub__(self, other):
+        """Set-like difference"""
 
         if other is None:
             return [copy.copy(self)]
@@ -84,6 +93,7 @@ class Interval(Type):
             return [Interval(self.left, other.left), Interval(other.right, self.right)]
 
     def __xor__(self, other):
+        """Set-like symmetric difference"""
 
         if not isinstance(other, Interval):
             raise ValueError("Can only subtract Interval types from Interval types")
@@ -95,6 +105,7 @@ class Interval(Type):
         return (self | other)[0] - (self & other)
 
     def __le__(self, other):
+        """Subset check"""
 
         if not isinstance(other, Interval):
             raise ValueError("Can only compare Interval types to Interval types")
@@ -102,6 +113,7 @@ class Interval(Type):
         return self in other
 
     def __lt__(self, other):
+        """Proper subset check"""
 
         if not isinstance(other, Interval):
             raise ValueError("Can only compare Interval types to Interval types")
@@ -109,6 +121,7 @@ class Interval(Type):
         return other.left < self.left and self.right < other.right
 
     def __ge__(self, other):
+        """Superset check"""
 
         if not isinstance(other, Interval):
             raise ValueError("Can only compare Interval types to Interval types")
@@ -116,6 +129,7 @@ class Interval(Type):
         return other <= self
 
     def __gt__(self, other):
+        """Proper superset check"""
 
         if not isinstance(other, Interval):
             raise ValueError("Can only compare Interval types to Interval types")
@@ -124,8 +138,8 @@ class Interval(Type):
 
     def isdisjoint(self, other):
         """
-        Check whether two intervals overlap (are not disjoint).
-        Returns True if they do not overlap.
+        Check whether two intervals are disjoint (do not overlap).
+        Returns True if they are disjoint.
         Note: returns False if intervals endpoints 'meet'. For example [0, 1] meets [1, 2].
         """
         if not isinstance(other, Interval):
@@ -144,7 +158,7 @@ class Intervals(Type):
     Disjoint closed continuous intervals class.
 
     Represents a set of continuous, closed intervals of real numbers. Represented by a list of
-    ContinuousInterval types.
+    :class:`Interval` types.
     """
 
     intervals: MutableSequence[Interval] = Property(
@@ -179,12 +193,20 @@ class Intervals(Type):
 
     @staticmethod
     def overlap(intervals):
+        """
+        Determine whether a pair of intervals in a list overlap (are not disjoint).
+        Returns a pair of overlapping intervals if there are any, otherwise returns None.
+        """
         for int_1, int_2 in combinations(intervals, 2):
             if not int_1.isdisjoint(int_2):
                 return int_1, int_2
         return None
 
     def isdisjoint(self, other):
+        """
+        Determine whether all intervals in an :class:`Intervals` type are disjoint from all those
+        in another.
+        """
 
         if not isinstance(other, Intervals):
             raise ValueError("Can only compare Intervals to Intervals")
@@ -193,7 +215,8 @@ class Intervals(Type):
 
     @staticmethod
     def get_merged_intervals(intervals):
-        """Merge intervals"""
+        """Merge all intervals. Ie. combine any intervals that overlap, returning a new list of
+        disjoint intervals."""
 
         new_intervals = copy.copy(intervals)
 
@@ -250,6 +273,7 @@ class Intervals(Type):
             any(int1 == int2 for int2 in other) for int1 in self)
 
     def __and__(self, other):
+        """Set-like intersection"""
 
         if not isinstance(other, (Interval, Intervals)):
             raise ValueError("Can only intersect with Intervals types")
@@ -268,6 +292,7 @@ class Intervals(Type):
         return new_intervals
 
     def __or__(self, other):
+        """Set-like union"""
 
         if not isinstance(other, (Interval, Intervals)):
             raise ValueError('Can only union with Intervals types')
@@ -281,6 +306,7 @@ class Intervals(Type):
         return new_intervals
 
     def __sub__(self, other):
+        """Set-like difference"""
 
         if other is None:
             return self.copy()
@@ -304,6 +330,7 @@ class Intervals(Type):
         return new_intervals
 
     def __xor__(self, other):
+        """Set-like symmetric-difference"""
 
         if not isinstance(other, (Interval, Intervals)):
             raise ValueError("Can only compare Intervals from Intervals")
@@ -314,6 +341,7 @@ class Intervals(Type):
         return (self | other) - (self & other)
 
     def __le__(self, other):
+        """Subset check"""
 
         if not isinstance(other, (Interval, Intervals)):
             raise ValueError("Can only compare Intervals to Intervals")
@@ -324,6 +352,7 @@ class Intervals(Type):
         return all(any(interval <= other_int for other_int in other) for interval in self)
 
     def __lt__(self, other):
+        """"Proper subset check"""
 
         if not isinstance(other, (Interval, Intervals)):
             raise ValueError("Can only compare Intervals to Intervals")
@@ -334,6 +363,7 @@ class Intervals(Type):
         return all(any(interval < other_int for other_int in other) for interval in self)
 
     def __ge__(self, other):
+        """Superset check"""
 
         if not isinstance(other, (Interval, Intervals)):
             raise ValueError("Can only compare Intervals to Intervals")
@@ -344,6 +374,7 @@ class Intervals(Type):
         return other <= self
 
     def __gt__(self, other):
+        """Proper superset check"""
 
         if not isinstance(other, (Interval, Intervals)):
             raise ValueError("Can only compare Intervals to Intervals")
