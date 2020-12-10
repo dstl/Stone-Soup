@@ -407,13 +407,13 @@ def test_id(generator):
 
     track1 = Track(
         states=[State([[1], [0], [0], [0]], timestamp=tstart + datetime.timedelta(seconds=i))
-                for i in range(5)])
-    track1._metadata = {'ident': 'ally'}
+                for i in range(5)],
+        init_metadata={'ident': 'ally'})
 
     track2 = Track(
         states=[State([[2], [0], [0], [0]], timestamp=tstart + datetime.timedelta(seconds=i))
-                for i in range(5)])
-    track2._metadata = {'ident': 'enemy'}
+                for i in range(5)],
+        init_metadata={'ident': 'enemy'})
 
     track3 = Track(
         states=[State([[3], [0], [0], [0]], timestamp=tstart + datetime.timedelta(seconds=i))
@@ -465,31 +465,30 @@ def test_compute_metric(generator):
         for i in range(40)])
     track1 = Track(
         states=[State([[1], [0], [0], [0]], timestamp=tstart + datetime.timedelta(seconds=i))
-                for i in range(3)])
-    track1._metadata = {'ident': 'ally'}
+                for i in range(3)],
+        init_metadata={'ident': 'ally'})
     track2 = Track(
         states=[State([[2], [0], [0], [0]], timestamp=tstart + datetime.timedelta(seconds=i))
-                for i in range(5, 10)])
-    track2._metadata = {'ident': 'enemy'}
+                for i in range(5, 10)],
+        init_metadata={'ident': 'enemy'})
     track3 = Track(
         states=[State([[3], [0], [0], [0]], timestamp=tstart + datetime.timedelta(seconds=i))
                 for i in range(7, 15)])
-    track3._metadata = {}
     track4 = Track(
         states=[State([[4], [0], [0], [0]], timestamp=tstart + datetime.timedelta(seconds=i))
-                for i in range(13, 20)])
-    track4._metadata = {'ident': 'ally'}
+                for i in range(13, 20)],
+        init_metadata={'ident': 'ally'})
     track5 = Track(
         states=[State([[5], [0], [0], [0]], timestamp=tstart + datetime.timedelta(seconds=i))
-                for i in range(18, 28)])
-    track5._metadata = {'something': 'ally'}
+                for i in range(18, 28)],
+        init_metadata={'something': 'ally'})
     track6 = Track(
         states=[State([[6], [0], [0], [0]], timestamp=tstart + datetime.timedelta(seconds=i))
                 for i in range(22, 26)])
     track7 = Track(
         states=[State([[7], [0], [0], [0]], timestamp=tstart + datetime.timedelta(seconds=i))
-                for i in range(30, 40)])
-    track7._metadata = {'ident': None}
+                for i in range(30, 40)],
+        init_metadata={'ident': None})
     track8 = Track(
         states=[State([[8], [0], [0], [0]], timestamp=tstart + datetime.timedelta(seconds=i))
                 for i in range(30, 35)])
@@ -848,12 +847,12 @@ def test_absent_params():
         for i in range(40)])
     track1 = Track(
         states=[State([[1], [0], [0], [0]], timestamp=tstart + datetime.timedelta(seconds=i))
-                for i in range(3)])
-    track1._metadata = {'ident': 'ally'}
+                for i in range(3)],
+        init_metadata={'ident': 'ally'})
     track2 = Track(
         states=[State([[2], [0], [0], [0]], timestamp=tstart + datetime.timedelta(seconds=i))
-                for i in range(5, 10)])
-    track2._metadata = {'ident': 'enemy'}
+                for i in range(5, 10)],
+        init_metadata={'ident': 'enemy'})
 
     manager.tracks = {track1, track2}
     manager.groundtruth_paths = {truth}

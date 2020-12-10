@@ -3,6 +3,9 @@ import datetime
 
 import numpy as np
 import pytest
+from stonesoup.types.detection import Detection
+from stonesoup.types.hypothesis import SingleHypothesis
+from stonesoup.types.update import Update
 
 from ..particle import Particle
 from ..state import State, GaussianState, ParticleState
@@ -54,3 +57,124 @@ def test_track_id():
     track = Track([state], 'abc')
     assert isinstance(track.id, str)
     assert track.id == 'abc'
+
+    track = Track(id=None)
+    assert isinstance(track.id, str)
+
+
+def test_track_metadata():
+    track = Track()
+    assert track.metadata == {}
+    assert not track.metadatas
+
+    track = Track(init_metadata={'colour': 'blue'})
+
+    assert track.metadata == {'colour': 'blue'}
+    assert not track.metadatas
+
+    state = Update(
+        hypothesis=SingleHypothesis(None, Detection(np.array([[0]]), metadata={'side': 'ally'}))
+    )
+    track.append(state)
+    assert track.metadata == {'colour': 'blue', 'side': 'ally'}
+    assert len(track.metadatas) == 1
+    assert track.metadata == track.metadatas[-1]
+
+    state = Update(
+        hypothesis=SingleHypothesis(None, Detection(np.array([[0]]), metadata={'side': 'enemy'}))
+    )
+    track.append(state)
+    assert track.metadata == {'colour': 'blue', 'side': 'enemy'}
+    assert len(track.metadatas) == 2
+
+    state = Update(
+        hypothesis=SingleHypothesis(None, Detection(np.array([[0]]), metadata={'colour': 'red'}))
+    )
+    track[0] = state
+    assert track.metadata == track.metadatas[-1] == {'colour': 'red', 'side': 'enemy'}
+    assert len(track.metadatas) == 2
+    assert track.metadatas[0] == {'colour': 'red'}
+
+    state = Update(
+        hypothesis=SingleHypothesis(None, Detection(np.array([[0]]), metadata={'speed': 'fast'}))
+    )
+    track.insert(1, state)
+    assert track.metadata == {'colour': 'red', 'side': 'enemy', 'speed': 'fast'}
+    assert len(track.metadatas) == 3
+    assert track.metadatas[0] == {'colour': 'red'}
+    assert track.metadatas[1] == {'colour': 'red', 'speed': 'fast'}
+    assert track.metadatas[2] == {'colour': 'red', 'side': 'enemy', 'speed': 'fast'}
+
+    state = Update(
+        hypothesis=SingleHypothesis(None, Detection(np.array([[0]]), metadata={'size': 'small'}))
+    )
+    track.insert(-1, state)
+    assert track.metadata == {'colour': 'red', 'side': 'enemy', 'speed': 'fast', 'size': 'small'}
+    assert len(track.metadatas) == 4
+    assert track.metadatas[0] == {'colour': 'red'}
+    assert track.metadatas[1] == {'colour': 'red', 'speed': 'fast'}
+    assert track.metadatas[2] == {'colour': 'red', 'speed': 'fast', 'size': 'small'}
+    assert track.metadatas[3] == \
+           {'colour': 'red', 'side': 'enemy', 'speed': 'fast', 'size': 'small'}
+
+    state = Update(
+        hypothesis=SingleHypothesis(None, Detection(np.array([[0]]), metadata={'colour': 'black'}))
+    )
+    track.insert(-100, state)
+    assert track.metadata == {'colour': 'red', 'side': 'enemy', 'speed': 'fast', 'size': 'small'}
+    assert len(track.metadatas) == 5
+    assert track.metadatas[0] == {'colour': 'black'}
+    assert track.metadatas[1] == {'colour': 'red'}
+    assert track.metadatas[2] == {'colour': 'red', 'speed': 'fast'}
+    assert track.metadatas[3] == {'colour': 'red', 'size': 'small', 'speed': 'fast'}
+    assert track.metadatas[4] == \
+           {'colour': 'red', 'side': 'enemy', 'speed': 'fast', 'size': 'small'}
+
+    state = Update(
+        hypothesis=SingleHypothesis(None, Detection(np.array([[0]]), metadata={'colour': 'black'}))
+    )
+    track.insert(100, state)
+    assert track.metadata == {'colour': 'black', 'side': 'enemy', 'speed': 'fast', 'size': 'small'}
+    assert len(track.metadatas) == 6
+    assert track.metadatas[0] == {'colour': 'black'}
+    assert track.metadatas[1] == {'colour': 'red'}
+    assert track.metadatas[2] == {'colour': 'red', 'speed': 'fast'}
+    assert track.metadatas[3] == {'colour': 'red', 'size': 'small', 'speed': 'fast'}
+    assert track.metadatas[4] == \
+           {'colour': 'red', 'side': 'enemy', 'speed': 'fast', 'size': 'small'}
+    assert track.metadatas[5] == \
+           {'colour': 'black', 'side': 'enemy', 'speed': 'fast', 'size': 'small'}
+
+    state = Update(
+        hypothesis=SingleHypothesis(None, Detection(np.array([[0]]), metadata={'colour': 'green'}))
+    )
+    track.append(state)
+    assert track.metadata == {'colour': 'green', 'side': 'enemy', 'speed': 'fast', 'size': 'small'}
+    assert len(track.metadatas) == 7
+    assert track.metadatas[0] == {'colour': 'black'}
+    assert track.metadatas[1] == {'colour': 'red'}
+    assert track.metadatas[2] == {'colour': 'red', 'speed': 'fast'}
+    assert track.metadatas[3] == {'colour': 'red', 'size': 'small', 'speed': 'fast'}
+    assert track.metadatas[4] == \
+           {'colour': 'red', 'side': 'enemy', 'speed': 'fast', 'size': 'small'}
+    assert track.metadatas[5] == \
+           {'colour': 'black', 'side': 'enemy', 'speed': 'fast', 'size': 'small'}
+    assert track.metadatas[6] == \
+           {'colour': 'green', 'side': 'enemy', 'speed': 'fast', 'size': 'small'}
+
+    state = Update(
+        hypothesis=SingleHypothesis(None, Detection(np.array([[0]]), metadata={'colour': 'white'}))
+    )
+    track[-2] = state
+    assert track.metadata == {'colour': 'green', 'side': 'enemy', 'speed': 'fast', 'size': 'small'}
+    assert len(track.metadatas) == 7
+    assert track.metadatas[0] == {'colour': 'black'}
+    assert track.metadatas[1] == {'colour': 'red'}
+    assert track.metadatas[2] == {'colour': 'red', 'speed': 'fast'}
+    assert track.metadatas[3] == {'colour': 'red', 'size': 'small', 'speed': 'fast'}
+    assert track.metadatas[4] == \
+           {'colour': 'red', 'side': 'enemy', 'speed': 'fast', 'size': 'small'}
+    assert track.metadatas[5] == \
+           {'colour': 'white', 'side': 'enemy', 'speed': 'fast', 'size': 'small'}
+    assert track.metadatas[6] == \
+           {'colour': 'green', 'side': 'enemy', 'speed': 'fast', 'size': 'small'}
