@@ -24,13 +24,15 @@ setup(name='stonesoup',
       packages=find_packages(exclude=('docs', '*.tests')),
       python_requires='>=3.6',
       setup_requires=['setuptools_scm', 'setuptools_scm_git_archive'],
-      use_scm_version={'write_to': 'stonesoup/_version.py'},
+      use_scm_version=True,
       install_requires=[
-          'ruamel.yaml>=0.15.45', 'numpy>=1.17', 'scipy', 'matplotlib', 'utm', 'pymap3d'],
+          'ruamel.yaml>=0.15.45', 'numpy>=1.17', 'scipy', 'matplotlib', 'utm', 'pymap3d',
+          'setuptools>=42',
+      ],
       extras_require={
           'dev': [
               'pytest-flake8', 'pytest-cov', 'Sphinx', 'sphinx_rtd_theme',
-              'setuptools>=42', 'sphinx-gallery>=0.8', 'pillow', 'folium'],
+              'sphinx-gallery>=0.8', 'pillow', 'folium'],
           'video': ['ffmpeg-python', 'moviepy'],
           'tensorflow': ['tensorflow>=2.2.0']
       },
