@@ -98,16 +98,10 @@ for k in range(1, 21):
 
 # %%
 # Set-up plot to render ground truth, as before.
-fig = plt.figure(figsize=(10, 6))
-ax = fig.add_subplot()
-ax.set_xlabel("$x$")
-ax.set_ylabel("$y$")
-ax.axis('equal')
 
-# Plot the result
-ax.plot([state.state_vector[0] for state in truth],
-        [state.state_vector[2] for state in truth],
-        linestyle="--")
+from stonesoup.plotter import Plotter
+plotter = Plotter()
+plotter.plot_ground_truths(truth, [0, 2])
 
 # %%
 # Simulate the measurement
@@ -126,21 +120,19 @@ measurement_model = CartesianToBearingRange(ndim_state=4,
 
 # %%
 from stonesoup.types.detection import Detection
-from stonesoup.functions import pol2cart
 
 # Make sensor that produces the noisy measurements.
 measurements = []
 for state in truth:
     measurement = measurement_model.function(state, noise=True)
-    measurements.append(Detection(measurement, timestamp=state.timestamp))
+    measurements.append(Detection(measurement, timestamp=state.timestamp,
+                                  measurement_model=measurement_model))
 
-# Plot the measurements (turning them back in to cartesian coordinates (for the sake of a nice
-# plot)).
-x, y = pol2cart(
-    np.hstack([state.state_vector[1, 0] for state in measurements]),
-    np.hstack([state.state_vector[0, 0] for state in measurements]))
-ax.scatter(x + sensor_x, y + sensor_y, color='b')
-fig
+# Plot the measurements
+# Where the model is nonlinear the plotting function uses the inverse function to get coordinates
+
+plotter.plot_measurements(measurements, [0, 2])
+plotter.fig
 
 # %%
 # Create unscented Kalman filter components
@@ -177,26 +169,9 @@ for measurement in measurements:
 
 # %%
 # And plot
-ax.plot([state.state_vector[0, 0] for state in track],
-        [state.state_vector[2, 0] for state in track],
-        marker=".", color='r')
 
-# Plot UKF errors (red)
-from matplotlib.patches import Ellipse
-HH = np.array([[1.,  0.,  0.,  0.],
-               [0.,  0.,  1.,  0.]])
-for state in track:
-    w, v = np.linalg.eig(HH@state.covar@HH.T)
-    max_ind = np.argmax(w)
-    min_ind = np.argmin(w)
-    orient = np.arctan2(v[1,max_ind], v[0,max_ind])
-    ellipse = Ellipse(xy=(state.state_vector[0], state.state_vector[2]),
-                      width=2*np.sqrt(w[max_ind]), height=2*np.sqrt(w[min_ind]),
-                      angle=np.rad2deg(orient),
-                      alpha=0.2,
-                      color='r')
-    ax.add_artist(ellipse)
-fig
+plotter.plot_tracks(track, [0, 2], uncertainty=True, color='r')
+plotter.fig
 
 # %%
 # The UT in slightly more depth
@@ -271,7 +246,9 @@ ax.plot(data[:, 0].ravel()+noise[:, 0],
         linestyle='',
         marker=".",
         markersize=1.5,
-        alpha=0.4)
+        alpha=0.4,
+        label="Measurements")
+ax.legend()
 
 # %%
 # We can now see what happens when we create EKF and UKF updaters and compare their effect.
@@ -289,6 +266,7 @@ ekf_pred_meas = extended_updater.predict_measurement(prediction)
 # Plot UKF (red) and EKF (green) predicted measurement distributions.
 
 # Plot UKF's predicted measurement distribution
+from matplotlib.patches import Ellipse
 w, v = np.linalg.eig(ukf_pred_meas.covar)
 max_ind = np.argmax(w)
 min_ind = np.argmin(w)
@@ -297,7 +275,7 @@ ukf_ellipse = Ellipse(xy=(ukf_pred_meas.state_vector[0], ukf_pred_meas.state_vec
                       width=2*np.sqrt(w[max_ind]), height=2*np.sqrt(w[min_ind]),
                       angle=np.rad2deg(orient),
                       alpha=0.4,
-                      color='r')
+                      color='r',)
 ax.add_artist(ukf_ellipse)
 
 
@@ -310,9 +288,13 @@ ekf_ellipse = Ellipse(xy=(ekf_pred_meas.state_vector[0], ekf_pred_meas.state_vec
                       width=2*np.sqrt(w[max_ind]), height=2*np.sqrt(w[min_ind]),
                       angle=np.rad2deg(orient),
                       alpha=0.5,
-                      color='g')
+                      color='g',)
 ax.add_artist(ekf_ellipse)
 
+# Add ellipses to legend
+label_list = ["UKF Prediction", "EKF Prediction"]
+color_list = ['r', 'g']
+plotter.ellipse_legend(ax, label_list, color_list)
 fig2
 
 # sphinx_gallery_thumbnail_number = 5
