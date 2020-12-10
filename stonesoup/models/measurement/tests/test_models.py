@@ -9,6 +9,7 @@ from ..nonlinear import (
     CartesianToElevationBearing, Cartesian2DToBearing, CartesianToBearingRangeRate,
     CartesianToElevationBearingRangeRate)
 from ...base import ReversibleModel
+from ...measurement.linear import LinearGaussian
 from ....functions import jacobian as compute_jac
 from ....functions import pol2cart
 from ....functions import rotz, rotx, roty, cart2sphere
@@ -77,6 +78,22 @@ def hbearing(state_vector, pos_map, translation_offset, rotation_offset):
     _, phi, theta = cart2sphere(*xyz_rot)
 
     return StateVector([Elevation(theta), Bearing(phi)])
+
+
+@pytest.mark.parametrize(
+    "model_class",
+    [LinearGaussian,
+     CartesianToElevationBearingRange,
+     CartesianToBearingRange,
+     CartesianToElevationBearing,
+     Cartesian2DToBearing,
+     CartesianToBearingRangeRate,
+     CartesianToElevationBearingRangeRate]
+)
+def test_none_covar(model_class):
+    model = model_class(ndim_state=0, mapping=None, noise_covar=None)
+    with pytest.raises(ValueError, match="Cannot generate pdf from None-type covariance"):
+        model.pdf(State([0]), State([0]))
 
 
 @pytest.mark.parametrize(
