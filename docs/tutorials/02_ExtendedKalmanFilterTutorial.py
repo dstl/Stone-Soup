@@ -30,7 +30,8 @@
 #
 # .. math::
 #       g(\mathbf{x})\rvert_{\mathbf{x}=\boldsymbol{\mu}} \approx \sum\limits_{|\alpha| \ge 0}
-#       \frac{ (\mathbf{x} - \boldsymbol{\mu})^{\alpha}}{\alpha !} (\mathcal{D}^{\alpha} g)(\boldsymbol{\mu})
+#       \frac{(\mathbf{x} - \boldsymbol{\mu})^{\alpha}}{\alpha !}
+#       (\mathcal{D}^{\alpha} g)(\boldsymbol{\mu})
 #
 # This is usually truncated after the first term, meaning that either
 # :math:`\tilde{F}(\mathbf{x}_{k-1}) \approx J(f)\rvert_{\mathbf{x}=\boldsymbol{\mu}_{k-1}}` or
@@ -40,9 +41,10 @@
 # filter using these approximations,
 #
 # .. math::
-#           \mathbf{x}_{k|k-1} &= f_{k}(\mathbf{x}_{k-1}) \\
-#                 P_{k|k-1} &= \tilde{F}_{k}P_{k-1}\tilde{F}_{k}^T + Q_{k}\\
-#       \mathbf{x}_{k} &= \mathbf{x}_{k|k-1} + \tilde{K}_k(\mathbf{z}_k - h_k(\mathbf{x}_{k|k-1}))\\
+#       \mathbf{x}_{k|k-1} &= f_{k}(\mathbf{x}_{k-1}) \\
+#       P_{k|k-1} &= \tilde{F}_{k}P_{k-1}\tilde{F}_{k}^T + Q_{k}\\
+#       \mathbf{x}_{k} &= \mathbf{x}_{k|k-1} +
+#                         \tilde{K}_k(\mathbf{z}_k - h_k(\mathbf{x}_{k|k-1}))\\
 #       P_{k} &= P_{k|k-1} - \tilde{K}_k \tilde{H}_{k} P_{k|k-1}\\
 #
 # where,
@@ -142,7 +144,8 @@ for state in truth:
                                   measurement_model=measurement_model))
 
 # %%
-# Plot the measurements. Where the model is nonlinear the plotting function uses the inverse function to get coordinates.
+# Plot the measurements. Where the model is nonlinear the plotting function uses the inverse
+# function to get coordinates.
 
 plotter.plot_measurements(measurements, [0, 2])
 plotter.fig
@@ -194,11 +197,12 @@ plotter.fig
 # %%
 # Key points
 # ----------
-# 1. Non-linear models can be incorporated into the tracking scheme through the use of the appropriate
-#    combination of :class:`~.Predictor`/:class:`~.TransitionModel` or
+# 1. Non-linear models can be incorporated into the tracking scheme through the use of the
+#    appropriate combination of :class:`~.Predictor`/:class:`~.TransitionModel` or
 #    :class:`~.Updater`/:class:`~.MeasurementModel`
-# 2. Because Stone Soup uses inheritance, the amount of engineering required to achieve this is minimal and
-#    the interface is the same. A user can apply the EKF components in exactly the same way as the KF.
+# 2. Because Stone Soup uses inheritance, the amount of engineering required to achieve this is
+#    minimal and the interface is the same. A user can apply the EKF components in exactly the same
+#    way as the KF.
 
 # %%
 # The first order approximations used by the EKF provide a simple way to handle non-linear tracking

@@ -178,8 +178,8 @@ hypothesiser = DistanceHypothesiser(predictor, updater, measure=Mahalanobis(), m
 
 # %%
 # Now we use the :class:`~.NearestNeighbour` data associator, which picks the hypothesis pair
-# (predicted measurement and detection) with the highest 'score' (in this instance, those that are closest
-# to each other).
+# (predicted measurement and detection) with the highest 'score' (in this instance, those that are
+# closest to each other).
 #
 # .. image:: ../_static/NN_Association_Diagram.png
 #   :width: 500

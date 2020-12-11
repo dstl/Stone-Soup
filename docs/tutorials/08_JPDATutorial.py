@@ -36,7 +36,6 @@
 
 from datetime import datetime
 from datetime import timedelta
-from matplotlib import pyplot as plt
 import numpy as np
 from scipy.stats import uniform
 
