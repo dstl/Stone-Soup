@@ -117,9 +117,16 @@ class gallery_scraper():
         # Then standard images
         new_figures = set(plt.get_fignums()) - self.plotted_figures
         last_line = block[1].strip().split('\n')[-1]
-        output = block_vars['example_globals'].get(last_line)
-        if isinstance(output, Figure):
-            new_figures.add(output.number)
+        variable, *attributes = last_line.split(".")
+        try:
+            output = block_vars['example_globals'][variable]
+            for attribute in attributes:
+                output = getattr(output, attribute)
+        except (KeyError, AttributeError):
+            pass
+        else:
+            if isinstance(output, Figure):
+                new_figures.add(output.number)
 
         for fig_num, image_path in zip(new_figures, image_path_iterator):
             if 'format' in kwargs:

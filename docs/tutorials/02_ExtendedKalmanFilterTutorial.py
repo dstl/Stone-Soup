@@ -91,17 +91,10 @@ for k in range(1, 21):
 
 # %%
 # Plot this
-from matplotlib import pyplot as plt
 
-fig = plt.figure(figsize=(10, 6))
-ax = fig.add_subplot()
-ax.set_xlabel("$x$")
-ax.set_ylabel("$y$")
-ax.axis('equal')
-
-ax.plot([state.state_vector[0] for state in truth],
-        [state.state_vector[2] for state in truth],
-        linestyle="--")
+from stonesoup.plotter import Plotter
+plotter = Plotter()
+plotter.plot_ground_truths(truth, [0, 2])
 
 # %%
 # A bearing-range sensor
@@ -145,16 +138,14 @@ from stonesoup.types.detection import Detection
 measurements = []
 for state in truth:
     measurement = measurement_model.function(state, noise=True)
-    measurements.append(Detection(measurement, timestamp=state.timestamp))
+    measurements.append(Detection(measurement, timestamp=state.timestamp,
+                                  measurement_model=measurement_model))
 
 # %%
-# Map them back onto the Cartesian reference frame for plotting.
-from stonesoup.functions import pol2cart
-x, y = pol2cart(
-    np.hstack([state.state_vector[1, 0] for state in measurements]),
-    np.hstack([state.state_vector[0, 0] for state in measurements]))
-ax.scatter(x + sensor_x, y + sensor_y, color='b')
-fig
+# Plot the measurements. Where the model is nonlinear the plotting function uses the inverse function to get coordinates.
+
+plotter.plot_measurements(measurements, [0, 2])
+plotter.fig
 
 # %%
 # Set up the extended Kalman filter elements
@@ -194,24 +185,9 @@ for measurement in measurements:
 
 # %%
 # Plot the resulting track complete with error ellipses at each estimate.
-ax.plot([state.state_vector[0, 0] for state in track],
-        [state.state_vector[2, 0] for state in track],
-        marker=".")
-from matplotlib.patches import Ellipse
-HH = np.array([[1.,  0.,  0.,  0.],
-               [0.,  0.,  1.,  0.]])
-for state in track:
-    w, v = np.linalg.eig(HH@state.covar@HH.T)
-    max_ind = np.argmax(w)
-    min_ind = np.argmin(w)
-    orient = np.arctan2(v[1,max_ind], v[0,max_ind])
-    ellipse = Ellipse(xy=(state.state_vector[0], state.state_vector[2]),
-                      width=2*np.sqrt(w[max_ind]), height=2*np.sqrt(w[min_ind]),
-                      angle=np.rad2deg(orient),
-                      alpha=0.2,
-                      color='r')
-    ax.add_artist(ellipse)
-fig
+
+plotter.plot_tracks(track, [0, 2], uncertainty=True)
+plotter.fig
 
 # sphinx_gallery_thumbnail_number = 3
 

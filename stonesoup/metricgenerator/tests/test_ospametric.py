@@ -151,7 +151,7 @@ def test_gospametric_computemetric():
               for i in range(5)}
 
     manager = SimpleManager([generator])
-    manager.add_data([tracks, truths])
+    manager.add_data(truths, tracks)
     main_metric = generator.compute_metric(manager)
 
     assert main_metric.title == "GOSPA Metrics"
@@ -281,7 +281,7 @@ def test_ospametric_computemetric(p):
               for i in range(5)}
 
     manager = SimpleManager([generator])
-    manager.add_data([tracks, truths])
+    manager.add_data(truths, tracks)
     main_metric = generator.compute_metric(manager)
     first_association, second_association = main_metric.value
 
@@ -323,7 +323,7 @@ def test_ospa_computemetric_cardinality_error(p, first_value, second_value):
               for i in range(5)}
 
     manager = SimpleManager([generator])
-    manager.add_data([tracks, truths])
+    manager.add_data(truths, tracks)
     main_metric = generator.compute_metric(manager)
     first_association, second_association = main_metric.value
 

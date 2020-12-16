@@ -1194,38 +1194,38 @@ class SIAPMetrics(MetricGenerator):
 
         """
 
-        # Starting at the beginning of the truth find the track associated at
-        # that timestamp with the longest length, increase the track count by
-        # one and move time to the end of that track. Repeat until the end of
-        # the truth is reached. If no tracks present at a point then move on to
-        # the next timestamp in the truth.
+        # Starting at the beginning of the truth find the track associated at that timestamp with
+        # the longest length, increase the track count by one and move time to the end of that
+        # track. Repeat until the end of the truth is reached. If no tracks present at a point then
+        # move on to the next timestamp index in the truth.
+
+        assocs = sorted(manager.association_set.associations_including_objects([truth]),
+                        key=attrgetter('time_range.end_timestamp'),
+                        reverse=True)
+
+        if len(assocs) == 0:
+            return 0
 
         truth_timestamps = sorted(i.timestamp for i in truth.states)
-        assocs = manager.association_set.associations_including_objects(
-            [truth])
         n_truth_needed = 0
-        current_time = truth_timestamps[0]
+        i_timestamp = 0
 
-        while current_time < truth_timestamps[-1]:
-            assocs_at_time = sorted(
-                (assoc
-                 for assoc in assocs
-                 if current_time in assoc.time_range),
-                key=attrgetter('time_range.end_timestamp'),
-                reverse=True)
-            if not assocs_at_time:
-                i_timestamp = truth_timestamps.index(current_time)
-                current_time = truth_timestamps[i_timestamp + 1]
+        while i_timestamp < len(truth_timestamps):
+            current_time = truth_timestamps[i_timestamp]
+            assoc_at_time = next((assoc for assoc in assocs if current_time in assoc.time_range),
+                                 None)
+            if not assoc_at_time:
+                i_timestamp += 1
             else:
-                current_time = assocs_at_time[0].time_range.end_timestamp
+                end_time = assoc_at_time.time_range.end_timestamp
                 n_truth_needed += 1
 
-                # If not yet at the end of the truth timestamps then move on
-                # to the next one
-                if current_time < truth_timestamps[-1]:
-                    i_timestamp = truth_timestamps.index(current_time)
-                    current_time = truth_timestamps[i_timestamp + 1]
-
+                # If not yet at the end of the truth timestamps indices, move on to the next
+                try:
+                    # Move to next timestamp index after current association's end timestamp
+                    i_timestamp = truth_timestamps.index(end_time, i_timestamp + 1) + 1
+                except ValueError:
+                    break
         return n_truth_needed
 
     def _tl_j(self, manager, truth):
