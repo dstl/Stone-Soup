@@ -831,7 +831,7 @@ class EquinoctialOrbitalState(OrbitalState):
 
 class GaussianOrbitalState(GaussianState, OrbitalState):
     """An Orbital state for use in Kalman filters (and perhaps elsewhere). Inherits from
-    GaussianState so has covariance matrix. As no checks are made on the validity of the covariance
+    GaussianState so has covariance matrix. As no checks on the validity of the covariance
     matrix are made, care should be exercised in its use. The propagator will generally require
     a particular coordinate reference which must be understood.
 
