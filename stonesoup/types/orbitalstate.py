@@ -6,8 +6,8 @@ from datetime import datetime
 from ..orbital_functions import keplerian_to_rv, tru_anom_from_mean_anom
 
 from ..base import Property
-from .array import CovarianceMatrix, StateVector
-from .state import State
+from .array import StateVector
+from .state import State, GaussianState
 from .angle import Inclination, EclipticLongitude
 
 
@@ -110,13 +110,6 @@ class OrbitalState(State):
         doc=r"Standard gravitational parameter :math:`\mu = G M`. The default "
             r"is :math:`3.986004418 \times 10^{14} \,` "
             r":math:`\mathrm{m}^3 \mathrm{s}^{-2}`.")
-
-    covar = Property(
-        CovarianceMatrix, default=None,
-        doc="The covariance matrix. Care should be exercised in that its "
-            "coordinate frame isn't defined, and output will be highly "
-            "dependent on which parameterisation is chosen."
-    )
 
     metadata = Property(
         dict, default={}, doc="Dictionary containing metadata about orbit"
@@ -834,3 +827,14 @@ class EquinoctialOrbitalState(OrbitalState):
 
         super().__init__(state_vector, coordinates='Equinoctial', *args,
                          **kwargs)
+
+
+class GaussianOrbitalState(GaussianState, OrbitalState):
+    """An Orbital state for use in Kalman filters (and perhaps elsewhere). Inherits from
+    GaussianState so has covariance matrix. As no checks on the validity of the covariance
+    matrix are made, care should be exercised in its use. The propagator will generally require
+    a particular coordinate reference which must be understood.
+
+    All conversions provided by OrbitalState are available.
+
+    """
