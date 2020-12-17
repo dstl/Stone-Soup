@@ -56,8 +56,8 @@
 #
 # .. math::
 #           \mathbf{x}^\prime &= \sum\limits^{2 D}_{0} W^{m}_j \mathbf{s}^{\prime}_j \\
-#           P^\prime &= (\mathbf{s}^{\prime} - \mathbf{x}^\prime) \, diag(W^c) \, (\mathbf{s}^{\prime} -
-#           \mathbf{x}^\prime)^T + Q
+#           P^\prime &= (\mathbf{s}^{\prime} - \mathbf{x}^\prime) \, diag(W^c) \,
+#           (\mathbf{s}^{\prime} - \mathbf{x}^\prime)^T + Q
 #
 # The posterior mean and covariance are accurate to the 2nd order Taylor expansion for any
 # non-linear model. [#]_
@@ -70,7 +70,6 @@
 
 # Some general imports and initialise time
 import numpy as np
-from matplotlib import pyplot as plt  # Set-up for plotting
 
 from datetime import datetime, timedelta
 start_time = datetime.now()
@@ -233,8 +232,9 @@ predict_meas_samples = pupdater.predict_measurement(pred_samples)
 # distribution of the predicted measurement - which is rendered as a blue cloud. Note that
 # no noise is added by the :meth:`~.UnscentedKalmanUpdater.predict_measurement` method so we add
 # some noise below. This is additive Gaussian in the sensor coordinates.
-fig2 = plt.figure(figsize=(10, 6), tight_layout=True)
-ax = fig2.add_subplot(1, 1, 1, polar=True)
+from matplotlib import pyplot as plt
+fig = plt.figure(figsize=(10, 6), tight_layout=True)
+ax = fig.add_subplot(1, 1, 1, polar=True)
 ax.set_ylim(0, 30)
 ax.set_xlim(0, np.radians(180))
 
@@ -295,7 +295,7 @@ ax.add_artist(ekf_ellipse)
 label_list = ["UKF Prediction", "EKF Prediction"]
 color_list = ['r', 'g']
 plotter.ellipse_legend(ax, label_list, color_list)
-fig2
+fig
 
 # sphinx_gallery_thumbnail_number = 5
 

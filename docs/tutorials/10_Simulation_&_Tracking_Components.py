@@ -70,7 +70,7 @@ from stonesoup.models.transition.linear import (
 transition_model = CombinedLinearGaussianTransitionModel(
     [ConstantVelocity(0.05), ConstantVelocity(0.05)])
 
-## %
+# %%
 # Put this all together in a multi-target simulator.
 from stonesoup.simulator.simple import MultiTargetGroundTruthSimulator
 groundtruth_sim = MultiTargetGroundTruthSimulator(
@@ -163,7 +163,7 @@ deleter = CovarianceBasedDeleter(covariance_limit_for_delete)
 # %%
 # Set a standard prior state and the minimum number of detections required to qualify for
 # initiation
-s_prior_state=GaussianState([[0], [0], [0], [0]], np.diag([0, 0.5, 0, 0.5]))
+s_prior_state = GaussianState([[0], [0], [0], [0]], np.diag([0, 0.5, 0, 0.5]))
 min_detections = 3
 
 # %%
@@ -215,4 +215,3 @@ fig = plotter.plot_tracks_truth_detections(tracks, groundtruth, detections).valu
 ax = fig.axes[0]
 ax.set_xlim([-30, 30])
 _ = ax.set_ylim([-30, 30])
-

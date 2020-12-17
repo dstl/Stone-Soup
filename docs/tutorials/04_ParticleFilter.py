@@ -69,7 +69,6 @@
 # Import the necessary libraries
 
 import numpy as np
-from matplotlib import pyplot as plt
 
 from datetime import datetime
 from datetime import timedelta
