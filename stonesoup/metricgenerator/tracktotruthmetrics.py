@@ -1327,12 +1327,21 @@ class SIAPMetrics(MetricGenerator):
             if len(tracks) == 0:
                 continue
 
-            if all(check_function(track, truth) for track in tracks):
+            if all(check_function(track, truth, timestamp) for track in tracks):
                 count += 1
         return count
 
-    def _ju_check(self, track, *args):
-        return track.metadata.get(self.track_id) is None
+    def _get_track_id(self, track, timestamp):
+        state = track[timestamp]
+        index = track.index(state)
+        metadata = track.metadatas[index]
+        if self.track_id in metadata:
+            return metadata[self.track_id]
+        else:
+            return None
+
+    def _ju_check(self, track, truth, timestamp):
+        return self._get_track_id(track, timestamp) is None
 
     def _ju_t(self, manager, timestamp):
         """Calculate the number of truths tracked with unknown ID at timestamp
@@ -1368,8 +1377,8 @@ class SIAPMetrics(MetricGenerator):
         """
         return sum(self._ju_t(manager, timestamp) for timestamp in timestamps)
 
-    def _jc_check(self, track, truth):
-        track_id = track.metadata.get(self.track_id)
+    def _jc_check(self, track, truth, timestamp):
+        track_id = self._get_track_id(track, timestamp)
         truth_id = truth.metadata.get(self.truth_id)
         return track_id is not None and truth_id is not None and track_id == truth_id
 
@@ -1407,8 +1416,8 @@ class SIAPMetrics(MetricGenerator):
         """
         return sum(self._jc_t(manager, timestamp) for timestamp in timestamps)
 
-    def _ji_check(self, track, truth):
-        track_id = track.metadata.get(self.track_id)
+    def _ji_check(self, track, truth, timestamp):
+        track_id = self._get_track_id(track, timestamp)
         truth_id = truth.metadata.get(self.truth_id)
         return track_id is not None and track_id != truth_id
 
