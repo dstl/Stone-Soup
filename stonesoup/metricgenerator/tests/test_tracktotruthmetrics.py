@@ -2,6 +2,9 @@ import datetime
 
 import pytest
 
+from ...types.detection import Detection
+from ...types.hypothesis import SingleHypothesis
+from ...types.update import StateUpdate
 from ..tracktotruthmetrics import SIAPMetrics
 from ...metricgenerator.manager import SimpleManager
 from ...types.association import TimeRangeAssociation, AssociationSet
@@ -384,7 +387,28 @@ def test_t_j(generator):
 
 
 @pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
-def test_id(generator):
+def test_get_track_id(generator):
+    tstart = datetime.datetime.now()
+    track = Track([
+        StateUpdate([0], hypothesis=SingleHypothesis(None, Detection([0])), timestamp=tstart),
+        StateUpdate([0], hypothesis=SingleHypothesis(None,
+                                                     Detection([0], metadata={'colour': 'red'})),
+                    timestamp=tstart + datetime.timedelta(seconds=1)),
+        StateUpdate([0], hypothesis=SingleHypothesis(None,
+                                                     Detection([0], metadata={'ident': 'ally'})),
+                    timestamp=tstart + datetime.timedelta(seconds=2)),
+        StateUpdate([0],
+                    hypothesis=SingleHypothesis(None, Detection([0], metadata={'ident': 'enemy'})),
+                    timestamp=tstart + datetime.timedelta(seconds=3))])
+
+    assert generator._get_track_id(track, tstart) is None
+    assert generator._get_track_id(track, tstart + datetime.timedelta(seconds=1)) is None
+    assert generator._get_track_id(track, tstart + datetime.timedelta(seconds=2)) == 'ally'
+    assert generator._get_track_id(track, tstart + datetime.timedelta(seconds=3)) == 'enemy'
+
+
+@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
+def test_constant_id(generator):
     tstart = datetime.datetime.now()
     manager = SimpleManager()
 
@@ -452,6 +476,92 @@ def test_id(generator):
     assert generator._jc_sum(manager, manager.list_timestamps()) == 5
     assert generator._ji_sum(manager, manager.list_timestamps()) == 5
     assert generator._ja_sum(manager, manager.list_timestamps()) == 5
+
+
+@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
+def test_variable_id(generator):
+    tstart = datetime.datetime.now()
+    manager = SimpleManager()
+
+    truth = GroundTruthPath(states=[
+        GroundTruthState([[1], [0], [0], [0]], timestamp=tstart + datetime.timedelta(
+            seconds=i), metadata={'identify': 'ally'})
+        for i in range(5)])
+
+    vary_track = Track([
+        StateUpdate([1], hypothesis=SingleHypothesis(None, Detection([0])), timestamp=tstart),
+        StateUpdate([1], hypothesis=SingleHypothesis(None,
+                                                     Detection([0], metadata={'colour': 'red'})),
+                    timestamp=tstart + datetime.timedelta(seconds=1)),
+        StateUpdate([1], hypothesis=SingleHypothesis(None,
+                                                     Detection([0], metadata={'ident': 'ally'})),
+                    timestamp=tstart + datetime.timedelta(seconds=2)),
+        StateUpdate([1],
+                    hypothesis=SingleHypothesis(None, Detection([0], metadata={'ident': 'enemy'})),
+                    timestamp=tstart + datetime.timedelta(seconds=3)),
+        StateUpdate([1],
+                    hypothesis=SingleHypothesis(None, Detection([0], metadata={'ident': 'ally'})),
+                    timestamp=tstart + datetime.timedelta(seconds=4))])
+    correct_track = Track([
+        StateUpdate([1], hypothesis=SingleHypothesis(None, Detection([0])), timestamp=tstart),
+        StateUpdate([1], hypothesis=SingleHypothesis(None,
+                                                     Detection([0], metadata={'ident': 'ally'})),
+                    timestamp=tstart + datetime.timedelta(seconds=1)),
+        StateUpdate([1], hypothesis=SingleHypothesis(None,
+                                                     Detection([0], metadata={'ident': 'ally'})),
+                    timestamp=tstart + datetime.timedelta(seconds=2)),
+        StateUpdate([1],
+                    hypothesis=SingleHypothesis(None, Detection([0], metadata={'ident': 'ally'})),
+                    timestamp=tstart + datetime.timedelta(seconds=3)),
+        StateUpdate([1],
+                    hypothesis=SingleHypothesis(None, Detection([0], metadata={'ident': 'ally'})),
+                    timestamp=tstart + datetime.timedelta(seconds=4))])
+
+    tend = tstart + datetime.timedelta(seconds=4)
+    manager.tracks = {vary_track, correct_track}
+    manager.groundtruth_paths = {truth}
+
+    associations = {
+        TimeRangeAssociation({truth, vary_track}, time_range=TimeRange(tstart, tend)),
+        TimeRangeAssociation({truth, correct_track}, time_range=TimeRange(tstart, tend))
+    }
+
+    manager.association_set = AssociationSet(associations)
+
+    timestamp = tstart
+    assert generator._ju_t(manager, timestamp) == 1
+    assert generator._jc_t(manager, timestamp) == 0
+    assert generator._ji_t(manager, timestamp) == 0
+    assert generator._ja_t(manager, timestamp) == 0
+
+    timestamp = tstart + datetime.timedelta(seconds=1)
+    assert generator._ju_t(manager, timestamp) == 0
+    assert generator._jc_t(manager, timestamp) == 0
+    assert generator._ji_t(manager, timestamp) == 0
+    assert generator._ja_t(manager, timestamp) == 1
+
+    timestamp = tstart + datetime.timedelta(seconds=2)
+    assert generator._ju_t(manager, timestamp) == 0
+    assert generator._jc_t(manager, timestamp) == 1
+    assert generator._ji_t(manager, timestamp) == 0
+    assert generator._ja_t(manager, timestamp) == 0
+
+    timestamp = tstart + datetime.timedelta(seconds=3)
+    assert generator._ju_t(manager, timestamp) == 0
+    assert generator._jc_t(manager, timestamp) == 0
+    assert generator._ji_t(manager, timestamp) == 0
+    assert generator._ja_t(manager, timestamp) == 1
+
+    timestamp = tstart + datetime.timedelta(seconds=4)
+    assert generator._ju_t(manager, timestamp) == 0
+    assert generator._jc_t(manager, timestamp) == 1
+    assert generator._ji_t(manager, timestamp) == 0
+    assert generator._ja_t(manager, timestamp) == 0
+
+    assert generator._ju_sum(manager, manager.list_timestamps()) == 1
+    assert generator._jc_sum(manager, manager.list_timestamps()) == 2
+    assert generator._ji_sum(manager, manager.list_timestamps()) == 0
+    assert generator._ja_sum(manager, manager.list_timestamps()) == 2
 
 
 @pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
