@@ -20,12 +20,41 @@
 # being associated with measurement :math:`x` (:math:`A \to x`) is given by:
 #
 # .. math::
-#       p(A \to x) &= \bar{p}(A \to x \cap B \to y \cap C \to z)\\
-#                  &+ \bar{p}(A \to x \cap B \to z \cap C \to y) +\\
+#       p(A \to x) &= \bar{p}(A \to x \cap B \to None \cap C \to None) +\\
+#                  &+ \bar{p}(A \to x \cap B \to None \cap C \to y) +\\
 #                  &+ \bar{p}(A \to x \cap B \to None \cap C \to z) +\\
-#                  &+ \bar{p}(A \to x \cap B \to None \cap C \to y) + ...
+#                  &+ \bar{p}(A \to x \cap B \to y \cap C \to None) +\\
+#                  &+ \bar{p}(A \to x \cap B \to y \cap C \to z) +\\
+#                  &+ \bar{p}(A \to x \cap B \to z \cap C \to None) +\\
+#                  &+ \bar{p}(A \to x \cap B \to z \cap C \to y)
 #
-# where :math:`\bar{p}(multi-hypothesis)` is the normalised probability of the multi-hypothesis.
+# where :math:`\bar{p}(\textit{multi-hypothesis})` is the normalised probability of the
+# multi-hypothesis.
+#
+# This is demonstrated for 2 tracks associating to 3 measurements in the diagrams below:
+#
+# .. image:: ../_static/JPDA_reweighting-diagram_1.png
+#   :width: 500
+#   :alt: Image showing NN association for one track
+#
+# We recalculate each track-measurement hypothesis weight by summing the conditional
+# probabilities that every other track associates to every other measurement (including missed
+# detection). In this example, the weight of the orange-track-to-green-measurement hypothesis is
+# calculated by summing the probabilities: :math:`\bar{p}(orange \to green \cap blue \to purple)`,
+# :math:`\bar{p}(orange \to green \cap blue \to None)`,
+# :math:`\bar{p}(orange \to green \cap blue \to red)`.
+#
+# .. image:: ../_static/JPDA_reweighting-diagram_2.png
+#   :width: 500
+#   :alt: Image showing NN association for one track
+#
+# These hypothesis weights are normalised to determine the resulting probabilities. From here, each
+# track is associated to each measurement according to the PDA process.
+#
+# .. image:: ../_static/JPDA_reweighting-diagram_3.png
+#   :width: 500
+#   :alt: Image showing NN association for one track
+#
 
 # %%
 # Simulate ground truth
