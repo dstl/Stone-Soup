@@ -1335,10 +1335,7 @@ class SIAPMetrics(MetricGenerator):
         state = track[timestamp]
         index = track.index(state)
         metadata = track.metadatas[index]
-        if self.track_id in metadata:
-            return metadata[self.track_id]
-        else:
-            return None
+        return metadata.get(self.track_id)
 
     def _ju_check(self, track, truth, timestamp):
         return self._get_track_id(track, timestamp) is None
