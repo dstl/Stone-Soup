@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from copy import copy
+
 from .base import Predictor
 from ._utils import predict_lru_cache
 from ..types.particle import Particle
@@ -40,14 +42,13 @@ class ParticlePredictor(Predictor):
 
         new_particles = []
         for particle in prior.particles:
+            new_particle = copy(particle)
             new_state_vector = self.transition_model.function(
                 particle,
                 noise=True,
                 time_interval=time_interval,
                 **kwargs)
-            new_particles.append(
-                Particle(new_state_vector,
-                         weight=particle.weight,
-                         parent=particle.parent))
+            new_particle.state_vector = new_state_vector
+            new_particles.append(new_particle)
 
         return Prediction.from_state(prior, particles=new_particles, timestamp=timestamp)

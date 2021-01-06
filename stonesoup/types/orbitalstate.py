@@ -6,8 +6,8 @@ from datetime import datetime
 from ..orbital_functions import keplerian_to_rv, tru_anom_from_mean_anom
 
 from ..base import Property
-from .array import CovarianceMatrix, StateVector
-from .state import State, GaussianState
+from .array import StateVector, StateVectors
+from .state import State, GaussianState, ParticleState
 from .angle import Inclination, EclipticLongitude
 
 
@@ -838,3 +838,12 @@ class GaussianOrbitalState(GaussianState, OrbitalState):
     All conversions provided by OrbitalState are available.
 
     """
+
+
+class ParticleOrbitalState(OrbitalState):
+    """ An orbital state which wraps the features of the particle filter in the orbital state.
+
+    """
+    weight: float = Property(doc='Weight of particle')
+    parent: 'ParticleOrbitalState' = Property(default=None, doc='Parent particle')
+

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from operator import attrgetter
+from copy import copy
 
 from .base import Resampler
 from ..types.numeric import Probability
@@ -39,9 +40,16 @@ class SystematicResampler(Resampler):
             u_j = u_i + (1 / n_particles) * j
 
             particle = particles_sorted[np.argmax(u_j < cdf)]
-            new_particles.append(
+            new_particle = copy(particle)
+            new_particle.weight = weight
+            new_particle.parent = particle
+            if new_particle.parent:
+                new_particle.parent.parent = None
+            new_particles.append(new_particle)
+
+            '''new_particles.append(
                 Particle(particle.state_vector,
                          weight=weight,
-                         parent=particle))
+                         parent=particle))'''
 
         return new_particles
