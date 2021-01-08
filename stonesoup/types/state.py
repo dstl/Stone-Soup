@@ -7,9 +7,9 @@ import numpy as np
 import uuid
 
 from ..base import Property
-from .array import StateVector, StateVectors, CovarianceMatrix
+from .array import StateVector, CovarianceMatrix
 from .base import Type
-from .particle import Particle
+from .particle import Particles
 from .numeric import Probability
 
 
@@ -250,19 +250,20 @@ class ParticleState(Type):
     This is a particle state object which describes the state as a
     distribution of particles"""
 
-    particles: MutableSequence[Particle] = Property(doc='List of particles representing state')
+    particles: Particles = Property(doc='All particles.')
     timestamp: datetime.datetime = Property(default=None,
                                             doc="Timestamp of the state. Default None.")
 
     @property
     def ndim(self):
-        return self.particles[0].ndim
+        return self.particles.state_vector.ndim
 
     @property
     def mean(self):
         """The state mean, equivalent to state vector"""
-        result = np.average(StateVectors([p.state_vector for p in self.particles]), axis=1,
-                            weights=[p.weight for p in self.particles])
+        result = np.average(self.particles.state_vector,
+                            axis=1,
+                            weights=np.array(self.particles.weight))
         # Convert type as may have type of weights
         return result
 
@@ -273,8 +274,7 @@ class ParticleState(Type):
 
     @property
     def covar(self):
-        cov = np.cov(StateVectors([p.state_vector for p in self.particles]),
-                     ddof=0, aweights=[p.weight for p in self.particles])
+        cov = np.cov(self.particles.state_vector, ddof=0, aweights=np.array(self.particles.weight))
         # Fix one dimensional covariances being returned with zero dimension
         return cov
 State.register(ParticleState)  # noqa: E305

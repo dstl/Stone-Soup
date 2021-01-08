@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
+from typing import MutableSequence
+
 from ..base import Property
-from .array import StateVector
+from .array import StateVector, StateVectors
 from .base import Type
 
 
@@ -25,3 +27,25 @@ class Particle(Type):
     @property
     def ndim(self):
         return self.state_vector.shape[0]
+
+
+class Particles(Type):
+    """
+    Particle type
+
+    A collection of particles. Contains a state and weight for each particle
+    """
+    state_vector: StateVectors = Property(doc="State vectors of particles")
+    weight: MutableSequence[float] = Property(doc='Weights of particles')
+    parent: 'Particles' = Property(default=None, doc='Parent particles')
+
+    def __init__(self, state_vector, weight, parent=None, *args, **kwargs):
+        if parent:
+            parent.parent = None
+        if state_vector is not None and not isinstance(state_vector, StateVectors):
+            state_vector = StateVectors(state_vector)
+        super().__init__(state_vector, weight, parent, *args, **kwargs)
+
+    @property
+    def ndim(self):
+        return self.state_vector.ndim
