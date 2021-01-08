@@ -159,9 +159,10 @@ updater = ParticleUpdater(measurement_model, resampler)
 
 from scipy.stats import multivariate_normal
 
-from stonesoup.types.particle import Particle
+from stonesoup.types.particle import Particles
 from stonesoup.types.numeric import Probability  # Similar to a float type
 from stonesoup.types.state import ParticleState
+from stonesoup.types.array import StateVectors
 
 number_particles = 200
 
@@ -170,12 +171,13 @@ samples = multivariate_normal.rvs(np.array([0, 1, 0, 1]),
                                   np.diag([1.5, 0.5, 1.5, 0.5]),
                                   size=number_particles)
 
-particles = [
-    Particle(sample.reshape(-1, 1), weight=Probability(1/number_particles)) for sample in samples]
+# Create state vectors and weights for particles
+particles = Particles(state_vector=StateVectors(samples.T),
+                      weight=[Probability(1/number_particles)]*number_particles
+                      )
 
 # Create prior particle state.
 prior = ParticleState(particles, timestamp=start_time)
-
 # %%
 # Run the tracker
 # ^^^^^^^^^^^^^^^
