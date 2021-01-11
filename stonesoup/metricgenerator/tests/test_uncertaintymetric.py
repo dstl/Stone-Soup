@@ -2,6 +2,7 @@
 import datetime
 
 import numpy as np
+import pytest
 
 from ..manager import SimpleManager
 from ..uncertaintymetric import UncertaintyMetric
@@ -31,6 +32,8 @@ def test_uncertaintymetric_extractstates():
     assert set(track_states) == set(t.states[0] for t in tracks)
     truth_states = generator.extract_states(truths)
     assert set(truth_states) == set(t.states[0] for t in truths)
+    with pytest.raises(ValueError):
+        generator.extract_states([1, 2, 3])
 
 
 def test_uncertaintymetric_compute_uncertainty():
@@ -49,6 +52,14 @@ def test_uncertaintymetric_compute_uncertainty():
     assert metric.value == 20
     assert metric.timestamp == time
     assert metric.generator == generator
+    with pytest.raises(ValueError):
+        generator.compute_uncertainty([
+            GaussianState(state_vector=[[1], [2], [1], [2]],
+                          timestamp=time,
+                          covar=np.diag([0, 0, 0, 0])),
+            GaussianState(state_vector=[[1], [2], [1], [2]],
+                          timestamp=time+datetime.timedelta(seconds=1),
+                          covar=np.diag([0, 0, 0, 0]))])
 
 
 def test_uncertaintymetric_computemetric():
