@@ -52,7 +52,8 @@ def test_uncertaintymetric_compute_uncertainty():
     assert metric.value == 20
     assert metric.timestamp == time
     assert metric.generator == generator
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError,
+                       match="All states must be from the same time to compute total uncertainty"):
         generator.compute_uncertainty([
             GaussianState(state_vector=[[1], [2], [1], [2]],
                           timestamp=time,
