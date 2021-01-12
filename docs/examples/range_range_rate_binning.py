@@ -34,6 +34,7 @@ def show(title='', x_label='', y_label=''):
     plt.title(title, fontsize=15)
     plt.xlabel(x_label, fontsize=15)
     plt.ylabel(y_label, fontsize=15)
+    plt.show()
 
 
 def plot_states(state_vectors, mapping, plot=plt.plot, line='+-'):
@@ -113,6 +114,7 @@ plt.legend(["real", "measured"])
 plt.minorticks_on()
 plt.title('Positions')
 plt.grid(which='minor', alpha=0.2)
+plt.show()
 # %%
 # This graph shows the radial position is discrete.
 # Next the velocity is plotted, showing the same binning but affecting the range rate
