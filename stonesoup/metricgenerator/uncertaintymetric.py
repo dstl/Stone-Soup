@@ -10,9 +10,9 @@ from ..types.time import TimeRange
 
 class UncertaintyMetric(MetricGenerator):
     """
-    Computes the covariance matrix of the state for each track as a measure of the
-    uncertainty of the track. The metric is calculated as the sum of all covariance
-    matrix norms at each time step.
+    Computes the sum of the covariance matrix norms of each state at a time step.
+    The metric generator will return this value at each time step in the track(s)
+    as a measure of the uncertainty.
     """
 
     def compute_metric(self, manager):
@@ -36,9 +36,9 @@ class UncertaintyMetric(MetricGenerator):
     @staticmethod
     def extract_states(object_with_states):
         """
-        Extracts a list of :class:`~states` from a list of (or single) objects
-        containing states. This method is defined to handle :class:`~track`,
-        :class:`~groundtruthpath` and :class:`~detection` objects
+        Extracts a list of states from a list of (or single) objects
+        containing states. This method is defined to handle :class:`~.StateMutableSequence`
+        and :class:`~.State` types.
 
         Parameters
         ----------
@@ -67,7 +67,7 @@ class UncertaintyMetric(MetricGenerator):
 
         Parameters
         ----------
-        track_states : list of :class:`~State`
+        track_states : list of :class:`~.State`
             List of states created by a filter
 
         Returns

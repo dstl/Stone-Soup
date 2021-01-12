@@ -57,9 +57,9 @@ class GOSPAMetric(MetricGenerator):
     @staticmethod
     def extract_states(object_with_states):
         """
-        Extracts a list of :class:`~states` from a list of (or single) objects
-        containing states. This method is defined to handle :class:`~track`,
-        :class:`~groundtruthpath` and :class:`~detection` objects
+        Extracts a list of states from a list of (or single) objects
+        containing states. This method is defined to handle :class:`~.StateMutableSequence`
+        and :class:`~.State` types.
 
         Parameters
         ----------
