@@ -49,6 +49,12 @@ Hypothesis Types
 .. automodule:: stonesoup.types.multihypothesis
     :show-inheritance:
 
+Interval Types
+--------------
+
+.. automodule:: stonesoup.types.interval
+    :show-inheritance:
+
 Metric Types
 ------------
 
