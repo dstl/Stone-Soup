@@ -254,6 +254,11 @@ class ParticleState(Type):
     timestamp: datetime.datetime = Property(default=None,
                                             doc="Timestamp of the state. Default None.")
 
+    def __init__(self, particles, *args, **kwargs):
+        if particles is not None and not isinstance(particles, Particles):
+            particles = Particles(particle_list=particles)
+        super().__init__(particles, *args, **kwargs)
+
     @property
     def ndim(self):
         return self.particles.state_vector.ndim
