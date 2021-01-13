@@ -35,16 +35,30 @@ class Particles(Type):
 
     A collection of particles. Contains a state and weight for each particle
     """
-    state_vector: StateVectors = Property(doc="State vectors of particles")
-    weight: MutableSequence[float] = Property(doc='Weights of particles')
+    state_vector: StateVectors = Property(default=None, doc="State vectors of particles")
+    weight: MutableSequence[float] = Property(default=None, doc='Weights of particles')
     parent: 'Particles' = Property(default=None, doc='Parent particles')
+    particle_list: MutableSequence[Particle] = Property(default=None,
+                                                        doc='List of Particle objects')
 
-    def __init__(self, state_vector, weight, parent=None, *args, **kwargs):
+    def __init__(self, state_vector=None, weight=None, parent=None, particle_list=None,
+                 *args, **kwargs):
+        if state_vector is not None:
+            assert particle_list is None,\
+                "Particles object cannot use both state_vector and particle_list"
+
+        if particle_list and isinstance(particle_list, list):
+            state_vector = StateVectors([particle.state_vector for particle in particle_list])
+            weight = [particle.weight for particle in particle_list]
+            parent = Particles(particle_list=[particle.parent for particle in particle_list
+                                              if particle.parent is not None])
+
         if parent:
             parent.parent = None
+
         if state_vector is not None and not isinstance(state_vector, StateVectors):
             state_vector = StateVectors(state_vector)
-        super().__init__(state_vector, weight, parent, *args, **kwargs)
+        super().__init__(state_vector, weight, parent, particle_list, *args, **kwargs)
 
     @property
     def ndim(self):
