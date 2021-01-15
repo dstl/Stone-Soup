@@ -8,11 +8,11 @@ from ..types.metric import SingleTimeMetric, TimeRangeMetric
 from ..types.time import TimeRange
 
 
-class UncertaintyMetric(MetricGenerator):
+class SumofCovarianceNormsMetric(MetricGenerator):
     """
     Computes the sum of the covariance matrix norms of each state at a time step.
-    The metric generator will return this value at each time step in the track(s)
-    as a measure of the uncertainty.
+    The matrix norm calculated is the Frobenius norm. The metric generator will
+    return this value at each time step in the track(s) as a measure of the uncertainty.
     """
 
     def compute_metric(self, manager):
@@ -74,29 +74,29 @@ class UncertaintyMetric(MetricGenerator):
         ----------
         metric : TimeRangeMetric
             Covering the duration that states exist for in the parameters.
-            Metric.value contains a list of metrics for the uncertainty at
-            each timestamp
+            Metric.value contains a list of the sums of covariance matrix norms
+            at each timestamp
 
         """
 
         # Make a sorted list of all the unique timestamps used
         timestamps = sorted({state.timestamp for state in track_states})
 
-        uncertainty_sums = []
+        covnorm_sums = []
 
         for timestamp in timestamps:
             track_points = [state for state in track_states if state.timestamp == timestamp]
-            uncertainty_sums.append(self.compute_uncertainty(track_points))
+            covnorm_sums.append(self.compute_sum_covariancenorms(track_points))
 
         return TimeRangeMetric(
-            title='Uncertainty Metric',
-            value=uncertainty_sums,
+            title='Sum of Covariance Norms Metric',
+            value=covnorm_sums,
             time_range=TimeRange(min(timestamps), max(timestamps)),
             generator=self)
 
-    def compute_uncertainty(self, track_states):
+    def compute_sum_covariancenorms(self, track_states):
         """
-        Computes the uncertainty metric for a single time step.
+        Computes the sum of covariance norms metric for a single time step.
 
         Parameters
         ----------
@@ -106,7 +106,7 @@ class UncertaintyMetric(MetricGenerator):
         Returns
         -------
         metric: SingleTimeMetric
-            The uncertainty metric at a single time step
+            The sum of covariance matrix norms metric at a single time step
         """
 
         timestamps = {state.timestamp for state in track_states}
@@ -114,11 +114,11 @@ class UncertaintyMetric(MetricGenerator):
             raise ValueError(
                 'All states must be from the same time to compute total uncertainty')
 
-        uncertainty_sum = 0
+        covnorms_sum = 0
 
         for state in track_states:
-            uncertainty = np.linalg.norm(state.covar)
-            uncertainty_sum += uncertainty
+            covnorm = np.linalg.norm(state.covar)
+            covnorms_sum += covnorm
 
-        return SingleTimeMetric(title='Uncertainty Sum', value=uncertainty_sum,
+        return SingleTimeMetric(title='Covariance Matrix Norm Sum', value=covnorms_sum,
                                 timestamp=timestamps.pop(), generator=self)
