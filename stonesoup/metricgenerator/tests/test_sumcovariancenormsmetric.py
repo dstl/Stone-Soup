@@ -1,18 +1,18 @@
-"""Uncertainty metric tests."""
+"""Sum of covariance norms metric tests."""
 import datetime
 
 import numpy as np
 import pytest
 
 from ..manager import SimpleManager
-from ..uncertaintymetric import SumofCovarianceNormsMetric
+from ..sumcovariancenormsmetric import SumofCovarianceNormsMetric
 from ...types.detection import Detection
 from ...types.groundtruth import GroundTruthPath, GroundTruthState
 from ...types.state import State, GaussianState
 from ...types.track import Track
 
 
-def test_uncertaintymetric_extractstates():
+def test_sumcovariancenormsmetric_extractstates():
     """Test uncertainty metric extract states."""
     generator = SumofCovarianceNormsMetric()
 
@@ -36,7 +36,7 @@ def test_uncertaintymetric_extractstates():
         generator.extract_states([1, 2, 3])
 
 
-def test_uncertaintymetric_compute_sum_covariancenorms():
+def test_sumcovariancenormsmetric_compute_sum_covariancenorms():
     """Test uncertainty metric compute uncertainty."""
     generator = SumofCovarianceNormsMetric()
 
@@ -63,7 +63,7 @@ def test_uncertaintymetric_compute_sum_covariancenorms():
                           covar=np.diag([0, 0, 0, 0]))])
 
 
-def test_uncertaintymetric_compute_metric():
+def test_sumcovariancenormsmetric_compute_metric():
     """Test uncertainty compute metric."""
     generator = SumofCovarianceNormsMetric()
 
