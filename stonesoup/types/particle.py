@@ -50,8 +50,10 @@ class Particles(Type):
         if particle_list and isinstance(particle_list, list):
             state_vector = StateVectors([particle.state_vector for particle in particle_list])
             weight = [particle.weight for particle in particle_list]
-            parent = Particles(particle_list=[particle.parent for particle in particle_list
-                                              if particle.parent is not None])
+            parent_list = [particle.parent for particle in particle_list
+                           if particle.parent is not None]
+            if parent_list:
+                parent = Particles(particle_list=parent_list)
 
         if parent:
             parent.parent = None
@@ -59,6 +61,17 @@ class Particles(Type):
         if state_vector is not None and not isinstance(state_vector, StateVectors):
             state_vector = StateVectors(state_vector)
         super().__init__(state_vector, weight, parent, particle_list, *args, **kwargs)
+
+    def __getitem__(self, item):
+        if self.parent:
+            p = self.parent[item]
+        else:
+            p = None
+
+        particle = Particle(state_vector=self.state_vector[:, item],
+                            weight=self.weight[item],
+                            parent=p)
+        return particle
 
     @property
     def ndim(self):
