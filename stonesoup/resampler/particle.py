@@ -30,6 +30,7 @@ class SystematicResampler(Resampler):
 
         # Pick random starting point
         u_i = np.random.uniform(0, 1 / n_particles)
+        u_i = 0.0005520690676657092
         new_particles = []
 
         # Cycle through the cumulative distribution and copy the particle

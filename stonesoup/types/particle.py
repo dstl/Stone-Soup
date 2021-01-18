@@ -73,6 +73,9 @@ class Particles(Type):
                             parent=p)
         return particle
 
+    def __len__(self):
+        return self.state_vector.shape[1]
+
     @property
     def ndim(self):
         return self.state_vector.ndim
