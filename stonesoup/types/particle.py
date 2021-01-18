@@ -78,4 +78,4 @@ class Particles(Type):
 
     @property
     def ndim(self):
-        return self.state_vector.ndim
+        return self.state_vector.shape[0]
