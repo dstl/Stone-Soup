@@ -45,14 +45,11 @@ class ParticleUpdater(Updater):
                 **kwargs)
 
         # Normalise the weights
-        sum_w = Probability.sum(
-            i for i in particles.weight)
-        for i, _ in enumerate(particles):
-            particles.weight[i] /= sum_w
+        sum_w = Probability.sum(particles.weight)
+        particles.weight = particles.weight / sum_w
 
         # Resample
-        new_particles = self.resampler.resample(
-            particles)
+        new_particles = self.resampler.resample(particles)
 
         return Update.from_state(
             hypothesis.prediction,

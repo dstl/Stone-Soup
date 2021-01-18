@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from typing import MutableSequence
+import numpy as np
 
 from ..base import Property
 from .array import StateVector, StateVectors
@@ -49,7 +50,7 @@ class Particles(Type):
 
         if particle_list and isinstance(particle_list, list):
             state_vector = StateVectors([particle.state_vector for particle in particle_list])
-            weight = [particle.weight for particle in particle_list]
+            weight = np.array([particle.weight for particle in particle_list])
             parent_list = [particle.parent for particle in particle_list
                            if particle.parent is not None]
             if parent_list:
@@ -60,6 +61,8 @@ class Particles(Type):
 
         if state_vector is not None and not isinstance(state_vector, StateVectors):
             state_vector = StateVectors(state_vector)
+        if weight is not None and isinstance(weight, np.ndarray):
+            weight = np.array(weight)
         super().__init__(state_vector, weight, parent, particle_list, *args, **kwargs)
 
     def __getitem__(self, item):
