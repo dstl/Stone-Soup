@@ -32,25 +32,27 @@ class ParticleUpdater(Updater):
         : :class:`~.ParticleState`
             The state posterior
         """
+        particles = hypothesis.prediction.particles.__deepcopy__()
+
         if hypothesis.measurement.measurement_model is None:
             measurement_model = self.measurement_model
         else:
             measurement_model = hypothesis.measurement.measurement_model
 
-        for particle in hypothesis.prediction.particles:
-            particle.weight *= measurement_model.pdf(
+        for i, particle in enumerate(particles):
+            particles.weight[i] *= measurement_model.pdf(
                 hypothesis.measurement, particle,
                 **kwargs)
 
         # Normalise the weights
         sum_w = Probability.sum(
-            i.weight for i in hypothesis.prediction.particles)
-        for particle in hypothesis.prediction.particles:
-            particle.weight /= sum_w
+            i for i in particles.weight)
+        for i, _ in enumerate(particles):
+            particles.weight[i] /= sum_w
 
         # Resample
         new_particles = self.resampler.resample(
-            hypothesis.prediction.particles)
+            particles)
 
         return Update.from_state(
             hypothesis.prediction,
