@@ -34,7 +34,7 @@ class ParticleUpdater(Updater):
         : :class:`~.ParticleState`
             The state posterior
         """
-        particles = hypothesis.prediction.particles.__deepcopy__()
+        particles = hypothesis.prediction.particles
 
         if hypothesis.measurement.measurement_model is None:
             measurement_model = self.measurement_model
