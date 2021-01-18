@@ -261,7 +261,7 @@ class ParticleState(Type):
 
     @property
     def ndim(self):
-        return self.particles.state_vector.ndim
+        return self.particles.ndim
 
     @property
     def mean(self):
