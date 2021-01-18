@@ -164,7 +164,7 @@ from stonesoup.types.numeric import Probability  # Similar to a float type
 from stonesoup.types.state import ParticleState
 from stonesoup.types.array import StateVectors
 
-number_particles = 200
+number_particles = 1000
 
 # Sample from the prior Gaussian distribution
 samples = multivariate_normal.rvs(np.array([0, 1, 0, 1]),
