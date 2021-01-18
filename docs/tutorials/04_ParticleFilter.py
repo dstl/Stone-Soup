@@ -173,7 +173,7 @@ samples = multivariate_normal.rvs(np.array([0, 1, 0, 1]),
 
 # Create state vectors and weights for particles
 particles = Particles(state_vector=StateVectors(samples.T),
-                      weight=[Probability(1/number_particles)]*number_particles
+                      weight=np.array([Probability(1/number_particles)]*number_particles)
                       )
 
 # Create prior particle state.
