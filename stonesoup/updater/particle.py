@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-import numpy as np
-
 from functools import lru_cache
+
+import numpy as np
 
 from .base import Updater
 from ..base import Property
