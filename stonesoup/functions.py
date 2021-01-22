@@ -559,8 +559,7 @@ def mod_elevation(x):
 
 
 def dotproduct(a, b):
-    r"""A convenience function that saves having to remember a lot of
-    counterintuitive formatting stuff inflicted on us by numpy.
+    r"""Returns the dot (or scalar) product of two StateVectors.
 
     The result for vectors of length :math:`n` is
     :math:`\Sigma_i^n a_i b_i`.

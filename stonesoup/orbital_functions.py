@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Functions used within multiple orbital classes in Stone Soup
+"""
+Orbital functions
+-----------------
+
+Functions used within multiple orbital classes in Stone Soup
 
 """
 import numpy as np
@@ -7,8 +11,26 @@ from .functions import dotproduct
 from .types.array import StateVector
 
 
-def stumpf_s(z):
-    """The Stumpf S function"""
+def stumpff_s(z):
+    r"""The Stumpff S function
+
+    .. math::
+
+        S(z) = \begin{cases}\frac{\sqrt(z) - \sin{\sqrt(z)}}{(\sqrt(z))^{3}}, (z > 0)\\
+                     \frac{\sinh(\sqrt(-z)) - \sqrt(-z)}{(\sqrt(-z))^{3}}, (z < 0) \\
+                     \frac{1}{6}, (z = 0)\end{cases}
+
+    Parameters
+    ----------
+    z : float
+        input parameter, :math:`z`
+
+    Returns
+    -------
+    : float
+        Output value, :math:`S(z)`
+
+    """
     if z > 0:
         sqz = np.sqrt(z)
         return (sqz - np.sin(sqz)) / sqz ** 3
@@ -19,8 +41,26 @@ def stumpf_s(z):
         return 1 / 6
 
 
-def stumpf_c(z):
-    """The Stumpf C function"""
+def stumpff_c(z):
+    r"""The Stumpff C function
+
+    .. math::
+
+        C(z) = \begin{cases}\frac{1 - \cos{\sqrt(z)}}{z}, (z > 0)\\
+                     \frac{\cosh{\sqrt(-z)} - 1}{-z}, (z < 0) \\
+                     \frac{1}{2}, (z = 0)\end{cases}
+
+    Parameters
+    ----------
+    z : float
+        input parameter, :math:`z`
+
+    Returns
+    -------
+    : float
+        Output value, :math:`C(z)`
+
+    """
     if z > 0:
         sqz = np.sqrt(z)
         return (1 - np.cos(sqz)) / sqz ** 2
@@ -38,9 +78,9 @@ def universal_anomaly_newton(o_state_vector, delta_t,
 
     Parameters
     ----------
-    o_state_vector : numpy.array
+    o_state_vector : :class:`~StateVector`
         The orbital state vector formed as
-        :math`[r_x, r_y, r_z, v_x, v_y, v_z]^T`
+        :math:`[r_x, r_y, r_z, v_x, v_y, v_z]^T`
     delta_t : timedelta
         The time interval over which to estimate the universal anomaly
     grav_parameter : float
@@ -54,7 +94,7 @@ def universal_anomaly_newton(o_state_vector, delta_t,
     Returns
     -------
     : float
-        The universal anomaly, :math:`\Chi`
+        The universal anomaly, :math:`\chi`
     """
 
     # For convenience
@@ -72,12 +112,12 @@ def universal_anomaly_newton(o_state_vector, delta_t,
     while np.abs(ratio) > precision:
         z_i = inv_sma * chi_i ** 2
         f_chi_i = mag_r_0 * v_rad_0 / root_mu * chi_i ** 2 * \
-            stumpf_c(z_i) + (1 - inv_sma * mag_r_0) * chi_i ** 3 * \
-            stumpf_s(z_i) + mag_r_0 * chi_i - root_mu * \
+            stumpff_c(z_i) + (1 - inv_sma * mag_r_0) * chi_i ** 3 * \
+            stumpff_s(z_i) + mag_r_0 * chi_i - root_mu * \
             delta_t.total_seconds()
         fp_chi_i = mag_r_0 * v_rad_0 / root_mu * chi_i * \
-            (1 - inv_sma * chi_i ** 2 * stumpf_s(z_i)) + \
-            (1 - inv_sma * mag_r_0) * chi_i ** 2 * stumpf_c(z_i) + \
+            (1 - inv_sma * chi_i ** 2 * stumpff_s(z_i)) + \
+            (1 - inv_sma * mag_r_0) * chi_i ** 2 * stumpff_c(z_i) + \
             mag_r_0
         ratio = f_chi_i / fp_chi_i
         chi_i = chi_i - ratio
@@ -114,6 +154,7 @@ def lagrange_coefficients_from_universal_anomaly(o_state_vector, delta_t,
 
     Reference
     ---------
+
     1. Bond V.R., Altman M.C. 1996, Modern Astrodynamics: Fundamentals and
     Perturbation Methods, Princeton University Press
 
@@ -138,17 +179,17 @@ def lagrange_coefficients_from_universal_anomaly(o_state_vector, delta_t,
     z = inv_sma * chii ** 2
 
     # Get the Lagrange coefficients using Stumpf
-    f = 1 - chii ** 2 / r_0 * stumpf_c(z)
+    f = 1 - chii ** 2 / r_0 * stumpff_c(z)
     g = delta_t.total_seconds() - 1 / root_mu * chii ** 3 * \
-        stumpf_s(z)
+        stumpff_s(z)
 
     # Get the position vector and magnitude of that vector
     bold_r = f * bold_r_0 + g * bold_v_0
     r = np.sqrt(dotproduct(bold_r, bold_r))
 
     # and the Lagrange (time) derivatives also using Stumpf
-    fdot = root_mu / (r * r_0) * (inv_sma * chii ** 3 * stumpf_s(z) - chii)
-    gdot = 1 - (chii ** 2 / r) * stumpf_c(z)
+    fdot = root_mu / (r * r_0) * (inv_sma * chii ** 3 * stumpff_s(z) - chii)
+    gdot = 1 - (chii ** 2 / r) * stumpff_c(z)
 
     return f, g, fdot, gdot
 
@@ -254,7 +295,7 @@ def perifocal_position(eccentricity, semimajor_axis, true_anomaly):
 def perifocal_velocity(eccentricity, semimajor_axis, true_anomaly,
                        grav_parameter=3.986004418e14):
     r"""The velocity vector in perifocal coordinates calculated from the
-    Keplarian elements
+    Keplerian elements
 
     Parameters
     ----------
@@ -264,8 +305,8 @@ def perifocal_velocity(eccentricity, semimajor_axis, true_anomaly,
         Orbit semi-major axis
     true_anomaly : float
         Orbit true anomaly
-    grav_parameter : float (default is :math:`3.986004418 \times 10^{14}
-    \mathrm{m}^3 \mathrm{s}^{-2}`)
+    grav_parameter : float
+        (default is :math:`3.986004418 \times 10^{14} \mathrm{m}^3 \mathrm{s}^{-2}`)
         Standard gravitational parameter :math:`\mu = G M`
 
     Returns
@@ -331,11 +372,11 @@ def keplerian_to_rv(state_vector, grav_parameter=3.986004418e14):
     Parameters
     ----------
     state_vector : :class:`~.StateVector`
-        defined as
+        The Keplerian orbital state vector is defined as
 
         .. math::
 
-            X = [e, a, i, \Omega, \omega, \\theta]^{T} \\
+            X = [e, a, i, \Omega, \omega, \theta]^{T} \\
 
         where:
         :math:`e` is the orbital eccentricity (unitless),
@@ -344,9 +385,10 @@ def keplerian_to_rv(state_vector, grav_parameter=3.986004418e14):
         :math:`\Omega` is the longitude of the ascending node (rad),
         :math:`\omega` the argument of periapsis (rad), and
         :math:`\\theta` the true anomaly (rad)
-    grav_parameter : float (default is :math:`3.986004418 \times 10^{14}
-    \mathrm{m}^3 \mathrm{s}^{-2}`)
+    grav_parameter :
+        float (default is :math:`3.986004418 \times 10^{14} \mathrm{m}^3 \mathrm{s}^{-2}`)
         Standard gravitational parameter :math:`\mu = G M`
+
     Returns
     -------
     : :class:`~.StateVector`
