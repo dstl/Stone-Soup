@@ -72,7 +72,7 @@ class ECItoAltAz(CartesianToElevationBearing):
         ssit = np.sin(sit)  # sin of the sidereal time
 
         r_c = r_e/(np.sqrt(1 - (2*fl - fl**2)*ssqlat)) + self.elevation
-        r_s = r_e*(1-fl)**2/(np.sqrt(1 - (2*fl - fl**2)*ssqlat)) + self.\
+        r_s = (r_e*(1-fl)**2)/(np.sqrt(1 - (2*fl - fl**2)*ssqlat)) + self.\
             elevation
 
         return np.array([[r_c * clat * csit],

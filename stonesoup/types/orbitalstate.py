@@ -3,7 +3,7 @@
 import numpy as np
 from datetime import datetime
 
-from ..orbital_functions import keplerian_to_rv, tru_anom_from_mean_anom
+from ..orbital_functions import keplerian_to_rv, tru_anom_from_mean_anom, tle_checksum
 
 from ..base import Property
 from .array import StateVector, StateVectors
@@ -112,7 +112,7 @@ class OrbitalState(State):
             r":math:`\mathrm{m}^3 \mathrm{s}^{-2}`.")
 
     metadata = Property(
-        dict, default={}, doc="Dictionary containing metadata about orbit"
+        dict, default=None, doc="Dictionary containing metadata about orbit"
     )
 
     def __init__(self, state_vector, *args, **kwargs):
@@ -142,6 +142,14 @@ class OrbitalState(State):
                              .format(state_vector.shape))
 
         super().__init__(state_vector, *args, **kwargs)
+
+        if self.metadata is None:
+            self.metadata = {}
+
+        # This necessary bit of code seems unnecessary. But without it it seems that there is a
+        # single default dictionary created for all orbital classes
+        # if len(self.metadata) == 0:
+        #    self.metadata = {}
 
         # Query the coordinates
         if self.coordinates.lower() == 'cartesian':
@@ -689,6 +697,79 @@ class OrbitalState(State):
                            [self.equinoctial_q],
                            [self.mean_longitude]]))
 
+    def tlestring(self):
+        """Return the two-line element correctly formatted as a pair of strings.
+
+        Returns
+        -------
+         : string, string
+            The first and second (not the zeroth) line of the TLE formatted according to [1].
+            Includes the checksum.
+
+        Reference
+        ---------
+            https://spaceflight.nasa.gov/realdata/sightings/SSapplications/Post/JavaSSOP/SSOP_Help/
+            tle_def.html
+
+        """
+        if not 'line_1' in self.metadata or not 'line_2' in self.metadata:
+            # Required on both lines
+            norad_cat_id = self.metadata['NORAD_CAT_ID'] if 'NORAD_CAT_ID' in self.metadata else \
+                'XXXXX'
+
+        if 'line_1' in self.metadata:
+            line1 = self.metadata['line_1']
+        else:
+
+            timestamp = self.timestamp
+            timestring = str(timestamp.year)[2:4] + \
+                     '{:.8f}'.format(timestamp.timetuple().tm_yday + timestamp.hour / 24 +
+                                     timestamp.minute / (60 * 24) + timestamp.second / (3600 * 24)
+                                     + timestamp.microsecond / (1e6 * 3600 * 24))
+
+            intldes = self.metadata['INTLDES'] if 'INTLDES' in self.metadata else 'XXXXXA'
+            mmdot = '{0}{1}'.format('+', self.metadata['MEAN_MOTION_DOT'][1:]) \
+                if 'MEAN_MOTION_DOT' in self.metadata else '+.00000000'
+
+            if 'MEAN_MOTION_DDOT' in self.metadata:
+                mmddot = '{:.5e}'.format(float(self.metadata['MEAN_MOTION_DDOT']))
+                mmddot = '+' + mmddot[2:7] + mmddot[8] + mmddot[10]
+            else:
+                mmddot = '+00000-0'
+
+            if 'BSTAR' in self.metadata:
+                bstari, bstare = '{:.5e}'.format(float(self.metadata['BSTAR'])).split('e')
+                bstari = '{0}{1}'.format('+', '{:.5f}'.format(float(bstari) / 10)[2:])
+                bstare = '{:2d}'.format(int(bstare) + 1)
+            else:
+                bstari = '+00000'
+                bstare = '-0'
+
+            ephemeris_type = self.metadata['EPHEMERIS_TYPE'] if 'EPHEMERIS_TYPE' in self.metadata \
+                else '0'
+            element_set_no = self.metadata['ELEMENT_SET_NO'] if 'EPHEMERIS_SET_NO' in self.metadata \
+                else '000'
+
+            line1 = '1 ' + norad_cat_id + 'U ' + intldes + '   ' + timestring + ' ' + mmdot + ' ' \
+                  + mmddot + ' ' + bstari + bstare + ' ' + ephemeris_type + \
+                  '  ' + element_set_no
+            line1 = line1 + str(tle_checksum(line1))
+
+        if 'line_2' in self.metadata:
+            line2 = self.metadata['line_2']
+        else:
+            rev_at_epoch = self.metadata['REV_AT_EPOCH'] if 'REV_AT_EPOCH' in self.metadata \
+                else ' 0000'
+            line2 = '2 ' + norad_cat_id + ' ' + '{:08.4f}'.format(self.inclination * 180 / np.pi) + ' ' \
+                    + '{:08.4f}'.format(self.longitude_ascending_node * 180 / np.pi) + ' ' + \
+                    '{:7.7f}'.format(self.eccentricity)[2:] + ' ' + \
+                    '{:08.4f}'.format(self.argument_periapsis * 180 / np.pi) + ' ' + \
+                    '{:08.4f}'.format(self.mean_anomaly * 180 / np.pi) + ' ' + \
+                    '{:08.8f}'.format(self.mean_motion / (2 * np.pi) * 3600 * 24) + rev_at_epoch
+            line2 = line2 + str(tle_checksum(line2))
+
+        return line1, line2
+
 
 class KeplerianOrbitalState(OrbitalState):
     r"""Merely a shell for the OrbitalState(coordinates='Keplerian')
@@ -796,6 +877,10 @@ class TLEOrbitalState(OrbitalState):
 
             super().__init__(state_vector, coordinates='TLE', *args, **kwargs)
 
+            line1, line2 = self.tlestring()
+            self.metadata['line_1'] = line1
+            self.metadata['line_2'] = line2
+
 
 class EquinoctialOrbitalState(OrbitalState):
     r"""For the Equinoctial state vector:
@@ -846,4 +931,12 @@ class ParticleOrbitalState(OrbitalState):
     """
     weight: float = Property(doc='Weight of particle')
     parent: 'ParticleOrbitalState' = Property(default=None, doc='Parent particle')
+
+
+class ParticleTLEOrbitalState(TLEOrbitalState):
+    """ An orbital state which wraps the features of the particle filter in the orbital state.
+
+    """
+    weight: float = Property(doc='Weight of particle')
+    parent: 'ParticleTLEOrbitalState' = Property(default=None, doc='Parent particle')
 
