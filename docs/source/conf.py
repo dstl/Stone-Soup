@@ -56,6 +56,10 @@ autodoc_mock_imports = ['ffmpeg', 'moviepy', 'tensorflow', 'object_detection']
 
 autosectionlabel_prefix_document = True
 
+binder_branch = os.environ.get("READTHEDOCS_VERSION", "latest")
+if binder_branch == "latest":
+    binder_branch = "master"
+
 sphinx_gallery_conf = {
     'examples_dirs': ['../tutorials', '../examples', '../demos'],
     'gallery_dirs': ['auto_tutorials', 'auto_examples', 'auto_demos'],
@@ -67,7 +71,15 @@ sphinx_gallery_conf = {
     'ignore_repr_types': r'matplotlib\.(?:figure|animation)',
     'within_subsection_order': FileNameSortKey,
     'matplotlib_animations': True,
-    'notebook_images': 'https://stonesoup.rtfd.io/en/latest/'
+    'notebook_images':
+        f'https://stonesoup.rtfd.io/en/{os.environ.get("READTHEDOCS_VERSION", "latest")}/',
+    'binder': {
+        'org': 'dstl',
+        'repo': 'Stone-Soup',
+        'branch': binder_branch,
+        'binderhub_url': 'https://mybinder.org',
+        'dependencies': ['requirements.txt'],
+    },
 }
 
 intersphinx_mapping = {

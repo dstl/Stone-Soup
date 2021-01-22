@@ -19,7 +19,8 @@ information.
 
 Please see the [tutorials](https://stonesoup.readthedocs.io/en/latest/auto_tutorials/index.html),
 [examples](https://stonesoup.readthedocs.io/en/latest/auto_examples/index.html),
-and [demonstrations](https://stonesoup.readthedocs.io/en/latest/auto_demos/index.html).
+and [demonstrations](https://stonesoup.readthedocs.io/en/latest/auto_demos/index.html),
+which you can also try out on Binder: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/dstl/Stone-Soup/master?filepath=notebooks)
 
 ## Dependencies
 Stone Soup uses the following dependencies:

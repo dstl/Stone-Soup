@@ -1,0 +1,1 @@
+# Currently a dummy file required by Sphinx-Gallery
