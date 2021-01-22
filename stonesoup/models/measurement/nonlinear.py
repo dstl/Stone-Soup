@@ -266,7 +266,7 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
         rho, phi, theta = cart2sphere(*xyz_rot)
         elevations = [Elevation(i) for i in np.atleast_1d(theta)]
         bearings = [Bearing(i) for i in np.atleast_1d(phi)]
-        rhos = [i for i in np.atleast_1d(rho)]
+        rhos = list(np.atleast_1d(rho))
 
         return StateVectors([elevations, bearings, rhos]) + noise
 
@@ -414,10 +414,9 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
                 noise = 0
 
         # Account for origin offset
-        n = state.state_vector.shape[1]
-        xyz = [list(state.state_vector[self.mapping[0], :n] - self.translation_offset[0, 0]),
-               list(state.state_vector[self.mapping[1], :n] - self.translation_offset[1, 0]),
-               [0] * n
+        xyz = [list(state.state_vector[self.mapping[0], :] - self.translation_offset[0, 0]),
+               list(state.state_vector[self.mapping[1], :] - self.translation_offset[1, 0]),
+               [0] * state.state_vector.shape[1]
                ]
 
         # Rotate coordinates
@@ -636,10 +635,9 @@ class Cartesian2DToBearing(NonLinearGaussianMeasurement):
                 noise = 0
 
         # Account for origin offset
-        n = state.state_vector.shape[1]
-        xyz = [list(state.state_vector[self.mapping[0], :n] - self.translation_offset[0, 0]),
-               list(state.state_vector[self.mapping[1], :n] - self.translation_offset[1, 0]),
-               [0] * n
+        xyz = [list(state.state_vector[self.mapping[0], :] - self.translation_offset[0, 0]),
+               list(state.state_vector[self.mapping[1], :] - self.translation_offset[1, 0]),
+               [0] * state.state_vector.shape[1]
                ]
 
         # Rotate coordinates

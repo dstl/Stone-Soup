@@ -22,7 +22,7 @@ class SystematicResampler(Resampler):
             The resampled particles
         """
 
-        if particles and not isinstance(particles, Particles):
+        if not isinstance(particles, Particles):
             particles = Particles(particle_list=particles)
         n_particles = len(particles)
         weight = Probability(1/n_particles)

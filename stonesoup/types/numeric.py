@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-import numpy as np
 from math import log, log1p, exp, trunc, ceil, floor
 from numbers import Real, Integral
+
+import numpy as np
 
 
 class Probability(Real):
