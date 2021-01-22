@@ -1,11 +1,16 @@
+import copy
 import warnings
 from itertools import chain
 
 import numpy as np
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, animation as animation
 from matplotlib.lines import Line2D
 from matplotlib.patches import Ellipse
 from matplotlib.legend_handler import HandlerPatch
+
+from stonesoup.base import Base, Property
+from stonesoup.types.detection import Detection
+from stonesoup.types.state import State
 
 from .types import detection
 from .models.base import LinearModel, NonLinearModel
@@ -304,3 +309,109 @@ class _HandlerEllipse(HandlerPatch):
         self.update_prop(p, orig_handle, legend)
         p.set_transform(trans)
         return [p]
+
+
+class TimeBasedPlotter(Base):
+
+    plotting_data = Property(list)
+    legend_key = Property(str, default='Not specified', doc="Todo")
+    plotting_keyword_arguments = Property(dict, default=None, doc='Todo')
+
+    def __init__(self, *args, **kwargs):
+        class_keywords, plotting_keywords = self.get_plotting_keywords(kwargs)
+        super().__init__(*args, **class_keywords)
+        self.plotting_data = copy.copy(self.prepare_data(self.plotting_data))
+        self.plotting_keyword_arguments = plotting_keywords
+
+    def get_plotting_keywords(self, kwargs):
+        """Splits keyword arguments needed for this class. Other keyword arguments are used in the
+        matplotlib.pyplot.plot function
+
+        Parameters
+        ----------
+        kwargs : dict
+            Keyword arguments for this class and additional arguments to be passed to plot function
+
+        Returns
+        -------
+        : :class:`dict`
+            keyword arguments to be used by the class
+        : :class:`dict`
+            keyword arguments to be the matplotlib.pyplot.plot function
+        """
+        plotting_keywords = {}
+        class_keywords = {}
+        for key, value in kwargs.items():
+            if key in self._properties.keys():
+                class_keywords[key] = value
+            else:
+                plotting_keywords[key] = value
+        return class_keywords, plotting_keywords
+
+    @staticmethod
+    def run_animation(times_to_plot, data):
+
+        fig1 = plt.figure()
+
+        plt.rcParams['figure.figsize'] = (8, 8)
+        plt.style.use('seaborn-colorblind')
+
+        the_lines = []
+        plotting_data = []
+        legends_key = []
+
+        for a_plot_object in data:
+            if a_plot_object.plotting_data is not None:
+                the_data = np.array([a_state.state_vector for a_state in a_plot_object.plotting_data])
+                the_lines.append(
+                    plt.plot(the_data[:1, 0], the_data[:1, 2], **a_plot_object.plotting_keyword_arguments)[0])
+
+                legends_key.append(a_plot_object.legend_key)
+                plotting_data.append(a_plot_object.plotting_data)
+            # else:
+            # Do nothing
+
+        plt.axis('equal')
+        plt.xlabel("$x$")
+        plt.ylabel("$y$")
+        plt.legend(legends_key)
+
+        interval_time = 50  # milliseconds
+
+        line_ani = animation.FuncAnimation(fig1, TimeBasedPlotter.update_animation, frames=times_to_plot,
+                                           fargs=(the_lines, plotting_data),
+                                           interval=interval_time, blit=False,
+                                           repeat=False)
+
+        plt.draw()
+        plt.show()
+
+        return line_ani
+
+    @staticmethod
+    def update_animation(timestamp, lines, data_list):
+
+        for i, data_source in enumerate(data_list):
+
+            if data_source is not None:
+                the_data = np.array([a_state.state_vector for a_state in data_source if a_state.timestamp <= timestamp])
+                if the_data.size > 0:
+                    lines[i].set_data(the_data[:, 0], the_data[:, 2])
+        return lines
+
+    @staticmethod
+    def prepare_data(data_source):
+
+        if all(isinstance(list_item, State) for list_item in data_source):
+            if all(isinstance(list_item, Detection) for list_item in data_source):
+                try:
+                    output = [State(a_detection.measurement_model.inverse_function(a_detection),
+                                    timestamp=a_detection.timestamp) for a_detection in data_source]
+                except AttributeError:
+                    output = None
+            else:
+                output = data_source
+        else:
+            raise NotImplementedError
+
+        return output
