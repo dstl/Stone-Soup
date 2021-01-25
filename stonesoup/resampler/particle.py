@@ -27,7 +27,7 @@ class SystematicResampler(Resampler):
         n_particles = len(particles)
         weight = Probability(1/n_particles)
         weight_order = np.argsort(particles.weight, kind='stable')
-        cdf = np.cumsum([particles.weight[i] for i in weight_order])
+        cdf = [v.log_value for v in np.cumsum([particles.weight[i] for i in weight_order])]
 
         # Pick random starting point
         u_i = np.random.uniform(0, 1 / n_particles)
@@ -35,7 +35,7 @@ class SystematicResampler(Resampler):
         # Cycle through the cumulative distribution and copy the particle
         # that pushed the score over the current value
         u_j = u_i + (1 / n_particles) * np.arange(n_particles)
-        index = [weight_order[np.argmax(u_j[j] < cdf)] for j in range(n_particles)]
+        index = weight_order[np.searchsorted(cdf, np.log(u_j))]
         new_particles = Particles(state_vector=particles.state_vector[:, index],
                                   weight=[weight]*n_particles,
                                   parent=Particles(state_vector=particles.state_vector[:, index],
