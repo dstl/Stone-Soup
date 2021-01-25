@@ -488,13 +488,11 @@ class OrbitalState(State):
 
     @property
     def equinoctial_elements(self):
-        r"""The equinoctial elements, :math:`X = [a, h, k, p, q, \lambda]^{T}` where :math:`a` the semi-major axis ([length]), :math:`h`
-            and :math:`k` are the horizontal and vertical components of
-            the eccentricity respectively (unitless), :math:`p` and
-            :math:`q` are the horizontal and vertical components of the
-            inclination respectively (radian) and :math:`\lambda` is the
-            mean longitude (radian) [3]_
-
+        r"""The equinoctial elements, :math:`X = [a, h, k, p, q, \lambda]^{T}` where :math:`a` the
+        semi-major axis ([length]), :math:`h` and :math:`k` are the horizontal and vertical
+        components of the eccentricity respectively (unitless), :math:`p` and :math:`q` are the
+        horizontal and vertical components of the inclination respectively (radian) and
+        :math:`\lambda` is the mean longitude (radian) [3]_
         """
         return StateVector(np.array([[self.semimajor_axis],
                            [self.equinoctial_h],

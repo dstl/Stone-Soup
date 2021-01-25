@@ -16,9 +16,9 @@ def stumpff_s(z):
 
     .. math::
 
-        S(z) = \begin{cases}\frac{\sqrt(z) - \sin{\sqrt(z)}}{(\sqrt(z))^{3}}, (z > 0)\\
-                     \frac{\sinh(\sqrt(-z)) - \sqrt(-z)}{(\sqrt(-z))^{3}}, (z < 0) \\
-                     \frac{1}{6}, (z = 0)\end{cases}
+        S(z) = \begin{cases}\frac{\sqrt(z) - \sin{\sqrt(z)}}{(\sqrt(z))^{3}}, & (z > 0)\\
+                     \frac{\sinh(\sqrt(-z)) - \sqrt(-z)}{(\sqrt(-z))^{3}}, & (z < 0) \\
+                     \frac{1}{6}, & (z = 0)\end{cases}
 
     Parameters
     ----------
@@ -46,9 +46,9 @@ def stumpff_c(z):
 
     .. math::
 
-        C(z) = \begin{cases}\frac{1 - \cos{\sqrt(z)}}{z}, (z > 0)\\
-                     \frac{\cosh{\sqrt(-z)} - 1}{-z}, (z < 0) \\
-                     \frac{1}{2}, (z = 0)\end{cases}
+        C(z) = \begin{cases}\frac{1 - \cos{\sqrt(z)}}{z}, & (z > 0)\\
+                     \frac{\cosh{\sqrt(-z)} - 1}{-z}, & (z < 0) \\
+                     \frac{1}{2}, & (z = 0)\end{cases}
 
     Parameters
     ----------
@@ -73,28 +73,32 @@ def stumpff_c(z):
 
 def universal_anomaly_newton(o_state_vector, delta_t,
                              grav_parameter=3.986004418e14, precision=1e-8):
-    r"""Calculate the universal anomaly via Newton's method. Algorithm 3.3
-    in [1].
+    r"""Calculate the universal anomaly via Newton's method. Algorithm 3.3 in [1]_.
 
     Parameters
     ----------
     o_state_vector : :class:`~StateVector`
         The orbital state vector formed as
-        :math:`[r_x, r_y, r_z, v_x, v_y, v_z]^T`
+        :math:`[r_x, r_y, r_z, \dot{r}_x, \dot{r}_y, \dot{r}_z]^T`
     delta_t : timedelta
         The time interval over which to estimate the universal anomaly
     grav_parameter : float
         The universal gravitational parameter. Defaults to that of the
         Earth, :math:`3.986004418 \times 10^{14} \ \mathrm{m}^{3} \
         \mathrm{s}^{-2}`
-    precision : float
-        The difference between new and old values below which the ]
-        iteration stops and the answer is returned
+    precision : float, optional
+        The difference between new and old values below which the iteration stops and the answer
+        is returned. Default is :math:`10^{-8}`
 
     Returns
     -------
     : float
         The universal anomaly, :math:`\chi`
+
+    References
+    ----------
+    .. [1] Curtis H.D. 2010, Orbital Mechanics for Engineering Students 3rd Ed., Elsevier
+
     """
 
     # For convenience
@@ -128,36 +132,33 @@ def universal_anomaly_newton(o_state_vector, delta_t,
 def lagrange_coefficients_from_universal_anomaly(o_state_vector, delta_t,
                                                  grav_parameter=3.986004418e14,
                                                  precision=1e-8):
-    r""" Calculate the Lagrangian coefficients, f and g, and their time
-    derivatives, by way of the universal anomaly and the Stumpf functions.
+    r""" Calculate the Lagrangian coefficients, f and g, and their time derivatives, by way of the
+    universal anomaly and the Stumpff functions [2]_.
 
     Parameters
     ----------
     o_state_vector : StateVector
         The (Cartesian) orbital state vector,
-        :math:`[r_x, r_y, r_z, v_x, v_y, v_z]^T`
+        :math:`[r_x, r_y, r_z, \dot{r}_x, \dot{r}_y, \dot{r}_z]^T`
     delta_t : timedelta
         The time interval over which to calculate
-    grav_parameter : float
+    grav_parameter : float, optional
         The universal gravitational parameter. Defaults to that of the
         Earth, :math:`3.986004418 \times 10^{14} \ \mathrm{m}^{3} \
         \mathrm{s}^{-2}`. Note that the units of time must be seconds.
-    precision : float
-        Precision to which to calculate the universal anomaly. See the doc
-        section for that function
+    precision : float, optional
+        Precision to which to calculate the universal anomaly (see `universal_anomaly_newton`)
 
     Returns
     -------
 
     : float, float, float, float
-        The Lagrange coefficients, f, g, \odot{f}, \odot{g}, in that order.
+        The Lagrange coefficients, :math:`f, g, \dot{f}, \dot{g}`, in that order.
 
-    Reference
-    ---------
-
-    1. Bond V.R., Altman M.C. 1996, Modern Astrodynamics: Fundamentals and
-    Perturbation Methods, Princeton University Press
-
+    References
+    ----------
+    ..  [2] Bond V.R., Allman M.C. 1996, Modern Astrodynamics: Fundamentals and Perturbation
+            Methods, Princeton University Press
 
     """
     # First get the universal anomaly using Newton's method
@@ -196,9 +197,8 @@ def lagrange_coefficients_from_universal_anomaly(o_state_vector, delta_t,
 
 def eccentric_anomaly_from_mean_anomaly(mean_anomaly, eccentricity,
                                         precision=1e-8):
-    r"""Approximately solve the transcendental equation
-    :math:`E - e sin E = M_e` for E. This is an iterative process using
-    Newton's method.
+    r"""Approximately solve the transcendental equation :math:`E - e sin E = M_e` for :math:`E`.
+    This is an iterative process using Newton's method.
 
     Parameters
     ----------
@@ -206,9 +206,9 @@ def eccentric_anomaly_from_mean_anomaly(mean_anomaly, eccentricity,
         Current mean anomaly
     eccentricity : float
         Orbital eccentricity
-    precision : float (default = 1e-8)
+    precision : float, optional
         Precision used for the stopping point in determining eccentric
-        anomaly from mean anomaly
+        anomaly from mean anomaly. Default is :math:`10^{-8}`
 
     Returns
     -------
@@ -233,8 +233,7 @@ def eccentric_anomaly_from_mean_anomaly(mean_anomaly, eccentricity,
 
 
 def tru_anom_from_mean_anom(mean_anomaly, eccentricity):
-    r"""Get the true anomaly from the mean anomaly via the eccentric
-    anomaly
+    r"""Get the true anomaly from the mean anomaly via the eccentric anomaly
 
     Parameters
     ----------
@@ -264,8 +263,7 @@ def tru_anom_from_mean_anom(mean_anomaly, eccentricity):
 
 
 def perifocal_position(eccentricity, semimajor_axis, true_anomaly):
-    r"""The position vector in perifocal coordinates calculated from the
-    Keplarian elements
+    r"""The position vector in perifocal coordinates calculated from the Keplerian elements
 
     Parameters
     ----------
@@ -294,8 +292,7 @@ def perifocal_position(eccentricity, semimajor_axis, true_anomaly):
 
 def perifocal_velocity(eccentricity, semimajor_axis, true_anomaly,
                        grav_parameter=3.986004418e14):
-    r"""The velocity vector in perifocal coordinates calculated from the
-    Keplerian elements
+    r"""The velocity vector in perifocal coordinates calculated from the Keplerian elements
 
     Parameters
     ----------
@@ -305,14 +302,14 @@ def perifocal_velocity(eccentricity, semimajor_axis, true_anomaly,
         Orbit semi-major axis
     true_anomaly : float
         Orbit true anomaly
-    grav_parameter : float
-        (default is :math:`3.986004418 \times 10^{14} \mathrm{m}^3 \mathrm{s}^{-2}`)
-        Standard gravitational parameter :math:`\mu = G M`
+    grav_parameter : float, optional
+        Standard gravitational parameter :math:`\mu = G M`. Default is
+        :math:`3.986004418 \times 10^{14} \mathrm{m}^3 \mathrm{s}^{-2}`
 
     Returns
     -------
     : numpy.narray
-        :math:`[v_x, v_y, v_z]` position in perifocal coordinates
+        :math:`[\dot{r}_x, \dot{r}_y, \dot{r}_z]` velocity in perifocal coordinates
 
     """
 
@@ -325,8 +322,7 @@ def perifocal_velocity(eccentricity, semimajor_axis, true_anomaly,
 
 
 def perifocal_to_geocentric_matrix(inclination, raan, argp):
-    r"""Return the matrix which transforms from perifocal to geocentric
-    coordinates
+    r"""Return the matrix which transforms from perifocal to geocentric coordinates
 
     Parameters
     ----------
@@ -340,8 +336,8 @@ def perifocal_to_geocentric_matrix(inclination, raan, argp):
     Returns
     -------
     : numpy.array
-        The [3x3] array that transforms from perifocal coordinates to
-        geocentric coordinates
+        The :math:`3 \times 3` array that transforms from perifocal coordinates to geocentric
+        coordinates
 
     """
 
@@ -366,8 +362,7 @@ def perifocal_to_geocentric_matrix(inclination, raan, argp):
 
 
 def keplerian_to_rv(state_vector, grav_parameter=3.986004418e14):
-    r"""Convert the Keplarian orbital elements to position, velocity
-    state vector
+    r"""Convert the Keplerian orbital elements to position, velocity state vector
 
     Parameters
     ----------
@@ -384,19 +379,20 @@ def keplerian_to_rv(state_vector, grav_parameter=3.986004418e14):
         :math:`i` the inclination (rad),
         :math:`\Omega` is the longitude of the ascending node (rad),
         :math:`\omega` the argument of periapsis (rad), and
-        :math:`\\theta` the true anomaly (rad)
-    grav_parameter :
-        float (default is :math:`3.986004418 \times 10^{14} \mathrm{m}^3 \mathrm{s}^{-2}`)
-        Standard gravitational parameter :math:`\mu = G M`
+        :math:`\theta` the true anomaly (rad)
+
+    grav_parameter : float, optional
+        Standard gravitational parameter :math:`\mu = G M`. The default is :math:`3.986004418
+        \times 10^{14} \mathrm{m}^3 \mathrm{s}^{-2}`
 
     Returns
     -------
     : :class:`~.StateVector`
-        Orbital state vector as :math:`[r_x, r_y, r_z, v_x, v_y, v_z]`
+        Orbital state vector as :math:`[r_x, r_y, r_z, \dot{r}_x, \dot{r}_y, \dot{r}_z]`
 
     Warning
     -------
-    No checking. Assumes Keplerian elements rendered correctly as above
+    No checking undertaken. Assumes Keplerian elements rendered correctly as above
 
     """
 
@@ -418,8 +414,8 @@ def keplerian_to_rv(state_vector, grav_parameter=3.986004418e14):
 
 
 def mod_inclination(x):
-    r"""Calculates the modulus of an inclination. Inclination angles are within the \
-    range :math:`0` to :math:`\pi`.
+    r"""Calculates the modulus of an inclination. Inclination angles are within the range :math:`0`
+    to :math:`\pi`.
 
     Parameters
     ----------
@@ -429,7 +425,7 @@ def mod_inclination(x):
     Returns
     -------
     float
-        Angle in radians in the range math: :math:`0` to :math:`+\pi`
+        Angle in radians in the range :math:`0` to :math:`+\pi`
     """
 
     x = x % np.pi
@@ -438,18 +434,18 @@ def mod_inclination(x):
 
 
 def mod_elongitude(x):
-    r"""Calculates the modulus of an ecliptic longitude in which angles are within the
-    range :math:`0` to :math:`2*\pi`.
+    r"""Calculates the modulus of an ecliptic longitude in which angles are within the range
+    :math:`0` to :math:`2 \pi`.
 
     Parameters
     ----------
     x: float
-        inclination angle in radians
+        longitudinal angle in radians
 
     Returns
     -------
     float
-        Angle in radians in the range math: :math:`0` to :math:`+\pi`
+        Angle in radians in the range :math:`0` to :math:`+2 \pi`
     """
 
     x = x % (2*np.pi)

@@ -568,8 +568,10 @@ def dotproduct(a, b):
 
     Parameters
     ----------
-    a, b : StateVector, StateVector
-        Two column vectors of equal length
+    a : StateVector
+        A state vector
+    b : StateVector
+        A state vector of equal length to :math:`a`
 
     Returns
     -------
