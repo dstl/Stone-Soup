@@ -412,11 +412,10 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
 
         # Account for origin offset
         n = state.state_vector.shape[1]
-        xyz = [list(state.state_vector[self.mapping[0], :n]
-                - self.translation_offset[0, 0]),
-               list(state.state_vector[self.mapping[1], :n]
-                - self.translation_offset[1, 0]),
-               [0] * n]
+        xyz = [list(state.state_vector[self.mapping[0], :n] - self.translation_offset[0, 0]),
+               list(state.state_vector[self.mapping[1], :n] - self.translation_offset[1, 0]),
+               [0] * n
+               ]
 
         # Rotate coordinates
         xyz_rot = self._rotation_matrix @ xyz
