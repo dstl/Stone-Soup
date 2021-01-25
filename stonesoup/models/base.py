@@ -241,11 +241,11 @@ class GaussianModel(Model):
 
         # Calculate difference before to handle custom types (mean defaults to zero)
         # This is required as log pdf coverts arrays to floats
-        likelihood = multivariate_normal.logpdf(
-            (state1.state_vector - self.function(state2, **kwargs)).ravel(),
-            cov=covar
-        )
-        return Probability(likelihood, log_value=True)
+        vector_differential =  state1.state_vector - self.function(state2, **kwargs)
+        likelihood = [Probability(
+                          multivariate_normal.logpdf(vector.ravel(), cov=covar), log_value=True)
+                     for vector in vector_differential.T]
+        return likelihood
 
     @abstractmethod
     def covar(self):

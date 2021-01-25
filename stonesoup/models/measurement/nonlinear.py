@@ -411,19 +411,20 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
                 noise = 0
 
         # Account for origin offset
-        xyz = [[state.state_vector[self.mapping[0], 0]
-                - self.translation_offset[0, 0]],
-               [state.state_vector[self.mapping[1], 0]
-                - self.translation_offset[1, 0]],
-               [0]]
+        n = state.state_vector.shape[1]
+        xyz = [list(state.state_vector[self.mapping[0], :n]
+                - self.translation_offset[0, 0]),
+               list(state.state_vector[self.mapping[1], :n]
+                - self.translation_offset[1, 0]),
+               [0] * n]
 
         # Rotate coordinates
         xyz_rot = self._rotation_matrix @ xyz
 
         # Covert to polar
-        rho, phi = cart2pol(*xyz_rot[:2, 0])
-
-        return StateVector([[Bearing(phi)], [rho]]) + noise
+        rho, phi = cart2pol(*xyz_rot[:2, :])
+        bearings = [Bearing(i) for i in phi]
+        return StateVectors([bearings, rho]) + noise
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
