@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import numpy as np
+
 from functools import lru_cache
 
 from .base import Updater
@@ -39,13 +41,12 @@ class ParticleUpdater(Updater):
         else:
             measurement_model = hypothesis.measurement.measurement_model
 
-        for i, particle in enumerate(particles):
-            particles.weight[i] *= measurement_model.pdf(
-                hypothesis.measurement, particle,
-                **kwargs)
+        particles.weight = np.array(particles.weight) * measurement_model.pdf(
+            hypothesis.measurement, particles, num_samples=len(particles),
+            **kwargs)
 
         # Normalise the weights
-        sum_w = Probability.sum(particles.weight)
+        sum_w = np.array(Probability.sum(particles.weight))
         particles.weight = particles.weight / sum_w
 
         # Resample
