@@ -90,7 +90,7 @@ def test_incorrect_initialisation():
     with pytest.raises(ValueError):
         OrbitalState(bad_stvec)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         OrbitalState(orb_st_vec, coordinates='Nonsense')
 
     with pytest.raises(TypeError):
@@ -121,7 +121,7 @@ def test_kep_cart():
     # Test that Keplerian initialisation yields same state vector
     # Firstly just flipping back and forth
     keplerian_sn = OrbitalState(cartesian_s.keplerian_elements,
-                                coordinates='Keplerian',
+                                coordinates='keplerian',
                                 grav_parameter=cartesian_s.grav_parameter)
     assert(np.allclose(cartesian_s.state_vector, keplerian_sn.cartesian_state_vector,
                        rtol=1e-4))
@@ -143,7 +143,7 @@ def test_tle_cart():
 
 
 def test_equ_cart():
-    equ_sn = OrbitalState(cartesian_s.equinoctial_elements, coordinates='Equinoctial',
+    equ_sn = OrbitalState(cartesian_s.equinoctial_elements, coordinates='equinoctial',
                           grav_parameter=cartesian_s.grav_parameter)
     assert(np.allclose(np.float64(cartesian_s.equinoctial_elements),
                        np.float64(equ_sn.equinoctial_elements), rtol=1e-3))

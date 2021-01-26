@@ -2,6 +2,7 @@
 
 import numpy as np
 from datetime import datetime
+from enum import Enum
 
 from ..orbital_functions import keplerian_to_rv, tru_anom_from_mean_anom
 
@@ -9,6 +10,24 @@ from ..base import Property
 from .array import StateVector
 from .state import State, GaussianState
 from .angle import Inclination, EclipticLongitude
+
+
+class CoordinateSystem(Enum):
+    """Details the allowable coordinate systems. See OrbitalState help for full explanations.
+    """
+    CARTESIAN = "Cartesian"
+    KEPLERIAN = "Keplerian"
+    TLE = "TLE"
+    EQUINOCTIAL = "Equinoctial"
+
+    # To allow case insensitivity and the use of "TwoLineElement" as a string to mean TLE
+    @classmethod
+    def _missing_(cls, value):
+        for element in cls:
+            if element.value.lower() == value.lower():
+                return element
+            if element.value == "TLE" and value.lower() == "twolineelement":
+                return element
 
 
 class OrbitalState(State):
@@ -90,19 +109,18 @@ class OrbitalState(State):
     .. [1] Curtis, H.D. 2010, Orbital Mechanics for Engineering Students (3rd Ed), Elsevier
            Aerospace Engineering Series
 
-    .. [2] NASA, Definition of Two-line Element Set Coordinate System,
-           https://spaceflight.nasa.gov/realdata/sightings/SSapplications/Post/JavaSSOP/SSOP_Help/\
-           tle_def.html
+    .. [2] NASA, Definition of Two-line Element Set Coordinate System, [spaceflight.nasa.gov](
+           https://spaceflight.nasa.gov/realdata/sightings/SSapplications/Post/JavaSSOP/
+           SSOP_Help/tle_def.html)
 
     .. [3] Broucke, R. A. & Cefola, P. J. 1972, Celestial Mechanics, Volume 5, Issue 3, pp. 303-310
-
 
     """
 
     coordinates = Property(
-        str, default='Cartesian',
+        Enum, default=CoordinateSystem.CARTESIAN,
         doc="The parameterisation used on initiation. Acceptable values "
-            "are 'Cartesian' (default), 'Keplerian', 'TLE', or 'Equinoctial'. "
+            "are 'CARTESIAN' (default), 'KEPLERIAN', 'TLE', or 'EQUINOCTIAL'. "
             "All other inputs will return errors."
     )
 
@@ -143,13 +161,15 @@ class OrbitalState(State):
                              .format(state_vector.shape))
 
         super().__init__(state_vector, *args, **kwargs)
+        # Allows coordinates to be passed as strings
+        self.coordinates = CoordinateSystem(self.coordinates)
 
         # Query the coordinates
-        if self.coordinates.lower() == 'cartesian':
+        if self.coordinates.name == 'CARTESIAN':
             #  No need to do any conversions here
             self.state_vector = state_vector
 
-        elif self.coordinates.lower() == 'keplerian':
+        elif self.coordinates.name == 'KEPLERIAN':
             # Convert Keplerian elements to Cartesian
 
             # First enforce the correct type
@@ -161,7 +181,7 @@ class OrbitalState(State):
             self.state_vector = keplerian_to_rv(
                 state_vector, grav_parameter=self.grav_parameter)
 
-        elif self.coordinates.upper() == 'TLE':
+        elif self.coordinates.name == 'TLE':
             # TODO: ensure this works for parabolas and hyperbolas
 
             # First enforce the correct type
@@ -183,7 +203,7 @@ class OrbitalState(State):
                                                              state_vector[3], tru_anom]),
                                                 grav_parameter=self.grav_parameter)
 
-        elif self.coordinates.lower() == 'equinoctial':
+        elif self.coordinates.name == 'EQUINOCTIAL':
 
             # First enforce the correct type for mean longitude
             state_vector[5] = EclipticLongitude(state_vector[5])
@@ -521,7 +541,7 @@ class KeplerianOrbitalState(OrbitalState):
 
     """
     coordinates = Property(
-        str, default='Keplerian', doc="Fixed as Keplerian coordinates"
+        Enum, default=CoordinateSystem.KEPLERIAN, doc="Fixed as Keplerian coordinates"
     )
 
     def __init__(self, state_vector, *args, **kwargs):
@@ -533,8 +553,7 @@ class KeplerianOrbitalState(OrbitalState):
                              .format(state_vector[0]))
 
         # And go ahead and initialise as previously
-        super().__init__(state_vector, coordinates='keplerian', *args,
-                         **kwargs)
+        super().__init__(state_vector, coordinates=CoordinateSystem.KEPLERIAN, *args, **kwargs)
 
 
 class TLEOrbitalState(OrbitalState):
@@ -557,7 +576,7 @@ class TLEOrbitalState(OrbitalState):
 
     """
     coordinates = Property(
-        str, default='TLE', doc="Fixed as TLE coordinates"
+        Enum, default=CoordinateSystem.TLE, doc="Fixed as TLE coordinates"
     )
 
     def __init__(self, state_vector, *args, **kwargs):
@@ -599,8 +618,8 @@ class TLEOrbitalState(OrbitalState):
                                             float(line2[43:51]) * np.pi / 180,
                                             float(line2[52:63]) * 2 * np.pi / 86400])
 
-                super().__init__(state_vector, timestamp=timestamp, coordinates='TLE', *args,
-                                 **kwargs)
+                super().__init__(state_vector, timestamp=timestamp,
+                                 coordinates=CoordinateSystem.TLE, *args, **kwargs)
 
             else:
                 raise TypeError("State vector and metadata cannot both be empty")
@@ -611,7 +630,7 @@ class TLEOrbitalState(OrbitalState):
                 raise ValueError("Eccentricity should be between 0 and 1: got {}"
                                  .format(state_vector[0]))
 
-            super().__init__(state_vector, coordinates='TLE', *args, **kwargs)
+            super().__init__(state_vector, coordinates=CoordinateSystem.TLE, *args, **kwargs)
 
 
 class EquinoctialOrbitalState(OrbitalState):
@@ -631,7 +650,7 @@ class EquinoctialOrbitalState(OrbitalState):
     """
 
     coordinates = Property(
-        str, default='Equinoctial', doc="Fixed as equinoctial coordinates"
+        Enum, default=CoordinateSystem.EQUINOCTIAL, doc="Fixed as equinoctial coordinates"
     )
 
     def __init__(self, state_vector, *args, **kwargs):
@@ -642,8 +661,7 @@ class EquinoctialOrbitalState(OrbitalState):
             raise ValueError("Vertical Eccentricity should be between -1 and "
                              "1: got {}".format(state_vector[2]))
 
-        super().__init__(state_vector, coordinates='Equinoctial', *args,
-                         **kwargs)
+        super().__init__(state_vector, coordinates=CoordinateSystem.EQUINOCTIAL, *args, **kwargs)
 
 
 class GaussianOrbitalState(GaussianState, OrbitalState):
