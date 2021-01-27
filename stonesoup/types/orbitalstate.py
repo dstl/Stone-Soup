@@ -13,7 +13,8 @@ from .angle import Inclination, EclipticLongitude
 
 
 class CoordinateSystem(Enum):
-    """Details the allowable coordinate systems. See OrbitalState help for full explanations.
+    """Enumerates the allowable coordinate systems. See OrbitalState help for full explanation of
+    what each of the elements does.
     """
     CARTESIAN = "Cartesian"
     KEPLERIAN = "Keplerian"
@@ -31,78 +32,83 @@ class CoordinateSystem(Enum):
 
 
 class OrbitalState(State):
-    r"""The orbital state base type. This is the building block of
-    Stone Soup's orbital inference routines and follows the principle
-    that you shouldn't have to care which parameterisation you use. The
-    class stores relevant information internally and undertakes
-    whatever conversions are necessary.
+    r"""The orbital state base type. This is the building block of Stone Soup's orbital inference
+    routines and follows the principle that you shouldn't have to care which parameterisation you
+    use. The class stores relevant information internally and undertakes whatever conversions are
+    necessary.
 
-    The :attr:`state_vector` is held as :math:`[\mathbf{r},
-    \mathbf{v}]`, the "Orbital State Vector" (as traditionally
-    understood in orbital mechanics), where :math:`\mathbf{r}` is the
-    (3D) Cartesian position in the primary-centered inertial frame,
-    while :math:`\mathbf{v}` is the corresponding velocity vector. All
-    other parameters are accessed via functions. Formulae for
-    conversions are generally found in, or derived from [1]_.
+    The :attr:`state_vector` is held as :math:`[\mathbf{r}, \dot{\mathbf{r}}]`, the "Orbital State
+    Vector" (as traditionally understood in orbital mechanics), where :math:`\mathbf{r}` is the
+    (3D) Cartesian position in the primary-centered inertial frame, while :math:`\dot{\mathbf{r}}`
+    is the corresponding velocity vector. All other parameters are accessed via functions. Formulae
+    for conversions are generally found in, or derived from [1]_.
 
-    The object is constructed from the input vector :math:`X_{t_{0}}`
-    at epoch :attr:`State.timestamp` :math:`t_0` in the appropriate
-    coordinates indicated via the keyword:
+    The gravitational parameter :math:`\mu = GM` can be defined. If left undefined it defaults to
+    that of the Earth, :math:`3.986004418 \, (\pm \, 0.000000008) \times 10^{14} \mathrm{m}^3
+    \mathrm{s}^{−2}`
 
-        coordinates = "Cartesian" (the orbital state vector),
+    The object is constructed from the input vector :math:`X_{t_{0}}` at epoch
+    :attr:`State.timestamp`, :math:`t_0`. The coordinates of :math:`X_{t_{0}}` are Cartesian
+    Earth-Centered Inertial (ECI) [m] by default, but may be selected via the "coordinates" keyword
+    by passing a :class:`~.CoordinateSystem` object, or an appropriate string. Allowable coordinate
+    systems are,
+
+        coordinates = "Cartesian", the input state vector is
 
              .. math::
 
                 X_{t_0} = [r_x, r_y, r_z, \dot{r}_x, \dot{r}_y,
                     \dot{r}_z]^{T}
 
-            where :math:`r_x, r_y, r_z` are the Cartesian position
-            coordinates in the Primary-Centered Inertial frame and
-            :math:`\dot{r}_x, \dot{r}_y, \dot{r}_z` are the
+            where :math:`r_x, r_y, r_z` are the Cartesian position coordinates in the
+            Primary-Centered Inertial frame and :math:`\dot{r}_x, \dot{r}_y, \dot{r}_z` are the
             corresponding velocity coordinates.
 
-        coordinates = "Keplerian" (Keplarian elements),
+        coordinates = "Keplerian" (Keplarian elements), construct using input state vector:
 
             .. math::
 
-                X_{t_0} = [e, a, i, \Omega, \omega, \theta]^{T}
+                X_{t_0} = [e, a, i, \Omega, \omega, \theta]^{T} \\
 
-            where :math:`e` is the orbital eccentricity (unitless),
-            :math:`a` the semi-major axis ([length]), :math:`i` the
-            inclination (radian), :math:`\Omega` is the longitude of the
-            ascending node (radian), :math:`\omega` the argument of
-            periapsis (radian), and :math:`\theta` the true anomaly
-            (radian).
+            where:
+            :math:`e` is the orbital eccentricity (unitless),
+            :math:`a` the semi-major axis ([length]),
+            :math:`i` the inclination (radian),
+            :math:`\Omega` is the longitude of the ascending node (radian),
+            :math:`\omega` the argument of periapsis (radian), and
+            :math:`\theta` the true anomaly (radian)
 
-        coordinates = "TLE" (Two-Line elements [2]_),
+        coordinates = "TLE" (Two-Line Elements [2]_), initiates using input vector
 
             .. math::
 
                 X_{t_0} = [i, \Omega, e, \omega, M_0, n]^{T}
 
-            where :math:`i` the inclination (radians), :math:`\Omega`
-            is the longitude of the ascending node (radian), :math:`e`
-            is the orbital eccentricity (unitless), :math:`\omega` the
-            argument of perigee (radian), :math:`M_0` the mean anomaly
-            (radian) :math:`n` the mean motion (radian
-            [time] :math:`^{-1}`)
+            where :math:`i` the inclination (radian),
+            :math:`\Omega` is the longitude of the ascending node (radian),
+            :math:`e` is the orbital eccentricity (unitless),
+            :math:`\omega` the argument of perigee (radian),
+            :math:`M_0` the mean anomaly (radian) and
+            :math:`n` the mean motion (radian / [time]).
 
-        coordinates = "Equinoctial" (equinoctial elements [3]_)
+        This can also be constructed by passing `state_vector=None` and using the metadata. In this
+        instance the metadata must conform to the TLE standard format [2]_ and be included in the
+        metadata dictionary as 'line_1' and 'line_2'.
+
+        coordinates = "Equinoctial" (equinoctial elements [3]_),
 
             .. math::
 
-                X_{t_0} = [a, h, k, p, q, \lambda]^{T}
+                X_{t_0} = [a, h, k, p, q, \lambda]^{T} \\
 
             where :math:`a` the semi-major axis ([length]),
-            :math:`h` is the horizontal component of the
-            eccentricity, :math:`k` is the vertical component of the
-            eccentricity, :math:`p` is the horizontal component of the
-            inclination, :math:`q` is the vertical component of the
-            inclination and :math:`\lambda` is the mean longitude
+            :math:`h` is the horizontal component of the eccentricity
+            (unitless),
+            :math:`k` is the vertical component of the eccentricity (unitless),
+            :math:`q` is the horizontal component of the inclination (radian),
+            :math:`k` is the vertical component of the inclination (radian),
+            :math:`\lambda` is the mean longitude (radian)
 
-    The gravitational parameter :math:`\mu = GM` can be defined. If
-    left undefined it defaults to that of the Earth, :math:`3.986004418
-    \, (\pm \, 0.000000008) \times 10^{14} \mathrm{m}^3 \mathrm{s}^{−2}`
 
     References
     ----------
@@ -121,7 +127,7 @@ class OrbitalState(State):
         Enum, default=CoordinateSystem.CARTESIAN,
         doc="The parameterisation used on initiation. Acceptable values "
             "are 'CARTESIAN' (default), 'KEPLERIAN', 'TLE', or 'EQUINOCTIAL'. "
-            "All other inputs will return errors."
+            "All other inputs will return errors. Will accept string inputs."
     )
 
     grav_parameter = Property(
@@ -131,45 +137,74 @@ class OrbitalState(State):
             r":math:`\mathrm{m}^3 \mathrm{s}^{-2}`.")
 
     metadata = Property(
-        dict, default={}, doc="Dictionary containing metadata about orbit"
+        dict, default=None, doc="Dictionary containing metadata about orbit"
     )
 
     def __init__(self, state_vector, *args, **kwargs):
-        r"""Can be initialised in a number of different ways according to
-        preference
+        """"""
+        if 'coordinates' in kwargs:
+            coordinates = CoordinateSystem(kwargs['coordinates'])
+        else:
+            coordinates = CoordinateSystem.CARTESIAN
 
-        Parameters
-        ----------
-        state_vector : :class:`StateVector`
-            The input vector whose elements depend on the parameterisation
-            used. See 'Keywords' below. Must have dimension 6x1.
+        # Check to see if the initialisation is via metadata
+        if coordinates.name == 'TLE' and (state_vector is None or len(state_vector) == 0):
+            if 'metadata' in kwargs and kwargs['metadata'] is not None:
+                line1 = kwargs['metadata']['line_1']
+                line2 = kwargs['metadata']['line_2']
 
-        Keywords
-        --------
-        coordinates
-            The chosen input coordinate frame. Can be 'Cartesian', 'Keplerian',
-            'TLE' or 'Equinoctial'.
+                # Resolve the timestamp
+                year = 2000 + int(line1[17:20])
+                day = line1[20:23]
 
+                hour = float(line1[23:32]) * 24
+                fhour = int(np.floor(hour))
 
-        Returns
-        -------
-        : Constructs the class
+                minu = (hour - fhour) * 60
+                fminu = int(np.floor(minu))
 
-        """
-        if len(state_vector) != 6:
-            raise ValueError("State vector shape should be 6x1 : got {}"
-                             .format(state_vector.shape))
+                seco = (minu - fminu) * 60
+                fseco = int(np.floor(seco))
 
-        super().__init__(state_vector, *args, **kwargs)
-        # Allows coordinates to be passed as strings
-        self.coordinates = CoordinateSystem(self.coordinates)
+                mics = (seco - fseco) * 1e6
+                fmics = int(np.round(mics))
 
-        # Query the coordinates
-        if self.coordinates.name == 'CARTESIAN':
-            #  No need to do any conversions here
-            self.state_vector = state_vector
+                timestamp = datetime.strptime(
+                    str(year) + " " + str(day) + " " + str(fhour) + " " + str(fminu) + " " +
+                    str(fseco) + " " + str(
+                        fmics), "%Y %j %H %M %S %f")
 
-        elif self.coordinates.name == 'KEPLERIAN':
+                state_vector = StateVector([float(line2[8:16]) * np.pi / 180,
+                                            float(line2[17:25]) * np.pi / 180,
+                                            float('.' + line2[26:33]),
+                                            float(line2[34:42]) * np.pi / 180,
+                                            float(line2[43:51]) * np.pi / 180,
+                                            float(line2[52:63]) * 2 * np.pi / 86400])
+
+                kwargs['timestamp'] = timestamp
+                super().__init__(state_vector, *args, **kwargs)
+
+            else:
+                raise TypeError("State vector and metadata cannot both be empty")
+
+        # Otherwise check that the state vector is the right size
+        elif len(state_vector) != 6:
+            raise ValueError(
+                "State vector shape should be 6x1 : got {}".format(state_vector.shape))
+
+        # Coordinate type checks
+        if coordinates.name == 'CARTESIAN':
+            super().__init__(state_vector, *args, **kwargs)
+
+        elif coordinates.name == 'KEPLERIAN':
+
+            if np.less(state_vector[0], 0.0) | np.greater(state_vector[0], 1.0):
+                raise ValueError("Eccentricity should be between 0 and 1: got {}"
+                                 .format(state_vector[0]))
+
+            # And go ahead and initialise as previously
+            super().__init__(state_vector, *args, **kwargs)
+
             # Convert Keplerian elements to Cartesian
 
             # First enforce the correct type
@@ -178,11 +213,15 @@ class OrbitalState(State):
             state_vector[4] = EclipticLongitude(state_vector[4])
             state_vector[5] = EclipticLongitude(state_vector[5])
 
-            self.state_vector = keplerian_to_rv(
-                state_vector, grav_parameter=self.grav_parameter)
+            self.state_vector = keplerian_to_rv(state_vector, grav_parameter=self.grav_parameter)
 
-        elif self.coordinates.name == 'TLE':
-            # TODO: ensure this works for parabolas and hyperbolas
+        elif coordinates.name == 'TLE':
+
+            if np.less(state_vector[2], 0.0) | np.greater(state_vector[2], 1.0):
+                raise ValueError("Eccentricity should be between 0 and 1: got {}"
+                                 .format(state_vector[0]))
+
+            super().__init__(state_vector, *args, **kwargs)
 
             # First enforce the correct type
             state_vector[0] = Inclination(state_vector[0])
@@ -191,7 +230,7 @@ class OrbitalState(State):
             state_vector[4] = EclipticLongitude(state_vector[4])
 
             # Get the semi-major axis from the mean motion
-            semimajor_axis = np.cbrt(self.grav_parameter/state_vector[5]**2)
+            semimajor_axis = np.cbrt(self.grav_parameter / state_vector[5] ** 2)
 
             # True anomaly from mean anomaly
             tru_anom = tru_anom_from_mean_anom(state_vector[4], state_vector[2])
@@ -203,7 +242,16 @@ class OrbitalState(State):
                                                              state_vector[3], tru_anom]),
                                                 grav_parameter=self.grav_parameter)
 
-        elif self.coordinates.name == 'EQUINOCTIAL':
+        elif coordinates.name == 'EQUINOCTIAL':
+
+            if np.less(state_vector[1], -1.0) | np.greater(state_vector[1], 1.0):
+                raise ValueError("Horizontal Eccentricity should be between -1 "
+                                 "and 1: got {}".format(state_vector[1]))
+            if np.less(state_vector[2], -1.0) | np.greater(state_vector[2], 1.0):
+                raise ValueError("Vertical Eccentricity should be between -1 and "
+                                 "1: got {}".format(state_vector[2]))
+
+            super().__init__(state_vector, *args, **kwargs)
 
             # First enforce the correct type for mean longitude
             state_vector[5] = EclipticLongitude(state_vector[5])
@@ -211,10 +259,10 @@ class OrbitalState(State):
             # Calculate the Keplarian element quantities
             semimajor_axis = state_vector[0]
             raan = np.arctan2(state_vector[3], state_vector[4])
-            inclination = 2*np.arctan(state_vector[3]/np.sin(raan))
+            inclination = 2 * np.arctan(state_vector[3] / np.sin(raan))
             arg_per = np.arctan2(state_vector[1], state_vector[2]) - raan
             mean_anomaly = state_vector[5] - arg_per - raan
-            eccentricity = state_vector[1]/(np.sin(arg_per + raan))
+            eccentricity = state_vector[1] / (np.sin(arg_per + raan))
 
             # True anomaly from mean anomaly
             tru_anom = tru_anom_from_mean_anom(mean_anomaly, eccentricity)
@@ -224,8 +272,6 @@ class OrbitalState(State):
                                                              inclination, raan, arg_per,
                                                              tru_anom]),
                                                 grav_parameter=self.grav_parameter)
-        else:
-            raise TypeError("Coordinate keyword not recognised")
 
     # Some vector quantities
     @property
@@ -520,148 +566,6 @@ class OrbitalState(State):
                            [self.equinoctial_p],
                            [self.equinoctial_q],
                            [self.mean_longitude]]))
-
-
-class KeplerianOrbitalState(OrbitalState):
-    r"""A class allowing construction of the :class:`OrbitalState` from Keplerian elements.
-    Essentially just does OrbitalState(coordinates='Keplerian'), but includes some boundary
-    checking. Construct via:
-
-        .. math::
-
-            X_{t_0} = [e, a, i, \Omega, \omega, \theta]^{T} \\
-
-    where:
-    :math:`e` is the orbital eccentricity (unitless),
-    :math:`a` the semi-major axis ([length]),
-    :math:`i` the inclination (radian),
-    :math:`\Omega` is the longitude of the ascending node (radian),
-    :math:`\omega` the argument of periapsis (radian), and
-    :math:`\theta` the true anomaly (radian)
-
-    """
-    coordinates = Property(
-        Enum, default=CoordinateSystem.KEPLERIAN, doc="Fixed as Keplerian coordinates"
-    )
-
-    def __init__(self, state_vector, *args, **kwargs):
-        # Ensure that the coordinates keyword is set to 'Keplerian' and do some
-        # additional checks.
-
-        if np.less(state_vector[0], 0.0) | np.greater(state_vector[0], 1.0):
-            raise ValueError("Eccentricity should be between 0 and 1: got {}"
-                             .format(state_vector[0]))
-
-        # And go ahead and initialise as previously
-        super().__init__(state_vector, coordinates=CoordinateSystem.KEPLERIAN, *args, **kwargs)
-
-
-class TLEOrbitalState(OrbitalState):
-    r"""The orbital state created via the TLE state vector:
-
-        .. math::
-
-            X_{t_0} = [i, \Omega, e, \omega, M_0, n]^{T}
-
-    where :math:`i` the inclination (radian),
-    :math:`\Omega` is the longitude of the ascending node (radian),
-    :math:`e` is the orbital eccentricity (unitless),
-    :math:`\omega` the argument of perigee (radian),
-    :math:`M_0` the mean anomaly (radian) and
-    :math:`n` the mean motion (radian / [time]).
-
-    This can also be constructed by passing `state_vector=None` and using the metadata. In this
-    instance the metadata must conform to the TLE standard format [2]_ and be included in the
-    metadata dictionary as 'line_1' and 'line_2'.
-
-    """
-    coordinates = Property(
-        Enum, default=CoordinateSystem.TLE, doc="Fixed as TLE coordinates"
-    )
-
-    def __init__(self, state_vector, *args, **kwargs):
-
-        if state_vector is None or len(state_vector) == 0:
-            # in this instance check the metadata
-            state_vector = StateVector([0, 0, 0, 0, 0, 1e-3])
-            super().__init__(state_vector, *args, **kwargs)
-
-            if self.metadata is not None and len(self.metadata) != 0:
-                line1 = self.metadata['line_1']
-                line2 = self.metadata['line_2']
-
-                # Resolve the timestamp
-                year = 2000 + int(line1[17:20])
-                day = line1[20:23]
-
-                hour = float(line1[23:32]) * 24
-                fhour = int(np.floor(hour))
-
-                minu = (hour - fhour) * 60
-                fminu = int(np.floor(minu))
-
-                seco = (minu - fminu) * 60
-                fseco = int(np.floor(seco))
-
-                mics = (seco - fseco) * 1e6
-                fmics = int(np.round(mics))
-
-                timestamp = datetime.strptime(
-                    str(year) + " " + str(day) + " " + str(fhour) + " " + str(fminu) + " " +
-                    str(fseco) + " " + str(
-                        fmics), "%Y %j %H %M %S %f")
-
-                state_vector = StateVector([float(line2[8:16]) * np.pi / 180,
-                                            float(line2[17:25]) * np.pi / 180,
-                                            float('.' + line2[26:33]),
-                                            float(line2[34:42]) * np.pi / 180,
-                                            float(line2[43:51]) * np.pi / 180,
-                                            float(line2[52:63]) * 2 * np.pi / 86400])
-
-                super().__init__(state_vector, timestamp=timestamp,
-                                 coordinates=CoordinateSystem.TLE, *args, **kwargs)
-
-            else:
-                raise TypeError("State vector and metadata cannot both be empty")
-
-        else:
-
-            if np.less(state_vector[2], 0.0) | np.greater(state_vector[2], 1.0):
-                raise ValueError("Eccentricity should be between 0 and 1: got {}"
-                                 .format(state_vector[0]))
-
-            super().__init__(state_vector, coordinates=CoordinateSystem.TLE, *args, **kwargs)
-
-
-class EquinoctialOrbitalState(OrbitalState):
-    r"""An OrbitalState initialised via the Equinoctial state vector:
-
-        .. math::
-
-            X_{t_0} = [a, h, k, p, q, \lambda]^{T} \\
-
-    where :math:`a` the semi-major axis ([length]),
-    :math:`h` is the horizontal component of the eccentricity
-    (unitless),
-    :math:`k` is the vertical component of the eccentricity (unitless),
-    :math:`q` is the horizontal component of the inclination (radian),
-    :math:`k` is the vertical component of the inclination (radian),
-    :math:`\lambda` is the mean longitude (radian)
-    """
-
-    coordinates = Property(
-        Enum, default=CoordinateSystem.EQUINOCTIAL, doc="Fixed as equinoctial coordinates"
-    )
-
-    def __init__(self, state_vector, *args, **kwargs):
-        if np.less(state_vector[1], -1.0) | np.greater(state_vector[1], 1.0):
-            raise ValueError("Horizontal Eccentricity should be between -1 "
-                             "and 1: got {}".format(state_vector[1]))
-        if np.less(state_vector[2], -1.0) | np.greater(state_vector[2], 1.0):
-            raise ValueError("Vertical Eccentricity should be between -1 and "
-                             "1: got {}".format(state_vector[2]))
-
-        super().__init__(state_vector, coordinates=CoordinateSystem.EQUINOCTIAL, *args, **kwargs)
 
 
 class GaussianOrbitalState(GaussianState, OrbitalState):

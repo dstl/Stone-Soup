@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
-r"""Test the various constructions of the orbital state vector. Take a known
-orbital state vector and check the various parameterisations.
+r"""Test the various constructions of the orbital state vector. Take a known orbital state vector
+and check the various parameterisations.
 
-Example 4.3 from Curtis. Take the orbital state vector as input and check the
-various output parameterisations. The input state vector is:
+Example 4.3 from Curtis. Take the orbital state vector as input and check the various output
+parameterisations. The input state vector is:
 
     .. math::
 
         \mathbf{r} = [-6045 \, -3490 \, 2500] \mathrm{km}
 
-        \mathbf{v} = [-3.457 \, 6.618 \, 2.553] \mathrm{km s^{-1}}
+        \dot{\mathbf{r}} = [-3.457 \, 6.618 \, 2.553] \mathrm{km s^{-1}}
 
 Selected outputs should be:
 
-    magnitude of the specific orbital angular momentum, :math:`h = 58,310
-    \mathrm{km^2 s^{-1}}`
+    magnitude of the specific orbital angular momentum, :math:`h = 58,310 \mathrm{km^2 s^{-1}}`
 
 For the Keplerian elements
     semi-major axis, :math:`8788 \mathrm{km}`
@@ -58,8 +57,6 @@ from datetime import datetime
 
 from ...types.array import StateVector
 from ..orbitalstate import OrbitalState
-from ..orbitalstate import KeplerianOrbitalState, TLEOrbitalState, \
-    EquinoctialOrbitalState
 
 # Time
 dtime = datetime.now()
@@ -94,24 +91,24 @@ def test_incorrect_initialisation():
         OrbitalState(orb_st_vec, coordinates='Nonsense')
 
     with pytest.raises(TypeError):
-        TLEOrbitalState(None, metadata={})
+        OrbitalState(None, metadata=None, coordinates='TLE')
 
     # Push the relevant quantities outside of their limits one at a time
     bad_out_kep = np.copy(out_kep)
     bad_out_kep[0] = 1.2
     with pytest.raises(ValueError):
-        KeplerianOrbitalState(bad_out_kep)
+        OrbitalState(bad_out_kep, coordinates='keplerian')
     bad_out_tle = np.copy(out_tle)
     bad_out_tle[2] = 1.2
     with pytest.raises(ValueError):
-        TLEOrbitalState(bad_out_tle)
+        OrbitalState(bad_out_tle, coordinates='TLE')
     bad_out_equ = np.copy(out_equ)
     bad_out_equ[2] = -1.5
     with pytest.raises(ValueError):
-        EquinoctialOrbitalState(bad_out_equ)
+        OrbitalState(bad_out_equ, coordinates='Equinoctial')
     bad_out_equ[1] = -1.5
     with pytest.raises(ValueError):
-        EquinoctialOrbitalState(bad_out_equ)
+        OrbitalState(bad_out_equ, coordinates='Equinoctial')
 
 
 # The next three tests ensure that the initialisations in different forms
@@ -164,30 +161,6 @@ def test_cart_tle():
 
 
 # Test some specific quantities
-# Next tests are to ensure that the daughter classes still work
-def test_keplerian_init():
-    """Keplerian elements"""
-
-    k = KeplerianOrbitalState(out_kep, grav_parameter=cartesian_s.grav_parameter)
-    assert(np.allclose(k.state_vector, orb_st_vec, rtol=1e-2))
-
-
-def test_tle_init():
-    """Init TLE derived class"""
-
-    tle = TLEOrbitalState(out_tle, grav_parameter=cartesian_s.grav_parameter)
-    # First enforce the correct type
-    assert(np.allclose(tle.state_vector, orb_st_vec, rtol=1e-2))
-
-
-def test_equ_init():
-    """Init Equinoctial derived class"""
-
-    equ = EquinoctialOrbitalState(out_equ,
-                                  grav_parameter=cartesian_s.grav_parameter)
-    assert(np.allclose(equ.state_vector, orb_st_vec, rtol=1e-2))
-
-
 def test_tle_via_metadata():
     """Initiate the orbitstate from a TLE (like you'd get from SpaceTrack).
     The TLE is an test TLE from copied verbatim with the following Cartesian
@@ -200,6 +173,6 @@ def test_tle_via_metadata():
     lin2 = "2 25544 051.6426 307.0095 0003698 252.8831 281.8833 15.53996196120757"
 
     tle_metadata = {'line_1': lin1, 'line_2': lin2}
-    tle_state = TLEOrbitalState(None, metadata=tle_metadata)
+    tle_state = OrbitalState(None, coordinates='TLE', metadata=tle_metadata)
 
     assert (np.allclose(tle_state.state_vector, outstate, rtol=1e-4))

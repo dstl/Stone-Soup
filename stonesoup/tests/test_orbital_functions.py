@@ -15,7 +15,7 @@ from stonesoup.types.array import StateVector
         (-(np.pi**2), 0.2711433813983066, 1.073189242960177),
     ]
 )
-def test_stumpf(z, outs, outc):
+def test_stumpff(z, outs, outc):
     """Test the Stumpf functions"""
     assert np.isclose(stumpff_s(z), outs, rtol=1e-10)
     assert np.isclose(stumpff_c(z), outc, rtol=1e-10)
