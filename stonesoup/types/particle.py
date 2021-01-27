@@ -6,6 +6,7 @@ import numpy as np
 from ..base import Property
 from .array import StateVector, StateVectors
 from .base import Type
+from .numeric import Probability
 
 
 class Particle(Type):
@@ -37,7 +38,7 @@ class Particles(Type):
     A collection of particles. Contains a state and weight for each particle
     """
     state_vector: StateVectors = Property(default=None, doc="State vectors of particles")
-    weight: MutableSequence[float] = Property(default=None, doc='Weights of particles')
+    weight: MutableSequence[Probability] = Property(default=None, doc='Weights of particles')
     parent: 'Particles' = Property(default=None, doc='Parent particles')
     particle_list: MutableSequence[Particle] = Property(default=None,
                                                         doc='List of Particle objects')
@@ -50,7 +51,7 @@ class Particles(Type):
 
         if particle_list and isinstance(particle_list, list):
             state_vector = StateVectors([particle.state_vector for particle in particle_list])
-            weight = np.array([particle.weight for particle in particle_list])
+            weight = np.array([Probability(particle.weight) for particle in particle_list])
             parent_list = [particle.parent for particle in particle_list
                            if particle.parent is not None]
             if parent_list:
