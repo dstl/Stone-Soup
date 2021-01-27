@@ -7,6 +7,7 @@ from scipy.stats import multivariate_normal
 from ..base import Base
 from ..functions import jacobian as compute_jac
 from ..types.array import StateVector, StateVectors
+from ..types.particle import Particles
 from ..types.numeric import Probability
 
 
@@ -241,11 +242,15 @@ class GaussianModel(Model):
 
         # Calculate difference before to handle custom types (mean defaults to zero)
         # This is required as log pdf coverts arrays to floats
-        vector_differential =  state1.state_vector - self.function(state2, **kwargs)
+        vector_differential = np.array(state1.state_vector - self.function(state2, **kwargs))
         likelihood = [Probability(
-                          multivariate_normal.logpdf(vector.ravel(), cov=covar), log_value=True)
-                     for vector in vector_differential.T]
-        return likelihood
+                          multivariate_normal.logpdf(
+                              vector.ravel(), cov=covar), log_value=True)
+                      for vector in vector_differential.T]
+
+        if isinstance(state2, Particles):
+            return likelihood
+        return likelihood[0]
 
     @abstractmethod
     def covar(self):
