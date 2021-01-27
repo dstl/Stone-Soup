@@ -242,11 +242,10 @@ class GaussianModel(Model):
 
         # Calculate difference before to handle custom types (mean defaults to zero)
         # This is required as log pdf coverts arrays to floats
-        vector_differential = np.array(state1.state_vector - self.function(state2, **kwargs))
-        likelihood = [Probability(
-                          multivariate_normal.logpdf(
-                              vector.ravel(), cov=covar), log_value=True)
-                      for vector in vector_differential.T]
+        vector_differential = state1.state_vector - self.function(state2, **kwargs)
+        likelihood = [Probability(value, log_value=True)
+                      for value in np.atleast_1d(multivariate_normal.logpdf(
+                          vector_differential.T, cov=covar))]
 
         if isinstance(state2, Particles):
             return likelihood
