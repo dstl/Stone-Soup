@@ -143,7 +143,10 @@ class OrbitalState(State):
     def __init__(self, state_vector, *args, **kwargs):
         """"""
         if 'coordinates' in kwargs:
-            coordinates = CoordinateSystem(kwargs['coordinates'])
+            try:
+                coordinates = CoordinateSystem(kwargs['coordinates'])
+            except ValueError:
+                raise ValueError(kwargs['coordinates'], "is not a valid CoordinateSystem")
         else:
             coordinates = CoordinateSystem.CARTESIAN
 
