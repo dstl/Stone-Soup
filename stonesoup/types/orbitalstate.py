@@ -24,15 +24,14 @@ class CoordinateSystem(Enum):
     # To allow case insensitivity and the use of "TwoLineElement" as a string to mean TLE
     @classmethod
     def _missing_(cls, value):
-        try:
-            for element in cls:
-                if element.value.lower() == value.lower():
-                    return element
-                if element.value == "TLE" and value.lower() == "twolineelement":
-                    return element
 
-        except ValueError:
-            raise ValueError("%r is not a valid %s" % (value, cls.__name__))
+        for element in cls:
+            if element.value.lower() == value.lower():
+                return element
+            if element.value == "TLE" and value.lower() == "twolineelement":
+                return element
+
+        raise ValueError("%r is not a valid %s" % (value, cls.__name__))
 
 
 class OrbitalState(State):
