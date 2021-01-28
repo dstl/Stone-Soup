@@ -7,7 +7,8 @@ from scipy.stats import multivariate_normal
 from ..nonlinear import (
     CartesianToElevationBearingRange, CartesianToBearingRange,
     CartesianToElevationBearing, Cartesian2DToBearing, CartesianToBearingRangeRate,
-    CartesianToElevationBearingRangeRate)
+    CartesianToElevationBearingRangeRate, RangeRangeRateBinning)
+
 from ...base import ReversibleModel
 from ...measurement.linear import LinearGaussian
 from ....functions import jacobian as compute_jac
@@ -645,3 +646,147 @@ def test_inverse_function():
     assert approx(inv_measure_state[3], 0.02) == 17.10
     assert approx(inv_measure_state[4], 0.02) == 1736.48
     assert approx(inv_measure_state[5], 0.02) == 17.36
+
+
+def test_binning():
+    real_state = State(state_vector=StateVector([10e3, 100., 10e3, 100., 10e3, 100.]))
+
+    measurement_model = RangeRangeRateBinning(range_res=10,
+                                              range_rate_res=5,
+                                              ndim_state=6,
+                                              mapping=[0, 2, 4],
+                                              velocity_mapping=[1, 3, 5],
+                                              noise_covar=np.array([np.pi/18,
+                                                                    np.pi/18,
+                                                                    100,
+                                                                    10]))
+
+    measured = measurement_model.function(real_state, noise=True)
+    assert ((measured[2, 0]-measurement_model.range_res/2) /
+            measurement_model.range_res).is_integer()
+    assert ((measured[3, 0]-measurement_model.range_rate_res/2) /
+            measurement_model.range_rate_res).is_integer()
+
+
+def test_binning_pdf():
+    real_state = State(state_vector=StateVector([10e3, 100., 10e3, 100., 10e3, 100.]))
+
+    measurement_model = RangeRangeRateBinning(range_res=10,
+                                              range_rate_res=5,
+                                              ndim_state=6,
+                                              mapping=[0, 2, 4],
+                                              velocity_mapping=[1, 3, 5],
+                                              noise_covar=np.array([np.pi/18,
+                                                                    np.pi/18,
+                                                                    100,
+                                                                    10]))
+
+    measured = measurement_model.function(real_state, noise=True)
+    pdf = measurement_model.pdf(State(measured), real_state)
+    assert pdf != 0
+    not_measured = measured.copy()
+    not_measured[2, 0] = not_measured[2, 0] + 0.5*measurement_model.range_res
+    pdf = measurement_model.pdf(State(not_measured), real_state)
+    assert pdf == 0
+    not_measured = measured.copy()
+    not_measured[3, 0] = not_measured[3, 0] + 0.5*measurement_model.range_rate_res
+    pdf = measurement_model.pdf(State(not_measured), real_state)
+    assert pdf == 0
+
+
+def test_binning_integral():
+    measurement_model = RangeRangeRateBinning(range_res=None,
+                                              range_rate_res=None,
+                                              ndim_state=None,
+                                              mapping=[],
+                                              velocity_mapping=[],
+                                              noise_covar=None)
+
+    mean = 33.33333
+    a = 40
+    b = 30
+    cov = 10
+    expected_integral = 0.8365720412132509
+    assert approx(measurement_model._gaussian_integral(a, b, mean, cov), 0.02) == expected_integral
+
+    bin_sizes = 10
+    state_vector1 = 35
+    expected_pdf = 0.08365720412132509
+    assert (approx(measurement_model._binned_pdf(state_vector1, mean, bin_sizes, cov)) ==
+            expected_pdf)
+
+
+@pytest.mark.parametrize('sensor_state, target_state, expected_measurement',
+                         position_measurement_sets)
+def test_noiseless_binning_predictions(sensor_state, target_state, expected_measurement):
+    sensor_state = StateVector(sensor_state)
+    target_state = State(StateVector(target_state), timestamp=None)
+    expected_measurement = StateVector([Elevation(expected_measurement[0]),
+                                        Bearing(expected_measurement[1]),
+                                        expected_measurement[2],  # range
+                                        expected_measurement[3]])  # range rate
+    pos_mapping = [0, 2, 4]
+    vel_mapping = [1, 3, 5]
+    sensor_velocity = sensor_state[vel_mapping]
+    _, bearing, elevation = cart2sphere(*sensor_velocity)
+    orientation = StateVector([0, elevation, bearing])
+    model = RangeRangeRateBinning(
+        range_res=3,
+        range_rate_res=1,
+        ndim_state=6,
+        mapping=pos_mapping,
+        velocity_mapping=vel_mapping,
+        noise_covar=np.array([0., 0., 0., 0.]),
+        translation_offset=sensor_state[pos_mapping],
+        rotation_offset=orientation,
+        velocity=sensor_velocity)
+    actual_measurement = model.function(target_state, noise=False)
+    measure_mapping = [0, 1, 2, 3]
+    assert np.allclose(actual_measurement, expected_measurement[measure_mapping])
+
+
+def test_compare_rrrb_to_ctebrr():
+    model = RangeRangeRateBinning(
+        range_res=0.00001,
+        range_rate_res=0.00001,
+        ndim_state=6,
+        mapping=[0, 2, 4],
+        velocity_mapping=[1, 3, 5],
+        noise_covar=np.array([1., 1., 1., 1.]))
+
+    state = State([50.000005, 50.000005,
+                   0., 0.,
+                   0., 0.])
+    out = model.function(state)
+    act_pdf = model.pdf(State(out), state)
+
+    compare_model = CartesianToElevationBearingRangeRate(
+        ndim_state=6,
+        mapping=[0, 2, 4],
+        noise_covar=np.diag([1, 1, 1, 1]))
+
+    out = compare_model.function(state, noise=False)
+    exp_pdf = compare_model.pdf(State(out), state)
+    assert np.isclose(float(act_pdf), float(exp_pdf))
+
+
+def test_calc_pdf():
+    real_state = State(state_vector=StateVector([10033.33333, 133.33333,
+                                                 0., 0.,
+                                                 0., 0.]))
+
+    measurement_model = RangeRangeRateBinning(range_res=10,
+                                              range_rate_res=10,
+                                              ndim_state=6,
+                                              mapping=[0, 2, 4],
+                                              velocity_mapping=[1, 3, 5],
+                                              noise_covar=np.array([1,
+                                                                    1,
+                                                                    10,
+                                                                    10]))
+
+    act_pdf = measurement_model.pdf(State([0., 0., 10035.0, 135.0]), real_state)
+
+    exp_pdf = 1/(2*np.pi)*0.08365720412132509**2
+
+    assert np.isclose(float(act_pdf), float(exp_pdf))
