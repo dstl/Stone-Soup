@@ -371,6 +371,12 @@ class TimeBasedPlotter(Base):
             # else:
             # Do nothing
 
+        plt.xlim([min(state.state_vector[0] for line in data for state in line.plotting_data),
+                  max(state.state_vector[0] for line in data for state in line.plotting_data)])
+
+        plt.ylim([min(state.state_vector[2] for line in data for state in line.plotting_data),
+                  max(state.state_vector[2] for line in data for state in line.plotting_data)])
+
         plt.axis('equal')
         plt.xlabel("$x$")
         plt.ylabel("$y$")
