@@ -80,7 +80,7 @@ out_equ = StateVector([8788, -0.1704, 0.01605, -4.062, -1.065, 5.157])
 
 
 def test_incorrect_initialisation():
-    """Run a bunch of tests to show that initialisations with the worng parameters will fail.
+    """Run a bunch of tests to show that initialisations with the wrong parameters will fail.
     """
 
     bad_stvec = orb_st_vec[0:4]

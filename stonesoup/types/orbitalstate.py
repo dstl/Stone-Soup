@@ -24,11 +24,15 @@ class CoordinateSystem(Enum):
     # To allow case insensitivity and the use of "TwoLineElement" as a string to mean TLE
     @classmethod
     def _missing_(cls, value):
-        for element in cls:
-            if element.value.lower() == value.lower():
-                return element
-            if element.value == "TLE" and value.lower() == "twolineelement":
-                return element
+        try:
+            for element in cls:
+                if element.value.lower() == value.lower():
+                    return element
+                if element.value == "TLE" and value.lower() == "twolineelement":
+                    return element
+
+        except ValueError:
+            raise ValueError("%r is not a valid %s" % (value, cls.__name__))
 
 
 class OrbitalState(State):
@@ -60,9 +64,9 @@ class OrbitalState(State):
                 X_{t_0} = [r_x, r_y, r_z, \dot{r}_x, \dot{r}_y,
                     \dot{r}_z]^{T}
 
-            where :math:`r_x, r_y, r_z` are the Cartesian position coordinates in the
-            Primary-Centered Inertial frame and :math:`\dot{r}_x, \dot{r}_y, \dot{r}_z` are the
-            corresponding velocity coordinates.
+        where :math:`r_x, r_y, r_z` are the Cartesian position coordinates in the Primary-Centered
+        Inertial frame and :math:`\dot{r}_x, \dot{r}_y, \dot{r}_z` are the corresponding velocity
+        coordinates.
 
         coordinates = "Keplerian" (Keplarian elements), construct using input state vector:
 
@@ -70,13 +74,13 @@ class OrbitalState(State):
 
                 X_{t_0} = [e, a, i, \Omega, \omega, \theta]^{T} \\
 
-            where:
-            :math:`e` is the orbital eccentricity (unitless),
-            :math:`a` the semi-major axis ([length]),
-            :math:`i` the inclination (radian),
-            :math:`\Omega` is the longitude of the ascending node (radian),
-            :math:`\omega` the argument of periapsis (radian), and
-            :math:`\theta` the true anomaly (radian)
+        where:
+        :math:`e` is the orbital eccentricity (unitless),
+        :math:`a` the semi-major axis ([length]),
+        :math:`i` the inclination (radian),
+        :math:`\Omega` is the longitude of the ascending node (radian),
+        :math:`\omega` the argument of periapsis (radian), and
+        :math:`\theta` the true anomaly (radian)
 
         coordinates = "TLE" (Two-Line Elements [2]_), initiates using input vector
 
@@ -84,12 +88,12 @@ class OrbitalState(State):
 
                 X_{t_0} = [i, \Omega, e, \omega, M_0, n]^{T}
 
-            where :math:`i` the inclination (radian),
-            :math:`\Omega` is the longitude of the ascending node (radian),
-            :math:`e` is the orbital eccentricity (unitless),
-            :math:`\omega` the argument of perigee (radian),
-            :math:`M_0` the mean anomaly (radian) and
-            :math:`n` the mean motion (radian / [time]).
+        where :math:`i` the inclination (radian),
+        :math:`\Omega` is the longitude of the ascending node (radian),
+        :math:`e` is the orbital eccentricity (unitless),
+        :math:`\omega` the argument of perigee (radian),
+        :math:`M_0` the mean anomaly (radian) and
+        :math:`n` the mean motion (radian / [time]).
 
         This can also be constructed by passing `state_vector=None` and using the metadata. In this
         instance the metadata must conform to the TLE standard format [2]_ and be included in the
@@ -101,13 +105,12 @@ class OrbitalState(State):
 
                 X_{t_0} = [a, h, k, p, q, \lambda]^{T} \\
 
-            where :math:`a` the semi-major axis ([length]),
-            :math:`h` is the horizontal component of the eccentricity
-            (unitless),
-            :math:`k` is the vertical component of the eccentricity (unitless),
-            :math:`q` is the horizontal component of the inclination (radian),
-            :math:`k` is the vertical component of the inclination (radian),
-            :math:`\lambda` is the mean longitude (radian)
+        where :math:`a` the semi-major axis ([length]),
+        :math:`h` is the horizontal component of the eccentricity (unitless),
+        :math:`k` is the vertical component of the eccentricity (unitless),
+        :math:`q` is the horizontal component of the inclination (radian),
+        :math:`k` is the vertical component of the inclination (radian),
+        :math:`\lambda` is the mean longitude (radian)
 
 
     References
@@ -143,10 +146,7 @@ class OrbitalState(State):
     def __init__(self, state_vector, *args, **kwargs):
         """"""
         if 'coordinates' in kwargs:
-            try:
-                coordinates = CoordinateSystem(kwargs['coordinates'])
-            except ValueError:
-                raise ValueError(kwargs['coordinates'], "is not a valid CoordinateSystem")
+            coordinates = CoordinateSystem(kwargs['coordinates'])
         else:
             coordinates = CoordinateSystem.CARTESIAN
 
