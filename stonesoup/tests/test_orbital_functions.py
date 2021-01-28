@@ -23,11 +23,12 @@ def test_stumpff(z, outs, outc):
 
 def test_universal_anomaly_and_lagrange():
     """Test the computation of the universal anomaly. Also test the computation of the Lagrange
-    coefficients. Follows example 3.7 in [1].
+    coefficients. Follows example 3.7 in [1]_.
 
-    Reference
-    ---------
-    1. Curtis H.D. 2010, Orbital mechanics for engineering students, 3rd Ed. Elsevier
+    References
+    ----------
+    .. [1] Curtis H.D. 2010, Orbital mechanics for engineering students, 3rd Ed., Elsevier
+
     """
 
     # Answers

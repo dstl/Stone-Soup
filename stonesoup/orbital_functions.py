@@ -72,7 +72,7 @@ def stumpff_c(z):
 
 
 def universal_anomaly_newton(o_state_vector, delta_t,
-                             grav_parameter=3.986004418e14, precision=1e-8):
+                             grav_parameter=3.986004418e14, precision=1e-8, max_iterations=1e5):
     r"""Calculate the universal anomaly via Newton's method. Algorithm 3.3 in [1]_.
 
     Parameters
@@ -82,13 +82,15 @@ def universal_anomaly_newton(o_state_vector, delta_t,
         :math:`[r_x, r_y, r_z, \dot{r}_x, \dot{r}_y, \dot{r}_z]^T`
     delta_t : timedelta
         The time interval over which to estimate the universal anomaly
-    grav_parameter : float
+    grav_parameter : float, optional
         The universal gravitational parameter. Defaults to that of the
         Earth, :math:`3.986004418 \times 10^{14} \ \mathrm{m}^{3} \
         \mathrm{s}^{-2}`
     precision : float, optional
-        The difference between new and old values below which the iteration stops and the answer
-        is returned. Default is :math:`10^{-8}`
+        For Newton's method, the difference between new and old estimates of the universal anomaly
+        below which the iteration stops and the answer is returned, (default = 1e-8)
+    max_iterations : float, optional
+        Maximum number of iterations allowed in while loop (default = 1e5)
 
     Returns
     -------
@@ -97,7 +99,7 @@ def universal_anomaly_newton(o_state_vector, delta_t,
 
     References
     ----------
-    .. [1] Curtis H.D. 2010, Orbital Mechanics for Engineering Students 3rd Ed., Elsevier
+    .. [1] Curtis H.D. 2010, Orbital Mechanics for Engineering Students, 3rd Ed., Elsevier
 
     """
 
@@ -111,9 +113,10 @@ def universal_anomaly_newton(o_state_vector, delta_t,
     # Initial estimate of Chi
     chi_i = root_mu * np.abs(inv_sma) * delta_t.total_seconds()
     ratio = 1
+    count = 0
 
     # Do Newton's method
-    while np.abs(ratio) > precision:
+    while np.abs(ratio) > precision and count <= max_iterations:
         z_i = inv_sma * chi_i ** 2
         f_chi_i = mag_r_0 * v_rad_0 / root_mu * chi_i ** 2 * \
             stumpff_c(z_i) + (1 - inv_sma * mag_r_0) * chi_i ** 3 * \
@@ -125,13 +128,14 @@ def universal_anomaly_newton(o_state_vector, delta_t,
             mag_r_0
         ratio = f_chi_i / fp_chi_i
         chi_i = chi_i - ratio
+        count += 1
 
     return chi_i
 
 
 def lagrange_coefficients_from_universal_anomaly(o_state_vector, delta_t,
                                                  grav_parameter=3.986004418e14,
-                                                 precision=1e-8):
+                                                 precision=1e-8, max_iterations=1e5):
     r""" Calculate the Lagrangian coefficients, f and g, and their time derivatives, by way of the
     universal anomaly and the Stumpff functions [2]_.
 
@@ -147,24 +151,26 @@ def lagrange_coefficients_from_universal_anomaly(o_state_vector, delta_t,
         Earth, :math:`3.986004418 \times 10^{14} \ \mathrm{m}^{3} \
         \mathrm{s}^{-2}`. Note that the units of time must be seconds.
     precision : float, optional
-        Precision to which to calculate the universal anomaly (see `universal_anomaly_newton`)
+        Precision to which to calculate the :meth:`universal anomaly` (default = 1e-8). See the doc
+        section for that function
+    max_iterations : float, optional
+        Maximum number of iterations in determining universal anomaly (default = 1e5)
 
     Returns
     -------
-
     : float, float, float, float
         The Lagrange coefficients, :math:`f, g, \dot{f}, \dot{g}`, in that order.
 
     References
     ----------
-    ..  [2] Bond V.R., Allman M.C. 1996, Modern Astrodynamics: Fundamentals and Perturbation
+    .. [2] Bond V.R., Allman M.C. 1996, Modern Astrodynamics: Fundamentals and Perturbation
             Methods, Princeton University Press
 
     """
     # First get the universal anomaly using Newton's method
     chii = universal_anomaly_newton(o_state_vector, delta_t,
                                     grav_parameter=grav_parameter,
-                                    precision=precision)
+                                    precision=precision, max_iterations=max_iterations)
 
     # Get the position and velocity vectors
     bold_r_0 = o_state_vector[0:3]
@@ -196,9 +202,9 @@ def lagrange_coefficients_from_universal_anomaly(o_state_vector, delta_t,
 
 
 def eccentric_anomaly_from_mean_anomaly(mean_anomaly, eccentricity,
-                                        precision=1e-8):
-    r"""Approximately solve the transcendental equation :math:`E - e sin E = M_e` for :math:`E`.
-    This is an iterative process using Newton's method.
+                                        precision=1e-8, max_iterations=1e5):
+    r"""Approximately solve the transcendental equation :math:`E - e sin E = M_e` for E. This is
+    an iterative process using Newton's method.
 
     Parameters
     ----------
@@ -207,8 +213,10 @@ def eccentric_anomaly_from_mean_anomaly(mean_anomaly, eccentricity,
     eccentricity : float
         Orbital eccentricity
     precision : float, optional
-        Precision used for the stopping point in determining eccentric
-        anomaly from mean anomaly. Default is :math:`10^{-8}`
+        Precision used for the stopping point in determining eccentric anomaly from mean anomaly,
+        (default = 1e-8)
+    max_iterations : float, optional
+        Maximum number of iterations for the while loop, (default = 1e5)
 
     Returns
     -------
@@ -222,17 +230,18 @@ def eccentric_anomaly_from_mean_anomaly(mean_anomaly, eccentricity,
         ecc_anomaly = mean_anomaly - eccentricity / 2
 
     ratio = 1
-
-    while np.abs(ratio) > precision:
+    count = 0
+    while np.abs(ratio) > precision and count <= max_iterations:
         f = ecc_anomaly - eccentricity * np.sin(ecc_anomaly) - mean_anomaly
         fp = 1 - eccentricity * np.cos(ecc_anomaly)
         ratio = f / fp  # Need to check conditioning
         ecc_anomaly = ecc_anomaly - ratio
+        count += 1
 
     return ecc_anomaly  # Check whether this ever goes outside 0 < 2pi
 
 
-def tru_anom_from_mean_anom(mean_anomaly, eccentricity):
+def tru_anom_from_mean_anom(mean_anomaly, eccentricity, precision=1e-8, max_iterations=1e5):
     r"""Get the true anomaly from the mean anomaly via the eccentric anomaly
 
     Parameters
@@ -241,6 +250,11 @@ def tru_anom_from_mean_anom(mean_anomaly, eccentricity):
         The mean anomaly
     eccentricity : float
         Eccentricity
+    precision : float, optional
+        Precision used for the stopping point in determining eccentric anomaly from mean anomaly,
+        (default = 1e-8)
+    max_iterations : float, optional
+        Maximum number of iterations in determining eccentric anomaly, (default = 1e5)
 
     Returns
     -------
@@ -249,9 +263,9 @@ def tru_anom_from_mean_anom(mean_anomaly, eccentricity):
 
     """
     cos_ecc_anom = np.cos(eccentric_anomaly_from_mean_anomaly(
-        mean_anomaly, eccentricity))
+        mean_anomaly, eccentricity, precision=precision, max_iterations=max_iterations))
     sin_ecc_anom = np.sin(eccentric_anomaly_from_mean_anomaly(
-        mean_anomaly, eccentricity))
+        mean_anomaly, eccentricity, precision=precision, max_iterations=max_iterations))
 
     # This only works for M_e < \pi
     # return np.arccos(np.clip((eccentricity - cos_ecc_anom) /
