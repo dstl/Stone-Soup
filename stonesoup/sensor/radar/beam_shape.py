@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from abc import abstractmethod
 
 import numpy as np
 
@@ -9,6 +10,7 @@ class BeamShape(Base):
     """Base class for beam shape"""
     peak_power: float = Property(doc="peak power of the main lobe in Watts")
 
+    @abstractmethod
     def beam_power(self, azimuth, elevation, **kwargs):
         """beam power sent in the direction of the target.
         azimuth = elevation = 0 for center of beam"""
