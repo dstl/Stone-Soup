@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
-from ..beam_shape import Beam2DGaussian
-from pytest import approx
+from pytest import approx, raises
+
+from ..beam_shape import BeamShape, Beam2DGaussian
+
+
+def test_abstract_beam_shape():
+    with raises(TypeError):
+        BeamShape()
 
 
 def test_beam_shape():

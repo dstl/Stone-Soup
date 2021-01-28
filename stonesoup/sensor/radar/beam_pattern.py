@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
+from abc import abstractmethod
 from typing import Sequence, Tuple
 
 from ...base import Property, Base
@@ -9,6 +10,7 @@ class BeamTransitionModel(Base):
     """Base class for Beam Transition Model"""
     centre: Sequence = Property(doc="Centre of the beam pattern")
 
+    @abstractmethod
     def move_beam(self, timestamp, **kwargs):
         """Gives position of beam at given time"""
         raise NotImplementedError
