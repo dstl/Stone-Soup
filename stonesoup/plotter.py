@@ -244,7 +244,7 @@ class Plotter:
             # Plot particles
             for track in tracks:
                 for state in track:
-                    data = np.array([particle.state_vector for particle in state.particles])
+                    data = state.particles.state_vector.T
                     self.ax.plot(data[:, 0], data[:, 2], linestyle='', marker=".",
                                  markersize=1, alpha=0.5)
 
