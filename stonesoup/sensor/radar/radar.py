@@ -547,7 +547,9 @@ class AESARadar(Sensor):
             "The random RCS follows the probability "
             "distribution of the Swerling 1 case.")
     rcs: float = Property(
-        default=None, doc="The radar cross section of targets in meters squared.")
+        default=None,
+        doc="The radar cross section of targets in meters squared. Used if rcs not present on "
+            "truth. Default `None`, where 'rcs' must be present on truth.")
     probability_false_alarm: Probability = Property(
         default=1e-6, doc="Probability of false alarm used in the North's approximation")
 
@@ -617,6 +619,9 @@ class AESARadar(Sensor):
             rcs = truth.rcs
         else:
             rcs = self.rcs
+        if rcs is None:
+            raise ValueError("Truth missing 'rcs' attribute and no default 'rcs' provided")
+
         # apply swerling 1 case?
         if self.swerling_on:
             rcs = self._swerling_1(rcs)
