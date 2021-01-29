@@ -516,7 +516,6 @@ class AESARadar(Sensor):
         doc="Mapping between or positions and state "
             "dimensions. [x,y,z]")
     measurement_model: MeasurementModel = Property(
-        default=None,
         doc="The Measurement model used to generate "
             "measurements.")
     beam_shape: BeamShape = Property(

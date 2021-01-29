@@ -30,7 +30,7 @@ class Beam2DGaussian(BeamShape):
      from the centre. :math:`B_w` is the beam width and :math:`P_p` is the peak
      power.
      """
-    beam_width: float = Property(default=None, doc='Width of the radar beam')
+    beam_width: float = Property(doc='Width of the radar beam')
 
     def beam_power(self, azimuth, elevation, **kwargs):
         """

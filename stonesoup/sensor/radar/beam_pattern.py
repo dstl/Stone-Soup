@@ -41,13 +41,8 @@ class BeamSweep(BeamTransitionModel):
     frame: Tuple[float, float] = Property(doc="Dimensions of search frame as [azimuth,elevation]")
     separation: float = Property(doc="Separation of lines in elevation")
     centre: Tuple[float, float] = Property(
-        default=None,
-        doc="Centre of the search frame in [azimuth,elevation]. Defaults to [0, 0]")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.centre is None:
-            self.centre = (0, 0)
+        default=(0, 0),
+        doc="Centre of the search frame in [azimuth,elevation]. Defaults to (0, 0)")
 
     @property
     def length_frame(self):
