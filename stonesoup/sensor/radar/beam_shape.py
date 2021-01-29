@@ -30,6 +30,8 @@ class Beam2DGaussian(BeamShape):
      from the centre. :math:`B_w` is the beam width and :math:`P_p` is the peak
      power.
      """
+    # Full width half maximum
+    FWHM = 2 * np.sqrt(2 * np.log(2))
 
     def beam_power(self, azimuth, elevation, beam_width, **kwargs):
         """
@@ -50,5 +52,4 @@ class Beam2DGaussian(BeamShape):
             the power directed towards the target
         """
         return self.peak_power * np.exp(
-            -0.5 * ((azimuth / (beam_width / 2.35482)) ** 2 +
-                    (elevation / (beam_width / 2.35482)) ** 2))
+            -0.5 * ((azimuth/beam_width*self.FWHM)**2 + (elevation/beam_width*self.FWHM)**2))
