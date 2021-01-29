@@ -641,8 +641,7 @@ class AESARadar(Sensor):
         relative_az = pos_az - beam_az
         relative_el = pos_el - beam_el
         # calculate power directed towards target
-        self.beam_shape.beam_width = spoiled_width  # beam spoiling to width
-        directed_power = self.beam_shape.beam_power(relative_az, relative_el)
+        directed_power = self.beam_shape.beam_power(relative_az, relative_el, spoiled_width)
         # calculate signal to noise ratio
         snr = self._snr_constant * rcs * spoiled_gain ** 2 * directed_power / (r ** 4)
         # calculate probability of detection using the North's approximation
