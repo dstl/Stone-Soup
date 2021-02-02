@@ -618,3 +618,14 @@ def test_target_rcs():
     (det_prob, snr, swer_rcs, _, _, _) = radar.gen_probability(rcs_20)
     assert swer_rcs == 20
     assert round(snr, 3) == 2.125
+
+    with pytest.raises(
+            ValueError, match="Truth missing 'rcs' attribute and no default 'rcs' provided"):
+        rcs_none = (GroundTruthState([150e3, 0.0, 0.0], timestamp=None))
+        rcs_none.rcs = None
+        radar.gen_probability(rcs_none)
+
+    with pytest.raises(
+            ValueError, match="Truth missing 'rcs' attribute and no default 'rcs' provided"):
+        rcs_missing = (GroundTruthState([150e3, 0.0, 0.0], timestamp=None))
+        radar.gen_probability(rcs_missing)

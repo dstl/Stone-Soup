@@ -516,7 +516,6 @@ class AESARadar(Sensor):
         doc="Mapping between or positions and state "
             "dimensions. [x,y,z]")
     measurement_model: MeasurementModel = Property(
-        default=None,
         doc="The Measurement model used to generate "
             "measurements.")
     beam_shape: BeamShape = Property(
@@ -548,7 +547,9 @@ class AESARadar(Sensor):
             "The random RCS follows the probability "
             "distribution of the Swerling 1 case.")
     rcs: float = Property(
-        default=None, doc="The radar cross section of targets in meters squared.")
+        default=None,
+        doc="The radar cross section of targets in meters squared. Used if rcs not present on "
+            "truth. Default `None`, where 'rcs' must be present on truth.")
     probability_false_alarm: Probability = Property(
         default=1e-6, doc="Probability of false alarm used in the North's approximation")
 
@@ -618,6 +619,9 @@ class AESARadar(Sensor):
             rcs = truth.rcs
         else:
             rcs = self.rcs
+        if rcs is None:
+            raise ValueError("Truth missing 'rcs' attribute and no default 'rcs' provided")
+
         # apply swerling 1 case?
         if self.swerling_on:
             rcs = self._swerling_1(rcs)
@@ -642,8 +646,7 @@ class AESARadar(Sensor):
         relative_az = pos_az - beam_az
         relative_el = pos_el - beam_el
         # calculate power directed towards target
-        self.beam_shape.beam_width = spoiled_width  # beam spoiling to width
-        directed_power = self.beam_shape.beam_power(relative_az, relative_el)
+        directed_power = self.beam_shape.beam_power(relative_az, relative_el, spoiled_width)
         # calculate signal to noise ratio
         snr = self._snr_constant * rcs * spoiled_gain ** 2 * directed_power / (r ** 4)
         # calculate probability of detection using the North's approximation
