@@ -51,10 +51,11 @@ class KalmanPredictor(Predictor):
         # TODO: Think about whether it's more efficient to leave this out
         if self.control_model is None:
             ndims = self.transition_model.ndim_state
-            self.control_model = LinearControlModel(ndims, [],
-                                                    np.zeros([ndims, 1]),
-                                                    np.zeros([ndims, ndims]),
-                                                    np.zeros([ndims, ndims]))
+            self.control_model = LinearControlModel(
+                ndims, [],
+                np.zeros([ndims, 1]),
+                control_matrix=np.zeros([ndims, ndims]),
+                control_noise=np.zeros([ndims, ndims]))
 
     def _transition_matrix(self, **kwargs):
         """Return the transition matrix
@@ -90,7 +91,7 @@ class KalmanPredictor(Predictor):
             The predicted state
 
         """
-        return self.transition_model.matrix(**kwargs) @ prior.state_vector
+        return self.transition_model.function(prior, **kwargs)
 
     @property
     def _control_matrix(self):

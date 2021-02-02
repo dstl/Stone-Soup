@@ -4,16 +4,34 @@ from abc import abstractmethod
 import numpy as np
 from scipy.stats import multivariate_normal
 
-from ..base import Base
+from ..base import Base, Property
 from ..functions import jacobian as compute_jac
 from ..types.array import StateVector, StateVectors
 from ..types.numeric import Probability
+
+
+def cast_sv_types(func):
+    """ Decorator function for casting state vector types"""
+    def func_wrapper(self, state, *args, **kwargs):
+        state_vector = func(self, state, *args, **kwargs)
+        if self.sv_types is not None:
+            return StateVector([t(v) for (t, v)
+                                in zip(self.sv_types, state_vector[:, 0])])
+        return state_vector
+    return func_wrapper
 
 
 class Model(Base):
     """Model type
 
     Base/Abstract class for all models."""
+
+    sv_types = Property(list,
+                        doc="An array of types, corresponding to the type of "
+                            "each element in the model state vector. Default "
+                            "is `None` in which case the type is determined "
+                            "by `numpy`.",
+                        default=None)
 
     @property
     @abstractmethod
@@ -47,6 +65,7 @@ class LinearModel(Model):
         """ Model matrix"""
         pass
 
+    @cast_sv_types
     def function(self, state, noise=False, **kwargs):
         """Model linear function :math:`f_k(x(k),w(k)) = F_k(x_k) + w_k`
 

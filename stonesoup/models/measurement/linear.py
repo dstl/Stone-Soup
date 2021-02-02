@@ -55,32 +55,6 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
 
         return model_matrix
 
-    def function(self, state, noise=False, **kwargs):
-        """Model function :math:`h(t,x(t),w(t))`
-
-        Parameters
-        ----------
-        state: :class:`~.State`
-            An input state
-        noise: :class:`numpy.ndarray` or bool
-            An externally generated random process noise sample (the default is
-            `False`, in which case no noise will be added
-            if 'True', the output of :meth:`~.Model.rvs` is added)
-
-        Returns
-        -------
-        :class:`numpy.ndarray` of shape (:py:attr:`~ndim_meas`, 1)
-            The model function evaluated given the provided time interval.
-        """
-
-        if isinstance(noise, bool) or noise is None:
-            if noise:
-                noise = self.rvs()
-            else:
-                noise = 0
-
-        return self.matrix(**kwargs)@state.state_vector + noise
-
     def covar(self, **kwargs):
         """Returns the measurement model noise covariance matrix.
 
