@@ -6,7 +6,7 @@ from math import trunc, ceil, floor
 import numpy as np
 
 from ..functions import mod_bearing, mod_elevation
-from ..orbital_functions import mod_inclination, mod_elongitude
+from ..functions.orbital import mod_inclination, mod_elongitude
 
 
 class Angle(Real):

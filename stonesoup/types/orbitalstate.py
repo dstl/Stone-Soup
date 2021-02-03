@@ -4,9 +4,9 @@ import numpy as np
 from datetime import datetime
 from enum import Enum
 
-from ..orbital_functions import keplerian_to_rv, tru_anom_from_mean_anom
 
 from ..base import Property
+from ..functions.orbital import keplerian_to_rv, tru_anom_from_mean_anom
 from .array import StateVector
 from .state import State, GaussianState
 from .angle import Inclination, EclipticLongitude

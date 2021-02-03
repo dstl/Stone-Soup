@@ -7,8 +7,9 @@ Functions used within multiple orbital classes in Stone Soup
 
 """
 import numpy as np
-from .functions import dotproduct
-from .types.array import StateVector
+
+from . import dotproduct
+from ..types.array import StateVector
 
 
 def stumpff_s(z):
