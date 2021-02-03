@@ -20,7 +20,7 @@ class NearestNeighbour(DataAssociator):
     hypothesiser: Hypothesiser = Property(
         doc="Generate a set of hypotheses for each prediction-detection pair")
 
-    def associate(self, tracks, detections, time):
+    def associate(self, tracks, detections, timestamp):
         """Associate detections with predicted states.
 
         Parameters
@@ -29,7 +29,7 @@ class NearestNeighbour(DataAssociator):
             Current tracked objects
         detections : list of :class:`Detection`
             Retrieved measurements
-        time : datetime
+        timestamp : datetime.datetime
             Detection time to predict to
 
         Returns
@@ -40,7 +40,7 @@ class NearestNeighbour(DataAssociator):
 
         # Generate a set of hypotheses for each track on each detection
         hypotheses = {
-            track: self.hypothesiser.hypothesise(track, detections, time)
+            track: self.hypothesiser.hypothesise(track, detections, timestamp)
             for track in tracks}
 
         # Only associate tracks with one or more hypotheses
@@ -81,7 +81,7 @@ class GlobalNearestNeighbour(DataAssociator):
     hypothesiser: Hypothesiser = Property(
         doc="Generate a set of hypotheses for each prediction-detection pair")
 
-    def associate(self, tracks, detections, time):
+    def associate(self, tracks, detections, timestamp):
         """Associate a set of detections with predicted states.
 
         Parameters
@@ -90,7 +90,7 @@ class GlobalNearestNeighbour(DataAssociator):
             Current tracked objects
         detections : list of :class:`Detection`
             Retrieved measurements
-        time : datetime
+        timestamp : datetime.datetime
             Detection time to predict to
 
         Returns
@@ -101,7 +101,7 @@ class GlobalNearestNeighbour(DataAssociator):
 
         # Generate a set of hypotheses for each track on each detection
         hypotheses = {
-            track: self.hypothesiser.hypothesise(track, detections, time)
+            track: self.hypothesiser.hypothesise(track, detections, timestamp)
             for track in tracks}
 
         # Link hypotheses into a set of joint_hypotheses and evaluate
@@ -181,7 +181,7 @@ class GNNWith2DAssignment(DataAssociator):
     hypothesiser: Hypothesiser = Property(
         doc="Generate a set of hypotheses for each prediction-detection pair")
 
-    def associate(self, tracks, detections, time):
+    def associate(self, tracks, detections, timestamp):
         """Associate a set of detections with predicted states.
 
         Parameters
@@ -190,7 +190,7 @@ class GNNWith2DAssignment(DataAssociator):
             Current tracked objects
         detections : set of :class:`Detection`
             Retrieved measurements
-        time : datetime
+        timestamp : datetime.datetime
             Detection time to predict to
 
         Returns
@@ -201,7 +201,7 @@ class GNNWith2DAssignment(DataAssociator):
 
         # Generate a set of hypotheses for each track on each detection
         hypotheses = {
-            track: self.hypothesiser.hypothesise(track, detections, time)
+            track: self.hypothesiser.hypothesise(track, detections, timestamp)
             for track in tracks}
 
         # Create dictionary for associations

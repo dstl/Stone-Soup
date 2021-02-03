@@ -27,7 +27,7 @@ class DataAssociator(Base):
             Tracks which detections will be associated to.
         detections : set of :class:`~.Detection`
             Detections to be associated to tracks.
-        timestamp : :class:`datetime.datetime`
+        timestamp : datetime.datetime
             Timestamp to be used for missed detections.
 
         Returns
