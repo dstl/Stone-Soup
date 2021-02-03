@@ -2,9 +2,9 @@ import pytest
 import numpy as np
 from datetime import timedelta
 
-from stonesoup.orbital_functions import stumpff_c, stumpff_s, universal_anomaly_newton, \
+from ..orbital import stumpff_c, stumpff_s, universal_anomaly_newton, \
     lagrange_coefficients_from_universal_anomaly
-from stonesoup.types.array import StateVector
+from ...types.array import StateVector
 
 
 @pytest.mark.parametrize(

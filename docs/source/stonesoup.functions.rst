@@ -3,5 +3,5 @@ Functions
 
 .. automodule:: stonesoup.functions
 
-.. automodule:: stonesoup.orbital_functions
+.. automodule:: stonesoup.functions.orbital
 

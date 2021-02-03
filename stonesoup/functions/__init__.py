@@ -4,8 +4,8 @@
 import numpy as np
 from copy import copy
 
-from .types.numeric import Probability
-from .types.array import StateVector, StateVectors, CovarianceMatrix
+from ..types.numeric import Probability
+from ..types.array import StateVector, StateVectors, CovarianceMatrix
 
 
 def tria(matrix):

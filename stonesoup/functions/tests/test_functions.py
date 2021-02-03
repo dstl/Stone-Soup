@@ -3,11 +3,11 @@ import numpy as np
 from numpy import deg2rad
 from pytest import approx
 
-from ..functions import (
+from .. import (
     jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma,
     rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart, dotproduct)
-from ..types.array import StateVector, StateVectors, Matrix
-from ..types.state import State, GaussianState
+from ...types.array import StateVector, StateVectors, Matrix
+from ...types.state import State, GaussianState
 
 
 def test_jacobian():
