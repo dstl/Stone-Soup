@@ -3,9 +3,10 @@ import datetime
 
 import pytest
 
-from ..tracktotrack import TrackToTrack, TrackToTruth
+from ..tracktotrack import TrackToTrack, TrackToTruth, TrackIDbased
 from ...types.state import State
 from ...types.track import Track
+from ...types.groundtruth import GroundTruthPath, GroundTruthState
 
 
 @pytest.fixture
@@ -77,3 +78,31 @@ def test_euclidiantracktotruth(tracks):
         seconds=1)
     assert assoc.time_range.end_timestamp == start_time + datetime.timedelta(
         seconds=6)
+
+
+def test_trackidbased():
+    associator = TrackIDbased()
+    start_time = datetime.datetime(2019, 1, 1, 14, 0, 0)
+
+    tracks = [Track(states=[State(state_vector=[[i]],
+                                  timestamp=start_time),
+                            State(state_vector=[[i]],
+                                  timestamp=start_time + datetime.timedelta(
+                                     seconds=1))],
+                    id=f"id{i}")
+              for i in range(0, 5)]
+    truths = [GroundTruthPath(
+        states=[GroundTruthState(state_vector=[[i+0.5]],
+                                 timestamp=start_time),
+                GroundTruthState(state_vector=[[i+0.5]],
+                                 timestamp=start_time + datetime.timedelta(seconds=1))],
+        id=f"id{i}")
+        for i in range(0, 5)]
+
+    association_set = associator.associate_tracks(tracks, truths)
+    assert len(association_set.associations) == 5
+
+    assoc = list(association_set.associations)[0]
+    assoc_track = assoc.objects[0]
+    assoc_truth = assoc.objects[1]
+    assert assoc_track.id == assoc_truth.id

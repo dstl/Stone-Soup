@@ -302,3 +302,45 @@ class TrackToTruth(TrackToTrackAssociator):
                     TimeRange(start_timestamp, end_timestamp)))
 
         return AssociationSet(associations)
+
+
+class TrackIDbased(TrackToTrackAssociator):
+    """Track ID based associator
+
+        Compares set of :class:`~.Track` objects to set of :class:`~.GroundTruth` objects,
+        each formed of a sequence of :class:`~.State` objects and returns an
+        :class:`~.Association` object for each time at which a the two :class:`~.State`
+        within the :class:`~.Track` and :class:`~.GroundTruth` are assessed to be associated.
+        Tracks are considered to be associated with the Ground Truth if the ID of the Track
+        is the same as the ID of the Ground Truth.
+        """
+
+    def associate_tracks(self, tracks_set, truths_set):
+        """Associate two sets of tracks together.
+
+               Parameters
+               ----------
+               tracks_set : list of :class:`~.Track` objects
+                   Tracks to associate to ground truths set
+               truths_set: list of :class:`~.GroundTruth` objects
+                   Ground truths to associate to tracks set
+
+               Returns
+               -------
+               AssociationSet
+                   Contains a set of :class:`~.Association` objects
+
+               """
+
+        associations = set()
+
+        for track in tracks_set:
+            for truth in truths_set:
+                if track.id == truth.id:
+                    associations.add(TimeRangeAssociation((track, truth),
+                                                          TimeRange(truth[0].timestamp,
+                                                                    truth[-1].timestamp)))
+                else:
+                    continue
+
+        return AssociationSet(associations)
