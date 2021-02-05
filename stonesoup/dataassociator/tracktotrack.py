@@ -337,8 +337,11 @@ class TrackIDbased(TrackToTrackAssociator):
         for track in tracks_set:
             for truth in truths_set:
                 if track.id == truth.id:
-                    associations.add(TimeRangeAssociation((track, truth),
-                                                          TimeRange(truth[0].timestamp,
-                                                                    truth[-1].timestamp)))
+                    associations.add(
+                        TimeRangeAssociation((track, truth),
+                                             TimeRange(max(track[0].timestamp,
+                                                           truth[0].timestamp),
+                                                       min(track[-1].timestamp,
+                                                           truth[-1].timestamp))))
 
         return AssociationSet(associations)
