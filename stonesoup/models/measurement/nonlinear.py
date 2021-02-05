@@ -546,7 +546,9 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
         # Convert to Angles
         phi, theta = cart2angles(*xyz_rot)
 
-        return StateVector([[Elevation(theta)], [Bearing(phi)]]) + noise
+        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
+        elevations = [Elevation(i) for i in np.atleast_1d(theta)]
+        return StateVectors([elevations, bearings]) + noise
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
@@ -929,11 +931,14 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
         xyz_vel = state.state_vector[self.velocity_mapping, :] - self.velocity
 
         # Use polar to calculate range rate
-        rr = np.dot(xyz_pos[:, 0], xyz_vel[:, 0]) / np.linalg.norm(xyz_pos)
-        return StateVector([[Elevation(theta)],
-                            [Bearing(phi)],
-                            [rho],
-                            [rr]]) + noise
+        rr = np.einsum('ij,ij->j', xyz_pos, xyz_vel) / np.linalg.norm(xyz_pos, axis=0)
+
+        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
+        elevations = [Elevation(i) for i in np.atleast_1d(theta)]
+        return StateVectors([elevations,
+                             bearings,
+                             np.atleast_1d(rho),
+                             rr]) + noise
 
     def inverse_function(self, detection, **kwargs) -> StateVector:
         theta, phi, rho, rho_rate = detection.state_vector
