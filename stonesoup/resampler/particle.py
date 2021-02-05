@@ -39,5 +39,5 @@ class SystematicResampler(Resampler):
         new_particles = Particles(state_vector=particles.state_vector[:, index],
                                   weight=[weight]*n_particles,
                                   parent=Particles(state_vector=particles.state_vector[:, index],
-                                                   weight=[weight]*n_particles))
+                                                   weight=particles.weight[index]))
         return new_particles
