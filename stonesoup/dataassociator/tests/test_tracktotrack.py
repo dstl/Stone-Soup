@@ -7,6 +7,7 @@ from ..tracktotrack import TrackToTrack, TrackToTruth, TrackIDbased
 from ...types.state import State
 from ...types.track import Track
 from ...types.groundtruth import GroundTruthPath, GroundTruthState
+from ...types.association import Association
 
 
 @pytest.fixture
@@ -84,17 +85,30 @@ def test_trackidbased():
     associator = TrackIDbased()
     start_time = datetime.datetime(2019, 1, 1, 14, 0, 0)
 
-    tracks = [Track(states=[State(state_vector=[[i]],
-                                  timestamp=start_time),
-                            State(state_vector=[[i]],
-                                  timestamp=start_time + datetime.timedelta(
-                                     seconds=1)),
-                            State(state_vector=[[i]],
-                                  timestamp=start_time + datetime.timedelta(
-                                      seconds=2))
-                            ],
-                    id=f"id{i}")
-              for i in range(0, 5)]
+    tracksA = [Track(states=[State(state_vector=[[i]],
+                                   timestamp=start_time),
+                             State(state_vector=[[i]],
+                                   timestamp=start_time + datetime.timedelta(
+                                       seconds=1)),
+                             State(state_vector=[[i]],
+                                   timestamp=start_time + datetime.timedelta(
+                                       seconds=2))],
+                     id=f"id{i}")
+               for i in range(0, 5)]
+
+    tracksB = [Track(states=[State(state_vector=[[i]])],
+                     id=f"id{i}")
+               for i in range(0, 5)]
+
+    tracksC = [Track(states=[State(state_vector=[[i]],
+                                   timestamp=start_time + datetime.timedelta(
+                                       seconds=4)),
+                             State(state_vector=[[i]],
+                                   timestamp=start_time + datetime.timedelta(
+                                       seconds=5))],
+                     id=f"id{i}")
+               for i in range(0, 5)]
+
     truths = [GroundTruthPath(
         states=[GroundTruthState(state_vector=[[i+0.5]],
                                  timestamp=start_time + datetime.timedelta(seconds=1)),
@@ -106,15 +120,18 @@ def test_trackidbased():
         id=f"id{i}")
         for i in range(1, 6)]
 
-    association_set = associator.associate_tracks(tracks, truths)
-    assert len(association_set.associations) == 4
+    association_setA = associator.associate_tracks(tracksA, truths)
+    assert len(association_setA.associations) == 4
 
-    assoc = list(association_set.associations)[0]
-    assert assoc.time_range.start_timestamp == start_time + datetime.timedelta(
-        seconds=1)
-    assert assoc.time_range.end_timestamp == start_time + datetime.timedelta(
-        seconds=2)
-
-    assoc_track = assoc.objects[0]
-    assoc_truth = assoc.objects[1]
+    assocA = list(association_setA.associations)[0]
+    assoc_track = assocA.objects[0]
+    assoc_truth = assocA.objects[1]
     assert assoc_track.id == assoc_truth.id
+
+    association_setB = associator.associate_tracks(tracksB, truths)
+    assocB = list(association_setB.associations)[0]
+    assert type(assocB) == Association
+
+    association_setC = associator.associate_tracks(tracksC, truths)
+    assocC = list(association_setC.associations)[0]
+    assert type(assocC) == Association

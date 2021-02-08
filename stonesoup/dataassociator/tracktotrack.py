@@ -4,7 +4,7 @@ from operator import attrgetter
 from .base import TrackToTrackAssociator
 from ..base import Property
 from ..measures import Measure, Euclidean
-from ..types.association import AssociationSet, TimeRangeAssociation
+from ..types.association import AssociationSet, TimeRangeAssociation, Association
 from ..types.time import TimeRange
 
 
@@ -337,11 +337,17 @@ class TrackIDbased(TrackToTrackAssociator):
         for track in tracks_set:
             for truth in truths_set:
                 if track.id == truth.id:
-                    associations.add(
-                        TimeRangeAssociation((track, truth),
-                                             TimeRange(max(track[0].timestamp,
-                                                           truth[0].timestamp),
-                                                       min(track[-1].timestamp,
-                                                           truth[-1].timestamp))))
+                    try:
+                        associations.add(
+                            TimeRangeAssociation((track, truth),
+                                                 TimeRange(max(track[0].timestamp,
+                                                               truth[0].timestamp),
+                                                           min(track[-1].timestamp,
+                                                               truth[-1].timestamp))))
+                    except TypeError:
+                        associations.add(Association((track, truth)))
+
+                    except ValueError:
+                        associations.add(Association((track, truth)))
 
         return AssociationSet(associations)
