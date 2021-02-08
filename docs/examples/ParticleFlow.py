@@ -114,7 +114,7 @@ fig = plt.figure(figsize=(10, 6))
 ax = fig.add_subplot(1, 1, 1)
 ax.axis('equal')
 
-filters = ['particle', 'particle flow', 'parallel EKF']
+filters = ['Particle', 'Particle Flow', 'Parallel EKF']
 particle_counts = [1000, 50, 50]
 colours = ['blue', 'green', 'red']
 handles, labels = [], []
