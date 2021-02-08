@@ -133,6 +133,8 @@ class StateVectors(Matrix):
             if isinstance(states[0], StateVector):
                 return np.hstack(states).view(cls)
         array = np.asarray(states, *args, **kwargs)
+        if array.shape[1] == 1:
+            return array.view(StateVector)
         return array.view(cls)
 
     @classmethod
