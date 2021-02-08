@@ -2,39 +2,21 @@
 """Tests the various Kalman-based smoothers. This test replicates that the exists/existed in
 test_lineargaussian"""
 
-import pytest
 import numpy as np
 from datetime import datetime, timedelta
 
 from stonesoup.types.detection import Detection
 from stonesoup.types.state import GaussianState
-from stonesoup.types.prediction import GaussianStatePrediction
 from stonesoup.types.track import Track
 from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.models.transition.linear import ConstantVelocity
 from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.updater.kalman import KalmanUpdater
-from stonesoup.smoother.kalman import KalmanSmoother, ExtendedKalmanSmoother, \
-    UnscentedKalmanSmoother
+from stonesoup.smoother.kalman import KalmanSmoother
 
 
-@pytest.mark.parametrize(
-    "SmootherClass",
-    [
-        (   # Standard Kalman
-            KalmanSmoother
-        ),
-        (   # Extended Kalman
-            ExtendedKalmanSmoother
-        ),
-        (   # Unscented Kalman
-            UnscentedKalmanSmoother
-        ),
-    ],
-    ids=["standard", "extended", "unscented"]
-)
-def test_kalman_smoother(SmootherClass):
+def test_kalman_smoother():
 
     # First create a track from some detections and then smooth - check the output.
 
@@ -74,7 +56,7 @@ def test_kalman_smoother(SmootherClass):
         # write to track
         track.append(cstate)
 
-    smoother = SmootherClass(transition_model=trans_model)
+    smoother = KalmanSmoother(transition_model=trans_model)
     smoothed_track = smoother.smooth(track)
     smoothed_state_vectors = [
         state.state_vector for state in smoothed_track]
@@ -89,14 +71,3 @@ def test_kalman_smoother(SmootherClass):
     ]
 
     assert np.allclose(smoothed_state_vectors, target_smoothed_vectors)
-
-    # Check that a prediction is smoothable and that no error chucked
-    # Also remove the transition model and use the one provided by the smoother
-    track[1] = GaussianStatePrediction(pred.state_vector, pred.covar, timestamp=pred.timestamp)
-    smoothed_track2 = smoother.smooth(track)
-    assert isinstance(smoothed_track2[1], GaussianStatePrediction)
-
-    # Check appropriate error chucked if not GaussianStatePrediction/Update
-    track[-1] = detections[-1]
-    with pytest.raises(TypeError):
-        smoother._prediction(track[-1])
