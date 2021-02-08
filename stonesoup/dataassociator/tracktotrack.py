@@ -344,10 +344,8 @@ class TrackIDbased(TrackToTrackAssociator):
                                                                truth[0].timestamp),
                                                            min(track[-1].timestamp,
                                                                truth[-1].timestamp))))
-                    except TypeError:
-                        associations.add(Association((track, truth)))
-
-                    except ValueError:
+                    except (TypeError, ValueError):
+                        # A timestamp is None, or non-overlapping timestamps (start > end)
                         associations.add(Association((track, truth)))
 
         return AssociationSet(associations)
