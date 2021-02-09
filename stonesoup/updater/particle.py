@@ -41,7 +41,7 @@ class ParticleUpdater(Updater):
         else:
             measurement_model = hypothesis.measurement.measurement_model
 
-        particles.weight = np.array(particles.weight) * measurement_model.pdf(
+        particles.weight *= measurement_model.pdf(
             hypothesis.measurement, particles, num_samples=len(particles),
             **kwargs)
 
