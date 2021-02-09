@@ -50,4 +50,5 @@ class ParticlePredictor(Predictor):
                          weight=particle.weight,
                          parent=particle.parent))
 
-        return Prediction.from_state(prior, particles=new_particles, timestamp=timestamp)
+        return Prediction.from_state(prior, particles=new_particles, timestamp=timestamp,
+                                     transition_model=self.transition_model)
