@@ -7,6 +7,12 @@ Smoothers
 .. automodule:: stonesoup.smoother.base
     :show-inheritance:
 
+Kalman
+------
+
+.. automodule:: stonesoup.smoother.kalman
+    :show-inheritance:
+
 Linear Gaussian
 ---------------
 

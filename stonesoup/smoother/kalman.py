@@ -11,7 +11,7 @@ from ..models.transition.linear import LinearGaussianTransitionModel
 
 
 class KalmanSmoother(Smoother):
-    """
+    r"""
     The linear-Gaussian or Rauch-Tung-Striebel smoother, colloquially the Kalman smoother [1]_. The
     transition model is therefore linear-Gaussian. No control model is currently implemented.
 
@@ -23,26 +23,28 @@ class KalmanSmoother(Smoother):
 
     .. math::
 
-        \mathbf{x}_{k+1|k} = F_{k+1} \mathbf{x}_k
+        \mathbf{x}_{k|k-1} &= F_{k} \mathbf{x}_{k-1}
 
-        P_{k+1|k} = F_{k+1} P_k F_{k+1}^T + Q_{k+1}
+        P_{k|k-1} &= F_{k} P_{k-1} F_{k}^T + Q_{k}
 
-        G_k = P_k F_{k+1}^T P_{k+1|k}^{-1}
+        G_k &= P_{k-1} F_{k}^T P_{k|k-1}^{-1}
 
-        \mathbf{x}_{k}^s = \mathbf{x}_k + G_k (\mathbf{x}_{k+1}^s - \mathbf{x}_{k+1|k})
+        \mathbf{x}_{k-1}^s &= \mathbf{x}_{k-1} + G_k (\mathbf{x}_{k}^s - \mathbf{x}_{k|k-1})
 
-        P_k^s = P_k + G_k (P_{k+1}^s - P_{k+1|k}) G_k^T
+        P_{k-1}^s &= P_{k-1} + G_k (P_{k}^s - P_{k|k-1}) G_k^T
 
     where :math:`\mathbf{x}_{K}^s = \mathbf{x}_{K}` and :math:`P_K^s = P_K`.
 
 
     References
 
-    .. [1] S\"ark\"a S. 2013, Bayesian filtering and smoothing, Cambridge University Press
+    .. [1] Särkä S. 2013, Bayesian filtering and smoothing, Cambridge University Press
 
     """
 
-    transition_model: LinearGaussianTransitionModel = Property(doc="The transition model to be used.")
+    transition_model: LinearGaussianTransitionModel = Property(
+        doc="The transition model. The :meth:`smooth` function will initially look for a transition"
+            "model in the prediction. If that is not found then this one is used.")
 
     def _prediction(self, state):
         """ Return the predicted state, either from the prediction directly, or from the attached
