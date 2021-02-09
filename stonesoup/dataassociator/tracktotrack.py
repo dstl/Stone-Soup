@@ -4,7 +4,7 @@ from operator import attrgetter
 from .base import TrackToTrackAssociator
 from ..base import Property
 from ..measures import Measure, Euclidean
-from ..types.association import AssociationSet, TimeRangeAssociation
+from ..types.association import AssociationSet, TimeRangeAssociation, Association
 from ..types.time import TimeRange
 
 
@@ -300,5 +300,52 @@ class TrackToTruth(TrackToTrackAssociator):
                 associations.add(TimeRangeAssociation(
                     (track, current_truth),
                     TimeRange(start_timestamp, end_timestamp)))
+
+        return AssociationSet(associations)
+
+
+class TrackIDbased(TrackToTrackAssociator):
+    """Track ID based associator
+
+        Compares set of :class:`~.Track` objects to set of :class:`~.GroundTruth` objects,
+        each formed of a sequence of :class:`~.State` objects and returns an
+        :class:`~.Association` object for each time at which a the two :class:`~.State`
+        within the :class:`~.Track` and :class:`~.GroundTruthPath` are assessed to be associated.
+        Tracks are considered to be associated with the Ground Truth if the ID of the Track
+        is the same as the ID of the Ground Truth.
+        """
+
+    def associate_tracks(self, tracks_set, truths_set):
+        """Associate two sets of tracks together.
+
+               Parameters
+               ----------
+               tracks_set : list of :class:`~.Track` objects
+                   Tracks to associate to ground truths set
+               truths_set: list of :class:`~.GroundTruthPath` objects
+                   Ground truths to associate to tracks set
+
+               Returns
+               -------
+               AssociationSet
+                   Contains a set of :class:`~.Association` objects
+
+               """
+
+        associations = set()
+
+        for track in tracks_set:
+            for truth in truths_set:
+                if track.id == truth.id:
+                    try:
+                        associations.add(
+                            TimeRangeAssociation((track, truth),
+                                                 TimeRange(max(track[0].timestamp,
+                                                               truth[0].timestamp),
+                                                           min(track[-1].timestamp,
+                                                               truth[-1].timestamp))))
+                    except (TypeError, ValueError):
+                        # A timestamp is None, or non-overlapping timestamps (start > end)
+                        associations.add(Association((track, truth)))
 
         return AssociationSet(associations)
