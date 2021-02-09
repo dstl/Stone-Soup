@@ -6,6 +6,7 @@ from .array import CovarianceMatrix
 from .base import Type
 from .state import (State, GaussianState, ParticleState, SqrtGaussianState,
                     TaggedWeightedGaussianState, StateMutableSequence)
+from ..models.transition.base import TransitionModel
 
 
 def _from_state(
@@ -58,6 +59,8 @@ class Prediction(Type):
     This is the base prediction class. """
     class_mapping = {}
     from_state = classmethod(_from_state)
+    transition_model: TransitionModel = Property(
+        default=None, doc='The transition model used to make the prediction')
 
     def __init_subclass__(cls, **kwargs):
         state_type = cls.__bases__[-1]

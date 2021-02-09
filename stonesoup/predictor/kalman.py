@@ -192,7 +192,8 @@ class KalmanPredictor(Predictor):
         p_pred = self._predicted_covariance(prior, predict_over_interval)
 
         # And return the state in the correct form
-        return Prediction.from_state(prior, x_pred, p_pred, timestamp=timestamp)
+        return Prediction.from_state(prior, x_pred, p_pred, timestamp=timestamp,
+                                     transition_model=self.transition_model)
 
 
 class ExtendedKalmanPredictor(KalmanPredictor):
@@ -380,7 +381,8 @@ class UnscentedKalmanPredictor(KalmanPredictor):
         )
 
         # and return a Gaussian state based on these parameters
-        return Prediction.from_state(prior, x_pred, p_pred, timestamp=timestamp)
+        return Prediction.from_state(prior, x_pred, p_pred, timestamp=timestamp,
+                                     transition_model=self.transition_model)
 
 
 class SqrtKalmanPredictor(KalmanPredictor):
