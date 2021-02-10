@@ -2,6 +2,7 @@
 """Tests the various Kalman-based smoothers. This test replicates that the exists/existed in
 test_lineargaussian"""
 
+import pytest
 import numpy as np
 from datetime import datetime, timedelta
 
@@ -13,10 +14,22 @@ from stonesoup.models.transition.linear import ConstantVelocity
 from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.updater.kalman import KalmanUpdater
-from stonesoup.smoother.kalman import KalmanSmoother
+from stonesoup.smoother.kalman import KalmanSmoother, ExtendedKalmanSmoother
 
 
-def test_kalman_smoother():
+@pytest.mark.parametrize(
+    "SmootherClass",
+    [
+        (   # Standard Kalman
+            KalmanSmoother
+        ),
+        (   # Extended Kalman
+            ExtendedKalmanSmoother
+        ),
+    ],
+    ids=["standard", "extended"]
+)
+def test_kalman_smoother(SmootherClass):
 
     # First create a track from some detections and then smooth - check the output.
 
@@ -56,7 +69,7 @@ def test_kalman_smoother():
         # write to track
         track.append(cstate)
 
-    smoother = KalmanSmoother(transition_model=trans_model)
+    smoother = SmootherClass(transition_model=trans_model)
     smoothed_track = smoother.smooth(track)
     smoothed_state_vectors = [
         state.state_vector for state in smoothed_track]
