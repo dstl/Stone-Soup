@@ -264,8 +264,11 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
 
         # Convert to Spherical
         rho, phi, theta = cart2sphere(*xyz_rot)
+        elevations = [Elevation(i) for i in np.atleast_1d(theta)]
+        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
+        rhos = [i for i in np.atleast_1d(rho)]
 
-        return StateVector([[Elevation(theta)], [Bearing(phi)], [rho]]) + noise
+        return StateVectors([elevations, bearings, rhos]) + noise
 
     def inverse_function(self, detection, **kwargs) -> StateVector:
 
