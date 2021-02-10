@@ -37,10 +37,12 @@ class KalmanSmoother(Smoother):
     where :math:`\mathbf{x}_{K}^s = \mathbf{x}_{K}` and :math:`P_K^s = P_K`.
 
     The predicted state vector and covariance are retrieved from the Track via predicted state or
-    updated state via the links therein. If present, the transition model (providing :math:`F` and
-    :math:`Q`) in the prediction is used. This allows for a dynamic transition model (i.e. one that
-    changes with :math:`k`). Otherwise, the (static) transition model is used, defined on smoother
-    initialisation.
+    updated state via the links therein. Note that this means that the first two equations are not
+    calculated, the results merely retrieved. This smoother is therefore strictly Kalman in the
+    backward portion. The prediction might have come by any number of means. If present, the
+    transition model (providing :math:`F` and :math:`Q`) in the prediction is used. This allows for
+    a dynamic transition model (i.e. one that changes with :math:`k`). Otherwise, the (static)
+    transition model is used, defined on smoother initialisation.
 
     References
 
@@ -179,6 +181,11 @@ class ExtendedKalmanSmoother(KalmanSmoother):
 
     where :math:`J_f (\mathbf{x}_{k-1})` is the Jacobian matrix evaluated at
     :math:`\mathbf{x}_{k-1}`. The rest of the calculation proceeds as with the Kalman smoother.
+
+    In fact the first equation isn't calculated -- it's presumed to have been undertaken by a
+    filter when building the track; similarly for the predicted covariance. In practice, the only
+    difference between this and the Kalman smoother is in the use of the linearised transition
+    matrix to calculate the smoothing gain.
 
     """
     transition_model: TransitionModel = Property(doc="The transition model to be used.")
