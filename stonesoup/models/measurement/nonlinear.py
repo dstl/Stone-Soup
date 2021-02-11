@@ -414,10 +414,10 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
                 noise = 0
 
         # Account for origin offset
-        xyz = [list(state.state_vector[self.mapping[0], :] - self.translation_offset[0, 0]),
-               list(state.state_vector[self.mapping[1], :] - self.translation_offset[1, 0]),
-               [0] * state.state_vector.shape[1]
-               ]
+        xyz = np.array([state.state_vector[self.mapping[0], :] - self.translation_offset[0, 0],
+                        state.state_vector[self.mapping[1], :] - self.translation_offset[1, 0],
+                        [0] * state.state_vector.shape[1]
+                        ])
 
         # Rotate coordinates
         xyz_rot = self._rotation_matrix @ xyz
@@ -635,10 +635,10 @@ class Cartesian2DToBearing(NonLinearGaussianMeasurement):
                 noise = 0
 
         # Account for origin offset
-        xyz = [list(state.state_vector[self.mapping[0], :] - self.translation_offset[0, 0]),
-               list(state.state_vector[self.mapping[1], :] - self.translation_offset[1, 0]),
-               [0] * state.state_vector.shape[1]
-               ]
+        xyz = np.array([state.state_vector[self.mapping[0], :] - self.translation_offset[0, 0],
+                        state.state_vector[self.mapping[1], :] - self.translation_offset[1, 0],
+                        [0] * state.state_vector.shape[1]
+                        ])
 
         # Rotate coordinates
         xyz_rot = self._rotation_matrix @ xyz
