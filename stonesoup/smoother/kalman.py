@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+from functools import partial
 
 from .base import Smoother
 from ..base import Property
@@ -9,6 +10,7 @@ from ..types.update import Update, GaussianStateUpdate
 from ..models.base import LinearModel
 from ..models.transition.base import TransitionModel
 from ..models.transition.linear import LinearGaussianTransitionModel
+from ..functions import gauss2sigma, unscented_transform
 
 
 class KalmanSmoother(Smoother):
@@ -38,8 +40,8 @@ class KalmanSmoother(Smoother):
 
     The predicted state vector and covariance are retrieved from the Track via predicted state or
     updated state via the links therein. Note that this means that the first two equations are not
-    calculated, the results merely retrieved. This smoother is therefore strictly Kalman in the
-    backward portion. The prediction might have come by any number of means. If present, the
+    calculated, the results merely retrieved. This smoother is therefore strictly Kalman only in
+    the backward portion. The prediction might have come by any number of means. If present, the
     transition model (providing :math:`F` and :math:`Q`) in the prediction is used. This allows for
     a dynamic transition model (i.e. one that changes with :math:`k`). Otherwise, the (static)
     transition model is used, defined on smoother initialisation.
@@ -115,6 +117,25 @@ class KalmanSmoother(Smoother):
         """
         return self._transition_model(state).matrix(**kwargs)
 
+    def _smooth_gain(self, state, prediction, **kwargs):
+        """Calculate the smoothing gain
+
+        Parameters
+        ----------
+        state : :class:`~.State`
+            The input state
+        prediction : :class:`~.GaussianStatePrediction`
+            The prediction (from the subsequent state)
+
+        Returns
+        -------
+         : Matrix
+            The smoothing gain
+
+        """
+        return state.covar @ self._transition_matrix(state, **kwargs).T @ np.linalg.inv(
+            prediction.covar)
+
     def smooth(self, track):
         """
         Perform the backward recursion to smooth the track.
@@ -135,35 +156,32 @@ class KalmanSmoother(Smoother):
         for state in reversed(track):
 
             if firststate:
-                prev_state = state
+                subsq_state = state
                 smoothed_track.append(state)
                 firststate = False
             else:
                 # Delta t
-                time_interval = prev_state.timestamp - state.timestamp
+                time_interval = subsq_state.timestamp - state.timestamp
 
-                # Get the transition model matrix
-                transition_matrix = self._transition_matrix(state, time_interval=time_interval)
-
-                ksmooth_gain = state.covar @ transition_matrix.T @ np.linalg.inv(prediction.covar)
-                smooth_mean = state.state_vector + ksmooth_gain @ (prev_state.state_vector -
+                # Retrieve the prediction from the subsequent (k+1th) timestep accessed previously
+                prediction = self._prediction(subsq_state)
+                # The smoothing gain, mean and covariance
+                ksmooth_gain = self._smooth_gain(state, prediction, time_interval=time_interval)
+                smooth_mean = state.state_vector + ksmooth_gain @ (subsq_state.state_vector -
                                                                    prediction.state_vector)
                 smooth_covar = state.covar + \
-                    ksmooth_gain @ (prev_state.covar - prediction.covar) @ ksmooth_gain.T
+                    ksmooth_gain @ (subsq_state.covar - prediction.covar) @ ksmooth_gain.T
 
                 # Create a new type called SmoothedState?
                 if isinstance(state, Update):
-                    prev_state = Update.from_state(state, smooth_mean, smooth_covar,
-                                                   timestamp=state.timestamp,
-                                                   hypothesis=state.hypothesis)
+                    subsq_state = Update.from_state(state, smooth_mean, smooth_covar,
+                                                    timestamp=state.timestamp,
+                                                    hypothesis=state.hypothesis)
                 elif isinstance(state, Prediction):
-                    prev_state = Prediction.from_state(state, smooth_mean, smooth_covar,
-                                                       timestamp=state.timestamp)
+                    subsq_state = Prediction.from_state(state, smooth_mean, smooth_covar,
+                                                        timestamp=state.timestamp)
 
-                smoothed_track.append(prev_state)
-
-            # Save the predicted mean and covariance for the next (i.e. previous) timestep
-            prediction = self._prediction(state)
+                smoothed_track.append(subsq_state)
 
         smoothed_track.reverse()
         return smoothed_track
@@ -213,3 +231,57 @@ class ExtendedKalmanSmoother(KalmanSmoother):
             return self._transition_model(state).matrix(**kwargs)
         else:
             return self._transition_model(state).jacobian(state, **kwargs)
+
+
+class UnscentedKalmanSmoother(KalmanSmoother):
+    r"""The unscented version of the Kalman filter. As with the parent version of the Kalman
+    smoother, the mean and covariance of the prediction are retrieved from the track. The
+    unscented transform is used to calculate the smoothing gain.
+
+    """
+    transition_model: TransitionModel = Property(doc="The transition model to be used.")
+
+    alpha: float = Property(
+        default=0.5,
+        doc="Primary sigma point spread scaling parameter. Default is 0.5.")
+    beta: float = Property(
+        default=2,
+        doc="Used to incorporate prior knowledge of the distribution. If the "
+            "true distribution is Gaussian, the value of 2 is optimal. "
+            "Default is 2")
+    kappa: float = Property(
+        default=0,
+        doc="Secondary spread scaling parameter. Default is calculated as "
+            "3-Ns")
+
+    def _smooth_gain(self, state, prediction, time_interval, **kwargs):
+        """Calculate the smoothing gain
+
+        Parameters
+        ----------
+        state : :class:`~.State`
+            The input state
+        prediction : :class:`~.GaussianStatePrediction`
+            The prediction from the subsequent timestep
+
+        Returns
+        -------
+         : Matrix
+            The smoothing gain
+
+        """
+        # This ensures that the time interval is correctly applied.
+        transition_function = partial(
+            self._transition_model(state).function,
+            time_interval=time_interval)
+
+        # Get the sigma points from the mean and covariance.
+        sigma_point_states, mean_weights, covar_weights = gauss2sigma(
+            state, self.alpha, self.beta, self.kappa)
+
+        # Use the unscented transform to return the cross-covariance
+        _, _, cross_covar, _, _, _ = unscented_transform(
+            sigma_point_states, mean_weights, covar_weights,
+            transition_function)
+
+        return cross_covar @ np.linalg.inv(prediction.covar)
