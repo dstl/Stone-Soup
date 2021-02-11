@@ -14,7 +14,8 @@ from stonesoup.models.transition.linear import ConstantVelocity
 from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.updater.kalman import KalmanUpdater
-from stonesoup.smoother.kalman import KalmanSmoother, ExtendedKalmanSmoother
+from stonesoup.smoother.kalman import KalmanSmoother, ExtendedKalmanSmoother, \
+    UnscentedKalmanSmoother
 
 
 @pytest.mark.parametrize(
@@ -26,8 +27,11 @@ from stonesoup.smoother.kalman import KalmanSmoother, ExtendedKalmanSmoother
         (   # Extended Kalman
             ExtendedKalmanSmoother
         ),
+        (   # Unscented Kalman
+            UnscentedKalmanSmoother
+        ),
     ],
-    ids=["standard", "extended"]
+    ids=["standard", "extended", "unscented"]
 )
 def test_kalman_smoother(SmootherClass):
 
