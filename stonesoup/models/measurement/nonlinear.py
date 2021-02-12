@@ -266,7 +266,7 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
         rho, phi, theta = cart2sphere(*xyz_rot)
         elevations = [Elevation(i) for i in np.atleast_1d(theta)]
         bearings = [Bearing(i) for i in np.atleast_1d(phi)]
-        rhos = list(np.atleast_1d(rho))
+        rhos = np.atleast_1d(rho)
 
         return StateVectors([elevations, bearings, rhos]) + noise
 
@@ -788,9 +788,12 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
         xy_vel = state.state_vector[self.velocity_mapping, :] - self.velocity
 
         # Use polar to calculate range rate
-        rr = np.dot(xy_pos[:, 0], xy_vel[:, 0]) / np.linalg.norm(xy_pos)
+        rr = np.einsum('ij,ij->j', xy_pos, xy_vel) / np.linalg.norm(xy_pos, axis=0)
 
-        return StateVector([[Bearing(phi)], [rho], [rr]]) + noise
+        # Convert to bearings
+        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
+
+        return StateVectors([bearings, np.atleast_1d(rho), rr]) + noise
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
