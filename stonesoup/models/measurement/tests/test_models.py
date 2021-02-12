@@ -627,6 +627,225 @@ def test_rangeratemodels(h, modelclass, state_vec, ndim_state, pos_mapping, vel_
         cov=noise_covar)
 
 
+@pytest.mark.parametrize(
+    "h, modelclass, state_vec, ndim_state, pos_mapping, vel_mapping,\
+    noise_covar, position, orientation",
+    [
+        (   # 3D meas, 6D state
+                h2d_rr,  # h
+                CartesianToBearingRangeRate,  # ModelClass
+                StateVectors([[200., 200.], [10., 10.], [0., 0.],
+                              [0., 0.], [0., 0.], [0., 0.]]),  # state_vec
+                6,  # ndim_state
+                np.array([0, 2, 4]),  # pos_mapping
+                np.array([1, 3, 5]),  # vel_mapping
+                CovarianceMatrix([[0.05, 0, 0],
+                                  [0, 0.015, 0],
+                                  [0, 0, 10]]),  # noise_covar
+                StateVector([[1], [-1], [0]]),  # position (translation offset)
+                StateVector([[0], [0], [1]])  # orientation (rotation offset)
+        ),
+        (   # 3D meas, 6D state
+                h2d_rr,  # h
+                CartesianToBearingRangeRate,  # ModelClass
+                StateVectors([[200., 200.], [10., 10.], [0., 0.],
+                              [0., 0.], [0., 0.], [0., 0.]]),  # state_vec
+                6,  # ndim_state
+                np.array([0, 2, 4]),  # pos_mapping
+                np.array([1, 3, 5]),  # vel_mapping
+                CovarianceMatrix([[0.05, 0, 0],
+                                  [0, 0.015, 0],
+                                  [0, 0, 10]]),  # noise_covar
+                None,  # position (translation offset)
+                None  # orientation (rotation offset)
+        ),
+        (   # 4D meas, 6D state
+                h3d_rr,  # h
+                CartesianToElevationBearingRangeRate,  # ModelClass
+                StateVectors([[200., 200.], [10., 10.], [0., 0.],
+                              [0., 0.], [0., 0.], [0., 0.]]),  # state_vec
+                6,  # ndim_state
+                np.array([0, 2, 4]),  # pos_mapping
+                np.array([1, 3, 5]),  # vel_mapping
+                CovarianceMatrix([[0.05, 0, 0, 0],
+                                  [0, 0.05, 0, 0],
+                                  [0, 0, 0.015, 0],
+                                  [0, 0, 0, 10]]),  # noise_covar
+                StateVector([[100], [0], [0]]),  # position (translation offset)
+                StateVector([[0], [0], [0]])  # orientation (rotation offset)
+        ),
+        (   # 4D meas, 6D state
+                h3d_rr,  # h
+                CartesianToElevationBearingRangeRate,  # ModelClass
+                StateVectors([[200., 200.], [10., 10.], [0., 0.],
+                              [0., 0.], [0., 0.], [0., 0.]]),  # state_vec
+                6,  # ndim_state
+                np.array([0, 2, 4]),  # pos_mapping
+                np.array([1, 3, 5]),  # vel_mapping
+                CovarianceMatrix([[0.05, 0, 0, 0],
+                                  [0, 0.05, 0, 0],
+                                  [0, 0, 0.015, 0],
+                                  [0, 0, 0, 10]]),  # noise_covar
+                None,  # position (translation offset)
+                None  # orientation (rotation offset)
+        )
+    ],
+    ids=["rrRB_1", "rrRB_2", "rrRBE_1", "rrRBE_2"]
+)
+def test_rangeratemodels_with_particles(h, modelclass, state_vec, ndim_state, pos_mapping,
+                                        vel_mapping, noise_covar, position, orientation):
+    """ Test for the CartesianToBearingRangeRate and
+    CartesianToElevationBearingRangeRate Measurement Models """
+
+    nparticles = state_vec.shape[1]
+    single_state_vec = StateVector([[state_vec[0, 0]],
+                                    [state_vec[1, 0]],
+                                    [state_vec[2, 0]],
+                                    [state_vec[3, 0]],
+                                    [state_vec[4, 0]],
+                                    [state_vec[5, 0]]
+                                    ])
+
+    state = Particles(state_vec, weight=[1/nparticles] * nparticles)
+
+    # Check default translation_offset, rotation_offset and velocity is applied
+    model_test = modelclass(ndim_state=ndim_state,
+                            mapping=pos_mapping,
+                            velocity_mapping=vel_mapping,
+                            noise_covar=noise_covar)
+
+    assert len(model_test.translation_offset) == 3
+    assert len(model_test.rotation_offset) == 3
+    assert len(model_test.velocity) == 3
+
+    # Create and a measurement model object
+    model = modelclass(ndim_state=ndim_state,
+                       mapping=pos_mapping,
+                       velocity_mapping=vel_mapping,
+                       noise_covar=noise_covar,
+                       translation_offset=position,
+                       rotation_offset=orientation)
+
+    # Project a state through the model
+    # (without noise)
+    meas_pred_wo_noise = model.function(state)
+    ndim_meas = np.shape(meas_pred_wo_noise)[0]
+    eval_m = h(single_state_vec,
+               model.mapping,
+               model.velocity_mapping,
+               model.translation_offset,
+               model.rotation_offset,
+               model.velocity)
+    print(meas_pred_wo_noise)
+    print(eval_m)
+    for particle in range(nparticles):
+        for dimension in range(ndim_meas):
+            assert np.array_equal(meas_pred_wo_noise[dimension][particle],
+                                  np.atleast_1d(eval_m)[dimension])
+
+    # TODO would be nice if the inverse function worked
+    # Ensure inverse function returns original
+    #  if isinstance(model, ReversibleModel):
+    #    J = model.inverse_function(State(meas_pred_wo_noise))
+    #    assert np.allclose(J, state_vec)
+
+    # Ensure ```lg.covar()``` returns R
+    assert np.array_equal(noise_covar, model.covar())
+
+    # Ensure model creates noise
+    rvs = model.rvs()
+    assert rvs.shape == (model.ndim_meas, 1)
+    assert isinstance(rvs, StateVector)
+    rvs = model.rvs(10)
+    assert rvs.shape == (model.ndim_meas, 10)
+    assert isinstance(rvs, StateVectors)
+    # StateVector is subclass of Matrix, so need to check explicitly.
+    assert not isinstance(rvs, StateVector)
+
+    # Project a state through the model
+    # (without noise)
+    meas_pred_wo_noise = model.function(state)
+    test_meas = h(single_state_vec,
+                  model.mapping,
+                  model.velocity_mapping,
+                  model.translation_offset,
+                  model.rotation_offset,
+                  model.velocity)
+
+    for particle in range(nparticles):
+        for dimension in range(ndim_meas):
+            assert np.array_equal(meas_pred_wo_noise[dimension][particle],
+                                  np.atleast_1d(test_meas)[dimension])
+
+    # Evaluate the likelihood of the predicted measurement, given the state
+    # (without noise)
+    # PDF function only takes one measurement, so drop the others here.
+    measurement = StateVector(meas_pred_wo_noise[:, 0].T)
+    prob = model.pdf(State(measurement), state)
+    for particle in range(nparticles):
+        assert approx(prob[particle]) == multivariate_normal.pdf(
+            (measurement
+             - h(single_state_vec, model.mapping, model.velocity_mapping, model.translation_offset,
+                 model.rotation_offset, model.velocity)
+             ).T,
+            cov=noise_covar)
+
+    # Propagate a state vector through the model
+    # (with internal noise)
+    meas_pred_w_inoise = model.function(state, noise=True)
+    test_meas = h(single_state_vec,
+                  model.mapping,
+                  model.velocity_mapping,
+                  model.translation_offset,
+                  model.rotation_offset,
+                  model.velocity)
+
+    for particle in range(nparticles):
+        for dimension in range(ndim_meas):
+            assert not np.array_equal(meas_pred_w_inoise[dimension][particle],
+                                      np.atleast_1d(test_meas)[dimension])
+
+    # Evaluate the likelihood of the predicted state, given the prior
+    # (with noise)
+    measurement = StateVector(meas_pred_w_inoise[:, 0].T)
+    prob = model.pdf(State(measurement), state)
+    for particle in range(nparticles):
+        assert approx(prob[particle]) == multivariate_normal.pdf(
+            (measurement
+             - h(single_state_vec, model.mapping, model.velocity_mapping, model.translation_offset,
+                 model.rotation_offset, model.velocity)
+             ).T,
+            cov=noise_covar)
+
+    # Propagate a state vector throught the model
+    # (with external noise)
+    noise = model.rvs()
+    meas_pred_w_enoise = model.function(state,
+                                        noise=noise)
+    test_meas = h(single_state_vec,
+                  model.mapping,
+                  model.velocity_mapping,
+                  model.translation_offset,
+                  model.rotation_offset,
+                  model.velocity) + noise
+    for particle in range(nparticles):
+        for dimension in range(ndim_meas):
+            assert np.array_equal(meas_pred_w_enoise[dimension][particle],
+                                  np.atleast_1d(test_meas)[dimension])
+
+    # Evaluate the likelihood of the predicted state, given the prior
+    # (with noise)
+    measurement = StateVector(meas_pred_w_enoise[:, 0].T)
+    prob = model.pdf(State(measurement), state)
+    for particle in range(nparticles):
+        assert approx(prob[particle]) == multivariate_normal.pdf(
+            (measurement
+             - h(single_state_vec, model.mapping, model.velocity_mapping, model.translation_offset,
+                 model.rotation_offset, model.velocity)
+             ).T,
+            cov=noise_covar)
+
+
 def test_inverse_function():
     measure_model = CartesianToElevationBearingRangeRate(
         ndim_state=6,
