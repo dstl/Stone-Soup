@@ -35,16 +35,8 @@ import importlib.util
 for entry_point in pkg_resources.iter_entry_points('stonesoup.plugins'):
     try:
         name = entry_point.name
-        module_name = entry_point.module_name
-
-        module = importlib.util.find_spec(module_name)
-        module_spec = importlib.util.spec_from_loader(name=module.name,
-                                                      loader=module.loader,
-                                                      origin=module.origin)
-
         plugin_module = f'{__name__}.{name}'
-
-        sys.modules[plugin_module] = importlib.util.module_from_spec(module_spec)
+        sys.modules[plugin_module] = entry_point.load()
 
     except (ImportError, ModuleNotFoundError) as e:
         warnings.warn(f'Failed to load module. {e}')
