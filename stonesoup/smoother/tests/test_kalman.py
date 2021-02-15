@@ -92,10 +92,9 @@ def test_kalman_smoother(SmootherClass):
 
     # Check that a prediction is smoothable and that no error chucked
     # Also remove the transition model and use the one provided by the smoother
-    pred.transition_model = None
-    track[-1] = pred
+    track[1] = GaussianStatePrediction(pred.state_vector, pred.covar, timestamp=pred.timestamp)
     smoothed_track2 = smoother.smooth(track)
-    assert isinstance(smoothed_track2[-1], GaussianStatePrediction)
+    assert isinstance(smoothed_track2[1], GaussianStatePrediction)
 
     # Check appropriate error chucked if not GaussianStatePrediction/Update
     track[-1] = detections[-1]
