@@ -93,7 +93,8 @@ class KalmanSmoother(Smoother):
             The transition model to be associated with state
         """
         # Is there a transition model linked to the prediction?
-        if hasattr(self._prediction(state), "transition_model"):
+        if hasattr(self._prediction(state), "transition_model") and \
+                self._prediction(state).transition_model is not None:
             transition_model = self._prediction(state).transition_model
         else:  # No? Return the class attribute
             transition_model = self.transition_model
