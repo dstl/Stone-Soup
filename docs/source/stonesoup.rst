@@ -28,7 +28,6 @@ Enabling Components
     stonesoup.metricgenerator
     stonesoup.reader
     stonesoup.simulator
-    stonesoup.smoother
     stonesoup.tracker
     stonesoup.writer
     stonesoup.platform
@@ -47,6 +46,7 @@ Algorithm Components
     stonesoup.models
     stonesoup.predictor
     stonesoup.resampler
+    stonesoup.smoother
     stonesoup.updater
 
 Data Types
