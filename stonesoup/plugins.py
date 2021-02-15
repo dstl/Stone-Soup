@@ -30,7 +30,6 @@ can be loaded using:
 import sys
 import pkg_resources
 import warnings
-import importlib.util
 
 for entry_point in pkg_resources.iter_entry_points('stonesoup.plugins'):
     try:
