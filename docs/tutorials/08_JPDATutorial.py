@@ -13,11 +13,11 @@
 # associator. This is the purpose of the *joint* probabilistic data association (JPDA) filter.
 #
 # Similar to the PDA, the JPDA algorithm calculates hypothesis pairs for every measurement
-# for every track. The weight of a track-measurement hypothesis is calculated by the normalised sum
-# of conditional probabilities that every other track is associated to every other measurement
-# (including missed detection). For example, with 3 tracks :math:`(A, B, C)` and 3 measurements
-# :math:`(x, y, z)` (including missed detection :math:`None`), the probability of track :math:`A`
-# being associated with measurement :math:`x` (:math:`A \to x`) is given by:
+# for every track. The probability of a track-measurement hypothesis is calculated by the sum of
+# normalised conditional probabilities that every other track is associated to every other
+# measurement (including missed detection). For example, with 3 tracks :math:`(A, B, C)` and 3
+# measurements :math:`(x, y, z)` (including missed detection :math:`None`), the probability of
+# track :math:`A` being associated with measurement :math:`x` (:math:`A \to x`) is given by:
 #
 # .. math::
 #       p(A \to x) &= \bar{p}(A \to x \cap B \to None \cap C \to None) +\\
@@ -33,27 +33,28 @@
 #
 # This is demonstrated for 2 tracks associating to 3 measurements in the diagrams below:
 #
-# .. image:: ../_static/JPDA_reweighting-diagram_1.png
+# .. image:: ../_static/jpda_diag_1.png
+#   :width: 250
+#   :height: 300
+#   :alt: Image showing two tracks approaching 3 detections with associated probabilities
+#
+# Where the probability (for example) of the orange track associating to the green measurement is
+# :math:`0.25`.
+# The probability of every possible association set is calculated. These probabilities are then
+# normalised.
+#
+# .. image:: ../_static/jpda_diag_2.png
+#   :width: 350
+#   :height: 300
+#   :alt: Image showing calculation of the conditional probabilities of every possible occurrence
+#
+# A track-measurement hypothesis weight is then recalculated as the sum of the probabilities of
+# every occurrence where that track associates to that measurement.
+#
+# .. image:: ../_static/jpda_diag_3.png
 #   :width: 500
-#   :alt: Image showing NN association for one track
-#
-# We recalculate each track-measurement hypothesis weight by summing the conditional
-# probabilities that every other track associates to every other measurement (including missed
-# detection). In this example, the weight of the orange-track-to-green-measurement hypothesis is
-# calculated by summing the probabilities: :math:`\bar{p}(orange \to green \cap blue \to purple)`,
-# :math:`\bar{p}(orange \to green \cap blue \to None)`,
-# :math:`\bar{p}(orange \to green \cap blue \to red)`.
-#
-# .. image:: ../_static/JPDA_reweighting-diagram_2.png
-#   :width: 500
-#   :alt: Image showing NN association for one track
-#
-# These hypothesis weights are normalised to determine the resulting probabilities. From here, each
-# track is associated to each measurement according to the PDA process.
-#
-# .. image:: ../_static/JPDA_reweighting-diagram_3.png
-#   :width: 500
-#   :alt: Image showing NN association for one track
+#   :height: 450
+#   :alt: Image showing the recalculated probabilities of each track-measurement hypothesis
 #
 
 # %%
