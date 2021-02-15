@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 
 from stonesoup.types.detection import Detection
 from stonesoup.types.state import GaussianState
+from stonesoup.types.prediction import GaussianStatePrediction
 from stonesoup.types.track import Track
 from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.models.transition.linear import ConstantVelocity
@@ -88,3 +89,15 @@ def test_kalman_smoother(SmootherClass):
     ]
 
     assert np.allclose(smoothed_state_vectors, target_smoothed_vectors)
+
+    # Check that a prediction is smoothable and that no error chucked
+    # Also remove the transition model and use the one provided by the smoother
+    pred.transition_model = None
+    track[-1] = pred
+    smoothed_track2 = smoother.smooth(track)
+    assert isinstance(smoothed_track2[-1], GaussianStatePrediction)
+
+    # Check appropriate error chucked if not GaussianStatePrediction/Update
+    track[-1] = detections[-1]
+    with pytest.raises(TypeError):
+        smoother._prediction(track[-1])
