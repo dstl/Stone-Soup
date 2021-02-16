@@ -22,7 +22,3 @@ class Smoother(Base):
     @abstractmethod
     def smooth(self, *args, **kwargs):
         raise NotImplementedError
-
-    # @abstractmethod
-    # def track_smooth(self, *args, **kwargs):
-    #    raise NotImplementedError
