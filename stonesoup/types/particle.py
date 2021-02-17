@@ -46,17 +46,20 @@ class Particles(Type):
 
     def __init__(self, state_vector=None, weight=None, parent=None, particle_list=None,
                  *args, **kwargs):
-        if state_vector is not None:
-            assert particle_list is None,\
-                "Particles object cannot use both state_vector and particle_list"
+        if (particle_list is not None) and (state_vector is not None or weight is not None):
+            raise ValueError("Use either a list of Particle objects or StateVectors and weights,"
+                             " but not both.")
 
         if particle_list and isinstance(particle_list, list):
             state_vector = StateVectors([particle.state_vector for particle in particle_list])
             weight = np.array([Probability(particle.weight) for particle in particle_list])
-            parent_list = [particle.parent for particle in particle_list
-                           if particle.parent is not None]
-            if parent_list:
+            parent_list = [particle.parent for particle in particle_list]
+
+            if parent_list.count(None) == 0:
                 parent = Particles(particle_list=parent_list)
+            elif 0 < parent_list.count(None) < len(parent_list):
+                raise ValueError("Either all particles should have"
+                                 " parents or none of them should.")
 
         if parent:
             parent.parent = None
