@@ -46,9 +46,9 @@ class Particles(Type):
 
     def __init__(self, state_vector=None, weight=None, parent=None, particle_list=None,
                  *args, **kwargs):
-        if state_vector is not None:
-            assert particle_list is None,\
-                "Particles object cannot use both state_vector and particle_list"
+        if (particle_list is not None) and (state_vector is not None or weight is not None):
+            ValueError("Use either a list of Particle objects or StateVectors and weights,"
+                       " but not both.")
 
         if particle_list and isinstance(particle_list, list):
             state_vector = StateVectors([particle.state_vector for particle in particle_list])
