@@ -268,7 +268,7 @@ class ParticleState(Type):
         """The state mean, equivalent to state vector"""
         result = np.average(self.particles.state_vector,
                             axis=1,
-                            weights=np.array(self.particles.weight))
+                            weights=self.particles.weight)
         # Convert type as may have type of weights
         return result
 
