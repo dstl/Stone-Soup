@@ -53,10 +53,12 @@ class Particles(Type):
         if particle_list and isinstance(particle_list, list):
             state_vector = StateVectors([particle.state_vector for particle in particle_list])
             weight = np.array([Probability(particle.weight) for particle in particle_list])
-            parent_list = [particle.parent for particle in particle_list
-                           if particle.parent is not None]
-            if parent_list:
+            parent_list = [particle.parent for particle in particle_list]
+
+            if parent_list.count(None) == 0:
                 parent = Particles(particle_list=parent_list)
+            elif 0 < parent_list.count(None) < len(parent_list):
+                ValueError("Either all particles should have parents or none of them should.")
 
         if parent:
             parent.parent = None
