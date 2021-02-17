@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import pytest
 import numpy as np
 
 from ..particle import Particle, Particles
@@ -29,6 +30,7 @@ def test_particles():
     assert np.array_equal(particles1[0].state_vector, particle1.state_vector)
     assert particles1[0].weight == particle1.weight
     assert particles1[0].parent == particle1.parent
+    assert particles1.ndim == 1
 
     particles2 = Particles(np.array([[0, 0, 0]]), weight=[0.1, 0.1, 0.1], parent=particles1)
 
@@ -48,3 +50,15 @@ def test_particles():
     assert np.array_equal(particles_from_list.state_vector, particles1.state_vector)
     assert np.array_equal(particles_from_list.weight, particles1.weight)
     assert particles_from_list.parent == particles1.parent
+
+    with pytest.raises(ValueError):
+        # Should never happen that only some particles have parents. Should give ValueError.
+        particle_list_fail = [Particle(np.array([[0]]), weight=0.1, parent=None),
+                              Particle(np.array([[0]]), weight=0.1, parent=particle1),
+                              Particle(np.array([[0]]), weight=0.1, parent=None),
+                              ]
+
+        Particles(particle_list=particle_list_fail)
+
+        # Cannot set Particles object with both a particle list and a state vector/weight
+        Particles(np.array([[0, 0, 0]]), weight=[0.1, 0.1, 0.1], particle_list=particle_list)
