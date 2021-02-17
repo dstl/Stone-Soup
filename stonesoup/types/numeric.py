@@ -234,7 +234,7 @@ class Probability(Real):
     def sum(cls, values):
         """Carry out LogSumExp"""
         log_values = np.array([cls._log(value) for value in values])
-        if not len(log_values):
+        if len(log_values) == 0:
             return Probability(0)
 
         max_log_value = max(log_values)
