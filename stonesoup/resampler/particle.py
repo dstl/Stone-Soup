@@ -28,7 +28,7 @@ class SystematicResampler(Resampler):
         weight = Probability(1/n_particles)
         log_weights = np.array([weight.log_value for weight in particles.weight])
         weight_order = np.argsort(log_weights, kind='stable')
-        cdf = [v.log_value for v in np.cumsum(particles.weight[weight_order])]
+        cdf = np.log(np.cumsum(np.exp(log_weights[weight_order])))
 
         # Pick random starting point
         u_i = np.random.uniform(0, 1 / n_particles)
