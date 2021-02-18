@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from functools import lru_cache
 
+import numpy as np
+
 from .base import Updater
 from ..base import Property
 from ..resampler import Resampler
@@ -32,25 +34,23 @@ class ParticleUpdater(Updater):
         : :class:`~.ParticleState`
             The state posterior
         """
+        particles = hypothesis.prediction.particles
+
         if hypothesis.measurement.measurement_model is None:
             measurement_model = self.measurement_model
         else:
             measurement_model = hypothesis.measurement.measurement_model
 
-        for particle in hypothesis.prediction.particles:
-            particle.weight *= measurement_model.pdf(
-                hypothesis.measurement, particle,
-                **kwargs)
+        particles.weight *= measurement_model.pdf(
+            hypothesis.measurement, particles, num_samples=len(particles),
+            **kwargs)
 
         # Normalise the weights
-        sum_w = Probability.sum(
-            i.weight for i in hypothesis.prediction.particles)
-        for particle in hypothesis.prediction.particles:
-            particle.weight /= sum_w
+        sum_w = np.array(Probability.sum(particles.weight))
+        particles.weight = particles.weight / sum_w
 
         # Resample
-        new_particles = self.resampler.resample(
-            hypothesis.prediction.particles)
+        new_particles = self.resampler.resample(particles)
 
         return Update.from_state(
             hypothesis.prediction,

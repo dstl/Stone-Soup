@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from .base import Predictor
 from ._utils import predict_lru_cache
-from ..types.particle import Particle
+from ..types.particle import Particles
 from ..types.prediction import Prediction
 
 
@@ -38,17 +38,15 @@ class ParticlePredictor(Predictor):
             # TypeError: (timestamp or prior.timestamp) is None
             time_interval = None
 
-        new_particles = []
-        for particle in prior.particles:
-            new_state_vector = self.transition_model.function(
-                particle,
-                noise=True,
-                time_interval=time_interval,
-                **kwargs)
-            new_particles.append(
-                Particle(new_state_vector,
-                         weight=particle.weight,
-                         parent=particle.parent))
+        new_state_vector = self.transition_model.function(
+            prior.particles,
+            noise=True,
+            time_interval=time_interval,
+            num_samples=len(prior.particles),
+            **kwargs)
+        new_particles = Particles(state_vector=new_state_vector,
+                                  weight=prior.particles.weight,
+                                  parent=prior.particles.parent)
 
         return Prediction.from_state(prior, particles=new_particles, timestamp=timestamp,
                                      transition_model=self.transition_model)
