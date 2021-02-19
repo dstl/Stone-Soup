@@ -158,8 +158,7 @@ for observation in observations:
 
 import matplotlib.pyplot as plt
 
-t_a, t_n, t_e = np.array([list(state.state_vector) for state in track]).T
-d_s, d_m, d_l = np.array([list(state.state_vector) for state in observations]).T
+track_bicycle, track_car, track_bus = np.array([list(state.state_vector) for state in track]).T
 
 d_colours = []
 for s in observations:
@@ -170,13 +169,14 @@ for s in observations:
         d_colours.append('blue')
     else:
         d_colours.append('darkblue')
-d = len(t_a) * [-0.05]
+d = len(track_bicycle) * [-0.05]
 
 ind = np.arange(nsteps)
 width = 1
-p1 = plt.bar(ind, t_a, width, color='g')
-p2 = plt.bar(ind, t_n, width, bottom=t_a, color='w')
-p3 = plt.bar(ind, t_e, width, bottom=[t_a[i] + t_n[i] for i in range(len(t_a))], color='r')
+p1 = plt.bar(ind, track_bicycle, width, color='g')
+p2 = plt.bar(ind, track_car, width, bottom=track_bicycle, color='w')
+p3 = plt.bar(ind, track_bus, width, bottom=[track_bicycle[i] + track_car[i]
+                                            for i in range(len(track_bicycle))], color='r')
 p4 = plt.bar(ind, d, width, color=d_colours)
 
 truth_index = np.argmax(gt[0].state_vector)
