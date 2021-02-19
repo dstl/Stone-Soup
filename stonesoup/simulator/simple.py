@@ -193,7 +193,8 @@ class SimpleDetectionSimulator(DetectionSimulator):
                     detection = TrueDetection(
                         self.measurement_model.function(track[-1], noise=True),
                         timestamp=track[-1].timestamp,
-                        groundtruth_path=track)
+                        groundtruth_path=track,
+                        measurement_model=self.measurement_model)
                     detection.clutter = False
                     self.real_detections.add(detection)
 
@@ -202,7 +203,8 @@ class SimpleDetectionSimulator(DetectionSimulator):
                 detection = Clutter(
                     np.random.rand(self.measurement_model.ndim_meas, 1) *
                     np.diff(self.meas_range) + self.meas_range[:, :1],
-                    timestamp=time)
+                    timestamp=time,
+                    measurement_model=self.measurement_model)
                 if self.__in_state_space(detection):
                     self.clutter_detections.add(detection)
 

@@ -125,7 +125,7 @@ associator = TrackToTruth(association_threshold=30)
 # output of our tracker.
 from stonesoup.metricgenerator.plotter import TwoDPlotter
 
-plot_generator = TwoDPlotter([0, 2], [0, 2], [0, 1])
+plot_generator = TwoDPlotter([0, 2], [0, 2], [0, 2])
 
 # %%
 # Once we've created a set of metrics, these are added to a Metric Manager, along with the
