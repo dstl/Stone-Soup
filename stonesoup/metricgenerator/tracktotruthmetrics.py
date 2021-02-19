@@ -417,7 +417,8 @@ class SIAPMetrics(MetricGenerator):
         r"""SIAP metric LT over time
 
         Returns :math:`1/{R}` where :math:`{R}` is the average number of excess tracks assigned.
-        The output is unbounded with a range of :math:`0:\infty`, target score is :math:`LT = \infty`.
+        The output is unbounded with a range of :math:`0:\infty`, target score
+        is :math:`LT = \infty`.
 
         Parameters
         ----------
@@ -448,8 +449,8 @@ class SIAPMetrics(MetricGenerator):
     def LS(self, manager):
         r"""SIAP metric LS over time
 
-        Returns the percentage of time that true objects have been tracked across the dataset. The output is a
-        percentage, range :math:`0:1`, with a target score of 1.
+        Returns the percentage of time that true objects have been tracked across the
+        dataset. The output is a percentage, range :math:`0:1`, with a target score of 1.
 
         .. math::
 
@@ -622,8 +623,8 @@ class SIAPMetrics(MetricGenerator):
     def VA(self, manager):
         r"""SIAP metric VA over time
 
-        The average velocity accuracy of associated tracks.The output is a distance measure, range :math:`0:\infty`,
-        with a target score of 0.
+        The average velocity accuracy of associated tracks.The output is a distance
+        measure, range :math:`0:\infty`, with a target score of 0.
 
         .. math::
 
@@ -793,9 +794,10 @@ class SIAPMetrics(MetricGenerator):
     def IDC_single_time(self, manager, timestamp):
         r"""SIAP metric IDc at a specific time
 
-        Returns an assessment of the number of targets currently being tracked with the correct ID,
-        compared to the number of targets being tracked at a specific timestamp, :math:`{t}`. The output is a
-        percentage, range math:`0:1`, with a target score of 1.
+        Returns an assessment of the number of targets currently being tracked with the
+        correct ID, compared to the number of targets being tracked at a specific
+        timestamp, :math:`{t}`. The output is a percentage, range math:`0:1`, with a
+        target score of 1.
 
         .. math::
 
@@ -833,8 +835,8 @@ class SIAPMetrics(MetricGenerator):
     def IDC_time_range(self, manager):
         r"""SIAP metric IDC over time
 
-        The average percentage of targets being tracked with the correct ID across the dataset. The output is a
-        percentage, range math:`0:1`, with a target score of 1.
+        The average percentage of targets being tracked with the correct ID across
+        the dataset. The output is a percentage, range math:`0:1`, with a target score of 1.
 
         .. math::
 
@@ -917,8 +919,8 @@ class SIAPMetrics(MetricGenerator):
     def IDA_time_range(self, manager):
         r"""SIAP metric IDC over time
 
-        The average percentage of targets being tracked with ambiguous ID across the dataset. The output is a
-        percentage, range math:`0:1`, with a target score of 0.
+        The average percentage of targets being tracked with ambiguous ID across the dataset.
+        The output is a percentage, range math:`0:1`, with a target score of 0.
 
         .. math::
 
