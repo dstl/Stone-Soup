@@ -42,17 +42,21 @@ class TwoDPlotter(PlotGenerator):
         return metric
 
     def plot_tracks_truth_detections(self, tracks, groundtruth_paths,
-                                     detections):
+                                     detections, uncertainty=False, particle=False):
         """Plots tracks, truths and detections onto a 2d matplotlib figure
 
         Parameters
         ----------
         tracks: set of :class:`~.Track`
-            objects to be plotted as tracks
+            Objects to be plotted as tracks
         groundtruth_paths: set of :class:`~.GroundTruthPath`
-            objects to be plotted as truths
+            Objects to be plotted as truths
         detections: set of :class:`~.Detection`
-            objects to be plotted as detections
+            Objects to be plotted as detections
+        uncertainty : bool
+            If True, function plots uncertainty ellipses.
+        particle : bool
+            If True, function plots particles.
 
         Returns
         ----------
@@ -79,7 +83,12 @@ class TwoDPlotter(PlotGenerator):
                 continue
         # Don't plot tracks with only one detection associated; probably clutter
 
-        if any(hasattr(track.state, 'particles') for track in plotting_tracks):
+        if uncertainty:
+            plotter.plot_tracks(plotting_tracks, [self.track_indices[0],
+                                                  self.track_indices[1]],
+                                uncertainty=True)
+
+        elif particle:
             plotter.plot_tracks(plotting_tracks, [self.track_indices[0],
                                                   self.track_indices[1]],
                                 particle=True)
