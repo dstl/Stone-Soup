@@ -89,12 +89,14 @@ class SIAPMetrics(MetricGenerator):
 
         metrics = [C, A, S, LT, LS, nt, nj]
 
-        timestamped_metrics = {'T C': [], 'T A': [], 'T S': []}
+        timestamped_metrics = {'time-based SIAP C': [],
+                               'time-based SIAP A': [],
+                               'time-based SIAP S': []}
         timestamps = manager.list_timestamps()
         for timestamp in timestamps:
-            timestamped_metrics['T C'].append(self.C_single_time(manager, timestamp))
-            timestamped_metrics['T A'].append(self.A_single_time(manager, timestamp))
-            timestamped_metrics['T S'].append(self.S_single_time(manager, timestamp))
+            timestamped_metrics['time-based SIAP C'].append(self.C_single_time(manager, timestamp))
+            timestamped_metrics['time-based SIAP A'].append(self.A_single_time(manager, timestamp))
+            timestamped_metrics['time-based SIAP S'].append(self.S_single_time(manager, timestamp))
         t_metrics = [TimeRangeMetric(title=key,
                                      value=value,
                                      time_range=TimeRange(min(timestamps), max(timestamps)),
@@ -107,7 +109,7 @@ class SIAPMetrics(MetricGenerator):
             t_PA = []
             for timestamp in timestamps:
                 t_PA.append(self.PA_single_time(manager, timestamp))
-            metrics.append(TimeRangeMetric(title='T PA',
+            metrics.append(TimeRangeMetric(title='time-based SIAP PA',
                                            value=t_PA,
                                            time_range=TimeRange(min(timestamps), max(timestamps)),
                                            generator=self))
@@ -118,7 +120,7 @@ class SIAPMetrics(MetricGenerator):
             t_VA = []
             for timestamp in timestamps:
                 t_VA.append(self.VA_single_time(manager, timestamp))
-            metrics.append(TimeRangeMetric(title='T VA',
+            metrics.append(TimeRangeMetric(title='time-based SIAP VA',
                                            value=t_VA,
                                            time_range=TimeRange(min(timestamps), max(timestamps)),
                                            generator=self))
@@ -132,7 +134,7 @@ class SIAPMetrics(MetricGenerator):
             t_CID = []
             for timestamp in timestamps:
                 t_CID.append(self.CID_single_time(manager, timestamp))
-            metrics.append(TimeRangeMetric(title='T CID',
+            metrics.append(TimeRangeMetric(title='time-based SIAP CID',
                                            value=t_CID,
                                            time_range=TimeRange(min(timestamps),
                                                                 max(timestamps)),
@@ -148,12 +150,12 @@ class SIAPMetrics(MetricGenerator):
                 for timestamp in timestamps:
                     t_IDC.append(self.IDC_single_time(manager, timestamp))
                     t_IDA.append(self.IDA_single_time(manager, timestamp))
-                metrics.append(TimeRangeMetric(title='T IDC',
+                metrics.append(TimeRangeMetric(title='time-based SIAP IDC',
                                                value=t_IDC,
                                                time_range=TimeRange(min(timestamps),
                                                                     max(timestamps)),
                                                generator=self))
-                metrics.append(TimeRangeMetric(title='T IDA',
+                metrics.append(TimeRangeMetric(title='time-based SIAP IDA',
                                                value=t_IDA,
                                                time_range=TimeRange(min(timestamps),
                                                                     max(timestamps)),
