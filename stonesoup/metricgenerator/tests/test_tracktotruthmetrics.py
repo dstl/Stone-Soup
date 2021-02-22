@@ -693,7 +693,7 @@ def test_compute_metric(generator):
     assert pa.generator == generator
 
     tpa = metrics[8]
-    assert tpa.title == "T PA"
+    assert tpa.title == "time-based SIAP PA"
     for i in range(len(manager.list_timestamps())):
         t_metric = tpa.value[i]
         timestamp = manager.list_timestamps()[i]
@@ -725,7 +725,7 @@ def test_compute_metric(generator):
     assert va.generator == generator
 
     tva = metrics[10]
-    assert tva.title == "T VA"
+    assert tva.title == "time-based SIAP VA"
     for i in range(len(manager.list_timestamps())):
         t_metric = tva.value[i]
         timestamp = manager.list_timestamps()[i]
@@ -745,7 +745,7 @@ def test_compute_metric(generator):
     assert tva.generator == generator
 
     tc = metrics[11]
-    assert tc.title == "T C"
+    assert tc.title == "time-based SIAP C"
     for i in range(len(manager.list_timestamps())):
         t_metric = tc.value[i]
         timestamp = manager.list_timestamps()[i]
@@ -762,7 +762,7 @@ def test_compute_metric(generator):
     assert tc.generator == generator
 
     ta = metrics[12]
-    assert ta.title == "T A"
+    assert ta.title == "time-based SIAP A"
     for i in range(len(manager.list_timestamps())):
         t_metric = ta.value[i]
         timestamp = manager.list_timestamps()[i]
@@ -779,7 +779,7 @@ def test_compute_metric(generator):
     assert ta.generator == generator
 
     ts = metrics[13]
-    assert ts.title == "T S"
+    assert ts.title == "time-based SIAP S"
     for i in range(len(manager.list_timestamps())):
         t_metric = ts.value[i]
         timestamp = manager.list_timestamps()[i]
@@ -806,7 +806,7 @@ def test_compute_metric(generator):
     assert cid.generator == generator
 
     tcid = metrics[15]
-    assert tcid.title == "T CID"
+    assert tcid.title == "time-based SIAP CID"
     for i in range(len(manager.list_timestamps())):
         t_metric = tcid.value[i]
         timestamp = manager.list_timestamps()[i]
@@ -839,7 +839,7 @@ def test_compute_metric(generator):
     assert ida.generator == generator
 
     tidc = metrics[18]
-    assert tidc.title == "T IDC"
+    assert tidc.title == "time-based SIAP IDC"
     for i in range(len(manager.list_timestamps())):
         t_metric = tidc.value[i]
         timestamp = manager.list_timestamps()[i]
@@ -856,7 +856,7 @@ def test_compute_metric(generator):
     assert tidc.generator == generator
 
     tida = metrics[19]
-    assert tida.title == "T IDA"
+    assert tida.title == "time-based SIAP IDA"
     for i in range(len(manager.list_timestamps())):
         t_metric = tida.value[i]
         timestamp = manager.list_timestamps()[i]
@@ -975,11 +975,14 @@ def test_absent_params():
     metrics = generator.compute_metric(manager)
 
     metric_names = {'SIAP C', 'SIAP A', 'SIAP S', 'SIAP LT', 'SIAP LS', 'SIAP nt', 'SIAP nj',
-                    'SIAP PA', 'T PA', 'SIAP VA', 'T VA', 'T C', 'T A', 'T S', 'SIAP CID',
-                    'T CID', 'SIAP IDC', 'SIAP IDA', 'T IDC', 'T IDA'}
+                    'SIAP PA', 'time-based SIAP PA', 'SIAP VA', 'time-based SIAP VA',
+                    'time-based SIAP C', 'time-based SIAP A', 'time-based SIAP S', 'SIAP CID',
+                    'time-based SIAP CID', 'SIAP IDC', 'SIAP IDA', 'time-based SIAP IDC',
+                    'time-based SIAP IDA'}
 
-    absent_names = {'SIAP PA', 'T PA', 'SIAP VA', 'T VA', 'SIAP CID', 'T CID', 'SIAP IDC',
-                    'SIAP IDA', 'T IDC', 'T IDA'}
+    absent_names = {'SIAP PA', 'time-based SIAP PA', 'SIAP VA', 'time-based SIAP VA', 'SIAP CID',
+                    'time-based SIAP CID', 'SIAP IDC', 'SIAP IDA', 'time-based SIAP IDC',
+                    'time-based SIAP IDA'}
 
     assert all(metric.title in (metric_names - absent_names) for metric in metrics)
 
@@ -987,6 +990,7 @@ def test_absent_params():
 
     metrics = generator.compute_metric(manager)
 
-    absent_names = {'SIAP PA', 'T PA', 'SIAP VA', 'T VA', 'SIAP IDC', 'T IDC', 'SIAP IDA', 'T IDA'}
+    absent_names = {'SIAP PA', 'time-based SIAP PA', 'SIAP VA', 'time-based SIAP VA', 'SIAP IDC',
+                    'time-based SIAP IDC', 'SIAP IDA', 'time-based SIAP IDA'}
 
     assert all(metric.title in (metric_names - absent_names) for metric in metrics)

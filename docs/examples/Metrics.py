@@ -190,12 +190,12 @@ fig2, axes = plt.subplots(5)
 
 fig2.subplots_adjust(hspace=1)
 
-t_siaps = {metric for metric in metrics if metric.title.startswith('T ')}
+t_siaps = {metric for metric in metrics if metric.title.startswith('time-based SIAP')}
 
 times = metric_manager.list_timestamps()
 
 for siap, axis in zip(t_siaps, axes):
-    name = siap.title[2:]
+    name = siap.title[16:]
     if name == 'C':
         title = 'Completeness'
     elif name == 'A':
