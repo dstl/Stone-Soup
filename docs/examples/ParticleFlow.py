@@ -201,7 +201,7 @@ for predictor, updater, colour, filter, particle_count \
     metric_manager.add_data(tracks={track}, groundtruth_paths={truth})
 
     pa[filter] = {metric for metric in metric_manager.generate_metrics()
-                  if metric.title.startswith('T PA')}.pop()
+                  if metric.title.startswith('time-based SIAP PA')}.pop()
 
 # %%
 # Positional Accuracy
