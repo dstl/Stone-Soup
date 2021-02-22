@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-import numpy as np
+import copy
 from functools import partial
+
+import numpy as np
 
 from .base import Smoother
 from ..base import Property
-from ..types.track import Track
 from ..types.prediction import Prediction, GaussianStatePrediction
 from ..types.update import Update, GaussianStateUpdate
 from ..models.base import LinearModel
@@ -93,8 +94,7 @@ class KalmanSmoother(Smoother):
             The transition model to be associated with state
         """
         # Is there a transition model linked to the prediction?
-        if hasattr(self._prediction(state), "transition_model") and \
-                self._prediction(state).transition_model is not None:
+        if getattr(self._prediction(state), "transition_model", None) is not None:
             transition_model = self._prediction(state).transition_model
         else:  # No? Return the class attribute
             transition_model = self.transition_model
@@ -152,39 +152,37 @@ class KalmanSmoother(Smoother):
             Smoothed track
 
         """
-        firststate = True
-        smoothed_track = Track()
-        for state in reversed(track):
+        subsq_state = track[-1]
+        smoothed_states = [subsq_state]
+        for state in reversed(track[:-1]):
 
-            if firststate:
-                subsq_state = state
-                smoothed_track.append(state)
-                firststate = False
-            else:
-                # Delta t
-                time_interval = subsq_state.timestamp - state.timestamp
+            # Delta t
+            time_interval = subsq_state.timestamp - state.timestamp
 
-                # Retrieve the prediction from the subsequent (k+1th) timestep accessed previously
-                prediction = self._prediction(subsq_state)
-                # The smoothing gain, mean and covariance
-                ksmooth_gain = self._smooth_gain(state, prediction, time_interval=time_interval)
-                smooth_mean = state.state_vector + ksmooth_gain @ (subsq_state.state_vector -
-                                                                   prediction.state_vector)
-                smooth_covar = state.covar + \
-                    ksmooth_gain @ (subsq_state.covar - prediction.covar) @ ksmooth_gain.T
+            # Retrieve the prediction from the subsequent (k+1th) timestep accessed previously
+            prediction = self._prediction(subsq_state)
+            # The smoothing gain, mean and covariance
+            ksmooth_gain = self._smooth_gain(state, prediction, time_interval=time_interval)
+            smooth_mean = state.state_vector + ksmooth_gain @ (subsq_state.state_vector -
+                                                               prediction.state_vector)
+            smooth_covar = state.covar + \
+                ksmooth_gain @ (subsq_state.covar - prediction.covar) @ ksmooth_gain.T
 
-                # Create a new type called SmoothedState?
-                if isinstance(state, Update):
-                    subsq_state = Update.from_state(state, smooth_mean, smooth_covar,
-                                                    timestamp=state.timestamp,
-                                                    hypothesis=state.hypothesis)
-                elif isinstance(state, Prediction):
-                    subsq_state = Prediction.from_state(state, smooth_mean, smooth_covar,
-                                                        timestamp=state.timestamp)
+            # Create a new type called SmoothedState?
+            if isinstance(state, Update):
+                subsq_state = Update.from_state(state, smooth_mean, smooth_covar,
+                                                timestamp=state.timestamp,
+                                                hypothesis=state.hypothesis)
+            elif isinstance(state, Prediction):
+                subsq_state = Prediction.from_state(state, smooth_mean, smooth_covar,
+                                                    timestamp=state.timestamp)
 
-                smoothed_track.append(subsq_state)
+            smoothed_states.insert(0, subsq_state)
 
-        smoothed_track.reverse()
+        # Deep copy existing track, but avoid copying original states, as this would be super
+        # expensive. This works by informing deepcopy that the smoothed states are the
+        # replacement object for the original track states.
+        smoothed_track = copy.deepcopy(track, {id(track.states): smoothed_states})
         return smoothed_track
 
 
