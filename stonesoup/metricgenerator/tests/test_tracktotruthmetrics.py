@@ -918,8 +918,6 @@ def test_no_truth_divide_by_zero(generator):
 
     assert len(metrics) == 20
 
-    print([metric.title for metric in metrics])
-
 
 @pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
 def test_no_track_divide_by_zero(generator):
