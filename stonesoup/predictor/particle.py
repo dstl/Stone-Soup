@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
+
 from .base import Predictor
 from ._utils import predict_lru_cache
+from .kalman import KalmanPredictor, ExtendedKalmanPredictor
+from ..base import Property
 from ..types.particle import Particles
-from ..types.prediction import Prediction
+from ..types.prediction import Prediction, ParticleStatePrediction
+from ..types.state import GaussianState
 
 
 class ParticlePredictor(Predictor):
@@ -50,3 +54,48 @@ class ParticlePredictor(Predictor):
 
         return Prediction.from_state(prior, particles=new_particles, timestamp=timestamp,
                                      transition_model=self.transition_model)
+
+
+class ParticleFlowKalmanPredictor(ParticlePredictor):
+    """Gromov Flow Parallel Kalman Particle Predictor
+
+    This is a wrapper around the :class:`~.GromovFlowParticlePredictor` which
+    can use a :class:`~.ExtendedKalmanPredictor` or
+    :class:`~.UnscentedKalmanPredictor` in parallel in order to maintain a
+    state covariance, as proposed in [1]_.
+
+    This should be used in conjunction with the
+    :class:`~.ParticleFlowKalmanUpdater`.
+
+    Parameters
+    ----------
+
+    References
+    ----------
+    .. [1] Ding, Tao & Coates, Mark J., "Implementation of the Daum-Huang
+       Exact-Flow Particle Filter" 2012
+    """
+    kalman_predictor: KalmanPredictor = Property(
+        default=None,
+        doc="Kalman predictor to use. Default `None` where a new instance of"
+            ":class:`~.ExtendedKalmanPredictor` will be created utilising the"
+            "same transition model.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.kalman_predictor is None:
+            self.kalman_predictor = ExtendedKalmanPredictor(
+                self.transition_model)
+
+    def predict(self, prior, *args, **kwargs):
+        particle_prediction = super().predict(prior, *args, **kwargs)
+
+        kalman_prediction = self.kalman_predictor.predict(
+            GaussianState(prior.state_vector, prior.covar, prior.timestamp),
+            *args, **kwargs)
+
+        return ParticleStatePrediction(
+            particle_prediction.particles,
+            kalman_prediction.covar,
+            timestamp=particle_prediction.timestamp)
