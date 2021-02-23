@@ -5,8 +5,11 @@ from operator import attrgetter
 
 import numpy as np
 import scipy as sp
-import rtree
 from scipy.spatial import KDTree
+try:
+    import rtree
+except ImportError:
+    rtree = None
 
 
 from .base import DataAssociator
@@ -48,7 +51,7 @@ class DetectionKDTreeMixIn(DataAssociator):
     def generate_hypotheses(self, tracks, detections, timestamp, **kwargs):
         # No need for tree here.
         if not tracks:
-            return set()
+            return {}
         if not detections:
             return {track: self.hypothesiser.hypothesise(
                 track, detections, timestamp, **kwargs)
