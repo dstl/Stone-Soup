@@ -23,10 +23,22 @@ class SimpleManager(MetricManager):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.tracks = set()
-        self.groundtruth_paths = set()
-        self.detections = set()
+        self._tracks = set()
+        self._groundtruth_paths = set()
+        self._detections = set()
         self.association_set = None
+
+    @property
+    def tracks(self):
+        return frozenset(self._tracks)
+
+    @property
+    def groundtruth_paths(self):
+        return frozenset(self._groundtruth_paths)
+
+    @property
+    def detections(self):
+        return frozenset(self._detections)
 
     def add_data(self, groundtruth_paths: Iterable[Union[GroundTruthPath, Platform]] = None,
                  tracks: Iterable[Track] = None, detections: Iterable[Detection] = None,
@@ -46,8 +58,14 @@ class SimpleManager(MetricManager):
             overwriting one field (e.g. tracks) does not affect the others
         """
 
-        self._add(overwrite, groundtruth_paths=groundtruth_paths,
-                  tracks=tracks, detections=detections)
+        for generator in self.generators:
+            try:
+                generator.clear_caches()
+            except AttributeError:
+                pass
+
+        self._add(overwrite, _groundtruth_paths=groundtruth_paths,
+                  _tracks=tracks, _detections=detections)
 
     def _add(self, overwrite, **kwargs):
         for key, value in kwargs.items():
@@ -103,4 +121,4 @@ class SimpleManager(MetricManager):
         timestamps = {state.timestamp
                       for sequence in chain(self.tracks, self.groundtruth_paths)
                       for state in sequence}
-        return sorted(timestamps)
+        return tuple(sorted(timestamps))
