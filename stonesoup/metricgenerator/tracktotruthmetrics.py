@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import datetime
 import warnings
+from functools import lru_cache, wraps
 from operator import attrgetter
 
 import numpy as np
@@ -10,6 +11,26 @@ from ..base import Property
 from ..measures import EuclideanWeighted
 from ..types.metric import SingleTimeMetric, TimeRangeMetric
 from ..types.time import TimeRange
+
+
+def clearable_lru_cache():
+    """Cache decorator that allows keeping track of which methods are decorated.
+    A new cache is created for each instance of :class:`SIAPMetrics`
+    """
+
+    def cache_decorator(func):
+        @wraps(func)
+        def cache_factory(self, *args, **kwargs):
+            instance_cache = lru_cache(*self.cache_args, **self.cache_kwargs)(func)
+            instance_cache = instance_cache.__get__(self, self.__class__)
+            setattr(self, func.__name__, instance_cache)
+
+            self.cached_functions.append(func)
+            return instance_cache(*args, **kwargs)
+
+        return cache_factory
+
+    return cache_decorator
 
 
 class SIAPMetrics(MetricGenerator):
@@ -65,6 +86,27 @@ class SIAPMetrics(MetricGenerator):
                              doc="Metadata key for ID of each ground truth path in dataset")
     track_id: str = Property(default=None,
                              doc="Metadata key for ID of each track in dataset")
+
+    cache: bool = Property(default=True, doc="Boolean determining whether components are cached")
+    cache_args: tuple = Property(default=None, doc="Cache arguments")
+    cache_kwargs: dict = Property(default=None, doc="Cache key word arguments")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if not self.cache and (self.cache_args or self.cache_kwargs):
+            raise ValueError("Cannot have cache arguments if no caches are required.")
+        self.cached_functions = list()
+
+        if self.cache_args is None:
+            self.cache_args = list()
+        if self.cache_kwargs is None:
+            self.cache_kwargs = dict()
+
+    def clear_all_cached_functions(self):
+        """Clear all methods decorated as caches"""
+        for func in self.cached_functions:
+            func.cache_clear()
 
     def compute_metric(self, manager, *args, **kwargs):
         """Compute metric
@@ -961,6 +1003,7 @@ class SIAPMetrics(MetricGenerator):
             time_range=TimeRange(min(timestamps), max(timestamps)),
             generator=self)
 
+    @clearable_lru_cache()
     def _assoc_distances_sum_t(self, manager, timestamp, mapping, weighting):
         """Sum of spatial (positon or velocity) distance between each truth and its associations
         Parameters
@@ -987,6 +1030,7 @@ class SIAPMetrics(MetricGenerator):
             distance_sum += measure(track[timestamp], truth[timestamp])
         return distance_sum
 
+    @clearable_lru_cache()
     def _j_t(self, manager, timestamp):
         """Number of truth objects at timestamp
 
@@ -1007,6 +1051,7 @@ class SIAPMetrics(MetricGenerator):
             for path in manager.groundtruth_paths
             if timestamp in (state.timestamp for state in path))
 
+    @clearable_lru_cache()
     def _j_sum(self, manager, timestamps):
         """Sum number of truth objects over all timestamps
 
@@ -1025,6 +1070,7 @@ class SIAPMetrics(MetricGenerator):
 
         return sum(self._j_t(manager, timestamp) for timestamp in timestamps)
 
+    @clearable_lru_cache()
     def _jt_t(self, manager, timestamp):
         """Number of truth objects being tracked at time timestamp
 
@@ -1050,6 +1096,7 @@ class SIAPMetrics(MetricGenerator):
                     break
         return n_associated_truths
 
+    @clearable_lru_cache()
     def _jt_sum(self, manager, timestamps):
         """Sum number of truth objects being tracked at a given timestamp
         over list of timestamps
@@ -1071,6 +1118,7 @@ class SIAPMetrics(MetricGenerator):
         return sum(self._jt_t(manager, timestamp)
                    for timestamp in timestamps)
 
+    @clearable_lru_cache()
     def _na_t(self, manager, timestamp):
         """Number of associated tracks at a timestamp
 
@@ -1096,6 +1144,7 @@ class SIAPMetrics(MetricGenerator):
                     break
         return n_associated_tracks
 
+    @clearable_lru_cache()
     def _na_sum(self, manager, timestamps):
         """Sum of number of associated tracks at a timestamp over list of
         timestamps
@@ -1115,6 +1164,7 @@ class SIAPMetrics(MetricGenerator):
 
         return sum(self._na_t(manager, timestamp) for timestamp in timestamps)
 
+    @clearable_lru_cache()
     def _n_t(self, manager, timestamp):
         """Number of tracks at timestamp
 
@@ -1136,6 +1186,7 @@ class SIAPMetrics(MetricGenerator):
             for track in manager.tracks
             if timestamp in (state.timestamp for state in track.states))
 
+    @clearable_lru_cache()
     def _n_sum(self, manager, timestamps):
         """Sum of number of tracks over timestamps
 
@@ -1154,6 +1205,7 @@ class SIAPMetrics(MetricGenerator):
 
         return sum(self._n_t(manager, timestamp) for timestamp in timestamps)
 
+    @clearable_lru_cache()
     def _tt_j(self, manager, truth):
         """Total time that object is tracked for
 
@@ -1184,6 +1236,7 @@ class SIAPMetrics(MetricGenerator):
                     break
         return total_time
 
+    @clearable_lru_cache()
     def _nu_j(self, manager, truth):
         """Minimum number of tracks needed to track truth over the timestamps
         that truth is tracked for
@@ -1237,6 +1290,7 @@ class SIAPMetrics(MetricGenerator):
                     break
         return n_truth_needed
 
+    @clearable_lru_cache()
     def _tl_j(self, manager, truth):
         """Total time of the longest track on the truth
 
@@ -1260,6 +1314,7 @@ class SIAPMetrics(MetricGenerator):
         else:
             return max(assoc.time_range.duration for assoc in assocs)
 
+    @clearable_lru_cache()
     def _r(self, manager):
         """Average number of excess tracks assigned
 
@@ -1283,6 +1338,7 @@ class SIAPMetrics(MetricGenerator):
             # No truth or tracks
             return 0
 
+    @clearable_lru_cache()
     def _t_j(self, truth):
         """Total time truth exists for
 
@@ -1300,6 +1356,7 @@ class SIAPMetrics(MetricGenerator):
         timestamps = [s.timestamp for s in truth.states]
         return max(timestamps) - min(timestamps)
 
+    @clearable_lru_cache()
     def _check_j_t(self, manager, timestamp, check_function):
         """Calculate the number of truths whose assigned tracks at timestamp :math:`t` all satisfy
         the conditions given by the check_function.
@@ -1340,15 +1397,18 @@ class SIAPMetrics(MetricGenerator):
                 count += 1
         return count
 
+    @clearable_lru_cache()
     def _get_track_id(self, track, timestamp):
         state = track[timestamp]
         index = track.index(state)
         metadata = track.metadatas[index]
         return metadata.get(self.track_id)
 
+    @clearable_lru_cache()
     def _ju_check(self, track, truth, timestamp):
         return self._get_track_id(track, timestamp) is None
 
+    @clearable_lru_cache()
     def _ju_t(self, manager, timestamp):
         """Calculate the number of truths tracked with unknown ID at timestamp
 
@@ -1366,6 +1426,7 @@ class SIAPMetrics(MetricGenerator):
         """
         return self._check_j_t(manager, timestamp, self._ju_check)
 
+    @clearable_lru_cache()
     def _ju_sum(self, manager, timestamps):
         """Calculate the sum of the number of truths tracked with unknown ID over all timestamps
 
@@ -1383,11 +1444,13 @@ class SIAPMetrics(MetricGenerator):
         """
         return sum(self._ju_t(manager, timestamp) for timestamp in timestamps)
 
+    @clearable_lru_cache()
     def _jc_check(self, track, truth, timestamp):
         track_id = self._get_track_id(track, timestamp)
         truth_id = truth.metadata.get(self.truth_id)
         return track_id is not None and truth_id is not None and track_id == truth_id
 
+    @clearable_lru_cache()
     def _jc_t(self, manager, timestamp):
         """Calculate the number of truths tracked with correct ID at timestamp
 
@@ -1405,6 +1468,7 @@ class SIAPMetrics(MetricGenerator):
         """
         return self._check_j_t(manager, timestamp, self._jc_check)
 
+    @clearable_lru_cache()
     def _jc_sum(self, manager, timestamps):
         """Calculate the sum of the number of truths tracked with correct ID over all timestamps
 
@@ -1422,11 +1486,13 @@ class SIAPMetrics(MetricGenerator):
         """
         return sum(self._jc_t(manager, timestamp) for timestamp in timestamps)
 
+    @clearable_lru_cache()
     def _ji_check(self, track, truth, timestamp):
         track_id = self._get_track_id(track, timestamp)
         truth_id = truth.metadata.get(self.truth_id)
         return track_id is not None and track_id != truth_id
 
+    @clearable_lru_cache()
     def _ji_t(self, manager, timestamp):
         """Calculate the number of truths tracked with incorrect ID at timestamp
 
@@ -1444,6 +1510,7 @@ class SIAPMetrics(MetricGenerator):
         """
         return self._check_j_t(manager, timestamp, self._ji_check)
 
+    @clearable_lru_cache()
     def _ji_sum(self, manager, timestamps):
         """Calculate the sum of the number of truths tracked with incorrect ID over all timestamps
 
@@ -1461,6 +1528,7 @@ class SIAPMetrics(MetricGenerator):
         """
         return sum(self._ji_t(manager, timestamp) for timestamp in timestamps)
 
+    @clearable_lru_cache()
     def _ja_t(self, manager, timestamp):
         """Calculate the number of truths with ambiguous ID at timestamp
 
@@ -1482,6 +1550,7 @@ class SIAPMetrics(MetricGenerator):
         ju = self._ju_t(manager, timestamp)
         return jt - jc - ji - ju
 
+    @clearable_lru_cache()
     def _ja_sum(self, manager, timestamps):
         """Calculate the sum of the number of truths tracked with ambiguous ID over all timestamps
         eg. A truth that has one track with correct ID, and one with unknown ID assigned to it
