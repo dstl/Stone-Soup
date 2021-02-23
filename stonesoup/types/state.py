@@ -111,7 +111,15 @@ class StateMutableSequence(Type, abc.MutableSequence):
                 "{!r} object has no attribute {!r}".format(
                     type(self).__name__, item))
         else:
-            return getattr(self.state, item)
+            try:
+                return getattr(self.state, item)
+            except AttributeError as err:
+                if str(err).startswith("'State' object has no attribute"):
+                    raise AttributeError(
+                        "{!r} object has no attribute {!r}".format(
+                            type(self).__name__, item))
+                else:
+                    raise err
 
     def insert(self, index, value):
         return self.states.insert(index, value)
