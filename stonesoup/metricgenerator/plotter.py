@@ -21,6 +21,10 @@ class TwoDPlotter(PlotGenerator):
         doc="Elements of ground truth path state vector to plot as x and y")
     detection_indices: Tuple[int, int] = Property(
         doc="Elements of detection state vector to plot as x and y")
+    uncertainty: bool = Property(default=False,
+                                 doc='If True the plot includes uncertainty ellipses')
+    particle: bool = Property(default=False,
+                              doc='If True the plot includes particles')
 
     def compute_metric(self, manager, *args, **kwargs):
         """Compute the metric using the data in the metric manager
@@ -38,7 +42,9 @@ class TwoDPlotter(PlotGenerator):
 
         metric = self.plot_tracks_truth_detections(manager.tracks,
                                                    manager.groundtruth_paths,
-                                                   manager.detections)
+                                                   manager.detections,
+                                                   self.uncertainty,
+                                                   self.particle)
         return metric
 
     def plot_tracks_truth_detections(self, tracks, groundtruth_paths,
