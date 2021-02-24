@@ -105,20 +105,31 @@ class StateMutableSequence(Type, abc.MutableSequence):
             return self.states.__getitem__(index)
 
     def __getattr__(self, item):
+        # This method is called if we tried to access an attribute of self, but failed with an
+        # AttributeError. We want to try getting the same attribute from self.state instead, but
+        # if that fails we want to return the error message that would have originally been raised,
+        # rather than an error message that the State has no such attribute.
+        #
+        # Ideally we would use the originally raised error, rather than recreating it (as below)
+        # but it seems __getattr__ has no mechanism to allow this.
+
+        original_error = AttributeError("{!r} object has no attribute {!r}".format(
+            type(self).__name__, item))
         if item.startswith("_"):
-            # Don't proxy special/private attributes to `state`
-            raise AttributeError(
-                "{!r} object has no attribute {!r}".format(
-                    type(self).__name__, item))
+            # Don't proxy special/private attributes to `state`, just raise the original error
+            raise original_error
         else:
+            # For non _ attributes, try to get the attribute from self.state instead of self.
             try:
                 return getattr(self.state, item)
             except AttributeError as err:
+                # If we get the error about 'State' not having the attribute, then we want to
+                # raise the original error instead
                 if str(err).startswith("'State' object has no attribute"):
-                    raise AttributeError(
-                        "{!r} object has no attribute {!r}".format(
-                            type(self).__name__, item))
+                    raise original_error
                 else:
+                    # This case is in the unexpected event of getting a different AttributeError,
+                    # which it may be better to pass on.
                     raise err
 
     def insert(self, index, value):

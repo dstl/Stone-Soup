@@ -5,6 +5,7 @@ import numpy as np
 import scipy.linalg
 import pytest
 
+from stonesoup.base import Property
 from ..angle import Bearing
 from ..array import StateVector, CovarianceMatrix
 from ..numeric import Probability
@@ -277,3 +278,39 @@ def test_state_mutable_sequence_sequence_init():
 
     del sequence[-1]
     assert sequence.timestamp == timestamp + delta * 8
+
+
+def test_state_mutable_sequence_error_message():
+    """Test that __getattr__ doesn't incorrectly identify the source of a missing attribute"""
+
+    class TestSMS(StateMutableSequence):
+        test_property: int = Property(default=3)
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.test_variable = 5
+
+        def test_method(self):
+            pass
+
+    timestamp = datetime.datetime.now()
+    test_obj = TestSMS(states=State(state_vector=StateVector([1, 2, 3]), timestamp=timestamp))
+
+    # First check no errors on assigned vars
+    test_obj.test_method()
+    assert test_obj.test_property == 3
+    test_obj.test_property = 6
+    assert test_obj.test_property == 6
+    assert test_obj.test_variable == 5
+
+    # Now check that state variables are proxied correctly
+    assert np.array_equal(test_obj.state_vector, StateVector([1, 2, 3]))
+    assert test_obj.timestamp == timestamp
+
+    # Now check that the right error messages are raised on missing attributes
+    with pytest.raises(AttributeError, match="'TestSMS' object has no attribute 'missing_method'"):
+        test_obj.missing_method()
+
+    with pytest.raises(AttributeError, match="'TestSMS' object has no attribute "
+                                             "'missing_variable'"):
+        _ = test_obj.missing_variable
