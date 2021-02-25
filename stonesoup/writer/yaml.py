@@ -10,12 +10,11 @@ from .base import Writer
 
 class YAMLWriter(Writer):
     """YAML Writer"""
-    path = Property(Path,
-                    doc="File to save data to. Str will be converted to Path")
-    groundtruth_source = Property(GroundTruthReader, default=None)
-    sensor_data_source = Property(SensorDataReader, default=None)
-    detections_source = Property(DetectionReader, default=None)
-    tracks_source = Property(Tracker, default=None)
+    path: Path = Property(doc="File to save data to. Str will be converted to Path")
+    groundtruth_source: GroundTruthReader = Property(default=None)
+    sensor_data_source: SensorDataReader = Property(default=None)
+    detections_source: DetectionReader = Property(default=None)
+    tracks_source: Tracker = Property(default=None)
 
     def __init__(self, path, *args, **kwargs):
         if not isinstance(path, Path):

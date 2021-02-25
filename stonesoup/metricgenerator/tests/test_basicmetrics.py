@@ -26,7 +26,7 @@ def test_basicmetrics():
                       timestamp=start_time + datetime.timedelta(seconds=i))
                 for i in range(5)]) for j in range(3))
 
-    manager.add_data([tracks, truths])
+    manager.add_data(truths, tracks)
 
     metrics = manager.generate_metrics()
 

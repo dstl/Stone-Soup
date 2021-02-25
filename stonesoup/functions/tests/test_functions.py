@@ -1,13 +1,37 @@
 import pytest
 import numpy as np
 from numpy import deg2rad
-from pytest import approx
+from scipy.linalg import cholesky, LinAlgError
+from pytest import approx, raises
 
-from ..functions import (
-    jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma,
-    rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart)
-from ..types.array import StateVector, StateVectors
-from ..types.state import State, GaussianState
+from .. import (
+    cholesky_eps, jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma,
+    rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart, dotproduct)
+from ...types.array import StateVector, StateVectors, Matrix
+from ...types.state import State, GaussianState
+
+
+def test_cholesky_eps():
+    matrix = np.array([[0.4, -0.2, 0.1],
+                       [0.3, 0.1, -0.2],
+                       [-0.3, 0.0, 0.4]])
+    matrix = matrix@matrix.T
+
+    cholesky_matrix = cholesky(matrix)
+
+    assert cholesky_eps(matrix) == approx(cholesky_matrix)
+    assert cholesky_eps(matrix, True) == approx(cholesky_matrix.T)
+
+
+def test_cholesky_eps_bad():
+    matrix = np.array(
+        [[ 0.05201447,  0.02882126, -0.00569971, -0.00733617],  # noqa: E201
+         [ 0.02882126,  0.01642966, -0.00862847, -0.00673035],  # noqa: E201
+         [-0.00569971, -0.00862847,  0.06570757,  0.03251551],
+         [-0.00733617, -0.00673035,  0.03251551,  0.01648615]])
+    with raises(LinAlgError):
+        cholesky(matrix)
+    cholesky_eps(matrix)
 
 
 def test_jacobian():
@@ -114,8 +138,14 @@ def test_elevation():
         assert rad_out[ind] == approx(mod_elevation(val))
 
 
-def test_gauss2sigma_float():
-    mean = 1.0
+@pytest.mark.parametrize(
+    "mean",
+    [
+        1,      # int
+        1.0     # float
+    ]
+)
+def test_gauss2sigma(mean):
     covar = 2.0
     state = GaussianState([[mean]], [[covar]])
 
@@ -123,19 +153,6 @@ def test_gauss2sigma_float():
 
     for n, sigma_point_state in zip((0, 1, -1), sigma_points_states):
         assert sigma_point_state.state_vector[0, 0] == approx(mean + n*covar**0.5)
-
-
-def test_gauss2sigma_int():
-    mean = 1
-    covar = 2.0
-    state = GaussianState([[mean]], [[covar]])
-
-    sigma_points_states, mean_weights, covar_weights = gauss2sigma(state, kappa=0)
-
-    for n, sigma_point_state in zip((0, 1, -1), sigma_points_states):
-        # Resultant sigma points are still ints
-        assert sigma_point_state.state_vector[0, 0] == int(mean + n*covar**0.5)
-        assert isinstance(sigma_point_state.state_vector[0, 0], np.integer)
 
 
 @pytest.mark.parametrize(
@@ -196,3 +213,33 @@ def test_cart_sphere_inversions(x, y, z):
     #   note, this only works correctly when z==0
     if z == 0:
         assert np.allclose(np.array([x, y]), pol2cart(rho, phi))
+
+
+@pytest.mark.parametrize(
+    "state_vector1, state_vector2",
+    [  # Cartesian values
+        (StateVector([2, 4]), StateVector([2, 1])),
+        (StateVector([-1, 1, -4]), StateVector([-2, 1, 1])),
+        (StateVector([-2, 0, 3, -1]), StateVector([1, 0, -1, 4])),
+        (StateVector([-1, 0]), StateVector([1, -2, 3])),
+        (Matrix([[1, 0], [0, 1]]), Matrix([[3, 1], [1, -3]]))
+     ]
+)
+def test_dotproduct(state_vector1, state_vector2):
+
+    # Test that they raise the right error if not 1d, i.e. vectors
+    if np.shape(state_vector1)[1] != 1 | np.shape(state_vector2)[1] != 1:
+        with pytest.raises(ValueError):
+            dotproduct(state_vector1, state_vector2)
+    else:
+        if len(state_vector1) != len(state_vector2):
+            # If they're different lengths check that the correct error is thrown
+            with pytest.raises(ValueError):
+                dotproduct(state_vector1, state_vector2)
+        else:
+            # This is what the dotproduct function actually does
+            out = 0
+            for a_i, b_i in zip(state_vector1, state_vector2):
+                out += a_i * b_i
+
+            assert dotproduct(state_vector1, state_vector2) == out

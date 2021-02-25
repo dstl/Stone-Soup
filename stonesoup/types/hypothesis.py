@@ -29,16 +29,10 @@ class SingleHypothesis(Hypothesis):
     """A hypothesis based on a single measurement.
 
     """
-    prediction = Property(
-        Prediction,
-        doc="Predicted track state")
-    measurement = Property(
-        Detection,
-        doc="Detection used for hypothesis and updating")
-    measurement_prediction = Property(
-        MeasurementPrediction,
-        default=None,
-        doc="Optional track prediction in measurement space")
+    prediction: Prediction = Property(doc="Predicted track state")
+    measurement: Detection = Property(doc="Detection used for hypothesis and updating")
+    measurement_prediction: MeasurementPrediction = Property(
+        default=None, doc="Optional track prediction in measurement space")
 
     def __bool__(self):
         return (not isinstance(self.measurement, MissedDetection)) and \
@@ -54,9 +48,7 @@ class SingleDistanceHypothesis(SingleHypothesis):
     i.e. smaller distance is a greater likelihood.
     """
 
-    distance = Property(
-        float,
-        doc="Distance between detection and prediction")
+    distance: float = Property(doc="Distance between detection and prediction")
 
     def __lt__(self, other):
         return self.distance > other.distance
@@ -86,8 +78,7 @@ class SingleProbabilityHypothesis(SingleHypothesis):
 
     """
 
-    probability = Property(
-        Probability,
+    probability: Probability = Property(
         doc="Probability that detection is true location of prediction")
 
     def __lt__(self, other):
@@ -126,9 +117,7 @@ class JointHypothesis(Type, UserDict):
     Update, and Update imports Hypothesis, which is a circular import.
     """
 
-    hypotheses = Property(
-        Hypothesis,
-        doc='Association hypotheses')
+    hypotheses: Hypothesis = Property(doc='Association hypotheses')
 
     def __new__(cls, hypotheses):
         if all(isinstance(hypothesis, SingleDistanceHypothesis)
@@ -170,10 +159,7 @@ class ProbabilityJointHypothesis(JointHypothesis):
 
     """
 
-    probability = Property(
-        Probability,
-        default=None,
-        doc='Probability of the Joint Hypothesis')
+    probability: Probability = Property(default=None, doc='Probability of the Joint Hypothesis')
 
     def __init__(self, hypotheses, *args, **kwargs):
         super().__init__(hypotheses, *args, **kwargs)

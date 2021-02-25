@@ -17,24 +17,18 @@ class PointProcessMultiTargetTracker(Tracker):
     Base class for Gaussian Mixture (GM) style implementations of
     point process derived filters
     """
-    detector = Property(
-        DetectionReader,
+    detector: DetectionReader = Property(
         doc="Detector used to generate detection objects.")
-    updater = Property(
-        Updater,
+    updater: Updater = Property(
         doc="Updater used to update the objects to their new state.")
-    hypothesiser = Property(
-        GaussianMixtureHypothesiser,
+    hypothesiser: GaussianMixtureHypothesiser = Property(
         doc="Association algorithm to pair predictions to detections")
-    reducer = Property(
-        GaussianMixtureReducer,
+    reducer: GaussianMixtureReducer = Property(
         doc="Reducer used to reduce the number of components in the mixture.")
-    extraction_threshold = Property(
-        Probability,
+    extraction_threshold: Probability = Property(
         default=0.9,
         doc="Threshold to extract components from the mixture.")
-    birth_component = Property(
-        TaggedWeightedGaussianState,
+    birth_component: TaggedWeightedGaussianState = Property(
         default=None,
         doc="The birth component. The weight should be "
             "equal to the mean of the expected number of "

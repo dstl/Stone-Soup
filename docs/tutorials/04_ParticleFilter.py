@@ -32,7 +32,7 @@
 #
 # where :math:`w_{k}^i` are weights such that :math:`\sum\limits_{i} w_{k}^i = 1`. This posterior
 # can be calculated, and subsequently maintained, by successive applications of the
-# Chapman-Kolomogorov equation and Bayes rule in an analogous manner to the Kalman family of
+# Chapman-Kolmogorov equation and Bayes rule in an analogous manner to the Kalman family of
 # filters of previous tutorials. There is considerable flexibility in how to sample from these
 # various distributions and the interested reader can refer to [#]_ for more detail.
 #
@@ -52,9 +52,9 @@
 #
 # A common occurrence in such methods is that of *sample impoverishment*. After a few iterations,
 # all but a small number of the particles will have negligible weight. This affects accuracy and
-# wastes computation on particles with little effect on the estimate. Many re-sampling schemes
+# wastes computation on particles with little effect on the estimate. Many resampling schemes
 # exist and are designed to redistribute particles to areas where the posterior probability is
-# higher. In Stone Soup such re-sampling is accomplished by a :class:`~.Resampler`. More detail is
+# higher. In Stone Soup such resampling is accomplished by a :class:`~.Resampler`. More detail is
 # provided in the
 # example below.
 
@@ -69,7 +69,6 @@
 # Import the necessary libraries
 
 import numpy as np
-from matplotlib import pyplot as plt
 
 from datetime import datetime
 from datetime import timedelta
@@ -98,15 +97,11 @@ for k in range(1, 21):
 
 # %%
 # Plot the ground truth.
-fig = plt.figure(figsize=(10, 6))
-ax = fig.add_subplot()
-ax.set_xlabel("$x$")
-ax.set_ylabel("$y$")
-ax.axis('equal')
 
-ax.plot([state.state_vector[0] for state in truth],
-        [state.state_vector[2] for state in truth],
-        linestyle="--")
+from stonesoup.plotter import Plotter
+plotter = Plotter()
+plotter.plot_ground_truths(truth, [0, 2])
+
 
 # %%
 # Initialise the bearing, range sensor using the appropriate measurement model.
@@ -128,17 +123,14 @@ measurement_model = CartesianToBearingRange(
 measurements = []
 for state in truth:
     measurement = measurement_model.function(state, noise=True)
-    measurements.append(Detection(measurement, timestamp=state.timestamp))
+    measurements.append(Detection(measurement, timestamp=state.timestamp,
+                                  measurement_model=measurement_model))
 
 # %%
-# Plot those detections
-from stonesoup.functions import pol2cart
+# Plot those measurements
 
-x, y = pol2cart(
-    np.hstack([state.state_vector[1, 0] for state in measurements]),
-    np.hstack([state.state_vector[0, 0] for state in measurements]))
-ax.scatter(x + sensor_x, y + sensor_y, color='b')
-fig
+plotter.plot_measurements(measurements, [0, 2])
+plotter.fig
 
 # %%
 # Set up the particle filter
@@ -147,10 +139,10 @@ fig
 # :class:`~.ParticleUpdater` which take responsibility for the predict and update steps
 # respectively. These require a :class:`~.TransitionModel` and :class:`~.MeasurementModel` as
 # before.
-# To cope with sample sparsity we also include a re-sampler, in this instance
+# To cope with sample sparsity we also include a resampler, in this instance
 # :class:`~.SystematicResampler`, which is passed to the updater. It should be noted that there are
-# many re-sampling schemes, and almost as many choices as to when to undertake re-sampling. The
-# systematic re-sampler is described in [#]_, and in what follows below re-sampling is undertaken
+# many resampling schemes, and almost as many choices as to when to undertake resampling. The
+# systematic resampler is described in [#]_, and in what follows below resampling is undertaken
 # at each time-step.
 from stonesoup.predictor.particle import ParticlePredictor
 predictor = ParticlePredictor(transition_model)
@@ -167,27 +159,29 @@ updater = ParticleUpdater(measurement_model, resampler)
 
 from scipy.stats import multivariate_normal
 
-from stonesoup.types.particle import Particle
+from stonesoup.types.particle import Particles
 from stonesoup.types.numeric import Probability  # Similar to a float type
 from stonesoup.types.state import ParticleState
+from stonesoup.types.array import StateVectors
 
-number_particles = 200
+number_particles = 1000
 
 # Sample from the prior Gaussian distribution
 samples = multivariate_normal.rvs(np.array([0, 1, 0, 1]),
                                   np.diag([1.5, 0.5, 1.5, 0.5]),
                                   size=number_particles)
 
-particles = [
-    Particle(sample.reshape(-1, 1), weight=Probability(1/number_particles)) for sample in samples]
+# Create state vectors and weights for particles
+particles = Particles(state_vector=StateVectors(samples.T),
+                      weight=np.array([Probability(1/number_particles)]*number_particles)
+                      )
 
 # Create prior particle state.
 prior = ParticleState(particles, timestamp=start_time)
-
 # %%
 # Run the tracker
 # ^^^^^^^^^^^^^^^
-# We now run the predict and update steps, propagating the collection of particles and re-sampling
+# We now run the predict and update steps, propagating the collection of particles and resampling
 # when told to (at every step).
 from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.types.track import Track
@@ -202,14 +196,9 @@ for measurement in measurements:
 
 # %%
 # Plot the resulting track with the sample points at each iteration.
-ax.plot([state.state_vector[0, 0] for state in track],
-        [state.state_vector[2, 0] for state in track],
-        marker=".")
 
-for state in track:
-    data = np.array([particle.state_vector for particle in state.particles])
-    ax.plot(data[:, 0], data[:, 2], linestyle='', marker=".", markersize=1, alpha=0.5)
-fig
+plotter.plot_tracks(track, [0, 2], particle=True)
+plotter.fig
 
 # sphinx_gallery_thumbnail_number = 3
 

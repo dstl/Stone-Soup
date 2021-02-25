@@ -19,14 +19,15 @@ information.
 
 Please see the [tutorials](https://stonesoup.readthedocs.io/en/latest/auto_tutorials/index.html),
 [examples](https://stonesoup.readthedocs.io/en/latest/auto_examples/index.html),
-and [demonstrations](https://stonesoup.readthedocs.io/en/latest/auto_demos/index.html).
+and [demonstrations](https://stonesoup.readthedocs.io/en/latest/auto_demos/index.html),
+which you can also try out on Binder: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/dstl/Stone-Soup/master?filepath=notebooks)
 
 ## Dependencies
 Stone Soup uses the following dependencies:
 
 | Name | License |
 | ---- | ------- |
-| [Python](https://www.python.org/) (v3.5+) | PSFL |
+| [Python](https://www.python.org/) (v3.6+) | PSFL |
 | [SciPy](https://www.scipy.org/) | BSD |
 | [matplotlib](https://matplotlib.org/) | [PSF/BSD-compatible](https://matplotlib.org/users/license.html) |
 | [ruamel.yaml](https://yaml.readthedocs.io/) | MIT |

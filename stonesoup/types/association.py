@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
+from typing import Set
 
 from ..base import Property
 from .base import Type
@@ -13,7 +14,7 @@ class Association(Type):
     """
 
     # TODO: Should probably add a link to the associator that produced it
-    objects = Property(set, doc="Set of objects being associated")
+    objects: Set = Property(doc="Set of objects being associated")
 
 
 class AssociationPair(Association):
@@ -36,8 +37,9 @@ class SingleTimeAssociation(Association):
     time
     """
 
-    timestamp = Property(datetime.datetime, default=None,
-                         doc="Timestamp of the association. Default is None.")
+    timestamp: datetime.datetime = Property(
+        default=None,
+        doc="Timestamp of the association. Default is None.")
 
 
 class TimeRangeAssociation(Association):
@@ -47,9 +49,8 @@ class TimeRangeAssociation(Association):
     range of times
     """
 
-    time_range = Property(TimeRange, default=None,
-                          doc="Range of times that association exists over. "
-                              "Default is None")
+    time_range: TimeRange = Property(
+        default=None, doc="Range of times that association exists over. Default is None")
 
 
 class AssociationSet(Type):
@@ -60,13 +61,12 @@ class AssociationSet(Type):
     associations
     """
 
-    associations = Property(set, default=None,
-                            doc="Set of independant associations")
+    associations: Set[Association] = Property(default=None, doc="Set of independent associations")
 
     def __init__(self, associations=None, *args, **kwargs):
-        if associations is None:
-            associations = set()
         super().__init__(associations, *args, **kwargs)
+        if self.associations is None:
+            self.associations = set()
 
     def associations_at_timestamp(self, timestamp):
         """Return the associations that exist at a given timestamp

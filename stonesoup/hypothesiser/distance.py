@@ -17,24 +17,16 @@ class DistanceHypothesiser(Hypothesiser):
     :class:`Measure` class.
     """
 
-    predictor = Property(
-        Predictor,
-        doc="Predict tracks to detection times")
-    updater = Property(
-        Updater,
-        doc="Updater used to get measurement prediction")
-    measure = Property(
-        Measure,
+    predictor: Predictor = Property(doc="Predict tracks to detection times")
+    updater: Updater = Property(doc="Updater used to get measurement prediction")
+    measure: Measure = Property(
         doc="Measure class used to calculate the distance between two states.")
-    missed_distance = Property(
-        float,
+    missed_distance: float = Property(
         default=float('inf'),
         doc="Distance for a missed detection. Default is set to infinity")
-    include_all = Property(
-        bool,
+    include_all: bool = Property(
         default=False,
-        doc="If `True`, hypotheses beyond missed distance will be returned. "
-            "Default `False`")
+        doc="If `True`, hypotheses beyond missed distance will be returned. Default `False`")
 
     def hypothesise(self, track, detections, timestamp):
         """ Evaluate and return all track association hypotheses.

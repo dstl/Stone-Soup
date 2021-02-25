@@ -2,14 +2,16 @@
 import datetime
 
 import numpy as np
+import scipy.linalg
 import pytest
 
+from stonesoup.base import Property
 from ..angle import Bearing
 from ..array import StateVector, CovarianceMatrix
 from ..numeric import Probability
 from ..particle import Particle
 from ..state import State, GaussianState, ParticleState, \
-    StateMutableSequence, WeightedGaussianState
+    StateMutableSequence, WeightedGaussianState, SqrtGaussianState
 
 
 def test_state():
@@ -67,13 +69,64 @@ def test_gaussianstate_invalid_covar():
         GaussianState(mean, covar)
 
 
+def test_sqrtgaussianstate():
+    """Test the square root Gaussian Type"""
+
+    mean = np.array([[-1.8513], [0.9994], [0], [0]]) * 1e4
+    covar = np.array([[2.2128, 0.1, 0.03, 0.01],
+                      [0.1, 2.2130, 0.03, 0.02],
+                      [0.03, 0.03, 2.123, 0.01],
+                      [0.01, 0.02, 0.01, 2.012]]) * 1e3
+    timestamp = datetime.datetime.now()
+
+    # Test that a lower triangular matrix returned when 'full' covar is passed
+    lower_covar = np.linalg.cholesky(covar)
+    state = SqrtGaussianState(mean, lower_covar, timestamp=timestamp)
+    assert np.array_equal(state.sqrt_covar, lower_covar)
+    assert np.allclose(state.covar, covar, 0, atol=1e-10)
+    assert np.allclose(state.sqrt_covar @ state.sqrt_covar.T, covar, 0, atol=1e-10)
+    assert np.allclose(state.sqrt_covar @ state.sqrt_covar.T, lower_covar @ lower_covar.T, 0,
+                       atol=1e-10)
+
+    # Test that a general square root matrix is also a solution
+    general_covar = scipy.linalg.sqrtm(covar)
+    another_state = SqrtGaussianState(mean, general_covar, timestamp=timestamp)
+    assert np.array_equal(another_state.sqrt_covar, general_covar)
+    assert np.allclose(state.covar, covar, 0, atol=1e-10)
+    assert not np.allclose(another_state.sqrt_covar, lower_covar, 0, atol=1e-10)
+
+
 def test_weighted_gaussian_state():
     mean = StateVector([[1], [2], [3], [4]])  # 4D
     covar = CovarianceMatrix(np.diag([1, 2, 3]))  # 3D
     weight = 0.3
+    timestamp = datetime.datetime.now()
     with pytest.raises(ValueError):
-        a = WeightedGaussianState(mean, covar, weight)
-        assert a.weight == weight
+        WeightedGaussianState(mean, covar, timestamp, weight)
+
+    # Test initialization using a GuassianState
+    mean = StateVector([[1], [2], [3], [4]])  # 4D
+    covar = CovarianceMatrix(np.diag([1, 2, 3, 4]))
+    weight = 0.3
+    gs = GaussianState(mean, covar, timestamp=timestamp)
+    wgs = WeightedGaussianState.from_gaussian_state(gaussian_state=gs, weight=weight)
+    assert np.array_equal(gs.state_vector, wgs.state_vector)
+    assert np.array_equal(gs.covar, wgs.covar)
+    assert gs.timestamp == wgs.timestamp
+    assert weight == wgs.weight
+    assert wgs.state_vector is not gs.state_vector
+    assert wgs.covar is not gs.covar
+
+    # Test copy flag
+    wgs = WeightedGaussianState.from_gaussian_state(gaussian_state=gs, copy=False)
+    assert wgs.state_vector is gs.state_vector
+    assert wgs.covar is gs.covar
+
+    # Test gaussian_state property
+    gs2 = wgs.gaussian_state
+    assert np.array_equal(gs.state_vector, gs2.state_vector)
+    assert np.array_equal(gs.covar, gs2.covar)
+    assert gs.timestamp == gs2.timestamp
 
 
 def test_particlestate():
@@ -113,6 +166,7 @@ def test_particlestate():
         state_vector2, weight=weight) for _ in range(num_particles//2))
 
     state = ParticleState(particles)
+    assert isinstance(state, State)
     assert np.allclose(state.state_vector, StateVector([[50], [100]]))
     assert np.allclose(state.covar, CovarianceMatrix([[2500, 5000], [5000, 10000]]))
 
@@ -205,3 +259,58 @@ def test_state_mutable_sequence_slice():
 
     with pytest.raises(IndexError):
         sequence[timestamp-delta]
+
+
+def test_state_mutable_sequence_sequence_init():
+    """Test initialising with an existing sequence"""
+    state_vector = StateVector([[0]])
+    timestamp = datetime.datetime(2018, 1, 1, 14)
+    delta = datetime.timedelta(minutes=1)
+    sequence = StateMutableSequence(
+        StateMutableSequence([State(state_vector, timestamp=timestamp + delta * n)
+                              for n in range(10)]))
+
+    assert not isinstance(sequence.states, list)
+
+    assert sequence.state is sequence.states[-1]
+    assert np.array_equal(sequence.state_vector, state_vector)
+    assert sequence.timestamp == timestamp + delta * 9
+
+    del sequence[-1]
+    assert sequence.timestamp == timestamp + delta * 8
+
+
+def test_state_mutable_sequence_error_message():
+    """Test that __getattr__ doesn't incorrectly identify the source of a missing attribute"""
+
+    class TestSMS(StateMutableSequence):
+        test_property: int = Property(default=3)
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.test_variable = 5
+
+        def test_method(self):
+            pass
+
+    timestamp = datetime.datetime.now()
+    test_obj = TestSMS(states=State(state_vector=StateVector([1, 2, 3]), timestamp=timestamp))
+
+    # First check no errors on assigned vars
+    test_obj.test_method()
+    assert test_obj.test_property == 3
+    test_obj.test_property = 6
+    assert test_obj.test_property == 6
+    assert test_obj.test_variable == 5
+
+    # Now check that state variables are proxied correctly
+    assert np.array_equal(test_obj.state_vector, StateVector([1, 2, 3]))
+    assert test_obj.timestamp == timestamp
+
+    # Now check that the right error messages are raised on missing attributes
+    with pytest.raises(AttributeError, match="'TestSMS' object has no attribute 'missing_method'"):
+        test_obj.missing_method()
+
+    with pytest.raises(AttributeError, match="'TestSMS' object has no attribute "
+                                             "'missing_variable'"):
+        _ = test_obj.missing_variable

@@ -40,9 +40,11 @@ def measurement_model():
 def sensor_model1():
     class TestSensor(Sensor):
 
-        def measure(self, ground_truth):
-            return Detection(ground_truth.state_vector[(0, 2), :],
-                             timestamp=ground_truth.timestamp)
+        def measure(self, ground_truths):
+            detections = set()
+            for truth in ground_truths:
+                detections.add(Detection(truth.state_vector[(0, 2), :], timestamp=truth.timestamp))
+            return detections
     return TestSensor()
 
 
@@ -50,7 +52,9 @@ def sensor_model1():
 def sensor_model2():
     class TestSensor(Sensor):
 
-        def measure(self, ground_truth):
-            return Detection(ground_truth.state_vector,
-                             timestamp=ground_truth.timestamp)
+        def measure(self, ground_truths):
+            detections = set()
+            for truth in ground_truths:
+                detections.add(Detection(truth.state_vector, timestamp=truth.timestamp))
+            return detections
     return TestSensor()

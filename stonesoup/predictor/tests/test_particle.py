@@ -2,15 +2,20 @@
 import datetime
 
 import numpy as np
+import pytest
 
 from ...models.transition.linear import ConstantVelocity
-from ...predictor.particle import ParticlePredictor
+from ...predictor.particle import (
+    ParticlePredictor, ParticleFlowKalmanPredictor)
 from ...types.particle import Particle
 from ...types.prediction import ParticleStatePrediction
 from ...types.state import ParticleState
 
 
-def test_particle():
+@pytest.mark.parametrize(
+    "predictor_class",
+    (ParticlePredictor, ParticleFlowKalmanPredictor))
+def test_particle(predictor_class):
     # Initialise a transition model
     cv = ConstantVelocity(noise_diff_coeff=0)
 
@@ -52,7 +57,7 @@ def test_particle():
 
     eval_prediction = ParticleStatePrediction(eval_particles, new_timestamp)
 
-    predictor = ParticlePredictor(transition_model=cv)
+    predictor = predictor_class(transition_model=cv)
 
     prediction = predictor.predict(prior, timestamp=new_timestamp)
 

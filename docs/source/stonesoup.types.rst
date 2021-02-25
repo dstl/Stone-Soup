@@ -49,6 +49,12 @@ Hypothesis Types
 .. automodule:: stonesoup.types.multihypothesis
     :show-inheritance:
 
+Interval Types
+--------------
+
+.. automodule:: stonesoup.types.interval
+    :show-inheritance:
+
 Metric Types
 ------------
 
@@ -91,6 +97,12 @@ State Types
 .. automodule:: stonesoup.types.state
     :show-inheritance:
     :inherited-members: stonesoup.types.state.StateMutableSequence
+
+OrbitalState Types
+##################
+
+.. automodule:: stonesoup.types.orbitalstate
+    :show-inheritance:
 
 Time Types
 ----------------

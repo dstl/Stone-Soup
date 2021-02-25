@@ -30,7 +30,8 @@
 #
 # .. math::
 #       g(\mathbf{x})\rvert_{\mathbf{x}=\boldsymbol{\mu}} \approx \sum\limits_{|\alpha| \ge 0}
-#       \frac{ (\mathbf{x} - \boldsymbol{\mu})^{\alpha}}{\alpha !} (\mathcal{D}^{\alpha} g)(\boldsymbol{\mu})
+#       \frac{(\mathbf{x} - \boldsymbol{\mu})^{\alpha}}{\alpha !}
+#       (\mathcal{D}^{\alpha} g)(\boldsymbol{\mu})
 #
 # This is usually truncated after the first term, meaning that either
 # :math:`\tilde{F}(\mathbf{x}_{k-1}) \approx J(f)\rvert_{\mathbf{x}=\boldsymbol{\mu}_{k-1}}` or
@@ -40,9 +41,10 @@
 # filter using these approximations,
 #
 # .. math::
-#           \mathbf{x}_{k|k-1} &= f_{k}(\mathbf{x}_{k-1}) \\
-#                 P_{k|k-1} &= \tilde{F}_{k}P_{k-1}\tilde{F}_{k}^T + Q_{k}\\
-#       \mathbf{x}_{k} &= \mathbf{x}_{k|k-1} + \tilde{K}_k(\mathbf{z}_k - h_k(\mathbf{x}_{k|k-1}))\\
+#       \mathbf{x}_{k|k-1} &= f_{k}(\mathbf{x}_{k-1}) \\
+#       P_{k|k-1} &= \tilde{F}_{k}P_{k-1}\tilde{F}_{k}^T + Q_{k}\\
+#       \mathbf{x}_{k} &= \mathbf{x}_{k|k-1} +
+#                         \tilde{K}_k(\mathbf{z}_k - h_k(\mathbf{x}_{k|k-1}))\\
 #       P_{k} &= P_{k|k-1} - \tilde{K}_k \tilde{H}_{k} P_{k|k-1}\\
 #
 # where,
@@ -91,17 +93,10 @@ for k in range(1, 21):
 
 # %%
 # Plot this
-from matplotlib import pyplot as plt
 
-fig = plt.figure(figsize=(10, 6))
-ax = fig.add_subplot()
-ax.set_xlabel("$x$")
-ax.set_ylabel("$y$")
-ax.axis('equal')
-
-ax.plot([state.state_vector[0] for state in truth],
-        [state.state_vector[2] for state in truth],
-        linestyle="--")
+from stonesoup.plotter import Plotter
+plotter = Plotter()
+plotter.plot_ground_truths(truth, [0, 2])
 
 # %%
 # A bearing-range sensor
@@ -124,7 +119,7 @@ ax.plot([state.state_vector[0] for state in truth],
 #
 # where :math:`x_p,y_p` is the 2d Cartesian position of the sensor and :math:`x,y` that of the
 # target. Note also that the arctan function has to resolve the quadrant ambiguity and so is
-# implemented as the :class:`~.numpy.arctan2`:math:`(y/x)` function in Python.
+# implemented as the :class:`~.numpy.arctan2`:math:`(y,x)` function in Python.
 from stonesoup.models.measurement.nonlinear import CartesianToBearingRange
 sensor_x = 50  # Placing the sensor off-centre
 sensor_y = 0
@@ -145,16 +140,15 @@ from stonesoup.types.detection import Detection
 measurements = []
 for state in truth:
     measurement = measurement_model.function(state, noise=True)
-    measurements.append(Detection(measurement, timestamp=state.timestamp))
+    measurements.append(Detection(measurement, timestamp=state.timestamp,
+                                  measurement_model=measurement_model))
 
 # %%
-# Map them back onto the Cartesian reference frame for plotting.
-from stonesoup.functions import pol2cart
-x, y = pol2cart(
-    np.hstack([state.state_vector[1, 0] for state in measurements]),
-    np.hstack([state.state_vector[0, 0] for state in measurements]))
-ax.scatter(x + sensor_x, y + sensor_y, color='b')
-fig
+# Plot the measurements. Where the model is nonlinear the plotting function uses the inverse
+# function to get coordinates.
+
+plotter.plot_measurements(measurements, [0, 2])
+plotter.fig
 
 # %%
 # Set up the extended Kalman filter elements
@@ -194,35 +188,21 @@ for measurement in measurements:
 
 # %%
 # Plot the resulting track complete with error ellipses at each estimate.
-ax.plot([state.state_vector[0, 0] for state in track],
-        [state.state_vector[2, 0] for state in track],
-        marker=".")
-from matplotlib.patches import Ellipse
-HH = np.array([[1.,  0.,  0.,  0.],
-               [0.,  0.,  1.,  0.]])
-for state in track:
-    w, v = np.linalg.eig(HH@state.covar@HH.T)
-    max_ind = np.argmax(w)
-    min_ind = np.argmin(w)
-    orient = np.arctan2(v[1,max_ind], v[0,max_ind])
-    ellipse = Ellipse(xy=(state.state_vector[0], state.state_vector[2]),
-                      width=2*np.sqrt(w[max_ind]), height=2*np.sqrt(w[min_ind]),
-                      angle=np.rad2deg(orient),
-                      alpha=0.2,
-                      color='r')
-    ax.add_artist(ellipse)
-fig
+
+plotter.plot_tracks(track, [0, 2], uncertainty=True)
+plotter.fig
 
 # sphinx_gallery_thumbnail_number = 3
 
 # %%
 # Key points
 # ----------
-# 1. Non-linear models can be incorporated into the tracking scheme through the use of the appropriate
-#    combination of :class:`~.Predictor`/:class:`~.TransitionModel` or
+# 1. Non-linear models can be incorporated into the tracking scheme through the use of the
+#    appropriate combination of :class:`~.Predictor`/:class:`~.TransitionModel` or
 #    :class:`~.Updater`/:class:`~.MeasurementModel`
-# 2. Because Stone Soup uses inheritance, the amount of engineering required to achieve this is minimal and
-#    the interface is the same. A user can apply the EKF components in exactly the same way as the KF.
+# 2. Because Stone Soup uses inheritance, the amount of engineering required to achieve this is
+#    minimal and the interface is the same. A user can apply the EKF components in exactly the same
+#    way as the KF.
 
 # %%
 # The first order approximations used by the EKF provide a simple way to handle non-linear tracking

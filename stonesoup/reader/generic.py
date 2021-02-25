@@ -7,6 +7,8 @@ of data that is in common formats.
 
 import csv
 from datetime import datetime, timedelta
+from typing import Sequence, Collection, Mapping
+
 from math import modf
 
 import numpy as np
@@ -21,18 +23,18 @@ from ..types.groundtruth import GroundTruthPath, GroundTruthState
 
 
 class _CSVReader(TextFileReader):
-    state_vector_fields = Property(
-        [str], doc='List of columns names to be used in state vector')
-    time_field = Property(
-        str, doc='Name of column to be used as time field')
-    time_field_format = Property(
-        str, default=None, doc='Optional datetime format')
-    timestamp = Property(
-        bool, default=False, doc='Treat time field as a timestamp from epoch')
-    metadata_fields = Property(
-        [str], default=None, doc='List of columns to be saved as metadata, default all')
-    csv_options = Property(
-        dict, default={}, doc='Keyword arguments for the underlying csv reader')
+    state_vector_fields: Sequence[str] = Property(
+        doc='List of columns names to be used in state vector')
+    time_field: str = Property(
+        doc='Name of column to be used as time field')
+    time_field_format: str = Property(
+        default=None, doc='Optional datetime format')
+    timestamp: bool = Property(
+        default=False, doc='Treat time field as a timestamp from epoch')
+    metadata_fields: Collection[str] = Property(
+        default=None, doc='List of columns to be saved as metadata, default all')
+    csv_options: Mapping = Property(
+        default={}, doc='Keyword arguments for the underlying csv reader')
 
     def _get_metadata(self, row):
         if self.metadata_fields is None:
@@ -69,8 +71,7 @@ class CSVGroundTruthReader(GroundTruthReader, _CSVReader):
     Parameters
     ----------
     """
-    path_id_field = Property(
-        str, doc='Name of column to be used as path ID')
+    path_id_field: str = Property(doc='Name of column to be used as path ID')
 
     @BufferedGenerator.generator_method
     def groundtruth_paths_gen(self):

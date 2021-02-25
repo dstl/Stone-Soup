@@ -35,12 +35,12 @@ To install Stone Soup from PyPI execute:
 
     python -m pip install stonesoup
 
-However, Stone Soup is currently in active development under *beta*, so it's strongly encouraged to
-install the latest version from our GitHub repository:
+Stone Soup is currently in active development under *beta*, so it is
+recommended to install the latest version from our GitHub repository:
 
 .. code::
 
-    python -m pip install https://github.com/dstl/Stone-Soup/archive/master.zip
+    python -m pip install git+https://github.com/dstl/Stone-Soup.git#egg=stonesoup
 
 
 Developing

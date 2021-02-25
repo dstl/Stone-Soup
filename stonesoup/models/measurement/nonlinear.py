@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 from abc import ABC
-from typing import List, Union
 import copy
+from typing import Sequence, Tuple, Union
 
 import numpy as np
 from scipy.linalg import inv, pinv, block_diag
+from scipy.stats import multivariate_normal
 
 from ...base import Property
+from ...types.numeric import Probability
 
 from ...functions import cart2pol, pol2cart, \
     cart2sphere, sphere2cart, cart2angles, \
@@ -30,7 +32,7 @@ class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel,
     :class:`~.LinearModel` or :class:`~.ReversibleModel`.
     """
     mapping = None
-    model_list = Property(List[MeasurementModel], doc="List of Measurement Models.")
+    model_list: Sequence[GaussianModel] = Property(doc="List of Measurement Models.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -95,14 +97,14 @@ class NonLinearGaussianMeasurement(MeasurementModel, NonLinearModel, GaussianMod
     GaussianModel classes. It is not meant to be instantiated directly \
     but subclasses should be derived from this class.
     """
-    noise_covar = Property(CovarianceMatrix, doc="Noise covariance")
-    rotation_offset = Property(
-        StateVector, default=None,
-        doc="A 3x1 array of angles (rad), specifying the clockwise rotation\
-            around each Cartesian axis in the order :math:`x,y,z`.\
-            The rotation angles are positive if the rotation is in the \
-            counter-clockwise direction when viewed by an observer looking\
-            along the respective rotation axis, towards the origin.")
+    noise_covar: CovarianceMatrix = Property(doc="Noise covariance")
+    rotation_offset: StateVector = Property(
+        default=None,
+        doc="A 3x1 array of angles (rad), specifying the clockwise rotation "
+            "around each Cartesian axis in the order :math:`x,y,z`. "
+            "The rotation angles are positive if the rotation is in the "
+            "counter-clockwise direction when viewed by an observer looking "
+            "along the respective rotation axis, towards the origin.")
 
     def __init__(self, *args, **kwargs):
         """
@@ -138,7 +140,7 @@ class NonLinearGaussianMeasurement(MeasurementModel, NonLinearModel, GaussianMod
         """
 
         theta_x = -self.rotation_offset[0, 0]
-        theta_y = -self.rotation_offset[1, 0]
+        theta_y = self.rotation_offset[1, 0]
         theta_z = -self.rotation_offset[2, 0]
 
         return rotz(theta_z)@roty(theta_y)@rotx(theta_x)
@@ -204,10 +206,10 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
 
     """  # noqa:E501
 
-    translation_offset = Property(
-        StateVector, default=None,
-        doc="A 3x1 array specifying the Cartesian origin offset in terms of :math:`x,y,z`\
-            coordinates.")
+    translation_offset: StateVector = Property(
+        default=None,
+        doc="A 3x1 array specifying the Cartesian origin offset in terms of :math:`x,y,z` "
+            "coordinates.")
 
     def __init__(self, *args, **kwargs):
         """
@@ -262,8 +264,11 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
 
         # Convert to Spherical
         rho, phi, theta = cart2sphere(*xyz_rot)
+        elevations = [Elevation(i) for i in np.atleast_1d(theta)]
+        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
+        rhos = np.atleast_1d(rho)
 
-        return StateVector([[Elevation(theta)], [Bearing(phi)], [rho]]) + noise
+        return StateVectors([elevations, bearings, rhos]) + noise
 
     def inverse_function(self, detection, **kwargs) -> StateVector:
 
@@ -339,10 +344,9 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
 
     """  # noqa:E501
 
-    translation_offset = Property(
-        StateVector, default=None,
-        doc="A 2x1 array specifying the origin offset in terms of :math:`x,y`\
-            coordinates.")
+    translation_offset: StateVector = Property(
+        default=None,
+        doc="A 2x1 array specifying the origin offset in terms of :math:`x,y` coordinates.")
 
     def __init__(self, *args, **kwargs):
         """
@@ -410,19 +414,18 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
                 noise = 0
 
         # Account for origin offset
-        xyz = [[state.state_vector[self.mapping[0], 0]
-                - self.translation_offset[0, 0]],
-               [state.state_vector[self.mapping[1], 0]
-                - self.translation_offset[1, 0]],
-               [0]]
+        xyz = np.array([state.state_vector[self.mapping[0], :] - self.translation_offset[0, 0],
+                        state.state_vector[self.mapping[1], :] - self.translation_offset[1, 0],
+                        [0] * state.state_vector.shape[1]
+                        ])
 
         # Rotate coordinates
         xyz_rot = self._rotation_matrix @ xyz
 
         # Covert to polar
-        rho, phi = cart2pol(*xyz_rot[:2, 0])
-
-        return StateVector([[Bearing(phi)], [rho]]) + noise
+        rho, phi = cart2pol(*xyz_rot[:2, :])
+        bearings = [Bearing(i) for i in phi]
+        return StateVectors([bearings, rho]) + noise
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
@@ -487,10 +490,9 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
 
     """  # noqa:E501
 
-    translation_offset = Property(
-        StateVector, default=None,
-        doc="A 3x1 array specifying the origin offset in terms of :math:`x,y,z`\
-            coordinates.")
+    translation_offset: StateVector = Property(
+        default=None,
+        doc="A 3x1 array specifying the origin offset in terms of :math:`x,y,z` coordinates.")
 
     def __init__(self, *args, **kwargs):
         """
@@ -546,7 +548,9 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
         # Convert to Angles
         phi, theta = cart2angles(*xyz_rot)
 
-        return StateVector([[Elevation(theta)], [Bearing(phi)]]) + noise
+        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
+        elevations = [Elevation(i) for i in np.atleast_1d(theta)]
+        return StateVectors([elevations, bearings]) + noise
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
@@ -582,9 +586,9 @@ class Cartesian2DToBearing(NonLinearGaussianMeasurement):
 
     """  # noqa:E501
 
-    translation_offset = Property(StateVector, default=None,
-                                  doc="A 2x1 array specifying the origin offset in terms of \
-                                  :math:`x,y` coordinates.")
+    translation_offset: StateVector = Property(
+        default=None,
+        doc="A 2x1 array specifying the origin offset in terms of :math:`x,y` coordinates.")
 
     def __init__(self, *args, **kwargs):
         """
@@ -631,19 +635,19 @@ class Cartesian2DToBearing(NonLinearGaussianMeasurement):
                 noise = 0
 
         # Account for origin offset
-        xyz = [[state.state_vector[self.mapping[0], 0]
-                - self.translation_offset[0, 0]],
-               [state.state_vector[self.mapping[1], 0]
-                - self.translation_offset[1, 0]],
-               [0]]
+        xyz = np.array([state.state_vector[self.mapping[0], :] - self.translation_offset[0, 0],
+                        state.state_vector[self.mapping[1], :] - self.translation_offset[1, 0],
+                        [0] * state.state_vector.shape[1]
+                        ])
 
         # Rotate coordinates
         xyz_rot = self._rotation_matrix @ xyz
 
         # Covert to polar
-        _, phi = cart2pol(*xyz_rot[:2, 0])
+        _, phi = cart2pol(*xyz_rot[:2, :])
+        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
 
-        return StateVector([[Bearing(phi)]]) + noise
+        return StateVectors([bearings]) + noise
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
@@ -712,16 +716,15 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
     expects a 6D state space.
     """
 
-    translation_offset = Property(
-        StateVector, default=None,
+    translation_offset: StateVector = Property(
+        default=None,
         doc="A 3x1 array specifying the origin offset in terms of :math:`x,y` coordinates.")
-    velocity_mapping = Property(
-        np.array, default=(1, 3, 5),
+    velocity_mapping: Tuple[int, int, int] = Property(
+        default=(1, 3, 5),
         doc="Mapping to the targets velocity within its state space")
-    velocity = Property(
-        StateVector, default=None,
-        doc="A 3x1 array specifying the sensor velocity in terms of :math:`x,y,z` \
-        coordinates.")
+    velocity: StateVector = Property(
+        default=None,
+        doc="A 3x1 array specifying the sensor velocity in terms of :math:`x,y,z` coordinates.")
 
     def __init__(self, *args, **kwargs):
         """
@@ -785,9 +788,12 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
         xy_vel = state.state_vector[self.velocity_mapping, :] - self.velocity
 
         # Use polar to calculate range rate
-        rr = np.dot(xy_pos[:, 0], xy_vel[:, 0]) / np.linalg.norm(xy_pos)
+        rr = np.einsum('ij,ij->j', xy_pos, xy_vel) / np.linalg.norm(xy_pos, axis=0)
 
-        return StateVector([[Bearing(phi)], [rho], [rr]]) + noise
+        # Convert to bearings
+        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
+
+        return StateVectors([bearings, np.atleast_1d(rho), rr]) + noise
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
@@ -799,7 +805,7 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of elevation \
     (:math:`\theta`),  bearing (:math:`\phi`), range (:math:`r`) and
-    range-rate (:math:'\dot{r}'), with Gaussian noise in each dimension.
+    range-rate (:math:`\dot{r}`), with Gaussian noise in each dimension.
 
     The model is described by the following equations:
 
@@ -858,14 +864,14 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
     expects a 6D state space.
     """
 
-    translation_offset = Property(
-        StateVector, default=None,
+    translation_offset: StateVector = Property(
+        default=None,
         doc="A 3x1 array specifying the origin offset in terms of :math:`x,y,z` coordinates.")
-    velocity_mapping = Property(
-        np.array, default=(1, 3, 5),
+    velocity_mapping: Tuple[int, int, int] = Property(
+        default=(1, 3, 5),
         doc="Mapping to the targets velocity within its state space")
-    velocity = Property(
-        StateVector, default=None,
+    velocity: StateVector = Property(
+        default=None,
         doc="A 3x1 array specifying the sensor velocity in terms of :math:`x,y,z` coordinates.")
 
     def __init__(self, *args, **kwargs):
@@ -930,12 +936,14 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
         xyz_vel = state.state_vector[self.velocity_mapping, :] - self.velocity
 
         # Use polar to calculate range rate
-        rr = np.dot(xyz_pos[:, 0], xyz_vel[:, 0]) / np.linalg.norm(xyz_pos)
+        rr = np.einsum('ij,ij->j', xyz_pos, xyz_vel) / np.linalg.norm(xyz_pos, axis=0)
 
-        return StateVector([[Elevation(theta)],
-                            [Bearing(phi)],
-                            [rho],
-                            [rr]]) + noise
+        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
+        elevations = [Elevation(i) for i in np.atleast_1d(theta)]
+        return StateVectors([elevations,
+                             bearings,
+                             np.atleast_1d(rho),
+                             rr]) + noise
 
     def inverse_function(self, detection, **kwargs) -> StateVector:
         theta, phi, rho, rho_rate = detection.state_vector
@@ -965,3 +973,194 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
         out = super().rvs(num_samples, **kwargs)
         out = np.array([[Elevation(0)], [Bearing(0)], [0.], [0.]]) + out
         return out
+
+
+class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
+    r"""This is a class implementation of a time-invariant measurement model, \
+    where measurements are assumed to be in the form of elevation \
+    (:math:`\theta`),  bearing (:math:`\phi`), range (:math:`r`) and
+    range-rate (:math:`\dot{r}`), with Gaussian noise in each dimension and the
+    range and range-rate are binned based on the
+    range resolution and range-rate resolution respectively.
+
+    The model is described by the following equations:
+
+    .. math::
+
+      \vec{y}_t = h(\vec{x}_t, \vec{v}_t)
+
+    where:
+
+    * :math:`\vec{y}_t` is a measurement vector of the form:
+
+    .. math::
+
+      \vec{y}_t = \begin{bmatrix}
+                \theta \\
+                \phi \\
+                r \\
+                \dot{r}
+            \end{bmatrix}
+
+    * :math:`h` is a non-linear model function of the form:
+
+    .. math::
+
+      h(\vec{x}_t,\vec{v}_t) = \begin{bmatrix}
+                \textrm{asin}(\mathcal{z}/\sqrt{\mathcal{x}^2 + \mathcal{y}^2 +\mathcal{z}^2}) \\
+                \textrm{atan2}(\mathcal{y},\mathcal{x}) \\
+                \sqrt{\mathcal{x}^2 + \mathcal{y}^2 + \mathcal{z}^2} \\
+                (x\dot{x} + y\dot{y} + z\dot{z})/\sqrt{x^2 + y^2 + z^2}
+                \end{bmatrix} + \vec{v}_t
+
+    * :math:`\vec{v}_t` is Gaussian distributed with covariance :math:`R`, i.e.:
+
+    .. math::
+
+      \vec{v}_t \sim \mathcal{N}(0,R)
+
+    .. math::
+
+      R = \begin{bmatrix}
+            \sigma_{\theta}^2 & 0 & 0 & 0\\
+            0 & \sigma_{\phi}^2 & 0 & 0\\
+            0 & 0 & \sigma_{r}^2 & 0\\
+            0 & 0 & 0 & \sigma_{\dot{r}}^2
+            \end{bmatrix}
+
+    The covariances for radar are determined by different factors. The angle error
+    is affected by the radar beam width. Range error is affected by the SNR and pulse bandwidth.
+    The error for the range rate is dependent on the dwell time.
+    The range and range rate are binned to the centre of the cell using
+
+    .. math::
+
+        x = \textrm{floor}(x/\Delta x)*\Delta x + \frac{\Delta x}{2}
+
+    The :py:attr:`mapping` property of the model is a 3 element vector, \
+    whose first (i.e. :py:attr:`mapping[0]`), second (i.e. \
+    :py:attr:`mapping[1]`) and third (i.e. :py:attr:`mapping[2]`) elements \
+    contain the state index of the :math:`x`, :math:`y` and :math:`z`  \
+    coordinates, respectively.
+
+    The :py:attr:`velocity_mapping` property of the model is a 3 element vector, \
+    whose first (i.e. :py:attr:`velocity_mapping[0]`), second (i.e. \
+    :py:attr:`velocity_mapping[1]`) and third (i.e. :py:attr:`velocity_mapping[2]`) elements \
+    contain the state index of the :math:`\dot{x}`, :math:`\dot{y}` and :math:`\dot{z}`  \
+    coordinates, respectively.
+
+    Note
+    ----
+    This class implementation assumes a 3D cartesian space, it therefore \
+    expects a 6D state space.
+    """
+
+    range_res = Property(float, doc="Size of the range bins in m")
+    range_rate_res = Property(float, doc="Size of the velocity bins in m/s")
+
+    @property
+    def ndim_meas(self):
+        return 4
+
+    def function(self, state, noise=False, **kwargs):
+        r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
+
+        Parameters
+        ----------
+        state: :class:`~.StateVector`
+            An input state vector for the target
+
+        noise: :class:`numpy.ndarray` or bool
+            An externally generated random process noise sample (the default is
+            ``False``, in which case no noise will be added and no binning takes place
+            if ``True``, the output of :attr:`~.Model.rvs` is added and the
+            range and range rate are binned)
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape (:py:attr:`~ndim_state`, 1)
+            The model function evaluated given the provided time interval.
+
+        """
+
+        out = super().function(state, noise, **kwargs)
+
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                out[2] = np.floor(out[2] / self.range_res) * self.range_res + self.range_res/2
+                out[3] = np.floor(out[3] / self.range_rate_res) * \
+                    self.range_rate_res + self.range_rate_res/2
+
+        return out
+
+    def _gaussian_integral(self, a, b, mean, cov):
+        # this function is the cumulative probability ranging from a to b for a normal distribution
+        return (multivariate_normal.cdf(a, mean=mean, cov=cov)
+                - multivariate_normal.cdf(b, mean=mean, cov=cov))
+
+    def _binned_pdf(self, measured_value, mean, bin_size, cov):
+        # this function finds the probability density of the bin the measured_value is in
+        a = np.floor(measured_value / bin_size) * bin_size + bin_size
+        b = np.floor(measured_value / bin_size) * bin_size
+        return self._gaussian_integral(a, b, mean, cov)/bin_size
+
+    def pdf(self, state1, state2, **kwargs):
+        r"""Model pdf/likelihood evaluation function
+
+        Evaluates the pdf/likelihood of ``state1``, given the state
+        ``state2`` which is passed to :meth:`function()`.
+
+        For the first 2 dimensions, this can be written as:
+
+        .. math::
+
+            p = p(y_t | x_t) = \mathcal{N}(y_t; x_t, Q)
+
+        where :math:`y_t` = ``state_vector1``, :math:`x_t` = ``state_vector2``,
+         :math:`Q` = :attr:`covar` and :math:`\mathcal{N}` is a normal distribution
+
+        The probability for the binned dimensions, the last 2, can be written as:
+
+        .. math::
+
+            p = P(a \leq \mathcal{N} \leq b)
+
+        In this equation a and b are the edges of the bin.
+
+        Parameters
+        ----------
+        state1 : :class:`~.State`
+        state2 : :class:`~.State`
+
+        Returns
+        -------
+        : :class:`~.Probability`
+            The likelihood of ``state1``, given ``state2``
+        """
+
+        # state1 is in measurement space
+        # state2 is in state_space
+        if (((state1.state_vector[2, 0]-self.range_res/2) / self.range_res).is_integer()
+                and ((state1.state_vector[3, 0]-self.range_rate_res/2) /
+                     self.range_rate_res).is_integer()):
+            mean_vector = self.function(state2, noise=False, **kwargs)
+            # pdf for the angles
+            az_el_pdf = multivariate_normal.pdf(
+                state1.state_vector[:2, 0],
+                mean=mean_vector[:2, 0],
+                cov=self.covar()[:2])
+
+            # pdf for the binned range and velocity
+            range_pdf = self._binned_pdf(
+                state1.state_vector[2, 0],
+                mean_vector[2, 0],
+                self.range_res,
+                self.covar()[2])
+            velocity_pdf = self._binned_pdf(
+                state1.state_vector[3, 0],
+                mean_vector[3, 0],
+                self.range_rate_res,
+                self.covar()[3])
+            return Probability(range_pdf * velocity_pdf * az_el_pdf)
+        else:
+            return Probability(0)

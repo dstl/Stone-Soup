@@ -10,4 +10,4 @@ class Detector(DetectionReader):
     data.
     """
 
-    sensor = Property(SensorDataReader, doc="Source of sensor data")
+    sensor: SensorDataReader = Property(doc="Source of sensor data")

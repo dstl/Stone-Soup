@@ -1,0 +1,10 @@
+coverage:
+  status:
+    project:
+      default:
+        threshold: 0.1%
+codecov:
+  notify:
+    after_n_builds: 5
+comment:
+  after_n_builds: 5

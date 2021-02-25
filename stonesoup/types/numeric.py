@@ -2,6 +2,8 @@
 from math import log, log1p, exp, trunc, ceil, floor
 from numbers import Real, Integral
 
+import numpy as np
+
 
 class Probability(Real):
     """Probability class.
@@ -231,8 +233,8 @@ class Probability(Real):
     @classmethod
     def sum(cls, values):
         """Carry out LogSumExp"""
-        log_values = [cls._log(value) for value in values]
-        if not log_values:
+        log_values = np.array([cls._log(value) for value in values])
+        if len(log_values) == 0:
             return Probability(0)
 
         max_log_value = max(log_values)
@@ -240,7 +242,6 @@ class Probability(Real):
         if max_log_value == float('-inf'):
             return Probability(0)
 
-        value_sum = sum(exp(log_value - max_log_value)
-                        for log_value in log_values)
+        value_sum = np.sum(np.exp(log_values - max_log_value))
 
         return Probability(cls._log(value_sum) + max_log_value, log_value=True)

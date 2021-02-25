@@ -4,9 +4,16 @@ import datetime
 import numpy as np
 import pytest
 
-from ...types.prediction import (
+from ..particle import Particle
+from ..prediction import (
+    Prediction, MeasurementPrediction,
     StatePrediction, StateMeasurementPrediction,
-    GaussianStatePrediction, GaussianMeasurementPrediction)
+    GaussianStatePrediction, GaussianMeasurementPrediction,
+    SqrtGaussianStatePrediction, TaggedWeightedGaussianStatePrediction,
+    ParticleStatePrediction, ParticleMeasurementPrediction)
+from ..state import (
+    State, GaussianState, SqrtGaussianState, TaggedWeightedGaussianState, ParticleState)
+from ..track import Track
 
 
 def test_stateprediction():
@@ -111,3 +118,75 @@ def test_gaussianmeasurementprediction():
     assert(np.array_equal(cross_covar, measurement_prediction.cross_covar))
     assert(measurement_prediction.ndim == mean.shape[0])
     assert(measurement_prediction.timestamp == timestamp)
+
+
+@pytest.mark.parametrize('prediction_type', (Prediction, MeasurementPrediction))
+def test_from_state(prediction_type):
+    state = State([[0]], timestamp=datetime.datetime.now())
+    prediction = prediction_type.from_state(state, [[1]])
+    if prediction_type is Prediction:
+        assert isinstance(prediction, StatePrediction)
+    else:
+        assert isinstance(prediction, StateMeasurementPrediction)
+    assert prediction.timestamp == state.timestamp
+    assert prediction.state_vector[0] == 1
+
+    state = GaussianState([[0]], [[2]], timestamp=datetime.datetime.now())
+    prediction = prediction_type.from_state(state, [[1]], [[3]])
+    if prediction_type is Prediction:
+        assert isinstance(prediction, GaussianStatePrediction)
+    else:
+        assert isinstance(prediction, GaussianMeasurementPrediction)
+    assert prediction.timestamp == state.timestamp
+    assert prediction.state_vector[0] == 1
+    assert prediction.covar[0] == 3
+
+    state = SqrtGaussianState([[0]], [[2]], timestamp=datetime.datetime.now())
+    if prediction_type is Prediction:
+        prediction = prediction_type.from_state(state, [[1]], [[np.sqrt(3)]])
+        assert isinstance(prediction, SqrtGaussianStatePrediction)
+    else:
+        prediction = prediction_type.from_state(state, [[1]], [[3]])
+        assert isinstance(prediction, GaussianMeasurementPrediction)
+    assert prediction.timestamp == state.timestamp
+    assert prediction.state_vector[0] == 1
+    assert prediction.covar[0] == pytest.approx(3)
+
+    state = TaggedWeightedGaussianState(
+        [[0]], [[2]], weight=0.5, timestamp=datetime.datetime.now())
+    prediction = prediction_type.from_state(state, [[1]], [[3]])
+    if prediction_type is Prediction:
+        assert isinstance(prediction, TaggedWeightedGaussianStatePrediction)
+    else:
+        assert isinstance(prediction, GaussianMeasurementPrediction)
+    assert prediction.timestamp == state.timestamp
+    assert prediction.state_vector[0] == 1
+    assert prediction.covar[0] == 3
+    if prediction_type is Prediction:
+        assert prediction.weight == 0.5
+        assert prediction.tag == state.tag
+
+    state = ParticleState([Particle([[0]], weight=0.5)], timestamp=datetime.datetime.now())
+    prediction = prediction_type.from_state(state, particles=[Particle([[1]], weight=0.8)])
+    if prediction_type is Prediction:
+        assert isinstance(prediction, ParticleStatePrediction)
+    else:
+        assert isinstance(prediction, ParticleMeasurementPrediction)
+    assert prediction.timestamp == state.timestamp
+    assert prediction.state_vector[0] == 1
+
+    with pytest.raises(TypeError, match=f'{prediction_type.__name__} type not defined for str'):
+        prediction_type.from_state("a", state_vector=2)
+
+
+@pytest.mark.parametrize('prediction_type', (Prediction, MeasurementPrediction))
+def test_from_state_sequence(prediction_type):
+    sequence = Track([GaussianState([[0]], [[2]], timestamp=datetime.datetime.now())])
+    prediction = prediction_type.from_state(sequence, [[1]], [[3]])
+    if prediction_type is Prediction:
+        assert isinstance(prediction, GaussianStatePrediction)
+    else:
+        assert isinstance(prediction, GaussianMeasurementPrediction)
+    assert prediction.timestamp == sequence.timestamp
+    assert prediction.state_vector[0] == 1
+    assert prediction.covar[0] == 3

@@ -41,8 +41,8 @@
 # at most once) the remaining detection must then be associated with the orange track, giving a net
 # global score/probability of :math:`0.51`.
 #
-# The :class:`~.GlobalNearestNeighbour` evaluates all possible (distance-based) hypotheses
-# (measurement-prediction pairs), removes those that are invalid, and selects the subset with the
+# The :class:`~.GlobalNearestNeighbour` evaluates all valid (distance-based) hypotheses
+# (measurement-prediction pairs) and selects the subset with the
 # greatest net 'score' (the collection of hypotheses pairs which have a minimum sum of distances
 # overall).
 #
@@ -75,7 +75,7 @@ from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 # Generate ground truth
 # ^^^^^^^^^^^^^^^^^^^^^
 
-# np.random.seed(1991)
+np.random.seed(1991)
 
 truths = set()
 
@@ -98,19 +98,11 @@ truths.add(truth)
 
 # %%
 # Plot the ground truth
-from matplotlib import pyplot as plt
 
-fig = plt.figure(figsize=(10, 6))
-ax = fig.add_subplot(1, 1, 1)
-ax.set_xlabel("$x$")
-ax.set_ylabel("$y$")
-ax.set_ylim(0, 25)
-ax.set_xlim(0, 25)
-
-for truth in truths:
-    ax.plot([state.state_vector[0] for state in truth],
-            [state.state_vector[2] for state in truth],
-            linestyle="--",)
+from stonesoup.plotter import Plotter
+plotter = Plotter()
+plotter.ax.set_ylim(0, 25)
+plotter.plot_ground_truths(truths, [0, 2])
 
 # %%
 # Generate detections with clutter
@@ -140,7 +132,8 @@ for k in range(20):
             measurement = measurement_model.function(truth[k], noise=True)
             measurement_set.add(TrueDetection(state_vector=measurement,
                                               groundtruth_path=truth,
-                                              timestamp=truth[k].timestamp))
+                                              timestamp=truth[k].timestamp,
+                                              measurement_model=measurement_model))
 
         # Generate clutter at this time-step
         truth_x = truth[k].state_vector[0]
@@ -148,21 +141,13 @@ for k in range(20):
         for _ in range(np.random.randint(10)):
             x = uniform.rvs(truth_x - 10, 20)
             y = uniform.rvs(truth_y - 10, 20)
-            measurement_set.add(Clutter(np.array([[x], [y]]), timestamp=truth[k].timestamp))
+            measurement_set.add(Clutter(np.array([[x], [y]]), timestamp=truth[k].timestamp,
+                                        measurement_model=measurement_model))
     all_measurements.append(measurement_set)
 
-# Plot clutter
-for set_ in all_measurements:
-    # Plot actual detections.
-    ax.scatter([state.state_vector[0] for state in set_ if isinstance(state, TrueDetection)],
-               [state.state_vector[1] for state in set_ if isinstance(state, TrueDetection)],
-               color='g')
-    # Plot clutter.
-    ax.scatter([state.state_vector[0] for state in set_ if isinstance(state, Clutter)],
-               [state.state_vector[1] for state in set_ if isinstance(state, Clutter)],
-               color='y',
-               marker='2')
-fig
+# Plot true detections and clutter.
+plotter.plot_measurements(all_measurements, [0, 2], color='g')
+plotter.fig
 
 # %%
 # Create the Kalman predictor and updater
@@ -212,25 +197,8 @@ for n, measurements in enumerate(all_measurements):
 
 # %%
 # Plot the resulting tracks
-tracks_list = list(tracks)
-for track in tracks:
-    ax.plot([state.state_vector[0, 0] for state in track[1:]],  # Skip plotting the prior
-            [state.state_vector[2, 0] for state in track[1:]],
-            marker=".")
 
-from matplotlib.patches import Ellipse
-for track in tracks:
-    for state in track[1:]:  # Skip the prior
-        w, v = np.linalg.eig(measurement_model.matrix()@state.covar@measurement_model.matrix().T)
-        max_ind = np.argmax(w)
-        min_ind = np.argmin(w)
-        orient = np.arctan2(v[1, max_ind], v[0, max_ind])
-        ellipse = Ellipse(xy=state.state_vector[(0, 2), 0],
-                          width=2*np.sqrt(w[max_ind]),
-                          height=2*np.sqrt(w[min_ind]),
-                          angle=np.rad2deg(orient),
-                          alpha=0.2)
-        ax.add_artist(ellipse)
-fig
+plotter.plot_tracks(tracks, [0, 2], uncertainty=True)
+plotter.fig
 
 # sphinx_gallery_thumbnail_number = 3

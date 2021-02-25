@@ -22,10 +22,8 @@ class TimeRange(Type):
     True
     """
 
-    start_timestamp = Property(datetime.datetime,
-                               doc="Start of the time range")
-    end_timestamp = Property(datetime.datetime,
-                             doc="End of the time range")
+    start_timestamp: datetime.datetime = Property(doc="Start of the time range")
+    end_timestamp: datetime.datetime = Property(doc="End of the time range")
 
     def __init__(self, start_timestamp, end_timestamp, *args, **kwargs):
         if end_timestamp < start_timestamp:
