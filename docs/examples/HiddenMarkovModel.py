@@ -58,6 +58,10 @@ import scipy
 
 F = np.eye(3)
 
+transition_noise = np.array([[0.8, 0.1, 0.1],
+                             [0.1, 0.8, 0.1],
+                             [0.1, 0.1, 0.8]])
+
 
 def _sample(row):
     rv = scipy.stats.multinomial(n=1, p=row)
@@ -69,12 +73,16 @@ def transit(state, noise=False):
     x = F.T @ state.state_vector
 
     if noise:
-        # Assuming noise is boolean
-        sample = _sample(x.flatten())
+
+        row_num = np.argmax(x)
+
+        row = transition_noise[row_num]
+
+        sample = _sample(row)
 
         return StateVector(sample)
 
-    return x  # If no noise, return noiseless transition
+    return x
 
 
 # %%
