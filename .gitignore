@@ -3,6 +3,7 @@ build/
 dist/
 venv/
 *.egg-info
+.eggs/
 __pycache__/
 
 # Version from setuptools_scm

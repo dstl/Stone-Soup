@@ -1,0 +1,53 @@
+{% extends 'base.html' %}     {%block head %}
+{% endblock %} {%block body %}
+
+<div class="card">
+  <form action="configInput" method="post" enctype=multipart/form-data>
+
+  <div class="card-body row g-3">
+    <div class="col-sm-7 input-group">
+        <input
+          type="file"
+          class="form-control"
+          name="configFile"
+        />
+        <input
+          class="btn btn-outline-secondary"
+          type="submit"
+          value="Upload"
+        />
+    </div>
+    <div class="col-sm">
+      <input
+        type="text"
+        class="form-control"
+        placeholder="Run numbers"
+        aria-label="Run numbers"
+        name="num_runs"
+      />
+    </div>
+    <div class="col-sm">
+      <input
+        type="text"
+        class="form-control"
+        placeholder="Processes number"
+        aria-label="Processes number"
+        name="num_processes"
+      />
+    </div>
+    <div class="col-sm">
+      <input
+        type="text"
+        class="form-control"
+        placeholder="Output file name"
+        aria-label="Output file name"
+        name="filename"
+      />
+    </div>
+
+  </div>
+    </form>
+
+</div>
+
+{% endblock %}
