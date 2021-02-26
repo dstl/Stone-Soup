@@ -93,7 +93,7 @@ def hbearing(state_vector, pos_map, translation_offset, rotation_offset):
      CartesianToElevationBearingRangeRate]
 )
 def test_none_covar(model_class):
-    model = model_class(ndim_state=0, mapping=None, noise_covar=None)
+    model = model_class(ndim_state=0, mapping=[0, 1, 2], noise_covar=None)
     with pytest.raises(ValueError, match="Cannot generate pdf from None-type covariance"):
         model.pdf(State([0]), State([0]))
 
@@ -144,6 +144,17 @@ def test_none_covar(model_class):
             None
 
         ),
+        (   # 2D meas, 3D state
+            h2d,
+            CartesianToBearingRange,
+            StateVector([[0], [1], [0]]),
+            CovarianceMatrix([[0.015, 0],
+                              [0, 0.1]]),
+            np.array([0, 1, 2]),
+            StateVector([[1], [-1], [0]]),
+            StateVector([[0], [0], [1]])
+
+        ),
         (   # 3D meas, 3D state
             h3d,
             CartesianToElevationBearingRange,
@@ -188,7 +199,7 @@ def test_none_covar(model_class):
         )
     ],
     ids=["Bearing1", "Bearing2",
-         "BearingElevation1", "BearingElevation2",
+         "BearingRange1", "BearingRange2", "BearingRange3",
          "RangeBearingElevation1", "RangeBearingElevation1",
          "BearingsOnly1", "BearingsOnly2"]
 )
