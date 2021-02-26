@@ -355,7 +355,7 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
         super().__init__(*args, **kwargs)
         # Set values to defaults if not provided
         if self.translation_offset is None:
-            self.translation_offset = StateVector([0] * 2)
+            self.translation_offset = StateVector([0] * len(self.mapping))
 
     @property
     def ndim_meas(self) -> int:
@@ -385,7 +385,7 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
         xy = xyz[0:2]
 
         res = np.zeros((self.ndim_state, 1)).view(StateVector)
-        res[self.mapping, :] = xy + self.translation_offset
+        res[self.mapping[:2], :] = xy + self.translation_offset[:2, :]
 
         return res
 
