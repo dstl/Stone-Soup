@@ -1,6 +1,8 @@
 import datetime
+
 import numpy as np
 import matplotlib.figure
+import pytest
 
 from ..plotter import TwoDPlotter
 from ...types.track import Track
@@ -27,7 +29,10 @@ def test_twodplotter():
                       timestamp=timestamp1+datetime.timedelta(seconds=i))
             for i in range(11)}
 
-    metric = plotter.plot_tracks_truth_detections(tracks, truths, dets)
+    # Expect warning, as models not provided.
+    with pytest.warns(UserWarning,
+                      match="Measurement model type not specified for all detections"):
+        metric = plotter.plot_tracks_truth_detections(tracks, truths, dets)
 
     assert metric.title == "Track plot"
     assert metric.generator == plotter
