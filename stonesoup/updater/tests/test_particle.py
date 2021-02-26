@@ -73,4 +73,4 @@ def test_particle(updater):
     assert updated_state.hypothesis.prediction == prediction
     assert updated_state.hypothesis.measurement == measurement
     assert np.allclose(updated_state.state_vector, np.array([[20.0], [20.0]]),
-                       rtol=1e-2)
+                       rtol=2e-2)
