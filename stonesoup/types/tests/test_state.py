@@ -293,6 +293,13 @@ def test_state_mutable_sequence_error_message():
         def test_method(self):
             pass
 
+        @property
+        def complicated_attribute(self):
+            if self.test_property == 3:
+                return self.test_property
+            else:
+                raise AttributeError('Custom error message')
+
     timestamp = datetime.datetime.now()
     test_obj = TestSMS(states=State(state_vector=StateVector([1, 2, 3]), timestamp=timestamp))
 
@@ -314,3 +321,13 @@ def test_state_mutable_sequence_error_message():
     with pytest.raises(AttributeError, match="'TestSMS' object has no attribute "
                                              "'missing_variable'"):
         _ = test_obj.missing_variable
+
+    # And check custom error messages are not swallowed
+    # in the default case (test_property == 3), complicated_attribute works
+    test_obj.test_property = 3
+    assert test_obj.complicated_attribute == 3
+
+    # when test_property != 3  it raises a custom error.
+    test_obj.test_property = 5
+    with pytest.raises(AttributeError, match="Custom error message"):
+        _ = test_obj.complicated_attribute

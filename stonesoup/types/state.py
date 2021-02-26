@@ -104,33 +104,31 @@ class StateMutableSequence(Type, abc.MutableSequence):
         else:
             return self.states.__getitem__(index)
 
-    def __getattr__(self, item):
-        # This method is called if we tried to access an attribute of self, but failed with an
-        # AttributeError. We want to try getting the same attribute from self.state instead, but
-        # if that fails we want to return the error message that would have originally been raised,
-        # rather than an error message that the State has no such attribute.
+    def __getattribute__(self, name):
+        # This method is called if we try to access an attribute of self. First we try to get the
+        # attribute directly, but if that fails, we want to try getting the same attribute from
+        # self.state instead. If that, in turn,  fails we want to return the error message that
+        # would have originally been raised, rather than an error message that the State has no
+        # such attribute.
         #
-        # Ideally we would use the originally raised error, rather than recreating it (as below)
-        # but it seems __getattr__ has no mechanism to allow this.
-
-        original_error = AttributeError("{!r} object has no attribute {!r}".format(
-            type(self).__name__, item))
-        if item.startswith("_"):
-            # Don't proxy special/private attributes to `state`, just raise the original error
-            raise original_error
-        else:
-            # For non _ attributes, try to get the attribute from self.state instead of self.
-            try:
-                return getattr(self.state, item)
-            except AttributeError as err:
-                # If we get the error about 'State' not having the attribute, then we want to
-                # raise the original error instead
-                if str(err).startswith("'State' object has no attribute"):
+        # An alternative mechanism using __getattr__ seems simpler (as it skips the first few lines
+        # of code, but __getattr__ has no mechanism to capture the originally raised error.
+        try:
+            # This tries first to get the attribute from self.
+            return Type.__getattribute__(self, name)
+        except AttributeError as original_error:
+            if name.startswith("_"):
+                # Don't proxy special/private attributes to `state`, just raise the original error
+                raise original_error
+            else:
+                # For non _ attributes, try to get the attribute from self.state instead of self.
+                try:
+                    my_state = Type.__getattribute__(self, 'state')
+                    return getattr(my_state, name)
+                except AttributeError:
+                    # If we get the error about 'State' not having the attribute, then we want to
+                    # raise the original error instead
                     raise original_error
-                else:
-                    # This case is in the unexpected event of getting a different AttributeError,
-                    # which it may be better to pass on.
-                    raise err
 
     def insert(self, index, value):
         return self.states.insert(index, value)
