@@ -67,8 +67,8 @@ class Euclidean(Measure):
         """
         # Calculate Euclidean distance between two state
         if self.mapping is not None:
-            return distance.euclidean(state1.state_vector[self.mapping],
-                                      state2.state_vector[self.mapping])
+            return distance.euclidean(state1.state_vector[self.mapping, :],
+                                      state2.state_vector[self.mapping, :])
         else:
             return distance.euclidean(state1.state_vector, state2.state_vector)
 
@@ -112,8 +112,8 @@ class EuclideanWeighted(Measure):
 
         """
         if self.mapping is not None:
-            return distance.euclidean(state1.state_vector[self.mapping],
-                                      state2.state_vector[self.mapping],
+            return distance.euclidean(state1.state_vector[self.mapping, :],
+                                      state2.state_vector[self.mapping, :],
                                       self.weighting)
         else:
             return distance.euclidean(state1.state_vector,
@@ -152,8 +152,8 @@ class Mahalanobis(Measure):
 
         """
         if self.mapping is not None:
-            u = state1.state_vector[self.mapping]
-            v = state2.state_vector[self.mapping]
+            u = state1.state_vector[self.mapping, :]
+            v = state2.state_vector[self.mapping, :]
             # extract the mapped covariance data
             rows = np.array(self.mapping, dtype=np.intp)
             columns = np.array(self.mapping, dtype=np.intp)
@@ -211,8 +211,8 @@ class SquaredGaussianHellinger(Measure):
 
         """
         if self.mapping is not None:
-            mu1 = state1.state_vector[self.mapping]
-            mu2 = state2.state_vector[self.mapping]
+            mu1 = state1.state_vector[self.mapping, :]
+            mu2 = state2.state_vector[self.mapping, :]
 
             # extract the mapped covariance data
             rows = np.array(self.mapping, dtype=np.intp)
