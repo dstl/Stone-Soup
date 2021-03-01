@@ -1,5 +1,5 @@
 # Stone Soup
-[![CircleCI branch](https://img.shields.io/circleci/project/github/dstl/Stone-Soup/master.svg?label=tests&style=flat)](https://circleci.com/gh/dstl/Stone-Soup)
+[![CircleCI branch](https://img.shields.io/circleci/project/github/dstl/Stone-Soup/main.svg?label=tests&style=flat)](https://circleci.com/gh/dstl/Stone-Soup)
 [![Codecov](https://img.shields.io/codecov/c/github/dstl/Stone-Soup.svg)](https://codecov.io/gh/dstl/Stone-Soup)
 [![Read the Docs](https://img.shields.io/readthedocs/stonesoup.svg?style=flat)](https://stonesoup.readthedocs.io/en/latest/?badge=latest)
 [![Gitter](https://img.shields.io/gitter/room/dstl/Stone-Soup.svg?color=informational&style=flat)](https://gitter.im/dstl/Stone-Soup?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
@@ -20,7 +20,7 @@ information.
 Please see the [tutorials](https://stonesoup.readthedocs.io/en/latest/auto_tutorials/index.html),
 [examples](https://stonesoup.readthedocs.io/en/latest/auto_examples/index.html),
 and [demonstrations](https://stonesoup.readthedocs.io/en/latest/auto_demos/index.html),
-which you can also try out on Binder: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/dstl/Stone-Soup/master?filepath=notebooks)
+which you can also try out on Binder: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/dstl/Stone-Soup/main?filepath=notebooks)
 
 ## Dependencies
 Stone Soup uses the following dependencies:

@@ -10,6 +10,6 @@
     {% endif %}
   {% endif %}
   <li class="wy-breadcrumbs-aside">
-    <a href="https://{{ github_host|default("github.com") }}/{{ github_user|default("dstl") }}/{{ github_repo|default("Stone-Soup") }}/{{ theme_vcs_pageview_mode or "blob" }}/{{ github_version|default("master") }}{{ conf_py_path|default("/docs/source/") }}{{ pagename }}{{ suffix }}" class="fa fa-github"> {{ _('Edit on GitHub') }}</a>
+    <a href="https://{{ github_host|default("github.com") }}/{{ github_user|default("dstl") }}/{{ github_repo|default("Stone-Soup") }}/{{ theme_vcs_pageview_mode or "blob" }}/{{ github_version|default("main") }}{{ conf_py_path|default("/docs/source/") }}{{ pagename }}{{ suffix }}" class="fa fa-github"> {{ _('Edit on GitHub') }}</a>
   </li>
 {% endblock %}

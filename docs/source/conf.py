@@ -59,7 +59,7 @@ autosectionlabel_prefix_document = True
 
 binder_branch = os.environ.get("READTHEDOCS_VERSION", "latest")
 if binder_branch == "latest":
-    binder_branch = "master"
+    binder_branch = "main"
 
 sphinx_gallery_conf = {
     'examples_dirs': ['../tutorials', '../examples', '../demos'],
