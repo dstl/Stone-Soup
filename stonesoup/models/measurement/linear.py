@@ -3,59 +3,9 @@
 import numpy as np
 
 from ...base import Property
-from ...types.array import CovarianceMatrix, StateVector
+from ...types.array import CovarianceMatrix
 from ..base import LinearModel, GaussianModel
 from .base import MeasurementModel
-
-
-class LinearMeasurementModel(MeasurementModel, LinearModel):
-    r"""This is a class implementation of a time-invariant 1D
-        Linear-Gaussian Measurement Model.
-
-        The model is described by the following equations:
-
-        .. math::
-
-          y_t = H_k*x_t,
-
-        where ``H_k`` is a (:py:attr:`~ndim_meas`, :py:attr:`~ndim_state`)
-
-        """
-
-    @property
-    def ndim_meas(self):
-        """ndim_meas getter method
-
-        Returns
-        -------
-        :class:`int`
-            The number of measurement dimensions
-        """
-
-        return len(self.mapping)
-
-    def matrix(self, **kwargs):
-        """Model matrix :math:`H(t)`
-
-        Returns
-        -------
-        :class:`numpy.ndarray` of shape \
-        (:py:attr:`~ndim_meas`, :py:attr:`~ndim_state`)
-            The model matrix evaluated given the provided time interval.
-        """
-
-        model_matrix = np.zeros((self.ndim_meas, self.ndim_state))
-        for dim_meas, dim_state in enumerate(self.mapping):
-            if dim_state is not None:
-                model_matrix[dim_meas, dim_state] = 1
-
-        return model_matrix
-
-    def rvs(self, *args, **kwargs):
-        return StateVector(np.zeros((self.ndim, 1)))
-
-    def pdf(self, *args, **kwargs):
-        raise NotImplementedError
 
 
 # TODO: Probably should call this LinearGaussianMeasurementModel
