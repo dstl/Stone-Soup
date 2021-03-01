@@ -6,7 +6,8 @@ import numpy as np
 
 from stonesoup.types.state import State
 from stonesoup.types.array import StateVector
-from stonesoup.models.transition.linear import ConstantVelocity, ConstantAcceleration
+from stonesoup.models.transition.linear import ConstantVelocity, ConstantAcceleration, \
+    CombinedLinearGaussianTransitionModel
 from stonesoup.predictor.alphabeta import AlphaBetaPredictor
 
 
