@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Test for updater.alphabeta module"""
 import pytest
-from datetime import datetime, timedelta
+from datetime import timedelta
 import numpy as np
 
 from stonesoup.types.array import StateVector
@@ -37,17 +37,17 @@ def test_alphabeta(measurement_model, prediction, measurement, alpha, beta):
     eval_measurement_prediction = StateMeasurementPrediction(
        measurement_model.matrix()@prediction.state_vector)
 
-    eval_posterior_position = prediction.state_vector[[0,2]] + \
-                              alpha * (measurement.state_vector -
-                                       eval_measurement_prediction.state_vector)
-    eval_posterior_velocity = prediction.state_vector[[1,3]] + beta/timediff.total_seconds() * \
-                              (measurement.state_vector - eval_measurement_prediction.state_vector)
+    eval_posterior_position = prediction.state_vector[[0, 2]] + \
+        alpha * (measurement.state_vector - eval_measurement_prediction.state_vector)
+    eval_posterior_velocity = prediction.state_vector[[1, 3]] + \
+        beta/timediff.total_seconds() * (measurement.state_vector -
+                                         eval_measurement_prediction.state_vector)
 
     eval_state_vect = np.concatenate((eval_posterior_position, eval_posterior_velocity))
 
     print(eval_state_vect)
 
-    eval_posterior = State(eval_state_vect[[0,2,1,3]])
+    eval_posterior = State(eval_state_vect[[0, 2, 1, 3]])
 
     # Initialise an Alpha-Beta updater
     updater = AlphaBetaUpdater(measurement_model=measurement_model,
@@ -69,4 +69,3 @@ def test_alphabeta(measurement_model, prediction, measurement, alpha, beta):
     assert(np.array_equal(posterior.hypothesis.prediction, prediction))
     assert(np.array_equal(posterior.hypothesis.measurement, measurement))
     assert(posterior.timestamp == prediction.timestamp)
-
