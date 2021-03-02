@@ -5,6 +5,7 @@ import numpy as np
 
 from stonesoup.base import Property
 from stonesoup.updater import Updater
+from stonesoup.types.prediction import MeasurementPrediction
 from stonesoup.types.update import Update
 
 
@@ -78,7 +79,8 @@ class AlphaBetaUpdater(Updater):
          : :class:`~.StateVector`
             The predicted measurement
         """
-        return self.measurement_model.matrix(**kwargs) @ prediction.state_vector
+        pred_meas = self.measurement_model.matrix(**kwargs) @ prediction.state_vector
+        return MeasurementPrediction.from_state(prediction, pred_meas)
 
     def update(self, hypothesis, time_interval, **kwargs):
         """Calculate the inferred state following update
@@ -104,8 +106,8 @@ class AlphaBetaUpdater(Updater):
         else:
             vmap = self.vmap
 
-        innovation = hypothesis.measurement.state_vector - pred_meas
-        out_statevector[pmap] = pred_meas + self.alpha * innovation
+        innovation = hypothesis.measurement.state_vector - pred_meas.state_vector
+        out_statevector[pmap] = hypothesis.prediction.state_vector[pmap] + self.alpha * innovation
         out_statevector[vmap] = hypothesis.prediction.state_vector[vmap] +\
             (self.beta / time_interval.total_seconds()) * innovation
 
