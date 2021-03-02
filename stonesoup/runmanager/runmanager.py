@@ -4,6 +4,7 @@ from werkzeug.utils import secure_filename
 from flask_bootstrap import Bootstrap
 from stonesoup.runmanager.parameters import Parameters
 from stonesoup.serialise import YAML
+from stonesoup.types.array import CovarianceMatrix
 
 app = Flask(__name__)
 
@@ -47,8 +48,12 @@ def upload_config_input():
         res.num_runs = request.form['num_runs']
         res.num_processes = request.form['num_processes']
         res.output = request.form['filename']     
-        read_config_file(file)
-        return render_template('config.html',res = res)
+        tracker, ground_truth, metric_manager = read_config_file(file)
+
+        stateVector = tracker.initiator.initiator.prior_state.state_vector
+        print(type(tracker.detector.platforms[0].transition_model.model_list[0]))
+        covar = tracker.initiator.initiator.prior_state.covar
+        return render_template('config.html',res = res, stateVector = stateVector, covar=covar, tracker=tracker)
        
       #send file name as parameter to download
     return render_template('index.html')
@@ -58,7 +63,16 @@ def upload_config_input():
 def read_config_file(config_file): 
     config_string = config_file.read()
     tracker, ground_truth, metric_manager = YAML('safe').load(config_string)
-    print(tracker)
+    return tracker, ground_truth, metric_manager
+
+
+@app.route('/run', methods=["POST","GET"])
+def run():
+      if request.method == 'POST':
+        state_vector = request.form.getlist('state_vector[]')
+        state_vector_min_range = request.form.getlist('state_vector_min_range[]')
+        print(state_vector_min_range)
+        return "OK"
 
 
 

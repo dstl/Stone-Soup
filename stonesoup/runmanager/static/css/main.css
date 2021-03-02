@@ -4,5 +4,21 @@ body {
 
 .card {
   margin: 20px;
-  width: 60%;
+}
+
+.stateVector {
+  margin: 20px;
+}
+
+.row-state {
+  width: 200px;
+}
+
+.cell-value {
+  vertical-align: middle;
+  text-align: center;
+}
+
+.container-fluid {
+  margin: 20px;
 }
