@@ -1,5 +1,4 @@
 {% extends 'base.html' %} {% block head %}
-
 <div class="card">
   <form action="configInput" method="post" enctype="multipart/form-data">
     <div class="card-body row g-3">
@@ -12,318 +11,339 @@
         />
         <input class="btn btn-outline-secondary" type="submit" value="Upload" />
       </div>
-      <div class="col-sm">
-        <input
-          type="text"
-          class="form-control"
-          placeholder="FileName"
-          aria-label="FileName"
-          name="configFileName"
-          value="{{res.filename}}"
-        />
-      </div>
-      <div class="col-sm">
-        <input
-          type="text"
-          class="form-control"
-          placeholder="Run numbers"
-          aria-label="Run numbers"
-          name="num_runs"
-          value="{{res.num_runs}}"
-        />
-      </div>
-      <div class="col-sm">
-        <input
-          type="text"
-          class="form-control"
-          placeholder="Processes number"
-          aria-label="Processes number"
-          name="num_processes"
-          value="{{res.num_processes}}"
-        />
-      </div>
-      <div class="col-sm">
-        <input
-          type="text"
-          class="form-control"
-          placeholder="Output file name"
-          aria-label="Output file name"
-          name="filename"
-          value="{{res.output}}"
-        />
-      </div>
     </div>
   </form>
 </div>
-
 <form action="/run" method="POST">
-  <button class="btn-primary btn">Run</button>
+  <!--CONFIGURATION-->
+  <div class="card-body row g-3">
+    <div class="col-md-auto">
+      <label>Input file name</label>
+    </div>
+    <div class="col-md-auto">
+      <input
+        type="text"
+        class="form-control"
+        placeholder="FileName"
+        aria-label="FileName"
+        name="configFileName"
+        value="{{res.filename}}"
+      />
+    </div>
+    <div class="col-md-auto">
+      <label>Runs Number</label>
+    </div>
+    <div class="col-md-auto">
+      <input
+        type="text"
+        class="form-control"
+        placeholder="Run numbers"
+        aria-label="Run numbers"
+        name="num_runs"
+        value="3"
+        value="{{res.num_runs}}"
+      />
+    </div>
+    <div class="col-md-auto">
+      <label>Processes Number</label>
+    </div>
+    <div class="col-md-auto">
+      <input
+        type="text"
+        class="form-control"
+        placeholder="Processes number"
+        aria-label="Processes number"
+        name="num_processes"
+        value="1"
+      />
+    </div>
+    <div class="col-md-auto">
+      <label>Output file name</label>
+    </div>
+    <div class="col-md-auto">
+      <input
+        type="text"
+        class="form-control"
+        placeholder="Output file name"
+        aria-label="Output file name"
+        name="filename"
+        value="output.yaml"
+      />
+    </div>
+    <button class="btn-primary btn">Run</button>
+  </div>
 
   <h3>{{tracker.__class__.__name__}}</h3>
-  <h4>{{tracker.initiator.__class__.__name__}}</h4>
   <div class="card">
     <div class="card-header">
-      <h5
-        data-bs-toggle="collapse"
-        href="#initiator"
-        role="button"
-        aria-expanded="false"
-      >
-        {{tracker.initiator.initiator.__class__.__name__}}
-      </h5>
+      <h4>{{tracker.initiator.__class__.__name__}}</h4>
     </div>
-    <div class="collapse card-body" id="initiator">
+    <div class="card-body">
       <div class="card">
         <div class="card-header">
-          <h6
-            class="card-title"
+          <h5
             data-bs-toggle="collapse"
-            href="#state"
+            href="#initiator"
             role="button"
             aria-expanded="false"
           >
-            {{tracker.initiator.initiator.prior_state.__class__.__name__}}
-          </h6>
+            {{tracker.initiator.initiator.__class__.__name__}}
+          </h5>
+        </div>
+        <div class="collapse card-body" id="initiator">
+          <div class="card">
+            <div class="card-header">
+              <h6
+                class="card-title"
+                data-bs-toggle="collapse"
+                href="#state"
+                role="button"
+                aria-expanded="false"
+              >
+                {{tracker.initiator.initiator.prior_state.__class__.__name__}}
+              </h6>
+            </div>
+
+            <div class="collapse card-body" id="state">
+              <!--State vector-->
+
+              <div class="card">
+                <div
+                  class="card-header"
+                  class="card-title"
+                  data-bs-toggle="collapse"
+                  href="#state_vector"
+                  role="button"
+                  aria-expanded="false"
+                >
+                  <label
+                    >{{tracker.initiator.initiator.prior_state.state_vector.__class__.__name__}}:</label
+                  >
+                </div>
+                <div class="card-body collapse" id="state_vector">
+                  <table class="table table-striped" style="width: auto">
+                    <thead>
+                      <tr>
+                        <th scope="col">State Vector</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for value in stateVector %}
+                      <tr>
+                        <td>
+                          <div class="row">
+                            <div class="col">
+                              <label>Value</label>
+                            </div>
+                            <div class="col">
+                              <input
+                                type="number"
+                                class="form-control"
+                                value="{{value}}"
+                                placeholder="Min Range"
+                                name="state_vector[]"
+                              />
+                            </div>
+                          </div>
+                          <div class="row">
+                            <div class="col">
+                              <label>Min Range</label>
+                            </div>
+                            <div class="col">
+                              <input
+                                type="number"
+                                class="form-control"
+                                value="0"
+                                placeholder="Min Range"
+                                name="state_vector_min_range[]"
+                              />
+                            </div>
+                          </div>
+                          <div class="row">
+                            <div class="col">
+                              <label>Max Range</label>
+                            </div>
+                            <div class="col">
+                              <input
+                                type="number"
+                                class="form-control"
+                                value="0"
+                                placeholder="Max Range"
+                                name="state_vector_max_range[]"
+                              />
+                            </div>
+                          </div>
+
+                          <div class="row">
+                            <div class="col">
+                              <label>Step</label>
+                            </div>
+
+                            <div class="col">
+                              <input
+                                type="number"
+                                value="0"
+                                class="form-control"
+                                placeholder="Step"
+                                name="state_vector_step[]"
+                              />
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                      {%endfor%}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <!--covar-->
+              <div class="card">
+                <div
+                  class="card-header"
+                  class="card-title"
+                  data-bs-toggle="collapse"
+                  href="#covar"
+                  role="button"
+                  aria-expanded="false"
+                >
+                  <label
+                    >{{tracker.initiator.initiator.prior_state.covar.__class__.__name__}}:</label
+                  >
+                </div>
+                <div class="card-body collapse" id="covar">
+                  <table class="table table-striped">
+                    <thead>
+                      <tr>
+                        {%for k in range(0,covar[0]|length)%}
+                        <th scope="col">{{k}}</th>
+                        {%endfor%}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for vector in covar %}
+                      <tr>
+                        {%for value in vector%}
+                        <td>
+                          <div class="row">
+                            <div class="col">
+                              <label>Value</label>
+                            </div>
+                            <div class="col">
+                              <input
+                                type="number"
+                                class="form-control"
+                                value="{{value}}"
+                                placeholder="Min Range"
+                                name="covar[]"
+                              />
+                            </div>
+                          </div>
+                          <div class="row">
+                            <div class="col">
+                              <label>Min Range</label>
+                            </div>
+                            <div class="col">
+                              <input
+                                type="number"
+                                class="form-control"
+                                value="0"
+                                placeholder="Min Range"
+                                name="covar_min_range[]"
+                              />
+                            </div>
+                          </div>
+                          <div class="row">
+                            <div class="col">
+                              <label>Max Range</label>
+                            </div>
+                            <div class="col">
+                              <input
+                                type="number"
+                                class="form-control"
+                                value="0"
+                                placeholder="Max Range"
+                                name="covar_max_range[]"
+                              />
+                            </div>
+                          </div>
+
+                          <div class="row">
+                            <div class="col">
+                              <label>Step</label>
+                            </div>
+
+                            <div class="col">
+                              <input
+                                type="number"
+                                class="form-control"
+                                value="0"
+                                placeholder="Step"
+                                name="covar_step[]"
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        {%endfor%}
+                      </tr>
+                      {%endfor%}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <!--Number particles-->
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-auto">
+          <label>Number particles</label>
+        </div>
+        <div class="col-md-auto">
+          <input
+            type="number"
+            class="form-control"
+            value="{{tracker.initiator.number_particles}}"
+            placeholder="Step"
+            name="number_particles"
+          />
+        </div>
+        <div class="col-md-auto">
+          <label>Min Range</label>
+        </div>
+        <div class="col-md-auto">
+          <input
+            type="number"
+            class="form-control"
+            value="0"
+            placeholder="Min Range"
+            name="number_particles_min_range"
+          />
+        </div>
+        <div class="col-md-auto">
+          <label>Max Range</label>
+        </div>
+        <div class="col-md-auto">
+          <input
+            type="number"
+            class="form-control"
+            value="0"
+            placeholder="Max Range"
+            name="number_particles_max_range"
+          />
         </div>
 
-        <div class="collapse card-body" id="state">
-          <!--State vector-->
-
-          <div class="card">
-            <div
-              class="card-header"
-              class="card-title"
-              data-bs-toggle="collapse"
-              href="#state_vector"
-              role="button"
-              aria-expanded="false"
-            >
-              <label
-                >{{tracker.initiator.initiator.prior_state.state_vector.__class__.__name__}}:</label
-              >
-            </div>
-            <div class="card-body collapse" id="state_vector">
-              <table class="table table-striped" style="width: auto">
-                <thead>
-                  <tr>
-                    <th scope="col">State Vector</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for value in stateVector %}
-                  <tr>
-                    <td>
-                      <div class="row">
-                        <div class="col">
-                          <label>Value</label>
-                        </div>
-                        <div class="col">
-                          <input
-                            type="number"
-                            class="form-control"
-                            value="{{value}}"
-                            placeholder="Min Range"
-                            name="state_vector[]"
-                          />
-                        </div>
-                      </div>
-                      <div class="row">
-                        <div class="col">
-                          <label>Min Range</label>
-                        </div>
-                        <div class="col">
-                          <input
-                            type="number"
-                            class="form-control"
-                            value="0"
-                            placeholder="Min Range"
-                            name="state_vector_min_range[]"
-                          />
-                        </div>
-                      </div>
-                      <div class="row">
-                        <div class="col">
-                          <label>Max Range</label>
-                        </div>
-                        <div class="col">
-                          <input
-                            type="number"
-                            class="form-control"
-                            value="0"
-                            placeholder="Max Range"
-                            name="state_vector_max_range[]"
-                          />
-                        </div>
-                      </div>
-
-                      <div class="row">
-                        <div class="col">
-                          <label>Step</label>
-                        </div>
-
-                        <div class="col">
-                          <input
-                            type="number"
-                            value="0"
-                            class="form-control"
-                            placeholder="Step"
-                            name="state_vector_step[]"
-                          />
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                  {%endfor%}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <!--covar-->
-          <div class="card">
-            <div
-              class="card-header"
-              class="card-title"
-              data-bs-toggle="collapse"
-              href="#covar"
-              role="button"
-              aria-expanded="false"
-            >
-              <label
-                >{{tracker.initiator.initiator.prior_state.covar.__class__.__name__}}:</label
-              >
-            </div>
-            <div class="card-body collapse" id="covar">
-              <table class="table table-striped">
-                <thead>
-                  <tr>
-                    {%for k in range(0,covar[0]|length)%}
-                    <th scope="col">{{k}}</th>
-                    {%endfor%}
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for vector in covar %}
-                  <tr>
-                    {%for value in vector%}
-                    <td>
-                      <div class="row">
-                        <div class="col">
-                          <label>Value</label>
-                        </div>
-                        <div class="col">
-                          <input
-                            type="number"
-                            class="form-control"
-                            value="{{value}}"
-                            placeholder="Min Range"
-                            name="covar[]"
-                          />
-                        </div>
-                      </div>
-                      <div class="row">
-                        <div class="col">
-                          <label>Min Range</label>
-                        </div>
-                        <div class="col">
-                          <input
-                            type="number"
-                            class="form-control"
-                            value="0"
-                            placeholder="Min Range"
-                            name="covar_min_range[]"
-                          />
-                        </div>
-                      </div>
-                      <div class="row">
-                        <div class="col">
-                          <label>Max Range</label>
-                        </div>
-                        <div class="col">
-                          <input
-                            type="number"
-                            class="form-control"
-                            value="0"
-                            placeholder="Max Range"
-                            name="covar_max_range[]"
-                          />
-                        </div>
-                      </div>
-
-                      <div class="row">
-                        <div class="col">
-                          <label>Step</label>
-                        </div>
-
-                        <div class="col">
-                          <input
-                            type="number"
-                            class="form-control"
-                            value="0"
-                            placeholder="Step"
-                            name="covar_step[]"
-                          />
-                        </div>
-                      </div>
-                    </td>
-                    {%endfor%}
-                  </tr>
-                  {%endfor%}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <!--Number particles-->
-          <div class="row">
-            <div class="col-md-auto">
-              <label>Number particles</label>
-            </div>
-            <div class="col-md-auto">
-              <input
-                type="number"
-                class="form-control"
-                value="{{tracker.initiator.number_particles}}"
-                placeholder="Step"
-                name="number_particles"
-              />
-            </div>
-            <div class="col-md-auto">
-              <label>Min Range</label>
-            </div>
-            <div class="col-md-auto">
-              <input
-                type="number"
-                class="form-control"
-                value="0"
-                placeholder="Min Range"
-                name="number_particles_min_range"
-              />
-            </div>
-            <div class="col-md-auto">
-              <label>Max Range</label>
-            </div>
-            <div class="col-md-auto">
-              <input
-                type="number"
-                class="form-control"
-                value="0"
-                placeholder="Max Range"
-                name="number_particles_max_range"
-              />
-            </div>
-
-            <div class="col-md-auto">
-              <label>Step</label>
-            </div>
-            <div class="col-md-auto">
-              <input
-                type="number"
-                class="form-control"
-                value="0"
-                placeholder="Step"
-                name="number_particles_step"
-              />
-            </div>
-          </div>
+        <div class="col-md-auto">
+          <label>Step</label>
+        </div>
+        <div class="col-md-auto">
+          <input
+            type="number"
+            class="form-control"
+            value="0"
+            placeholder="Step"
+            name="number_particles_step"
+          />
         </div>
       </div>
     </div>
@@ -391,10 +411,18 @@
   <h4>{{tracker.detector.__class__.__name__}}</h4>
   <div class="card">
     <div class="card-header">
-      <h5>{{tracker.detector.groundtruth.__class__.__name__}}</h5>
+      <h5
+        class="card-title"
+        data-bs-toggle="collapse"
+        href="#groundtruth"
+        role="button"
+        aria-expanded="false"
+      >
+        {{tracker.detector.groundtruth.__class__.__name__}}
+      </h5>
     </div>
     <!--Dummy Ground Truth -->
-    <div class="card-body">
+    <div class="collapse card-body" id="groundtruth">
       <div class="col">
         <table class="table table-striped" style="width: auto">
           <thead>
@@ -469,9 +497,17 @@
   {% for platform in tracker.detector.platforms %}
   <div class="card">
     <div class="card-header">
-      <h5>{{platform.__class__.__name__}}</h5>
+      <h5
+        class="card-title"
+        data-bs-toggle="collapse"
+        href="#platform{{loop.index}}"
+        role="button"
+        aria-expanded="false"
+      >
+        {{platform.__class__.__name__}}
+      </h5>
     </div>
-    <div class="card-body">
+    <div class="collapse card-body" id="platform{{loop.index}}">
       <!--State vector-->
       <div class="card">
         <div class="card-header">
@@ -616,8 +652,197 @@
           {%endfor%}
         </div>
       </div>
-      <!--Transition models-->
 
+      <!--Transition Model-->
+      <div class="card">
+        <div class="card-header">
+          <h6>{{platform.transition_model.__class__.__name__}}</h6>
+        </div>
+        <!--Transition models-->
+        <div class="card-body">
+          {%for model in platform.transition_model.model_list%}
+          <div class="card">
+            <div class="card-header">
+              <h6>{{model.__class__.__name__}}</h6>
+            </div>
+
+            <!--ConstantVelocity-->
+            {%if model.__class__.__name__== "ConstantVelocity"%}
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-auto">
+                  <label>Value</label>
+                </div>
+                <div class="col-md-auto">
+                  <input
+                    class="form-control"
+                    type="number"
+                    value="{{platform.transition_model.noise_diff_coeff}}"
+                    placeholder="Value"
+                    name="noise_diff_coeff[][][]"
+                  />
+                </div>
+                <div class="col-md-auto">
+                  <label>Min Range</label>
+                </div>
+                <div class="col-md-auto">
+                  <input
+                    class="form-control"
+                    type="number"
+                    value="0"
+                    placeholder="Min Range"
+                    name="noise_diff_coeff_min_range[][][]"
+                  />
+                </div>
+                <div class="col-md-auto">
+                  <label>Max Range</label>
+                </div>
+                <div class="col-md-auto">
+                  <input
+                    class="form-control"
+                    type="number"
+                    value="0"
+                    placeholder="Max Range"
+                    name="noise_diff_coeff_max_range[][][]"
+                  />
+                </div>
+
+                <div class="col-md-auto">
+                  <label>Step</label>
+                </div>
+                <div class="col-md-auto">
+                  <input
+                    class="form-control"
+                    type="number"
+                    value="0"
+                    placeholder="Step"
+                    name="noise_diff_coeff_step[][][]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {% endif %}
+            <!--ConstantTurn-->
+            {%if model.__class__.__name__=="ConstantTurn"%}
+            <!--Turn noise diff-->
+            {%for noise in model.turn_noise_diff_coeffs%}
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-auto">
+                  <label>turn_noise_diff_coeffs</label>
+                </div>
+                <div class="col-md-auto">
+                  <input
+                    class="form-control"
+                    type="number"
+                    value="{{noise}}"
+                    placeholder="Value"
+                    name="turn_noise_diff_coeffs[][][]"
+                  />
+                </div>
+                <div class="col-md-auto">
+                  <label>Min Range</label>
+                </div>
+                <div class="col-md-auto">
+                  <input
+                    class="form-control"
+                    type="number"
+                    value="0"
+                    placeholder="Min Range"
+                    name="turn_noise_diff_coeffs_min_range[][][]"
+                  />
+                </div>
+                <div class="col-md-auto">
+                  <label>Max Range</label>
+                </div>
+                <div class="col-md-auto">
+                  <input
+                    class="form-control"
+                    type="number"
+                    value="0"
+                    placeholder="Max Range"
+                    name="turn_noise_diff_coeffs_max_range[][][]"
+                  />
+                </div>
+
+                <div class="col-md-auto">
+                  <label>Step</label>
+                </div>
+                <div class="col-md-auto">
+                  <input
+                    class="form-control"
+                    type="number"
+                    value="0"
+                    placeholder="Step"
+                    name="turn_noise_diff_coeffs_step[][][]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {%endfor%}
+
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-auto">
+                  <label>turn_rate</label>
+                </div>
+                <div class="col-md-auto">
+                  <input
+                    class="form-control"
+                    type="number"
+                    value="{{model.turn_rate}}"
+                    placeholder="Value"
+                    name="turn_rate[][][]"
+                  />
+                </div>
+                <div class="col-md-auto">
+                  <label>Min Range</label>
+                </div>
+                <div class="col-md-auto">
+                  <input
+                    type="number"
+                    value="0"
+                    class="form-control"
+                    placeholder="Min Range"
+                    name="turn_rate_min_range[][][]"
+                  />
+                </div>
+                <div class="col-md-auto">
+                  <label>Max Range</label>
+                </div>
+                <div class="col-md-auto">
+                  <input
+                    class="form-control"
+                    type="number"
+                    value="0"
+                    placeholder="Max Range"
+                    name="turn_rate_max_range[][][]"
+                  />
+                </div>
+
+                <div class="col-md-auto">
+                  <label>Step</label>
+                </div>
+                <div class="col-md-auto">
+                  <input
+                    type="number"
+                    class="form-control"
+                    value="0"
+                    placeholder="Step"
+                    name="turn_rate_step[][][]"
+                  />
+                </div>
+              </div>
+            </div>
+            {%endif%}
+          </div>
+          {%endfor%}
+        </div>
+      </div>
+
+      <!--Transition models-->
       {%for transition_model in platform.transition_models%}
       <div class="card">
         <div class="card-header">

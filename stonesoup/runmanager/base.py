@@ -3,12 +3,16 @@ print('__file__={0:<35} | __name__={1:<20} | __package__={2:<20}'.format(__file_
 
 from ..base import Base
 from stonesoup.types.array import StateVector
-
+from stonesoup.platform import base
+from stonesoup.tracker.base import Tracker
 
 class RunManager(Base):
     "Base run manager class"
 
+
     def __init__(self):
+        #Tracker
+        self.tracker:Tracker
         self.state_vectors=[]
         self.state_vector_min_range=[]
         self.state_vector_max_range=[]
@@ -23,3 +27,11 @@ class RunManager(Base):
         self.number_particles_min_range=0
         self.number_particles_max_range=0
         self.number_particles_step=0
+
+        #Deleter
+        self.time_steps_since_update=[]
+        self.time_steps_since_update_min_range=0
+        self.time_steps_since_update_max_range=0
+        self.time_steps_since_update_step=0
+
+        
