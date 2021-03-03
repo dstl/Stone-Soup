@@ -57,9 +57,8 @@ def test_alphabeta(measurement_model, prediction, measurement, alpha, beta):
                        eval_measurement_prediction.state_vector, 0, atol=1.e-14))
 
     # Perform and assert state update (without measurement prediction)
-    posterior = updater.update(SingleHypothesis(
-        prediction=prediction,
-        measurement=measurement), time_interval=timediff)
+    posterior = updater.update(SingleHypothesis(prediction=prediction, measurement=measurement),
+                               time_interval=timediff)
 
     assert(np.allclose(posterior.state_vector, eval_posterior.state_vector, 0, atol=1.e-14))
     assert(np.array_equal(posterior.hypothesis.prediction, prediction))
@@ -67,8 +66,14 @@ def test_alphabeta(measurement_model, prediction, measurement, alpha, beta):
     assert(posterior.timestamp == prediction.timestamp)
 
     # Check that the vmap parameter can be set
+    # Check a measurement prediction can be added
     updater.vmap = np.array([1, 3])
-    posterior = updater.update(SingleHypothesis(
-        prediction=prediction,
-        measurement=measurement), time_interval=timediff)
+    posterior = updater.update(SingleHypothesis(prediction=prediction, measurement=measurement,
+                                                measurement_prediction=measurement_prediction),
+                               time_interval=timediff)
     assert(np.allclose(posterior.state_vector, eval_posterior.state_vector, 0, atol=1.e-14))
+
+    # Finally check that no model in the updater raises correct error
+    updater.measurement_model = None
+    with pytest.raises(ValueError):
+        updater._check_measurement_model(None)
