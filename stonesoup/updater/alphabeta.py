@@ -3,10 +3,10 @@
 
 import numpy as np
 
-from stonesoup.base import Property
-from stonesoup.updater import Updater
-from stonesoup.types.prediction import MeasurementPrediction
-from stonesoup.types.update import Update
+from ..base import Property
+from ..updater import Updater
+from ..types.prediction import MeasurementPrediction
+from ..types.update import Update
 
 
 class AlphaBetaUpdater(Updater):
@@ -66,7 +66,7 @@ class AlphaBetaUpdater(Updater):
                                                   "assume that the velocity elements interleave "
                                                   "the position elements in the state vector.")
 
-    def predict_measurement(self, prediction, **kwargs):
+    def predict_measurement(self, prediction, measurement_model=None, **kwargs):
         """Return the predicted measurement
 
         Parameters
@@ -79,7 +79,9 @@ class AlphaBetaUpdater(Updater):
          : :class:`~.StateVector`
             The predicted measurement
         """
-        pred_meas = self.measurement_model.matrix(**kwargs) @ prediction.state_vector
+        # This necessary if predict_measurement called on its own
+        measurement_model = self._check_measurement_model(measurement_model)
+        pred_meas = measurement_model.matrix(**kwargs) @ prediction.state_vector
         return MeasurementPrediction.from_state(prediction, pred_meas)
 
     def update(self, hypothesis, time_interval, **kwargs):
@@ -98,9 +100,20 @@ class AlphaBetaUpdater(Updater):
             The updated state
         """
         out_statevector = hypothesis.prediction.state_vector.copy()
-        pred_meas = self.predict_measurement(hypothesis.prediction)
 
-        pmap = np.array(self.measurement_model.mapping)
+        # Check for the measurement_model in the measurement, if not present use the one in this
+        # updater
+        measurement_model = hypothesis.measurement.measurement_model
+        measurement_model = self._check_measurement_model(measurement_model)
+
+        # Check for a measurement prediction in the hypothesis
+        if hypothesis.measurement_prediction is None:
+            pred_meas = self.predict_measurement(hypothesis.prediction,
+                                                 measurement_model=measurement_model)
+        else:
+            pred_meas = hypothesis.measurement_prediction
+
+        pmap = np.array(measurement_model.mapping)
         if self.vmap is None:
             vmap = pmap + 1
         else:
