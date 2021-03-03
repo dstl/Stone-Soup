@@ -42,7 +42,7 @@ class Plotter:
         self.handles_list = []
         self.labels_list = []
 
-    def plot_ground_truths(self, truths, mapping, **kwargs):
+    def plot_ground_truths(self, truths, mapping, truths_label="Ground Truth", **kwargs):
         """Plots ground truth(s)
 
         Plots each ground truth path passed in to :attr:`truths` and generates a legend
@@ -75,14 +75,14 @@ class Plotter:
 
         # Generate legend items
         truths_handle = Line2D([], [], linestyle=truths_kwargs['linestyle'], color='black')
-        truths_label = "Ground Truth"
         self.handles_list.append(truths_handle)
         self.labels_list.append(truths_label)
 
         # Generate legend
         self.ax.legend(handles=self.handles_list, labels=self.labels_list)
 
-    def plot_measurements(self, measurements, mapping, measurement_model=None, **kwargs):
+    def plot_measurements(self, measurements, mapping, measurement_model=None,
+                          measurements_label="Measurements", **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -110,7 +110,6 @@ class Plotter:
         measurement_kwargs.update(kwargs)
 
         measurements_handle = Line2D([], [], linestyle='', **measurement_kwargs)
-        measurements_label = "Measurements"
         clutter_handle = None
         clutter_label = None
 
@@ -168,7 +167,8 @@ class Plotter:
         # Generate legend
         self.ax.legend(handles=self.handles_list, labels=self.labels_list)
 
-    def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, **kwargs):
+    def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, track_label="Track",
+                    **kwargs):
         """Plots track(s)
 
         Plots each track generated, generating a legend automatically. If ``uncertainty=True``,
@@ -202,14 +202,17 @@ class Plotter:
 
         # Plot tracks
         for track in tracks:
-            self.ax.plot([state.state_vector[mapping[0]] for state in track],
-                         [state.state_vector[mapping[1]] for state in track],
-                         **tracks_kwargs)
+            line = self.ax.plot([state.state_vector[mapping[0]] for state in track],
+                                [state.state_vector[mapping[1]] for state in track],
+                                **tracks_kwargs)
+
+        # Assuming a single track or all plotted as the same colour then the following will work.
+        # Otherwise will just render the final track colour.
+        tracks_kwargs['color'] = plt.getp(line[0], 'color')
 
         # Generate legend items for track
         track_handle = Line2D([], [], linestyle=tracks_kwargs['linestyle'],
-                              marker=tracks_kwargs['marker'], color='black')
-        track_label = "Track"
+                              marker=tracks_kwargs['marker'], color=tracks_kwargs['color'])
         self.handles_list.append(track_handle)
         self.labels_list.append(track_label)
 
