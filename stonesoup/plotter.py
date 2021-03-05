@@ -362,9 +362,11 @@ class TimeBasedPlotter(Base):
 
         for a_plot_object in data:
             if a_plot_object.plotting_data is not None:
-                the_data = np.array([a_state.state_vector for a_state in a_plot_object.plotting_data])
+                the_data = np.array(
+                [a_state.state_vector for a_state in a_plot_object.plotting_data])
                 the_lines.append(
-                    plt.plot(the_data[:1, 0], the_data[:1, 2], **a_plot_object.plotting_keyword_arguments)[0])
+                    plt.plot(the_data[:1, 0], the_data[:1, 2], 
+                    **a_plot_object.plotting_keyword_arguments)[0])
 
                 legends_key.append(a_plot_object.legend_key)
                 plotting_data.append(a_plot_object.plotting_data)
@@ -384,7 +386,8 @@ class TimeBasedPlotter(Base):
 
         interval_time = 50  # milliseconds
 
-        line_ani = animation.FuncAnimation(fig1, TimeBasedPlotter.update_animation, frames=times_to_plot,
+        line_ani = animation.FuncAnimation(fig1, TimeBasedPlotter.update_animation, 
+        frames=times_to_plot,
                                            fargs=(the_lines, plotting_data),
                                            interval=interval_time, blit=False,
                                            repeat=False)
@@ -400,7 +403,8 @@ class TimeBasedPlotter(Base):
         for i, data_source in enumerate(data_list):
 
             if data_source is not None:
-                the_data = np.array([a_state.state_vector for a_state in data_source if a_state.timestamp <= timestamp])
+                the_data = np.array([a_state.state_vector for a_state in data_source 
+                if a_state.timestamp <= timestamp])
                 if the_data.size > 0:
                     lines[i].set_data(the_data[:, 0], the_data[:, 2])
         return lines
@@ -412,7 +416,8 @@ class TimeBasedPlotter(Base):
             if all(isinstance(list_item, Detection) for list_item in data_source):
                 try:
                     output = [State(a_detection.measurement_model.inverse_function(a_detection),
-                                    timestamp=a_detection.timestamp) for a_detection in data_source]
+                                    timestamp=a_detection.timestamp) 
+                                    for a_detection in data_source]
                 except AttributeError:
                     output = None
             else:
