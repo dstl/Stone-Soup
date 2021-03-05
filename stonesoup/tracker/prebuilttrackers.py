@@ -4,7 +4,7 @@ from ..base import Base, Property
 from ..dataassociator.neighbour import NearestNeighbour
 from ..deleter.error import CovarianceBasedDeleter
 from ..hypothesiser.distance import DistanceHypothesiser
-from ..initiator.simple import OnePointInitiator, SinglePointInitiator
+from ..initiator.simple import SinglePointInitiator
 from ..measures import Euclidean
 from ..predictor.kalman import ExtendedKalmanPredictor
 from .simple import Tracker
@@ -59,7 +59,7 @@ class PreBuiltSingleTargetTrackerNoClutter(PreBuiltTracker):
 
         if self.initiator is None:
             if self.ground_truth_prior is not None:
-                self.initiator = OnePointInitiator(self.ground_truth_prior, None)
+                self.initiator = SinglePointInitiator(self.ground_truth_prior, None)
             else:
                 raise ValueError("If no initiator is provided then a ground truth prior must be provided")
 
