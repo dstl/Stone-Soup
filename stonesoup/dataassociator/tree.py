@@ -89,25 +89,27 @@ class DetectionKDTreeMixIn(DataAssociator):
 class TPRTreeMixIn(DataAssociator):
     """Detection TPR tree based mixin
 
-    Construct TPR tree
+    Construct a TPR-tree.
     """
     measurement_model = Property(
         MeasurementModel,
-        doc="")
+        doc="Measurement model used within the TPR tree")
     horizon_time = Property(
         datetime.timedelta,
-        doc="")
+        doc="How far the TPR tree should look into the future")
     vel_mapping = Property(
         np.ndarray,
         default=None,
-        doc="")
+        doc="Used to generate coordinates")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # if no vel_mapping take position mapping and plus 1 to each dimension
+        # e.g. 0,2 would become 1,3
+        self.pos_mapping = self.measurement_model.mapping
         if self.vel_mapping is None:
-            self.pos_mapping = self.measurement_model.mapping[::2]
-            self.vel_mapping = self.measurement_model.mapping[1::2]
+            self.vel_mapping = self.measurement_model.mapping[1::3]
         else:
             self.pos_mapping = self.measurement_model.mapping
 
