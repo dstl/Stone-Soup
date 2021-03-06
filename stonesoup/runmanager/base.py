@@ -5,10 +5,17 @@ from ..base import Base
 from stonesoup.types.array import StateVector
 from stonesoup.platform import base
 from stonesoup.tracker.base import Tracker
+from stonesoup.platform.base import Platform
+from typing import Sequence
 
 class RunManager(Base):
     "Base run manager class"
 
+
+    platforms: Sequence[Platform]
+    platforms_min_range: Sequence[Platform]
+    platforms_max_range: Sequence[Platform]
+    platforms_step: Sequence[Platform]
 
     def __init__(self):
         #Tracker
@@ -34,4 +41,4 @@ class RunManager(Base):
         self.time_steps_since_update_max_range=0
         self.time_steps_since_update_step=0
 
-        
+       

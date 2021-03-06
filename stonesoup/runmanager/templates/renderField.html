@@ -1,0 +1,15 @@
+{%macro show_node(node,children)%}
+<div class="card">
+  {%if node is not none%}
+  <div class="card-header">
+    <h6>{{node.type}} {{node.property}}</h6>
+  </div>
+  <div class="card-body">
+    {%for val in children %} {%if val is not none %} {%if
+    val.children|length>0%} {{show_node(val.data,val.children)}} {%else%}
+    <p>{{val.data.property}} {{val.data.value}}</p>
+    {%endif%} {%endif%} {%endfor%}
+  </div>
+  {%endif%}
+</div>
+{%endmacro%}

@@ -494,7 +494,7 @@
   </div>
 
   <!--Tracker detector platforms-->
-  {% for platform in tracker.detector.platforms %}
+  {% for platform in tracker.detector.platforms %} {%set platform_loop = loop%}
   <div class="card">
     <div class="card-header">
       <h5
@@ -534,7 +534,7 @@
                         type="number"
                         value="{{value}}"
                         placeholder="Min Range"
-                        name="platform.state_vector[]"
+                        name="platform[{{platform_loop.index}}].state_vector[]"
                       />
                     </div>
                   </div>
@@ -548,7 +548,7 @@
                         type="number"
                         value="0"
                         placeholder="Min Range"
-                        name="platform.state_vector_min_range[]"
+                        name="platform[{{platform_loop.index}}].state_vector_min_range[]"
                       />
                     </div>
                   </div>
@@ -562,7 +562,7 @@
                         type="number"
                         value="0"
                         placeholder="Max Range"
-                        name="platform.,state_vector_max_range[]"
+                        name="platform[{{platform_loop.index}}].state_vector_max_range[]"
                       />
                     </div>
                   </div>
@@ -578,7 +578,7 @@
                         type="number"
                         value="0"
                         placeholder="Step"
-                        name="state_vector_step[]"
+                        name="platform[{{platform_loop.index}}].state_vector_step[]"
                       />
                     </div>
                   </div>
@@ -607,7 +607,7 @@
                 class="form-control"
                 value="{{position_mapping}}"
                 placeholder="Step"
-                name="position_mapping[][]"
+                name="platform[{{platform_loop.index}}].position_mapping[]"
               />
             </div>
             <div class="col-md-auto">
@@ -619,7 +619,7 @@
                 type="number"
                 value="0"
                 placeholder="Min Range"
-                name="position_mapping_min_range[][]"
+                name="platform[{{platform_loop.index}}].position_mapping_min_range[]"
               />
             </div>
             <div class="col-md-auto">
@@ -631,7 +631,7 @@
                 type="number"
                 value="0"
                 placeholder="Max Range"
-                name="position_mapping_max_range[][]"
+                name="platform[{{platform_loop.index}}].position_mapping_max_range[]"
               />
             </div>
 
@@ -644,7 +644,7 @@
                 class="form-control"
                 value="0"
                 placeholder="Step"
-                name="position_mapping_step[][]"
+                name="platform[{{platform_loop.index}}].position_mapping_step[]"
               />
             </div>
           </div>
@@ -679,7 +679,7 @@
                     type="number"
                     value="{{platform.transition_model.noise_diff_coeff}}"
                     placeholder="Value"
-                    name="noise_diff_coeff[][][]"
+                    name="platform[{{platform_loop.index}}].noise_diff_coeff[]"
                   />
                 </div>
                 <div class="col-md-auto">
@@ -1095,7 +1095,7 @@
       {%for rotation_offset in platform.rotation_offsets%}
       <div class="card">
         <div class="card-header">
-          <label>{{rotation_offset.__class__.__name__}}:</label>
+          <label>Rotation Offset {{loop.index}}:</label>
         </div>
         <div class="card-body">
           <table class="table" style="width: auto">
@@ -1179,7 +1179,7 @@
       {%for mounting_offsets in platform.mounting_offsets%}
       <div class="card">
         <div class="card-header">
-          <label>{{mounting_offsets.__class__.__name__}}:</label>
+          <label>Mounting Offset {{loop.index}}:</label>
         </div>
         <div class="card-body">
           <table class="table" style="width: auto">
@@ -1258,6 +1258,41 @@
         </div>
       </div>
       {%endfor%}
+
+      <!--Sensors-->
+      <div class="card">
+        <div class="card-header">
+          <h6
+            class="card-title"
+            data-bs-toggle="collapse"
+            href="#sensors"
+            role="button"
+            aria-expanded="false"
+          >
+            Sensors
+          </h6>
+        </div>
+        <div class="collapse card-body" id="sensors">
+          <!--SENSOR LIST-->
+          {%for sensor in platform.sensors%}
+          <div class="card">
+            <div class="card-header">
+              <h6
+                class="card-title"
+                data-bs-toggle="collapse"
+                href="#sensor{{loop.index}}"
+                role="button"
+                aria-expanded="false"
+              >
+                {{sensor.__class__.name__}}
+              </h6>
+            </div>
+            <div class="collapse card-body" id="sensor{{loop.index}}"></div>
+          </div>
+
+          {%endfor%}
+        </div>
+      </div>
     </div>
   </div>
   {%endfor%}

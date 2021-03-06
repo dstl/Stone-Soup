@@ -41,3 +41,16 @@ def generate_random_int(min_value,max_value):
         value=randint(min_value,max_value)
 
     return value 
+
+
+class Tree:
+    def __init__(self, data):
+        self.children = []
+        self.data:nodeData =data
+
+
+class NodeData:
+    def __init__(self,type,value,property):
+        self.type = type
+        self.value = value 
+        self.property = property
