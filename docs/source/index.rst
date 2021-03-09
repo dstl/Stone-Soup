@@ -29,14 +29,21 @@ For community support, head over to the
 
 Installation
 ------------
-To install Stone Soup from PyPI execute:
+To install Stone Soup from PyPI with ``pip``:
 
 .. code::
 
     python -m pip install stonesoup
 
-Stone Soup is currently in active development under *beta*, so it is
-recommended to install the latest version from our GitHub repository:
+To install Stone Soup from Conda-Forge with ``conda``:
+
+.. code::
+
+    conda config --add channels conda-forge
+    conda install stonesoup
+
+Stone Soup is currently in active development under *beta*. To install
+the latest version from the GitHub repository:
 
 .. code::
 
@@ -57,7 +64,8 @@ following:
 
 Please also see our :ref:`contributing:Contributing` page.
 
-Contents:
+Contents
+========
 
 .. toctree::
     :maxdepth: 2
