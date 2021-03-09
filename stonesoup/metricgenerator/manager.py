@@ -27,6 +27,8 @@ class SimpleManager(MetricManager):
         self._groundtruth_paths = set()
         self._detections = set()
         self.association_set = None
+        if self.generators is None:
+            self.generators = set()
 
     @property
     def tracks(self):
@@ -58,6 +60,7 @@ class SimpleManager(MetricManager):
             overwriting one field (e.g. tracks) does not affect the others
         """
 
+        # Clear all generator caches
         for generator in self.generators:
             try:
                 generator.clear_caches()

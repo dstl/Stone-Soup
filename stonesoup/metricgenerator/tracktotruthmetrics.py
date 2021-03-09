@@ -1,36 +1,16 @@
 # -*- coding: utf-8 -*-
 import datetime
 import warnings
-from functools import lru_cache, wraps
 from operator import attrgetter
 
 import numpy as np
 
+from ._utils import clearable_lru_cache
 from .base import MetricGenerator
 from ..base import Property
 from ..measures import EuclideanWeighted
 from ..types.metric import SingleTimeMetric, TimeRangeMetric
 from ..types.time import TimeRange
-
-
-def clearable_lru_cache():
-    """Cache decorator that allows keeping track of which methods are decorated.
-    A new cache is created for each instance of :class:`SIAPMetrics`
-    """
-
-    def cache_decorator(func):
-        @wraps(func)
-        def cache_factory(self, *args, **kwargs):
-            instance_cache = lru_cache(*self.cache_args, **self.cache_kwargs)(func)
-            instance_cache = instance_cache.__get__(self, self.__class__)
-            setattr(self, func.__name__, instance_cache)
-
-            self.cached_functions.append(func)
-            return instance_cache(*args, **kwargs)
-
-        return cache_factory
-
-    return cache_decorator
 
 
 class SIAPMetrics(MetricGenerator):
@@ -87,12 +67,17 @@ class SIAPMetrics(MetricGenerator):
     track_id: str = Property(default=None,
                              doc="Metadata key for ID of each track in dataset")
 
-    cache: bool = Property(default=True, doc="Boolean determining whether components are cached")
+    cache: bool = Property(default=False, doc="Boolean determining whether components are cached")
     cache_args: tuple = Property(default=None, doc="Cache arguments")
     cache_kwargs: dict = Property(default=None, doc="Cache key word arguments")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        if self.position_mapping:
+            self.position_mapping = tuple(self.position_mapping)
+        if self.velocity_mapping:
+            self.velocity_mapping = tuple(self.velocity_mapping)
 
         if not self.cache and (self.cache_args or self.cache_kwargs):
             raise ValueError("Cannot have cache arguments if no caches are required.")
@@ -103,7 +88,7 @@ class SIAPMetrics(MetricGenerator):
         if self.cache_kwargs is None:
             self.cache_kwargs = dict()
 
-    def clear_all_cached_functions(self):
+    def clear_caches(self):
         """Clear all methods decorated as caches"""
         for func in self.cached_functions:
             func.cache_clear()
@@ -1023,7 +1008,7 @@ class SIAPMetrics(MetricGenerator):
             Sum of Euclidean distances (of position or velocity) of each truth to its associated
             tracks in manager at timestamp
         """
-        measure = EuclideanWeighted(mapping=mapping, weighting=weighting)
+        measure = EuclideanWeighted(mapping=list(mapping), weighting=weighting)
         distance_sum = 0
         for assoc in manager.association_set.associations_at_timestamp(timestamp):
             track, truth = assoc.objects

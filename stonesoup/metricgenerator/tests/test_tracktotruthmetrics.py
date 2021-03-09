@@ -20,10 +20,30 @@ def metric_generators():
     return [SIAPMetrics(position_mapping=[0, 2],
                         velocity_mapping=[1, 3],
                         truth_id='identify',
-                        track_id='ident')]
+                        track_id='ident',
+                        cache=False),
+            SIAPMetrics(position_mapping=[0, 2],
+                        velocity_mapping=[1, 3],
+                        truth_id='identify',
+                        track_id='ident',
+                        cache=True),
+            SIAPMetrics(position_mapping=[0, 2],
+                        velocity_mapping=[1, 3],
+                        truth_id='identify',
+                        track_id='ident',
+                        cache=True,
+                        cache_args=(128, True)),
+            SIAPMetrics(position_mapping=[0, 2],
+                        velocity_mapping=[1, 3],
+                        truth_id='identify',
+                        track_id='ident',
+                        cache=True,
+                        cache_kwargs={'maxsize': 128, 'typed': True})
+            ]
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(),
+                         ids=["SIAP", "SIAP cached", "SIAP cached args", "SIAP cached kwargs"])
 def test_num_tracks_tracks(generator):
     manager = SimpleManager()
     metric = SIAPMetrics(position_mapping=[0, 1])
@@ -53,8 +73,7 @@ def test_num_tracks_tracks(generator):
                     for i in range(5)])
     }
 
-    manager.groundtruth_paths = truths
-    manager.tracks = tracks
+    manager.add_data(groundtruth_paths=truths, tracks=tracks)
 
     num_tracks = metric.num_tracks(manager)
     num_truths = metric.num_truths(manager)
@@ -71,7 +90,8 @@ def test_num_tracks_tracks(generator):
     assert num_truths.value == 2
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(),
+                         ids=["SIAP", "SIAP cached", "SIAP cached args", "SIAP cached kwargs"])
 @pytest.mark.parametrize("mapping", ['position_mapping', 'velocity_mapping'])
 def test_assoc_distances_sum_t(generator, mapping):
     manager = SimpleManager()
@@ -104,8 +124,7 @@ def test_assoc_distances_sum_t(generator, mapping):
     )
     associations = {assoc1}
 
-    manager.groundtruth_paths = {truth}
-    manager.tracks = {track1, track2}
+    manager.add_data(groundtruth_paths={truth}, tracks={track1, track2})
     manager.association_set = AssociationSet(associations)
 
     for i in range(5):
@@ -116,7 +135,11 @@ def test_assoc_distances_sum_t(generator, mapping):
         assert distance_sum == 1
 
     associations = {assoc1, assoc2}
+
     manager.association_set = AssociationSet(associations)
+
+    if generator.cache:
+        generator.clear_caches()
 
     for i in range(5):
         distance_sum = generator._assoc_distances_sum_t(manager,
@@ -126,7 +149,8 @@ def test_assoc_distances_sum_t(generator, mapping):
         assert distance_sum == 2
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(),
+                         ids=["SIAP", "SIAP cached", "SIAP cached args", "SIAP cached kwargs"])
 def test_j_t(generator):
     manager = SimpleManager()
     tstart = datetime.datetime.now()
@@ -138,13 +162,14 @@ def test_j_t(generator):
             GroundTruthState([[1], [0], [0], [0]], timestamp=tstart + datetime.timedelta(
                 seconds=i))
             for i in range(3)])}
-    manager.groundtruth_paths = truths
+    manager.add_data(groundtruth_paths=truths)
 
     assert generator._j_t(manager, tstart + datetime.timedelta(seconds=1)) == 2
     assert generator._j_t(manager, tstart + datetime.timedelta(seconds=4)) == 1
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(),
+                         ids=["SIAP", "SIAP cached", "SIAP cached args", "SIAP cached kwargs"])
 def test_j_sum(generator):
     manager = SimpleManager()
     tstart = datetime.datetime.now()
@@ -157,13 +182,14 @@ def test_j_sum(generator):
                 seconds=i))
             for i in range(3)])
     }
-    manager.groundtruth_paths = truths
+    manager.add_data(groundtruth_paths=truths)
 
-    assert generator._j_sum(manager, [tstart + datetime.timedelta(seconds=i)
-                                      for i in range(7)]) == 8
+    timestamps = tuple([tstart + datetime.timedelta(seconds=i) for i in range(7)])
+    assert generator._j_sum(manager, timestamps) == 8
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(),
+                         ids=["SIAP", "SIAP cached", "SIAP cached args", "SIAP cached kwargs"])
 def test_jt(generator):
     manager = SimpleManager()
     tstart = datetime.datetime.now()
@@ -197,11 +223,10 @@ def test_jt(generator):
                              end_timestamp=tstart + datetime.timedelta(seconds=10 + i)))
         for i in range(10)])
 
-    manager.groundtruth_paths = {truth1, truth2}
-    manager.tracks = {track1, track2}
+    manager.add_data(groundtruth_paths={truth1, truth2}, tracks={track1, track2})
     manager.association_set = AssociationSet(assocs)
 
-    timestamps = [tstart + datetime.timedelta(seconds=i) for i in range(20)]
+    timestamps = tuple([tstart + datetime.timedelta(seconds=i) for i in range(20)])
 
     count = 0
 
@@ -220,7 +245,8 @@ def test_jt(generator):
     assert generator._jt_sum(manager, timestamps) == count
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(),
+                         ids=["SIAP", "SIAP cached", "SIAP cached args", "SIAP cached kwargs"])
 def test__na(generator):
     manager = SimpleManager()
     tstart = datetime.datetime.now()
@@ -240,7 +266,7 @@ def test__na(generator):
                     TimeRangeAssociation({truth, track2}, time_range=TimeRange(
                         start_timestamp=tstart,
                         end_timestamp=tstart + datetime.timedelta(seconds=2)))}
-    manager.tracks = {track1, track2}
+    manager.add_data(tracks={track1, track2})
     manager.association_set = AssociationSet(associations)
 
     # Test _na_t
@@ -249,12 +275,12 @@ def test__na(generator):
     assert generator._na_t(manager, tstart + datetime.timedelta(seconds=7)) == 0
 
     # Test _na_sum
+    timestamps = tuple([tstart + datetime.timedelta(seconds=i) for i in range(4)])
+    assert generator._na_sum(manager, timestamps) == 7
 
-    assert generator._na_sum(manager, [tstart + datetime.timedelta(seconds=i)
-                                       for i in range(4)]) == 7
 
-
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(),
+                         ids=["SIAP", "SIAP cached", "SIAP cached args", "SIAP cached kwargs"])
 def test_n(generator):
     manager = SimpleManager()
     tstart = datetime.datetime.now()
@@ -267,7 +293,7 @@ def test_n(generator):
     track3 = Track(
         states=[State([[3], [0], [0], [0]], timestamp=tstart + datetime.timedelta(seconds=i))
                 for i in range(2, 7)])
-    manager.tracks = {track1, track2, track3}
+    manager.add_data(tracks={track1, track2, track3})
 
     # test _n_t
     assert generator._n_t(manager, tstart + datetime.timedelta(seconds=2)) == 3
@@ -276,11 +302,12 @@ def test_n(generator):
     assert generator._n_t(manager, tstart + datetime.timedelta(seconds=10)) == 0
 
     # test _n_sum
-    assert generator._n_sum(manager, [tstart + datetime.timedelta(seconds=i)
-                                      for i in range(5)]) == 11
+    timestamps = tuple([tstart + datetime.timedelta(seconds=i) for i in range(5)])
+    assert generator._n_sum(manager, timestamps) == 11
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(),
+                         ids=["SIAP", "SIAP cached", "SIAP cached args", "SIAP cached kwargs"])
 def test_tt_j(generator):
     manager = SimpleManager()
     tstart = datetime.datetime.now()
@@ -308,13 +335,14 @@ def test_tt_j(generator):
                         start_timestamp=tstart + datetime.timedelta(seconds=7),
                         end_timestamp=tstart + datetime.timedelta(
                             seconds=14)))}
-    manager.tracks = {track1, track2, track3}
+    manager.add_data(tracks={track1, track2, track3})
     manager.association_set = AssociationSet(associations)
 
     assert generator._tt_j(manager, truth) == datetime.timedelta(seconds=11)
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(),
+                         ids=["SIAP", "SIAP cached", "SIAP cached args", "SIAP cached kwargs"])
 def test_nu_j(generator):
     manager = SimpleManager()
     tstart = datetime.datetime(2020, 1, 1, 0)
@@ -354,9 +382,9 @@ def test_nu_j(generator):
         states=[State([[9], [0], [0], [0]], timestamp=tstart + datetime.timedelta(seconds=i))
                 for i in range(35, 40)])
 
-    manager.tracks = {track1, track2, track3, track4, track5, track6, track7,
-                      track8, track9}
-    manager.groundtruth_paths = {truth}
+    manager.add_data(groundtruth_paths={truth},
+                     tracks={track1, track2, track3, track4, track5,
+                             track6, track7, track8, track9})
     associations = {TimeRangeAssociation({truth, track}, time_range=TimeRange(
         start_timestamp=min([state.timestamp for state in track.states]),
         end_timestamp=max([state.timestamp for state in track.states])))
@@ -375,7 +403,8 @@ def test_nu_j(generator):
     assert generator._r(manager) == 5 / 33
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(),
+                         ids=["SIAP", "SIAP cached", "SIAP cached args", "SIAP cached kwargs"])
 def test_t_j(generator):
     tstart = datetime.datetime.now()
     truth = GroundTruthPath(states=[
@@ -386,7 +415,8 @@ def test_t_j(generator):
     assert generator._t_j(truth) == datetime.timedelta(seconds=39)
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(),
+                         ids=["SIAP", "SIAP cached", "SIAP cached args", "SIAP cached kwargs"])
 def test_get_track_id(generator):
     tstart = datetime.datetime.now()
     track = Track([
@@ -407,7 +437,8 @@ def test_get_track_id(generator):
     assert generator._get_track_id(track, tstart + datetime.timedelta(seconds=3)) == 'enemy'
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(),
+                         ids=["SIAP", "SIAP cached", "SIAP cached args", "SIAP cached kwargs"])
 def test_constant_id(generator):
     tstart = datetime.datetime.now()
     manager = SimpleManager()
@@ -443,8 +474,8 @@ def test_constant_id(generator):
         states=[State([[3], [0], [0], [0]], timestamp=tstart + datetime.timedelta(seconds=i))
                 for i in range(5)])
 
-    manager.tracks = {track1, track2, track3}
-    manager.groundtruth_paths = {truth1, truth2, truth3, truth4}
+    manager.add_data(groundtruth_paths={truth1, truth2, truth3, truth4},
+                     tracks={track1, track2, track3})
 
     associations = {
         TimeRangeAssociation({truth1, track1}, time_range=TimeRange(
@@ -478,7 +509,8 @@ def test_constant_id(generator):
     assert generator._ja_sum(manager, manager.list_timestamps()) == 5
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(),
+                         ids=["SIAP", "SIAP cached", "SIAP cached args", "SIAP cached kwargs"])
 def test_variable_id(generator):
     tstart = datetime.datetime.now()
     manager = SimpleManager()
@@ -518,8 +550,7 @@ def test_variable_id(generator):
                     timestamp=tstart + datetime.timedelta(seconds=4))])
 
     tend = tstart + datetime.timedelta(seconds=4)
-    manager.tracks = {vary_track, correct_track}
-    manager.groundtruth_paths = {truth}
+    manager.add_data(groundtruth_paths={truth}, tracks={vary_track, correct_track})
 
     associations = {
         TimeRangeAssociation({truth, vary_track}, time_range=TimeRange(tstart, tend)),
@@ -564,7 +595,8 @@ def test_variable_id(generator):
     assert generator._ja_sum(manager, manager.list_timestamps()) == 2
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(),
+                         ids=["SIAP", "SIAP cached", "SIAP cached args", "SIAP cached kwargs"])
 def test_compute_metric(generator):
     manager = SimpleManager()
     # Create truth, tracks and associations, same as test_nu_j
@@ -605,9 +637,9 @@ def test_compute_metric(generator):
     track9 = Track(
         states=[State([[9], [0], [0], [0]], timestamp=tstart + datetime.timedelta(seconds=i))
                 for i in range(35, 40)])
-    manager.tracks = {track1, track2, track3, track4, track5, track6, track7,
-                      track8, track9}
-    manager.groundtruth_paths = {truth}
+    manager.add_data(groundtruth_paths={truth},
+                     tracks={track1, track2, track3, track4, track5,
+                             track6, track7, track8, track9})
     associations = {TimeRangeAssociation({truth, track}, time_range=TimeRange(
         start_timestamp=min([state.timestamp for state in track.states]),
         end_timestamp=max([state.timestamp for state in track.states])))
@@ -873,7 +905,8 @@ def test_compute_metric(generator):
     assert tida.generator == generator
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(),
+                         ids=["SIAP", "SIAP cached", "SIAP cached args", "SIAP cached kwargs"])
 def test_no_truth_divide_by_zero(generator):
     manager = SimpleManager()
     # Create truth, tracks and associations, same as test_nu_j
@@ -905,9 +938,9 @@ def test_no_truth_divide_by_zero(generator):
     track9 = Track(
         states=[State([[9], [0], [0], [0]], timestamp=tstart + datetime.timedelta(seconds=i))
                 for i in range(35, 40)])
-    manager.tracks = {track1, track2, track3, track4, track5, track6, track7,
-                      track8, track9}
-    manager.groundtruth_paths = set()
+    manager.add_data(groundtruth_paths=set(),
+                     tracks={track1, track2, track3, track4, track5,
+                             track6, track7, track8, track9})
     associations = set()
     manager.association_set = AssociationSet(associations)
 
@@ -919,7 +952,8 @@ def test_no_truth_divide_by_zero(generator):
     assert len(metrics) == 20
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
+@pytest.mark.parametrize("generator", metric_generators(),
+                         ids=["SIAP", "SIAP cached", "SIAP cached args", "SIAP cached kwargs"])
 def test_no_track_divide_by_zero(generator):
     manager = SimpleManager()
     # Create truth, tracks and associations, same as test_nu_j
@@ -928,8 +962,7 @@ def test_no_track_divide_by_zero(generator):
         GroundTruthState([[1], [0], [0], [0]], timestamp=tstart + datetime.timedelta(
             seconds=i))
         for i in range(40)])
-    manager.tracks = set()
-    manager.groundtruth_paths = {truth}
+    manager.add_data(groundtruth_paths={truth}, tracks=set())
     associations = {TimeRangeAssociation({truth}, time_range=TimeRange(
         start_timestamp=min([state.timestamp for state in track.states]),
         end_timestamp=max([state.timestamp for state in track.states])))
@@ -962,8 +995,7 @@ def test_absent_params():
                 for i in range(5, 10)],
         init_metadata={'ident': 'enemy'})
 
-    manager.tracks = {track1, track2}
-    manager.groundtruth_paths = {truth}
+    manager.add_data(groundtruth_paths={truth}, tracks={track1, track2})
     associations = {TimeRangeAssociation({truth, track}, time_range=TimeRange(
         start_timestamp=min([state.timestamp for state in track.states]),
         end_timestamp=max([state.timestamp for state in track.states])))
@@ -992,3 +1024,10 @@ def test_absent_params():
                     'time-based SIAP IDC', 'SIAP IDA', 'time-based SIAP IDA'}
 
     assert all(metric.title in (metric_names - absent_names) for metric in metrics)
+
+
+def test_absent_cache():
+    with pytest.raises(ValueError, match="Cannot have cache arguments if no caches are required."):
+        SIAPMetrics(cache=False, cache_args=(128,))
+    with pytest.raises(ValueError, match="Cannot have cache arguments if no caches are required."):
+        SIAPMetrics(cache=False, cache_kwargs={'maxsize': 128})

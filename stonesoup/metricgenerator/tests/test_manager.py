@@ -85,7 +85,7 @@ def test_listtimestamps():
         states=[State(np.array([[2]]), timestamp=timestamp2)])]
     manager.add_data(truths, tracks)
 
-    assert manager.list_timestamps() == [timestamp1, timestamp2]
+    assert manager.list_timestamps() == (timestamp1, timestamp2)
 
 
 def test_generate_metrics():
