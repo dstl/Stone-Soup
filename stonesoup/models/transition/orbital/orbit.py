@@ -2,10 +2,13 @@
 
 from datetime import timedelta
 
+import numpy as np
+
 from ....base import Property
 from ....types.array import StateVector
 from .base import OrbitalGaussianTransitionModel
 from ...base import NonLinearModel
+from ....functions.orbital import lagrange_coefficients_from_universal_anomaly
 
 
 class CartesianKeplerianTransitionModel(OrbitalGaussianTransitionModel, NonLinearModel):

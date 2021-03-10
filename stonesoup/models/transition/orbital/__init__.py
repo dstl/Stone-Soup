@@ -1,4 +1,4 @@
 # -*- coding: utf-8 -*-
-from .base import TransitionModel
+from .base import OrbitalTransitionModel
 
 __all__ = ['OrbitalTransitionModel']

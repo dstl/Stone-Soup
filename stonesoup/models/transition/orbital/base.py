@@ -1,12 +1,12 @@
-import numpy as np
+# -*- coding: utf-8 -*-
 from abc import abstractmethod
 from datetime import timedelta
 
-from scipy.stats import multivariate_normal
+import numpy as np
 
 from ..base import TransitionModel, GaussianModel
 from ....base import Property
-from ....types.array import CovarianceMatrix, StateVector, StateVectors
+from ....types.array import CovarianceMatrix
 
 
 class OrbitalTransitionModel(TransitionModel):
@@ -60,4 +60,3 @@ class OrbitalGaussianTransitionModel(OrbitalTransitionModel, GaussianModel):
     transition model on an orbital element state vector. Input is an
     :class:~`OrbitalState`, and the various daughter classes will
     implement their chosen state transitions."""
-
