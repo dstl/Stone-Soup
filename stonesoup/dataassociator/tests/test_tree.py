@@ -130,17 +130,48 @@ def test_nearest_neighbour(nn_associator):
     tracks = {}
     associations = nn_associator.associate(tracks, detections, timestamp)
     assert len(associations) == 0
-    print("Testing ...")
-    print(len(associations))
 
     tracks = {t1, t2}
     detections = {}
     associations = nn_associator.associate(tracks, detections, timestamp)
-    print("Testing ...")
-    print(len(associations))
 
-    if isinstance(nn_associator, DetectionKDTreeMixIn):
-        print("numb neigbours = {}".format(nn_associator.number_of_neighbours))
+
+def test_tpr_tree_management(nn_associator, updater):
+    if not isinstance(nn_associator, TPRTreeNN):
+        return
+    timestamp = datetime.datetime.now()
+
+    t1 = Track([GaussianState(np.array([[0, 0, 0, 0]]), np.diag([1, 0.1, 1, 0.1]), timestamp)])
+    t2 = Track([GaussianState(np.array([[3, 0, 3, 0]]), np.diag([1, 0.1, 1, 0.1]), timestamp)])
+    tracks = {t1, t2}
+
+    d1 = Detection(np.array([[2, 2]]), timestamp)
+    d2 = Detection(np.array([[5, 5]]), timestamp)
+
+    detections = {d1, d2}
+
+    # Insert
+    # Run the associator to insert tracks in TPR tree and generate Updated tracks
+    associations = nn_associator.associate(tracks, detections, timestamp)
+
+    for track, hypothesis in associations.items():
+        if hypothesis:
+            track.append(updater.update(hypothesis))
+        else:
+            track.append(hypothesis.prediction)
+
+    # Update
+    # At least one track has an updated state,
+    # meaning we should hit the TPR tree update sub-routine
+    timestamp = timestamp + datetime.timedelta(seconds=1)
+    detections = {}
+    associations = nn_associator.associate(tracks, detections, timestamp)
+
+    # Delete
+    # Removing the second time should result in hitting the TPR tree deletion sub-routine
+    tracks = {tracks.pop()}
+    timestamp = timestamp + datetime.timedelta(seconds=1)
+    associations = nn_associator.associate(tracks, detections, timestamp)
 
 
 def test_missed_detection_nearest_neighbour(nn_associator):
