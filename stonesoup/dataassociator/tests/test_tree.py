@@ -2,6 +2,14 @@ import datetime
 import pytest
 import numpy as np
 
+from ...types.array import CovarianceMatrix
+
+try:
+    import rtree
+except (ImportError, AttributeError):
+    # AttributeError raised when libspatialindex missing.
+    rtree = None
+
 from ..neighbour import (
     NearestNeighbour, GlobalNearestNeighbour, GNNWith2DAssignment)
 from ..probability import PDA, JPDA
@@ -9,6 +17,7 @@ from ..tree import DetectionKDTreeMixIn, TPRTreeMixIn
 from stonesoup.types.track import Track
 from stonesoup.types.detection import Detection, MissedDetection
 from stonesoup.types.state import GaussianState
+from stonesoup.models.measurement.nonlinear import CartesianToBearingRange
 
 
 class DetectionKDTreeNN(NearestNeighbour, DetectionKDTreeMixIn):
@@ -135,8 +144,11 @@ def test_nearest_neighbour(nn_associator):
     detections = {}
     associations = nn_associator.associate(tracks, detections, timestamp)
 
+    assert len([hypothesis for hypothesis in associations.values() if not hypothesis]) == 2
+
 
 def test_tpr_tree_management(nn_associator, updater):
+    '''Test method for TPR insert, delete and update'''
     if not isinstance(nn_associator, TPRTreeNN):
         return
     timestamp = datetime.datetime.now()
@@ -154,6 +166,14 @@ def test_tpr_tree_management(nn_associator, updater):
     # Run the associator to insert tracks in TPR tree and generate Updated tracks
     associations = nn_associator.associate(tracks, detections, timestamp)
 
+    assert len(associations) == 2
+
+    # Each track should associate with a unique detection
+    associated_measurements = [hypothesis.measurement
+                               for hypothesis in associations.values()
+                               if hypothesis.measurement]
+    assert len(associated_measurements) == len(set(associated_measurements))
+
     for track, hypothesis in associations.items():
         if hypothesis:
             track.append(updater.update(hypothesis))
@@ -167,11 +187,46 @@ def test_tpr_tree_management(nn_associator, updater):
     detections = {}
     associations = nn_associator.associate(tracks, detections, timestamp)
 
+    assert len([hypothesis for hypothesis in associations.values() if not hypothesis]) == 2
+
     # Delete
     # Removing the second time should result in hitting the TPR tree deletion sub-routine
     tracks = {tracks.pop()}
     timestamp = timestamp + datetime.timedelta(seconds=1)
     associations = nn_associator.associate(tracks, detections, timestamp)
+
+    assert len([hypothesis for hypothesis in associations.values() if not hypothesis]) == 1
+
+
+def test_tpr_tree_measurement_models(nn_associator, measurement_model):
+    '''Test method for TPR insert, delete and update using non linear measurement model'''
+    if not isinstance(nn_associator, TPRTreeNN):
+        return
+    timestamp = datetime.datetime.now()
+    measurement_model_nl = CartesianToBearingRange(
+        ndim_state=4, mapping=[0, 2],
+        noise_covar=CovarianceMatrix(np.diag([np.pi/180.0, 1])))
+
+    t1 = Track([GaussianState(np.array([[0, 0, 0, 0]]), np.diag([1, 0.1, 1, 0.1]), timestamp)])
+    t2 = Track([GaussianState(np.array([[3, 0, 3, 0]]), np.diag([1, 0.1, 1, 0.1]), timestamp)])
+    tracks = {t1, t2}
+
+    d1 = Detection(np.array([[2, 2]]), timestamp)
+    d2 = Detection(np.array([[0.7854, 7.0711]]), timestamp, measurement_model=measurement_model_nl)
+
+    detections = {d1, d2}
+
+    # Insert
+    # Run the associator to insert tracks in TPR tree and generate Updated tracks
+    associations = nn_associator.associate(tracks, detections, timestamp)
+
+    assert len(associations) == 2
+
+    # Each track should associate with a unique detection
+    associated_measurements = [hypothesis.measurement
+                               for hypothesis in associations.values()
+                               if hypothesis.measurement]
+    assert len(associated_measurements) == len(set(associated_measurements))
 
 
 def test_missed_detection_nearest_neighbour(nn_associator):
