@@ -152,21 +152,13 @@ class TPRTreeMixIn(DataAssociator):
                 self._tree.insert(track, self._coords[track])
 
             elif track not in tracks:
-                if self._coords[track][-1] - c_time.timestamp() >= 0:
-                    coords = self._coords[track][:-1] \
-                             + ((self._coords[track][-1] - 1e-6, c_time.timestamp()),)
-                else:
-                    coords = self._coords[track][:-1] \
-                             + ((self._coords[track][-1], c_time.timestamp()),)
+                coords = self._coords[track][:-1] \
+                            + ((self._coords[track][-1] - 1e-6, c_time.timestamp()),)
                 self._tree.delete(track, coords)
                 del self._coords[track]
             elif isinstance(track.state, Update):
-                if self._coords[track][-1] - c_time.timestamp() >= 0:
-                    coords = self._coords[track][:-1] \
-                             + ((self._coords[track][-1]-1e-6, c_time.timestamp()),)
-                else:
-                    coords = self._coords[track][:-1] \
-                             + ((self._coords[track][-1], c_time.timestamp()),)
+                coords = self._coords[track][:-1] \
+                            + ((self._coords[track][-1]-1e-6, c_time.timestamp()),)
                 self._tree.delete(track, coords)
                 self._coords[track] = self._track_tree_coordinates(track)
                 self._tree.insert(track, self._coords[track])
@@ -186,7 +178,7 @@ class TPRTreeMixIn(DataAssociator):
                               @ detection.state_vector)[self.pos_mapping, :]
             else:
                 state_meas = model.inverse_function(
-                    detection.state_vector, **kwargs)[self.pos_mapping, :]
+                    detection, **kwargs)[self.pos_mapping, :]
 
             det_time = detection.timestamp.timestamp()
             intersected_tracks = self._tree.intersection((
