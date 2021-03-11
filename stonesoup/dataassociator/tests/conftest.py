@@ -9,7 +9,7 @@ from ...models.measurement.linear import LinearGaussian
 from ...types.array import CovarianceMatrix
 from ...models.transition.linear import ConstantVelocity, CombinedLinearGaussianTransitionModel
 from ...predictor.kalman import KalmanPredictor
-from ...updater.kalman import KalmanUpdater
+from ...updater.kalman import ExtendedKalmanUpdater
 
 
 @pytest.fixture()
@@ -27,7 +27,7 @@ def predictor():
 
 @pytest.fixture()
 def updater(measurement_model):
-    return KalmanUpdater(measurement_model)
+    return ExtendedKalmanUpdater(measurement_model)
 
 
 @pytest.fixture()
