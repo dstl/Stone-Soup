@@ -12,7 +12,7 @@ from ..types.numeric import Probability
 from ..types.particle import Particle
 from ..types.state import State, GaussianState
 from ..types.track import Track
-from ..types.update import GaussianStateUpdate, ParticleStateUpdate
+from ..types.update import GaussianStateUpdate, ParticleStateUpdate, Update
 from ..updater import Updater
 from ..updater.kalman import ExtendedKalmanUpdater
 
@@ -163,6 +163,8 @@ class MultiMeasurementInitiator(GaussianInitiator):
         doc="Updater used to update the track object to the new state.")
     min_points: int = Property(
         default=2, doc="Minimum number of track points required to confirm a track.")
+    updates_only: bool = Property(
+        default=True, doc="Whether :attr:`min_points` only counts :class:`~.Update` states.")
     initiator: Initiator = Property(
         default=None,
         doc="Initiator used to create tracks. If None, a :class:`SimpleMeasurementInitiator` will "
@@ -177,12 +179,10 @@ class MultiMeasurementInitiator(GaussianInitiator):
 
     def initiate(self, detections, timestamp, **kwargs):
         sure_tracks = set()
-        if len(detections) == 0:
-            return sure_tracks
 
         associated_detections = set()
 
-        if not len(self.holding_tracks) == 0:
+        if self.holding_tracks:
             associations = self.data_associator.associate(
                 self.holding_tracks, detections, timestamp)
 
@@ -190,15 +190,17 @@ class MultiMeasurementInitiator(GaussianInitiator):
                 if hypothesis:
                     state_post = self.updater.update(hypothesis)
                     track.append(state_post)
-                    if len(track) >= self.min_points:
-                        new_track = Track([track.state])
-                        sure_tracks.add(new_track)
-                        self.holding_tracks.remove(track)
                     associated_detections.add(hypothesis.measurement)
                 else:
                     track.append(hypothesis.prediction)
 
+                if sum(1 for state in track if not self.updates_only or isinstance(state, Update))\
+                        >= self.min_points:
+                    sure_tracks.add(track)
+                    self.holding_tracks.remove(track)
+
             self.holding_tracks -= self.deleter.delete_tracks(self.holding_tracks)
+
         self.holding_tracks |= self.initiator.initiate(
             detections - associated_detections, timestamp)
 

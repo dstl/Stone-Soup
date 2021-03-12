@@ -18,8 +18,9 @@ from ...dataassociator.neighbour import NearestNeighbour
 from ...measures import Mahalanobis
 from ...types.detection import Detection
 from ...types.hypothesis import SingleHypothesis
+from ...types.prediction import Prediction
 from ...types.state import GaussianState
-from ...types.update import ParticleStateUpdate
+from ...types.update import ParticleStateUpdate, Update
 from ..simple import (
     SinglePointInitiator, SimpleMeasurementInitiator,
     MultiMeasurementInitiator, GaussianParticleInitiator
@@ -261,7 +262,8 @@ def test_linear_measurement_extra_state_dim():
             measurement_model.matrix().T == approx(measurement_model.covar())
 
 
-def test_multi_measurement():
+@pytest.mark.parametrize('updates_only', [False, True])
+def test_multi_measurement(updates_only):
     transition_model = CombinedLinearGaussianTransitionModel(
         (ConstantVelocity(0.05), ConstantVelocity(0.05)))
     measurement_model = LinearGaussian(
@@ -276,7 +278,7 @@ def test_multi_measurement():
 
     measurement_initiator = MultiMeasurementInitiator(
         GaussianState([[0], [0], [0], [0]], np.diag([0, 15, 0, 15])),
-        measurement_model, deleter, data_associator, updater)
+        measurement_model, deleter, data_associator, updater, updates_only=updates_only)
 
     timestamp = datetime.datetime.now()
     first_detections = {Detection(np.array([[5], [2]]), timestamp),
@@ -290,7 +292,13 @@ def test_multi_measurement():
     second_detections = {Detection(np.array([[5], [3]]), timestamp)}
 
     second_tracks = measurement_initiator.initiate(second_detections, timestamp)
-    assert len(second_tracks) == 1
+
+    if updates_only:
+        assert len(second_tracks) == 1
+    else:
+        assert len(second_tracks) == 2
+        assert any(isinstance(track.state, Prediction) for track in second_tracks)
+    assert any(isinstance(track.state, Update) for track in second_tracks)
     assert len(measurement_initiator.holding_tracks) == 0
 
 
