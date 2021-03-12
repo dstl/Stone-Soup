@@ -27,25 +27,26 @@ class SinglePointInitiator(GaussianInitiator):
     prior_state: GaussianState = Property(doc="Prior state information")
     measurement_model: MeasurementModel = Property(doc="Measurement model")
 
-    def initiate(self, unassociated_detections, **kwargs):
+    def initiate(self, detections, timestamp, **kwargs):
         """Initiates tracks given unassociated measurements
 
         Parameters
         ----------
-        unassociated_detections : list of \
-        :class:`stonesoup.types.detection.Detection`
+        detections : set of :class:`stonesoup.types.detection.Detection`
             A list of unassociated detections
+        timestamp: datetime.datetime
+            Current timestamp
 
         Returns
         -------
-        : :class:`sets.Set` of :class:`stonesoup.types.track.Track`
+        : set of :class:`stonesoup.types.track.Track`
             A list of new tracks with an initial :class:`~.GaussianState`
         """
 
         updater = ExtendedKalmanUpdater(self.measurement_model)
 
         tracks = set()
-        for detection in unassociated_detections:
+        for detection in detections:
             measurement_prediction = updater.predict_measurement(
                 self.prior_state, detection.measurement_model)
             track_state = updater.update(SingleHypothesis(
@@ -86,7 +87,7 @@ class SimpleMeasurementInitiator(GaussianInitiator):
             raise ValueError(
                 "diag_load value can't be less than 0.0")
 
-    def initiate(self, detections, **kwargs):
+    def initiate(self, detections, timestamp, **kwargs):
         tracks = set()
 
         for detection in detections:
@@ -174,18 +175,16 @@ class MultiMeasurementInitiator(GaussianInitiator):
         if self.initiator is None:
             self.initiator = SimpleMeasurementInitiator(self.prior_state, self.measurement_model)
 
-    def initiate(self, detections, **kwargs):
+    def initiate(self, detections, timestamp, **kwargs):
         sure_tracks = set()
         if len(detections) == 0:
             return sure_tracks
 
-        detections_list = list(detections)
-        detections_set = set(detections)
         associated_detections = set()
 
         if not len(self.holding_tracks) == 0:
             associations = self.data_associator.associate(
-                self.holding_tracks, detections, detections_list[0].timestamp)
+                self.holding_tracks, detections, timestamp)
 
             for track, hypothesis in associations.items():
                 if hypothesis:
@@ -199,9 +198,9 @@ class MultiMeasurementInitiator(GaussianInitiator):
                 else:
                     track.append(hypothesis.prediction)
 
-            self.holding_tracks -= \
-                self.deleter.delete_tracks(self.holding_tracks)
-        self.holding_tracks |= self.initiator.initiate(detections_set - associated_detections)
+            self.holding_tracks -= self.deleter.delete_tracks(self.holding_tracks)
+        self.holding_tracks |= self.initiator.initiate(
+            detections - associated_detections, timestamp)
 
         return sure_tracks
 
@@ -223,20 +222,22 @@ class GaussianParticleInitiator(ParticleInitiator):
         doc="If `True`, the Gaussian state covariance is used for the "
             ":class:`~.ParticleState` as a fixed covariance. Default `False`.")
 
-    def initiate(self, unassociated_detections, **kwargs):
+    def initiate(self, detections, timestamp, **kwargs):
         """Initiates tracks given unassociated measurements
 
         Parameters
         ----------
-        unassociated_detections : list of :class:`~.Detection`
+        detections : set of :class:`~.Detection`
             A list of unassociated detections
+        timestamp: datetime.datetime
+            Current timestamp
 
         Returns
         -------
         : set of :class:`~.Track`
             A list of new tracks with a initial :class:`~.ParticleState`
         """
-        tracks = self.initiator.initiate(unassociated_detections, **kwargs)
+        tracks = self.initiator.initiate(detections, timestamp, **kwargs)
         weight = Probability(1 / self.number_particles)
         for track in tracks:
             samples = multivariate_normal.rvs(track.state_vector.ravel(),
