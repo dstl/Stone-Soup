@@ -299,6 +299,10 @@ class BaseMeta(ABCMeta):
         cls.__init__.__signature__ = init_signature.replace(
             parameters=parameters)
 
+    def register(cls, subclass):
+        cls._subclasses.add(subclass)
+        return super().register(subclass)
+
     @property
     def subclasses(cls):
         """Set of subclasses for the class"""
