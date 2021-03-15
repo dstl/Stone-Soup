@@ -23,17 +23,17 @@ class CovarianceBasedDeleter(Deleter):
 
         Parameters
         ----------
-        track : :class:`stonesoup.types.Track`
+        track : Track
             A track object to be checked for deletion.
 
         Returns
         -------
-        : :class:`bool`
-            ``True`` if track should be deleted, ``False`` otherwise.
+        bool
+            `True` if track should be deleted, `False` otherwise.
         """
 
         track_covar_trace = np.trace(track.state.covar)
 
-        if(track_covar_trace > self.covar_trace_thresh):
+        if track_covar_trace > self.covar_trace_thresh:
             return True
         return False
