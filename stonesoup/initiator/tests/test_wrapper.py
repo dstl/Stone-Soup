@@ -52,7 +52,7 @@ def test_states_length_limiter(max_len):
         hypothesis = SingleHypothesis(prediction, measurement)
         posterior = updater.update(hypothesis)
         if track is None:
-            track = initiator.initiate([measurement]).pop()
+            track = initiator.initiate([measurement], measurement.timestamp).pop()
         else:
             track.append(posterior)
         prior = track[-1]

@@ -11,13 +11,15 @@ class Initiator(Base):
     """
 
     @abstractmethod
-    def initiate(self, detections, **kwargs):
+    def initiate(self, detections, timestamp, **kwargs):
         """Generate tracks from detections.
 
         Parameters
         ----------
         detections : set of :class:`~.Detection`
             Detections used to generate set of tracks
+        timestamp: datetime.datetime
+            Current timestamp
 
         Returns
         -------

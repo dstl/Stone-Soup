@@ -18,8 +18,9 @@ from ...dataassociator.neighbour import NearestNeighbour
 from ...measures import Mahalanobis
 from ...types.detection import Detection
 from ...types.hypothesis import SingleHypothesis
+from ...types.prediction import Prediction
 from ...types.state import GaussianState
-from ...types.update import ParticleStateUpdate
+from ...types.update import ParticleStateUpdate, Update
 from ..simple import (
     SinglePointInitiator, SimpleMeasurementInitiator,
     MultiMeasurementInitiator, GaussianParticleInitiator
@@ -56,7 +57,7 @@ def test_spi(measurement_model):
                   Detection(np.array([[-4.5], [2.0]]), timestamp)]
 
     # Run the initiator based on the available detections
-    tracks = initiator.initiate(detections)
+    tracks = initiator.initiate(detections, timestamp)
 
     # Ensure same number of tracks are initiated as number of measurements
     # (i.e. 2)
@@ -94,7 +95,7 @@ def test_linear_measurement():
     detections = [Detection(np.array([[5]]), timestamp),
                   Detection(np.array([[-5]]), timestamp)]
 
-    tracks = measurement_initiator.initiate(detections)
+    tracks = measurement_initiator.initiate(detections, timestamp)
 
     for track in tracks:
         if track.state_vector[0, 0] > 0:
@@ -140,15 +141,19 @@ def test_nonlinear_measurement(meas_model, skip_non_linear):
 
     if not (isinstance(measurement_model, ReversibleModel) or skip_non_linear):
         with pytest.raises(Exception):
-            measurement_initiator.initiate(detections)  # Non-reversible and not skipping
+            # Non-reversible and not skipping
+            measurement_initiator.initiate(detections, timestamp)
         with pytest.raises(NotImplementedError):
-            combined_measurement_initiator.initiate(detections)  # Reversible but not implemented
+            # Reversible but not implemented
+            combined_measurement_initiator.initiate(detections, timestamp)
     elif not isinstance(measurement_model, ReversibleModel) and skip_non_linear:
-        assert len(measurement_initiator.initiate(detections)) == 0  # Skipping for non-reversible
-        assert len(combined_measurement_initiator.initiate(detections)) == 0
+        # Skipping for non-reversible
+        assert len(measurement_initiator.initiate(detections, timestamp)) == 0
+        assert len(combined_measurement_initiator.initiate(detections, timestamp)) == 0
     else:
-        all_tracks = [measurement_initiator.initiate(detections),
-                      combined_measurement_initiator.initiate(detections)]  # Otherwise tracks made
+        # Otherwise tracks made
+        all_tracks = [measurement_initiator.initiate(detections, timestamp),
+                      combined_measurement_initiator.initiate(detections, timestamp)]
         for tracks in all_tracks:
             assert len(tracks) == 2
             for track in tracks:
@@ -182,7 +187,7 @@ def test_linear_measurement_non_direct():
     detections = [Detection(np.array([[5], [2]]), timestamp),
                   Detection(np.array([[-5], [8]]), timestamp)]
 
-    tracks = measurement_initiator.initiate(detections)
+    tracks = measurement_initiator.initiate(detections, timestamp)
 
     for track in tracks:
         if track.state_vector[1, 0] > 0:
@@ -230,7 +235,7 @@ def test_linear_measurement_extra_state_dim():
     detections = [Detection(np.array([[5], [2]]), timestamp),
                   Detection(np.array([[-5], [8]]), timestamp)]
 
-    tracks = measurement_initiator.initiate(detections)
+    tracks = measurement_initiator.initiate(detections, timestamp)
 
     for track in tracks:
         if track.state_vector[0, 0] > 0:
@@ -257,7 +262,8 @@ def test_linear_measurement_extra_state_dim():
             measurement_model.matrix().T == approx(measurement_model.covar())
 
 
-def test_multi_measurement():
+@pytest.mark.parametrize('updates_only', [False, True])
+def test_multi_measurement(updates_only):
     transition_model = CombinedLinearGaussianTransitionModel(
         (ConstantVelocity(0.05), ConstantVelocity(0.05)))
     measurement_model = LinearGaussian(
@@ -272,21 +278,27 @@ def test_multi_measurement():
 
     measurement_initiator = MultiMeasurementInitiator(
         GaussianState([[0], [0], [0], [0]], np.diag([0, 15, 0, 15])),
-        measurement_model, deleter, data_associator, updater)
+        measurement_model, deleter, data_associator, updater, updates_only=updates_only)
 
     timestamp = datetime.datetime.now()
-    first_detections = [Detection(np.array([[5], [2]]), timestamp),
-                        Detection(np.array([[-5], [-2]]), timestamp)]
+    first_detections = {Detection(np.array([[5], [2]]), timestamp),
+                        Detection(np.array([[-5], [-2]]), timestamp)}
 
-    first_tracks = measurement_initiator.initiate(first_detections)
+    first_tracks = measurement_initiator.initiate(first_detections, timestamp)
     assert len(first_tracks) == 0
     assert len(measurement_initiator.holding_tracks) == 2
 
     timestamp = datetime.datetime.now() + datetime.timedelta(seconds=60)
-    second_detections = [Detection(np.array([[5], [3]]), timestamp)]
+    second_detections = {Detection(np.array([[5], [3]]), timestamp)}
 
-    second_tracks = measurement_initiator.initiate(second_detections)
-    assert len(second_tracks) == 1
+    second_tracks = measurement_initiator.initiate(second_detections, timestamp)
+
+    if updates_only:
+        assert len(second_tracks) == 1
+    else:
+        assert len(second_tracks) == 2
+        assert any(isinstance(track.state, Prediction) for track in second_tracks)
+    assert any(isinstance(track.state, Update) for track in second_tracks)
     assert len(measurement_initiator.holding_tracks) == 0
 
 
@@ -307,7 +319,7 @@ def test_gaussian_particle(gaussian_initiator):
     detections = [Detection(np.array([[5]]), timestamp),
                   Detection(np.array([[-5]]), timestamp)]
 
-    tracks = particle_initiator.initiate(detections)
+    tracks = particle_initiator.initiate(detections, timestamp)
 
     for track in tracks:
         assert isinstance(track.state, ParticleStateUpdate)

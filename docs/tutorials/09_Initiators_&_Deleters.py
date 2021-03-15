@@ -196,7 +196,8 @@ for n, measurements in enumerate(all_measurements):
 
     # Carry out deletion and initiation
     tracks -= deleter.delete_tracks(tracks)
-    tracks |= initiator.initiate(measurements - associated_measurements)
+    tracks |= initiator.initiate(measurements - associated_measurements,
+                                 start_time + timedelta(seconds=n))
 
 # %%
 # Plot the resulting tracks.
