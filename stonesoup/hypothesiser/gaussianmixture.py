@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from .base import Hypothesiser
+from . import Hypothesiser
 from ..base import Property
 from ..types.multihypothesis import MultipleHypothesis
 from ..types.prediction import (TaggedWeightedGaussianStatePrediction,
@@ -22,18 +22,17 @@ class GaussianMixtureHypothesiser(Hypothesiser):
         doc="Flag to order the :class:`~.MultipleHypothesis` "
             "list by detection or component")
 
-    def hypothesise(self, components, detections, timestamp):
+    def hypothesise(self, components, detections, timestamp, **kwargs):
         """Form hypotheses for associations between Detections and Gaussian
         Mixture components.
 
         Parameters
         ----------
-        components : :class:`list`
-            List of :class:`~.WeightedGaussianState` components
-            representing the state of the target space
-        detections : list of :class:`Detection`
+        components : list of :class:`~.WeightedGaussianState`
+            Components representing the state of the target space
+        detections : set of :class:`~.Detection`
             Retrieved measurements
-        timestamp : datetime
+        timestamp : datetime.datetime
             Time of the detections/predicted states
 
         Returns
@@ -56,7 +55,8 @@ class GaussianMixtureHypothesiser(Hypothesiser):
             # Get hypotheses for that component for all measurements
             component_hypotheses = self.hypothesiser.hypothesise(component,
                                                                  detections,
-                                                                 timestamp)
+                                                                 timestamp,
+                                                                 **kwargs)
             for hypothesis in component_hypotheses:
                 if isinstance(component, TaggedWeightedGaussianState):
                     hypothesis.prediction = \
