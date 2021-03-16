@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import Mapping, Any
 
 import numpy as np
 from datetime import datetime
@@ -125,21 +126,21 @@ class OrbitalState(State):
 
     """
 
-    coordinates = Property(
-        Enum, default=CoordinateSystem.CARTESIAN,
+    coordinates: CoordinateSystem = Property(
+        default=CoordinateSystem.CARTESIAN,
         doc="The parameterisation used on initiation. Acceptable values "
             "are 'CARTESIAN' (default), 'KEPLERIAN', 'TLE', or 'EQUINOCTIAL'. "
             "All other inputs will return errors. Will accept string inputs."
     )
 
-    grav_parameter = Property(
-        float, default=3.986004418e14,
+    grav_parameter: float = Property(
+        default=3.986004418e14,
         doc=r"Standard gravitational parameter :math:`\mu = G M`. The default "
             r"is :math:`3.986004418 \times 10^{14} \,` "
             r":math:`\mathrm{m}^3 \mathrm{s}^{-2}`.")
 
-    metadata = Property(
-        dict, default=None, doc="Dictionary containing metadata about orbit"
+    metadata: Mapping[Any, Any] = Property(
+        default=None, doc="Dictionary containing metadata about orbit"
     )
 
     def __init__(self, state_vector, *args, **kwargs):
