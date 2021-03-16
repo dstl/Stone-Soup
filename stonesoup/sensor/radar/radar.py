@@ -46,25 +46,7 @@ class RadarBearingRange(Sensor):
 
     def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
                 **kwargs) -> Set[TrueDetection]:
-        """Generate a measurement for a given state
 
-        Parameters
-        ----------
-        ground_truths : Set[:class:`~.GroundTruthState`]
-            A set of :class:`~.GroundTruthState`
-        noise: :class:`numpy.ndarray` or bool
-            An externally generated random process noise sample (the default is
-            `True`, in which case :meth:`~.Model.rvs` is used
-            if 'False', no noise will be added)
-
-        Returns
-        -------
-        Set[:class:`~.TrueDetection`]
-            A set of measurements generated from the given states. The timestamps of the
-            measurements are set equal to that of the corresponding states that they were
-            calculated from. Each measurement stores the ground truth path that it was produced
-            from.
-        """
         measurement_model = CartesianToBearingRange(
             ndim_state=self.ndim_state,
             mapping=self.position_mapping,
@@ -111,25 +93,6 @@ class RadarRotatingBearingRange(RadarBearingRange):
 
     def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
                 **kwargs) -> Set[TrueDetection]:
-        """Generate a measurement for a given state
-
-        Parameters
-        ----------
-        ground_truths : Set[:class:`~.GroundTruthState`]
-            A set of :class:`~.GroundTruthState`
-        noise: :class:`numpy.ndarray` or bool
-            An externally generated random process noise sample (the default is
-            `True`, in which case :meth:`~.Model.rvs` is used
-            if 'False', no noise will be added)
-
-        Returns
-        -------
-        Set[:class:`~.TrueDetection`]
-            A set of measurements generated from the given states. If a state falls in the sensor's
-            field of view, a measurement is added. The timestamps of the measurements are set equal
-            to that of the corresponding states that they were calculated from. Each measurement
-            stores the ground truth path that it was produced from.
-        """
 
         # Read timestamp from ground truth
         try:
@@ -230,25 +193,7 @@ class RadarElevationBearingRange(RadarBearingRange):
 
     def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
                 **kwargs) -> Set[TrueDetection]:
-        """Generate a measurement for a given state
 
-        Parameters
-        ----------
-        ground_truths : Set[:class:`~.GroundTruthState`]
-            A set of :class:`~.GroundTruthState`
-        noise: :class:`numpy.ndarray` or bool
-            An externally generated random process noise sample (the default is
-            `True`, in which case :meth:`~.Model.rvs` is used
-            if 'False', no noise will be added)
-
-        Returns
-        -------
-        Set[:class:`~.TrueDetection`]
-            A set of measurements generated from the given states. The timestamps of the
-            measurements are set equal to that of the corresponding states that they were
-            calculated from. Each measurement stores the ground truth path that it was produced
-            from.
-        """
         measurement_model = CartesianToElevationBearingRange(
             ndim_state=self.ndim_state,
             mapping=self.position_mapping,
@@ -294,25 +239,7 @@ class RadarBearingRangeRate(RadarBearingRange):
 
     def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
                 **kwargs) -> Set[TrueDetection]:
-        """Generate a measurement for a given state
 
-        Parameters
-        ----------
-        ground_truths : Set[:class:`~.GroundTruthState`]
-            A set of :class:`~.GroundTruthState` which include position and velocity information
-        noise: :class:`numpy.ndarray` or bool
-            An externally generated random process noise sample (the default is
-            `True`, in which case :meth:`~.Model.rvs` is used
-            if 'False', no noise will be added)
-
-        Returns
-        -------
-        Set[:class:`~.TrueDetection`]
-            A set of measurements generated from the given states. The timestamps of the
-            measurements are set equal to that of the corresponding states that they were
-            calculated from. Each measurement stores the ground truth path that it was produced
-            from.
-        """
         measurement_model = CartesianToBearingRangeRate(
             ndim_state=self.ndim_state,
             mapping=self.position_mapping,
@@ -359,25 +286,7 @@ class RadarElevationBearingRangeRate(RadarBearingRangeRate):
 
     def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
                 **kwargs) -> Set[TrueDetection]:
-        """Generate a measurement for a given state
 
-        Parameters
-        ----------
-        ground_truths : Set[:class:`~.GroundTruthState`]
-            A set of :class:`~.GroundTruthState` which include position and velocity information
-        noise: :class:`numpy.ndarray` or bool
-            An externally generated random process noise sample (the default is
-            `True`, in which case :meth:`~.Model.rvs` is used
-            if 'False', no noise will be added)
-
-        Returns
-        -------
-        Set[:class:`~.TrueDetection`]
-            A set of measurements generated from the given states. The timestamps of the
-            measurements are set equal to that of the corresponding states that they were
-            calculated from. Each measurement stores the ground truth path that it was produced
-            from.
-        """
         measurement_model = CartesianToElevationBearingRangeRate(
             ndim_state=self.ndim_state,
             mapping=self.position_mapping,
@@ -657,25 +566,6 @@ class AESARadar(Sensor):
 
     def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
                 **kwargs) -> Set[TrueDetection]:
-        """Generate a measurement for a given state
-
-        Parameters
-        ----------
-        ground_truths : Set[:class:`~.GroundTruthState`]
-            A set of :class:`~.GroundTruthState` in 3-D cartesian space
-        noise: :class:`numpy.ndarray` or bool
-            An externally generated random process noise sample (the default is
-            `True`, in which case :meth:`~.Model.rvs` is used
-            if 'False', no noise will be added)
-
-        Returns
-        -------
-        Set[:class:`~.TrueDetection`]
-            A set of measurements generated from the given states. If np.random.rand() is less than
-            the probability of detection a measurement is added. The timestamps of the measurements
-            are set equal to that of the corresponding states that they were calculated from. Each
-            measurement stores the ground truth path that it was produced from.
-        """
 
         detections = set()
 

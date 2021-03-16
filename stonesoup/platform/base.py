@@ -160,6 +160,7 @@ class Platform(StateMutableSequence, ABC):
         """
         raise NotImplementedError
 
+    @property
     @abstractmethod
     def is_moving(self) -> bool:
         """Return the ``True`` if the platform is moving, ``False`` otherwise.
