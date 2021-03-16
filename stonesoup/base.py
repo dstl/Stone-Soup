@@ -296,7 +296,7 @@ class BaseMeta(ABCMeta):
         parameters.extend(
             inspect.Parameter(
                 name, inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                default=property_.default)
+                default=property_.default, annotation=property_.cls)
             for name, property_ in cls._properties.items())
         parameters.extend(
             parameter
