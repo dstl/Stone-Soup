@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 from abc import abstractmethod
+from typing import Set
 
 from ..base import Base
+from ..types.track import Track
 
 
 class Deleter(Base):
@@ -11,15 +13,26 @@ class Deleter(Base):
     """
 
     @abstractmethod
-    def check_for_deletion(self, track, **kwargs):
-        """Abstract method to check if a given track should be deleted"""
+    def check_for_deletion(self, track: Track, **kwargs) -> bool:
+        """Check if a given track should be deleted.
+
+        Parameters
+        ----------
+        track : Track
+            A track object to be checked for deletion.
+
+        Returns
+        -------
+        bool
+            `True` if track should be deleted, `False` otherwise.
+        """
         pass
 
-    def delete_tracks(self, tracks, **kwargs):
+    def delete_tracks(self, tracks: Set[Track], **kwargs) -> Set[Track]:
         """Generic/Base track deletion method.
 
         Iterates through all tracks in a given list and calls
-        :py:meth:`~check_for_deletion` to determine which
+        :meth:`~check_for_deletion` to determine which
         tracks should be deleted and which should survive.
 
         Parameters

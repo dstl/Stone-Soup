@@ -32,14 +32,14 @@ class SinglePointInitiator(GaussianInitiator):
 
         Parameters
         ----------
-        detections : set of :class:`stonesoup.types.detection.Detection`
+        detections : set of :class:`~.Detection`
             A list of unassociated detections
         timestamp: datetime.datetime
             Current timestamp
 
         Returns
         -------
-        : set of :class:`stonesoup.types.track.Track`
+        : set of :class:`~.Track`
             A list of new tracks with an initial :class:`~.GaussianState`
         """
 
