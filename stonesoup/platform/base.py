@@ -15,7 +15,7 @@ from ..base import Property
 from ..types.state import State, StateMutableSequence
 from ..models.transition import TransitionModel
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from ..sensor.base import BaseSensor
 
 
