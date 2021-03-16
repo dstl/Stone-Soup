@@ -243,8 +243,8 @@ for j in range(0, ntruths):
 # Next we create our sensor manager classes. Two sensor manager classes are built - :class:`RandomManager` and
 # :class:`UncertaintyManager`.
 # 
-# RandomManager
-# """""""""""""
+# RandomManager class
+# """""""""""""""""""
 # 
 # The first method :class:`RandomManager`, chooses a target to observe randomly. To do this the :meth:`choose_actions`
 # function uses :meth:`np.random.uniform()` to draw random samples from a uniform distribution between 0 and 1, and
@@ -259,8 +259,8 @@ class RandomManager(Base):
         return self.action_list[int(np.floor(len(self.action_list) * np.random.uniform()))]
 
 # %%
-# UncertaintyManager
-# """"""""""""""""""
+# UncertaintyManager class
+# """"""""""""""""""""""""
 # 
 # The second method :class:`UncertaintyManager` selects a chosen target to observe based on the difference between the
 # covariance matrices of the prediction an the update of predicted measurement. This means the sensor manager chooses
