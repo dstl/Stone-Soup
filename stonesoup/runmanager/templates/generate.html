@@ -73,7 +73,8 @@ head %} {% endblock %} {%block body %}
     </div>
     <button class="btn-primary btn">Run</button>
   </div>
-
-  {{show_node(parentList.data,parentList.children)}}
+  <div class="container-fluid">
+    {{show_node(parentList.data,parentList.children)}}
+  </div>
 </form>
 {%endblock%}

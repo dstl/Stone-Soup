@@ -20,6 +20,10 @@ class RunManager(Base):
     def __init__(self):
         #Tracker
         self.tracker:Tracker
+        self.tracker_min:Tracker
+        self.tracker_max:Tracker
+        self.tracker_step:Tracker
+        
         self.state_vectors=[]
         self.state_vector_min_range=[]
         self.state_vector_max_range=[]
