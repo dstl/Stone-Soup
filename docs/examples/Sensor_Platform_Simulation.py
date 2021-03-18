@@ -346,7 +346,7 @@ kalman_tracks = {}  # Store for plotting later
 groundtruth_paths = {}  # Store for plotting later
 detections = []  # Store for plotting later
 
-for time, ctracks in kalman_tracker.tracks_gen():
+for time, ctracks in kalman_tracker:
     for track in ctracks:
         loc = (track.state_vector[0], track.state_vector[2])
         if track not in kalman_tracks:

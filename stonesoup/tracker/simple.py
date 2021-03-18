@@ -12,7 +12,6 @@ from ..types.array import StateVectors
 from ..types.prediction import GaussianStatePrediction
 from ..types.update import GaussianStateUpdate
 from ..functions import gm_reduce_single
-from stonesoup.buffered_generator import BufferedGenerator
 
 
 class SingleTargetTracker(Tracker):
@@ -46,28 +45,35 @@ class SingleTargetTracker(Tracker):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    @BufferedGenerator.generator_method
-    def tracks_gen(self):
-        track = None
-        for time, detections in self.detector:
-            if track is not None:
-                associations = self.data_associator.associate(
-                    {track}, detections, time)
-                if associations[track]:
-                    state_post = self.updater.update(associations[track])
-                    track.append(state_post)
-                else:
-                    track.append(
-                        associations[track].prediction)
+    @property
+    def tracks(self):
+        return {self.track} if self.track else set()
 
-            if track is None or self.deleter.delete_tracks({track}):
-                new_tracks = self.initiator.initiate(detections)
-                if new_tracks:
-                    track = new_tracks.pop()
-                else:
-                    track = None
+    def __iter__(self):
+        self.detector_iter = iter(self.detector)
+        return super().__iter__()
 
-            yield (time, {track}) if track is not None else (time, set())
+    def __next__(self):
+        self.track = None
+        time, detections = next(self.detector_iter)
+        if self.track is not None:
+            associations = self.data_associator.associate(
+                self.tracks, detections, time)
+            if associations[self.track]:
+                state_post = self.updater.update(associations[self.track])
+                self.track.append(state_post)
+            else:
+                self.track.append(
+                    associations[self.track].prediction)
+
+        if self.track is None or self.deleter.delete_tracks(self.tracks):
+            new_tracks = self.initiator.initiate(detections)
+            if new_tracks:
+                self.track = new_tracks.pop()
+            else:
+                self.track = None
+
+        return time, self.tracks
 
 
 class MultiTargetTracker(Tracker):
@@ -93,29 +99,36 @@ class MultiTargetTracker(Tracker):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._tracks = set()
 
-    @BufferedGenerator.generator_method
-    def tracks_gen(self):
-        tracks = set()
+    @property
+    def tracks(self):
+        return self._tracks
 
-        for time, detections in self.detector:
+    def __iter__(self):
+        self.detector_iter = iter(self.detector)
+        return super().__iter__()
 
-            associations = self.data_associator.associate(
-                tracks, detections, time)
-            associated_detections = set()
-            for track, hypothesis in associations.items():
-                if hypothesis:
-                    state_post = self.updater.update(hypothesis)
-                    track.append(state_post)
-                    associated_detections.add(hypothesis.measurement)
-                else:
-                    track.append(hypothesis.prediction)
+    def __next__(self):
 
-            tracks -= self.deleter.delete_tracks(tracks)
-            tracks |= self.initiator.initiate(
-                detections - associated_detections)
+        time, detections = next(self.detector_iter)
 
-            yield time, tracks
+        associations = self.data_associator.associate(
+            self.tracks, detections, time)
+        associated_detections = set()
+        for track, hypothesis in associations.items():
+            if hypothesis:
+                state_post = self.updater.update(hypothesis)
+                track.append(state_post)
+                associated_detections.add(hypothesis.measurement)
+            else:
+                track.append(hypothesis.prediction)
+
+        self._tracks -= self.deleter.delete_tracks(self.tracks)
+        self._tracks |= self.initiator.initiate(
+            detections - associated_detections)
+
+        return time, self.tracks
 
 
 class MultiTargetMixtureTracker(Tracker):
@@ -143,65 +156,71 @@ class MultiTargetMixtureTracker(Tracker):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._tracks = set()
 
-    @BufferedGenerator.generator_method
-    def tracks_gen(self):
-        tracks = set()
+    @property
+    def tracks(self):
+        return self._tracks
 
-        for time, detections in self.detector:
+    def __iter__(self):
+        self.detector_iter = iter(self.detector)
+        return super().__iter__()
 
-            associations = self.data_associator.associate(
-                tracks, detections, time)
-            unassociated_detections = set(detections)
-            for track, multihypothesis in associations.items():
+    def __next__(self):
+        time, detections = next(self.detector_iter)
 
-                # calculate each Track's state as a Gaussian Mixture of
-                # its possible associations with each detection, then
-                # reduce the Mixture to a single Gaussian State
-                posterior_states = []
-                posterior_state_weights = []
-                for hypothesis in multihypothesis:
-                    if not hypothesis:
-                        posterior_states.append(hypothesis.prediction)
-                    else:
-                        posterior_states.append(
-                            self.updater.update(hypothesis))
-                    posterior_state_weights.append(
-                        hypothesis.probability)
+        associations = self.data_associator.associate(
+            self.tracks, detections, time)
+        unassociated_detections = set(detections)
+        for track, multihypothesis in associations.items():
 
-                means = StateVectors([state.state_vector for state in posterior_states])
-                covars = np.stack([state.covar for state in posterior_states], axis=2)
-                weights = np.asarray(posterior_state_weights)
-
-                post_mean, post_covar = gm_reduce_single(means, covars, weights)
-
-                missed_detection_weight = next(hyp.weight for hyp in multihypothesis if not hyp)
-
-                # Check if at least one reasonable measurement...
-                if any(hypothesis.weight > missed_detection_weight
-                       for hypothesis in multihypothesis):
-                    # ...and if so use update type
-                    track.append(GaussianStateUpdate(
-                        post_mean, post_covar,
-                        multihypothesis,
-                        multihypothesis[0].measurement.timestamp))
+            # calculate each Track's state as a Gaussian Mixture of
+            # its possible associations with each detection, then
+            # reduce the Mixture to a single Gaussian State
+            posterior_states = []
+            posterior_state_weights = []
+            for hypothesis in multihypothesis:
+                if not hypothesis:
+                    posterior_states.append(hypothesis.prediction)
                 else:
-                    # ...and if not, treat as a prediction
-                    track.append(GaussianStatePrediction(
-                        post_mean, post_covar,
-                        multihypothesis[0].prediction.timestamp))
+                    posterior_states.append(
+                        self.updater.update(hypothesis))
+                posterior_state_weights.append(
+                    hypothesis.probability)
 
-                # any detections in multihypothesis that had an
-                # association score (weight) lower than or equal to the
-                # association score of "MissedDetection" is considered
-                # unassociated - candidate for initiating a new Track
-                for hyp in multihypothesis:
-                    if hyp.weight > missed_detection_weight:
-                        if hyp.measurement in unassociated_detections:
-                            unassociated_detections.remove(hyp.measurement)
+            means = StateVectors([state.state_vector for state in posterior_states])
+            covars = np.stack([state.covar for state in posterior_states], axis=2)
+            weights = np.asarray(posterior_state_weights)
 
-            tracks -= self.deleter.delete_tracks(tracks)
-            tracks |= self.initiator.initiate(
-                unassociated_detections)
+            post_mean, post_covar = gm_reduce_single(means, covars, weights)
 
-            yield time, tracks
+            missed_detection_weight = next(hyp.weight for hyp in multihypothesis if not hyp)
+
+            # Check if at least one reasonable measurement...
+            if any(hypothesis.weight > missed_detection_weight
+                   for hypothesis in multihypothesis):
+                # ...and if so use update type
+                track.append(GaussianStateUpdate(
+                    post_mean, post_covar,
+                    multihypothesis,
+                    multihypothesis[0].measurement.timestamp))
+            else:
+                # ...and if not, treat as a prediction
+                track.append(GaussianStatePrediction(
+                    post_mean, post_covar,
+                    multihypothesis[0].prediction.timestamp))
+
+            # any detections in multihypothesis that had an
+            # association score (weight) lower than or equal to the
+            # association score of "MissedDetection" is considered
+            # unassociated - candidate for initiating a new Track
+            for hyp in multihypothesis:
+                if hyp.weight > missed_detection_weight:
+                    if hyp.measurement in unassociated_detections:
+                        unassociated_detections.remove(hyp.measurement)
+
+        self._tracks -= self.deleter.delete_tracks(self.tracks)
+        self._tracks |= self.initiator.initiate(
+            unassociated_detections)
+
+        return time, self.tracks
