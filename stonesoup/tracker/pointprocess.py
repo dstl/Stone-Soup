@@ -9,7 +9,6 @@ from ..types.track import Track
 from ..updater import Updater
 from ..hypothesiser.gaussianmixture import GaussianMixtureHypothesiser
 from ..mixturereducer.gaussianmixture import GaussianMixtureReducer
-from ..buffered_generator import BufferedGenerator
 
 
 class PointProcessMultiTargetTracker(Tracker):

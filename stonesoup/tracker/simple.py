@@ -12,8 +12,6 @@ from ..types.array import StateVectors
 from ..types.prediction import GaussianStatePrediction
 from ..types.update import GaussianStateUpdate
 from ..functions import gm_reduce_single
-from stonesoup.buffered_generator import BufferedGenerator
-from .base import Tracker
 
 
 class SingleTargetTracker(Tracker):

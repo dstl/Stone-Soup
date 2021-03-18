@@ -10,14 +10,23 @@ class Tracker(Base, BufferedGenerator):
     """Tracker base class"""
 
     @property
+    @abstractmethod
     def tracks(self):
-        return self.current[1]
+        raise NotImplementedError
 
     def __iter__(self):
         return self
 
     @abstractmethod
     def __next__(self):
+        """
+        Returns
+        -------
+        : :class:`datetime.datetime`
+            Datetime of current time step
+        : set of :class:`~.Track`
+            Tracks existing in the time step
+        """
         raise NotImplementedError
 
     @BufferedGenerator.generator_method
@@ -27,18 +36,3 @@ class Tracker(Base, BufferedGenerator):
         for time, tracks in tracker_iter:
             yield (time, tracks)
 
-    '''
-    @abstractmethod
-    @BufferedGenerator.generator_method
-    def tracks_gen(self):
-        """Returns a generator of tracks for each time step.
-
-        Yields
-        ------
-        : :class:`datetime.datetime`
-            Datetime of current time step
-        : set of :class:`~.Track`
-            Tracks existing in the time step
-        """
-        raise NotImplementedError
-    '''
