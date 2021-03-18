@@ -13,10 +13,10 @@ from ..types.prediction import GaussianStatePrediction
 from ..types.update import GaussianStateUpdate
 from ..functions import gm_reduce_single
 from stonesoup.buffered_generator import BufferedGenerator
-from .base import IterTracker
+from .base import Tracker
 
 
-class SingleTargetTracker(IterTracker):
+class SingleTargetTracker(Tracker):
     """A simple single target tracker.
 
     Track a single object using Stone Soup components. The tracker works by
@@ -78,7 +78,7 @@ class SingleTargetTracker(IterTracker):
         return time, self.tracks
 
 
-class MultiTargetTracker(IterTracker):
+class MultiTargetTracker(Tracker):
     """A simple multi target tracker.
 
     Track multiple objects using Stone Soup components. The tracker works by
@@ -132,7 +132,7 @@ class MultiTargetTracker(IterTracker):
         return time, self.tracks
 
 
-class MultiTargetMixtureTracker(IterTracker):
+class MultiTargetMixtureTracker(Tracker):
     """A simple multi target tracker that receives associations from a
     (Gaussian) Mixture associator.
 

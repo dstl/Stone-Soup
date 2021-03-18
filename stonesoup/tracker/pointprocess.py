@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from .base import IterTracker
+from .base import Tracker
 from ..base import Property
 from ..reader import DetectionReader
 from ..types.state import TaggedWeightedGaussianState
@@ -12,7 +12,7 @@ from ..mixturereducer.gaussianmixture import GaussianMixtureReducer
 from ..buffered_generator import BufferedGenerator
 
 
-class PointProcessMultiTargetTracker(IterTracker):
+class PointProcessMultiTargetTracker(Tracker):
     """
     Base class for Gaussian Mixture (GM) style implementations of
     point process derived filters
