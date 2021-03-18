@@ -146,7 +146,7 @@ metric_manager = SimpleManager([basic_generator, ospa_generator, siap_generator,
 # With this basic tracker built and metrics ready, we'll now run the tracker, adding the sets of
 # :class:`~.GroundTruthPath`, :class:`~.Detection` and :class:`~.Track` objects: to the metric
 # manager.
-for time, tracks in tracker.tracks_gen():
+for time, tracks in tracker:
     metric_manager.add_data(
         groundtruth_sim.groundtruth_paths, tracks, detection_sim.detections,
         overwrite=False,  # Don't overwrite, instead add above as additional data
