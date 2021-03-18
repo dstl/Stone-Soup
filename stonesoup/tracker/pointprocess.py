@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from .base import Tracker
+from .base import IterTracker
 from ..base import Property
 from ..reader import DetectionReader
 from ..types.state import TaggedWeightedGaussianState
@@ -12,7 +12,7 @@ from ..mixturereducer.gaussianmixture import GaussianMixtureReducer
 from ..buffered_generator import BufferedGenerator
 
 
-class PointProcessMultiTargetTracker(Tracker):
+class PointProcessMultiTargetTracker(IterTracker):
     """
     Base class for Gaussian Mixture (GM) style implementations of
     point process derived filters
@@ -46,6 +46,10 @@ class PointProcessMultiTargetTracker(Tracker):
             tracks.add(track)
         return tracks
 
+    def __iter__(self):
+        self.detector_iter = iter(self.detector)
+        return super().__iter__()
+
     def update_tracks(self):
         """
         Updates the tracks (:class:`Track`) associated with the filter.
@@ -74,27 +78,26 @@ class PointProcessMultiTargetTracker(Tracker):
                             self.extraction_threshold:
                         self.target_tracks[tag] = Track([component], id=tag)
 
-    @BufferedGenerator.generator_method
-    def tracks_gen(self):
-        for time, detections in self.detector:
-            # Add birth component
-            self.birth_component.timestamp = time
-            self.gaussian_mixture.append(self.birth_component)
-            # Perform GM Prediction and generate hypotheses
-            hypotheses = self.hypothesiser.hypothesise(
-                        self.gaussian_mixture.components,
-                        detections,
-                        time
-                        )
-            # Perform GM Update
-            self.gaussian_mixture = self.updater.update(hypotheses)
-            # Reduce mixture - Pruning and Merging
-            self.gaussian_mixture.components = \
-                self.reducer.reduce(self.gaussian_mixture.components)
-            # Update the tracks
-            self.update_tracks()
-            self.end_tracks()
-            yield time, self.tracks
+    def __next__(self):
+        time, detections = next(self.detector_iter)
+        # Add birth component
+        self.birth_component.timestamp = time
+        self.gaussian_mixture.append(self.birth_component)
+        # Perform GM Prediction and generate hypotheses
+        hypotheses = self.hypothesiser.hypothesise(
+                    self.gaussian_mixture.components,
+                    detections,
+                    time
+                    )
+        # Perform GM Update
+        self.gaussian_mixture = self.updater.update(hypotheses)
+        # Reduce mixture - Pruning and Merging
+        self.gaussian_mixture.components = \
+            self.reducer.reduce(self.gaussian_mixture.components)
+        # Update the tracks
+        self.update_tracks()
+        self.end_tracks()
+        return time, self.tracks
 
     def end_tracks(self):
         """
