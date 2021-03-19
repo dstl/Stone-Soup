@@ -16,7 +16,7 @@ class CovarianceBasedDeleter(Deleter):
     """
 
     covar_trace_thresh: float = Property(doc="Covariance matrix trace threshold")
-    mapping: Sequence = Property(default=None,
+    mapping: Sequence[int] = Property(default=None,
                                  doc="Track state vector indices whose corresponding covariances' "
                                      "sum is to be considered. Defaults to None, whereby the "
                                      "entire track covariance trace is considered.")
