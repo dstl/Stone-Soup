@@ -158,7 +158,7 @@ data_associator = GNNWith2DAssignment(hypothesiser)
 # Create deleter - get rid of anything with a covariance trace greater than 2
 from stonesoup.deleter.error import CovarianceBasedDeleter
 covariance_limit_for_delete = 2
-deleter = CovarianceBasedDeleter(covariance_limit_for_delete)
+deleter = CovarianceBasedDeleter(covar_trace_thresh=covariance_limit_for_delete)
 
 # %%
 # Set a standard prior state and the minimum number of detections required to qualify for
