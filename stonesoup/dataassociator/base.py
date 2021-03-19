@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
+import datetime
 from abc import abstractmethod
+from typing import Set, Mapping
 
 from ..base import Base, Property
 from ..hypothesiser import Hypothesiser
+from ..types.detection import Detection
+from ..types.hypothesis import Hypothesis
+from ..types.track import Track
 
 
 class DataAssociator(Base):
@@ -18,7 +23,8 @@ class DataAssociator(Base):
         doc="Generate a set of hypotheses for each track-detection pair")
 
     @abstractmethod
-    def associate(self, tracks, detections, timestamp=None, **kwargs):
+    def associate(self, tracks: Set[Track], detections: Set[Detection],
+                  timestamp: datetime.datetime, **kwargs) -> Mapping[Track, Hypothesis]:
         """Associate tracks and detections
 
         Parameters
@@ -28,7 +34,7 @@ class DataAssociator(Base):
         detections : set of :class:`~.Detection`
             Detections to be associated to tracks.
         timestamp : datetime.datetime
-            Timestamp to be used for missed detections.
+            Timestamp to be used for missed detections and to predict to.
 
         Returns
         -------

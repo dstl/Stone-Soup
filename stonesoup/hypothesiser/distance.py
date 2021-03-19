@@ -14,7 +14,7 @@ class DistanceHypothesiser(Hypothesiser):
 
     Generate track predictions at detection times and score each hypothesised
     prediction-detection pair using the distance of the supplied
-    :class:`Measure` class.
+    :class:`~.Measure` class.
     """
 
     predictor: Predictor = Property(doc="Predict tracks to detection times")
@@ -28,7 +28,7 @@ class DistanceHypothesiser(Hypothesiser):
         default=False,
         doc="If `True`, hypotheses beyond missed distance will be returned. Default `False`")
 
-    def hypothesise(self, track, detections, timestamp):
+    def hypothesise(self, track, detections, timestamp, **kwargs):
         """ Evaluate and return all track association hypotheses.
 
         For a given track and a set of N available detections, return a
@@ -37,12 +37,11 @@ class DistanceHypothesiser(Hypothesiser):
 
         Parameters
         ----------
-        track: :class:`~.Track`
+        track : Track
             The track object to hypothesise on
-        detections: :class:`list`
-            A list of :class:`~Detection` objects, representing the available
-            detections.
-        timestamp: :class:`datetime.datetime`
+        detections : set of :class:`~.Detection`
+            The available detections
+        timestamp : datetime.datetime
             A timestamp used when evaluating the state and measurement
             predictions. Note that if a given detection has a non empty
             timestamp, then prediction will be performed according to
@@ -57,7 +56,7 @@ class DistanceHypothesiser(Hypothesiser):
         hypotheses = list()
 
         # Common state & measurement prediction
-        prediction = self.predictor.predict(track, timestamp=timestamp)
+        prediction = self.predictor.predict(track, timestamp=timestamp, **kwargs)
         # Missed detection hypothesis with distance as 'missed_distance'
         hypotheses.append(
             SingleDistanceHypothesis(
@@ -71,11 +70,11 @@ class DistanceHypothesiser(Hypothesiser):
 
             # Re-evaluate prediction
             prediction = self.predictor.predict(
-                track, timestamp=detection.timestamp)
+                track, timestamp=detection.timestamp, **kwargs)
 
             # Compute measurement prediction and distance measure
             measurement_prediction = self.updater.predict_measurement(
-                prediction, detection.measurement_model)
+                prediction, detection.measurement_model, **kwargs)
             distance = self.measure(measurement_prediction, detection)
 
             if self.include_all or distance < self.missed_distance:
