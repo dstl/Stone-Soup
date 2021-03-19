@@ -239,7 +239,7 @@ def eccentric_anomaly_from_mean_anomaly(mean_anomaly, eccentricity,
     while np.abs(ratio) > precision and count <= max_iterations:
         f = ecc_anomaly - eccentricity * np.sin(ecc_anomaly) - mean_anomaly
         fp = 1 - eccentricity * np.cos(ecc_anomaly)
-        ratio = f / fp # Need to check conditioning
+        ratio = f / fp  # Need to check conditioning
         ecc_anomaly = ecc_anomaly - ratio
         count += 1
         if count == max_iterations:
@@ -280,6 +280,7 @@ def tru_anom_from_mean_anom(mean_anomaly, eccentricity, precision=1e-8, max_iter
 
     return np.remainder(np.arctan2(np.sqrt(1 - eccentricity**2) * sin_ecc_anom,
                                    cos_ecc_anom - eccentricity), 2*np.pi)
+
 
 def perifocal_position(eccentricity, semimajor_axis, true_anomaly):
     r"""The position vector in perifocal coordinates calculated from the Keplerian elements
