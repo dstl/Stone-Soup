@@ -6,6 +6,7 @@ Orbital functions
 Functions used within multiple orbital classes in Stone Soup
 
 """
+import warnings
 import numpy as np
 
 from . import dotproduct
@@ -225,6 +226,9 @@ def eccentric_anomaly_from_mean_anomaly(mean_anomaly, eccentricity,
         Eccentric anomaly of the orbit
     """
 
+    # This required to prevent wrapping and ratio converging to 2*pi
+    mean_anomaly = float(mean_anomaly)
+
     if mean_anomaly < np.pi:
         ecc_anomaly = mean_anomaly + eccentricity / 2
     else:
@@ -235,9 +239,11 @@ def eccentric_anomaly_from_mean_anomaly(mean_anomaly, eccentricity,
     while np.abs(ratio) > precision and count <= max_iterations:
         f = ecc_anomaly - eccentricity * np.sin(ecc_anomaly) - mean_anomaly
         fp = 1 - eccentricity * np.cos(ecc_anomaly)
-        ratio = f / fp  # Need to check conditioning
+        ratio = f / fp # Need to check conditioning
         ecc_anomaly = ecc_anomaly - ratio
         count += 1
+        if count == max_iterations:
+            warnings.warn("Calculation of Eccentric Anomaly did not converge", RuntimeWarning)
 
     return ecc_anomaly  # Check whether this ever goes outside 0 < 2pi
 
@@ -272,10 +278,8 @@ def tru_anom_from_mean_anom(mean_anomaly, eccentricity, precision=1e-8, max_iter
     # return np.arccos(np.clip((eccentricity - cos_ecc_anom) /
     #                 (eccentricity*cos_ecc_anom - 1), -1, 1))
 
-    return np.remainder(np.arctan2(np.sqrt(1 - eccentricity**2) *
-                                   sin_ecc_anom,
+    return np.remainder(np.arctan2(np.sqrt(1 - eccentricity**2) * sin_ecc_anom,
                                    cos_ecc_anom - eccentricity), 2*np.pi)
-
 
 def perifocal_position(eccentricity, semimajor_axis, true_anomaly):
     r"""The position vector in perifocal coordinates calculated from the Keplerian elements
