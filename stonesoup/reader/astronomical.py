@@ -7,7 +7,6 @@ of data that is in common astronomical formats.
 Readers include:
     FITS
     TLE
-    SATCAT
 """
 from datetime import datetime
 import numpy as np
