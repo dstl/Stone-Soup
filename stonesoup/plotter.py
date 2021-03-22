@@ -229,7 +229,7 @@ class Plotter:
                     max_ind = np.argmax(w)
                     min_ind = np.argmin(w)
                     orient = np.arctan2(v[1, max_ind], v[0, max_ind])
-                    ellipse = Ellipse(xy=(state.state_vector[0], state.state_vector[2]),
+                    ellipse = Ellipse(xy=state.state_vector[mapping[:2], 0],
                                       width=2 * np.sqrt(w[max_ind]),
                                       height=2 * np.sqrt(w[min_ind]),
                                       angle=np.rad2deg(orient), alpha=0.2,
@@ -251,8 +251,8 @@ class Plotter:
             # Plot particles
             for track in tracks:
                 for state in track:
-                    data = state.particles.state_vector.T
-                    self.ax.plot(data[:, 0], data[:, 2], linestyle='', marker=".",
+                    data = state.particles.state_vector[mapping[:2], :]
+                    self.ax.plot(data[0], data[1], linestyle='', marker=".",
                                  markersize=1, alpha=0.5)
 
             # Generate legend items for particles
