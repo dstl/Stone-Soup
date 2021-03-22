@@ -203,10 +203,12 @@ class Plotter:
             tracks = {tracks}  # Make a set of length 1
 
         # Plot tracks
+        track_colors = {}
         for track in tracks:
             line = self.ax.plot([state.state_vector[mapping[0]] for state in track],
                                 [state.state_vector[mapping[1]] for state in track],
                                 **tracks_kwargs)
+            track_colors[track] = plt.getp(line[0], 'color')
 
         # Assuming a single track or all plotted as the same colour then the following will work.
         # Otherwise will just render the final track colour.
@@ -231,7 +233,7 @@ class Plotter:
                                       width=2 * np.sqrt(w[max_ind]),
                                       height=2 * np.sqrt(w[min_ind]),
                                       angle=np.rad2deg(orient), alpha=0.2,
-                                      color=tracks_kwargs['color'])
+                                      color=track_colors[track])
                     self.ax.add_artist(ellipse)
 
             # Generate legend items for uncertainty ellipses
