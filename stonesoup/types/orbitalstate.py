@@ -10,6 +10,7 @@ from ..functions.orbital import keplerian_to_rv, tru_anom_from_mean_anom
 from .array import StateVector
 from .state import State, GaussianState
 from .angle import Inclination, EclipticLongitude
+from ..reader.astronomical import TLEDictReader
 
 
 class CoordinateSystem(Enum):
@@ -125,22 +126,53 @@ class OrbitalState(State):
 
     """
 
-    coordinates = Property(
-        Enum, default=CoordinateSystem.CARTESIAN,
+    coordinates : Enum = Property(default=CoordinateSystem.CARTESIAN,
         doc="The parameterisation used on initiation. Acceptable values "
             "are 'CARTESIAN' (default), 'KEPLERIAN', 'TLE', or 'EQUINOCTIAL'. "
             "All other inputs will return errors. Will accept string inputs."
     )
 
-    grav_parameter = Property(
-        float, default=3.986004418e14,
+    grav_parameter : float = Property(default=3.986004418e14,
         doc=r"Standard gravitational parameter :math:`\mu = G M`. The default "
             r"is :math:`3.986004418 \times 10^{14} \,` "
             r":math:`\mathrm{m}^3 \mathrm{s}^{-2}`.")
 
-    metadata = Property(
-        dict, default=None, doc="Dictionary containing metadata about orbit"
-    )
+    # The following nine attributes provide support for two-line element representations
+    catalogue_number : int = Property(
+        default=None, doc="NORAD Catalog Number: a unique identifier for each earth-orbiting "
+                          "artificial satellite")
+
+    classification : str = Property(
+        default=None, doc="Classification (U=Unclassified, C=Classified, S=Secret")
+
+    international_designator : str = Property(
+        default=None, doc="International designator incorporates the year of launch, launch "
+                          "number that year and place of launch.")
+
+    ballistic_coefficient : float = Property(
+        default=None, doc=r"The ballistic coefficient is the first derivative of the mean "
+                          r"motion. (units of :math:`mathrm{rad s}^{-2}`)")
+
+    second_derivative_mean_motion : float = Property(
+        default=None, doc=r"The second derivative of the mean motion. "
+                          r"(:math:`mathrm{rad s}^{-3}`)")
+
+    bstar : float = Property(
+        default=None, doc=r"The TLE drag coefficient. :math:`B* = \frac{B \rho_0}{2}` where "
+                          r":math:`\rho_0` is density of a standard atmosphere and "
+                          r":math:B = \frac{C_D A}{m}` for coefficient of drag :math:`C_D`, "
+                          r"cross-sectional area :math:`A` and mass :math:`m` is the mass.")
+
+    ephemeris_type : int = Property(
+        default=None, doc="Ephemeris type (NORAD use). Zero in distributed TLE data.")
+
+    element_set_number : int = Property(
+        default=None, doc="Element set number in the TLE. Incremented when a new TLE is "
+                          "generated for this object.")
+
+    revolution_number : int = Property(default=None, doc="Number of revolutions at the epoch")
+
+    metadata : dict = Property(default=None, doc="Dictionary containing metadata about orbit")
 
     def __init__(self, state_vector, *args, **kwargs):
         """"""
@@ -152,38 +184,14 @@ class OrbitalState(State):
         # Check to see if the initialisation is via metadata
         if coordinates.name == 'TLE' and (state_vector is None or len(state_vector) == 0):
             if 'metadata' in kwargs and kwargs['metadata'] is not None:
-                line1 = kwargs['metadata']['line_1']
-                line2 = kwargs['metadata']['line_2']
+                tle = TLEDictReader({'line_1': kwargs['metadata']['line_1'],
+                                     'line_2': kwargs['metadata']['line_2']})
 
-                # Resolve the timestamp
-                year = 2000 + int(line1[17:20])
-                day = line1[20:23]
+                state_vector = StateVector([tle.inclination, tle.longitude_of_ascending_node,
+                                            tle.eccentricity, tle.arg_periapsis, tle.mean_anomaly,
+                                            tle.mean_motion])
+                kwargs['timestamp'] = tle.epoch
 
-                hour = float(line1[23:32]) * 24
-                fhour = int(np.floor(hour))
-
-                minu = (hour - fhour) * 60
-                fminu = int(np.floor(minu))
-
-                seco = (minu - fminu) * 60
-                fseco = int(np.floor(seco))
-
-                mics = (seco - fseco) * 1e6
-                fmics = int(np.round(mics))
-
-                timestamp = datetime.strptime(
-                    str(year) + " " + str(day) + " " + str(fhour) + " " + str(fminu) + " " +
-                    str(fseco) + " " + str(
-                        fmics), "%Y %j %H %M %S %f")
-
-                state_vector = StateVector([float(line2[8:16]) * np.pi / 180,
-                                            float(line2[17:25]) * np.pi / 180,
-                                            float('.' + line2[26:33]),
-                                            float(line2[34:42]) * np.pi / 180,
-                                            float(line2[43:51]) * np.pi / 180,
-                                            float(line2[52:63]) * 2 * np.pi / 86400])
-
-                kwargs['timestamp'] = timestamp
                 super().__init__(state_vector, *args, **kwargs)
 
             else:
@@ -224,6 +232,20 @@ class OrbitalState(State):
                                  .format(state_vector[0]))
 
             super().__init__(state_vector, *args, **kwargs)
+
+            if 'metadata' in kwargs and kwargs['metadata']:
+                tle = TLEDictReader({'line_1': kwargs['metadata']['line_1'],
+                                     'line_2': kwargs['metadata']['line_2']})
+
+                self.catalogue_number = tle.catalogue_number
+                self.classification = tle.classification
+                self.international_designator = tle.international_designator
+                self.ballistic_coefficient = tle.ballistic_coefficient
+                self.second_derivative_mean_motion = tle.second_derivative_mean_motion
+                self.bstar = tle.bstar
+                self.ephemeris_type = tle.ephemeris_type
+                self.element_set_number = tle.element_set_number
+                self.revolution_number = tle.revolution_number
 
             # First enforce the correct type
             state_vector[0] = Inclination(state_vector[0])
@@ -569,9 +591,63 @@ class OrbitalState(State):
                            [self.equinoctial_q],
                            [self.mean_longitude]]))
 
+    @property
+    def tle_dict(self):
+        """Return the two-line elements as metadata. There's considerable variability within
+        distributed TLE catalogues with inconsistent leading 0s, leading + signs and signs of
+        zero exponents. This method tries to follow the practice in more recent CelesTrak TLEs and
+        returns no leading 0, removes leading + signs and fixes the sign of zero exponents as +.
+        Note that this means that checksums occasionally don't match.
+        """
+
+        def _tlefmt1(number):
+            """TLE format for ballistic coefficient. Drops leading 0 but retains decimal point"""
+            nstr = f"{number:8.8f}"
+            if number < 0:
+                return nstr[0] + nstr[2:]
+            else:
+                return ' ' + nstr[1:]
+
+        def _tlefmt2(number):
+            """TLE format for second derivative mean motion and B*"""
+            if number == 0:
+                return ' 00000+0'
+            else:
+                nstr = '{:5.5e}'.format(number)
+                mantissa, exponent = nstr.split("e")
+                outstr = f"{float(mantissa) / 10:5.5f}" + f"{int(exponent) + 1:+1.0f}"
+                if number < 0:
+                    return outstr[0] + outstr[3:]
+                else:
+                    return ' ' + outstr[2:]
+
+        tst = self.timestamp
+        timest = str(tst.year)[2:4] + \
+                 str(tst.timetuple().tm_yday + tst.hour / 24 + tst.minute / (60 * 24) +
+                     tst.second / (3600 * 24) + tst.microsecond / (1e6 * 3600 * 24))
+
+        line1 = "1 " + f"{self.catalogue_number:5}" + self.classification + ' ' + \
+                f"{self.international_designator:8}" + ' ' + f"{float(timest):014.8f}" + ' ' + \
+                _tlefmt1(self.ballistic_coefficient/(4 * np.pi) * 86400**2) + ' ' + \
+                _tlefmt2(self.second_derivative_mean_motion/(6 * np.pi) * 86400**3) + ' ' + \
+                _tlefmt2(self.bstar * 6.371e6) + ' ' + f"{self.ephemeris_type:1}" + ' ' + \
+                f"{self.element_set_number:4}"
+
+        line2 = "2 " + f"{self.catalogue_number:5}" + ' ' +f"{self.inclination*180/np.pi:8.4f}" \
+                + ' ' + f"{self.longitude_ascending_node*180/np.pi:8.4f}" + ' ' \
+                + f"{self.eccentricity:7.7f}"[2:] + ' ' \
+                + f"{self.argument_periapsis*180/np.pi:8.4f}" + ' ' \
+                + f"{self.mean_anomaly*180/np.pi:8.4f}" + ' ' \
+                + f"{self.mean_motion/(2*np.pi) *3600*24:11.8f}" + f"{self.revolution_number:5.0f}"
+
+        line1 = line1 + str(TLEDictReader.checksum(line1))
+        line2 = line2 + str(TLEDictReader.checksum(line2))
+
+        return {'line_1' : line1, 'line_2' : line2}
+
 
 class GaussianOrbitalState(GaussianState, OrbitalState):
-    """An Orbital state for use in Kalman filters (and perhaps elsewhere). Inherits from
+    """An orbital state for use in Kalman filters (and perhaps elsewhere). Inherits from
     GaussianState so has covariance matrix. As no checks on the validity of the covariance
     matrix are made, care should be exercised in its use. The propagator will generally require
     a particular coordinate reference which must be understood.

@@ -215,3 +215,106 @@ class TLEKeplerianTransitionModel(OrbitalGaussianTransitionModel, LinearModel):
         return StateVector([Inclination(out_statev[0]), EclipticLongitude(out_statev[1]),
                             out_statev[2], EclipticLongitude(out_statev[3]),
                             EclipticLongitude(out_statev[4]), out_statev[5]])
+
+
+class SGP4TransitionModel(OrbitalGaussianTransitionModel, NonLinearModel):
+    """This class wraps https://pypi.org/project/sgp4/
+
+    Note that the transition works slightly differently from other versions. The TLE needs to be
+    included in the metadata, and it is not updated. The content of the orbital state vector need
+    not be consistent with the TLE and is ignored in this transition model. The state vector
+    returned is in the TEME Cartesian frame in km, km s^{-1}.
+
+    This presents an issue for the rvs function. As inherited, that function adds noise to the
+    transitioned state - so needs to be in TEME Cartesian coordinates.
+
+    References
+    ----------
+    1. https://pypi.org/project/sgp4/
+
+    """
+
+    @property
+    def ndim_state(self):
+        """Dimension of the state vector is 6
+
+        Returns
+        -------
+        : int
+            The dimension of the state vector, i.e. 6
+
+        """
+        return 6
+
+    def _advance_by_metadata(self, orbitalstate, time_interval):
+        # Evaluated at initial timestamp
+        tle_as_dict = orbitalstate.tle_as_dict
+        tle_ext = Satrec.twoline2rv(tle_as_dict['line_1'], tle_as_dict['line_2'])
+
+        # scale factor in [length]/km - will multiply the outputs by this factor because the
+        # output of sgp4 is in km.
+        scale_fac = np.cbrt(orbitalstate.grav_parameter/3.986004418e5)
+
+        # Predict over time interval
+        tt = orbitalstate.timestamp + time_interval
+
+        jd, fr = jday(tt.year, tt.month, tt.day,
+                      tt.hour, tt.minute, tt.second)
+
+        # WARNING: r and v returned as km and km/s so mut be multiplied by scale_fac
+        e, bold_r, bold_v = tle_ext.sgp4(jd, fr)
+
+        return e, tuple(br*scale_fac for br in bold_r), tuple(bv*scale_fac for bv in bold_v)
+
+    def transition(self, orbital_state, noise=False,
+                 time_interval=timedelta(seconds=0)):
+        r"""Just passes parameters to the function function
+
+        Parameters
+        ----------
+        orbital_state : :class:`~.OrbitalState`
+            The prior orbital state
+        noise : bool or StateVector, optional
+            A boolean parameter or a state vector. If the latter this represents an additive noise
+            (or bias) term added to the transited state. If True the noise vector is sampled via
+            the :meth:`rvs()` function. If False, noise is not added.
+        time_interval: :math:`\delta t` :attr:`datetime.timedelta`, optional
+            The time interval over which to test the new state (default is 0
+            seconds)
+
+        Returns
+        -------
+        : StateVector
+            The orbital state vector returned by the transition function
+
+        """
+        return self.function(orbital_state, noise=noise, time_interval=time_interval)
+
+    def function(self, orbital_state, noise=False, time_interval=timedelta(seconds=0)):
+        r"""
+
+        Parameters
+        ----------
+        orbital_state : :class:`~.OrbitalState`
+            The prior orbital state
+        noise : bool or StateVector, optional
+            A boolean parameter or a state vector. If the latter this represents an additive noise
+            (or bias) term added to the transited state. If True the noise vector is sampled via
+            the :meth:`rvs()` function. If False, noise is not added.
+        time_interval: :math:`\delta t` :attr:`datetime.timedelta`, optional
+            The time interval over which to test the new state (default
+            is 0 seconds)
+
+        Returns
+        -------
+        : StateVector
+            The orbital state vector returned by the transition function. In Cartesian coordinates
+            in km, km s^{-1}
+
+        """
+        noise = self._noiseinrightform(noise, time_interval=time_interval)
+
+        e, bold_r, bold_v = self._advance_by_metadata(orbital_state, time_interval)
+
+        # And put them together
+        return StateVector(np.concatenate((bold_r, bold_v), axis=0)) + noise
