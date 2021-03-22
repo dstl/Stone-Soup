@@ -61,7 +61,7 @@ class TLEDictReader(Reader):
     https://celestrak.com/columns/v04n03/
 
     """
-    tle : dict = Property(doc="")
+    tle: dict = Property(doc="")
 
     # Unit conversions
     _rad_deg = np.pi / 180
@@ -76,8 +76,9 @@ class TLEDictReader(Reader):
     @classmethod
     def checksum(cls, line):
         """This class method just calculates the checksum based on the lines (not including the
-        checksum itself). It's entirely due to https://space.stackexchange.com/users/4709/coastrogeek
-        at https://space.stackexchange.com/questions/5358/what-does-check-sum-tle-mean
+        checksum itself). It's entirely due to
+        https://space.stackexchange.com/users/4709/coastrogeek at
+        https://space.stackexchange.com/questions/5358/what-does-check-sum-tle-mean
         """
         L = line[0:68].strip()
         cksum = 0

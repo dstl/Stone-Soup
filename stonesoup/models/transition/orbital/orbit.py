@@ -4,6 +4,8 @@ from datetime import timedelta
 
 import numpy as np
 
+from sgp4.api import jday, Satrec
+
 from ....base import Property
 from ....types.array import StateVector, Matrix
 from ....types.angle import Inclination, EclipticLongitude
@@ -248,7 +250,7 @@ class SGP4TransitionModel(OrbitalGaussianTransitionModel, NonLinearModel):
 
     def _advance_by_metadata(self, orbitalstate, time_interval):
         # Evaluated at initial timestamp
-        tle_as_dict = orbitalstate.tle_as_dict
+        tle_as_dict = orbitalstate.tle_dict
         tle_ext = Satrec.twoline2rv(tle_as_dict['line_1'], tle_as_dict['line_2'])
 
         # scale factor in [length]/km - will multiply the outputs by this factor because the
@@ -266,8 +268,7 @@ class SGP4TransitionModel(OrbitalGaussianTransitionModel, NonLinearModel):
 
         return e, tuple(br*scale_fac for br in bold_r), tuple(bv*scale_fac for bv in bold_v)
 
-    def transition(self, orbital_state, noise=False,
-                 time_interval=timedelta(seconds=0)):
+    def transition(self, orbital_state, noise=False, time_interval=timedelta(seconds=0)):
         r"""Just passes parameters to the function function
 
         Parameters
