@@ -139,7 +139,7 @@ data_associator = GNNWith2DAssignment(hypothesiser)
 # your state vector. So the higher the threshold value, the longer tracks that haven't been
 # updated will remain.
 from stonesoup.deleter.error import CovarianceBasedDeleter
-deleter = CovarianceBasedDeleter(4)
+deleter = CovarianceBasedDeleter(covar_trace_thresh=4)
 
 # %%
 # Creating an Initiator

@@ -2,8 +2,9 @@
 from abc import abstractmethod
 from typing import Set
 
-from ..base import Base
+from ..base import Base, Property
 from ..types.track import Track
+from ..types.update import Update
 
 
 class Deleter(Base):
@@ -11,6 +12,9 @@ class Deleter(Base):
 
     Proposes tracks for deletion.
     """
+
+    delete_last_pred: bool = Property(default=False, doc="Remove the state that caused a track to "
+                                                         "be deleted if it is a prediction.")
 
     @abstractmethod
     def check_for_deletion(self, track: Track, **kwargs) -> bool:
@@ -46,6 +50,12 @@ class Deleter(Base):
             Set of tracks proposed for deletion.
         """
 
-        return {track
-                for track in tracks
-                if self.check_for_deletion(track, **kwargs)}
+        tracks_to_delete = {track for track in tracks if self.check_for_deletion(track, **kwargs)}
+
+        if self.delete_last_pred:
+            for track in tracks_to_delete:
+                if not isinstance(track[-1], Update):
+                    del track[-1]
+                    del track.metadatas[-1]
+
+        return tracks_to_delete

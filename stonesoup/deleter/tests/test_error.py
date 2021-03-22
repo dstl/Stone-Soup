@@ -28,7 +28,7 @@ def test_cbd():
     tracks.add(track)
 
     cover_deletion_thresh = 100
-    deleter = CovarianceBasedDeleter(cover_deletion_thresh)
+    deleter = CovarianceBasedDeleter(covar_trace_thresh=cover_deletion_thresh)
 
     deleted_tracks = deleter.delete_tracks(tracks)
     tracks -= deleted_tracks
