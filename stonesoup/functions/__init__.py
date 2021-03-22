@@ -536,14 +536,20 @@ def gm_reduce_single(means, covars, weights):
     """
     # Normalise weights such that they sum to 1
     weights = weights/Probability.sum(weights)
+    weights = weights.astype(np.float_)
 
     # Calculate mean
-    mean = np.average(means, axis=1, weights=weights)
+    #mean = np.average(means, axis=1, weights=weights)
+    mean = np.average(means, axis=0, weights=weights)
 
     # Calculate covar
     delta_means = means - mean
-    covar = np.sum(covars*weights, axis=2, dtype=np.float_) + weights*delta_means@delta_means.T
-
+    mean = mean[:, np.newaxis]
+    delta_means = delta_means.T
+    w3 = weights[:, np.newaxis, np.newaxis]
+    #covar = np.sum(covars*weights, axis=2, dtype=np.float_) + weights*delta_means@delta_means.T
+    covar = np.sum(covars*w3, axis=0, dtype=np.float_) + weights*delta_means@delta_means.T
+    
     return mean.view(StateVector), covar.view(CovarianceMatrix)
 
 
@@ -590,6 +596,34 @@ def mod_elevation(x):
     elif N == 3:
         x = x - 2.0 * np.pi
     return x
+
+
+def imm_merge(means, covars, weights):
+    """ Perform IMM components merging/mixing
+
+    Parameters
+    ----------
+    means: np.array of shape (num_dims, num_models)
+        The IMM means
+    covars: np.array of shape (num_models, num_dims, num_dims)
+        The IMM covariances
+    weights: np.array of shape (num_models, num_models)
+        The IMM mixing weights
+
+    Returns
+    -------
+    np.array of shape (num_dims, num_models)
+        The mixed IMM means
+    np.array of shape (num_models, num_dims, num_dims)
+        The mixed IMM covariances
+
+    """
+    means_k, covars_k = [], []
+    for w in weights:
+        mean, covar = gm_reduce_single(means.T, covars, w)
+        means_k.append(mean)
+        covars_k.append(covar)
+    return np.concatenate(means_k, 1), np.array(covars_k)
 
 
 def dotproduct(a, b):

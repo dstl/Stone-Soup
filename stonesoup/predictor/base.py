@@ -5,6 +5,38 @@ from abc import abstractmethod
 from ..base import Base, Property
 from ..models.transition import TransitionModel
 from ..models.control import ControlModel
+from types import FunctionType
+from ..updater.base import Updater
+import functools
+
+
+def null_convert(state):
+    """
+    Routine to do a null conversion on the Gaussian state
+    Parameters
+    ----------
+    state: :class:'~GaussianState'
+        The input state.
+
+    Returns
+    -------
+    :class:'~GaussianState'
+    """
+    return state
+
+
+# The decorator to call conversion routines before and after a function
+def prepost(fn):
+    # The new function the decorator returns
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        self = args[0]
+        state = args[1]
+        state = self.convert2local_state(state)
+        out = fn(self, state, **kwargs)
+        out = self.convert2common_state(out)
+        return out
+    return wrapper
 
 
 class Predictor(Base):
@@ -29,6 +61,16 @@ class Predictor(Base):
 
     transition_model: TransitionModel = Property(doc="transition model")
     control_model: ControlModel = Property(default=None, doc="control model")
+    convert2common_state = Property(
+            FunctionType,
+            default=null_convert,
+            doc="Routine to convert from an internal Gaussian state"
+            "to common Gaussian state")
+    convert2local_state = Property(
+            FunctionType,
+            default=null_convert,
+            doc="Routine to convert from a common Gaussian state"
+            "to the internal Gaussian state required for this predictor")
 
     @abstractmethod
     def predict(self, prior, timestamp=None, **kwargs):

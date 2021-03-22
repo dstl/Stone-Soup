@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 import datetime
 from collections import abc
-from typing import MutableSequence
+from typing import MutableSequence, List
 
 import numpy as np
 import uuid
 
 from ..base import Property
+from ..functions import gm_reduce_single
 from .array import StateVector, CovarianceMatrix
 from .base import Type
 from .particle import Particles
@@ -260,6 +261,49 @@ class TaggedWeightedGaussianState(WeightedGaussianState):
         if self.tag is None:
             self.tag = str(uuid.uuid4())
 
+
+class GaussianMixtureState(Type):
+    """Gaussian Mixture state"""
+    components: List[WeightedGaussianState] = Property(
+                    doc='Gaussian Mixture components')
+
+    @property
+    def ndim(self):
+        return self.components[0].ndim
+
+    @property
+    def timestamp(self):
+        return self.components[0].timestamp
+
+    @property
+    def means(self):
+        means = [component.mean for component in self.components]
+        return np.concatenate((means),1)
+
+    @property
+    def covars(self):
+        covars= [component.covar for component in self.components]
+        return np.array(covars)
+
+    @property
+    def weights(self):
+        return np.array([[component.weight] for component in self.components])
+
+    @property
+    def mean(self):
+        means = self.means
+        weights = self.weights
+        return means@weights
+
+    @property
+    def covar(self):
+        _, covar = gm_reduce_single(self.means.T, self.covars,
+                                    self.weights.ravel())
+        return covar
+
+    @property
+    def state_vector(self):
+        return self.mean
 
 class ParticleState(Type):
     """Particle State type

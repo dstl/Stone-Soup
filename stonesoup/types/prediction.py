@@ -4,7 +4,10 @@ from typing import Any, Union
 from ..base import Property
 from .array import CovarianceMatrix
 from .base import Type
-from .state import (State, GaussianState, ParticleState, SqrtGaussianState,
+#from .state import (State, GaussianState, ParticleState, WeightedGaussianState,
+#                    GaussianMixtureState)
+from .state import (State, GaussianState, ParticleState, WeightedGaussianState,
+                    GaussianMixtureState, SqrtGaussianState,
                     TaggedWeightedGaussianState, StateMutableSequence)
 from ..models.transition.base import TransitionModel
 
@@ -165,3 +168,43 @@ class ParticleMeasurementPrediction(MeasurementPrediction, ParticleState):
 
     This is a simple Particle measurement prediction object.
     """
+
+
+class WeightedGaussianStatePrediction(Prediction, WeightedGaussianState):
+    """ WeightedGaussianStatePrediction type
+
+    This is a simple Gaussian state prediction object, which, as the name
+    suggests, is described by a Gaussian distribution.
+    """
+
+
+class GaussianMixtureStatePrediction(Prediction, GaussianMixtureState):
+    """ GaussianMixtureStatePrediction type
+
+    This is a simple Gaussian Mixture state prediction object, which, as the
+    name suggests, is described by a Gaussian distribution.
+    """
+
+
+class WeightedGaussianMeasurementPrediction(MeasurementPrediction,
+                                            WeightedGaussianState):
+    """ WeightedGaussianMeasurementPrediction type
+
+    An augmented GaussianMeasurementPrediction type that also incorporates a
+    weight.
+    """
+    cross_covar = Property(CovarianceMatrix,
+                           doc="The state-measurement cross covariance matrix",
+                           default=None)
+
+
+class GaussianMixtureMeasurementPrediction(MeasurementPrediction,
+                                           GaussianMixtureState):
+    """GaussianMixtureMeasurementPrediction type
+
+    A Gaussian Mixture measurement prediction that "quacks" both like a
+    GaussianMixtureState, as well as a GaussianMeasurementPrediction
+    """
+    cross_covar = Property(CovarianceMatrix,
+                           doc="The state-measurement cross covariance matrix",
+                           default=None)
