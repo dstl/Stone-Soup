@@ -3,7 +3,7 @@ import numpy as np
 
 from .base import Resampler
 from ..types.numeric import Probability
-from ..types.particle import Particle
+from ..types.particle import Particles
 
 
 class SystematicResampler(Resampler):
@@ -22,24 +22,27 @@ class SystematicResampler(Resampler):
             The resampled particles
         """
 
+        if not isinstance(particles, Particles):
+            particles = Particles(particle_list=particles)
         n_particles = len(particles)
         weight = Probability(1/n_particles)
-        cdf = np.cumsum([p.weight for p in particles])
-        particles_listed = list(particles)
+
+        log_weights = np.array([weight.log_value for weight in particles.weight])
+        weight_order = np.argsort(log_weights, kind='stable')
+        max_log_value = log_weights[weight_order[-1]]
+        with np.errstate(divide='ignore'):
+            cdf = np.log(np.cumsum(np.exp(log_weights[weight_order] - max_log_value)))
+        cdf += max_log_value
+
         # Pick random starting point
         u_i = np.random.uniform(0, 1 / n_particles)
-        new_particles = []
 
         # Cycle through the cumulative distribution and copy the particle
         # that pushed the score over the current value
-        for j in range(n_particles):
-
-            u_j = u_i + (1 / n_particles) * j
-
-            particle = particles_listed[np.argmax(u_j < cdf)]
-            new_particles.append(
-                Particle(particle.state_vector,
-                         weight=weight,
-                         parent=particle))
-
+        u_j = u_i + (1 / n_particles) * np.arange(n_particles)
+        index = weight_order[np.searchsorted(cdf, np.log(u_j))]
+        new_particles = Particles(state_vector=particles.state_vector[:, index],
+                                  weight=[weight]*n_particles,
+                                  parent=Particles(state_vector=particles.state_vector[:, index],
+                                                   weight=particles.weight[index]))
         return new_particles

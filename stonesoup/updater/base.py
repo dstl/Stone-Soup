@@ -51,7 +51,7 @@ class Updater(Base):
 
     """
 
-    measurement_model = Property(MeasurementModel, doc="measurement model")
+    measurement_model: MeasurementModel = Property(doc="measurement model")
     convert2common_state = Property(
             FunctionType,
             default=null_convert,

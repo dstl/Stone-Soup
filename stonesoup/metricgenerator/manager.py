@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
-from .base import MetricManager
+from itertools import chain
+from typing import Sequence, Iterable, Union
+
+from .base import MetricManager, MetricGenerator
 from ..base import Property
 from ..dataassociator import Associator
+from ..platform import Platform
 from ..types.detection import Detection
 from ..types.groundtruth import GroundTruthPath
 from ..types.track import Track
@@ -14,10 +18,8 @@ class SimpleManager(MetricManager):
     :class:`~.Track`, :class:`~.Detection` and :class:`~.GroundTruthPath`
     objects.
     """
-    generators = Property(list, doc='List of generators to use', default=None)
-    associator = Property(Associator,
-                          doc="Associator to combine tracks and truth",
-                          default=None)
+    generators: Sequence[MetricGenerator] = Property(doc='List of generators to use', default=None)
+    associator: Associator = Property(doc="Associator to combine tracks and truth", default=None)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -26,44 +28,34 @@ class SimpleManager(MetricManager):
         self.detections = set()
         self.association_set = None
 
-    def add_data(self, input_objects, overwrite=True):
+    def add_data(self, groundtruth_paths: Iterable[Union[GroundTruthPath, Platform]] = None,
+                 tracks: Iterable[Track] = None, detections: Iterable[Detection] = None,
+                 overwrite=True):
         """Adds data to the metric generator
 
         Parameters
         ----------
-        input_objects : list or set of objects
-            Objects to be added to the manager. The class of the object is used
-            to determine whether it is track, truth or detection
+        groundtruth_paths : list or set of :class:`~.GroundTruthPath`
+            Ground truth paths to be added to the manager.
+        tracks : list or set of :class:`~.Track`
+            Tracks objects to be added to the manager.
+        detections : list or set of :class:`~.Detection`
+            Detections to be added to the manager.
         overwrite: bool
             declaring whether pre-existing data will be overwritten. Note that
             overwriting one field (e.g. tracks) does not affect the others
         """
-        for in_obj in input_objects:
-            if not isinstance(in_obj, (list, set)):
-                raise TypeError('Inputs are expected as lists or sets only')
-            else:
-                if all(isinstance(x, Track) for x in in_obj):
-                    if overwrite:
-                        self.tracks = set(in_obj)
-                    else:
-                        self.tracks = self.tracks.union(set(in_obj))
-                elif all(isinstance(x, GroundTruthPath)
-                         for x in in_obj):
-                    if overwrite:
-                        self.groundtruth_paths = set(in_obj)
-                    else:
-                        self.groundtruth_paths = self.groundtruth_paths.union(
-                            set(in_obj))
-                elif all(isinstance(x, Detection) for x in in_obj):
-                    if overwrite:
-                        self.detections = set(in_obj)
-                    else:
-                        self.detections = self.detections.union(set(in_obj))
+
+        self._add(overwrite, groundtruth_paths=groundtruth_paths,
+                  tracks=tracks, detections=detections)
+
+    def _add(self, overwrite, **kwargs):
+        for key, value in kwargs.items():
+            if value is not None:
+                if overwrite:
+                    setattr(self, key, set(value))
                 else:
-                    raise TypeError(
-                        'Object of type {!r} not expected'.format(type()))
-                    # This error doesn't work if the first element of the list
-                    # is a sensible one but the later ones aren't.
+                    getattr(self, key).update(value)
 
     def associate_tracks(self):
         """Associate tracks to truth using the associator
@@ -82,6 +74,10 @@ class SimpleManager(MetricManager):
         : set of :class:`~.Metric`
             Metrics generated
         """
+
+        if self.associator is not None and self.association_set is None:
+            self.associate_tracks()
+
         metrics = set()
         for generator in self.generators:
             metric = generator.compute_metric(self)
@@ -104,8 +100,7 @@ class SimpleManager(MetricManager):
         """
 
         # Make a list of all the unique timestamps used
-        timestamps = {state.timestamp for state in self.tracks}
-        timestamps |= {state.timestamp
-                       for path in self.groundtruth_paths
-                       for state in path}
+        timestamps = {state.timestamp
+                      for sequence in chain(self.tracks, self.groundtruth_paths)
+                      for state in sequence}
         return sorted(timestamps)

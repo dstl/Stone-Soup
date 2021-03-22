@@ -10,12 +10,11 @@ from .base import Writer
 
 class YAMLWriter(Writer):
     """YAML Writer"""
-    path = Property(Path,
-                    doc="File to save data to. Str will be converted to Path")
-    groundtruth_source = Property(GroundTruthReader, default=None)
-    sensor_data_source = Property(SensorDataReader, default=None)
-    detections_source = Property(DetectionReader, default=None)
-    tracks_source = Property(Tracker, default=None)
+    path: Path = Property(doc="File to save data to. Str will be converted to Path")
+    groundtruth_source: GroundTruthReader = Property(default=None)
+    sensor_data_source: SensorDataReader = Property(default=None)
+    detections_source: DetectionReader = Property(default=None)
+    tracks_source: Tracker = Property(default=None)
 
     def __init__(self, path, *args, **kwargs):
         if not isinstance(path, Path):
@@ -35,13 +34,13 @@ class YAMLWriter(Writer):
 
     def write(self):
         if self.tracks_source:
-            gen = self.tracks_source.tracks_gen()
+            gen = self.tracks_source
         elif self.detections_source:
-            gen = self.detections_source.detections_gen()
+            gen = self.detections_source
         elif self.sensor_data_source:
-            gen = self.sensor_data_source.sensor_data_gen()
+            gen = self.sensor_data_source
         elif self.groundtruth_source:
-            gen = self.groundtruth_source.groundtruth_paths_gen()
+            gen = self.groundtruth_source
         else:  # pragma: no cover
             raise RuntimeError("At least one source required")
 

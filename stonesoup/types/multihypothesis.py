@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from collections.abc import Sized, Iterable, Container
+from typing import Sequence
 
 from ..base import Property
 from ..types import Type
@@ -16,16 +17,16 @@ class MultipleHypothesis(Type, Sized, Iterable, Container):
     A Multiple Hypothesis is a container to store a collection of hypotheses.
     """
 
-    single_hypotheses = Property(
-        [SingleHypothesis], default=None,
-        doc="The initial list of :class:`~.SingleHypothesis`. Default `None`"
+    single_hypotheses: Sequence[SingleHypothesis] = Property(
+        default=None,
+        doc="The initial list of :class:`~.SingleHypothesis`. Default `None` "
             "which initialises with empty list.")
-    normalise = Property(
-        bool, default=False,
-        doc="Normalise probabilities of :class:`~.SingleHypothesis`. Default"
+    normalise: bool = Property(
+        default=False,
+        doc="Normalise probabilities of :class:`~.SingleHypothesis`. Default "
             "is `False`.")
-    total_weight = Property(
-        float, default=1,
+    total_weight: float = Property(
+        default=1,
         doc="When normalising, weights will sum to this. Default is 1.")
 
     def __init__(self, single_hypotheses=None, normalise=False, *args,

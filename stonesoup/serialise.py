@@ -9,7 +9,7 @@ components and data types.
 import datetime
 import warnings
 from io import StringIO
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from functools import lru_cache
 from pathlib import Path
 from importlib import import_module
@@ -18,15 +18,21 @@ import numpy as np
 import ruamel.yaml
 from ruamel.yaml.constructor import ConstructorError
 
-from .base import Base
+from .base import Base, Property
+from .types.angle import Angle
+from .types.array import Matrix, StateVector
+from .types.numeric import Probability
+from .sensor.sensor import Sensor
+
+__all__ = ['YAML']
 
 
 class YAML:
     """Class for YAML serialisation."""
     tag_prefix = '!{}.'.format(__name__.split('.', 1)[0])
 
-    def __init__(self):
-        self._yaml = ruamel.yaml.YAML()
+    def __init__(self, typ='rt'):
+        self._yaml = ruamel.yaml.YAML(typ=[typ])
         self._yaml.default_flow_style = False
 
         # NumPy
@@ -34,6 +40,12 @@ class YAML:
             np.ndarray, self.ndarray_to_yaml)
         self._yaml.constructor.add_constructor(
             "!numpy.ndarray", self.ndarray_from_yaml)
+        self._yaml.representer.add_multi_representer(
+            np.integer, self.numpy_int_to_yaml
+        )
+        self._yaml.representer.add_multi_representer(
+            np.floating, self.numpy_float_to_yaml
+        )
 
         # Datetime
         self._yaml.representer.add_representer(
@@ -46,6 +58,29 @@ class YAML:
             Path, self.path_to_yaml)
         self._yaml.constructor.add_constructor(
             "!pathlib.Path", self.path_from_yaml)
+
+        # deque
+        self._yaml.representer.add_representer(
+            deque, self.deque_to_yaml)
+        self._yaml.constructor.add_constructor(
+            "!collections.deque", self.deque_from_yaml)
+        # Probability
+        self._yaml.representer.add_representer(
+            Probability, self.probability_to_yaml)
+        self._yaml.constructor.add_constructor(
+            self.yaml_tag(Probability), self.probability_from_yaml)
+
+        # Angle
+        self._yaml.representer.add_multi_representer(
+            Angle, self.angle_to_yaml)
+        self._yaml.constructor.add_multi_constructor(
+            '{}types.angle.'.format(self.tag_prefix), self.angle_from_yaml)
+
+        # Array
+        self._yaml.representer.add_multi_representer(
+            Matrix, self.ndarray_to_yaml)
+        self._yaml.constructor.add_multi_constructor(
+            '{}types.array.'.format(self.tag_prefix), self.array_from_yaml)
 
         # Declarative classes
         self._yaml.representer.add_multi_representer(
@@ -63,7 +98,7 @@ class YAML:
         return stream.getvalue()
 
     def dump_all(self, documents, stream, **kwargs):
-        return self._yaml.dump_all(self, documents, stream, **kwargs)
+        return self._yaml.dump_all(documents, stream, **kwargs)
 
     def load(self, stream):
         return self._yaml.load(stream)
@@ -84,10 +119,15 @@ class YAML:
 
         Store as mapping of declared properties, skipping any which are the
         default value."""
+        node_properties = OrderedDict(type(node).properties)
+        # Special case of a sensor with a default platform
+        if isinstance(node, Sensor) and node._has_internal_platform:
+            node_properties['position'] = Property(StateVector)
+            node_properties['orientation'] = Property(StateVector)
         return representer.represent_omap(
             cls.yaml_tag(type(node)),
             OrderedDict((name, getattr(node, name))
-                        for name, property_ in type(node).properties.items()
+                        for name, property_ in node_properties.items()
                         if getattr(node, name) is not property_.default))
 
     @classmethod
@@ -100,6 +140,8 @@ class YAML:
                 "while constructing a Stone Soup component", node.start_mark,
                 "unable to import component {!r}".format(tag_suffix),
                 node.start_mark)
+        # Must have deep construct here to ensure mutable sub-objects are fully created.
+        constructor.deep_construct = True
         properties = [
             data
             for data in constructor.construct_yaml_omap(node)][0]
@@ -129,20 +171,58 @@ class YAML:
             raise ImportError("Unable to find {!r}".format(tag))
         return classes[0]
 
+    @classmethod
+    def probability_to_yaml(cls, representer, node):
+        return representer.represent_scalar(cls.yaml_tag(type(node)), str(node))
+
+    @staticmethod
+    def probability_from_yaml(constructor, node):
+        string = constructor.construct_scalar(node)
+        if string.startswith('exp('):
+            return Probability(float(string[4:-1]), log_value=True)
+        else:
+            return Probability(float(string))
+
+    @classmethod
+    def angle_to_yaml(cls, representer, node):
+        return representer.represent_scalar(cls.yaml_tag(type(node)), str(node))
+
+    @classmethod
+    def angle_from_yaml(cls, constructor, tag_suffix, node):
+        class_ = cls._get_class('types.angle.{}'.format(tag_suffix))
+        return class_(float(constructor.construct_scalar(node)))
+
     def ndarray_to_yaml(self, representer, node):
         """Convert numpy.ndarray to YAML."""
-        if node.ndim > 1:
+
+        # If using "round trip" type, change flow style to make more readable
+        if node.ndim > 1 and 'rt' in self._yaml.typ:
             array = [self._yaml.seq(row) for row in node.tolist()]
             [seq.fa.set_flow_style() for seq in array]
         else:
             array = node.tolist()
-        return representer.represent_sequence(
-            "!numpy.ndarray", array)
+        return representer.represent_sequence(self.yaml_tag(type(node)), array)
 
     @staticmethod
     def ndarray_from_yaml(constructor, node):
         """Convert YAML to numpy.ndarray."""
         return np.array(constructor.construct_sequence(node, deep=True))
+
+    @classmethod
+    def array_from_yaml(cls, constructor, tag_suffix, node):
+        """Convert YAML to numpy.ndarray."""
+        class_ = cls._get_class('types.array.{}'.format(tag_suffix))
+        return class_(constructor.construct_sequence(node, deep=True))
+
+    @staticmethod
+    def numpy_int_to_yaml(representer, node):
+        """Convert numpy ints to YAML"""
+        return representer.represent_int(node)
+
+    @staticmethod
+    def numpy_float_to_yaml(representer, node):
+        """Convert numpy floats to YAML"""
+        return representer.represent_float(node)
 
     @staticmethod
     def timedelta_to_yaml(representer, node):
@@ -174,3 +254,16 @@ class YAML:
 
         Value should be total number of seconds."""
         return Path(constructor.construct_scalar(node))
+
+    @staticmethod
+    def deque_to_yaml(representer, node):
+        """Convert collections.deque to YAML"""
+        return representer.represent_sequence(
+            "!collections.deque",
+            (list(node), node.maxlen))
+
+    @staticmethod
+    def deque_from_yaml(constructor, node):
+        """Convert YAML to collections.deque"""
+        iterable, maxlen = constructor.construct_sequence(node, deep=True)
+        return deque(iterable, maxlen)

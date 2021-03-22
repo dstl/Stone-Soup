@@ -3,6 +3,7 @@
 import numpy as np
 from scipy.stats import multivariate_normal as mvn
 from functools import lru_cache
+from typing import MutableSequence, List
 
 from .base import Updater
 from ..base import Property, Base
@@ -16,7 +17,7 @@ from ..types.state import WeightedGaussianState
 
 class IMMUpdater(Base):
 
-    updaters = Property([Updater],
+    updaters: List[Updater] = Property( \
                         doc="A bank of predictors each parameterised with "
                             "a different model")
     model_transition_matrix = \

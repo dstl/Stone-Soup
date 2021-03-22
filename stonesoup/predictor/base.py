@@ -59,8 +59,8 @@ class Predictor(Base):
     transition and control model noise respectively.
     """
 
-    transition_model = Property(TransitionModel, doc="transition model")
-    control_model = Property(ControlModel, default=None, doc="control model")
+    transition_model: TransitionModel = Property(doc="transition model")
+    control_model: ControlModel = Property(default=None, doc="control model")
     convert2common_state = Property(
             FunctionType,
             default=null_convert,

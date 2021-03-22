@@ -16,6 +16,18 @@ Array Types
 .. automodule:: stonesoup.types.array
     :show-inheritance:
 
+Angle Types
+-----------
+
+.. automodule:: stonesoup.types.angle
+    :show-inheritance:
+
+Association Types
+-----------------
+
+.. automodule:: stonesoup.types.association
+    :show-inheritance:
+
 Detection Types
 ---------------
 
@@ -37,10 +49,22 @@ Hypothesis Types
 .. automodule:: stonesoup.types.multihypothesis
     :show-inheritance:
 
+Interval Types
+--------------
+
+.. automodule:: stonesoup.types.interval
+    :show-inheritance:
+
 Metric Types
 ------------
 
 .. automodule:: stonesoup.types.metric
+    :show-inheritance:
+
+Mixture Types
+-------------
+
+.. automodule:: stonesoup.types.mixture
     :show-inheritance:
 
 Numeric Types
@@ -73,6 +97,12 @@ State Types
 .. automodule:: stonesoup.types.state
     :show-inheritance:
     :inherited-members: stonesoup.types.state.StateMutableSequence
+
+OrbitalState Types
+##################
+
+.. automodule:: stonesoup.types.orbitalstate
+    :show-inheritance:
 
 Time Types
 ----------------

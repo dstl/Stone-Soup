@@ -3,16 +3,17 @@ workflows:
   version: 2
   test:
     jobs:
-      - test-35
       - test-36
       - test-37
+      - test-38
+      - test-39
   docs:
     jobs:
       - docs
 jobs:
-  test-35: &test-template
+  test-36: &test-template
     docker:
-      - image: circleci/python:3.5
+      - image: circleci/python:3.6
     steps:
       - checkout
       - restore_cache:
@@ -42,22 +43,27 @@ jobs:
           command: |
             bash <(curl -s https://codecov.io/bash) \
               -f test-reports/coverage.xml \
+              -F unittests \
               -n ${CIRCLE_BUILD_NUM}
-  test-36:
-    <<: *test-template
-    docker:
-      - image: circleci/python:3.6
   test-37:
     <<: *test-template
     docker:
       - image: circleci/python:3.7
+  test-38:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.8
+  test-39:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.9
   docs:
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.9
     steps:
       - checkout
       - restore_cache:
-          key: v1-dependencies-test-37-{{ checksum "setup.py" }}
+          key: v1-dependencies-test-39-{{ checksum "setup.py" }}
       - run:
           name: Install Dependencies
           command: |
@@ -67,13 +73,24 @@ jobs:
       - save_cache:
           paths:
             - ./venv
-          key: v1-dependencies-test-37-{{ checksum "setup.py" }}
+          key: v1-dependencies-test-39-{{ checksum "setup.py" }}
       - run:
           name: Build Docs
           command: |
             . venv/bin/activate
-            cd docs
-            make html
+            coverage run -m sphinx -b html -W --keep-going -D sphinx_gallery_conf.junit=../../../test-reports/sphinx-gallery/junit.xml docs/source docs/build/html
+            coverage xml -o test-reports/coverage.xml
       - store_artifacts:
           path: docs/build/html
           destination: docs
+      - store_test_results:
+          path: test-reports
+      - store_artifacts:
+          path: test-reports
+      - run:
+          name: Upload Coverage Results
+          command: |
+            bash <(curl -s https://codecov.io/bash) \
+              -f test-reports/coverage.xml \
+              -F integration \
+              -n ${CIRCLE_BUILD_NUM}

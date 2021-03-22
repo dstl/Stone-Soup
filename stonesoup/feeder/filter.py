@@ -1,36 +1,33 @@
 # -*- coding: utf-8 -*-
 from operator import attrgetter
 from types import FunctionType
+from typing import Sequence, Tuple
 
-import numpy as np
-
+from .base import DetectionFeeder, GroundTruthFeeder
 from ..base import Property
-from .base import Feeder
+from ..buffered_generator import BufferedGenerator
 
 
-class MetadataReducer(Feeder):
+class MetadataReducer(DetectionFeeder):
     """Reduce detections so unique metadata value present at each time step.
 
     This allows to reduce detections so a single detection is returned, based
     on a particular metadata value, for example a unique identity. The most
     recent detection will be yielded for each unique metadata value at each
     time step.
+
+    Note
+    ====
+    * If :class:`~.GroundTruthPath` type is extended to have a metadata attribute, this class
+      will be applicable to this type.
+
     """
 
-    metadata_field = Property(
-        str,
-        doc="Field used to reduce set of detections")
+    metadata_field: str = Property(doc="Field used to reduce set of detections")
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._detections = set()
-
-    @property
-    def detections(self):
-        return self._detections
-
-    def detections_gen(self):
-        for time, detections in self.detector.detections_gen():
+    @BufferedGenerator.generator_method
+    def data_gen(self):
+        for time, detections in self.reader:
             unique_detections = set()
             sorted_detections = sorted(
                 detections, key=attrgetter('timestamp'), reverse=True)
@@ -42,7 +39,6 @@ class MetadataReducer(Feeder):
                     # Ignore those without meta data value
                     if meta_value is not None:
                         meta_values.add(meta_value)
-                self._detections = unique_detections
             yield time, unique_detections
 
 
@@ -61,10 +57,15 @@ class MetadataValueFilter(MetadataReducer):
         that satisfy the operator condition (i.e. cause the
         :py:attr:`~operator` to return :code:`True`) are allowed through the
         filter.
+
+        Note
+        ====
+        * If :class:`~.GroundTruthPath` type is extended to have a metadata attribute, this class
+          will be applicable to this type.
+
     """
 
-    operator = Property(
-        FunctionType,
+    operator: FunctionType = Property(
         doc="A unary operator/function of the form :code:`b = f(val)`, "
             "where :code:`val` is the value of the selected "
             ":py:attr:`~metadata_field`. The function MUST return a "
@@ -75,8 +76,7 @@ class MetadataValueFilter(MetadataReducer):
             "Any custom function that conforms to the above specifications can"
             " be used as an operator, e.g. :code:`operator=lambda x: x < 0.1`")
 
-    keep_unmatched = Property(
-        bool,
+    keep_unmatched: bool = Property(
         doc="If set to :code:`True`, any detections that do not have a "
             "metadata field matching the name :py:attr:`~metadata_field` "
             "(meaning they also cannot be processed by the "
@@ -84,16 +84,9 @@ class MetadataValueFilter(MetadataReducer):
             "default is :code:`False`.",
         default=False)
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._detections = set()
-
-    @property
-    def detections(self):
-        return self._detections.copy()
-
-    def detections_gen(self):
-        for time, detections in self.detector.detections_gen():
+    @BufferedGenerator.generator_method
+    def data_gen(self):
+        for time, detections in self.reader:
             filtered_detections = set()
             for detection in detections:
                 value = detection.metadata.get(self.metadata_field)
@@ -102,29 +95,28 @@ class MetadataValueFilter(MetadataReducer):
                 elif value is not None and self.operator(value):
                     filtered_detections.add(detection)
 
-            self._detections = filtered_detections
-            yield time, self.detections
+            yield time, filtered_detections
 
 
-class BoundingBoxDetectionReducer(Feeder):
-    """ Reduce detections by selecting only ones placed within the limits of a
-        n-dimensional bounding box, defined on the detection coordinate space.
+class BoundingBoxReducer(DetectionFeeder, GroundTruthFeeder):
+    """ Reduce data by selecting only data placed within the limits of a
+        n-dimensional bounding box, defined on the data coordinate space.
 
         When provided with the limit coordinates of a given n-dimensional
         bounding box (expressed in the form of min/max bounds on each
         dimension), the feeder will apply a filter to the incoming data,
-        allowing to pass through only detections that fall within the desired
+        allowing to pass through only data that falls within the desired
         limits, and discarding the rest.
 
-        Assuming a 2D Cartesian detection space, the feeder operation is
+        Assuming a 2D Cartesian data space, the feeder operation is
         equivalent to drawing an imaginary bounding box tangential to the plane
-        defined by the XY axes, and only feeding detections whose state vector
+        defined by the XY axes, and only feeding data whose state vector
         falls within the bounds of the box.
 
         Note
         ====
         * For the time being, the bounding box limits must be defined on
-          the same coordinate axes as the received detections, which are in
+          the same coordinate axes as the received data, which is in
           turn assumed to all share a common coordinate frame.
         * For example, assume we are tracking some targets in Lat/Lon, but
           receive detections in the form of polar coordinates (e.g. relative to
@@ -139,8 +131,7 @@ class BoundingBoxDetectionReducer(Feeder):
 
     """
 
-    limits = Property(
-        np.ndarray,
+    limits: Sequence[Tuple[float, float]] = Property(
         doc="Array of points that define the bounds of the desired bounding "
             "box. Expressed as a 2D array of min/max coordinate pairs (e.g. "
             ":code:`limits = [[x_min, x_max], [y_min, y_max], ...]`), where "
@@ -148,16 +139,15 @@ class BoundingBoxDetectionReducer(Feeder):
             "limits. Points that fall ON or WITHIN the box's bounds are "
             "considered as valid and are thus forwarded through the feeder, "
             "whereas points that fall OUTSIDE the box will be filtered out.")
-    mapping = Property(
-        np.ndarray,
+    mapping: Sequence[int] = Property(
         default=None,
-        doc="Mapping between the detection and bounding box coordinates. "
+        doc="Mapping between the state and bounding box coordinates. "
             "Should be specified as a vector of length equal to the number of "
             "bounding box dimensions, whose elements correspond to row indices"
-            " in the detection vector. E.g. :code:`mapping = [2, 0]` "
+            " in the state vector. E.g. :code:`mapping = [2, 0]` "
             "dictates that the first bounding box dimension (i.e. row 0 in "
             ":py:attr:`~limits`), defines the limits that correspond to the "
-            "element with (row) index 2 in the detection state vector, while "
+            "element with (row) index 2 in the data state vector, while "
             "the second row (i.e. row 1) in :py:attr:`~limits` relates to the "
             "element with index 0. Default is `None`, where the dimensions of "
             "the state vector will be used in order, up to length to limits."
@@ -165,26 +155,21 @@ class BoundingBoxDetectionReducer(Feeder):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._detections = set()
         if self.mapping is None:
             self.mapping = tuple(range(len(self.limits)))
 
-    @property
-    def detections(self):
-        return self._detections.copy()
-
-    def detections_gen(self):
+    @BufferedGenerator.generator_method
+    def data_gen(self):
         num_dims = len(self.limits)
-        for time, detections in self.detector.detections_gen():
-            outlier_detections = set()
-            for detection in detections:
-                state_vector = detection.state_vector
+        for time, states in self.reader:
+            outlier_data = set()
+            for state in states:
+                state_vector = state.state_vector
                 for i in range(num_dims):
                     min = self.limits[i][0]
                     max = self.limits[i][1]
                     value = state_vector[self.mapping[i]]
                     if value < min or value > max:
-                        outlier_detections.add(detection)
+                        outlier_data.add(state)
                         break
-            self._detections = detections - outlier_detections
-            yield time, self.detections
+            yield time, states - outlier_data

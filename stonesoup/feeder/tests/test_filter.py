@@ -1,25 +1,24 @@
 # -*- coding: utf-8 -*-
 import datetime
-import numpy as np
 
+import numpy as np
 import pytest
 
 from ..filter import (MetadataReducer,
                       MetadataValueFilter,
-                      BoundingBoxDetectionReducer)
+                      BoundingBoxReducer)
 
 
 def test_metadata_reducer(detector):
     feeder = MetadataReducer(detector, metadata_field="colour")
 
     multi_none = False
-    for time, detections in feeder.detections_gen():
+    for time, detections in feeder:
         all_colours = [detection.metadata.get('colour')
                        for detection in detections]
         if not multi_none:
             multi_none = len(
                 [colour for colour in all_colours if colour is None]) > 1
-
         colours = [colour for colour in all_colours if colour is not None]
         assert len(colours) == len(set(colours))
 
@@ -41,7 +40,7 @@ def test_metadata_value_filter(detector):
                                  operator=lambda x: x >= 0.1)
     # Discard unmatched
     nones = False
-    for time, detections in feeder.detections_gen():
+    for time, detections in feeder:
         all_scores = [detection.metadata.get('score')
                       for detection in detections]
         nones = nones | (len([score for score in all_scores
@@ -57,7 +56,7 @@ def test_metadata_value_filter(detector):
     # Keep unmatched
     feeder.keep_unmatched = True
     nones = False
-    for time, detections in feeder.detections_gen():
+    for time, detections in feeder:
         all_scores = [detection.metadata.get('score')
                       for detection in detections]
         nones = nones | (len([score for score in all_scores
@@ -71,7 +70,7 @@ def test_metadata_value_filter(detector):
     assert nones
 
 
-def test_boundingbox_reducer(detector):
+def test_boundingbox_reducer_detections(detector):
 
     # Simple 2D rectangle/bounding box
     limits = np.array([[-1, 1],
@@ -80,11 +79,11 @@ def test_boundingbox_reducer(detector):
 
     # Confirm errors raised on improper instantiation attempt
     with pytest.raises(TypeError):
-        BoundingBoxDetectionReducer()
+        BoundingBoxReducer()
     with pytest.raises(TypeError):
-        BoundingBoxDetectionReducer(detector)
+        BoundingBoxReducer(detector)
 
-    feeder = BoundingBoxDetectionReducer(detector, limits, mapping)
+    feeder = BoundingBoxReducer(detector, limits, mapping)
 
     # Assert correct constructor assignments
     assert np.array_equal(limits, feeder.limits)
@@ -92,7 +91,7 @@ def test_boundingbox_reducer(detector):
 
     # Ensure only measurements within box are returned
     multi_check = True
-    for time, detections in feeder.detections_gen():
+    for time, detections in feeder:
 
         for detection in detections:
             num_dims = len(limits)
@@ -112,11 +111,51 @@ def test_boundingbox_reducer(detector):
     assert multi_check
 
 
-def test_boundingbox_reducer_default_mapping(detector):
+def test_boundingbox_reducer_groundtruth(groundtruth):
+
+    # Confirm errors raised on improper instantiation attempt
+    with pytest.raises(TypeError):
+        BoundingBoxReducer()
+    with pytest.raises(TypeError):
+        BoundingBoxReducer(groundtruth)
+
+    # Simple 2D rectangle/bounding box
+    limits = np.array([[-100, 100],
+                       [-100, 100]])
+    mapping = [1, 0]
+
+    feeder = BoundingBoxReducer(groundtruth, limits, mapping)
+
+    # Assert correct constructor assignments
+    assert np.array_equal(limits, feeder.limits)
+    assert np.array_equal(mapping, feeder.mapping)
+
+    # Ensure only measurements within box are returned
+    multi_check = True
+    for time, truths in feeder:
+        for truth in truths:
+            num_dims = len(limits)
+            for i in range(num_dims):
+                min = limits[i, 0]
+                max = limits[i, 1]
+                value = truth.state_vector[mapping[i]]
+                multi_check &= not (value < min or value > max)
+
+        if time == datetime.datetime(2020, 1, 1, 0, 0, 0):
+            assert len(truths) == 2 or len(truths) == 0
+        elif time == datetime.datetime(2020, 1, 1, 0, 0, 1):
+            assert len(truths) == 1
+
+        assert all(time == truth.timestamp for truth in truths)
+
+    assert multi_check
+
+
+def test_boundingbox_reducer_default_mapping(reader):
     # Simple 2D rectangle/bounding box
     limits = np.array([[-1, 1],
                        [-2, 2]])
 
-    feeder = BoundingBoxDetectionReducer(detector, limits)
+    feeder = BoundingBoxReducer(reader, limits)
 
     assert feeder.mapping == (0, 1)

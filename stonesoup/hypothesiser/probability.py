@@ -18,22 +18,14 @@ class PDAHypothesiser(Hypothesiser):
     detections.
     """
 
-    predictor = Property(
-        Predictor,
-        doc="Predict tracks to detection times")
-    updater = Property(
-        Updater,
-        doc="Updater used to get measurement prediction")
-    clutter_spatial_density = Property(
-        float,
-        doc="Spatial density of clutter - tied to probability of false "
-            "detection")
-    prob_detect = Property(
-        Probability,
+    predictor: Predictor = Property(doc="Predict tracks to detection times")
+    updater: Updater = Property(doc="Updater used to get measurement prediction")
+    clutter_spatial_density: float = Property(
+        doc="Spatial density of clutter - tied to probability of false detection")
+    prob_detect: Probability = Property(
         default=Probability(0.85),
         doc="Target Detection Probability")
-    prob_gate = Property(
-        Probability,
+    prob_gate: Probability = Property(
         default=Probability(0.95),
         doc="Gate Probability - prob. gate contains true measurement "
             "if detected")
@@ -116,32 +108,29 @@ class PDAHypothesiser(Hypothesiser):
         hypotheses = list()
 
         # Common state & measurement prediction
-        prediction = self.predictor.predict(track.state, timestamp=timestamp)
-        measurement_prediction = self.updater.predict_measurement(
-            prediction)
-
+        prediction = self.predictor.predict(track, timestamp=timestamp)
         # Missed detection hypothesis
         probability = Probability(1 - self.prob_detect*self.prob_gate)
         hypotheses.append(
             SingleProbabilityHypothesis(
                 prediction,
                 MissedDetection(timestamp=timestamp),
-                probability,
-                measurement_prediction))
+                probability
+                ))
 
         # True detection hypotheses
         for detection in detections:
-
             # Re-evaluate prediction
             prediction = self.predictor.predict(
-                track.state, timestamp=detection.timestamp)
-
+                track, timestamp=detection.timestamp)
             # Compute measurement prediction and probability measure
             measurement_prediction = self.updater.predict_measurement(
                 prediction, detection.measurement_model)
-            log_pdf = mn.logpdf(detection.state_vector.ravel(),
-                                measurement_prediction.state_vector.ravel(),
-                                measurement_prediction.covar)
+            # Calculate difference before to handle custom types (mean defaults to zero)
+            # This is required as log pdf coverts arrays to floats
+            log_pdf = mn.logpdf(
+                (detection.state_vector - measurement_prediction.state_vector).ravel(),
+                cov=measurement_prediction.covar)
             pdf = Probability(log_pdf, log_value=True)
             probability = (pdf * self.prob_detect)/self.clutter_spatial_density
 

@@ -13,7 +13,7 @@ from ...types.track import Track
 
 def test_basicmetrics():
     generator = BasicMetrics()
-    manager = SimpleManager([generator], [])
+    manager = SimpleManager([generator])
 
     start_time = datetime.datetime.now()
     tracks = set(Track(
@@ -26,7 +26,7 @@ def test_basicmetrics():
                       timestamp=start_time + datetime.timedelta(seconds=i))
                 for i in range(5)]) for j in range(3))
 
-    manager.add_data([tracks, truths])
+    manager.add_data(truths, tracks)
 
     metrics = manager.generate_metrics()
 

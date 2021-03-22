@@ -250,9 +250,13 @@ for time, gnd_paths in gndt.groundtruth_paths_gen():
         old_state = cur_state
     gnd_path = gnd_paths.pop()
     cur_state = gnd_path.state.state_vector
+    # measurement = Detection(sim_measurement_model.function(
+    #         gnd_path.state.state_vector,
+    #         measurement_model.rvs(1)),
+    #         time)
     measurement = Detection(sim_measurement_model.function(
-            gnd_path.state.state_vector,
-            measurement_model.rvs(1)),
+            gnd_path.state,
+            sim_measurement_model.rvs(1)),
             time)
 
     # State prediction

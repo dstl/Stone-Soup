@@ -4,8 +4,12 @@ dist/
 *.egg-info
 __pycache__/
 
+# Version from setuptools_scm
+stonesoup/_version.py
+
 # Sphinx documentation
-docs/build/
+/docs/build/
+/docs/source/auto*
 
 # coverage
 .coverage

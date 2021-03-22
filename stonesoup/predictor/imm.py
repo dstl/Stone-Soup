@@ -1,5 +1,6 @@
 import numpy as np
 from functools import lru_cache
+from typing import MutableSequence, List
 
 from .base import Predictor
 from ..base import Property, Base
@@ -27,7 +28,7 @@ def null_convert(state):
 
 
 class IMMPredictor(Base):
-    predictors = Property([Predictor],
+    predictors: List[Predictor] = Property( \
                           doc="A bank of predictors each parameterised with "
                               "a different model")
     model_transition_matrix = \

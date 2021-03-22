@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 """Test for updater.particle module"""
-import numpy as np
 import datetime
+from functools import partial
+
+import numpy as np
+import pytest
 
 from ...models.measurement.linear import LinearGaussian
 from ...resampler.particle import SystematicResampler
@@ -10,41 +13,42 @@ from ...types.hypothesis import SingleHypothesis
 from ...types.particle import Particle
 from ...types.prediction import (
     ParticleStatePrediction, ParticleMeasurementPrediction)
-from ...updater.particle import ParticleUpdater
+from ...updater.particle import (
+    ParticleUpdater, GromovFlowParticleUpdater,
+    GromovFlowKalmanParticleUpdater)
 
 
-def test_particle():
+@pytest.fixture(params=(
+        ParticleUpdater,
+        partial(ParticleUpdater, resampler=SystematicResampler()),
+        GromovFlowParticleUpdater,
+        GromovFlowKalmanParticleUpdater))
+def updater(request):
+    updater_class = request.param
+    measurement_model = LinearGaussian(
+        ndim_state=2, mapping=[0], noise_covar=np.array([[0.04]]))
+    return updater_class(measurement_model)
+
+
+def test_particle(updater):
     # Measurement model
-    lg = LinearGaussian(ndim_state=2, mapping=[0],
-                        noise_covar=np.array([[0.04]]))
     timestamp = datetime.datetime.now()
-    particles = [Particle(np.array([[10], [10]]),
-                          1 / 9),
-                 Particle(np.array([[10], [20]]),
-                          1 / 9),
-                 Particle(np.array([[10], [30]]),
-                          1 / 9),
-                 Particle(np.array([[20], [10]]),
-                          1 / 9),
-                 Particle(np.array([[20], [20]]),
-                          1 / 9),
-                 Particle(np.array([[20], [30]]),
-                          1 / 9),
-                 Particle(np.array([[30], [10]]),
-                          1 / 9),
-                 Particle(np.array([[30], [20]]),
-                          1 / 9),
-                 Particle(np.array([[30], [30]]),
-                          1 / 9),
+    particles = [Particle([[10], [10]], 1 / 9),
+                 Particle([[10], [20]], 1 / 9),
+                 Particle([[10], [30]], 1 / 9),
+                 Particle([[20], [10]], 1 / 9),
+                 Particle([[20], [20]], 1 / 9),
+                 Particle([[20], [30]], 1 / 9),
+                 Particle([[30], [10]], 1 / 9),
+                 Particle([[30], [20]], 1 / 9),
+                 Particle([[30], [30]], 1 / 9),
                  ]
 
     prediction = ParticleStatePrediction(particles,
                                          timestamp=timestamp)
-    measurement = Detection(np.array([[20]]), timestamp=timestamp)
-    resampler = SystematicResampler()
-    updater = ParticleUpdater(lg, resampler)
+    measurement = Detection([[20.0]], timestamp=timestamp)
     eval_measurement_prediction = ParticleMeasurementPrediction([
-                                            Particle(i.state_vector[0], 1 / 9)
+                                            Particle(i.state_vector[0, :], 1 / 9)
                                             for i in particles],
                                             timestamp=timestamp)
 
@@ -68,5 +72,5 @@ def test_particle():
         == measurement_prediction
     assert updated_state.hypothesis.prediction == prediction
     assert updated_state.hypothesis.measurement == measurement
-    assert np.all(
-        np.isclose(updated_state.state_vector, np.array([[20], [20]])))
+    assert np.allclose(updated_state.state_vector, np.array([[20.0], [20.0]]),
+                       rtol=2e-2)

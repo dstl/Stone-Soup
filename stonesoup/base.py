@@ -12,8 +12,8 @@ An example would be:
 
     class Foo(Base):
         '''Example Foo class'''
-        foo = Property(str, doc="foo string parameter")
-        bar = Property(int, default=10, doc="bar int parameter, default is 10")
+        foo: str = Property(doc="foo string parameter")
+        bar: int = Property(default=10, doc="bar int parameter, default is 10")
 
 
 This is equivalent to the following:
@@ -44,8 +44,8 @@ This is equivalent to the following:
 
         class Foo(Base):
         '''Example Foo class'''
-        foo = Property(str, doc="foo string parameter")
-        bar = Property(int, default=10, doc="bar int parameter, default is 10")
+        foo: str = Property(doc="foo string parameter")
+        bar: int = Property(default=10, doc="bar int parameter, default is 10")
 
         def __init__(self, foo, bar=bar.default, *args, **kwargs):
             if bar < 0:
@@ -55,9 +55,10 @@ This is equivalent to the following:
 
 """
 import inspect
-import sys
+import weakref
 from abc import ABCMeta
 from collections import OrderedDict
+from copy import deepcopy, copy
 from types import MappingProxyType
 
 
@@ -79,6 +80,10 @@ class Property:
     A description string can also be provided which will be rendered in the
     documentation.
 
+    A property can be specified as read only using the (optional) ``readonly``
+    flag. Such properties can be written only once (when the parent object is
+    instantiated). Any subsequent write raises an ``AttributeError``
+
     Parameters
     ----------
     cls : class
@@ -88,6 +93,7 @@ class Property:
         to :class:`inspect.Parameter.empty` (alias :attr:`Property.empty`)
     doc : str, optional
         Doc string for property
+    readonly : bool, optional
 
     Attributes
     ----------
@@ -98,28 +104,71 @@ class Property:
         Alias to :class:`inspect.Parameter.empty`
     """
     empty = inspect.Parameter.empty
-    _property_name = None
 
-    def __init__(self, cls, *, default=inspect.Parameter.empty, doc=None):
+    def __init__(self, cls=None, *, default=inspect.Parameter.empty, doc=None,
+                 readonly=False):
         self.cls = cls
         self.default = default
-        self.doc = doc
+        self.doc = self.__doc__ = doc
+        # Fix for when ":" in doc string being interpreted as type in NumpyDoc
+        if doc is not None and ':' in doc:
+            self.__doc__ = ": " + doc
+        self._property_name = None
+        self._setter = None
+        self._getter = None
+        self._deleter = None
+        self.readonly = readonly
 
     def __get__(self, instance, owner):
         if instance is None:
             return self
-        return getattr(instance, self._property_name)
+        if self._getter is None:
+            return getattr(instance, self._property_name)
+        else:
+            return self._getter(instance)
 
     def __set__(self, instance, value):
-        setattr(instance, self._property_name, value)
+        if self.readonly:
+            if not hasattr(instance, self._property_name):
+                setattr(instance, self._property_name, value)
+            else:
+                # if the value has been set, raise an AttributeError
+                raise AttributeError(
+                    '{} is readonly'.format(self._property_name))
+
+        if self._setter is None:
+            setattr(instance, self._property_name, value)
+        else:
+            self._setter(instance, value)
 
     def __delete__(self, instance):
-        delattr(instance, self._property_name)
+        if self._deleter is None:
+            delattr(instance, self._property_name)
+        else:
+            self._deleter(instance, self._property_name)
 
     def __set_name__(self, owner, name):
         if not isinstance(owner, BaseMeta):
             raise AttributeError("Cannot use Property on this class type")
         self._property_name = "_property_{}".format(name)
+
+    def deleter(self, method):  # real signature unknown
+        """ Descriptor to change the deleter on a property. """
+        new_property = copy(self)
+        new_property._deleter = method
+        return new_property
+
+    def getter(self, method):  # real signature unknown
+        """ Descriptor to change the getter on a property. """
+        new_property = copy(self)
+        new_property._getter = method
+        return new_property
+
+    def setter(self, method):  # real signature unknown
+        """ Descriptor to change the setter on a property. """
+        new_property = copy(self)
+        new_property._setter = method
+        return new_property
 
 
 class BaseMeta(ABCMeta):
@@ -151,26 +200,49 @@ class BaseMeta(ABCMeta):
 
         cls._subclasses = set()
         cls._properties = OrderedDict()
-        # Update subclass lists, and update properties (in reverse order)
-        for bcls in reversed(cls.mro()[1:]):
-            if type(bcls) is mcls:
-                bcls._subclasses.add(cls)
-                cls._properties.update(bcls._properties)
-        cls._properties.update(
-            (key, value) for key, value in namespace.items()
-            if isinstance(value, Property))
-        for name in list(cls._properties):
-            # Remove items which are no longer properties
-            if name in namespace and not isinstance(namespace[name], Property):
-                del cls._properties[name]
-                continue
-            # Optional arguments must follow mandatory
-            if cls._properties[name].default is not Property.empty:
-                cls._properties.move_to_end(name)
+        # Update subclass lists, and update properties from direct bases (in reverse order as
+        # first defined class must take precedence, and dictionary update overwrites)
+        for base_class in reversed(cls.mro()[1:]):
+            if type(base_class) is mcls:
+                base_class._subclasses.add(cls)
+                if base_class in bases:
+                    cls._properties.update(base_class._properties)
 
-        if sys.version_info <= (3, 6):  # pragma: no cover
-            for name, property_ in cls._properties.items():
-                property_.__set_name__(cls, name)
+        for key, value in namespace.items():
+            if isinstance(value, Property):
+                annotation_cls = namespace.get('__annotations__', {}).get(key, None)
+                if value.cls is not None and annotation_cls is not None:
+                    raise ValueError(f'Type was specified both by type hint '
+                                     f'({str(annotation_cls)}) and argument ({str(value.cls)}) '
+                                     f'for property {key} of class {name}')
+                elif value.cls is None and annotation_cls is not None:
+                    value.cls = annotation_cls
+                elif value.cls is not None and annotation_cls is None:
+                    # Just use value.cls in this case
+                    pass
+                elif value.cls is None and annotation_cls is None:
+                    raise ValueError(f'Type was not specified '
+                                     f'for property {key} of class {name}')
+
+                if isinstance(value.cls, str) and value.cls == name:
+                    value.cls = cls
+
+                if not (isinstance(value.cls, type)
+                        or getattr(value.cls, '__module__', "") == 'typing'):
+                    raise ValueError(f'Invalid type specification ({str(value.cls)}) '
+                                     f'for property {key} of class {cls.__name__}')
+
+                # Finally set property.
+                cls._properties[key] = value
+
+            elif key in cls._properties:
+                # New definition of "key" which isn't a Property any more.
+                del cls._properties[key]
+
+        for prop_name in list(cls._properties):
+            # Optional arguments must follow mandatory
+            if cls._properties[prop_name].default is not Property.empty:
+                cls._properties.move_to_end(prop_name)
 
         cls._validate_init()
         cls._generate_signature()
@@ -260,3 +332,23 @@ class Base(metaclass=BaseMeta):
         params = ("{}={!r}".format(name, getattr(self, name))
                   for name in type(self).properties)
         return "{}({})".format(type(self).__name__, ", ".join(params))
+
+    def __deepcopy__(self, memodict={}):
+        # Create a new class
+        new = object.__new__(type(self))
+        memodict[id(self)] = new   # add the new class to the memo
+        # Insert a deepcopy of all instance attributes
+        new.__dict__.update(deepcopy(self.__dict__, memodict))
+        # Manually update any weakrefs to point to copies, if they exist.
+        for name, prop in new.__dict__.items():
+            if isinstance(prop, weakref.ref):
+                original_target = prop()  # call the weakref to get a reference
+                try:
+                    # if we are copying the parent as well, the copy should be in memodict
+                    copy_of_target = memodict[id(original_target)]
+                except KeyError:
+                    # if we can't find the parent, then leave the original ref in place
+                    pass
+                else:
+                    new.__setattr__(name, weakref.ref(copy_of_target))
+        return new
