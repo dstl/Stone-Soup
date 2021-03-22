@@ -8,7 +8,7 @@
     role="button"
     aria-expanded="false"
   >
-    <h6>{{node.type}}</h6>
+    <h6>{{node.type}} {{node.name}}</h6>
   </div>
   <div class="card-body collapse" id="{{node.type}}">
     {%for val in children %} {%if val is not none %} {%if
@@ -136,13 +136,13 @@
     class="card-header"
     class="card-title"
     data-bs-toggle="collapse"
-    href="#data.type"
+    href="#{{data.type}}"
     role="button"
     aria-expanded="false"
   >
     <label>{{data.type}}:</label>
   </div>
-  <div class="card-body collapse" id="data.type">
+  <div class="card-body collapse" id="{{data.type}}">
     <table class="table table-striped">
       <thead>
         <tr>
@@ -479,7 +479,7 @@
 {%macro visualise_datatime(data,name)%}
 <div class="row">
   <div class="col-md-auto">
-    <label>{{data.property}} {{name}}</label>
+    <label>{{data.property}}</label>
   </div>
   <div class="col-md-auto">
     <input
