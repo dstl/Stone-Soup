@@ -190,6 +190,8 @@ class Plotter:
             If True, function plots uncertainty ellipses.
         particle : bool
             If True, function plots particles.
+        track_label: str
+            Label to apply to all tracks for legend.
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function. Defaults are ``linestyle="-"``,
             ``marker='.'`` and ``color=None``.
