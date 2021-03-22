@@ -5,9 +5,15 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
+# https://pypi.org/project/sgp4/
+from sgp4.api import Satrec
+from sgp4.api import jday
+
 from .....types.orbitalstate import OrbitalState
 from .....types.array import StateVector, CovarianceMatrix
-from ..orbit import CartesianKeplerianTransitionModel, TLEKeplerianTransitionModel
+from ..orbit import CartesianKeplerianTransitionModel, TLEKeplerianTransitionModel, \
+    SGP4TransitionModel
+
 
 # Define some orbital states to test
 ini_cart = np.array([[7000], [-12124], [0], [2.6679], [4.621], [0]])
@@ -132,3 +138,46 @@ def test_sampling():
                                               grav_parameter=initial_state.
                                               grav_parameter),
                                  initial_state, time_interval=deltat) >= 0)
+
+
+def test_SGP4TransitionModel():
+    # Propagate a TLE, evaluate position at an initial time
+    initial_date = datetime(2008, 9, 20, 12, 25, 40, 104192)
+    final_date = initial_date + timedelta(hours=1)
+
+    # https://en.wikipedia.org/wiki/Two-line_element_set
+    line_1 = \
+        "1 25544U 98067A   08264.51782528 -.00002182  00000-0 -11606-4 0  2927"
+    line_2 = \
+        "2 25544  51.6416 247.4627 0006703 130.5360 325.0288 15.72125391563537"
+
+    # TLE representations
+    # 1:SGP4 object form from external library
+    tle_ext = Satrec.twoline2rv(line_1, line_2)
+    # 2: String format
+    tle_dict = {'line_1': line_1, 'line_2': line_2}
+
+    # Initialise the state (Grav parameter in m)
+    test_tle = OrbitalState(None, coordinates='TLE', timestamp=initial_date, metadata=tle_dict)
+
+    # Evaluate position at initial date using external SGP4
+    jd, fr = jday(initial_date.year, initial_date.month, initial_date.day,
+                  initial_date.hour, initial_date.minute, initial_date.second)
+    e, r, v = tle_ext.sgp4(jd, fr)
+
+    # Evaluate position at initial date using wrapped SGP4 library
+    testSGP4 = SGP4TransitionModel()
+    outrv = testSGP4.transition(test_tle)
+
+    # Check position vectors are equal (convert to m)
+    assert np.allclose(1000*StateVector(r), outrv[0:3])
+
+    # Evaluate position at final date using external SGP4
+    jd, fr = jday(final_date.year, final_date.month, final_date.day,
+                  final_date.hour, final_date.minute, final_date.second)
+    e, r, v = tle_ext.sgp4(jd, fr)
+
+    # Evaluate position at final date using wrapped SGP4 library
+    outrv = testSGP4.transition(test_tle, time_interval=timedelta(hours=1))
+
+    assert np.allclose(1000*StateVector(r), outrv[0:3])

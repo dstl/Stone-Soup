@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from datetime import datetime
 from enum import Enum
-
 
 from ..base import Property
 from ..functions.orbital import keplerian_to_rv, tru_anom_from_mean_anom
@@ -126,53 +124,54 @@ class OrbitalState(State):
 
     """
 
-    coordinates : Enum = Property(default=CoordinateSystem.CARTESIAN,
-        doc="The parameterisation used on initiation. Acceptable values "
-            "are 'CARTESIAN' (default), 'KEPLERIAN', 'TLE', or 'EQUINOCTIAL'. "
-            "All other inputs will return errors. Will accept string inputs."
-    )
+    coordinates: Enum = Property(default=CoordinateSystem.CARTESIAN,
+                                 doc="The parameterisation used on initiation. Acceptable values "
+                                     "are 'CARTESIAN' (default), 'KEPLERIAN', 'TLE', or "
+                                     "'EQUINOCTIAL'. All other inputs will return errors. Will "
+                                     "accept string inputs.")
 
-    grav_parameter : float = Property(default=3.986004418e14,
+    grav_parameter: float = Property(
+        default=3.986004418e14,
         doc=r"Standard gravitational parameter :math:`\mu = G M`. The default "
             r"is :math:`3.986004418 \times 10^{14} \,` "
             r":math:`\mathrm{m}^3 \mathrm{s}^{-2}`.")
 
     # The following nine attributes provide support for two-line element representations
-    catalogue_number : int = Property(
+    catalogue_number: int = Property(
         default=None, doc="NORAD Catalog Number: a unique identifier for each earth-orbiting "
                           "artificial satellite")
 
-    classification : str = Property(
+    classification: str = Property(
         default=None, doc="Classification (U=Unclassified, C=Classified, S=Secret")
 
-    international_designator : str = Property(
+    international_designator: str = Property(
         default=None, doc="International designator incorporates the year of launch, launch "
                           "number that year and place of launch.")
 
-    ballistic_coefficient : float = Property(
+    ballistic_coefficient: float = Property(
         default=None, doc=r"The ballistic coefficient is the first derivative of the mean "
                           r"motion. (units of :math:`mathrm{rad s}^{-2}`)")
 
-    second_derivative_mean_motion : float = Property(
+    second_derivative_mean_motion: float = Property(
         default=None, doc=r"The second derivative of the mean motion. "
                           r"(:math:`mathrm{rad s}^{-3}`)")
 
-    bstar : float = Property(
+    bstar: float = Property(
         default=None, doc=r"The TLE drag coefficient. :math:`B* = \frac{B \rho_0}{2}` where "
                           r":math:`\rho_0` is density of a standard atmosphere and "
                           r":math:B = \frac{C_D A}{m}` for coefficient of drag :math:`C_D`, "
                           r"cross-sectional area :math:`A` and mass :math:`m` is the mass.")
 
-    ephemeris_type : int = Property(
+    ephemeris_type: int = Property(
         default=None, doc="Ephemeris type (NORAD use). Zero in distributed TLE data.")
 
-    element_set_number : int = Property(
+    element_set_number: int = Property(
         default=None, doc="Element set number in the TLE. Incremented when a new TLE is "
                           "generated for this object.")
 
-    revolution_number : int = Property(default=None, doc="Number of revolutions at the epoch")
+    revolution_number: int = Property(default=None, doc="Number of revolutions at the epoch")
 
-    metadata : dict = Property(default=None, doc="Dictionary containing metadata about orbit")
+    metadata: dict = Property(default=None, doc="Dictionary containing metadata about orbit")
 
     def __init__(self, state_vector, *args, **kwargs):
         """"""
@@ -622,9 +621,9 @@ class OrbitalState(State):
                     return ' ' + outstr[2:]
 
         tst = self.timestamp
-        timest = str(tst.year)[2:4] + \
-                 str(tst.timetuple().tm_yday + tst.hour / 24 + tst.minute / (60 * 24) +
-                     tst.second / (3600 * 24) + tst.microsecond / (1e6 * 3600 * 24))
+        timest = str(tst.year)[2:4] + str(tst.timetuple().tm_yday + tst.hour / 24 + tst.minute /
+                                          (60 * 24) + tst.second / (3600 * 24) + tst.microsecond /
+                                          (1e6 * 3600 * 24))
 
         line1 = "1 " + f"{self.catalogue_number:5}" + self.classification + ' ' + \
                 f"{self.international_designator:8}" + ' ' + f"{float(timest):014.8f}" + ' ' + \
@@ -633,7 +632,7 @@ class OrbitalState(State):
                 _tlefmt2(self.bstar * 6.371e6) + ' ' + f"{self.ephemeris_type:1}" + ' ' + \
                 f"{self.element_set_number:4}"
 
-        line2 = "2 " + f"{self.catalogue_number:5}" + ' ' +f"{self.inclination*180/np.pi:8.4f}" \
+        line2 = "2 " + f"{self.catalogue_number:5}" + ' ' + f"{self.inclination*180/np.pi:8.4f}" \
                 + ' ' + f"{self.longitude_ascending_node*180/np.pi:8.4f}" + ' ' \
                 + f"{self.eccentricity:7.7f}"[2:] + ' ' \
                 + f"{self.argument_periapsis*180/np.pi:8.4f}" + ' ' \
@@ -643,7 +642,7 @@ class OrbitalState(State):
         line1 = line1 + str(TLEDictReader.checksum(line1))
         line2 = line2 + str(TLEDictReader.checksum(line2))
 
-        return {'line_1' : line1, 'line_2' : line2}
+        return {'line_1': line1, 'line_2': line2}
 
 
 class GaussianOrbitalState(GaussianState, OrbitalState):
