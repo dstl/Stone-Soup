@@ -190,6 +190,8 @@ class Plotter:
             If True, function plots uncertainty ellipses.
         particle : bool
             If True, function plots particles.
+        track_label: str
+            Label to apply to all tracks for legend.
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function. Defaults are ``linestyle="-"``,
             ``marker='.'`` and ``color=None``.
@@ -201,10 +203,12 @@ class Plotter:
             tracks = {tracks}  # Make a set of length 1
 
         # Plot tracks
+        track_colors = {}
         for track in tracks:
             line = self.ax.plot([state.state_vector[mapping[0]] for state in track],
                                 [state.state_vector[mapping[1]] for state in track],
                                 **tracks_kwargs)
+            track_colors[track] = plt.getp(line[0], 'color')
 
         # Assuming a single track or all plotted as the same colour then the following will work.
         # Otherwise will just render the final track colour.
@@ -225,11 +229,11 @@ class Plotter:
                     max_ind = np.argmax(w)
                     min_ind = np.argmin(w)
                     orient = np.arctan2(v[1, max_ind], v[0, max_ind])
-                    ellipse = Ellipse(xy=(state.state_vector[0], state.state_vector[2]),
+                    ellipse = Ellipse(xy=state.state_vector[mapping[:2], 0],
                                       width=2 * np.sqrt(w[max_ind]),
                                       height=2 * np.sqrt(w[min_ind]),
                                       angle=np.rad2deg(orient), alpha=0.2,
-                                      color=tracks_kwargs['color'])
+                                      color=track_colors[track])
                     self.ax.add_artist(ellipse)
 
             # Generate legend items for uncertainty ellipses
@@ -247,8 +251,8 @@ class Plotter:
             # Plot particles
             for track in tracks:
                 for state in track:
-                    data = state.particles.state_vector.T
-                    self.ax.plot(data[:, 0], data[:, 2], linestyle='', marker=".",
+                    data = state.particles.state_vector[mapping[:2], :]
+                    self.ax.plot(data[0], data[1], linestyle='', marker=".",
                                  markersize=1, alpha=0.5)
 
             # Generate legend items for particles
