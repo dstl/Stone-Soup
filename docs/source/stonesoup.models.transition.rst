@@ -28,9 +28,3 @@ Orbital
 .. automodule:: stonesoup.models.transition.orbital.orbit
     :show-inheritance:
     :inherited-members:
-
-Orbital
--------
-.. automodule:: stonesoup.models.transition.orbital.orbit
-    :show-inheritance:
-    :inherited-members:
