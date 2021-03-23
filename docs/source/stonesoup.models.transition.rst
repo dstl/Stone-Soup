@@ -13,8 +13,24 @@ Linear
     :show-inheritance:
     :inherited-members:
 
-NonLinear
----------
+Non-linear
+----------
 .. automodule:: stonesoup.models.transition.nonlinear
+    :show-inheritance:
+    :inherited-members:
+
+Orbital
+-------
+.. automodule:: stonesoup.models.transition.orbital.base
+    :show-inheritance:
+    :inherited-members:
+
+.. automodule:: stonesoup.models.transition.orbital.orbit
+    :show-inheritance:
+    :inherited-members:
+
+Orbital
+-------
+.. automodule:: stonesoup.models.transition.orbital.orbit
     :show-inheritance:
     :inherited-members:

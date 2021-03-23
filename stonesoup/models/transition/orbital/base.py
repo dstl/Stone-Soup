@@ -10,10 +10,19 @@ from ....types.array import CovarianceMatrix
 
 
 class OrbitalTransitionModel(TransitionModel):
-    """Orbital Transition Model base class. This class will execute a
-    transition model on an orbital element state vector. Input is an
-    :class:~`OrbitalState`, and the various daughter classes will
-    implement their chosen state transitions."""
+    """Orbital transition model base class. This class will execute a transition model on an
+    orbital element state vector. Input is an :class:~`OrbitalState`, and the various daughter
+    classes will implement their chosen state transitions."""
+
+    @property
+    @abstractmethod
+    def ndim_state(self):
+        """Number of state dimensions"""
+        pass
+
+
+class OrbitalGaussianTransitionModel(OrbitalTransitionModel, GaussianModel):
+    """Gaussian version of the orbital transition model base class."""
 
     process_noise = Property(
         CovarianceMatrix, default=CovarianceMatrix(np.zeros((6, 6))),
@@ -31,12 +40,6 @@ class OrbitalTransitionModel(TransitionModel):
 
         return noise
 
-    @property
-    @abstractmethod
-    def ndim_state(self):
-        """Number of state dimensions"""
-        pass
-
     def covar(self, time_interval=timedelta(seconds=1)):
         r"""Return the transition covariance matrix
 
@@ -53,10 +56,3 @@ class OrbitalTransitionModel(TransitionModel):
 
         """
         return CovarianceMatrix(self.process_noise * time_interval.total_seconds())
-
-
-class OrbitalGaussianTransitionModel(OrbitalTransitionModel, GaussianModel):
-    """Orbital Transition Model base class. This class will execute a
-    transition model on an orbital element state vector. Input is an
-    :class:~`OrbitalState`, and the various daughter classes will
-    implement their chosen state transitions."""
