@@ -1008,7 +1008,7 @@ class SIAPMetrics(MetricGenerator):
             Sum of Euclidean distances (of position or velocity) of each truth to its associated
             tracks in manager at timestamp
         """
-        measure = EuclideanWeighted(mapping=list(mapping), weighting=weighting)
+        measure = EuclideanWeighted(mapping=mapping, weighting=weighting)
         distance_sum = 0
         for assoc in manager.association_set.associations_at_timestamp(timestamp):
             track, truth = assoc.objects
