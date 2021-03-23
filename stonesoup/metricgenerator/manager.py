@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import copy
 from itertools import chain
 from typing import Sequence, Iterable, Union
 
@@ -67,11 +68,16 @@ class SimpleManager(MetricManager):
             except AttributeError:
                 pass
 
-        self._add(overwrite, _groundtruth_paths=groundtruth_paths,
-                  _tracks=tracks, _detections=detections)
+        if overwrite:
+            self._add(overwrite, _groundtruth_paths=copy.copy(groundtruth_paths),
+                      _tracks=copy.copy(tracks), _detections=copy.copy(detections))
+        else:
+            self._add(overwrite, _groundtruth_paths=groundtruth_paths,
+                      _tracks=tracks, _detections=detections)
 
     def _add(self, overwrite, **kwargs):
         for key, value in kwargs.items():
+            print(key)
             if value is not None:
                 if overwrite:
                     setattr(self, key, set(value))

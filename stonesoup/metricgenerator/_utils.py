@@ -4,7 +4,8 @@ from functools import lru_cache, wraps
 
 def clearable_lru_cache():
     """Cache decorator that allows keeping track of which methods are decorated.
-    A new cache is created for each instance of :class:`SIAPMetrics`
+    Requires a class utilising this to have a `cache` boolean property, determining whether the
+    decorated method is cached or not.
     """
 
     def cache_decorator(func):
