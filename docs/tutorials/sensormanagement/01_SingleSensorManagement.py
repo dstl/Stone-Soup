@@ -595,7 +595,6 @@ for metric in metricsB:
 times = metric_managerB.list_timestamps()
 
 axes[0].set(title='Positional Accuracy', xlabel='Time', ylabel='PA')
-# axes[0].tick_params(length=1)
 axes[0].plot(times, [metric.value for metric in pa_metricA.value],
              label='RandomManager')
 axes[0].plot(times, [metric.value for metric in pa_metricB.value],
@@ -603,7 +602,6 @@ axes[0].plot(times, [metric.value for metric in pa_metricB.value],
 axes[0].legend()
 
 axes[1].set(title='Velocity Accuracy', xlabel='Time', ylabel='VA')
-# axes[1].tick_params(length=1)
 axes[1].plot(times, [metric.value for metric in va_metricA.value],
              label='RandomManager')
 axes[1].plot(times, [metric.value for metric in va_metricB.value],
