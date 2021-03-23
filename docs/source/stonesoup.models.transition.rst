@@ -24,3 +24,13 @@ Categorical
 .. automodule:: stonesoup.models.transition.categorical
     :show-inheritance:
     :inherited-members:
+
+Orbital
+-------
+.. automodule:: stonesoup.models.transition.orbital.base
+    :show-inheritance:
+    :inherited-members:
+
+.. automodule:: stonesoup.models.transition.orbital.orbit
+    :show-inheritance:
+    :inherited-members:
