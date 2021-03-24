@@ -37,5 +37,6 @@ setup(name='stonesoup',
           'video': ['ffmpeg-python', 'moviepy', 'opencv-python'],
           'tensorflow': ['tensorflow>=2.2.0'],
           'tensornets': ['tensorflow>=2.2.0', 'tensornets'],
+          'astro': ['astropy', 'sgp4']
       },
       )
