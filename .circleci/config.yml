@@ -23,7 +23,7 @@ jobs:
           command: |
             python3 -m venv venv
             . venv/bin/activate
-            pip install -e .[dev, astro]
+            pip install -e .[dev,astro]
       - save_cache:
           paths:
             - ./venv
