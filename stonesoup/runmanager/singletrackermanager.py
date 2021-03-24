@@ -32,7 +32,7 @@ def metric_generator(args):#(config_string,matrix):
         for n, (time, ctracks) in enumerate(tracker, 1):
             tracks.update(ctracks)
 
-        metric_manager.add_data(ground_truth, tracks)
+        metric_manager.add_data(ground_truth[i], tracks)
         metrics = metric_manager.generate_metrics()
     except Exception as e:
         print(f'Failure: {e}', flush=True)
@@ -41,7 +41,7 @@ def metric_generator(args):#(config_string,matrix):
         print('Success!', flush=True)
     
     for val in metrics: 
-        print("metric")
+        print("metric" +str(val))
         for metric in val.value:
             print(metric.value)
 

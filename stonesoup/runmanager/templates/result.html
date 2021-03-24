@@ -1,0 +1,34 @@
+{% extends 'base.html' %} {% from 'renderField.html' import show_node%} {%block
+head %} {% endblock %} {%block body %}
+
+<canvas id="lineChart" width="900" height="400"></canvas>
+
+<script>
+   var ctx = document.getElementById("lineChart").getContext("2d");
+   data = {{values | safe}};
+   labelvals= {{labels | safe}};
+   datasetsvals = [];
+   for (i = 0; i < data.length; i++){
+      datasetsvals.push({
+                 label: i,
+                 data: data[i],
+                 fill: false,
+                 borderColor: "#" + ((1<<24)*Math.random() | 0).toString(16),
+                 lineTension: 0.1
+      })
+
+    console.log(datasetsvals[i]);
+   }
+
+   var dataTypesTime = {
+  	labels: labelvals,
+  	datasets: datasetsvals,
+  };
+
+
+   var lineChart = new Chart(ctx, {
+       type:"line",
+       data: dataTypesTime,
+   });
+</script>
+{%endblock%}

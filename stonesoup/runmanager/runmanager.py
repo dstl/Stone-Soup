@@ -22,6 +22,13 @@ import warnings
 from stonesoup.tracker.base import Tracker
 import copy
 import datetime
+from stonesoup.metricgenerator.ospametric import OSPAMetric
+from stonesoup.measures import Euclidean
+from stonesoup.metricgenerator.manager import SimpleManager
+import plotly.express as px
+from _datetime import timedelta
+from matplotlib import pyplot as plt
+
 app = Flask(__name__)
 
 #UPLOAD_FOLDER = '/path/to/the/uploads'
@@ -79,13 +86,21 @@ def upload_config_input():
       #  generate_initiator(tracker)
         
         #parentList = generate_template_tree(tracker.initiator,[])
-        parentList = Tree(NodeData(tracker.__class__.__name__,tracker, tracker.__class__.__name__))
-        parentList.children.append(generate_tree(tracker,parentList,tracker.__class__.__name__))
-        #print("TEST")
-        #print(printTree(parentList.data, parentList.children))
+        trackerTree = Tree(NodeData(tracker.__class__.__name__,tracker, tracker.__class__.__name__))
+        trackerTree.children.append(generate_tree(tracker,trackerTree,tracker.__class__.__name__))
+        
+
+
+        for g in ground_truth:
+          ground_truth_tree = Tree(NodeData(g.__class__.__name__,g, g.__class__.__name__))
+          ground_truth_tree.children.append(generate_tree(g,ground_truth_tree,g.__class__.__name__))
+                
+        metric_manager_tree = Tree(NodeData(metric_manager.__class__.__name__,metric_manager, metric_manager.__class__.__name__))
+        metric_manager_tree.children.append(generate_tree(metric_manager,metric_manager_tree,metric_manager.__class__.__name__))
+          
 
         #return render_template('config.html',res = res, stateVector = stateVector, covar=covar, tracker=tracker)
-        return render_template('generate.html',res = res, parentList=parentList)
+        return render_template('generate.html',res = res, trackerTree=trackerTree, ground_truth_tree = ground_truth_tree,metric_manager_tree=metric_manager_tree)
         
        
       #send file name as parameter to download
@@ -102,50 +117,93 @@ def run():
             tracker, ground_truth, metric_manager = read_config_file(file)
 
 
-        #print(type(tracker.detector.platforms[0].transition_model.model_list[0]))
 
         trackers=[]
+        ground_truths = []
+        metric_managers = []
+
         for i in range(0,num_runs):
-          trackers.append(copy.deepcopy(tracker))
+          tracker_copy, ground_truth_copy, metric_manager_copy = copy.deepcopy((tracker, ground_truth, metric_manager))
+          trackers.append(tracker_copy)
+          ground_truths.append(ground_truth_copy)
+          metric_managers.append(metric_manager_copy)
 
-        trackers = get_data(tracker,copy.deepcopy(tracker),copy.deepcopy(tracker),copy.deepcopy(tracker),tracker.__class__.__name__,request,trackers)
+        #Initialise the tracker
+        tracker_copy, ground_truth_copy, metric_manager_copy = copy.deepcopy((tracker, ground_truth, metric_manager))
+        tracker_min, ground_truth_min, metric_manager_min = copy.deepcopy((tracker, ground_truth, metric_manager))
+        tracker_max, ground_truth_max, metric_manager_max = copy.deepcopy((tracker, ground_truth, metric_manager))
+        tracker_step, ground_truth_step, metric_manager_step = copy.deepcopy((tracker, ground_truth, metric_manager))
 
-        # for idx, tr in enumerate(trackers):
-        #    print("tracker "+str(idx))
-        #    print(tracker)
+
+
+        #Set 
+        get_data(tracker_copy,tracker_min,tracker_max,tracker_step,tracker_copy.__class__.__name__,request,trackers)
+        
+
+        if(type(ground_truth)==set):
+          for idx,g in enumerate(ground_truth_copy):
+              get_data(g,list(ground_truth_min)[idx],list(ground_truth_max)[idx],list(ground_truth_step)[idx],g.__class__.__name__,request,ground_truths,True,idx)
+        else:
+              get_data(ground_truth_copy,list(ground_truth_min)[idx],list(ground_truth_max)[idx],list(ground_truth_step)[idx],ground_truth_copyg.__class__.__name__,request,ground_truths)
+
+
         metricsList=[]
-
-        print(trackers[0])
-        if(tracker==trackers[0]):
-          print("YES")
-        for i in range(0, 1):
-          try:
+        for i in range(0, num_runs):
+          try:          
+              print(trackers[i])
               tracks = set()
             #  print("test1")
+              # print("TRACKER START")
 
-              #print(trackers[i])
-              for n, (time, ctracks) in enumerate(trackers[i], 1):
-                  tracks.update(ctracks)
+              # print(trackers[i])
+              # print("TRACKER END")
 
-              print("test2")
-
-              metric_manager.add_data(ground_truth, tracks)
-
-              metrics= metric_manager.generate_metrics()
+              for n, (time, ctracks) in enumerate(trackers[i],1):#, 1):
+                tracks.update(ctracks)
+              
+              #print(tracks)
+              metric_managers[i].add_data(ground_truths[i], tracks)
+              
+              metrics= metric_managers[i].generate_metrics()
               #print(metrics)
-              metricsList.append(metrics)
           except Exception as e:
               print(f'Failure: {e}', flush=True)
-              return None
+              #return None
           else:
               print('Success!', flush=True)
+              metricsList.append(metrics)
+
          
 
-                  
+        values, labels = plot(metricsList, len(metricsList))
+          
+        return render_template("result.html", labels=labels, values=values)
 
+
+def runSimulation(tracker):
+  tracks = set()
+
+def plot(metricsList, num_sims):
+    metric_values = []
+    time_values = []
+
+    for metric in metricsList[0]:
+      for var in metric.value:
+        time_values.append(var.timestamp.strftime('%Y-%m-%d %H:%M:%S.%f'))
+
+    for simulation in range(len(metricsList)):
+      metric = []
+      for m in metricsList[simulation]:
+        for val in m.value:
+          metric.append(val.value)
+      
+      metric_values.append(metric)
+      #print(metric_values[simulation])
     
-         
-        return "metricsList"
+
+    return metric_values, time_values
+    # for i in range(num_steps):
+  
 
 
 def printTree(data, treeNodes,deep=-1):
@@ -172,7 +230,9 @@ def generate_tree(object,parentNode,propertyName):
       for property in properties:    
          generate_tree(getattr(object,property),node,property)
 
-    else: 
+    else:
+      print(object.__class__)
+      parentNode.children.remove(node)
       return node
   else:
       if(type(object) is list or type(object) is tuple):
@@ -189,100 +249,126 @@ def read_config_file(config_file):
     return tracker, ground_truth, metric_manager
 
 
-def gen_object_array(object,num_runs):
-  trackers=[]
-  for i in range(0,num_runs):
-            trackers.append(copy.deepcopy(object))
-
-  return trackers
-
-
-def navigate_tracker(value,trackers):
+def navigate_tracker(property,trackers,isSet=False,idx=0):
   newTrackers = []
   for i in range(0,len(trackers)):
-    newTrackers.append(value)
+    if not isSet:
+      newTrackers.append(getattr(trackers[i],property))
+    else:
+      newTrackers.append(getattr(list(trackers[i])[idx],property))
+
   return newTrackers
 
 
-def updateTracker(property,old_trackers,new_trackers):
-  for i in range(0,len(old_trackers)):
-    try:
-      setattr(old_trackers[i], property,new_trackers[i])
-     # print("Set ATT")
-    except: 
-      return old_trackers
-  return old_trackers
+def navigate_tracker_list(index,trackers,isSet=False,idx=0):
+  newTrackers = []
+  for i in range(0,len(trackers)):
+    if not isSet:
+      newTrackers.append(trackers[i][index])
+    else:
+      newTrackers.append(list(trackers[i])[idx][index])
+  return newTrackers
 
 
-def updateTrackerList(old_trackers,new_trackers,index):
-  for i in range(0,len(old_trackers)):
-      if(type(new_trackers[i] is  tuple)):
-        trackList = copy.deepcopy(list(old_trackers[i]))
-      else:
-        trackList = copy.deepcopy(old_trackers[i])
-         
-      #for j in range(0,len(old_trackers[i])):
-      trackList[index] = copy.deepcopy(new_trackers[i])
-      # if(type(new_trackers[i] is  tuple)):
-      #   print(new_trackers[i].__class__.__name__)
-      #   old_trackers[i] = tuple(trackList)
-      # else:
-      old_trackers[i] = trackList
-        
+def compare_trees(tree1,tree2,result):
+ if(result==False):
+  return False
 
-
-     # print("Set ATT")
-  return old_trackers
-
-
-def get_data(object,object_min,object_max,object_steps, propertyName,request,trackers):
- # if(type(object) is not list and type(object) is not tuple):
-    #node:Tree = Tree(NodeData( object.__class__.__name__, object,propertyName))
-    #print(node.data.property)
-    #parentNode.children.append(node)
-
-  #object:Tracker
-  if hasattr(object.__class__, "properties"):
-    properties = object.__class__.properties
+ if hasattr(tree1.__class__, "properties"):
+    properties = tree1.__class__.properties
     if len(properties)>0:
       for property in properties:
       #  trackers = get_data(getattr(object,property),getattr(object_min,property),getattr(object_max,property),getattr(object_steps,property),propertyName+"."+property,request,gen_object_array(getattr(object,property),len(trackers)))
-        old_trackers = copy.deepcopy(trackers)    
-        trackers = get_data(getattr(object,property),getattr(object_min,property),getattr(object_max,property),getattr(object_steps,property),propertyName+"."+property,request,navigate_tracker(getattr(object,property),trackers))
-        trackers = updateTracker(property, old_trackers,copy.deepcopy(trackers))
+        result = compare_trees(getattr(tree1,property),getattr(tree2,property),result)
+    else:
+        if tree1==tree2:
+          print("TRUE")
+          return True
+        else:
+          print(type(tree1))
+          print(type(tree2))
+          print("tree1 "+str(tree1)+" tree2 "+str(tree2))
+          return True
+ else:
+      if(type(tree1) is list or type(tree1) is tuple):
+        for i,el in enumerate(tree1):
+          
+          #trackers =get_data(el,object_min[i],object_max[i],object_steps[i],propertyName+'['+str(i)+']',request,gen_object_array(el,len(trackers)))
+          try:  
+            result = compare_trees(el,tree2[i],result)
+          except:
+            print("el "+str(el)+" tree2 "+str(tree2[i]))
+            return False
+      else: 
+        className = tree1.__class__.__name__        
+        if (className=="ndarray" or className=="StateVector" or className == "CovarianceMatrix"):
+            if(tree1==tree2).all():
+              print("TRUE")
+              return True
+            else:
+              print("abc")
+              print(className)
+              print("tree1 "+str(tree1)+" tree2 "+str(tree2))
+              return False
+        elif (className=="timedelta" or className=="datetime" or className=="int" or className == "float" or className=="bool" or className=="NoneType"):
+          if(tree1==tree2):
+              return True
+          else:
+              print("tree1 "+str(tree1)+" tree2 "+str(tree2))
+              return False
+        else:
+          print(className)
+          return False
+ return result
+#return trackers
 
+def get_data(object,object_min,object_max,object_steps, propertyName,request,trackers,isSet=False,idx=0):
+  if hasattr(object.__class__, "properties"):
+    properties = object.__class__.properties
+    if len(properties)>0:
+      for single_property in properties:
+        new_trackers = get_data(getattr(object,single_property),getattr(object_min,single_property),getattr(object_max,single_property),getattr(object_steps,single_property),propertyName+"."+single_property,request,navigate_tracker(single_property,trackers,isSet,idx))
     else: 
       return trackers
   else:
       if(type(object) is list or type(object) is tuple):
         for i,el in enumerate(object):
-          #trackers =get_data(el,object_min[i],object_max[i],object_steps[i],propertyName+'['+str(i)+']',request,gen_object_array(el,len(trackers)))
-          old_trackers = copy.deepcopy(trackers)    
-          trackers = get_data(el,object_min[i],object_max[i],object_steps[i],propertyName+'['+str(i)+']',request,navigate_tracker(el,trackers))
-          trackers = updateTrackerList(old_trackers,trackers,i) 
+          new_trackers = get_data(el,object_min[i],object_max[i],object_steps[i],propertyName+'['+str(i)+']',request,navigate_tracker_list(i,trackers))
 
       else: 
-        object,object_min,object_max,object_steps,trackers = set_tracker_data(object,object_min, object_max, object_steps,propertyName,request,trackers)
+        set_tracker_data(object,object_min, object_max, object_steps,propertyName,request,trackers)
         
-        return trackers
 
-  return trackers
 
 
 def set_tracker_data(object,object_min,object_max,object_steps,type,request,trackers):
 
   if(object.__class__.__name__=='StateVector'):
-    object,object_min,object_max,object_steps,trakers = set_state_vector(object,object_min,object_max,object_steps,type,request,trackers)
+     set_state_vector(object,object_min,object_max,object_steps,type,request,trackers)
   elif(object.__class__.__name__=='CovarianceMatrix'):
-    object,object_min,object_max,object_steps,trackers = set_covar(object,object_min,object_max,object_steps,type,request,trackers)
-  elif(object.__class__.__name__=='datetime'):
-    object,object_min,object_max,object_steps,trackers = set_datetimes(object,object_min,object_max,object_steps,type,request,trackers)
+    set_covar(object,object_min,object_max,object_steps,type,request,trackers)
+  elif(object.__class__.__name__=='datetime' ):
+    set_datetimes(object,object_min,object_max,object_steps,type,request,trackers)
   elif(object.__class__.__name__=='ndarray'):
-    object,object_min,object_max,object_steps,trackers = set_nd_array(object,object_min,object_max,object_steps,type,request,trackers)
+    set_nd_array(object,object_min,object_max,object_steps,type,request,trackers)
   elif(object.__class__.__name__=='int' or object.__class__.__name__=='float' or object.__class__.__name__=='NoneType' or object.__class__.__name__=='bool' ):
-      object,object_min,object_max,object_steps,trackers = set_single_value(object,object_min,object_max,object_steps,type,request,trackers)
+    set_single_value(object,object_min,object_max,object_steps,type,request,trackers)
 
-  return object,object_min,object_max,object_steps,trackers
+
+def set_bool(object,objectMin,objectMax,objectSteps, type,request,trackers):
+  objectType = object.__class__.__name__
+
+  object = request.form.get(type)
+  objectMin = request.form.get(type+'_min_range')
+  objectMax = request.form.get(type+'_max_range')
+  objectSteps = request.form.get(type+'_step')
+  
+  for k in range(0,len(trackers)):
+        trackers[k] = bool(object)
+     
+
+  return object,objectMin,objectMax,objectSteps,trackers
+
 
 #STATE VECTOR
 def set_state_vector(object,objectMin,objectMax,objectSteps, type,request,trackers):
@@ -293,16 +379,16 @@ def set_state_vector(object,objectMin,objectMax,objectSteps, type,request,tracke
   state_vector_step = request.form.getlist(type+'_step[]')
   
 
-
   for i,val in enumerate(state_vector):
      object[i] =  val
      objectMin[i] = state_vector_min[i]
-     objectMax[i] = state_vector_max[i]
+     objectMax[i] = state_vector_max[i] 
      objectSteps[i] = state_vector_step[i]
 
-
      for k in range(0,len(trackers)):
+
        trackers[k][i]= generate_random(object[i],objectMin[i],objectMax[i],objectSteps[i],k)
+
 
   return object,objectMin,objectMax,objectSteps,trackers
 
@@ -360,6 +446,8 @@ def set_single_value(object,objectMin,objectMax,objectSteps, type,request,tracke
           trackers[k] =float(generate_random(float(object),float(objectMin),float(objectMax),float(objectSteps),k))
         except ValueError:
           trackers[k]=0.0
+      elif(objectType=='bool'):
+          trackers[k] = bool(bool(object))
       else:
         if(object=="None"):
           trackers[k]=None
@@ -375,9 +463,11 @@ def set_datetimes(object,objectMin,objectMax,objectSteps, type,request,trackers)
   objectMin = request.form.get(type+'_min_range')
   objectMax = request.form.get(type+'_max_range')
   objectSteps = request.form.get(type+'_step')
-
   for k in range(0,len(trackers)):
-        trackers[k] = datetime.datetime.strptime(object, '%Y-%m-%d %H:%M:%S.%f')
+        if object == None:
+          trackers[k]= object
+        else:
+          trackers[k] = datetime.datetime.strptime(object, '%Y-%m-%d %H:%M:%S.%f')
 
 
   return object,objectMin,objectMax,objectSteps,trackers
@@ -388,10 +478,10 @@ def generate_random(val,valMin,valMax,valSteps,index_run):
     if val>valMax:
       return valMax
     else:
-       return val
+       return float(val)
   elif valMin<valMax:
     return random.uniform(valMin,valMax)
-  else: 
+  else:
     return float(val)
 
 
@@ -401,7 +491,7 @@ def generate_random_int(val,valMin,valMax,valSteps,index_run):
     if val>valMax:
       return valMax
     else:
-       return val
+       return int(val)
   elif valMin<valMax:
     return random.randint(valMin,valMax)
   else: 

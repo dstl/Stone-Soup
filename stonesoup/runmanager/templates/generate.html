@@ -74,7 +74,16 @@ head %} {% endblock %} {%block body %}
     <button class="btn-primary btn">Run</button>
   </div>
   <div class="container-fluid">
-    {{show_node(parentList.data,parentList.children)}}
+    <header>Tracker:</header>
+    {{show_node(trackerTree.data,trackerTree.children)}}
+  </div>
+  <div class="container-fluid">
+    <header>Ground Truth:</header>
+    {{show_node(ground_truth_tree.data,ground_truth_tree.children)}}
+  </div>
+  <div class="container-fluid">
+    <header>Metric Manager:</header>
+    {{show_node(metric_manager_tree.data,metric_manager_tree.children)}}
   </div>
 </form>
 {%endblock%}
