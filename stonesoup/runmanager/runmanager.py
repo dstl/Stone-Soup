@@ -44,7 +44,6 @@ def index():
 
 @app.route('/configInput', methods=["POST","GET"])
 def upload_config_input():
-    variable="5"
     if request.method == 'POST':
 
         #configFile = request.form["configFile"]
@@ -80,21 +79,19 @@ def upload_config_input():
         tracker, ground_truth, metric_manager = read_config_file(configFile)
         runManager = RunManager()
         runManager.tracker = tracker
-        #print(Base.subclasses)
-#       
-#        #import_submodules()
-      #  generate_initiator(tracker)
-        
-        #parentList = generate_template_tree(tracker.initiator,[])
+     
+        #Create the tracker tree
         trackerTree = Tree(NodeData(tracker.__class__.__name__,tracker, tracker.__class__.__name__))
         trackerTree.children.append(generate_tree(tracker,trackerTree,tracker.__class__.__name__))
         
 
-
+        #Create the ground truth tree
         for g in ground_truth:
           ground_truth_tree = Tree(NodeData(g.__class__.__name__,g, g.__class__.__name__))
           ground_truth_tree.children.append(generate_tree(g,ground_truth_tree,g.__class__.__name__))
                 
+
+        #Create the metric manager tree
         metric_manager_tree = Tree(NodeData(metric_manager.__class__.__name__,metric_manager, metric_manager.__class__.__name__))
         metric_manager_tree.children.append(generate_tree(metric_manager,metric_manager_tree,metric_manager.__class__.__name__))
           
@@ -105,7 +102,6 @@ def upload_config_input():
        
       #send file name as parameter to download
     return render_template('index.html')
-
 
 
 @app.route('/run', methods=["POST","GET"])
@@ -180,9 +176,7 @@ def run():
         return render_template("result.html", labels=labels, values=values)
 
 
-def runSimulation(tracker):
-  tracks = set()
-
+#Set the data for the plot 
 def plot(metricsList, num_sims):
     metric_values = []
     time_values = []
@@ -204,8 +198,7 @@ def plot(metricsList, num_sims):
     return metric_values, time_values
     # for i in range(num_steps):
   
-
-
+#Print the tree on the console
 def printTree(data, treeNodes,deep=-1):
   deep=deep+1
   print(str(data.property )+' Deep '+str(deep))
@@ -218,6 +211,7 @@ def printTree(data, treeNodes,deep=-1):
         print(str(node.data.property)+ ' Deep '+str(deep))
       
 
+#Generate a tree
 def generate_tree(object,parentNode,propertyName):
   if(type(object) is not list and type(object) is not tuple):
     node:Tree = Tree(NodeData( object.__class__.__name__, object,propertyName))
@@ -249,6 +243,7 @@ def read_config_file(config_file):
     return tracker, ground_truth, metric_manager
 
 
+#Navigate inside all the tracker list given a property
 def navigate_tracker(property,trackers,isSet=False,idx=0):
   newTrackers = []
   for i in range(0,len(trackers)):
@@ -259,7 +254,7 @@ def navigate_tracker(property,trackers,isSet=False,idx=0):
 
   return newTrackers
 
-
+#Navigate inside all the tracker list given a list/tuple
 def navigate_tracker_list(index,trackers,isSet=False,idx=0):
   newTrackers = []
   for i in range(0,len(trackers)):
@@ -269,7 +264,7 @@ def navigate_tracker_list(index,trackers,isSet=False,idx=0):
       newTrackers.append(list(trackers[i])[idx][index])
   return newTrackers
 
-
+#Compare two tree to check if they are similar
 def compare_trees(tree1,tree2,result):
  if(result==False):
   return False
@@ -322,6 +317,7 @@ def compare_trees(tree1,tree2,result):
  return result
 #return trackers
 
+#Get the data from the POST request
 def get_data(object,object_min,object_max,object_steps, propertyName,request,trackers,isSet=False,idx=0):
   if hasattr(object.__class__, "properties"):
     properties = object.__class__.properties
@@ -338,9 +334,7 @@ def get_data(object,object_min,object_max,object_steps, propertyName,request,tra
       else: 
         set_tracker_data(object,object_min, object_max, object_steps,propertyName,request,trackers)
         
-
-
-
+#Set the data value inside the trackers
 def set_tracker_data(object,object_min,object_max,object_steps,type,request,trackers):
 
   if(object.__class__.__name__=='StateVector'):
@@ -367,9 +361,6 @@ def set_bool(object,objectMin,objectMax,objectSteps, type,request,trackers):
         trackers[k] = bool(object)
      
 
-  return object,objectMin,objectMax,objectSteps,trackers
-
-
 #STATE VECTOR
 def set_state_vector(object,objectMin,objectMax,objectSteps, type,request,trackers):
   
@@ -386,11 +377,7 @@ def set_state_vector(object,objectMin,objectMax,objectSteps, type,request,tracke
      objectSteps[i] = state_vector_step[i]
 
      for k in range(0,len(trackers)):
-
        trackers[k][i]= generate_random(object[i],objectMin[i],objectMax[i],objectSteps[i],k)
-
-
-  return object,objectMin,objectMax,objectSteps,trackers
 
 
 def set_covar(object,objectMin,objectMax,objectSteps, type,request,trackers):
@@ -410,8 +397,6 @@ def set_covar(object,objectMin,objectMax,objectSteps, type,request,trackers):
       for k in range(0,len(trackers)):
        trackers[k][i,j]= generate_random(object[i,j],objectMin[i,j],objectMax[i,j],objectSteps[i,j],k)
       
-  return object,objectMin,objectMax,objectSteps,trackers
-
 
 def set_nd_array(object,objectMin,objectMax,objectSteps, type,request,trackers):
   
@@ -425,9 +410,6 @@ def set_nd_array(object,objectMin,objectMax,objectSteps, type,request,trackers):
      objectMin[i] = nd_array_min[i]
      objectMax[i] = nd_array_max[i]
      objectSteps[i] = nd_array_step[i]
-
-
-  return object,objectMin,objectMax,objectSteps,trackers 
 
 
 def set_single_value(object,objectMin,objectMax,objectSteps, type,request,trackers):
@@ -454,8 +436,6 @@ def set_single_value(object,objectMin,objectMax,objectSteps, type,request,tracke
         else:
           trackers[k] = object
 
-  return object,objectMin,objectMax,objectSteps,trackers
-
 
 def set_datetimes(object,objectMin,objectMax,objectSteps, type,request,trackers):
 
@@ -469,8 +449,6 @@ def set_datetimes(object,objectMin,objectMax,objectSteps, type,request,trackers)
         else:
           trackers[k] = datetime.datetime.strptime(object, '%Y-%m-%d %H:%M:%S.%f')
 
-
-  return object,objectMin,objectMax,objectSteps,trackers
 
 def generate_random(val,valMin,valMax,valSteps,index_run):
   if(valSteps!=0 ):
