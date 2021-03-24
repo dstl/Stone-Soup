@@ -22,27 +22,11 @@ class PDA(DataAssociator):
     hypothesiser: Hypothesiser = Property(
         doc="Generate a set of hypotheses for each prediction-detection pair")
 
-    def associate(self, tracks, detections, timestamp):
-        """Associate detections with predicted states.
-
-        Parameters
-        ----------
-        tracks : list of :class:`Track`
-            Current tracked objects
-        detections : list of :class:`Detection`
-            Retrieved measurements
-        timestamp : datetime.datetime
-            Detection time to predict to
-
-        Returns
-        -------
-        dict
-            Key value pair of tracks with associated detection
-        """
+    def associate(self, tracks, detections, timestamp, **kwargs):
 
         # Generate a set of hypotheses for each track on each detection
         hypotheses = {
-            track: self.hypothesiser.hypothesise(track, detections, timestamp)
+            track: self.hypothesiser.hypothesise(track, detections, timestamp, **kwargs)
             for track in tracks}
 
         # Ensure association probabilities are normalised
@@ -75,23 +59,7 @@ class JPDA(DataAssociator):
     hypothesiser: PDAHypothesiser = Property(
         doc="Generate a set of hypotheses for each prediction-detection pair")
 
-    def associate(self, tracks, detections, timestamp):
-        """Associate detections with predicted states.
-
-        Parameters
-        ----------
-        tracks : list of :class:`Track`
-            Current tracked objects
-        detections : list of :class:`Detection`
-            Retrieved measurements
-        timestamp : datetime.datetime
-            Detection time to predict to
-
-        Returns
-        -------
-        dict
-            Key value pair of tracks with associated detection
-        """
+    def associate(self, tracks, detections, timestamp, **kwargs):
 
         # Calculate MultipleHypothesis for each Track over all
         # available Detections

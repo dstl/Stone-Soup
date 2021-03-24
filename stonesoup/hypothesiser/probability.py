@@ -30,7 +30,7 @@ class PDAHypothesiser(Hypothesiser):
         doc="Gate Probability - prob. gate contains true measurement "
             "if detected")
 
-    def hypothesise(self, track, detections, timestamp):
+    def hypothesise(self, track, detections, timestamp, **kwargs):
         r"""Evaluate and return all track association hypotheses.
 
         For a given track and a set of N detections, return a
@@ -87,12 +87,11 @@ class PDAHypothesiser(Hypothesiser):
 
         Parameters
         ----------
-        track: :class:`~.Track`
+        track : Track
             The track object to hypothesise on
-        detections: :class:`list`
-            A list of :class:`~Detection` objects, representing the available
-            detections.
-        timestamp: :class:`datetime.datetime`
+        detections : set of :class:`~.Detection`
+            The available detections
+        timestamp : datetime.datetime
             A timestamp used when evaluating the state and measurement
             predictions. Note that if a given detection has a non empty
             timestamp, then prediction will be performed according to
@@ -101,14 +100,13 @@ class PDAHypothesiser(Hypothesiser):
         Returns
         -------
         : :class:`~.MultipleHypothesis`
-            A container of :class:`~SingleProbabilityHypothesis` objects
-
+            A container of :class:`~.SingleProbabilityHypothesis` objects
         """
 
         hypotheses = list()
 
         # Common state & measurement prediction
-        prediction = self.predictor.predict(track, timestamp=timestamp)
+        prediction = self.predictor.predict(track, timestamp=timestamp, **kwargs)
         # Missed detection hypothesis
         probability = Probability(1 - self.prob_detect*self.prob_gate)
         hypotheses.append(
@@ -122,10 +120,10 @@ class PDAHypothesiser(Hypothesiser):
         for detection in detections:
             # Re-evaluate prediction
             prediction = self.predictor.predict(
-                track, timestamp=detection.timestamp)
+                track, timestamp=detection.timestamp, **kwargs)
             # Compute measurement prediction and probability measure
             measurement_prediction = self.updater.predict_measurement(
-                prediction, detection.measurement_model)
+                prediction, detection.measurement_model, **kwargs)
             # Calculate difference before to handle custom types (mean defaults to zero)
             # This is required as log pdf coverts arrays to floats
             log_pdf = mn.logpdf(

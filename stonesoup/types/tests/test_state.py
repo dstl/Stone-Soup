@@ -167,6 +167,7 @@ def test_particlestate():
 
     state = ParticleState(particles)
     assert isinstance(state, State)
+    assert ParticleState in State.subclasses
     assert np.allclose(state.state_vector, StateVector([[50], [100]]))
     assert np.allclose(state.covar, CovarianceMatrix([[2500, 5000], [5000, 10000]]))
 

@@ -1055,8 +1055,8 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
     expects a 6D state space.
     """
 
-    range_res = Property(float, doc="Size of the range bins in m")
-    range_rate_res = Property(float, doc="Size of the velocity bins in m/s")
+    range_res: float = Property(doc="Size of the range bins in m")
+    range_rate_res: float = Property(doc="Size of the velocity bins in m/s")
 
     @property
     def ndim_meas(self):

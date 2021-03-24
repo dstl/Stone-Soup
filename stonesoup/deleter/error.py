@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """Contains collection of error based deleters"""
+from typing import Sequence
+
 import numpy as np
 
 from ..base import Property
@@ -14,6 +16,11 @@ class CovarianceBasedDeleter(Deleter):
     """
 
     covar_trace_thresh: float = Property(doc="Covariance matrix trace threshold")
+    mapping: Sequence[int] = Property(default=None,
+                                      doc="Track state vector indices whose corresponding "
+                                          "covariances' sum is to be considered. Defaults to"
+                                          "None, whereby the entire track covariance trace is "
+                                          "considered.")
 
     def check_for_deletion(self, track, **kwargs):
         """Check if a given track should be deleted
@@ -23,17 +30,21 @@ class CovarianceBasedDeleter(Deleter):
 
         Parameters
         ----------
-        track : :class:`stonesoup.types.Track`
+        track : Track
             A track object to be checked for deletion.
 
         Returns
         -------
-        : :class:`bool`
-            ``True`` if track should be deleted, ``False`` otherwise.
+        bool
+            `True` if track should be deleted, `False` otherwise.
         """
 
-        track_covar_trace = np.trace(track.state.covar)
+        diagonals = np.diag(track.state.covar)
+        if self.mapping:
+            track_covar_trace = np.sum(diagonals[self.mapping])
+        else:
+            track_covar_trace = np.sum(diagonals)
 
-        if(track_covar_trace > self.covar_trace_thresh):
+        if track_covar_trace > self.covar_trace_thresh:
             return True
         return False

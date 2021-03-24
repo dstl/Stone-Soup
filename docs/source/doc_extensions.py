@@ -60,8 +60,15 @@ def declarative_class(app, what, name, obj, options, lines):
             param_index += len(new_lines)
 
 
+def shorten_type_hints(app, what, name, obj, options, signature, return_annotation):
+    if signature is not None:
+        signature = STONESOUP_TYPE_REGEX.sub('', signature)
+    return signature, return_annotation
+
+
 def setup(app):
     app.connect('autodoc-process-docstring', declarative_class)
+    app.connect('autodoc-process-signature', shorten_type_hints)
 
 
 import os

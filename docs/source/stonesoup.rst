@@ -26,12 +26,12 @@ Enabling Components
     stonesoup.detector
     stonesoup.feeder
     stonesoup.metricgenerator
+    stonesoup.platform
     stonesoup.reader
+    stonesoup.sensor
     stonesoup.simulator
     stonesoup.tracker
     stonesoup.writer
-    stonesoup.platform
-    stonesoup.sensor
 
 Algorithm Components
 ^^^^^^^^^^^^^^^^^^^^

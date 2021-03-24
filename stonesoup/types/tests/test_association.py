@@ -97,6 +97,16 @@ def test_associationset():
 
     assert assoc_set.associations == {assoc1, assoc2}
 
+    assert assoc1 in assoc_set
+    assert assoc2 in assoc_set
+    assert 'a' not in assoc_set
+
+    assoc_iter = iter(assoc_set)
+    for assoc in assoc_iter:
+        assert assoc in {assoc1, assoc2}
+
+    assert len(assoc_set) == 2
+
     # Test associations including objects
 
     # Object only present in object 1

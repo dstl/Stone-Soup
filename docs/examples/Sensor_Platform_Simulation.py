@@ -274,7 +274,7 @@ from stonesoup.types.hypothesis import SingleHypothesis
 
 
 class Initiator(SimpleMeasurementInitiator):
-    def initiate(self, detections, **kwargs):
+    def initiate(self, detections, timestamp, **kwargs):
         MAX_DEV = 500.
         tracks = set()
         measurement_model = self.measurement_model

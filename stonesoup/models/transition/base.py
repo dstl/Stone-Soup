@@ -12,12 +12,12 @@ class TransitionModel(Model):
     """Transition Model base class"""
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         return self.ndim_state
 
     @property
     @abstractmethod
-    def ndim_state(self):
+    def ndim_state(self) -> int:
         """Number of state dimensions"""
         pass
 
