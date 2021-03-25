@@ -514,10 +514,8 @@ def rotz(theta):
                      [s, c, zero],
                      [zero, zero, one]])
 
-
 def gm_reduce_single(means, covars, weights):
     """Reduce mixture of multi-variate Gaussians to single Gaussian
-
     Parameters
     ----------
     means : :class:`~.StateVectors`
@@ -526,7 +524,6 @@ def gm_reduce_single(means, covars, weights):
         The covariance matrices of the GM components
     weights : np.array of shape (num_components,)
         The weights of the GM components
-
     Returns
     -------
     : :class:`~.StateVector`
@@ -536,20 +533,17 @@ def gm_reduce_single(means, covars, weights):
     """
     # Normalise weights such that they sum to 1
     weights = weights/Probability.sum(weights)
-    weights = weights.astype(np.float_)
+
+    # Cast means as a StateVectors, so this works with ndarray types
+    means = means.view(StateVectors)
 
     # Calculate mean
-    #mean = np.average(means, axis=1, weights=weights)
-    mean = np.average(means, axis=0, weights=weights)
+    mean = np.average(means, axis=1, weights=weights)
 
     # Calculate covar
     delta_means = means - mean
-    mean = mean[:, np.newaxis]
-    delta_means = delta_means.T
-    w3 = weights[:, np.newaxis, np.newaxis]
-    #covar = np.sum(covars*weights, axis=2, dtype=np.float_) + weights*delta_means@delta_means.T
-    covar = np.sum(covars*w3, axis=0, dtype=np.float_) + weights*delta_means@delta_means.T
-    
+    covar = np.sum(covars*weights, axis=2, dtype=np.float_) + weights*delta_means@delta_means.T
+
     return mean.view(StateVector), covar.view(CovarianceMatrix)
 
 
@@ -619,10 +613,13 @@ def imm_merge(means, covars, weights):
 
     """
     means_k, covars_k = [], []
+    covars2 = np.moveaxis(covars,0,2)
+    means = means.view(StateVectors)
     for w in weights:
-        mean, covar = gm_reduce_single(means.T, covars, w)
+        mean,covar = gm_reduce_single(means, covars2, w)
         means_k.append(mean)
         covars_k.append(covar)
+
     return np.concatenate(means_k, 1), np.array(covars_k)
 
 
