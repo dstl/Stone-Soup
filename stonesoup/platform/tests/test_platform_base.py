@@ -8,7 +8,7 @@ from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionM
     ConstantVelocity, ConstantTurn
 from stonesoup.sensor.sensor import Sensor
 from stonesoup.types.array import StateVector
-from ..base import MovingPlatform, FixedPlatform, MultiTransitionMovingPlatform
+from stonesoup.platform import MovingPlatform, FixedPlatform, MultiTransitionMovingPlatform
 from ...types.state import State
 
 
@@ -105,7 +105,7 @@ def test_base():
 
 
 class DummySensor(Sensor):
-    def measure(self):
+    def measure(self, **kwargs):
         pass
 
 
@@ -119,20 +119,13 @@ def test_add_sensor(class_):
     platform = class_(states=platform_state, position_mapping=[0, 2, 4],
                       **platform_args)
     platform.add_sensor(sensor)
-    assert (len(platform.mounting_offsets) == 1
-            and np.array_equal(platform.mounting_offsets[0], StateVector([0, 0, 0])))
-    assert (len(platform.rotation_offsets) == 1
-            and np.array_equal(platform.rotation_offsets[0], StateVector([0, 0, 0])))
+    assert len(platform.sensors) == 1 and platform.sensors[0] is sensor
 
-    sensor = DummySensor()
-    platform.add_sensor(sensor, mounting_offset=StateVector([1, 1, 1]),
-                        rotation_offset=StateVector([0, np.pi, np.pi/2]))
-    assert (len(platform.mounting_offsets) == 2
-            and np.array_equal(platform.mounting_offsets[0], StateVector([0, 0, 0]))
-            and np.array_equal(platform.mounting_offsets[1], StateVector([1, 1, 1])))
-    assert (len(platform.rotation_offsets) == 2
-            and np.array_equal(platform.rotation_offsets[0], StateVector([0, 0, 0]))
-            and np.allclose(platform.rotation_offsets[1], StateVector([0, np.pi, np.pi/2])))
+    sensor2 = DummySensor()
+    platform.add_sensor(sensor2)
+    assert (len(platform.sensors) == 2
+            and platform.sensors[0] is sensor
+            and platform.sensors[1] is sensor2)
 
 
 @pytest.mark.parametrize('velocity_mapping', [None, [1, 3, 5]])
@@ -345,7 +338,7 @@ def test_orientation_error():
                            timestamp)
     platform = MovingPlatform(states=platform_state, transition_model=None,
                               position_mapping=[0, 2, 4])
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(AttributeError):
         _ = platform.orientation
 
     platform_state = State(np.array([[2],
@@ -356,7 +349,7 @@ def test_orientation_error():
     platform = MovingPlatform(states=platform_state,
                               transition_model=None,
                               position_mapping=[0, 2])
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(AttributeError):
         _ = platform.orientation
 
 
@@ -538,23 +531,23 @@ def test_multi_transition():
                                              transition_times=transition_times,
                                              states=platform_state,
                                              position_mapping=[0, 2],
-                                             sensors=None)
+                                             )
 
     assert len(platform.transition_models) == 2
     assert len(platform.transition_times) == 2
 
     #  Check that platform states length increases as platform moves
-    assert len(platform) == 1
+    assert len(platform.movement_controller) == 1
     time = datetime.datetime.now()
     time += datetime.timedelta(seconds=1)
     platform.move(timestamp=time)
-    assert len(platform) == 2
+    assert len(platform.movement_controller) == 2
     time += datetime.timedelta(seconds=1)
     platform.move(timestamp=time)
-    assert len(platform) == 3
+    assert len(platform.movement_controller) == 3
     time += datetime.timedelta(seconds=1)
     platform.move(timestamp=time)
-    assert len(platform) == 4
+    assert len(platform.movement_controller) == 4
 
     px, py = platform.position[0], platform.position[1]
 
@@ -563,7 +556,7 @@ def test_multi_transition():
 
     time += datetime.timedelta(seconds=7)
     platform.move(timestamp=time)
-    assert len(platform) == 5
+    assert len(platform.movement_controller) == 5
     x, y = platform.position[0], platform.position[1]
     # Platform initially moves horizontally
     assert x > px
@@ -574,7 +567,7 @@ def test_multi_transition():
 
     time += datetime.timedelta(seconds=10)
     platform.move(timestamp=time)
-    assert len(platform) == 6
+    assert len(platform.movement_controller) == 6
     x, y = platform.position[0], platform.position[1]
     # Platform starts turning left to 45 degrees
     assert x > px
@@ -584,7 +577,7 @@ def test_multi_transition():
 
     time += datetime.timedelta(seconds=10)
     platform.move(timestamp=time)
-    assert len(platform) == 7
+    assert len(platform.movement_controller) == 7
     x, y = platform.position[0], platform.position[1]
     px, py = x, y
     # Platform turned left to 90 degrees
@@ -593,7 +586,7 @@ def test_multi_transition():
 
     time += datetime.timedelta(seconds=10)
     platform.move(timestamp=time)
-    assert len(platform) == 8
+    assert len(platform.movement_controller) == 8
     x, y = platform.position[0], platform.position[1]
     # Platform travelling vertically up
     assert np.allclose(x, px, atol=1e-6)
@@ -612,7 +605,7 @@ def test_multi_transition():
 
     time += datetime.timedelta(seconds=20)
     platform.move(timestamp=time)
-    assert len(platform) == 9
+    assert len(platform.movement_controller) == 9
     # Platform turned left by 90 degrees (now travelling in -x direction)
     px, py = platform.position[0], platform.position[1]
     # Next transition is right-turn
@@ -620,7 +613,7 @@ def test_multi_transition():
 
     time += datetime.timedelta(seconds=10)
     platform.move(timestamp=time)
-    assert len(platform) == 10
+    assert len(platform.movement_controller) == 10
     x, y = platform.position[0], platform.position[1]
     px, py = x, y
     # Next transition straight-on, travelling vertically up again
@@ -628,7 +621,7 @@ def test_multi_transition():
 
     time += datetime.timedelta(seconds=10)
     platform.move(timestamp=time)
-    assert len(platform) == 11
+    assert len(platform.movement_controller) == 11
     x, y = platform.position[0], platform.position[1]
     # Platform travelled vertically up
     assert np.allclose(x, px, atol=1e-6)
