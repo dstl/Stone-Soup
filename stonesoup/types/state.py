@@ -8,7 +8,7 @@ import uuid
 
 from ..base import Property
 from ..functions import gm_reduce_single
-from .array import StateVector, CovarianceMatrix
+from .array import StateVector, CovarianceMatrix, StateVectors
 from .base import Type
 from .particle import Particles
 from .numeric import Probability
@@ -297,8 +297,11 @@ class GaussianMixtureState(Type):
 
     @property
     def covar(self):
-        _, covar = gm_reduce_single(self.means.T, self.covars,
-                                    self.weights.ravel())
+        covars = np.moveaxis(self.covars,0,2)
+        means = self.means.view(StateVectors)
+        #_, covar = gm_reduce_single(self.means.T, self.covars,
+        #                            self.weights.ravel())
+        _, covar = gm_reduce_single(means, covars, self.weights.ravel())
         return covar
 
     @property
