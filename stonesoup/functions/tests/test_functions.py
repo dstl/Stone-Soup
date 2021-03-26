@@ -115,6 +115,13 @@ def test_gm_reduce_single():
     assert np.allclose(covar, np.array([[3.675, 3.35],
                                         [3.2, 3.3375]]))
 
+    # Test handling of means as array instead of StateVectors
+    mean, covar = gm_reduce_single(means.view(np.ndarray), covars, weights)
+
+    assert np.allclose(mean, np.array([[4], [5]]))
+    assert np.allclose(covar, np.array([[3.675, 3.35],
+                                        [3.2, 3.3375]]))
+
 
 def test_bearing():
     bearing_in = [10., 170., 190., 260., 280., 350., 705]

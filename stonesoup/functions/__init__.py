@@ -537,6 +537,9 @@ def gm_reduce_single(means, covars, weights):
     # Normalise weights such that they sum to 1
     weights = weights/Probability.sum(weights)
 
+    # Cast means as a StateVectors, so this works with ndarray types
+    means = means.view(StateVectors)
+
     # Calculate mean
     mean = np.average(means, axis=1, weights=weights)
 
