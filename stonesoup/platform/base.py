@@ -38,12 +38,7 @@ class Platform(Base):
         default=None, readonly=True,
         doc="A list of N mounted sensors. Defaults to an empty list")
 
-    _movable_mapping = {'FixedPlatform': FixedMovable,
-                        'MovingPlatform': MovingMovable,
-                        'MultiTransitionMovingPlatform': MultiTransitionMovable,
-                        'FixedRadarTarget': FixedMovable,
-                        'MovingRadarTarget': MovingMovable,
-                        'ManoeuvringRadarTarget': MultiTransitionMovable}
+    _default_movable_class = None  # Will be overridden by subclasses
 
     def __getattribute__(self, name):
         # This method is called if we try to access an attribute of self. First we try to get the
@@ -78,8 +73,7 @@ class Platform(Base):
         other_args = {key: value for key, value in kwargs.items() if key not in platform_arg_names}
         super().__init__(**platform_args)
         if self.movement_controller is None:
-            movable_class = self._movable_mapping[type(self).__name__]
-            self.movement_controller = movable_class(*args, **other_args)
+            self.movement_controller = self._default_movable_class(*args, **other_args)
         if self.sensors is None:
             self._property_sensors = []
         for sensor in self.sensors:
@@ -157,12 +151,15 @@ class Platform(Base):
 
 
 class FixedPlatform(Platform):
+    _default_movable_class = FixedMovable
     pass
 
 
 class MovingPlatform(Platform):
+    _default_movable_class = MovingMovable
     pass
 
 
 class MultiTransitionMovingPlatform(Platform):
+    _default_movable_class = MultiTransitionMovable
     pass
