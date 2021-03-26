@@ -59,10 +59,6 @@ class Movable(StateMutableSequence, ABC):
     def position(self, value: StateVector) -> None:
         self._set_position(value)
 
-    @staticmethod
-    def _tuple_or_none(value):
-        return None if value is None else tuple(value)
-
     @property
     def ndim(self) -> int:
         """Convenience property to return the number of dimensions in which the platform operates.
@@ -146,16 +142,16 @@ class Movable(StateMutableSequence, ABC):
             return offset
 
     def range_and_angles_to_other(self, other: 'Movable') -> Tuple[float, float, float]:
-        """ Calculate the range, azimuth and elevation of a given platform relative to current
-        platform.
+        """ Calculate the range, azimuth and elevation of a given Movable relative to current
+        Movable.
 
-        Calculates the relative vector between the two platforms, and then converts this
+        Calculates the relative vector between the two Movables, and then converts this
         range, azimuth, elevation using :func:`.cart2sphere`
 
         Parameters
         ----------
-        other : :class:`Platform`
-            Another platform. Only its position is relevant to this method.
+        other : :class:`~.Movable`
+            Another Movable. Only its position is relevant to this method.
 
         Returns
         -------

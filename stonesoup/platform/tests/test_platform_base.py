@@ -4,8 +4,10 @@ import datetime
 import numpy as np
 import pytest
 
+from stonesoup.models.measurement.tests.test_models import position_measurement_sets
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
     ConstantVelocity, ConstantTurn
+from stonesoup.moveable.movable import FixedMovable, MovingMovable
 from stonesoup.sensor.sensor import Sensor
 from stonesoup.types.array import StateVector
 from stonesoup.platform import MovingPlatform, FixedPlatform, MultiTransitionMovingPlatform
@@ -628,3 +630,45 @@ def test_multi_transition():
     assert y > py
     # Next transition is left-turn
     assert platform.transition_index == 1
+
+
+@pytest.mark.parametrize('first_state, second_state, expected_measurement',
+                         position_measurement_sets)
+def test_range_and_angles_to_other(first_state, second_state, expected_measurement):
+    # Note that, due to platform orientation,  range_and_angles_to_other is not symmetric, so we
+    # cannot test simple inversion here.
+    timestamp = datetime.datetime.now()
+    platform1 = MovingPlatform(states=State(first_state, timestamp=timestamp),
+                               position_mapping=(0, 2, 4),
+                               transition_model=None)
+    platform2 = MovingPlatform(states=State(second_state, timestamp=timestamp),
+                               position_mapping=(0, 2, 4),
+                               transition_model=None)
+
+    range_, azimuth, elevation = platform1.range_and_angles_to_other(platform2)
+    assert np.allclose((elevation, azimuth, range_), expected_measurement[0:3])
+
+
+# @pytest.mark.parametrize('platform_class', [FixedPlatform, MovingPlatform])
+def test_setting_movement_controller():
+    timestamp = datetime.datetime.now()
+    fixed_state = State(np.array([[2],
+                                  [2],
+                                  [0]]),
+                        timestamp)
+    fixed = FixedMovable(states=fixed_state, position_mapping=(0, 1, 2))
+    platform = MovingPlatform(movement_controller=fixed)
+    assert np.array_equal(platform.position, StateVector([2, 2, 0]))
+    assert np.array_equal(platform.velocity, StateVector([0, 0, 0]))
+
+    moving_state = State(np.array([[2],
+                                   [1],
+                                   [2],
+                                   [-1],
+                                   [2],
+                                   [0]]),
+                         timestamp)
+    moving = MovingMovable(states=moving_state, position_mapping=(0, 2, 4), transition_model=None)
+    platform = MovingPlatform(movement_controller=moving)
+    assert np.array_equal(platform.position, StateVector([2, 2, 2]))
+    assert np.array_equal(platform.velocity, StateVector([1, -1, 0]))
