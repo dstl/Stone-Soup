@@ -4,6 +4,7 @@ from abc import abstractmethod
 import numpy as np
 from scipy.spatial import distance
 
+from stonesoup.types.state import State
 from .base import Base, Property
 
 
@@ -287,3 +288,21 @@ class GaussianHellinger(SquaredGaussianHellinger):
 
         """
         return np.sqrt(super().__call__(state1, state2))
+
+
+class Accuracy(Measure):
+    def __call__(self, state1, state2):
+
+        if isinstance(state1, State):
+            s1 = state1.state_vector
+        else:
+            s1 = state1
+
+        if isinstance(state2, State):
+            s2 = state2.state_vector
+        else:
+            s2 = state2
+
+        mins = [min(s1, s2) for s1, s2 in zip(s1, s2)]
+        maxs = [max(s1, s2) for s1, s2 in zip(s1, s2)]
+        return np.sum(mins)/np.sum(maxs)
