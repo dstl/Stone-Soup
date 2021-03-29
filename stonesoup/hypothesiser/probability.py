@@ -1,5 +1,6 @@
 from scipy.stats import multivariate_normal as mn
 
+from stonesoup.measures import Measure
 from .base import Hypothesiser
 from ..base import Property
 from ..types.detection import MissedDetection
@@ -8,6 +9,8 @@ from ..types.multihypothesis import MultipleHypothesis
 from ..types.numeric import Probability
 from ..predictor import Predictor
 from ..updater import Updater
+
+from scipy.stats import entropy
 
 
 class PDAHypothesiser(Hypothesiser):
@@ -131,6 +134,62 @@ class PDAHypothesiser(Hypothesiser):
                 cov=measurement_prediction.covar)
             pdf = Probability(log_pdf, log_value=True)
             probability = (pdf * self.prob_detect)/self.clutter_spatial_density
+
+            # True detection hypothesis
+            hypotheses.append(
+                SingleProbabilityHypothesis(
+                    prediction,
+                    detection,
+                    probability,
+                    measurement_prediction))
+
+        return MultipleHypothesis(hypotheses, normalise=True, total_weight=1)
+
+
+class MultinomialHypothesiser(Hypothesiser):
+
+    predictor: Predictor = Property(doc="Predict tracks to detection times")
+    updater: Updater = Property(doc="Updater used to get measurement prediction")
+    clutter_spatial_density: float = Property(
+        doc="Spatial density of clutter - tied to probability of false detection")
+    prob_detect: Probability = Property(
+        default=Probability(0.85),
+        doc="Target Detection Probability")
+    prob_gate: Probability = Property(
+        default=Probability(0.95),
+        doc="Gate Probability - prob. gate contains true measurement "
+            "if detected")
+    measure: Measure = Property()
+
+    #1 / (1 + entropy([0.99, 0.1], [0.99, 0.1]))
+
+    def hypothesise(self, track, detections, timestamp):
+
+        hypotheses = list()
+
+        prediction = self.predictor.predict(track, timestamp=timestamp)
+        probability = Probability(1 - self.prob_detect * self.prob_gate)
+        hypotheses.append(
+            SingleProbabilityHypothesis(
+                prediction,
+                MissedDetection(timestamp=timestamp),
+                probability
+            ))
+
+        for detection in detections:
+
+            prediction = self.predictor.predict(
+                track, timestamp=detection.timestamp)
+
+            measurement_prediction = self.updater.predict_measurement(
+                prediction, detection.measurement_model)
+
+            measurement_model = detection.measurement_model
+            emission = measurement_model.inverse_function(detection)
+
+            pdf = self.measure(prediction, emission)
+            pdf = Probability(pdf)
+            probability = (pdf * self.prob_detect) / self.clutter_spatial_density
 
             # True detection hypothesis
             hypotheses.append(
