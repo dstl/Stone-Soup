@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import datetime
 from collections import abc
-from typing import MutableSequence
+from itertools import combinations
+from typing import MutableSequence, Sequence
 
 import numpy as np
 import uuid
@@ -327,3 +328,63 @@ class ParticleState(Type):
         # Fix one dimensional covariances being returned with zero dimension
         return cov
 State.register(ParticleState)  # noqa: E305
+
+
+class CompositeState(Type):
+
+    inner_states: Sequence[State] = Property(default=None,
+                                             doc="Sequence of states comprising the composite "
+                                                 "state.")
+    default_timestamp: datetime.datetime = Property(default=None)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.inner_states is None:
+            self.inner_states = list()
+
+        self.check_timestamp()
+
+    @property
+    def timestamp(self):
+        return self._timestamp
+
+    def check_timestamp(self):
+        if self.inner_states:
+            if any(state1.timestamp != state2.timestamp
+                   for state1, state2 in combinations(self.inner_states, 2)):
+                raise ValueError("Component-states must share the same timestamp")
+            elif self.default_timestamp and any(state.timestamp != self.default_timestamp for state in self.inner_states):
+                raise ValueError("Component-states must share the same timestamp as super-state")
+            else:
+                self._timestamp = self.inner_states[0].timestamp
+        elif self.default_timestamp:
+            self._timestamp = self.default_timestamp
+
+    @property
+    def state_vectors(self):
+        return [state.state_vector for state in self.inner_states]
+
+    @property
+    def state_vector(self):
+        return StateVector(np.concatenate(self.state_vectors))
+
+    def __getitem__(self, index):
+        return self.inner_states[index]
+
+    def __iter__(self):
+        return self.inner_states
+
+    def __len__(self):
+        return len(self.inner_states)
+
+    def append(self, value):
+        """Add value at end of :attr:`inner_states`.
+
+        Parameters
+        ----------
+        value: Detection
+            A detection object to be added at the end of :attr:`inner_states`.
+        """
+        self.inner_states.append(value)
+        self.check_timestamp()

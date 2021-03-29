@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
-from typing import MutableMapping
+import datetime
+from typing import MutableMapping, Sequence
 
-from ..base import Property
+import numpy as np
+
+from stonesoup.sensor.sensor import Sensor
 from .groundtruth import GroundTruthPath
-from .state import State, GaussianState, StateVector
+from .state import State, GaussianState, StateVector, CompositeState
+from ..base import Property
 from ..models.measurement import MeasurementModel
 
 
@@ -57,6 +61,38 @@ class MissedDetection(Detection):
 
     def __init__(self, state_vector=None, *args, **kwargs):
         super().__init__(state_vector, *args, **kwargs)
+
+    def __bool__(self):
+        return False
+
+
+class CompositeDetection(CompositeState):
+    inner_states: Sequence[Detection] = Property(default=None,
+                                                 doc="Sequence of detections comprising the "
+                                                     "composite detection.")
+    groundtruth_path: GroundTruthPath = Property(default=None,
+        doc="Ground truth path that this detection came from")
+    sensor: Sensor = Property(default=None, doc="Sensor that generated the detection.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    @property
+    def mapping(self):
+
+        if self.sensor is None:
+            return np.arange(len(self.inner_states))
+        return self.sensor.mapping
+
+    @property
+    def metadata(self):
+        metadata = dict()
+        for sub_detection in self.inner_states:
+            metadata.update(sub_detection.metadata)
+        return metadata
+
+
+class CompositeMissedDetection(CompositeDetection):
 
     def __bool__(self):
         return False

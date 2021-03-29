@@ -2,11 +2,13 @@
 
 from abc import abstractmethod
 from collections import UserDict
+from typing import Sequence
+
 import numpy as np
 
 from .base import Type
 from ..base import Property
-from .detection import Detection, MissedDetection
+from .detection import Detection, MissedDetection, CompositeMissedDetection
 from .prediction import MeasurementPrediction, Prediction
 from ..types.numeric import Probability
 
@@ -219,3 +221,24 @@ class DistanceJointHypothesis(
 
     def __ge__(self, other):
         return self.distance <= other.distance
+
+
+class CompositeHypothesis(SingleHypothesis):
+
+    hypotheses: Sequence[SingleProbabilityHypothesis] = Property(default=None)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.hypotheses is None:
+            self.hypotheses = list()
+
+    def __bool__(self):
+        return (not isinstance(self.measurement, CompositeMissedDetection)) and \
+               (self.measurement is not None)
+
+    def append(self, item):
+        self.hypotheses.append(item)
+
+
+class CompositeProbabilityHypothesis(SingleProbabilityHypothesis, CompositeHypothesis):
+    pass

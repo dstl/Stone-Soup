@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from typing import Any, Union
 
-from ..base import Property
 from .array import CovarianceMatrix
 from .base import Type
 from .state import (State, GaussianState, ParticleState, SqrtGaussianState,
-                    TaggedWeightedGaussianState, WeightedGaussianState, StateMutableSequence)
+                    TaggedWeightedGaussianState, WeightedGaussianState, StateMutableSequence,
+                    CompositeState)
+from ..base import Property
 from ..models.transition.base import TransitionModel
 
 
@@ -165,3 +166,7 @@ class ParticleMeasurementPrediction(MeasurementPrediction, ParticleState):
 
     This is a simple Particle measurement prediction object.
     """
+
+
+class CompositePrediction(Prediction, CompositeState):
+    pass

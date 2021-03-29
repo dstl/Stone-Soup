@@ -3,7 +3,7 @@ import uuid
 from typing import MutableSequence, MutableMapping
 
 from ..base import Property
-from .state import State, StateMutableSequence
+from .state import State, StateMutableSequence, CompositeState
 
 
 class GroundTruthState(State):
@@ -15,6 +15,18 @@ class GroundTruthState(State):
         super().__init__(state_vector, *args, **kwargs)
         if self.metadata is None:
             self.metadata = {}
+
+
+class CompositeGroundTruthState(CompositeState):
+    """Composite Ground Truth State type"""
+    metadata: MutableMapping = Property(
+        default=None, doc='Dictionary of metadata items for Detections.')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.metadata is None:
+            self.metadata = {}
+GroundTruthState.register(CompositeGroundTruthState)
 
 
 class GroundTruthPath(StateMutableSequence):
