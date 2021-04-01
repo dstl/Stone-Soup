@@ -73,16 +73,20 @@ class CompositeDetection(CompositeState):
     groundtruth_path: GroundTruthPath = Property(default=None,
         doc="Ground truth path that this detection came from")
     sensor: Sensor = Property(default=None, doc="Sensor that generated the detection.")
+    _mapping: Sequence[int] = Property(default=None)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if self._mapping and self.sensor:
+            raise ValueError("Cannot define mapping and sensor.")
 
     @property
     def mapping(self):
-
-        if self.sensor is None:
-            return np.arange(len(self.inner_states))
-        return self.sensor.mapping
+        if self._mapping:
+            return self._mapping
+        if self.sensor:
+            return self.sensor.mapping
+        return np.arange(len(self.inner_states))
 
     @property
     def metadata(self):

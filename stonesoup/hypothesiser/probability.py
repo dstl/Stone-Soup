@@ -188,15 +188,13 @@ class MultinomialHypothesiser(Hypothesiser):
             emission = measurement_model.inverse_function(detection)
 
             pdf = self.measure(prediction, emission)
-            pdf = Probability(pdf)
-            probability = (pdf * self.prob_detect) / self.clutter_spatial_density
 
             # True detection hypothesis
             hypotheses.append(
                 SingleProbabilityHypothesis(
                     prediction,
                     detection,
-                    probability,
+                    pdf,
                     measurement_prediction))
 
         return MultipleHypothesis(hypotheses, normalise=True, total_weight=1)
