@@ -344,6 +344,8 @@ class CompositeUpdateInitiator(Initiator):
             hypotheses = list()
             states = list()
 
+            irreversible = False
+
             for i, initiator in enumerate(self.initiators):
 
                 try:
@@ -360,13 +362,19 @@ class CompositeUpdateInitiator(Initiator):
                     # Get sub-detection and initiate a (sub)track with it
                     sub_detection = detection[detection_index]
                     tracks = initiator.initiate({sub_detection})
-                    track = tracks.pop()  # Set of 1 track
+                    try:
+                        track = tracks.pop()  # Set of 1 track
+                    except KeyError:
+                        irreversible = True
+                        break
                     update = track[0]  # Get first state of track
                     states.append(update)
 
                     # Add detection hypothesis to composite hypothesis
                     hypotheses.append(SingleHypothesis(None, sub_detection))
 
+            if irreversible:
+                continue
             hypothesis = CompositeHypothesis(prediction=None,
                                              hypotheses=hypotheses,
                                              measurement=detection)
