@@ -31,7 +31,6 @@ class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel,
     :exc:`NotImplementedError` if any model isn't either a
     :class:`~.LinearModel` or :class:`~.ReversibleModel`.
     """
-    mapping = None
     model_list: Sequence[GaussianModel] = Property(doc="List of Measurement Models.")
 
     def __init__(self, *args, **kwargs):
@@ -49,6 +48,10 @@ class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel,
     @property
     def ndim_meas(self) -> int:
         return sum(model.ndim_meas for model in self.model_list)
+
+    @property
+    def mapping(self):
+        return [x for model in self.model_list for x in model.mapping]
 
     def function(self, state, **kwargs) -> StateVector:
         return np.vstack([model.function(state, **kwargs)
