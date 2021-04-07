@@ -61,7 +61,7 @@ class AlphaBetaUpdater(Updater):
     beta: float = Property(doc="The beta parameter. Controls the amount of variation allowed in "
                                "the velocity component.")
 
-    vmap: np.ndarray = Property(default=None, doc="Binary map of the velocity elements in the"
+    vmap: np.ndarray = Property(default=None, doc="Binary map of the velocity elements in the "
                                                   "state vector. If left default, the class will"
                                                   "assume that the velocity elements interleave "
                                                   "the position elements in the state vector.")
