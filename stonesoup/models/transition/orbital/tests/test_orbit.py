@@ -113,8 +113,7 @@ def test_sampling():
     initial_state.grav_parameter = 398600
 
     # noise it up
-    propagator_sm.process_noise = \
-        CovarianceMatrix(np.diag([1e-10, 1e-10, 1e-10, 1e-10, 1e-2, 1e-10]))
+    propagator_sm.process_noise = 1e-2
     # take some samples
     samp_states_sm = propagator_sm.rvs(num_samples=10, time_interval=deltat)
 
@@ -134,7 +133,7 @@ def test_sampling():
     for state in samp_states_sm.T:
         assert(propagator_sm.pdf(OrbitalState(state,
                                               timestamp=initial_state.timestamp
-                                              + deltat,
+                                              + deltat, coordinates='TLE',
                                               grav_parameter=initial_state.
                                               grav_parameter),
                                  initial_state, time_interval=deltat) >= 0)
