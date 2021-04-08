@@ -202,16 +202,24 @@ class TrackToTruth(TrackToTrackAssociator):
             start_timestamp = None
             end_timestamp = None
 
+            truth_state_iters = {truth: iter(truth) for truth in truth_set}
+            truth_states = {truth: next(truth_state_iter)
+                            for truth, truth_state_iter in truth_state_iters.items()}
+
             for track_state in track:
 
                 min_dist = None
                 min_truth = None
 
                 for truth in truth_set:
+                    if truth[0].timestamp > track_state.timestamp \
+                            or truth[-1].timestamp < track_state.timestamp:
+                        continue
 
-                    try:
-                        truth_state = truth[track_state.timestamp]
-                    except IndexError:
+                    while truth_states[truth].timestamp < track_state.timestamp:
+                        truth_states[truth] = next(truth_state_iters[truth])
+                    truth_state = truth_states[truth]
+                    if truth_state.timestamp != track_state.timestamp:
                         continue
 
                     distance = self.measure(track_state, truth_state)
