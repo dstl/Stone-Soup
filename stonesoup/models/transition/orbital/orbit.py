@@ -3,11 +3,13 @@
 from datetime import timedelta
 
 import numpy as np
+from scipy.stats import multivariate_normal
 
 from sgp4.api import jday, Satrec
 
 from ....base import Property
-from ....types.array import StateVector, Matrix
+from ....types.state import State
+from ....types.array import StateVector, Matrix, CovarianceMatrix
 from ....types.angle import Inclination, EclipticLongitude
 from .base import OrbitalGaussianTransitionModel
 from ...base import LinearModel, NonLinearModel
@@ -110,26 +112,25 @@ class CartesianKeplerianTransitionModel(OrbitalGaussianTransitionModel, NonLinea
 class TLEKeplerianTransitionModel(OrbitalGaussianTransitionModel, LinearModel):
     r"""This transition model uses the mean motion to update the mean anomaly in simple Keplerian
     fashion. It returns a state vector in TLE format. The function is linear (hence it's a linear
-    model) and the uncertainty is multivariate normal in the elements of the TLE. It therefore
-    differs from the :class:`~.CartesianKeplerianTransitionModel` only in the addition of noise.
-    It should be clear therefore that the :attr:`process_noise` covariance matrix is in units of
-    the TLE elements.
+    model) but the uncertainty can't be multivariate normal distributed. That's because the
+    elements of the state vector are strongly coupled. Rather than employ any coordinate
+    transforms this class makes the simplifying assumption that all orbital elements] are fixed
+    with the exception of the mean anomaly which is normal-distributed with zero mean and standard
+    deviation given by the (scalar) standard deviation (:math:`\sigma`). This class therefore
+    differs from :class:`~.CartesianKeplerianTransitionModel` only in the addition of noise.
 
     The transition proceeds as,
 
         .. math::
 
-            M_{t_1} = M_{t_0} + n(t_1 - t_0), \; (\mathrm{modulo} \, 2\pi)
+            M_{k} = M_{k-1} + n(t_{k} - t_{k-1}) + \nu_{k}, \; (\mathrm{modulo} \, 2\pi)
+
+            \nu_k \tilde \mathcal(N)(0, \sigma)
 
 
-    for the interval :math:`t_0 \rightarrow t_1`, where :math:`n` is the mean motion, computed as:
-
-        .. math::
-
-           n = \sqrt{ \frac{\mu}{a^3} }
-
-    which is in units of :math:`\mathrm{rad} \, s^{-1}`. The state vector is then recreated from
-    the TLE parameterisation of the orbital state vector:
+    for the interval :math:`t_{k-1} \rightarrow t_k`, where :math:`n` is the mean motion in units
+    of :math:`\mathrm{rad} \, s^{-1}`. The state vector is then returned in the TLE
+    parameterisation:
 
         .. math::
 
@@ -141,6 +142,8 @@ class TLEKeplerianTransitionModel(OrbitalGaussianTransitionModel, LinearModel):
     (radian/[time])
 
     """
+    process_noise: float = Property(default=None, doc="The standard deviation per second on the "
+                                                      "mean anomaly")
 
     def matrix(self, time_interval, **kwargs):
         """Return the transition matrix
@@ -148,6 +151,21 @@ class TLEKeplerianTransitionModel(OrbitalGaussianTransitionModel, LinearModel):
         matrix_out = Matrix(np.diag(np.ones(6)))
         matrix_out[4, 5] = time_interval.total_seconds()
         return matrix_out
+
+    def covar(self, time_interval=timedelta(seconds=0), **kwargs):
+        """Enables the generation of noise samples only from the mean anomaly, returns 0 all
+        elements of the covariance matrix save for the variance in mean anomaly.
+        state vector.
+
+        Returns
+        -------
+        covar : CovarianceMatrix
+            The covariance matrix
+        """
+        covarm = CovarianceMatrix(np.zeros([6, 6]))
+        covarm[4, 4] = self.process_noise * time_interval.total_seconds()
+
+        return covarm
 
     @property
     def ndim_state(self):
@@ -217,6 +235,23 @@ class TLEKeplerianTransitionModel(OrbitalGaussianTransitionModel, LinearModel):
         return StateVector([Inclination(out_statev[0]), EclipticLongitude(out_statev[1]),
                             out_statev[2], EclipticLongitude(out_statev[3]),
                             EclipticLongitude(out_statev[4]), out_statev[5]])
+
+    def pdf(self, state1: State, state2: State, **kwargs):
+        """This function needs to ignore those elements of the vector that are fixed and return
+        only the probability density of the mean anomaly.
+
+        Parameters
+        ----------
+        state1 : State
+        state2 : State
+
+        Returns
+        -------
+        : float
+            The likelihood of ``state1``, given ``state2``
+        """
+        return multivariate_normal.pdf(state1.state_vector[4], self.function(state2, **kwargs)[4],
+                                       cov=self.covar(**kwargs)[4, 4])
 
 
 class SGP4TransitionModel(OrbitalGaussianTransitionModel, NonLinearModel):
