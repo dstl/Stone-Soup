@@ -137,6 +137,28 @@ class StateMutableSequence(Type, abc.MutableSequence):
     def state(self):
         return self.states[-1]
 
+    def last_timestamp_generator(self):
+        """Generator yielding the last state for each timestamp
+
+        This provides a method of iterating over a sequence of states,
+        such that when multiple states for the same timestamp exist,
+        only the last state is yielded. This is particularly useful in
+        cases where you may have multiple :class:`~.Update` states for
+        a single timestamp e.g. multi-sensor tracking example.
+
+        Yields
+        ------
+        State
+            A state for each timestamp present in the sequence.
+        """
+        state_iter = iter(self)
+        current_state = next(state_iter)
+        for next_state in state_iter:
+            if next_state.timestamp > current_state.timestamp:
+                yield current_state
+            current_state = next_state
+        yield current_state
+
 
 class GaussianState(State):
     """Gaussian State type
