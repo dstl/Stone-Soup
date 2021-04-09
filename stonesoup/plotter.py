@@ -109,14 +109,13 @@ class Plotter:
         measurement_kwargs = dict(marker='o', color='b')
         measurement_kwargs.update(kwargs)
 
-        measurements_handle = Line2D([], [], linestyle='', **measurement_kwargs)
-        clutter_handle = None
-        clutter_label = None
-
         if any(isinstance(item, set) for item in measurements):
             measurements_set = chain.from_iterable(measurements)  # Flatten into one set
         else:
             measurements_set = measurements
+
+        plot_detections = []
+        plot_clutter = []
 
         for state in measurements_set:
             meas_model = state.measurement_model  # measurement_model from detections
@@ -141,25 +140,30 @@ class Plotter:
 
             if isinstance(state, detection.Clutter):
                 # Plot clutter
-                self.ax.scatter(*state_vec[mapping],
-                                color='y', marker='2')
-                if clutter_handle is None:
-                    clutter_handle = Line2D([], [], linestyle='', marker='2', color='y')
-                    clutter_label = "Clutter"
+                plot_clutter.append((*state_vec[mapping], ))
 
             elif isinstance(state, detection.Detection):
                 # Plot detections
-                self.ax.scatter(*state_vec[mapping],
-                                **measurement_kwargs)
+                plot_detections.append((*state_vec[mapping], ))
             else:
                 warnings.warn(f'Unknown type {type(state)}')
                 continue
 
-        # Generate legend items for measurements
-        self.handles_list.append(measurements_handle)
-        self.labels_list.append(measurements_label)
+        if plot_detections:
+            detection_array = np.array(plot_detections)
+            self.ax.scatter(detection_array[:, 0], detection_array[:, 1], **measurement_kwargs)
+            measurements_handle = Line2D([], [], linestyle='', **measurement_kwargs)
 
-        if clutter_handle is not None:
+            # Generate legend items for measurements
+            self.handles_list.append(measurements_handle)
+            self.labels_list.append(measurements_label)
+
+        if plot_clutter:
+            clutter_array = np.array(plot_clutter)
+            self.ax.scatter(clutter_array[:, 0], clutter_array[:, 1], color='y', marker='2')
+            clutter_handle = Line2D([], [], linestyle='', marker='2', color='y')
+            clutter_label = "Clutter"
+
             # Generate legend items for clutter
             self.handles_list.append(clutter_handle)
             self.labels_list.append(clutter_label)
