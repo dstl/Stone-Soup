@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 from operator import attrgetter
+from typing import Set
 
 from .base import TrackToTrackAssociator
 from ..base import Property
 from ..measures import Measure, Euclidean
 from ..types.association import AssociationSet, TimeRangeAssociation, Association
+from ..types.groundtruth import GroundTruthPath
+from ..types.track import Track
 from ..types.time import TimeRange
 
 
@@ -48,14 +51,14 @@ class TrackToTrack(TrackToTrackAssociator):
         default=Euclidean(),
         doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
 
-    def associate_tracks(self, tracks_set_1, tracks_set_2):
+    def associate_tracks(self, tracks_set_1: Set[Track], tracks_set_2: Set[Track]):
         """Associate two sets of tracks together.
 
         Parameters
         ----------
-        tracks_set_1 : list of :class:`~.Track` objects
+        tracks_set_1 : set of :class:`~.Track` objects
             Tracks to associate to track set 2
-        tracks_set_2 : list of :class:`~.Track` objects
+        tracks_set_2 : set of :class:`~.Track` objects
             Tracks to associate to track set 1
 
         Returns
@@ -132,9 +135,9 @@ class TrackToTrack(TrackToTrackAssociator):
 class TrackToTruth(TrackToTrackAssociator):
     """Track to truth associator
 
-    Compares two sets of :class:`~.tracks`, each formed of a sequence of
+    Compares two sets of :class:`~.Track`, each formed of a sequence of
     :class:`~.State` objects and returns an :class:`~.Association` object for
-    each time at which a the two :class:`~.State` within the :class:`~.tracks`
+    each time at which a the two :class:`~.State` within the :class:`~.Track`
     are assessed to be associated. Tracks are considered to be associated with
     the Truth if the true :class:`~.State` is the closest to the track and
     within the specified distance for a specified number of time steps.
@@ -171,7 +174,7 @@ class TrackToTruth(TrackToTrackAssociator):
         default=Euclidean(),
         doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
 
-    def associate_tracks(self, tracks_set, truth_set):
+    def associate_tracks(self, tracks_set: Set[Track], truth_set: Set[GroundTruthPath]):
         """Associate Tracks
 
         Method compares to sets of :class:`~.Track` objects and will determine
@@ -179,9 +182,9 @@ class TrackToTruth(TrackToTrackAssociator):
 
         Parameters
         ----------
-        tracks_set : list of :class:`~.Track` objects
+        tracks_set : set of :class:`~.Track` objects
             Tracks to associate to truth
-        truth_set : list of :class:`~.Track` objects
+        truth_set : set of :class:`~.GroundTruthPath` objects
             Truth to associate to tracks
 
         Returns
@@ -202,11 +205,12 @@ class TrackToTruth(TrackToTrackAssociator):
             start_timestamp = None
             end_timestamp = None
 
-            truth_state_iters = {truth: iter(truth) for truth in truth_set}
+            truth_state_iters = {truth: GroundTruthPath.last_timestamp_generator(truth)
+                                 for truth in truth_set}
             truth_states = {truth: next(truth_state_iter)
                             for truth, truth_state_iter in truth_state_iters.items()}
 
-            for track_state in track:
+            for track_state in Track.last_timestamp_generator(track):
 
                 min_dist = None
                 min_truth = None
