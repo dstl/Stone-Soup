@@ -10,8 +10,8 @@ from ..angle import Bearing
 from ..array import StateVector, CovarianceMatrix
 from ..numeric import Probability
 from ..particle import Particle
-from ..state import State, GaussianState, ParticleState, \
-    StateMutableSequence, WeightedGaussianState, SqrtGaussianState
+from ..state import State, GaussianState, ParticleState, StateMutableSequence, \
+    WeightedGaussianState, SqrtGaussianState, CompositeState
 
 
 def test_state():
@@ -344,3 +344,85 @@ def test_state_mutable_sequence_error_message():
     test_obj.test_property = 5
     with pytest.raises(AttributeError, match="Custom error message"):
         _ = test_obj.complicated_attribute
+
+
+def test_composite_state_timestamp_errors():
+    with pytest.raises(AttributeError,
+                       match="CompositeState must either have component states to define its "
+                             "timestamp or a default timestamp"):
+        CompositeState()
+    with pytest.raises(AttributeError,
+                       match="Component-states must share the same timestamp"):
+        CompositeState([State([0], timestamp=1), State([0], timestamp=2)])
+    with pytest.raises(AttributeError,
+                       match="If a default timestamp is defined alongside component states, "
+                             "these states must share the same timestamp as the default "
+                             "timestamp"):
+        CompositeState([State([0], timestamp=1)], default_timestamp=2)
+    with pytest.raises(AttributeError,
+                       match="If a default timestamp is defined alongside component states, "
+                             "these states must share the same timestamp as the default "
+                             "timestamp"):
+        CompositeState([State([0], timestamp=1), State([0], timestamp=1)], default_timestamp=2)
+
+
+def test_composite_state_timestamp():
+
+    # Test timestamp
+    for i in range(1, 4):
+        assert CompositeState(i*[State([0], timestamp=1)]).timestamp == 1
+
+    assert CompositeState(default_timestamp=1).timestamp == 1
+
+    for i in range(4):
+        assert CompositeState(i*[State([0], timestamp=1)], default_timestamp=1).timestamp == 1
+
+    a = State([0, 1], timestamp=1)
+    b = State([2], timestamp=1)
+    c = State([3, 4], timestamp=1)
+    state = CompositeState([a, b, c])
+
+    # Test state vectors
+    assert all((state.state_vectors[i] == state.inner_states[i].state_vector).all()
+               for i in range(len(state.inner_states)))
+
+    # Test state vector
+    assert (state.state_vector == StateVector([0, 1, 2, 3, 4])).all()
+
+    # Test get
+    assert state[0] == a
+    assert state[1] == b
+    assert state[2] == c
+
+    d = State([5, 6], timestamp=1)
+
+    # Test set
+    state[1] = d
+    assert state[1] == d
+    assert (state.state_vector == StateVector([0, 1, 5, 6, 3, 4])).all()
+
+    # Test del
+    del state[1]
+    assert state[1] == c
+    assert (state.state_vector == StateVector([0, 1, 3, 4])).all()
+
+    states = [a, b, c]
+    state = CompositeState(states)
+
+    # Test iter
+    for i, sub_state in enumerate(state):
+        assert sub_state == states[i]
+
+    # Test len
+    assert len(state) == 3
+
+    # Test insert
+    state.insert(1, d)
+    assert state.inner_states == [a, d, b, c]
+    assert (state.state_vector == StateVector([0, 1, 5, 6, 2, 3, 4])).all()
+
+    # Test append
+    e = State([7], timestamp=1)
+    state.append(e)
+    assert state.inner_states == [a, d, b, c, e]
+    assert (state.state_vector == StateVector([0, 1, 5, 6, 2, 3, 4, 7])).all()
