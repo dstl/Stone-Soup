@@ -377,8 +377,10 @@ class CompositeState(Type):
         elif self.default_timestamp:
             self._timestamp = self.default_timestamp
         else:
-            raise AttributeError("CompositeState must either have component states to define its "
-                                 "timestamp or a default timestamp")
+            raise AttributeError(
+                f"{type(self).__name__} must either have component states to define its "
+                f"timestamp or a default timestamp"
+            )
 
     @property
     def state_vectors(self):

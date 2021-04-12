@@ -24,6 +24,12 @@ def test_composite_detection_mapping_errors():
 
 
 def test_composite_detection():
+
+    with pytest.raises(AttributeError,
+                       match="CompositeDetection must either have component states to define its "
+                             "timestamp or a default timestamp"):
+        CompositeDetection()
+
     a = Detection([0], metadata={'colour': 'blue'})
     b = Detection([1], metadata={'speed': 'fast'})
     c = Detection([2], metadata={'size': 'big'})
