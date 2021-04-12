@@ -66,9 +66,9 @@ class MissedDetection(Detection):
 
 
 class CompositeDetection(CompositeState):
-    inner_states: Sequence[Detection] = Property(default=None,
-                                                 doc="Sequence of sub-detections comprising the "
-                                                     "composite detection.")
+    sub_states: Sequence[Detection] = Property(default=None,
+                                               doc="Sequence of sub-detections comprising the "
+                                                   "composite detection.")
     groundtruth_path: GroundTruthPath = Property(default=None, doc="Ground truth path that this "
                                                                    "detection came from.")
     sensor: Sensor = Property(default=None, doc="Sensor that generated the detection. This must "
@@ -82,7 +82,7 @@ class CompositeDetection(CompositeState):
         if self.default_mapping and self.sensor:
             raise ValueError("Cannot define mapping and sensor")
 
-        if len(self.mapping) != len(self.inner_states):
+        if len(self.mapping) != len(self.sub_states):
             raise ValueError("Must have mapping for each sub-detection")
 
     @property
@@ -93,13 +93,13 @@ class CompositeDetection(CompositeState):
             return np.array(self.default_mapping)
         if self.sensor:
             return np.array(self.sensor.mapping)
-        return np.arange(len(self.inner_states))
+        return np.arange(len(self.sub_states))
 
     @property
     def metadata(self):
         """Combined metadata of all sub-detections."""
         metadata = dict()
-        for sub_detection in self.inner_states:
+        for sub_detection in self.sub_states:
             metadata.update(sub_detection.metadata)
         return metadata
 

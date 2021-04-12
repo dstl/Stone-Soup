@@ -339,9 +339,9 @@ class CompositeState(Type):
 
     This is a composite state object which contains a sequence of inner :class:`State` types"""
 
-    inner_states: Sequence[State] = Property(default=None,
-                                             doc="Sequence of states comprising the composite "
-                                                 "state.")
+    sub_states: Sequence[State] = Property(default=None,
+                                           doc="Sequence of sub-states comprising the composite "
+                                               "state.")
     default_timestamp: datetime.datetime = Property(default=None,
                                                     doc="Default timestamp if no component states "
                                                         "exist to attain timestamp from."
@@ -351,8 +351,8 @@ class CompositeState(Type):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if self.inner_states is None:
-            self.inner_states = list()
+        if self.sub_states is None:
+            self.sub_states = list()
 
         self._timestamp = None
         self.check_timestamp()
@@ -362,18 +362,18 @@ class CompositeState(Type):
         return self._timestamp
 
     def check_timestamp(self):
-        if self.inner_states:
+        if self.sub_states:
             if any(state1.timestamp != state2.timestamp
-                   for state1, state2 in combinations(self.inner_states, 2)):
+                   for state1, state2 in combinations(self.sub_states, 2)):
                 raise AttributeError("Component-states must share the same timestamp")
             elif self.default_timestamp and \
-                    any(state.timestamp != self.default_timestamp for state in self.inner_states):
+                    any(state.timestamp != self.default_timestamp for state in self.sub_states):
                 raise AttributeError("If a default timestamp is defined alongside component "
                                      "states, these states must share the same timestamp as the "
                                      "default timestamp")
             else:
                 # Get timestamp from first component state
-                self._timestamp = self.inner_states[0].timestamp
+                self._timestamp = self.sub_states[0].timestamp
         elif self.default_timestamp:
             self._timestamp = self.default_timestamp
         else:
@@ -382,7 +382,7 @@ class CompositeState(Type):
 
     @property
     def state_vectors(self):
-        return [state.state_vector for state in self.inner_states]
+        return [state.state_vector for state in self.sub_states]
 
     @property
     def state_vector(self):
@@ -390,36 +390,36 @@ class CompositeState(Type):
         return StateVector(np.concatenate(self.state_vectors))
 
     def __getitem__(self, index):
-        return self.inner_states[index]
+        return self.sub_states[index]
 
     def __setitem__(self, index, value):
-        set_item = self.inner_states.__setitem__(index, value)
+        set_item = self.sub_states.__setitem__(index, value)
         self.check_timestamp()
         return set_item
 
     def __delitem__(self, index):
-        del_item = self.inner_states.__delitem__(index)
+        del_item = self.sub_states.__delitem__(index)
         self.check_timestamp()
         return del_item
 
     def __iter__(self):
-        return iter(self.inner_states)
+        return iter(self.sub_states)
 
     def __len__(self):
-        return len(self.inner_states)
+        return len(self.sub_states)
 
     def insert(self, index, value):
-        inserted_state = self.inner_states.insert(index, value)
+        inserted_state = self.sub_states.insert(index, value)
         self.check_timestamp()
         return inserted_state
 
     def append(self, value):
-        """Add value at end of :attr:`inner_states`.
+        """Add value at end of :attr:`sub_states`.
 
         Parameters
         ----------
         value: State
-            A state object to be added at the end of :attr:`inner_states`.
+            A state object to be added at the end of :attr:`sub_states`.
         """
-        self.inner_states.append(value)
+        self.sub_states.append(value)
         self.check_timestamp()

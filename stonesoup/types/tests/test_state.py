@@ -5,7 +5,7 @@ import numpy as np
 import scipy.linalg
 import pytest
 
-from stonesoup.base import Property
+from ...base import Property
 from ..angle import Bearing
 from ..array import StateVector, CovarianceMatrix
 from ..numeric import Probability
@@ -383,8 +383,8 @@ def test_composite_state_timestamp():
     state = CompositeState([a, b, c])
 
     # Test state vectors
-    assert all((state.state_vectors[i] == state.inner_states[i].state_vector).all()
-               for i in range(len(state.inner_states)))
+    assert all((state.state_vectors[i] == state.sub_states[i].state_vector).all()
+               for i in range(len(state.sub_states)))
 
     # Test state vector
     assert (state.state_vector == StateVector([0, 1, 2, 3, 4])).all()
@@ -418,11 +418,11 @@ def test_composite_state_timestamp():
 
     # Test insert
     state.insert(1, d)
-    assert state.inner_states == [a, d, b, c]
+    assert state.sub_states == [a, d, b, c]
     assert (state.state_vector == StateVector([0, 1, 5, 6, 2, 3, 4])).all()
 
     # Test append
     e = State([7], timestamp=1)
     state.append(e)
-    assert state.inner_states == [a, d, b, c, e]
+    assert state.sub_states == [a, d, b, c, e]
     assert (state.state_vector == StateVector([0, 1, 5, 6, 2, 3, 4, 7])).all()
