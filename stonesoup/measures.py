@@ -290,7 +290,15 @@ class GaussianHellinger(SquaredGaussianHellinger):
         return np.sqrt(super().__call__(state1, state2))
 
 
-class Accuracy(Measure):
+class ObservationAccuracy(Measure):
+    r"""Accuracy measure
+
+    This measure evaluates the accuracy of an observation. I.E. the closeness of an observation to
+    a specific value.
+
+    This measure considers a generalisation of the accuracy formula for a confusion matrix:
+    :math:`ACC = \frac{TP + TN}{P + N}`.
+    """
     def __call__(self, state1, state2):
 
         if isinstance(state1, State):
