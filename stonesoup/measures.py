@@ -295,9 +295,6 @@ class ObservationAccuracy(Measure):
 
     This measure evaluates the accuracy of an observation. I.E. the closeness of an observation to
     a specific value.
-
-    This measure considers a generalisation of the accuracy formula for a confusion matrix:
-    :math:`ACC = \frac{TP + TN}{P + N}`.
     """
     def __call__(self, state1, state2):
 
