@@ -2,8 +2,8 @@
 import numpy as np
 import pytest
 
-from ..prediction import StatePrediction, StateMeasurementPrediction
-from ..detection import Detection
+from ..prediction import StatePrediction, StateMeasurementPrediction, CompositePrediction
+from ..detection import Detection, CompositeDetection, CompositeMissedDetection
 from ..track import Track
 from ..hypothesis import (
     SingleHypothesis,
@@ -11,7 +11,7 @@ from ..hypothesis import (
     SingleProbabilityHypothesis,
     JointHypothesis,
     ProbabilityJointHypothesis,
-    DistanceJointHypothesis)
+    DistanceJointHypothesis, CompositeHypothesis, CompositeProbabilityHypothesis)
 
 prediction = StatePrediction(np.array([[1], [0]]))
 measurement_prediction = StateMeasurementPrediction(np.array([[1], [0]]))
@@ -52,7 +52,7 @@ def test_single_distance_hypothesis():
     assert hypothesis.measurement is detection
     assert hypothesis.distance is distance
     assert hypothesis.measurement_prediction is measurement_prediction
-    assert hypothesis.weight == 1/distance
+    assert hypothesis.weight == 1 / distance
 
     hypothesis.distance = 0
     assert hypothesis.weight == float('inf')
@@ -191,3 +191,78 @@ def test_invalid_single_joint_hypothesis():
 
     with pytest.raises(NotImplementedError):
         JointHypothesis(hypotheses)
+
+
+composite_prediction = CompositePrediction([StatePrediction([0]), StatePrediction([1, 2])])
+composite_measurement_prediction = CompositePrediction([StateMeasurementPrediction([6]),
+                                                        StateMeasurementPrediction([3])])
+composite_detection = CompositeDetection(sub_states=[Detection([7]), Detection([3])],
+                                         default_mapping=[1, 0])
+
+
+def sub_hypotheses():
+    hypotheses = list()
+    for sub_pred, sub_meas_pred, sub_det in zip(composite_prediction,
+                                                composite_measurement_prediction,
+                                                composite_detection):
+        sub_hypothesis = SingleHypothesis(sub_pred, sub_det, sub_meas_pred)
+        hypotheses.append(sub_hypothesis)
+    return hypotheses
+
+
+def sub_prob_hypotheses():
+    hypotheses = list()
+    for sub_pred, sub_meas_pred, sub_det in zip(composite_prediction,
+                                                composite_measurement_prediction,
+                                                composite_detection):
+        sub_hypothesis = SingleProbabilityHypothesis(prediction=sub_pred,
+                                                     measurement=sub_det,
+                                                     measurement_prediction=sub_meas_pred,
+                                                     probability=0.5)
+        hypotheses.append(sub_hypothesis)
+    return hypotheses
+
+
+def test_composite_hypothesis():
+    # Test default sub-hypotheses
+    assert CompositeHypothesis(None, None).sub_hypotheses == list()
+
+    composite_hypothesis = CompositeHypothesis(composite_prediction,
+                                               composite_detection,
+                                               composite_measurement_prediction)
+    hypotheses = sub_hypotheses()
+    for sub_hypothesis in hypotheses:
+        composite_hypothesis.append(sub_hypothesis)
+
+    assert composite_hypothesis.sub_hypotheses == hypotheses
+
+    # Test True
+    assert composite_hypothesis
+
+    # Test False
+    assert not CompositeHypothesis(composite_prediction,
+                                   CompositeMissedDetection(default_timestamp=1),
+                                   composite_measurement_prediction)
+
+
+def test_composite_probability_hypothesis():
+    with pytest.raises(ValueError, match="CompositeProbabilityHypothesis must be comprised of "
+                                         "SingleProbabilityHypothesis types"):
+        hypotheses = sub_hypotheses()
+        CompositeProbabilityHypothesis(composite_prediction,
+                                       composite_detection,
+                                       composite_measurement_prediction,
+                                       hypotheses)
+    hypotheses = sub_prob_hypotheses()
+    composite_hypothesis = CompositeProbabilityHypothesis(composite_prediction,
+                                                          composite_detection,
+                                                          composite_measurement_prediction,
+                                                          probability=1,
+                                                          sub_hypotheses=hypotheses)
+    assert composite_hypothesis.probability == 1
+
+    composite_hypothesis = CompositeProbabilityHypothesis(composite_prediction,
+                                                          composite_detection,
+                                                          composite_measurement_prediction,
+                                                          sub_hypotheses=hypotheses)
+    assert composite_hypothesis.probability == 0.5 ** len(hypotheses)

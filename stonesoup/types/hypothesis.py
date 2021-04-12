@@ -8,8 +8,9 @@ import numpy as np
 
 from .base import Type
 from ..base import Property
-from .detection import Detection, MissedDetection, CompositeMissedDetection
-from .prediction import MeasurementPrediction, Prediction
+from .detection import Detection, MissedDetection, CompositeMissedDetection, CompositeDetection
+from .prediction import MeasurementPrediction, Prediction, CompositePrediction, \
+    CompositeMeasurementPrediction
 from ..types.numeric import Probability
 
 
@@ -224,21 +225,63 @@ class DistanceJointHypothesis(
 
 
 class CompositeHypothesis(SingleHypothesis):
+    """Composite hypothesis class.
 
-    hypotheses: Sequence[SingleProbabilityHypothesis] = Property(default=None)
+    Contains a sequence of sub-hypotheses.
+    To be used in conjunction with composite detection types.
+    """
+
+    prediction: CompositePrediction = Property(doc="Predicted composite track state")
+    measurement: CompositeDetection = Property(doc="Composite detection used for hypothesis and "
+                                                   "updating")
+    measurement_prediction: CompositeMeasurementPrediction = Property(
+        default=None, doc="Optional composite track prediction in composite measurement space")
+    sub_hypotheses: Sequence[SingleHypothesis] = Property(
+        default=None,
+        doc="Sequence of sub-hypotheses comprising the composite hypothesis"
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.hypotheses is None:
-            self.hypotheses = list()
+        if self.sub_hypotheses is None:
+            self.sub_hypotheses = list()
 
     def __bool__(self):
         return (not isinstance(self.measurement, CompositeMissedDetection)) and \
                (self.measurement is not None)
 
     def append(self, item):
-        self.hypotheses.append(item)
+        self.sub_hypotheses.append(item)
 
 
 class CompositeProbabilityHypothesis(SingleProbabilityHypothesis, CompositeHypothesis):
-    pass
+    """Probability scored composite hypothesis subclass
+
+    Notes
+    -----
+    Attempts to calculate hypothesis probability via product of sub-hypotheses' probabilities if no
+    probability is defined
+    """
+
+    probability: Probability = Property(
+        default=None,
+        doc="Probability that composite detection is true location of composite prediction."
+    )
+    sub_hypotheses: Sequence[SingleProbabilityHypothesis] = Property(
+        default=None,
+        doc="Sequence of probability-scored sub-hypotheses comprising the composite hypothesis."
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if any(not isinstance(sub_hypothesis, SingleProbabilityHypothesis)
+               for sub_hypothesis in self.sub_hypotheses):
+            raise ValueError(f"{type(self).__name__} must be comprised of "
+                             f"SingleProbabilityHypothesis types")
+
+        # Get probability from sub-hypotheses if undefined
+        if self.probability is None:
+            self.probability = 1
+            for hypothesis in self.sub_hypotheses:
+                self.probability *= hypothesis.probability
