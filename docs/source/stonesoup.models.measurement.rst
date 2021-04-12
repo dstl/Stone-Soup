@@ -18,3 +18,9 @@ NonLinear
 .. automodule:: stonesoup.models.measurement.nonlinear
     :show-inheritance:
     :inherited-members:
+
+Observation
+-----------
+.. automodule:: stonesoup.models.measurement.observation
+    :show-inheritance:
+    :inherited-members:
