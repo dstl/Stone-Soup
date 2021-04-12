@@ -111,4 +111,7 @@ class ParticleStateUpdate(Update, ParticleState):
 
 
 class CompositeUpdate(Update, CompositeState):
-    pass
+    """CompositeUpdate type that represents an update in a composite state space.
+
+    Composition of a sequence of Update types.
+    """
