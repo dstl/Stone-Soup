@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import datetime
 from typing import MutableMapping, Sequence
 
 import numpy as np
@@ -68,28 +67,37 @@ class MissedDetection(Detection):
 
 class CompositeDetection(CompositeState):
     inner_states: Sequence[Detection] = Property(default=None,
-                                                 doc="Sequence of detections comprising the "
+                                                 doc="Sequence of sub-detections comprising the "
                                                      "composite detection.")
-    groundtruth_path: GroundTruthPath = Property(default=None,
-        doc="Ground truth path that this detection came from")
-    sensor: Sensor = Property(default=None, doc="Sensor that generated the detection.")
-    _mapping: Sequence[int] = Property(default=None)
+    groundtruth_path: GroundTruthPath = Property(default=None, doc="Ground truth path that this "
+                                                                   "detection came from.")
+    sensor: Sensor = Property(default=None, doc="Sensor that generated the detection. This must "
+                                                "be a CompositeSensor type with a composite state "
+                                                "space mapping attribute")
+    default_mapping: Sequence[int] = Property(default=None, doc="Default mapping of detections to "
+                                                                "composite state space.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self._mapping and self.sensor:
-            raise ValueError("Cannot define mapping and sensor.")
+        if self.default_mapping and self.sensor:
+            raise ValueError("Cannot define mapping and sensor")
+
+        if len(self.mapping) != len(self.inner_states):
+            raise ValueError("Must have mapping for each sub-detection")
 
     @property
     def mapping(self):
-        if self._mapping:
-            return self._mapping
+        """Mapping determining which component of the composite state space each detection is
+        associated to."""
+        if self.default_mapping:
+            return np.array(self.default_mapping)
         if self.sensor:
-            return self.sensor.mapping
+            return np.array(self.sensor.mapping)
         return np.arange(len(self.inner_states))
 
     @property
     def metadata(self):
+        """Combined metadata of all sub-detections."""
         metadata = dict()
         for sub_detection in self.inner_states:
             metadata.update(sub_detection.metadata)
