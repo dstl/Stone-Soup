@@ -8,7 +8,7 @@ from scipy.spatial import distance
 from .. import measures
 from ..measures import ObservationAccuracy
 from ..types.array import StateVector, CovarianceMatrix
-from ..types.state import GaussianState
+from ..types.state import GaussianState, State
 
 # Create a time stamp to use for both states
 t = datetime.datetime.now()
@@ -67,8 +67,11 @@ def test_observation_accuracy():
 
         u = StateVector([TP, TN])
         v = StateVector([FP, FN])
+        U = State(u)
+        V = State(v)
 
         assert measure(u, v) == (min([TP, FP]) + min(TN, FN)) / (max([TP, FP]) + max(TN, FN))
+        assert measure(U, V) == (min([TP, FP]) + min(TN, FN)) / (max([TP, FP]) + max(TN, FN))
 
 
 @pytest.mark.xfail(reason="Singular Matrix with all zero covariances.")
