@@ -146,8 +146,8 @@ class Platform(Base):
     def orientation(self, value):
         self.movement_controller.orientation = value
 
-    def __iter__(self):
-        return self.movement_controller.__iter__()
+    def __getitem__(self, item):
+        return self.movement_controller.__getitem__(item)
 
 
 class FixedPlatform(Platform):
