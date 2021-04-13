@@ -1,7 +1,7 @@
 from typing import MutableSequence
 
 from stonesoup.base import Property, Base
-from stonesoup.moveable.movable import Movable, FixedMovable, MovingMovable, MultiTransitionMovable
+from stonesoup.moveable import Movable, FixedMovable, MovingMovable, MultiTransitionMovable
 from stonesoup.sensor.sensor import Sensor
 
 

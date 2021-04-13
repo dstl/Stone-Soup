@@ -2,7 +2,7 @@
 from abc import ABC
 from typing import Optional
 
-from stonesoup.moveable.movable import Movable, FixedMovable
+from stonesoup.moveable import Movable, FixedMovable
 from stonesoup.types.state import State
 
 from ..base import Base, Property
