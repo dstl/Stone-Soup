@@ -21,13 +21,13 @@ class BasicTimeInvariantClassificationTransitionModel(TransitionModel):
     """
     transition_matrix: Matrix = Property(
         doc=r"Matrix :math:`F_{ij} = P(\phi_i, t + \Delta t | \phi_j, t)` determining the "
-            r"probability that an object is class :math:`\phi^i` at time :math:`t + \Delta t` "
-            r"given that it was class :math:`\phi^{j}` at time "
+            r"probability that an object is class :math:`\phi_i` at time :math:`t + \Delta t` "
+            r"given that it was class :math:`\phi_j` at time "
             r":math:`t \hspace \forall \Delta t > 0`.")
     transition_noise: Matrix = Property(
         default=None,
         doc=r"Matrix :math:`\omega_{ij}` defining additive noise to class transition. "
-            r"Noise added is given by :math:`noise_{i} = \omega_{ij}F_{jk}x_{k}`")
+            r"Noise added is given by :math:`\Omega_i = \omega_{ij}F_{jk}x_{k}`")
 
     @property
     def ndim_state(self):
