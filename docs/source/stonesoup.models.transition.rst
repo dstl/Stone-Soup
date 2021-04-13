@@ -18,3 +18,9 @@ NonLinear
 .. automodule:: stonesoup.models.transition.nonlinear
     :show-inheritance:
     :inherited-members:
+
+Classification
+--------------
+.. automodule:: stonesoup.models.transition.classification
+    :show-inheritance:
+    :inherited-members:
