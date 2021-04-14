@@ -12,10 +12,10 @@ from ...types.prediction import StatePrediction
 from ...types.state import State
 
 
-def create_random_multinomial(length):
+def create_random_multinomial(ndim_state):
     total = 0
     sv = list()
-    for i in range(length - 1):
+    for i in range(ndim_state - 1):
         x = np.random.uniform(0, 1 - total)
         sv.append(x)
         total += x
