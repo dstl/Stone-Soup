@@ -30,3 +30,9 @@ AlphaBeta
 
 .. automodule:: stonesoup.updater.alphabeta
     :show-inheritance:
+
+Classification
+--------------
+
+.. automodule:: stonesoup.updater.classification
+    :show-inheritance:
