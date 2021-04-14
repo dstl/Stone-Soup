@@ -49,7 +49,7 @@ class CompositePredictor(Predictor):
         """
 
         if not isinstance(prior, CompositeState):
-            raise ValueError("CombinedPredictor can only be used with CompositeState types")
+            raise ValueError("CompositePredictor can only be used with CompositeState types")
         if len(prior.sub_states) != len(self.sub_predictors):
             raise ValueError(
                 "CompositeState must be composed of same number of sub-states as sub-predictors")

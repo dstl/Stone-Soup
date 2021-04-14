@@ -132,7 +132,7 @@ def test_composite_predictor(num_predictors):
 
     # test predict errors
     with pytest.raises(ValueError,
-                       match="CombinedPredictor can only be used with CompositeState types"):
+                       match="CompositePredictor can only be used with CompositeState types"):
         predictor.predict(State([0]), future)
 
     with pytest.raises(ValueError,
