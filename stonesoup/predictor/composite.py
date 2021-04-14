@@ -11,6 +11,15 @@ class CompositePredictor(Predictor):
     """A composition of multiple sub-predictors"""
     sub_predictors: Sequence[Predictor] = Property(doc="A sequence of sub-predictors")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if not isinstance(self.sub_predictors, Sequence):
+            raise ValueError("sub-predictors must be defined as an ordered list")
+
+        if any(not isinstance(sub_predictor, Predictor) for sub_predictor in self.sub_predictors):
+            raise ValueError("all sub-predictors must be a Predictor type")
+
     @property
     def transition_model(self):
         raise NotImplementedError("A composition of predictors have no defined transition model")
@@ -21,9 +30,8 @@ class CompositePredictor(Predictor):
 
         Parameters
         ----------
-        prior : :class:`~.State`
-            :math:`\mathbf{x}_{k-1}` assumed to be :class:`~.CompositeState` type, representing an
-            object existing in a composite state space
+        prior : :class:`~.CompositeState`
+            :math:`\mathbf{x}_{k-1}` representing an object existing in a composite state space
         timestamp : :class:`datetime.datetime`, optional
             :math:`k`
         **kwargs :
@@ -42,13 +50,13 @@ class CompositePredictor(Predictor):
             raise ValueError(
                 "CompositeState must be composed of same number of sub-states as sub-predictors")
 
-        new_states = []
+        prediction_sub_states = []
 
-        for predictor, state in zip(self.sub_predictors, prior.sub_states):
-            predicted = predictor.predict(state, timestamp, **kwargs)
-            new_states.append(predicted)
+        for sub_predictor, sub_state in zip(self.sub_predictors, prior.sub_states):
+            sub_prediction = sub_predictor.predict(prior=sub_state, timestamp=timestamp, **kwargs)
+            prediction_sub_states.append(sub_prediction)
 
-        return CompositeState(inner_states=new_states)
+        return CompositeState(sub_states=prediction_sub_states)
 
     def __getitem__(self, index):
         return self.sub_predictors.__getitem__(index)
@@ -64,6 +72,9 @@ class CompositePredictor(Predictor):
 
     def __len__(self):
         return self.sub_predictors.__len__()
+
+    def __contains__(self, item):
+        return self.sub_predictors.__contains__(item)
 
     def insert(self, index, value):
         inserted_state = self.sub_predictors.insert(index, value)
