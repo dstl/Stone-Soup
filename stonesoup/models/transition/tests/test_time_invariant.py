@@ -34,10 +34,10 @@ def test_linear_gaussian():
         model.pdf(State([0]), State([0]))
 
 
-def create_random_multinomial(length):
+def create_random_multinomial(ndim):
     total = 0
     sv = list()
-    for i in range(length - 1):
+    for i in range(ndim - 1):
         x = np.random.uniform(0, 1 - total)
         sv.append(x)
         total += x

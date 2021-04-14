@@ -4,22 +4,22 @@ import pytest
 from pytest import approx
 from scipy.stats import multivariate_normal
 
-from stonesoup.measures import ObservationAccuracy
-from stonesoup.models.measurement.observation import BasicTimeInvariantObservationModel
 from ..nonlinear import (
     CartesianToElevationBearingRange, CartesianToBearingRange,
     CartesianToElevationBearing, Cartesian2DToBearing, CartesianToBearingRangeRate,
     CartesianToElevationBearingRangeRate, RangeRangeRateBinning)
-
 from ...base import ReversibleModel
 from ...measurement.linear import LinearGaussian
+from ...transition.tests.test_time_invariant import create_random_multinomial
 from ....functions import jacobian as compute_jac
 from ....functions import pol2cart
 from ....functions import rotz, rotx, roty, cart2sphere
+from ....measures import ObservationAccuracy
+from ....models.measurement.observation import BasicTimeInvariantObservationModel
 from ....types.angle import Bearing, Elevation
 from ....types.array import StateVector, StateVectors
-from ....types.state import State, CovarianceMatrix
 from ....types.particle import Particles
+from ....types.state import State, CovarianceMatrix
 
 
 def h1d(state_vector, pos_map, translation_offset, rotation_offset):
@@ -1253,17 +1253,6 @@ def test_models_with_particles(h, ModelClass, state_vec, R,
              - h(single_state_vec, model.mapping, model.translation_offset, model.rotation_offset)
              ).T,
             cov=R)
-
-
-def create_random_multinomial(length):
-    total = 0
-    sv = list()
-    for i in range(length - 1):
-        x = np.random.uniform(0, 1 - total)
-        sv.append(x)
-        total += x
-    sv.append(1 - total)
-    return State(sv)
 
 
 def test_time_invariant_observation():
