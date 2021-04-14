@@ -10,18 +10,7 @@ from stonesoup.predictor.classification import ClassificationPredictor
 from stonesoup.types.array import StateVector
 from ...types.prediction import StatePrediction
 from ...types.state import State
-
-
-def create_random_multinomial(ndim_state):
-    total = 0
-    sv = list()
-    for i in range(ndim_state - 1):
-        x = np.random.uniform(0, 1 - total)
-        sv.append(x)
-        total += x
-    sv.append(1 - total)
-    sv = StateVector(sv)
-    return State(sv)
+from ...models.transition.tests.test_time_invariant import create_random_multinomial
 
 
 def get_transition_models(num_models, ndim_state):

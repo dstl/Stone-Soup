@@ -4,26 +4,13 @@ import datetime
 import numpy as np
 import pytest
 
-from stonesoup.models.measurement.nonlinear import CartesianToElevationBearingRange
-from stonesoup.models.measurement.observation import BasicTimeInvariantObservationModel
-from stonesoup.types.array import StateVector
-from stonesoup.types.detection import Detection
-from stonesoup.types.hypothesis import SingleHypothesis
-from stonesoup.types.update import StateUpdate
-from stonesoup.updater.classification import ClassificationUpdater
-from ...types.state import State
-
-
-def create_random_multinomial(length):
-    total = 0
-    sv = list()
-    for i in range(length - 1):
-        x = np.random.uniform(0, 1 - total)
-        sv.append(x)
-        total += x
-    sv.append(1 - total)
-    sv = StateVector(sv)
-    return State(sv)
+from ...models.measurement.nonlinear import CartesianToElevationBearingRange
+from ...models.measurement.observation import BasicTimeInvariantObservationModel
+from ...models.transition.tests.test_time_invariant import create_random_multinomial
+from ...types.detection import Detection
+from ...types.hypothesis import SingleHypothesis
+from ...types.update import StateUpdate
+from ...updater.classification import ClassificationUpdater
 
 
 def get_measurement_models(num_models, ndim_state):
