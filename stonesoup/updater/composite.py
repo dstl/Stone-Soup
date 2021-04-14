@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from typing import Sequence
 
-from stonesoup.types.hypothesis import CompositeHypothesis
+from ..types.hypothesis import CompositeHypothesis
 from .base import Updater
 from ..base import Property
 from ..types.prediction import CompositePrediction, CompositeMeasurementPrediction
@@ -15,7 +15,16 @@ class CompositeUpdater(Updater):
     :class:`~.CompositeDetection` composed of a sequence of measurements using a sequence of
     sub-updaters
     """
-    sub_updaters: Sequence[Updater] = Property("A sequence of sub-updaters")
+    sub_updaters: Sequence[Updater] = Property(doc="A sequence of sub-updaters")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if not isinstance(self.sub_updaters, Sequence):
+            raise ValueError("sub-updaters must be defined as an ordered list")
+
+        if any(not isinstance(sub_updater, Updater) for sub_updater in self.sub_updaters):
+            raise ValueError("all sub-updaters must be an Updater type")
 
     @property
     def measurement_model(self):
@@ -54,12 +63,20 @@ class CompositeUpdater(Updater):
         is_prediction = True
 
         if not isinstance(hypothesis, CompositeHypothesis):
-            raise ValueError("Composite updater can only update CompositeHypothesis types")
+            raise ValueError("CompositeUpdater can only be used with CompositeHypothesis types")
+        if len(hypothesis.sub_hypotheses) != len(self.sub_updaters):
+            raise ValueError("CompositeHypothesis must be composed of same number of"
+                             " sub-hypotheses as sub-updaters")
 
         prediction = hypothesis.prediction
         measurement_models = [sub_hypothesis.measurement.measurement_model
                               for sub_hypothesis in hypothesis.sub_hypotheses]
-        measurement_prediction = self.predict_measurement(prediction, measurement_models)
+
+        # generate measurement prediction
+        if hypothesis.measurement_prediction is None:
+            measurement_prediction = \
+                self.predict_measurement(prediction, measurement_models, **kwargs)
+            hypothesis.measurement_prediction = measurement_prediction
 
         for sub_updater, sub_hypothesis, sub_meas_pred in zip(self.sub_updaters,
                                                               hypothesis.sub_hypotheses,
@@ -74,9 +91,9 @@ class CompositeUpdater(Updater):
                 is_prediction = False
 
         if is_prediction:
-            return CompositePrediction(inner_states=sub_updates)
+            return CompositePrediction(sub_states=sub_updates)
 
-        return CompositeUpdate(inner_states=sub_updates, hypothesis=hypothesis)
+        return CompositeUpdate(sub_states=sub_updates, hypothesis=hypothesis)
 
     def __getitem__(self, index):
         return self.sub_updaters.__getitem__(index)
