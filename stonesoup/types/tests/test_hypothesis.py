@@ -224,17 +224,18 @@ def sub_prob_hypotheses():
 
 
 def test_composite_hypothesis():
+
+    sub_hyps = sub_hypotheses()
+
     # Test default sub-hypotheses
     assert CompositeHypothesis(None, None).sub_hypotheses == list()
 
     composite_hypothesis = CompositeHypothesis(composite_prediction,
                                                composite_detection,
-                                               composite_measurement_prediction)
-    hypotheses = sub_hypotheses()
-    for sub_hypothesis in hypotheses:
-        composite_hypothesis.append(sub_hypothesis)
+                                               composite_measurement_prediction,
+                                               sub_hyps)
 
-    assert composite_hypothesis.sub_hypotheses == hypotheses
+    assert composite_hypothesis.sub_hypotheses == sub_hyps
 
     # Test True
     assert composite_hypothesis
@@ -243,6 +244,47 @@ def test_composite_hypothesis():
     assert not CompositeHypothesis(composite_prediction,
                                    CompositeMissedDetection(default_timestamp=1),
                                    composite_measurement_prediction)
+
+    # Test contains
+    for sub_hyp in sub_hyps:
+        assert sub_hyp in composite_hypothesis
+    assert 'a' not in composite_hypothesis
+
+    # Test get
+    for i in range(len(sub_hypotheses())):
+        assert composite_hypothesis[i] == sub_hyps[i]
+
+    # Test iter
+    for i, sub_state in enumerate(composite_hypothesis):
+        assert sub_state == sub_hyps[i]
+
+    a = SingleHypothesis(StatePrediction([0]), Detection([7]), StateMeasurementPrediction([6]))
+
+    # Test insert
+    composite_hypothesis.insert(1, a)
+    assert composite_hypothesis[1] == a
+
+    # Test del
+    del composite_hypothesis[1]
+    assert composite_hypothesis.sub_hypotheses == sub_hyps
+
+    # Test set
+    composite_hypothesis[1] = a
+    assert composite_hypothesis[1] == a
+
+    # Test len
+    assert len(composite_hypothesis) == len(sub_hyps)
+
+    composite_hypothesis = CompositeHypothesis(composite_prediction,
+                                               composite_detection,
+                                               composite_measurement_prediction,
+                                               sub_hyps)
+
+    # Test append
+    composite_hypothesis.append(a)
+    assert composite_hypothesis[-1] == a
+    # 'a' is appended to 'sub_hyps' too
+    assert composite_hypothesis.sub_hypotheses == sub_hyps
 
 
 def test_composite_probability_hypothesis():

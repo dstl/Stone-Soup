@@ -250,8 +250,39 @@ class CompositeHypothesis(SingleHypothesis):
         return (not isinstance(self.measurement, CompositeMissedDetection)) and \
                (self.measurement is not None)
 
-    def append(self, item):
-        self.sub_hypotheses.append(item)
+    def __contains__(self, item):
+        return self.sub_hypotheses.__contains__(item)
+
+    def __getitem__(self, index):
+        return self.sub_hypotheses[index]
+
+    def __setitem__(self, index, value):
+        set_item = self.sub_hypotheses.__setitem__(index, value)
+        return set_item
+
+    def __delitem__(self, index):
+        del_item = self.sub_hypotheses.__delitem__(index)
+        return del_item
+
+    def __iter__(self):
+        return iter(self.sub_hypotheses)
+
+    def __len__(self):
+        return len(self.sub_hypotheses)
+
+    def insert(self, index, value):
+        inserted_state = self.sub_hypotheses.insert(index, value)
+        return inserted_state
+
+    def append(self, value):
+        """Add value at end of :attr:`sub_states`.
+
+        Parameters
+        ----------
+        value: State
+            A state object to be added at the end of :attr:`sub_states`.
+        """
+        self.sub_hypotheses.append(value)
 
 
 class CompositeProbabilityHypothesis(SingleProbabilityHypothesis, CompositeHypothesis):
