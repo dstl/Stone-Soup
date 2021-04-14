@@ -45,10 +45,7 @@ class ClassificationUpdater(Updater):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if self.measurement_model and not isinstance(self.measurement_model,
-                                                     BasicTimeInvariantObservationModel):
-            raise ValueError("ClassificationUpdater requires a time invariant observation-based "
-                             "measurement model")
+        self._check_measurement_model(self.measurement_model)
 
     def _check_measurement_model(self, measurement_model):
         """Check that the measurement model passed actually exists. If not attach the one in the
@@ -71,7 +68,19 @@ class ClassificationUpdater(Updater):
             else:
                 measurement_model = self.measurement_model
 
+        try:
+            measurement_model.emission_matrix
+        except AttributeError:
+            raise ValueError("Measurement model must be observation-based with an Emission matrix "
+                             "property for ClassificationUpdater")
+
         return measurement_model
+
+    def get_emission_matrix(self, hypothesis):
+
+        measurement_model = self._check_measurement_model(hypothesis.measurement.measurement_model)
+
+        return measurement_model.emission_matrix
 
     def predict_measurement(self, predicted_state, measurement_model=None, **kwargs):
         r"""Predict the measurement implied by the predicted state mean
@@ -119,11 +128,18 @@ class ClassificationUpdater(Updater):
 
         prediction = hypothesis.prediction
 
-        try:
-            E = hypothesis.measurement.measurement_model.emission_matrix
-        except AttributeError:
-            raise ValueError("All detections must be from class observer measurement models")
+        if hypothesis.measurement_prediction is None:
+            # Get the measurement model out of the measurement if it's there.
+            # If not, use the one native to the updater (which might still be none)
+            measurement_model = hypothesis.measurement.measurement_model
+            measurement_model = self._check_measurement_model(
+                measurement_model)
 
+            # Attach the measurement prediction to the hypothesis
+            hypothesis.measurement_prediction = self.predict_measurement(
+                prediction, measurement_model=measurement_model, **kwargs)
+
+        E = self.get_emission_matrix(hypothesis)
         EY = E @ hypothesis.measurement.state_vector
 
         prenormalise = np.multiply(prediction.state_vector, EY)
