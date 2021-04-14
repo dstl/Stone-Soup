@@ -366,7 +366,7 @@ def test_composite_state_timestamp_errors():
         CompositeState([State([0], timestamp=1), State([0], timestamp=1)], default_timestamp=2)
 
 
-def test_composite_state_timestamp():
+def test_composite_state():
 
     # Test timestamp
     for i in range(1, 4):
