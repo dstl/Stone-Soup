@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import Sequence, Union
+from typing import Union
 
 import numpy as np
 import scipy
@@ -18,10 +18,7 @@ class BasicTimeInvariantObservationModel(MeasurementModel, ReversibleModel):
     I.e. Each component of a state space state vector represents the probability that a target is
     a particular class.
     Output measurements are state vectors in the measurement space, defining categorical
-    distributions over measurement classes. In this case of this basic model, a measurement is
-    definitively a particular measurement class. I.e. there is no ambiguity as to what the
-    returned class is. To represent this, a 1 is placed at the index of the observed measurement
-    class in the measurement vector, and 0's elsewhere.
+    distributions over measurement classes.
 
     Notes:
         All properties of the model can be defined by its :attr:`emission_matrix`.
@@ -73,13 +70,19 @@ class BasicTimeInvariantObservationModel(MeasurementModel, ReversibleModel):
         """Number of state dimensions"""
         return np.shape(self.emission_matrix)[0]
 
-    def function(self, state, **kwargs):
+    def function(self, state, noise: bool = False, **kwargs):
         """Observer function :math:`HX_{t}`
 
         Parameters
         ----------
         state: :class:`~.State`
             An input (hidden class) state
+        noise: bool
+            If 'True', the resultant multinomial distribution is sampled from, and a definitive
+            measurement class is returned. This can be interpreted as there being no ambiguity as
+            to what the returned class is. To represent this, a 1 is placed at the index of the
+            observed measurement class in the measurement vector, and 0's elsewhere.
+            If 'False', the resultant multinomial is returned.
 
         Returns
         -------
@@ -92,9 +95,10 @@ class BasicTimeInvariantObservationModel(MeasurementModel, ReversibleModel):
 
         y = y / np.sum(y)
 
-        sample = self._sample(y.flatten())
+        if noise:
+            y = self._sample(y.flatten())
 
-        return StateVector(sample)
+        return StateVector(y)
 
     def inverse_function(self, detection, **kwargs) -> StateVector:
         return self.emission_matrix @ detection.state_vector
