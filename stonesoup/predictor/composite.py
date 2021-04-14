@@ -36,17 +36,16 @@ class CompositePredictor(Predictor):
         Parameters
         ----------
         prior : :class:`~.CompositeState`
-            :math:`\mathbf{x}_{k-1}` representing an object existing in a composite state space
+            The state of an object existing in a composite state space
         timestamp : :class:`datetime.datetime`, optional
             :math:`k`
         **kwargs :
-            These are passed, via :meth:`~.KalmanFilter.transition_function` to
-            :meth:`~.LinearGaussianTransitionModel.matrix`
+            These are passed to each sub-predictor's prediction method
 
         Returns
         -------
         : :class:`~.CompositeState`
-            :math:`\mathbf{x}_{k|k-1}`, the predicted composite state
+            The predicted composite state
         """
 
         if not isinstance(prior, CompositeState):
