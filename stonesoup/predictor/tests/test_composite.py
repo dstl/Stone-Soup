@@ -5,16 +5,17 @@ import numpy as np
 import pytest
 from scipy.stats import multivariate_normal
 
-from stonesoup.models.transition.classification import \
+from ...models.transition.classification import \
     BasicTimeInvariantClassificationTransitionModel
-from stonesoup.models.transition.linear import RandomWalk, \
+from ...models.transition.linear import RandomWalk, \
     CombinedLinearGaussianTransitionModel
-from stonesoup.predictor.composite import CompositePredictor
-from stonesoup.types.array import StateVector
-from stonesoup.types.array import StateVectors
-from stonesoup.types.numeric import Probability  # Similar to a float type
-from stonesoup.types.particle import Particles
-from stonesoup.types.state import ParticleState
+from ...predictor.composite import CompositePredictor
+from ...types.array import StateVector
+from ...types.array import StateVectors
+from ...types.numeric import Probability  # Similar to a float type
+from ...types.particle import Particles
+from ...types.prediction import CompositePrediction
+from ...types.state import ParticleState
 from ...predictor.classification import ClassificationPredictor
 from ...predictor.kalman import KalmanPredictor, ExtendedKalmanPredictor, \
     UnscentedKalmanPredictor
@@ -126,7 +127,7 @@ def test_composite_predictor(num_predictors):
     # test predict
     prediction = predictor.predict(prior, future)
 
-    assert isinstance(prediction, CompositeState)
+    assert isinstance(prediction, CompositePrediction)
     assert len(prediction) == len(prior)
 
     # test predict errors

@@ -1,14 +1,19 @@
 # -*- coding: utf-8 -*-
 from typing import Sequence
 
-from stonesoup.base import Property
-from stonesoup.predictor import Predictor
-from stonesoup.predictor._utils import predict_lru_cache
-from stonesoup.types.state import CompositeState
+from ..base import Property
+from ..predictor import Predictor
+from ..predictor._utils import predict_lru_cache
+from ..types.prediction import CompositePrediction
+from ..types.state import CompositeState
 
 
 class CompositePredictor(Predictor):
-    """A composition of multiple sub-predictors"""
+    """A composition of multiple sub-predictors
+
+    Predicts forward a :class:`CompositeState` composed of a sequence of states using a sequence
+    of sub-predictors
+    """
     sub_predictors: Sequence[Predictor] = Property(doc="A sequence of sub-predictors")
 
     def __init__(self, *args, **kwargs):
@@ -56,7 +61,7 @@ class CompositePredictor(Predictor):
             sub_prediction = sub_predictor.predict(prior=sub_state, timestamp=timestamp, **kwargs)
             prediction_sub_states.append(sub_prediction)
 
-        return CompositeState(sub_states=prediction_sub_states)
+        return CompositePrediction(sub_states=prediction_sub_states)
 
     def __getitem__(self, index):
         return self.sub_predictors.__getitem__(index)
