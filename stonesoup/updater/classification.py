@@ -15,8 +15,8 @@ class ClassificationUpdater(Updater):
     .. math::
         X_{k|k}^i &= P(\phi_k^i)\\
                   &= P(\phi_k^i| y_k^j)P(y_k^j)P(\phi_k^i| \phi_{k-1}^l)P(\phi_{k-1}^l)\\
-                  &= E^{ij}Z_k^jF^{il}X_{k-1}^l\\
-                  &= EZ_k*TX_{k-1}
+                  &= E^{ij}Y_k^jF^{il}X_{k-1}^l\\
+                  &= EY_k*TX_{k-1}
 
     Where:
 
@@ -24,7 +24,7 @@ class ClassificationUpdater(Updater):
       the probability :math:`P(\phi_k^i)` that the state is class :math:`i` at 'time'
       :math:`k`, with the possibility of the state being any of a finite, discrete set of classes
       :math:`\{\phi^i | i \in \mathbb{Z}_{>0}\}`
-    * :math:`y_j` is the :math:`j`-th component of the measurement vector :math:`Z_k`, an
+    * :math:`y_j` is the :math:`j`-th component of the measurement vector :math:`Y_k`, an
       observation of the state, assumed to be defining a multinomial distribution over a discrete,
       finite set of possible measurement classes :math:`\{y^j | j \in \mathbb{Z}_{>0}\}`
     * :math:`E` defines the time invariant emission matrix of the corresponding measurement model
@@ -32,7 +32,7 @@ class ClassificationUpdater(Updater):
       :math:`P(\phi_k^i| \phi_{k-1}^l)`
     * :math:`*` is the element-wise product of two vectors
     * :math:`k` is the 'time' of update, attained from the 'time' at which the measurement
-      :math:`Z_k` has been received
+      :math:`Y_k` has been received
     """
 
     measurement_model: BasicTimeInvariantObservationModel = Property(
@@ -98,7 +98,7 @@ class ClassificationUpdater(Updater):
         Returns
         -------
         : :class:`MeasurementPrediction`
-            The measurement prediction, :math:`Z_{k|k-1}`
+            The measurement prediction, :math:`Y_{k|k-1}`
         """
 
         measurement_model = self._check_measurement_model(measurement_model)
