@@ -1,16 +1,16 @@
 from scipy.stats import multivariate_normal as mn
 
-from stonesoup.measures import Measure, ObservationAccuracy
 from .base import Hypothesiser
 from ..base import Property
+from ..measures import Measure, ObservationAccuracy
+from ..predictor import Predictor
+from ..predictor.classification import ClassificationPredictor
 from ..types.detection import MissedDetection
 from ..types.hypothesis import SingleProbabilityHypothesis
 from ..types.multihypothesis import MultipleHypothesis
 from ..types.numeric import Probability
-from ..predictor import Predictor
 from ..updater import Updater
-
-from scipy.stats import entropy
+from ..updater.classification import ClassificationUpdater
 
 
 class PDAHypothesiser(Hypothesiser):
@@ -164,8 +164,8 @@ class ClassificationHypothesiser(Hypothesiser):
     each other.
     """
 
-    predictor: Predictor = Property(doc="Predict tracks to detection times")
-    updater: Updater = Property(doc="Updater used to get measurement prediction")
+    predictor: ClassificationPredictor = Property(doc="Predict tracks to detection times")
+    updater: ClassificationUpdater = Property(doc="Updater used to get measurement prediction")
     clutter_spatial_density: float = Property(
         doc="Spatial density of clutter - tied to probability of false detection")
     prob_detect: Probability = Property(
@@ -177,6 +177,17 @@ class ClassificationHypothesiser(Hypothesiser):
     measure: Measure = Property(
         default=ObservationAccuracy,
         doc="Measure type to determine accuracy of prediction-measurement pairs")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if not isinstance(self.measure, Measure):
+            # attempt to instantiate measure
+            try:
+                self.measure = self.measure()
+            except TypeError:
+                raise TypeError("ClassificationHypothesiser measure attribute must be a measure "
+                                "type")
 
     def hypothesise(self, track, detections, timestamp):
         """ Evaluate and return all track association hypotheses.
@@ -214,7 +225,6 @@ class ClassificationHypothesiser(Hypothesiser):
             ))
 
         for detection in detections:
-
             prediction = self.predictor.predict(
                 track, timestamp=detection.timestamp)
 
@@ -222,10 +232,22 @@ class ClassificationHypothesiser(Hypothesiser):
                 prediction, detection.measurement_model)
 
             measurement_model = detection.measurement_model
+
+            if measurement_model is None:
+                raise ValueError("All observation-based measurements must have corresponding "
+                                 "measurement models")
+
+            if not hasattr(measurement_model, 'emission_matrix'):
+                raise ValueError("ClassificationHypothesiser can only hypothesise "
+                                 "observation-based measurements with corresponding state space "
+                                 "emissions. Therefore an emission matrix must be defined in the "
+                                 "measurement's corresponding measurement model")
+
             emission = measurement_model.inverse_function(detection)
 
-            pdf = self.measure(prediction, emission)
-            probability = (pdf * self.prob_detect) / self.clutter_spatial_density
+            probability = Probability(self.measure(prediction.state_vector, emission),
+                                      log_value=True)
+            probability = (probability * self.prob_detect) / self.clutter_spatial_density
 
             # True detection hypothesis
             hypotheses.append(
