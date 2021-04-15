@@ -3,7 +3,7 @@ from typing import Set, Union
 
 import numpy as np
 
-from stonesoup.models.measurement.observation import BasicTimeInvariantObservervation
+from stonesoup.models.measurement.classification import BasicTimeInvariantObservervation
 from ..base import Property
 from ..models.measurement.nonlinear import CartesianToElevationBearing
 from ..sensor.sensor import Sensor

@@ -3,7 +3,7 @@
 import numpy as np
 
 from ..base import Property
-from ..models.measurement.observation import BasicTimeInvariantObservationModel
+from ..models.measurement.classification import BasicTimeInvariantObservationModel
 from ..types.prediction import MeasurementPrediction
 from ..types.update import Update
 from ..updater import Updater

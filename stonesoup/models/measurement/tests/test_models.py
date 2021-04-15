@@ -15,7 +15,7 @@ from ....functions import jacobian as compute_jac
 from ....functions import pol2cart
 from ....functions import rotz, rotx, roty, cart2sphere
 from ....measures import ObservationAccuracy
-from ....models.measurement.observation import BasicTimeInvariantObservationModel
+from ....models.measurement.classification import BasicTimeInvariantObservationModel
 from ....types.angle import Bearing, Elevation
 from ....types.array import StateVector, StateVectors
 from ....types.particle import Particles

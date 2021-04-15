@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from ...models.measurement.nonlinear import CartesianToElevationBearingRange
-from ...models.measurement.observation import BasicTimeInvariantObservationModel
+from ...models.measurement.classification import BasicTimeInvariantObservationModel
 from ...models.transition.tests.test_time_invariant import create_random_multinomial
 from ...types.detection import Detection
 from ...types.hypothesis import SingleHypothesis

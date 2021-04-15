@@ -6,7 +6,7 @@ import pytest
 
 from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.models.measurement.nonlinear import CartesianToElevationBearingRange
-from stonesoup.models.measurement.observation import BasicTimeInvariantObservationModel
+from stonesoup.models.measurement.classification import BasicTimeInvariantObservationModel
 from stonesoup.predictor.tests.test_classification import create_random_multinomial
 from stonesoup.types.array import StateVector
 from stonesoup.types.detection import Detection, CompositeDetection
