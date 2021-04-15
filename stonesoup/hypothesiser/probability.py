@@ -1,6 +1,6 @@
 from scipy.stats import multivariate_normal as mn
 
-from stonesoup.measures import Measure
+from stonesoup.measures import Measure, ObservationAccuracy
 from .base import Hypothesiser
 from ..base import Property
 from ..types.detection import MissedDetection
@@ -146,7 +146,23 @@ class PDAHypothesiser(Hypothesiser):
         return MultipleHypothesis(hypotheses, normalise=True, total_weight=1)
 
 
-class MultinomialHypothesiser(Hypothesiser):
+class ClassificationHypothesiser(Hypothesiser):
+    r"""Hypothesiser based on the consideration of multinomial distribution accuracy.
+    Whereby it is assumed track space is a finite space of discrete classifications
+    :math:`\{\phi_i | i \in \mathbb{Z}_{>0}\}` and measurement spaces are finite spaces of
+    discrete measurement classifications :math:`\{\y_i | i \in \mathbb{Z}_{>0}\}`, whereby a
+    state or measurement vector describes a multinomial distribution in its corresponding space,
+    with each element :math:`i` describing the probability that the owning object is of
+    classification :math:`\phi_i` or :math:`\y_i` respectively.
+
+    This hypothesiser generates track predictions at detection times and scores each hypothesised
+    prediction-detection pair according to the accuracy of the prediction to the detection's state
+    space emission, calculated as the product of the detection's measurement model's emission
+    matrix and detection vector product :math:`EZ` (which describes a multinomial distribution in
+    the state space. This uses the :class:`~.ObservationAccuracy' measure by default, which gives
+    a higher probability/score the closer the two distributions (prediction and emission) are to
+    each other.
+    """
 
     predictor: Predictor = Property(doc="Predict tracks to detection times")
     updater: Updater = Property(doc="Updater used to get measurement prediction")
@@ -157,13 +173,34 @@ class MultinomialHypothesiser(Hypothesiser):
         doc="Target Detection Probability")
     prob_gate: Probability = Property(
         default=Probability(0.95),
-        doc="Gate Probability - prob. gate contains true measurement "
-            "if detected")
-    measure: Measure = Property()
-
-    #1 / (1 + entropy([0.99, 0.1], [0.99, 0.1]))
+        doc="Gate Probability - prob. gate contains true measurement if detected")
+    measure: Measure = Property(
+        default=ObservationAccuracy,
+        doc="Measure type to determine accuracy of prediction-measurement pairs")
 
     def hypothesise(self, track, detections, timestamp):
+        """ Evaluate and return all track association hypotheses.
+
+        For a given track and a set of N available detections, return a MultipleHypothesis object
+        with N+1 detections (first detection is a 'MissedDetection'), each with an associated
+        accuracy (of prediction to measurement emission) measure.
+
+        Parameters
+        ----------
+        track: :class:`~.Track`
+            The track object to hypothesise on.
+        detections: :class:`list`
+            A list of :class:`~Detection` objects, representing the available detections.
+        timestamp: :class:`datetime.datetime`
+            A timestamp used when evaluating the state and measurement predictions. Note that if a
+            given detection has a non empty timestamp, then prediction will be performed according
+            to the timestamp of the detection.
+
+        Returns
+        -------
+        : :class:`~.MultipleHypothesis`
+            A container of :class:`~SingleProbabilityHypothesis` objects
+        """
 
         hypotheses = list()
 
@@ -188,13 +225,14 @@ class MultinomialHypothesiser(Hypothesiser):
             emission = measurement_model.inverse_function(detection)
 
             pdf = self.measure(prediction, emission)
+            probability = (pdf * self.prob_detect) / self.clutter_spatial_density
 
             # True detection hypothesis
             hypotheses.append(
                 SingleProbabilityHypothesis(
                     prediction,
                     detection,
-                    pdf,
+                    probability,
                     measurement_prediction))
 
         return MultipleHypothesis(hypotheses, normalise=True, total_weight=1)
