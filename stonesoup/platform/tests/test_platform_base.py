@@ -7,7 +7,7 @@ import pytest
 from stonesoup.models.measurement.tests.test_models import position_measurement_sets
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
     ConstantVelocity, ConstantTurn
-from stonesoup.moveable import FixedMovable, MovingMovable
+from stonesoup.movable import FixedMovable, MovingMovable
 from stonesoup.sensor.sensor import Sensor
 from stonesoup.types.array import StateVector
 from stonesoup.platform import MovingPlatform, FixedPlatform, MultiTransitionMovingPlatform
