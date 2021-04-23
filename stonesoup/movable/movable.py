@@ -44,6 +44,8 @@ class Movable(StateMutableSequence, ABC):
 
         if self.velocity_mapping is None:
             self.velocity_mapping = [p + 1 for p in self.position_mapping]
+        if not self.states:
+            raise ValueError('States must not be empty: it must contain least one state.')
 
     @property
     def position(self) -> StateVector:
@@ -193,7 +195,11 @@ class FixedMovable(Movable):
         doc='A fixed orientation of the static platform. Defaults to the zero vector')
 
     def __init__(self, *args, **kwargs):
+        velocity_mapping = kwargs.get('velocity_mapping', None)
+        if velocity_mapping:
+            raise ValueError('Velocity mapping should not be set for a FixedMovable')
         super().__init__(*args, **kwargs)
+        self.velocity_mapping = None
         if self.orientation is None:
             self.orientation = StateVector([0, 0, 0])
 

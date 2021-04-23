@@ -101,7 +101,6 @@ def radar_platform_target():
 
     platform = FixedPlatform(states=platform_1_state,
                              position_mapping=pos_mapping,
-                             velocity_mapping=vel_mapping,
                              sensors=[radar])
     target = State(StateVector([[0], [0], [0], [0], [0], [0]]), timestamp_init)
 
