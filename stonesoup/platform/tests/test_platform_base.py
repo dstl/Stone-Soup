@@ -672,3 +672,24 @@ def test_setting_movement_controller():
     platform = MovingPlatform(movement_controller=moving)
     assert np.array_equal(platform.position, StateVector([2, 2, 2]))
     assert np.array_equal(platform.velocity, StateVector([1, -1, 0]))
+
+
+def test_platform_getitem():
+    timestamp = datetime.datetime.now()
+    state_before = State(np.array([[2],
+                                   [1],
+                                   [2],
+                                   [1],
+                                   [0],
+                                   [1]]),
+                         timestamp)
+    cv_model = CombinedLinearGaussianTransitionModel((ConstantVelocity(0),
+                                                      ConstantVelocity(0),
+                                                      ConstantVelocity(0)))
+    platform = MovingPlatform(states=state_before,
+                              transition_model=cv_model,
+                              position_mapping=[0, 2, 4], velocity_mapping=[1, 3, 5])
+    platform.move(timestamp + datetime.timedelta(seconds=1))
+    state_after = platform.state
+    assert platform[0] is state_before
+    assert platform[1] is state_after
