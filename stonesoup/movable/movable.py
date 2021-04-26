@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
+import copy
 import datetime
 from abc import abstractmethod, ABC
 from functools import lru_cache
+
+from docutils.nodes import copyright
 from math import cos, sin
 from typing import Sequence, Tuple
 
@@ -220,9 +223,9 @@ class FixedMovable(Movable):
 
     def move(self, timestamp: datetime.datetime, **kwargs) -> None:
         """For a fixed platform this method has no effect other than to update the timestamp."""
-        # TODO Is this a sensible implementation?
-        # Return without moving static platforms
-        self.state.timestamp = timestamp
+        new_state = copy.deepcopy(self.state)
+        new_state.timestamp = timestamp
+        self.states.append(new_state)
 
 
 class MovingMovable(Movable):
