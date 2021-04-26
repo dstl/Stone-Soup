@@ -37,4 +37,3 @@ def test_empty_state_error():
                           velocity_mapping=[1, 2, 5],
                           transition_model=None,
                           )
-

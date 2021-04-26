@@ -4,7 +4,6 @@ import datetime
 from abc import abstractmethod, ABC
 from functools import lru_cache
 
-from docutils.nodes import copyright
 from math import cos, sin
 from typing import Sequence, Tuple
 
@@ -321,8 +320,7 @@ class MovingMovable(Movable):
 
         Any provided ``kwargs`` are forwarded to the :attr:`transition_model`.
 
-        If :attr:`transition_model` or ``timestamp`` is ``None``, the method has
-        no effect, but will return successfully.
+        If `timestamp`` is ``None``, the method has no effect, but will return successfully.
 
         """
 
@@ -445,7 +443,7 @@ def _get_rotation_matrix(vel: StateVector) -> np.ndarray:
     [cos[theta] -sin[theta]]
     [cos[theta]  sin[theta]]
 
-    In the 2d case this will be a 3x3 matrix which rotates around the Z axis
+    In the 3d case this will be a 3x3 matrix which rotates around the Z axis
     followed by a rotation about the new Y axis.
 
     Parameters

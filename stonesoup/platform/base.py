@@ -43,12 +43,12 @@ class Platform(Base):
     def __getattribute__(self, name):
         # This method is called if we try to access an attribute of self. First we try to get the
         # attribute directly, but if that fails, we want to try getting the same attribute from
-        # self.state instead. If that, in turn,  fails we want to return the error message that
-        # would have originally been raised, rather than an error message that the State has no
-        # such attribute.
+        # self.movement_controller instead. If that, in turn,  fails we want to return the error
+        # message that would have originally been raised, rather than an error message that the
+        # Movable has no such attribute.
         #
         # An alternative mechanism using __getattr__ seems simpler (as it skips the first few lines
-        # of code, but __getattr__ has no mechanism to capture the originally raised error.
+        # of code) but __getattr__ has no mechanism to capture the originally raised error.
         try:
             # This tries first to get the attribute from self.
             return Base.__getattribute__(self, name)
@@ -58,7 +58,8 @@ class Platform(Base):
                 # original error
                 raise original_error
             else:
-                # For non _ attributes, try to get the attribute from self.state instead of self.
+                # For non _ attributes, try to get the attribute from self.movement_controller
+                # instead of self.
                 try:
                     controller = Base.__getattribute__(self, 'movement_controller')
                     return getattr(controller, name)
@@ -152,14 +153,11 @@ class Platform(Base):
 
 class FixedPlatform(Platform):
     _default_movable_class = FixedMovable
-    pass
 
 
 class MovingPlatform(Platform):
     _default_movable_class = MovingMovable
-    pass
 
 
 class MultiTransitionMovingPlatform(Platform):
     _default_movable_class = MultiTransitionMovable
-    pass

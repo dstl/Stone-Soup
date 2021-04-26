@@ -10,7 +10,7 @@ from ..types.array import StateVector
 
 
 class PlatformMountable(Base, ABC):
-    """Base class for any objects that is part of a platform.
+    """Base class for any object that can be mounted on a platform.
 
     All PlatformMountables must be mounted on a platform to calculate their position and
     orientation. To make this easier, if the sensor has a position and/or orientation specified in
@@ -25,13 +25,12 @@ class PlatformMountable(Base, ABC):
         doc="A StateVector containing the sensor rotation "
             "offsets from the platform's primary axis (defined as the "
             "direction of motion). Defaults to a zero vector with the "
-            "same length as the Platform's :attr:`position_mapping`")
+            "same length as the Platform's :attr:`velocity_mapping`")
     mounting_offset: StateVector = Property(
         default=None,
         doc="A StateVector containing the sensor translation "
             "offsets from the platform's reference point. Defaults to "
-            "a zero vector with the same length as the Platform's "
-            ":attr:`position_mapping`")
+            "a zero vector with length 3")
 
     movement_controller: Movable = Property(
         default=None,
@@ -61,8 +60,8 @@ class PlatformMountable(Base, ABC):
         if self.movement_controller is None:
             return
         if self.mounting_offset is None:
-            self.mounting_offset = (StateVector([0]
-                                    * len(self.movement_controller.position_mapping)))
+            self.mounting_offset = StateVector([0]
+                                               * len(self.movement_controller.position_mapping))
 
         if self.rotation_offset is None:
             self.rotation_offset = StateVector([0] * 3)
