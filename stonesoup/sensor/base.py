@@ -41,7 +41,8 @@ class PlatformMountable(Base, ABC):
     def __init__(self, *args, **kwargs):
         position = kwargs.pop('position', None)
         orientation = kwargs.pop('orientation', None)
-        self._internal_movement_controller = None
+        self.__has_internal_controller = False
+
         super().__init__(*args, **kwargs)
         if position is not None or orientation is not None:
             if position is None:
@@ -49,11 +50,12 @@ class PlatformMountable(Base, ABC):
                 position = StateVector([0, 0, 0])
             if orientation is None:
                 orientation = StateVector([0, 0, 0])
-            self._internal_movement_controller = FixedMovable(
+            controller = FixedMovable(
                 states=State(state_vector=position),
                 position_mapping=list(range(len(position))),
                 orientation=orientation)
-            self._property_movement_controller = self._internal_movement_controller
+            self._property_movement_controller = controller
+            self.__has_internal_controller = True
             self._set_mounting_rotation_defaults()
 
     def _set_mounting_rotation_defaults(self):
@@ -126,7 +128,7 @@ class PlatformMountable(Base, ABC):
 
     @property
     def _has_internal_controller(self):
-        return self._internal_movement_controller is not None
+        return self.__has_internal_controller
 
     @property
     def velocity(self) -> Optional[StateVector]:
