@@ -48,23 +48,36 @@ from stonesoup.types.state import GaussianState
 prior = GaussianState([[0.5], [0], [0.5], [0]], np.diag([1, 0, 1, 0]), timestamp=datetime.now())
 
 detector1 = beamformers_2d.capon(data_file)
+detector2 = beamformers_2d.rjmcmc(data_file)
 
 from stonesoup.types.hypothesis import SingleHypothesis
 
 from stonesoup.types.track import Track
-track = Track()
+track1 = Track()
+track2 = Track()
 
+print("Capon detections:")
 for timestep, detections in detector1:
     for detection in detections:
         print(detection)
         prediction = predictor.predict(prior, timestamp=detection.timestamp)
         hypothesis = SingleHypothesis(prediction, detection)  # Group a prediction and measurement
         post = updater.update(hypothesis)
-        track.append(post)
-        prior = track[-1]
+        track1.append(post)
+        prior = track1[-1]
+        
+print("RJMCMC detections:")
+for timestep, detections in detector2:
+    for detection in detections:
+        print(detection)
+        prediction = predictor.predict(prior, timestamp=detection.timestamp)
+        hypothesis = SingleHypothesis(prediction, detection)  # Group a prediction and measurement
+        post = updater.update(hypothesis)
+        track2.append(post)
+        prior = track2[-1]
 
 plotter = Plotter()
-plotter.plot_tracks(track, [0, 2], uncertainty=True)
+plotter.plot_tracks({track1, track2}, [0, 2], uncertainty=True)
 plotter.fig
 
 import matplotlib.pyplot as plt
