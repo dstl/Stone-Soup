@@ -368,7 +368,7 @@ class CategoricalState(State):
 
         if any(p < 0 or p > 1 for p in self.state_vector):
             raise ValueError("Category probabilities must lie in the closed interval [0, 1]")
-        if np.sum(self.state_vector) != 1:
+        if not np.isclose(np.sum(self.state_vector), 1):
             raise ValueError(f"Category probabilities must sum to 1")
 
     def __str__(self):
