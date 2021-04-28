@@ -52,19 +52,32 @@ def test_time_invariant_observation():
     for _ in range(3):
         state = create_random_categorical(4)
         # testing noiseless as noise generation uses random sampling
-        exp_value = E.T @ state.state_vector[mapping]
-        exp_value = exp_value / np.sum(exp_value)
-        actual_value = model._cond_prob_emission(state)
-        assert np.array_equal(exp_value, actual_value)
-        assert np.isclose(np.sum(actual_value), 1)
+        exp_hp = E.T @ state.state_vector[mapping]
+        exp_y = np.log(exp_hp / (1 - exp_hp))
+        exp_p = 1 / (1 + np.exp(-exp_y))
+        exp_p = exp_p / np.sum(exp_p)
+        actual_p = model._cond_prob_emission(state)
+        assert np.array_equal(exp_p, actual_p)
+        assert np.isclose(np.sum(actual_p), 1)
 
-    # test function
+    with pytest.raises(ValueError, match="Noise is generated via random sampling, and defined "
+                                         "noise is not implemented"):
+        model._cond_prob_emission(create_random_categorical(4), noise=[1, 2, 3])
+
+    # test function with noise (random sampling at end)
     for _ in range(3):
         state = create_random_categorical(4)
-        measurement = model.function(state)
+        measurement = model.function(state, noise=True)
         assert len(np.where(measurement == 0)[0]) == 2
         assert len(np.where(measurement == 1)[1]) == 1
         assert len(measurement) == 3
+
+    # test function without noise (no random sampling at end)
+    for _ in range(3):
+        state = create_random_categorical(4)
+        measurement = model.function(state, noise=False)
+        assert len(measurement) == 3
+        assert np.isclose(np.sum(measurement), 1)
 
     # test rvs
     for i in range(1, 4):

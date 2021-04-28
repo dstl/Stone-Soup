@@ -65,9 +65,21 @@ class CategoricalMeasurementModel(MeasurementModel):
             noise = self.rvs()
         elif not noise:
             noise = 0
+        else:
+            raise ValueError("Noise is generated via random sampling, and defined noise is not "
+                             "implemented")
 
-        prenormalised = self.emission_matrix.T @ state.state_vector[self.mapping] + noise
-        return prenormalised / np.sum(prenormalised)
+        hp = self.emission_matrix.T @ state.state_vector[self.mapping]
+        if any(hp == 1):
+            y = hp * 1.0
+            y[hp == 1] = np.finfo(np.float64).max
+            y[hp == 0] = np.finfo(np.float64).min
+            y += noise
+        else:
+            y = np.log(hp / (1 - hp)) + noise
+
+        p = 1 / (1 + np.exp(-y))
+        return p / np.sum(p)
 
     def function(self, state, noise=False, **kwargs):
         """Observation function
@@ -90,9 +102,12 @@ class CategoricalMeasurementModel(MeasurementModel):
             measurement categories. A definitive measurement category is chosen, hence the vector
             will be binary.
         """
-
-        rv = multinomial(n=1, p=self._cond_prob_emission(state, noise=False, **kwargs).flatten())
-        return StateVector(rv.rvs(size=1, random_state=None))
+        cond_prob_emission = self._cond_prob_emission(state, noise=noise, **kwargs)
+        rv = multinomial(n=1, p=cond_prob_emission.flatten())
+        if noise:
+            return StateVector(rv.rvs(size=1, random_state=None))
+        else:
+            return StateVector(cond_prob_emission)
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         """Additive noise."""
