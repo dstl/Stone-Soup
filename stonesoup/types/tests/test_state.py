@@ -11,7 +11,7 @@ from ..array import StateVector, CovarianceMatrix
 from ..numeric import Probability
 from ..particle import Particle
 from ..state import State, GaussianState, ParticleState, StateMutableSequence, \
-    WeightedGaussianState, SqrtGaussianState, CompositeState
+    WeightedGaussianState, SqrtGaussianState, CompositeState, CategoricalState
 
 
 def test_state():
@@ -344,6 +344,36 @@ def test_state_mutable_sequence_error_message():
     test_obj.test_property = 5
     with pytest.raises(AttributeError, match="Custom error message"):
         _ = test_obj.complicated_attribute
+
+
+def test_categorical_state():
+
+    # test instantiation errors
+    with pytest.raises(ValueError, match="State vector distributes over 3 categories in a space "
+                                         "with 2 possible categories"):
+        CategoricalState(state_vector=StateVector([0.1, 0.4, 0.5]), num_categories=2)
+    with pytest.raises(ValueError, match="2 category names were given for a state vector with 3 "
+                                         "elements"):
+        CategoricalState(state_vector=StateVector([0.1, 0.4, 0.5]), category_names=['1', '2'])
+    with pytest.raises(ValueError, match=r"Category probabilities must lie in the closed interval "
+                                         r"\[0, 1\]"):
+        CategoricalState(state_vector=StateVector([1.1, 0.4, 0.5]))
+    with pytest.raises(ValueError, match="Category probabilities must sum to 1"):
+        CategoricalState(state_vector=StateVector([0.6, 0.7, 0.7]))
+    with pytest.raises(ValueError, match="Category probabilities must sum to 1"):
+        CategoricalState(state_vector=StateVector([0.2, 0.2, 0.3]))
+
+    # test defaults
+    state = CategoricalState(state_vector=StateVector([0.1, 0.4, 0.5]))
+    assert state.num_categories == 3
+    assert state.category_names == [0, 1, 2]
+
+    # test str
+    state = CategoricalState(state_vector=StateVector([0.1, 0.4, 0.5]),
+                             timestamp=datetime.datetime.now(),
+                             num_categories=5,
+                             category_names=['red', 'blue', 'yellow'])
+    assert str(state) == "(P(red) = 0.1, P(blue) = 0.4, P(yellow) = 0.5)"
 
 
 def test_composite_state_timestamp_errors():
