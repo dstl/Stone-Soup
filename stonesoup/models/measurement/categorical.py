@@ -9,12 +9,12 @@ from ...base import Property
 from ...types.array import Matrix, StateVector, StateVectors, CovarianceMatrix
 
 
-class CategoricalMeasurement(MeasurementModel):
+class CategoricalMeasurementModel(MeasurementModel):
     r"""Measurement model which returns a category.
     This is a time invariant model for simple observations of a state.
     A measurement can take one of a finite number of observation categories
-    :math:`\{y_k|k\in\Z_{\gt0}\}` and a measurement vector :math:`(z_k)_i = P(y_i, k)` will define
-    a categorical distribution over these categories. Measurements are generated via random
+    :math:`Y = \{y_k|k\in\Z_{\gt0}\}` and a measurement vector :math:`(z_k)_i = P(y_i, k)` will
+    define a categorical distribution over these categories. Measurements are generated via random
     sampling.
     """
     emission_matrix: Matrix = Property(
@@ -25,6 +25,10 @@ class CategoricalMeasurement(MeasurementModel):
     emission_covariance: CovarianceMatrix = Property(default=None, doc="Emission covariance")
     mapping: Sequence[int] = Property(default=None,
                                       doc="Mapping between measurement and state dims")
+    category_names: Sequence[str] = Property(
+        default=None,
+        doc="Sequence of measurement category names corresponding to each measurement vector "
+            "component. Defaults to a list of integers starting at 0 and incrementing by 1")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -39,6 +43,13 @@ class CategoricalMeasurement(MeasurementModel):
             raise ValueError(f"Emission matrix maps from {np.shape(self.emission_matrix)[0]} "
                              f"elements of the state space, but the mapping is length "
                              f"{len(self.mapping)}")
+
+        if self.category_names and len(self.category_names) != self.ndim_meas:
+            raise ValueError(f"{len(self.category_names)} category names were given for a model "
+                             f"which returns vectors of length {self.ndim_meas}")
+
+        if self.category_names is None:
+            self.category_names = list(range(self.ndim_meas))
 
     @property
     def ndim_meas(self):
@@ -63,19 +74,21 @@ class CategoricalMeasurement(MeasurementModel):
 
         Parameters
         ----------
-        state: :class:`~.State`
+        state: :class:`~.CategoricalState`
             An input (hidden class) state, where the state vector defines a categorical
-            distribution over the set of possible hidden states :math:`\{\phi_m|m\in\Z_{\gt0}\}`
+            distribution over the set of possible hidden states
+            :math:`\Phi = \{\phi_m|m\in\Z_{\gt0}\}`.
         noise: bool
             If 'True', additive noise (generated via random sampling) will be included. Noise
             vectors cannot be defined beforehand. Only a boolean value is valid.
 
         Returns
         -------
-        :class:`numpy.ndarray` of shape (:py:attr:`~ndim_meas`, 1)
-            The observer function evaluated. The resultant vector represents a categorical
-            distribution over the set of possible measurement categories. A definitive measurement
-            category is chosen, hence the vector will be binary.
+        state_vector: :class:`stonesoup.types.array.StateVector`
+            of shape (:py:attr:`~ndim_meas, 1`). The resultant measurement vector.
+            The resultant vector represents a categorical distribution over the set of possible
+            measurement categories. A definitive measurement category is chosen, hence the vector
+            will be binary.
         """
 
         rv = multinomial(n=1, p=self._cond_prob_emission(state, noise=False, **kwargs).flatten())

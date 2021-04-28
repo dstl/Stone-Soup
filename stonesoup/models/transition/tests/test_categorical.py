@@ -8,7 +8,7 @@ from ....types.array import StateVectors, StateVector, Matrix, CovarianceMatrix
 from ....types.state import State, CategoricalState
 
 
-def create_random_multinomial(ndim):
+def create_random_categorical(ndim):
     """Create a state with random state vector representing a categorical distribution across
     `ndim` possible categories."""
     total = 0
@@ -36,12 +36,12 @@ def test_basic_time_invariant():
     # test function noise error
     with pytest.raises(ValueError, match="Noise is generated via random sampling, and defined "
                                          "noise is not implemented"):
-        model.function(create_random_multinomial(2), noise=[0.5, 0.5])
+        model.function(create_random_categorical(2), noise=[0.5, 0.5])
 
     # test function
     for _ in range(3):
 
-        state = create_random_multinomial(2)
+        state = create_random_categorical(2)
         fp = F @ state.state_vector
 
         if any(fp == 1):
@@ -88,8 +88,8 @@ def test_basic_time_invariant():
 
     # test pdf
     for _ in range(3):
-        state1 = create_random_multinomial(2)
-        state2 = create_random_multinomial(2)
+        state1 = create_random_categorical(2)
+        state2 = create_random_categorical(2)
         exp_value = (F @ state2.state_vector).T @ state1.state_vector
         actual_value = model.pdf(state1, state2)
         assert np.array_equal(actual_value, exp_value)

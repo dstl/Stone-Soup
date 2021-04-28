@@ -40,7 +40,7 @@ class CategoricalTransitionModel(TransitionModel):
 
         Parameters
         ----------
-        state : :class:`stonesoup.state.State`
+        state : :class:`~.CategoricalState`
             The state to be transitioned according to the models in :py:attr:`~model_list`.
         noise: bool
             If 'True', additive log noise (generated via random sampling) will be included prior
