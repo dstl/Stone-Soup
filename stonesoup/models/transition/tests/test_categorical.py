@@ -5,7 +5,7 @@ import pytest
 
 from ..categorical import CategoricalTransitionModel
 from ....types.array import StateVectors, StateVector, Matrix, CovarianceMatrix
-from ....types.state import State
+from ....types.state import State, CategoricalState
 
 
 def create_random_multinomial(ndim):
@@ -18,7 +18,7 @@ def create_random_multinomial(ndim):
         sv.append(x)
         total += x
     sv.append(1 - total)
-    return State(sv)
+    return CategoricalState(sv)
 
 
 def test_basic_time_invariant():
