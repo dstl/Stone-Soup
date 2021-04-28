@@ -10,12 +10,9 @@ from ..nonlinear import (
     CartesianToElevationBearingRangeRate, RangeRangeRateBinning)
 from ...base import ReversibleModel
 from ...measurement.linear import LinearGaussian
-from ...transition.tests.test_time_invariant import create_random_multinomial
 from ....functions import jacobian as compute_jac
 from ....functions import pol2cart
 from ....functions import rotz, rotx, roty, cart2sphere
-from ....measures import ObservationAccuracy
-from ....models.measurement.classification import BasicTimeInvariantObservationModel
 from ....types.angle import Bearing, Elevation
 from ....types.array import StateVector, StateVectors
 from ....types.particle import Particles
@@ -1253,59 +1250,3 @@ def test_models_with_particles(h, ModelClass, state_vec, R,
              - h(single_state_vec, model.mapping, model.translation_offset, model.rotation_offset)
              ).T,
             cov=R)
-
-
-def test_time_invariant_observation():
-    E = np.array([[90, 2],
-                  [35, 25],
-                  [1, 78]])
-    model = BasicTimeInvariantObservationModel(emission_matrix=E)
-
-    # Test normalised emission
-    for i, col in enumerate(model.emission_matrix.T):
-        ETi = E.T[i]
-        # Distribution should be preserved, but normalised.
-        # Therefore should be multiple of original emission matrix
-        assert np.isclose(np.dot(col, ETi) ** 2, np.dot(col, col) * np.dot(ETi, ETi))
-        assert sum(col) == 1
-
-    # Test reversed emission
-    for col in model.reverse_emission.T:
-        assert sum(col) == 1
-
-    # Test ndim meas
-    assert model.ndim_meas == 2
-
-    # Test ndim state
-    assert model.ndim_state == 3
-
-    # Test mapping
-    assert (model.mapping == [0, 1, 2]).all()
-
-    # Test function
-    for _ in range(3):
-        state = create_random_multinomial(3)
-        measurement = model.function(state)
-
-        assert 0 in measurement
-        assert 1 in measurement
-        assert len(measurement) == 2
-
-    # Test Jacobian
-    with pytest.raises(NotImplementedError,
-                       match="Jacobian for observation measurement model is not defined."):
-        state = State([0, 0, 0])
-        model.jacobian(state)
-
-    # Test pdf
-    measure = ObservationAccuracy()
-    for _ in range(3):
-        state1 = create_random_multinomial(2)
-        state2 = create_random_multinomial(2)
-        assert model.pdf(state1, state2) == measure(state1, state2)
-
-    # Test rvs
-    with pytest.raises(NotImplementedError,
-                       match="Noise generation for observation-based measurements is not "
-                             "implemented"):
-        model.rvs()
