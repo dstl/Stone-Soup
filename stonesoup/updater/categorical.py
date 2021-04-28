@@ -3,39 +3,17 @@
 import numpy as np
 
 from ..base import Property
-from ..models.measurement.classification import BasicTimeInvariantObservationModel
-from ..types.prediction import MeasurementPrediction
-from ..types.update import Update
+from ..models.measurement.categorical import CategoricalMeasurementModel
+from ..types.prediction import MeasurementPrediction, CategoricalMeasurementPrediction
+from ..types.state import CategoricalState
+from ..types.update import Update, CategoricalStateUpdate
 from ..updater import Updater
 
 
-class ClassificationUpdater(Updater):
-    r"""Models the update step of a forward algorithm as such:
+class HMMUpdater(Updater):
+    r"""Models the update step of a hidden Markov model"""
 
-    .. math::
-        X_{k|k}^i &= P(\phi_k^i)\\
-                  &= P(\phi_k^i| y_k^j)P(y_k^j)P(\phi_k^i| \phi_{k-1}^l)P(\phi_{k-1}^l)\\
-                  &= E^{ij}Y_k^jF^{il}X_{k-1}^l\\
-                  &= EY_k*TX_{k-1}
-
-    Where:
-
-    * :math:`X_{k|k}^i` is the :math:`i`-th component of the posterior state vector, representing
-      the probability :math:`P(\phi_k^i)` that the state is class :math:`i` at 'time'
-      :math:`k`, with the possibility of the state being any of a finite, discrete set of classes
-      :math:`\{\phi^i | i \in \mathbb{Z}_{>0}\}`
-    * :math:`y_j` is the :math:`j`-th component of the measurement vector :math:`Y_k`, an
-      observation of the state, assumed to be defining a multinomial distribution over a discrete,
-      finite set of possible measurement classes :math:`\{y^j | j \in \mathbb{Z}_{>0}\}`
-    * :math:`E` defines the time invariant emission matrix of the corresponding measurement model
-    * :math:`F` is the stochastic matrix defining the time invariant class transition
-      :math:`P(\phi_k^i| \phi_{k-1}^l)`
-    * :math:`*` is the element-wise product of two vectors
-    * :math:`k` is the 'time' of update, attained from the 'time' at which the measurement
-      :math:`Y_k` has been received
-    """
-
-    measurement_model: BasicTimeInvariantObservationModel = Property(
+    measurement_model: CategoricalMeasurementModel = Property(
         default=None,
         doc="An observation-based measurement model. Measurements are assumed to be as defined "
             "above. This model need not be defined if a measurement model is provided in the "
@@ -44,8 +22,6 @@ class ClassificationUpdater(Updater):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        self._check_measurement_model(self.measurement_model)
 
     def _check_measurement_model(self, measurement_model):
         """Check that the measurement model passed actually exists. If not attach the one in the
@@ -71,12 +47,12 @@ class ClassificationUpdater(Updater):
         try:
             measurement_model.emission_matrix
         except AttributeError:
-            raise ValueError("Measurement model must be observation-based with an Emission matrix "
-                             "property for ClassificationUpdater")
+            raise ValueError("Measurement model must be categorical. I.E. it must have an "
+                             "Emission matrix property for the HMMUpdater")
 
         return measurement_model
 
-    def get_emission_matrix(self, hypothesis):
+    def _get_emission_matrix(self, hypothesis):
 
         measurement_model = self._check_measurement_model(hypothesis.measurement.measurement_model)
 
@@ -105,11 +81,17 @@ class ClassificationUpdater(Updater):
 
         pred_meas = measurement_model.function(predicted_state, **kwargs)
 
-        return MeasurementPrediction.from_state(predicted_state, pred_meas)
+        return CategoricalMeasurementPrediction(state_vector=pred_meas,
+                                                num_categories=measurement_model.ndim_meas,
+                                                category_names=measurement_model.category_names)
 
     def update(self, hypothesis, **kwargs):
         r"""The update method. Given a hypothesised association between a predicted state or
         predicted measurement and an actual measurement, calculate the posterior state.
+
+        Bayes' rule: :math:`p(x_k|z_{1:k}) \propto p(z_k|x_k) p(x_k|z_{1:k-1})`. The likelihood is
+        calculated as an Nx1 vector of :math:`p(z_k|x_k)` for the :math:`z_k` actually observed.
+        This is piecewise multiplied by the prior and normalised.
 
         Parameters
         ----------
@@ -122,15 +104,16 @@ class ClassificationUpdater(Updater):
 
         Returns
         -------
-        : :class:`~.StateUpdate`
-            The posterior state with mean :math:`X_{k|k}`
+        : :class:`~.CategoricalStateUpdate`
+            The posterior categorical state
         """
 
         prediction = hypothesis.prediction
 
+        if not isinstance(prediction, CategoricalState):
+            raise ValueError("Prediction must be a categorical state type")
+
         if hypothesis.measurement_prediction is None:
-            # Get the measurement model out of the measurement if it's there.
-            # If not, use the one native to the updater (which might still be none)
             measurement_model = hypothesis.measurement.measurement_model
             measurement_model = self._check_measurement_model(
                 measurement_model)
@@ -139,12 +122,14 @@ class ClassificationUpdater(Updater):
             hypothesis.measurement_prediction = self.predict_measurement(
                 prediction, measurement_model=measurement_model, **kwargs)
 
-        E = self.get_emission_matrix(hypothesis)
-        EY = E @ hypothesis.measurement.state_vector
+        emission_matrix = self._get_emission_matrix(hypothesis)
+        likelihood = emission_matrix @ hypothesis.measurement.state_vector
 
-        prenormalise = np.multiply(prediction.state_vector, EY)
+        # Bayes rule (un-normalised)
+        posterior = np.multiply(likelihood, hypothesis.prediction.state_vector)
 
-        normalise = prenormalise / np.sum(prenormalise)
-
-        return Update.from_state(hypothesis.prediction, normalise,
-                                 timestamp=hypothesis.measurement.timestamp, hypothesis=hypothesis)
+        return CategoricalStateUpdate(state_vector=posterior/np.sum(posterior),
+                                      num_categories=prediction.num_categories,
+                                      category_names=prediction.category_names,
+                                      timestamp=hypothesis.measurement.timestamp,
+                                      hypothesis=hypothesis)
