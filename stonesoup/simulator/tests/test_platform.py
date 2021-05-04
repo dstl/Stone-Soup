@@ -17,11 +17,9 @@ def build_platform(sensors, x_velocity):
                   timestamp=datetime.datetime(2020, 4, 1))
     model_1d = ConstantVelocity(0.0)  # zero noise so pure movement
     trans_model = CombinedLinearGaussianTransitionModel([model_1d] * 2)
-    mounting_offsets = np.zeros((len(sensors), 2))
     position_mapping = np.array([[0, 2]])
     platform = MovingPlatform(states=state, sensors=sensors,
                               transition_model=trans_model,
-                              mounting_offsets=mounting_offsets,
                               position_mapping=position_mapping)
     return platform
 

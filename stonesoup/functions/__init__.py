@@ -595,6 +595,30 @@ def mod_elevation(x):
     return x
 
 
+def build_rotation_matrix(angle_vector: np.ndarray):
+    """
+    Calculates and returns the (3D) axis rotation matrix given a vector of
+    three angles:
+    [roll, pitch/elevation, yaw/azimuth]
+
+    Parameters
+    ----------
+        angle_vector : :class:`numpy.ndarray` of shape (3, 1): the rotations
+        about the :math:'x, y, z' axes.
+        In aircraft/radar terms these correspond to
+        [roll, pitch/elevation, yaw/azimuth]
+
+    Returns
+    -------
+        :class:`numpy.ndarray` of shape (3, 3)
+            The model (3D) rotation matrix.
+    """
+    theta_x = -angle_vector[0, 0]  # roll
+    theta_y = angle_vector[1, 0]  # pitch#elevation
+    theta_z = -angle_vector[2, 0]  # yaw#azimuth
+    return rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
+
+
 def dotproduct(a, b):
     r"""Returns the dot (or scalar) product of two StateVectors.
 
