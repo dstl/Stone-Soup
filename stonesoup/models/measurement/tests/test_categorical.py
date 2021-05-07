@@ -13,21 +13,25 @@ def test_time_invariant_observation():
     with pytest.raises(ValueError, match="Row 0 of emission matrix does not sum to 1"):
         CategoricalMeasurementModel(ndim_state=2,
                                     emission_matrix=Matrix([[1, 1],
-                                                       [0, 0]]))
+                                                            [0, 0]]),
+                                    emission_covariance=np.eye(2))
 
     # test mapping error
     with pytest.raises(ValueError, match="Emission matrix maps from 2 elements of the state "
                                          "space, but the mapping is length 3"):
-        CategoricalMeasurementModel(ndim_state=6, emission_matrix=np.eye(2), mapping=[0, 2, 4])
+        CategoricalMeasurementModel(ndim_state=6, emission_matrix=np.eye(2),
+                                    emission_covariance=np.eye(2), mapping=[0, 2, 4])
 
     # test category name error
     with pytest.raises(ValueError, match="2 category names were given for a model which returns "
                                          "vectors of length 3"):
-        CategoricalMeasurementModel(ndim_state=6, emission_matrix=np.eye(3), mapping=[0, 2, 4],
+        CategoricalMeasurementModel(ndim_state=6, emission_matrix=np.eye(3),
+                                    emission_covariance=np.eye(3), mapping=[0, 2, 4],
                                     category_names=['red', 'blue'])
     with pytest.raises(ValueError, match="4 category names were given for a model which returns "
                                          "vectors of length 3"):
-        CategoricalMeasurementModel(ndim_state=6, emission_matrix=np.eye(3), mapping=[0, 2, 4],
+        CategoricalMeasurementModel(ndim_state=6, emission_matrix=np.eye(3),
+                                    emission_covariance=np.eye(3), mapping=[0, 2, 4],
                                     category_names=['red', 'blue', 'yellow', 'green'])
 
     # 3 possible measurement categories, 2 possible hidden categories
@@ -95,4 +99,4 @@ def test_time_invariant_observation():
         exp_Hx = exp_Hx / np.sum(exp_Hx)
         exp_value = exp_Hx.T @ state1.state_vector
         actual_value = model.pdf(state1, state2)
-        assert np.array_equal(actual_value, exp_value)
+        assert np.allclose(actual_value, exp_value)

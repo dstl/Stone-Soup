@@ -22,7 +22,7 @@ class CategoricalMeasurementModel(MeasurementModel):
             r"probability of getting an observation "
             r":math:`z` from state :math:`x_{k_i} = P(\phi_i, k)`. "
             r"Rows of the matrix must sum to 1")
-    emission_covariance: CovarianceMatrix = Property(default=None, doc="Emission covariance")
+    emission_covariance: CovarianceMatrix = Property(doc="Emission covariance")
     mapping: Sequence[int] = Property(default=None,
                                       doc="Mapping between measurement and state dims")
     category_names: Sequence[str] = Property(
