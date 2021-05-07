@@ -4,10 +4,11 @@ from ..models.transition import TransitionModel
 from ..predictor import Predictor
 from ..predictor._utils import predict_lru_cache
 from ..types.prediction import CategoricalStatePrediction
+from ..types.state import CategoricalState
 
 
 class HMMPredictor(Predictor):
-    r"""Models the prediction step of a hidden markov model"""
+    r"""Models the prediction step of a hidden Markov model"""
 
     transition_model: TransitionModel = Property(doc="The transition model to be used. This "
                                                      "should be a categorical transition model.")
@@ -63,9 +64,13 @@ class HMMPredictor(Predictor):
 
         Returns
         -------
-        : :class:`~.StatePrediction`
+        : :class:`~.CategoricalStatePrediction`
             :math:`\mathbf{x}_{t + \Delta t|t}`, the predicted state.
         """
+
+        if not isinstance(prior, CategoricalState):
+            raise ValueError("Prior must be a categorical state type")
+
         predict_over_interval = self._predict_over_interval(prior, timestamp)
 
         x_pred = self._transition_function(prior, time_interval=predict_over_interval, **kwargs)

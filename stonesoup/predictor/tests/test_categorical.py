@@ -5,9 +5,10 @@ import numpy as np
 import pytest
 
 from ...models.transition.categorical import CategoricalTransitionModel
-from ...models.transition.tests.test_categorical import create_random_multinomial
+from ...models.transition.tests.test_categorical import create_random_categorical
 from ...predictor.categorical import HMMPredictor
 from ...types.prediction import StatePrediction, CategoricalStatePrediction
+from ...types.state import State
 
 
 def get_transition_models(num_models, ndim_state):
@@ -15,7 +16,7 @@ def get_transition_models(num_models, ndim_state):
     for _ in range(num_models):
         rows = list()
         for _ in range(ndim_state):
-            rows.append(create_random_multinomial(ndim_state).state_vector.flatten())
+            rows.append(create_random_categorical(ndim_state).state_vector.flatten())
         FT = np.array(rows)
         Q = np.eye(ndim_state)
         models.add(CategoricalTransitionModel(FT.T, Q))
@@ -35,9 +36,14 @@ def test_hmm_predictor(ndim_state):
         F = transition_model.transition_matrix
 
         predictor = HMMPredictor(transition_model)
+
+        # test wrong prior type
+        with pytest.raises(ValueError, match="Prior must be a categorical state type"):
+            predictor.predict(prior=State([1, 2, 3]), timestamp=new_timestamp)
+
         for _ in range(3):
             # define prior state
-            prior = create_random_multinomial(ndim_state)
+            prior = create_random_categorical(ndim_state)
             prior.timestamp = timestamp
 
             # evaluate prediction
