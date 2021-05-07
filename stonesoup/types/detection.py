@@ -3,11 +3,11 @@ from typing import MutableMapping, Sequence
 
 import numpy as np
 
-from stonesoup.sensor.sensor import Sensor
 from .groundtruth import GroundTruthPath
-from .state import State, GaussianState, StateVector, CompositeState
+from .state import State, GaussianState, StateVector, CompositeState, CategoricalState
 from ..base import Property
 from ..models.measurement import MeasurementModel
+from ..sensor.sensor import Sensor
 
 
 class Detection(State):
@@ -65,6 +65,10 @@ class MissedDetection(Detection):
         return False
 
 
+class CategoricalDetection(Detection, CategoricalState):
+    """Categorical detection type"""
+
+
 class CompositeDetection(CompositeState):
     sub_states: Sequence[Detection] = Property(default=None,
                                                doc="Sequence of sub-detections comprising the "
@@ -93,7 +97,7 @@ class CompositeDetection(CompositeState):
             return np.array(self.default_mapping)
         if self.sensor:
             return np.array(self.sensor.mapping)
-        return np.arange(len(self.sub_states))
+        return list(range(len(self.sub_states)))
 
     @property
     def metadata(self):
