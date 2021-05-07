@@ -34,7 +34,7 @@ class CategoricalMeasurementModel(MeasurementModel):
         super().__init__(*args, **kwargs)
 
         for i, row in enumerate(self.emission_matrix):
-            if sum(row) != 1:
+            if not np.isclose(np.sum(row), 1):
                 raise ValueError(f"Row {i} of emission matrix does not sum to 1")
 
         if self.mapping is None:
