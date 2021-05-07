@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import Optional
 import datetime
 from typing import Sequence
 
@@ -85,18 +86,24 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
                          "Poisson distribution. Default 1.0.")
     death_probability: Probability = Property(
         default=0.1, doc="Probability of track dying in each time step. Default 0.1.")
+    seed: Optional[int] = Property(default=None, doc="Seed for random number generation. Default None")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.random_state = np.random.RandomState(self.seed)
 
     @BufferedGenerator.generator_method
-    def groundtruth_paths_gen(self):
+    def groundtruth_paths_gen(self, random_state=None):
         groundtruth_paths = set()
         time = self.initial_state.timestamp or datetime.datetime.now()
+        random_state = random_state if random_state is not None else self.random_state
 
         for _ in range(self.number_steps):
             # Random drop tracks
             groundtruth_paths.difference_update(
                 gttrack
                 for gttrack in groundtruth_paths.copy()
-                if np.random.rand() <= self.death_probability)
+                if random_state.rand() <= self.death_probability)
 
             # Move tracks forward
             for gttrack in groundtruth_paths:
@@ -108,13 +115,13 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
                     metadata={"index": self.index}))
 
             # Random create
-            for _ in range(np.random.poisson(self.birth_rate)):
+            for _ in range(random_state.poisson(self.birth_rate)):
                 self.index = 0
                 gttrack = GroundTruthPath()
                 gttrack.append(GroundTruthState(
                     self.initial_state.state_vector +
                     self.initial_state.covar @
-                    np.random.randn(self.initial_state.ndim, 1),
+                    random_state.randn(self.initial_state.ndim, 1),
                     timestamp=time, metadata={"index": self.index}))
                 groundtruth_paths.add(gttrack)
 
