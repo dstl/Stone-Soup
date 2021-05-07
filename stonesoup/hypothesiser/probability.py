@@ -1,16 +1,17 @@
+# -*- coding: utf-8 -*-
+
 from scipy.stats import multivariate_normal as mn
 
 from .base import Hypothesiser
 from ..base import Property
-from ..measures import Measure, ObservationAccuracy
 from ..predictor import Predictor
-from ..predictor.classification import ClassificationPredictor
+from ..predictor.categorical import HMMPredictor
 from ..types.detection import MissedDetection
 from ..types.hypothesis import SingleProbabilityHypothesis
 from ..types.multihypothesis import MultipleHypothesis
 from ..types.numeric import Probability
 from ..updater import Updater
-from ..updater.classification import ClassificationUpdater
+from ..updater.categorical import HMMUpdater
 
 
 class PDAHypothesiser(Hypothesiser):
@@ -111,13 +112,13 @@ class PDAHypothesiser(Hypothesiser):
         # Common state & measurement prediction
         prediction = self.predictor.predict(track, timestamp=timestamp, **kwargs)
         # Missed detection hypothesis
-        probability = Probability(1 - self.prob_detect*self.prob_gate)
+        probability = Probability(1 - self.prob_detect * self.prob_gate)
         hypotheses.append(
             SingleProbabilityHypothesis(
                 prediction,
                 MissedDetection(timestamp=timestamp),
                 probability
-                ))
+            ))
 
         # True detection hypotheses
         for detection in detections:
@@ -133,7 +134,7 @@ class PDAHypothesiser(Hypothesiser):
                 (detection.state_vector - measurement_prediction.state_vector).ravel(),
                 cov=measurement_prediction.covar)
             pdf = Probability(log_pdf, log_value=True)
-            probability = (pdf * self.prob_detect)/self.clutter_spatial_density
+            probability = (pdf * self.prob_detect) / self.clutter_spatial_density
 
             # True detection hypothesis
             hypotheses.append(
@@ -146,26 +147,17 @@ class PDAHypothesiser(Hypothesiser):
         return MultipleHypothesis(hypotheses, normalise=True, total_weight=1)
 
 
-class ClassificationHypothesiser(Hypothesiser):
-    r"""Hypothesiser based on the consideration of multinomial distribution accuracy.
-    Whereby it is assumed track space is a finite space of discrete classifications
-    :math:`\{\phi_i | i \in \mathbb{Z}_{>0}\}` and measurement spaces are finite spaces of
-    discrete measurement classifications :math:`\{\y_i | i \in \mathbb{Z}_{>0}\}`, whereby a
-    state or measurement vector describes a multinomial distribution in its corresponding space,
-    with each element :math:`i` describing the probability that the owning object is of
-    classification :math:`\phi_i` or :math:`\y_i` respectively.
+class CategoricalHypothesiser(Hypothesiser):
+    r"""Hypothesiser based on categorical distribution accuracy.
 
     This hypothesiser generates track predictions at detection times and scores each hypothesised
-    prediction-detection pair according to the accuracy of the prediction to the detection's state
-    space emission, calculated as the product of the detection's measurement model's emission
-    matrix and detection vector product :math:`EZ` (which describes a multinomial distribution in
-    the state space. This uses the :class:`~.ObservationAccuracy' measure by default, which gives
-    a higher probability/score the closer the two distributions (prediction and emission) are to
-    each other.
+    prediction-detection pair according to the accuracy of the prediction compared to the
+    detection, calculated as the inner product of the prediction's predicted measurement and the
+    detection.
     """
 
-    predictor: ClassificationPredictor = Property(doc="Predict tracks to detection times")
-    updater: ClassificationUpdater = Property(doc="Updater used to get measurement prediction")
+    predictor: HMMPredictor = Property(doc="Predictor used to predict tracks to detection times")
+    updater: HMMUpdater = Property(doc="Updater used to get measurement prediction")
     clutter_spatial_density: float = Property(
         doc="Spatial density of clutter - tied to probability of false detection")
     prob_detect: Probability = Property(
@@ -174,34 +166,22 @@ class ClassificationHypothesiser(Hypothesiser):
     prob_gate: Probability = Property(
         default=Probability(0.95),
         doc="Gate Probability - prob. gate contains true measurement if detected")
-    measure: Measure = Property(
-        default=ObservationAccuracy,
-        doc="Measure type to determine accuracy of prediction-measurement pairs")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if not isinstance(self.measure, Measure):
-            # attempt to instantiate measure
-            try:
-                self.measure = self.measure()
-            except TypeError:
-                raise TypeError("ClassificationHypothesiser measure attribute must be a measure "
-                                "type")
 
     def hypothesise(self, track, detections, timestamp):
         """ Evaluate and return all track association hypotheses.
 
         For a given track and a set of N available detections, return a MultipleHypothesis object
         with N+1 detections (first detection is a 'MissedDetection'), each with an associated
-        accuracy (of prediction to measurement emission) measure.
+        accuracy (of prediction emission to measurement), considered the probability of the
+        hypothesis being true.
 
         Parameters
         ----------
         track: :class:`~.Track`
-            The track object to hypothesise on.
+            The track object to hypothesise on. Composed of :class:`~.CategoricalState` types.
         detections: :class:`list`
-            A list of :class:`~Detection` objects, representing the available detections.
+            A list of :class:`~CategoricalDetection` objects, representing the available
+            detections.
         timestamp: :class:`datetime.datetime`
             A timestamp used when evaluating the state and measurement predictions. Note that if a
             given detection has a non empty timestamp, then prediction will be performed according
@@ -231,23 +211,9 @@ class ClassificationHypothesiser(Hypothesiser):
             measurement_prediction = self.updater.predict_measurement(
                 prediction, detection.measurement_model)
 
-            measurement_model = detection.measurement_model
-
-            if measurement_model is None:
-                raise ValueError("All observation-based measurements must have corresponding "
-                                 "measurement models")
-
-            if not hasattr(measurement_model, 'emission_matrix'):
-                raise ValueError("ClassificationHypothesiser can only hypothesise "
-                                 "observation-based measurements with corresponding state space "
-                                 "emissions. Therefore an emission matrix must be defined in the "
-                                 "measurement's corresponding measurement model")
-
-            emission = measurement_model.inverse_function(detection)
-
-            probability = Probability(self.measure(prediction.state_vector, emission),
-                                      log_value=True)
+            probability = measurement_prediction.state_vector.T @ detection.state_vector
             probability = (probability * self.prob_detect) / self.clutter_spatial_density
+            probability = Probability(probability, log_value=False)
 
             # True detection hypothesis
             hypotheses.append(
@@ -256,5 +222,4 @@ class ClassificationHypothesiser(Hypothesiser):
                     detection,
                     probability,
                     measurement_prediction))
-
         return MultipleHypothesis(hypotheses, normalise=True, total_weight=1)

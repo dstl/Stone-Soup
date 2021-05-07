@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
+
 import datetime
 
 import numpy as np
 import pytest
-from stonesoup.measures import ObservationAccuracy
-from stonesoup.models.measurement.classification import BasicTimeInvariantObservationModel
-from stonesoup.models.measurement.nonlinear import CartesianToElevationBearingRange
-from ..probability import PDAHypothesiser, ClassificationHypothesiser
-from ...types.detection import Detection, MissedDetection
+from ...models.measurement.categorical import CategoricalMeasurementModel
+from ...models.measurement.nonlinear import CartesianToElevationBearingRange
+from ..probability import PDAHypothesiser, CategoricalHypothesiser
+from ...types.detection import Detection, MissedDetection, CategoricalDetection
 from ...types.numeric import Probability
 from ...types.state import GaussianState, State
 from ...types.track import Track
@@ -46,32 +46,32 @@ def test_pda(predictor, updater):
                mulltihypothesis)
 
 
-def test_classification(class_predictor, class_updater):
-    timestamp = datetime.datetime.now()
-    track = Track([State([0.2, 0.3, 0.5], timestamp)])
+def test_categorical(class_predictor, class_updater):
+    now = datetime.datetime.now()
+    future = now + datetime.timedelta(seconds=5)
+    track = Track([State([0.2, 0.3, 0.5], now)])
 
-    # generate random emission matrix
-    E = np.random.rand(3, 4)
+    # generate random emission matrix and normalise
+    E = np.random.rand(3, 3)
+    sum_of_rows = E.sum(axis=1)
+    E = E / sum_of_rows[:, np.newaxis]
 
     # create observation-based measurement model
-    measurement_model = BasicTimeInvariantObservationModel(E)
+    measurement_model = CategoricalMeasurementModel(ndim_state=3, emission_matrix=E)
 
-    detection1 = Detection([1, 0, 0, 0], timestamp, measurement_model)
-    detection2 = Detection([0, 1, 0, 0], timestamp, measurement_model)
-    detection3 = Detection([0, 0, 1, 0], timestamp, measurement_model)
-    detection4 = Detection([0, 0, 0, 1], timestamp, measurement_model)
-    detections = {detection1, detection2, detection3, detection4}
+    detection1 = CategoricalDetection(state_vector=[1, 0, 0], timestamp=future, measurement_model=measurement_model)
+    detection2 = CategoricalDetection(state_vector=[0, 1, 0], timestamp=future, measurement_model=measurement_model)
+    detection3 = CategoricalDetection(state_vector=[0, 0, 1], timestamp=future, measurement_model=measurement_model)
+    detections = [detection1, detection2, detection3]
 
-    hypothesiser = ClassificationHypothesiser(class_predictor, class_updater,
-                                              clutter_spatial_density=1.2e-2,
-                                              prob_detect=0.9, prob_gate=0.99)
+    hypothesiser = CategoricalHypothesiser(class_predictor, class_updater,
+                                           clutter_spatial_density=1.2e-2,
+                                           prob_detect=0.9, prob_gate=0.99)
 
-    # test default measure
-    assert isinstance(hypothesiser.measure, ObservationAccuracy)
+    multihypothesis = hypothesiser.hypothesise(track, detections, future)
 
-    multihypothesis = hypothesiser.hypothesise(track, detections, timestamp)
     # test hypotheses - 4 detections, 1 missed
-    assert len(multihypothesis) == 5
+    assert len(multihypothesis) == 4
 
     # test each hypothesis has a probability/weight attribute
     assert all(hypothesis.probability >= 0 and isinstance(hypothesis.probability, Probability) for
@@ -84,21 +84,3 @@ def test_classification(class_predictor, class_updater):
 
     # test missed detection present
     assert any(isinstance(measurement, MissedDetection) for measurement in hypothesis_detections)
-
-    # test errors
-
-    detection1.measurement_model = None
-    with pytest.raises(ValueError,
-                       match="All observation-based measurements must have corresponding "
-                             "measurement models"):
-        hypothesiser.hypothesise(track, detections, timestamp)
-
-    detection1.measurement_model = CartesianToElevationBearingRange(mapping=[0, 1],
-                                                                    noise_covar=np.eye(4),
-                                                                    ndim_state=2)
-    with pytest.raises(ValueError,
-                       match="ClassificationHypothesiser can only hypothesise observation-based "
-                             "measurements with corresponding state space emissions. Therefore an "
-                             "emission matrix must be defined in the measurement's corresponding "
-                             "measurement model"):
-        hypothesiser.hypothesise(track, detections, timestamp)
