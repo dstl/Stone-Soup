@@ -5,7 +5,7 @@ from ..base import Property
 from .base import Type
 from .hypothesis import Hypothesis
 from .state import State, GaussianState, ParticleState, SqrtGaussianState, StateMutableSequence, \
-    CompositeState
+    CompositeState, CategoricalState
 from .mixture import GaussianMixture
 
 
@@ -108,6 +108,10 @@ class ParticleStateUpdate(Update, ParticleState):
 
     This is a simple Particle state update object.
     """
+
+
+class CategoricalStateUpdate(Update, CategoricalState):
+    """Categorical state prediction type"""
 
 
 class CompositeUpdate(Update, CompositeState):

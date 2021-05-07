@@ -172,6 +172,10 @@ class CategoricalStatePrediction(Prediction, CategoricalState):
     """Categorical state prediction type"""
 
 
+class CategoricalMeasurementPrediction(MeasurementPrediction, CategoricalState):
+    """Categorical measurement prediction type"""
+
+
 class CompositePrediction(Prediction, CompositeState):
     """CompositePrediction type that represents a prediction in a composite state space.
 
