@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Union, Optional
 
 import numpy as np
 from scipy.stats import multivariate_normal
 
-from ..base import Base
+from ..base import Base, Property
 from ..functions import jacobian as compute_jac
 from ..types.array import StateVector, StateVectors, CovarianceMatrix
 from ..types.numeric import Probability
@@ -192,8 +192,14 @@ class GaussianModel(Model):
     """GaussianModel class
 
     Base/Abstract class for all Gaussian models"""
+    seed: Optional[int] = Property(default=None, doc="Seed for random number generation")
 
-    def rvs(self, num_samples: int = 1, **kwargs) -> Union[StateVector, StateVectors]:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.random_state = np.random.RandomState(self.seed)
+
+    def rvs(self, num_samples: int = 1, random_state=None, **kwargs) ->\
+            Union[StateVector, StateVectors]:
         r"""Model noise/sample generation function
 
         Generates noise samples from the model.
@@ -224,8 +230,10 @@ class GaussianModel(Model):
         if covar is None or None in covar:
             raise ValueError("Cannot generate rvs from None-type covariance")
 
+        random_state = random_state if random_state is not None else self.random_state
+
         noise = multivariate_normal.rvs(
-            np.zeros(self.ndim), covar, num_samples)
+            np.zeros(self.ndim), covar, num_samples, random_state=random_state)
 
         noise = np.atleast_2d(noise)
 
