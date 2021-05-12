@@ -198,7 +198,8 @@ for n, measurements in enumerate(all_measurements):
 # %%
 # Plot the resulting tracks
 
+# sphinx_gallery_thumbnail_number = 3
+
 plotter.plot_tracks(tracks, [0, 2], uncertainty=True)
 plotter.fig
 
-# sphinx_gallery_thumbnail_number = 3

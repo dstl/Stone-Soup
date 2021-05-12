@@ -191,10 +191,10 @@ for n, measurements in enumerate(all_measurements):
 plotter.plot_tracks(tracks, [0, 2], uncertainty=True)
 plotter.fig
 
-# sphinx_gallery_thumbnail_number = 2
-
 # %%
 # References
 # ----------
 # 1. Bar-Shalom Y, Daum F, Huang F 2009, The Probabilistic Data Association Filter, IEEE Control
 # Systems Magazine
+
+# sphinx_gallery_thumbnail_number = 2
