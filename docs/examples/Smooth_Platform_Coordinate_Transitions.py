@@ -188,6 +188,9 @@ platform = MultiTransitionMovingPlatform(states=platform_state,
 
 
 # %%
+
+# sphinx_gallery_thumbnail_number = 4
+
 platform_coords = []
 sim_rate = 100  # 'sim_rate'-seconds each time-step.
 for i in range(int((times[-1] - times[0]).total_seconds()/sim_rate)):
@@ -200,5 +203,3 @@ ax.plot([coord[0] for coord in platform_coords],
         color='blue',
         linewidth=3)
 fig
-
-# sphinx_gallery_thumbnail_number = 4
