@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
+import datetime
+from enum import Enum
 from typing import Mapping, Any
 
 import numpy as np
-from datetime import datetime
-from enum import Enum
 
 
 from ..base import Property
@@ -172,7 +172,7 @@ class OrbitalState(State):
                 mics = (seco - fseco) * 1e6
                 fmics = int(np.round(mics))
 
-                timestamp = datetime.strptime(
+                timestamp = datetime.datetime.strptime(
                     str(year) + " " + str(day) + " " + str(fhour) + " " + str(fminu) + " " +
                     str(fseco) + " " + str(
                         fmics), "%Y %j %H %M %S %f")
