@@ -144,15 +144,19 @@ class SwitchMultiTargetGroundTruthSimulator(MultiTargetGroundTruthSimulator):
         The element in the ith row and the jth column is the probability of\
          switching from the ith transition model in :attr:`transition_models`\
          to the jth")
+    seed: Optional[int] = Property(default=None, doc="Seed for random number generation."
+                                                     " Default None")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.index = 0
+        self.random_state = np.random.RandomState(self.seed)
 
     @property
-    def transition_model(self):
-        self.index = np.random.choice(range(0, len(self.transition_models)),
-                                      p=self.model_probs[self.index])
+    def transition_model(self, random_state=None):
+        random_state = random_state if random_state is not None else self.random_state
+        self.index = random_state.choice(range(0, len(self.transition_models)),
+                                         p=self.model_probs[self.index])
         return self.transition_models[self.index]
 
 
