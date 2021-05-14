@@ -62,15 +62,18 @@ class SwitchOneTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
     The element in the ith row and the jth column is the probability of\
      switching from the ith transition model in :attr:`transition_models`\
      to the jth")
+    seed: Optional[int] = Property(default=None, doc="Seed for random number generation."
+                                                     " Default None")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.index = 0
+        self.random_state = np.random.RandomState(self.seed)
 
     @property
     def transition_model(self):
-        self.index = np.random.choice(range(0, len(self.transition_models)),
-                                      p=self.model_probs[self.index])
+        self.index = self.random_state.choice(range(0, len(self.transition_models)),
+                                              p=self.model_probs[self.index])
         return self.transition_models[self.index]
 
 
@@ -87,7 +90,8 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
                          "Poisson distribution. Default 1.0.")
     death_probability: Probability = Property(
         default=0.1, doc="Probability of track dying in each time step. Default 0.1.")
-    seed: Optional[int] = Property(default=None, doc="Seed for random number generation. Default None")
+    seed: Optional[int] = Property(default=None, doc="Seed for random number generation."
+                                                     " Default None")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -167,7 +171,8 @@ class SimpleDetectionSimulator(DetectionSimulator):
     meas_range: np.ndarray = Property()
     detection_probability: Probability = Property(default=0.9)
     clutter_rate: float = Property(default=2.0)
-    seed: Optional[int] = Property(default=None, doc="Seed for random number generation. Default None")
+    seed: Optional[int] = Property(default=None, doc="Seed for random number generation."
+                                                     " Default None")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
