@@ -4,6 +4,7 @@ import datetime
 from typing import Sequence
 
 import numpy as np
+from ordered_set import OrderedSet
 
 from ..base import Property
 from ..models.measurement import MeasurementModel
@@ -94,7 +95,7 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
 
     @BufferedGenerator.generator_method
     def groundtruth_paths_gen(self, random_state=None):
-        groundtruth_paths = set()
+        groundtruth_paths = OrderedSet()
         time = self.initial_state.timestamp or datetime.datetime.now()
         random_state = random_state if random_state is not None else self.random_state
 
