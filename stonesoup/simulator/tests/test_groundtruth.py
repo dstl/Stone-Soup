@@ -103,6 +103,26 @@ def test_one_target_ground_truth_simulator_switch(transition_model1,
     # Check that the number of steps is equal to the simulation steps
     assert step + 1 == simulator.number_steps
 
+    # Check random seed gives consistent results
+    groundtruth1 = SwitchOneTargetGroundTruthSimulator(
+        transition_models=[transition_model1, transition_model2],
+        model_probs=model_probs,
+        initial_state=initial_state,
+        timestep=timestep,
+        seed=1)
+    groundtruth2 = SwitchOneTargetGroundTruthSimulator(
+        transition_models=[transition_model1, transition_model2],
+        model_probs=model_probs,
+        initial_state=initial_state,
+        timestep=timestep,
+        seed=1)
+
+    for (_, truth1), (_, truth2) in zip(groundtruth1, groundtruth2):
+        state_vectors1 = tuple(tuple(gt.state_vector) for gt in truth1)
+        state_vectors2 = tuple(tuple(gt.state_vector) for gt in truth2)
+        for sv in state_vectors1:
+            assert sv in state_vectors2
+
 
 def test_multitarget_ground_truth_simulator_witch(transition_model1,
                                                   transition_model2,
