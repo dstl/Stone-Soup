@@ -67,6 +67,20 @@ def test_multitarget_ground_truth_simulator(transition_model1, timestep):
     # Check that ground truth paths vary in length
     assert len({len(path) for path in total_paths}) > 1
 
+    # Check random seed gives consistent results
+    simulator1 = MultiTargetGroundTruthSimulator(transition_model1,
+                                                 initial_state, timestep,
+                                                 seed=1)
+    simulator2 = MultiTargetGroundTruthSimulator(transition_model1,
+                                                 initial_state, timestep,
+                                                 seed=1)
+
+    for (_, truth1), (_, truth2) in zip(simulator1, simulator2):
+        state_vectors1 = tuple(tuple(gt.state_vector) for gt in truth1)
+        state_vectors2 = tuple(tuple(gt.state_vector) for gt in truth2)
+        for sv in state_vectors1:
+            assert sv in state_vectors2
+
 
 def test_one_target_ground_truth_simulator_switch(transition_model1,
                                                   transition_model2,
