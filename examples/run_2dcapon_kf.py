@@ -77,7 +77,7 @@ for timestep, detections in detector2:
         prior = track2[-1]
 
 plotter = Plotter()
-plotter.plot_tracks({track1, track2}, [0, 2], uncertainty=True)
+plotter.plot_tracks(set([track1, track2]), [0, 2], uncertainty=True)
 plotter.fig
 
 import matplotlib.pyplot as plt

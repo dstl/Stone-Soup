@@ -47,6 +47,7 @@ def proposal_func(params,K,p_params,max_targets):
     update_type = random.uniform(0,1)
     p_K = 0
     Qratio = 1 # ratio of proposal probabilities for forwards and backwards moves
+    update_type = 1 # forced temporarily (for single-target examples)
     if update_type > 0.5:
         # update params
         [p_params,p_K] = proposal(params,K,p_params)
@@ -143,7 +144,7 @@ class capon(Base, BufferedGenerator):
     @BufferedGenerator.generator_method
     def detections_gen(self):
         detections = set()
-        previous_time = datetime.now()
+        current_time = datetime.now()
         
         y = np.loadtxt(self.csv_path, delimiter=',')
 
@@ -205,7 +206,7 @@ class capon(Base, BufferedGenerator):
             covar = CovarianceMatrix(np.array([[1,0],[0,1]])) # [[AA, AE],[AE, EE]]
             measurement_model = LinearGaussian(ndim_state=4, mapping=[0, 2],
                                                noise_covar=covar)
-            current_time = previous_time + timedelta(milliseconds=window)
+            current_time = current_time + timedelta(milliseconds=window)
             detection = Detection(state_vector, timestamp=current_time,
                                   measurement_model=measurement_model)
             detections = set([detection])
@@ -222,7 +223,7 @@ class rjmcmc(Base, BufferedGenerator):
     @BufferedGenerator.generator_method
     def detections_gen(self):
         detections = set()
-        previous_time = datetime.now()
+        current_time = datetime.now()
         
         num_samps = 1000000
         d = 10
@@ -384,7 +385,7 @@ class rjmcmc(Base, BufferedGenerator):
             covar = CovarianceMatrix(np.array([[1,0],[0,1]])) # [[AA, AE],[AE, EE]]
             measurement_model = LinearGaussian(ndim_state=4, mapping=[0, 2],
                                                noise_covar=covar)
-            current_time = previous_time + timedelta(milliseconds=window)
+            current_time = current_time + timedelta(milliseconds=window)
             detection = Detection(state_vector, timestamp=current_time,
                                   measurement_model=measurement_model)
             detections = set([detection])
