@@ -10,6 +10,7 @@ from ..base import Property
 from ..measures import EuclideanWeighted
 from ..types.metric import SingleTimeMetric, TimeRangeMetric
 from ..types.time import TimeRange
+from ..types.track import Track
 
 
 class SIAPMetrics(MetricGenerator):
@@ -1019,6 +1020,9 @@ class SIAPMetrics(MetricGenerator):
         distance_sum = 0
         for assoc in manager.association_set.associations_at_timestamp(timestamp):
             track, truth = assoc.objects
+            # Sets aren't ordered, so need to ensure correct path is truth/track
+            if isinstance(truth, Track):
+                track, truth = truth, track
             distance_sum += measure(track[timestamp], truth[timestamp])
         return distance_sum
 
