@@ -25,6 +25,12 @@ vi = CovarianceMatrix(np.diag([20., 3., 7., 10.]))
 state_v = GaussianState(v, vi, timestamp=t)
 
 
+def test_measure_raise_error():
+    with pytest.raises(ValueError) as excinfo:
+        measures.Euclidean(mapping2=[0, 3])
+    assert "Cannot set mapping2 if mapping is None." in str(excinfo.value)
+
+
 def test_euclidean():
 
     measure = measures.Euclidean()
