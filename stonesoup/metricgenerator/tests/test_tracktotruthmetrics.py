@@ -33,6 +33,24 @@ def metric_generators_2_maps():
                         track_id='ident')]
 
 
+def test_SIAP_raise_error():
+    with pytest.raises(ValueError) as excinfo:
+        SIAPMetrics(velocity_mapping=[1, 3],
+                    position_mapping2=[0, 1],
+                    velocity_mapping2=[2, 3],
+                    truth_id='identify',
+                    track_id='ident')
+    assert "Cannot set position_mapping2 if position_mapping is None." in str(excinfo.value)
+
+    with pytest.raises(ValueError) as excinfo:
+        SIAPMetrics(position_mapping=[0, 2],
+                    position_mapping2=[0, 1],
+                    velocity_mapping2=[2, 3],
+                    truth_id='identify',
+                    track_id='ident')
+    assert "Cannot set velocity_mapping2 if velocity_mapping is None." in str(excinfo.value)
+
+
 @pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
 def test_num_tracks_tracks(generator):
     manager = SimpleManager()
