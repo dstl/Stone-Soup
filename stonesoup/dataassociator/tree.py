@@ -87,9 +87,20 @@ class DetectionKDTreeMixIn(DataAssociator):
 
 
 class TPRTreeMixIn(DataAssociator):
-    measurement_model = Property(MeasurementModel)
-    horizon_time = Property(datetime.timedelta)
-    vel_mapping = Property(np.ndarray, default=None)
+    """Detection TPR tree based mixin
+
+    Construct TPR tree
+    """
+    measurement_model = Property(
+        MeasurementModel,
+        doc="")
+    horizon_time = Property(
+        datetime.timedelta,
+        doc="")
+    vel_mapping = Property(
+        np.ndarray,
+        default=None,
+        doc="")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
