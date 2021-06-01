@@ -18,6 +18,21 @@ class Measure(Base):
         doc="Mapping array which specifies which elements within the"
             " state vectors are to be assessed as part of the measure"
     )
+    mapping2: np.ndarray = Property(
+        default=None,
+        doc="A second mapping for when the states being compared exist "
+            "in different parameter spaces. Defaults to the same as the"
+            " first mapping"
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.mapping2 is not None and self.mapping is None:
+            raise ValueError("Cannot set mapping2 if mapping is None. "
+                             "If this is really what you meant to do, then"
+                             " set mapping to include all dimensions.")
+        if self.mapping2 is None and self.mapping is not None:
+            self.mapping2 = self.mapping
 
     @abstractmethod
     def __call__(self, state1, state2):
@@ -68,7 +83,7 @@ class Euclidean(Measure):
         # Calculate Euclidean distance between two state
         if self.mapping is not None:
             return distance.euclidean(state1.state_vector[self.mapping, :],
-                                      state2.state_vector[self.mapping, :])
+                                      state2.state_vector[self.mapping2, :])
         else:
             return distance.euclidean(state1.state_vector, state2.state_vector)
 
@@ -113,7 +128,7 @@ class EuclideanWeighted(Measure):
         """
         if self.mapping is not None:
             return distance.euclidean(state1.state_vector[self.mapping, :],
-                                      state2.state_vector[self.mapping, :],
+                                      state2.state_vector[self.mapping2, :],
                                       self.weighting)
         else:
             return distance.euclidean(state1.state_vector,
@@ -153,7 +168,7 @@ class Mahalanobis(Measure):
         """
         if self.mapping is not None:
             u = state1.state_vector[self.mapping, :]
-            v = state2.state_vector[self.mapping, :]
+            v = state2.state_vector[self.mapping2, :]
             # extract the mapped covariance data
             rows = np.array(self.mapping, dtype=np.intp)
             columns = np.array(self.mapping, dtype=np.intp)
@@ -212,7 +227,7 @@ class SquaredGaussianHellinger(Measure):
         """
         if self.mapping is not None:
             mu1 = state1.state_vector[self.mapping, :]
-            mu2 = state2.state_vector[self.mapping, :]
+            mu2 = state2.state_vector[self.mapping2, :]
 
             # extract the mapped covariance data
             rows = np.array(self.mapping, dtype=np.intp)
