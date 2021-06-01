@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+from typing import Optional
 import datetime
 from typing import Sequence
 
 import numpy as np
+from ordered_set import OrderedSet
 
 from ..base import Property
 from ..models.measurement import MeasurementModel
@@ -60,15 +62,18 @@ class SwitchOneTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
     The element in the ith row and the jth column is the probability of\
      switching from the ith transition model in :attr:`transition_models`\
      to the jth")
+    seed: Optional[int] = Property(default=None, doc="Seed for random number generation."
+                                                     " Default None")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.index = 0
+        self.random_state = np.random.RandomState(self.seed)
 
     @property
     def transition_model(self):
-        self.index = np.random.choice(range(0, len(self.transition_models)),
-                                      p=self.model_probs[self.index])
+        self.index = self.random_state.choice(range(0, len(self.transition_models)),
+                                              p=self.model_probs[self.index])
         return self.transition_models[self.index]
 
 
@@ -85,18 +90,25 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
                          "Poisson distribution. Default 1.0.")
     death_probability: Probability = Property(
         default=0.1, doc="Probability of track dying in each time step. Default 0.1.")
+    seed: Optional[int] = Property(default=None, doc="Seed for random number generation."
+                                                     " Default None")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.random_state = np.random.RandomState(self.seed)
 
     @BufferedGenerator.generator_method
-    def groundtruth_paths_gen(self):
-        groundtruth_paths = set()
+    def groundtruth_paths_gen(self, random_state=None):
+        groundtruth_paths = OrderedSet()
         time = self.initial_state.timestamp or datetime.datetime.now()
+        random_state = random_state if random_state is not None else self.random_state
 
         for _ in range(self.number_steps):
             # Random drop tracks
             groundtruth_paths.difference_update(
                 gttrack
                 for gttrack in groundtruth_paths.copy()
-                if np.random.rand() <= self.death_probability)
+                if random_state.rand() <= self.death_probability)
 
             # Move tracks forward
             for gttrack in groundtruth_paths:
@@ -108,13 +120,13 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
                     metadata={"index": self.index}))
 
             # Random create
-            for _ in range(np.random.poisson(self.birth_rate)):
+            for _ in range(random_state.poisson(self.birth_rate)):
                 self.index = 0
                 gttrack = GroundTruthPath()
                 gttrack.append(GroundTruthState(
                     self.initial_state.state_vector +
                     self.initial_state.covar @
-                    np.random.randn(self.initial_state.ndim, 1),
+                    random_state.randn(self.initial_state.ndim, 1),
                     timestamp=time, metadata={"index": self.index}))
                 groundtruth_paths.add(gttrack)
 
@@ -132,15 +144,19 @@ class SwitchMultiTargetGroundTruthSimulator(MultiTargetGroundTruthSimulator):
         The element in the ith row and the jth column is the probability of\
          switching from the ith transition model in :attr:`transition_models`\
          to the jth")
+    seed: Optional[int] = Property(default=None, doc="Seed for random number generation."
+                                                     " Default None")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.index = 0
+        self.random_state = np.random.RandomState(self.seed)
 
     @property
-    def transition_model(self):
-        self.index = np.random.choice(range(0, len(self.transition_models)),
-                                      p=self.model_probs[self.index])
+    def transition_model(self, random_state=None):
+        random_state = random_state if random_state is not None else self.random_state
+        self.index = random_state.choice(range(0, len(self.transition_models)),
+                                         p=self.model_probs[self.index])
         return self.transition_models[self.index]
 
 
@@ -159,12 +175,15 @@ class SimpleDetectionSimulator(DetectionSimulator):
     meas_range: np.ndarray = Property()
     detection_probability: Probability = Property(default=0.9)
     clutter_rate: float = Property(default=2.0)
+    seed: Optional[int] = Property(default=None, doc="Seed for random number generation."
+                                                     " Default None")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.real_detections = set()
         self.clutter_detections = set()
         self.index = 0
+        self.random_state = np.random.RandomState(self.seed)
 
     @property
     def clutter_spatial_density(self):
@@ -183,13 +202,14 @@ class SimpleDetectionSimulator(DetectionSimulator):
         return True
 
     @BufferedGenerator.generator_method
-    def detections_gen(self):
+    def detections_gen(self, random_state=None):
         for time, tracks in self.groundtruth:
             self.real_detections.clear()
             self.clutter_detections.clear()
+            random_state = random_state if random_state is not None else self.random_state
             for track in tracks:
                 self.index = track[-1].metadata.get("index")
-                if np.random.rand() < self.detection_probability:
+                if random_state.rand() < self.detection_probability:
                     detection = TrueDetection(
                         self.measurement_model.function(track[-1], noise=True),
                         timestamp=track[-1].timestamp,
@@ -199,9 +219,9 @@ class SimpleDetectionSimulator(DetectionSimulator):
                     self.real_detections.add(detection)
 
             # generate clutter
-            for _ in range(np.random.poisson(self.clutter_rate)):
+            for _ in range(random_state.poisson(self.clutter_rate)):
                 detection = Clutter(
-                    np.random.rand(self.measurement_model.ndim_meas, 1) *
+                    random_state.rand(self.measurement_model.ndim_meas, 1) *
                     np.diff(self.meas_range) + self.meas_range[:, :1],
                     timestamp=time,
                     measurement_model=self.measurement_model)
