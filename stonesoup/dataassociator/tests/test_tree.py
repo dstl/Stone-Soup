@@ -1,9 +1,7 @@
 import datetime
+
 import pytest
 import numpy as np
-
-from ...types.array import CovarianceMatrix
-
 try:
     import rtree
 except (ImportError, AttributeError):
@@ -14,10 +12,11 @@ from ..neighbour import (
     NearestNeighbour, GlobalNearestNeighbour, GNNWith2DAssignment)
 from ..probability import PDA, JPDA
 from ..tree import DetectionKDTreeMixIn, TPRTreeMixIn
-from stonesoup.types.track import Track
-from stonesoup.types.detection import Detection, MissedDetection
-from stonesoup.types.state import GaussianState
-from stonesoup.models.measurement.nonlinear import CartesianToBearingRange
+from ...models.measurement.nonlinear import CartesianToBearingRange
+from ...types.array import CovarianceMatrix
+from ...types.detection import Detection, MissedDetection
+from ...types.state import GaussianState
+from ...types.track import Track
 
 
 class DetectionKDTreeNN(NearestNeighbour, DetectionKDTreeMixIn):
@@ -86,11 +85,12 @@ def vel_mapping(request):
 def nn_associator(request, distance_hypothesiser, predictor,
                   updater, measurement_model, number_of_neighbours, vel_mapping):
     '''Distance associator for each KD Tree'''
-    kd_trees = [DetectionKDTreeNN, DetectionKDTreeGNN, DetectionKDTreeGNN2D]
-    if request.param in kd_trees:
+    if 'KDTree' in request.param.__name__:
         return request.param(distance_hypothesiser, predictor,
                              updater, number_of_neighbours=number_of_neighbours)
     else:
+        if rtree is None:
+            return pytest.skip("'rtree' module not available")
         return request.param(distance_hypothesiser, measurement_model,
                              datetime.timedelta(hours=1), vel_mapping=vel_mapping)
 
@@ -98,11 +98,12 @@ def nn_associator(request, distance_hypothesiser, predictor,
 @pytest.fixture(params=[KDTreePDA, KDTreeJPDA, TPRTreePDA, TPRTreeJPDA])
 def pda_associator(request, probability_hypothesiser, predictor,
                    updater, measurement_model, number_of_neighbours, vel_mapping):
-    kd_trees = [KDTreePDA, KDTreeJPDA]
-    if request.param in kd_trees:
+    if 'KDTree' in request.param.__name__:
         return request.param(probability_hypothesiser, predictor,
                              updater, number_of_neighbours=number_of_neighbours)
     else:
+        if rtree is None:
+            return pytest.skip("'rtree' module not available")
         return request.param(probability_hypothesiser, measurement_model,
                              datetime.timedelta(hours=1), vel_mapping=vel_mapping)
 
