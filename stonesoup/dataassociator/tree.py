@@ -96,20 +96,24 @@ class TPRTreeMixIn(DataAssociator):
         doc="Measurement model used within the TPR tree")
     horizon_time: datetime.timedelta = Property(
         doc="How far the TPR tree should look into the future")
+    pos_mapping: Sequence[int] = Property(
+        default=None,
+        doc="Mapping for position coordinates. Default `None`, which uses the measurement model"
+            "mapping")
     vel_mapping: Sequence[int] = Property(
         default=None,
-        doc="Used to generate coordinates")
+        doc="Mapping for velocity coordinates. Default `None`, which uses the position mapping "
+            "adding offset of 1 to each")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        if self.pos_mapping is None:
+            self.pos_mapping = self.measurement_model.mapping
         # if no vel_mapping take position mapping and plus 1 to each dimension
         # e.g. 0,2 would become 1,3
-        self.pos_mapping = self.measurement_model.mapping
         if self.vel_mapping is None:
-            self.vel_mapping = self.measurement_model.mapping[1::3]
-        else:
-            self.pos_mapping = self.measurement_model.mapping
+            self.vel_mapping = [i + 1 for i in self.pos_mapping]
 
         # Create tree
         tree_property = rtree.index.Property(
