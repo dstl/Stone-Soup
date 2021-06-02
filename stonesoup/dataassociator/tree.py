@@ -8,9 +8,10 @@ import scipy as sp
 from scipy.spatial import KDTree
 try:
     import rtree
-except ImportError:
+except (ImportError, AttributeError) as err:
+    import warnings
+    warnings.warn(f"Failed to import 'rtree': {err!r}")
     rtree = None
-
 
 from .base import DataAssociator
 from ..base import Property
