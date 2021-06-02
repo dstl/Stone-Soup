@@ -136,7 +136,7 @@ class TPRTreeMixIn(DataAssociator):
         max_vel = (vel_vector + vel_delta).ravel()
 
         return ((*min_pos, *max_pos), (*min_vel, *max_vel),
-                track.timestamp.timestamp())
+                track.timestamp.astimezone(datetime.timezone.utc).timestamp())
 
     def generate_hypotheses(self, tracks, detections, timestamp, **kwargs):
         # No need for tree here.
@@ -154,12 +154,14 @@ class TPRTreeMixIn(DataAssociator):
 
             elif track not in tracks:
                 coords = self._coords[track][:-1] \
-                            + ((self._coords[track][-1] - 1e-6, c_time.timestamp()),)
+                            + ((self._coords[track][-1] - 1e-6,
+                                c_time.astimezone(datetime.timezone.utc).timestamp()),)
                 self._tree.delete(track, coords)
                 del self._coords[track]
             elif isinstance(track.state, Update):
                 coords = self._coords[track][:-1] \
-                            + ((self._coords[track][-1]-1e-6, c_time.timestamp()),)
+                            + ((self._coords[track][-1]-1e-6,
+                                c_time.astimezone(datetime.timezone.utc).timestamp()),)
                 self._tree.delete(track, coords)
                 self._coords[track] = self._track_tree_coordinates(track)
                 self._tree.insert(track, self._coords[track])
@@ -181,7 +183,7 @@ class TPRTreeMixIn(DataAssociator):
                 state_meas = model.inverse_function(
                     detection, **kwargs)[self.pos_mapping, :]
 
-            det_time = detection.timestamp.timestamp()
+            det_time = detection.timestamp.astimezone(datetime.timezone.utc).timestamp()
             intersected_tracks = self._tree.intersection((
                 (*state_meas.ravel(), *state_meas.ravel()),
                 (0, 0)*len(self.pos_mapping),
