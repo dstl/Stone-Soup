@@ -78,6 +78,7 @@ class DetectionKDTreeMixIn(DataAssociator):
                     distance_upper_bound=self.max_distance)
 
             for index in np.atleast_1d(indexes):
+                # Index is equal to length of detections when no neighbours found
                 if index != len(detections_list):
                     track_detections[track].add(detections_list[index])
 
@@ -139,30 +140,32 @@ class TPRTreeMixIn(DataAssociator):
         if not tracks:
             return dict()
 
-        c_time = None
-        for track in sorted(tracks.union(self._tree),
-                            key=attrgetter('timestamp')):
-            if c_time is None:
-                c_time = track.timestamp
-            if track not in self._tree:
+        # Update the tree in this first section
+        sorted_tracks = sorted(tracks.union(self._tree), key=attrgetter('timestamp'))
+        # Get initial starting time from earliest track
+        c_time = sorted_tracks[0].timestamp
+        for track in sorted_tracks:
+            if track not in self._tree:  # track not in tree, so insert it
                 self._coords[track] = self._track_tree_coordinates(track)
                 self._tree.insert(track, self._coords[track])
 
-            elif track not in tracks:
+            elif track not in tracks:  # track in tree, but not in tracks now; remove it from tree
                 coords = self._coords[track][:-1] \
                             + ((self._coords[track][-1] - 1e-6,
                                 c_time.astimezone(datetime.timezone.utc).timestamp()),)
                 self._tree.delete(track, coords)
                 del self._coords[track]
-            elif isinstance(track.state, Update):
+            elif isinstance(track.state, Update):  # Track in tree, and updated; so update it.
                 coords = self._coords[track][:-1] \
                             + ((self._coords[track][-1]-1e-6,
                                 c_time.astimezone(datetime.timezone.utc).timestamp()),)
                 self._tree.delete(track, coords)
                 self._coords[track] = self._track_tree_coordinates(track)
                 self._tree.insert(track, self._coords[track])
+            # Set current tree to tracks timestamp
             c_time = track.timestamp
 
+        # With tree up to date, find tracks that intersect with detections
         track_detections = defaultdict(set)
         for detection in sorted(detections, key=attrgetter('timestamp')):
             if detection.measurement_model is not None:
@@ -170,6 +173,7 @@ class TPRTreeMixIn(DataAssociator):
             else:
                 model = self.measurement_model
 
+            # Convert detection to track state space
             if isinstance(model, LinearModel):
                 model_matrix = model.matrix(**kwargs)
                 inv_model_matrix = sp.linalg.pinv(model_matrix)
@@ -179,6 +183,7 @@ class TPRTreeMixIn(DataAssociator):
                 state_meas = model.inverse_function(
                     detection, **kwargs)[self.pos_mapping, :]
 
+            # Find intersections
             det_time = detection.timestamp.astimezone(datetime.timezone.utc).timestamp()
             intersected_tracks = self._tree.intersection((
                 (*state_meas.ravel(), *state_meas.ravel()),
