@@ -2,6 +2,7 @@
 import datetime
 from collections import defaultdict
 from operator import attrgetter
+from typing import Sequence
 
 import numpy as np
 import scipy as sp
@@ -35,18 +36,16 @@ class DetectionKDTreeMixIn(DataAssociator):
     This is only suitable where measurements are in same space as each other
     and at the same timestamp.
     """
-    predictor = Property(
-        Predictor,
+    predictor: Predictor = Property(
         doc="Predict tracks to detection times")
-    updater = Property(
-        Updater,
+    updater: Updater = Property(
         doc="Updater used to get measurement prediction")
-    number_of_neighbours = Property(
-        int, default=None,
+    number_of_neighbours: int = Property(
+        default=None,
         doc="Number of neighbours to find. Default `None`, which means all "
             "points within the :attr:`max_distance` are returned.")
-    max_distance = Property(
-        float, default=np.inf,
+    max_distance: float = Property(
+        default=np.inf,
         doc="Max distance to return points. Default `inf`")
 
     def generate_hypotheses(self, tracks, detections, timestamp, **kwargs):
@@ -92,14 +91,11 @@ class TPRTreeMixIn(DataAssociator):
 
     Construct a TPR-tree.
     """
-    measurement_model = Property(
-        MeasurementModel,
+    measurement_model: MeasurementModel = Property(
         doc="Measurement model used within the TPR tree")
-    horizon_time = Property(
-        datetime.timedelta,
+    horizon_time: datetime.timedelta = Property(
         doc="How far the TPR tree should look into the future")
-    vel_mapping = Property(
-        np.ndarray,
+    vel_mapping: Sequence[int] = Property(
         default=None,
         doc="Used to generate coordinates")
 
