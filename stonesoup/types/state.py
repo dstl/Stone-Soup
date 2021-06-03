@@ -376,6 +376,10 @@ class CategoricalState(State):
                    for category, p in zip(self.category_names, self.state_vector)]
         return "(" + ', '.join(strings) + ")"
 
+    @property
+    def category(self):
+        return self.category_names[np.argmax(self.state_vector)]
+
 
 class CompositeState(Type):
     """Composite State type
