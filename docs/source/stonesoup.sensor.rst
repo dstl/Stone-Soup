@@ -18,3 +18,8 @@ Passive
 -------
 .. automodule:: stonesoup.sensor.passive
     :show-inheritance:
+
+Categorical
+-----------
+.. automodule:: stonesoup.sensor.categorical
+    :show-inheritance:
