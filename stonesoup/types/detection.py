@@ -69,6 +69,10 @@ class CategoricalDetection(Detection, CategoricalState):
     """Categorical detection type"""
 
 
+class TrueCategoricalDetection(TrueDetection, CategoricalDetection):
+    """TrueCategoricalDetection type for categorical detections that come from ground truth"""
+
+
 class CompositeDetection(CompositeState):
     sub_states: Sequence[Detection] = Property(default=None,
                                                doc="Sequence of sub-detections comprising the "
