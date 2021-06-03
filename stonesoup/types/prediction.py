@@ -5,7 +5,7 @@ from ..base import Property
 from .array import CovarianceMatrix
 from .base import Type
 from .state import (State, GaussianState, ParticleState, SqrtGaussianState,
-                    TaggedWeightedGaussianState, StateMutableSequence)
+                    TaggedWeightedGaussianState, WeightedGaussianState, StateMutableSequence)
 from ..models.transition.base import TransitionModel
 
 
@@ -112,7 +112,7 @@ class SqrtGaussianStatePrediction(Prediction, SqrtGaussianState):
     """
 
 
-class WeightedGaussianStatePrediction(Prediction, TaggedWeightedGaussianState):
+class WeightedGaussianStatePrediction(Prediction, WeightedGaussianState):
     """ WeightedGaussianStatePrediction type
 
     This is a simple Gaussian state prediction object, which, as the name
