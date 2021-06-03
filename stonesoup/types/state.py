@@ -343,7 +343,7 @@ class CategoricalState(State):
 
     num_categories: int = Property(default=None,
                                    doc=r"The number of possible categories in the state space "
-                                       r":math:`|\Phi|`")
+                                       r":math:`|\Phi|`. Defaults to the state vector length.")
     category_names: Sequence[str] = Property(
         default=None,
         doc="Sequence of category names corresponding to each state vector component. Defaults to "

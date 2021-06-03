@@ -18,9 +18,9 @@ class CategoricalMeasurementModel(MeasurementModel):
     sampling.
     """
     emission_matrix: Matrix = Property(
-        doc=r"The emission matrix :math:`(E_k)_{ij} = P(z_{i}, k | \phi_{j}, k)`, defining the "
+        doc=r"The emission matrix :math:`(E_k)_{ij} = P(z_{j}, k | \phi_{i}, k)`, defining the "
             r"probability of getting an observation "
-            r":math:`z` from state :math:`x_{k_i} = P(\phi_i, k)`. "
+            r":math:`z` from state :math:`x_{k_j} = P(\phi_j, k)`. "
             r"Rows of the matrix must sum to 1")
     emission_covariance: CovarianceMatrix = Property(doc="Emission covariance")
     mapping: Sequence[int] = Property(default=None,
