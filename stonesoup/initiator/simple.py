@@ -18,7 +18,7 @@ from ..types.particle import Particle
 from ..types.state import State, GaussianState, CompositeState
 from ..types.track import Track
 from ..types.update import GaussianStateUpdate, ParticleStateUpdate, Update, CompositeUpdate,\
-    StateUpdate
+    StateUpdate, CategoricalStateUpdate
 from ..updater import Updater
 from ..updater.kalman import ExtendedKalmanUpdater
 
@@ -263,10 +263,10 @@ class GaussianParticleInitiator(ParticleInitiator):
         return tracks
 
 
-class SimpleObservationInitiator(Initiator):
+class SimpleCategoricalInitiator(Initiator):
     prior_state: GaussianState = Property(doc="Prior state information")
     measurement_model: MeasurementModel = Property(default=None, doc="Measurement model (should "
-                                                                     "be observation model)")
+                                                                     "be categorical model)")
 
     def initiate(self, detections, **kwargs):
         tracks = set()
@@ -277,13 +277,16 @@ class SimpleObservationInitiator(Initiator):
             else:
                 measurement_model = self.measurement_model
 
-            state_vector = measurement_model.inverse_function(detection)
+            state_vector = measurement_model.emission_matrix @ detection.state_vector
+            state_vector = state_vector / np.sum(state_vector)
 
-            tracks.add(Track([
-                StateUpdate(state_vector,
-                            SingleHypothesis(None, detection),
-                            timestamp=detection.timestamp)
-            ]))
+            state = CategoricalStateUpdate(state_vector=state_vector,
+                                           hypothesis=SingleHypothesis(None, detection),
+                                           timestamp=detection.timestamp,
+                                           num_categories=self.prior_state.num_categories,
+                                           category_names=self.prior_state.category_names)
+
+            tracks.add(Track([state]))
         return tracks
 
 
