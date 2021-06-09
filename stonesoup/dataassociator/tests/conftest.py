@@ -1,63 +1,42 @@
 # -*- coding: utf-8 -*-
 import pytest
+import numpy as np
 
-from ...types.detection import MissedDetection
-from ...types.hypothesis import SingleDistanceHypothesis
-from ...types.prediction import (
-    GaussianMeasurementPrediction, GaussianStatePrediction)
 from ...hypothesiser.probability import PDAHypothesiser
+from ...hypothesiser.distance import DistanceHypothesiser
+from ...measures import Mahalanobis
+from ...models.measurement.linear import LinearGaussian
+from ...types.array import CovarianceMatrix
+from ...models.transition.linear import ConstantVelocity, CombinedLinearGaussianTransitionModel
+from ...predictor.kalman import KalmanPredictor
+from ...updater.kalman import ExtendedKalmanUpdater
 
 
 @pytest.fixture()
-def hypothesiser():
-    class TestGaussianHypothesiser:
-        def hypothesise(self, track, detections, timestamp):
-            hypotheses = list()
-            for detection in detections:
-                prediction = GaussianStatePrediction(track.state_vector + 1,
-                                                     track.covar * 2,
-                                                     detection.timestamp)
-                measurement_prediction =\
-                    GaussianMeasurementPrediction(prediction.state_vector,
-                                                  prediction.covar,
-                                                  prediction.timestamp)
-                distance = abs(track.state_vector - detection.state_vector)
-
-                hypotheses.append(SingleDistanceHypothesis(
-                    prediction, detection, distance, measurement_prediction))
-
-            prediction = GaussianStatePrediction(track.state_vector + 1,
-                                                 track.covar * 2, timestamp)
-            hypotheses.append(
-                SingleDistanceHypothesis(
-                    prediction, MissedDetection(timestamp=timestamp), 10))
-            return hypotheses
-    return TestGaussianHypothesiser()
+def measurement_model():
+    return LinearGaussian(ndim_state=4, mapping=[0, 2],
+                          noise_covar=CovarianceMatrix(np.diag([1, 1])))
 
 
 @pytest.fixture()
-def probability_predictor():
-    class TestGaussianPredictor:
-        def predict(self, prior, control_input=None, timestamp=None, **kwargs):
-            return GaussianStatePrediction(prior.state_vector + 1,
-                                           prior.covar * 2, timestamp)
-    return TestGaussianPredictor()
+def predictor():
+    transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(1),
+                                                              ConstantVelocity(1)])
+    return KalmanPredictor(transition_model)
 
 
 @pytest.fixture()
-def probability_updater():
-    class TestGaussianUpdater:
-        def predict_measurement(self, state_prediction, measurement_model=None,
-                                **kwargs):
-            return GaussianMeasurementPrediction(state_prediction.state_vector,
-                                                 state_prediction.covar,
-                                                 state_prediction.timestamp)
-    return TestGaussianUpdater()
+def updater(measurement_model):
+    return ExtendedKalmanUpdater(measurement_model)
 
 
 @pytest.fixture()
-def probability_hypothesiser(probability_predictor, probability_updater):
-
-    return PDAHypothesiser(probability_predictor, probability_updater,
+def probability_hypothesiser(predictor, updater):
+    return PDAHypothesiser(predictor, updater,
                            clutter_spatial_density=1.2e-2,
                            prob_detect=0.9, prob_gate=0.99)
+
+
+@pytest.fixture()
+def distance_hypothesiser(predictor, updater):
+    return DistanceHypothesiser(predictor, updater, Mahalanobis(), 10)
