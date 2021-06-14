@@ -349,7 +349,7 @@ class TimeBasedPlotter(Base):
         return class_keywords, plotting_keywords
 
     @staticmethod
-    def run_animation(times_to_plot, data):
+    def run_animation(times_to_plot, data, mapping=(0, 2)):
 
         fig1 = plt.figure()
 
@@ -365,7 +365,7 @@ class TimeBasedPlotter(Base):
                 the_data = np.array(
                 [a_state.state_vector for a_state in a_plot_object.plotting_data])
                 the_lines.append(
-                    plt.plot(the_data[:1, 0], the_data[:1, 2], 
+                    plt.plot(the_data[:1, mapping[0]], the_data[:1, mapping[1]],
                     **a_plot_object.plotting_keyword_arguments)[0])
 
                 legends_key.append(a_plot_object.legend_key)
