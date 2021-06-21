@@ -165,7 +165,7 @@ from stonesoup.types.update import GaussianStateUpdate  # To store posterior est
 
 track = Track([prior])
 for n, measurements in enumerate(all_measurements):
-    hypotheses = data_associator.associate([track],
+    hypotheses = data_associator.associate({track},
                                            measurements,
                                            start_time + timedelta(seconds=n))
 

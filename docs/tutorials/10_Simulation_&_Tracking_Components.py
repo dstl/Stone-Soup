@@ -196,6 +196,11 @@ tracker = MultiTargetTracker(
 )
 
 # %%
+# In the case of using (J)PDA like in :ref:`auto_tutorials/07_PDATutorial:Run the PDA Filter`
+# and :ref:`auto_tutorials/08_JPDATutorial:Running the JPDA filter`, then the
+# :class:`~.MultiTargetMixtureTracker` would be used instead on the
+# :class:`~.MultiTargetTracker` used above.
+#
 # Plot the outputs
 # ^^^^^^^^^^^^^^^^
 # We plot the output using a Stone Soup :class:`MetricGenerator` which does plots (in this instance
