@@ -31,11 +31,15 @@ Stone Soup uses the following dependencies:
 | Name | License |
 | ---- | ------- |
 | [Python](https://www.python.org/) (v3.6+) | PSFL |
+| [numpy](https://numpy.org/) | BSD |
 | [SciPy](https://www.scipy.org/) | BSD |
 | [matplotlib](https://matplotlib.org/) | [PSF/BSD-compatible](https://matplotlib.org/users/license.html) |
 | [ruamel.yaml](https://yaml.readthedocs.io/) | MIT |
 | [pymap3d](https://github.com/scivision/pymap3d) | MIT |
 | [utm](https://github.com/Turbo87/utm) | MIT |
+| [ordered-set](https://github.com/LuminosoInsight/ordered-set) | MIT |
+| [setuptools](https://github.com/pypa/setuptools) | MIT |
+| [rtree](https://github.com/Toblerity/rtree) | MIT |
 
 ### Development
 
