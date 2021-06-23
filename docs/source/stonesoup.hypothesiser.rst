@@ -25,3 +25,8 @@ Gaussian Mixture
 .. automodule:: stonesoup.hypothesiser.gaussianmixture
     :show-inheritance:
 
+Categorical
+-----------
+
+.. automodule:: stonesoup.hypothesiser.categorical
+    :show-inheritance:

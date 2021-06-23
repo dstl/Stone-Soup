@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 import pytest
+import numpy as np
 
-from stonesoup.predictor import Predictor
-from stonesoup.predictor.categorical import HMMPredictor
-from stonesoup.updater import Updater
-from stonesoup.updater.categorical import HMMUpdater
+from ...predictor import Predictor
+from ...predictor.categorical import HMMPredictor
+from ...updater import Updater
+from ...updater.categorical import HMMUpdater
 from ...types.prediction import (
     GaussianMeasurementPrediction, GaussianStatePrediction, CategoricalStatePrediction,
     CategoricalMeasurementPrediction)
@@ -51,6 +52,7 @@ def class_predictor():
             pass
 
         def predict(self, prior, timestamp=None, **kwargs):
+            """Return the same state vector."""
             return CategoricalStatePrediction(prior.state_vector, timestamp=timestamp)
 
     return TestClassPredictor()
@@ -64,7 +66,10 @@ def class_updater():
             pass
 
         def predict_measurement(self, state_prediction, measurement_model=None, **kwargs):
-            return CategoricalMeasurementPrediction(state_prediction.state_vector,
+            """Return the first two state vector elements, normalised."""
+            vector = state_prediction.state_vector[:2]
+            vector = vector / np.sum(vector)
+            return CategoricalMeasurementPrediction(vector,
                                                     timestamp=state_prediction.timestamp)
 
     return TestClassUpdater()
