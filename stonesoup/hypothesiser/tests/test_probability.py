@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
-
 import datetime
 
 import numpy as np
-import pytest
-from ...models.measurement.categorical import CategoricalMeasurementModel
-from ...models.measurement.nonlinear import CartesianToElevationBearingRange
-from ..probability import PDAHypothesiser, CategoricalHypothesiser
-from ...types.detection import Detection, MissedDetection, CategoricalDetection
+
+from ..probability import PDAHypothesiser
+from ...types.detection import Detection, MissedDetection
 from ...types.numeric import Probability
-from ...types.state import GaussianState, State
+from ...types.state import GaussianState
 from ...types.track import Track
 
 
@@ -44,43 +41,3 @@ def test_pda(predictor, updater):
     assert any(isinstance(hypothesis.measurement, MissedDetection)
                for hypothesis in
                mulltihypothesis)
-
-
-def test_categorical(class_predictor, class_updater):
-    now = datetime.datetime.now()
-    future = now + datetime.timedelta(seconds=5)
-    track = Track([State([0.2, 0.3, 0.5], now)])
-
-    # generate random emission matrix and normalise
-    E = np.random.rand(3, 3)
-    sum_of_rows = E.sum(axis=1)
-    E = E / sum_of_rows[:, np.newaxis]
-
-    # create observation-based measurement model
-    measurement_model = CategoricalMeasurementModel(ndim_state=3, emission_matrix=E)
-
-    detection1 = CategoricalDetection(state_vector=[1, 0, 0], timestamp=future, measurement_model=measurement_model)
-    detection2 = CategoricalDetection(state_vector=[0, 1, 0], timestamp=future, measurement_model=measurement_model)
-    detection3 = CategoricalDetection(state_vector=[0, 0, 1], timestamp=future, measurement_model=measurement_model)
-    detections = [detection1, detection2, detection3]
-
-    hypothesiser = CategoricalHypothesiser(class_predictor, class_updater,
-                                           clutter_spatial_density=1.2e-2,
-                                           prob_detect=0.9, prob_gate=0.99)
-
-    multihypothesis = hypothesiser.hypothesise(track, detections, future)
-
-    # test hypotheses - 4 detections, 1 missed
-    assert len(multihypothesis) == 4
-
-    # test each hypothesis has a probability/weight attribute
-    assert all(hypothesis.probability >= 0 and isinstance(hypothesis.probability, Probability) for
-               hypothesis in multihypothesis)
-
-    # test all detections present
-    hypothesis_detections = {hypothesis.measurement for hypothesis in multihypothesis}
-    for detection in detections:
-        assert detection in hypothesis_detections
-
-    # test missed detection present
-    assert any(isinstance(measurement, MissedDetection) for measurement in hypothesis_detections)
