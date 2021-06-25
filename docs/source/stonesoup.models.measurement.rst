@@ -19,8 +19,8 @@ NonLinear
     :show-inheritance:
     :inherited-members:
 
-Observation
+Categorical
 -----------
-.. automodule:: stonesoup.models.measurement.observation
+.. automodule:: stonesoup.models.measurement.categorical
     :show-inheritance:
     :inherited-members:
