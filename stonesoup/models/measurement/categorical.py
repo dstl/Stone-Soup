@@ -21,14 +21,10 @@ class CategoricalMeasurementModel(MeasurementModel):
         doc=r"The emission matrix :math:`(E_k)_{ij} = P(z_{j}, k | \phi_{i}, k)`, defining the "
             r"probability of getting an observation "
             r":math:`z` from state :math:`x_{k_j} = P(\phi_j, k)`. "
-            r"Rows of the matrix must sum to 1")
-    emission_covariance: CovarianceMatrix = Property(doc="Emission covariance")
+            r"Rows of the matrix must sum to 1.")
+    emission_covariance: CovarianceMatrix = Property(doc="Emission covariance.")
     mapping: Sequence[int] = Property(default=None,
-                                      doc="Mapping between measurement and state dims")
-    category_names: Sequence[str] = Property(
-        default=None,
-        doc="Sequence of measurement category names corresponding to each measurement vector "
-            "component. Defaults to a list of integers starting at 0 and incrementing by 1")
+                                      doc="Mapping between measurement and state dims.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -43,13 +39,6 @@ class CategoricalMeasurementModel(MeasurementModel):
             raise ValueError(f"Emission matrix maps from {np.shape(self.emission_matrix)[0]} "
                              f"elements of the state space, but the mapping is length "
                              f"{len(self.mapping)}")
-
-        if self.category_names and len(self.category_names) != self.ndim_meas:
-            raise ValueError(f"{len(self.category_names)} category names were given for a model "
-                             f"which returns vectors of length {self.ndim_meas}")
-
-        if self.category_names is None:
-            self.category_names = list(range(self.ndim_meas))
 
     @property
     def ndim_meas(self):
