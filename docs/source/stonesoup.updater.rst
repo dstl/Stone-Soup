@@ -31,8 +31,8 @@ AlphaBeta
 .. automodule:: stonesoup.updater.alphabeta
     :show-inheritance:
 
-Classification
---------------
+Categorical
+-----------
 
-.. automodule:: stonesoup.updater.classification
+.. automodule:: stonesoup.updater.categorical
     :show-inheritance:

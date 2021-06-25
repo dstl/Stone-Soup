@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
-
 import numpy as np
 
 from ..base import Property
 from ..models.measurement.categorical import CategoricalMeasurementModel
-from ..types.prediction import MeasurementPrediction, CategoricalMeasurementPrediction
+from ..types.prediction import MeasurementPrediction
 from ..types.state import CategoricalState
-from ..types.update import Update, CategoricalStateUpdate
+from ..types.update import Update
 from ..updater import Updater
 
 
@@ -19,9 +18,6 @@ class HMMUpdater(Updater):
             "above. This model need not be defined if a measurement model is provided in the "
             "measurement. If no model specified on construction, or in the measurement, then an "
             "error will be thrown.")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
     def _check_measurement_model(self, measurement_model):
         """Check that the measurement model passed actually exists. If not attach the one in the
@@ -58,18 +54,21 @@ class HMMUpdater(Updater):
 
         return measurement_model.emission_matrix
 
-    def predict_measurement(self, predicted_state, measurement_model=None, **kwargs):
+    def predict_measurement(self, predicted_state, measurement_model=None, category_names=None,
+                            **kwargs):
         r"""Predict the measurement implied by the predicted state mean
 
         Parameters
         ----------
         predicted_state : :class:`~.State`
-            The predicted state :math:`X_{k|k-1}`
+            The predicted state :math:`X_{k|k-1}`.
         measurement_model : :class:`~.MeasurementModel`
-            The measurement model. If omitted, the model in the updater object is used
+            The measurement model. If omitted, the model in the updater object is used.
+        category_names : :class:`list`
+            List of :class:`str` measurement category names.
         **kwargs : various
             These are passed to :meth:`~.MeasurementModel.function` and
-            :meth:`~.MeasurementModel.matrix`
+            :meth:`~.MeasurementModel.matrix`.
 
         Returns
         -------
@@ -81,9 +80,8 @@ class HMMUpdater(Updater):
 
         pred_meas = measurement_model.function(predicted_state, **kwargs)
 
-        return CategoricalMeasurementPrediction(state_vector=pred_meas,
-                                                num_categories=measurement_model.ndim_meas,
-                                                category_names=measurement_model.category_names)
+        return MeasurementPrediction.from_state(predicted_state, pred_meas,
+                                                category_names=category_names)
 
     def update(self, hypothesis, **kwargs):
         r"""The update method. Given a hypothesised association between a predicted state or
@@ -113,23 +111,24 @@ class HMMUpdater(Updater):
         if not isinstance(prediction, CategoricalState):
             raise ValueError("Prediction must be a categorical state type")
 
+        # category names to be passed to measurement prediction
+        measurement_category_names = hypothesis.measurement.category_names
+
         if hypothesis.measurement_prediction is None:
             measurement_model = hypothesis.measurement.measurement_model
-            measurement_model = self._check_measurement_model(
-                measurement_model)
+            measurement_model = self._check_measurement_model(measurement_model)
 
             # Attach the measurement prediction to the hypothesis
             hypothesis.measurement_prediction = self.predict_measurement(
-                prediction, measurement_model=measurement_model, **kwargs)
+                prediction, measurement_model=measurement_model,
+                category_names=measurement_category_names, **kwargs)
 
         emission_matrix = self._get_emission_matrix(hypothesis)
         likelihood = emission_matrix @ hypothesis.measurement.state_vector
 
-        # Bayes rule (un-normalised)
+        # Bayes rule
         posterior = np.multiply(likelihood, hypothesis.prediction.state_vector)
+        posterior = posterior / np.sum(posterior)
 
-        return CategoricalStateUpdate(state_vector=posterior/np.sum(posterior),
-                                      num_categories=prediction.num_categories,
-                                      category_names=prediction.category_names,
-                                      timestamp=hypothesis.measurement.timestamp,
-                                      hypothesis=hypothesis)
+        return Update.from_state(hypothesis.prediction, posterior,
+                                 timestamp=hypothesis.measurement.timestamp, hypothesis=hypothesis)
