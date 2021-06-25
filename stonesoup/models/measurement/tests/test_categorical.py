@@ -12,15 +12,14 @@ from ....types.state import CategoricalState
 def test_categorical_measurement_model():
     # test emission matrix error
     with pytest.raises(ValueError, match="Row 0 of emission matrix does not sum to 1"):
-        CategoricalMeasurementModel(ndim_state=2,
-                                    emission_matrix=Matrix([[1, 1],
+        CategoricalMeasurementModel(emission_matrix=Matrix([[1, 1],
                                                             [0, 0]]),
                                     emission_covariance=np.eye(2))
 
     # test mapping error
     with pytest.raises(ValueError, match="Emission matrix maps from 2 elements of the state "
                                          "space, but the mapping is length 3"):
-        CategoricalMeasurementModel(ndim_state=6, emission_matrix=np.eye(2),
+        CategoricalMeasurementModel(emission_matrix=np.eye(2),
                                     emission_covariance=np.eye(2), mapping=[0, 2, 4])
 
     # 3 measurement categories, 2 hidden categories
@@ -28,10 +27,12 @@ def test_categorical_measurement_model():
     Ecov = CovarianceMatrix(np.diag([0.1, 0.1, 0.1]))
     mapping = [0, 2]
 
-    model = CategoricalMeasurementModel(ndim_state=4,
-                                        emission_matrix=E,
+    model = CategoricalMeasurementModel(emission_matrix=E,
                                         emission_covariance=Ecov,
                                         mapping=mapping)
+
+    # test ndim state
+    assert model.ndim_state == 2
 
     # test ndim meas
     assert model.ndim_meas == 3
@@ -87,8 +88,7 @@ def test_categorical_measurement_model():
     state = CategoricalState([1, 0])
     E = np.eye(2)
     Ecov = 0.1 * np.eye(2)
-    model = CategoricalMeasurementModel(ndim_state=2,
-                                        emission_matrix=E,
+    model = CategoricalMeasurementModel(emission_matrix=E,
                                         emission_covariance=Ecov)
     measurement = model.function(state, noise=True)
     assert len(np.where(measurement == 0)[0]) == 1
