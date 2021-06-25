@@ -1,41 +1,34 @@
 # -*- coding: utf-8 -*-
 from typing import Set, Sequence
 
-import numpy as np
-
-from ..models.measurement.categorical import CategoricalMeasurementModel
 from ..base import Property
+from ..models.measurement.categorical import CategoricalMeasurementModel
 from ..sensor.sensor import Sensor
-from ..types.array import CovarianceMatrix, Matrix
 from ..types.detection import TrueDetection, TrueCategoricalDetection
-from ..types.groundtruth import GroundTruthState, CategoricalGroundTruthState, GroundTruthPath
+from ..types.groundtruth import GroundTruthState, GroundTruthPath
+from ..types.state import CategoricalState
 
 
 class CategoricalSensor(Sensor):
-    ndim_state: int = Property(
-        doc="Number of state dimensions. This is utilised by (and follows in format) the "
-            "underlying :class:`~.CategoricalMeasurementModel`.")
-    mapping: np.ndarray = Property(
-        doc="Mapping between the target's state space and the sensors measurement capability")
-    emission_matrix: Matrix = Property(doc="Emission matrix passed to the underlying categorical "
-                                           "measurement model. Used for generating measurements.")
-    emission_covariance: CovarianceMatrix = Property(doc="Emission covariance matrix passed to "
-                                                         "the underlying categorical measurement "
-                                                         "model.")
-    num_categories: int = Property(default=None,
-                                   doc="Number of possible categories in the measurement space. "
-                                       "Used in generated categorical detections.")
+    measurement_model: CategoricalMeasurementModel = Property(
+        doc="Categorical measurement model used in generating measurements.")
     category_names: Sequence[str] = Property(default=None,
-                                             doc="Measurement category names passed to underlying "
-                                                 "categorical measurement model.")
+                                             doc="Measurement category names.")
 
     @property
-    def measurement_model(self):
-        return CategoricalMeasurementModel(ndim_state=self.ndim_state,
-                                           mapping=self.mapping,
-                                           emission_matrix=self.emission_matrix,
-                                           emission_covariance=self.emission_covariance,
-                                           category_names=self.category_names)
+    def ndim_state(self):
+        return self.measurement_model.ndim_state
+
+    @property
+    def ndim_meas(self):
+        return self.measurement_model.ndim_meas
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.category_names and len(self.category_names) != self.ndim_meas:
+            raise ValueError(f"{len(self.category_names)} category names were given for a sensor "
+                             f"which returns vectors of length {self.ndim_meas}")
 
     def measure(self, ground_truths: Set[GroundTruthState], **kwargs) -> Set[TrueDetection]:
         """Generate a categorical measurement for a given categorical state.
@@ -59,9 +52,9 @@ class CategoricalSensor(Sensor):
 
             wrong_type = False
             if isinstance(truth, GroundTruthPath):
-                if not isinstance(truth[-1], CategoricalGroundTruthState):
+                if not isinstance(truth[-1], CategoricalState):
                     wrong_type = True
-            elif not isinstance(truth, CategoricalGroundTruthState):
+            elif not isinstance(truth, CategoricalState):
                 wrong_type = True
 
             if wrong_type:
@@ -72,7 +65,6 @@ class CategoricalSensor(Sensor):
                                                  timestamp=truth.timestamp,
                                                  measurement_model=self.measurement_model,
                                                  groundtruth_path=truth,
-                                                 num_categories=self.num_categories,
                                                  category_names=self.category_names)
             detections.add(detection)
 
