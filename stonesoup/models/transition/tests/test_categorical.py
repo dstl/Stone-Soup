@@ -8,7 +8,7 @@ from ....types.array import StateVectors, StateVector, Matrix, CovarianceMatrix
 from ....types.state import State, CategoricalState
 
 
-def create_random_categorical(ndim):
+def create_categorical(ndim):
     """Create a state with random state vector representing a categorical distribution across
     `ndim` possible categories."""
     total = 0
@@ -17,15 +17,30 @@ def create_random_categorical(ndim):
         x = np.random.uniform(0, 1 - total)
         sv.append(x)
         total += x
-    sv.append(1 - total)
-    return CategoricalState(sv)
+    sv.append(1 - total)  # add probability that is left
+    sv = np.array(sv)
+    np.random.shuffle(sv)  # shuffle state vector
+    return sv
 
 
-def test_basic_time_invariant():
-    # 2 possible categories
-    F = Matrix([[0.9, 0.1],
-                [0.2, 0.8]])
-    Q = CovarianceMatrix(np.eye(2))
+def create_categorical_matrix(num_rows, num_cols):
+    """Create a matrix with normalised rows"""
+    matrix = list()
+    for i in range(num_rows):
+        matrix.append(create_categorical(num_cols))
+    return np.array(matrix)
+
+
+@pytest.mark.parametrize('ndim', (2, 3, 4))
+def test_categorical_transition_model(ndim):
+
+    # test invalid matrix
+    with pytest.raises(ValueError, match="Column 0 of transition matrix does not sum to 1"):
+        CategoricalTransitionModel(2*np.eye(2))
+
+    # ndim possible categories
+    F = create_categorical_matrix(ndim, ndim).T  # normalised columns
+    Q = CovarianceMatrix(np.eye(ndim))
 
     model = CategoricalTransitionModel(F, Q)
 
@@ -36,13 +51,17 @@ def test_basic_time_invariant():
     # test function noise error
     with pytest.raises(ValueError, match="Noise is generated via random sampling, and defined "
                                          "noise is not implemented"):
-        model.function(create_random_categorical(2), noise=[0.5, 0.5])
+        prior = CategoricalState(create_categorical(2))
+        model.function(prior, noise=ndim*[0.5])
 
-    # test function
-    for _ in range(3):
+    states = [CategoricalState(create_categorical(ndim)) for _ in range(5)]
 
-        state = create_random_categorical(2)
+    # Test function
+    for state in states:
+
         fp = F @ state.state_vector
+
+        # Test noiseless
 
         if any(fp == 1):
             exp_noiseless = fp * 1.0
@@ -56,14 +75,25 @@ def test_basic_time_invariant():
 
         actual_noiseless = model.function(state, noise=False)
 
-        assert len(actual_noiseless) == 2  # model ndim
+        assert len(actual_noiseless) == ndim
         assert np.isclose(sum(actual_noiseless), 1)  # test normalised
-        assert np.array_equal(exp_noiseless, actual_noiseless)  # test expected
+        assert np.array_equal(exp_noiseless, actual_noiseless)  # test is expected
 
-    # in case fp == 1 not hit
-    id_model = CategoricalTransitionModel(np.eye(2), Q)
-    state = State(StateVector([1, 0]))
-    fp = np.eye(2) @ state.state_vector
+        # Test noisy
+        noisy = model.function(state, noise=True)
+        assert len(noisy) == ndim
+        assert np.isclose(sum(noisy), 1)  # test normalised
+
+        # Test pdf
+        other_state = CategoricalState(create_categorical(ndim))
+        exp_value = (F @ other_state.state_vector).T @ state.state_vector
+        actual_value = model.pdf(state, other_state)
+        assert np.array_equal(actual_value, exp_value)
+
+    # Test edge case
+    id_model = CategoricalTransitionModel(np.eye(ndim), Q)
+    state = State(np.eye(ndim)[0])  # vector looks like (1, 0, ..., 0) - ndim elements
+    fp = np.eye(ndim) @ state.state_vector
 
     exp_noiseless = fp * 1.0
     exp_noiseless[fp == 1] = np.finfo(np.float64).max
@@ -74,9 +104,9 @@ def test_basic_time_invariant():
 
     actual_noiseless = id_model.function(state, noise=False)
 
-    assert len(actual_noiseless) == 2  # model ndim
+    assert len(actual_noiseless) == ndim
     assert np.isclose(sum(actual_noiseless), 1)  # test normalised
-    assert np.array_equal(exp_noiseless, actual_noiseless)  # test expected
+    assert np.array_equal(exp_noiseless, actual_noiseless)  # test is expected
 
     # test rvs
     for i in range(1, 4):
@@ -84,12 +114,4 @@ def test_basic_time_invariant():
         assert isinstance(rvs, StateVectors)
         assert len(rvs.T) == i
         for elem in rvs.T:
-            assert len(elem) == 2  # same as model ndim
-
-    # test pdf
-    for _ in range(3):
-        state1 = create_random_categorical(2)
-        state2 = create_random_categorical(2)
-        exp_value = (F @ state2.state_vector).T @ state1.state_vector
-        actual_value = model.pdf(state1, state2)
-        assert np.array_equal(actual_value, exp_value)
+            assert len(elem) == ndim

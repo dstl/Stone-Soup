@@ -9,7 +9,7 @@ from ...types.array import Matrix, StateVector, StateVectors, CovarianceMatrix
 
 
 class CategoricalTransitionModel(TransitionModel):
-    r"""The transiton model for categorical data
+    r"""The transition model for categorical data
     This is a time invariant model for the transition of a state that can take one of a finite
     number of categories :math:`\{\phi_m|m\in\Z_{\gt0}\}`, where a state space vector takes the
     form :math:`x_{k_i} = P(\phi_i, k)`, i.e. the :math:`i`-th state vector component is the
@@ -18,10 +18,17 @@ class CategoricalTransitionModel(TransitionModel):
     transition_matrix: Matrix = Property(
         doc=r"Stochastic matrix :math:`(F_{k+1})_{ij} = P(\phi_i, k+1 | \phi_j, k)` determining "
             r"the conditional probability that an object is category :math:`\phi_i` at 'time'"
-            r":math:`k + 1` given that it was category :math:`\phi_j` at 'time' :math:`k`.")
+            r":math:`k + 1` given that it was category :math:`\phi_j` at 'time' :math:`k`."
+            r"Columns must sum to 1.")
     transition_covariance: CovarianceMatrix = Property(
         default=None,
         doc="Transition covariance, used in noise generation.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for i, col in enumerate(self.transition_matrix.T):
+            if not np.isclose(np.sum(col), 1):
+                raise ValueError(f"Column {i} of transition matrix does not sum to 1")
 
     @property
     def ndim_state(self):
