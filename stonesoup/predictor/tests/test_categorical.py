@@ -5,65 +5,52 @@ import numpy as np
 import pytest
 
 from ...models.transition.categorical import CategoricalTransitionModel
-from ...models.transition.tests.test_categorical import create_random_categorical
+from ...models.transition.tests.test_categorical import create_categorical, \
+    create_categorical_matrix
 from ...predictor.categorical import HMMPredictor
 from ...types.prediction import StatePrediction, CategoricalStatePrediction
-from ...types.state import State
+from ...types.state import State, CategoricalState
 
 
-def get_transition_models(num_models, ndim_state):
-    models = set()
-    for _ in range(num_models):
-        rows = list()
-        for _ in range(ndim_state):
-            rows.append(create_random_categorical(ndim_state).state_vector.flatten())
-        FT = np.array(rows)
-        Q = np.eye(ndim_state)
-        models.add(CategoricalTransitionModel(FT.T, Q))
-    return models
-
-
-@pytest.mark.parametrize('ndim_state', (1, 2, 3, 4))
+@pytest.mark.parametrize('ndim_state', (2, 3, 4))
 def test_hmm_predictor(ndim_state):
     timestamp = datetime.datetime.now()
     timediff = 2  # 2sec
     new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
 
-    transition_models = get_transition_models(10, ndim_state)
+    F = create_categorical_matrix(ndim_state, ndim_state).T  # normalised columns
+    Q = np.eye(ndim_state)
+    transition_model = CategoricalTransitionModel(F, Q)
 
-    # test state prediction
-    for transition_model in transition_models:
-        F = transition_model.transition_matrix
+    # Test state prediction
+    predictor = HMMPredictor(transition_model)
 
-        predictor = HMMPredictor(transition_model)
+    # Test wrong prior type
+    with pytest.raises(ValueError, match="Prior must be a categorical state type"):
+        predictor.predict(prior=State([1, 2, 3]), timestamp=new_timestamp)
 
-        # test wrong prior type
-        with pytest.raises(ValueError, match="Prior must be a categorical state type"):
-            predictor.predict(prior=State([1, 2, 3]), timestamp=new_timestamp)
-
-        for _ in range(3):
-            # define prior state
-            prior = create_random_categorical(ndim_state)
-            prior.timestamp = timestamp
-
-            # evaluate prediction
+    priors = [CategoricalState(create_categorical(ndim_state),
+                               timestamp=timestamp)
+              for _ in range(5)]
+    for prior in priors:
+        for next_time in [new_timestamp, None]:
+            # Evaluate prediction
             Fx = F @ prior.state_vector
-            eval_prediction = StatePrediction(Fx / sum(Fx), timestamp=new_timestamp)
+            eval_prediction = StatePrediction(Fx / sum(Fx), timestamp=next_time)
 
-            # test state prediction
-            prediction = predictor.predict(prior=prior, timestamp=new_timestamp)
+            # Test state prediction
+            prediction = predictor.predict(prior=prior, timestamp=next_time)
 
             # Assert presence of transition model
             assert hasattr(prediction, 'transition_model')
 
-            # test prediction state vector
+            # Test prediction state vector
             assert np.allclose(prediction.state_vector,
                                eval_prediction.state_vector,
                                0,
                                atol=1.e-14)
-            assert prediction.timestamp == new_timestamp
+            assert prediction.timestamp == next_time
 
-            # test prediction type
+            # Test prediction type
             assert isinstance(prediction, CategoricalStatePrediction)
-            assert prediction.num_categories == prior.num_categories
             assert prediction.category_names == prior.category_names

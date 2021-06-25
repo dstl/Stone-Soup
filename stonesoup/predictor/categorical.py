@@ -3,7 +3,7 @@ from ..base import Property
 from ..models.transition import TransitionModel
 from ..predictor import Predictor
 from ..predictor._utils import predict_lru_cache
-from ..types.prediction import CategoricalStatePrediction
+from ..types.prediction import Prediction
 from ..types.state import CategoricalState
 
 
@@ -66,6 +66,11 @@ class HMMPredictor(Predictor):
         -------
         : :class:`~.CategoricalStatePrediction`
             :math:`\mathbf{x}_{t + \Delta t|t}`, the predicted state.
+
+        Notes
+        -----
+        The categorical transition model is time-invariant and the evaluated `time_interval` can be
+        `None`.
         """
 
         if not isinstance(prior, CategoricalState):
@@ -73,9 +78,8 @@ class HMMPredictor(Predictor):
 
         predict_over_interval = self._predict_over_interval(prior, timestamp)
 
-        x_pred = self._transition_function(prior, time_interval=predict_over_interval, **kwargs)
+        prediction = self._transition_function(prior, time_interval=predict_over_interval,
+                                               **kwargs)
 
-        return CategoricalStatePrediction(state_vector=x_pred,
-                                          timestamp=timestamp,
-                                          num_categories=prior.num_categories,
-                                          category_names=prior.category_names)
+        return Prediction.from_state(prior, prediction, timestamp=timestamp,
+                                     transition_model=self.transition_model)

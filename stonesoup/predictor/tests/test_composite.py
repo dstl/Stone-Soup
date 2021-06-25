@@ -1,25 +1,26 @@
 # coding: utf-8
-import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 import pytest
 from scipy.stats import multivariate_normal
 
-from ...models.transition.classification import \
-    BasicTimeInvariantClassificationTransitionModel
+from ...models.transition.categorical import CategoricalTransitionModel
 from ...models.transition.linear import RandomWalk, \
     CombinedLinearGaussianTransitionModel
+from ...models.transition.tests.test_categorical import create_categorical, \
+    create_categorical_matrix
+from ...predictor.categorical import HMMPredictor
 from ...predictor.composite import CompositePredictor
-from ...types.array import StateVector
-from ...types.array import StateVectors
-from ...types.numeric import Probability  # Similar to a float type
-from ...types.particle import Particles
-from ...types.prediction import CompositePrediction
-from ...types.state import ParticleState
-from ...predictor.classification import ClassificationPredictor
 from ...predictor.kalman import KalmanPredictor, ExtendedKalmanPredictor, \
     UnscentedKalmanPredictor
 from ...predictor.particle import ParticlePredictor, ParticleFlowKalmanPredictor
+from ...types.array import StateVector
+from ...types.array import StateVectors
+from ...types.numeric import Probability
+from ...types.particle import Particles
+from ...types.prediction import CompositePrediction
+from ...types.state import ParticleState, CategoricalState
 from ...types.state import State, GaussianState, CompositeState
 
 
@@ -29,12 +30,10 @@ def create_transition_model(gaussian: bool, ndim_state: int):
         models = ndim_state * [RandomWalk(0.1)]
         return CombinedLinearGaussianTransitionModel(models)
     else:
-        F = np.random.rand(ndim_state, ndim_state)
-        F = F / F.sum(axis=0)[np.newaxis, :]
-        return BasicTimeInvariantClassificationTransitionModel(F)
+        return CategoricalTransitionModel(create_categorical_matrix(ndim_state, ndim_state).T)
 
 
-def create_state(gaussian: bool, particles: bool, ndim_state: int):
+def create_state(gaussian: bool, particles: bool, ndim_state: int, timestamp: datetime):
     """Generate appropriate, random states of particular dimensions"""
     if gaussian:
         # create Gaussian state
@@ -44,93 +43,64 @@ def create_state(gaussian: bool, particles: bool, ndim_state: int):
             # create particle state
             number_particles = 1000
             samples = multivariate_normal.rvs(sv.flatten(), cov, size=number_particles)
-            print(sv.flatten(), cov, '\n\n')
             particles = Particles(state_vector=StateVectors(samples.T),
                                   weight=np.array(
                                       [Probability(1 / number_particles)] * number_particles))
-            return ParticleState(particles)
-        return GaussianState(sv, cov)
+            return ParticleState(particles, timestamp=timestamp)
+        return GaussianState(sv, cov, timestamp=timestamp)
     else:
         # create multinomial distribution state representative
-        total = 0
-        sv = list()
-        for i in range(ndim_state - 1):
-            x = np.random.uniform(0, 1 - total)
-            sv.append(x)
-            total += x
-        sv.append(1 - total)
-        return State(sv)
+        return CategoricalState(create_categorical(ndim_state), timestamp=timestamp)
 
 
-def get_sub_predictors(num_predictors):
-    possible_predictors = [KalmanPredictor, ExtendedKalmanPredictor, UnscentedKalmanPredictor,
-                           ParticlePredictor, ParticleFlowKalmanPredictor,
-                           ClassificationPredictor]
-    sub_predictor_types = possible_predictors[:num_predictors]
+def random_predictor_and_prior(num_predictors, timestamp):
+    ndim_states = np.random.randint(2, 5, 6)
 
-    sub_predictors = list()
-    for sub_predictor_type in sub_predictor_types:
-        ndim_state = np.random.randint(2, 10)
+    sub_predictors = [
+        KalmanPredictor(create_transition_model(True, ndim_states[0])),
+        ExtendedKalmanPredictor(create_transition_model(True, ndim_states[1])),
+        UnscentedKalmanPredictor(create_transition_model(True, ndim_states[2])),
+        ParticlePredictor(create_transition_model(True, ndim_states[3])),
+        ParticleFlowKalmanPredictor(create_transition_model(True, ndim_states[4])),
+        HMMPredictor(create_transition_model(False, ndim_states[5]))
+    ]
 
-        if sub_predictor_type == ClassificationPredictor:
-            gaussian = False
-        else:
-            gaussian = True
+    sub_priors = [
+        create_state(True, False, ndim_states[0], timestamp),
+        create_state(True, False, ndim_states[1], timestamp),
+        create_state(True, False, ndim_states[2], timestamp),
+        create_state(True, True, ndim_states[3], timestamp),
+        create_state(True, True, ndim_states[4], timestamp),
+        create_state(False, False, ndim_states[5], timestamp)
+    ]
 
-        transition_model = create_transition_model(gaussian, ndim_state)
+    predictor = CompositePredictor(sub_predictors[:num_predictors])
+    prior = CompositeState(sub_priors[:num_predictors])
 
-        sub_predictors.append(sub_predictor_type(transition_model))
-
-    return sub_predictors
+    return predictor, prior
 
 
 @pytest.mark.parametrize('num_predictors', [1, 2, 3, 4, 5, 6])
 def test_composite_predictor(num_predictors):
-    now = datetime.datetime.now()
-    future = now + datetime.timedelta(seconds=5)
+    now = datetime.now()
+    future = now + timedelta(seconds=5)
 
-    # get random sub-predictors
-    sub_predictors = get_sub_predictors(num_predictors)
-
-    # create appropriate priors
-    priors = list()
-    for sub_predictor in sub_predictors:
-        if isinstance(sub_predictor, ClassificationPredictor):
-            gaussian = False
-            particles = False
-        else:
-            gaussian = True
-            if isinstance(sub_predictor, (ParticlePredictor, ParticleFlowKalmanPredictor)):
-                particles = True
-            else:
-                particles = False
-
-        state = create_state(gaussian, particles, sub_predictor.transition_model.ndim_state)
-        state.timestamp = now
-        priors.append(state)
-    prior = CompositeState(priors)
-
-    # test instantiation errors
+    # Test instantiation errors
     with pytest.raises(ValueError, match="sub-predictors must be defined as an ordered list"):
-        CompositePredictor(set(sub_predictors))
+        CompositePredictor({KalmanPredictor(create_transition_model(True, 1))})
 
     with pytest.raises(ValueError, match="all sub-predictors must be a Predictor type"):
-        CompositePredictor(sub_predictors + [1, 2, 3])
+        CompositePredictor([1, 2, 3])
 
-    predictor = CompositePredictor(sub_predictors)
+    # create random composite predictor and prior
+    predictor, prior = random_predictor_and_prior(num_predictors, now)
 
-    # test transition model error
+    # Test transition model error
     with pytest.raises(NotImplementedError,
                        match="A composition of predictors have no defined transition model"):
         predictor.transition_model
 
-    # test predict
-    prediction = predictor.predict(prior, future)
-
-    assert isinstance(prediction, CompositePrediction)
-    assert len(prediction) == len(prior)
-
-    # test predict errors
+    # Test predict errors
     with pytest.raises(ValueError,
                        match="CompositePredictor can only be used with CompositeState types"):
         predictor.predict(State([0]), future)
@@ -140,35 +110,36 @@ def test_composite_predictor(num_predictors):
                              "sub-predictors"):
         predictor.predict(CompositeState((num_predictors + 1) * [State([0])]))
 
-    # test len
+    # Test predict
+    prediction = predictor.predict(prior, timestamp=future)
+
+    assert isinstance(prediction, CompositePrediction)
+    assert len(prediction) == len(prior)
+
+    sub_predictors = predictor.sub_predictors
+
+    # Test iter
+    for i, exp_sub_predictor in enumerate(predictor):
+        assert exp_sub_predictor == sub_predictors[i]
+
+    # Test len
     assert len(predictor) == num_predictors
 
-    # test get
+    # Test get
     for i, expected_predictor in enumerate(sub_predictors):
         assert predictor[i] == expected_predictor
 
-    new_sub_predictor = KalmanPredictor(RandomWalk(100))
+    predictor_slice = predictor[:num_predictors - 1]
+    assert isinstance(predictor_slice, CompositePredictor)
+    assert len(predictor_slice) == num_predictors - 1
+    for i, expected_predictor in enumerate(sub_predictors[:num_predictors - 1]):
+        assert predictor_slice[i] == expected_predictor
 
-    # test contains
+    # Test contains
     for sub_predictor in sub_predictors:
         assert sub_predictor in predictor
 
-    # test set
-    index = np.random.randint(num_predictors)
-    predictor[index] = new_sub_predictor
-
-    assert predictor[index] == new_sub_predictor
-
-    # test del
-    del predictor[index]
-    assert new_sub_predictor not in predictor
-
-    # test insert
-    predictor.insert(index, new_sub_predictor)
-    assert predictor[index] == new_sub_predictor
-    assert len(predictor) == num_predictors
-
-    # test append
+    # Test append
     new_sub_predictor = KalmanPredictor(RandomWalk(200))
     predictor.append(new_sub_predictor)
     assert new_sub_predictor in predictor

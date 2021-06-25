@@ -9,7 +9,7 @@ from ..types.state import CompositeState
 
 
 class CompositePredictor(Predictor):
-    """A composition of multiple sub-predictors
+    """A composition of multiple sub-predictors.
 
     Predicts forward a :class:`CompositeState` composed of a sequence of states using a sequence
     of sub-predictors
@@ -63,13 +63,11 @@ class CompositePredictor(Predictor):
         return CompositePrediction(sub_states=prediction_sub_states)
 
     def __getitem__(self, index):
+        """Can be indexed as a list, or sliced, in which case a new composite predictor will be
+        created from the sub-list of sub-predictors."""
+        if isinstance(index, slice):
+            return self.__class__(self.sub_predictors.__getitem__(index))
         return self.sub_predictors.__getitem__(index)
-
-    def __setitem__(self, index, value):
-        return self.sub_predictors.__setitem__(index, value)
-
-    def __delitem__(self, index):
-        return self.sub_predictors.__delitem__(index)
 
     def __iter__(self):
         return iter(self.sub_predictors)
@@ -79,10 +77,6 @@ class CompositePredictor(Predictor):
 
     def __contains__(self, item):
         return self.sub_predictors.__contains__(item)
-
-    def insert(self, index, value):
-        inserted_state = self.sub_predictors.insert(index, value)
-        return inserted_state
 
     def append(self, value):
         """Add value at end of :attr:`sub_predictors`.
