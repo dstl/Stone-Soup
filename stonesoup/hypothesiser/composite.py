@@ -137,24 +137,15 @@ class CompositeHypothesiser(Hypothesiser):
             # get all sub-hypotheses for detection
             sub_hypotheses = detections_hypotheses[detection]
 
-            probability = Probability(np.prod(
-                [sub_hypothesis.probability for sub_hypothesis in sub_hypotheses if
-                 sub_hypothesis]))
-
             all_hypotheses.append(CompositeProbabilityHypothesis(prediction=prediction,
                                                                  measurement=detection,
-                                                                 probability=probability,
                                                                  sub_hypotheses=sub_hypotheses))
 
         # add missed-detection and corresponding null-hypothesis to dictionary
         missed_detection = CompositeMissedDetection(default_timestamp=timestamp)
 
-        probability = Probability(np.prod(
-            [sub_hypothesis.probability for sub_hypothesis in null_sub_hypotheses if
-             sub_hypothesis]))
         all_hypotheses.append(CompositeProbabilityHypothesis(prediction=prediction,
                                                              measurement=missed_detection,
-                                                             probability=probability,
                                                              sub_hypotheses=null_sub_hypotheses))
 
         return MultipleHypothesis(all_hypotheses, normalise=True, total_weight=1)

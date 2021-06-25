@@ -2,13 +2,13 @@
 from collections.abc import Sized, Iterable, Container
 from typing import Sequence
 
+from .detection import MissedDetection
+from .numeric import Probability
 from ..base import Property
 from ..types import Type
 from ..types.detection import Detection
-from ..types.hypothesis import SingleHypothesis
+from ..types.hypothesis import SingleHypothesis, Hypothesis, CompositeHypothesis
 from ..types.prediction import Prediction
-from .numeric import Probability
-from .detection import MissedDetection
 
 
 class MultipleHypothesis(Type, Sized, Iterable, Container):
@@ -17,6 +17,7 @@ class MultipleHypothesis(Type, Sized, Iterable, Container):
     A Multiple Hypothesis is a container to store a collection of hypotheses.
     """
 
+    # TODO: refactor to 'hypotheses'
     single_hypotheses: Sequence[SingleHypothesis] = Property(
         default=None,
         doc="The initial list of :class:`~.SingleHypothesis`. Default `None` "
@@ -34,8 +35,9 @@ class MultipleHypothesis(Type, Sized, Iterable, Container):
         if single_hypotheses is None:
             single_hypotheses = []
 
-        if any(not isinstance(hypothesis, SingleHypothesis)
-               for hypothesis in single_hypotheses):
+        if not all(isinstance(hypothesis, SingleHypothesis)
+                   or isinstance(hypothesis, CompositeHypothesis)
+                   for hypothesis in single_hypotheses):
             raise ValueError("Cannot form MultipleHypothesis out of "
                              "non-SingleHypothesis inputs!")
 
@@ -49,7 +51,7 @@ class MultipleHypothesis(Type, Sized, Iterable, Container):
         return self.single_hypotheses.__len__()
 
     def __contains__(self, index):
-        # check if 'single_hypotheses' contains any SingleHypotheses with
+        # check if 'single_hypotheses' contains any Hypotheses with
         # Detection matching 'index'
         if isinstance(index, Detection):
             for hypothesis in self.single_hypotheses:
@@ -57,7 +59,7 @@ class MultipleHypothesis(Type, Sized, Iterable, Container):
                     return True
             return False
 
-        # check if 'single_hypotheses' contains any SingleHypotheses with
+        # check if 'single_hypotheses' contains any Hypotheses with
         # Prediction matching 'index'
         if isinstance(index, Prediction):
             for hypothesis in self.single_hypotheses:
@@ -65,9 +67,9 @@ class MultipleHypothesis(Type, Sized, Iterable, Container):
                     return True
             return False
 
-        # check if 'single_hypotheses' contains any SingleHypotheses
+        # check if 'single_hypotheses' contains any Hypotheses
         # matching 'index'
-        if isinstance(index, SingleHypothesis):
+        if isinstance(index, Hypothesis):
             return index in self.single_hypotheses
 
     def __iter__(self):
@@ -109,8 +111,8 @@ class MultipleHypothesis(Type, Sized, Iterable, Container):
             hypothesis.probability for hypothesis in self.single_hypotheses)
 
         for hypothesis in self.single_hypotheses:
-            hypothesis.probability =\
-                (hypothesis.probability * total_weight)/sum_weights
+            hypothesis.probability = \
+                (hypothesis.probability * total_weight) / sum_weights
 
     def get_missed_detection_probability(self):
         for hypothesis in self.single_hypotheses:

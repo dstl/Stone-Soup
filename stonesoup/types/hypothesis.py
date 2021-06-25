@@ -7,10 +7,10 @@ from typing import Sequence
 import numpy as np
 
 from .base import Type
-from ..base import Property
 from .detection import Detection, MissedDetection, CompositeMissedDetection, CompositeDetection
 from .prediction import MeasurementPrediction, Prediction, CompositePrediction, \
     CompositeMeasurementPrediction
+from ..base import Property
 from ..types.numeric import Probability
 
 
@@ -26,6 +26,30 @@ class Hypothesis(Type):
     single Track and multiple Measurements of which one *might* be associated
     with it
     """
+
+
+class ProbabilityHypothesis(Hypothesis):
+    probability: Probability = Property(
+        doc="Probability that detection is true location of prediction")
+
+    def __lt__(self, other):
+        return self.probability < other.probability
+
+    def __le__(self, other):
+        return self.probability <= other.probability
+
+    def __eq__(self, other):
+        return self.probability == other.probability
+
+    def __gt__(self, other):
+        return self.probability > other.probability
+
+    def __ge__(self, other):
+        return self.probability >= other.probability
+
+    @property
+    def weight(self):
+        return self.probability
 
 
 class SingleHypothesis(Hypothesis):
@@ -76,32 +100,8 @@ class SingleDistanceHypothesis(SingleHypothesis):
             return float('inf')
 
 
-class SingleProbabilityHypothesis(SingleHypothesis):
-    """Single Measurement Probability scored hypothesis subclass.
-
-    """
-
-    probability: Probability = Property(
-        doc="Probability that detection is true location of prediction")
-
-    def __lt__(self, other):
-        return self.probability < other.probability
-
-    def __le__(self, other):
-        return self.probability <= other.probability
-
-    def __eq__(self, other):
-        return self.probability == other.probability
-
-    def __gt__(self, other):
-        return self.probability > other.probability
-
-    def __ge__(self, other):
-        return self.probability >= other.probability
-
-    @property
-    def weight(self):
-        return self.probability
+class SingleProbabilityHypothesis(ProbabilityHypothesis, SingleHypothesis):
+    """Single Measurement Probability scored hypothesis subclass."""
 
 
 class JointHypothesis(Type, UserDict):
@@ -157,17 +157,8 @@ class JointHypothesis(Type, UserDict):
         raise NotImplementedError
 
 
-class ProbabilityJointHypothesis(JointHypothesis):
-    """Probability-scored Joint Hypothesis subclass.
-
-    """
-
-    probability: Probability = Property(default=None, doc='Probability of the Joint Hypothesis')
-
-    def __init__(self, hypotheses, *args, **kwargs):
-        super().__init__(hypotheses, *args, **kwargs)
-        self.probability = Probability(np.prod(
-            [hypothesis.probability for hypothesis in hypotheses.values()]))
+class ProbabilityJointHypothesis(ProbabilityHypothesis, JointHypothesis):
+    """Probability-scored Joint Hypothesis subclass."""
 
     def normalise(self):
         sum_probability = Probability.sum(
@@ -175,24 +166,13 @@ class ProbabilityJointHypothesis(JointHypothesis):
         for hypothesis in self.hypotheses.values():
             hypothesis.probability /= sum_probability
 
-    def __lt__(self, other):
-        return self.probability < other.probability
-
-    def __le__(self, other):
-        return self.probability <= other.probability
-
-    def __eq__(self, other):
-        return self.probability == other.probability
-
-    def __gt__(self, other):
-        return self.probability > other.probability
-
-    def __ge__(self, other):
-        return self.probability >= other.probability
+    @property
+    def probability(self):
+        return Probability(
+            np.prod([hypothesis.probability for hypothesis in self.hypotheses.values()]))
 
 
-class DistanceJointHypothesis(
-   JointHypothesis):
+class DistanceJointHypothesis(JointHypothesis):
     """Distance scored Joint Hypothesis subclass.
 
     Notes
@@ -224,7 +204,7 @@ class DistanceJointHypothesis(
         return self.distance <= other.distance
 
 
-class CompositeHypothesis(SingleHypothesis):
+class CompositeHypothesis(Hypothesis):
     """Composite hypothesis class.
 
     Contains a sequence of sub-hypotheses.
@@ -234,8 +214,6 @@ class CompositeHypothesis(SingleHypothesis):
     prediction: CompositePrediction = Property(doc="Predicted composite track state")
     measurement: CompositeDetection = Property(doc="Composite detection used for hypothesis and "
                                                    "updating")
-    measurement_prediction: CompositeMeasurementPrediction = Property(
-        default=None, doc="Optional composite track prediction in composite measurement space")
     sub_hypotheses: Sequence[SingleHypothesis] = Property(
         default=None,
         doc="Sequence of sub-hypotheses comprising the composite hypothesis"
@@ -284,9 +262,16 @@ class CompositeHypothesis(SingleHypothesis):
         """
         self.sub_hypotheses.append(value)
 
+    @property
+    def measurement_prediction(self):
+        # check if any are none
+        return CompositeMeasurementPrediction(
+            [sub_hypothesis.measurement_prediction for sub_hypothesis in self.sub_hypotheses]
+        )
 
-class CompositeProbabilityHypothesis(SingleProbabilityHypothesis, CompositeHypothesis):
-    """Probability scored composite hypothesis subclass
+
+class CompositeProbabilityHypothesis(ProbabilityHypothesis, CompositeHypothesis):
+    """Probability scored composite hypothesis subclass.
 
     Notes
     -----
@@ -313,6 +298,9 @@ class CompositeProbabilityHypothesis(SingleProbabilityHypothesis, CompositeHypot
 
         # Get probability from sub-hypotheses if undefined
         if self.probability is None:
-            self.probability = 1
-            for hypothesis in self.sub_hypotheses:
-                self.probability *= hypothesis.probability
+            self.probability = Probability(1)
+            for sub_hypothesis in self.sub_hypotheses:
+                if sub_hypothesis or not self:
+                    # If `self` is null-hypothesis, consider all sub-hypotheses' probabilities
+                    # If `self` is not null, consider only non-null sub-hypotheses' probabilities
+                    self.probability *= sub_hypothesis.probability

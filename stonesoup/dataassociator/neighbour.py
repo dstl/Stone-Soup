@@ -7,7 +7,8 @@ from .base import DataAssociator
 from ._assignment import assign2D
 from ..base import Property
 from ..hypothesiser import Hypothesiser
-from ..types.hypothesis import SingleHypothesis, SingleProbabilityHypothesis, JointHypothesis
+from ..types.hypothesis import SingleHypothesis, SingleProbabilityHypothesis, JointHypothesis, \
+    ProbabilityHypothesis
 
 
 class NearestNeighbour(DataAssociator):
@@ -206,7 +207,7 @@ class GNNWith2DAssignment(DataAssociator):
         # Probability is maximise problem, distance is minimise problem
         # Mixed hypotheses cannot be computed at this time
         hypothesis_types = {
-            isinstance(hypothesis, SingleProbabilityHypothesis)
+            isinstance(hypothesis, ProbabilityHypothesis)
             for row in hypothesis_matrix for hypothesis in row
             if hypothesis is not None}
         if len(hypothesis_types) > 1:
