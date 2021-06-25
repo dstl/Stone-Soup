@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
 import enum
 
+import matplotlib
 import numpy as np
+from scipy.signal import gaussian
+
+from stonesoup.types.angle import Angle
+
 try:
     import tensorflow as tf
 
@@ -102,6 +107,93 @@ class TensorNetsBoxObjectDetector(_VideoAsyncBoxDetector):
                 # Transform box to be in format (x, y, w, h)
                 detection = Detection(
                     [box[0], box[1], box[2] - box[0], box[3] - box[1]],
+                    timestamp=frame.timestamp,
+                    metadata=metadata)
+                detections.add(detection)
+
+        return detections
+
+
+class TensorNetsColourBoxObjectDetector(_VideoAsyncBoxDetector):
+    """TensorNets Object Detection class
+
+    This uses pre-trained networks from TensorNets for object detection in video
+    frames. Supported networks are listed in :class:`Networks`.
+    """
+    net: Networks = Property(doc="TensorNet network to use for object detection")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = Networks(self.net)  # Ensure Networks enum
+        self._inputs = tf.placeholder(tf.float32, [None, 416, 416, 3])
+        self._model = self.net.value(self._inputs)
+        self._session = tf.Session()
+
+        self._session.run(self._model.pretrained())
+
+    @property
+    def class_names(self):
+        if 'VOC' in self.net.name:
+            class_names = datasets.voc.classnames
+        elif 'COCO' in self.net.name:
+            class_names = datasets.coco.classnames
+        else:
+            raise NotImplementedError("Unsupported network {!r}".format(self.net))
+        return class_names
+
+    def _run(self, image):
+        if 'YOLOv2' in self.net.name:
+            fetches = self._model
+        elif 'YOLOv3' in self.net.name:
+            fetches = self._model.preds
+        else:
+            raise NotImplementedError("Unsupported network {!r}".format(self.net))
+        return self._session.run(fetches, {self._inputs: self._model.preprocess(image)})
+
+    def _get_detections_from_frame(self, frame):
+        image_np_expanded = np.expand_dims(frame.pixels, axis=0)
+        preds = self._run(image_np_expanded)
+        boxes = self._model.get_boxes(preds, frame.pixels.shape[:2])
+
+        detections = set()
+        for class_id, (class_name, class_boxes) in enumerate(zip(self.class_names, boxes)):
+            for box in class_boxes:
+                metadata = {
+                    "raw_box": box,
+                    "class": {'name': class_name, 'id': class_id},
+                    "class_name": class_name,
+                    "class_id": class_id,
+                    "score": box[-1],
+                }
+
+                # Split the image into RGB pixel colours and then convert them to
+                # hue, saturation, value (HSV)
+                image_np_expanded = matplotlib.colors.rgb_to_hsv(image_np_expanded)
+                h, s, v = np.split(image_np_expanded.squeeze(), 3, axis=2)
+                h, s, v = h.squeeze(), s.squeeze(), v.squeeze()
+                # Calculate median HSV values for the box
+                box_corners = box[:-1].astype(int)
+
+                xwindow = gaussian(box_corners[2] - box_corners[0], std=1)
+                ywindow = gaussian(box_corners[3] - box_corners[1], std=1)
+                weights = np.outer(ywindow, xwindow) * 100
+                avg_h = Angle.average(
+                    [list(map(lambda x: Angle(x), hue))
+                        for hue in h[box_corners[1]:box_corners[3],
+                                     box_corners[0]:box_corners[2]]],
+                    weights=weights
+                )
+                avg_s = np.average(s[box_corners[1]:box_corners[3],
+                                     box_corners[0]:box_corners[2]],
+                                   weights=weights)
+                avg_v = np.average(v[box_corners[1]:box_corners[3],
+                                     box_corners[0]:box_corners[2]],
+                                   weights=weights) / 255
+
+                # Transform box to be in format (x, y, w, h)
+                detection = Detection(
+                    [box[0], box[1], box[2] - box[0], box[3] - box[1],  # Define box
+                     avg_h, avg_s, avg_v],
                     timestamp=frame.timestamp,
                     metadata=metadata)
                 detections.add(detection)
