@@ -107,7 +107,7 @@ class SingleProbabilityHypothesis(ProbabilityHypothesis, SingleHypothesis):
 class JointHypothesis(Type, UserDict):
     """Joint Hypothesis base type
 
-    A Joint Hypothesis consists of multiple Hypothesese, each with a single
+    A Joint Hypothesis consists of multiple Hypotheses, each with a single
     Track and a single Prediction.  A Joint Hypothesis can be a
     'ProbabilityJointHypothesis' or a 'DistanceJointHypothesis', with a
     probability or distance that is a function of the Hypothesis
@@ -160,16 +160,22 @@ class JointHypothesis(Type, UserDict):
 class ProbabilityJointHypothesis(ProbabilityHypothesis, JointHypothesis):
     """Probability-scored Joint Hypothesis subclass."""
 
+    probability: Probability = Property(
+        default=None,
+        doc="Probability that detection is true location of prediction. Defaults to `None`, "
+            "whereby the probability is calculated as being the product of the constituent "
+            "multiple-hypotheses' probabilities.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.probability = Probability(np.prod(
+            [hypothesis.probability for hypothesis in self.hypotheses.values()]))
+
     def normalise(self):
         sum_probability = Probability.sum(
             hypothesis.probability for hypothesis in self.hypotheses.values())
         for hypothesis in self.hypotheses.values():
             hypothesis.probability /= sum_probability
-
-    @property
-    def probability(self):
-        return Probability(
-            np.prod([hypothesis.probability for hypothesis in self.hypotheses.values()]))
 
 
 class DistanceJointHypothesis(JointHypothesis):

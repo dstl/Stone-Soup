@@ -3,11 +3,11 @@ import itertools
 
 import numpy as np
 
-from .base import DataAssociator
 from ._assignment import assign2D
+from .base import DataAssociator
 from ..base import Property
 from ..hypothesiser import Hypothesiser
-from ..types.hypothesis import SingleHypothesis, SingleProbabilityHypothesis, JointHypothesis, \
+from ..types.hypothesis import SingleHypothesis, JointHypothesis, \
     ProbabilityHypothesis
 
 
