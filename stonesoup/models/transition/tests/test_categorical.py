@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from ..categorical import CategoricalTransitionModel
-from ....types.array import StateVectors, StateVector, Matrix, CovarianceMatrix
+from ....types.array import StateVectors, CovarianceMatrix
 from ....types.state import State, CategoricalState
 
 
@@ -33,10 +33,9 @@ def create_categorical_matrix(num_rows, num_cols):
 
 @pytest.mark.parametrize('ndim', (2, 3, 4))
 def test_categorical_transition_model(ndim):
-
     # test invalid matrix
     with pytest.raises(ValueError, match="Column 0 of transition matrix does not sum to 1"):
-        CategoricalTransitionModel(2*np.eye(2))
+        CategoricalTransitionModel(2 * np.eye(2))
 
     # ndim possible categories
     F = create_categorical_matrix(ndim, ndim).T  # normalised columns
@@ -52,7 +51,7 @@ def test_categorical_transition_model(ndim):
     with pytest.raises(ValueError, match="Noise is generated via random sampling, and defined "
                                          "noise is not implemented"):
         prior = CategoricalState(create_categorical(2))
-        model.function(prior, noise=ndim*[0.5])
+        model.function(prior, noise=ndim * [0.5])
 
     states = [CategoricalState(create_categorical(ndim)) for _ in range(5)]
 

@@ -6,7 +6,7 @@ import numpy as np
 from ..base import Property
 from ..models.measurement.nonlinear import CartesianToElevationBearing
 from ..sensor.sensor import Sensor
-from ..types.array import CovarianceMatrix, Matrix
+from ..types.array import CovarianceMatrix
 from ..types.detection import TrueDetection
 from ..types.groundtruth import GroundTruthState
 

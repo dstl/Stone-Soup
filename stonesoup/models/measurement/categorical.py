@@ -76,7 +76,7 @@ class CategoricalMeasurementModel(MeasurementModel):
         return p / np.sum(p)
 
     def function(self, state, noise=False, **kwargs):
-        """Observation function
+        r"""Observation function
 
         Parameters
         ----------
