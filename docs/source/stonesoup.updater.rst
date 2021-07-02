@@ -36,3 +36,9 @@ Categorical
 
 .. automodule:: stonesoup.updater.categorical
     :show-inheritance:
+
+Composite
+-----------
+
+.. automodule:: stonesoup.updater.composite
+    :show-inheritance:
