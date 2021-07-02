@@ -4,8 +4,8 @@ import pytest
 import numpy as np
 try:
     import rtree
-except (ImportError, AttributeError):
-    # AttributeError raised when libspatialindex missing.
+except (ImportError, AttributeError, OSError):
+    # AttributeError or OSError raised when libspatialindex missing or unable to load.
     rtree = None
 
 from ..neighbour import (
