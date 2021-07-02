@@ -17,28 +17,25 @@ class GroundTruthState(State):
             self.metadata = {}
 
 
-class CategoricalGroundTruthState(CategoricalState):
+class CategoricalGroundTruthState(GroundTruthState, CategoricalState):
     """Categorical Ground Truth State type"""
-    metadata: MutableMapping = Property(
-        default=None, doc='Dictionary of metadata items for Detections.')
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.metadata is None:
-            self.metadata = {}
-GroundTruthState.register(CategoricalGroundTruthState)
 
 
 class CompositeGroundTruthState(CompositeState):
     """Composite Ground Truth State type"""
-    metadata: MutableMapping = Property(
-        default=None, doc='Dictionary of metadata items for Detections.')
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.metadata is None:
-            self.metadata = {}
-GroundTruthState.register(CompositeGroundTruthState)
+
+    @property
+    def metadata(self):
+        """Combined metadata of all sub-detections."""
+        metadata = dict()
+        for sub_state in self.sub_states:
+            metadata.update(sub_state.metadata)
+        return metadata
+
+
+GroundTruthState.register(CompositeGroundTruthState)  # noqa: E305
 
 
 class GroundTruthPath(StateMutableSequence):

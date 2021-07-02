@@ -348,10 +348,7 @@ def test_state_mutable_sequence_error_message():
 
 def test_categorical_state():
 
-    # test instantiation errors
-    with pytest.raises(ValueError, match="State vector distributes over 3 categories in a space "
-                                         "with 2 possible categories"):
-        CategoricalState(state_vector=StateVector([0.1, 0.4, 0.5]), num_categories=2)
+    # Test instantiation errors
     with pytest.raises(ValueError, match="2 category names were given for a state vector with 3 "
                                          "elements"):
         CategoricalState(state_vector=StateVector([0.1, 0.4, 0.5]), category_names=['1', '2'])
@@ -363,24 +360,21 @@ def test_categorical_state():
     with pytest.raises(ValueError, match="Category probabilities must sum to 1"):
         CategoricalState(state_vector=StateVector([0.2, 0.2, 0.3]))
 
-    # test defaults
+    # Test defaults
     state = CategoricalState(state_vector=StateVector([0.1, 0.4, 0.5]))
-    assert state.num_categories == 3
     assert state.category_names == [0, 1, 2]
 
-    # test str
+    # Test str
     state = CategoricalState(state_vector=StateVector([0.1, 0.4, 0.5]),
                              timestamp=datetime.datetime.now(),
-                             num_categories=5,
                              category_names=['red', 'blue', 'yellow'])
     assert str(state) == "(P(red) = 0.1, P(blue) = 0.4, P(yellow) = 0.5)"
 
+    # Test category
+    assert state.category == 'yellow'
+
 
 def test_composite_state_timestamp_errors():
-    with pytest.raises(AttributeError,
-                       match="CompositeState must either have component states to define its "
-                             "timestamp or a default timestamp"):
-        CompositeState()
     with pytest.raises(AttributeError,
                        match="Component-states must share the same timestamp"):
         CompositeState([State([0], timestamp=1), State([0], timestamp=2)])
@@ -401,11 +395,11 @@ def test_composite_state():
     # Test timestamp
     for i in range(1, 4):
         assert CompositeState(i*[State([0], timestamp=1)]).timestamp == 1
+        assert CompositeState(i * [State([0], timestamp=1)], default_timestamp=1).timestamp == 1
 
     assert CompositeState(default_timestamp=1).timestamp == 1
 
-    for i in range(4):
-        assert CompositeState(i*[State([0], timestamp=1)], default_timestamp=1).timestamp == 1
+    assert CompositeState().timestamp is None
 
     a = State([0, 1], timestamp=1)
     b = State([2], timestamp=1)

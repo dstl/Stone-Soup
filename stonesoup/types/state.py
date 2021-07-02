@@ -339,25 +339,15 @@ class CategoricalState(State):
 
     State space is a finite set of discrete categories :math:`\Phi = \{\phi_m|m\in\Z_{\gt0}\}`,
     where a state vector :math:`\mathbf{x}_i = P(\phi_i)` represents a categorical distribution
-    over a subset of these possible categories."""
+    over these possible categories."""
 
-    num_categories: int = Property(default=None,
-                                   doc=r"The number of possible categories in the state space "
-                                       r":math:`|\Phi|`. Defaults to the state vector length.")
     category_names: Sequence[str] = Property(
         default=None,
         doc="Sequence of category names corresponding to each state vector component. Defaults to "
-            "a list of integers starting at 0 and incrementing by 1")
+            "a list of integers.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        if self.num_categories and self.ndim > self.num_categories:
-            raise ValueError(f"State vector distributes over {self.ndim} categories in a space "
-                             f"with {self.num_categories} possible categories")
-
-        if self.num_categories is None:
-            self.num_categories = self.ndim
 
         if self.category_names and len(self.category_names) != self.ndim:
             raise ValueError(f"{len(self.category_names)} category names were given for a state "
@@ -366,10 +356,13 @@ class CategoricalState(State):
         if self.category_names is None:
             self.category_names = list(range(self.ndim))
 
+        # Check all vector elements are valid probabilities
         if any(p < 0 or p > 1 for p in self.state_vector):
             raise ValueError("Category probabilities must lie in the closed interval [0, 1]")
+
+        # Check vector is normalised
         if not np.isclose(np.sum(self.state_vector), 1):
-            raise ValueError(f"Category probabilities must sum to 1")
+            raise ValueError("Category probabilities must sum to 1")
 
     def __str__(self):
         strings = [f"P({category}) = {p}"
@@ -378,6 +371,7 @@ class CategoricalState(State):
 
     @property
     def category(self):
+        """Return the name of the most likely category"""
         return self.category_names[np.argmax(self.state_vector)]
 
 
@@ -391,9 +385,7 @@ class CompositeState(Type):
                                                "state.")
     default_timestamp: datetime.datetime = Property(default=None,
                                                     doc="Default timestamp if no component states "
-                                                        "exist to attain timestamp from."
-                                                        "Defaults to None, whereby component "
-                                                        "states will be required.")
+                                                        "exist to attain timestamp from.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -401,14 +393,13 @@ class CompositeState(Type):
         if self.sub_states is None:
             self.sub_states = list()
 
-        self._timestamp = None
-        self.check_timestamp()
+        self._check_timestamp()
 
     @property
     def timestamp(self):
         return self._timestamp
 
-    def check_timestamp(self):
+    def _check_timestamp(self):
         if self.sub_states:
             if any(state1.timestamp != state2.timestamp
                    for state1, state2 in combinations(self.sub_states, 2)):
@@ -424,10 +415,7 @@ class CompositeState(Type):
         elif self.default_timestamp:
             self._timestamp = self.default_timestamp
         else:
-            raise AttributeError(
-                f"{type(self).__name__} must either have component states to define its "
-                f"timestamp or a default timestamp"
-            )
+            self._timestamp = None
 
     @property
     def state_vectors(self):
@@ -443,12 +431,12 @@ class CompositeState(Type):
 
     def __setitem__(self, index, value):
         set_item = self.sub_states.__setitem__(index, value)
-        self.check_timestamp()
+        self._check_timestamp()
         return set_item
 
     def __delitem__(self, index):
         del_item = self.sub_states.__delitem__(index)
-        self.check_timestamp()
+        self._check_timestamp()
         return del_item
 
     def __iter__(self):
@@ -459,7 +447,7 @@ class CompositeState(Type):
 
     def insert(self, index, value):
         inserted_state = self.sub_states.insert(index, value)
-        self.check_timestamp()
+        self._check_timestamp()
         return inserted_state
 
     def append(self, value):
@@ -471,4 +459,4 @@ class CompositeState(Type):
             A state object to be added at the end of :attr:`sub_states`.
         """
         self.sub_states.append(value)
-        self.check_timestamp()
+        self._check_timestamp()
