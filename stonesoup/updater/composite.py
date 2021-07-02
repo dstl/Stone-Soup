@@ -70,8 +70,8 @@ class CompositeUpdater(Updater):
             sub_meas_model = sub_hypothesis.measurement.measurement_model
 
             if sub_hypothesis.measurement_prediction is None:
-                sub_hypothesis.measurement_prediction = sub_updater.predict_measurement(sub_pred,
-                                                                                        sub_meas_model)
+                sub_hypothesis.measurement_prediction = \
+                    sub_updater.predict_measurement(sub_pred, sub_meas_model)
 
             # This step is usually handled by tracker type
             if sub_hypothesis:

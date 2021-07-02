@@ -2,15 +2,12 @@
 from collections import defaultdict
 from typing import Sequence
 
-import numpy as np
-
 from .base import Hypothesiser
 from ..base import Property
 from ..predictor.composite import CompositePredictor
 from ..types.detection import MissedDetection, CompositeMissedDetection
 from ..types.hypothesis import CompositeProbabilityHypothesis
 from ..types.multihypothesis import MultipleHypothesis
-from ..types.numeric import Probability
 
 
 class CompositeHypothesiser(Hypothesiser):
