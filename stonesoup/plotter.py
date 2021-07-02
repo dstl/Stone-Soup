@@ -1,14 +1,18 @@
 import warnings
 from itertools import chain
+from typing import Sequence
+
 
 import numpy as np
+from scipy.stats import kde
 from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.patches import Ellipse
 from matplotlib.legend_handler import HandlerPatch
 
 from .types import detection
-from .models.base import LinearModel, Model
+from .types.state import StateMutableSequence
+from .models.base import LinearModel, NonLinearModel, Model
 
 from enum import Enum
 
@@ -358,6 +362,32 @@ class Plotter:
 
         else:
             self.ax.legend(handles=self.legend_dict.values(), labels=self.legend_dict.keys())
+
+    def plot_density(self, state_sequences: Sequence[StateMutableSequence], index=-1, mapping=(0, 2), n_bins=300,
+                     **kwargs):
+
+        if index is None:
+            x = np.array([a_state.state_vector[mapping[0]]
+                          for a_state_sequence in state_sequences
+                          for a_state in a_state_sequence])
+            y = np.array([a_state.state_vector[mapping[1]]
+                          for a_state_sequence in state_sequences
+                          for a_state in a_state_sequence])
+        else:
+            x = np.array([a_state_sequence.states[index].state_vector[mapping[0]]
+                          for a_state_sequence in state_sequences])
+            y = np.array([a_state_sequence.states[index].state_vector[mapping[1]]
+                          for a_state_sequence in state_sequences])
+
+        # Evaluate a gaussian kde on a regular grid of n_bins x n_bins over data extents
+        k = kde.gaussian_kde([x, y])
+        xi, yi = np.mgrid[x.min():x.max():n_bins * 1j, y.min():y.max():n_bins * 1j]
+        zi = k(np.vstack([xi.flatten(), yi.flatten()]))
+
+        # Make the plot
+        self.ax.pcolormesh(xi, yi, zi.reshape(xi.shape), shading='auto', **kwargs)
+
+        plt.show(block=False)
 
     # Ellipse legend patch (used in Tutorial 3)
     @staticmethod
