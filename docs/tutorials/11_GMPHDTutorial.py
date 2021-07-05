@@ -253,7 +253,7 @@ plotter.plot_measurements(all_measurements, [0, 2], color='g')
 plotter.fig
 
 # %%
-# Create the Predictor and Updater
+# Create the Predicter and Updater
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # The updater is a PHD updater, and since it uses the mixed Gaussian paths, it is a
