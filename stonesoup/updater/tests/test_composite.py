@@ -142,21 +142,6 @@ def test_composite_updater(num_updaters):
                         0,
                         atol=1.e-14))
 
-    # Test missed detection
-    null_hypotheses = [
-        SingleProbabilityHypothesis(prediction[i], MissedDetection(timestamp=now), 1)
-        for i in range(len(prediction))
-    ]
-    hypothesis = CompositeProbabilityHypothesis(
-        prediction=prediction,
-        measurement=CompositeMissedDetection(default_timestamp=now),
-        sub_hypotheses=null_hypotheses
-    )
-    update = updater.update(hypothesis)
-
-    assert isinstance(update, CompositePrediction)
-    assert len(update) == len(prediction)
-
     # Test update error
     with pytest.raises(ValueError,
                        match="CompositeUpdater can only be used with CompositeHypothesis types"):

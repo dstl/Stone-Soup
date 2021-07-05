@@ -56,7 +56,6 @@ class CompositeUpdater(Updater):
         """
 
         sub_updates = []
-        is_prediction = True
 
         if not isinstance(hypothesis, CompositeHypothesis):
             raise ValueError("CompositeUpdater can only be used with CompositeHypothesis types")
@@ -73,17 +72,12 @@ class CompositeUpdater(Updater):
                 sub_hypothesis.measurement_prediction = \
                     sub_updater.predict_measurement(sub_pred, sub_meas_model)
 
-            # This step is usually handled by tracker type
             if sub_hypothesis:
                 sub_update = sub_updater.update(sub_hypothesis, **kwargs)
-                # If at least one sub-state is updated, consider the track updated
-                is_prediction = False
             else:
+                # append predictions where no detection is available for sub-state
                 sub_update = sub_hypothesis.prediction
             sub_updates.append(sub_update)
-
-        if is_prediction:
-            return CompositePrediction(sub_states=sub_updates)
 
         return CompositeUpdate(sub_states=sub_updates, hypothesis=hypothesis)
 
