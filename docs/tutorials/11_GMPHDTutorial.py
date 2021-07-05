@@ -451,7 +451,8 @@ plotter.ax.set_ylim(y_min-5, y_max+5)
 #plotter.fig
 
 # %%
-# ### Examining the Gaussian Mixtures
+# Examining the Gaussian Mixtures
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # At every time step, the above GM-PHD algorithm creates a Gaussian mixture, which is
 # a distribution over our target space. The following sections take a closer look at what
 # this Gaussian really looks like. Note that the figures below only include the reduced
