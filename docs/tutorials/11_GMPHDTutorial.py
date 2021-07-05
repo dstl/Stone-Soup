@@ -12,7 +12,7 @@
 # ----------
 #
 # Previous tutorials have described the difficulties of state estimation when there are
-# multiple targets under consideration. The PHD filter has been proposed as a solution
+# multiple targets under consideration. The probability hypothesis density (PHD) filter has been proposed as a solution
 # to this problem that is analogous to the Kalman Filter's solution in single-object
 # tracking. Where the Kalman filter propagates the first order movement of the posterior
 # distribution of the target, the PHD filter creates a multiple target posterior
