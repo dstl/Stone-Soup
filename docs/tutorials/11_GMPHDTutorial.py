@@ -318,7 +318,7 @@ reducer = GaussianMixtureReducer(
 # tracker knows the start state of the first 3 tracks that were created. After that it
 # must pick up on new tracks and discard old ones.
 #
-# Feel free to change the state_vector from the actual truth state_vector to something
+# Feel free to change the `state_vector` from the actual truth state vector to something
 # else. This would mimic if the tracker did not know where the objects were originating.
 from stonesoup.types.state import TaggedWeightedGaussianState
 from stonesoup.types.track import Track
