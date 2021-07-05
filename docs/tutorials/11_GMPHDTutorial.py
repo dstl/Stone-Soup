@@ -281,7 +281,7 @@ updater = PHDUpdater(
 # statistical moment which is a Gaussian mixture. The predicted state at the next time
 # step is also a Gaussian mixture and can be determined solely by the propagated prior.
 # Determining this predicted Gaussian mixture is the job for the
-# `GaussianMixtureHypothesiser` class. We must also generate a prediction for each track
+# :class:`~.GaussianMixtureHypothesiser` class. We must also generate a prediction for each track
 # in the simulation, and so use the `DistanceHypothesiser` object as before.
 from stonesoup.predictor.kalman import KalmanPredictor
 kalman_predictor = KalmanPredictor(transition_model)
