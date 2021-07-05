@@ -298,7 +298,7 @@ hypothesiser = GaussianMixtureHypothesiser(base_hypothesiser, order_by_detection
 # potential new states for our tracks. Each state is a :class:`~.TaggedWeightedGaussianState`
 # object and has a state vector, covariance, weight, tag, and timestamp. Some of the
 # updated states have a very low weight, indicating that they do not contribute much to
-# the Gaussian mixture. To ease the computational complexity, a `GaussianMixtureReducer`
+# the Gaussian mixture. To ease the computational complexity, a :class:`~.GaussianMixtureReducer`
 # is used to merge and prune many of the states based on provided thresholds. States whose
 # distance is less than the merging threshold will be combined, and states whose weight
 # is less than the pruning threshold will be removed.
