@@ -587,5 +587,6 @@ anim
 
 
 # %%
-# ## References
+# References
+# ----------
 # .. [#] B. -. Vo and W. -. Ma, "The Gaussian Mixture Probability Hypothesis Density Filter," in IEEE Transactions on Signal Processing, vol. 54, no. 11, pp. 4091-4104, Nov. 2006, doi: 10.1109/TSP.2006.881190.
