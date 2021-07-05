@@ -253,7 +253,8 @@ plotter.plot_measurements(all_measurements, [0, 2], color='g')
 plotter.fig
 
 # %%
-# ### Create the Predictor and Updator
+# Create the Predictor and Updater
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # The updator is a PHD updator, and since it uses the mixed Gaussian paths, it is a
 # GM-PHD updator. For each individual track we use a Kalman updator. Here we assume
