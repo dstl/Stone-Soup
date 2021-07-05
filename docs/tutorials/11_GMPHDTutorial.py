@@ -104,7 +104,7 @@
 #
 
 # %%
-# We start with some imports as usual
+# We start with some imports as usual.
 
 # Imports for plotting
 import matplotlib
