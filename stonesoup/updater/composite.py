@@ -4,7 +4,6 @@ from typing import Sequence
 from .base import Updater
 from ..base import Property
 from ..types.hypothesis import CompositeHypothesis
-from ..types.prediction import CompositePrediction
 from ..types.update import CompositeUpdate
 
 

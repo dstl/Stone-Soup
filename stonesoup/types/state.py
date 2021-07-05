@@ -2,7 +2,6 @@
 import datetime
 import uuid
 from collections import abc
-from itertools import combinations
 from typing import MutableSequence, Sequence
 
 import numpy as np
@@ -401,17 +400,21 @@ class CompositeState(Type):
 
     def _check_timestamp(self):
         if self.sub_states:
-            if any(state1.timestamp != state2.timestamp
-                   for state1, state2 in combinations(self.sub_states, 2)):
-                raise AttributeError("Component-states must share the same timestamp")
-            elif self.default_timestamp and \
-                    any(state.timestamp != self.default_timestamp for state in self.sub_states):
-                raise AttributeError("If a default timestamp is defined alongside component "
-                                     "states, these states must share the same timestamp as the "
-                                     "default timestamp")
-            else:
-                # Get timestamp from first component state
-                self._timestamp = self.sub_states[0].timestamp
+            for state in self.sub_states:
+                if state.timestamp is not None:
+                    for other_state in self.sub_states:
+                        if other_state.timestamp is not None \
+                                and other_state.timestamp != state.timestamp:
+                            raise AttributeError("Component-states must share the same timestamp")
+                    if self.default_timestamp and state.timestamp != self.default_timestamp:
+                        raise AttributeError("If a default timestamp is defined alongside "
+                                             "component states, these states must share the same "
+                                             "timestamp as the default timestamp")
+            # Get timestamp from first component state with non-None timestamp
+            self._timestamp = self.sub_states[0].timestamp
+            # Replace None-timestamps with `_timestamp`
+            for state in self.sub_states:
+                state.timestamp = self._timestamp
         elif self.default_timestamp:
             self._timestamp = self.default_timestamp
         else:

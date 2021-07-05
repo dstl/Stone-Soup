@@ -8,10 +8,8 @@ from ...models.measurement.categorical import CategoricalMeasurementModel
 from ...models.measurement.linear import LinearGaussian
 from ...models.transition.tests.test_categorical import create_categorical_matrix
 from ...predictor.tests.test_composite import create_state
-from ...types.detection import Detection, CompositeDetection, CategoricalDetection, \
-    MissedDetection, CompositeMissedDetection
-from ...types.hypothesis import SingleHypothesis, CompositeHypothesis, \
-    SingleProbabilityHypothesis, CompositeProbabilityHypothesis
+from ...types.detection import Detection, CompositeDetection, CategoricalDetection
+from ...types.hypothesis import SingleHypothesis, CompositeHypothesis
 from ...types.prediction import CompositePrediction
 from ...types.state import State
 from ...types.update import CompositeUpdate
