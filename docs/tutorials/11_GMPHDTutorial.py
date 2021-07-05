@@ -117,7 +117,8 @@ from datetime import datetime, timedelta
 start_time = datetime.now()
 
 # %%
-# ### Generate ground truth
+# Generate ground truth
+# ^^^^^^^^^^^^^^^^^^^^^
 
 # At the end of the tutorial we will plot the Gaussian mixtures. The ground truth Gaussian
 # mixtures are stored in this list where each index refers to an instance in time and holds
