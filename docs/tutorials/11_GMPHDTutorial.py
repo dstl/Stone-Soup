@@ -411,7 +411,8 @@ for n, measurements in enumerate(all_measurements):
 
 
 # %%
-# ### Plot the Tracks
+# Plot the Tracks
+# ^^^^^^^^^^^^^^^
 # First, determine the x and y range for axes. We want to zoom in as much as possible
 # on the measurements and tracks while not losing any of the information. This section
 # is not strictly necessary as we already set the field of view to be the range [-100, 100]
