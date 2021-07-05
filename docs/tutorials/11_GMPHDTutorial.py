@@ -295,7 +295,7 @@ hypothesiser = GaussianMixtureHypothesiser(base_hypothesiser, order_by_detection
 
 # %%
 # The updater takes a list of hypotheses from the hypothesiser and transforms them into
-# potential new states for our tracks. Each state is a `TaggedWeightedGaussianState`
+# potential new states for our tracks. Each state is a :class:`~.TaggedWeightedGaussianState`
 # object and has a state vector, covariance, weight, tag, and timestamp. Some of the
 # updated states have a very low weight, indicating that they do not contribute much to
 # the Gaussian mixture. To ease the computational complexity, a `GaussianMixtureReducer`
