@@ -70,7 +70,8 @@
 # The probabilty that a state :math:`x` will be detected at time :math:`k`  is given by :math:`p_{D, k}(x)`.
 
 # %%
-# ### Assumptions
+# Assumptions
+# ^^^^^^^^^^^
 # The GM-PHD filter assumes that each target is independent of one another in both generated
 # observations and in evolution. Clutter is also assumed to be independent of the target
 # measurements. Finally, we assume that the target locations at a given time step are
