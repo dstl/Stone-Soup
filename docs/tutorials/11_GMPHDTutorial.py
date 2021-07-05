@@ -419,7 +419,7 @@ for n, measurements in enumerate(all_measurements):
 # for both x and y. However, sometimes an object may leave the field of view. If you want
 # to ignore objects that have left the field of view, comment out this section and define
 # the variables
-# x_min = y_min = -100 and x_max = y_max = 100.
+# `x_min` = `y_min` = -100 and `x_max` = `y_max` = 100.
 
 x_min, x_max, y_min, y_max = 0, 0, 0, 0
 
