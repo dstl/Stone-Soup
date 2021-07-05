@@ -58,7 +58,9 @@
 # target states at time :math:`k` and :math:`\mathbf{X}` has probability distribution :math:`P`. Integrating over
 # every region :math:`S \in \chi`, we get a formula for the first order moment (also called the
 # intensity) at time :math:`k`, :math:`v_{k}`
-# :math:`\int \left \vert \mathbf{X}_{k}\cap S\right \vert P(d\mathbf{X})=\int _{S}v_{k}(x)dx`.
+# 
+# .. math::
+#           \int \left \vert \mathbf{X}_{k}\cap S\right \vert P(d\mathbf{X})=\int _{S}v_{k}(x)dx.
 #
 # The set of targets spawned at time :math:`k` by a target whose previous state was :math:`\zeta` is the
 # random finite set :math:`\mathbf{B}_{k|k-1}`. This new set of targets has intensity denoted :math:`\beta_{k|k-1}`.
