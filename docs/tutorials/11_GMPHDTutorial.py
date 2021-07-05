@@ -338,7 +338,8 @@ for truth in start_truths:
 reduced_states = None
 
 # %%
-# ### Run the Tracker
+# Run the Tracker
+# ^^^^^^^^^^^^^^^
 # We create a tracker now that we have all our components. Loop through the hypothesise,
 # update, reduce, and match steps. Unlike other filters, the GM-PHD filter does not use
 # a data associator, so there is no associate step. The filter outputs a list of states
