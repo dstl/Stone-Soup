@@ -44,7 +44,9 @@
 # The Posterior Density: The probability density of state :math:`\mathbf{x}_{k}` given all the previous
 # observations is denoted by :math:`p_{k}(\mathbf{x}_{k}\vert \mathbf{z}_{1:k})`. Using an initial density
 # :math:`p_{0}()`, we can apply Bayes' recursion to show that the posterior density is actually
-# :math:`p_{k}(\mathbf{x}_{k}\vert \mathbf{z}_{1:k}) = {{g_{k}(\mathbf{z}_{k}\vert \mathbf{x}_{k})p_{k\vert k-1}(\mathbf{x}_{k}\vert \mathbf{z}_{1:k-1})} \over {\int g_{k}(\mathbf{z}_{k}\vert \mathbf{x})p_{k\vert k-1}(\mathbf{x}\vert \mathbf{z}_{1:k-1})d\mathbf{x}}}`
+# 
+# .. math::
+#           p_{k}(\mathbf{x}_{k}\vert \mathbf{z}_{1:k}) = {{g_{k}(\mathbf{z}_{k}\vert \mathbf{x}_{k})p_{k\vert k-1}(\mathbf{x}_{k}\vert \mathbf{z}_{1:k-1})} \over {\int g_{k}(\mathbf{z}_{k}\vert \mathbf{x})p_{k\vert k-1}(\mathbf{x}\vert \mathbf{z}_{1:k-1})d\mathbf{x}}}
 #
 #
 # It is important to notice here that the state at time :math:`k` can be derived wholely by
