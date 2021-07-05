@@ -188,7 +188,8 @@ plotter.plot_ground_truths(truths, [0, 2])
 
 
 # %%
-# ### Generate detections with clutter
+# Generate detections with clutter
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Next, generate detections with clutter just as in the previous tutorial. The clutter is
 # assumed to be uniformly distributed accross the entire field of view, here assumed to
 # be the space where :math:`x \in [-100, 100]` and :math:`y \in [-100, 100]`.
