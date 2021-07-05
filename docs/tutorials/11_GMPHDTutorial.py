@@ -89,7 +89,8 @@
 # please see the full text in [1].
 
 # %%
-# ## A Ground-Based Multi-Target Simulation
+# A Ground-Based Multi-Target Simulation
+# --------------------------------------
 # This simulation will include several targets moving in different directions accross the 2D
 # Cartesian plane. The start locations of each object are random. These start locations are
 # called priors and are known to the filter.
