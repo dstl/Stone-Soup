@@ -473,7 +473,6 @@ from matplotlib import cm
 # The website is from this repository https://github.com/empet/Plotly-plots which
 # has a GPL-3.0 License. 
 def get_mixture_density(x, y, weights, means, sigmas):
-
     # We use the quantiles as a parameter in the multivariate_normal function. We don't need to pass in any quantiles,
     # but the last axis must have the components x and y
     quantiles = np.empty(x.shape + (2,))  # if  x.shape is (m,n) then quantiles.shape is (m,n,2)
