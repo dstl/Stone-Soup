@@ -482,7 +482,7 @@ def get_mixture_density(x, y, weights, means, sigmas):
     # Go through each gaussian in the list and add its PDF to the mixture
     z = np.zeros(x.shape)
     for gaussian in range(len(weights)):
-        z += weights[gaussian]*multivariate_normal.pdf(x=quantiles, mean=means[gaussian,:], cov=sigmas[gaussian])
+        z += weights[gaussian]*multivariate_normal.pdf(x=quantiles, mean=means[gaussian, :], cov=sigmas[gaussian])
     return z
 
 
