@@ -49,7 +49,7 @@
 #           p_{k}(\mathbf{x}_{k}\vert \mathbf{z}_{1:k}) = {{g_{k}(\mathbf{z}_{k}\vert \mathbf{x}_{k})p_{k\vert k-1}(\mathbf{x}_{k}\vert \mathbf{z}_{1:k-1})} \over {\int g_{k}(\mathbf{z}_{k}\vert \mathbf{x})p_{k\vert k-1}(\mathbf{x}\vert \mathbf{z}_{1:k-1})d\mathbf{x}}}
 #
 #
-# It is important to notice here that the state at time :math:`k` can be derived wholely by
+# It is important to notice here that the state at time :math:`k` can be derived wholly by
 # the state at time :math:`k-1`.
 #
 # Here we also introduce the following notation:
