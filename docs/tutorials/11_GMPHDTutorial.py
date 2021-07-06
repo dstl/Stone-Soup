@@ -508,7 +508,6 @@ def animate(i, sf, truths, tracks, measurements, clutter):
     axL.set_zlim(0, 0.3)
 
     # Initialize the variables
-    num_gaussians = len(all_gaussians[i]) # number of functions in this mixture
     weights = []  # weights of each Gaussian. This is analogous to the probability of its existence
     means = []    # means of each Gaussian. This is equal to the x and y of its state vector
     sigmas = []   # standard deviation of each Gaussian.
