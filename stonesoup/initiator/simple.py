@@ -1,24 +1,18 @@
-from typing import Sequence
-
 import numpy as np
 from scipy.stats import multivariate_normal
 
-from ..types.detection import MissedDetection
-from ..updater.composite import CompositeUpdater
 from .base import GaussianInitiator, ParticleInitiator, Initiator
 from ..base import Property
 from ..dataassociator import DataAssociator
 from ..deleter import Deleter
 from ..models.base import NonLinearModel, ReversibleModel
 from ..models.measurement import MeasurementModel
-from ..types.hypothesis import SingleHypothesis, CompositeProbabilityHypothesis, \
-    CompositeHypothesis
+from ..types.hypothesis import SingleHypothesis
 from ..types.numeric import Probability
 from ..types.particle import Particle
-from ..types.state import State, GaussianState, CompositeState
+from ..types.state import State, GaussianState, ParticleState
 from ..types.track import Track
-from ..types.update import GaussianStateUpdate, ParticleStateUpdate, Update, CompositeUpdate,\
-    StateUpdate, CategoricalStateUpdate
+from ..types.update import GaussianStateUpdate, ParticleStateUpdate, Update
 from ..updater import Updater
 from ..updater.kalman import ExtendedKalmanUpdater
 
@@ -31,7 +25,7 @@ class SinglePointInitiator(GaussianInitiator):
     """
 
     prior_state: GaussianState = Property(doc="Prior state information")
-    measurement_model: MeasurementModel = Property(doc="Measurement model")
+    measurement_model: MeasurementModel = Property(default=None, doc="Measurement model")
 
     def initiate(self, detections, timestamp, **kwargs):
         """Initiates tracks given unassociated measurements
@@ -230,6 +224,27 @@ class GaussianParticleInitiator(ParticleInitiator):
         doc="If `True`, the Gaussian state covariance is used for the "
             ":class:`~.ParticleState` as a fixed covariance. Default `False`.")
 
+    @property
+    def prior_state(self):
+        try:
+            samples = multivariate_normal.rvs(self.initiator.prior_state.state_vector.ravel(),
+                                              self.initiator.prior_state.covar,
+                                              size=self.number_particles)
+        except AttributeError:
+            raise AttributeError("No prior state")
+        particles = [
+            Particle(sample.reshape(-1, 1), weight=self.weight)
+            for sample in samples]
+
+        return ParticleState(
+            particles,
+            fixed_covar=self.initiator.prior_state.covar if self.use_fixed_covar else None
+        )
+
+    @property
+    def weight(self):
+        return Probability(1 / self.number_particles)
+
     def initiate(self, detections, timestamp, **kwargs):
         """Initiates tracks given unassociated measurements
 
@@ -246,13 +261,13 @@ class GaussianParticleInitiator(ParticleInitiator):
             A list of new tracks with a initial :class:`~.ParticleState`
         """
         tracks = self.initiator.initiate(detections, timestamp, **kwargs)
-        weight = Probability(1 / self.number_particles)
+
         for track in tracks:
             samples = multivariate_normal.rvs(track.state_vector.ravel(),
                                               track.covar,
                                               size=self.number_particles)
             particles = [
-                Particle(sample.reshape(-1, 1), weight=weight)
+                Particle(sample.reshape(-1, 1), weight=self.weight)
                 for sample in samples]
             track[-1] = ParticleStateUpdate(
                 particles,
@@ -260,129 +275,4 @@ class GaussianParticleInitiator(ParticleInitiator):
                 fixed_covar=track.covar if self.use_fixed_covar else None,
                 timestamp=track.timestamp)
 
-        return tracks
-
-
-class SimpleCategoricalInitiator(Initiator):
-    prior_state: GaussianState = Property(doc="Prior state information")
-    measurement_model: MeasurementModel = Property(default=None, doc="Measurement model (should "
-                                                                     "be categorical model)")
-
-    def initiate(self, detections, **kwargs):
-        tracks = set()
-
-        for detection in detections:
-            if detection.measurement_model is not None:
-                measurement_model = detection.measurement_model
-            else:
-                measurement_model = self.measurement_model
-
-            state_vector = measurement_model.emission_matrix @ detection.state_vector
-            state_vector = state_vector / np.sum(state_vector)
-
-            state = CategoricalStateUpdate(state_vector=state_vector,
-                                           hypothesis=SingleHypothesis(None, detection),
-                                           timestamp=detection.timestamp,
-                                           num_categories=self.prior_state.num_categories,
-                                           category_names=self.prior_state.category_names)
-
-            tracks.add(Track([state]))
-        return tracks
-
-
-class SimpleCompositeInitiator(Initiator):
-    prior_state: GaussianState = Property(doc="Prior state information")
-    measurement_model: MeasurementModel = Property(doc="Measurement model")
-    updater: CompositeUpdater = Property()
-
-    def initiate(self, unassociated_detections, **kwargs):
-        """Initiates tracks given unassociated measurements
-
-        Parameters
-        ----------
-        unassociated_detections : list of \
-        :class:`stonesoup.types.detection.Detection`
-            A list of unassociated detections
-
-        Returns
-        -------
-        : :class:`sets.Set` of :class:`stonesoup.types.track.Track`
-            A list of new tracks with an initial :class:`~.GaussianState`
-        """
-
-        tracks = set()
-        for detection in unassociated_detections:
-
-            hypothesis = CompositeHypothesis(prediction=self.prior_state, measurement=detection)
-            for i, sub_state in enumerate(self.prior_state.inner_states):
-
-                try:
-                    # Check if detection has sub-detection for this state index
-                    sub_detection_index = detection.mapping.index(i)
-                except IndexError:
-                    hypothesis.append(SingleHypothesis(sub_state, MissedDetection(
-                        timestamp=detection.timestamp)))
-                else:
-                    sub_detection = detection[sub_detection_index]
-                    hypothesis.append(SingleHypothesis(sub_state, sub_detection))
-
-            track_state = self.updater.update(hypothesis)
-            track = Track([track_state])
-            tracks.add(track)
-
-        return tracks
-
-
-class CompositeUpdateInitiator(Initiator):
-    initiators: Sequence[Initiator] = Property()
-    prior_state: CompositeState = Property(doc="Prior state information")
-
-    def initiate(self, detections, **kwargs):
-        tracks = set()
-
-        for detection in detections:
-
-            mapping = detection.mapping
-
-            hypotheses = list()
-            states = list()
-
-            irreversible = False
-
-            for i, initiator in enumerate(self.initiators):
-
-                try:
-                    # Check if detection has sub-detection for this state index
-                    detection_index = mapping.index(i)
-                except IndexError:
-                    prior = self.prior_state[i]
-                    states.append(prior)
-
-                    # Add missed detection hypothesis to composite hypothesis
-                    hypotheses.append(
-                        SingleHypothesis(None, MissedDetection(timestamp=detection.timestamp)))
-                else:
-                    # Get sub-detection and initiate a (sub)track with it
-                    sub_detection = detection[detection_index]
-                    tracks = initiator.initiate({sub_detection})
-                    try:
-                        track = tracks.pop()  # Set of 1 track
-                    except KeyError:
-                        irreversible = True
-                        break
-                    update = track[0]  # Get first state of track
-                    states.append(update)
-
-                    # Add detection hypothesis to composite hypothesis
-                    hypotheses.append(SingleHypothesis(None, sub_detection))
-
-            if irreversible:
-                continue
-            hypothesis = CompositeHypothesis(prediction=None,
-                                             hypotheses=hypotheses,
-                                             measurement=detection)
-            composite_update = CompositeUpdate(inner_states=states,
-                                               hypothesis=hypothesis)
-
-            tracks.add(Track([composite_update]))
         return tracks
