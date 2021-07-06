@@ -476,7 +476,7 @@ def get_mixture_density(x, y, weights, means, sigmas):
 
     # We use the quantiles as a parameter in the multivariate_normal function. We don't need to pass in any quantiles,
     # but the last axis must have the components x and y
-    quantiles = np.empty(x.shape + (2,))# if  x.shape is (m,n) then  quantiles.shape is (m,n,2)
+    quantiles = np.empty(x.shape + (2,))  # if  x.shape is (m,n) then quantiles.shape is (m,n,2)
     quantiles[:, :, 0] = x
     quantiles[:, :, 1] = y
 
