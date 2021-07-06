@@ -327,11 +327,11 @@ covar = CovarianceMatrix(np.diag([1000, 2, 1000, 2]))
 tracks = set()
 for truth in start_truths:
     new_track = TaggedWeightedGaussianState(
-            state_vector = truth.state_vector,
-            covar = covar**2,
-            weight = 0.25,
-            tag = 'birth',
-            timestamp = start_time)
+            state_vector=truth.state_vector,
+            covar=covar**2,
+            weight=0.25,
+            tag='birth',
+            timestamp=start_time)
     tracks.add(Track(new_track))
 
 reduced_states = None
