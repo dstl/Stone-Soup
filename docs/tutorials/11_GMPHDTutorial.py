@@ -107,7 +107,6 @@
 # We start with some imports as usual.
 
 # Imports for plotting
-import matplotlib
 from matplotlib import pyplot as plt
 plt.rcParams['figure.figsize'] = (14, 12)
 plt.style.use('seaborn-colorblind')
