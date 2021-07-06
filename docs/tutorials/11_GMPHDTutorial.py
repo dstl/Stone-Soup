@@ -583,6 +583,7 @@ anim = animation.FuncAnimation(fig, animate, frames=number_steps, interval=500,
 rc('animation', html='jshtml')
 anim
 
+# sphinx_gallery_thumbnail_number = 4
 
 # %%
 # References
