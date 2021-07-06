@@ -493,7 +493,7 @@ def get_mixture_density(x, y, weights, means, sigmas):
 
 from matplotlib import animation
 from matplotlib import pyplot as plt
-from matplotlib.lines import Line2D # Will be used when making the legend
+from matplotlib.lines import Line2D  # Will be used when making the legend
 
 # This is the function that updates the figure we will be animating. As parametrs we must
 # pass in the elements that will be changed, as well as the index i
