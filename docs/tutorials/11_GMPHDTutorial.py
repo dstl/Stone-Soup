@@ -374,8 +374,9 @@ for n, measurements in enumerate(all_measurements):
     # Generate the set of hypotheses
     hypotheses = hypothesiser.hypothesise(current_state,
                                           measurements,
-                                          start_time + timedelta(seconds=n),
-                                          order_by_detection = True) # keep our hypotheses ordered by detection, not by track
+                                          start_time+timedelta(seconds=n),
+                                          # keep our hypotheses ordered by detection, not by track
+                                          order_by_detection=True)
 
     # Turn the hypotheses into a GaussianMixture object holding a list of states
     updated_states = updater.update(hypotheses)
