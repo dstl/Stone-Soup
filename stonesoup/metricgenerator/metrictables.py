@@ -68,13 +68,13 @@ class RedGreenTableGenerator(MetricTableGenerator):
                 cellColors.append([white, white, white, white])
 
         # "Plot" table
-        fig = plt.figure(figsize=(20, 1))
-        fig.subplots_adjust(left=0.4, top=0.6)
+        scale = (1, 3)
+        fig = plt.figure(figsize=(len(cellText)*scale[0] + 1, len(cellText[0])*scale[1]/2))
         ax = fig.add_subplot(1, 1, 1)
         ax.axis('off')
         table = matplotlib.table.table(ax, cellText, cellColors, loc='center')
         table.auto_set_column_width([0, 1, 2, 3])
-        table.scale(1, 4)
+        table.scale(*scale)
 
         return table
 
