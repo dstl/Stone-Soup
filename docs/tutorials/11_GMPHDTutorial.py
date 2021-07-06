@@ -558,7 +558,7 @@ def animate(i, sf, truths, tracks, measurements, clutter):
 # Set up the x, y, and z space for the 3D axis (the left one)
 xx = np.linspace(x_min-5, x_max+5, 100)
 yy = np.linspace(y_min-5, y_max+5, 100)
-x, y = np.meshgrid(xx,yy)
+x, y = np.meshgrid(xx, yy)
 zarray = np.zeros((100, 100, number_steps))
 
 # Create the matplotlib figure and axes.
