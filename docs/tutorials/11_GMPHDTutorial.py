@@ -521,8 +521,8 @@ def animate(i, sf, truths, tracks, measurements, clutter):
     sigmas = np.array(sigmas)
 
     # Generate the z values over the space and plot on the left axis
-    zarray[:,:,i] = get_mixture_density(x, y, weights, means, sigmas)
-    sf = axL.plot_surface(x, y, zarray[:,:,i], cmap=cm.RdBu, linewidth=0, antialiased=False)
+    zarray[:, :, i] = get_mixture_density(x, y, weights, means, sigmas)
+    sf = axL.plot_surface(x, y, zarray[:, :, i], cmap=cm.RdBu, linewidth=0, antialiased=False)
 
     # Make lists to hold the new ground truths, tracks, detections, and clutter
     new_truths, new_tracks, new_measurements, new_clutter = [], [], [], []
