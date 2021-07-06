@@ -71,7 +71,7 @@
 #
 # The intensity of the random finite set of clutter at time :math:`k` is given by :math:`\kappa_{k}`.
 #
-# The probabilty that a state :math:`x` will be detected at time :math:`k`  is given by :math:`p_{D, k}(x)`.
+# The probability that a state :math:`x` will be detected at time :math:`k`  is given by :math:`p_{D, k}(x)`.
 
 # %%
 # Assumptions
