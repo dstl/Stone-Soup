@@ -303,8 +303,8 @@ hypothesiser = GaussianMixtureHypothesiser(base_hypothesiser, order_by_detection
 # is less than the pruning threshold will be removed.
 from stonesoup.mixturereducer.gaussianmixture import GaussianMixtureReducer
 # Initialise a Gaussian Mixture reducer
-merge_threshold = 16
-prune_threshold = 1E-6
+merge_threshold = 5
+prune_threshold = 1E-8
 
 reducer = GaussianMixtureReducer(
     prune_threshold=prune_threshold,
@@ -322,7 +322,7 @@ reducer = GaussianMixtureReducer(
 from stonesoup.types.state import TaggedWeightedGaussianState
 from stonesoup.types.track import Track
 from stonesoup.types.array import CovarianceMatrix
-covar = CovarianceMatrix(np.diag([1000, 2, 1000, 2]))
+covar = CovarianceMatrix(np.diag([1.5, 0.5, 1.5, 0.5]))
 
 tracks = set()
 for truth in start_truths:
@@ -355,10 +355,10 @@ tracks_by_time = []
 # %%
 # We need a threshold to compare state weights against. If the state has a high enough
 # weight in the Gaussian mixture, we will add it to an existing track or make a new
-# track for it. Increasing this value makes the filter more sensitive but may also
-# increase the number of false detections. Lowering this value may increase the number
+# track for it. Lowering this value makes the filter more sensitive but may also
+# increase the number of false detections. Increasing this value may increase the number
 # of missed detections.
-state_threshold = 0.7
+state_threshold = 0.25
 
 for n, measurements in enumerate(all_measurements):
     tracks_by_time.append([])
