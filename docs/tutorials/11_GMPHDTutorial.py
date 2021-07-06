@@ -16,7 +16,7 @@
 # to this problem that is analogous to the Kalman Filter's solution in single-object
 # tracking. Where the Kalman filter propagates the first order movement of the posterior
 # distribution of the target, the PHD filter creates a multiple target posterior
-# distribution and propogates its first-order statistical moment, or PHD [#]_. At each
+# distribution and propagates its first-order statistical moment, or PHD [#]_. At each
 # time instance, the collections of targets and detections (including both measurements
 # and false detections) are modelled as random finite sets. This means that the number
 # of elements in each set is a random variable, and the elements themselves follow a
@@ -126,7 +126,7 @@ start_time = datetime.now()
 truths_by_time = []
 
 # Create transition model
-from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel,                                                ConstantVelocity
+from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, ConstantVelocity
 transition_model = CombinedLinearGaussianTransitionModel(
     (ConstantVelocity(0.3), ConstantVelocity(0.3)))
 
