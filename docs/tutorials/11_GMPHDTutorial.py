@@ -578,7 +578,7 @@ clutter = axR.scatter(x_min-10, y_min-10, c='orange', linewidth=4, zorder=0.5)
 
 # Create and display the animation
 from matplotlib import rc
-anim = animation.FuncAnimation(fig, animate, frames = number_steps, interval=500,
+anim = animation.FuncAnimation(fig, animate, frames=number_steps, interval=500,
                                fargs = (sf, truths, tracks, measurements, clutter), blit=False)
 rc('animation', html='jshtml')
 anim
