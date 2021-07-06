@@ -570,7 +570,7 @@ axR.set_ylim(y_min-5, y_max+5)
 
 # Add an initial surface to the left axis and scattered points on the right axis. Doing
 # this now means that in the animate() function we only have to update these variables
-sf = axL.plot_surface(x, y, zarray[:,:,0], cmap=cm.RdBu, linewidth=0, antialiased=False)
+sf = axL.plot_surface(x, y, zarray[:, :, 0], cmap=cm.RdBu, linewidth=0, antialiased=False)
 truths = axR.scatter(x_min-10, y_min-10, c='blue', linewidth=6, zorder=0.5)
 tracks = axR.scatter(x_min-10, y_min-10, c='red', linewidth=4, zorder=1)
 measurements = axR.scatter(x_min-10, y_min-10, c='green', linewidth=4, zorder=0.5)
