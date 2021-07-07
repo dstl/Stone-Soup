@@ -1,24 +1,23 @@
-from stonesoup.base import Property
-from stonesoup.sensor.sensor import Sensor
-from stonesoup.types.array import CovarianceMatrix
-from stonesoup.types.groundtruth import GroundTruthState, CompositeGroundTruthState
 from typing import Set, Union, Sequence
-from stonesoup.models.measurement.linear import LinearGaussian
-from stonesoup.types.detection import TrueDetection, CompositeDetection
+
 import numpy as np
+
+from ..base import Property
+from ..sensor.sensor import Sensor
+from ..types.detection import TrueDetection, CompositeDetection
+from ..types.groundtruth import CompositeGroundTruthState
 
 
 class CompositeSensor(Sensor):
-
     sensors: Sequence[Sensor] = Property()
     mapping: Sequence = Property(default=None,
                                  doc="Mapping of which component states in the composite truth "
-                                     "state is meausured.")
+                                     "state is measured.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.mapping is None:
-            self.mapping = np.arange(len(self.sensors))
+            self.mapping = list(np.arange(len(self.sensors)))
 
     def measure(self, ground_truths: Set[CompositeGroundTruthState],
                 noise: Sequence[Union[np.ndarray, bool]] = True,
@@ -30,14 +29,17 @@ class CompositeSensor(Sensor):
         detections = set()
         for truth in ground_truths:
 
-            detection = CompositeDetection(groundtruth_path=truth, sensor=self)
+            sub_detections = list()
 
-            states = [truth.inner_states[i] for i in self.mapping]
+            states = [truth.sub_states[i] for i in self.mapping]
 
             for state, sensor, sub_noise in zip(states, self.sensors, noise):
-                inner_detection = sensor.measure(ground_truths={state}, noise=sub_noise).pop()  # returns a set
-                detection.append(inner_detection)
+                sub_detection = sensor.measure(ground_truths={state},
+                                               noise=sub_noise).pop()  # returns a set
+                sub_detections.append(sub_detection)
 
+            detection = CompositeDetection(sub_states=sub_detections, groundtruth_path=truth,
+                                           sensor=self, mapping=self.mapping)
             detections.add(detection)
 
         return detections
