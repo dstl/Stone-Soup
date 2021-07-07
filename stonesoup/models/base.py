@@ -196,7 +196,7 @@ class GaussianModel(Model):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.random_state = np.random.RandomState(self.seed)
+        self.random_state = np.random.RandomState(self.seed) if self.seed is not None else None
 
     def rvs(self, num_samples: int = 1, random_state=None, **kwargs) ->\
             Union[StateVector, StateVectors]:
