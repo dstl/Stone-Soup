@@ -225,6 +225,8 @@ class CovarianceMatrix(Matrix):
     This class returns a view to a :class:`numpy.ndarray`, but ensures that
     its initialised at a *NxN* matrix. It's called similar to
     :func:`numpy.asarray`.
+
+    TODO: potential to check for positive semidefiniteness on initiation?
     """
 
     def __new__(cls, *args, **kwargs):
@@ -235,7 +237,7 @@ class CovarianceMatrix(Matrix):
         return array.view(cls)
 
 
-class InformationMatrix(Matrix):
+'''class InformationMatrix(Matrix):
     """Information matrix wrapper for :class:`numpy.ndarray`.
 
     This class returns a view to a :class:`numpy.ndarray`, but ensures that
@@ -248,4 +250,24 @@ class InformationMatrix(Matrix):
         if not array.ndim == 2:
             raise ValueError("Information matrix should have ndim of 2: got {}"
                              "".format(array.ndim))
+        return array.view(cls)'''
+
+
+class PrecisionMatrix(Matrix):
+    """Precision matrix. This is the matrix inverse of a covariance matrix.
+
+    This class returns a view to a :class:`numpy.ndarray`, but ensures that
+    its initialised as an *NxN* matrix. It's called similar to
+    :func:`numpy.asarray`.
+    """
+
+    def __new__(cls, *args, **kwargs):
+        array = np.asarray(*args, **kwargs)
+        if not array.ndim == 2:
+            raise ValueError("Information matrix should have ndim of 2: got {}"
+                             "".format(array.ndim))
         return array.view(cls)
+
+    # TODO: ensure positive definiteness on initiation?
+
+    # TODO: overwrite/provide the inverse function to return a covariance matrix

@@ -7,7 +7,7 @@ import numpy as np
 import uuid
 
 from ..base import Property
-from .array import StateVector, CovarianceMatrix, InformationMatrix
+from .array import StateVector, CovarianceMatrix, PrecisionMatrix
 from .base import Type
 from .particle import Particles
 from .numeric import Probability
@@ -221,10 +221,13 @@ GaussianState.register(SqrtGaussianState)  # noqa: E305
 class InformationState(State):
     """Information State Type
 
-    Information State object with an associated weight.  Used with the information filter to
-    describe an information state (i.e. an information matrix and an information state vector.)
+    The information state class carries the :attr:`state_vector`,
+    :math:`\mathbf{y}_k = Y_k \mathbf{x}_k` and the precision or information matrix
+    :math:`Y_k = P_k^{-1}`, where :math:`\mathbf{x}_k` and :math:`P_k` are the mean and
+    covariance, respectively, of a Gaussian state.
+
     """
-    info_matrix = Property(InformationMatrix, doc='Information matrix of state.')
+    precision = Property(PrecisionMatrix, doc='precision matrix of state.')
 
 
 class WeightedGaussianState(GaussianState):

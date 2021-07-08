@@ -91,7 +91,7 @@ class StatePrediction(Prediction, State):
 class InformationStatePrediction(InformationState, Prediction):
     """ InformationStatePrediction type
 
-    Information state prediction type, which has time. a state vector and an information matrix.
+    Information state prediction type: contains state vector, precision matrix and timestamp
     """
 
 
@@ -167,7 +167,7 @@ class ParticleStatePrediction(Prediction, ParticleState):
     """
 
 
-class InformationMeasurementPrediction(MeasurementPrediction, InformationState):
+'''class InformationMeasurementPrediction(MeasurementPrediction, InformationState):
     """MeasurementStatePrediction type
 
     This is a simple Information measurement prediction object.
@@ -175,7 +175,7 @@ class InformationMeasurementPrediction(MeasurementPrediction, InformationState):
 
     proj_matrix = Property(Matrix,
                            doc="Projection matrix to information space from measurement space.",
-                           default=None)
+                           default=None)'''
 
 
 class ParticleMeasurementPrediction(MeasurementPrediction, ParticleState):
