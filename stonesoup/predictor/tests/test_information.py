@@ -36,9 +36,7 @@ def test_information(PredictorClass, transition_model,
 
     # First do prediction in standard way
     test_state = GaussianState(prior_mean, prior_covar, timestamp=timestamp)
-
     test_predictor = KalmanPredictor(transition_model)
-
     test_prediction = test_predictor.predict(test_state, timestamp=new_timestamp)
 
     # define the precision matrix and information state
@@ -59,6 +57,7 @@ def test_information(PredictorClass, transition_model,
     pred_covar = np.linalg.inv(prediction.precision)
     pred_mean = pred_covar @ prediction.state_vector
 
+    # And do the tests
     assert(np.allclose(pred_mean,
                        test_prediction.state_vector, 0, atol=1.e-14))
     assert(np.allclose(pred_covar,

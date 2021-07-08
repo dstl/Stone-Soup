@@ -88,7 +88,7 @@ class StatePrediction(Prediction, State):
     """
 
 
-class InformationStatePrediction(InformationState, Prediction):
+class InformationStatePrediction(Prediction, InformationState):
     """ InformationStatePrediction type
 
     Information state prediction type: contains state vector, precision matrix and timestamp

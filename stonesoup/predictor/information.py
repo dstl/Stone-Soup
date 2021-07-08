@@ -3,15 +3,15 @@
 import numpy as np
 from functools import lru_cache
 
+from numpy.linalg import inv
+
 from ..base import Property
 from .kalman import KalmanPredictor
-from ..types.prediction import InformationStatePrediction
+from ..types.prediction import Prediction, InformationStatePrediction
 #from ..types.update import InformationStateUpdate  # To check incoming "prior" data
 #from ..types.state import InformationState  # To check incoming "prior" data
 from ..models.transition.linear import LinearGaussianTransitionModel
 from ..models.control.linear import LinearControlModel
-
-from numpy.linalg import inv
 
 
 class InformationKalmanPredictor(KalmanPredictor):
@@ -179,4 +179,6 @@ class InformationKalmanPredictor(KalmanPredictor):
         # y_pred = L @ inv(F.T) @ y
         # End wikipedia method
 
-        return InformationStatePrediction(pred_info_state, pred_info_matrix, timestamp=timestamp)
+        #return InformationStatePrediction(pred_info_state, pred_info_matrix, timestamp=timestamp)
+        return Prediction.from_state(prior, pred_info_state, pred_info_matrix, timestamp=timestamp,
+                                     transition_model=self.transition_model)
