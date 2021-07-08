@@ -5,7 +5,7 @@ from functools import lru_cache
 
 from ..base import Property
 from .kalman import KalmanPredictor
-#from ..types.prediction import InformationStatePrediction
+from ..types.prediction import InformationStatePrediction
 #from ..types.update import InformationStateUpdate  # To check incoming "prior" data
 #from ..types.state import InformationState  # To check incoming "prior" data
 from ..models.transition.linear import LinearGaussianTransitionModel
@@ -166,7 +166,7 @@ class InformationKalmanPredictor(KalmanPredictor):
         ndims = self.transition_model.ndim
 
         Mk = inverse_transition_matrix.T @ prior.precision @ inverse_transition_matrix
-        Ck = np.linalg.inv(np.eye(np.shape(prior.precision)) + Mk @ transition_covar)
+        Ck = np.linalg.inv(np.eye(prior.ndim) + Mk @ transition_covar)
         pred_info_matrix = Ck @ Mk
         pred_info_state = Ck @ inverse_transition_matrix.T @ prior.state_vector + \
                           pred_info_matrix @ control_matrix @ self.control_model.control_input()
