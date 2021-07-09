@@ -262,7 +262,7 @@ plotter.fig
 from stonesoup.updater.kalman import KalmanUpdater
 kalman_updater = KalmanUpdater(measurement_model)
 
-meas_range=np.array([[-1, 1], [-1, 1]])*200   #Area in which we look for target
+meas_range = np.array([[-1, 1], [-1, 1]])*200   #Area in which we look for target
 clutter_spatial_density = clutter_rate/np.prod(np.diff(meas_range))
 
 from stonesoup.updater.pointprocess import PHDUpdater
