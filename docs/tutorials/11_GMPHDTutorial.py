@@ -550,18 +550,21 @@ def animate(i, sf, truths, tracks, measurements, clutter):
                          label='Detection'),
                  Line2D([0], [0], color='white', marker='o', markerfacecolor='red', markersize=15,
                          label='Track')]
-    axR.legend(handles=data_types)
+    axR.legend(handles=data_types, bbox_to_anchor=(1.0, 1), loc='upper left')
 
     return sf, truths, tracks, measurements, clutter
 
-# Set up the x, y, and z space for the 3D axis (the left one)
+# Set up the x, y, and z space for the 3D axis
 xx = np.linspace(x_min-5, x_max+5, 100)
 yy = np.linspace(y_min-5, y_max+5, 100)
 x, y = np.meshgrid(xx, yy)
 zarray = np.zeros((100, 100, number_steps))
 
-# Create the matplotlib figure and axes.
-fig = plt.figure(figsize=(10, 6))
+# Create the matplotlib figure and axes. Here we will have two axes being animated in sync.
+# `axL` will be the a 3D axis showing the Gaussian mixture
+# `axR` will be be a 2D axis showing the ground truth, detections, and updated tracks at 
+# each time step. 
+fig = plt.figure(figsize=(16, 8))
 axL = fig.add_subplot(121, projection='3d')
 axR = fig.add_subplot(122)
 axR.set_xlim(x_min-5, x_max+5)
@@ -578,7 +581,7 @@ clutter = axR.scatter(x_min-10, y_min-10, c='orange', linewidth=4, zorder=0.5)
 # Create and display the animation
 from matplotlib import rc
 anim = animation.FuncAnimation(fig, animate, frames=number_steps, interval=500,
-                               fargs = (sf, truths, tracks, measurements, clutter), blit=False)
+                               fargs=(sf, truths, tracks, measurements, clutter), blit=False)
 rc('animation', html='jshtml')
 anim
 
