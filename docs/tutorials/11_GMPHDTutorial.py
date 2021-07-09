@@ -530,9 +530,9 @@ def animate(i, sf, truths, tracks, measurements, clutter):
     for state in tracks_by_time[i]:
         new_tracks.append([state.state_vector[0], state.state_vector[2]])
     for measurement in all_measurements[i]:
-        if type(measurement) == TrueDetection:
+        if isinstance(measurement, TrueDetection):
             new_measurements.append([measurement.state_vector[0], measurement.state_vector[1]])
-        elif type(measurement == Clutter):
+        elif isinstance(measurement, Clutter):
             new_clutter.append([measurement.state_vector[0], measurement.state_vector[1]])
 
     # Plot the contents of these lists on the right axis
