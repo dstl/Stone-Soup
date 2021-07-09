@@ -448,7 +448,6 @@ plotter.plot_tracks(tracks, [0, 2], uncertainty=True)
 plotter.ax.set_xlim(x_min-5, x_max+5)
 plotter.ax.set_ylim(y_min-5, y_max+5)
 
-#plotter.fig
 
 # %%
 # Examining the Gaussian Mixtures
