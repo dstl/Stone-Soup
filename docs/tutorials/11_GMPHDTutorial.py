@@ -536,10 +536,14 @@ def animate(i, sf, truths, tracks, measurements, clutter):
             new_clutter.append([measurement.state_vector[0], measurement.state_vector[1]])
 
     # Plot the contents of these lists on the right axis
-    if len(new_truths) > 0: truths.set_offsets(new_truths)
-    if len(new_tracks) > 0: tracks.set_offsets(new_tracks)
-    if len(new_measurements) > 0: measurements.set_offsets(new_measurements)
-    if len(new_clutter) > 0: clutter.set_offsets(new_clutter)
+    if new_truths:
+        truths.set_offsets(new_truths)
+    if new_tracks:
+        tracks.set_offsets(new_tracks)
+    if new_measurements:
+        measurements.set_offsets(new_measurements)
+    if new_clutter:
+        clutter.set_offsets(new_clutter)
 
     # Create a legend. The use of Line2D is purely for the visual in the legend
     data_types = [Line2D([0], [0], color='white', marker='o', markerfacecolor='blue', markersize=15,
