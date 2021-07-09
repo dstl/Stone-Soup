@@ -110,13 +110,13 @@ class PDAHypothesiser(Hypothesiser):
         # Common state & measurement prediction
         prediction = self.predictor.predict(track, timestamp=timestamp, **kwargs)
         # Missed detection hypothesis
-        probability = Probability(1 - self.prob_detect * self.prob_gate)
+        probability = Probability(1 - self.prob_detect*self.prob_gate)
         hypotheses.append(
             SingleProbabilityHypothesis(
                 prediction,
                 MissedDetection(timestamp=timestamp),
                 probability
-            ))
+                ))
 
         # True detection hypotheses
         for detection in detections:
@@ -132,7 +132,7 @@ class PDAHypothesiser(Hypothesiser):
                 (detection.state_vector - measurement_prediction.state_vector).ravel(),
                 cov=measurement_prediction.covar)
             pdf = Probability(log_pdf, log_value=True)
-            probability = (pdf * self.prob_detect) / self.clutter_spatial_density
+            probability = (pdf * self.prob_detect)/self.clutter_spatial_density
 
             # True detection hypothesis
             hypotheses.append(
@@ -142,4 +142,4 @@ class PDAHypothesiser(Hypothesiser):
                     probability,
                     measurement_prediction))
 
-        return MultipleHypothesis(hypotheses, normalise=False, total_weight=1)
+        return MultipleHypothesis(hypotheses, normalise=True, total_weight=1)

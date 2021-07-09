@@ -53,7 +53,7 @@ def test_single_distance_hypothesis():
     assert hypothesis.measurement is detection
     assert hypothesis.distance is distance
     assert hypothesis.measurement_prediction is measurement_prediction
-    assert hypothesis.weight == 1 / distance
+    assert hypothesis.weight == 1/distance
 
     hypothesis.distance = 0
     assert hypothesis.weight == float('inf')

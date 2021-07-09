@@ -66,6 +66,7 @@ class CompositeHypothesiser(Hypothesiser):
         to have a timestamp.
         * A 'weightings' attribute should be implemented to adjust sub-hypotheses' contributions
         to the composite hypothesis weights.
+
         """
 
         all_hypotheses = list()

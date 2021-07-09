@@ -111,8 +111,8 @@ class MultipleHypothesis(Type, Sized, Iterable, Container):
             hypothesis.probability for hypothesis in self.single_hypotheses)
 
         for hypothesis in self.single_hypotheses:
-            hypothesis.probability = \
-                (hypothesis.probability * total_weight) / sum_weights
+            hypothesis.probability =\
+                (hypothesis.probability * total_weight)/sum_weights
 
     def get_missed_detection_probability(self):
         for hypothesis in self.single_hypotheses:
