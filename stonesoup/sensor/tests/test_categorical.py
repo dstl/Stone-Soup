@@ -20,7 +20,8 @@ def test_categorical_sensor(category_names):
     Ecov = CovarianceMatrix(np.eye(4))
     mapping = [0, 2]
 
-    model = CategoricalMeasurementModel(emission_matrix=E,
+    model = CategoricalMeasurementModel(ndim_state=2,
+                                        emission_matrix=E,
                                         emission_covariance=Ecov,
                                         mapping=mapping)
 

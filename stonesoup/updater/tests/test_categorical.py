@@ -24,7 +24,9 @@ def test_classification_updater(ndim_state, ndim_meas):
 
     E = create_categorical_matrix(ndim_state, ndim_meas)
     Ecov = 0.1 * np.eye(ndim_meas)
-    measurement_model = CategoricalMeasurementModel(emission_matrix=E, emission_covariance=Ecov)
+    measurement_model = CategoricalMeasurementModel(ndim_state=ndim_state,
+                                                    emission_matrix=E,
+                                                    emission_covariance=Ecov)
 
     prediction = CategoricalState(create_categorical(ndim_state))
     prediction.timestamp = future

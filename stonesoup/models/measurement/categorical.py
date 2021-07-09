@@ -41,11 +41,6 @@ class CategoricalMeasurementModel(MeasurementModel):
                              f"{len(self.mapping)}")
 
     @property
-    def ndim_state(self):
-        """Number of state dimensions/categories."""
-        return self.emission_matrix.shape[0]
-
-    @property
     def ndim_meas(self):
         """Number of observation dimensions/categories."""
         return self.emission_matrix.shape[1]

@@ -26,8 +26,11 @@ def create_measurement_model(gaussian: bool, ndim_state: int):
                               noise_covar=np.eye(ndim_state),
                               mapping=np.arange(ndim_state))
     else:
-        return CategoricalMeasurementModel(create_categorical_matrix(ndim_state, ndim_state),
-                                           0.1 * np.eye(2))
+        return CategoricalMeasurementModel(
+            ndim_state=ndim_state,
+            emission_matrix=create_categorical_matrix(ndim_state, ndim_state),
+            emission_covariance=0.1 * np.eye(2)
+        )
 
 
 def random_updater_prediction_and_measurement(num_updaters, timestamp, future_timestamp):
