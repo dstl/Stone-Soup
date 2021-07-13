@@ -255,7 +255,7 @@ plotter.fig
 # Create the Predicter and Updater
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# The updater is a PHD updater, and since it uses the mixed Gaussian paths, it is a
+# The updater is a :class:`~.PHDUpdater`, and since it uses the mixed Gaussian paths, it is a
 # GM-PHD updater. For each individual track we use a Kalman updater. Here we assume
 # that the measurement range and clutter spatial density are known to the filter. We
 # invite you to change these variables to mimic removing this assumption.
