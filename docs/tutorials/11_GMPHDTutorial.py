@@ -20,7 +20,7 @@
 # time instance, the collections of targets and detections (including both measurements
 # and false detections) are modelled as random finite sets. This means that the number
 # of elements in each set is a random variable, and the elements themselves follow a
-# probability distribution. Note that this is different than previously discussed filters
+# probability distribution. Note that this is different from previously discussed filters
 # which have a constant or known number of objects.
 #
 # In a GM-PHD filter, each object is assumed to follow a linear Gaussian model, just like
@@ -90,7 +90,7 @@
 # :math:`\eqalignno{v _{ k\vert k-1} (x) =&\, \int p_{S,k}(\zeta)f_{k\vert k-1} (x\vert \zeta)v_{k-1}(\zeta)d\zeta\cr & +\int \beta_{k\vert k-1} (x\vert \zeta)v_{k-1}(\zeta)d\zeta+\gamma _{k}(x) & \cr v_{k} (x) =&\, \left[ 1-p_{D,k}(x)\right]v_{k\vert k-1}(x)\cr & +\!\!\sum\limits _{z\in Z_{k}} \!{{ p_{D,k}(x)g_{k}(z\vert x)}v_{k\vert k-1}(x) \over { \kappa _{k}(z)\!+\!\int p_{D,k}(\xi)g_{k}(z\vert \xi)v_{k\vert k-1}(\xi)}} . \cr &&}`
 #
 # For more information about the specific formulas for linear and non-linear Gaussian models,
-# please see Vo and Ma's full paper, referenced at the bottom.
+# please see Vo and Ma's full paper, referenced at the bottom of this tutorial.
 
 # %%
 # A Ground-Based Multi-Target Simulation
@@ -339,11 +339,16 @@ reduced_states = None
 # %%
 # Run the Tracker
 # ^^^^^^^^^^^^^^^
-# We create a tracker now that we have all our components. Loop through the hypothesise,
-# update, reduce, and match steps. Unlike other filters, the GM-PHD filter does not use
-# a data associator, so there is no associate step. The filter outputs a list of states
-# after the reduce step, and we use the labels on these states to match them with a
-# track (or create a new track).
+# Now that we have all of our components, we can create a tracker. At each time instance,
+# the tracker will go through four steps: hypothesise, update, reduce, and match. Let us 
+# briefly recap these four steps. The 'hypothesise' step is similar to the 'prediction' 
+# step in other filters. It uses the existing state space and the measurements to generate 
+# a list of all hypotheses for this time step (remember, each hypothesis is a Gaussian 
+# component). In the 'update' step, the filter combines the hypotheses into an updated 
+# Gaussian mixture. The 'reduce' step helps limit the computational complexity by merging 
+# and pruning the updated Gaussian mixture. The filter returns this final set of states 
+# and then we perform a 'match' step where we use the states' tags to match them with an 
+# existing track (or create a new track).
 
 
 # %%
@@ -365,7 +370,7 @@ for n, measurements in enumerate(all_measurements):
     all_gaussians.append([])
 
     # The hypothesiser takes in the current state of the Gaussian mixture. If there are no reduced states from the
-    # previous iteration (which occurs if this is the first iteration) than the current state is simply the list of
+    # previous iteration (which occurs if this is the first iteration) then the current state is simply the list of
     # the most recent state elements in each track. Otherwise, it is the entire set of reduced states.
     current_state = [track[-1] for track in tracks]
     if reduced_states:
@@ -386,7 +391,7 @@ for n, measurements in enumerate(all_measurements):
 
     # Add the reduced states to the track list. Each reduced state has a unique tag. If this tag matches the tag of a
     # state from a live track, we add the state to that track. Otherwise, we generate a new track if the reduced
-    # state's weight is high enough (ie we are sufficiently certain that it is a new track).
+    # state's weight is high enough (i.e. we are sufficiently certain that it is a new track).
     for reduced_state in reduced_states:
         # Add the reduced state to the list of Gaussians that we will plot later. Have a low threshold to eliminate some
         # clutter that would make the graph busy and hard to understand
@@ -461,16 +466,13 @@ plotter.ax.set_ylim(y_min-5, y_max+5)
 #
 # First we define a function that will help generate the z values for the Gaussian
 # mixture. This lets us plot it later. This function has been updated from the one
-# found `here <https://notebook.community/empet/Plotly-plots/Gaussian-Mixture>`_.
+# found `here <https://notebook.community/empet/Plotly-plots/Gaussian-Mixture>`_ from 
+# `this <https://github.com/empet/Plotly-plotse>`_ GPL-3.0 licensed repository.
 #
 from scipy.stats import multivariate_normal
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 
-# This function generates the z values for the Gaussian mixture. It has been edited
-# from a version found at this website https://notebook.community/empet/Plotly-plots/Gaussian-Mixture
-# The website is from this repository https://github.com/empet/Plotly-plots which
-# has a GPL-3.0 License. 
 def get_mixture_density(x, y, weights, means, sigmas):
     # We use the quantiles as a parameter in the multivariate_normal function. We don't need to pass in any quantiles,
     # but the last axis must have the components x and y
@@ -494,7 +496,7 @@ from matplotlib import animation
 from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D  # Will be used when making the legend
 
-# This is the function that updates the figure we will be animating. As parametrs we must
+# This is the function that updates the figure we will be animating. As parameters we must
 # pass in the elements that will be changed, as well as the index i
 def animate(i, sf, truths, tracks, measurements, clutter):
     # Set up the axes
