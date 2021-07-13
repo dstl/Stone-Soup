@@ -72,39 +72,42 @@ class TwoDPlotter(PlotGenerator):
 
         plotter = Plotter()  # initialises axes using Plotter class
 
-        plotter.plot_ground_truths(groundtruth_paths, [self.gtruth_indices[0],
-                                                       self.gtruth_indices[1]],
-                                   linestyle=':')
+        if groundtruth_paths:
+            plotter.plot_ground_truths(groundtruth_paths, [self.gtruth_indices[0],
+                                                           self.gtruth_indices[1]],
+                                       linestyle=':')
 
-        plotter.plot_measurements(detections, [self.detection_indices[0],
-                                               self.detection_indices[1]],
-                                  color='tab:blue')
+        if detections:
+            plotter.plot_measurements(detections, [self.detection_indices[0],
+                                                   self.detection_indices[1]],
+                                      color='tab:blue')
+        if tracks:
+            plotting_tracks = set()
+            for track in tracks:
+                if len([state for state in track.states if not isinstance(
+                        state, Prediction)]) >= 2:
+                    plotting_tracks.add(track)
+                else:
+                    continue
+            # Don't plot tracks with only one detection associated; probably clutter
 
-        plotting_tracks = set()
-        for track in tracks:
-            if len([state for state in track.states if not isinstance(
-                    state, Prediction)]) >= 2:
-                plotting_tracks.add(track)
+            if uncertainty:
+                plotter.plot_tracks(plotting_tracks, [self.track_indices[0],
+                                                      self.track_indices[1]],
+                                    uncertainty=True)
+
+            elif particle:
+                plotter.plot_tracks(plotting_tracks, [self.track_indices[0],
+                                                      self.track_indices[1]],
+                                    particle=True)
+
             else:
-                continue
-        # Don't plot tracks with only one detection associated; probably clutter
-
-        if uncertainty:
-            plotter.plot_tracks(plotting_tracks, [self.track_indices[0],
-                                                  self.track_indices[1]],
-                                uncertainty=True)
-
-        elif particle:
-            plotter.plot_tracks(plotting_tracks, [self.track_indices[0],
-                                                  self.track_indices[1]],
-                                particle=True)
-
-        else:
-            plotter.plot_tracks(plotting_tracks, [self.track_indices[0],
-                                                  self.track_indices[1]])
+                plotter.plot_tracks(plotting_tracks, [self.track_indices[0],
+                                                      self.track_indices[1]])
 
         timestamps = []
-        for state in tracks.union(groundtruth_paths, detections):
+        states_list = set()
+        for state in states_list.union(tracks, groundtruth_paths, detections):
             if state.timestamp not in timestamps:
                 timestamps.append(state.timestamp)
 
