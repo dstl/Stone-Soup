@@ -461,7 +461,7 @@ plotter.ax.set_ylim(y_min-5, y_max+5)
 #
 # First we define a function that will help generate the z values for the Gaussian
 # mixture. This lets us plot it later. This function has been updated from the one
-# found at https://notebook.community/empet/Plotly-plots/Gaussian-Mixture
+# found `here <https://notebook.community/empet/Plotly-plots/Gaussian-Mixture>`_.
 #
 from scipy.stats import multivariate_normal
 from mpl_toolkits.mplot3d import Axes3D
