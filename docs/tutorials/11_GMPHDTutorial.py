@@ -57,7 +57,7 @@
 # its previous state was :math:`\zeta`
 #
 # Suppose we have the random finite set :math:`\mathbf{X}_{k} \in \chi` corresponding to the set of
-# target states at time :math:`k` and :math:`\mathbf{X}` has probability distribution :math:`P`. Integrating over
+# target states at time :math:`k` and :math:`\mathbf{X}_k` has probability distribution :math:`P`. Integrating over
 # every region :math:`S \in \chi`, we get a formula for the first order moment (also called the
 # intensity) at time :math:`k`, :math:`v_{k}`
 # 
