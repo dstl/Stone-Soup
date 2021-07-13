@@ -62,7 +62,7 @@
 # intensity) at time :math:`k`, :math:`v_{k}`
 # 
 # .. math::
-#           \int \left \vert \mathbf{X}_{k}\cap S\right \vert P(d\mathbf{X})=\int _{S}v_{k}(x)dx.
+#           \int \left \vert \mathbf{X}_{k}\cap S\right \vert P(d\mathbf{X}_k)=\int _{S}v_{k}(x)dx.
 #
 # The set of targets spawned at time :math:`k` by a target whose previous state was :math:`\zeta` is the
 # random finite set :math:`\mathbf{B}_{k|k-1}`. This new set of targets has intensity denoted :math:`\beta_{k|k-1}`.
