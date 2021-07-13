@@ -97,7 +97,7 @@
 # --------------------------------------
 # This simulation will include several targets moving in different directions accross the 2D
 # Cartesian plane. The start locations of each object are random. These start locations are
-# called priors and are known to the filter.
+# called priors and are known to the filter, via the density :math:`p_{0}(\cdot)` discussed above.
 #
 # At each time step, new targets are created and some targets die according to defined
 # probabilities.
