@@ -256,7 +256,7 @@ plotter.fig
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # The updater is a :class:`~.PHDUpdater`, and since it uses the mixed Gaussian paths, it is a
-# GM-PHD updater. For each individual track we use a Kalman updater. Here we assume
+# GM-PHD updater. For each individual track we use a :class:`~.KalmanUpdater`. Here we assume
 # that the measurement range and clutter spatial density are known to the filter. We
 # invite you to change these variables to mimic removing this assumption.
 from stonesoup.updater.kalman import KalmanUpdater
