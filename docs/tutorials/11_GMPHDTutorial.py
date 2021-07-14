@@ -31,7 +31,7 @@
 
 # %%
 # First we will recall some of the formulas that will be used in this filter. The
-# notation used in this tutorial follows the same form as seen in [1].
+# notation used in this tutorial follows the same form as seen in [1]_.
 #
 # Transition Density: Given a state :math:`p(\mathbf{x}_{k-1})` at time :math:`k-1`, the probability density of
 # a transition to the state :math:`p(\mathbf{x}_k)` at time :math:`k` is given by
