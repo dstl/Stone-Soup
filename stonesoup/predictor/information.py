@@ -8,8 +8,6 @@ from numpy.linalg import inv
 from ..base import Property
 from .kalman import KalmanPredictor
 from ..types.prediction import Prediction, InformationStatePrediction
-#from ..types.update import InformationStateUpdate  # To check incoming "prior" data
-#from ..types.state import InformationState  # To check incoming "prior" data
 from ..models.transition.linear import LinearGaussianTransitionModel
 from ..models.control.linear import LinearControlModel
 
@@ -69,7 +67,6 @@ class InformationKalmanPredictor(KalmanPredictor):
     pp. 479-486
 
     """
-
     transition_model = Property(
         LinearGaussianTransitionModel,
         doc="The transition model to be used.")
@@ -99,7 +96,6 @@ class InformationKalmanPredictor(KalmanPredictor):
             inv_transition_matrix = np.linalg.inv(self.transition_model.matrix(**kwargs))
 
         return inv_transition_matrix
-
 
     def _transition_function(self, prior, **kwargs):
         r"""Applies the linear transition function to a single vector in the
@@ -171,14 +167,5 @@ class InformationKalmanPredictor(KalmanPredictor):
         pred_info_state = Ck @ inverse_transition_matrix.T @ prior.state_vector + \
                           pred_info_matrix @ control_matrix @ self.control_model.control_input()
 
-        # Wikipedia method
-        # M = inv(F).T @ Y @ inv(F)
-        # C = M @ inv(M + inv(Q))
-        # L = np.ones((ndims, ndims))-C
-        # Y_pred = L @ M @ L.T + C @ inv(Q) @ C.T
-        # y_pred = L @ inv(F.T) @ y
-        # End wikipedia method
-
-        #return InformationStatePrediction(pred_info_state, pred_info_matrix, timestamp=timestamp)
         return Prediction.from_state(prior, pred_info_state, pred_info_matrix, timestamp=timestamp,
                                      transition_model=self.transition_model)
