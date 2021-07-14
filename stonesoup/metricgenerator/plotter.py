@@ -72,15 +72,17 @@ class TwoDPlotter(PlotGenerator):
 
         plotter = Plotter()  # initialises axes using Plotter class
 
+        plotter.plot_measurements(detections, [self.detection_indices[0],
+                                               self.detection_indices[1]],
+                                  color='tab:blue')
+
         if groundtruth_paths:
             plotter.plot_ground_truths(groundtruth_paths, [self.gtruth_indices[0],
                                                            self.gtruth_indices[1]],
                                        linestyle=':')
+        else:
+            groundtruth_paths = []
 
-        if detections:
-            plotter.plot_measurements(detections, [self.detection_indices[0],
-                                                   self.detection_indices[1]],
-                                      color='tab:blue')
         if tracks:
             plotting_tracks = set()
             for track in tracks:
@@ -104,6 +106,8 @@ class TwoDPlotter(PlotGenerator):
             else:
                 plotter.plot_tracks(plotting_tracks, [self.track_indices[0],
                                                       self.track_indices[1]])
+        else:
+            tracks = []
 
         timestamps = []
         states_list = set()

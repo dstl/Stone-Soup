@@ -36,33 +36,31 @@ def test_twodplotter():
                       timestamp=timestamp1+datetime.timedelta(seconds=i))
             for i in range(11)}
 
+    metrics = []
+
     # Expect warning, as models not provided.
     with pytest.warns(UserWarning,
                       match="Measurement model type not specified for all detections"):
-        metric = plotter.plot_tracks_truth_detections(tracks, truths, dets)
+        metricA = plotter.plot_tracks_truth_detections(tracks, truths, dets)
+        metrics.append(metricA)
 
-    assert metric.title == "Track plot"
-    assert metric.generator == plotter
-    assert type(metric.value) == matplotlib.figure.Figure
-    assert metric.time_range.start_timestamp == timestamp1
-    assert metric.time_range.end_timestamp == timestamp2
+        metricB = plotter.plot_tracks_truth_detections(tracks, truths, dets, uncertainty=True)
+        metrics.append(metricB)
 
-    with pytest.warns(UserWarning,
-                      match="Measurement model type not specified for all detections"):
-        metric = plotter.plot_tracks_truth_detections(tracks, truths, dets, uncertainty=True)
+        metricC = plotter.plot_tracks_truth_detections(tracksB, truths, dets, particle=True)
+        metrics.append(metricC)
 
-    assert metric.title == "Track plot"
-    assert metric.generator == plotter
-    assert type(metric.value) == matplotlib.figure.Figure
-    assert metric.time_range.start_timestamp == timestamp1
-    assert metric.time_range.end_timestamp == timestamp2
+        metricD = plotter.plot_tracks_truth_detections(tracks=None, groundtruth_paths=truths,
+                                                       detections=dets)
+        metrics.append(metricD)
 
-    with pytest.warns(UserWarning,
-                      match="Measurement model type not specified for all detections"):
-        metricB = plotter.plot_tracks_truth_detections(tracksB, truths, dets, particle=True)
+        metricE = plotter.plot_tracks_truth_detections(tracks=tracks, groundtruth_paths=None,
+                                                       detections=dets)
+        metrics.append(metricE)
 
-    assert metricB.title == "Track plot"
-    assert metricB.generator == plotter
-    assert type(metricB.value) == matplotlib.figure.Figure
-    assert metricB.time_range.start_timestamp == timestamp1
-    assert metricB.time_range.end_timestamp == timestamp2
+    for metric in metrics:
+        assert metric.title == "Track plot"
+        assert metric.generator == plotter
+        assert type(metric.value) == matplotlib.figure.Figure
+        assert metric.time_range.start_timestamp == timestamp1
+        assert metric.time_range.end_timestamp == timestamp2
