@@ -11,7 +11,7 @@ from numpy.linalg import inv
 
 
 class InfoFilterUpdater(KalmanUpdater):
-    r"""A class to implement the update of Information filter.
+    r"""A class which implements the update of information form of the Kalman filter.
 
     The Information Filter update class inherits from the Kalman filter updater. Assume
     :math:`h(\mathbf{x}) = H \mathbf{x}` with additive noise :math:`\sigma = \mathcal{N}(0,R)`.
