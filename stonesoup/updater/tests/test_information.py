@@ -8,7 +8,7 @@ from stonesoup.types.detection import Detection
 from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.types.prediction import (
     InformationStatePrediction, InformationState)
-from stonesoup.updater.information import InfoFilterUpdater
+from stonesoup.updater.information import InformationKalmanUpdater
 from numpy.linalg import inv
 
 
@@ -16,7 +16,7 @@ from numpy.linalg import inv
     "UpdaterClass, measurement_model, prediction, measurement",
     [
         (   # Standard Information filter
-            InfoFilterUpdater,
+            InformationKalmanUpdater,
             LinearGaussian(ndim_state=2, mapping=[0],
                            noise_covar=np.array([[0.04]])),
             InformationStatePrediction(np.array([[-6.45], [0.7]]),
@@ -55,7 +55,7 @@ def test_information(UpdaterClass, measurement_model, prediction, measurement):
                 prediction.state_vector +
                 (measurement_model.matrix().T @ inv(measurement_model.noise_covar) @
                  measurement.state_vector)),
-        (prediction.info_matrix +
+        (prediction.precision +
          measurement_model.matrix().T @ inv(measurement_model.noise_covar) @
          measurement_model.matrix()))
 
@@ -81,10 +81,14 @@ def test_information(UpdaterClass, measurement_model, prediction, measurement):
 
     # Check to see if the information matrix is positive definite (i.e. are all the eigenvalues
     # positive?)
-    assert(np.all(np.linalg.eigvals(posterior.info_matrix) >= 0))
+    assert(np.all(np.linalg.eigvals(posterior.precision) >= 0))
+
+
+    # Does the measurement prediction work?
+
 
     assert(np.allclose(posterior.state_vector, eval_posterior.state_vector, 0, atol=1.e-14))
-    assert(np.allclose(posterior.info_matrix, eval_posterior.info_matrix, 0, atol=1.e-14))
+    assert(np.allclose(posterior.precision, eval_posterior.precision, 0, atol=1.e-14))
     assert(np.array_equal(posterior.hypothesis.prediction, prediction))
     # assert(np.allclose(
     #     posterior.hypothesis.measurement_prediction.state_vector,
