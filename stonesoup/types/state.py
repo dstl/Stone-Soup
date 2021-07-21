@@ -219,7 +219,7 @@ GaussianState.register(SqrtGaussianState)  # noqa: E305
 
 
 class InformationState(State):
-    """Information State Type
+    r"""Information State Type
 
     The information state class carries the :attr:`state_vector`,
     :math:`\mathbf{y}_k = Y_k \mathbf{x}_k` and the precision or information matrix

@@ -2,13 +2,11 @@
 import datetime
 import pytest
 import numpy as np
-from numpy.linalg import inv
 
 from ...models.transition.linear import ConstantVelocity
 from ...predictor.information import InformationKalmanPredictor
 from ...predictor.kalman import KalmanPredictor
 from ...types.state import InformationState, GaussianState
-from ...types.prediction import InformationStatePrediction
 from ...types.array import StateVector, CovarianceMatrix
 
 
@@ -32,7 +30,6 @@ def test_information(PredictorClass, transition_model,
     timestamp = datetime.datetime.now()
     timediff = 2  # 2sec
     new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
-    time_interval = new_timestamp - timestamp
 
     # First do prediction in standard way
     test_state = GaussianState(prior_mean, prior_covar, timestamp=timestamp)

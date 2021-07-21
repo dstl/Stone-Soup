@@ -6,10 +6,9 @@ import numpy as np
 
 from ..base import Property
 from ..types.prediction import GaussianMeasurementPrediction
-from ..types.update import Update, InformationStateUpdate
+from ..types.update import Update
 from ..models.measurement.linear import LinearGaussian
 from ..updater.kalman import KalmanUpdater
-from numpy.linalg import inv
 
 
 class InformationKalmanUpdater(KalmanUpdater):
@@ -97,7 +96,7 @@ class InformationKalmanUpdater(KalmanUpdater):
         predicted_state_mean = predicted_covariance @ predicted_state.state_vector
 
         predicted_measurement = hh @ predicted_state_mean
-        innovation_covariance = hh @ predicted_covariance @hh.T + measurement_model.covar()
+        innovation_covariance = hh @ predicted_covariance @ hh.T + measurement_model.covar()
 
         return GaussianMeasurementPrediction(predicted_measurement, innovation_covariance,
                                              predicted_state.timestamp,
@@ -128,9 +127,6 @@ class InformationKalmanUpdater(KalmanUpdater):
 
         """
 
-        # Get the predicted state out of the hypothesis
-        predicted_state = hypothesis.prediction
-
         measurement_model = hypothesis.measurement.measurement_model
         measurement_model = self._check_measurement_model(measurement_model)
 
@@ -139,7 +135,8 @@ class InformationKalmanUpdater(KalmanUpdater):
         invr = self._inverse_measurement_covar(measurement_model)
 
         posterior_precision = hypothesis.prediction.precision + hh.T @ invr @ hh
-        posterior_information_mean = pred_info_mean + hh.T @ invr @ hypothesis.measurement.state_vector
+        posterior_information_mean = pred_info_mean + hh.T @ invr @ \
+            hypothesis.measurement.state_vector
 
         if force_symmetric_covariance:
             posterior_precision = (posterior_precision + posterior_precision.T)/2

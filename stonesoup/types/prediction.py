@@ -2,7 +2,7 @@
 from typing import Any, Union
 
 from ..base import Property
-from .array import CovarianceMatrix, Matrix
+from .array import CovarianceMatrix
 from .base import Type
 from .state import (State, GaussianState, ParticleState, SqrtGaussianState, InformationState,
                     TaggedWeightedGaussianState, WeightedGaussianState, StateMutableSequence)

@@ -3,11 +3,9 @@
 import numpy as np
 from functools import lru_cache
 
-from numpy.linalg import inv
-
 from ..base import Property
 from .kalman import KalmanPredictor
-from ..types.prediction import Prediction, InformationStatePrediction
+from ..types.prediction import Prediction
 from ..models.transition.linear import LinearGaussianTransitionModel
 from ..models.control.linear import LinearControlModel
 
@@ -23,17 +21,19 @@ class InformationKalmanPredictor(KalmanPredictor):
 
         \mathbf{y}_{k-1} &= P^{-1}_{k-1} \mathbf{x}_{k-1}
 
-    The prediction then proceeds as _[1]
+    The prediction then proceeds as [#]_
 
     .. math::
 
         Y_{k|k-1} &= [F_k Y_{k-1}^{-1} F^T + Q_k]^{-1}
 
-        \mathbf{y}_{k|k-1} &= Y_{k|k-1} F_k Y_{k-1}^{-1} \mathbf{y}_{k-1} + Y_{k|k-1} B_k \mathbf{u}_k
+        \mathbf{y}_{k|k-1} &= Y_{k|k-1} F_k Y_{k-1}^{-1} \mathbf{y}_{k-1} + Y_{k|k-1} B_k
+        \mathbf{u}_k
 
-    where the symbols have the same meaning as in the description of the Kalman filter [ref] and the
-    prediction equations can be derived from those of the Kalman filter. In order to cut down on the
-    number of matrix inversions and to benefit from caching these are usually recast as_[2]:
+    where the symbols have the same meaning as in the description of the Kalman filter
+    (see e.g. tutorial 1) and the prediction equations can be derived from those of the Kalman
+    filter. In order to cut down on the number of matrix inversions and to benefit from caching
+    these are usually recast as [#]_:
 
     .. math::
 
@@ -59,10 +59,10 @@ class InformationKalmanPredictor(KalmanPredictor):
 
     References
     ----------
-    .. [1] Kim, Y-S, Hong, K-S 2003, Decentralized information filter in federated form, SICE
+    .. [#] Kim, Y-S, Hong, K-S 2003, Decentralized information filter in federated form, SICE
     annual conference
 
-    .. [2] Makarenko, A., Durrant-Whyte, H. 2004, Decentralized data fusion and control in active
+    .. [#] Makarenko, A., Durrant-Whyte, H. 2004, Decentralized data fusion and control in active
     sensor networks, in: The 7th International Conference on Information Fusion (Fusion'04),
     pp. 479-486
 
@@ -159,13 +159,11 @@ class InformationKalmanPredictor(KalmanPredictor):
         # will require re-deriving the following equations.
         # control_noise = self.control_model.control_noise
 
-        ndims = self.transition_model.ndim
-
         Mk = inverse_transition_matrix.T @ prior.precision @ inverse_transition_matrix
         Ck = np.linalg.inv(np.eye(prior.ndim) + Mk @ transition_covar)
         pred_info_matrix = Ck @ Mk
         pred_info_state = Ck @ inverse_transition_matrix.T @ prior.state_vector + \
-                          pred_info_matrix @ control_matrix @ self.control_model.control_input()
+            pred_info_matrix @ control_matrix @ self.control_model.control_input()
 
         return Prediction.from_state(prior, pred_info_state, pred_info_matrix, timestamp=timestamp,
                                      transition_model=self.transition_model)

@@ -6,11 +6,9 @@ import numpy as np
 from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.types.detection import Detection
 from stonesoup.types.hypothesis import SingleHypothesis
-from stonesoup.types.prediction import (GaussianStatePrediction,
-    InformationStatePrediction, InformationState)
+from stonesoup.types.prediction import GaussianStatePrediction, InformationStatePrediction
 from stonesoup.updater.kalman import KalmanUpdater
 from stonesoup.updater.information import InformationKalmanUpdater
-from numpy.linalg import inv
 
 
 @pytest.mark.parametrize(
@@ -41,7 +39,6 @@ def test_information(UpdaterClass, measurement_model, prediction, measurement):
 
     info_prediction = InformationStatePrediction(info_prediction_mean, prediction_precision)
 
-
     # Initialise a information form of the Kalman updater
     updater = UpdaterClass(measurement_model=measurement_model)
 
@@ -54,7 +51,6 @@ def test_information(UpdaterClass, measurement_model, prediction, measurement):
     # positive?)
     assert(np.all(np.linalg.eigvals(posterior.precision) >= 0))
 
-
     # Does the measurement prediction work?
     assert(np.allclose(kupdater.predict_measurement(prediction).state_vector,
                        updater.predict_measurement(info_prediction).state_vector, 0, atol=1.e-14))
@@ -63,7 +59,7 @@ def test_information(UpdaterClass, measurement_model, prediction, measurement):
     assert(np.allclose(kposterior.state_vector,
                        np.linalg.inv(posterior.precision) @ posterior.state_vector, 0,
                        atol=1.e-14))
-    assert(np.allclose(kposterior.covar, np.linalg.in0v(posterior.precision), 0, atol=1.e-14))
+    assert(np.allclose(kposterior.covar, np.linalg.inv(posterior.precision), 0, atol=1.e-14))
     assert(np.array_equal(posterior.hypothesis.prediction, info_prediction))
 
     assert(np.array_equal(posterior.hypothesis.measurement, measurement))
