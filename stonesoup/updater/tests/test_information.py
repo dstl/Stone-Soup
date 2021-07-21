@@ -6,8 +6,9 @@ import numpy as np
 from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.types.detection import Detection
 from stonesoup.types.hypothesis import SingleHypothesis
-from stonesoup.types.prediction import (
+from stonesoup.types.prediction import (GaussianStatePrediction,
     InformationStatePrediction, InformationState)
+from stonesoup.updater.kalman import KalmanUpdater
 from stonesoup.updater.information import InformationKalmanUpdater
 from numpy.linalg import inv
 
@@ -19,64 +20,34 @@ from numpy.linalg import inv
             InformationKalmanUpdater,
             LinearGaussian(ndim_state=2, mapping=[0],
                            noise_covar=np.array([[0.04]])),
-            InformationStatePrediction(np.array([[-6.45], [0.7]]),
-                                       np.array([[1.0000, 0.0000],
-                                                 [0.0000, 1.0000]])),
+            GaussianStatePrediction(np.array([[-6.45], [0.7]]),
+                                    np.array([[4.1123, 0.0013],
+                                              [0.0013, 0.0365]])),
             Detection(np.array([[-6.23]]))
         ),
     ],
     ids=["standard"]
 )
 def test_information(UpdaterClass, measurement_model, prediction, measurement):
+    """Tests the information form of the Kalman filter update step."""
 
-    # Calculate evaluation variables - essentially takes the covariance and mean values and
-    # projects then into state space.
-    # eval_measurement_prediction = InformationMeasurementPrediction(
-    #     measurement_model.matrix()@prediction.mean,
-    #     measurement_model.matrix()@prediction.info_matrix
-    #     @measurement_model.matrix().T
-    #     + measurement_model.covar(),
-    #     cross_covar=prediction.info_matrix@measurement_model.matrix().T)
+    # This is how the Kalman filter does it
+    kupdater = KalmanUpdater(measurement_model)
+    kposterior = kupdater.update(SingleHypothesis(prediction, measurement))
 
-    # kalman_gain = eval_measurement_prediction.cross_covar@np.linalg.inv(
-    #    eval_measurement_prediction.covar)
+    # Create the information state representation
+    prediction_precision = np.linalg.inv(prediction.covar)
+    info_prediction_mean = prediction_precision @ prediction.state_vector
 
-    print(measurement_model.matrix())
-    print(measurement_model.noise_covar)
+    info_prediction = InformationStatePrediction(info_prediction_mean, prediction_precision)
 
-    # y = prediction.state_vector
-    # H = measurement_model.matrix()
-    # R = measurement_model.noise_covar
-    # x = measurement.state_vector
 
-    # Code directly below works out what the updater would implement
-    eval_posterior = InformationState(
-        (
-                prediction.state_vector +
-                (measurement_model.matrix().T @ inv(measurement_model.noise_covar) @
-                 measurement.state_vector)),
-        (prediction.precision +
-         measurement_model.matrix().T @ inv(measurement_model.noise_covar) @
-         measurement_model.matrix()))
-
-    # Initialise a information (?) (kalman) updater
+    # Initialise a information form of the Kalman updater
     updater = UpdaterClass(measurement_model=measurement_model)
-
-    # Get and assert measurement prediction - need to rewrite thios bit
-    # measurement_prediction = updater.predict_measurement(prediction)
-    # assert(np.allclose(measurement_prediction.mean,
-    #                    eval_measurement_prediction.mean,
-    #                    0, atol=1.e-14))
-    # assert(np.allclose(measurement_prediction.covar,
-    #                    eval_measurement_prediction.covar,
-    #                    0, atol=1.e-14))
-    # assert(np.allclose(measurement_prediction.cross_covar,
-    #                    eval_measurement_prediction.cross_covar,
-    #                    0, atol=1.e-14))
 
     # Perform and assert state update (without measurement prediction)
     posterior = updater.update(SingleHypothesis(
-        prediction=prediction,
+        prediction=info_prediction,
         measurement=measurement))
 
     # Check to see if the information matrix is positive definite (i.e. are all the eigenvalues
@@ -85,31 +56,15 @@ def test_information(UpdaterClass, measurement_model, prediction, measurement):
 
 
     # Does the measurement prediction work?
+    assert(np.allclose(kupdater.predict_measurement(prediction).state_vector,
+                       updater.predict_measurement(info_prediction).state_vector, 0, atol=1.e-14))
 
+    # Do the
+    assert(np.allclose(kposterior.state_vector,
+                       np.linalg.inv(posterior.precision) @ posterior.state_vector, 0,
+                       atol=1.e-14))
+    assert(np.allclose(kposterior.covar, np.linalg.in0v(posterior.precision), 0, atol=1.e-14))
+    assert(np.array_equal(posterior.hypothesis.prediction, info_prediction))
 
-    assert(np.allclose(posterior.state_vector, eval_posterior.state_vector, 0, atol=1.e-14))
-    assert(np.allclose(posterior.precision, eval_posterior.precision, 0, atol=1.e-14))
-    assert(np.array_equal(posterior.hypothesis.prediction, prediction))
-    # assert(np.allclose(
-    #     posterior.hypothesis.measurement_prediction.state_vector,
-    #     measurement_prediction.state_vector, 0, atol=1.e-14))
-    # assert (np.allclose(posterior.hypothesis.measurement_prediction.info_matrix,
-    #     #                     measurement_prediction.info_matrix, 0, atol=1.e-14))
     assert(np.array_equal(posterior.hypothesis.measurement, measurement))
     assert(posterior.timestamp == prediction.timestamp)
-
-    # # Perform and assert state update
-    # posterior = updater.update(SingleHypothesis(
-    #     prediction=prediction,
-    #     measurement=measurement,
-    #     measurement_prediction=measurement_prediction))
-    # assert(np.allclose(posterior.mean, eval_posterior.mean, 0, atol=1.e-14))
-    # assert(np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-14))
-    # assert(np.array_equal(posterior.hypothesis.prediction, prediction))
-    # assert (np.allclose(
-    #     posterior.hypothesis.measurement_prediction.state_vector,
-    #     measurement_prediction.state_vector, 0, atol=1.e-14))
-    # assert (np.allclose(posterior.hypothesis.measurement_prediction.covar,
-    #                     measurement_prediction.covar, 0, atol=1.e-14))
-    # assert(np.array_equal(posterior.hypothesis.measurement, measurement))
-    # assert(posterior.timestamp == prediction.timestamp)
