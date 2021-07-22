@@ -262,7 +262,9 @@ plotter.fig
 from stonesoup.updater.kalman import KalmanUpdater
 kalman_updater = KalmanUpdater(measurement_model)
 
-meas_range = np.array([[-1, 1], [-1, 1]])*200   #Area in which we look for target
+# Area in which we look for target. Note that if a target appears outside of this area the 
+# filter will not pick up on it.
+meas_range = np.array([[-1, 1], [-1, 1]])*200   
 clutter_spatial_density = clutter_rate/np.prod(np.diff(meas_range))
 
 from stonesoup.updater.pointprocess import PHDUpdater
@@ -322,7 +324,7 @@ reducer = GaussianMixtureReducer(
 from stonesoup.types.state import TaggedWeightedGaussianState
 from stonesoup.types.track import Track
 from stonesoup.types.array import CovarianceMatrix
-covar = CovarianceMatrix(np.diag([1.5, 0.5, 1.5, 0.5]))
+covar = CovarianceMatrix(np.diag([10, 5, 10, 5]))
 
 tracks = set()
 for truth in start_truths:
