@@ -15,7 +15,7 @@ class InformationKalmanPredictor(KalmanPredictor):
     that 'information' is encoded as the information matrix, and the so-called 'information state',
     which are:
 
-    .. math::
+      .. math::
 
         Y_{k-1} &= P^{-1}_{k-1}
 
@@ -23,32 +23,32 @@ class InformationKalmanPredictor(KalmanPredictor):
 
     The prediction then proceeds as [#]_
 
-    .. math::
+      .. math::
 
         Y_{k|k-1} &= [F_k Y_{k-1}^{-1} F^T + Q_k]^{-1}
 
-        \mathbf{y}_{k|k-1} &= Y_{k|k-1} F_k Y_{k-1}^{-1} \mathbf{y}_{k-1} + Y_{k|k-1} B_k
-        \mathbf{u}_k
+        \mathbf{y}_{k|k-1} &= Y_{k|k-1} F_k Y_{k-1}^{-1} \mathbf{y}_{k-1} + Y_{k|k-1}
+        B_k\mathbf{u}_k
 
     where the symbols have the same meaning as in the description of the Kalman filter
     (see e.g. tutorial 1) and the prediction equations can be derived from those of the Kalman
     filter. In order to cut down on the number of matrix inversions and to benefit from caching
-    these are usually recast as [#]_:
+    these are usually recast as [#]_
 
-    .. math::
+      .. math::
 
-            M_k &= (F_k^{-1})^T Y_{k-1} F_k^{-1}
+        M_k &= (F_k^{-1})^T Y_{k-1} F_k^{-1}
 
-            Y_{k|k-1} &= (I + M_k Q_k)^{-1} M_k
+        Y_{k|k-1} &= (I + M_k Q_k)^{-1} M_k
 
-            \mathbf{y}_{k|k-1} &= (I + M_k Q_k)^{-1} (F_k^{-1})^T \mathbf{y}_k + Y_{k|k-1} B_k
-            \mathbf{u}_k
+        \mathbf{y}_{k|k-1} &= (I + M_k Q_k)^{-1} (F_k^{-1})^T \mathbf{y}_k + Y_{k|k-1}
+        B_k\mathbf{u}_k
 
     The prior state must have a state vector :math:`\mathbf{y}_{k-1}` corresponding to
-    :math:`P_{k-1}^{-1} \mathbf{x}_{k-1}` and a 'precision matrix', :math:`Y_{k-1} = P_{k-1}^{-1}`.
-    The class InformationState class is provided for this purpose.
+    :math:`P_{k-1}^{-1} \mathbf{x}_{k-1}` and a precision matrix, :math:`Y_{k-1} = P_{k-1}^{-1}`.
+    The :class:`~.InformationState` class is provided for this purpose.
 
-    The :class:`TransitionModel` is queried for the existence of an
+    The :class:`~.TransitionModel` is queried for the existence of an
     :meth:`inverse_matrix()` method, and if not present, :meth:`matrix()` is inverted. This gives
     one the opportunity to cache :math:`F_k^{-1}` and save computational resource.
 
@@ -60,11 +60,11 @@ class InformationKalmanPredictor(KalmanPredictor):
     References
     ----------
     .. [#] Kim, Y-S, Hong, K-S 2003, Decentralized information filter in federated form, SICE
-    annual conference
+        annual conference
 
     .. [#] Makarenko, A., Durrant-Whyte, H. 2004, Decentralized data fusion and control in active
-    sensor networks, in: The 7th International Conference on Information Fusion (Fusion'04),
-    pp. 479-486
+        sensor networks, in: The 7th International Conference on Information Fusion (Fusion'04),
+        pp. 479-486
 
     """
     transition_model = Property(

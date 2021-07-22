@@ -22,13 +22,15 @@ class InformationKalmanUpdater(KalmanUpdater):
         \mathbf{y}_{k|k} = \mathbf{y}_{k|k-1} + H^{T}_k R^{-1}_k \mathbf{z}_{k}
 
     where :math:`\mathbf{y}_{k|k-1}` is the predicted information state and :math:`Y_{k|k-1}` the
-    predicted information matrix which form the :class:`~.InformationStatePrediction` object. An
-    :class:`~.InformationStateUpdate` object is returned.
+    predicted information matrix which form the :class:`~.InformationStatePrediction` object. The
+    measurement matrix :math:`H_k` and measurement covariance :math:`R_k` are those in the Kalman
+    filter (see tutorial 1). An :class:`~.InformationStateUpdate` object is returned.
 
     Note
     ----
     Analogously with the :class:`~.InformationStatePredictor`, the measurement model is queried for
-    the existence of an :attr:`inverse_matrix` property. If absent, the :attr:`matrix` is inverted.
+    the existence of an :meth:`inverse_covar()` property. If absent, the :meth:`covar()` is
+    inverted.
 
     """
     measurement_model = Property(
@@ -65,8 +67,8 @@ class InformationKalmanUpdater(KalmanUpdater):
     def predict_measurement(self, predicted_state, measurement_model=None, **kwargs):
         r"""There's no direct analogue of a predicted measurement in the information form. This
         method is therefore provided to return the predicted measurement as would the standard
-        Kalman updater. This is provided for compatibility and it's not anticipated that it would
-        be used in the operation of the information filter.
+        Kalman updater. This is mainly for compatibility as it's not anticipated that it would
+        be used in the usual operation of the information filter.
 
         Parameters
         ----------
@@ -76,12 +78,12 @@ class InformationKalmanUpdater(KalmanUpdater):
             The measurement model. If omitted, the model in the updater object
             is used
         **kwargs : various
-            These are passed to :meth:`~.MeasurementModel.matrix`
+            These are passed to :meth:`~.MeasurementModel.matrix()`
 
         Returns
         -------
         : :class:`GaussianMeasurementPrediction`
-            The measurement prediction, :math:`H \mathbf{\x}_{k|k-1}`
+            The measurement prediction, :math:`H \mathbf{x}_{k|k-1}`
 
         """
         # If a measurement model is not specified then use the one that's
@@ -104,7 +106,7 @@ class InformationKalmanUpdater(KalmanUpdater):
 
     def update(self, hypothesis, force_symmetric_covariance=False, **kwargs):
         r"""The Information filter update (corrector) method. Given a hypothesised association
-        between a predicted information state and a actual measurement, calculate the posterior
+        between a predicted information state and an actual measurement, calculate the posterior
         information state.
 
         Parameters
