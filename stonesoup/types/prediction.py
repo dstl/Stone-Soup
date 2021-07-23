@@ -167,17 +167,6 @@ class ParticleStatePrediction(Prediction, ParticleState):
     """
 
 
-'''class InformationMeasurementPrediction(MeasurementPrediction, InformationState):
-    """MeasurementStatePrediction type
-
-    This is a simple Information measurement prediction object.
-    """
-
-    proj_matrix = Property(Matrix,
-                           doc="Projection matrix to information space from measurement space.",
-                           default=None)'''
-
-
 class ParticleMeasurementPrediction(MeasurementPrediction, ParticleState):
     """MeasurementStatePrediction type
 
