@@ -74,16 +74,19 @@ class CategoricalTransitionModel(TransitionModel):
 
         # what to do if p=1
         fp = self.transition_matrix @ state.state_vector
-        if any(fp == 1):
-            y = fp * 1.0
-            y[fp == 1] = np.finfo(np.float64).max
-            y[fp == 0] = np.finfo(np.float64).min
-            y += noise
-        else:
-            y = np.log(fp / (1 - fp)) + noise
 
-        p = 1 / (1 + np.exp(-y))
-        return p / np.sum(p)
+        with np.errstate(divide='ignore', over='ignore', under='ignore'):
+            if any(fp == 1):
+                y = fp.astype(float)
+                y[fp == 1] = np.finfo(np.float64).max
+                y[fp == 0] = np.finfo(np.float64).min
+            else:
+                y = np.log(fp / (1 - fp))
+
+            y += noise
+
+            p = 1 / (1 + np.exp(-y))
+            return p / np.sum(p)
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         """Create noise samples. This just samples from a multivariate normal distribution with

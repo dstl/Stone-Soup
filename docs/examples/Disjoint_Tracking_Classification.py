@@ -45,12 +45,12 @@ kinematic_transition = CombinedLinearGaussianTransitionModel([ConstantVelocity(0
 # identity transition matrix is given to the :class:`~.CategoricalTransitionModel` for all targets.
 #
 # A :class:`~.CategoricalState` class is used to store information on the classification/'category'
-# of the targets. The `state_vector` of each will define a categorical distribution over the 3
+# of the targets. The state vector of each will define a categorical distribution over the 3
 # possible classes, whereby each component defines the probability that the target is of the
 # corresponding class. For example, the state vector (0.2, 0.3, 0.5), with category names
 # ('bike', 'car', 'bus') indicates that the target has a 20% probability of being class
 # 'bike', a 30% probability of being class 'car' etc.
-# It doesn't make sense to have a true target being a distribution over the possible classes, and
+# It does not make sense to have a true target being a distribution over the possible classes, and
 # therefore the true categorical states will have binary state vectors indicating a specific class
 # for each target (i.e. a '1' at one state vector index, and '0's elsewhere).
 # The :class:`~.CategoricalGroundTruthState` inherits directly from the base
@@ -84,9 +84,8 @@ initial_state3 = CompositeGroundTruthState([kinematic_state3, category_state3])
 # %%
 # Generating Ground Truth Paths
 # -----------------------------
-# Both the phsyical and categorical state of the targets need to be transition. While the category
-# will remain the same, a transition model is used here for the sake of demonstration.
-
+# Both the physical and categorical states of the targets need to be transitioned. While the
+# category will remain the same, a transition model is used here for the sake of demonstration.
 from stonesoup.types.groundtruth import GroundTruthPath
 
 GT1 = GroundTruthPath([initial_state1], id='GT1')
@@ -169,7 +168,7 @@ set_axes_limits()
 # Detections relating to both the kinematics and classification will be needed. Therefore we will
 # create a sensor that outputs :class:`~.CompositeDetection` types. The input `sensors` list will
 # provide the contents of these compositions. For this example we will provide a
-# :class:`RadarBearingRange` and a :class:`CategoricalSensor` for kinematics and classification
+# :class:`~.RadarBearingRange` and a :class:`~.CategoricalSensor` for kinematics and classification
 # respectively.
 # :class:`~.CompositeDetection` types have a `mapping` attribute, which defines what sub-state
 # index each sub-detection was created from. For example, with a composite state of form:
@@ -242,8 +241,8 @@ radar = RadarBearingRange(ndim_state=4,
 # observed, and instead indirect observations are taken. In this instance, observations of the
 # target's size are taken ('small' or 'large'), which have direct implications as to the target's
 # hidden class, and this relationship is modelled by the `emission matrix` of the
-# :class:`~.CategoricalMeasurementModel', which is used by the :class:`CategoricalSensor` to
-# provide :class:`CategoricalDetection` types.
+# :class:`~.CategoricalMeasurementModel`, which is used by the :class:`~.CategoricalSensor` to
+# provide :class:`~.CategoricalDetection` types.
 # We will model this such that a 'bike' has a very small chance of being observed as a 'big'
 # target. Similarly, a 'bus' will tend to appear as 'large'. Whereas, a 'car' has equal chance of
 # being observed as either.
@@ -290,6 +289,8 @@ for i,  (time, measurements_at_time) in enumerate(all_measurements):
 # Plotting Measurements
 # ---------------------
 # Colour will be used to indicate measurement category: orange == 'small', light-blue == 'large'.
+# It is expected that the bus will have mostly light-blue (large) measurements coinciding with its
+# route, the bike will have mostly orange (small), and the car a roughly even split of both.
 for time, measurements in all_measurements:
     for measurement in measurements:
         loc = measurement[1].state_vector
@@ -323,7 +324,8 @@ fig
 # Though not used by the tracking components here, a :class:`~.CompositePredictor` will predict
 # the component states of a composite state forward, according to a list of sub-predictors.
 #
-# A :class:`~.HMMPredictor` specifically uses :class:`CategoricalTransitionModel` types to predict.
+# A :class:`~.HMMPredictor` specifically uses :class:`~.CategoricalTransitionModel` types to
+# predict.
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.predictor.categorical import HMMPredictor
 from stonesoup.predictor.composite import CompositePredictor
@@ -336,9 +338,9 @@ predictor = CompositePredictor([kinematic_predictor, category_predictor])
 # %%
 # Updater
 # -------
-# The :class:`~.CompositeUpdater`composite updater will update each component sub-state according
+# The :class:`~.CompositeUpdater` composite updater will update each component sub-state according
 # to a list of corresponding sub-updaters. It has no method to create measurement predictions.
-# This is instead handled on instantiation of :class:`CompositeHypothesis` types: the expected
+# This is instead handled on instantiation of :class:`~.CompositeHypothesis` types: the expected
 # arguments to the updater's `update` method.
 from stonesoup.updater.kalman import ExtendedKalmanUpdater
 from stonesoup.updater.categorical import HMMUpdater
@@ -352,9 +354,9 @@ updater = CompositeUpdater(sub_updaters=[kinematic_updater, category_updater])
 # %%
 # Hypothesiser
 # ------------
-# The hypothesiser is a :class:'~.CompositeHypothesiser' type. It is in the data association step
+# The hypothesiser is a :class:`~.CompositeHypothesiser` type. It is in the data association step
 # that tracking and classification are combined: for each measurement, a hypothesis is created for
-# both a track's kinematic and categorical components. A :class:'~.CompositeHypothesis` type is
+# both a track's kinematic and categorical components. A :class:`~.CompositeHypothesis` type is
 # created, which contains these sub-hypotheses, whereby its weight is equal to the product of the
 # sub-hypotheses' weights. These sub-hypotheses should be probabilistic.
 #
@@ -387,8 +389,8 @@ kinematic_hypothesiser = ProbabilityHypothesiser(predictor=kinematic_predictor,
                                                  measure=Mahalanobis())
 
 # %%
-# A :class:'CategoricalHypothesiser' is used for calculating categorical hypotheses.
-# It utilises the :class:`~.ObservationAccuracy` measure: a multi-dimensional extention of an
+# A :class:`~.CategoricalHypothesiser` is used for calculating categorical hypotheses.
+# It utilises the :class:`~.ObservationAccuracy` measure: a multi-dimensional extension of an
 # 'accuracy' score, essentially providing a measure of the similarity between two categorical
 # distributions.
 from stonesoup.hypothesiser.categorical import CategoricalHypothesiser
@@ -403,7 +405,7 @@ hypothesiser = CompositeHypothesiser(
 # %%
 # Data Associator
 # ---------------
-# We will use a standard :class:`GNNWith2DAssignment` data associator.
+# We will use a standard :class:`~.GNNWith2DAssignment` data associator.
 from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
 
 data_associator = GNNWith2DAssignment(hypothesiser)
@@ -412,8 +414,8 @@ data_associator = GNNWith2DAssignment(hypothesiser)
 # Prior
 # -----
 # As we are tracking in a composite state space, we should initiate tracks with a
-# :class:`CompositeState` type. The kinematic sub-state of the prior is a usual Gaussian state. For
-# the categorical sub-state of the prior, equal probability is given to all 3 of the possible
+# :class:`~.CompositeState` type. The kinematic sub-state of the prior is a usual Gaussian state.
+# For the categorical sub-state of the prior, equal probability is given to all 3 of the possible
 # hidden classes that a target might take (the category names are also provided here).
 from stonesoup.types.state import GaussianState, CategoricalState, CompositeState
 
@@ -445,7 +447,7 @@ initiator = CompositeUpdateInitiator(prior_state=prior,
 # %%
 # Deleter
 # -------
-# We can use the standard :class:`~.UpdateTimeStepsDeleter`.
+# We can use a standard :class:`~.UpdateTimeStepsDeleter`.
 from stonesoup.deleter.time import UpdateTimeStepsDeleter
 
 deleter = UpdateTimeStepsDeleter(2)
@@ -453,7 +455,7 @@ deleter = UpdateTimeStepsDeleter(2)
 # %%
 # Tracker
 # -------
-# We will use a standard :class:`~.MultiTargetTracker`.
+# We can use a standard :class:`~.MultiTargetTracker`.
 from stonesoup.tracker.simple import MultiTargetTracker
 
 tracker = MultiTargetTracker(initiator, deleter, all_measurements, data_associator, updater)
@@ -476,9 +478,9 @@ for track in tracks:
 # %%
 # Plotting Tracks
 # ---------------
-# Colour will be used to indicate a track's hidden category distribution. The rgb value is defined
-# by the 'bike', 'car', and 'bus' probabilities. For example, a track with high probability of
-# being a 'bike' will have a high 'r' value, and hence appear more red.
+# Colour will be used to indicate a track's hidden category distribution. The `rgb` value is
+# defined by the 'bike', 'car', and 'bus' probabilities. For example, a track with high probability
+# of being a 'bike' will have a high 'r' value, and hence appear more red.
 for track in tracks:
     for i, state in enumerate(track[1:], 1):
         loc0 = track[i-1][0].state_vector.flatten()
@@ -491,6 +493,3 @@ axes[2].set(title='Tracks', xlabel='X', ylabel='Y')
 axes[2].set_visible(True)
 set_axes_limits()
 fig
-
-# %%
-# sphinx_gallery_thumbnail_number = 3

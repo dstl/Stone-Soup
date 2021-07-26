@@ -48,7 +48,7 @@ class CategoricalMeasurementModel(MeasurementModel):
     def _cond_prob_emission(self, state, noise=False, **kwargs):
         """This function returns the probability of each observation category conditioned on the
         input state, :math:`(p(z_j|x_i) p(x_i)` (this should come out normalised).
-        Noise is additive."""
+        Noise is additive, and used by transforming resultant vectors using a logit function."""
 
         if type(noise) is bool and noise:
             noise = self.rvs()
@@ -59,16 +59,19 @@ class CategoricalMeasurementModel(MeasurementModel):
                              "implemented")
 
         hp = self.emission_matrix.T @ state.state_vector[self.mapping]
-        if any(hp == 1):
-            y = hp * 1.0
-            y[hp == 1] = np.finfo(np.float64).max
-            y[hp == 0] = np.finfo(np.float64).min
-            y += noise
-        else:
-            y = np.log(hp / (1 - hp)) + noise
 
-        p = 1 / (1 + np.exp(-y))
-        return p / np.sum(p)
+        with np.errstate(divide='ignore', over='ignore', under='ignore'):
+            if any(hp == 1):
+                y = hp.astype(float)
+                y[hp == 1] = np.finfo(np.float64).max
+                y[hp == 0] = np.finfo(np.float64).min
+            else:
+                y = np.log(hp / (1 - hp))
+
+            y += noise
+
+            p = 1 / (1 + np.exp(-y))
+            return p / np.sum(p)
 
     def function(self, state, noise=False, **kwargs):
         r"""Observation function
