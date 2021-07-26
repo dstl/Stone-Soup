@@ -33,8 +33,8 @@ class InformationKalmanUpdater(KalmanUpdater):
     inverted.
 
     """
-    measurement_model = Property(
-        LinearGaussian, default=None,
+    measurement_model: LinearGaussian = Property(
+        default=None,
         doc="A linear Gaussian measurement model. This need not be defined if "
             "a measurement model is provided in the measurement. If no model "
             "specified on construction, or in the measurement, then error "

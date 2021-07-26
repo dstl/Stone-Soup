@@ -227,7 +227,7 @@ class InformationState(State):
     covariance, respectively, of a Gaussian state.
 
     """
-    precision = Property(PrecisionMatrix, doc='precision matrix of state.')
+    precision: PrecisionMatrix = Property(doc='precision matrix of state.')
 
 
 class WeightedGaussianState(GaussianState):

@@ -67,11 +67,9 @@ class InformationKalmanPredictor(KalmanPredictor):
         pp. 479-486
 
     """
-    transition_model = Property(
-        LinearGaussianTransitionModel,
+    transition_model: LinearGaussianTransitionModel = Property(
         doc="The transition model to be used.")
-    control_model = Property(
-        LinearControlModel,
+    control_model: LinearControlModel = Property(
         default=None,
         doc="The control model to be used. Default `None` where the predictor "
             "will create a zero-effect linear :class:`~.ControlModel`.")
