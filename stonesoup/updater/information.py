@@ -28,7 +28,7 @@ class InformationKalmanUpdater(KalmanUpdater):
 
     Note
     ----
-    Analogously with the :class:`~.InformationStatePredictor`, the measurement model is queried for
+    Analogously with the :class:`~.InformationKalmanPredictor`, the measurement model is queried for
     the existence of an :meth:`inverse_covar()` property. If absent, the :meth:`covar()` is
     inverted.
 
