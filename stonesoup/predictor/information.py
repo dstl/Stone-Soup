@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from functools import lru_cache
 
+from ._utils import predict_lru_cache
 from ..base import Property
 from .kalman import KalmanPredictor
 from ..types.prediction import Prediction
@@ -120,7 +120,7 @@ class InformationKalmanPredictor(KalmanPredictor):
         prior_state_mean = prior.covar @ prior.state_vector
         return self.transition_model.matrix(**kwargs) @ prior_state_mean
 
-    @lru_cache()
+    @predict_lru_cache()
     def predict(self, prior, timestamp=None, **kwargs):
         r"""The predict function
 
