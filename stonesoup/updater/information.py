@@ -104,7 +104,7 @@ class InformationKalmanUpdater(KalmanUpdater):
                                              predicted_state.timestamp,
                                              cross_covar=predicted_covariance @ hh.T)
 
-    def update(self, hypothesis, force_symmetric_covariance=False, **kwargs):
+    def update(self, hypothesis, **kwargs):
         r"""The Information filter update (corrector) method. Given a hypothesised association
         between a predicted information state and an actual measurement, calculate the posterior
         information state.
@@ -114,10 +114,6 @@ class InformationKalmanUpdater(KalmanUpdater):
         hypothesis : :class:`~.SingleHypothesis`
             the prediction-measurement association hypothesis. This hypothesis
             carries a predicted information state.
-        force_symmetric_covariance : :obj:`bool`, optional
-            A flag to force the output precision to be symmetric by way
-            of a simple geometric combination of the matrix and transpose.
-            Default is `False`
         **kwargs : various
             These are passed to :meth:`predict_measurement`
 
@@ -140,7 +136,7 @@ class InformationKalmanUpdater(KalmanUpdater):
         posterior_information_mean = pred_info_mean + hh.T @ invr @ \
             hypothesis.measurement.state_vector
 
-        if force_symmetric_covariance:
+        if self.force_symmetric_covariance:
             posterior_precision = (posterior_precision + posterior_precision.T)/2
 
         return Update.from_state(hypothesis.prediction, posterior_information_mean,
