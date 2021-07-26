@@ -90,7 +90,7 @@ class InformationKalmanPredictor(KalmanPredictor):
             The inverse of the transition matrix, :math:`F_k^{-1}`
 
         """
-        if hasattr(self.transition_model, 'inverse_transition_matrix'):
+        if hasattr(self.transition_model, 'inverse_matrix'):
             inv_transition_matrix = self.transition_model.inverse_matrix(**kwargs)
         else:
             inv_transition_matrix = np.linalg.inv(self.transition_model.matrix(**kwargs))
