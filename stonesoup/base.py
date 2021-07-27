@@ -341,3 +341,6 @@ class Base(metaclass=BaseMeta):
         params = ("{}={!r}".format(name, getattr(self, name))
                   for name in type(self).properties)
         return "{}({})".format(type(self).__name__, ", ".join(params))
+
+    def __eq__(self, other):
+        return self._properties.items() == other._properties.items()
