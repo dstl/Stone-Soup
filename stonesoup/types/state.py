@@ -463,3 +463,6 @@ class CompositeState(Type):
         """
         self.sub_states.append(value)
         self._check_timestamp()
+
+
+State.register(CompositeState)  # noqa: E305

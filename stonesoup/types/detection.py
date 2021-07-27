@@ -96,7 +96,13 @@ class CompositeDetection(CompositeState):
         return metadata
 
 
+Detection.register(CompositeDetection)
+
+
 class CompositeMissedDetection(CompositeDetection):
 
     def __bool__(self):
         return False
+
+
+MissedDetection.register(CompositeMissedDetection)
