@@ -78,7 +78,7 @@ class CompositeUpdateInitiator(Initiator):
                     hypotheses.append(
                         SingleHypothesis(None, MissedDetection(timestamp=detection.timestamp)))
                 else:
-                    update = track[0]  # Get first state of track
+                    update = track[-1]  # Get first state of track
                     states.append(update)
                     # Add detection hypothesis to composite hypothesis
                     hypotheses.append(SingleHypothesis(None, sub_detection))
