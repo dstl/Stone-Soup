@@ -117,7 +117,7 @@ class InformationKalmanPredictor(KalmanPredictor):
             The predicted state vector
 
         """
-        prior_state_mean = prior.covar @ prior.state_vector
+        prior_state_mean = np.linalg.inv(prior.precision) @ prior.state_vector
         return self.transition_model.matrix(**kwargs) @ prior_state_mean
 
     @predict_lru_cache()
