@@ -64,3 +64,28 @@ def test_information(UpdaterClass, measurement_model, prediction, measurement):
 
     assert(np.array_equal(posterior.hypothesis.measurement, measurement))
     assert(posterior.timestamp == prediction.timestamp)
+
+    # test that we can get to the inverse matrix
+    class LinearGaussianwithInverse(LinearGaussian):
+
+        def inverse_covar(self, **kwargs):
+            return np.linalg.inv(self.covar(**kwargs))
+
+    meas_model_winv = LinearGaussianwithInverse(ndim_state=2, mapping=[0],
+                                                noise_covar=np.array([[0.04]]))
+    updater_winv = UpdaterClass(meas_model_winv)
+
+    # Test this still works
+    post_from_inv = updater_winv.update(SingleHypothesis(prediction=info_prediction,
+                                                         measurement=measurement))
+    # and check
+    assert(np.allclose(posterior.state_vector, post_from_inv.state_vector, 0, atol=1.e-14))
+
+    # Can one force symmetric covariance?
+    updater.force_symmetric_covariance = True
+    posterior = updater.update(SingleHypothesis(
+        prediction=info_prediction,
+        measurement=measurement))
+
+    assert(np.allclose(posterior.precision - posterior.precision.T,
+                       np.zeros(np.shape(posterior.precision)), 0, atol=1.e-14))

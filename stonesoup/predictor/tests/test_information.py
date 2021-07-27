@@ -64,4 +64,18 @@ def test_information(PredictorClass, transition_model,
                        test_prediction.covar, 0, atol=1.e-14))
     assert(prediction.timestamp == new_timestamp)
 
+    # test that we can get to the inverse matrix
+    class ConstantVelocitywithInverse(ConstantVelocity):
+
+        def inverse_matrix(self, **kwargs):
+            return np.linalg.inv(self.matrix(**kwargs))
+
+    transition_model_winv = ConstantVelocitywithInverse(noise_diff_coeff=0.1)
+    predictor_winv = PredictorClass(transition_model_winv)
+
+    # Test this still works
+    prediction_from_inv = predictor_winv.predict(prior=prior, timestamp=new_timestamp)
+
+    assert (np.allclose(prediction.state_vector, prediction_from_inv.state_vector, 0, atol=1.e-14))
+
     # TODO: Test with Control Model
