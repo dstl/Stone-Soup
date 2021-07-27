@@ -79,13 +79,6 @@ class CompositeHypothesiser(Hypothesiser):
         # as each detection is composite, it will have a set of sub-hypotheses paired to it
         detections_hypotheses = defaultdict(list)
 
-        try:
-            # get timestamp from one of the detections
-            timestamp = next(iter(detections)).timestamp
-        except StopIteration:
-            # nothing to iterate over => no detections => return an empty set of hypotheses
-            return MultipleHypothesis({}, normalise=True, total_weight=1)
-
         # loop over the sub-states of the track and sub-hypothesisers
         for sub_state_index, (sub_state, sub_hypothesiser) in enumerate(
                 zip(track[-1].sub_states, self.sub_hypothesisers)):

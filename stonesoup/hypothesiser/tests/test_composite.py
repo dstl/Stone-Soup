@@ -123,4 +123,7 @@ def test_composite(predictor, updater, class_predictor, class_updater):
     # Test no detections
     empty_hypotheses = hypothesiser.hypothesise(track, set(), now)
     assert isinstance(empty_hypotheses, MultipleHypothesis)
-    assert len(empty_hypotheses) == 0
+    assert len(empty_hypotheses) == 1
+    null_hyp = next(iter(empty_hypotheses))
+    assert not null_hyp
+    assert isinstance(null_hyp.measurement, CompositeMissedDetection)
