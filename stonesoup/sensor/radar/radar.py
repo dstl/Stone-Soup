@@ -163,6 +163,9 @@ class RadarRotatingBearingRange(RadarBearingRange):
             A timestamp signifying when the rotation completes
         """
 
+        if self.dwell_center.timestamp == None:
+            self.dwell_center.timestamp = timestamp
+            
         # Compute duration since last rotation
         duration = timestamp - self.dwell_center.timestamp
 
