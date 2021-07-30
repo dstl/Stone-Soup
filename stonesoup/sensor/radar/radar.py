@@ -163,6 +163,7 @@ class RadarRotatingBearingRange(RadarBearingRange):
             A timestamp signifying when the rotation completes
         """
 
+        # Check if dwell_center has a timestamp instantiated if not sets it to incoming timestamp
         if self.dwell_center.timestamp is None:
             self.dwell_center.timestamp = timestamp
 
