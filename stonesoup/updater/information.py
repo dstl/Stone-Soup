@@ -82,7 +82,7 @@ class InformationKalmanUpdater(KalmanUpdater):
 
         Returns
         -------
-        : :class:`GaussianMeasurementPrediction`
+        : :class:`~.GaussianMeasurementPrediction`
             The measurement prediction, :math:`H \mathbf{x}_{k|k-1}`
 
         """
