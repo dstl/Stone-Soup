@@ -1,7 +1,6 @@
 import warnings
 from itertools import chain
-from typing import Sequence
-
+from typing import Iterable, Union
 
 import numpy as np
 from scipy.stats import kde
@@ -363,17 +362,36 @@ class Plotter:
         else:
             self.ax.legend(handles=self.legend_dict.values(), labels=self.legend_dict.keys())
 
-    def plot_density(self, state_sequences: Sequence[StateMutableSequence], index=-1, mapping=(0, 2), n_bins=300,
-                     **kwargs):
+    def plot_density(self, state_sequences: Iterable[StateMutableSequence],
+                     index: Union[int, None] = -1,
+                     mapping=(0, 2), n_bins=300, **kwargs):
+        """
 
-        if index is None:
+        Parameters
+        ----------
+        state_sequences : an iterable of :class:`~.StateMutableSequence`
+            Set of tracks which will be plotted. If not a set, and instead a single
+            :class:`~.Track` type, the argument is modified to be a set to allow for iteration.
+        index: int
+            Which index of the StateMutableSequences should be plotted.
+            Default value is '-1' which is the last state in the sequences.
+            index can be set to None if all indices of the sequence should be included in the plot
+        mapping: list
+            List of 2 items specifying the mapping of the x and y components of the state space.
+        n_bins : int
+            Size of the bins used to group the data
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to pcolormesh function.
+        """
+
+        if index is None:  # Plot all states in the sequence
             x = np.array([a_state.state_vector[mapping[0]]
                           for a_state_sequence in state_sequences
                           for a_state in a_state_sequence])
             y = np.array([a_state.state_vector[mapping[1]]
                           for a_state_sequence in state_sequences
                           for a_state in a_state_sequence])
-        else:
+        else:  # Only plot one state out of the sequences
             x = np.array([a_state_sequence.states[index].state_vector[mapping[0]]
                           for a_state_sequence in state_sequences])
             y = np.array([a_state_sequence.states[index].state_vector[mapping[1]]
