@@ -258,36 +258,54 @@ def test_range_rate_radar(h, sensorclass, pos_mapping, vel_mapping, noise_covar,
         assert measurement.groundtruth_path in truth
 
 
-def test_rotating_radar():
-    # Input arguments
-    # TODO: pytest parametarization
+@pytest.mark.parametrize(
+    "radar_position, radar_orientation, state, measurement_mapping, noise_covar,"
+    " dwell_center, rpm, max_range, fov_angle, timestamp_flag",
+    [
+        (
+            StateVector(np.array(([[1], [1]]))),  # radar_position
+            StateVector([[0], [0], [np.pi]]),  # radar_orientation
+            2,  # state
+            np.array([0, 1]),  # measurement_mapping
+            CovarianceMatrix(np.array([[0.015, 0], [0, 0.1]])),  # noise_covar
+            State(StateVector([[-np.pi]])),  # dwell_center
+            20,  # rpm
+            100,  # max_range
+            np.pi / 3,  # fov_angle
+            True  # timestamp_flag
+        ),
+        (
+            StateVector(np.array(([[1], [1]]))),  # radar_position
+            StateVector([[0], [0], [np.pi]]),  # radar_orientation
+            2,  # state
+            np.array([0, 1]),  # measurement_mapping
+            CovarianceMatrix(np.array([[0.015, 0], [0, 0.1]])),  # noise_covar
+            State(StateVector([[-np.pi]])),  # dwell_center
+            20,  # rpm
+            100,  # max_range
+            np.pi / 3,  # fov_angle
+            False  # timestamp_flag
+        )
+    ],
+    ids=["TimestampInitiatied", "TimestampUninitiated"]
+)
+def test_rotating_radar(radar_position, radar_orientation, state, measurement_mapping,
+                        noise_covar, dwell_center, rpm, max_range, fov_angle, timestamp_flag):
     timestamp = datetime.datetime.now()
-    noise_covar = CovarianceMatrix(np.array([[0.015, 0],
-                                             [0, 0.1]]))
-
-    # The radar is positioned at (1,1)
-    radar_position = StateVector(
-        np.array(([[1], [1]])))
-    # The radar is facing left/east
-    radar_orientation = StateVector([[0], [0], [np.pi]])
-    # The radar antenna is facing opposite the radar orientation
-    dwell_center = State(StateVector([[-np.pi]]),
-                         timestamp=timestamp)
-    rpm = 20  # 20 Rotations Per Minute
-    max_range = 100  # Max range of 100m
-    fov_angle = np.pi / 3  # FOV angle of pi/3
 
     target_state = GroundTruthState(radar_position + np.array([[5], [5]]), timestamp=timestamp)
     target_truth = GroundTruthPath([target_state])
 
-    truth = {target_truth}
+    # timestamp_flag set to true if testing with dwell_center.timestamp initiated
+    if timestamp_flag:
+        dwell_center.timestamp = timestamp
 
-    measurement_mapping = np.array([0, 1])
+    truth = {target_truth}
 
     # Create a radar object
     radar = RadarRotatingBearingRange(position=radar_position,
                                       orientation=radar_orientation,
-                                      ndim_state=2,
+                                      ndim_state=state,
                                       position_mapping=measurement_mapping,
                                       noise_covar=noise_covar,
                                       dwell_center=dwell_center,
