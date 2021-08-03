@@ -1,6 +1,7 @@
 import copy
 import warnings
 from itertools import chain
+from typing import Iterable
 
 import numpy as np
 from matplotlib import pyplot as plt, animation as animation
@@ -313,9 +314,9 @@ class _HandlerEllipse(HandlerPatch):
 
 class TimeBasedPlotter(Base):
 
-    plotting_data = Property(list)
-    legend_key = Property(str, default='Not specified', doc="Todo")
-    plotting_keyword_arguments = Property(dict, default=None, doc='Todo')
+    plotting_data: Iterable[State] = Property()
+    legend_key: str = Property(default='Not specified', doc="Todo")
+    plotting_keyword_arguments: dict = Property(default=None, doc='Todo')
 
     def __init__(self, *args, **kwargs):
         class_keywords, plotting_keywords = self.get_plotting_keywords(kwargs)
@@ -363,10 +364,13 @@ class TimeBasedPlotter(Base):
         for a_plot_object in data:
             if a_plot_object.plotting_data is not None:
                 the_data = np.array(
-                [a_state.state_vector for a_state in a_plot_object.plotting_data])
+                    [a_state.state_vector for a_state in a_plot_object.plotting_data])
+                if len(the_data) == 0:
+                    continue
                 the_lines.append(
-                    plt.plot(the_data[:1, mapping[0]], the_data[:1, mapping[1]],
-                    **a_plot_object.plotting_keyword_arguments)[0])
+                    plt.plot(the_data[:1, mapping[0]],
+                             the_data[:1, mapping[1]],
+                             **a_plot_object.plotting_keyword_arguments)[0])
 
                 legends_key.append(a_plot_object.legend_key)
                 plotting_data.append(a_plot_object.plotting_data)
@@ -386,8 +390,8 @@ class TimeBasedPlotter(Base):
 
         interval_time = 50  # milliseconds
 
-        line_ani = animation.FuncAnimation(fig1, TimeBasedPlotter.update_animation, 
-        frames=times_to_plot,
+        line_ani = animation.FuncAnimation(fig1, TimeBasedPlotter.update_animation,
+                                           frames=times_to_plot,
                                            fargs=(the_lines, plotting_data),
                                            interval=interval_time, blit=False,
                                            repeat=False)
@@ -403,26 +407,41 @@ class TimeBasedPlotter(Base):
         for i, data_source in enumerate(data_list):
 
             if data_source is not None:
-                the_data = np.array([a_state.state_vector for a_state in data_source 
-                if a_state.timestamp <= timestamp])
+                the_data = np.array([a_state.state_vector for a_state in data_source
+                                     if a_state.timestamp <= timestamp])
                 if the_data.size > 0:
                     lines[i].set_data(the_data[:, 0], the_data[:, 2])
         return lines
 
     @staticmethod
-    def prepare_data(data_source):
+    def prepare_data(data_source: Iterable[State]) -> Iterable[State]:
+        """Ensures the data to plot is in the correct format. Detections are converted if they have
+        a inverse_function in their measurement model
 
-        if all(isinstance(list_item, State) for list_item in data_source):
-            if all(isinstance(list_item, Detection) for list_item in data_source):
-                try:
-                    output = [State(a_detection.measurement_model.inverse_function(a_detection),
-                                    timestamp=a_detection.timestamp) 
-                                    for a_detection in data_source]
-                except AttributeError:
-                    output = None
-            else:
-                output = data_source
+        Parameters
+        ----------
+        data_source : Iterable[State]
+            Keyword arguments for this class and additional arguments to be passed to plot function
+
+        Returns
+        -------
+        : Iterable[:class:`State`]
+            states in a suitable container to be processed
+        """
+
+        if not all(isinstance(list_item, State) for list_item in data_source):
+            raise NotImplementedError("Unknown type of data to process")
+
+        if all(isinstance(list_item, Detection) for list_item in data_source):
+            try:
+                output = [State(a_detection.measurement_model.inverse_function(a_detection),
+                                timestamp=a_detection.timestamp)
+                          for a_detection in data_source]
+            except AttributeError:
+                warnings.warn("Cannot reverse measurement model to produce coordinates to plot "
+                              "detections.")
+                output = None
         else:
-            raise NotImplementedError
+            output = data_source
 
         return output

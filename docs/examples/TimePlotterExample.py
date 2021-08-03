@@ -2,9 +2,9 @@
 # coding: utf-8
 
 """
-Metrics Example
+TimeBasedPlotter Example
 ===============
-This example is going to look at metrics, and how they can be used to assess algorithm performance.
+This example shows how to animate several state sequences to be plotted in time order
 """
 
 # %%
@@ -100,7 +100,8 @@ all_plotting = []
 colours = colors.cnames
 
 for idx, ground_truth in enumerate(groundtruth_sim.groundtruth_paths):
-    all_plotting.append(TimeBasedPlotter(plotting_data=ground_truth.states, legend_key='Ground Truth'+str(idx),
+    all_plotting.append(TimeBasedPlotter(plotting_data=ground_truth.states,
+                                         legend_key='Ground Truth'+str(idx),
                                          linestyle='--', marker='.', alpha=0.5,
                                          color=random.choice(list(colours.values()))
                                          ))
@@ -111,7 +112,8 @@ for idx, track in enumerate(tracks):
                                          color=random.choice(list(colours.values()))
                                          ))
 
-times_to_plot = [start_time + x * groundtruth_sim.timestep for x in range(groundtruth_sim.number_steps)]
+times_to_plot = [start_time + x * groundtruth_sim.timestep
+                 for x in range(groundtruth_sim.number_steps)]
 line_ani = TimeBasedPlotter.run_animation(times_to_plot, all_plotting)
 
 line_ani.save('example.mp4')
