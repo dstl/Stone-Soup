@@ -82,3 +82,10 @@ class PreBuiltSingleTargetTrackerNoClutter(PreBuiltTracker):
         self.tracker = SingleTargetTracker(
             self.initiator, self.deleter, self.detector, self.data_associator, self.updater)
 
+    def get_kwargs(self):
+        return {"initiator": self.initiator,
+                "deleter": self.deleter,
+                "detector": self.detector,
+                "data_associator": self.data_associator,
+                "updater": self.updater}
+
