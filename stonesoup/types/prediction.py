@@ -4,7 +4,7 @@ from typing import Any, Union
 from ..base import Property
 from .array import CovarianceMatrix
 from .base import Type
-from .state import (State, GaussianState, ParticleState, SqrtGaussianState,
+from .state import (State, GaussianState, ParticleState, SqrtGaussianState, InformationState,
                     TaggedWeightedGaussianState, WeightedGaussianState, StateMutableSequence)
 from ..models.transition.base import TransitionModel
 
@@ -85,6 +85,13 @@ class StatePrediction(Prediction, State):
     """ StatePrediction type
 
     Most simple state prediction type, which only has time and a state vector.
+    """
+
+
+class InformationStatePrediction(Prediction, InformationState):
+    """ InformationStatePrediction type
+
+    Information state prediction type: contains state vector, precision matrix and timestamp
     """
 
 
