@@ -66,8 +66,9 @@ class SingleTargetTracker(Tracker):
                 self._track.append(
                     associations[self._track].prediction)
 
+
         if self._track is None or self.deleter.delete_tracks(self.tracks):
-            new_tracks = self.initiator.initiate(detections)
+            new_tracks = self.initiator.initiate(detections, time)
             if new_tracks:
                 self._track = new_tracks.pop()
             else:
@@ -125,7 +126,7 @@ class MultiTargetTracker(Tracker):
 
         self._tracks -= self.deleter.delete_tracks(self.tracks)
         self._tracks |= self.initiator.initiate(
-            detections - associated_detections)
+            detections - associated_detections, time)
 
         return time, self.tracks
 
@@ -220,6 +221,6 @@ class MultiTargetMixtureTracker(Tracker):
 
         self._tracks -= self.deleter.delete_tracks(self.tracks)
         self._tracks |= self.initiator.initiate(
-            unassociated_detections)
+            unassociated_detections, time)
 
         return time, self.tracks

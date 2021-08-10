@@ -105,10 +105,10 @@ def create_smooth_transition_models(initial_state, x_coords, y_coords, times, tu
         alpha = np.arctan2(p, q)
         beta = np.arccos(r / np.sqrt(p**2 + q**2))
 
-        angle = (alpha + beta) % (2*np.pi) - 2*np.pi  # actual angle turned
+        angle = (alpha + beta + np.pi) % (2*np.pi) - np.pi  # actual angle turned
 
         if w > 0:
-            angle = (alpha - beta + 2*np.pi) % (2*np.pi)  # quadrant adjustment
+            angle = (alpha - beta + np.pi) % (2*np.pi) - np.pi  # quadrant adjustment
 
         t1 = angle / w  # turn time
 

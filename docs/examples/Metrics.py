@@ -35,8 +35,9 @@ from stonesoup.updater.kalman import KalmanUpdater
 
 # Models
 transition_model = CombinedLinearGaussianTransitionModel(
-    [ConstantVelocity(1), ConstantVelocity(1)])
-measurement_model = LinearGaussian(4, [0, 2], np.diag([0.5, 0.5]))
+    [ConstantVelocity(1), ConstantVelocity(1)], seed=1)
+
+measurement_model = LinearGaussian(4, [0, 2], np.diag([0.5, 0.5]), seed=2)
 
 # Simulators
 groundtruth_sim = MultiTargetGroundTruthSimulator(
@@ -47,7 +48,8 @@ groundtruth_sim = MultiTargetGroundTruthSimulator(
     timestep=datetime.timedelta(seconds=5),
     number_steps=100,
     birth_rate=0.2,
-    death_probability=0.05
+    death_probability=0.05,
+    seed=3
 )
 detection_sim = SimpleDetectionSimulator(
     groundtruth=groundtruth_sim,
@@ -55,6 +57,7 @@ detection_sim = SimpleDetectionSimulator(
     meas_range=np.array([[-1, 1], [-1, 1]]) * 5000,  # Area to generate clutter
     detection_probability=0.9,
     clutter_rate=1,
+    seed=4
 )
 
 # Filter

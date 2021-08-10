@@ -20,9 +20,9 @@ from ...types.update import GaussianStateUpdate
 @pytest.fixture()
 def initiator():
     class TestInitiator:
-        def initiate(self, unassociated_detections):
+        def initiate(self, detections, timestamp):
             return {Track([detection])
-                    for detection in unassociated_detections}
+                    for detection in detections}
     return TestInitiator()
 
 

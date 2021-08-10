@@ -138,7 +138,7 @@ initiator = SimpleMeasurementInitiator(
 # As well as an initiator we must also have a deleter. This deleter removes tracks which haven't
 # been updated for a defined time period, in this case 10 minutes.
 from stonesoup.deleter.time import UpdateTimeDeleter
-deleter = UpdateTimeDeleter(datetime.timedelta(minutes=10))
+deleter = UpdateTimeDeleter(time_since_update=datetime.timedelta(minutes=10))
 
 # %%
 # Building and running the tracker

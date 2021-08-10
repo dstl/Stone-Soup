@@ -121,7 +121,7 @@ class YAML:
         default value."""
         node_properties = OrderedDict(type(node).properties)
         # Special case of a sensor with a default platform
-        if isinstance(node, Sensor) and node._has_internal_platform:
+        if isinstance(node, Sensor) and node._has_internal_controller:
             node_properties['position'] = Property(StateVector)
             node_properties['orientation'] = Property(StateVector)
         return representer.represent_omap(

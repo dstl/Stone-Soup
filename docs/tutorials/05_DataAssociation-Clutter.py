@@ -225,10 +225,10 @@ for n, measurements in enumerate(all_measurements):
 plotter.plot_tracks(track, [0, 2], uncertainty=True)
 plotter.fig
 
-# sphinx_gallery_thumbnail_number = 2
-
 # %%
 # If you experiment with the clutter and detection parameters, you'll notice that there are often
 # instances where the estimate drifts away from the ground truth path. This is known as *track
 # seduction*, and is a common feature of 'greedy' methods of association such as the nearest
 # neighbour algorithm.
+
+# sphinx_gallery_thumbnail_number = 2

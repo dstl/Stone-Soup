@@ -10,6 +10,7 @@ from ..base import Property
 from ..measures import EuclideanWeighted
 from ..types.metric import SingleTimeMetric, TimeRangeMetric
 from ..types.time import TimeRange
+from ..types.track import Track
 
 
 class SIAPMetrics(MetricGenerator):
@@ -60,11 +61,39 @@ class SIAPMetrics(MetricGenerator):
                                             doc="Mapping array which specifies which elements "
                                                 "within state space state vectors correspond to "
                                                 "velocity")
+    position_mapping2: np.ndarray = Property(default=None,
+                                             doc="Mapping array which specifies which elements "
+                                                 "within the ground truth state space state "
+                                                 "vectors correspond to position. Default is "
+                                                 "same as position_mapping")
+    velocity_mapping2: np.ndarray = Property(default=None,
+                                             doc="Mapping array which specifies which elements "
+                                                 "within the ground truth state space state "
+                                                 "vectors correspond to velocity. Default is "
+                                                 "same as velocity_mapping")
 
     truth_id: str = Property(default=None,
                              doc="Metadata key for ID of each ground truth path in dataset")
     track_id: str = Property(default=None,
                              doc="Metadata key for ID of each track in dataset")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.position_mapping2 is not None and self.position_mapping is None:
+            raise ValueError("Cannot set position_mapping2 if position_mapping is None. "
+                             "If this is really what you meant to do, then"
+                             " set position_mapping to include all dimensions.")
+
+        if self.velocity_mapping2 is not None and self.velocity_mapping is None:
+            raise ValueError("Cannot set velocity_mapping2 if velocity_mapping is None. "
+                             "If this is really what you meant to do, then"
+                             " set velocity_mapping to include all dimensions.")
+
+        if self.position_mapping2 is None and self.position_mapping is not None:
+            self.position_mapping2 = self.position_mapping
+
+        if self.velocity_mapping2 is None and self.velocity_mapping is not None:
+            self.velocity_mapping2 = self.velocity_mapping
 
     def compute_metric(self, manager, *args, **kwargs):
         """Compute metric
@@ -524,7 +553,8 @@ class SIAPMetrics(MetricGenerator):
         numerator = self._assoc_distances_sum_t(manager,
                                                 timestamp,
                                                 self.position_mapping,
-                                                self.position_weighting)
+                                                self.position_weighting,
+                                                self.position_mapping2)
         try:
             PA = numerator / self._na_t(manager, timestamp)
         except ZeroDivisionError:
@@ -566,7 +596,8 @@ class SIAPMetrics(MetricGenerator):
         numerator = sum(self._assoc_distances_sum_t(manager,
                                                     timestamp,
                                                     self.position_mapping,
-                                                    self.position_weighting)
+                                                    self.position_weighting,
+                                                    self.position_mapping2)
                         for timestamp in timestamps)
         try:
             PA = numerator / self._na_sum(manager, timestamps)
@@ -612,7 +643,8 @@ class SIAPMetrics(MetricGenerator):
         numerator = self._assoc_distances_sum_t(manager,
                                                 timestamp,
                                                 self.velocity_mapping,
-                                                self.velocity_weighting)
+                                                self.velocity_weighting,
+                                                self.velocity_mapping2)
         try:
             VA = numerator / self._na_t(manager, timestamp)
         except ZeroDivisionError:
@@ -655,7 +687,8 @@ class SIAPMetrics(MetricGenerator):
         numerator = sum(self._assoc_distances_sum_t(manager,
                                                     timestamp,
                                                     self.velocity_mapping,
-                                                    self.velocity_weighting)
+                                                    self.velocity_weighting,
+                                                    self.velocity_mapping2)
                         for timestamp in timestamps)
         try:
             VA = numerator / self._na_sum(manager, timestamps)
@@ -961,7 +994,7 @@ class SIAPMetrics(MetricGenerator):
             time_range=TimeRange(min(timestamps), max(timestamps)),
             generator=self)
 
-    def _assoc_distances_sum_t(self, manager, timestamp, mapping, weighting):
+    def _assoc_distances_sum_t(self, manager, timestamp, mapping, weighting, mapping2=None):
         """Sum of spatial (positon or velocity) distance between each truth and its associations
         Parameters
         ----------
@@ -973,6 +1006,9 @@ class SIAPMetrics(MetricGenerator):
             Indices of the required positon/velocity components of the state space
         weighting: np.ndarray
             The weighting to be used by the Euclidean measure
+        mapping2: np.ndarray
+            Indices of the required positon/velocity components of the state space
+            when the two states require different mapping
 
         Returns
         -------
@@ -980,10 +1016,13 @@ class SIAPMetrics(MetricGenerator):
             Sum of Euclidean distances (of position or velocity) of each truth to its associated
             tracks in manager at timestamp
         """
-        measure = EuclideanWeighted(mapping=mapping, weighting=weighting)
+        measure = EuclideanWeighted(mapping=mapping, mapping2=mapping2, weighting=weighting)
         distance_sum = 0
         for assoc in manager.association_set.associations_at_timestamp(timestamp):
             track, truth = assoc.objects
+            # Sets aren't ordered, so need to ensure correct path is truth/track
+            if isinstance(truth, Track):
+                track, truth = truth, track
             distance_sum += measure(track[timestamp], truth[timestamp])
         return distance_sum
 

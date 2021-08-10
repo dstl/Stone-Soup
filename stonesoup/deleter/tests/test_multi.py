@@ -36,11 +36,11 @@ def test_multi_deleter_single(intersect):
     track = Track()
     track.append(state)
     tracks.add(track)
-    cover_deletion_thresh = 100
-    deleter = CovarianceBasedDeleter(cover_deletion_thresh)
+    covar_deletion_thresh = 100
+    deleter = CovarianceBasedDeleter(covar_trace_thresh=covar_deletion_thresh)
 
     # Test intersect deleter
-    multi_deleter = CompositeDeleter([deleter], intersect)
+    multi_deleter = CompositeDeleter(deleters=[deleter], intersect=intersect)
     deleted_tracks = multi_deleter.delete_tracks(tracks)
     tracks -= deleted_tracks
 
@@ -51,10 +51,10 @@ def test_multi_deleter_single(intersect):
 def test_multi_deleter_multiple(intersect):
     """Test multi deleter classes with multiple deleters"""
 
-    cover_deletion_thresh = 99
-    deleter = CovarianceBasedDeleter(cover_deletion_thresh)
+    covar_deletion_thresh = 99
+    deleter = CovarianceBasedDeleter(covar_trace_thresh=covar_deletion_thresh)
     deleter2 = UpdateTimeDeleter(datetime.timedelta(minutes=10))
-    multi_deleter = CompositeDeleter([deleter, deleter2], intersect)
+    multi_deleter = CompositeDeleter(deleters=[deleter, deleter2], intersect=intersect)
 
     # Create track that is not deleted by either deleter
     track = Track([

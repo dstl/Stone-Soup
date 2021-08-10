@@ -22,6 +22,30 @@ class Updater(Base):
 
     measurement_model: MeasurementModel = Property(doc="measurement model")
 
+    def _check_measurement_model(self, measurement_model):
+        """Check that the measurement model passed actually exists. If not
+        attach the one in the updater. If that one's not specified, return an
+        error.
+
+        Parameters
+        ----------
+        measurement_model : :class`~.MeasurementModel`
+            A measurement model to be checked
+
+        Returns
+        -------
+        : :class`~.MeasurementModel`
+            The measurement model to be used
+
+        """
+        if measurement_model is None:
+            if self.measurement_model is None:
+                raise ValueError("No measurement model specified")
+            else:
+                measurement_model = self.measurement_model
+
+        return measurement_model
+
     @abstractmethod
     def predict_measurement(
             self, state_prediction, measurement_model=None, **kwargs):

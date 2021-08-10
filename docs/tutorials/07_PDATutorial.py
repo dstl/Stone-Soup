@@ -165,7 +165,7 @@ from stonesoup.types.update import GaussianStateUpdate  # To store posterior est
 
 track = Track([prior])
 for n, measurements in enumerate(all_measurements):
-    hypotheses = data_associator.associate([track],
+    hypotheses = data_associator.associate({track},
                                            measurements,
                                            start_time + timedelta(seconds=n))
 
@@ -203,10 +203,10 @@ for n, measurements in enumerate(all_measurements):
 plotter.plot_tracks(track, [0, 2], uncertainty=True)
 plotter.fig
 
-# sphinx_gallery_thumbnail_number = 2
-
 # %%
 # References
 # ----------
 # 1. Bar-Shalom Y, Daum F, Huang F 2009, The Probabilistic Data Association Filter, IEEE Control
 # Systems Magazine
+
+# sphinx_gallery_thumbnail_number = 2

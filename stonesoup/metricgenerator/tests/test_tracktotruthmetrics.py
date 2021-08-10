@@ -23,6 +23,34 @@ def metric_generators():
                         track_id='ident')]
 
 
+def metric_generators_2_maps():
+    """A list of metric generators to be used in tests"""
+    return [SIAPMetrics(position_mapping=[0, 2],
+                        velocity_mapping=[1, 3],
+                        position_mapping2=[0, 1],
+                        velocity_mapping2=[2, 3],
+                        truth_id='identify',
+                        track_id='ident')]
+
+
+def test_SIAP_raise_error():
+    with pytest.raises(ValueError) as excinfo:
+        SIAPMetrics(velocity_mapping=[1, 3],
+                    position_mapping2=[0, 1],
+                    velocity_mapping2=[2, 3],
+                    truth_id='identify',
+                    track_id='ident')
+    assert "Cannot set position_mapping2 if position_mapping is None." in str(excinfo.value)
+
+    with pytest.raises(ValueError) as excinfo:
+        SIAPMetrics(position_mapping=[0, 2],
+                    position_mapping2=[0, 1],
+                    velocity_mapping2=[2, 3],
+                    truth_id='identify',
+                    track_id='ident')
+    assert "Cannot set velocity_mapping2 if velocity_mapping is None." in str(excinfo.value)
+
+
 @pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
 def test_num_tracks_tracks(generator):
     manager = SimpleManager()
@@ -123,6 +151,65 @@ def test_assoc_distances_sum_t(generator, mapping):
                                                         tstart + datetime.timedelta(seconds=i),
                                                         getattr(generator, mapping),
                                                         1)
+        assert distance_sum == 2
+
+
+@pytest.mark.parametrize("generator", metric_generators_2_maps(), ids=["SIAP"])
+@pytest.mark.parametrize("mapping, mapping2", [('position_mapping', 'position_mapping2'),
+                                               ('velocity_mapping', 'velocity_mapping2')]
+                         )
+def test_assoc_distances_sum_t_2maps(generator, mapping, mapping2):
+    manager = SimpleManager()
+    tstart = datetime.datetime.now()
+    truth = GroundTruthPath(
+        states=[GroundTruthState([[i], [0], [i], [0]],
+                                 timestamp=tstart + datetime.timedelta(seconds=i))
+                for i in range(5)]
+    )
+    track1 = Track(
+        states=[State([[i], [i], [1], [1]], timestamp=tstart + datetime.timedelta(seconds=i))
+                for i in range(5)]
+    )
+    track2 = Track(
+        states=[State([[i], [i], [-1], [-1]], timestamp=tstart + datetime.timedelta(seconds=i))
+                for i in range(5)]
+    )
+    assoc1 = TimeRangeAssociation(
+        {truth, track1},
+        time_range=TimeRange(
+            start_timestamp=tstart,
+            end_timestamp=tstart + datetime.timedelta(seconds=5))
+    )
+
+    assoc2 = TimeRangeAssociation(
+        {truth, track2},
+        time_range=TimeRange(
+            start_timestamp=tstart,
+            end_timestamp=tstart + datetime.timedelta(seconds=5))
+    )
+    associations = {assoc1}
+
+    manager.groundtruth_paths = {truth}
+    manager.tracks = {track1, track2}
+    manager.association_set = AssociationSet(associations)
+
+    for i in range(5):
+        distance_sum = generator._assoc_distances_sum_t(manager,
+                                                        tstart + datetime.timedelta(seconds=i),
+                                                        getattr(generator, mapping),
+                                                        1,
+                                                        getattr(generator, mapping2))
+        assert distance_sum == 1
+
+    associations = {assoc1, assoc2}
+    manager.association_set = AssociationSet(associations)
+
+    for i in range(5):
+        distance_sum = generator._assoc_distances_sum_t(manager,
+                                                        tstart + datetime.timedelta(seconds=i),
+                                                        getattr(generator, mapping),
+                                                        1,
+                                                        getattr(generator, mapping2))
         assert distance_sum == 2
 
 
@@ -564,7 +651,8 @@ def test_variable_id(generator):
     assert generator._ja_sum(manager, manager.list_timestamps()) == 2
 
 
-@pytest.mark.parametrize("generator", metric_generators(), ids=["SIAP"])
+@pytest.mark.parametrize("generator", metric_generators() + metric_generators_2_maps(),
+                         ids=["SIAP", "SIAP2Map"])
 def test_compute_metric(generator):
     manager = SimpleManager()
     # Create truth, tracks and associations, same as test_nu_j
@@ -685,7 +773,8 @@ def test_compute_metric(generator):
            sum(generator._assoc_distances_sum_t(manager,
                                                 timestamp,
                                                 generator.position_mapping,
-                                                1)
+                                                1,
+                                                generator.position_mapping2)
                for timestamp in manager.list_timestamps()) \
            / generator._na_sum(manager, manager.list_timestamps())
     assert pa.time_range.start_timestamp == tstart
@@ -701,7 +790,8 @@ def test_compute_metric(generator):
         numerator = generator._assoc_distances_sum_t(manager,
                                                      timestamp,
                                                      generator.position_mapping,
-                                                     1)
+                                                     1,
+                                                     generator.position_mapping2)
         if generator._na_t(manager, timestamp) != 0:
             assert t_metric.value == numerator / generator._na_t(manager, timestamp)
         else:
@@ -717,7 +807,8 @@ def test_compute_metric(generator):
     numerator = sum(generator._assoc_distances_sum_t(manager,
                                                      timestamp,
                                                      generator.velocity_mapping,
-                                                     1)
+                                                     1,
+                                                     generator.velocity_mapping2)
                     for timestamp in manager.list_timestamps())
     assert va.value == numerator / generator._na_sum(manager, manager.list_timestamps())
     assert va.time_range.start_timestamp == tstart
@@ -733,7 +824,8 @@ def test_compute_metric(generator):
         numerator = generator._assoc_distances_sum_t(manager,
                                                      timestamp,
                                                      generator.velocity_mapping,
-                                                     1)
+                                                     1,
+                                                     generator.velocity_mapping2)
         if generator._na_t(manager, timestamp) != 0:
             assert t_metric.value == numerator / generator._na_t(manager, timestamp)
         else:

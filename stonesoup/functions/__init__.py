@@ -537,6 +537,9 @@ def gm_reduce_single(means, covars, weights):
     # Normalise weights such that they sum to 1
     weights = weights/Probability.sum(weights)
 
+    # Cast means as a StateVectors, so this works with ndarray types
+    means = means.view(StateVectors)
+
     # Calculate mean
     mean = np.average(means, axis=1, weights=weights)
 
@@ -590,6 +593,30 @@ def mod_elevation(x):
     elif N == 3:
         x = x - 2.0 * np.pi
     return x
+
+
+def build_rotation_matrix(angle_vector: np.ndarray):
+    """
+    Calculates and returns the (3D) axis rotation matrix given a vector of
+    three angles:
+    [roll, pitch/elevation, yaw/azimuth]
+
+    Parameters
+    ----------
+        angle_vector : :class:`numpy.ndarray` of shape (3, 1): the rotations
+        about the :math:'x, y, z' axes.
+        In aircraft/radar terms these correspond to
+        [roll, pitch/elevation, yaw/azimuth]
+
+    Returns
+    -------
+        :class:`numpy.ndarray` of shape (3, 3)
+            The model (3D) rotation matrix.
+    """
+    theta_x = -angle_vector[0, 0]  # roll
+    theta_y = angle_vector[1, 0]  # pitch#elevation
+    theta_z = -angle_vector[2, 0]  # yaw#azimuth
+    return rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
 
 
 def dotproduct(a, b):

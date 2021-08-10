@@ -55,10 +55,9 @@ This is equivalent to the following:
 
 """
 import inspect
-import weakref
 from abc import ABCMeta
 from collections import OrderedDict
-from copy import deepcopy, copy
+from copy import copy
 from types import MappingProxyType
 
 
@@ -84,22 +83,28 @@ class Property:
     flag. Such properties can be written only once (when the parent object is
     instantiated). Any subsequent write raises an ``AttributeError``
 
+    Property also can be used in similar way to Python standard `property`
+    using `getter`, `setter` and `deleter` decorators.
+
     Parameters
     ----------
-    cls : class
-        A Python class.
+    cls : class, optional
+        A Python class. Where not specified, a type annotation is required,
+        and providing both will raise an error.
     default : any, optional
         A default value, which should be same type as class or None. Defaults
         to :class:`inspect.Parameter.empty` (alias :attr:`Property.empty`)
     doc : str, optional
         Doc string for property
     readonly : bool, optional
+        If `True`, then property can only be set during initialisation.
 
     Attributes
     ----------
     cls
     default
     doc
+    readonly
     empty : :class:`inspect.Parameter.empty`
         Alias to :class:`inspect.Parameter.empty`
     """
@@ -290,7 +295,7 @@ class BaseMeta(ABCMeta):
         parameters.extend(
             inspect.Parameter(
                 name, inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                default=property_.default)
+                default=property_.default, annotation=property_.cls)
             for name, property_ in cls._properties.items())
         parameters.extend(
             parameter
@@ -298,6 +303,10 @@ class BaseMeta(ABCMeta):
             if parameter.kind == parameter.KEYWORD_ONLY)
         cls.__init__.__signature__ = init_signature.replace(
             parameters=parameters)
+
+    def register(cls, subclass):
+        cls._subclasses.add(subclass)
+        return super().register(subclass)
 
     @property
     def subclasses(cls):
@@ -332,23 +341,3 @@ class Base(metaclass=BaseMeta):
         params = ("{}={!r}".format(name, getattr(self, name))
                   for name in type(self).properties)
         return "{}({})".format(type(self).__name__, ", ".join(params))
-
-    def __deepcopy__(self, memodict={}):
-        # Create a new class
-        new = object.__new__(type(self))
-        memodict[id(self)] = new   # add the new class to the memo
-        # Insert a deepcopy of all instance attributes
-        new.__dict__.update(deepcopy(self.__dict__, memodict))
-        # Manually update any weakrefs to point to copies, if they exist.
-        for name, prop in new.__dict__.items():
-            if isinstance(prop, weakref.ref):
-                original_target = prop()  # call the weakref to get a reference
-                try:
-                    # if we are copying the parent as well, the copy should be in memodict
-                    copy_of_target = memodict[id(original_target)]
-                except KeyError:
-                    # if we can't find the parent, then leave the original ref in place
-                    pass
-                else:
-                    new.__setattr__(name, weakref.ref(copy_of_target))
-        return new

@@ -200,8 +200,6 @@ for measurement in measurements:
 plotter.plot_tracks(track, [0, 2], particle=True)
 plotter.fig
 
-# sphinx_gallery_thumbnail_number = 3
-
 # %%
 # Key points
 # ----------
@@ -220,3 +218,5 @@ plotter.fig
 #
 # .. [#] Carpenter J., Clifford P., Fearnhead P. 1999, An improved particle filter for non-linear
 #        problems, IEE Proc., Radar Sonar Navigation, 146:2–7
+
+# sphinx_gallery_thumbnail_number = 3

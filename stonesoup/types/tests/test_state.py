@@ -167,6 +167,7 @@ def test_particlestate():
 
     state = ParticleState(particles)
     assert isinstance(state, State)
+    assert ParticleState in State.subclasses
     assert np.allclose(state.state_vector, StateVector([[50], [100]]))
     assert np.allclose(state.covar, CovarianceMatrix([[2500, 5000], [5000, 10000]]))
 
@@ -253,6 +254,18 @@ def test_state_mutable_sequence_slice():
     assert len(sequence[timestamp+delta*1:][:timestamp+delta*2]) == 1
 
     assert sequence[timestamp] == sequence.states[0]
+
+    end_timestamp = sequence.timestamp
+    assert sequence[end_timestamp] == sequence.states[-1]
+    assert sequence[end_timestamp].state_vector == StateVector([[0]])
+
+    # Add state at same time
+    sequence.append(State(state_vector + 1, timestamp=end_timestamp))
+    assert sequence[end_timestamp]
+    assert sequence[end_timestamp].state_vector == StateVector([[1]])
+
+    assert len(sequence) == 11
+    assert len(list(sequence.last_timestamp_generator())) == 10
 
     with pytest.raises(TypeError):
         sequence[timestamp:1]
