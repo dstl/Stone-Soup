@@ -69,7 +69,7 @@ class SingleTargetTracker(_SingleTargetTracker):
                     associations[self._track].prediction)
 
         if self._track is None or self.deleter.delete_tracks(self.tracks):
-            new_tracks = self.initiator.initiate(detections)
+            new_tracks = self.initiator.initiate(detections, time)
             if new_tracks:
                 self._track = new_tracks.pop()
             else:
@@ -85,9 +85,9 @@ reaching the tracker. The delay in the detections is given by the â€˜time_delayâ
 '''
 start_time = datetime.now()
 
-time_delay = 4.5  # seconds
+time_delay = 5 # seconds
 
-seconds_in_sim = 10
+seconds_in_sim = 20
 
 
 # The target is moving from the origin (0,0,0) north towards (0,x,0) at one unit per second.
@@ -96,41 +96,53 @@ def get_target_position(target_time):
     return [0, time_since_start.total_seconds(), 0]
 
 
+def get_target_position2(target_time, std):
+    target_position = get_target_position(target_time)
+    target_position[0] = np.random.randn()*std
+    return target_position
+
+
 measurement_model = LinearGaussian(
     ndim_state=6,  # Number of state dimensions (position and velocity in 3D)
     mapping=(0, 2, 4),  # Mapping measurement vector index to state index
-    noise_covar=np.diag([5]*3)  # Covariance matrix for Gaussian PDF
+    noise_covar=np.diag([15]*3)  # Covariance matrix for Gaussian PDF
     )
 
 sensor_1_offset = [-1, 0, 0]
+sensor_2_offset = [+1, 0, 0]
 
 sensor_1_detections = []
 sensor_2_detections = []
 
-for idx, time in enumerate([start_time + timedelta(seconds=x) for x in range(seconds_in_sim)]):
-    target_pos = get_target_position(time)
+detection_x_standard_dev = 0.2
 
-    sensor_1_detections.append(Detection(state_vector=[x+y for x, y in zip(target_pos, sensor_1_offset)],
-                                         timestamp=time,
-                                         measurement_model=measurement_model,
-                                         metadata={'Origin': 1,
-                                                   'id': idx*2,
-                                                   'time_at_tracker': time}))
-    sensor_2_detections.append(Detection(state_vector=target_pos, timestamp=time + timedelta(seconds=0.5),
-                                         measurement_model=measurement_model,
-                                         metadata={'Origin': 2,
-                                                   'id': (idx*2)+1,
-                                                   'time_at_tracker': time + timedelta(seconds=time_delay)}))
+for idx, time in enumerate([start_time + timedelta(seconds=x/2) for x in range(2*seconds_in_sim)]):
+    target_pos = get_target_position2(time, detection_x_standard_dev)
+
+    if idx % 2 == 0:
+        sensor_1_detections.append(Detection(state_vector=[x+y for x, y in zip(target_pos, sensor_1_offset)],
+                                             timestamp=time,
+                                             measurement_model=measurement_model,
+                                             metadata={'Origin': 1,
+                                                       'id': idx*2,
+                                                       'time_at_tracker': time}))
+    else:
+        sensor_2_detections.append(Detection(state_vector=[x+y for x, y in zip(target_pos, sensor_2_offset)],
+                                             timestamp=time,  # + timedelta(seconds=0.5),
+                                             measurement_model=measurement_model,
+                                             metadata={'Origin': 2,
+                                                       'id': (idx*2)+1,
+                                                       'time_at_tracker': time + timedelta(seconds=time_delay)}))
 
 
 all_detections = [*sensor_1_detections, *sensor_2_detections]
 
 
-motion_model_noise = 0.01
+motion_model_noise = 0.001
 target_transition_model = CombinedLinearGaussianTransitionModel(
     (ConstantVelocity(motion_model_noise), ConstantVelocity(motion_model_noise),
      ConstantVelocity(motion_model_noise)))
-ground_truth_prior=GaussianState(state_vector=[1,0,0,1,0,0],timestamp=start_time,covar=np.diag([5]*6))
+ground_truth_prior=GaussianState(state_vector=[0,0,0,0,0,0],timestamp=start_time,covar=np.diag([1]*6))
 
 from stonesoup.plotter import Plotter
 plotter = Plotter()
@@ -176,34 +188,31 @@ tracker2 = FastForwardOldTracker(base_tracker=standard_tracker, time_cut_off=tim
 for time, track in tracker2:
     tracker_show = tracker2.base_tracker
     time_label = "time=" + str((time-start_time).total_seconds()) + "s"
-    if False:  # len(tracker_show.tracks) > 0:
+    if len(tracker_show.tracks) > 0 and False:
         plotter.plot_tracks(tracker_show.tracks, [0, 2], uncertainty=False, track_label="New Track at "+time_label)
         plotter.fig
 
         plt.show(block=False)
         plt.pause(0.2)
 
-
     tracker_show = tracker2.delayed_tracker
-    if False:  # len(tracker_show.tracks) > 0:
+    if len(tracker_show.tracks) > 0 and False:
         plotter.plot_tracks(tracker_show.tracks, [0, 2], uncertainty=False, track_label="Delayed Track at "+time_label)
         plotter.fig
 
         plt.show(block=False)
         plt.pause(0.2)
 
-
     tracker_show = tracker2.base_tracker
-    if len(tracker_show.tracks) > 0:
+    if len(tracker_show.tracks) > 0 and True:
         plotter.plot_tracks(track, [0, 2], uncertainty=False, track_label="Current Track at "+time_label)
         plotter.fig
 
         plt.show(block=False)
-        plt.pause(1.2)
+        plt.pause(0.2)
 
 
-
-plotter.plot_tracks(tracker2.track_history, [0, 2], uncertainty=False)
+plotter.plot_tracks(tracker2.tracks_history, [0, 2], uncertainty=False, track_label="Track History")
 plotter.fig
 
 plt.draw()

@@ -51,7 +51,7 @@ class FastForwardOldTracker(Tracker, TrackWriter):
         self.last_detection_time_allowed = self.latest_detection_time - self.time_cut_off
         self.tracker=self.base_tracker
         self.iter_detector = iter(self.detector)
-        self.track_history = Track()
+        self.tracks_history = set()
 
         if self.debug_tracker:
             from collections import OrderedDict
@@ -107,11 +107,30 @@ class FastForwardOldTracker(Tracker, TrackWriter):
             if self.update_tracker:
                 self.latest_detection_time = time
 
+        self.record_history(track_output)
+
         return track_output
 
     @property
     def tracks(self):
-        return self.base_tracker.tracks
+        # return self.base_tracker.tracks
+        return self.tracks_history
+
+    def record_history(self, track_output):
+        time, tracks = track_output
+        # self.tracks_history |= tracks
+
+        if tracks == set():  # If empty, don't do anything
+            return
+
+        if len(tracks) > 1 or len(self.tracks_history) > 1:
+            raise NotImplementedError("Current track recording is only valid for a single target")
+
+        if self.tracks_history == set():
+            self.tracks_history = copy.deepcopy(tracks)
+        track_history = next(iter(self.tracks_history))
+        current_track = next(iter(tracks))
+        track_history.append(current_track.state)
 
     def no_more_detections(self):
         blank_detections = [(self.latest_detection_time, set())]
