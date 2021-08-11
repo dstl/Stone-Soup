@@ -13,60 +13,55 @@ from stonesoup.types.track import Track
 
 import itertools
 import operator
+from typing import Tuple, Set, List, Iterable
 
 
 class FastForwardOldTracker(Tracker, TrackWriter):
 
-    base_tracker: Tracker = Property(doc="The delayed tracker will run 'time_cut_off' seconds behind the main tracker")
-    tracker: Tracker = Property(default=None)
+    tracker: Tracker = Property(doc="The 'current' tracker. This runs at the most up to date time")
 
     time_cut_off: timedelta = Property(
         default=timedelta(seconds=10),
         doc="Do not use detections after this time_cut_off")
 
-    detector: DetectionReader = Property(default=None, doc="Detector used to generate detection objects.")
-    delayed_tracker: Tracker = Property(default=None, doc="The delayed tracker will run 'time_cut_off' seconds behind "
-                                                          "the main tracker")
+    detector: DetectionReader = Property(
+        doc="This detector is used to provide detections to the tracker. It is not set, as it is "
+            "taken from the 'tracker'.", default=None)
+    delayed_tracker: Tracker = Property(default=None,
+                                        doc="The delayed tracker will run 'time_cut_off' seconds "
+                                            "behind the main tracker")
 
-    detection_buffer: list = Property(default=None, doc="Todo")
+    detection_buffer: list = Property(default=None, doc="This stores")
 
     latest_detection_time: datetime = Property(default=datetime.utcfromtimestamp(0),
                                                doc="The time of the most recent detection that entered the tracker")
     last_detection_time_allowed: datetime = Property(default=None, doc="The last time of detection that can be used")
 
-    update_tracker: bool = Property(default=True, doc="Should the tracker be updated with empty detections")
-
-    debug_tracker: bool = Property(default=False, doc="Should the tracker record detections that have passed through the tracker")
+    track_history: set = Property(default=None,
+                                  doc="The historic output of the tracker is recorded here. The "
+                                      "Track in self.tracker shows an edited history based off of"
+                                      "newer detections than it had at the time. This records the "
+                                      "output to measure the performance of the tracker")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.detector = self.base_tracker.detector
-        self.base_tracker.detector = CustomDetectionFeeder()
-        self.base_tracker.detector_iter = iter(self.base_tracker.detector)
+        self.detector = self.tracker.detector
+        self.tracker.detector = CustomDetectionFeeder()
+        self.tracker.detector_iter = iter(self.tracker.detector)
 
-        self.delayed_tracker = copy.deepcopy(self.base_tracker)
+        self.delayed_tracker = copy.deepcopy(self.tracker)
         self.detection_buffer = []
 
         self.last_detection_time_allowed = self.latest_detection_time - self.time_cut_off
-        self.tracker=self.base_tracker
         self.iter_detector = iter(self.detector)
         self.tracks_history = set()
-
-        if self.debug_tracker:
-            from collections import OrderedDict
-            self.events = []
 
     def __next__(self):
         self.detection_buffer, old_detections = self.remove_older_detections(
             self.detection_buffer, self.last_detection_time_allowed)
         if len(old_detections) > 0:
-
-            if self.debug_tracker:
-                print("Add Detection to Delayed Tracker:")
-                self.events.append((['Old detections added to delayed tracker'], copy.copy(old_detections)))
-            self.add_detections_to_tracker(old_detections, self.delayed_tracker)
-
+            self.pass_old_detections_to_delayed_tracker(old_detections)
 
         time, a_detection_set = next(self.iter_detector)
 
@@ -83,40 +78,47 @@ class FastForwardOldTracker(Tracker, TrackWriter):
 
             if all(self.latest_detection_time <= a_detection.timestamp for a_detection in new_detections):
                 # All the detections are new
+                track_output = self.pass_new_detections_to_current_tracker(new_detections)
 
-                if self.debug_tracker:
-                    print("Adding New Detections to Tracker:")
-                    self.events.append((['New Detections added to new tracker'], copy.copy(new_detections)))
-
-                track_output = self.add_detections_to_tracker(new_detections, self.base_tracker)
             else:
                 # Some of the detections are old
-
-                if self.debug_tracker:
-                    print("Updating old tracker with buffer:")
-                    self.events.append((['Old tracker copied to new tracker. Detection buffer added to new (was old) tracker'],copy.copy(self.detection_buffer)))
-                self.base_tracker = copy.deepcopy(self.delayed_tracker)
-                track_output = self.add_detections_to_tracker(self.detection_buffer, self.base_tracker)
-
-            self.update_timestamps()
-            # self.latest_detection_time, _ = track_output
+                self.tracker = copy.deepcopy(self.delayed_tracker)
+                track_output = self.pass_all_detections_to_delayed_tracker()
 
         else:
-            track_output = self.no_more_detections()
+            track_output = self.no_more_detections(time)
 
-            if self.update_tracker:
-                self.latest_detection_time = time
-
+        self.update_timestamps(time)
         self.record_history(track_output)
 
         return track_output
 
+    def pass_old_detections_to_delayed_tracker(self, old_detections: List[Detection]):
+        self.add_detections_to_tracker(old_detections, self.delayed_tracker)
+
+    def pass_new_detections_to_current_tracker(self, new_detections: List[Detection])\
+            -> Tuple[datetime, Set[Track]]:
+
+        track_output = self.add_detections_to_tracker(new_detections, self.tracker)
+        return track_output
+
+    def pass_all_detections_to_delayed_tracker(self) -> Tuple[datetime, Set[Track]]:
+        track_output = self.add_detections_to_tracker(self.detection_buffer, self.tracker)
+        return track_output
+
     @property
     def tracks(self):
-        # return self.base_tracker.tracks
+        # return self.tracker.tracks
         return self.tracks_history
 
-    def record_history(self, track_output):
+    def record_history(self, track_output: Tuple[datetime, Set[Track]]):
+        """
+        This records the state of the tracks at each timestep in self.tracks_history
+        **This function is only implemented for a single target. ** It will raise
+        'NotImplementedError' if there is more than one track produced by the tracker
+
+        :param track_output: Current state of the tracker
+        """
         time, tracks = track_output
         # self.tracks_history |= tracks
 
@@ -132,17 +134,18 @@ class FastForwardOldTracker(Tracker, TrackWriter):
         current_track = next(iter(tracks))
         track_history.append(current_track.state)
 
-    def no_more_detections(self):
-        blank_detections = [(self.latest_detection_time, set())]
-        self.base_tracker.detector.detections = blank_detections
-        track_output = next(self.base_tracker)
+    def no_more_detections(self, time: datetime) -> Tuple[datetime, Set[Track]]:
+        blank_detections = [(time, set())]
+        self.tracker.detector.available_detections = blank_detections
+        track_output = next(self.tracker)
         return track_output
 
-    def update_timestamps(self):
-        self.latest_detection_time = max(track.state.timestamp for track in self.base_tracker.tracks)
+    def update_timestamps(self, time: datetime):
+        #self.latest_detection_time = max(track.state.timestamp for track in self.tracker.tracks)
+        self.latest_detection_time = time
         self.last_detection_time_allowed = self.latest_detection_time - self.time_cut_off
 
-    def get_detections(self):
+    def get_detections(self) -> List[Detection]:
         new_detections = []
         iter_detector = iter(self.detector)
         time, a_detection_set = next(iter_detector)
@@ -181,7 +184,8 @@ class FastForwardOldTracker(Tracker, TrackWriter):
         return track
 
     @staticmethod
-    def add_detections_to_tracker(detections, tracker):
+    def add_detections_to_tracker(detections: List[Detection],
+                                  tracker: Tracker) -> Tuple[datetime, Set[Track]]:
         if len(detections) > 0:
             get_attr = operator.attrgetter('timestamp')
             grouped_detections = [list(g) for k, g in itertools.groupby(sorted(detections, key=get_attr), get_attr)]
@@ -197,7 +201,8 @@ class FastForwardOldTracker(Tracker, TrackWriter):
         return track_output
 
     @staticmethod
-    def remove_older_detections(list_of_detections, time_limit):
+    def remove_older_detections(list_of_detections: List[Detection], time_limit: datetime)\
+            -> Tuple[List[Detection], List[Detection]]:
         old_detections = []
         for a_detection in list_of_detections:
             if a_detection.timestamp < time_limit:
@@ -205,6 +210,43 @@ class FastForwardOldTracker(Tracker, TrackWriter):
                 list_of_detections.remove(a_detection)
 
         return list_of_detections, old_detections
+
+
+class FastForwardOldTrackerDebugged(FastForwardOldTracker):
+    debug_tracker: bool = Property(default=True,
+                                   doc="Should the tracker record detections that have passed through the tracker")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.debug_tracker:
+            from collections import OrderedDict
+            self.events = []
+
+    def pass_old_detections_to_delayed_tracker(self, old_detections: List[Detection]):
+        if self.debug_tracker:
+            print("Add Detection to Delayed Tracker:")
+            self.events.append(
+                (['Old detections added to delayed tracker'], copy.copy(old_detections)))
+        super().add_detections_to_tracker(old_detections, self.delayed_tracker)
+
+    def pass_new_detections_to_current_tracker(self, new_detections: List[Detection]) \
+            -> Tuple[datetime, Set[Track]]:
+
+        if self.debug_tracker:
+            print("Adding New Detections to Tracker:")
+            self.events.append((['New Detections added to new tracker'], copy.copy(new_detections)))
+
+        return super().add_detections_to_tracker(new_detections, self.tracker)
+
+    def pass_all_detections_to_delayed_tracker(self) -> Tuple[datetime, Set[Track]]:
+        if self.debug_tracker:
+            print("Updating old tracker with buffer:")
+            self.events.append(([
+                                    'Old tracker copied to new tracker. Detection buffer added to new (was old) tracker'],
+                                copy.copy(self.detection_buffer)))
+
+        return super().add_detections_to_tracker(self.detection_buffer, self.tracker)
 
 """
 from stonesoup.base import Base

@@ -186,7 +186,7 @@ tracker2 = FastForwardOldTracker(base_tracker=standard_tracker, time_cut_off=tim
 #plt.ion()
 
 for time, track in tracker2:
-    tracker_show = tracker2.base_tracker
+    tracker_show = tracker2.tracker
     time_label = "time=" + str((time-start_time).total_seconds()) + "s"
     if len(tracker_show.tracks) > 0 and False:
         plotter.plot_tracks(tracker_show.tracks, [0, 2], uncertainty=False, track_label="New Track at "+time_label)
@@ -203,7 +203,7 @@ for time, track in tracker2:
         plt.show(block=False)
         plt.pause(0.2)
 
-    tracker_show = tracker2.base_tracker
+    tracker_show = tracker2.tracker
     if len(tracker_show.tracks) > 0 and True:
         plotter.plot_tracks(track, [0, 2], uncertainty=False, track_label="Current Track at "+time_label)
         plotter.fig

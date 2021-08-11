@@ -66,7 +66,6 @@ class SingleTargetTracker(Tracker):
                 self._track.append(
                     associations[self._track].prediction)
 
-
         if self._track is None or self.deleter.delete_tracks(self.tracks):
             new_tracks = self.initiator.initiate(detections, time)
             if new_tracks:
