@@ -407,7 +407,7 @@ class MultiTransitionMovable(MovingMovable):
             return
 
         temp_state = self.state
-        while time_interval != 0:
+        while time_interval.total_seconds() != 0:
             if time_interval >= self.current_interval:
                 temp_state = State(
                     state_vector=self.transition_model.function(
@@ -431,7 +431,7 @@ class MultiTransitionMovable(MovingMovable):
                     timestamp=timestamp
                 )
                 self.current_interval -= time_interval
-                time_interval = 0
+                break
         self.states.append(temp_state)
 
 
