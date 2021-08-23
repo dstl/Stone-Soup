@@ -316,10 +316,11 @@ reducer = GaussianMixtureReducer(
 # %%
 # Now we initialize the Gaussian mixture at time k=0. In this implementation, the GM-PHD
 # tracker knows the start state of the first 3 tracks that were created. After that it
-# must pick up on new tracks and discard old ones.
+# must pick up on new tracks and discard old ones. It is not necessary to provide the 
+# tracker with these start states, you can simply define the `tracks` as an empty set.
 #
 # Feel free to change the `state_vector` from the actual truth state vector to something
-# else. This would mimic if the tracker did not know where the objects were originating.
+# else. This would mimic if the tracker was unsure about where the objects were originating.
 from stonesoup.types.state import TaggedWeightedGaussianState
 from stonesoup.types.track import Track
 from stonesoup.types.array import CovarianceMatrix
