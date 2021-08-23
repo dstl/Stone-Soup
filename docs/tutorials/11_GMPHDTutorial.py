@@ -30,8 +30,7 @@
 
 
 # %%
-# First we will recall some of the formulas that will be used in this filter. The
-# notation used in this tutorial follows the same form as seen in [1]_.
+# First we will recall some of the formulas that will be used in this filter.
 #
 # Transition Density: Given a state :math:`p(\mathbf{x}_{k-1})` at time :math:`k-1`, the probability density of
 # a transition to the state :math:`p(\mathbf{x}_k)` at time :math:`k` is given by
@@ -85,12 +84,12 @@
 #
 # Posterior Propagation Formula
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Under the above assumptions, Vo and Ma [1]_ proved that the posterior intensity can be
+# Under the above assumptions, Vo and Ma [#]_ proved that the posterior intensity can be
 # propagated in time using the PHD recursion as follows:
 # :math:`\eqalignno{v _{ k\vert k-1} (x) =&\, \int p_{S,k}(\zeta)f_{k\vert k-1} (x\vert \zeta)v_{k-1}(\zeta)d\zeta\cr & +\int \beta_{k\vert k-1} (x\vert \zeta)v_{k-1}(\zeta)d\zeta+\gamma _{k}(x) & \cr v_{k} (x) =&\, \left[ 1-p_{D,k}(x)\right]v_{k\vert k-1}(x)\cr & +\!\!\sum\limits _{z\in Z_{k}} \!{{ p_{D,k}(x)g_{k}(z\vert x)}v_{k\vert k-1}(x) \over { \kappa _{k}(z)\!+\!\int p_{D,k}(\xi)g_{k}(z\vert \xi)v_{k\vert k-1}(\xi)}} . \cr &&}`
 #
 # For more information about the specific formulas for linear and non-linear Gaussian models,
-# please see Vo and Ma's full paper [1]_.
+# please see Vo and Ma's full paper.
 
 # %%
 # A Ground-Based Multi-Target Simulation
@@ -346,9 +345,10 @@ reduced_states = set([track[-1] for track in tracks])
 # component to the Gaussian mixture at every time step. The birth component's mean and 
 # covariance must create a distribution that covers the entire state space, and its weight 
 # must be equal to the expected number of births per timestep. For more information about 
-# the birth component, see the Introduction in [2]_ and the algorithm provided in [3]_. 
-# If the state space is very large, it becomes inefficient to hold a component that covers 
-# it. Alternative implementations are discussed in [2]_.
+# the birth component, see the algorithm provided in [#]_. If the state space is very 
+# large, it becomes inefficient to hold a component that covers it. Alternative 
+# implementations (as well as more dicussion about the birth component) are discussed in 
+# [#]_.
 birth_covar = CovarianceMatrix(np.diag([1000, 2, 1000, 2]))
 birth_component = TaggedWeightedGaussianState(
     state_vector=[0, 0, 0, 0],
@@ -623,8 +623,15 @@ anim
 # %%
 # References
 # ----------
-# .. [1] B. Vo and W. Ma, "The Gaussian Mixture Probability Hypothesis Density Filter," in IEEE Transactions on Signal Processing, vol. 54, no. 11, pp. 4091-4104, Nov. 2006, doi: 10.1109/TSP.2006.881190.
+# .. [#] B. Vo and W. Ma, "The Gaussian Mixture Probability Hypothesis Density Filter," in IEEE 
+#        Transactions on Signal Processing, vol. 54, no. 11, pp. 4091-4104, Nov. 2006, doi: 
+#        10.1109/TSP.2006.881190
+# 
+# .. [#] D. E. Clark, K. Panta and B. Vo, "The GM-PHD Filter Multiple Target Tracker," 2006 9th 
+#        International Conference on Information Fusion, 2006, pp. 1-8, doi: 10.1109/ICIF.2006.301809
+# 
+# .. [#] B. Ristic, D. Clark, B. Vo and B. Vo, "Adaptive Target Birth Intensity for PHD and CPHD 
+#        Filters," in IEEE Transactions on Aerospace and Electronic Systems, vol. 48, no. 2, pp. 
+#        1656-1668, Apr 2012, doi: 10.1109/TAES.2012.6178085
 
-# .. [2] B. Ristic, D. Clark, B. Vo and B. Vo, "Adaptive Target Birth Intensity for PHD and CPHD Filters," in IEEE Transactions on Aerospace and Electronic Systems, vol. 48, no. 2, pp. 1656-1668, Apr 2012, doi: 10.1109/TAES.2012.6178085.
 
-# .. [3] D. E. Clark, K. Panta and B. Vo, "The GM-PHD Filter Multiple Target Tracker," 2006 9th International Conference on Information Fusion, 2006, pp. 1-8, doi: 10.1109/ICIF.2006.301809.
