@@ -469,8 +469,9 @@ for measurement_set in all_measurements:
             y_max = max([measurement.state_vector[1], y_max])
 
 # %%
-# Now we can use the :class:`~.Plotter` class to draw the tracks. Notice the uncertainty 
-# ellipses of the birth component centered around $(0, 0)$.
+# Now we can use the :class:`~.Plotter` class to draw the tracks. Note that if the birth
+# component it plotted you will see its uncertainty ellipse centered around :math:`(0, 0)`.
+# This ellipse need not cover the entire state space, as long as the distribution does.
 
 # Plot the tracks
 plotter = Plotter()
