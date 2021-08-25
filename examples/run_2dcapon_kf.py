@@ -49,8 +49,8 @@ updater = KalmanUpdater(measurement_model)
 
 prior = GaussianState([[0.5], [0], [0.5], [0]], np.diag([1, 0, 1, 0]), timestamp=datetime.now())
 
-detector1 = beamformers_2d.capon(data_file)
-detector2 = beamformers_2d.rjmcmc(data_file)
+detector1 = beamformers_2d.capon(data_file, sensor_loc="0 0 0; 0 10 0; 0 20 0; 10 0 0; 10 10 0; 10 20 0; 20 0 0; 20 10 0; 20 20 0", fs=2000, omega=50, wave_speed=1481)
+detector2 = beamformers_2d.rjmcmc(data_file, sensor_loc="0 0 0; 0 10 0; 0 20 0; 10 0 0; 10 10 0; 10 20 0; 20 0 0; 20 10 0; 20 20 0", fs=2000, omega=50, wave_speed=1481)
 
 track1 = Track()
 track2 = Track()

@@ -141,54 +141,13 @@ def noise_proposal(noise):
     return p_noise
 
 
-def log_prob(p_noise, p_params, p_K, omega, d, y, T, sinTy, cosTy, yTy, alpha, sumsinsq, sumcossq,
-             sumsincos, N, Lambda):
-    DTy = np.zeros(p_K)
-    DTD = np.zeros((p_K, p_K))
-    sinalpha = np.zeros((p_K, 9))
-    cosalpha = np.zeros((p_K, 9))
-
-    for k in range(0, p_K):
-        alpha[0] = 0
-        alpha[1] = 2*math.pi*omega*d*math.sin(p_params[k, 1])*math.sin(p_params[k, 0])/1481
-        alpha[2] = 2*alpha[1]
-        alpha[3] = 2*math.pi*omega*d*math.cos(p_params[k, 1])*math.sin(p_params[k, 0])/1481
-        alpha[4] = alpha[1] + alpha[3]
-        alpha[5] = alpha[2] + alpha[3]
-        alpha[6] = 2*alpha[3]
-        alpha[7] = alpha[1] + alpha[6]
-        alpha[8] = alpha[2] + alpha[6]
-        # phase offset is always 0 for first term => only need to consider cos(alpha)sinTy term
-        for sensor_ind in range(0, 9):
-            DTy[k] = DTy[k] + math.cos(alpha[sensor_ind])*sinTy[sensor_ind] + math.sin(alpha[sensor_ind])*cosTy[sensor_ind]
-            sinalpha[k, sensor_ind] = math.sin(alpha[sensor_ind])
-            cosalpha[k, sensor_ind] = math.cos(alpha[sensor_ind])
-
-    for k1 in range(0, p_K):
-        DTD[k1, k1] = N/2
-
-    if (p_K > 1):
-        for sensor_ind in range(0, 9):
-            for k1 in range(0, p_K):
-                for k2 in range(k1+1, p_K):
-                    DTD[k1, k2] = DTD[k1, k2]
-                    + cosalpha[k1, sensor_ind]*cosalpha[k2, sensor_ind]*sumsinsq
-                    + (cosalpha[k1, sensor_ind]*sinalpha[k2, sensor_ind]
-                       + cosalpha[k2, sensor_ind]*sinalpha[k1, sensor_ind])*sumsincos
-                    + sinalpha[k1, sensor_ind]*sinalpha[k2, sensor_ind]*sumcossq
-                    DTD[k2, k1] = DTD[k1, k2]
-
-    Dterm = np.matmul(np.linalg.solve(1001*DTD, DTy), np.transpose(DTy))
-    log_posterior = -(p_K*np.log(1.001)/2)-(N/2)*np.log((yTy-Dterm)/2)+p_K*np.log(Lambda)
-    -np.log(np.math.factorial(p_K))-p_K*np.log(math.pi*math.pi)
-    # note: math.pi*math.pi comes from area of parameter space in one dimension (i.e. range of
-    # azimuth * range of elevation)
-
-    return log_posterior
-
-
 class capon(Base, BufferedGenerator):
     csv_path: str = Property(doc='The path to the csv file, containing the raw data')
+    fs: float = Property(doc='Sampling frequency (Hz)')
+    sensor_loc: str = Property(doc='Cartesian coordinates of the sensors in the format\
+                               "X1 Y1 Z1; X2 Y2 Z2;...."')
+    omega: float = Property(doc='Signal frequency (Hz)')
+    wave_speed: float = Property(doc='Speed of wave in the medium')
 
     @BufferedGenerator.generator_method
     def detections_gen(self):
@@ -199,17 +158,14 @@ class capon(Base, BufferedGenerator):
 
         L = len(y)
 
-        # frequency of sinusoidal signal
-        omega = 50
-
-        window = 20000
+        window = 1000  # size of sliding window in samples
         windowm1 = window-1
 
         thetavals = np.linspace(0, 2*math.pi, num=400)
         phivals = np.linspace(0, math.pi/2, num=100)
 
         # spatial locations of hydrophones
-        z = np.matrix('0 0 0; 0 10 0; 0 20 0; 10 0 0; 10 10 0; 10 20 0; 20 0 0; 20 10 0; 20 20 0')
+        z = np.matrix(self.sensor_loc)
 
         N = 9  # No. of hydrophones
 
@@ -223,7 +179,7 @@ class capon(Base, BufferedGenerator):
 
         winstarts = np.linspace(0, L-window, num=int(L/window), dtype=int)
 
-        c = 1481/(2*omega*math.pi)
+        c = self.wave_speed/(2*self.omega*math.pi)
 
         for t in winstarts:
             # calculate covariance estimate
@@ -254,7 +210,7 @@ class capon(Base, BufferedGenerator):
             covar = CovarianceMatrix(np.array([[1, 0], [0, 1]]))
             measurement_model = LinearGaussian(ndim_state=4, mapping=[0, 2],
                                                noise_covar=covar)
-            current_time = current_time + timedelta(milliseconds=window)
+            current_time = current_time + timedelta(milliseconds=1000*window/self.fs)
             detection = Detection(state_vector, timestamp=current_time,
                                   measurement_model=measurement_model)
             detections = set([detection])
@@ -268,6 +224,11 @@ class capon(Base, BufferedGenerator):
 
 class rjmcmc(Base, BufferedGenerator):
     csv_path: str = Property(doc='The path to the csv file, containing the raw data')
+    fs: float = Property(doc='Sampling frequency (Hz)')
+    omega: float = Property(doc='Signal frequency (Hz)')
+    sensor_loc: str = Property(doc='Cartesian coordinates of the sensors in the format\
+                               "X1 Y1 Z1; X2 Y2 Z2;...."')
+    wave_speed: float = Property(doc='Speed of wave in the medium')
 
     @BufferedGenerator.generator_method
     def detections_gen(self):
@@ -275,18 +236,19 @@ class rjmcmc(Base, BufferedGenerator):
         current_time = datetime.now()
 
         num_samps = 100000  # number of MCMC samples
-        d = 10  # spacing between hydrophones (m)
         omega = 50  # signal frequency (Hz)
-        fs = 20000  # sampling frequency (Hz)
+        fs = self.fs  # sampling frequency (Hz)
         Lambda = 1  # expected number of targets
 
-        window = 20000
+        window = 1000  # size of sliding window in samples
 
         y = np.loadtxt(self.csv_path, delimiter=',')
 
         L = len(y)
 
-        N = 9*window
+        self.num_sensors = int(np.matrix(self.sensor_loc).size/3)
+
+        N = self.num_sensors*window
 
         max_targets = 5
 
@@ -309,14 +271,12 @@ class rjmcmc(Base, BufferedGenerator):
             [params, K] = proposal([], 0, p_params)
 
             # calculate sinTy and cosTy
-            sinTy = np.zeros([9])
-            cosTy = np.zeros([9])
-
-            alpha = np.zeros([9])
+            sinTy = np.zeros([self.num_sensors])
+            cosTy = np.zeros([self.num_sensors])
 
             yTy = 0
 
-            for k in range(0, 9):
+            for k in range(0, self.num_sensors):
                 for t in range(0, window):
                     sinTy[k] = sinTy[k] + math.sin(2*math.pi*t*omega/fs)*y[t+win, k]
                     cosTy[k] = cosTy[k] + math.cos(2*math.pi*t*omega/fs)*y[t+win, k]
@@ -332,16 +292,16 @@ class rjmcmc(Base, BufferedGenerator):
                 sumsincos = sumsincos
                 + math.sin(2*math.pi*t*omega/fs)*math.cos(2*math.pi*t*omega/fs)
             sumsincos = 0
-            old_logp = log_prob(noise, params, K, omega, d, y, window, sinTy, cosTy, yTy, alpha,
-                                sumsinsq, sumcossq, sumsincos, N, Lambda)
+            old_logp = self.log_prob(noise, params, K, omega, y, window, sinTy, cosTy, yTy,
+                                     sumsinsq, sumcossq, sumsincos, N, Lambda)
             n = 0
 
             while n < num_samps:
                 p_noise = noise_proposal(noise)
                 [p_params, p_K, Qratio] = proposal_func(params, K, p_params, max_targets)
                 if p_K != 0:
-                    new_logp = log_prob(p_noise, p_params, p_K, omega, d, y, window, sinTy, cosTy,
-                                        yTy, alpha, sumsinsq, sumcossq, sumsincos, N, Lambda)
+                    new_logp = self.log_prob(p_noise, p_params, p_K, omega, y, window, sinTy,
+                                             cosTy, yTy, sumsinsq, sumcossq, sumsincos, N, Lambda)
                     logA = new_logp - old_logp + np.log(Qratio)
 
                     # do a Metropolis-Hastings step
@@ -463,7 +423,7 @@ class rjmcmc(Base, BufferedGenerator):
             covar = CovarianceMatrix(np.array([[1, 0], [0, 1]]))
             measurement_model = LinearGaussian(ndim_state=4, mapping=[0, 2],
                                                noise_covar=covar)
-            current_time = current_time + timedelta(milliseconds=window)
+            current_time = current_time + timedelta(milliseconds=1000*window/self.fs)
             detection = Detection(state_vector, timestamp=current_time,
                                   measurement_model=measurement_model)
             detections = set([detection])
@@ -473,3 +433,50 @@ class rjmcmc(Base, BufferedGenerator):
         # For every timestep
         for scan in scans:
             yield scan[0], scan[1]
+
+    def log_prob(self, p_noise, p_params, p_K, omega, y, T, sinTy, cosTy, yTy, sumsinsq, sumcossq,
+                 sumsincos, N, Lambda):
+        DTy = np.zeros(p_K)
+        DTD = np.zeros((p_K, p_K))
+        sinalpha = np.zeros((p_K, self.num_sensors))
+        cosalpha = np.zeros((p_K, self.num_sensors))
+
+        # spatial locations of hydrophones
+        sensor_pos = np.matrix(self.sensor_loc)
+
+        for k in range(0, p_K):
+            # calculate phase offsets relative to first sensor in the array
+            for sensor_ind in range(0, self.num_sensors):
+                alpha = 2*math.pi*omega*((sensor_pos[sensor_ind, 1]
+                                          - sensor_pos[0, 1]) * math.sin(p_params[k, 1])
+                                         * math.sin(p_params[k, 0])
+                                         + (sensor_pos[sensor_ind, 0]-sensor_pos[0, 0])
+                                         * math.cos(p_params[k, 1]) * math.sin(p_params[k, 0])
+                                         + (sensor_pos[sensor_ind, 2] - sensor_pos[0, 2])
+                                         * math.sin(p_params[k, 0])) / self.wave_speed
+                DTy[k] = DTy[k] + math.cos(alpha) * sinTy[sensor_ind] \
+                    + math.sin(alpha) * cosTy[sensor_ind]
+                sinalpha[k, sensor_ind] = math.sin(alpha)
+                cosalpha[k, sensor_ind] = math.cos(alpha)
+
+        for k1 in range(0, p_K):
+            DTD[k1, k1] = N/2
+
+        if (p_K > 1):
+            for sensor_ind in range(0, 9):
+                for k1 in range(0, p_K):
+                    for k2 in range(k1+1, p_K):
+                        DTD[k1, k2] = DTD[k1, k2] \
+                            + cosalpha[k1, sensor_ind] * cosalpha[k2, sensor_ind] * sumsinsq \
+                            + (cosalpha[k1, sensor_ind] * sinalpha[k2, sensor_ind]
+                               + cosalpha[k2, sensor_ind] * sinalpha[k1, sensor_ind]) * sumsincos \
+                            + sinalpha[k1, sensor_ind]*sinalpha[k2, sensor_ind] * sumcossq
+                        DTD[k2, k1] = DTD[k1, k2]
+
+        Dterm = np.matmul(np.linalg.solve(1001*DTD, DTy), np.transpose(DTy))
+        log_posterior = - (p_K * np.log(1.001) / 2) - (N / 2) * np.log((yTy - Dterm) / 2) \
+            + p_K * np.log(Lambda) - np.log(np.math.factorial(p_K)) - p_K*np.log(math.pi * math.pi)
+        # note: math.pi*math.pi comes from area of parameter space in one dimension (i.e. range of
+        # azimuth * range of elevation)
+
+        return log_posterior
