@@ -18,3 +18,8 @@ Passive
 -------
 .. automodule:: stonesoup.sensor.passive
     :show-inheritance:
+
+Actionable
+----------
+.. automodule:: stonesoup.sensor.actionable
+    :show-inheritance:

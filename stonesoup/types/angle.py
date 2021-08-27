@@ -25,6 +25,9 @@ class Angle(Real):
     def __init__(self, value):
         self._value = float64(self.mod_angle(value))
 
+    def __hash__(self):
+        return hash(self._value)
+
     def __add__(self, other):
         out = self._value + other
         return self.__class__(self.mod_angle(out))

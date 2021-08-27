@@ -14,6 +14,10 @@ import numpy as np
 
 
 class DummySensor(Sensor):
+    @property
+    def measurement_model(self):
+        raise NotImplementedError
+
     def measure(self, **kwargs):
         pass
 
