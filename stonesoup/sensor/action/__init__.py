@@ -63,3 +63,21 @@ class ActionGenerator(Base):
     def default_action(self):
         """The default action to modify the property if there is no given action."""
         raise NotImplementedError()
+
+
+class RealNumberActionGenerator(ActionGenerator):
+
+    @property
+    @abstractmethod
+    def initial_value(self):
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def min(self):
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def max(self):
+        raise NotImplementedError

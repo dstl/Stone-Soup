@@ -4,7 +4,7 @@ from typing import Iterator
 from copy import copy
 import numpy as np
 
-from . import Action, ActionGenerator
+from . import Action, RealNumberActionGenerator
 from ...base import Property
 from ...functions import mod_bearing
 from ...types.angle import Angle
@@ -44,7 +44,7 @@ class ChangeDwellAction(Action):
         return dwell_centre
 
 
-class DwellActionsGenerator(ActionGenerator):
+class DwellActionsGenerator(RealNumberActionGenerator):
     owner: object = Property(doc="Object with `timestamp`, `rpm` (revolutions per minute) and "
                                  "dwell-centre attributes")
     attribute: str = Property()
@@ -67,7 +67,7 @@ class DwellActionsGenerator(ActionGenerator):
             self.resolution = resolution
 
     @property
-    def initial_bearing(self):
+    def initial_value(self):
         return self.current_value[0, 0]
 
     @property
@@ -87,14 +87,14 @@ class DwellActionsGenerator(ActionGenerator):
         if self.angle_delta >= np.pi:
             return Angle(-np.pi)
         else:
-            return Angle(self.initial_bearing - self.angle_delta)
+            return Angle(self.initial_value - self.angle_delta)
 
     @property
     def max(self):
         if self.angle_delta >= np.pi:
             return Angle(np.pi)
         else:
-            return Angle(self.initial_bearing + self.angle_delta)
+            return Angle(self.initial_value + self.angle_delta)
 
     def __contains__(self, item):
 
@@ -111,19 +111,19 @@ class DwellActionsGenerator(ActionGenerator):
     def _get_end_time_direction(self, bearing):
         """Given a target bearing, should the dwell centre rotate so as to increase its angle
         value, or decrease? And how long until it reaches the target."""
-        if self.initial_bearing <= bearing:
-            if bearing - self.initial_bearing < self.initial_bearing + 2 * np.pi - bearing:
-                angle_delta = bearing - self.initial_bearing
+        if self.initial_value <= bearing:
+            if bearing - self.initial_value < self.initial_value + 2 * np.pi - bearing:
+                angle_delta = bearing - self.initial_value
                 increasing = True
             else:
-                angle_delta = self.initial_bearing + 2 * np.pi - bearing
+                angle_delta = self.initial_value + 2 * np.pi - bearing
                 increasing = False
         else:
-            if self.initial_bearing - bearing < bearing + 2 * np.pi - self.initial_bearing:
-                angle_delta = self.initial_bearing - bearing
+            if self.initial_value - bearing < bearing + 2 * np.pi - self.initial_value:
+                angle_delta = self.initial_value - bearing
                 increasing = False
             else:
-                angle_delta = bearing + 2 * np.pi - self.initial_bearing
+                angle_delta = bearing + 2 * np.pi - self.initial_value
                 increasing = True
 
         return (
