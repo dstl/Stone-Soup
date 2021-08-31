@@ -57,14 +57,14 @@ def test_jacobian2():
 
     def fun1d(ins):
         """ test function with vector input, scalar output"""
-        out = 2*ins.state_vector[0]+3*ins.state_vector[1]
-        return out
+        out = 2*ins.state_vector[0, :]+3*ins.state_vector[1, :]
+        return np.atleast_2d(out)
 
     def fun2d(vec):
         """ test function with 2d input and 2d output"""
-        out = np.empty((2, 1))
-        out[0] = 2*vec.state_vector[0]**2 + 3*vec.state_vector[1]**2
-        out[1] = 2*vec.state_vector[0]+3*vec.state_vector[1]
+        out = np.empty(vec.state_vector.shape)
+        out[0, :] = 2*vec.state_vector[0, :]**2 + 3*vec.state_vector[1, :]**2
+        out[1, :] = 2*vec.state_vector[0, :]+3*vec.state_vector[1, :]
         return out
 
     x = 3

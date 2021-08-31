@@ -97,18 +97,13 @@ def jacobian(fun, x):
     # TODO: Is this needed? If not, note special case at zero.
     delta[delta < 1e-8] = 1e-8
 
-    f1 = np.atleast_2d(fun(x))
-    nrows, _ = np.shape(f1)
-
     x2 = copy.copy(x)  # Create a clone of the input
-    F2 = np.empty((nrows, ndim))
-    X1 = np.tile(x.state_vector, ndim)+np.eye(ndim)*delta
+    x2.state_vector = np.tile(x.state_vector, ndim+1) + np.eye(ndim, ndim+1)*delta[:, np.newaxis]
+    x2.state_vector = x2.state_vector.view(StateVectors)
 
-    for col in range(0, X1.shape[1]):
-        x2.state_vector = X1[:, [col]]
-        F2[:, [col]] = fun(x2)
+    F = fun(x2)
 
-    jac = np.divide(F2-f1, delta)
+    jac = np.divide(F[:, :ndim] - F[:, -1:], delta)
     return jac.astype(np.float_)
 
 
