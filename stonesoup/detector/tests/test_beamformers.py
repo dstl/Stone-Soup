@@ -15,7 +15,7 @@ from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.types.track import Track
 
 
-def fixed_target_beamformer_test():
+def test_fixed_target_beamformer():
 
     data_file = path.join(path.dirname(__file__), "fixed_target_example.csv")
     truth = [0.8, 0.2]

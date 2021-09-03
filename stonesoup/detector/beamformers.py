@@ -230,7 +230,6 @@ class rjmcmc(Base, BufferedGenerator):
         current_time = datetime.now()
 
         num_samps = 100000  # number of MCMC samples
-        omega = 50  # signal frequency (Hz)
         fs = self.fs  # sampling frequency (Hz)
         Lambda = 1  # expected number of targets
 
@@ -272,8 +271,8 @@ class rjmcmc(Base, BufferedGenerator):
 
             for k in range(0, self.num_sensors):
                 for t in range(0, window):
-                    sinTy[k] = sinTy[k] + math.sin(2*math.pi*t*omega/fs)*y[t+win, k]
-                    cosTy[k] = cosTy[k] + math.cos(2*math.pi*t*omega/fs)*y[t+win, k]
+                    sinTy[k] = sinTy[k] + math.sin(2*math.pi*t*self.omega/fs)*y[t+win, k]
+                    cosTy[k] = cosTy[k] + math.cos(2*math.pi*t*self.omega/fs)*y[t+win, k]
                     yTy = yTy + y[t+win, k]*y[t+win, k]
 
             sumsinsq = 0
@@ -281,12 +280,14 @@ class rjmcmc(Base, BufferedGenerator):
             sumsincos = 0
 
             for t in range(0, window):
-                sumsinsq = sumsinsq + math.sin(2*math.pi*t*omega/fs)*math.sin(2*math.pi*t*omega/fs)
-                sumcossq = sumcossq + math.cos(2*math.pi*t*omega/fs)*math.cos(2*math.pi*t*omega/fs)
-                sumsincos = sumsincos
-                + math.sin(2*math.pi*t*omega/fs)*math.cos(2*math.pi*t*omega/fs)
+                sumsinsq = sumsinsq \
+                    + math.sin(2*math.pi*t*self.omega/fs)*math.sin(2*math.pi*t*self.omega/fs)
+                sumcossq = sumcossq \
+                    + math.cos(2*math.pi*t*self.omega/fs)*math.cos(2*math.pi*t*self.omega/fs)
+                sumsincos = sumsincos \
+                    + math.sin(2*math.pi*t*self.omega/fs)*math.cos(2*math.pi*t*self.omega/fs)
             sumsincos = 0
-            old_logp = self.log_prob(noise, params, K, omega, y, window, sinTy, cosTy, yTy,
+            old_logp = self.log_prob(noise, params, K, y, window, sinTy, cosTy, yTy,
                                      sumsinsq, sumcossq, sumsincos, N, Lambda)
             n = 0
 
@@ -294,7 +295,7 @@ class rjmcmc(Base, BufferedGenerator):
                 p_noise = noise_proposal(noise)
                 [p_params, p_K, Qratio] = proposal_func(params, K, p_params, max_targets)
                 if p_K != 0:
-                    new_logp = self.log_prob(p_noise, p_params, p_K, omega, y, window, sinTy,
+                    new_logp = self.log_prob(p_noise, p_params, p_K, y, window, sinTy,
                                              cosTy, yTy, sumsinsq, sumcossq, sumsincos, N, Lambda)
                     logA = new_logp - old_logp + np.log(Qratio)
 
@@ -327,7 +328,7 @@ class rjmcmc(Base, BufferedGenerator):
                                 if bin_ind[ind] == nbins-1:
                                     break
                         param_hist[K-1, bin_ind[0], bin_ind[1]] += 1
-                    order_hist[K-1] += 1
+                        order_hist[K-1] += 1
                     n += 1
 
             # look for peaks in histograms
@@ -428,7 +429,7 @@ class rjmcmc(Base, BufferedGenerator):
         for scan in scans:
             yield scan[0], scan[1]
 
-    def log_prob(self, p_noise, p_params, p_K, omega, y, T, sinTy, cosTy, yTy, sumsinsq, sumcossq,
+    def log_prob(self, p_noise, p_params, p_K, y, T, sinTy, cosTy, yTy, sumsinsq, sumcossq,
                  sumsincos, N, Lambda):
         DTy = np.zeros(p_K)
         DTD = np.zeros((p_K, p_K))
@@ -441,13 +442,14 @@ class rjmcmc(Base, BufferedGenerator):
         for k in range(0, p_K):
             # calculate phase offsets relative to first sensor in the array
             for sensor_ind in range(0, self.num_sensors):
-                alpha = 2*math.pi*omega*((sensor_pos[sensor_ind, 1]
-                                          - sensor_pos[0, 1]) * math.sin(p_params[k, 1])
-                                         * math.sin(p_params[k, 0])
-                                         + (sensor_pos[sensor_ind, 0]-sensor_pos[0, 0])
-                                         * math.cos(p_params[k, 1]) * math.sin(p_params[k, 0])
-                                         + (sensor_pos[sensor_ind, 2] - sensor_pos[0, 2])
-                                         * math.sin(p_params[k, 0])) / self.wave_speed
+                alpha = 2*math.pi*self.omega*((sensor_pos[sensor_ind, 1]
+                                               - sensor_pos[0, 1]) * math.sin(p_params[k, 1])
+                                              * math.sin(p_params[k, 0])
+                                              + (sensor_pos[sensor_ind, 0]-sensor_pos[0, 0])
+                                              * math.cos(p_params[k, 1])
+                                              * math.sin(p_params[k, 0])
+                                              + (sensor_pos[sensor_ind, 2] - sensor_pos[0, 2])
+                                              * math.sin(p_params[k, 0])) / self.wave_speed
                 DTy[k] = DTy[k] + math.cos(alpha) * sinTy[sensor_ind] \
                     + math.sin(alpha) * cosTy[sensor_ind]
                 sinalpha[k, sensor_ind] = math.sin(alpha)
