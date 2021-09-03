@@ -1,73 +1,147 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import random
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from ...base import Base
 from ...types.array import StateVector
-from ...types.state import State
+from ...types.state import GaussianState
 from ...types.track import Track
 from ...sensor.radar import RadarRotatingBearingRange
 from ...sensor.action.dwell_action import ChangeDwellAction
 from ...sensormanager import RandomSensorManager, BruteForceSensorManager
+from ...sensormanager.reward import UncertaintyRewardFunction
+from ...sensormanager.optimise import OptimizeBruteSensorManager
+from ...predictor.kalman import KalmanPredictor
+from ...updater.kalman import ExtendedKalmanUpdater
+from ...models.transition.linear import CombinedLinearGaussianTransitionModel, \
+                                    ConstantVelocity
 
 
 def test_random_choose_actions():
     time_start = datetime.now()
 
-    sensor = {RadarRotatingBearingRange(
-        position_mapping=(0, 2),
-        noise_covar=np.array([[np.radians(0.5) ** 2, 0],
-                              [0, 0.75 ** 2]]),
-        ndim_state=4,
-        rpm=60,
-        fov_angle=np.radians(30),
-        dwell_centre=StateVector([0.0]),
-        max_range=100,
-    )}
+    dwell_centres = []
+    for i in range(3):
+        sensors = {RadarRotatingBearingRange(
+            position_mapping=(0, 2),
+            noise_covar=np.array([[np.radians(0.5) ** 2, 0],
+                                  [0, 0.75 ** 2]]),
+            ndim_state=4,
+            rpm=60,
+            fov_angle=np.radians(30),
+            dwell_centre=StateVector([0.0]),
+            max_range=100,
+        )}
 
-    sensor_manager = RandomSensorManager(sensor)
+        for sensor in sensors:
+            sensor.timestamp = time_start
+        sensor_manager = RandomSensorManager(sensors)
 
-    chosen_action_configs = sensor_manager.choose_actions({}, time_start)
-    assert type(chosen_action_configs) == list
+        chosen_action_configs = sensor_manager.choose_actions({},
+                                                              time_start + timedelta(seconds=1))
 
-    for chosen_config in chosen_action_configs:
-        for sensor, action in chosen_config.items():
-            assert isinstance(sensor, RadarRotatingBearingRange)
-            assert isinstance(action[0], ChangeDwellAction)
+        assert type(chosen_action_configs) == list
+
+        for chosen_config in chosen_action_configs:
+            for sensor, actions in chosen_config.items():
+                sensor.add_actions(actions)
+                sensor.act(time_start + timedelta(seconds=1))
+                dwell_centres.append(sensor.dwell_centre)
+
+                assert isinstance(sensor, RadarRotatingBearingRange)
+                assert isinstance(actions[0], ChangeDwellAction)
+
+    assert dwell_centres[0] != dwell_centres[1]
+    assert dwell_centres[0] != dwell_centres[2]
+    assert dwell_centres[1] != dwell_centres[2]
 
 
 def test_brute_force_choose_actions():
     time_start = datetime.now()
 
-    sensors = {RadarRotatingBearingRange(
-        position_mapping=(0, 2),
-        noise_covar=np.array([[np.radians(0.5) ** 2, 0],
-                              [0, 0.75 ** 2]]),
-        ndim_state=4,
-        rpm=60,
-        fov_angle=np.radians(30),
-        dwell_centre=StateVector([0.0]),
-        max_range=100,
-    )}
+    tracks = [Track(states=[
+        GaussianState([[0], [1], [0], [1]],
+                      np.diag([1.5, 0.25, 1.5, 0.25] + np.random.normal(0, 5e-4, 4)),
+                      timestamp=time_start),
+        GaussianState([[0], [1.5], [0], [1.5]],
+                      np.diag([3, 0.5, 3, 0.5] + np.random.normal(0, 5e-4, 4)),
+                      timestamp=time_start + timedelta(seconds=1))]),
+              Track(states=[
+                  GaussianState([[0], [-1], [0], [-1]],
+                                np.diag([3, 0.5, 3, 0.5] + np.random.normal(0, 5e-4, 4)),
+                                timestamp=time_start),
+                  GaussianState([[0], [-1.5], [0], [-1.5]],
+                                np.diag([1.5, 0.25, 1.5, 0.25] + np.random.normal(0, 5e-4, 4)),
+                                timestamp=time_start + timedelta(seconds=1))])]
 
-    track = [Track(states=[State(state_vector=[[0]],
-                                 timestamp=time_start)])]
+    transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),
+                                                              ConstantVelocity(0.005)])
+    predictor = KalmanPredictor(transition_model)
+    updater = ExtendedKalmanUpdater(measurement_model=None)
+    reward_function = UncertaintyRewardFunction(predictor, updater)
 
-    class RewardFunction(Base):
+    all_dwell_centres = []
 
-        def calculate_reward(self, config, tracks_list, metric_time):
-            config_metric = random.randint(0, 100)
-            return config_metric
+    for i in range(3):
+        sensorsA = {RadarRotatingBearingRange(
+            position_mapping=(0, 2),
+            noise_covar=np.array([[np.radians(0.5) ** 2, 0],
+                                  [0, 0.75 ** 2]]),
+            position=np.array([[0], [0]]),
+            ndim_state=4,
+            rpm=60,
+            fov_angle=np.radians(30),
+            dwell_centre=StateVector([0.0]),
+            max_range=np.inf,
+        )}
 
-    reward_function = RewardFunction()
+        sensorsB = {RadarRotatingBearingRange(
+            position_mapping=(0, 2),
+            noise_covar=np.array([[np.radians(0.5) ** 2, 0],
+                                  [0, 0.75 ** 2]]),
+            position=np.array([[0], [0]]),
+            ndim_state=4,
+            rpm=60,
+            fov_angle=np.radians(30),
+            dwell_centre=StateVector([0.0]),
+            max_range=np.inf,
+        )}
 
-    sensor_manager = BruteForceSensorManager(sensors, reward_function.calculate_reward)
+        for sensor_set in [sensorsA, sensorsB]:
+            for sensor in sensor_set:
+                sensor.timestamp = time_start
 
-    chosen_action_configs = sensor_manager.choose_actions(track, time_start)
+        sensor_managerA = BruteForceSensorManager(sensorsA, reward_function.calculate_reward)
+        sensor_managerB = OptimizeBruteSensorManager(sensorsB, reward_function.calculate_reward)
 
-    for chosen_config in chosen_action_configs:
-        for sensor, action in chosen_config.items():
-            assert isinstance(sensor, RadarRotatingBearingRange)
-            assert isinstance(action[0], ChangeDwellAction)
+        sensor_managers = [sensor_managerA,
+                           sensor_managerB]
+
+        timesteps = []
+        for t in range(3):
+            timesteps.append(time_start + timedelta(seconds=t))
+
+        dwell_centres_for_i = []
+        for sensor_manager in sensor_managers:
+            dwell_centres_over_time = []
+            for time in timesteps:
+                chosen_action_configs = sensor_manager.choose_actions(tracks, time)
+
+                for chosen_config in chosen_action_configs:
+                    for sensor, actions in chosen_config.items():
+                        sensor.add_actions(actions)
+                        sensor.act(time)
+                        dwell_centres_over_time.append(sensor.dwell_centre)
+
+                        assert isinstance(sensor, RadarRotatingBearingRange)
+                        assert isinstance(actions[0], ChangeDwellAction)
+
+            dwell_centres_for_i.append(dwell_centres_over_time)
+
+        all_dwell_centres.append(dwell_centres_for_i)
+        for t in range(3):
+            difference_between_managers = np.rad2deg(dwell_centres_for_i[0][t]
+                                                     - dwell_centres_for_i[1][t])
+            assert difference_between_managers <= np.radians(30)
+
+    assert all_dwell_centres[0] == all_dwell_centres[1] == all_dwell_centres[2]
