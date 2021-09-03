@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-
 import datetime
 import inspect
 from abc import ABC
+from abc import abstractmethod
 from typing import Set, Sequence
 
-from ..base import Base, Property
 from .action import Action, ActionGenerator
+from ..base import Base, Property
 
 
 class ActionableProperty(Property):
@@ -21,11 +21,31 @@ class ActionableProperty(Property):
 
 
 class Actionable(Base, ABC):
+    """Base Actionable type.
+
+    Contains the core methods of an actionable sensor/platform type.
+
+    Notes
+    -----
+    An Actionable is required to have a `timestamp` attribute, in order to validate actions and
+    act. This is an abstract base class, and not intended for direct use. Attaining a timestamp is
+    left to the inheriting type.
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.scheduled_actions = dict()  # dictionary of property - action pairs
+
+    @abstractmethod
+    def validate_timestamp(self):
+        """Method of attaining actionable's timestamp.
+        Returns
+        -------
+        bool
+            True if timestamp has been successfully set, False otherwise.
+        """
+        raise NotImplementedError()
 
     @property
     def _actionable_properties(self):
@@ -52,19 +72,21 @@ class Actionable(Base, ABC):
         Parameters
         ----------
         timestamp: datetime.datetime
-            Time that action would take place.
+            Time of action finish.
         start_timestamp: datetime.datetime, optional
-            Time that start of action could take place.
+            Time of action start.
 
         Returns
         -------
         : set of :class:`~.ActionGenerator`
             Set of action generators, that describe the bounds of each action space.
         """
+
+        if not self.validate_timestamp():
+            self.timestamp = timestamp
+
         if start_timestamp is None:
             start_timestamp = self.timestamp
-            if start_timestamp is None:
-                start_timestamp = self.timestamp = timestamp
 
         generators = set()
         for name, property_ in self._actionable_properties.items():
@@ -96,6 +118,10 @@ class Actionable(Base, ABC):
         -----
         Base class returns True
         """
+
+        if not self.validate_timestamp():
+            return
+
         if any(action.end_time < self.timestamp for action in actions):
             raise ValueError("Cannot schedule an action that ends before the current time.")
 
@@ -118,11 +144,9 @@ class Actionable(Base, ABC):
             Carry out actions up to this timestamp.
         """
 
-        if self.timestamp is None:
-            self.timestamp = self.movement_controller.state.timestamp
-            if self.timestamp is None:
-                self.timestamp = timestamp
-                return
+        if not self.validate_timestamp():
+            self.timestamp = timestamp
+            return
 
         for name, property_ in self._actionable_properties.items():
             value = getattr(self, name)

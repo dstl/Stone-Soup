@@ -6,11 +6,11 @@ from ...base import Base, Property
 
 
 class Action(Base):
-
     generator: Any = Property(default=None,
                               readonly=True,
                               doc="Action generator that created the action.")
     end_time: datetime.datetime = Property(readonly=True)
+    target_value: Any = Property()
 
     @property
     def current_value(self):

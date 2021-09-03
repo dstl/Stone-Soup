@@ -85,13 +85,11 @@ class RadarRotatingBearingRange(RadarBearingRange):
     """
 
     dwell_centre: StateVector = ActionableProperty(
-        doc="A state object, whose `state_vector` "
-            "property describes the rotation angle of the center of the sensor's "
-            "current FOV (i.e. the dwell center) relative to the positive x-axis "
-            "of the sensor frame/orientation. The angle is positive if the rotation "
-            "is in the counter-clockwise direction when viewed by an observer "
-            "looking down the z-axis of the sensor frame, towards the origin. "
-            "Angle units are in radians",
+        doc="A `state_vector` property that describes the rotation angle of the center of the "
+            "sensor's current FOV (i.e. the dwell center) relative to the positive x-axis of the "
+            "sensor frame/orientation. The angle is positive if the rotation is in the "
+            "counter-clockwise direction when viewed by an observer looking down the z-axis of "
+            "the sensor frame, towards the origin. Angle units are in radians",
         generator_cls=DwellActionsGenerator
     )
     rpm: float = Property(doc="The number of antenna rotations per minute (RPM)")

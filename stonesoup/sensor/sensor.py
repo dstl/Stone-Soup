@@ -29,6 +29,19 @@ class Sensor(PlatformMountable, Actionable):
 
         self.timestamp = None
 
+    def validate_timestamp(self):
+
+        if self.timestamp:
+            return True
+
+        try:
+            self.timestamp = self.movement_controller.state.timestamp
+        except AttributeError:
+            return False
+        if self.timestamp is None:
+            return False
+        return True
+
     @abstractmethod
     def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
                 **kwargs) -> Set[TrueDetection]:
