@@ -2,7 +2,6 @@
 import numpy as np
 import math
 import random
-import numba
 import copy
 from datetime import datetime, timedelta
 from stonesoup.base import Property, Base
@@ -10,12 +9,6 @@ from stonesoup.buffered_generator import BufferedGenerator
 from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.types.array import StateVector, CovarianceMatrix
 from stonesoup.types.detection import Detection
-
-
-# RJMCMC global functions
-@numba.vectorize([numba.float64(numba.complex128), numba.float32(numba.complex64)])
-def abs2(x):
-    return x.real**2 + x.imag**2
 
 
 def proposal(params, K, p_params):
