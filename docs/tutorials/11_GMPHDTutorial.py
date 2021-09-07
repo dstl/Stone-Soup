@@ -398,12 +398,17 @@ for n, measurements in enumerate(all_measurements):
     current_state = reduced_states
     
     # At every time step we must add the birth component to the current state 
+    if measurements: 
+        time = list(measurements)[0].timestamp
+    else: 
+        time = start_time + timedelta(seconds=n)
+    birth_component.timestamp = time
     current_state.add(birth_component)
 
     # Generate the set of hypotheses
     hypotheses = hypothesiser.hypothesise(current_state,
                                           measurements,
-                                          start_time+timedelta(seconds=n),
+                                          timestamp=time,
                                           # keep our hypotheses ordered by detection, not by track
                                           order_by_detection=True)
 
