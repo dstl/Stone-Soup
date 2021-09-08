@@ -30,8 +30,7 @@
 
 
 # %%
-# First we will recall some of the formulas that will be used in this filter. The
-# notation used in this tutorial follows the same form as seen in [1]_.
+# First we will recall some of the formulas that will be used in this filter.
 #
 # Transition Density: Given a state :math:`p(\mathbf{x}_{k-1})` at time :math:`k-1`, the probability density of
 # a transition to the state :math:`p(\mathbf{x}_k)` at time :math:`k` is given by
@@ -85,12 +84,12 @@
 #
 # Posterior Propagation Formula
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Under the above assumptions, Vo and Ma [1]_ proved that the posterior intensity can be
+# Under the above assumptions, Vo and Ma [#]_ proved that the posterior intensity can be
 # propagated in time using the PHD recursion as follows:
 # :math:`\eqalignno{v _{ k\vert k-1} (x) =&\, \int p_{S,k}(\zeta)f_{k\vert k-1} (x\vert \zeta)v_{k-1}(\zeta)d\zeta\cr & +\int \beta_{k\vert k-1} (x\vert \zeta)v_{k-1}(\zeta)d\zeta+\gamma _{k}(x) & \cr v_{k} (x) =&\, \left[ 1-p_{D,k}(x)\right]v_{k\vert k-1}(x)\cr & +\!\!\sum\limits _{z\in Z_{k}} \!{{ p_{D,k}(x)g_{k}(z\vert x)}v_{k\vert k-1}(x) \over { \kappa _{k}(z)\!+\!\int p_{D,k}(\xi)g_{k}(z\vert \xi)v_{k\vert k-1}(\xi)}} . \cr &&}`
 #
 # For more information about the specific formulas for linear and non-linear Gaussian models,
-# please see Vo and Ma's full paper [1]_.
+# please see Vo and Ma's full paper.
 
 # %%
 # A Ground-Based Multi-Target Simulation
@@ -317,10 +316,11 @@ reducer = GaussianMixtureReducer(
 # %%
 # Now we initialize the Gaussian mixture at time k=0. In this implementation, the GM-PHD
 # tracker knows the start state of the first 3 tracks that were created. After that it
-# must pick up on new tracks and discard old ones.
+# must pick up on new tracks and discard old ones. It is not necessary to provide the 
+# tracker with these start states, you can simply define the `tracks` as an empty set.
 #
 # Feel free to change the `state_vector` from the actual truth state vector to something
-# else. This would mimic if the tracker did not know where the objects were originating.
+# else. This would mimic if the tracker was unsure about where the objects were originating.
 from stonesoup.types.state import TaggedWeightedGaussianState
 from stonesoup.types.track import Track
 from stonesoup.types.array import CovarianceMatrix
@@ -336,7 +336,28 @@ for truth in start_truths:
             timestamp=start_time)
     tracks.add(Track(new_track))
 
-reduced_states = None
+# %%
+# The hypothesier takes the current Gaussian mixture as a parameter. Here we will 
+# initialize it to use later. 
+reduced_states = set([track[-1] for track in tracks])
+
+# %%
+# To ensure that new targets get represented in the filter, we must add a birth 
+# component to the Gaussian mixture at every time step. The birth component's mean and 
+# covariance must create a distribution that covers the entire state space, and its weight 
+# must be equal to the expected number of births per timestep. For more information about 
+# the birth component, see the algorithm provided in [#]_. If the state space is very 
+# large, it becomes inefficient to hold a component that covers it. Alternative 
+# implementations (as well as more dicussion about the birth component) are discussed in 
+# [#]_.
+birth_covar = CovarianceMatrix(np.diag([1000, 2, 1000, 2]))
+birth_component = TaggedWeightedGaussianState(
+    state_vector=[0, 0, 0, 0],
+    covar=birth_covar**2,
+    weight=0.25,
+    tag='birth',
+    timestamp=start_time
+)
 
 # %%
 # Run the Tracker
@@ -363,25 +384,31 @@ tracks_by_time = []
 # We need a threshold to compare state weights against. If the state has a high enough
 # weight in the Gaussian mixture, we will add it to an existing track or make a new
 # track for it. Lowering this value makes the filter more sensitive but may also
-# increase the number of false detections. Increasing this value may increase the number
-# of missed detections.
+# increase the number of false estimations. Increasing this value may increase the number
+# of missed targets.
 state_threshold = 0.25
 
 for n, measurements in enumerate(all_measurements):
     tracks_by_time.append([])
     all_gaussians.append([])
 
-    # The hypothesiser takes in the current state of the Gaussian mixture. If there are no reduced states from the
-    # previous iteration (which occurs if this is the first iteration) then the current state is simply the list of
-    # the most recent state elements in each track. Otherwise, it is the entire set of reduced states.
-    current_state = [track[-1] for track in tracks]
-    if reduced_states:
-        current_state = reduced_states
+    # The hypothesiser takes in the current state of the Gaussian mixture. This is equal to the list of 
+    # reduced states from the previous iteration. If this is the first iteration, then we use the priors 
+    # defined above. 
+    current_state = reduced_states
+    
+    # At every time step we must add the birth component to the current state 
+    if measurements: 
+        time = list(measurements)[0].timestamp
+    else: 
+        time = start_time + timedelta(seconds=n)
+    birth_component.timestamp = time
+    current_state.add(birth_component)
 
     # Generate the set of hypotheses
     hypotheses = hypothesiser.hypothesise(current_state,
                                           measurements,
-                                          start_time+timedelta(seconds=n),
+                                          timestamp=time,
                                           # keep our hypotheses ordered by detection, not by track
                                           order_by_detection=True)
 
@@ -446,6 +473,11 @@ for measurement_set in all_measurements:
             x_max = max([measurement.state_vector[0], x_max])
             y_min = min([measurement.state_vector[1], y_min])
             y_max = max([measurement.state_vector[1], y_max])
+
+# %%
+# Now we can use the :class:`~.Plotter` class to draw the tracks. Note that if the birth
+# component it plotted you will see its uncertainty ellipse centered around :math:`(0, 0)`.
+# This ellipse need not cover the entire state space, as long as the distribution does.
 
 # Plot the tracks
 plotter = Plotter()
@@ -598,4 +630,15 @@ anim
 # %%
 # References
 # ----------
-# .. [1] B. -. Vo and W. -. Ma, "The Gaussian Mixture Probability Hypothesis Density Filter," in IEEE Transactions on Signal Processing, vol. 54, no. 11, pp. 4091-4104, Nov. 2006, doi: 10.1109/TSP.2006.881190.
+# .. [#] B. Vo and W. Ma, "The Gaussian Mixture Probability Hypothesis Density Filter," in IEEE 
+#        Transactions on Signal Processing, vol. 54, no. 11, pp. 4091-4104, Nov. 2006, doi: 
+#        10.1109/TSP.2006.881190
+# 
+# .. [#] D. E. Clark, K. Panta and B. Vo, "The GM-PHD Filter Multiple Target Tracker," 2006 9th 
+#        International Conference on Information Fusion, 2006, pp. 1-8, doi: 10.1109/ICIF.2006.301809
+# 
+# .. [#] B. Ristic, D. Clark, B. Vo and B. Vo, "Adaptive Target Birth Intensity for PHD and CPHD 
+#        Filters," in IEEE Transactions on Aerospace and Electronic Systems, vol. 48, no. 2, pp. 
+#        1656-1668, Apr 2012, doi: 10.1109/TAES.2012.6178085
+
+
