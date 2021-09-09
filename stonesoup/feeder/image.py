@@ -11,8 +11,9 @@ class CFAR(Feeder):
     train_size: int = Property(doc="The number of train pixels", default=10)
     guard_size: int = Property(doc="The number of guard pixels", default=4)
     alpha: float = Property(doc="The threshold value", default=1)
-    squared: bool = Property(doc="If set to True, the threshold will be computed as a function of the sum of squares. "
-                                 "The default is False, in which case a simple sum will be evaluated.", default=False)
+    squared: bool = Property(doc="If set to True, the threshold will be computed as a function of "
+                                 "the sum of squares. The default is False, in which case a "
+                                 "simple sum will be evaluated.", default=False)
 
     @BufferedGenerator.generator_method
     def data_gen(self):
@@ -36,8 +37,8 @@ class CFAR(Feeder):
         alpha: int
             The threshold value.
         squared: bool
-            If set to True, the threshold will be computed as a function of the sum of squares. The default is False, in
-        which case a simple sum will be evaluated.
+            If set to True, the threshold will be computed as a function of the sum of squares.
+            The default is False, in which case a simple sum will be evaluated.
         Returns
         -------
         numpy.ndarray
@@ -58,7 +59,8 @@ class CFAR(Feeder):
                 # Select the pixels inside the window
                 v = input_img[i:i + window_size, j:j + window_size].copy()
                 # Exclude pixels inside guard zone
-                v[train_size:train_size + 2 * guard_size + 1, train_size:train_size + 2 * guard_size + 1] = 0
+                v[train_size:train_size + 2 * guard_size + 1,
+                  train_size:train_size + 2 * guard_size + 1] = 0
                 # # The above should be equivalent to the code below
                 # v = np.zeros((window_size, window_size))
                 # for k in range(window_size):
@@ -89,5 +91,3 @@ class CCL(Feeder):
             _, labels_img = cv2.connectedComponents(img)
             new_frame = ImageFrame(labels_img, frame.timestamp)
             yield timestamp, new_frame
-
-
