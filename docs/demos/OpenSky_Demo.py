@@ -42,7 +42,7 @@ groundtruth = LongLatToUTMConverter(truthslonlat, zone_number=30,  mapping=[0, 2
 # %%
 # Constructing Sensors
 # --------------------
-# Now we will assemble our sensors used in this demonstration. We’ll introduce 3 stationary radar
+# Now we will assemble our sensors used in this demonstration. We’ll introduce 2 stationary radar
 # sensors, and also demonstrate Stone Soup’s ability to model moving sensors.
 #
 # We use :class:`~.RadarRotatingBearingRange` to establish our radar sensors. We set their FOV angle,
@@ -59,7 +59,7 @@ groundtruth = LongLatToUTMConverter(truthslonlat, zone_number=30,  mapping=[0, 2
 # setting transition times.
 #
 # :class:`~.PlatformDetectionSimulator` will then proceed to generate our detection data from
-# the groundtruth (calls each sensors in platforms).
+# the groundtruth (calls each sensor in platforms).
 
 import datetime
 import numpy as np
@@ -350,7 +350,6 @@ for platform in movingPlatforms:
                     'fillOpacity': 1,
                     'popupAnchor': [1, -17]},
 
-
                 'popup': "Moving Sensor",
                 'name':  '',
                 'style': {'color': 'black', 'weight': 4},
@@ -459,10 +458,10 @@ for time, truths in truthslonlat:
 
 # %%
 # A list of all icao24 addresses in our data will also be created. These addresses are used to
-# given an aircraft a unique identity. We will run through this list and use our groundtruth
+# give an aircraft a unique identity. We will run through this list and use our groundtruth
 # dictionary to get relevant data needed for plotting.
 # The variable trail_Size will determine how much history of the track we want to be seen.
-# We will plot a LineString to display our track, taking into account our specified trailSize
+# We will plot a LineString to display our track, taking into account our specified trail_Size
 # to determine the cut-off point.
 #
 # We begin with creating the trails of our groundtruth.
