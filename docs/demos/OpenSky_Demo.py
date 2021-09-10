@@ -2,15 +2,15 @@
 # coding: utf-8
 
 """
-Tracking ADS-B Data from OpenSky
-================================
+Tracking Groundtruth ADS-B Data by Simulating Radar Detections
+==============================================================
 """
 # %%
 # Introduction
 # ------------
 # Our goal in this notebook is to plot time series data of Stone Soup's :class:`~.MultiTargetTracker`
 # being applied to air traffic over and surrounding the UK.
-# To do this, we will be using a CSV file of ADS–B data sourced from `The OpenSky Network`_.
+# To do this, we will be using a CSV file of ADS–B data sourced from `The OpenSky Network`_ [#]_.
 # This data will be used as our groundtruth. We will establish the individual components
 # required for our tracker, including generating detection data from our groundtruth, and
 # plot these tracks using the Folium plugin `TimestampedGeoJson`_.
@@ -31,13 +31,13 @@ import utm
 
 truthslonlat = CSVGroundTruthReader(
     "OpenSky_Plane_States.csv",
-    state_vector_fields=("lon", "x_speed","lat","y_speed"),     # List of columns names to be used in state vector
-    path_id_field="icao24",                                     # Name of column to be used as path ID
-    time_field="time",                                          # Name of column to be used as time field
-    timestamp=True)                                             # Treat time field as a timestamp from epoch
+    state_vector_fields=("lon", "x_speed", "lat", "y_speed"),  # List of columns names to be used in state vector
+    path_id_field="icao24",                                    # Name of column to be used as path ID
+    time_field="time",                                         # Name of column to be used as time field
+    timestamp=True)                                            # Treat time field as a timestamp from epoch
 
 
-groundtruth = LongLatToUTMConverter(truthslonlat, zone_number=30,  mapping=[0,2])
+groundtruth = LongLatToUTMConverter(truthslonlat, zone_number=30,  mapping=[0, 2])
 
 # %%
 # Constructing Sensors
@@ -51,7 +51,7 @@ groundtruth = LongLatToUTMConverter(truthslonlat, zone_number=30,  mapping=[0,2]
 #
 # :class:`~.RadarRotatingBearingRange` allows us to generate measurements of targets by using
 # a :class:`~.CartesianToBearingRange` model. We proceed to create a :class:`~.platform` for
-# each stationary sensor, and append these to our list of all platforms
+# each stationary sensor, and append these to our list of all platforms.
 #
 # Our moving sensor will be created the same way as in the stationary case, setting FOV angle,
 # range, rpm etc. We will also need to make a movement controller to
@@ -76,7 +76,6 @@ from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionM
 # Using Heathrow as origin
 *heathrow, utm_zone, _ = utm.from_latlon(51.47, -0.4543)
 # Use heathrow utm grid num as reference number for utm conversions later
-glasgow = utm.from_latlon(55.87, -4.433, utm_zone)
 manchester = utm.from_latlon(53.35, -2.280, utm_zone)
 
 
@@ -110,19 +109,6 @@ stationarySensors = [
         rpm=12.5,
         max_range=100000,
         fov_angle=np.radians(360)),
-        # position=np.array([[heathrow[0]],[heathrow[1]],[0]]),
-        # orientation=np.array([[0],[0],[0]]))
-
-    RadarRotatingBearingRange(
-        ndim_state=6,
-        position_mapping=(0,2),
-        noise_covar=np.diag([np.radians(1)**2, 7**2]),
-        dwell_center=State(StateVector([[-np.pi]])),
-        rpm=12.5,
-        max_range=100000,
-        fov_angle=np.radians(360)),
-        # position=StateVector([[glasgow[0]],[glasgow[1]],[0]]),
-        # orientation=np.array([[0],[0],[0]])),
 
     RadarRotatingBearingRange(
         ndim_state=6,
@@ -132,8 +118,6 @@ stationarySensors = [
         rpm=12.5,
         max_range=100000,
         fov_angle=np.radians(360)),
-        # position=np.array([[manchester[0]],[manchester[1]],[0]]),
-        # orientation=np.array([[0],[0],[0]]))
     ]
 
 # List sensors in moving platform (sensor orientations are overwritten)
@@ -151,23 +135,22 @@ movingPlatformSensors = [
 platforms = []
 
 # Create a platform for each stationary sensor and add to list of platforms
-for sensor, platformLocation in zip(stationarySensors, (heathrow, glasgow, manchester)):
+for sensor, platformLocation in zip(stationarySensors, (heathrow, manchester)):
     platformState = State([[platformLocation[0]], [0], [platformLocation[1]], [0], [0], [0]])
     platform = FixedPlatform(platformState, (0, 2, 4), sensors=[sensor])
     platforms.append(platform)
 
-
 # Create moving platform
-movingPlatformInitialLocation = utm.from_latlon(51.40, -3.436, utm_zone)
+movingPlatformInitialLocation = utm.from_latlon(52.25, -0.9, utm_zone)
 movingPlatformState = State([[movingPlatformInitialLocation[0]], [0], [movingPlatformInitialLocation[1]], [250], [0], [0]])
 movingPlatforms = [MultiTransitionMovingPlatform(movingPlatformState,
                                                  position_mapping=(0, 2),
                                                  transition_models=transition_models,
                                                  transition_times=transition_times,
                                                  sensors=movingPlatformSensors)]
+
 # Add moving platform to list of platforms
 platforms.extend(movingPlatforms)
-
 
 # Simulate platform detections
 detection_sim = PlatformDetectionSimulator(groundtruth, platforms)
@@ -284,13 +267,6 @@ folium.Marker([51.47, -0.4543],
               icon=folium.Icon(icon='fa-circle', prefix="fa",      # Marker for Heathrow
               color="red")).add_to(m)
 
-
-folium.Marker([55.87, -4.433],
-              tooltip="Glasgow Airport",
-              icon=folium.Icon(icon='fa-circle', prefix="fa",      # Marker for Glasgow
-              color="blue")).add_to(m)
-
-
 folium.Marker([53.35, -2.280],
               tooltip="Manchester Airport",
               icon=folium.Icon(icon='fa-circle', prefix="fa",      # Marker for Manchester
@@ -301,14 +277,6 @@ folium.Circle(location=[51.47, -0.4543],
               popup='',
               fill_color='#000',                  # radar for Heathrow
               radius=100000,
-              weight=2,
-              color="#000").add_to(m)
-
-
-folium.Circle(location=[55.87, -4.433],
-              popup='',
-              fill_color='#000',
-              radius=100000,                      # radar for Glasgow
               weight=2,
               color="#000").add_to(m)
 
@@ -347,59 +315,51 @@ geo_json = {
 # Let us set up the icon and trail for our moving sensor. A radar dish icon will show its location
 # at any given timestamp, and its trail will show where it has been.
 
-points = []
-times_Sensor = []  # list of time stamps moving sensor has existed for.
-num_Timestamps = len([1 for timestamp in movingPlatforms[0]])  # number of total timestamps elapsed
-
-for state in movingPlatforms:
-    for i in range(num_Timestamps):
-        points.append(
-            utm.to_latlon(state[i].state_vector[0], state[i].state_vector[2], utm_zone,
-                          northern=True, strict=False)[::-1])
-        times_Sensor.append(state[i].timestamp.strftime('%Y-%m-%d %H:%M:%S'))
-
 trail_Size = 14  # trail_Size is number of timestamps we want track to trail for
-timestamp_Number = 0
+for platform in movingPlatforms:
+    points = []
+    times_Sensor = []  # list of timestamps moving sensor has existed for.
 
-for time in times_Sensor:
-    timestamp_Number = timestamp_Number + 1
-    trail_End = timestamp_Number - trail_Size  # trail_End determines timestamp for which
-    if trail_End < 0:                          # trail ends
-        trail_End = 0
+    for state in platform.last_timestamp_generator():
+        points.append(
+            utm.to_latlon(state.state_vector[0], state.state_vector[2], utm_zone,
+                          northern=True, strict=False)[::-1])
+        times_Sensor.append(state.timestamp.strftime('%Y-%m-%d %H:%M:%S'))
 
-    geo_features.append({  # attaching info about moving sensor to geo_json
-        'type': "Feature",
-        'properties':
-            {'popup':  "Moving Sensor",
-            'name':   '',
-            'style':  {'color': 'black', 'weight': 4},
-            'times':  [time for i in range(trail_End, timestamp_Number)]},
+    for time_index, time in enumerate(times_Sensor):
+        geo_features.append({  # attaching info about moving sensor to geo_json
+            'type': "Feature",
+            'properties':
+                {'popup':  "Moving Sensor",
+                'name':   '',
+                'style':  {'color': 'black', 'weight': 4},
+                'times':  [time]*trail_Size},
 
-        'geometry':
-            {'type': "LineString",
-            'coordinates': [points[j] for j in range(trail_End, timestamp_Number)]}
-    })
+            'geometry':
+                {'type': "LineString",
+                'coordinates': points[:time_index+1][-trail_Size:]}
+        })
 
-    geo_features.append({  # attaching icon info about moving sensor to geo_json
-        'type': "Feature",
-        'properties':{
-            'icon': 'marker',
-            'iconstyle':{
-                'iconUrl': 'http://simpleicon.com/wp-content/uploads/radar.png',
-                'iconSize': [24, 24],
-                'fillOpacity': 1,
-                'popupAnchor': [1, -17]},
+        geo_features.append({  # attaching icon info about moving sensor to geo_json
+            'type': "Feature",
+            'properties':{
+                'icon': 'marker',
+                'iconstyle':{
+                    'iconUrl': 'http://simpleicon.com/wp-content/uploads/radar.png',
+                    'iconSize': [24, 24],
+                    'fillOpacity': 1,
+                    'popupAnchor': [1, -17]},
 
 
-            'popup': "Moving Sensor",
-            'name':  '',
-            'style': {'color': 'black', 'weight': 4},
-            'times': [time]},
+                'popup': "Moving Sensor",
+                'name':  '',
+                'style': {'color': 'black', 'weight': 4},
+                'times': [time]},
 
-        'geometry':{
-            'type': "MultiPoint",
-            'coordinates': [points[timestamp_Number - 1]]}
-    })
+            'geometry':{
+                'type': "MultiPoint",
+                'coordinates': [points[time_index]]}
+        })
 
 # %%
 # We also want to display our moving sensor’s FOV as time progresses.
@@ -407,38 +367,32 @@ for time in times_Sensor:
 # FOV by drawing a LineString.
 
 points_ = []  # setting up points for moving sensor (UTM)
-for state in movingPlatforms:
-    for timestampNumber in range(num_Timestamps):  # num_Timestamps = number of timestamps elapsed
-        points_.append(
-            (state[timestampNumber].state_vector[0], state[timestampNumber].state_vector[2]))
-
 radius = 60000  # 60 km, radius of our moving sensor
-polygon_Sides = 60
-timestamp_Number = 0
-for ((x, y)) in points_:  # finding points of circle for range of moving sensor.
-    time = times_Sensor[timestamp_Number]
-    timestamp_Number = timestamp_Number + 1
-    angles = np.linspace(0, 2 * np.pi, polygon_Sides + 1, endpoint=True)
-    points_list = [(x + np.sin(angle) * radius,
-                    y + np.cos(angle) * radius)
-                   for angle in angles]
+polygon_Sides = 45
+for state in movingPlatforms:
+    for time_index, time in enumerate(times_Sensor):  # num_Timestamps = number of timestamps elapsed
+        points_.append(
+            (state[time_index].state_vector[0], state[time_index].state_vector[2]))
 
-    for i in range(len(points_list)):
-        points_list[i] = utm.to_latlon(points_list[i][0], points_list[i][1], utm_zone,
-                                       northern=True, strict=False)[::-1]
+    for (time_index,(x, y)) in enumerate(points_):  # finding points of circle for range of moving sensor.
+        time = times_Sensor[time_index]
+        angles = np.linspace(0, 2 * np.pi, polygon_Sides + 1, endpoint=True)
+        points_list = [utm.to_latlon(x + np.sin(angle) * radius,
+                        y + np.cos(angle) * radius, utm_zone, northern=True, strict=False)[::-1]
+                       for angle in angles]
 
-    geo_features.append({
-        'type': "Feature",
-        'properties':{
-            'popup':  "Moving Sensor FOV",
-            'name':    '',
-            'style':   {'color': 'black', 'weight': 3},
-            'times':   [time for i in range(polygon_Sides + 1)]},
+        geo_features.append({
+            'type': "Feature",
+            'properties':{
+                'popup':  "Moving Sensor FOV",
+                'name':    '',
+                'style':   {'color': 'black', 'weight': 3},
+                'times':   [time] * (polygon_Sides + 1)},
 
-        'geometry':{
-            'type':   "LineString",
-            'coordinates': points_list}
-    })
+            'geometry':{
+                'type':   "LineString",
+                'coordinates': points_list}
+        })
 
 # %%
 # Plotting Tracks
@@ -456,45 +410,28 @@ colour_iter = iter(cycle(
      '#12AD2B', '#E2F516', '#FFFF00', '#F52887']))
 colour = defaultdict(lambda: next(colour_iter))
 
-col = 0  # col will be used to cycle through the colours of the tracks
 trail_Size = 14  # trail_Size is the number of timestamps we want track to trail for
 
 for track in tracks:
 
-    plot_time = [state.timestamp.strftime('%Y-%m-%d %H:%M:%S') for state in track]
-
-    plot_times = [plot_time[0]]
-
-    for i in range(1, int((len(plot_time))) - 1):  # make sure plot_times only contains
-        if plot_time[i] == plot_times[-1]:         # one copy of each timestamp.
-            continue
-        else:
-            plot_times.append(plot_time[i])
+    plot_times = [state.timestamp.strftime('%Y-%m-%d %H:%M:%S') for state in track.last_timestamp_generator()]
 
     plot_points = [
         utm.to_latlon(state.state_vector[0], state.state_vector[2], utm_zone, northern=True,
                       strict=False)[::-1]
         for state in track.last_timestamp_generator()]
 
-    col = col + 1
-
-    timestamp_Number = 0  # counts how many timestamps have elapsed in track's history
-    for times_ in plot_times:
-        timestamp_Number = timestamp_Number + 1
-        trail_End = timestamp_Number - trail_Size  # track's timestamp for end of trail
-        if trail_End < 0:
-            trail_End = 0
-
+    for time_index, time in enumerate(plot_times):
         geo_features.append({
             'type': "Feature",
             'properties':{
                 'name':  track.id,
-                'style': {'color': colour[col], 'weight': 6},
-                'times': [times_ for i in range(trail_End, timestamp_Number)]},
+                'style': {'color': colour[track], 'weight': 6},
+                'times': [time] * len(plot_points[:time_index+1][-trail_Size:])},
 
             'geometry':{
                 'type': "LineString",
-                'coordinates': [plot_points[j] for j in range(trail_End,timestamp_Number)]}
+                'coordinates': plot_points[:time_index+1][-trail_Size:]}
         })
 
 # %%
@@ -539,27 +476,19 @@ for time, truths in truthslonlat:
 
 for id in icao:
     trail_Size = 14
-    timestamp_Number = 0
-    for times_ in all_truths[id]['times']:
-        timestamp_Number = timestamp_Number + 1
-        trail_End = timestamp_Number - trail_Size
-        if trail_End < 0:
-            trail_End = 0
-
+    for  time_index, time in enumerate(all_truths[id]['times']):
+        points=all_truths[id]['lonlats'][:time_index+1][-trail_Size:]
         geo_features.append({
             'type': "Feature",
             'properties':{
                 'name': '',
                 'style': {'color': 'black', 'weight': 2},
-                'times': [times_.strftime('%Y-%m-%d %H:%M:%S')
-                          for i in range(trail_End, timestamp_Number)]},
+                'times': [time.strftime('%Y-%m-%d %H:%M:%S')]*len(points)},
 
             'geometry':{
                 'type': "LineString",
-                'coordinates': [all_truths[id]['lonlats'][j]
-                                for j in range(trail_End, timestamp_Number)]}
-        })
-
+                'coordinates': points}
+                            })
 
 # %%
 # Our final task is to provide icons for our groundtruth. For each timestamp, each plane's
@@ -568,12 +497,12 @@ for id in icao:
 # (remember to pause time to do this).
 
 for id in icao:
-    for timestamp_Number in range((len(all_truths[id]['times']))):
-        if all_truths[id]['heading'][timestamp_Number] == '':  # if no heading given in data,
-            break                                              # won't plot icon
+    for time in range(len(all_truths[id]['times'])):
+        if all_truths[id]['heading'][time] == '':  # if no heading given in data,
+            break                                  # won't plot icon
 
         angle = round(float(all_truths[id]['heading'][
-                                   timestamp_Number]), -1)  # rounding angle to nearest 10 degrees
+                                   time]), -1)  # rounding angle to nearest 10 degrees
         if angle == 360:
             angle = 0
         angle = int(angle)
@@ -594,24 +523,24 @@ for id in icao:
                      "ICAO24: " + id + "<dd>"
        
                      "Velocity: " + '%s' % float('%.5g' %
-                     (float(all_truths[id]['velocity'][timestamp_Number]))) + " m/s" + "<dd>"
+                     (float(all_truths[id]['velocity'][time]))) + " m/s" + "<dd>"
                                                                      
                      "Heading: " + '%s' % float('%.5g' %
-                     (float(all_truths[id]["heading"][timestamp_Number]))) + "°" + "<dd>" 
+                     (float(all_truths[id]["heading"][time]))) + "°" + "<dd>" 
                                                                             
                      "Longitude: " + '%s' % float('%.8g' %
-                     (all_truths[id]["lonlats"][timestamp_Number][0])) + "<dd>" # rounding 8 sigfigs
+                     (all_truths[id]["lonlats"][time][0])) + "<dd>" # rounding 8 sigfigs
 
                      "Latitude: " + '%s' % float('%.8g' %
-                     (all_truths[id]["lonlats"][timestamp_Number][1])),
+                     (all_truths[id]["lonlats"][time][1])),
 
                 'name': '',
                 'style': {'color': 'black', 'weight': 2},
-                'times': [all_truths[id]['times'][timestamp_Number].strftime('%Y-%m-%d %H:%M:%S')]},
+                'times': [all_truths[id]['times'][time].strftime('%Y-%m-%d %H:%M:%S')]},
 
             'geometry':{
                 'type': "MultiPoint",
-                'coordinates': [all_truths[id]['lonlats'][timestamp_Number]]}
+                'coordinates': [all_truths[id]['lonlats'][time]]}
         })
 
 # %%
@@ -622,16 +551,21 @@ from folium.plugins import TimestampedGeoJson, Fullscreen
 
 Fullscreen().add_to(m)
 
-(TimestampedGeoJson(
+TimestampedGeoJson(
     data=geo_json,
     transition_time=200,
     auto_play=True,
     add_last_point=False,
     period='PT10S',
-    duration='PT0S')).add_to(m)
+    duration='PT0S').add_to(m)
 
 # %%
 
 # sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/OpenSky_thumb.png'
 
 m
+
+# %%
+# References
+# ----------
+# .. [#] The OpenSky Network, http://www.opensky-network.org
