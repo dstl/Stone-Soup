@@ -8,7 +8,7 @@ from stonesoup.feeder.image import CFAR, CCL
 def test_cfar_detections(datadir):
     input_filename = datadir.join('test_img.png')
     reader = SingleImageFileReader(input_filename)
-    feeder = CFAR(reader, train_size=10, guard_size=4, alpha=4, squared=False)
+    feeder = CFAR(reader, train_size=10, guard_size=4, alpha=4, squared=True)
     for _, frame in feeder:
         th1 = feeder.current[1].pixels
     expected_result_filename = datadir.join('expected_result_cfar.pickle')
@@ -20,7 +20,7 @@ def test_cfar_detections(datadir):
 def test_ccl_detections(datadir):
     input_filename = datadir.join('test_img.png')
     reader = SingleImageFileReader(input_filename)
-    cfar = CFAR(reader, train_size=10, guard_size=4, alpha=4, squared=False)
+    cfar = CFAR(reader, train_size=10, guard_size=4, alpha=4, squared=True)
     feeder = CCL(cfar)
     for _, frame in feeder:
         labels_img = frame.pixels
