@@ -47,6 +47,9 @@ def test_lgmodel(H, R, ndim_state, mapping):
     # Ensure ```lg.transfer_function()``` returns H
     assert np.array_equal(H, lg.matrix())
 
+    # Ensure lg.jacobian() returns H
+    assert np.array_equal(H, lg.jacobian(state=state))
+
     # Ensure ```lg.covar()``` returns R
     assert np.array_equal(R, lg.covar())
 

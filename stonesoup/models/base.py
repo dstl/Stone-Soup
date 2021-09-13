@@ -123,6 +123,22 @@ class LinearModel(Model):
 
         return self.matrix(**kwargs) @ state.state_vector + noise
 
+    def jacobian(self, state: State, **kwargs) -> np.ndarray:
+        """Model jacobian matrix :math:`H_{jac}`
+
+        Parameters
+        ----------
+        state : :class:`~.State`
+            An input state
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape (:py:attr:`~ndim_meas`, \
+        :py:attr:`~ndim_state`)
+            The model jacobian matrix evaluated around the given state vector.
+        """
+        return self.matrix(**kwargs)
+
 
 class NonLinearModel(Model):
     """NonLinearModel class

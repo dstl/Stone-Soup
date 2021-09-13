@@ -70,7 +70,7 @@ def cholesky_eps(A, lower=False):
         return L.T
 
 
-def jacobian(fun, x):
+def jacobian(fun, x,  **kwargs):
     """Compute Jacobian through finite difference calculation
 
     Parameters
@@ -101,7 +101,7 @@ def jacobian(fun, x):
     x2.state_vector = np.tile(x.state_vector, ndim+1) + np.eye(ndim, ndim+1)*delta[:, np.newaxis]
     x2.state_vector = x2.state_vector.view(StateVectors)
 
-    F = fun(x2)
+    F = fun(x2, **kwargs)
 
     jac = np.divide(F[:, :ndim] - F[:, -1:], delta)
     return jac.astype(np.float_)
