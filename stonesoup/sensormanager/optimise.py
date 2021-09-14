@@ -64,7 +64,7 @@ class OptimizeBasinHoppingSensorManager(_OptimizeSensorManager):
 
     def _optimiser(self, optimise_func, all_action_generators):
         initial_values = [
-            gen.initial_value
+            float(gen.initial_value)
             for gens in all_action_generators.values()
             for gen in gens]
         result = basinhopping(func=optimise_func,
