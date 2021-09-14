@@ -6,7 +6,6 @@ from typing import Iterator
 import numpy as np
 
 from . import Action, RealNumberActionGenerator
-from .action_utils import contains_bearing
 from ...base import Property
 from ...functions import mod_bearing
 from ...types.angle import Angle, Bearing
@@ -51,7 +50,7 @@ class DwellActionsGenerator(RealNumberActionGenerator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.resolution = Angle(np.radians(1))
-        self.epsilon = 1e-6
+        self.epsilon = Angle(np.radians(1e-6))
 
     @property
     def default_action(self):
@@ -61,7 +60,7 @@ class DwellActionsGenerator(RealNumberActionGenerator):
                                  target_value=self.initial_value,
                                  increasing_angle=True)
 
-    def __call__(self, resolution=None, epsilon=1e-6):
+    def __call__(self, resolution=None, epsilon=None):
         """
         Parameters
         ----------
@@ -77,11 +76,7 @@ class DwellActionsGenerator(RealNumberActionGenerator):
 
     @property
     def initial_value(self):
-        return self.current_value[0, 0]
-
-    @property
-    def initial_float_value(self):
-        return float(self.initial_value)
+        return Angle(self.current_value[0, 0])
 
     @property
     def duration(self):
@@ -97,87 +92,63 @@ class DwellActionsGenerator(RealNumberActionGenerator):
 
     @property
     def min(self):
-        if self.angle_delta >= np.pi:
-            return Bearing(-np.pi)
-        else:
-            return Bearing(self.initial_value - self.angle_delta)
+        return Angle(self.initial_value - self.angle_delta)
 
     @property
     def max(self):
-        if self.angle_delta >= np.pi:
-            return Bearing(np.pi)
-        else:
-            return Bearing(self.initial_value + self.angle_delta)
+        return Angle(self.initial_value + self.angle_delta)
 
     def __contains__(self, item):
+
+        if self.angle_delta >= np.pi:
+            # Left turn and right turn are > 180, so all angles hit
+            return True
 
         if isinstance(item, ChangeDwellAction):
             item = item.target_value
 
         if isinstance(item, (float, int)):
-            item = Bearing(item)
+            item = Angle(item)
 
-        return contains_bearing(self.min, self.max, item)
+        return self.min <= item <= self.max
 
-    def _end_time_direction(self, bearing):
+    def _end_time_direction(self, angle):
         """Given a target bearing, should the dwell centre rotate so as to increase its angle
         value, or decrease? And how long until it reaches the target."""
 
-        bearing = float(bearing)
+        angle = Angle(angle)
 
-        if self.initial_float_value - self.epsilon \
-                <= bearing \
-                <= self.initial_float_value + self.epsilon:
+        if self.initial_value - self.epsilon \
+                <= angle \
+                <= self.initial_value + self.epsilon:
             return self.start_time, None  # no rotation, target bearing achieved
 
-        if self.initial_float_value < bearing:
-            if bearing - self.initial_float_value <= np.radians(180):
-                # increase bearing to reach target
-                angle_delta = bearing - self.initial_float_value
-                increasing = True
-            else:
-                # decrease bearing to reach target
-                angle_delta = 2 * np.pi + self.initial_float_value - bearing
-                increasing = False
-        else:
-            if self.initial_float_value - bearing <= np.radians(180):
-                # decrease bearing to reach target
-                angle_delta = self.initial_float_value - bearing
-                increasing = False
-            else:
-                # increase angle to reach target
-                angle_delta = 2 * np.pi + bearing - self.initial_float_value
-                increasing = True
+        angle_delta = np.abs(angle - self.initial_value)
 
         return (
             self.start_time + datetime.timedelta(seconds=angle_delta / (self.rps * 2 * np.pi)),
-            increasing
+            angle > self.initial_value
         )
 
     def __iter__(self) -> Iterator[ChangeDwellAction]:
         """Returns ChangeDwellAction types, where the value is a possible value of the [0, 0]
         element of the dwell centre's state vector."""
 
-        current_bearing = float(self.min)
+        current_angle = self.min
 
-        if self.max < self.min:
-            limit = float(self.max) + 2 * np.pi
-        else:
-            limit = float(self.max)
-
-        while current_bearing <= limit + self.epsilon:
-            rot_end_time, increasing = self._end_time_direction(current_bearing)
+        while current_angle <= self.max + self.epsilon:
+            rot_end_time, increasing = self._end_time_direction(current_angle)
             yield ChangeDwellAction(rotation_end_time=rot_end_time,
                                     generator=self,
                                     end_time=self.end_time,
-                                    target_value=Bearing(current_bearing),
+                                    target_value=Bearing(current_angle),
                                     increasing_angle=increasing)
-            current_bearing += float(self.resolution)
+            current_angle += self.resolution
 
     def action_from_value(self, value):
 
         if isinstance(value, (int, float, Angle)):
-            value = Bearing(value)
+            value = Angle(value)
         else:
             raise ValueError("Can only generate action from an Angle/float/int type")
 

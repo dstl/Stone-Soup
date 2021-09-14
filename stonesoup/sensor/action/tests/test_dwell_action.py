@@ -6,7 +6,7 @@ import pytest
 from ..dwell_action import DwellActionsGenerator, ChangeDwellAction
 from ...actionable import Actionable, ActionableProperty
 from ...base import Property
-from ....types.angle import Bearing
+from ....types.angle import Bearing, Angle
 from ....types.array import StateVector
 
 
@@ -43,8 +43,13 @@ def test_dwell_action(initial_bearing):
     # Test call and resolution
     generator()
     assert generator.resolution == np.radians(1)  # default resolution is 1 degree
-    generator(np.radians(30))
-    assert generator.resolution == np.radians(30)  # calling with arg sets resolution to arg
+    assert generator.epsilon == np.radians(1e-6)
+    generator(np.radians(15))
+    assert generator.resolution == np.radians(15)  # calling with arg sets resolution to arg
+    assert generator.epsilon == np.radians(1e-6)  # tolerance does not change
+    generator(np.radians(30), np.radians(1e-7))
+    assert generator.resolution == np.radians(30)
+    assert generator.epsilon == np.radians(1e-7)
 
     # Test value
     assert np.array_equal(generator.current_value, actionable.dwell_centre)
@@ -64,8 +69,8 @@ def test_dwell_action(initial_bearing):
     # Test contains and end-time/direction
     for angle in np.linspace(0, 90, 10):
 
-        angle1 = actionable.dwell_centre[0, 0] + np.radians(angle)
-        angle2 = actionable.dwell_centre[0, 0] - np.radians(angle)
+        angle1 = Angle(actionable.dwell_centre[0, 0]) + np.radians(angle)
+        angle2 = Angle(actionable.dwell_centre[0, 0]) - np.radians(angle)
 
         # any bearing in [dwell - 90, dwell + 90] should be achievable
         assert angle1 in generator
@@ -114,8 +119,8 @@ def test_dwell_action(initial_bearing):
 
     # Test action from value
     for angle in np.linspace(0, 180, 10):
-        angle1 = actionable.dwell_centre[0, 0] + np.radians(angle)
-        angle2 = actionable.dwell_centre[0, 0] - np.radians(angle)
+        angle1 = Angle(actionable.dwell_centre[0, 0]) + np.radians(angle)
+        angle2 = Angle(actionable.dwell_centre[0, 0]) - np.radians(angle)
 
         action1 = generator.action_from_value(angle1)
         action2 = generator.action_from_value(angle2)
