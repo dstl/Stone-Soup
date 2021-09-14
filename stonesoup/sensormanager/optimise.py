@@ -49,6 +49,9 @@ class OptimizeBruteSensorManager(_OptimizeSensorManager):
         doc="Number of grid points to search along axis. See Ns in :func:`scipy.optimize.brute`. "
             "Default is 10.")
 
+    def choose_actions(self, tracks_list, timestamp, nchoose=1, *args, **kwargs):
+        self.choose_actions(tracks_list, timestamp, nchoose=1, *args, **kwargs)
+
     def _optimiser(self, optimise_func, all_action_generators):
         ranges = [
             (gen.min, gen.max)
@@ -61,6 +64,9 @@ class OptimizeBruteSensorManager(_OptimizeSensorManager):
 
 
 class OptimizeBasinHoppingSensorManager(_OptimizeSensorManager):
+
+    def choose_actions(self, tracks_list, timestamp, nchoose=1, *args, **kwargs):
+        self.choose_actions(tracks_list, timestamp, nchoose=1, *args, **kwargs)
 
     def _optimiser(self, optimise_func, all_action_generators):
         initial_values = [

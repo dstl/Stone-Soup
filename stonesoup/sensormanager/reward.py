@@ -1,18 +1,51 @@
 # -*- coding: utf-8 -*-
 
-from copy import copy
+from copy import deepcopy
 import numpy as np
 
+from abc import abstractmethod, ABC
 from stonesoup.base import Base, Property
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.updater.kalman import ExtendedKalmanUpdater
 from stonesoup.types.track import Track
 from stonesoup.types.hypothesis import SingleHypothesis
+from stonesoup.sensor.sensor import Sensor
 
 
-class UncertaintyRewardFunction(Base):
+class RewardFunction(Base, ABC):
+    """
+    The reward function base class.
+
+    A reward function is used by a sensor manager to determine the best choice of action(s) for
+    a sensor or group of sensors to take. For a given configuration of sensors and actions the
+    reward function calculates a metric to evaluate how useful that choice of actions would be
+    with a particular objective or objectives in mind.
+    The sensor manager algorithm compares this metric for different possible configurations
+    and chooses the appropriate sensing configuration to use at that time step.
+    """
+
+    @abstractmethod
+    def calculate_reward(self, *args, **kwargs):
+        """A method which returns a reward metric based on information about the state of the
+        system, sensors and possible actions they can take.
+
+        Returns
+        -------
+        : float
+            Calculated metric
+        """
+
+        raise NotImplementedError
+
+
+class UncertaintyRewardFunction(RewardFunction):
     """A reward function which calculates the potential reduction in the uncertainty of track estimates
     if a particular action is taken by a sensor or group of sensors.
+
+    Given a configuration of sensors and actions, a metric is calculated for the potential
+    reduction in the uncertainty of the tracks that would occur if the sensing configuration
+    were used to make an observation. A larger value indicates a greater reduction in
+    uncertainty.
     """
 
     predictor: KalmanPredictor = Property(doc="Predictor used to predict the track to a new state")
@@ -20,10 +53,18 @@ class UncertaintyRewardFunction(Base):
                                                   "the track to the new state.")
 
     def calculate_reward(self, config, tracks_list, metric_time):
-        """Given a configuration of sensors and actions, a metric is calculated for the potential
-        reduction in the uncertainty of the tracks that would occur if the sensing configuration
-        were used to make an observation. A larger value indicates a greater reduction in
-        uncertainty.
+        """
+        For a given configuration of sensors and actions this reward function calculates the
+        potential uncertainty reduction of each track by
+        computing the difference between the covariance matrix norms of the prediction
+        and the posterior assuming a predicted measurement corresponding to that prediction.
+
+        The metric returned is the total potential reduction in uncertainty across all tracks.
+
+        Returns
+        -------
+        : float
+            Metric of uncertainty for given configuration
         """
 
         # Reward value
@@ -36,17 +77,18 @@ class UncertaintyRewardFunction(Base):
         # Running updates
         r_updates = dict()
 
-        predicted_sensors = dict()
+        predicted_sensors = list()
 
+        memo = {}
         # For each sensor in the configuration
         for sensor, actions in config.items():
-            #             print(actions)
-            predicted_sensor = copy(sensor)
+            predicted_sensor = deepcopy(sensor, memo)
             predicted_sensor.add_actions(actions)
             predicted_sensor.act(metric_time)
-            predicted_sensors[sensor] = predicted_sensor
+            if isinstance(sensor, Sensor):
+                predicted_sensors.append(predicted_sensor)  # checks if its a sensor
 
-        for sensor, action in config.items():
+        for sensor in predicted_sensors:
             # some logic needed here to check if sensor is platform...
 
             for track in tracks_list:
@@ -64,7 +106,7 @@ class UncertaintyRewardFunction(Base):
 
                 predicted_track = Track(previous, init_metadata=dict(Length=3, Width=1))
 
-                detections = predicted_sensors[sensor].measure([predicted_track], noise=False)
+                detections = sensor.measure([predicted_track], noise=False)
                 if not detections:
                     continue
 
