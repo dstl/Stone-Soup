@@ -90,6 +90,20 @@ def test_jacobian2():
     assert len(FOM[0]) == 0
 
 
+def test_jacobian_param():
+    """ jacobian function test """
+
+    # Sample functions to compute Jacobian on
+    def fun(x, value=0.0):
+        """ function for jabcobian parameter passing"""
+        return value*x.state_vector
+
+    x = 4
+    value = 2.0
+    jac = jacobian(fun, State(StateVector([[x]])), value=value)
+    assert np.allclose(value, jac)
+
+
 def test_jacobian_large_values():
     # State related variables
     state = State(StateVector([[1E10], [1.0]]))
