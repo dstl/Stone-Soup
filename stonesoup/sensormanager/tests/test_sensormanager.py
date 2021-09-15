@@ -159,9 +159,9 @@ def test_brute_force_choose_actions():
             difference_between_managersAB = dwell_centres_for_i[0][t] - dwell_centres_for_i[1][t]
             difference_between_managersAC = dwell_centres_for_i[0][t] - dwell_centres_for_i[2][t]
             difference_between_managersBC = dwell_centres_for_i[1][t] - dwell_centres_for_i[2][t]
-            assert difference_between_managersAB <= np.radians(30)
-            assert difference_between_managersAC <= np.radians(30)
-            assert difference_between_managersBC <= np.radians(30)
+            assert difference_between_managersAB <= np.radians(60)
+            assert difference_between_managersAC <= np.radians(60)
+            assert difference_between_managersBC <= np.radians(60)
 
     assert all_dwell_centres[0][0] == all_dwell_centres[1][0] == all_dwell_centres[2][0]
     assert all_dwell_centres[0][1] == all_dwell_centres[1][1] == all_dwell_centres[2][1]
