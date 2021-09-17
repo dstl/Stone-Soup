@@ -59,7 +59,7 @@ class RandomSensorManager(SensorManager):
     sensors: Set[Sensor] = Property(doc="The sensor(s) which the sensor manager is managing. "
                                         "These must be capable of returning available actions.")
 
-    def choose_actions(self, track_list, timestamp, nchoose=1, *args, **kwargs):
+    def choose_actions(self, tracks_list, timestamp, nchoose=1, *args, **kwargs):
         """Returns a randomly chosen [list of] action(s) from the action set for each sensor.
 
         Parameters

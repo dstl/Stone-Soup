@@ -49,7 +49,7 @@ class DwellActionsGenerator(RealNumberActionGenerator):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.resolution = Angle(np.radians(1))
+        self.resolution = Angle(np.radians(30))
         self.epsilon = Angle(np.radians(1e-6))
 
     @property
