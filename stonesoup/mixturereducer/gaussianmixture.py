@@ -182,7 +182,8 @@ class GaussianMixtureReducer(MixtureReducer):
                     shared_components = sorted(
                         (component for component in merged_components
                             if component.tag == shared_tag),
-                        key=attrgetter('weight'))
+                        key=attrgetter('weight'),
+                        reverse=True)
                     final_merged_components.append(shared_components[0])
                     for component in shared_components[1:]:
                         # Assign a new uuid
