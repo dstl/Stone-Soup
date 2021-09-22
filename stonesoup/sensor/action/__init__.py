@@ -12,10 +12,6 @@ class Action(Base):
     end_time: datetime.datetime = Property(readonly=True)
     target_value: Any = Property()
 
-    @property
-    def current_value(self):
-        return getattr(self.owner, self.attribute)
-
     def act(self, current_time, timestamp, init_value):
         """Return the attribute modified.
         Parameters

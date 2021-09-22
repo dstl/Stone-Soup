@@ -134,6 +134,16 @@ def test_dwell_action(initial_bearing):
             assert isinstance(action2, ChangeDwellAction)
             assert pytest.approx(action2.target_value, angle2)
 
+            # Test equality
+            if np.isclose(angle, 180) or np.isclose(angle, 0):
+                assert action1 == action2
+                assert hash(action1) == hash(action2)
+            else:
+                assert action1 != action2
+                assert hash(action1) != hash(action2)
+
+            assert action1 != 180  # not an action
+
     # Test action from invalid
     with pytest.raises(ValueError, match="Can only generate action from an Angle/float/int type"):
         generator.action_from_value('hello')
