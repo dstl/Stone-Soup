@@ -5,17 +5,20 @@ import numpy as np
 import pytest
 
 from ..manager import SimpleManager
-from ..uncertaintymetric import SumofCovarianceNormsMetric
+from ..uncertaintymetric import SumofCovarianceNormsMetric, MeanofCovarianceNormsMetric
 from ...types.detection import Detection
 from ...types.groundtruth import GroundTruthPath, GroundTruthState
 from ...types.state import State, GaussianState
 from ...types.track import Track
 
 
-def test_sumcovariancenormsmetric_extractstates():
-    """Test Sum of Covariance Norms Metric extract states."""
-    generator = SumofCovarianceNormsMetric()
+@pytest.fixture(params=[SumofCovarianceNormsMetric, MeanofCovarianceNormsMetric])
+def generator(request):
+    return request.param()
 
+
+def test_covariancenormsmetric_extractstates(generator):
+    """Test Covariance Norms Metric extract states."""
     # Test state extraction
     time_start = datetime.datetime.now()
     detections = [Detection(state_vector=np.array([[i]]), timestamp=time_start)
@@ -36,25 +39,24 @@ def test_sumcovariancenormsmetric_extractstates():
         generator.extract_states([1, 2, 3])
 
 
-def test_sumcovariancenormsmetric_compute_sum_covariancenorms():
-    """Test Sum of Covariance Norms Metric compute uncertainty."""
-    generator = SumofCovarianceNormsMetric()
-
+def test_covariancenormsmetric_compute_covariancenorms(generator):
+    """Test Covariance Norms Metric compute uncertainty."""
     time = datetime.datetime.now()
     track = Track(states=[GaussianState(state_vector=[[1], [2], [1], [2]],
                                         timestamp=time,
                                         covar=np.diag([i, i, i, i]))
                           for i in range(5)])
 
-    metric = generator.compute_sum_covariancenorms(track.states)
+    metric = generator.compute_covariancenorms(track.states)
+    divide = len(track) if isinstance(generator, MeanofCovarianceNormsMetric) else 1
 
-    assert metric.title == "Covariance Matrix Norm Sum"
-    assert metric.value == 20
+    assert metric.title == f"Covariance Matrix Norm {generator._type}"
+    assert metric.value == 20 / divide
     assert metric.timestamp == time
     assert metric.generator == generator
     with pytest.raises(ValueError,
                        match="All states must be from the same time to compute total uncertainty"):
-        generator.compute_sum_covariancenorms([
+        generator.compute_covariancenorms([
             GaussianState(state_vector=[[1], [2], [1], [2]],
                           timestamp=time,
                           covar=np.diag([0, 0, 0, 0])),
@@ -63,10 +65,8 @@ def test_sumcovariancenormsmetric_compute_sum_covariancenorms():
                           covar=np.diag([0, 0, 0, 0]))])
 
 
-def test_sumcovariancenormsmetric_compute_metric():
-    """Test Sum of Covariance Norms compute metric."""
-    generator = SumofCovarianceNormsMetric()
-
+def test_covariancenormsmetric_compute_metric(generator):
+    """Test Covariance Norms compute metric."""
     time = datetime.datetime.now()
 
     # Multiple tracks and truths present at two timesteps
@@ -87,17 +87,19 @@ def test_sumcovariancenormsmetric_compute_metric():
     main_metric = generator.compute_metric(manager)
     first_association, second_association = main_metric.value
 
-    assert main_metric.title == "Sum of Covariance Norms Metric"
+    assert main_metric.title == f"{generator._type} of Covariance Norms Metric"
     assert main_metric.time_range.start_timestamp == time
     assert main_metric.time_range.end_timestamp == time + datetime.timedelta(
         seconds=1)
 
-    assert first_association.title == "Covariance Matrix Norm Sum"
-    assert first_association.value == 20
+    divide = len(tracks) if isinstance(generator, MeanofCovarianceNormsMetric) else 1
+
+    assert first_association.title == f"Covariance Matrix Norm {generator._type}"
+    assert first_association.value == 20 / divide
     assert first_association.timestamp == time
     assert first_association.generator == generator
 
-    assert second_association.title == "Covariance Matrix Norm Sum"
-    assert second_association.value == 25
+    assert second_association.title == f"Covariance Matrix Norm {generator._type}"
+    assert second_association.value == 25 / divide
     assert second_association.timestamp == time + datetime.timedelta(seconds=1)
     assert second_association.generator == generator
