@@ -66,8 +66,8 @@ def base(model, state, turn_noise_diff_coeffs, turn_rate):
                    qy * timediff]])
 
     # Ensure ```model_obj.transfer_function(time_interval)``` returns F
-    assert np.array_equal(F, model_obj.matrix(
-        timestamp=new_timestamp, time_interval=time_interval))
+    assert np.array_equal(F, model_obj.jacobian(State(state_vec),
+                                                time_interval=time_interval))
 
     # Ensure ```model_obj.covar(time_interval)``` returns Q
     assert np.array_equal(Q, model_obj.covar(

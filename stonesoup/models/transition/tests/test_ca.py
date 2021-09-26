@@ -8,8 +8,8 @@ import scipy as sp
 from scipy.stats import multivariate_normal
 from ....types.state import State
 
-from ..linear import (
-    ConstantAcceleration, CombinedLinearGaussianTransitionModel)
+from ..linear import ConstantAcceleration
+from ..base import CombinedGaussianTransitionModel
 
 
 def test_ca1dmodel():
@@ -47,7 +47,7 @@ def base(state_vec, noise_diff_coeffs):
     else:
         model_list = [ConstantAcceleration(
             noise_diff_coeff=noise_diff_coeffs[i]) for i in range(0, dim)]
-        model_obj = CombinedLinearGaussianTransitionModel(model_list)
+        model_obj = CombinedGaussianTransitionModel(model_list)
 
     # State related variables
     state_vec = state_vec
@@ -78,8 +78,8 @@ def base(state_vec, noise_diff_coeffs):
     Q = sp.linalg.block_diag(*covar_list)
 
     # Ensure ```model_obj.transfer_function(time_interval)``` returns F
-    assert np.array_equal(F, model_obj.matrix(
-        timestamp=new_timestamp, time_interval=time_interval))
+    assert F == approx(model_obj.jacobian(State(state_vec),
+                                          time_interval=time_interval))
 
     # Ensure ```model_obj.covar(time_interval)``` returns Q
     assert np.array_equal(Q, model_obj.covar(

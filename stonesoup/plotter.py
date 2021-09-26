@@ -8,7 +8,7 @@ from matplotlib.patches import Ellipse
 from matplotlib.legend_handler import HandlerPatch
 
 from .types import detection
-from .models.base import LinearModel, NonLinearModel
+from .models.base import LinearModel, Model
 
 
 class Plotter:
@@ -127,7 +127,7 @@ class Plotter:
                 inv_model_matrix = np.linalg.pinv(model_matrix)
                 state_vec = inv_model_matrix @ state.state_vector
 
-            elif isinstance(meas_model, NonLinearModel):
+            elif isinstance(meas_model, Model):
                 try:
                     state_vec = meas_model.inverse_function(state)
                 except (NotImplementedError, AttributeError):

@@ -5,7 +5,7 @@ from .base import GaussianInitiator, ParticleInitiator, Initiator
 from ..base import Property
 from ..dataassociator import DataAssociator
 from ..deleter import Deleter
-from ..models.base import NonLinearModel, ReversibleModel
+from ..models.base import LinearModel, ReversibleModel
 from ..models.measurement import MeasurementModel
 from ..types.hypothesis import SingleHypothesis
 from ..types.numeric import Probability
@@ -96,7 +96,11 @@ class SimpleMeasurementInitiator(GaussianInitiator):
             else:
                 measurement_model = self.measurement_model
 
-            if isinstance(measurement_model, NonLinearModel):
+            if isinstance(measurement_model, LinearModel):
+                model_matrix = measurement_model.matrix()
+                inv_model_matrix = np.linalg.pinv(model_matrix)
+                state_vector = inv_model_matrix @ detection.state_vector
+            else:
                 if isinstance(measurement_model, ReversibleModel):
                     try:
                         state_vector = measurement_model.inverse_function(
@@ -114,10 +118,6 @@ class SimpleMeasurementInitiator(GaussianInitiator):
                 else:
                     raise Exception("Invalid measurement model used.\
                                     Must be instance of linear or reversible.")
-            else:
-                model_matrix = measurement_model.matrix()
-                inv_model_matrix = np.linalg.pinv(model_matrix)
-                state_vector = inv_model_matrix @ detection.state_vector
 
             model_covar = measurement_model.covar()
 

@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 
-from ..array import Matrix, StateVector, CovarianceMatrix, PrecisionMatrix
+from ..array import Matrix, StateVector, StateVectors, CovarianceMatrix, PrecisionMatrix
 
 
 def test_statevector():
@@ -19,6 +19,22 @@ def test_statevector():
     assert np.array_equal(StateVector([1, 2, 3, 4]), state_vector_array)
     assert np.array_equal(StateVector([[1, 2, 3, 4]]), state_vector_array)
     assert np.array_equal(StateVector(state_vector_array), state_vector)
+
+
+def test_statevectors():
+    vec1 = np.array([[1.], [2.], [3.]])
+    vec2 = np.array([[2.], [3.], [4.]])
+
+    sv1 = StateVector(vec1)
+    sv2 = StateVector(vec2)
+
+    vecs1 = np.concatenate((vec1, vec2), axis=1)
+    svs1 = StateVectors([sv1, sv2])
+    svs2 = StateVectors(vecs1)
+    svs3 = StateVectors([vec1, vec2])  # Creates 3dim array
+    assert np.array_equal(svs1, vecs1)
+    assert np.array_equal(svs2, vecs1)
+    assert svs3.shape != vecs1.shape
 
 
 def test_standard_statevector_indexing():

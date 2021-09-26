@@ -47,6 +47,23 @@ class Model(Base):
         """
         raise NotImplementedError
 
+    def jacobian(self, state, **kwargs):
+        """Model jacobian matrix :math:`H_{jac}`
+
+        Parameters
+        ----------
+        state : :class:`~.State`
+            An input state
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape (:py:attr:`~ndim_meas`, \
+        :py:attr:`~ndim_state`)
+            The model jacobian matrix evaluated around the given state vector.
+        """
+
+        return compute_jac(self.function, state, **kwargs)
+
     @abstractmethod
     def rvs(self, num_samples: int = 1, **kwargs) -> Union[StateVector, StateVectors]:
         r"""Model noise/sample generation function
@@ -140,32 +157,7 @@ class LinearModel(Model):
         return self.matrix(**kwargs)
 
 
-class NonLinearModel(Model):
-    """NonLinearModel class
-
-    Base/Abstract class for all non-linear models"""
-
-    def jacobian(self, state: State, **kwargs) -> np.ndarray:
-        """Model Jacobian matrix :math:`H_{jac}`
-
-        Parameters
-        ----------
-        state : :class:`~.State`
-            An input state
-
-        Returns
-        -------
-        :class:`numpy.ndarray` of shape (attr:`~ndim_meas`, :attr:`~ndim_state`)
-            The model Jacobian matrix evaluated around the given state vector.
-        """
-
-        def fun(x):
-            return self.function(x, noise=False, **kwargs)
-
-        return compute_jac(fun, state)
-
-
-class ReversibleModel(NonLinearModel):
+class ReversibleModel(Model):
     """Non-linear model containing sufficient co-ordinate
     information such that the linear co-ordinate conversions
     can be calculated from the non-linear counterparts.

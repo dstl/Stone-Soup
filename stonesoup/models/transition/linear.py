@@ -7,7 +7,7 @@ import numpy as np
 from scipy.integrate import quad
 from scipy.linalg import block_diag
 
-from .base import TransitionModel, _CombinedGaussianTransitionModel
+from .base import TransitionModel, CombinedGaussianTransitionModel
 from ..base import (LinearModel, GaussianModel, TimeVariantModel,
                     TimeInvariantModel)
 from ...base import Property
@@ -30,7 +30,7 @@ class LinearGaussianTransitionModel(
         return self.matrix().shape[0]
 
 
-class CombinedLinearGaussianTransitionModel(LinearModel, _CombinedGaussianTransitionModel):
+class CombinedLinearGaussianTransitionModel(LinearModel, CombinedGaussianTransitionModel):
     r"""Combine multiple models into a single model by stacking them.
 
     The assumption is that all models are Linear and Gaussian.
