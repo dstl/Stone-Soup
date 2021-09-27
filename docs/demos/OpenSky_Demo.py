@@ -10,7 +10,7 @@ Tracking Groundtruth ADS-B Data by Simulating Radar Detections
 # ------------
 # Our goal in this demonstration is to plot time series data of Stone Soup's :class:`~.MultiTargetTracker`
 # being applied to air traffic over and surrounding the UK.
-# To do this, we will be using a CSV file of ADS–B data sourced from `The OpenSky Network`_ [#]_.
+# To do this, we will be using a CSV file of ADS–B data sourced from `The OpenSky Network`_ [#]_ [#]_.
 # This data will be used as our groundtruth. We will be simulate radar detections, and establish
 # the individual components
 #
@@ -260,7 +260,7 @@ len(tracks)
 import folium
 
 m = folium.Map(
-    location=[51.47, -0.4543], zoom_start=5,
+    location=[52.41, -0.4543], zoom_start=6,
     tiles='http://{s}.tiles.wmflabs.org/bw-mapnik/{z}/{x}/{y}.png',
     attr='&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>')
 
@@ -315,7 +315,7 @@ geo_json = {
 # %%
 # Plotting the Moving Sensor
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Let us set up the icon and trail for our moving sensor. A radar dish icon will show its location
+# Let us set up the icon and trail for our moving sensor. A radar dish icon [#images]_ will show its location
 # at any given timestamp, and its trail will show where it has been.
 
 trail_Size = 14  # trail_Size is number of timestamps we want track to trail for
@@ -348,7 +348,7 @@ for platform in movingPlatforms:
             'properties':{
                 'icon': 'marker',
                 'iconstyle':{
-                    'iconUrl': 'http://simpleicon.com/wp-content/uploads/radar.png',
+                    'iconUrl': '../_static/sphinx_gallery/Radar_dish.png',
                     'iconSize': [24, 24],
                     'fillOpacity': 1,
                     'popupAnchor': [1, -17]},
@@ -492,7 +492,7 @@ for id in icao:
 
 # %%
 # Our final task is to provide icons for our groundtruth. For each timestamp, each plane's
-# heading will be rounded to the nearest 10 degrees, and an appropriate icon to reflect this
+# heading will be rounded to the nearest 10 degrees, and an appropriate icon [#images]_ to reflect this
 # heading will be chosen. Icons of planes can also be clicked on to display key data
 # (remember to pause time to do this).
 
@@ -568,3 +568,7 @@ m
 # References
 # ----------
 # .. [#] The OpenSky Network, http://www.opensky-network.org
+# .. [#] Bringing up OpenSky: A large-scale ADS-B sensor network for research
+#    Matthias Schäfer, Martin Strohmeier, Vincent Lenders, Ivan Martinovic, Matthias Wilhelm
+#    ACM/IEEE International Conference on Information Processing in Sensor Networks, April 2014
+# .. [#images] Radar and Plane icons provided by http://simpleicon.com/
