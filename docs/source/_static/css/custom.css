@@ -1,3 +1,6 @@
+img.logo {
+    height: 100px !important;
+}
 .anim-state label {
     display: inline-block;
 }
