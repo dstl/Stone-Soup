@@ -1,8 +1,8 @@
 Welcome to Stone Soup's documentation!
 ======================================
 
-.. image:: _static/stone_soup_logo.png
-    :scale: 80%
+.. image:: _static/stone_soup_logo.svg
+    :width: 200px
     :align: center
     :alt: Stone Soup Logo
 
