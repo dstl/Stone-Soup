@@ -40,6 +40,7 @@ class Actionable(Base, ABC):
     @abstractmethod
     def validate_timestamp(self):
         """Method of attaining actionable's timestamp.
+
         Returns
         -------
         bool

@@ -12,11 +12,31 @@ from ...types.angle import Angle, Bearing
 
 
 class ChangeDwellAction(Action):
-    rotation_end_time: datetime.datetime = Property(readonly=True)
-    increasing_angle: bool = Property(default=None, readonly=True)
+    """The action of changing the dwell centre of sensors where `dwell_centre` is an
+    :class:`~.ActionableProperty`"""
+
+    rotation_end_time: datetime.datetime = Property(readonly=True,
+                                                    doc="End time of rotation.")
+    increasing_angle: bool = Property(default=None, readonly=True,
+                                      doc="Indicated the direction of change in the "
+                                          "dwell centre angle.")
 
     def act(self, current_time, timestamp, init_value):
-        """Assumes that duration keeps within the action end time."""
+        """Assumes that duration keeps within the action end time
+
+        Parameters
+        ----------
+        current_time: datetime.timedelta
+            Current time
+        timestamp: datetime.timedelta
+            Modification of attribute ends at this time stamp
+        init_value: Any
+            Current value of the dwell centre
+
+        Returns
+        -------
+        Any
+            The new value of the dwell centre"""
 
         if self.increasing_angle is None:
             return init_value
@@ -44,6 +64,9 @@ class ChangeDwellAction(Action):
 
 
 class DwellActionsGenerator(RealNumberActionGenerator):
+    """Generates possible actions for changing the dwell centre of a sensor in a given
+    time period."""
+
     owner: object = Property(doc="Object with `timestamp`, `rpm` (revolutions per minute) and "
                                  "dwell-centre attributes")
 
@@ -146,6 +169,19 @@ class DwellActionsGenerator(RealNumberActionGenerator):
             current_angle += self.resolution
 
     def action_from_value(self, value):
+        """Given a value for dwell centre, what action would achieve that dwell centre
+        value.
+
+        Parameters
+        ----------
+        value: Any
+            Dwell centre value for which the action is required.
+
+        Returns
+        -------
+        ChangeDwellAction
+            Action which wil achieve this dwell centre.
+        """
 
         if isinstance(value, (int, float, Angle)):
             value = Angle(value)

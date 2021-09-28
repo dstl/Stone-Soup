@@ -6,18 +6,26 @@ from ...base import Base, Property
 
 
 class Action(Base):
+    """The base class for an action that can be taken by a sensor or platform with an
+    :class:`~.ActionableProperty`."""
+
     generator: Any = Property(default=None,
                               readonly=True,
                               doc="Action generator that created the action.")
-    end_time: datetime.datetime = Property(readonly=True)
-    target_value: Any = Property()
+    end_time: datetime.datetime = Property(readonly=True,
+                                           doc="Time at which modification of the "
+                                               "attribute ends.")
+    target_value: Any = Property(doc="Target value.")
 
     def act(self, current_time, timestamp, init_value):
         """Return the attribute modified.
+
         Parameters
         ----------
-        duration: datetime.timedelta
-            Duration of modification of attribute
+        current_time: datetime.timedelta
+            Current time
+        timestamp: datetime.timedelta
+            Modification of attribute ends at this time stamp
         init_value: Any
             Current value of the modifiable attribute
 
@@ -38,10 +46,12 @@ class Action(Base):
 
 
 class ActionGenerator(Base):
+    """The base class for an action generator."""
+
     owner: object = Property(doc="Actionable object that has the attribute to be modified.")
     attribute: str = Property(doc="The name of the attribute to be modified.")
-    start_time: datetime.datetime = Property()
-    end_time: datetime.datetime = Property()
+    start_time: datetime.datetime = Property(doc="Start time of action.")
+    end_time: datetime.datetime = Property(doc="End time of action.")
 
     @abstractmethod
     def __contains__(self, item):

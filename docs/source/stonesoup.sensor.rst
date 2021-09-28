@@ -4,6 +4,9 @@ Sensors
 .. toctree::
     stonesoup.sensor.radar
 
+.. toctree::
+    stonesoup.sensor.action
+
 .. automodule:: stonesoup.sensor
     :no-members:
 
