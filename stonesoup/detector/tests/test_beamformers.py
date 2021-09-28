@@ -36,7 +36,7 @@ def test_fixed_target_beamformer():
     detector1 = beamformers.capon(data_file, sensor_loc="0 0 0; 0 10 0; 0 20 0; 10 0 0; 10 10 0; \
         10 20 0; 20 0 0; 20 10 0; 20 20 0", fs=2000, omega=50, wave_speed=1481)
     detector2 = beamformers.rjmcmc(data_file, sensor_loc="0 0 0; 0 10 0; 0 20 0; 10 0 0; 10 10 0; \
-        10 20 0; 20 0 0; 20 10 0; 20 20 0", fs=2000, omega=50, wave_speed=1481)
+        10 20 0; 20 0 0; 20 10 0; 20 20 0", fs=2000, omega=50, wave_speed=1481, seed=12345)
 
     track1 = Track()
     track2 = Track()

@@ -136,6 +136,13 @@ def noise_proposal(noise):
 
 
 class capon(Base, BufferedGenerator):
+    """An adaptive beamformer method designed to reduce the influence of side lobes in the case of
+    multiple signals with different directions of arrival. The beamformer uses the Capon algorithm.
+
+    J. Capon, High-Resolution Frequency-Wavenumber Spectrum Analysis, Proc. IEEE 57(8):1408-1418
+    (1969)
+
+    """
     csv_path: str = Property(doc='The path to the csv file, containing the raw data')
     fs: float = Property(doc='Sampling frequency (Hz)')
     sensor_loc: str = Property(doc='Cartesian coordinates of the sensors in the format\
@@ -161,7 +168,9 @@ class capon(Base, BufferedGenerator):
         # spatial locations of hydrophones
         z = np.matrix(self.sensor_loc)
 
-        N = 9  # No. of hydrophones
+        self.num_sensors = int(np.matrix(self.sensor_loc).size/3)
+
+        N = self.num_sensors
 
         # steering vector
         v = np.zeros(N, dtype=np.complex)
@@ -217,23 +226,41 @@ class capon(Base, BufferedGenerator):
 
 
 class rjmcmc(Base, BufferedGenerator):
+    """A parameter estimation algorithm for a sensor array measuring passive signals. Given the
+    input signals from the array, the algorithm uses reversible-jump Markov chain Monte Carlo [1]
+    to sample from the posterior probability for a model where the number of targets and directions
+    of arrival are the unknown parameters. The algorithm is based on the work in [2] and [3].
+
+    [1] P. J. Green, Reversible jump Markov chain Monte Carlo computation and Bayesian
+    model determination, Biometrika 82(4):711-732 (1995)
+    [2] C. Andrieu and A. Doucet, Joint Bayesian Model Selection and Estimation of
+    Noisy Sinusoids via Reversible Jump MCMC, IEEE Trans. Signal Process. 47(10):2667-2676 (1999)
+    [3] C. Andrieu, N. de Freitas and A. Doucet, Robust Full Bayesian Learning for Radial Basis
+    Networks, Neural Computation 13:2359–2407 (2001)
+
+    """
     csv_path: str = Property(doc='The path to the csv file, containing the raw data')
     fs: float = Property(doc='Sampling frequency (Hz)')
     omega: float = Property(doc='Signal frequency (Hz)')
     sensor_loc: str = Property(doc='Cartesian coordinates of the sensors in the format\
                                "X1 Y1 Z1; X2 Y2 Z2;...."')
     wave_speed: float = Property(doc='Speed of wave in the medium')
+    seed: int = Property(doc='Random number generator seed for reproducible output. Set to 0 for\
+                         non-reproducible output')
 
     @BufferedGenerator.generator_method
     def detections_gen(self):
         detections = set()
         current_time = datetime.now()
 
-        num_samps = 100000  # number of MCMC samples
+        if self.seed != 0:
+            random.seed(a=self.seed, version=2)
+
+        num_samps = 10000  # number of MCMC samples
         fs = self.fs  # sampling frequency (Hz)
         Lambda = 1  # expected number of targets
 
-        window = 1000  # size of sliding window in samples
+        window = 800  # size of sliding window in samples
 
         y = np.loadtxt(self.csv_path, delimiter=',')
 
