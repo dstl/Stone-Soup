@@ -49,7 +49,7 @@ class UncertaintyRewardFunction(RewardFunction):
     """
 
     predictor: KalmanPredictor = Property(doc="Predictor used to predict the track to a new state")
-    updater: ExtendedKalmanUpdater = Property(doc="Updater used in the reward function to update "
+    updater: ExtendedKalmanUpdater = Property(doc="Updater used to update "
                                                   "the track to the new state.")
 
     def calculate_reward(self, config, tracks_list, metric_time):

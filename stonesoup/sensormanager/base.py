@@ -67,7 +67,7 @@ class RandomSensorManager(SensorManager):
         tracks_list: list of :class:`~Track`
             List of tracks at given time. Used in reward function.
         timestamp: :class:`datetime.datetime`
-            Time at which the actions are being chosen
+            Time at which the actions are carried out until
         nchoose : int
             Number of actions from the set to choose (default is 1)
 
@@ -117,7 +117,7 @@ class BruteForceSensorManager(SensorManager):
         tracks_list: list of :class:`~Track`
             List of tracks at given time. Used in reward function.
         timestamp: :class:`datetime.datetime`
-            Time at which the actions are being chosen
+            Time at which the actions are carried out until
         nchoose : int
             Number of actions from the set to choose (default is 1)
 
