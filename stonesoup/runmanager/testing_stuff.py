@@ -34,10 +34,12 @@ def get_trackers_list(iterations_container_list, value_min):
 def all_combos(**items):
     Combo = namedtuple('_params', items.keys())
     return starmap(Combo, product(*items.values()))
-    
-def new_all_combos(*items):
-    iters = list(product(*items))
-    return iters
+
+def generate_all_combos(trackers_dict):
+    keys = trackers_dict.keys()
+    values = (trackers_dict[key] for key in keys)
+    combinations = [dict(zip(keys, combination)) for combination in itertools.product(*values)]
+    return combinations
 
 def run():
     # Initiating by reading in the files
@@ -73,18 +75,7 @@ def run():
                 int_list[path] = [int(x) for x in int_iterations]
                 trackers.update(int_list)
 
-    print(trackers)
-
-def collect_elements(dict):
-    combo_tracker={}
-    temp={}
-    z=0
-    for k, i in dict.items():
-        for value in i:
-            combo_tracker={}
-            combo_tracker[k]=value
-            temp.update(combo_tracker)
-    return temp
+    print(generate_all_combos(trackers))
 
 """
     for i in json_data["parameters"]:
