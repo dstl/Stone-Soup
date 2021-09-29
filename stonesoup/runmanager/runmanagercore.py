@@ -2,19 +2,17 @@ import os
 import sys
 from flask import Flask, render_template, url_for, request, redirect
 from werkzeug.utils import secure_filename
-from flask_bootstrap import Bootstrap
+
 from stonesoup.runmanager.parameters import Parameters
 from stonesoup.serialise import YAML
 from stonesoup.types.array import CovarianceMatrix
 from numpy.random.mtrand import randint
-from stonesoup.runmanager import RunManager
 import numpy as np
-from stonesoup.runmanager.utils import generate_covar, generate_random_array, generate_random_covar, \
-    generate_random_int, Tree, NodeData
+
 from stonesoup.initiator.simple import GaussianParticleInitiator, SinglePointInitiator
 from stonesoup.platform.base import MovingPlatform, MultiTransitionMovingPlatform, Platform
 from stonesoup.base import Base
-from anytree import Node
+
 import random
 import inspect
 import importlib
@@ -26,8 +24,6 @@ import datetime
 from stonesoup.metricgenerator.ospametric import OSPAMetric
 from stonesoup.measures import Euclidean
 from stonesoup.metricgenerator.manager import SimpleManager
-import plotly.express as px
-from _datetime import timedelta
 from matplotlib import pyplot as plt
 import json
 import itertools
@@ -71,6 +67,7 @@ def iterations(minValue, maxValue, num_samples, iteration_level):
     factor = difference / (num_samples - 1)
     while x < num_samples:
         returnVar.append(minValue + (x * factor))
+        print(returnVar)
         x += 1
     print("RANGE VALUES CALCULATED FOR SAMPLES", num_samples, "AT ITERATION", iteration_level, "IS: ", returnVar)
     return returnVar
@@ -80,88 +77,81 @@ def getTrackersList(c, listCount, iterationsContainerList, minValues):
     iterationLength = len(minValues[c])
     finalLocation = listCount + iterationLength
     tempContainer = []
+    print("listcoutn", listCount)
+    print("iteration_lenth", iterationLength)
+    
+
+    #print("listCombinations", iterationsContainerList[0])
     while listCount < finalLocation:
         tempContainer.append(iterationsContainerList[listCount])
+        #print("listCombinations", iterationsContainerList[listCount])
         listCount += 1
+    #print("tempContainer", tempContainer)
     listCombinations = list(itertools.product(*tempContainer))
     setCombinations = list(set(listCombinations))
+    print("tempContainer", setCombinations)
     # This removes duplicate rows, as sets aren't allowed to have duplicates in python
     return setCombinations
 
+# Calculate the steps for each item in a list
+def iterations(min_value, max_value, num_samples):
+    temp = []
+    difference = max_value - min_value
+    factor = difference / (num_samples - 1)
+    for x in range(num_samples):
+        temp.append(min_value + (x * factor))
+    return temp
+
+# gets the combinations for one tracker and stores in list
+# Once you have steps created from iterations, generate step combinations for one parameter
+def get_trackers_list(iterations_container_list, value_min):
+    temp =[]
+    for x in range(0, len(value_min)):
+        temp.append(iterations_container_list[x])
+    list_combinations = list(itertools.product(*temp))
+    set_combinations = set(list_combinations)
+    return set_combinations
+
+# Generates all of the combinations between different parameters
+def generate_all_combos(trackers_dict):
+    keys = trackers_dict.keys()
+    values = (trackers_dict[key] for key in keys)
+    combinations = [dict(zip(keys, combination)) for combination in itertools.product(*values)]
+    return combinations
 def run():
     # Initiating by reading in the files
     num_runs = 1  # TEMPORARY VALUE. NEEDS TO BE READ FROM JSON
-    pathInput = input("Input json directory: ")
-    path = input("Input config yaml directory: ")
-    json_data = read_json(pathInput)
+    path_input = 'C:\\Users\\Davidb1\\Documents\\Python\\data\\dummy2.json'
+    config_path = "C:\\Users\\Davidb1\\Documents\\Python\\data\\config.yaml"
+    json_data = read_json(path_input)
+    
+    iters = []
+    trackers = {}
+    combo_list = {}
+    int_list = {}
 
-    # Getting all the manual datapoints from the JSON
-    num_runs = int(json_data['runs_num'])
-    num_iterations = []
-    minValues = []
-    maxValues = []
-    paths = []
-    dataType = []
-    for x in json_data["parameters"]:
-        paths.append(x["path"])
-        num_iterations.append(x["n_samples"])
-        minValues.append(x["valueMin"])
-        maxValues.append(x["valueMax"])
+    for param in json_data["parameters"]:
+        for key, val in param.items():
+            path = param["path"]
 
-    #This section takes the input from the JSON, and calculat
-    q = 0
-    iterationsContainerIntFloat = []
-    iterationsContainerList = []
-    while q < len(minValues):
-        if isinstance(minValues[q], list):
-            dataType.append("list")
-            qq = 0
-            while qq < len(minValues[q]):
-                tempCont = iterations(minValues[q][qq], maxValues[q][qq], num_iterations[q], q)
-                iterationsContainerList.append(tempCont)
-                qq += 1
-        if isinstance(minValues[q], int) or isinstance(minValues[q], float):
-            tempCont = iterations(minValues[q], maxValues[q], num_iterations[q], q)
-            iterationsContainerIntFloat.append(tempCont)
-        q += 1
+            if type(val) is list and key == "value_min":
+                for x in range(len(val)):
+                    iters.append(iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
+                combo_list[path] = get_trackers_list(iters, param["value_min"])
+                trackers.update(combo_list)
 
-    print("INT FLOAT CONTAINER CONTAINS", iterationsContainerIntFloat)
-    print("STRING CONTAINER CONTAINS", iterationsContainerList)
+            if type(val) is int and key == "value_min":
+                path = param["path"]
+                int_iterations = iterations(param["value_min"], param["value_max"], param["n_samples"])
+                int_list[path] = [int(x) for x in int_iterations]
+                trackers.update(int_list)
 
-    c = 0
-    listCount = 0
-    intFloatCount = 0
-    trackersFromJSON = []
-    while c < len(paths):
-        if dataType[c] == "list":
-            setCombinations = getTrackersList(c, listCount, iterationsContainerList, minValues)
-            medium = 0
-            while medium < len(setCombinations):
-                trackersFromJSONMedium = []
-                trackersFromJSONMedium.append(paths[c])
-                trackersFromJSONMedium.append(num_iterations[c])
-                trackersFromJSONMedium.append(setCombinations[medium])
-                medium += 1
-                trackersFromJSON.append(trackersFromJSONMedium)
-            c += 1
-        else:
-            #Future implementations of data types (eg float/int), are included here as elseifs
-            #The else c+=1 is to skip variable types that haven't been implemented yet
-            c += 1
-    counter = 0
-    print("LIST OF TRACKERS FROM JSON IS: (STRUCTURED PATH -> NUM SAMPLES -> VARIABLES)")
-    while counter < len(trackersFromJSON):
-        print(trackersFromJSON[counter])
-        counter += 1
-    print("These are to be repeated", num_runs,"times")
+    print(generate_all_combos(trackers))
 
+    # Everything from this point onwards is from original runmanager
+    # This current code still uses the yaml file to run the monte carlo
 
-
-    print("**********************************************************************************")
-# Everything from this point onwards is from original runmanager
-# This current code still uses the yaml file to run the monte carlo
-
-    with open(path, 'r') as file:
+    with open(config_path, 'r') as file:
         tracker, ground_truth, metric_manager = read_config_file(file)
 
     trackers = []
