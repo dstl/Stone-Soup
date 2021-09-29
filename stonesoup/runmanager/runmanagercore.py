@@ -126,7 +126,7 @@ def run():
     json_data = read_json(path_input)
     
     iters = []
-    trackers = {}
+    trackers_combination_dict = {}
     combo_list = {}
     int_list = {}
 
@@ -138,18 +138,19 @@ def run():
                 for x in range(len(val)):
                     iters.append(iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
                 combo_list[path] = get_trackers_list(iters, param["value_min"])
-                trackers.update(combo_list)
+                trackers_combination_dict.update(combo_list)
 
             if type(val) is int and key == "value_min":
                 path = param["path"]
                 int_iterations = iterations(param["value_min"], param["value_max"], param["n_samples"])
                 int_list[path] = [int(x) for x in int_iterations]
-                trackers.update(int_list)
+                trackers_combination_dict.update(int_list)
 
-    print(generate_all_combos(trackers))
+    the_combo_dict = generate_all_combos(trackers_combination_dict)
 
     # Everything from this point onwards is from original runmanager
     # This current code still uses the yaml file to run the monte carlo
+    from operator import attrgetter
 
     with open(config_path, 'r') as file:
         tracker, ground_truth, metric_manager = read_config_file(file)
@@ -158,29 +159,33 @@ def run():
     ground_truths = []
     metric_managers = []
 
-    for i in range(0, num_runs):
-        tracker_copy, ground_truth_copy, metric_manager_copy = copy.deepcopy(
+    for parameter in the_combo_dict:
+        for k, v in parameter.items():
+            split_path = k.split('.')
+            path_param = '.'.join(split_path[1::])
+            print(split_path[-1])
+            tracker_copy, ground_truth_copy, metric_manager_copy = copy.deepcopy(
             (tracker, ground_truth, metric_manager))
+            setattr(tracker_copy.initiator, split_path[-1], v)
         trackers.append(tracker_copy)
         ground_truths.append(ground_truth_copy)
         metric_managers.append(metric_manager_copy)
-
+    
+    for trac in trackers:
+        print("\n",trac.initiator.number_particles)
+    #print(trackers)
+    #trackers()
     # Initialise the tracker
-    tracker_copy, ground_truth_copy, metric_manager_copy = copy.deepcopy((tracker, ground_truth, metric_manager))
+    """ tracker_copy, ground_truth_copy, metric_manager_copy = copy.deepcopy((tracker, ground_truth, metric_manager))
     tracker_min, ground_truth_min, metric_manager_min = copy.deepcopy((tracker, ground_truth, metric_manager))
     tracker_max, ground_truth_max, metric_manager_max = copy.deepcopy((tracker, ground_truth, metric_manager))
-    tracker_step, ground_truth_step, metric_manager_step = copy.deepcopy((tracker, ground_truth, metric_manager))
-
+    tracker_step, ground_truth_step, metric_manager_step = copy.deepcopy((tracker, ground_truth, metric_manager)) """
+""" 
     metricsList = []
-    for i in range(0, num_runs):
+    for i in range(0, json_data["runs_num"]):
+        
         try:
-            print(trackers[i])
             tracks = set()
-            #  print("test1")
-            # print("TRACKER START")
-
-            # print(trackers[i])
-            # print("TRACKER END")
 
             for n, (time, ctracks) in enumerate(trackers[i], 1):  # , 1):
                 tracks.update(ctracks)
@@ -189,7 +194,6 @@ def run():
             metric_managers[i].add_data(ground_truths[i], tracks)
 
             metrics = metric_managers[i].generate_metrics()
-            # print(metrics)
         except Exception as e:
             print(f'Failure: {e}', flush=True)
             # return None
@@ -198,7 +202,7 @@ def run():
             metricsList.append(metrics)
 
     values, labels = plot(metricsList, len(metricsList))
-
+ """
 
 # return render_template("result.html", labels=labels, values=values)
 
