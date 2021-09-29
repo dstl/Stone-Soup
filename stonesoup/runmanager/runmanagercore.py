@@ -108,7 +108,13 @@ def get_trackers_list(iterations_container_list, value_min):
         temp.append(iterations_container_list[x])
     list_combinations = list(itertools.product(*temp))
     set_combinations = set(list_combinations)
-    return set_combinations
+    set_combinations = list(set_combinations)
+    for idx, elem in enumerate(set_combinations):
+        set_combinations[idx]=list(elem)
+        set_combinations[idx]=np.c_[set_combinations[idx]].astype(int)
+        
+    
+    return list(set_combinations)
 
 # Generates all of the combinations between different parameters
 def generate_all_combos(trackers_dict):
@@ -158,13 +164,14 @@ def run():
     metric_managers = []
 
     for parameter in the_combo_dict:
+        tracker_copy, ground_truth_copy, metric_manager_copy = copy.deepcopy(
+            (tracker, ground_truth, metric_manager))
         for k, v in parameter.items():
             split_path = k.split('.')
             path_param = '.'.join(split_path[1::])
             split_path =split_path[1::]
           #  print(split_path)
-            tracker_copy, ground_truth_copy, metric_manager_copy = copy.deepcopy(
-            (tracker, ground_truth, metric_manager))
+
             # setattr(tracker_copy.initiator, split_path[-1], v)
             setParam(split_path,tracker_copy,v)
            # print(tracker_copy)
@@ -174,7 +181,7 @@ def run():
        
 
     for trac in trackers:
-        print("\n",trac.initiator.number_particles)
+        print("\n",trac.initiator.initiator.prior_state.state_vector)
 
 
 def setParam(split_path,el,value):
@@ -183,7 +190,13 @@ def setParam(split_path,el,value):
         newEl = getattr(el,split_path[0])
         setParam(split_path[1::],newEl,value)
     else:
+        # print(value)
+        # print(getattr(el,split_path[0]))
+
         setattr(el,split_path[0],value)
+        # print(el)
+
+
       #  print(el)
     # for trac in trackers:
     #     print("\n",trac.initiator.number_particles)
