@@ -5,7 +5,7 @@ from ..base import Property
 from .base import Type
 from .hypothesis import Hypothesis
 from .state import State, GaussianState, ParticleState, SqrtGaussianState, StateMutableSequence, \
-    InformationState
+    InformationState, CategoricalState
 from .mixture import GaussianMixture
 
 
@@ -116,3 +116,7 @@ class InformationStateUpdate(Update, InformationState):
     This is a simple Information state update object, which, as the name
     suggests, is described by a precision matrix and its corresponding state vector.
     """
+
+
+class CategoricalStateUpdate(Update, CategoricalState):
+    """Categorical state prediction type"""
