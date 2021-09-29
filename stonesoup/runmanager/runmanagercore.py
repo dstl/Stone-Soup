@@ -1,7 +1,5 @@
 import os
 import sys
-from flask import Flask, render_template, url_for, request, redirect
-from werkzeug.utils import secure_filename
 
 from stonesoup.runmanager.parameters import Parameters
 from stonesoup.serialise import YAML
@@ -121,8 +119,8 @@ def generate_all_combos(trackers_dict):
 def run():
     # Initiating by reading in the files
     num_runs = 1  # TEMPORARY VALUE. NEEDS TO BE READ FROM JSON
-    path_input = 'C:\\Users\\Davidb1\\Documents\\Python\\data\\dummy2.json'
-    config_path = "C:\\Users\\Davidb1\\Documents\\Python\\data\\config.yaml"
+    path_input = 'C:\\Users\\gbellant.LIVAD\\Documents\\Projects\\serapis\\Serapis C38 LOT 1\\dummy2.json'
+    config_path = "C:\\Users\\gbellant.LIVAD\\Documents\\Projects\\serapis\\Serapis C38 LOT 1\\config.yaml"
     json_data = read_json(path_input)
     
     iters = []
@@ -163,46 +161,60 @@ def run():
         for k, v in parameter.items():
             split_path = k.split('.')
             path_param = '.'.join(split_path[1::])
-            print(split_path[-1])
+            split_path =split_path[1::]
+          #  print(split_path)
             tracker_copy, ground_truth_copy, metric_manager_copy = copy.deepcopy(
             (tracker, ground_truth, metric_manager))
-            setattr(tracker_copy.initiator, split_path[-1], v)
+            # setattr(tracker_copy.initiator, split_path[-1], v)
+            setParam(split_path,tracker_copy,v)
+           # print(tracker_copy)
         trackers.append(tracker_copy)
         ground_truths.append(ground_truth_copy)
         metric_managers.append(metric_manager_copy)
-    
+       
+
     for trac in trackers:
         print("\n",trac.initiator.number_particles)
+
+
+def setParam(split_path,el,value):
+    if len(split_path)>1:
+       # print(split_path[0])
+        newEl = getattr(el,split_path[0])
+        setParam(split_path[1::],newEl,value)
+    else:
+        setattr(el,split_path[0],value)
+      #  print(el)
+    # for trac in trackers:
+    #     print("\n",trac.initiator.number_particles)
     #print(trackers)
     #trackers()
     # Initialise the tracker
-    """ tracker_copy, ground_truth_copy, metric_manager_copy = copy.deepcopy((tracker, ground_truth, metric_manager))
-    tracker_min, ground_truth_min, metric_manager_min = copy.deepcopy((tracker, ground_truth, metric_manager))
-    tracker_max, ground_truth_max, metric_manager_max = copy.deepcopy((tracker, ground_truth, metric_manager))
-    tracker_step, ground_truth_step, metric_manager_step = copy.deepcopy((tracker, ground_truth, metric_manager)) """
-""" 
-    metricsList = []
-    for i in range(0, json_data["runs_num"]):
+    #  tracker_copy, ground_truth_copy, metric_manager_copy = copy.deepcopy((tracker, ground_truth, metric_manager))
+    # tracker_min, ground_truth_min, metric_manager_min = copy.deepcopy((tracker, ground_truth, metric_manager))
+    # tracker_max, ground_truth_max, metric_manager_max = copy.deepcopy((tracker, ground_truth, metric_manager))
+    # tracker_step, ground_truth_step, metric_manager_step = copy.deepcopy((tracker, ground_truth, metric_manager)) """
+    # metricsList = []
+    # for i in range(0, json_data["runs_num"]):
         
-        try:
-            tracks = set()
+    #     try:
+    #         tracks = set()
 
-            for n, (time, ctracks) in enumerate(trackers[i], 1):  # , 1):
-                tracks.update(ctracks)
+    #         for n, (time, ctracks) in enumerate(trackers[i], 1):  # , 1):
+    #             tracks.update(ctracks)
 
-            # print(tracks)
-            metric_managers[i].add_data(ground_truths[i], tracks)
+    #         # print(tracks)
+    #         metric_managers[i].add_data(ground_truths[i], tracks)
 
-            metrics = metric_managers[i].generate_metrics()
-        except Exception as e:
-            print(f'Failure: {e}', flush=True)
-            # return None
-        else:
-            print('Success!', flush=True)
-            metricsList.append(metrics)
+    #         metrics = metric_managers[i].generate_metrics()
+    #     except Exception as e:
+    #         print(f'Failure: {e}', flush=True)
+    #         # return None
+    #     else:
+    #         print('Success!', flush=True)
+    #         metricsList.append(metrics)
 
-    values, labels = plot(metricsList, len(metricsList))
- """
+    # values, labels = plot(metricsList, len(metricsList))
 
 # return render_template("result.html", labels=labels, values=values)
 
