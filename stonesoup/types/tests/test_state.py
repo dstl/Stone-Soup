@@ -2,16 +2,16 @@
 import datetime
 
 import numpy as np
-import scipy.linalg
 import pytest
+import scipy.linalg
 
-from stonesoup.base import Property
 from ..angle import Bearing
 from ..array import StateVector, CovarianceMatrix
 from ..numeric import Probability
 from ..particle import Particle
 from ..state import State, GaussianState, ParticleState, \
-    StateMutableSequence, WeightedGaussianState, SqrtGaussianState
+    StateMutableSequence, WeightedGaussianState, SqrtGaussianState, CategoricalState
+from ...base import Property
 
 
 def test_state():
@@ -344,3 +344,31 @@ def test_state_mutable_sequence_error_message():
     test_obj.test_property = 5
     with pytest.raises(AttributeError, match="Custom error message"):
         _ = test_obj.complicated_attribute
+
+
+def test_categorical_state():
+
+    # Test instantiation errors
+    with pytest.raises(ValueError, match="2 category names were given for a state vector with 3 "
+                                         "elements"):
+        CategoricalState(state_vector=StateVector([0.1, 0.4, 0.5]), category_names=['1', '2'])
+    with pytest.raises(ValueError, match=r"Category probabilities must lie in the closed interval "
+                                         r"\[0, 1\]"):
+        CategoricalState(state_vector=StateVector([1.1, 0.4, 0.5]))
+    with pytest.raises(ValueError, match="Category probabilities must sum to 1"):
+        CategoricalState(state_vector=StateVector([0.6, 0.7, 0.7]))
+    with pytest.raises(ValueError, match="Category probabilities must sum to 1"):
+        CategoricalState(state_vector=StateVector([0.2, 0.2, 0.3]))
+
+    # Test defaults
+    state = CategoricalState(state_vector=StateVector([0.1, 0.4, 0.5]))
+    assert state.category_names == [0, 1, 2]
+
+    # Test str
+    state = CategoricalState(state_vector=StateVector([0.1, 0.4, 0.5]),
+                             timestamp=datetime.datetime.now(),
+                             category_names=['red', 'blue', 'yellow'])
+    assert str(state) == "(P(red) = 0.1, P(blue) = 0.4, P(yellow) = 0.5)"
+
+    # Test category
+    assert state.category == 'yellow'
