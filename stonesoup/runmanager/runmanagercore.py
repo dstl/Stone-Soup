@@ -1,37 +1,8 @@
-import os
-import sys
-
-from stonesoup.runmanager.parameters import Parameters
 from stonesoup.serialise import YAML
-from stonesoup.types.array import CovarianceMatrix
-from numpy.random.mtrand import randint
 import numpy as np
-
-from stonesoup.initiator.simple import GaussianParticleInitiator, SinglePointInitiator
-from stonesoup.platform.base import MovingPlatform, MultiTransitionMovingPlatform, Platform
-from stonesoup.base import Base
-
-import random
-import inspect
-import importlib
-import pkgutil
-import warnings
-from stonesoup.tracker.base import Tracker
 import copy
-import datetime
-from stonesoup.metricgenerator.ospametric import OSPAMetric
-from stonesoup.measures import Euclidean
-from stonesoup.metricgenerator.manager import SimpleManager
-from matplotlib import pyplot as plt
 import json
 import itertools
-
-# UPLOAD_FOLDER = '/path/to/the/uploads'
-# JSON PATH = "C:/temp/SERAPIS/dummy2.json"
-# CONFIG PATH = "C:/temp/SERAPIS/config.yaml"
-path = ""
-pathInput = ""
-
 
 def read_json(json_input):
     with open(json_input) as json_file:
@@ -115,7 +86,7 @@ def run():
     # for i in range(0, json_data["runs_num"]): 
 
     for idx in range(0, len(trackers)):
-        for runs_num in json_data["runs_num"]:
+        for runs_num in range(0,json_data["runs_num"]):
             try:
                 tracks = set()
 
