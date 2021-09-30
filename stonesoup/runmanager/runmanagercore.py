@@ -5,14 +5,31 @@ import json
 import itertools
 
 def read_json(json_input):
+    """Read json file
+
+    Args:
+        json_input: json file path
+
+    Returns:
+        object: json object 
+    """
     with open(json_input) as json_file:
         json_data = json.load(json_file)
         # print(json.dumps(json_data, indent=4, sort_keys=True))
         return json_data
 
 
-# Calculate the steps for each item in a list
 def iterations(min_value, max_value, num_samples):
+    """Calculate all the possible values based on min_value, max_value and num_samples
+
+    Args:
+        min_value: min value
+        max_value: max value
+        num_samples: number of samples 
+
+    Returns:
+        list:list of values calculated (size of the list is num_samples) 
+    """
     temp = []
     difference = max_value - min_value
     factor = difference / (num_samples - 1)
@@ -20,11 +37,19 @@ def iterations(min_value, max_value, num_samples):
         temp.append(min_value + (x * factor))
     return temp
 
-# gets the combinations for one tracker and stores in list
-# Once you have steps created from iterations, generate step combinations for one parameter
-def get_trackers_list(iterations_container_list, value_min):
+def get_trackers_list(iterations_container_list, n):
+    """Gets the combinations for one tracker and stores in list
+      Once you have steps created from iterations, generate step combinations for one parameter
+    
+    Args:
+        iterations_container_list (list): list of element to create the combination of parameters
+        n ([type]): number of element in the range
+
+    Returns:
+        list: list of combinations
+    """
     temp =[]
-    for x in range(0, len(value_min)):
+    for x in range(0, n):
         temp.append(iterations_container_list[x])
     list_combinations = list(itertools.product(*temp))
     set_combinations = set(list_combinations)
@@ -33,10 +58,8 @@ def get_trackers_list(iterations_container_list, value_min):
         set_combinations[idx]=list(elem)
         set_combinations[idx]=np.c_[set_combinations[idx]].astype(int)
         
-    
     return list(set_combinations)
 
-# Generates all of the combinations between different parameters
 def generate_all_combos(trackers_dict):
     """Generates all of the combinations between different parameters
 
@@ -74,17 +97,11 @@ def run():
     with open(config_path, 'r') as file:
         tracker, ground_truth, metric_manager = read_config_file(file)
 
-    trackers = []
-    ground_truths = []
-    metric_managers = []
-
-
     trackers, ground_truths, metric_managers = set_trackers(combo_dict,tracker, ground_truth, metric_manager )
 
 
 
     # for i in range(0, json_data["runs_num"]): 
-
     for idx in range(0, len(trackers)):
         for runs_num in range(0,json_data["runs_num"]):
             try:
@@ -133,7 +150,7 @@ def generate_parameters_combinations(parameters):
             if type(val) is list and key == "value_min":
                 for x in range(len(val)):
                     iters.append(iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
-                combo_list[path] = get_trackers_list(iters, param["value_min"])
+                combo_list[path] = get_trackers_list(iters, len(param["value_min"]))
                 combination_dict.update(combo_list)
 
             if type(val) is int and key == "value_min":
