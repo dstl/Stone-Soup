@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from ..base import Property
-from ..models.transition import TransitionModel
+from ..models.transition.categorical import CategoricalTransitionModel
 from ..predictor import Predictor
 from ..predictor._utils import predict_lru_cache
 from ..types.prediction import Prediction
@@ -10,9 +10,7 @@ from ..types.state import CategoricalState
 class HMMPredictor(Predictor):
     r"""Models the prediction step of a hidden Markov model"""
 
-    transition_model: TransitionModel = Property(
-        doc="The transition model to be used. This should be a "
-            ":class:`~.CategoricalTransitionModel`.")
+    transition_model: CategoricalTransitionModel = Property(doc="The transition model to be used.")
 
     def _transition_function(self, prior, **kwargs):
         return self.transition_model.function(prior, **kwargs)
