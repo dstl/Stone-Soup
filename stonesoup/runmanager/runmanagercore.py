@@ -3,33 +3,20 @@ import numpy as np
 import copy
 import json
 import itertools
+import pandas as pd
+import os
+import csv
+from itertools import chain
 
 def read_json(json_input):
-    """Read json file
-
-    Args:
-        json_input: json file path
-
-    Returns:
-        object: json object 
-    """
     with open(json_input) as json_file:
         json_data = json.load(json_file)
         # print(json.dumps(json_data, indent=4, sort_keys=True))
         return json_data
 
 
+# Calculate the steps for each item in a list
 def iterations(min_value, max_value, num_samples):
-    """Calculate all the possible values based on min_value, max_value and num_samples
-
-    Args:
-        min_value: min value
-        max_value: max value
-        num_samples: number of samples 
-
-    Returns:
-        list:list of values calculated (size of the list is num_samples) 
-    """
     temp = []
     difference = max_value - min_value
     factor = difference / (num_samples - 1)
@@ -37,19 +24,11 @@ def iterations(min_value, max_value, num_samples):
         temp.append(min_value + (x * factor))
     return temp
 
-def get_trackers_list(iterations_container_list, n):
-    """Gets the combinations for one tracker and stores in list
-      Once you have steps created from iterations, generate step combinations for one parameter
-    
-    Args:
-        iterations_container_list (list): list of element to create the combination of parameters
-        n ([type]): number of element in the range
-
-    Returns:
-        list: list of combinations
-    """
+# gets the combinations for one tracker and stores in list
+# Once you have steps created from iterations, generate step combinations for one parameter
+def get_trackers_list(iterations_container_list, value_min):
     temp =[]
-    for x in range(0, n):
+    for x in range(0, len(value_min)):
         temp.append(iterations_container_list[x])
     list_combinations = list(itertools.product(*temp))
     set_combinations = set(list_combinations)
@@ -58,8 +37,10 @@ def get_trackers_list(iterations_container_list, n):
         set_combinations[idx]=list(elem)
         set_combinations[idx]=np.c_[set_combinations[idx]].astype(int)
         
+    
     return list(set_combinations)
 
+# Generates all of the combinations between different parameters
 def generate_all_combos(trackers_dict):
     """Generates all of the combinations between different parameters
 
@@ -78,8 +59,8 @@ def generate_all_combos(trackers_dict):
 def run():
     # Initiating by reading in the files
     num_runs = 1  # TEMPORARY VALUE. NEEDS TO BE READ FROM JSON
-    path_input = 'C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\dummy2.json'
-    config_path = "C:\\Users\gbellant\Documents\Projects\Serapis\\config.yaml"
+    path_input = 'C:\\Users\\Davidb1\\Documents\\Python\\data\\dummy2.json'
+    config_path = "C:\\Users\\Davidb1\\Documents\\Python\\data\\config.yaml"    
     json_data = read_json(path_input)
     
     combo_list = {}
@@ -97,37 +78,102 @@ def run():
     with open(config_path, 'r') as file:
         tracker, ground_truth, metric_manager = read_config_file(file)
 
+    trackers = []
+    ground_truths = []
+    metric_managers = []
+
+
     trackers, ground_truths, metric_managers = set_trackers(combo_dict,tracker, ground_truth, metric_manager )
 
 
-
+    
     # for i in range(0, json_data["runs_num"]): 
-    for idx in range(0, len(trackers)):
-        for runs_num in range(0,json_data["runs_num"]):
-            try:
-                tracks = set()
+    x=0
+    idx = 0
+    # for idx in range(0, len(trackers)):
+    for runs_num in range(0,json_data["runs_num"]):
+        try:
+            tracks = set()
+            dir_name = "metrics_temp/simulation_{}".format(x)
+            # for n, (time, ctracks) in enumerate(trackers[idx], 1):  # , 1):
+            #         tracks_to_csv(dir_name,ctracks)
+            #         tracks.update(ctracks)
 
-                for n, (time, ctracks) in enumerate(trackers[idx], 1):  # , 1):
-                    tracks.update(ctracks)
+            for time, tracks_ in tracker.tracks_gen():
+                metric_managers[idx].add_data(ground_truths[idx], tracks)
+                for t in tracks_:
+                    print(t.state.mean)
+                tracks_to_csv(dir_name,tracks_)
+            
+            metric_managers[idx].add_data(ground_truths[idx], tracks)
 
-                print("\n",trackers[idx].initiator.initiator.prior_state.state_vector)        
-                print("\n",trackers[idx].initiator.number_particles)        
+            metrics = metric_managers[idx].generate_metrics()
 
-                metric_managers[idx].add_data(ground_truths[1], tracks)
+        except Exception as e:
+            print(f'Failure: {e}', flush=True)
+            # return None
+        else:
+            print('Success!', flush=True)
+    
+    dir_name = "metrics_temp/{}".format(str(x))
+    
+            # metricsList.append(metrics)
+    x = x+1
+    # for trac in trackers:
+    #     print("\n",trac.initiator.initiator.prior_state.state_vector)
 
-                metrics = metric_managers[idx].generate_metrics()
-            except Exception as e:
-                print(f'Failure: {e}', flush=True)
-                print("\n",trackers[idx].initiator.initiator.prior_state.state_vector)        
-                print("\n",trackers[idx].initiator.number_particles)        
-                # return None
-            else:
-                print('Success!', flush=True)
+    #  print(el)
+    # for trac in trackers:
+    #     print("\n",trac.initiator.number_particles)
+    #print(trackers)
+    #trackers()
+    # Initialise the tracker
+    #  tracker_copy, ground_truth_copy, metric_manager_copy = copy.deepcopy((tracker, ground_truth, metric_manager))
+    # tracker_min, ground_truth_min, metric_manager_min = copy.deepcopy((tracker, ground_truth, metric_manager))
+    # tracker_max, ground_truth_max, metric_manager_max = copy.deepcopy((tracker, ground_truth, metric_manager))
+    # tracker_step, ground_truth_step, metric_manager_step = copy.deepcopy((tracker, ground_truth, metric_manager)) """
+    # metricsList = []
+    # for i in range(0, json_data["runs_num"]):
         
-                # metricsList.append(metrics)
+    #     try:
+    #         tracks = set()
+
+    #         for n, (time, ctracks) in enumerate(trackers[i], 1):  # , 1):
+    #             tracks.update(ctracks)
+
+    #         # print(tracks)
+    #         metric_managers[i].add_data(ground_truths[i], tracks)
+
+    #         metrics = metric_managers[i].generate_metrics()
+    #     except Exception as e:
+    #         print(f'Failure: {e}', flush=True)
+    #         # return None
+    #     else:
+    #         print('Success!', flush=True)
+    #         metricsList.append(metrics)
+
+    # values, labels = plot(metricsList, len(metricsList))
 
 
 
+def tracks_to_csv(dir_name, tracks):
+    if not os.path.exists(dir_name):
+            os.mkdir(dir_name)
+                        
+    with open(os.path.join(dir_name, 'tracks.csv'), 'w') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(['time', 'id', 'state', 'mean', 'covar'])
+        i = 0
+        for t in tracks:
+            print(i)
+            # Export the track state as a single space-delimited string
+            # The visualisation GUI will automatically expand this data when loading
+            c = ' '.join([str(i) for i in list(chain.from_iterable(zip(*t.covar)))])
+            writer.writerow([t.state.timestamp, t.id,
+                            ' '.join([str(n) for n in t.state.state_vector]),
+                            ' '.join([str(n) for n in t.state.mean]),
+                            c]) 
+    
 def generate_parameters_combinations(parameters):
     """[summary]
     From a list of parameters with, min, max and n_samples values generate all the possible values
@@ -150,7 +196,7 @@ def generate_parameters_combinations(parameters):
             if type(val) is list and key == "value_min":
                 for x in range(len(val)):
                     iters.append(iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
-                combo_list[path] = get_trackers_list(iters, len(param["value_min"]))
+                combo_list[path] = get_trackers_list(iters, param["value_min"])
                 combination_dict.update(combo_list)
 
             if type(val) is int and key == "value_min":
