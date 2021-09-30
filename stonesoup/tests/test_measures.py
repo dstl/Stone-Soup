@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 import datetime
 
-import pytest
 import numpy as np
+import pytest
 from scipy.spatial import distance
 
 from .. import measures
-
+from ..measures import ObservationAccuracy
 from ..types.array import StateVector, CovarianceMatrix
-from ..types.state import GaussianState
+from ..types.state import GaussianState, State
 
 # Create a time stamp to use for both states
 t = datetime.datetime.now()
@@ -55,6 +55,23 @@ def test_hellinger():
     state_v = GaussianState(v, vi, timestamp=t)
     measure = measures.GaussianHellinger()
     assert np.isclose(measure(state_u, state_v), 0.940, atol=1e-3)
+
+
+def test_observation_accuracy():
+    measure = ObservationAccuracy()
+    for _ in range(5):
+        TP = np.random.random()
+        TN = 1 - TP
+        FP = np.random.random()
+        FN = 1 - FP
+
+        u = StateVector([TP, TN])
+        v = StateVector([FP, FN])
+        U = State(u)
+        V = State(v)
+
+        assert measure(u, v) == (min([TP, FP]) + min(TN, FN)) / (max([TP, FP]) + max(TN, FN))
+        assert measure(U, V) == (min([TP, FP]) + min(TN, FN)) / (max([TP, FP]) + max(TN, FN))
 
 
 @pytest.mark.xfail(reason="Singular Matrix with all zero covariances.")
