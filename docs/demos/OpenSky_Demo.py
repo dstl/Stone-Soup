@@ -182,9 +182,9 @@ detection_sim = PlatformDetectionSimulator(groundtruth, platforms)
 # (if it is a prediction).
 
 transition_model = CombinedLinearGaussianTransitionModel(
-    (ConstantVelocity(1500), ConstantVelocity(1500), ConstantVelocity(1000)))
+    (ConstantVelocity(20), ConstantVelocity(20), ConstantVelocity(2)))
 init_transition_model = CombinedLinearGaussianTransitionModel(
-    (ConstantVelocity(8500), ConstantVelocity(8500), ConstantVelocity(1000)))
+    (ConstantVelocity(5), ConstantVelocity(5), ConstantVelocity(2)))
 
 from stonesoup.predictor.kalman import ExtendedKalmanPredictor
 predictor = ExtendedKalmanPredictor(transition_model)
@@ -195,7 +195,7 @@ updater = ExtendedKalmanUpdater(measurement_model=None)
 
 from stonesoup.hypothesiser.distance import DistanceHypothesiser
 from stonesoup.measures import Mahalanobis
-hypothesiser = DistanceHypothesiser(predictor, updater, Mahalanobis(), missed_distance=3)
+hypothesiser = DistanceHypothesiser(predictor, updater, Mahalanobis(), missed_distance=5)
 
 from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
 data_associator = GNNWith2DAssignment(hypothesiser)
@@ -216,11 +216,11 @@ from stonesoup.types.state import GaussianState
 initiator = MultiMeasurementInitiator(
     GaussianState(
         np.array([[0], [0], [0], [0], [0], [0]]),   # Prior State
-        np.diag([8000, 90, 8000, 90, 0, 20])),
+        np.diag([15**2, 100**2, 15**2, 100**2, 15**2, 20**2])),
     measurement_model=None,
     deleter=deleter,
     data_associator=GNNWith2DAssignment(
-        DistanceHypothesiser(init_predictor, updater, Mahalanobis(), missed_distance=1.8)),
+        DistanceHypothesiser(init_predictor, updater, Mahalanobis(), missed_distance=3)),
     updater=updater,
     min_points=2
     )
