@@ -3,6 +3,8 @@ import numpy as np
 import copy
 import json
 import itertools
+import sys
+from operator import attrgetter
 
 def read_json(json_input):
     """Read json file
@@ -75,12 +77,14 @@ def generate_all_combos(trackers_dict):
     return combinations
 
 
-def run():
-    # Initiating by reading in the files
-    num_runs = 1  # TEMPORARY VALUE. NEEDS TO BE READ FROM JSON
-    path_input = 'C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\dummy2.json'
-    config_path = "C:\\Users\gbellant\Documents\Projects\Serapis\\config.yaml"
-    json_data = read_json(path_input)
+def run(config_path, parameters_path, output_path = None):
+    """Run the run manager
+
+    Args:
+        config_path : Path of the config file
+        parameters_path : Path of the parameters file
+    """
+    json_data = read_json(parameters_path)
     
     combo_list = {}
     int_list = {}
@@ -92,7 +96,6 @@ def run():
 
     # Everything from this point onwards is from original runmanager
     # This current code still uses the yaml file to run the monte carlo
-    from operator import attrgetter
 
     with open(config_path, 'r') as file:
         tracker, ground_truth, metric_manager = read_config_file(file)
@@ -100,32 +103,42 @@ def run():
     trackers, ground_truths, metric_managers = set_trackers(combo_dict,tracker, ground_truth, metric_manager )
 
 
-
-    # for i in range(0, json_data["runs_num"]): 
     for idx in range(0, len(trackers)):
         for runs_num in range(0,json_data["runs_num"]):
-            try:
-                tracks = set()
+            run_simulation(trackers[idx],ground_truths[idx],metric_managers[idx])
 
-                for n, (time, ctracks) in enumerate(trackers[idx], 1):  # , 1):
-                    tracks.update(ctracks)
 
-                print("\n",trackers[idx].initiator.initiator.prior_state.state_vector)        
-                print("\n",trackers[idx].initiator.number_particles)        
 
-                metric_managers[idx].add_data(ground_truths[1], tracks)
 
-                metrics = metric_managers[idx].generate_metrics()
-            except Exception as e:
-                print(f'Failure: {e}', flush=True)
-                print("\n",trackers[idx].initiator.initiator.prior_state.state_vector)        
-                print("\n",trackers[idx].initiator.number_particles)        
-                # return None
-            else:
-                print('Success!', flush=True)
-        
-                # metricsList.append(metrics)
 
+def start_simulation(tracker, groundtruth, metric_manager):
+    """Start the simulation
+
+    Args:
+        tracker: Tracker
+        groundtruth: GroundTruth
+        metric_manager: Metric Manager
+    """
+    try:
+        tracks = set()
+
+        for n, (time, ctracks) in enumerate(tracker, 1):  # , 1):
+            tracks.update(ctracks)
+
+        print("\n",tracker.initiator.initiator.prior_state.state_vector)        
+        print("\n",tracker.initiator.number_particles)        
+
+        metric_manager.add_data(groundtruth, tracks)
+
+        metrics = metric_manager.generate_metrics()
+    except Exception as e:
+        print(f'Failure: {e}', flush=True)
+        print("\n",tracker.initiator.initiator.prior_state.state_vector)        
+        print("\n",tracker.initiator.number_particles)        
+        # return None
+    else:
+        print('Success!', flush=True)
+    
 
 
 def generate_parameters_combinations(parameters):
@@ -225,10 +238,33 @@ def set_param(split_path,el,value):
 
 
 def read_config_file(config_file):
+    """Read the configuration file
+
+    Args:
+        config_file (file path): file path of the configuration file 
+
+    Returns:
+        trackers,ground_truth,metric_manager: trackers, ground_truth and metric manager stonesoup structure
+    """
     config_string = config_file.read()
     tracker, ground_truth, metric_manager = YAML('safe').load(config_string)
     return tracker, ground_truth, metric_manager
 
 
 if __name__ == "__main__":
-    run()
+    args = sys.argv[1:]
+
+    
+    try:
+        configInput = args[0] 
+    except:
+        configInput= "C:\\Users\gbellant\Documents\Projects\Serapis\\config.yaml" 
+    
+
+    
+    try:
+        parametersInput = args[1] 
+    except:
+        parametersInput= "C:\\Users\gbellant\Documents\Projects\Serapis\\dummy2.json" 
+    
+    run(configInput, parametersInput)
