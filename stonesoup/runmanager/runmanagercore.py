@@ -109,42 +109,6 @@ def run():
         
                 # metricsList.append(metrics)
 
-    # for trac in trackers:
-    #     print("\n",trac.initiator.initiator.prior_state.state_vector)
-
-    #  print(el)
-    # for trac in trackers:
-    #     print("\n",trac.initiator.number_particles)
-    #print(trackers)
-    #trackers()
-    # Initialise the tracker
-    #  tracker_copy, ground_truth_copy, metric_manager_copy = copy.deepcopy((tracker, ground_truth, metric_manager))
-    # tracker_min, ground_truth_min, metric_manager_min = copy.deepcopy((tracker, ground_truth, metric_manager))
-    # tracker_max, ground_truth_max, metric_manager_max = copy.deepcopy((tracker, ground_truth, metric_manager))
-    # tracker_step, ground_truth_step, metric_manager_step = copy.deepcopy((tracker, ground_truth, metric_manager)) """
-    # metricsList = []
-    # for i in range(0, json_data["runs_num"]):
-        
-    #     try:
-    #         tracks = set()
-
-    #         for n, (time, ctracks) in enumerate(trackers[i], 1):  # , 1):
-    #             tracks.update(ctracks)
-
-    #         # print(tracks)
-    #         metric_managers[i].add_data(ground_truths[i], tracks)
-
-    #         metrics = metric_managers[i].generate_metrics()
-    #     except Exception as e:
-    #         print(f'Failure: {e}', flush=True)
-    #         # return None
-    #     else:
-    #         print('Success!', flush=True)
-    #         metricsList.append(metrics)
-
-    # values, labels = plot(metricsList, len(metricsList))
-
-
 
 
 def generate_parameters_combinations(parameters):
