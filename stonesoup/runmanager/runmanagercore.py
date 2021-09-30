@@ -115,25 +115,27 @@ def run():
     # for i in range(0, json_data["runs_num"]): 
 
     for idx in range(0, len(trackers)):
-        try:
-            tracks = set()
+        for runs_num in json_data["runs_num"]:
+            try:
+                tracks = set()
 
-            for n, (time, ctracks) in enumerate(trackers[idx], 1):  # , 1):
-                tracks.update(ctracks)
+                for n, (time, ctracks) in enumerate(trackers[idx], 1):  # , 1):
+                    tracks.update(ctracks)
 
-            print("\n",trackers[idx].initiator.initiator.prior_state.state_vector)        
-            print("\n",trackers[idx].initiator.number_particles)        
+                print("\n",trackers[idx].initiator.initiator.prior_state.state_vector)        
+                print("\n",trackers[idx].initiator.number_particles)        
 
-            metric_managers[idx].add_data(ground_truths[1], tracks)
+                metric_managers[idx].add_data(ground_truths[1], tracks)
 
-            metrics = metric_managers[idx].generate_metrics()
-        except Exception as e:
-            print(f'Failure: {e}', flush=True)
-            print("\n",trackers[idx].initiator.initiator.prior_state.state_vector)        
-            print("\n",trackers[idx].initiator.number_particles)        
-            # return None
-        else:
-            print('Success!', flush=True)
+                metrics = metric_managers[idx].generate_metrics()
+            except Exception as e:
+                print(f'Failure: {e}', flush=True)
+                print("\n",trackers[idx].initiator.initiator.prior_state.state_vector)        
+                print("\n",trackers[idx].initiator.number_particles)        
+                # return None
+            else:
+                print('Success!', flush=True)
+        
                 # metricsList.append(metrics)
 
     # for trac in trackers:
