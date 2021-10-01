@@ -4,9 +4,8 @@ import copy
 import json
 import itertools
 import pandas as pd
-import os
-import csv
 from itertools import chain
+from runmanagermetrics import RunmanagerMetrics
 
 def read_json(json_input):
     with open(json_input) as json_file:
@@ -59,8 +58,8 @@ def generate_all_combos(trackers_dict):
 def run():
     # Initiating by reading in the files
     num_runs = 1  # TEMPORARY VALUE. NEEDS TO BE READ FROM JSON
-    path_input = 'C:\\Users\\Davidb1\\Documents\\Python\\data\\dummy2.json'
-    config_path = "C:\\Users\\Davidb1\\Documents\\Python\\data\\config.yaml"    
+    path_input = 'C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\dummy2.json'
+    config_path = "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\config.yaml"    
     json_data = read_json(path_input)
     
     combo_list = {}
@@ -91,23 +90,43 @@ def run():
     x=0
     idx = 0
     # for idx in range(0, len(trackers)):
+
+    detector = tracker.detector
     for runs_num in range(0,json_data["runs_num"]):
         try:
+            groundtruth = set()
+            detections = set()
             tracks = set()
+
             dir_name = "metrics_temp/simulation_{}".format(x)
             # for n, (time, ctracks) in enumerate(trackers[idx], 1):  # , 1):
             #         tracks_to_csv(dir_name,ctracks)
             #         tracks.update(ctracks)
 
-            for time, tracks_ in tracker.tracks_gen():
-                metric_managers[idx].add_data(ground_truths[idx], tracks)
-                for t in tracks_:
-                    print(t.state.mean)
-                tracks_to_csv(dir_name,tracks_)
-            
-            metric_managers[idx].add_data(ground_truths[idx], tracks)
+            for time, ctracks in tracker:
+                # RunmanagerMetrics.tracks_to_csv(dir_name,tracks_)
+                # tracker.detector.groundtruth.groundtruth_paths_gen
+                groundtruth.update(tracker.detector.groundtruth.groundtruth_paths)
+                tracks.update(ctracks)
+                detections.update(tracker.detector.detections)
 
-            metrics = metric_managers[idx].generate_metrics()
+
+                # print(tracker.detector.groundtruth.groundtruth_paths)                      
+            #    print(detector.detections)
+
+            metric_managers[idx].add_data(ground_truth,tracks,detections)
+            # print(metric_managers[idx])
+            metrics = metric_managers[idx].generate_metrics()                            
+
+            RunmanagerMetrics.tracks_to_csv(dir_name,tracks)
+            RunmanagerMetrics.groundtruth_to_csv(dir_name, groundtruth)
+            RunmanagerMetrics.detection_to_csv(dir_name, detections)
+            RunmanagerMetrics.metrics_to_csv(dir_name, metrics)
+
+
+            # metric_managers[idx].add_data(ground_truths[idx], tracks)
+            # RunmanagerMetrics.groundtruth_to_csv(dir_name, ground_truths[idx])
+            # metrics = metric_managers[idx].generate_metrics()
 
         except Exception as e:
             print(f'Failure: {e}', flush=True)
@@ -157,15 +176,21 @@ def run():
 
 
 def tracks_to_csv(dir_name, tracks):
+    
     if not os.path.exists(dir_name):
+            print("not exist")
             os.mkdir(dir_name)
-                        
-    with open(os.path.join(dir_name, 'tracks.csv'), 'w') as csvfile:
+            
+    if not os.path.isfile(os.path.join(dir_name, 'tracks.csv')):
+        with open(os.path.join(dir_name, 'tracks.csv'), 'w') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(['time', 'id', 'state', 'mean', 'covar'])
+            csvfile.close()
+
+
+    with open(os.path.join(dir_name, 'tracks.csv'), 'a') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(['time', 'id', 'state', 'mean', 'covar'])
-        i = 0
         for t in tracks:
-            print(i)
             # Export the track state as a single space-delimited string
             # The visualisation GUI will automatically expand this data when loading
             c = ' '.join([str(i) for i in list(chain.from_iterable(zip(*t.covar)))])
