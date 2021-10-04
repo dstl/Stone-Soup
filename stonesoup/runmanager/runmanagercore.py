@@ -9,8 +9,8 @@ from itertools import chain
 from runmanagermetrics import RunmanagerMetrics
 import sys
 from operator import attrgetter
+from datetime import datetime
 import os
-import csv
 
 def read_json(json_input):
     with open(json_input) as json_file:
@@ -79,12 +79,14 @@ def run(config_path, parameters_path, output_path = None):
     metric_managers = []
 
 
-    trackers, ground_truths, metric_managers = set_trackers(combo_dict, tracker, ground_truth, metric_manager )
-
+    trackers, ground_truths, metric_managers = set_trackers(combo_dict,tracker, ground_truth, metric_manager )
+    root_path = " C:/Users/gbellant/Documents/Projects/Serapis/"
+    now = datetime.now()
+    dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
     for idx in range(0, len(trackers)):
         for runs_num in range(0,json_data["runs_num"]):
-            dir_name = "metrics_temp/simulation_{}".format(runs_num)
-            run_simulation(trackers[idx], metric_managers[idx], dir_name)
+            dir_name = "metrics_{}".format(dt_string)+"/simulation_{}".format(idx)+"/run_{}".format(runs_num)
+            run_simulation(trackers[idx],metric_managers[idx],dir_name)
 
 """Start the simulation
 
@@ -101,28 +103,29 @@ def run_simulation(tracker,metric_manager,dir_name):
         detections = set()
         tracks = set()
 
-
-        for time, ctracks in tracker.tracks_gen():
+        for time, ctracks in tracker:
             #Update groundtruth, tracks and detections
-            print(tracker.detector.groundtruth.current)
             groundtruth.update(tracker.detector.groundtruth.groundtruth_paths)
             tracks.update(ctracks)
             detections.update(tracker.detector.detections)
 
-        #Add the data to the metric_manager
-        metric_manager.add_data(groundtruth,tracks,detections)
+            RunmanagerMetrics.tracks_to_csv(dir_name,ctracks)
+            metric_manager.add_data(tracker.detector.groundtruth.groundtruth_paths,ctracks,tracker.detector.detections)
 
-        #Generate the metrics
-        metrics = metric_manager.generate_metrics()                            
 
         if not os.path.exists('metrics_temp'):
             os.mkdir('metrics_temp')
 
-        ##Save the data in csv file
-        RunmanagerMetrics.tracks_to_csv(dir_name,tracks)
         RunmanagerMetrics.groundtruth_to_csv(dir_name, groundtruth)
         RunmanagerMetrics.detection_to_csv(dir_name, detections)
+
+        #Add the data to the metric_manager
+ 
+        #Generate the metrics
+        metrics = metric_manager.generate_metrics()                            
         RunmanagerMetrics.metrics_to_csv(dir_name, metrics)
+
+        ##Save the data in csv file
 
     except Exception as e:
         print(f'Failure: {e}', flush=True)
@@ -131,30 +134,6 @@ def run_simulation(tracker,metric_manager,dir_name):
         print('Success!', flush=True)
 
 
-def tracks_to_csv(dir_name, tracks):
-    
-    if not os.path.exists(dir_name):
-            print("not exist")
-            os.mkdir(dir_name)
-            
-    if not os.path.isfile(os.path.join(dir_name, 'tracks.csv')):
-        with open(os.path.join(dir_name, 'tracks.csv'), 'w') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerow(['time', 'id', 'state', 'mean', 'covar'])
-            csvfile.close()
-
-
-    with open(os.path.join(dir_name, 'tracks.csv'), 'a') as csvfile:
-        writer = csv.writer(csvfile)
-        for t in tracks:
-            # Export the track state as a single space-delimited string
-            # The visualisation GUI will automatically expand this data when loading
-            c = ' '.join([str(i) for i in list(chain.from_iterable(zip(*t.covar)))])
-            writer.writerow([t.state.timestamp, t.id,
-                            ' '.join([str(n) for n in t.state.state_vector]),
-                            ' '.join([str(n) for n in t.state.mean]),
-                            c]) 
-    
 def generate_parameters_combinations(parameters):
     """[summary]
     From a list of parameters with, min, max and n_samples values generate all the possible values
@@ -217,11 +196,9 @@ def set_trackers(combo_dict,tracker, ground_truth, metric_manager ):
             split_path = k.split('.')
             path_param = '.'.join(split_path[1::])
             split_path =split_path[1::]
-          #  print(split_path)
 
             # setattr(tracker_copy.initiator, split_path[-1], v)
             set_param(split_path,tracker_copy,v)
-           # print(tracker_copy)
         trackers.append(tracker_copy)
         ground_truths.append(ground_truth_copy)
         metric_managers.append(metric_manager_copy)
