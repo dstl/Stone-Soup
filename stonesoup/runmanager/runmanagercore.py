@@ -85,133 +85,53 @@ def run(config_path, parameters_path, output_path = None):
     metric_managers = []
 
 
-"""    trackers, ground_truths, metric_managers = set_trackers(combo_dict,tracker, ground_truth, metric_manager )
+    trackers, ground_truths, metric_managers = set_trackers(combo_dict,tracker, ground_truth, metric_manager )
 
-
-    
-    # for i in range(0, json_data["runs_num"]): 
-    x=0
-    idx = 0
-    # for idx in range(0, len(trackers)):
-
-    detector = tracker.detector
-    for runs_num in range(0,json_data["runs_num"]):
-        try:
-            groundtruth = set()
-            detections = set()
-            tracks = set()
-
-            dir_name = "metrics_temp/simulation_{}".format(x)
-            # for n, (time, ctracks) in enumerate(trackers[idx], 1):  # , 1):
-            #         tracks_to_csv(dir_name,ctracks)
-            #         tracks.update(ctracks)
-
-            for time, ctracks in tracker:
-                # RunmanagerMetrics.tracks_to_csv(dir_name,tracks_)
-                # tracker.detector.groundtruth.groundtruth_paths_gen
-                groundtruth.update(tracker.detector.groundtruth.groundtruth_paths)
-                tracks.update(ctracks)
-                detections.update(tracker.detector.detections)
-
-
-                # print(tracker.detector.groundtruth.groundtruth_paths)                      
-            #    print(detector.detections)
-
-            metric_managers[idx].add_data(ground_truth,tracks,detections)
-            # print(metric_managers[idx])
-            metrics = metric_managers[idx].generate_metrics()                            
-
-            RunmanagerMetrics.tracks_to_csv(dir_name,tracks)
-            RunmanagerMetrics.groundtruth_to_csv(dir_name, groundtruth)
-            RunmanagerMetrics.detection_to_csv(dir_name, detections)
-            RunmanagerMetrics.metrics_to_csv(dir_name, metrics)
-
-
-            # metric_managers[idx].add_data(ground_truths[idx], tracks)
-            # RunmanagerMetrics.groundtruth_to_csv(dir_name, ground_truths[idx])
-            # metrics = metric_managers[idx].generate_metrics()
-
-        except Exception as e:
-            print(f'Failure: {e}', flush=True)
-            # return None
-        else:
-            print('Success!', flush=True)
-    
-    dir_name = "metrics_temp/{}".format(str(x))
-    
-            # metricsList.append(metrics)
-    x = x+1
-    # for trac in trackers:
-    #     print("\n",trac.initiator.initiator.prior_state.state_vector)
-
-    #  print(el)
-    # for trac in trackers:
-    #     print("\n",trac.initiator.number_particles)
-    #print(trackers)
-    #trackers()
-    # Initialise the tracker
-    #  tracker_copy, ground_truth_copy, metric_manager_copy = copy.deepcopy((tracker, ground_truth, metric_manager))
-    # tracker_min, ground_truth_min, metric_manager_min = copy.deepcopy((tracker, ground_truth, metric_manager))
-    # tracker_max, ground_truth_max, metric_manager_max = copy.deepcopy((tracker, ground_truth, metric_manager))
-    # tracker_step, ground_truth_step, metric_manager_step = copy.deepcopy((tracker, ground_truth, metric_manager)) """
-    # metricsList = []
-    # for i in range(0, json_data["runs_num"]):
-        
-    #     try:
-    #         tracks = set()
-
-    #         for n, (time, ctracks) in enumerate(trackers[i], 1):  # , 1):
-    #             tracks.update(ctracks)
-
-    #         # print(tracks)
-    #         metric_managers[i].add_data(ground_truths[i], tracks)
-
-    #         metrics = metric_managers[i].generate_metrics()
-    #     except Exception as e:
-    #         print(f'Failure: {e}', flush=True)
-    #         # return None
-    #     else:
-    #         print('Success!', flush=True)
-    #         metricsList.append(metrics)
-
-    # values, labels = plot(metricsList, len(metricsList))
-=======
     for idx in range(0, len(trackers)):
         for runs_num in range(0,json_data["runs_num"]):
-            run_simulation(trackers[idx],ground_truths[idx],metric_managers[idx])
+            dir_name = "metrics_temp/simulation_{}".format(runs_num)
+            run_simulation(trackers[idx],metric_managers[idx],dir_name)
 
-
-
-
-"""
-    """Start the simulation
+"""Start the simulation
 
     Args:
         tracker: Tracker
         groundtruth: GroundTruth
         metric_manager: Metric Manager
     """
+def run_simulation(tracker,metric_manager,dir_name):
+
+    detector = tracker.detector
     try:
+        groundtruth = set()
+        detections = set()
         tracks = set()
 
-        for n, (time, ctracks) in enumerate(tracker, 1):  # , 1):
+
+        for time, ctracks in tracker:
+            #Update groundtruth, tracks and detections
+            groundtruth.update(tracker.detector.groundtruth.groundtruth_paths)
             tracks.update(ctracks)
+            detections.update(tracker.detector.detections)
 
-        print("\n",tracker.initiator.initiator.prior_state.state_vector)        
-        print("\n",tracker.initiator.number_particles)        
+        #Add the data to the metric_manager
+        metric_manager.add_data(groundtruth,tracks,detections)
 
-        metric_manager.add_data(groundtruth, tracks)
+        #Generate the metrics
+        metrics = metric_manager.generate_metrics()                            
 
-        metrics = metric_manager.generate_metrics()
+
+        ##Save the data in csv file
+        RunmanagerMetrics.tracks_to_csv(dir_name,tracks)
+        RunmanagerMetrics.groundtruth_to_csv(dir_name, groundtruth)
+        RunmanagerMetrics.detection_to_csv(dir_name, detections)
+        RunmanagerMetrics.metrics_to_csv(dir_name, metrics)
+
     except Exception as e:
         print(f'Failure: {e}', flush=True)
-        print("\n",tracker.initiator.initiator.prior_state.state_vector)        
-        print("\n",tracker.initiator.number_particles)        
         # return None
     else:
         print('Success!', flush=True)
-    
-
 
 
 def tracks_to_csv(dir_name, tracks):
