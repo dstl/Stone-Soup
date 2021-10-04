@@ -112,10 +112,6 @@ def run_simulation(tracker,metric_manager,dir_name):
             RunmanagerMetrics.tracks_to_csv(dir_name,ctracks)
             metric_manager.add_data(tracker.detector.groundtruth.groundtruth_paths,ctracks,tracker.detector.detections)
 
-
-        if not os.path.exists('metrics_temp'):
-            os.mkdir('metrics_temp')
-
         RunmanagerMetrics.groundtruth_to_csv(dir_name, groundtruth)
         RunmanagerMetrics.detection_to_csv(dir_name, detections)
 
