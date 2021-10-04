@@ -110,16 +110,14 @@ class RunmanagerMetrics(RunManager):
         if not os.path.isfile(os.path.join(dir_name, filename)) or overwrite:
             with open(os.path.join(dir_name, filename), 'w',newline='') as csvfile:
                 writer = csv.writer(csvfile)
-                writer.writerow(['time', 'id', 'state'])
+                writer.writerow(['time', 'state'])
                 csvfile.close()
 
 
         with open(os.path.join(dir_name, filename), 'a',newline='') as csvfile:
             writer = csv.writer(csvfile)
             for gt in groundtruths:
-
-
-                writer.writerow([gt.state.timestamp, gt.id,
+                writer.writerow([gt.state.timestamp,
                                 ' '.join([str(n) for n in gt.state.state_vector])])
 
 

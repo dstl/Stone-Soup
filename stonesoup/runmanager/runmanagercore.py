@@ -58,7 +58,7 @@ def generate_all_combos(trackers_dict):
     return combinations
 
 
-def run(config_path, parameters_path, output_path = None):
+def run(config_path, parameters_path, groundtruth_setting, output_path = None):
     """Run the run manager
 
     Args:
@@ -93,7 +93,12 @@ def run(config_path, parameters_path, output_path = None):
     for idx in range(0, len(trackers)):
         for runs_num in range(0,json_data["runs_num"]):
             dir_name = "metrics_{}".format(dt_string)+"/simulation_{}".format(idx)+"/run_{}".format(runs_num)
-            run_simulation(trackers[idx],ground_truths[idx],metric_managers[idx],dir_name)
+            if groundtruth_setting == 0:
+                groundtruth = trackers[idx].detector.groundtruth
+            else:
+                groundtruth = ground_truths[idx]
+
+            run_simulation(trackers[idx],groundtruth,metric_managers[idx],dir_name,groundtruth_setting)
 
 """Start the simulation
 
@@ -102,7 +107,7 @@ def run(config_path, parameters_path, output_path = None):
         groundtruth: GroundTruth
         metric_manager: Metric Manager
     """
-def run_simulation(tracker,ground_truth,metric_manager,dir_name):
+def run_simulation(tracker,ground_truth,metric_manager,dir_name,groundtruth_setting):
 
     detector = tracker.detector
     try:
@@ -112,18 +117,22 @@ def run_simulation(tracker,ground_truth,metric_manager,dir_name):
 
         for time, ctracks in tracker:
             #Update groundtruth, tracks and detections
-            groundtruth.update(tracker.detector.groundtruth.groundtruth_paths)
+            # groundtruth.update(tracker.detector.groundtruth.groundtruth_paths)
+            if groundtruthSettings == 0:
+                groundtruth.update(ground_truth.groundtruth_path)
+            else:
+                groundtruth.update(ground_truth)
+                
             tracks.update(ctracks)
             detections.update(tracker.detector.detections)
-
             RunmanagerMetrics.tracks_to_csv(dir_name,ctracks)
+            RunmanagerMetrics.groundtruth_to_csv(dir_name, groundtruth)
 
+        RunmanagerMetrics.detection_to_csv(dir_name, detections)
 
         metric_manager.add_data(ground_truth,tracks,tracker.detector.detections)
         metrics = metric_manager.generate_metrics()                            
 
-        RunmanagerMetrics.groundtruth_to_csv(dir_name, groundtruth)
-        RunmanagerMetrics.detection_to_csv(dir_name, detections)
 
         #Add the data to the metric_manager
  
@@ -262,5 +271,11 @@ if __name__ == "__main__":
         parametersInput = args[1] 
     except:
         parametersInput= "C:\\Users\gbellant\Documents\Projects\Serapis\\dummy2.json" 
+
+
+    try:
+        groundtruthSettings = args[2]
+    except:
+        groundtruthSettings = 1
     
-    run(configInput, parametersInput)
+    run(configInput, parametersInput,groundtruthSettings)
