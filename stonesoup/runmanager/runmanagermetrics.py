@@ -20,7 +20,7 @@ class RunmanagerMetrics(RunManager):
 
         """
         if not os.path.exists(dir_name):
-                os.mkdir(dir_name)
+                os.makedirs(dir_name)
                 
         if not os.path.isfile(os.path.join(dir_name, 'tracks.csv')) or overwrite:
             with open(os.path.join(dir_name, 'tracks.csv'), 'w',newline='') as csvfile:
@@ -42,7 +42,7 @@ class RunmanagerMetrics(RunManager):
     def metrics_to_csv(dir_name, metrics, overwrite=False):
         filename = "metrics.csv"
         if not os.path.exists(dir_name):
-            os.mkdir(dir_name)
+            os.makedirs(dir_name)
                         
         if not os.path.isfile(os.path.join(dir_name, filename)) or overwrite:
             with open(os.path.join(dir_name, filename), 'w',newline='') as csvfile:
@@ -65,8 +65,6 @@ class RunmanagerMetrics(RunManager):
                     for property in type(metric_line).properties:
                         row.append(getattr(metric_line,property))
                     writer.writerow(row)
-                    # print("line ",[d_set.timestamp, str(d_set.state_vector[0]), str(d_set.state_vector[1])])
-                    # writer.writerow([metric.timestamp, str(d_set.state_vector[0]), str(d_set.state_vector[1])])    
 
 
 
@@ -81,7 +79,7 @@ class RunmanagerMetrics(RunManager):
         """
         filename = "detections.csv"
         if not os.path.exists(dir_name):
-            os.mkdir(dir_name)
+            os.makedirs(dir_name)
                         
         if not os.path.isfile(os.path.join(dir_name, filename)) or overwrite:
             with open(os.path.join(dir_name, filename), 'w',newline='') as csvfile:
@@ -93,7 +91,6 @@ class RunmanagerMetrics(RunManager):
             writer = csv.writer(csvfile)
             for d_set in detections:
                 if d_set:    
-                    print("line ",[d_set.timestamp, str(d_set.state_vector[0]), str(d_set.state_vector[1])])
                     writer.writerow([d_set.timestamp, str(d_set.state_vector[0]), str(d_set.state_vector[1])])
 
 
@@ -108,7 +105,7 @@ class RunmanagerMetrics(RunManager):
         filename = "groundtruth.csv"
 
         if not os.path.exists(dir_name):
-                os.mkdir(dir_name)
+                os.makedirs(dir_name)
                         
         if not os.path.isfile(os.path.join(dir_name, filename)) or overwrite:
             with open(os.path.join(dir_name, filename), 'w',newline='') as csvfile:
