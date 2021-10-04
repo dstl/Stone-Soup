@@ -1,3 +1,4 @@
+from os import mkdir
 from stonesoup.serialise import YAML
 import numpy as np
 import copy
@@ -8,6 +9,8 @@ from itertools import chain
 from runmanagermetrics import RunmanagerMetrics
 import sys
 from operator import attrgetter
+import os
+import csv
 
 def read_json(json_input):
     with open(json_input) as json_file:
@@ -65,17 +68,8 @@ def run(config_path, parameters_path, output_path = None):
         parameters_path : Path of the parameters file
     """
     json_data = read_json(parameters_path)
-    
-    combo_list = {}
-    int_list = {}
-
-
     trackers_combination_dict = generate_parameters_combinations(json_data["parameters"])
-
     combo_dict = generate_all_combos(trackers_combination_dict)
-
-    # Everything from this point onwards is from original runmanager
-    # This current code still uses the yaml file to run the monte carlo
 
     with open(config_path, 'r') as file:
         tracker, ground_truth, metric_manager = read_config_file(file)
@@ -85,12 +79,12 @@ def run(config_path, parameters_path, output_path = None):
     metric_managers = []
 
 
-    trackers, ground_truths, metric_managers = set_trackers(combo_dict,tracker, ground_truth, metric_manager )
+    trackers, ground_truths, metric_managers = set_trackers(combo_dict, tracker, ground_truth, metric_manager )
 
     for idx in range(0, len(trackers)):
         for runs_num in range(0,json_data["runs_num"]):
             dir_name = "metrics_temp/simulation_{}".format(runs_num)
-            run_simulation(trackers[idx],metric_managers[idx],dir_name)
+            run_simulation(trackers[idx], metric_managers[idx], dir_name)
 
 """Start the simulation
 
@@ -121,6 +115,8 @@ def run_simulation(tracker,metric_manager,dir_name):
         #Generate the metrics
         metrics = metric_manager.generate_metrics()                            
 
+        if not os.path.exists('metrics_temp'):
+            os.mkdir('metrics_temp')
 
         ##Save the data in csv file
         RunmanagerMetrics.tracks_to_csv(dir_name,tracks)
@@ -276,13 +272,13 @@ if __name__ == "__main__":
     try:
         configInput = args[0] 
     except:
-        configInput= "C:\\Users\gbellant\Documents\Projects\Serapis\\config.yaml" 
+        configInput= "C:\\Users\\Davidb1\\Documents\\Python\\data\\config.yaml" 
     
 
     
     try:
         parametersInput = args[1] 
     except:
-        parametersInput= "C:\\Users\gbellant\Documents\Projects\Serapis\\dummy2.json" 
+        parametersInput= "C:\\Users\\Davidb1\\Documents\\Python\\data\\dummy2.json" 
     
     run(configInput, parametersInput)
