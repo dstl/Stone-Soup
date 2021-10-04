@@ -1,3 +1,4 @@
+from os import mkdir
 from stonesoup.serialise import YAML
 import numpy as np
 import copy
@@ -9,6 +10,7 @@ from runmanagermetrics import RunmanagerMetrics
 import sys
 from operator import attrgetter
 from datetime import datetime
+import os
 
 def read_json(json_input):
     with open(json_input) as json_file:
@@ -66,17 +68,8 @@ def run(config_path, parameters_path, groundtruth_setting, output_path = None):
         parameters_path : Path of the parameters file
     """
     json_data = read_json(parameters_path)
-    
-    combo_list = {}
-    int_list = {}
-
-
     trackers_combination_dict = generate_parameters_combinations(json_data["parameters"])
-
     combo_dict = generate_all_combos(trackers_combination_dict)
-
-    # Everything from this point onwards is from original runmanager
-    # This current code still uses the yaml file to run the monte carlo
 
     with open(config_path, 'r') as file:
         tracker, ground_truth, metric_manager = read_config_file(file)
@@ -263,7 +256,7 @@ if __name__ == "__main__":
     try:
         configInput = args[0] 
     except:
-        configInput= "C:\\Users\gbellant\Documents\Projects\Serapis\\config.yaml" 
+        configInput= "C:\\Users\\Davidb1\\Documents\\Python\\data\\config.yaml" 
     
 
     
