@@ -108,8 +108,9 @@ def run_simulation(tracker,metric_manager,dir_name):
         tracks = set()
 
 
-        for time, ctracks in tracker:
+        for time, ctracks in tracker.tracks_gen():
             #Update groundtruth, tracks and detections
+            print(tracker.detector.groundtruth.current)
             groundtruth.update(tracker.detector.groundtruth.groundtruth_paths)
             tracks.update(ctracks)
             detections.update(tracker.detector.detections)
