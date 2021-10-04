@@ -93,7 +93,7 @@ def run(config_path, parameters_path, output_path = None):
     for idx in range(0, len(trackers)):
         for runs_num in range(0,json_data["runs_num"]):
             dir_name = "metrics_{}".format(dt_string)+"/simulation_{}".format(idx)+"/run_{}".format(runs_num)
-            run_simulation(trackers[idx],metric_managers[idx],dir_name)
+            run_simulation(trackers[idx],ground_truths[idx],metric_managers[idx],dir_name)
 
 """Start the simulation
 
@@ -102,7 +102,7 @@ def run(config_path, parameters_path, output_path = None):
         groundtruth: GroundTruth
         metric_manager: Metric Manager
     """
-def run_simulation(tracker,metric_manager,dir_name):
+def run_simulation(tracker,ground_truth,metric_manager,dir_name):
 
     detector = tracker.detector
     try:
@@ -117,9 +117,10 @@ def run_simulation(tracker,metric_manager,dir_name):
             detections.update(tracker.detector.detections)
 
             RunmanagerMetrics.tracks_to_csv(dir_name,ctracks)
-            metric_manager.add_data(tracker.detector.groundtruth.groundtruth_paths,ctracks,tracker.detector.detections)
 
 
+        metric_manager.add_data(ground_truth,tracks,tracker.detector.detections)
+        metrics = metric_manager.generate_metrics()                            
 
         RunmanagerMetrics.groundtruth_to_csv(dir_name, groundtruth)
         RunmanagerMetrics.detection_to_csv(dir_name, detections)
@@ -127,7 +128,6 @@ def run_simulation(tracker,metric_manager,dir_name):
         #Add the data to the metric_manager
  
         #Generate the metrics
-        metrics = metric_manager.generate_metrics()                            
         RunmanagerMetrics.metrics_to_csv(dir_name, metrics)
 
         ##Save the data in csv file
