@@ -14,21 +14,21 @@ workflows:
 jobs:
   test-36: &test-template
     docker:
-      - image: circleci/python:3.6
+      - image: cimg/python:3.6
     steps:
       - checkout
       - restore_cache:
-          key: v1-dependencies-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
+          key: v2-dependencies-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
       - run:
           name: Install Dependencies
           command: |
-            python3 -m venv venv
+            python -m venv venv
             . venv/bin/activate
             pip install -e .[dev]
       - save_cache:
           paths:
             - ./venv
-          key: v1-dependencies-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
+          key: v2-dependencies-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
       - run:
           name: Run Tests
           command: |
@@ -49,36 +49,36 @@ jobs:
   test-37:
     <<: *test-template
     docker:
-      - image: circleci/python:3.7
+      - image: cimg/python:3.7
   test-38:
     <<: *test-template
     docker:
-      - image: circleci/python:3.8
+      - image: cimg/python:3.8
   test-39:
     <<: *test-template
     docker:
-      - image: circleci/python:3.9
+      - image: cimg/python:3.9
   test-310:
     <<: *test-template
     docker:
-      - image: circleci/python:3.10
+      - image: cimg/python:3.10
   docs:
     docker:
-      - image: circleci/python:3.10
+      - image: cimg/python:3.10
     steps:
       - checkout
       - restore_cache:
-          key: v1-dependencies-test-310-{{ checksum "setup.py" }}
+          key: v2-dependencies-test-310-{{ checksum "setup.py" }}
       - run:
           name: Install Dependencies
           command: |
-            python3 -m venv venv
+            python -m venv venv
             . venv/bin/activate
             pip install -e .[dev]
       - save_cache:
           paths:
             - ./venv
-          key: v1-dependencies-test-310-{{ checksum "setup.py" }}
+          key: v2-dependencies-test-310-{{ checksum "setup.py" }}
       - run:
           name: Build Docs
           command: |
