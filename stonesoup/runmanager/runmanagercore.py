@@ -1,16 +1,13 @@
 from os import mkdir
 from stonesoup.serialise import YAML
-import numpy as np
 import copy
 import json
-import itertools
-import pandas as pd
-from itertools import chain
 from runmanagermetrics import RunmanagerMetrics
+from inputmanager import InputManager
 import sys
-from operator import attrgetter
 from datetime import datetime
-import os
+
+
 
 def read_json(json_input):
     with open(json_input) as json_file:
@@ -19,57 +16,17 @@ def read_json(json_input):
         return json_data
 
 
-# Calculate the steps for each item in a list
-def iterations(min_value, max_value, num_samples):
-    temp = []
-    difference = max_value - min_value
-    factor = difference / (num_samples - 1)
-    for x in range(num_samples):
-        temp.append(min_value + (x * factor))
-    return temp
-
-# gets the combinations for one tracker and stores in list
-# Once you have steps created from iterations, generate step combinations for one parameter
-def get_trackers_list(iterations_container_list, value_min):
-    temp =[]
-    for x in range(0, len(value_min)):
-        temp.append(iterations_container_list[x])
-    list_combinations = list(itertools.product(*temp))
-    set_combinations = set(list_combinations)
-    set_combinations = list(set_combinations)
-    for idx, elem in enumerate(set_combinations):
-        set_combinations[idx]=list(elem)
-        set_combinations[idx]=np.c_[set_combinations[idx]].astype(int)
-        
-    
-    return list(set_combinations)
-
-# Generates all of the combinations between different parameters
-def generate_all_combos(trackers_dict):
-    """Generates all of the combinations between different parameters
-
-    Args:
-        trackers_dict (dict): Dictionary of all the parameters with all the possible values
-
-    Returns:
-        dict: Dictionary of all the parameters combined each other
-    """
-    keys = trackers_dict.keys()
-    values = (trackers_dict[key] for key in keys)
-    combinations = [dict(zip(keys, combination)) for combination in itertools.product(*values)]
-    return combinations
-
-
-def run(config_path, parameters_path, groundtruth_setting, output_path = None):
+def run(config_path, parameters_path, output_path = None):
     """Run the run manager
 
     Args:
         config_path : Path of the config file
         parameters_path : Path of the parameters file
     """
+    input_manager=InputManager()
     json_data = read_json(parameters_path)
-    trackers_combination_dict = generate_parameters_combinations(json_data["parameters"])
-    combo_dict = generate_all_combos(trackers_combination_dict)
+    trackers_combination_dict = input_manager.generate_parameters_combinations(json_data["parameters"])
+    combo_dict = input_manager.generate_all_combos(trackers_combination_dict)
 
     with open(config_path, 'r') as file:
         tracker, ground_truth, metric_manager = read_config_file(file)
@@ -78,29 +35,22 @@ def run(config_path, parameters_path, groundtruth_setting, output_path = None):
     ground_truths = []
     metric_managers = []
 
-
     trackers, ground_truths, metric_managers = set_trackers(combo_dict,tracker, ground_truth, metric_manager )
-    root_path = " C:/Users/gbellant/Documents/Projects/Serapis/"
     now = datetime.now()
     dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
     for idx in range(0, len(trackers)):
         for runs_num in range(0,json_data["runs_num"]):
             dir_name = "metrics_{}".format(dt_string)+"/simulation_{}".format(idx)+"/run_{}".format(runs_num)
-            if groundtruth_setting == 0:
-                groundtruth = trackers[idx].detector.groundtruth
-            else:
-                groundtruth = ground_truths[idx]
+            run_simulation(trackers[idx],metric_managers[idx],dir_name)
 
-            run_simulation(trackers[idx],groundtruth,metric_managers[idx],dir_name,groundtruth_setting)
-
-"""Start the simulation
+def run_simulation(tracker,metric_manager,dir_name):
+    """Start the simulation
 
     Args:
         tracker: Tracker
         groundtruth: GroundTruth
         metric_manager: Metric Manager
     """
-def run_simulation(tracker,ground_truth,metric_manager,dir_name,groundtruth_setting):
 
     detector = tracker.detector
     try:
@@ -110,30 +60,23 @@ def run_simulation(tracker,ground_truth,metric_manager,dir_name,groundtruth_sett
 
         for time, ctracks in tracker:
             #Update groundtruth, tracks and detections
-            # groundtruth.update(tracker.detector.groundtruth.groundtruth_paths)
-            if groundtruthSettings == 0:
-                groundtruth.update(ground_truth.groundtruth_path)
-            else:
-                groundtruth.update(ground_truth)
-                
+            groundtruth.update(tracker.detector.groundtruth.groundtruth_paths)
             tracks.update(ctracks)
             detections.update(tracker.detector.detections)
+
             RunmanagerMetrics.tracks_to_csv(dir_name,ctracks)
-            RunmanagerMetrics.groundtruth_to_csv(dir_name, groundtruth)
+            metric_manager.add_data(tracker.detector.groundtruth.groundtruth_paths,ctracks,tracker.detector.detections)
 
+        RunmanagerMetrics.groundtruth_to_csv(dir_name, groundtruth)
         RunmanagerMetrics.detection_to_csv(dir_name, detections)
-
-        metric_manager.add_data(ground_truth,tracks,tracker.detector.detections)
-        metrics = metric_manager.generate_metrics()                            
-
 
         #Add the data to the metric_manager
  
         #Generate the metrics
+        metrics = metric_manager.generate_metrics()    
+        ##Save the data in csv file                        
         RunmanagerMetrics.metrics_to_csv(dir_name, metrics)
-
-        ##Save the data in csv file
-
+ 
     except Exception as e:
         print(f'Failure: {e}', flush=True)
         # return None
@@ -141,41 +84,7 @@ def run_simulation(tracker,ground_truth,metric_manager,dir_name,groundtruth_sett
         print('Success!', flush=True)
 
 
-def generate_parameters_combinations(parameters):
-    """[summary]
-    From a list of parameters with, min, max and n_samples values generate all the possible values
-
-    Args:
-        parameters ([type]): [list of parameters used to calculate all the possible parameters]
-
-    Returns:
-        [dict]: [dictionary of all the combinations]
-    """
-    combination_dict = {}
-    combo_list = {}
-    int_list = {}
-    iters = []
-
-    for param in parameters:
-        for key, val in param.items():
-            path = param["path"]
-
-            if type(val) is list and key == "value_min":
-                for x in range(len(val)):
-                    iters.append(iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
-                combo_list[path] = get_trackers_list(iters, param["value_min"])
-                combination_dict.update(combo_list)
-
-            if type(val) is int and key == "value_min":
-                path = param["path"]
-                int_iterations = iterations(param["value_min"], param["value_max"], param["n_samples"])
-                int_list[path] = [int(x) for x in int_iterations]
-                combination_dict.update(int_list)
-
-    return combination_dict
-
-
-def set_trackers(combo_dict,tracker, ground_truth, metric_manager ):
+def set_trackers(combo_dict,tracker, ground_truth, metric_manager):
     """Set the trackers, groundtruths and metricmanagers list (stonesoup objects)
 
     Args:
@@ -211,8 +120,6 @@ def set_trackers(combo_dict,tracker, ground_truth, metric_manager ):
         metric_managers.append(metric_manager_copy)
 
     return trackers,ground_truths,metric_managers
-
-
 
 
 def set_param(split_path,el,value):
@@ -256,19 +163,13 @@ if __name__ == "__main__":
     try:
         configInput = args[0] 
     except:
-        configInput= "C:\\Users\gbellant\Documents\Projects\Serapis\\config.yaml" 
+        configInput= "C:\\Users\\Davidb1\\Documents\\Python\\data\\config.yaml" 
     
 
     
     try:
         parametersInput = args[1] 
     except:
-        parametersInput= "C:\\Users\gbellant\Documents\Projects\Serapis\\dummy2.json" 
-
-
-    try:
-        groundtruthSettings = args[2]
-    except:
-        groundtruthSettings = 1
+        parametersInput= "C:\\Users\\Davidb1\\Documents\\Python\\data\\dummy2.json" 
     
-    run(configInput, parametersInput,groundtruthSettings)
+    run(configInput, parametersInput)
