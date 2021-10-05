@@ -256,7 +256,7 @@ if __name__ == "__main__":
     try:
         configInput = args[0] 
     except:
-        configInput= "C:\\Users\\Davidb1\\Documents\\Python\\data\\config.yaml" 
+        configInput= "C:\\Users\gbellant\Documents\Projects\Serapis\\config.yaml" 
     
 
     
