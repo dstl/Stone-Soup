@@ -25,12 +25,11 @@ class InputManager(RunManager):
         return input_int
     
     def set_float(self, input_float):
-        input_float=int(input_float)
+        input_float=float(input_float)
         return input_float
 
     def set_covariance(self, covar):
         covar=np.array(covar)
-        print(type(covar))
         return covar
 
     def set_bool():
@@ -70,6 +69,7 @@ class InputManager(RunManager):
         float_list = {}
         bool_list = {}
         iters = []
+        covar_iters = [] 
 
         for param in parameters:
             for key, val in param.items():
@@ -90,15 +90,27 @@ class InputManager(RunManager):
                     float_iterations = self.iterations(param["value_min"], param["value_max"], param["n_samples"])
                     float_list[path] = [float(x) for x in float_iterations]
                     combination_dict.update(float_list)
-                
+
+                # Should check this, i think we need an option in the GUI for checking if somebody wants
+                # to change a parameter or not if its true, and they want to change then this is fine
+                # if not then only use the single item
                 if param["type"] == 'bool' and key == "value_min":
                     bool_list[path] = [True, False]
                     combination_dict.update(bool_list)
 
                 if param["type"] == "covar" and key == "value_min":
-                    covar=self.set_covariance(val)
-                    print(covar.diagonal())     
-                    print(covar)     
+                    covar_min=self.set_covariance(param["value_min"])
+                    covar_max=self.set_covariance(param["value_max"])
+                    covar_diag_min = covar_min.diagonal()
+                    covar_diag_max = covar_max.diagonal()
+                    for x in range(len(val)):
+                        covar_iters.append(self.iterations(covar_diag_min[x], covar_diag_max[x], param["n_samples"]))
+                        print(covar_iters)
+                    combo_list[path] = self.get_covar_trackers_list(covar_iters, covar_min)
+                    combination_dict.update(combo_list)
+                    #print(zz)
+                    
+   
 
         return combination_dict
 
@@ -120,9 +132,22 @@ class InputManager(RunManager):
         list_combinations = list(itertools.product(*temp))
         set_combinations = list(set(list_combinations))
         set_stateVector=self.set_stateVector(set_combinations)
-            
         
         return list(set_combinations)
+    
+    def get_covar_trackers_list(self, iteration_list, value_min):
+        temp =[]
+        combinations = []
+        for x in range(0, len(value_min)):
+            temp.append(iteration_list[x])
+        list_combinations = list(itertools.product(*temp))
+        set_combinations = np.array(list(set(list_combinations)))
+        print(len(set_combinations))
+        for y in set_combinations:
+            temp_array=np.empty((6,6), dtype=int)
+            np.fill_diagonal(temp_array,y)
+            combinations.append(temp_array)
+        return combinations
 
     # Generates all of the combinations between different parameters
     def generate_all_combos(self, trackers_dict):
