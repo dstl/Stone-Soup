@@ -120,4 +120,7 @@ class RunmanagerMetrics(RunManager):
                 writer.writerow([gt.state.timestamp,
                                 ' '.join([str(n) for n in gt.state.state_vector])])
 
-
+    
+    def parameters_to_csv(dir_name, parameters, overwrite=False):
+        
+        raise NotImplementedError

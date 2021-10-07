@@ -12,7 +12,6 @@ from datetime import datetime
 def read_json(json_input):
     with open(json_input) as json_file:
         json_data = json.load(json_file)
-        # print(json.dumps(json_data, indent=4, sort_keys=True))
         return json_data
 
 
@@ -70,13 +69,13 @@ def run_simulation(tracker,metric_manager,dir_name):
         #Generate the metrics
         metrics = metric_manager.generate_metrics()    
  
+        RunmanagerMetrics.groundtruth_to_csv(dir_name, groundtruth)
+        RunmanagerMetrics.detection_to_csv(dir_name, detections)
+        RunmanagerMetrics.metrics_to_csv(dir_name, metrics)
     except Exception as e:
         print(f'Failed to run Simulation: {e}', flush=True)
 
     else:
-        RunmanagerMetrics.groundtruth_to_csv(dir_name, groundtruth)
-        RunmanagerMetrics.detection_to_csv(dir_name, detections)
-        RunmanagerMetrics.metrics_to_csv(dir_name, metrics)
         print('Success!', flush=True)
 
 

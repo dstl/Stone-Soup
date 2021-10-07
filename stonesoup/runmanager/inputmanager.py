@@ -64,37 +64,36 @@ class InputManager(RunManager):
             [dict]: [dictionary of all the combinations]
         """
         combination_dict = {}
-        combo_list = {}
-        int_list = {}
-        float_list = {}
-        bool_list = {}
-        iters = []
-        covar_iters = []
-        datelist={}
 
         for param in parameters:
             for key, val in param.items():
                 path = param["path"]
-
+                combination_list = {}
+                iteration_list=[]
                 if param["type"] == "StateVector" and key == "value_min":
                     for x in range(len(val)):
-                        iters.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
-                    combo_list[path] = self.get_trackers_list(iters, param["value_min"])
-                    combination_dict.update(combo_list)
+                        iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
+                    combination_list[path] = self.get_trackers_list(iteration_list, param["value_min"])
+                    combination_dict.update(combination_list)
 
                 if param["type"] == "int" and key == "value_min":
-                    int_iterations = self.iterations(param["value_min"], param["value_max"], param["n_samples"])
-                    int_list[path] = [int(x) for x in int_iterations]
-                    combination_dict.update(int_list)
+                    iteration_list = self.iterations(param["value_min"], param["value_max"], param["n_samples"])
+                    combination_list[path] = [int(x) for x in iteration_list]
+                    combination_dict.update(combination_list)
 
                 if param["type"] == "float" and key == "value_min":
-                    float_iterations = self.iterations(param["value_min"], param["value_max"], param["n_samples"])
-                    float_list[path] = [float(x) for x in float_iterations]
-                    combination_dict.update(float_list)
+                    iteration_list = self.iterations(param["value_min"], param["value_max"], param["n_samples"])
+                    combination_list[path] = [float(x) for x in iteration_list]
+                    combination_dict.update(combination_list)
+
+                if param["type"] == "Probability" and key == "value_min":
+                    iteration_list = self.iterations(param["value_min"], param["value_max"], param["n_samples"])
+                    combination_list[path] = [Probability(x) for x in iteration_list]
+                    combination_dict.update(combination_list)
 
                 if param["type"] == 'bool' and key == "value_min":
-                    bool_list[path] = [True, False]
-                    combination_dict.update(bool_list)
+                    combination_list[path] = [True, False]
+                    combination_dict.update(combination_list)
 
                 if param["type"] == "CovarianceMatrix" and key == "value_min":
                     covar_min=CovarianceMatrix(param["value_min"])
@@ -103,26 +102,28 @@ class InputManager(RunManager):
                     covar_diag_max=covar_max.diagonal()
                     
                     for x in range(len(val)):
-                        covar_iters.append(self.iterations(covar_diag_min[x], covar_diag_max[x], param["n_samples"]))
-                    combo_list[path]=self.get_covar_trackers_list(covar_iters, covar_min)
-                    combination_dict.update(combo_list)
+                        iteration_list.append(self.iterations(covar_diag_min[x], covar_diag_max[x], param["n_samples"]))
+                    combination_list[path]=self.get_covar_trackers_list(iteration_list, covar_min)
+                    combination_dict.update(combination_list)
 
                 if param["type"] == "DateTime" and key == "value_min":
                     min_date=datetime.strptime(param["value_min"], '%Y-%m-%d %H:%M:%S.%f')
                     max_date=datetime.strptime(param["value_max"], '%Y-%m-%d %H:%M:%S.%f')                  
-                    iterations = self.iterations(min_date, max_date, param["n_samples"])
-                    datelist[path]=iterations
-                    combination_dict.update(datelist)
-
-                if param["type"] == "Tuple" and key == "value_min":
-                    for x in range(len(val)):
-                        iters.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
-                    combo_list[path] = self.get_trackers_list(iters, param["value_min"])
-
+                    iteration_list = self.iterations(min_date, max_date, param["n_samples"])
+                    combination_list[path]=iteration_list
+                    combination_dict.update(combination_list)
+                    
         return combination_dict
 
     # Calculate the steps for each item in a list
     def iterations(self, min_value, max_value, num_samples):
+        """ Calculates the step different between the min 
+            and max value given in the parameter file.
+        Args:
+            self : self
+            min_value : Minimum parameter value
+            maz_value : Maximum parameter value
+        """
         temp = []
         difference = max_value - min_value
         factor = difference / (num_samples - 1)
