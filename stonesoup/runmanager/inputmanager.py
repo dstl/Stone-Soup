@@ -1,7 +1,9 @@
 from base import RunManager
 import numpy as np
 import itertools
-
+from stonesoup.types.array import StateVector, CovarianceMatrix
+from stonesoup.types.numeric import Probability
+from datetime import datetime
 class InputManager(RunManager):
 
     def set_stateVector(self, list_state_vector):
@@ -13,12 +15,10 @@ class InputManager(RunManager):
         Returns:
             StateVector: state vector 
         """
+        vector_list=[]
         for idx, elem in enumerate(list_state_vector):
-            list_state_vector[idx]=list(elem)
-            list_state_vector[idx]=np.c_[list_state_vector[idx]]
-        
-        return list(list_state_vector)
-
+            vector_list.append(StateVector(elem))
+        return vector_list
 
     def set_int(self, input_int):
         input_int=int(input_int)
@@ -69,13 +69,14 @@ class InputManager(RunManager):
         float_list = {}
         bool_list = {}
         iters = []
-        covar_iters = [] 
+        covar_iters = []
+        datelist={}
 
         for param in parameters:
             for key, val in param.items():
                 path = param["path"]
 
-                if param["type"] == "state_vector" and key == "value_min":
+                if param["type"] == "StateVector" and key == "value_min":
                     for x in range(len(val)):
                         iters.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
                     combo_list[path] = self.get_trackers_list(iters, param["value_min"])
@@ -91,26 +92,32 @@ class InputManager(RunManager):
                     float_list[path] = [float(x) for x in float_iterations]
                     combination_dict.update(float_list)
 
-                # Should check this, i think we need an option in the GUI for checking if somebody wants
-                # to change a parameter or not if its true, and they want to change then this is fine
-                # if not then only use the single item
                 if param["type"] == 'bool' and key == "value_min":
                     bool_list[path] = [True, False]
                     combination_dict.update(bool_list)
 
-                if param["type"] == "covar" and key == "value_min":
-                    covar_min=self.set_covariance(param["value_min"])
-                    covar_max=self.set_covariance(param["value_max"])
-                    covar_diag_min = covar_min.diagonal()
-                    covar_diag_max = covar_max.diagonal()
+                if param["type"] == "CovarianceMatrix" and key == "value_min":
+                    covar_min=CovarianceMatrix(param["value_min"])
+                    covar_max=CovarianceMatrix(param["value_max"])
+                    covar_diag_min=covar_min.diagonal()
+                    covar_diag_max=covar_max.diagonal()
+                    
                     for x in range(len(val)):
                         covar_iters.append(self.iterations(covar_diag_min[x], covar_diag_max[x], param["n_samples"]))
-                        print(covar_iters)
-                    combo_list[path] = self.get_covar_trackers_list(covar_iters, covar_min)
+                    combo_list[path]=self.get_covar_trackers_list(covar_iters, covar_min)
                     combination_dict.update(combo_list)
-                    #print(zz)
-                    
-   
+
+                if param["type"] == "DateTime" and key == "value_min":
+                    min_date=datetime.strptime(param["value_min"], '%Y-%m-%d %H:%M:%S.%f')
+                    max_date=datetime.strptime(param["value_max"], '%Y-%m-%d %H:%M:%S.%f')                  
+                    iterations = self.iterations(min_date, max_date, param["n_samples"])
+                    datelist[path]=iterations
+                    combination_dict.update(datelist)
+
+                if param["type"] == "Tuple" and key == "value_min":
+                    for x in range(len(val)):
+                        iters.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
+                    combo_list[path] = self.get_trackers_list(iters, param["value_min"])
 
         return combination_dict
 
@@ -130,21 +137,22 @@ class InputManager(RunManager):
         for x in range(0, len(value_min)):
             temp.append(iterations_container_list[x])
         list_combinations = list(itertools.product(*temp))
+
+        #Using a set to remove any duplicates
         set_combinations = list(set(list_combinations))
-        set_stateVector=self.set_stateVector(set_combinations)
-        
-        return list(set_combinations)
+                
+        return self.set_stateVector(set_combinations)
     
     def get_covar_trackers_list(self, iteration_list, value_min):
         temp =[]
         combinations = []
+        array_size=len(value_min)
         for x in range(0, len(value_min)):
             temp.append(iteration_list[x])
         list_combinations = list(itertools.product(*temp))
         set_combinations = np.array(list(set(list_combinations)))
-        print(len(set_combinations))
         for y in set_combinations:
-            temp_array=np.empty((6,6), dtype=int)
+            temp_array=np.empty((array_size,array_size), dtype=int)
             np.fill_diagonal(temp_array,y)
             combinations.append(temp_array)
         return combinations

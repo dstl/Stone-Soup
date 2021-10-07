@@ -67,20 +67,16 @@ def run_simulation(tracker,metric_manager,dir_name):
             RunmanagerMetrics.tracks_to_csv(dir_name,ctracks)
             metric_manager.add_data(tracker.detector.groundtruth.groundtruth_paths,ctracks,tracker.detector.detections)
 
-        RunmanagerMetrics.groundtruth_to_csv(dir_name, groundtruth)
-        RunmanagerMetrics.detection_to_csv(dir_name, detections)
-
-        #Add the data to the metric_manager
- 
         #Generate the metrics
         metrics = metric_manager.generate_metrics()    
-        ##Save the data in csv file                        
-        RunmanagerMetrics.metrics_to_csv(dir_name, metrics)
  
     except Exception as e:
-        print(f'Failure: {e}', flush=True)
-        # return None
+        print(f'Failed to run Simulation: {e}', flush=True)
+
     else:
+        RunmanagerMetrics.groundtruth_to_csv(dir_name, groundtruth)
+        RunmanagerMetrics.detection_to_csv(dir_name, detections)
+        RunmanagerMetrics.metrics_to_csv(dir_name, metrics)
         print('Success!', flush=True)
 
 
