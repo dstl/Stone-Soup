@@ -136,7 +136,7 @@ class RunmanagerMetrics(RunManager):
             os.makedirs(dir_name)
         
         for k, v in parameters.items():
-            if type(v) is StateVector or CovarianceMatrix:
+            if isinstance(v, StateVector) or isinstance(v, CovarianceMatrix):
                 parameters[k] = list(v)
 
         with open(os.path.join(dir_name, filename), 'a', newline='') as paramfile:
