@@ -40,6 +40,7 @@ def run(config_path, parameters_path, output_path = None):
     for idx in range(0, len(trackers)):
         for runs_num in range(0,json_data["runs_num"]):
             dir_name = "metrics_{}".format(dt_string)+"/simulation_{}".format(idx)+"/run_{}".format(runs_num)
+            RunmanagerMetrics.parameters_to_csv(dir_name, combo_dict[idx])
             run_simulation(trackers[idx],metric_managers[idx],dir_name)
 
 def run_simulation(tracker,metric_manager,dir_name):

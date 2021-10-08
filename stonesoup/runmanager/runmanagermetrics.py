@@ -2,6 +2,8 @@ from base import RunManager
 import os
 import csv
 from itertools import chain
+import json
+from stonesoup.types.array import CovarianceMatrix, StateVector
 
 class RunmanagerMetrics(RunManager):
     """Class for generating 
@@ -122,5 +124,22 @@ class RunmanagerMetrics(RunManager):
 
     
     def parameters_to_csv(dir_name, parameters, overwrite=False):
+        """Create a csv file for the parameters. It will contain the parameter name for each simulation.
+
+        Args:
+            dir_name: name of the directory where to create the config file
+            parameters: dictionary of the parameter details for the simulation runs.
+            overwrite: overwrite the file. 
+        """
+        filename = "parameters.json"
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name)
         
-        raise NotImplementedError
+        for k, v in parameters.items():
+            if type(v) is StateVector or CovarianceMatrix:
+                parameters[k] = list(v)
+
+        with open(os.path.join(dir_name, filename), 'a', newline='') as paramfile:
+            json.dump(parameters, paramfile)
+            
+
