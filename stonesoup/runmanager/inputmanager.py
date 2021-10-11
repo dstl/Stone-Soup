@@ -1,3 +1,4 @@
+from typing import Tuple
 from base import RunManager
 import numpy as np
 import itertools
@@ -32,10 +33,13 @@ class InputManager(RunManager):
         covar=np.array(covar)
         return covar
 
-    def set_bool():
-        raise NotImplementedError
+    def set_tuple(self, list_tuple):
+        tuple_list=[]
+        for idx, elem in enumerate(list_tuple):
+            tuple_list.append(tuple(elem))
+        return tuple_list
 
-    def set_tuple():
+    def set_bool():
         raise NotImplementedError
 
     def set_ndArray():
@@ -73,7 +77,7 @@ class InputManager(RunManager):
                 if param["type"] == "StateVector" and key == "value_min":
                     for x in range(len(val)):
                         iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
-                    combination_list[path] = self.get_trackers_list(iteration_list, param["value_min"])
+                    combination_list[path] = self.set_stateVector(self.get_trackers_list(iteration_list, param["value_min"]))
                     combination_dict.update(combination_list)
 
                 if param["type"] == "int" and key == "value_min":
@@ -112,6 +116,12 @@ class InputManager(RunManager):
                     iteration_list = self.iterations(min_date, max_date, param["n_samples"])
                     combination_list[path]=iteration_list
                     combination_dict.update(combination_list)
+                
+                if param["type"] == "Tuple" and key == "value_min":
+                    for x in range(len(val)):
+                        iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
+                    combination_list[path] = self.set_tuple(self.get_trackers_list(iteration_list, param["value_min"]))
+                    combination_dict.update(combination_list)
                     
         return combination_dict
 
@@ -142,7 +152,7 @@ class InputManager(RunManager):
         #Using a set to remove any duplicates
         set_combinations = list(set(list_combinations))
                 
-        return self.set_stateVector(set_combinations)
+        return set_combinations
     
     def get_covar_trackers_list(self, iteration_list, value_min):
         temp =[]
