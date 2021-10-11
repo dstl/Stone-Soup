@@ -4,7 +4,7 @@ import numpy as np
 import itertools
 from stonesoup.types.array import StateVector, CovarianceMatrix
 from stonesoup.types.numeric import Probability
-from datetime import datetime
+from datetime import datetime, timedelta
 class InputManager(RunManager):
 
     def set_stateVector(self, list_state_vector):
@@ -45,12 +45,9 @@ class InputManager(RunManager):
     def set_ndArray():
         raise NotImplementedError
 
-    def set_timeDelta():
-        raise NotImplementedError
+    def set_time_delta(self, time_delta):
+        return timedelta(time_delta)
     
-    def set_deltaTime():
-        raise NotImplementedError
-
     def set_coordinate_system():
         raise NotImplementedError
 
@@ -122,7 +119,12 @@ class InputManager(RunManager):
                         iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
                     combination_list[path] = self.set_tuple(self.get_trackers_list(iteration_list, param["value_min"]))
                     combination_dict.update(combination_list)
-                    
+
+                if param["type"] == "timedelta" and key == "value_min":
+                    iteration_list = self.iterations(param["value_min"], param["value_max"], param["n_samples"])
+                    combination_list[path] = [self.set_time_delta(x) for x in iteration_list]
+                    combination_dict.update(combination_list)
+
         return combination_dict
 
     # Calculate the steps for each item in a list
