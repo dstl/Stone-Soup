@@ -121,7 +121,6 @@ class InputManager(RunManager):
                     for x in range(len(val)):
                         iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
                     combination_list[path] = self.set_tuple(self.get_trackers_list(iteration_list, param["value_min"]))
-                    print(combination_list[path])
                     combination_dict.update(combination_list)
                     
         return combination_dict
