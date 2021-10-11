@@ -1,3 +1,4 @@
+from datetime import timedelta
 from base import RunManager
 import os
 import csv
@@ -138,6 +139,9 @@ class RunmanagerMetrics(RunManager):
         for k, v in parameters.items():
             if isinstance(v, StateVector) or isinstance(v, CovarianceMatrix):
                 parameters[k] = list(v)
+            elif isinstance(v, timedelta):
+                #may change this in the future, unsure on the datatype for saving to json.
+                parameters[k] = str(v)
 
         with open(os.path.join(dir_name, filename), 'a', newline='') as paramfile:
             json.dump(parameters, paramfile)
