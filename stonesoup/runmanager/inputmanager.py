@@ -124,11 +124,21 @@ class InputManager(RunManager):
                     iteration_list = self.iterations(param["value_min"], param["value_max"], param["n_samples"])
                     combination_list[path] = [self.set_time_delta(x) for x in iteration_list]
                     combination_dict.update(combination_list)
+                
+                if param["type"] == "ndarray" and key == "value_min":
+                    val_min=list(param["value_min"])
+                    val_max=list(param["value_max"])
+                    for x in range(len(val)):
+                        for y in range(len(val[x])):
+                            iteration_list.append(self.iterations(val_min[x][y], val_max[x][y], param["n_samples"]))
+                    combination_list[path] = self.get_ndarray_trackers_list(iteration_list, param["value_min"])
+                    combination_dict.update(combination_list)
+                
 
         return combination_dict
 
     # Calculate the steps for each item in a list
-    def iterations(self, min_value, max_value, num_samples):
+    def iterations(self, min_value, max_value, num_samples, index=0):
         """ Calculates the step different between the min 
             and max value given in the parameter file.
         Args:
@@ -155,7 +165,18 @@ class InputManager(RunManager):
         set_combinations = list(set(list_combinations))
                 
         return set_combinations
-    
+
+    def get_ndarray_trackers_list(self, iterations_container_list, value_min):
+        temp =[]
+        for x in range(0, len(value_min)):
+            temp.append(iterations_container_list[x])
+        list_combinations = [list(tup) for tup in itertools.product(*temp)]
+
+        #Using a set to remove any duplicates
+        #set_combinations = list(set(list_combinations))
+                
+        return list_combinations
+
     def get_covar_trackers_list(self, iteration_list, value_min):
         temp =[]
         combinations = []
