@@ -52,7 +52,7 @@ def run(config_path, parameters_path, groundtruth_setting, output_path = None):
                 groundtruth = trackers[idx].detector.groundtruth
             else:
                 groundtruth = ground_truths[idx]
-
+            print("RUN")
             run_simulation(trackers[idx],groundtruth,metric_managers[idx],dir_name,groundtruth_setting)
 
 def run_simulation(tracker, ground_truth, metric_manager, dir_name, groundtruth_setting):
@@ -69,22 +69,25 @@ def run_simulation(tracker, ground_truth, metric_manager, dir_name, groundtruth_
         groundtruth = set()
         detections = set()
         tracks = set()
-
         for time, ctracks in tracker:
             #Update groundtruth, tracks and detections
             #groundtruth.update(tracker.detector.groundtruth.groundtruth_paths)
-            groundtruth.update(ground_truth.groundtruth_paths)
+
+            try:
+                groundtruth.update(ground_truth.groundtruth_path)
+            except:
+                groundtruth.update(ground_truth)
 
             tracks.update(ctracks)
             detections.update(tracker.detector.detections)
 
             RunmanagerMetrics.tracks_to_csv(dir_name,ctracks)
 
-            if metric_manager is not None:
-                metric_manager.add_data(ground_truth.groundtruth_paths,ctracks,tracker.detector.detections)
+            
 
         if metric_manager is not None:
             #Generate the metrics
+            metric_manager.add_data(ground_truth,tracks,tracker.detector.detections)
             metrics = metric_manager.generate_metrics()
 
         RunmanagerMetrics.groundtruth_to_csv(dir_name, groundtruth)
@@ -200,13 +203,13 @@ if __name__ == "__main__":
     try:
         configInput = args[0]
     except:
-        configInput= "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\testConfigs\\sensplatsim_config.yaml"
+        configInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\config.yaml"
 
 
     try:
         parametersInput = args[1]
     except:
-        parametersInput= "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\Data\\dummy2.json"
+        parametersInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\dummy3.json"
 
 
     try:
