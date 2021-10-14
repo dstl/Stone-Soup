@@ -1,31 +1,31 @@
-from datetime import timedelta
 from base import RunManager
 import os
 import csv
 from itertools import chain
 import json
 from stonesoup.types.array import CovarianceMatrix, StateVector
+from datetime import timedelta
 from stonesoup.serialise import YAML
 
 class RunmanagerMetrics(RunManager):
-    """Class for generating 
+    """Class for generating
 
     Args:
         Runmanager : Run manager base class
     """
-    def tracks_to_csv(dir_name, tracks, overwrite=False):  
+    def tracks_to_csv(dir_name, tracks, overwrite=False):
         """Create a csv file for the track. It will contain the following columns:
             time    id  state   mean    covar
 
         Args:
             dir_name: name of the directory where to create the config file
             tracks: tracks data
-            overwrite: overwrite the file. 
+            overwrite: overwrite the file.
 
         """
         if not os.path.exists(dir_name):
                 os.makedirs(dir_name)
-                
+
         if not os.path.isfile(os.path.join(dir_name, 'tracks.csv')) or overwrite:
             with open(os.path.join(dir_name, 'tracks.csv'), 'w',newline='') as csvfile:
                 writer = csv.writer(csvfile)
@@ -41,18 +41,19 @@ class RunmanagerMetrics(RunManager):
                 writer.writerow([t.state.timestamp, t.id,
                                 ' '.join([str(n) for n in t.state.state_vector]),
                                 ' '.join([str(n) for n in t.state.mean]),
-                                c]) 
+                                c])
 
     def metrics_to_csv(dir_name, metrics, overwrite=False):
+
         filename = "metrics.csv"
         if not os.path.exists(dir_name):
             os.makedirs(dir_name)
-                        
+
         if not os.path.isfile(os.path.join(dir_name, filename)) or overwrite:
             with open(os.path.join(dir_name, filename), 'w',newline='') as csvfile:
                 writer = csv.writer(csvfile)
 
-                for metric in metrics:                
+                for metric in metrics:
                     for metric_line in metric.value:
                         title = []
                         for property in type(metric_line).properties:
@@ -63,7 +64,7 @@ class RunmanagerMetrics(RunManager):
 
         with open(os.path.join(dir_name, filename), 'a',newline='') as csvfile:
             writer = csv.writer(csvfile)
-            for metric in metrics:                
+            for metric in metrics:
                 for metric_line in metric.value:
                     row = []
                     for property in type(metric_line).properties:
@@ -79,12 +80,12 @@ class RunmanagerMetrics(RunManager):
         Args:
             dir_name: name of the directory where to create the config file
             detections: detections data
-            overwrite: overwrite the file. 
+            overwrite: overwrite the file.
         """
         filename = "detections.csv"
         if not os.path.exists(dir_name):
             os.makedirs(dir_name)
-                        
+
         if not os.path.isfile(os.path.join(dir_name, filename)) or overwrite:
             with open(os.path.join(dir_name, filename), 'w',newline='') as csvfile:
                 writer = csv.writer(csvfile)
@@ -94,7 +95,7 @@ class RunmanagerMetrics(RunManager):
         with open(os.path.join(dir_name, filename), 'a',newline='') as csvfile:
             writer = csv.writer(csvfile)
             for d_set in detections:
-                if d_set:    
+                if d_set:
                     writer.writerow([d_set.timestamp, str(d_set.state_vector[0]), str(d_set.state_vector[1])])
 
 
@@ -104,13 +105,13 @@ class RunmanagerMetrics(RunManager):
         Args:
             dir_name: name of the directory where to create the config file
             groundtruths: groundtruths data
-            overwrite: overwrite the file. 
+            overwrite: overwrite the file.
         """
         filename = "groundtruth.csv"
 
         if not os.path.exists(dir_name):
                 os.makedirs(dir_name)
-                        
+
         if not os.path.isfile(os.path.join(dir_name, filename)) or overwrite:
             with open(os.path.join(dir_name, filename), 'w',newline='') as csvfile:
                 writer = csv.writer(csvfile)
@@ -124,7 +125,7 @@ class RunmanagerMetrics(RunManager):
                 writer.writerow([gt.state.timestamp,
                                 ' '.join([str(n) for n in gt.state.state_vector])])
 
-    
+
     def parameters_to_csv(dir_name, parameters, overwrite=False):
         """Create a csv file for the parameters. It will contain the parameter name for each simulation.
 
@@ -157,4 +158,3 @@ class RunmanagerMetrics(RunManager):
         yaml = YAML()
         yaml.dump(data, f)
         f.close()
-
