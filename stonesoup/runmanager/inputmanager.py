@@ -74,6 +74,7 @@ class InputManager(RunManager):
                 if param["type"] == "StateVector" and key == "value_min":
                     for x in range(len(val)):
                         iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
+                    print("STATE VECTOR ", iteration_list)
                     combination_list[path] = self.set_stateVector(self.get_trackers_list(iteration_list, param["value_min"]))
                     combination_dict.update(combination_list)
 
@@ -126,16 +127,32 @@ class InputManager(RunManager):
                     combination_dict.update(combination_list)
                 
                 if param["type"] == "ndarray" and key == "value_min":
-                    val_min=list(param["value_min"])
-                    val_max=list(param["value_max"])
-                    for x in range(len(val)):
-                        for y in range(len(val[x])):
-                            iteration_list.append(self.iterations(val_min[x][y], val_max[x][y], param["n_samples"]))
+                    val_min=param["value_min"]
+                    val_max=param["value_max"]
+                    # for x in range(len(val)):
+                    #      for y in range(len(val[x])):
+                    #         iteration_list.append(self.iterations(val_min[x][y], val_max[x][y], param["n_samples"]))
+                    self.darray_navigator(val, val_min, val_max, iteration_list,param["n_samples"])
+                    print("iteration_list")
+                    print(iteration_list)
                     combination_list[path] = self.get_ndarray_trackers_list(iteration_list, param["value_min"])
                     combination_dict.update(combination_list)
+                    print("combination_list ",combination_dict)
                 
 
         return combination_dict
+
+
+
+    def darray_navigator(self,val,val_min,val_max,iteration_list,n_samples):
+        if(type(val) is list):
+            for x in range(len(val)):
+                new_iteration_list = []
+                iteration_list.append(new_iteration_list)
+                self.darray_navigator(val[x],val_min[x],val_max[x],new_iteration_list,n_samples)
+        else:
+             iteration_list.append(self.iterations(val_min, val_max, n_samples))
+        
 
     # Calculate the steps for each item in a list
     def iterations(self, min_value, max_value, num_samples, index=0):

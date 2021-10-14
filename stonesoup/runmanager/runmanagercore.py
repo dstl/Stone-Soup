@@ -200,13 +200,13 @@ if __name__ == "__main__":
     try:
         configInput = args[0]
     except:
-        configInput= "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\testConfigs\\sensplatsim_config.yaml"
+        configInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\config.yaml"
 
 
     try:
         parametersInput = args[1]
     except:
-        parametersInput= "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\Data\\dummy2.json"
+        parametersInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\dummy3.json"
 
 
     try:
