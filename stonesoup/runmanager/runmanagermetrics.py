@@ -4,6 +4,8 @@ import csv
 from itertools import chain
 import json
 from stonesoup.types.array import CovarianceMatrix, StateVector
+from datetime import timedelta
+from stonesoup.serialise import YAML
 
 class RunmanagerMetrics(RunManager):
     """Class for generating
@@ -130,15 +132,29 @@ class RunmanagerMetrics(RunManager):
         Args:
             dir_name: name of the directory where to create the config file
             parameters: dictionary of the parameter details for the simulation runs.
-            overwrite: overwrite the file.
+            overwrite: overwrite the file. 
         """
         filename = "parameters.json"
         if not os.path.exists(dir_name):
             os.makedirs(dir_name)
-
+        
         for k, v in parameters.items():
-            if type(v) is StateVector or type(v) is CovarianceMatrix:
+            if isinstance(v, StateVector) or isinstance(v, CovarianceMatrix):
                 parameters[k] = list(v)
+            elif isinstance(v, timedelta):
+                #may change this in the future, unsure on the datatype for saving to json.
+                parameters[k] = str(v)
 
         with open(os.path.join(dir_name, filename), 'a', newline='') as paramfile:
             json.dump(parameters, paramfile)
+            
+    def generate_config(dir_name, tracker, groundtruth, metrics, overwrite=False):
+        data = [tracker, groundtruth, metrics]
+        filename = "config.yaml"
+        if not os.path.exists(dir_name):
+                os.makedirs(dir_name)
+                        
+        f = open(os.path.join(dir_name, filename), "w")
+        yaml = YAML()
+        yaml.dump(data, f)
+        f.close()
