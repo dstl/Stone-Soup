@@ -58,7 +58,7 @@ class InputManager(RunManager):
         """[summary]
         From a list of parameters with, min, max and n_samples values generate all the possible values
 
-        Args:
+        Parameters:
             parameters ([type]): [list of parameters used to calculate all the possible parameters]
 
         Returns:
@@ -73,9 +73,10 @@ class InputManager(RunManager):
                 iteration_list=[]
                 if param["type"] == "StateVector" and key == "value_min":
                     for x in range(len(val)):
-                        iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
-                    print("STATE VECTOR ", iteration_list)
-                    combination_list[path] = self.set_stateVector(self.get_trackers_list(iteration_list, param["value_min"]))
+                        iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"][x]))
+                    
+                    combination_list[path] = self.set_stateVector(self.get_array_list(iteration_list, len(param["value_min"])))
+                 
                     combination_dict.update(combination_list)
 
                 if param["type"] == "int" and key == "value_min":
@@ -104,8 +105,8 @@ class InputManager(RunManager):
                     covar_diag_max=covar_max.diagonal()
                     
                     for x in range(len(val)):
-                        iteration_list.append(self.iterations(covar_diag_min[x], covar_diag_max[x], param["n_samples"]))
-                    combination_list[path]=self.get_covar_trackers_list(iteration_list, covar_min)
+                        iteration_list.append(self.iterations(covar_diag_min[x], covar_diag_max[x], param["n_samples"][x]))
+                    combination_list[path]=self.get_covar_trackers_list(iteration_list, len(covar_min))
                     combination_dict.update(combination_list)
 
                 if param["type"] == "DateTime" and key == "value_min":
@@ -117,8 +118,8 @@ class InputManager(RunManager):
                 
                 if param["type"] == "Tuple" and key == "value_min":
                     for x in range(len(val)):
-                        iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
-                    combination_list[path] = self.set_tuple(self.get_trackers_list(iteration_list, param["value_min"]))
+                        iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"][x]))
+                    combination_list[path] = self.set_tuple(self.get_array_list(iteration_list, len(param["value_min"])))
                     combination_dict.update(combination_list)
 
                 if param["type"] == "timedelta" and key == "value_min":
@@ -127,24 +128,29 @@ class InputManager(RunManager):
                     combination_dict.update(combination_list)
                 
                 if param["type"] == "ndarray" and key == "value_min":
-                    val_min=param["value_min"]
-                    val_max=param["value_max"]
-                    # for x in range(len(val)):
-                    #      for y in range(len(val[x])):
-                    #         iteration_list.append(self.iterations(val_min[x][y], val_max[x][y], param["n_samples"]))
-                    self.darray_navigator(val, val_min, val_max, iteration_list,param["n_samples"])
-                    print("iteration_list")
-                    print(iteration_list)
-                    combination_list[path] = self.get_ndarray_trackers_list(iteration_list, param["value_min"])
-                    combination_dict.update(combination_list)
-                    print("combination_list ",combination_dict)
-                
 
+                    for x in range(len(val)):
+                        iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"][x]))
+                    
+                    combination_list[path] = self.get_array_list(iteration_list, len(param["value_min"]))
+                 
+                    combination_dict.update(combination_list)
+                
         return combination_dict
 
 
 
+
     def darray_navigator(self,val,val_min,val_max,iteration_list,n_samples):
+        """Not used at the moment. Navigate inside the ndarray with a n depth and calculate all the iterations
+
+        Args:
+            val ([type]): [description]
+            val_min ([type]): [description]
+            val_max ([type]): [description]
+            iteration_list ([type]): [description]
+            n_samples ([type]): [description]
+        """
         if(type(val) is list):
             for x in range(len(val)):
                 new_iteration_list = []
@@ -157,24 +163,43 @@ class InputManager(RunManager):
     # Calculate the steps for each item in a list
     def iterations(self, min_value, max_value, num_samples, index=0):
         """ Calculates the step different between the min 
-            and max value given in the parameter file.
+            and max value given in the parameter file. 
+            If n_samples is 0 return 1 value, if it is >=1 return num_samples+2 values
         Args:
             self : self
             min_value : Minimum parameter value
             maz_value : Maximum parameter value
         """
         temp = []
+
+        #If num_samples is 0 don't calculate any
+        if num_samples==0 or min_value==max_value:
+            temp.append(min_value)
+            return temp
+
+
         difference = max_value - min_value
-        factor = difference / (num_samples - 1)
-        for x in range(num_samples):
+        factor = difference / (num_samples+1)
+        #Calculate n_samples different samples plus min_value and max_value
+        for x in range(0,num_samples+2):
             temp.append(min_value + (x * factor))
         return temp
 
-    # gets the combinations for one tracker and stores in list
-    # Once you have steps created from iterations, generate step combinations for one parameter
-    def get_trackers_list(self, iterations_container_list, value_min):
+    
+    def get_array_list(self, iterations_container_list, n):
+        """Gets the combinations for one list of state vector and stores in list
+           Once you have steps created from iterations, generate step combinations for one parameter
+
+        Parameters:
+            iterations_container_list (list): list all the possible values 
+            n (list): list of value min
+
+        Returns:
+            list: list all the possible combinations 
+        """
+
         temp =[]
-        for x in range(0, len(value_min)):
+        for x in range(0, n):
             temp.append(iterations_container_list[x])
         list_combinations = list(itertools.product(*temp))
 
@@ -183,9 +208,19 @@ class InputManager(RunManager):
                 
         return set_combinations
 
-    def get_ndarray_trackers_list(self, iterations_container_list, value_min):
+    def get_ndarray_trackers_list(self, iterations_container_list, n):
+        """Gets the combinations for one list of ndarray and stores in list
+           Once you have steps created from iterations, generate step combinations for one parameter
+
+        Parameters:
+            iterations_container_list (list): list all the possible values 
+            n (list): list of value min
+
+        Returns:
+            list: list all the possible combinations 
+        """        
         temp =[]
-        for x in range(0, len(value_min)):
+        for x in range(0, n):
             temp.append(iterations_container_list[x])
         list_combinations = [list(tup) for tup in itertools.product(*temp)]
 
@@ -194,16 +229,25 @@ class InputManager(RunManager):
                 
         return list_combinations
 
-    def get_covar_trackers_list(self, iteration_list, value_min):
+    def get_covar_trackers_list(self, iteration_list, n):
+        """Gets the combinations for one list of ndarray and stores in list
+           Once you have steps created from iterations, generate step combinations for one parameter
+
+        Parameters:
+            iteration_list (list): list all the possible values 
+            value_min ([type]): [description]
+
+        Returns:
+            list: list all the possible combinations 
+        """
         temp =[]
         combinations = []
-        array_size=len(value_min)
-        for x in range(0, len(value_min)):
+        for x in range(0, n):
             temp.append(iteration_list[x])
         list_combinations = list(itertools.product(*temp))
         set_combinations = np.array(list(set(list_combinations)))
         for y in set_combinations:
-            temp_array=np.empty((array_size,array_size), dtype=int)
+            temp_array=np.empty((n,n), dtype=int)
             np.fill_diagonal(temp_array,y)
             combinations.append(temp_array)
         return combinations
@@ -212,7 +256,7 @@ class InputManager(RunManager):
     def generate_all_combos(self, trackers_dict):
         """Generates all of the combinations between different parameters
 
-        Args:
+        Parameters:
             trackers_dict (dict): Dictionary of all the parameters with all the possible values
 
         Returns:
