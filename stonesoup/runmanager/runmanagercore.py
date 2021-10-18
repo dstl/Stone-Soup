@@ -47,7 +47,8 @@ def run(config_path, parameters_path, groundtruth_setting, output_path = None):
         for runs_num in range(0,json_data["runs_num"]):
             dir_name = "metrics_{}".format(dt_string)+"/simulation_{}".format(idx)+"/run_{}".format(runs_num)
             RunmanagerMetrics.parameters_to_csv(dir_name, combo_dict[idx])
-
+            print(trackers[idx].initiator.number_particles)
+            RunmanagerMetrics.generate_config(dir_name, trackers[idx], ground_truths[idx], metric_managers[idx])
             if groundtruth_setting == 0:
                 groundtruth = trackers[idx].detector.groundtruth
             else:
@@ -203,13 +204,15 @@ if __name__ == "__main__":
     try:
         configInput = args[0]
     except:
-        configInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\config.yaml"
+        configInput= "C:\\Users\\Davidb1\\Documents\\Python\\data\\config.yaml"
+        #configInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\config.yaml"
 
 
     try:
         parametersInput = args[1]
     except:
-        parametersInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\dummy3.json"
+        parametersInput= "C:\\Users\\Davidb1\\Documents\\Python\\data\\dummy2.json"
+        #parametersInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\dummy3.json"
 
 
     try:

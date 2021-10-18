@@ -137,18 +137,20 @@ class RunmanagerMetrics(RunManager):
         filename = "parameters.json"
         if not os.path.exists(dir_name):
             os.makedirs(dir_name)
-        
-        for k, v in parameters.items():
-            if isinstance(v, StateVector) or isinstance(v, CovarianceMatrix):
-                parameters[k] = list(v)
-            elif isinstance(v, timedelta):
-                #may change this in the future, unsure on the datatype for saving to json.
-                parameters[k] = str(v)
+        try:
+            for k, v in parameters.items():
+                if isinstance(v, StateVector) or isinstance(v, CovarianceMatrix):
+                    parameters[k] = list(v)
+                elif isinstance(v, timedelta):
+                    #may change this in the future, unsure on the datatype for saving to json.
+                    parameters[k] = str(v)
 
-        with open(os.path.join(dir_name, filename), 'a', newline='') as paramfile:
-            json.dump(parameters, paramfile)
+            with open(os.path.join(dir_name, filename), 'a', newline='') as paramfile:
+                json.dump(parameters, paramfile)
+        except Exception as e:
+            print(e)
             
-    def generate_config(dir_name, tracker, groundtruth, metrics, overwrite=False):
+    def generate_config(dir_name, tracker=None, groundtruth=None, metrics=None, overwrite=False):
         data = [tracker, groundtruth, metrics]
         filename = "config.yaml"
         if not os.path.exists(dir_name):
