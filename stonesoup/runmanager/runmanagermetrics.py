@@ -15,7 +15,7 @@ class RunmanagerMetrics(RunManager):
     """
     def tracks_to_csv(dir_name, tracks, overwrite=False):
         """Create a csv file for the track. It will contain the following columns:
-            time    id  state   mean    covar
+            time    id    state    mean    covar
 
         Args:
             dir_name: name of the directory where to create the config file
@@ -44,7 +44,15 @@ class RunmanagerMetrics(RunManager):
                                 c])
 
     def metrics_to_csv(dir_name, metrics, overwrite=False):
+        """Create a csv file for the metrics. It will contain the following columns:
+            title    value    generator    timestamp
 
+        Args:
+            dir_name: name of the directory where to create the config file
+            tracks: tracks data
+            overwrite: overwrite the file.
+
+        """
         filename = "metrics.csv"
         if not os.path.exists(dir_name):
             os.makedirs(dir_name)
@@ -151,6 +159,13 @@ class RunmanagerMetrics(RunManager):
             print(e)
             
     def generate_config(dir_name, tracker=None, groundtruth=None, metrics=None, overwrite=False):
+        """Creates a config.yaml file using the parameters you specificed in the model.
+
+        Args:
+            dir_name: name of the directory where to create the config file
+            parameters: dictionary of the parameter details for the simulation runs.
+            overwrite: overwrite the file. 
+        """
         data = [tracker, groundtruth, metrics]
         filename = "config.yaml"
         if not os.path.exists(dir_name):
