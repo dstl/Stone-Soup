@@ -5,6 +5,7 @@ import sys
 from datetime import datetime
 from os import mkdir
 
+
 from stonesoup.serialise import YAML
 
 from inputmanager import InputManager
@@ -30,7 +31,7 @@ def run(config_path, parameters_path, groundtruth_setting, output_path=None):
         parameters_path : Path of the parameters file
         groundtruth_setting : Checks if there is a ground truth available in the config file
     """
-    logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.DEBUG)
+    logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
     input_manager = InputManager()
     json_data = read_json(parameters_path)
     trackers_combination_dict = input_manager.generate_parameters_combinations(
@@ -118,11 +119,11 @@ def run_simulation(tracker, ground_truth, metric_manager, dir_name, groundtruth_
             RunmanagerMetrics.metrics_to_csv(dir_name, metrics)
 
     except Exception as e:
-        logging.error(f'{log_time}: Simulation {index} failed in {datetime.now() - log_time}. {e}  With Parameters: {combos[index]}')
+        logging.error(f'{log_time}: Simulation {index} failed in {datetime.now() - log_time}. error: {e}  . Parameters: {combos[index]}')
         print(f'Failed to run Simulation: {e}', flush=True)
 
     else:
-        logging.info(f'{log_time}: Simulation {index} / {len(combos)} ran successfully in {datetime.now() - log_time}. With Parameters: {combos[index]}')
+        logging.info(f'{log_time}: Simulation {index} / {len(combos)-1} ran successfully in {datetime.now() - log_time}. With Parameters: {combos[index]}')
         print('Success!', flush=True)
 
 
