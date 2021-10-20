@@ -27,14 +27,14 @@ setup(name='stonesoup',
       use_scm_version=True,
       install_requires=[
           'ruamel.yaml>=0.15.45', 'numpy>=1.17', 'scipy', 'matplotlib', 'utm', 'pymap3d', 'ordered-set',
-          'setuptools>=42', 'rtree', 'opencv-python'
+          'setuptools>=42', 'rtree',
       ],
       extras_require={
           'dev': [
               'pytest-flake8', 'pytest-cov', 'pytest-remotedata',
               'Sphinx', 'sphinx_rtd_theme', 'sphinx-gallery>=0.8', 'pillow', 'folium',
           ],
-          'video': ['ffmpeg-python', 'moviepy'],
+          'video': ['ffmpeg-python', 'moviepy', 'opencv-python'],
           'tensorflow': ['tensorflow>=2.2.0'],
           'tensornets': ['tensorflow>=2.2.0', 'tensornets'],
       },

@@ -1,8 +1,18 @@
 import pickle
+import pytest
 import numpy as np
 
 from stonesoup.reader.image import SingleImageFileReader
-from stonesoup.feeder.image import CFAR, CCL
+
+try:
+    from stonesoup.feeder.image import CFAR, CCL
+except ImportError:
+    # Catch optional dependencies import error
+    pytest.skip(
+        "Skipping due to missing optional dependencies. Use of the image feeder classes"
+        " requires that opencv-python is installed.",
+        allow_module_level=True
+    )
 
 
 def test_cfar_detections(datadir):

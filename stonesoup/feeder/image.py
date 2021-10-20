@@ -1,5 +1,10 @@
 import numpy as np
-import cv2
+
+try:
+    import cv2
+except ImportError as error:
+    raise ImportError('Use of the image feeder classes requires that opencv-python is installed.')\
+        from error
 
 from .base import Feeder
 from ..base import Property
