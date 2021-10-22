@@ -1,0 +1,92 @@
+- !stonesoup.tracker.simple.MultiTargetTracker
+  - initiator: !stonesoup.initiator.simple.MultiMeasurementInitiator
+    - prior_state: &id003 !stonesoup.types.state.GaussianState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0]
+        - [0]
+        - [0]
+        - [0]
+      - covar: !stonesoup.types.array.CovarianceMatrix
+        - [0.0, 0.0, 0.0, 0.0]
+        - [0.0, 0.5, 0.0, 0.0]
+        - [0.0, 0.0, 0.0, 0.0]
+        - [0.0, 0.0, 0.0, 0.5]
+    - measurement_model: &id001 !stonesoup.models.measurement.linear.LinearGaussian
+      - ndim_state: 4
+      - mapping:
+        - 0
+        - 2
+      - noise_covar: !numpy.ndarray
+        - [0.25, 0.0]
+        - [0.0, 0.25]
+    - deleter: &id004 !stonesoup.deleter.error.CovarianceBasedDeleter
+      - covar_trace_thresh: 2
+    - data_associator: &id006 !stonesoup.dataassociator.neighbour.GNNWith2DAssignment
+      - hypothesiser: !stonesoup.hypothesiser.distance.DistanceHypothesiser
+        - predictor: !stonesoup.predictor.kalman.KalmanPredictor
+          - transition_model: &id005 !stonesoup.models.transition.linear.CombinedLinearGaussianTransitionModel
+            - model_list:
+              - !stonesoup.models.transition.linear.ConstantVelocity
+                - noise_diff_coeff: 0.05
+              - !stonesoup.models.transition.linear.ConstantVelocity
+                - noise_diff_coeff: 0.05
+          - control_model: !stonesoup.models.control.linear.LinearControlModel
+            - ndim_state: 4
+            - mapping: []
+            - control_vector: !numpy.ndarray
+              - [0.0]
+              - [0.0]
+              - [0.0]
+              - [0.0]
+            - control_matrix: !numpy.ndarray
+              - [0.0, 0.0, 0.0, 0.0]
+              - [0.0, 0.0, 0.0, 0.0]
+              - [0.0, 0.0, 0.0, 0.0]
+              - [0.0, 0.0, 0.0, 0.0]
+            - control_noise: !numpy.ndarray
+              - [0.0, 0.0, 0.0, 0.0]
+              - [0.0, 0.0, 0.0, 0.0]
+              - [0.0, 0.0, 0.0, 0.0]
+              - [0.0, 0.0, 0.0, 0.0]
+        - updater: &id002 !stonesoup.updater.kalman.KalmanUpdater
+          - measurement_model: *id001
+        - measure: !stonesoup.measures.Mahalanobis []
+        - missed_distance: 3
+    - updater: *id002
+    - min_points: 3
+    - initiator: !stonesoup.initiator.simple.SimpleMeasurementInitiator
+      - prior_state: *id003
+      - measurement_model: *id001
+  - deleter: *id004
+  - detector: !stonesoup.simulator.simple.SimpleDetectionSimulator
+    - groundtruth: &id007 !stonesoup.simulator.simple.MultiTargetGroundTruthSimulator
+      - transition_model: *id005
+      - initial_state: !stonesoup.types.state.GaussianState
+        - state_vector: !stonesoup.types.array.StateVector
+          - [0]
+          - [0]
+          - [0]
+          - [0]
+        - covar: !stonesoup.types.array.CovarianceMatrix
+          - [4.0, 0.0, 0.0, 0.0]
+          - [0.0, 0.5, 0.0, 0.0]
+          - [0.0, 0.0, 4.0, 0.0]
+          - [0.0, 0.0, 0.0, 0.5]
+      - timestep: !datetime.timedelta 5.0
+      - number_steps: 20
+      - birth_rate: 0.3
+      - death_probability: 0.05
+    - measurement_model: *id001
+    - meas_range: !numpy.ndarray
+      - [-30, 30]
+      - [-30, 30]
+    - detection_probability: 0.9
+    - clutter_rate: 1
+  - data_associator: *id006
+  - updater: *id002
+- *id007
+- !stonesoup.metricgenerator.manager.SimpleManager
+  - generators:
+      - !stonesoup.metricgenerator.ospametric.OSPAMetric
+        - p: 1
+        - c: 100
