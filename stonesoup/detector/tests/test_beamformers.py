@@ -3,6 +3,8 @@ import numpy as np
 from os import path
 from datetime import datetime
 
+import pytest
+
 from stonesoup.detector import beamformers
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
                                                ConstantVelocity
@@ -15,9 +17,25 @@ from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.types.track import Track
 
 
-def test_fixed_target_beamformer():
-
+@pytest.fixture(params=[beamformers.CaponBeamformer, beamformers.RJMCMCBeamformer])
+def detector(request):
     data_file = path.join(path.dirname(__file__), "fixed_target_example.csv")
+    # define static sensor positions for two time windows
+    X = [0, 0, 0, 10, 10, 10, 20, 20, 20]
+    Y = [0, 10, 20, 0, 10, 20, 0, 10, 20]
+    Z = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+    sensor_pos = np.empty([9, 3, 2])
+    for i in range(0, 2):
+        for j in range(0, 9):
+            sensor_pos[j, 0, i] = X[j]
+            sensor_pos[j, 1, i] = Y[j]
+            sensor_pos[j, 2, i] = Z[j]
+    extra_args = {'seed': 12345} if request.param is beamformers.RJMCMCBeamformer else {}
+    return request.param(data_file, sensor_loc=sensor_pos, fs=2000, omega=50, wave_speed=1481,
+                         window_size=800, **extra_args)
+
+
+def test_fixed_target_beamformer(detector):
     truth = [0.8, 0.2]
 
     transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.01),
@@ -33,15 +51,9 @@ def test_fixed_target_beamformer():
     prior = GaussianState([[0.5], [0], [0.5], [0]], np.diag([1, 0, 1, 0]),
                           timestamp=datetime.now())
 
-    detector1 = beamformers.capon(data_file, sensor_loc="0 0 0; 0 10 0; 0 20 0; 10 0 0; 10 10 0; \
-        10 20 0; 20 0 0; 20 10 0; 20 20 0", fs=2000, omega=50, wave_speed=1481)
-    detector2 = beamformers.rjmcmc(data_file, sensor_loc="0 0 0; 0 10 0; 0 20 0; 10 0 0; 10 10 0; \
-        10 20 0; 20 0 0; 20 10 0; 20 20 0", fs=2000, omega=50, wave_speed=1481, seed=12345)
+    track = Track()
 
-    track1 = Track()
-    track2 = Track()
-
-    for timestep, detections in detector2:
+    for timestep, detections in detector:
         for detection in detections:
             # check beamformer accuracy
             assert(np.abs(detection.state_vector[0] - truth[0]) < 0.4)
@@ -49,16 +61,5 @@ def test_fixed_target_beamformer():
             prediction = predictor.predict(prior, timestamp=detection.timestamp)
             hypothesis = SingleHypothesis(prediction, detection)  # Group prediction + measurement
             post = updater.update(hypothesis)
-            track2.append(post)
-            prior = track2[-1]
-
-    for timestep, detections in detector1:
-        for detection in detections:
-            # check beamformer accuracy
-            assert(np.abs(detection.state_vector[0] - truth[0]) < 0.4)
-            assert(np.abs(detection.state_vector[1] - truth[1]) < 0.1)
-            prediction = predictor.predict(prior, timestamp=detection.timestamp)
-            hypothesis = SingleHypothesis(prediction, detection)  # Group prediction + measurement
-            post = updater.update(hypothesis)
-            track1.append(post)
-            prior = track1[-1]
+            track.append(post)
+            prior = track[-1]
