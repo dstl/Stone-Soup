@@ -61,7 +61,7 @@ def run(config_path, parameters_path, groundtruth_setting, output_path=None):
     now = datetime.now()
     dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
     for idx in range(0, len(trackers)):
-        for runs_num in range(0, json_data["runs_num"]):
+        for runs_num in range(0, json_data["configuration"]["runs_num"]):
             dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs_num}"
             RunmanagerMetrics.parameters_to_csv(dir_name, combo_dict[idx])
             RunmanagerMetrics.generate_config(
@@ -115,7 +115,7 @@ def run_simulation(tracker, ground_truth, metric_manager, dir_name, groundtruth_
 
             RunmanagerMetrics.tracks_to_csv(dir_name, ctracks)
             RunmanagerMetrics.detection_to_csv(dir_name, tracker.detector.detections)
-            
+        #print(tracker.initiator.number_particles)
         
 
         timeAfter = datetime.now()
@@ -255,7 +255,7 @@ if __name__ == "__main__":
     try:
         parametersInput = args[1]
     except:
-        parametersInput = "C:\\Users\\Davidb1\\Documents\\Python\\data\\dummy2.json"
+        parametersInput = "C:\\Users\\Davidb1\\Documents\\Python\\data\\parameters.json"
         #parametersInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\dummy3.json"
 
     try:
