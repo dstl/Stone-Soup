@@ -6,7 +6,7 @@ from runmanagermetrics import RunmanagerMetrics
 from inputmanager import InputManager
 import sys
 from datetime import datetime
-
+import numpy as np
 
 
 def read_json(json_input):
@@ -28,7 +28,7 @@ def run(config_path, parameters_path, groundtruth_setting, output_path = None):
     combo_dict = input_manager.generate_all_combos(trackers_combination_dict)
 
     with open(config_path, 'r') as file:
-        tracker, ground_truth, metric_manager = read_config_file(file)
+        tracker, ground_truth, metric_manager, data = read_config_file(file)
 
     if ground_truth is None:
         try:
@@ -41,6 +41,7 @@ def run(config_path, parameters_path, groundtruth_setting, output_path = None):
     metric_managers = []
 
     trackers, ground_truths, metric_managers = set_trackers(combo_dict,tracker, ground_truth, metric_manager )
+
     now = datetime.now()
     dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
     for idx in range(0, len(trackers)):
@@ -63,7 +64,6 @@ def run_simulation(tracker, ground_truth, metric_manager, dir_name, groundtruth_
         groundtruth: GroundTruth
         metric_manager: Metric Manager
     """
-
     detector = tracker.detector
     try:
         groundtruth = set()
@@ -73,24 +73,24 @@ def run_simulation(tracker, ground_truth, metric_manager, dir_name, groundtruth_
             #Update groundtruth, tracks and detections
             #groundtruth.update(tracker.detector.groundtruth.groundtruth_paths)
 
-            try:
-                groundtruth.update(ground_truth.groundtruth_path)
-            except:
-                groundtruth.update(ground_truth)
+            if ground_truth is not None:
+                try:
+                    groundtruth.update(ground_truth.groundtruth_paths)
+                except:
+                    groundtruth.update(ground_truth)
 
             tracks.update(ctracks)
             detections.update(tracker.detector.detections)
-
             RunmanagerMetrics.tracks_to_csv(dir_name,ctracks)
 
-            
 
         if metric_manager is not None:
             #Generate the metrics
-            metric_manager.add_data(ground_truth,tracks,tracker.detector.detections)
+            metric_manager.add_data(ground_truth.groundtruth_paths,tracks,tracker.detector.detections)
             metrics = metric_manager.generate_metrics()
 
-        RunmanagerMetrics.groundtruth_to_csv(dir_name, groundtruth)
+        if ground_truth is not None:
+            RunmanagerMetrics.groundtruth_to_csv(dir_name, groundtruth)
         RunmanagerMetrics.detection_to_csv(dir_name, detections)
         if metric_manager is not None:
             RunmanagerMetrics.metrics_to_csv(dir_name, metrics)
@@ -149,7 +149,7 @@ def set_param(split_path,el,value):
         value ([type]): [description]
     """
     if len(split_path)>1:
-       # print(split_path[0])
+        #print(split_path[0])
         newEl = getattr(el,split_path[0])
         set_param(split_path[1::],newEl,value)
     else:
@@ -157,7 +157,6 @@ def set_param(split_path,el,value):
         # print(getattr(el,split_path[0]))
 
         setattr(el,split_path[0],value)
-        # print(el)
 
 
 def read_config_file(config_file):
@@ -170,30 +169,25 @@ def read_config_file(config_file):
         trackers,ground_truth,metric_manager: trackers, ground_truth and metric manager stonesoup structure
     """
     config_string = config_file.read()
-    # Configs with Tracker + GroundTruth + Metric Manager
-    # Finds the right data from configs (might need changing)
-    try:
-        tracker, ground_truth, metric_manager = YAML('safe').load(config_string)
-        print("Tracker, groundtruth and metric manager found.")
-        return tracker, ground_truth, metric_manager
-    except:
-        try:
-            tracker, gt_mm = YAML('safe').load(config_string)
-            if gt_mm == tracker.detector.groundtruth:
-                print("Tracker and groundtruth found.")
-                return tracker, gt_mm, None
-            else:
-                print("Tracker and metric manager found.")
-                return tracker, None, gt_mm
-        except:
-            try:
-                tracker = YAML('safe').load(config_string)  # Returns list containing tracker only
-                print("Tracker found.")
-                return tracker[0], None, None
-            except Exception as e:
-                print(f'Could not find tracker: {e}', flush=True)
 
-    return tracker, ground_truth, metric_manager
+    tracker, gt, mm, csv_data = None, None, None, None
+
+    config_data = YAML('safe').load(config_string)
+    for x in config_data:
+        if "Tracker" in str(type(x)):
+            tracker = x
+            print("Tracker found")
+        elif "GroundTruth" in str(type(x)):
+            gt = x
+            print("Groundtruth found")
+        elif "metricgenerator" in str(type(x)):
+            mm = x
+            print("Metric manager found")
+        elif type(x) is np.ndarray:
+            csv_data = x
+            print("CSV data found")
+
+    return tracker, gt, mm, csv_data
 
 
 if __name__ == "__main__":
@@ -203,13 +197,13 @@ if __name__ == "__main__":
     try:
         configInput = args[0]
     except:
-        configInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\config.yaml"
+        configInput= "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\testConfigs\\aisreport_config.yaml"
 
 
     try:
         parametersInput = args[1]
     except:
-        parametersInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\dummy3.json"
+        parametersInput= "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\Data\\dummy3.json"
 
 
     try:
