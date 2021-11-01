@@ -71,9 +71,13 @@ class InputManager(RunManager):
                 combination_list = {}
                 iteration_list=[]
                 if param["type"] == "StateVector" and key == "value_min":
-                    for x in range(len(val)):
-                        iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
-
+                    if type(param["n_samples"]) is list: 
+                        for x in range(len(val)):
+                            iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"][x]))
+                    else:
+                        for x in range(len(val)):
+                            iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
+                    
                     combination_list[path] = self.set_stateVector(self.get_array_list(iteration_list, len(param["value_min"])))
 
                     combination_dict.update(combination_list)
@@ -170,17 +174,17 @@ class InputManager(RunManager):
         temp = []
 
         #If num_samples is 0 don't calculate any
-        if num_samples==0 or min_value==max_value:
+        if num_samples==0 or min_value==max_value or num_samples==None:
             temp.append(min_value)
             return temp
 
-
-        difference = max_value - min_value
-        factor = difference / (num_samples+1)
-        #Calculate n_samples different samples plus min_value and max_value
-        for x in range(0,num_samples+2):
-            temp.append(min_value + (x * factor))
-        return temp
+        else:
+            difference = max_value - min_value
+            factor = difference / (num_samples+1)
+            #Calculate n_samples different samples plus min_value and max_value
+            for x in range(0, num_samples+2):
+                temp.append(min_value + (x * factor))
+            return temp
 
 
     def get_array_list(self, iterations_container_list, n):
