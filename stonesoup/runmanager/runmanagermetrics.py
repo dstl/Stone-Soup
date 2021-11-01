@@ -1,4 +1,4 @@
-from base import RunManager
+from .base import RunManager
 import os
 import csv
 from itertools import chain
@@ -6,6 +6,7 @@ import json
 from stonesoup.types.array import CovarianceMatrix, StateVector
 from datetime import timedelta
 from stonesoup.serialise import YAML
+from .base import RunManager
 
 class RunmanagerMetrics(RunManager):
     """Class for generating

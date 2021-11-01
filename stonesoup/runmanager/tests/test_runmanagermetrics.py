@@ -9,7 +9,7 @@ import os
 from stonesoup.serialise import YAML
 from stonesoup.types import metric, array
 from stonesoup.tracker.simple import SingleTargetTracker
-from runmanagermetrics import RunmanagerMetrics as rmm
+from ..runmanagermetrics import RunmanagerMetrics as rmm
 
 
 test_dir_name = "tests\\test_csvs"

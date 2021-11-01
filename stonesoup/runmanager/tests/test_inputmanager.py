@@ -4,7 +4,7 @@ from stonesoup.types import array
 import numpy as np
 from datetime import datetime, timedelta
 
-from inputmanager import InputManager
+from ..inputmanager import InputManager
 
 IManager = InputManager()
 

@@ -2,7 +2,7 @@ import pytest
 from stonesoup.serialise import YAML
 import sys
 
-import runmanagercore as rmc
+from ..runmanagercore import InputManagerCore as rmc
 
 
 test_config = "tests\\test_configs\\test_config_all.yaml"
