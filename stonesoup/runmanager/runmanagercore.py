@@ -38,14 +38,18 @@ def run(config_path, parameters_path, groundtruth_setting, output_path=None):
         json_data["parameters"])
     combo_dict = input_manager.generate_all_combos(trackers_combination_dict)
 
-    with open(config_path, 'r') as file:
-        tracker, ground_truth, metric_manager = read_config_file(file)
+    try:
+        with open(config_path, 'r') as file:
+            tracker, ground_truth, metric_manager = read_config_file(file)
+    except Exception as e:
+        print(e)
+        logging.error(f'{datetime.now()} : {e}')
 
     if ground_truth is None:
         try:
             ground_truth = tracker.detector.groundtruth
         except Exception as e:
-            logging.error(e)
+            logging.error(f'{datetime.now()} : {e}')
             print(f'No groundtruth in tracker detector {e}', flush=True)
 
     trackers = []
@@ -94,29 +98,46 @@ def run_simulation(tracker, ground_truth, metric_manager, dir_name, groundtruth_
         groundtruth = set()
         detections = set()
         tracks = set()
+        timeFirst = datetime.now()
         for time, ctracks in tracker:
             # Update groundtruth, tracks and detections
-            # groundtruth.update(tracker.detector.groundtruth.groundtruth_paths)
+            #groundtruth.update(tracker.detector.groundtruth.groundtruth_paths)
 
             try:
-                groundtruth.update(ground_truth.groundtruth_path)
+                RunmanagerMetrics.groundtruth_to_csv(dir_name, ground_truth.groundtruth_paths)
             except:
-                groundtruth.update(ground_truth)
-
-            tracks.update(ctracks)
-            detections.update(tracker.detector.detections)
+                try:
+                    RunmanagerMetrics.groundtruth_to_csv(dir_name, ground_truth)
+                except:
+                    pass
+            #tracks.update(ctracks)
+            #detections.update(tracker.detector.detections)
 
             RunmanagerMetrics.tracks_to_csv(dir_name, ctracks)
+            RunmanagerMetrics.detection_to_csv(dir_name, tracker.detector.detections)
+            
+        
 
-        if metric_manager is not None:
-            # Generate the metrics
-            metric_manager.add_data(ground_truth, tracks, tracker.detector.detections)
-            metrics = metric_manager.generate_metrics()
+        timeAfter = datetime.now()
 
-        RunmanagerMetrics.groundtruth_to_csv(dir_name, groundtruth)
-        RunmanagerMetrics.detection_to_csv(dir_name, detections)
-        if metric_manager is not None:
-            RunmanagerMetrics.metrics_to_csv(dir_name, metrics)
+        timeTotal = timeAfter-timeFirst
+        print(timeTotal)
+        try:
+            if metric_manager is not None:
+                # Generate the metrics
+                try:
+                    metric_manager.add_data(ground_truth.groundtruth_paths, tracks, tracker.detector.detections)
+                    metrics = metric_manager.generate_metrics()
+                    RunmanagerMetrics.metrics_to_csv(dir_name, metrics)
+                except:
+                    metric_manager.add_data(ground_truth, tracks, tracker.detector.detections)
+                    metrics = metric_manager.generate_metrics()
+                    RunmanagerMetrics.metrics_to_csv(dir_name, metrics)
+        except Exception as e:
+            print(f"Error with metric manager.")
+            logging.error(f"{datetime.now()}, Error: {e}")
+        
+
 
     except Exception as e:
         logging.error(f'{log_time}: Simulation {index} failed in {datetime.now() - log_time}. error: {e}  . Parameters: {combos[index]}')
@@ -200,22 +221,23 @@ def read_config_file(config_file):
     try:
         tracker, ground_truth, metric_manager = YAML('safe').load(config_string)
         print("Tracker, groundtruth and metric manager found.")
-        return tracker, ground_truth, metric_manager
     except:
         try:
             tracker, gt_mm = YAML('safe').load(config_string)
             if gt_mm == tracker.detector.groundtruth:
                 print("Tracker and groundtruth found.")
-                return tracker, gt_mm, None
+                metric_manager = None
             else:
                 print("Tracker and metric manager found.")
-                return tracker, None, gt_mm
+                gt_mm = None
         except:
             try:
-                tracker = YAML('safe').load(config_string)  # Returns list containing tracker only
+                tracker = YAML('safe').load(config_string)[0]  # Returns list containing tracker only
                 print("Tracker found.")
-                return tracker[0], None, None
+                gt_mm = None
+                metric_manager = None
             except Exception as e:
+                tracker = None
                 print(f'Could not find tracker: {e}', flush=True)
 
     return tracker, ground_truth, metric_manager
@@ -228,7 +250,7 @@ if __name__ == "__main__":
         configInput = args[0]
     except:
         configInput = "C:\\Users\\Davidb1\\Documents\\Python\\data\\config.yaml"
-        #configInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\config.yaml"
+        #configInput= "C:\\Users\\Davidb1\\Documents\\Python\\data\\config.yaml"
 
     try:
         parametersInput = args[1]
