@@ -1,8 +1,9 @@
 import pytest
 from stonesoup.serialise import YAML
 import sys
+import numpy as np
 
-from ..runmanagercore import InputManagerCore as rmc
+from ..runmanagercore import RunManagerCore as rmc
 
 
 test_config = "tests\\test_configs\\test_config_all.yaml"
@@ -31,7 +32,7 @@ def test_set_trackers():
                   {'SingleTargetTracker.initiator.initiator.prior_state.num_particles': 700}]
 
     with open(test_config, 'r') as file:
-        tracker, gt, mm = rmc.read_config_file(file)
+        tracker, gt, mm, _ = rmc.read_config_file(file)
     file.close()
 
     trackers, ground_truths, metric_managers = rmc.set_trackers(test_combo,
@@ -49,7 +50,7 @@ def test_set_trackers():
 def test_set_param():
 
     with open(test_config, 'r') as file:
-        tracker, gt, mm = rmc.read_config_file(file)
+        tracker, gt, mm, _ = rmc.read_config_file(file)
     file.close()
 
     test_split_path = ['initiator', 'initiator', 'prior_state', 'num_particles']
@@ -65,7 +66,7 @@ def test_set_param():
 def test_read_config_file():
     # Config with all tracker, grountruth, metric manager
     with open(test_config, 'r') as file:
-        tracker, gt, mm = rmc.read_config_file(file)
+        tracker, gt, mm, _ = rmc.read_config_file(file)
     assert "tracker" in str(type(tracker))
     assert gt == tracker.detector.groundtruth
     assert "metricgenerator" in str(type(mm))
@@ -74,7 +75,7 @@ def test_read_config_file():
 def test_read_config_file_nomm():
     # Config with tracker and groundtruth but no metric manager
     with open(test_config_nomm, 'r') as file:
-        tracker, gt, mm = rmc.read_config_file(file)
+        tracker, gt, mm, _ = rmc.read_config_file(file)
     assert "tracker" in str(type(tracker))
     assert gt == tracker.detector.groundtruth
     assert mm is None
@@ -83,7 +84,7 @@ def test_read_config_file_nomm():
 def test_read_config_file_nogt():
     # Config with tracker and metric manager but no groundtruth
     with open(test_config_nogt, 'r') as file:
-        tracker, gt, mm = rmc.read_config_file(file)
+        tracker, gt, mm, _ = rmc.read_config_file(file)
     assert "tracker" in str(type(tracker))
     assert gt is None
     assert "metricgenerator" in str(type(mm))
@@ -92,8 +93,25 @@ def test_read_config_file_nogt():
 def test_read_config_file_tracker_only():
     # Config with tracker only
     with open(test_config_trackeronly, 'r') as file:
-        tracker, gt, mm = rmc.read_config_file(file)
+        tracker, gt, mm, _ = rmc.read_config_file(file)
     assert "tracker" in str(type(tracker))
     assert gt is None
     assert mm is None
+    file.close()
+
+def test_read_config_file_tracker_only():
+    # Config with tracker only
+    with open(test_config_trackeronly, 'r') as file:
+        tracker, gt, mm, _ = rmc.read_config_file(file)
+    assert "tracker" in str(type(tracker))
+    assert gt is None
+    assert mm is None
+    file.close()
+
+def test_read_config_file_csv():
+    # Config with tracker only
+    with open(test_config_trackeronly, 'r') as file:
+        _, _, _, csv_data = rmc.read_config_file(file)
+
+    assert type(csv_data) is np.ndarray
     file.close()
