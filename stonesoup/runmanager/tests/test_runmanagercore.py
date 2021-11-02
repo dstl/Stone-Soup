@@ -3,15 +3,15 @@ from stonesoup.serialise import YAML
 import sys
 import numpy as np
 
-from ..runmanagercore import RunManagerCore as rmc
+from ..runmanagercore import RunManagerCore
 
+rmc = RunManagerCore()
 
 test_config = "tests\\test_configs\\test_config_all.yaml"
 test_config_nomm = "tests\\test_configs\\test_config_nomm.yaml"
 test_config_nogt = "tests\\test_configs\\test_config_nogt.yaml"
 test_config_trackeronly = "tests\\test_configs\\test_config_trackeronly.yaml"
 test_json = "tests\\test_configs\\dummy.json"
-
 
 def test_read_json():
     test_json_data = rmc.read_json(test_json)
@@ -110,7 +110,7 @@ def test_read_config_file_tracker_only():
 
 def test_read_config_file_csv():
     # Config with tracker only
-    with open(test_config_trackeronly, 'r') as file:
+    with open(test_config, 'r') as file:
         _, _, _, csv_data = rmc.read_config_file(file)
 
     assert type(csv_data) is np.ndarray

@@ -12,8 +12,9 @@ from .inputmanager import InputManager
 from .runmanagermetrics import RunmanagerMetrics
 from .base import RunManager
 
-class InputManagerCore(RunManager):
-    def read_json(json_input):
+class RunManagerCore(RunManager):
+    
+    def read_json(self, json_input):
         """ Reads JSON Files and stores in dictionary
 
         Args:
@@ -23,8 +24,7 @@ class InputManagerCore(RunManager):
             json_data = json.load(json_file)
             return json_data
 
-
-    def run(config_path, parameters_path, groundtruth_setting, output_path=None):
+    def run(self, config_path, parameters_path, groundtruth_setting, output_path=None):
         """Run the run manager
 
         Args:
@@ -34,13 +34,13 @@ class InputManagerCore(RunManager):
         """
         logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
         input_manager = InputManager()
-        json_data = read_json(parameters_path)
+        json_data = self.read_json(parameters_path)
         trackers_combination_dict = input_manager.generate_parameters_combinations(
             json_data["parameters"])
         combo_dict = input_manager.generate_all_combos(trackers_combination_dict)
 
         with open(config_path, 'r') as file:
-            tracker, ground_truth, metric_manager, data = read_config_file(file)
+            tracker, ground_truth, metric_manager, data = self.read_config_file(file)
 
         if ground_truth is None:
             try:
@@ -53,7 +53,7 @@ class InputManagerCore(RunManager):
         ground_truths = []
         metric_managers = []
 
-        trackers, ground_truths, metric_managers = set_trackers(combo_dict,tracker, ground_truth, metric_manager )
+        trackers, ground_truths, metric_managers = self.set_trackers(combo_dict,tracker, ground_truth, metric_manager )
 
         now = datetime.now()
         dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
@@ -68,15 +68,14 @@ class InputManagerCore(RunManager):
                 else:
                     groundtruth = ground_truths[idx]
                 print("RUN")
-                run_simulation(trackers[idx], groundtruth, metric_managers[idx],
-                            dir_name, groundtruth_setting, idx, combo_dict)
+                self.run_simulation(trackers[idx], groundtruth, metric_managers[idx],
+                                    dir_name, groundtruth_setting, idx, combo_dict)
         
         # Final line of the log show total time taken to run.
         logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
 
 
-
-    def run_simulation(tracker, ground_truth, metric_manager, dir_name, groundtruth_setting, index, combos):
+    def run_simulation(self, tracker, ground_truth, metric_manager, dir_name, groundtruth_setting, index, combos):
         """Start the simulation
 
         Args:
@@ -128,7 +127,7 @@ class InputManagerCore(RunManager):
             print('Success!', flush=True)
 
 
-    def set_trackers(combo_dict, tracker, ground_truth, metric_manager):
+    def set_trackers(self, combo_dict, tracker, ground_truth, metric_manager):
         """Set the trackers, groundtruths and metricmanagers list (stonesoup objects)
 
         Args:
@@ -158,15 +157,14 @@ class InputManagerCore(RunManager):
                 split_path = split_path[1::]
 
                 # setattr(tracker_copy.initiator, split_path[-1], v)
-                set_param(split_path, tracker_copy, v)
+                self.set_param(split_path, tracker_copy, v)
             trackers.append(tracker_copy)
             ground_truths.append(ground_truth_copy)
             metric_managers.append(metric_manager_copy)
 
         return trackers, ground_truths, metric_managers
 
-
-    def set_param(split_path, el, value):
+    def set_param(self, split_path, el, value):
         """[summary]
 
         Args:
@@ -178,16 +176,13 @@ class InputManagerCore(RunManager):
         if len(split_path) > 1:
         # print(split_path[0])
             newEl = getattr(el, split_path[0])
-            set_param(split_path[1::], newEl, value)
+            self.set_param(split_path[1::], newEl, value)
         else:
             # print(value)
             # print(getattr(el,split_path[0]))
-
-
             setattr(el, split_path[0], value)
 
-
-    def read_config_file(config_file):
+    def read_config_file(self, config_file):
         """Read the configuration file
 
         Args:
@@ -218,25 +213,29 @@ class InputManagerCore(RunManager):
         return tracker, gt, mm, csv_data
 
 
-    if __name__ == "__main__":
-        args = sys.argv[1:]
+if __name__ == "__main__":
+    args = sys.argv[1:]
 
-        try:
-            configInput = args[0]
-        except:
+    try:
+        configInput = args[0]
+    except:
 
-            # configInput = "C:\\Users\\Davidb1\\Documents\\Python\\data\\config.yaml"
-            configInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\config.yaml"
+        # configInput = "C:\\Users\\Davidb1\\Documents\\Python\\data\\config.yaml"
+        #configInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\config.yaml"
+        configInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\testConfigs\\alltogtut_config.yaml"
 
-        try:
-            parametersInput = args[1]
-        except:
-            #parametersInput = "C:\\Users\\Davidb1\\Documents\\Python\\data\\dummy2.json"
-            parametersInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\parameters.json"
+    try:
+        parametersInput = args[1]
+    except:
+        #parametersInput = "C:\\Users\\Davidb1\\Documents\\Python\\data\\dummy2.json"
+        #parametersInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\parameters.json"
+        parametersInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\Data\\dummy2.json"
 
-        try:
-            groundtruthSettings = args[2]
-        except:
-            groundtruthSettings = 1
+    try:
+        groundtruthSettings = args[2]
+    except:
+        groundtruthSettings = 1
 
-        run(configInput, parametersInput, groundtruthSettings)
+    rmc = RunManagerCore()    
+
+    rmc.run(configInput, parametersInput, groundtruthSettings)

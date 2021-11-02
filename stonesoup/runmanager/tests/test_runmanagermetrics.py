@@ -116,9 +116,11 @@ def test_parameters_to_csv():
     if os.path.exists(test_dir_name + "\\parameters.json"):
         os.remove(test_dir_name + "\\parameters.json")
 
-    test_parameters = {"a": array.StateVector([1, 2, 3, 4]),
-                       "b": array.CovarianceMatrix([[5, 6], [7, 8]]),
-                       "c": timedelta(1)}
+    test_parameters = {"a": array.StateVector([1.0, 2.0, 3.0, 4.0]),
+                       "b": array.CovarianceMatrix([[5.0, 6.0], [7.0, 8.0]]),
+                       "c": timedelta(1),
+                       "d": 1,
+                       "e": "string"}
 
     rmm.parameters_to_csv(test_dir_name, test_parameters)
 
@@ -127,7 +129,9 @@ def test_parameters_to_csv():
 
     assert test_parameters_loaded["a"] == list(test_parameters["a"])
     assert test_parameters_loaded["b"] == list(test_parameters["b"])
-    assert test_parameters_loaded["c"] == list(test_parameters["c"])
+    assert test_parameters_loaded["c"] == str(test_parameters["c"])
+    assert test_parameters_loaded["d"] == test_parameters["d"]
+    assert test_parameters_loaded["e"] == test_parameters["e"]
 
 def test_generate_config():
     test_tracker = {"tracker": 246}

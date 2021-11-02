@@ -1,4 +1,4 @@
-from .base import RunManager
+import numpy as np
 import os
 import csv
 from itertools import chain
@@ -149,8 +149,11 @@ class RunmanagerMetrics(RunManager):
 
         try:
             for k, v in parameters.items():
-                if isinstance(v, StateVector) or isinstance(v, CovarianceMatrix):
+                if isinstance(v, StateVector) or isinstance(v, CovarianceMatrix):              
                     parameters[k] = list(v)
+                    if type(parameters[k][0]) is CovarianceMatrix:
+                        for i in range(len(parameters[k])):
+                            parameters[k][i] = list(parameters[k][i])
                 elif isinstance(v, timedelta):
                     #may change this in the future, unsure on the datatype for saving to json.
                     parameters[k] = str(v)
