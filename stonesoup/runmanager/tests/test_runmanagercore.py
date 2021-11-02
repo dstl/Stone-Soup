@@ -2,18 +2,26 @@ import pytest
 from stonesoup.serialise import YAML
 import sys
 import numpy as np
+import os
 
 from ..runmanagercore import RunManagerCore
 
 rmc = RunManagerCore()
 
-test_config = "tests\\test_configs\\test_config_all.yaml"
-test_config_nomm = "tests\\test_configs\\test_config_nomm.yaml"
-test_config_nogt = "tests\\test_configs\\test_config_nogt.yaml"
-test_config_trackeronly = "tests\\test_configs\\test_config_trackeronly.yaml"
-test_json = "tests\\test_configs\\dummy.json"
+# Run from stonesoup working directory
+def setup_module():
+    while os.getcwd().split('\\')[-1] != 'Stone-Soup':
+        os.chdir(os.path.dirname(os.getcwd()))
+
+test_config = "stonesoup\\runmanager\\tests\\test_configs\\test_config_all.yaml"
+test_config_nomm = "stonesoup\\runmanager\\tests\\test_configs\\test_config_nomm.yaml"
+test_config_nogt = "stonesoup\\runmanager\\tests\\test_configs\\test_config_nogt.yaml"
+test_config_trackeronly = "stonesoup\\runmanager\\tests\\test_configs\\test_config_trackeronly.yaml"
+test_json = "stonesoup\\runmanager\\tests\\test_configs\\dummy.json"
+
 
 def test_read_json():
+
     test_json_data = rmc.read_json(test_json)
     assert type(test_json_data) is dict
 
@@ -24,6 +32,7 @@ def test_run_simulation():
     pass
 
 def test_set_trackers():
+    
     test_combo = [{'SingleTargetTracker.initiator.initiator.prior_state.num_particles': 500},
                   {'SingleTargetTracker.initiator.initiator.prior_state.num_particles': 540},
                   {'SingleTargetTracker.initiator.initiator.prior_state.num_particles': 580},
@@ -64,6 +73,7 @@ def test_set_param():
     assert tracker.initiator.initiator.prior_state.num_particles is test_value
 
 def test_read_config_file():
+
     # Config with all tracker, grountruth, metric manager
     with open(test_config, 'r') as file:
         tracker, gt, mm, _ = rmc.read_config_file(file)
@@ -73,6 +83,7 @@ def test_read_config_file():
     file.close()
 
 def test_read_config_file_nomm():
+
     # Config with tracker and groundtruth but no metric manager
     with open(test_config_nomm, 'r') as file:
         tracker, gt, mm, _ = rmc.read_config_file(file)
@@ -82,6 +93,7 @@ def test_read_config_file_nomm():
     file.close()
 
 def test_read_config_file_nogt():
+
     # Config with tracker and metric manager but no groundtruth
     with open(test_config_nogt, 'r') as file:
         tracker, gt, mm, _ = rmc.read_config_file(file)
@@ -91,6 +103,7 @@ def test_read_config_file_nogt():
     file.close()
 
 def test_read_config_file_tracker_only():
+
     # Config with tracker only
     with open(test_config_trackeronly, 'r') as file:
         tracker, gt, mm, _ = rmc.read_config_file(file)
@@ -100,6 +113,7 @@ def test_read_config_file_tracker_only():
     file.close()
 
 def test_read_config_file_tracker_only():
+
     # Config with tracker only
     with open(test_config_trackeronly, 'r') as file:
         tracker, gt, mm, _ = rmc.read_config_file(file)
@@ -109,6 +123,7 @@ def test_read_config_file_tracker_only():
     file.close()
 
 def test_read_config_file_csv():
+
     # Config with tracker only
     with open(test_config, 'r') as file:
         _, _, _, csv_data = rmc.read_config_file(file)

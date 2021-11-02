@@ -10,7 +10,7 @@
 
 			"var_name" : "velocity",
 
-			"type": "vector",
+			"type": "StateVector",
 
 			"value_min": [1, 1, 1],
 
