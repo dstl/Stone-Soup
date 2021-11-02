@@ -13,7 +13,7 @@ from .runmanagermetrics import RunmanagerMetrics
 from .base import RunManager
 
 class RunManagerCore(RunManager):
-    
+
     def read_json(self, json_input):
         """ Reads JSON Files and stores in dictionary
 
@@ -70,7 +70,7 @@ class RunManagerCore(RunManager):
                 print("RUN")
                 self.run_simulation(trackers[idx], groundtruth, metric_managers[idx],
                                     dir_name, groundtruth_setting, idx, combo_dict)
-        
+
         # Final line of the log show total time taken to run.
         logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
 
@@ -236,6 +236,6 @@ if __name__ == "__main__":
     except:
         groundtruthSettings = 1
 
-    rmc = RunManagerCore()    
+    rmc = RunManagerCore()
 
     rmc.run(configInput, parametersInput, groundtruthSettings)
