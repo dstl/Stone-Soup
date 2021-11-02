@@ -17,3 +17,7 @@ TensorNets
 .. automodule:: stonesoup.detector.tensornets
     :show-inheritance:
 
+Beamformers
+-----------
+.. automodule:: stonesoup.detector.beamformers
+    :show-inheritance:
