@@ -12,7 +12,8 @@ from .inputmanager import InputManager
 from .runmanagermetrics import RunmanagerMetrics
 from .base import RunManager
 
-class InputManagerCore(RunManager):
+class RunManagerCore(RunManager):
+    
     def read_json(json_input):
         """ Reads JSON Files and stores in dictionary
 
