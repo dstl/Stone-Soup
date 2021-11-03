@@ -110,34 +110,35 @@ def run_simulation(tracker, ground_truth, metric_manager, dir_name, groundtruth_
                     RunmanagerMetrics.groundtruth_to_csv(dir_name, ground_truth)
                 except:
                     pass
-            #tracks.update(ctracks)
-            #detections.update(tracker.detector.detections)
+            # tracks.update(ctracks)
+            # detections.update(tracker.detector.detections)
 
             RunmanagerMetrics.tracks_to_csv(dir_name, ctracks)
             RunmanagerMetrics.detection_to_csv(dir_name, tracker.detector.detections)
-        #print(tracker.initiator.number_particles)
-        
 
+
+            try:
+                if metric_manager is not None:
+                    # Generate the metrics
+                    try:
+                        metric_manager.add_data(ground_truth.groundtruth_paths, ctracks, tracker.detector.detections, overwrite=False)
+                    except:
+                        metric_manager.add_data(ground_truth, ctracks, tracker.detector.detections, overwrite=False)
+            except Exception as e:
+                print(f"Error with metric manager.")
+                logging.error(f"{datetime.now()}, Error: {e}")
+            # print(tracker.initiator.number_particles)
+        
+        try:
+            metrics = metric_manager.generate_metrics()
+            RunmanagerMetrics.metrics_to_csv(dir_name, metrics)
+        except Exception as e:
+            print("Metric manager: {}".format(e))          
         timeAfter = datetime.now()
 
         timeTotal = timeAfter-timeFirst
         print(timeTotal)
-        try:
-            if metric_manager is not None:
-                # Generate the metrics
-                try:
-                    metric_manager.add_data(ground_truth.groundtruth_paths, tracks, tracker.detector.detections)
-                    metrics = metric_manager.generate_metrics()
-                    RunmanagerMetrics.metrics_to_csv(dir_name, metrics)
-                except:
-                    metric_manager.add_data(ground_truth, tracks, tracker.detector.detections)
-                    metrics = metric_manager.generate_metrics()
-                    RunmanagerMetrics.metrics_to_csv(dir_name, metrics)
-        except Exception as e:
-            print(f"Error with metric manager.")
-            logging.error(f"{datetime.now()}, Error: {e}")
         
-
 
     except Exception as e:
         logging.error(f'{log_time}: Simulation {index} failed in {datetime.now() - log_time}. error: {e}  . Parameters: {combos[index]}')
@@ -249,8 +250,8 @@ if __name__ == "__main__":
     try:
         configInput = args[0]
     except:
-        configInput = "C:\\Users\\Davidb1\\Documents\\Python\\data\\config.yaml"
-        #configInput= "C:\\Users\\Davidb1\\Documents\\Python\\data\\config.yaml"
+        configInput = "C:\\Users\\Davidb1\\Documents\\Python\\data\\testConfigs\\testConfigs\\metrics_config_v5.yaml"
+        # configInput= "C:\\Users\\Davidb1\\Documents\\Python\\data\\config.yaml"
 
     try:
         parametersInput = args[1]
