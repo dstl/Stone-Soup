@@ -3,7 +3,6 @@ import json
 import logging
 import sys
 from datetime import datetime
-from os import mkdir
 
 
 from stonesoup.serialise import YAML
@@ -73,13 +72,14 @@ def run(config_path, parameters_path, groundtruth_setting, output_path=None):
             print("RUN")
             run_simulation(trackers[idx], groundtruth, metric_managers[idx],
                            dir_name, groundtruth_setting, idx, combo_dict)
-    
+
     # Final line of the log show total time taken to run.
     logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
 
 
-
-def run_simulation(tracker, ground_truth, metric_manager, dir_name, groundtruth_setting, index, combos):
+def run_simulation(tracker, ground_truth,
+                   metric_manager, dir_name,
+                   groundtruth_setting, index, combos):
     """Start the simulation
 
     Args:
@@ -92,23 +92,20 @@ def run_simulation(tracker, ground_truth, metric_manager, dir_name, groundtruth_
         combos: List of combinations for logging the parameters for each simulation.
     """
 
-    detector = tracker.detector
     log_time = datetime.now()
     try:
-        groundtruth = set()
-        detections = set()
-        tracks = set()
         timeFirst = datetime.now()
         for time, ctracks in tracker:
             # Update groundtruth, tracks and detections
-            #groundtruth.update(tracker.detector.groundtruth.groundtruth_paths)
 
             try:
                 RunmanagerMetrics.groundtruth_to_csv(dir_name, ground_truth.groundtruth_paths)
-            except:
+            except Exception as e:
+                logging.error(e)
                 try:
                     RunmanagerMetrics.groundtruth_to_csv(dir_name, ground_truth)
-                except:
+                except Exception as e:
+                    logging.error(e)
                     pass
             # tracks.update(ctracks)
             # detections.update(tracker.detector.detections)
@@ -116,36 +113,40 @@ def run_simulation(tracker, ground_truth, metric_manager, dir_name, groundtruth_
             RunmanagerMetrics.tracks_to_csv(dir_name, ctracks)
             RunmanagerMetrics.detection_to_csv(dir_name, tracker.detector.detections)
 
-
             try:
                 if metric_manager is not None:
                     # Generate the metrics
                     try:
-                        metric_manager.add_data(ground_truth.groundtruth_paths, ctracks, tracker.detector.detections, overwrite=False)
-                    except:
-                        metric_manager.add_data(ground_truth, ctracks, tracker.detector.detections, overwrite=False)
+                        metric_manager.add_data(ground_truth.groundtruth_paths,
+                                                ctracks, tracker.detector.detections,
+                                                overwrite=False)
+                    except Exception as e:
+                        logging.error(e)
+                        metric_manager.add_data(ground_truth,
+                                                ctracks,
+                                                tracker.detector.detections,
+                                                overwrite=False)
             except Exception as e:
-                print(f"Error with metric manager.")
+                print(f"Error with metric manager. {e}")
                 logging.error(f"{datetime.now()}, Error: {e}")
-            # print(tracker.initiator.number_particles)
-        
         try:
             metrics = metric_manager.generate_metrics()
             RunmanagerMetrics.metrics_to_csv(dir_name, metrics)
         except Exception as e:
-            print("Metric manager: {}".format(e))          
+            print("Metric manager: {}".format(e))
         timeAfter = datetime.now()
 
         timeTotal = timeAfter-timeFirst
         print(timeTotal)
-        
-
     except Exception as e:
-        logging.error(f'{log_time}: Simulation {index} failed in {datetime.now() - log_time}. error: {e}  . Parameters: {combos[index]}')
+        logging.error(f'{log_time}: Simulation {index} failed in {datetime.now() - log_time}.'
+                      f'error: {e}  . Parameters: {combos[index]}')
         print(f'Failed to run Simulation: {e}', flush=True)
 
     else:
-        logging.info(f'{log_time}: Simulation {index} / {len(combos)-1} ran successfully in {datetime.now() - log_time}. With Parameters: {combos[index]}')
+        logging.info(f'{log_time}: Simulation {index} / {len(combos)-1} ran '
+                     'successfully in {datetime.now() - log_time}.'
+                     'With Parameters: {combos[index]}')
         print('Success!', flush=True)
 
 
@@ -175,7 +176,6 @@ def set_trackers(combo_dict, tracker, ground_truth, metric_manager):
             (tracker, ground_truth, metric_manager))
         for k, v in parameter.items():
             split_path = k.split('.')
-            path_param = '.'.join(split_path[1::])
             split_path = split_path[1::]
 
             # setattr(tracker_copy.initiator, split_path[-1], v)
@@ -196,15 +196,10 @@ def set_param(split_path, el, value):
         value ([type]): [description]
     """
     if len(split_path) > 1:
-       # print(split_path[0])
         newEl = getattr(el, split_path[0])
         set_param(split_path[1::], newEl, value)
     else:
-        # print(value)
-        # print(getattr(el,split_path[0]))
-
         setattr(el, split_path[0], value)
-        # print(el)
 
 
 def read_config_file(config_file):
@@ -214,7 +209,8 @@ def read_config_file(config_file):
         config_file (file path): file path of the configuration file
 
     Returns:
-        trackers,ground_truth,metric_manager: trackers, ground_truth and metric manager stonesoup structure
+        trackers,ground_truth,metric_manager: trackers,
+        ground_truth and metric manager stonesoup structures
     """
     config_string = config_file.read()
     # Configs with Tracker + GroundTruth + Metric Manager
@@ -222,7 +218,8 @@ def read_config_file(config_file):
     try:
         tracker, ground_truth, metric_manager = YAML('safe').load(config_string)
         print("Tracker, groundtruth and metric manager found.")
-    except:
+    except Exception as e:
+        print(e)
         try:
             tracker, gt_mm = YAML('safe').load(config_string)
             if gt_mm == tracker.detector.groundtruth:
@@ -231,9 +228,10 @@ def read_config_file(config_file):
             else:
                 print("Tracker and metric manager found.")
                 gt_mm = None
-        except:
+        except Exception as e:
+            print(e)
             try:
-                tracker = YAML('safe').load(config_string)[0]  # Returns list containing tracker only
+                tracker = YAML('safe').load(config_string)[0]
                 print("Tracker found.")
                 gt_mm = None
                 metric_manager = None
@@ -249,19 +247,20 @@ if __name__ == "__main__":
 
     try:
         configInput = args[0]
-    except:
-        configInput = "C:\\Users\\Davidb1\\Documents\\Python\\data\\testConfigs\\testConfigs\\metrics_config_v5.yaml"
-        # configInput= "C:\\Users\\Davidb1\\Documents\\Python\\data\\config.yaml"
+    except Exception as e:
+        configInput = "C:\\Users\\Davidb1\\Documents\\Python\\data\\config.yaml"
+        logging.error(e)
 
     try:
         parametersInput = args[1]
-    except:
+    except Exception as e:
         parametersInput = "C:\\Users\\Davidb1\\Documents\\Python\\data\\parameters.json"
-        #parametersInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\dummy3.json"
+        logging.error(e)
+        # parametersInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\dummy3.json"
 
     try:
         groundtruthSettings = args[2]
-    except:
+    except Exception as e:
         groundtruthSettings = 1
-
+        logging.error(e)
     run(configInput, parametersInput, groundtruthSettings)
