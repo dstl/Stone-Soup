@@ -151,8 +151,9 @@ class RunManagerCore(RunManager):
                 (tracker, ground_truth, metric_manager))
             for k, v in parameter.items():
                 split_path = k.split('.')
-                path_param = '.'.join(split_path[1::])
-                split_path = split_path[1::]
+                if len(split_path) > 1:
+                    path_param = '.'.join(split_path[1::])
+                    split_path = split_path[1::]
 
                 # setattr(tracker_copy.initiator, split_path[-1], v)
                 self.set_param(split_path, tracker_copy, v)
@@ -178,7 +179,8 @@ class RunManagerCore(RunManager):
         else:
             # print(value)
             # print(getattr(el,split_path[0]))
-            setattr(el, split_path[0], value)
+            if len(split_path) > 0:
+                setattr(el, split_path[0], value)
 
     def read_config_file(self, config_file):
         """Read the configuration file

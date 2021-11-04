@@ -25,14 +25,8 @@ def test_read_json():
     test_json_data = rmc.read_json(test_json)
     assert type(test_json_data) is dict
 
-def test_run():
-    pass
-
-def test_run_simulation():
-    pass
-
 def test_set_trackers():
-    
+
     test_combo = [{'SingleTargetTracker.initiator.initiator.prior_state.num_particles': 500},
                   {'SingleTargetTracker.initiator.initiator.prior_state.num_particles': 540},
                   {'SingleTargetTracker.initiator.initiator.prior_state.num_particles': 580},
@@ -56,10 +50,42 @@ def test_set_trackers():
     assert ground_truths[0] == trackers[0].detector.groundtruth
     assert "metricgenerator" in str(type(metric_managers[0]))
 
-def test_set_param():
+def test_set_trackers_edge_cases():
+
+    empty_combo = []
+    combo_no_path = [{'abc': 0}]
 
     with open(test_config, 'r') as file:
         tracker, gt, mm, _ = rmc.read_config_file(file)
+    file.close()
+
+    # Empty combo dict
+    trackers, ground_truths, metric_managers = rmc.set_trackers(empty_combo,
+                                                                tracker, gt, mm)
+
+    assert type(trackers) is list
+    assert type(ground_truths) is list
+    assert type(metric_managers) is list
+    assert len(trackers) == 0
+    assert len(ground_truths) == 0
+    assert len(metric_managers) == 0
+
+    # No path combo dict
+    trackers, ground_truths, metric_managers = rmc.set_trackers(combo_no_path,
+                                                                 tracker, gt, mm)
+
+    assert type(trackers) is list
+    assert type(ground_truths) is list
+    assert type(metric_managers) is list
+    assert len(trackers) == 1
+    assert len(ground_truths) == 1
+    assert len(metric_managers) == 1
+
+
+def test_set_param():
+
+    with open(test_config, 'r') as file:
+        tracker, _, _, _ = rmc.read_config_file(file)
     file.close()
 
     test_split_path = ['initiator', 'initiator', 'prior_state', 'num_particles']
@@ -71,6 +97,28 @@ def test_set_param():
 
     assert test_split_path[-1] in dir(tracker.initiator.initiator.prior_state)
     assert tracker.initiator.initiator.prior_state.num_particles is test_value
+
+
+def test_set_param_edge_cases():
+    empty_path = []
+    one_path = ['a']
+    test_value = 0
+    
+    with open(test_config, 'r') as file:
+        tracker, _, _, _ = rmc.read_config_file(file)
+    file.close()
+
+    # Empty path
+    orig_tracker = tracker
+    rmc.set_param(empty_path, tracker, test_value)  # Shouldn't do anything
+    assert tracker is orig_tracker
+
+    # Path with one element
+    assert 'a' not in dir(tracker)
+    rmc.set_param(one_path, tracker, test_value)
+    assert 'a' in dir(tracker)
+    assert tracker.a is test_value
+
 
 def test_read_config_file():
 

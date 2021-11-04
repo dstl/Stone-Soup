@@ -106,7 +106,7 @@ class InputManager(RunManager):
                     covar_max=CovarianceMatrix(param["value_max"])
                     covar_diag_min=covar_min.diagonal()
                     covar_diag_max=covar_max.diagonal()
-
+                    
                     for x in range(len(val)):
                         iteration_list.append(self.iterations(covar_diag_min[x], covar_diag_max[x], param["n_samples"]))
                     combination_list[path]=self.get_covar_trackers_list(iteration_list, len(covar_min))
@@ -131,7 +131,6 @@ class InputManager(RunManager):
                     combination_dict.update(combination_list)
 
                 if param["type"] == "ndarray" and key == "value_min":
-
                     for x in range(len(val)):
                         iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
 
@@ -173,8 +172,8 @@ class InputManager(RunManager):
         """
         temp = []
 
-        #If num_samples is 0 don't calculate any
-        if num_samples==0 or min_value==max_value or num_samples==None:
+        #If num_samples is 0 or less don't calculate any
+        if num_samples<=0 or min_value==max_value or num_samples==None:
             temp.append(min_value)
             return temp
 
@@ -225,7 +224,6 @@ class InputManager(RunManager):
             temp.append(iterations_container_list[x])
 
         list_combinations = [list(tup) for tup in itertools.product(*temp)]
-
         #Using a set to remove any duplicates
         #set_combinations = list(set(list_combinations))
 
