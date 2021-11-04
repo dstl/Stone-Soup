@@ -95,7 +95,7 @@ def run_simulation(tracker, ground_truth,
     log_time = datetime.now()
     try:
         timeFirst = datetime.now()
-        for time, ctracks in tracker:
+        for time, ctracks in tracker.tracks_gen():
             # Update groundtruth, tracks and detections
 
             try:
@@ -248,7 +248,8 @@ if __name__ == "__main__":
     try:
         configInput = args[0]
     except Exception as e:
-        configInput = "C:\\Users\\Davidb1\\Documents\\Python\\data\\config.yaml"
+        configInput = "C:\\Users\\Davidb1\\Documents\\Python\\data\\testConfigs\\testConfigs\\metrics_config_v5.yaml"
+        # configInput = "C:\\Users\\Davidb1\\Documents\\Python\\data\\config.yaml"
         logging.error(e)
 
     try:
