@@ -146,7 +146,7 @@ def test_generate_parameters_combinations():
 
     assert len(test_combo_dict2['path_name4']) is test_params2[0]['n_samples'] + 2
     assert len(test_combo_dict2['path.name5']) is 2  # Boolean can only have 2, no steps between 0-1
-    assert len(test_combo_dict2['pathname6']) is (test_params2[2]['n_samples'] + 2)**len(test_params2[2]['value_min'])
+    assert len(test_combo_dict3['pathname6']) is (test_params2[2]['n_samples'] + 2)**len(test_params2[2]['value_min'])
 
     assert len(test_combo_dict3['pathname7']) is 1  # Not sure about datetime combo steps?
     assert len(test_combo_dict3['pathname8']) is (test_params3[1]['n_samples'] + 2)**len(test_params3[1]['value_min'])
@@ -207,13 +207,14 @@ def test_generate_parameters_bool():
 
 def test_generate_parameters_covariancematrix():
     test_empty_cv = {'path': 'pathname6' , 'var_name': 'var_name6' , 'type': 'CovarianceMatrix',
-                     'value_min': array.CovarianceMatrix([[]]), 'value_max': array.CovarianceMatrix([[]]), 'n_samples': 3}
+                     'value_min': [array.CovarianceMatrix([[]])], 'value_max': array.CovarianceMatrix([[]]), 'n_samples': 3}
     test_cv_0nsamples = {'path': 'pathname6' , 'var_name': 'var_name6' , 'type': 'CovarianceMatrix',
                          'value_min': [[1,1], [1,1]], 'value_max': [[2,2], [2,2]], 'n_samples': 0}
 
     test_empty_cv_dict = IManager.generate_parameters_combinations([test_empty_cv])
     test_cv_0nsamples_dict = IManager.generate_parameters_combinations([test_cv_0nsamples])
     
+    print(test_empty_cv)
     assert len(test_empty_cv_dict['pathname6']) is 1
     assert len(test_empty_cv_dict['pathname6'][0]) is 0
 
@@ -255,13 +256,14 @@ def test_generate_parameters_timedelta():
 
 def test_generate_parameters_ndarray():
     test_empty_ndarray = {'path': 'pathname10' , 'var_name': 'var_name10' , 'type': 'ndarray',
-                          'value_min': np.array([[]]), 'value_max': np.array([[]]), 'n_samples': 3}
+                          'value_min': np.array([]), 'value_max': np.array([]), 'n_samples': 3}
     test_ndarray_0nsamples = {'path': 'pathname10' , 'var_name': 'var_name10' , 'type': 'ndarray',
-                              'value_min': np.array([[1,2]]), 'value_max': np.array([[5,6]]), 'n_samples': 0}
+                              'value_min': np.array([1,2]), 'value_max': np.array([5,6]), 'n_samples': 0}
     
     test_empty_ndarray_dict = IManager.generate_parameters_combinations([test_empty_ndarray])
     test_ndarray_0nsamples_dict = IManager.generate_parameters_combinations([test_ndarray_0nsamples])
     
+
     assert len(test_empty_ndarray_dict['pathname10']) is 1
     assert len(test_empty_ndarray_dict['pathname10'][0]) is 0
 

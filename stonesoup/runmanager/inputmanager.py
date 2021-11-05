@@ -102,15 +102,21 @@ class InputManager(RunManager):
                     combination_dict.update(combination_list)
 
                 if param["type"] == "CovarianceMatrix" and key == "value_min":
-                    covar_min=CovarianceMatrix(param["value_min"])
-                    covar_max=CovarianceMatrix(param["value_max"])
-                    covar_diag_min=covar_min.diagonal()
-                    covar_diag_max=covar_max.diagonal()
                     
-                    for x in range(len(val)):
-                        iteration_list.append(self.iterations(covar_diag_min[x], covar_diag_max[x], param["n_samples"]))
-                    combination_list[path]=self.get_covar_trackers_list(iteration_list, len(covar_min))
-                    combination_dict.update(combination_list)
+
+                    if(param["value_min"] is not list and param["value_max"] is not list):
+                        break
+                    if len(param["value_min"])>0 and len(param["value_max"])>0:
+ 
+                        covar_min=CovarianceMatrix(param["value_min"])
+                        covar_max=CovarianceMatrix(param["value_max"])
+                        covar_diag_min=covar_min.diagonal()
+                        covar_diag_max=covar_max.diagonal()
+                        
+                        for x in range(len(val)):
+                            iteration_list.append(self.iterations(covar_diag_min[x], covar_diag_max[x], param["n_samples"]))
+                        combination_list[path]=self.get_covar_trackers_list(iteration_list, len(covar_min))
+                        combination_dict.update(combination_list)
 
                 if param["type"] == "DateTime" and key == "value_min":
                     min_date=datetime.strptime(param["value_min"], '%Y-%m-%d %H:%M:%S.%f')
@@ -131,12 +137,14 @@ class InputManager(RunManager):
                     combination_dict.update(combination_list)
 
                 if param["type"] == "ndarray" and key == "value_min":
-                    for x in range(len(val)):
-                        iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
+                    if param["value_min"].size != 0 and param["value_max"].size!=0:
+                        
+                        for x in range(len(val)):
+                            iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
 
-                    combination_list[path] = self.get_array_list(iteration_list, len(param["value_min"]))
+                        combination_list[path] = self.get_array_list(iteration_list, len(param["value_min"]))
 
-                    combination_dict.update(combination_list)
+                        combination_dict.update(combination_list)
 
         return combination_dict
 
