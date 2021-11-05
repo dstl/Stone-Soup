@@ -71,14 +71,15 @@ class InputManager(RunManager):
                 combination_list = {}
                 iteration_list=[]
                 if param["type"] == "StateVector" and key == "value_min":
-                    if type(param["n_samples"]) is list: 
-                        for x in range(len(val)):
-                            iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"][x]))
-                    else:
-                        for x in range(len(val)):
-                            iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
+                    if len(param['value_min']) > 0 and len(param['value_max']) > 0:
+                        if type(param["n_samples"]) is list: 
+                            for x in range(len(val)):
+                                iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"][x]))
+                        else:
+                            for x in range(len(val)):
+                                iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
                     
-                    combination_list[path] = self.set_stateVector(self.get_array_list(iteration_list, len(param["value_min"])))
+                        combination_list[path] = self.set_stateVector(self.get_array_list(iteration_list, len(param["value_min"])))
 
                     combination_dict.update(combination_list)
 
@@ -102,17 +103,13 @@ class InputManager(RunManager):
                     combination_dict.update(combination_list)
 
                 if param["type"] == "CovarianceMatrix" and key == "value_min":
-                    
-
-                    if(param["value_min"] is not list and param["value_max"] is not list):
+                    if type(param["value_min"]) is not list and type(param["value_max"]) is not list:
                         break
                     if len(param["value_min"])>0 and len(param["value_max"])>0:
- 
                         covar_min=CovarianceMatrix(param["value_min"])
                         covar_max=CovarianceMatrix(param["value_max"])
                         covar_diag_min=covar_min.diagonal()
                         covar_diag_max=covar_max.diagonal()
-                        
                         for x in range(len(val)):
                             iteration_list.append(self.iterations(covar_diag_min[x], covar_diag_max[x], param["n_samples"]))
                         combination_list[path]=self.get_covar_trackers_list(iteration_list, len(covar_min))
@@ -126,9 +123,10 @@ class InputManager(RunManager):
                     combination_dict.update(combination_list)
 
                 if param["type"] == "Tuple" and key == "value_min":
-                    for x in range(len(val)):
-                        iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
-                    combination_list[path] = self.set_tuple(self.get_array_list(iteration_list, len(param["value_min"])))
+                    if len(param['value_min']) > 0 and len(param['value_max']) > 0:
+                        for x in range(len(val)):
+                            iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
+                        combination_list[path] = self.set_tuple(self.get_array_list(iteration_list, len(param["value_min"])))
                     combination_dict.update(combination_list)
 
                 if param["type"] == "timedelta" and key == "value_min":
@@ -137,11 +135,12 @@ class InputManager(RunManager):
                     combination_dict.update(combination_list)
 
                 if param["type"] == "ndarray" and key == "value_min":
-                    if param["value_min"].size != 0 and param["value_max"].size!=0:
+                    if param["value_min"].size>0 and param["value_max"].size>0:
                         
                         for x in range(len(val)):
                             iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
 
+                        # TODO set combination_list[path] to ndarray using set_ndArray function
                         combination_list[path] = self.get_array_list(iteration_list, len(param["value_min"]))
 
                         combination_dict.update(combination_list)
@@ -209,11 +208,10 @@ class InputManager(RunManager):
         temp =[]
         for x in range(0, n):
             temp.append(iterations_container_list[x])
-        list_combinations = list(itertools.product(*temp))
 
+        list_combinations = list(itertools.product(*temp))
         #Using a set to remove any duplicates
         set_combinations = list(set(list_combinations))
-
         return set_combinations
 
     def get_ndarray_trackers_list(self, iterations_container_list, n):

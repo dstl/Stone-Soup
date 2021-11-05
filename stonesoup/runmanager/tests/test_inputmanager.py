@@ -132,8 +132,6 @@ def test_generate_parameters_combinations():
                     {'path': 'pathname10' , 'var_name': 'var_name10' , 'type': 'ndarray',
                      'value_min': np.array([1,2]), 'value_max': np.array([5,6]), 'n_samples': 3}]
 
-    # test_params = [{'path': 'SingleTargetTracker.initiator.initiator.prior_state.velocity', 'var_name': 'velocity', 'type': 'vector', 'value_min': [1, 1, 1], 'value_max': [5, 1, 2], 'n_samples': 3}, {'path': 'SingleTargetTracker.initiator.initiator.prior_state.num_particles', 'var_name': 'num_particles', 'type': 'int', 'value_min': 500, 'value_max': 700, 'n_samples': 4}, {'path': 'SingleTargetTracker.initiator.initiator.prior_state.total_weight', 'var_name': 'total_weight', 'type': 'float', 'value_min': 20.5, 'value_max': 37.46, 'n_samples': 4}, {'path': 'SingleTargetTracker.initiator.initiator.prior_state.normalise', 'var_name': 'normalise', 'type': 'bool', 'bool': 0, 'n_samples': 4}]
-
     test_combo_dict1 = IManager.generate_parameters_combinations(test_params)
     test_combo_dict2 = IManager.generate_parameters_combinations(test_params2)
     test_combo_dict3 = IManager.generate_parameters_combinations(test_params3)
@@ -146,7 +144,7 @@ def test_generate_parameters_combinations():
 
     assert len(test_combo_dict2['path_name4']) is test_params2[0]['n_samples'] + 2
     assert len(test_combo_dict2['path.name5']) is 2  # Boolean can only have 2, no steps between 0-1
-    assert len(test_combo_dict3['pathname6']) is (test_params2[2]['n_samples'] + 2)**len(test_params2[2]['value_min'])
+    assert len(test_combo_dict2['pathname6']) is (test_params2[2]['n_samples'] + 2)**len(test_params2[2]['value_min'])
 
     assert len(test_combo_dict3['pathname7']) is 1  # Not sure about datetime combo steps?
     assert len(test_combo_dict3['pathname8']) is (test_params3[1]['n_samples'] + 2)**len(test_params3[1]['value_min'])
@@ -162,11 +160,10 @@ def test_generate_parameters_statevector():
     test_empty_sv_dict = IManager.generate_parameters_combinations([test_empty_sv])
     test_sv_0nsamples_dict = IManager.generate_parameters_combinations([test_sv_0nsamples])
     
-    assert len(test_empty_sv_dict['path_name']) is 1
-    assert len(test_empty_sv_dict['path_name'][0]) is 0
+    assert test_empty_sv_dict == {}
 
     assert len(test_sv_0nsamples_dict['path_name']) is 1
-    assert len(test_sv_0nsamples_dict['path_name'][0]) is 1
+    assert len(test_sv_0nsamples_dict['path_name'][0]) is len(test_sv_0nsamples['value_min'])
     assert type(test_sv_0nsamples_dict['path_name'][0]) is array.StateVector
 
 def test_generate_parameters_int():
@@ -177,6 +174,8 @@ def test_generate_parameters_int():
     
     assert len(test_int_0nsamples_dict['path_name']) is 1
     assert test_int_0nsamples_dict['path_name'][0] is 1
+    assert type(test_int_0nsamples_dict['path_name'][0]) is int
+
 
 def test_generate_parameters_float():
     test_float_0nsamples = {'path': 'path_name' , 'var_name': 'var_name' , 'type': 'float',
@@ -186,6 +185,8 @@ def test_generate_parameters_float():
     
     assert len(test_float_0nsamples_dict['path_name']) is 1
     assert test_float_0nsamples_dict['path_name'][0] is 1.0
+    assert type(test_float_0nsamples_dict['path_name'][0]) is float
+
 
 def test_generate_parameters_probability():
     test_probability_0nsamples = {'path': 'path_name' , 'var_name': 'var_name' , 'type': 'Probability',
@@ -195,6 +196,8 @@ def test_generate_parameters_probability():
     
     assert len(test_prob_0nsamples_dict['path_name']) is 1
     assert test_prob_0nsamples_dict['path_name'][0] == Probability(1.0)
+    assert type(test_prob_0nsamples_dict['path_name'][0]) is Probability
+
 
 def test_generate_parameters_bool():
     test_bool_0nsamples = {'path': 'path.name5' , 'var_name': 'var_name5' , 'type': 'bool',
@@ -204,22 +207,23 @@ def test_generate_parameters_bool():
     
     assert len(test_bool_0nsamples_dict['path.name5']) is 2
     assert test_bool_0nsamples_dict['path.name5'][0] is True
+    assert type(test_bool_0nsamples_dict['path.name5'][0]) is bool
 
 def test_generate_parameters_covariancematrix():
     test_empty_cv = {'path': 'pathname6' , 'var_name': 'var_name6' , 'type': 'CovarianceMatrix',
-                     'value_min': [array.CovarianceMatrix([[]])], 'value_max': array.CovarianceMatrix([[]]), 'n_samples': 3}
+                     'value_min': [], 'value_max': [], 'n_samples': 3}
     test_cv_0nsamples = {'path': 'pathname6' , 'var_name': 'var_name6' , 'type': 'CovarianceMatrix',
-                         'value_min': [[1,1], [1,1]], 'value_max': [[2,2], [2,2]], 'n_samples': 0}
+                         'value_min':[[1, 2]], 'value_max': [[3, 4]], 'n_samples': 0}
 
     test_empty_cv_dict = IManager.generate_parameters_combinations([test_empty_cv])
     test_cv_0nsamples_dict = IManager.generate_parameters_combinations([test_cv_0nsamples])
     
-    print(test_empty_cv)
-    assert len(test_empty_cv_dict['pathname6']) is 1
-    assert len(test_empty_cv_dict['pathname6'][0]) is 0
+    assert test_empty_cv_dict == {}
 
     assert len(test_cv_0nsamples_dict['pathname6']) is 1
-    assert len(test_cv_0nsamples_dict['pathname6'][0]) is 2
+    assert len(test_cv_0nsamples_dict['pathname6'][0]) is len(test_cv_0nsamples['value_min'])
+    assert type(test_cv_0nsamples_dict['pathname6'][0]) is np.ndarray
+
 
 def test_generate_parameters_datetime():
     str_datetime = str(datetime.now())
@@ -230,6 +234,7 @@ def test_generate_parameters_datetime():
     test_dt_0nsamples_dict = IManager.generate_parameters_combinations([test_dt_0nsamples])
     assert len(test_dt_0nsamples_dict['pathname7']) is 1
     assert str(test_dt_0nsamples_dict['pathname7'][0]) == str_datetime
+    assert type(test_dt_0nsamples_dict['pathname7'][0]) is datetime
 
 def test_generate_parameters_tuple():
     test_empty_tuple = {'path': 'pathname8' , 'var_name': 'var_name8' , 'type': 'Tuple',
@@ -240,11 +245,11 @@ def test_generate_parameters_tuple():
     test_empty_tuple_dict = IManager.generate_parameters_combinations([test_empty_tuple])
     test_tuple_0nsamples_dict = IManager.generate_parameters_combinations([test_tuple_0nsamples])
     
-    assert len(test_empty_tuple_dict['pathname8']) is 1
-    assert len(test_empty_tuple_dict['pathname8'][0]) is 0
+    assert test_empty_tuple_dict == {}
 
     assert len(test_tuple_0nsamples_dict['pathname8']) is 1
-    assert len(test_tuple_0nsamples_dict['pathname8'][0]) is 2
+    assert len(test_tuple_0nsamples_dict['pathname8'][0]) is len(test_tuple_0nsamples['value_min'])
+    assert type(test_tuple_0nsamples_dict['pathname8'][0]) is tuple
 
 def test_generate_parameters_timedelta():
     test_td_0nsamples = {'path': 'pathname9' , 'var_name': 'var_name9' , 'type': 'timedelta',
@@ -253,6 +258,7 @@ def test_generate_parameters_timedelta():
     test_td_0nsamples_dict = IManager.generate_parameters_combinations([test_td_0nsamples])
     assert len(test_td_0nsamples_dict['pathname9']) is 1
     assert str(test_td_0nsamples_dict['pathname9'][0]) == '1 day, 0:00:00'
+    assert type(test_td_0nsamples_dict['pathname9'][0]) is timedelta
 
 def test_generate_parameters_ndarray():
     test_empty_ndarray = {'path': 'pathname10' , 'var_name': 'var_name10' , 'type': 'ndarray',
@@ -263,12 +269,12 @@ def test_generate_parameters_ndarray():
     test_empty_ndarray_dict = IManager.generate_parameters_combinations([test_empty_ndarray])
     test_ndarray_0nsamples_dict = IManager.generate_parameters_combinations([test_ndarray_0nsamples])
     
-
-    assert len(test_empty_ndarray_dict['pathname10']) is 1
-    assert len(test_empty_ndarray_dict['pathname10'][0]) is 0
+    assert test_empty_ndarray_dict == {}
 
     assert len(test_ndarray_0nsamples_dict['pathname10']) is 1
-    assert len(test_ndarray_0nsamples_dict['pathname10'][0]) is 2
+    assert len(test_ndarray_0nsamples_dict['pathname10'][0]) is len(test_ndarray_0nsamples['value_min'])
+    #TODO need to write set_ndArray() function in input manager to pass this test 
+    assert type(test_ndarray_0nsamples_dict['pathname10'][0]) is np.ndarray
 
 def test_generate_parameters_None():
     test_nonetype = {'path': 'path_name' , 'var_name': 'var_name' , 'type': 'None',
