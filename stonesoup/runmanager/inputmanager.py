@@ -42,8 +42,8 @@ class InputManager(RunManager):
     def set_bool():
         raise NotImplementedError
 
-    def set_ndArray():
-        raise NotImplementedError
+    def set_ndArray(self, arr):
+        return np.array(arr)
 
     def set_time_delta(self, time_delta):
         return timedelta(time_delta)
@@ -140,8 +140,7 @@ class InputManager(RunManager):
                         for x in range(len(val)):
                             iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
 
-                        # TODO set combination_list[path] to ndarray using set_ndArray function
-                        combination_list[path] = self.get_array_list(iteration_list, len(param["value_min"]))
+                        combination_list[path] = self.set_ndArray(self.get_array_list(iteration_list, len(param["value_min"])))
 
                         combination_dict.update(combination_list)
 

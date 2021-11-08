@@ -273,7 +273,6 @@ def test_generate_parameters_ndarray():
 
     assert len(test_ndarray_0nsamples_dict['pathname10']) is 1
     assert len(test_ndarray_0nsamples_dict['pathname10'][0]) is len(test_ndarray_0nsamples['value_min'])
-    #TODO need to write set_ndArray() function in input manager to pass this test 
     assert type(test_ndarray_0nsamples_dict['pathname10'][0]) is np.ndarray
 
 def test_generate_parameters_None():
