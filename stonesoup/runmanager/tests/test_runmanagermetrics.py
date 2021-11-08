@@ -12,7 +12,12 @@ from stonesoup.tracker.simple import SingleTargetTracker
 from ..runmanagermetrics import RunmanagerMetrics as rmm
 
 
-test_dir_name = "tests\\test_csvs"
+# Run from stonesoup working directory
+def setup_module():
+    while os.getcwd().split('\\')[-1] != 'Stone-Soup':
+        os.chdir(os.path.dirname(os.getcwd()))
+
+test_dir_name = "stonesoup\\runmanager\\tests\\test_csvs"
 
 class DummyTrack:
     def __init__(self, state, id, covar):
@@ -44,7 +49,7 @@ def test_tracks_to_csv():
 
     rmm.tracks_to_csv(test_dir_name, test_tracks)
 
-    test_tracks_loaded = pd.read_csv("tests\\test_csvs\\tracks.csv", delimiter=",")
+    test_tracks_loaded = pd.read_csv(test_dir_name+"\\tracks.csv", delimiter=",")
 
     for i in range(len(test_tracks)):
         assert test_tracks_loaded["time"][i] == str(test_tracks[i].state.timestamp)
@@ -58,19 +63,33 @@ def test_metrics_to_csv():
     if os.path.exists(test_dir_name + "\\metrics.csv"):
         os.remove(test_dir_name + "\\metrics.csv")
 
-    test_metric = metric.Metric("a", [metric.Metric("x", 1, "gen1.1"),
-                                      metric.Metric("y", 2, "gen1.2")], "gen1")
+    date_time = datetime.now()
 
-    test_metrics = [test_metric]
+    test_metric = metric.Metric("a", 
+                                [metric.SingleTimeMetric("x", 1, "gen1.1", date_time),
+                                 metric.SingleTimeMetric("y", 2, "gen1.2", date_time)], 
+                                "gen1")
+
+    date_time2 = datetime.now()
+
+    test_metric2 = metric.Metric("b", 
+                                 [metric.SingleTimeMetric("m", 3, "gen2.1", date_time2),
+                                  metric.SingleTimeMetric("n", 4, "gen2.2", date_time2)], 
+                                 "gen2")
+
+    test_metrics = [test_metric, test_metric2]
 
     rmm.metrics_to_csv(test_dir_name, test_metrics)
 
-    test_metrics_loaded = pd.read_csv("tests\\test_csvs\\metrics.csv", delimiter=",")
+    test_metrics_loaded = pd.read_csv(test_dir_name+"\\metrics.csv", delimiter=",")
 
     for i in range(len(test_metric.value)):
-        assert test_metrics_loaded["title"][i] == test_metric.value[i].title
-        assert test_metrics_loaded["value"][i] == test_metric.value[i].value
-        assert test_metrics_loaded["generator"][i] == test_metric.value[i].generator
+        assert test_metrics_loaded["a"][i] == test_metric.value[i].value
+        assert test_metrics_loaded["timestamp"][i] == str(test_metric.value[i].timestamp)
+
+    for i in range(len(test_metric2.value)):
+        assert test_metrics_loaded["b"][i] == test_metric2.value[i].value
+        assert test_metrics_loaded["timestamp"][i] == str(test_metric2.value[i].timestamp)
 
 def test_detection_to_csv():
 
@@ -84,7 +103,7 @@ def test_detection_to_csv():
 
     rmm.detection_to_csv(test_dir_name, test_detections)
 
-    test_detections_loaded = pd.read_csv("tests\\test_csvs\\detections.csv", delimiter=",")
+    test_detections_loaded = pd.read_csv(test_dir_name+"\\detections.csv", delimiter=",")
 
     for i in range(len(test_detections)):
         assert test_detections_loaded["time"][i] == str(test_detections[i].timestamp)
@@ -104,7 +123,7 @@ def test_groundtruth_to_csv():
 
     rmm.groundtruth_to_csv(test_dir_name, test_groundtruths)
 
-    test_groundtruths_loaded = pd.read_csv("tests\\test_csvs\\groundtruth.csv", delimiter=",")
+    test_groundtruths_loaded = pd.read_csv(test_dir_name+"\\groundtruth.csv", delimiter=",")
 
     for i in range(len(test_groundtruths)):
         assert test_groundtruths_loaded["time"][i] == str(test_groundtruths[i].state.timestamp)

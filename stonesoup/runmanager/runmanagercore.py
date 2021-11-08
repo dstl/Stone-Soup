@@ -218,53 +218,25 @@ class RunManagerCore(RunManager):
             trackers,ground_truth,metric_manager: trackers, ground_truth and metric manager stonesoup structure
         """
         config_string = config_file.read()
-    # Configs with Tracker + GroundTruth + Metric Manager
-    # Finds the right data from configs (might need changing)
-        try:
-            tracker, ground_truth, metric_manager = YAML('safe').load(config_string)
-            print("Tracker, groundtruth and metric manager found.")
-        except Exception as e:
-            print(e)
-            try:
-                tracker, gt_mm = YAML('safe').load(config_string)
-                if gt_mm == tracker.detector.groundtruth:
-                    print("Tracker and groundtruth found.")
-                    metric_manager = None
-                else:
-                    print("Tracker and metric manager found.")
-                    gt_mm = None
-            except Exception as e:
-                print(e)
-                try:
-                    tracker = YAML('safe').load(config_string)[0]
-                    print("Tracker found.")
-                    gt_mm = None
-                    metric_manager = None
-                except Exception as e:
-                    tracker = None
-                    print(f'Could not find tracker: {e}', flush=True)
 
-        return tracker, ground_truth, metric_manager
-        # config_string = config_file.read()
+        tracker, gt, mm, csv_data = None, None, None, None
 
-        # tracker, gt, mm, csv_data = None, None, None, None
+        config_data = YAML('safe').load(config_string)
+        for x in config_data:
+            if "Tracker" in str(type(x)):
+                tracker = x
+                print("Tracker found")
+            elif "GroundTruth" in str(type(x)):
+                gt = x
+                print("Groundtruth found")
+            elif "metricgenerator" in str(type(x)):
+                mm = x
+                print("Metric manager found")
+            elif type(x) is np.ndarray:
+                csv_data = x
+                print("CSV data found")
 
-        # config_data = YAML('safe').load(config_string)
-        # for x in config_data:
-        #     if "Tracker" in str(type(x)):
-        #         tracker = x
-        #         print("Tracker found")
-        #     elif "GroundTruth" in str(type(x)):
-        #         gt = x
-        #         print("Groundtruth found")
-        #     elif "metricgenerator" in str(type(x)):
-        #         mm = x
-        #         print("Metric manager found")
-        #     elif type(x) is np.ndarray:
-        #         csv_data = x
-        #         print("CSV data found")
-
-        # return tracker, gt, mm, csv_data
+        return tracker, gt, mm
 
 
 if __name__ == "__main__":

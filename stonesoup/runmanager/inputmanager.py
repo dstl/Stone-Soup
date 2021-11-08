@@ -1,10 +1,12 @@
 from typing import Tuple
-from .base import RunManager
+from base import RunManager
 import numpy as np
 import itertools
 from stonesoup.types.array import StateVector, CovarianceMatrix
 from stonesoup.types.numeric import Probability
 from datetime import datetime, timedelta
+
+
 class InputManager(RunManager):
 
     def set_stateVector(self, list_state_vector):
@@ -110,7 +112,10 @@ class InputManager(RunManager):
                         covar_max=CovarianceMatrix(param["value_max"])
                         covar_diag_min=covar_min.diagonal()
                         covar_diag_max=covar_max.diagonal()
-                        for x in range(len(val)):
+                        if type(param["n_samples"]) is list:
+                            for x in range(len(val)):
+                                iteration_list.append(self.iterations(covar_diag_min[x], covar_diag_max[x], param["n_samples"][x][x]))
+                        else:
                             iteration_list.append(self.iterations(covar_diag_min[x], covar_diag_max[x], param["n_samples"]))
                         combination_list[path]=self.get_covar_trackers_list(iteration_list, len(covar_min))
                         combination_dict.update(combination_list)
@@ -125,7 +130,7 @@ class InputManager(RunManager):
                 if param["type"] == "Tuple" and key == "value_min":
                     if len(param['value_min']) > 0 and len(param['value_max']) > 0:
                         for x in range(len(val)):
-                            iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
+                            iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"][x]))
                         combination_list[path] = self.set_tuple(self.get_array_list(iteration_list, len(param["value_min"])))
                     combination_dict.update(combination_list)
 
@@ -138,7 +143,7 @@ class InputManager(RunManager):
                     if param["value_min"].size>0 and param["value_max"].size>0:
                         
                         for x in range(len(val)):
-                            iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"]))
+                            iteration_list.append(self.iterations(param["value_min"][x], param["value_max"][x], param["n_samples"][x]))
 
                         combination_list[path] = self.set_ndArray(self.get_array_list(iteration_list, len(param["value_min"])))
 
