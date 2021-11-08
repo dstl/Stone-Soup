@@ -41,7 +41,7 @@ class RunManagerCore(RunManager):
 
         try:
             with open(config_path, 'r') as file:
-                tracker, ground_truth, metric_manager = self.read_config_file(file)
+                tracker, ground_truth, metric_manager, csv_data = self.read_config_file(file)
         except Exception as e:
             print(e)
             logging.error(f'{datetime.now()} : {e}')
@@ -236,7 +236,7 @@ class RunManagerCore(RunManager):
                 csv_data = x
                 print("CSV data found")
 
-        return tracker, gt, mm
+        return tracker, gt, mm, csv_data
 
 
 if __name__ == "__main__":

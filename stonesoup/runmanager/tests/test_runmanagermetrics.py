@@ -3,6 +3,7 @@ import pytest
 import pandas as pd
 import json
 from datetime import datetime, timedelta
+import time
 import typing
 import os
 
@@ -69,6 +70,8 @@ def test_metrics_to_csv():
                                 [metric.SingleTimeMetric("x", 1, "gen1.1", date_time),
                                  metric.SingleTimeMetric("y", 2, "gen1.2", date_time)], 
                                 "gen1")
+
+    time.sleep(1)
 
     date_time2 = datetime.now()
 
