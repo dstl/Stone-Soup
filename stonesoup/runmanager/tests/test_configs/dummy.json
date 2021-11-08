@@ -1,0 +1,70 @@
+{
+
+	"runs_num": 4,
+
+	"output_name": "output",
+
+	"parameters": [{
+
+			"path": "SingleTargetTracker.initiator.initiator.prior_state.velocity",
+
+			"var_name" : "velocity",
+
+			"type": "StateVector",
+
+			"value_min": [1, 1, 1],
+
+			"value_max": [5, 1, 2],
+
+			"n_samples": 3
+
+		},
+
+		{
+
+			"path": "SingleTargetTracker.initiator.initiator.prior_state.num_particles",
+
+			"var_name" : "num_particles",
+
+			"type": "int",
+
+			"value_min": 500,
+
+			"value_max": 700,
+
+			"n_samples": 4
+
+		},
+
+		{
+
+			"path": "SingleTargetTracker.initiator.initiator.prior_state.total_weight",
+
+			"var_name" : "total_weight",
+			
+			"type": "float",
+
+			"value_min": 20.5,
+
+			"value_max": 37.46,
+
+			"n_samples": 4
+
+		},
+
+		{
+
+			"path": "SingleTargetTracker.initiator.initiator.prior_state.normalise",
+			
+			"var_name" : "normalise",
+
+			"type": "bool",
+
+			"bool": 0,
+
+			"n_samples": 4
+
+		}
+	]
+
+}

@@ -1,4 +1,4 @@
-from base import RunManager
+import numpy as np
 import os
 import csv
 from itertools import chain
@@ -6,6 +6,7 @@ import json
 from stonesoup.types.array import CovarianceMatrix, StateVector
 from datetime import timedelta
 from stonesoup.serialise import YAML
+from .base import RunManager
 
 
 class RunmanagerMetrics(RunManager):
@@ -141,10 +142,14 @@ class RunmanagerMetrics(RunManager):
         filename = "parameters.json"
         if not os.path.exists(dir_name):
             os.makedirs(dir_name)
+
         try:
             for k, v in parameters.items():
-                if isinstance(v, StateVector) or isinstance(v, CovarianceMatrix):
+                if isinstance(v, StateVector) or isinstance(v, CovarianceMatrix):              
                     parameters[k] = list(v)
+                    if type(parameters[k][0]) is CovarianceMatrix:
+                        for i in range(len(parameters[k])):
+                            parameters[k][i] = list(parameters[k][i])
                 elif isinstance(v, timedelta):
                     parameters[k] = str(v)
 
