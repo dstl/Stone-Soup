@@ -13,15 +13,22 @@ rmc = RunManagerCore()
 #     while os.getcwd().split('\\')[-1] != 'stonesoup':
 #         os.chdir(os.path.dirname(os.getcwd()))
 
-test_config = "stonesoup\\runmanager\\tests\\test_configs\\test_config_all.yaml"
-test_config_nomm = "stonesoup\\runmanager\\tests\\test_configs\\test_config_nomm.yaml"
-test_config_nogt = "stonesoup\\runmanager\\tests\\test_configs\\test_config_nogt.yaml"
-test_config_trackeronly = "stonesoup\\runmanager\\tests\\test_configs\\test_config_trackeronly.yaml"
-test_json = "stonesoup\\runmanager\\tests\\test_configs\\dummy.json"
+# test_config = "stonesoup\\runmanager\\tests\\test_configs\\test_config_all.yaml"
+# test_config_nomm = "stonesoup\\runmanager\\tests\\test_configs\\test_config_nomm.yaml"
+# test_config_nogt = "stonesoup\\runmanager\\tests\\test_configs\\test_config_nogt.yaml"
+# test_config_trackeronly = "stonesoup\\runmanager\\tests\\test_configs\\test_config_trackeronly.yaml"
+# test_json = "stonesoup\\runmanager\\tests\\test_configs\\dummy.json"
+
+# These paths for circleci tests
+test_config = "stonesoup/runmanager/tests/test_configs/test_config_all.yaml"
+test_config_nomm = "stonesoup/runmanager/tests/test_configs/test_config_nomm.yaml"
+test_config_nogt = "stonesoup/runmanager/tests/test_configs/test_config_nogt.yaml"
+test_config_trackeronly = "stonesoup/runmanager/tests/test_configs/test_config_trackeronly.yaml"
+test_json = "stonesoup/runmanager/tests/test_configs/dummy.json"
 
 
 def test_cwd_path():
-    assert os.path.isdir('stonesoup/runmanager') == True 
+    assert os.path.isdir('stonesoup/runmanager/tests/test_configs') == True 
 
 def test_read_json():
 

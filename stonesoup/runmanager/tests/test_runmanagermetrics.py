@@ -18,7 +18,8 @@ from ..runmanagermetrics import RunmanagerMetrics as rmm
 #     while os.getcwd().split('\\')[-1] != 'Stone-Soup':
 #         os.chdir(os.path.dirname(os.getcwd()))
 
-test_dir_name = "stonesoup\\runmanager\\tests\\test_csvs"
+# test_dir_name = "stonesoup\\runmanager\\tests\\test_csvs"
+test_dir_name = "stonesoup/runmanager/tests/test_csvs"
 
 class DummyTrack:
     def __init__(self, state, id, covar):
