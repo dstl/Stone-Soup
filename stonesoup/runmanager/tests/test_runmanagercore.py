@@ -21,7 +21,7 @@ test_json = "stonesoup\\runmanager\\tests\\test_configs\\dummy.json"
 
 
 def test_cwd_path():
-    assert os.path.isdir('stonesoup\runmanager') == True 
+    assert os.path.isdir('stonesoup/runmanager') == True 
 
 def test_read_json():
 
