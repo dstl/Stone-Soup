@@ -1,6 +1,3 @@
-import pytest
-from stonesoup.serialise import YAML
-import sys
 import numpy as np
 import os
 
@@ -16,7 +13,8 @@ rmc = RunManagerCore()
 # test_config = "stonesoup\\runmanager\\tests\\test_configs\\test_config_all.yaml"
 # test_config_nomm = "stonesoup\\runmanager\\tests\\test_configs\\test_config_nomm.yaml"
 # test_config_nogt = "stonesoup\\runmanager\\tests\\test_configs\\test_config_nogt.yaml"
-# test_config_trackeronly = "stonesoup\\runmanager\\tests\\test_configs\\test_config_trackeronly.yaml"
+# test_config_trackeronly =
+# "stonesoup\\runmanager\\tests\\test_configs\\test_config_trackeronly.yaml"
 # test_json = "stonesoup\\runmanager\\tests\\test_configs\\dummy.json"
 
 # These paths for circleci tests
@@ -28,12 +26,14 @@ test_json = "stonesoup/runmanager/tests/test_configs/dummy.json"
 
 
 def test_cwd_path():
-    assert os.path.isdir('stonesoup/runmanager/tests/test_configs') == True 
+    assert os.path.isdir('stonesoup/runmanager/tests/test_configs') is True
+
 
 def test_read_json():
 
     test_json_data = rmc.read_json(test_json)
     assert type(test_json_data) is dict
+
 
 def test_set_trackers():
 
@@ -60,6 +60,7 @@ def test_set_trackers():
     assert ground_truths[0] == trackers[0].detector.groundtruth
     assert "metricgenerator" in str(type(metric_managers[0]))
 
+
 def test_set_trackers_edge_cases():
 
     empty_combo = []
@@ -82,7 +83,7 @@ def test_set_trackers_edge_cases():
 
     # No path combo dict
     trackers, ground_truths, metric_managers = rmc.set_trackers(combo_no_path,
-                                                                 tracker, gt, mm)
+                                                                tracker, gt, mm)
 
     assert type(trackers) is list
     assert type(ground_truths) is list
@@ -113,7 +114,7 @@ def test_set_param_edge_cases():
     empty_path = []
     one_path = ['a']
     test_value = 0
-    
+
     with open(test_config, 'r') as file:
         tracker, _, _, _ = rmc.read_config_file(file)
     file.close()
@@ -140,6 +141,7 @@ def test_read_config_file():
     assert "metricgenerator" in str(type(mm))
     file.close()
 
+
 def test_read_config_file_nomm():
 
     # Config with tracker and groundtruth but no metric manager
@@ -149,6 +151,7 @@ def test_read_config_file_nomm():
     assert gt == tracker.detector.groundtruth
     assert mm is None
     file.close()
+
 
 def test_read_config_file_nogt():
 
@@ -160,15 +163,6 @@ def test_read_config_file_nogt():
     assert "metricgenerator" in str(type(mm))
     file.close()
 
-def test_read_config_file_tracker_only():
-
-    # Config with tracker only
-    with open(test_config_trackeronly, 'r') as file:
-        tracker, gt, mm, _ = rmc.read_config_file(file)
-    assert "tracker" in str(type(tracker))
-    assert gt is None
-    assert mm is None
-    file.close()
 
 def test_read_config_file_tracker_only():
 
@@ -179,6 +173,7 @@ def test_read_config_file_tracker_only():
     assert gt is None
     assert mm is None
     file.close()
+
 
 def test_read_config_file_csv():
 

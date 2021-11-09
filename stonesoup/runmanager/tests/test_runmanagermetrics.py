@@ -1,15 +1,12 @@
-import pytest
 
 import csv
 import json
 from datetime import datetime, timedelta
 import time
-import typing
 import os
 
 from stonesoup.serialise import YAML
 from stonesoup.types import metric, array
-from stonesoup.tracker.simple import SingleTargetTracker
 from ..runmanagermetrics import RunmanagerMetrics as rmm
 
 
@@ -21,11 +18,13 @@ from ..runmanagermetrics import RunmanagerMetrics as rmm
 # test_dir_name = "stonesoup\\runmanager\\tests\\test_csvs"
 test_dir_name = "stonesoup/runmanager/tests/test_csvs"
 
+
 class DummyTrack:
     def __init__(self, state, id, covar):
         self.state = state
         self.id = id
         self.covar = covar
+
 
 class DummyState:
     def __init__(self, timestamp, state_vector, mean):
@@ -35,7 +34,8 @@ class DummyState:
 
 
 def test_cwd_path():
-    assert os.path.isdir(test_dir_name) == True 
+    assert os.path.isdir(test_dir_name) is True
+
 
 def test_tracks_to_csv():
 
@@ -65,6 +65,7 @@ def test_tracks_to_csv():
             assert [[float(x) for x in row["covar"].split(" ")]] == test_tracks[i].covar
             i += 1
 
+
 def test_metrics_to_csv():
 
     if os.path.exists(test_dir_name + "/metrics.csv"):
@@ -74,15 +75,14 @@ def test_metrics_to_csv():
     time.sleep(1)
     date_time2 = datetime.now()
 
-    test_metric = metric.Metric("a", 
+    test_metric = metric.Metric("a",
                                 [metric.SingleTimeMetric("x", 1, "gen1.1", date_time),
-                                 metric.SingleTimeMetric("y", 2, "gen1.2", date_time2)], 
+                                 metric.SingleTimeMetric("y", 2, "gen1.2", date_time2)],
                                 "gen1")
 
-
-    test_metric2 = metric.Metric("b", 
+    test_metric2 = metric.Metric("b",
                                  [metric.SingleTimeMetric("m", 3, "gen2.1", date_time),
-                                  metric.SingleTimeMetric("n", 4, "gen2.2", date_time2)], 
+                                  metric.SingleTimeMetric("n", 4, "gen2.2", date_time2)],
                                  "gen2")
 
     test_metrics = [test_metric, test_metric2]
@@ -98,6 +98,7 @@ def test_metrics_to_csv():
             assert int(row["b"]) == test_metric2.value[i].value
             assert row["timestamp"] == str(test_metric2.value[i].timestamp)
             i += 1
+
 
 def test_detection_to_csv():
 
@@ -120,6 +121,7 @@ def test_detection_to_csv():
             assert int(row["y"]) == test_detections[i].state_vector[1]
             i += 1
 
+
 def test_groundtruth_to_csv():
 
     if os.path.exists(test_dir_name + "/groundtruth.csv"):
@@ -140,7 +142,7 @@ def test_groundtruth_to_csv():
             assert row["time"] == str(test_groundtruths[i].state.timestamp)
             assert [int(row["state"])] == test_groundtruths[i].state.state_vector
             i += 1
-    
+
 
 def test_parameters_to_csv():
 
@@ -165,6 +167,7 @@ def test_parameters_to_csv():
     assert test_parameters_loaded["d"] == test_parameters["d"]
     assert test_parameters_loaded["e"] == test_parameters["e"]
     assert test_parameters_loaded["f"] == test_parameters["f"]
+
 
 def test_generate_config():
     test_tracker = {"tracker": 246}
