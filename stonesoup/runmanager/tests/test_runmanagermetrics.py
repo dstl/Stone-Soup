@@ -33,6 +33,9 @@ class DummyState:
         self.mean = mean
 
 
+def test_cwd_path():
+    assert os.path.isdir(test_dir_name) == True 
+
 def test_tracks_to_csv():
 
     if os.path.exists(test_dir_name + "\\tracks.csv"):
