@@ -14,9 +14,9 @@ from ..runmanagermetrics import RunmanagerMetrics as rmm
 
 
 # Run from stonesoup working directory
-def setup_module():
-    while os.getcwd().split('\\')[-1] != 'Stone-Soup':
-        os.chdir(os.path.dirname(os.getcwd()))
+# def setup_module():
+#     while os.getcwd().split('\\')[-1] != 'Stone-Soup':
+#         os.chdir(os.path.dirname(os.getcwd()))
 
 test_dir_name = "stonesoup\\runmanager\\tests\\test_csvs"
 
