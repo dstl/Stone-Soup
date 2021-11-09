@@ -132,8 +132,6 @@ def test_generate_parameters_combinations():
                     {'path': 'pathname10' , 'var_name': 'var_name10' , 'type': 'ndarray',
                      'value_min': np.array([1,2]), 'value_max': np.array([5,6]), 'n_samples': [3,3]}]
 
-    # test_params = [{'path': 'SingleTargetTracker.initiator.initiator.prior_state.velocity', 'var_name': 'velocity', 'type': 'vector', 'value_min': [1, 1, 1], 'value_max': [5, 1, 2], 'n_samples': 3}, {'path': 'SingleTargetTracker.initiator.initiator.prior_state.num_particles', 'var_name': 'num_particles', 'type': 'int', 'value_min': 500, 'value_max': 700, 'n_samples': 4}, {'path': 'SingleTargetTracker.initiator.initiator.prior_state.total_weight', 'var_name': 'total_weight', 'type': 'float', 'value_min': 20.5, 'value_max': 37.46, 'n_samples': 4}, {'path': 'SingleTargetTracker.initiator.initiator.prior_state.normalise', 'var_name': 'normalise', 'type': 'bool', 'bool': 0, 'n_samples': 4}]
-
     test_combo_dict1 = IManager.generate_parameters_combinations(test_params)
     test_combo_dict2 = IManager.generate_parameters_combinations(test_params2)
     test_combo_dict3 = IManager.generate_parameters_combinations(test_params3)

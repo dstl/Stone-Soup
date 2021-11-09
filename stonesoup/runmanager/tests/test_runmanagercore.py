@@ -10,18 +10,18 @@ rmc = RunManagerCore()
 
 # Run from stonesoup working directory
 # def setup_module():
-#     while os.getcwd().split('\\')[-1] != 'Stone-Soup':
+#     while os.getcwd().split('\\')[-1] != 'stonesoup':
 #         os.chdir(os.path.dirname(os.getcwd()))
 
-test_config = "stonesoup\\runmanager\\tests\\test_configs\\test_config_all.yaml"
-test_config_nomm = "stonesoup\\runmanager\\tests\\test_configs\\test_config_nomm.yaml"
-test_config_nogt = "stonesoup\\runmanager\\tests\\test_configs\\test_config_nogt.yaml"
-test_config_trackeronly = "stonesoup\\runmanager\\tests\\test_configs\\test_config_trackeronly.yaml"
-test_json = "stonesoup\\runmanager\\tests\\test_configs\\dummy.json"
+test_config = "runmanager\\tests\\test_configs\\test_config_all.yaml"
+test_config_nomm = "runmanager\\tests\\test_configs\\test_config_nomm.yaml"
+test_config_nogt = "runmanager\\tests\\test_configs\\test_config_nogt.yaml"
+test_config_trackeronly = "runmanager\\tests\\test_configs\\test_config_trackeronly.yaml"
+test_json = "runmanager\\tests\\test_configs\\dummy.json"
 
 
 def test_read_json():
-    print("CWD HERE: ", os.getcwd())
+
     test_json_data = rmc.read_json(test_json)
     assert type(test_json_data) is dict
 
