@@ -21,7 +21,7 @@ test_json = "stonesoup\\runmanager\\tests\\test_configs\\dummy.json"
 
 
 def test_read_json():
-
+    print("CWD HERE: ", os.getcwd())
     test_json_data = rmc.read_json(test_json)
     assert type(test_json_data) is dict
 
