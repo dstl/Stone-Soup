@@ -39,8 +39,8 @@ def test_cwd_path():
 
 def test_tracks_to_csv():
 
-    if os.path.exists(test_dir_name + "\\tracks.csv"):
-        os.remove(test_dir_name + "\\tracks.csv")
+    if os.path.exists(test_dir_name + "/tracks.csv"):
+        os.remove(test_dir_name + "/tracks.csv")
 
     test_track1 = DummyTrack(DummyState(datetime.now(), [1], [1]), 1, [[1.0, 1.0]])
     test_track2 = DummyTrack(DummyState(datetime.now(), [2], [2]), 2, [[2.0, 2.0]])
@@ -54,7 +54,7 @@ def test_tracks_to_csv():
 
     rmm.tracks_to_csv(test_dir_name, test_tracks)
 
-    with open(test_dir_name+"\\tracks.csv") as csvfile:
+    with open(test_dir_name+"/tracks.csv") as csvfile:
         test_tracks_loaded = csv.DictReader(csvfile, delimiter=",")
         i = 0
         for row in test_tracks_loaded:
@@ -67,8 +67,8 @@ def test_tracks_to_csv():
 
 def test_metrics_to_csv():
 
-    if os.path.exists(test_dir_name + "\\metrics.csv"):
-        os.remove(test_dir_name + "\\metrics.csv")
+    if os.path.exists(test_dir_name + "/metrics.csv"):
+        os.remove(test_dir_name + "/metrics.csv")
 
     date_time = datetime.now()
     time.sleep(1)
@@ -89,7 +89,7 @@ def test_metrics_to_csv():
 
     rmm.metrics_to_csv(test_dir_name, test_metrics)
 
-    with open(test_dir_name+"\\metrics.csv") as csvfile:
+    with open(test_dir_name+"/metrics.csv") as csvfile:
         test_metrics_loaded = csv.DictReader(csvfile, delimiter=",")
         i = 0
         for row in test_metrics_loaded:
@@ -101,8 +101,8 @@ def test_metrics_to_csv():
 
 def test_detection_to_csv():
 
-    if os.path.exists(test_dir_name + "\\detections.csv"):
-        os.remove(test_dir_name + "\\detections.csv")
+    if os.path.exists(test_dir_name + "/detections.csv"):
+        os.remove(test_dir_name + "/detections.csv")
 
     test_detection1 = DummyState(datetime.now(), [1, 2], None)
     test_detection2 = DummyState(datetime.now(), [3, 4], None)
@@ -111,7 +111,7 @@ def test_detection_to_csv():
 
     rmm.detection_to_csv(test_dir_name, test_detections)
 
-    with open(test_dir_name+"\\detections.csv") as csvfile:
+    with open(test_dir_name+"/detections.csv") as csvfile:
         test_detections_loaded = csv.DictReader(csvfile, delimiter=",")
         i = 0
         for row in test_detections_loaded:
@@ -122,8 +122,8 @@ def test_detection_to_csv():
 
 def test_groundtruth_to_csv():
 
-    if os.path.exists(test_dir_name + "\\groundtruth.csv"):
-        os.remove(test_dir_name + "\\groundtruth.csv")
+    if os.path.exists(test_dir_name + "/groundtruth.csv"):
+        os.remove(test_dir_name + "/groundtruth.csv")
 
     test_gt1 = DummyTrack(DummyState(datetime.now(), [1], None), None, None)
     test_gt2 = DummyTrack(DummyState(datetime.now(), [2], None), None, None)
@@ -133,7 +133,7 @@ def test_groundtruth_to_csv():
 
     rmm.groundtruth_to_csv(test_dir_name, test_groundtruths)
 
-    with open(test_dir_name+"\\groundtruth.csv") as csvfile:
+    with open(test_dir_name+"/groundtruth.csv") as csvfile:
         test_groundtruths_loaded = csv.DictReader(csvfile, delimiter=",")
         i = 0
         for row in test_groundtruths_loaded:
@@ -144,8 +144,8 @@ def test_groundtruth_to_csv():
 
 def test_parameters_to_csv():
 
-    if os.path.exists(test_dir_name + "\\parameters.json"):
-        os.remove(test_dir_name + "\\parameters.json")
+    if os.path.exists(test_dir_name + "/parameters.json"):
+        os.remove(test_dir_name + "/parameters.json")
 
     test_parameters = {"a": array.StateVector([1.0, 2.0, 3.0, 4.0]),
                        "b": array.CovarianceMatrix([[5.0, 6.0], [7.0, 8.0]]),
@@ -156,7 +156,7 @@ def test_parameters_to_csv():
 
     rmm.parameters_to_csv(test_dir_name, test_parameters)
 
-    with open(test_dir_name + "\\parameters.json") as json_file:
+    with open(test_dir_name + "/parameters.json") as json_file:
         test_parameters_loaded = json.load(json_file)
 
     assert test_parameters_loaded["a"] == list(test_parameters["a"])
@@ -173,7 +173,7 @@ def test_generate_config():
 
     rmm.generate_config(test_dir_name, test_tracker, test_gt, test_metrics)
 
-    with open(test_dir_name+"\\config.yaml", 'r') as file:
+    with open(test_dir_name+"/config.yaml", 'r') as file:
         tracker, gt, mm = YAML('safe').load(file)
 
     assert tracker == test_tracker
