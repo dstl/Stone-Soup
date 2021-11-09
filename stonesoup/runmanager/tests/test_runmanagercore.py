@@ -9,9 +9,9 @@ from ..runmanagercore import RunManagerCore
 rmc = RunManagerCore()
 
 # Run from stonesoup working directory
-def setup_module():
-    while os.getcwd().split('\\')[-1] != 'Stone-Soup':
-        os.chdir(os.path.dirname(os.getcwd()))
+# def setup_module():
+#     while os.getcwd().split('\\')[-1] != 'Stone-Soup':
+#         os.chdir(os.path.dirname(os.getcwd()))
 
 test_config = "stonesoup\\runmanager\\tests\\test_configs\\test_config_all.yaml"
 test_config_nomm = "stonesoup\\runmanager\\tests\\test_configs\\test_config_nomm.yaml"
