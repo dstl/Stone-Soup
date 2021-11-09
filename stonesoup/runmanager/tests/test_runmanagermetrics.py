@@ -1,6 +1,6 @@
 import pytest
 
-import pandas as pd
+import csv
 import json
 from datetime import datetime, timedelta
 import time
@@ -50,14 +50,16 @@ def test_tracks_to_csv():
 
     rmm.tracks_to_csv(test_dir_name, test_tracks)
 
-    test_tracks_loaded = pd.read_csv(test_dir_name+"\\tracks.csv", delimiter=",")
-
-    for i in range(len(test_tracks)):
-        assert test_tracks_loaded["time"][i] == str(test_tracks[i].state.timestamp)
-        assert test_tracks_loaded["id"][i] == test_tracks[i].id
-        assert test_tracks_loaded["state"][i] == test_tracks[i].state.state_vector
-        assert test_tracks_loaded["mean"][i] == test_tracks[i].state.mean
-        assert [[float(x) for x in test_tracks_loaded["covar"][i].split(" ")]] == test_tracks[i].covar
+    with open(test_dir_name+"\\tracks.csv") as csvfile:
+        test_tracks_loaded = csv.DictReader(csvfile, delimiter=",")
+        i = 0
+        for row in test_tracks_loaded:
+            assert row["time"] == str(test_tracks[i].state.timestamp)
+            assert int(row["id"]) == test_tracks[i].id
+            assert [int(row["state"])] == test_tracks[i].state.state_vector
+            assert [int(row["mean"])] == test_tracks[i].state.mean
+            assert [[float(x) for x in row["covar"].split(" ")]] == test_tracks[i].covar
+            i += 1
 
 def test_metrics_to_csv():
 
@@ -65,18 +67,17 @@ def test_metrics_to_csv():
         os.remove(test_dir_name + "\\metrics.csv")
 
     date_time = datetime.now()
+    time.sleep(1)
+    date_time2 = datetime.now()
 
     test_metric = metric.Metric("a", 
                                 [metric.SingleTimeMetric("x", 1, "gen1.1", date_time),
-                                 metric.SingleTimeMetric("y", 2, "gen1.2", date_time)], 
+                                 metric.SingleTimeMetric("y", 2, "gen1.2", date_time2)], 
                                 "gen1")
 
-    time.sleep(1)
-
-    date_time2 = datetime.now()
 
     test_metric2 = metric.Metric("b", 
-                                 [metric.SingleTimeMetric("m", 3, "gen2.1", date_time2),
+                                 [metric.SingleTimeMetric("m", 3, "gen2.1", date_time),
                                   metric.SingleTimeMetric("n", 4, "gen2.2", date_time2)], 
                                  "gen2")
 
@@ -84,15 +85,15 @@ def test_metrics_to_csv():
 
     rmm.metrics_to_csv(test_dir_name, test_metrics)
 
-    test_metrics_loaded = pd.read_csv(test_dir_name+"\\metrics.csv", delimiter=",")
-
-    for i in range(len(test_metric.value)):
-        assert test_metrics_loaded["a"][i] == test_metric.value[i].value
-        assert test_metrics_loaded["timestamp"][i] == str(test_metric.value[i].timestamp)
-
-    for i in range(len(test_metric2.value)):
-        assert test_metrics_loaded["b"][i] == test_metric2.value[i].value
-        assert test_metrics_loaded["timestamp"][i] == str(test_metric2.value[i].timestamp)
+    with open(test_dir_name+"\\metrics.csv") as csvfile:
+        test_metrics_loaded = csv.DictReader(csvfile, delimiter=",")
+        i = 0
+        for row in test_metrics_loaded:
+            assert int(row["a"]) == test_metric.value[i].value
+            assert row["timestamp"] == str(test_metric.value[i].timestamp)
+            assert int(row["b"]) == test_metric2.value[i].value
+            assert row["timestamp"] == str(test_metric2.value[i].timestamp)
+            i += 1
 
 def test_detection_to_csv():
 
@@ -106,12 +107,14 @@ def test_detection_to_csv():
 
     rmm.detection_to_csv(test_dir_name, test_detections)
 
-    test_detections_loaded = pd.read_csv(test_dir_name+"\\detections.csv", delimiter=",")
-
-    for i in range(len(test_detections)):
-        assert test_detections_loaded["time"][i] == str(test_detections[i].timestamp)
-        assert test_detections_loaded["x"][i] == test_detections[i].state_vector[0]
-        assert test_detections_loaded["y"][i] == test_detections[i].state_vector[1]
+    with open(test_dir_name+"\\detections.csv") as csvfile:
+        test_detections_loaded = csv.DictReader(csvfile, delimiter=",")
+        i = 0
+        for row in test_detections_loaded:
+            assert row["time"] == str(test_detections[i].timestamp)
+            assert int(row["x"]) == test_detections[i].state_vector[0]
+            assert int(row["y"]) == test_detections[i].state_vector[1]
+            i += 1
 
 def test_groundtruth_to_csv():
 
@@ -126,11 +129,14 @@ def test_groundtruth_to_csv():
 
     rmm.groundtruth_to_csv(test_dir_name, test_groundtruths)
 
-    test_groundtruths_loaded = pd.read_csv(test_dir_name+"\\groundtruth.csv", delimiter=",")
-
-    for i in range(len(test_groundtruths)):
-        assert test_groundtruths_loaded["time"][i] == str(test_groundtruths[i].state.timestamp)
-        assert test_groundtruths_loaded["state"][i] == test_groundtruths[i].state.state_vector
+    with open(test_dir_name+"\\groundtruth.csv") as csvfile:
+        test_groundtruths_loaded = csv.DictReader(csvfile, delimiter=",")
+        i = 0
+        for row in test_groundtruths_loaded:
+            assert row["time"] == str(test_groundtruths[i].state.timestamp)
+            assert [int(row["state"])] == test_groundtruths[i].state.state_vector
+            i += 1
+    
 
 def test_parameters_to_csv():
 
