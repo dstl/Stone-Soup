@@ -20,10 +20,9 @@ test_config_trackeronly = "runmanager\\tests\\test_configs\\test_config_trackero
 test_json = "runmanager\\tests\\test_configs\\dummy.json"
 
 
-def test_fail():
-    assert 1 == 2
-
 def test_cwd():
+    assert os.path.isdir('stonesoup') == True 
+    os.chdir('stonesoup')
     assert os.getcwd() == 'stonesoup'
 
 def test_read_json():
