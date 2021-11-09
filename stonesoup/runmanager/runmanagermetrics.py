@@ -1,4 +1,4 @@
-import numpy as np
+
 import os
 import csv
 from itertools import chain
@@ -122,7 +122,7 @@ class RunmanagerMetrics(RunManager):
         if not os.path.isfile(os.path.join(dir_name, filename)) or overwrite:
             with open(os.path.join(dir_name, filename), 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
-                writer.writerow(['time', 'id','state'])
+                writer.writerow(['time', 'id', 'state'])
                 csvfile.close()
 
         with open(os.path.join(dir_name, filename), 'a', newline='') as csvfile:
@@ -145,7 +145,7 @@ class RunmanagerMetrics(RunManager):
 
         try:
             for k, v in parameters.items():
-                if isinstance(v, StateVector) or isinstance(v, CovarianceMatrix):              
+                if isinstance(v, StateVector) or isinstance(v, CovarianceMatrix):
                     parameters[k] = list(v)
                     if type(parameters[k][0]) is CovarianceMatrix:
                         for i in range(len(parameters[k])):
