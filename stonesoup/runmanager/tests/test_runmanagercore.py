@@ -20,6 +20,12 @@ test_config_trackeronly = "runmanager\\tests\\test_configs\\test_config_trackero
 test_json = "runmanager\\tests\\test_configs\\dummy.json"
 
 
+def test_fail():
+    assert 1 == 2
+
+def test_cwd():
+    assert os.getcwd() == 'stonesoup'
+
 def test_read_json():
 
     test_json_data = rmc.read_json(test_json)
