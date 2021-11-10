@@ -24,36 +24,105 @@ class InputManager(RunManager):
         return vector_list
 
     def set_int(self, input_int):
+        """
+        Set int 
+
+        Parameters:
+            input_int: value to convert
+
+        Returns:
+            int: int value
+        """
         input_int = int(input_int)
         return input_int
 
     def set_float(self, input_float):
+        """
+        Set float 
+
+        Parameters:
+            input_float: value to convert
+
+        Returns:
+            float: float value
+        """
         input_float = float(input_float)
         return input_float
 
     def set_covariance(self, covar):
+        """Get a list and return a covar
+
+        Parameters:
+            list_state_covar: covar vector list
+
+        Returns:
+            CovarianceMatrix: covariance
+        """
         covar = np.array(covar)
         return covar
 
     def set_tuple(self, list_tuple):
+        """
+        Set tuple 
+
+        Parameters:
+            input_tuple: list of tuple
+
+        Returns:
+            tuple: tuple
+        """
         tuple_list = []
         for idx, elem in enumerate(list_tuple):
             tuple_list.append(tuple(elem))
         return tuple_list
 
     def set_bool():
+        """
+        Set bool 
+
+        Parameters:
+            input_bool: value to convert
+
+        Returns:
+            bool: bool value
+        """
         raise NotImplementedError
 
+    
     def set_ndArray(self, arr):
+        """
+        Set ndArray 
+
+        Parameters:
+            input_ndarray: value to convert
+
+        Returns:
+            ndarray: ndarray value
+        """
         return np.array(arr)
 
     def set_time_delta(self, time_delta):
+        """
+        Set timedelta 
+
+        Parameters:
+            input_timedelta: value to convert
+
+        Returns:
+            timedelta: timedelta value
+        """
         return timedelta(time_delta)
 
-    def set_coordinate_system():
-        raise NotImplementedError
-
     def set_probability():
+        """
+        Set probability 
+
+        Parameters:
+            input_probability: value to convert
+
+        Returns:
+            Probability: probability value
+        """
         raise NotImplementedError
 
     def generate_parameters_combinations(self, parameters):
