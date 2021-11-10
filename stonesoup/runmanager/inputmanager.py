@@ -25,7 +25,7 @@ class InputManager(RunManager):
 
     def set_int(self, input_int):
         """
-        Set int 
+        Set int
 
         Parameters:
             input_int: value to convert
@@ -38,7 +38,7 @@ class InputManager(RunManager):
 
     def set_float(self, input_float):
         """
-        Set float 
+        Set float
 
         Parameters:
             input_float: value to convert
@@ -63,7 +63,7 @@ class InputManager(RunManager):
 
     def set_tuple(self, list_tuple):
         """
-        Set tuple 
+        Set tuple
 
         Parameters:
             input_tuple: list of tuple
@@ -78,7 +78,7 @@ class InputManager(RunManager):
 
     def set_bool():
         """
-        Set bool 
+        Set bool
 
         Parameters:
             input_bool: value to convert
@@ -90,7 +90,7 @@ class InputManager(RunManager):
 
     def set_ndArray(self, arr):
         """
-        Set ndArray 
+        Set ndArray
 
         Parameters:
             input_ndarray: value to convert
@@ -102,7 +102,7 @@ class InputManager(RunManager):
 
     def set_time_delta(self, time_delta):
         """
-        Set timedelta 
+        Set timedelta
 
         Parameters:
             input_timedelta: value to convert
@@ -114,7 +114,7 @@ class InputManager(RunManager):
 
     def set_probability():
         """
-        Set probability 
+        Set probability
 
         Parameters:
             input_probability: value to convert
