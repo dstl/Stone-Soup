@@ -88,7 +88,6 @@ class InputManager(RunManager):
         """
         raise NotImplementedError
 
-    
     def set_ndArray(self, arr):
         """
         Set ndArray 
