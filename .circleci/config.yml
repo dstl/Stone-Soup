@@ -18,17 +18,18 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: v2-dependencies-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
+          key: v3-dependencies-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
       - run:
           name: Install Dependencies
           command: |
             python -m venv venv
             . venv/bin/activate
+            pip install --upgrade pip
             pip install -e .[dev]
       - save_cache:
           paths:
             - ./venv
-          key: v2-dependencies-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
+          key: v3-dependencies-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
       - run:
           name: Run Tests
           command: |
@@ -68,17 +69,18 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: v2-dependencies-test-310-{{ checksum "setup.py" }}
+          key: v3-dependencies-test-310-{{ checksum "setup.py" }}
       - run:
           name: Install Dependencies
           command: |
             python -m venv venv
             . venv/bin/activate
+            pip install --upgrade pip
             pip install -e .[dev]
       - save_cache:
           paths:
             - ./venv
-          key: v2-dependencies-test-310-{{ checksum "setup.py" }}
+          key: v3-dependencies-test-310-{{ checksum "setup.py" }}
       - run:
           name: Build Docs
           command: |
