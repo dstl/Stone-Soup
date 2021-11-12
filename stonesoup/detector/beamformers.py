@@ -19,14 +19,16 @@ from itertools import islice
 from pathlib import Path
 from datetime import datetime, timedelta
 import numpy as np
-from ..base import Property, Base
+from typing import Sequence
+from ..base import Property
 from ..buffered_generator import BufferedGenerator
 from ..models.measurement.linear import LinearGaussian
 from ..types.array import StateVector, CovarianceMatrix
 from ..types.detection import Detection
+from ..reader import DetectionReader
 
 
-class CaponBeamformer(Base, BufferedGenerator):
+class CaponBeamformer(DetectionReader):
     """An adaptive beamformer method designed to reduce the influence of side lobes in the case of
     multiple signals with different directions of arrival. The beamformer uses the Capon algorithm.
 
@@ -36,11 +38,12 @@ class CaponBeamformer(Base, BufferedGenerator):
     """
     path: Path = Property(doc='The path to the csv file containing the raw data')
     fs: float = Property(doc='Sampling frequency (Hz)')
-    sensor_loc: np.ndarray = Property(doc='Cartesian coordinates of the sensors in the format '
-                                          '"X1 Y1 Z1; X2 Y2 Z2;...."')
+    sensor_loc: Sequence[StateVector] = Property(doc='Cartesian coordinates of the sensors in the\
+                                                 format "X1 Y1 Z1; X2 Y2 Z2;...."')
     omega: float = Property(doc='Signal frequency (Hz)')
     wave_speed: float = Property(doc='Speed of wave in the medium')
-    window_size: int = Property(doc='Wndows size', default=750)
+    window_size: int = Property(doc='Window size', default=750)
+    start_time: datetime = Property(doc='Time first sample was recorded', default=datetime.now())
 
     def __init__(self, path, *args, **kwargs):
         if not isinstance(path, Path):
@@ -55,6 +58,8 @@ class CaponBeamformer(Base, BufferedGenerator):
 
             # Use a csv reader to read the file
             reader = csv.reader(csv_file, delimiter=',')
+            
+            current_time = self.start_time
 
             # Calculate the number of scans/timesteps
             num_timesteps = int(num_lines/self.window_size)
@@ -64,20 +69,16 @@ class CaponBeamformer(Base, BufferedGenerator):
                 # convert to float)
                 y = np.array([row for row in islice(reader, self.window_size)]).astype(float)
 
-                # TODO: This may need to be changed to reflect the actual scan duration
-                # (e.g. 1 sec)
-                current_time = datetime.now()
-
                 L = len(y)
 
                 thetavals = np.linspace(0, 2*np.pi, num=400)
                 phivals = np.linspace(0, np.pi/2, num=100)
 
                 # spatial locations of hydrophones
-                z = np.asarray(self.sensor_loc[:, :, i])
-                self.num_sensors = int(z.size/3)
+                raw_data = np.asarray(self.sensor_loc[i])
+                self.num_sensors = int(raw_data.size/3)
+                z = np.reshape(raw_data, [self.num_sensors, 3])
 
-                N = self.num_sensors
                 c = self.wave_speed/(2*self.omega*np.pi)
 
                 # calculate covariance estimate
@@ -120,7 +121,7 @@ class CaponBeamformer(Base, BufferedGenerator):
                         #     phase = np.sum(a * np.transpose(z[n,])) / c
                         #     v[n] = math.cos(phase) - math.sin(phase) * 1j
 
-                        F = 1 / ((L - N) * np.conj(v).T @ R_inv @ v)
+                        F = 1 / ((L - self.num_sensors) * np.conj(v).T @ R_inv @ v)
                         if F > maxF:
                             maxF = F
                             maxtheta = theta
@@ -138,7 +139,7 @@ class CaponBeamformer(Base, BufferedGenerator):
                 yield current_time, {detection}
 
 
-class RJMCMCBeamformer(Base, BufferedGenerator):
+class RJMCMCBeamformer(DetectionReader):
     """A parameter estimation algorithm for a sensor array measuring passive signals. Given the
     input signals from the array, the algorithm uses reversible-jump Markov chain Monte Carlo [1]
     to sample from the posterior probability for a model where the number of targets and directions
@@ -155,13 +156,20 @@ class RJMCMCBeamformer(Base, BufferedGenerator):
     path: str = Property(doc='The path to the csv file, containing the raw data')
     fs: float = Property(doc='Sampling frequency (Hz)')
     omega: float = Property(doc='Signal frequency (Hz)')
-    sensor_loc: list = Property(doc='Cartesian coordinates of the sensors in the format\
-                               "X1 Y1 Z1; X2 Y2 Z2;...."')
+    sensor_loc: Sequence[StateVector] = Property(doc='Cartesian coordinates of the sensors in the\
+                                                 format "X1 Y1 Z1; X2 Y2 Z2;...."')
     wave_speed: float = Property(doc='Speed of wave in the medium')
     max_targets: int = Property(default=5, doc='Maximum number of targets')
     seed: int = Property(doc='Random number generator seed for reproducible output. Set to 0 for\
                          non-reproducible output')
-    window_size: int = Property(doc='Wndows size', default=750)
+    window_size: int = Property(doc='Window size', default=750)
+    num_samps: int = Property(default=10000, doc='Number of samples generated by MCMC\
+                              algorithm (higher samples = more accurate estimates)')
+    Lambda: int = Property(default=1, doc='Expected number of targets')
+    nbins: int = Property(default=128, doc='Number of bins used in histogram of samples over\
+                          azimuth and elevation (configurable but should generally scale with\
+                          the number of samples)')
+    start_time: datetime = Property(doc='Time first sample was recorded', default=datetime.now())
 
     def __init__(self, path, *args, **kwargs):
         if not isinstance(path, Path):
@@ -178,32 +186,31 @@ class RJMCMCBeamformer(Base, BufferedGenerator):
 
             # Use a csv reader to read the file
             reader = csv.reader(csv_file, delimiter=',')
+            
+            current_time = self.start_time
 
             # Calculate the number of scans/timesteps
             num_timesteps = int(num_lines/self.window_size)
 
-            num_samps = 10000  # number of MCMC samples
-            fs = self.fs  # sampling frequency (Hz)
-            Lambda = 1  # expected number of targets
-            nbins = 128
-            bin_steps = [math.pi/(2*nbins), 2*math.pi/nbins]
+            bin_steps = [math.pi/(2*self.nbins), 2*math.pi/self.nbins]
 
             for i in range(num_timesteps):
 
                 # Grab the next `window_size` lines from the reader and read it into y (also
                 # convert to float)
                 y = np.array([row for row in islice(reader, self.window_size)]).astype(float)
-                current_time = datetime.now()
 
                 L = len(y)
 
-                self.sensor_pos = np.asarray(np.asarray(self.sensor_loc[:, :, i]))
-                self.num_sensors = int(self.sensor_pos.size/3)
+
+                raw_data = np.asarray(self.sensor_loc[i])
+                self.num_sensors = int(raw_data.size/3)
+                self.sensor_pos = np.reshape(raw_data, [self.num_sensors, 3])
 
                 N = self.num_sensors*L
 
                 # initialise histograms
-                param_hist = np.zeros([self.max_targets, nbins, nbins])
+                param_hist = np.zeros([self.max_targets, self.nbins, self.nbins])
                 order_hist = np.zeros([self.max_targets])
 
                 # initialise params
@@ -219,8 +226,8 @@ class RJMCMCBeamformer(Base, BufferedGenerator):
 
                 for k in range(0, self.num_sensors):
                     for t in range(0, L):
-                        sinTy[k] = sinTy[k] + math.sin(2*math.pi*t*self.omega/fs)*y[t, k]
-                        cosTy[k] = cosTy[k] + math.cos(2*math.pi*t*self.omega/fs)*y[t, k]
+                        sinTy[k] = sinTy[k] + math.sin(2*math.pi*t*self.omega/self.fs)*y[t, k]
+                        cosTy[k] = cosTy[k] + math.cos(2*math.pi*t*self.omega/self.fs)*y[t, k]
                         yTy = yTy + y[t, k]*y[t, k]
 
                 sumsinsq = 0
@@ -229,23 +236,23 @@ class RJMCMCBeamformer(Base, BufferedGenerator):
 
                 for t in range(0, L):
                     sumsinsq = sumsinsq \
-                        + math.sin(2*math.pi*t*self.omega/fs)*math.sin(2*math.pi*t*self.omega/fs)
+                        + math.sin(2*math.pi*t*self.omega/self.fs)*math.sin(2*math.pi*t*self.omega/self.fs)
                     sumcossq = sumcossq \
-                        + math.cos(2*math.pi*t*self.omega/fs)*math.cos(2*math.pi*t*self.omega/fs)
+                        + math.cos(2*math.pi*t*self.omega/self.fs)*math.cos(2*math.pi*t*self.omega/self.fs)
                     sumsincos = sumsincos \
-                        + math.sin(2*math.pi*t*self.omega/fs)*math.cos(2*math.pi*t*self.omega/fs)
+                        + math.sin(2*math.pi*t*self.omega/self.fs)*math.cos(2*math.pi*t*self.omega/self.fs)
                 sumsincos = 0
                 old_logp = self.log_prob(noise, params, K, y, L, sinTy, cosTy, yTy,
-                                         sumsinsq, sumcossq, sumsincos, N, Lambda)
+                                         sumsinsq, sumcossq, sumsincos, N)
                 n = 0
 
-                while n < num_samps:
+                while n < self.num_samps:
                     p_noise = self.noise_proposal(noise)
                     [p_params, p_K, Qratio] = self.proposal_func(params, K, p_params,
                                                                  self.max_targets)
                     if p_K != 0:
                         new_logp = self.log_prob(p_noise, p_params, p_K, y, L, sinTy, cosTy, yTy,
-                                                 sumsinsq, sumcossq, sumsincos, N, Lambda)
+                                                 sumsinsq, sumcossq, sumsincos, N)
                         logA = new_logp - old_logp + np.log(Qratio)
 
                         # do a Metropolis-Hastings step
@@ -274,7 +281,7 @@ class RJMCMCBeamformer(Base, BufferedGenerator):
                                 while edge < params[k, ind]:
                                     edge += bin_steps[ind]
                                     bin_ind[ind] += 1
-                                    if bin_ind[ind] == nbins-1:
+                                    if bin_ind[ind] == self.nbins-1:
                                         break
                             param_hist[K-1, bin_ind[0], bin_ind[1]] += 1
                             order_hist[K-1] += 1
@@ -309,7 +316,7 @@ class RJMCMCBeamformer(Base, BufferedGenerator):
                     k = 0
                     while quadrant_factor < 32:
                         max_quadrant = 0
-                        quadrant_size = nbins/quadrant_factor
+                        quadrant_size = self.nbins/quadrant_factor
                         for n in range(nstart, nend):
                             for m in range(mstart, mend):
                                 [ind1, ind2] = np.unravel_index(
@@ -377,7 +384,11 @@ class RJMCMCBeamformer(Base, BufferedGenerator):
                 yield current_time, {detection}
 
     def log_prob(self, p_noise, p_params, p_K, y, T, sinTy, cosTy, yTy, sumsinsq, sumcossq,
-                 sumsincos, N, Lambda):
+                 sumsincos, N):
+        """Calculates the log probability of the unnormalised posterior distribution for a given
+        set of parameters and data.
+
+        """
         DTy = np.zeros(p_K)
         DTD = np.zeros((p_K, p_K))
         sinalpha = np.zeros((p_K, self.num_sensors))
@@ -417,16 +428,18 @@ class RJMCMCBeamformer(Base, BufferedGenerator):
 
         Dterm = np.matmul(np.linalg.solve(1001*DTD, DTy), np.transpose(DTy))
         log_posterior = - (p_K * np.log(1.001) / 2) - (N / 2) * np.log((yTy - Dterm) / 2) \
-            + p_K * np.log(Lambda) - np.log(np.math.factorial(p_K)) - p_K*np.log(math.pi * math.pi)
+            + p_K * np.log(self.Lambda) - np.log(np.math.factorial(p_K)) - p_K*np.log(math.pi * math.pi)
         # note: math.pi*math.pi comes from area of parameter space in one dimension (i.e. range of
         # azimuth * range of elevation)
 
         return log_posterior
 
     def elevation_mode_coin_toss(self, p_params, p_K):
-        # elevation angle has refelctions / rotations of state space resulting in duplicate modes
-        # use a coin toss to decide whether we jump to another mode to ensure full exploration and
-        # mixing can combine mirrored modes in post processing
+        """The state space is reflected across different elevation angle sectors resulting in
+        duplicate modes across the posterior probability distribution. This function uses a coin
+        toss to jump to another mode to ensure full and unbiased exploration of the Markov chain.
+
+        """
         for k in range(0, p_K):
             # transform to first mode
             if p_params[k, 0] > 3*math.pi/2:
@@ -468,12 +481,21 @@ class RJMCMCBeamformer(Base, BufferedGenerator):
         return p_params
 
     def noise_proposal(self, noise):
+        """The proposal function for the noise variance. A Gaussian probability density centred
+        on the current value of the noise variance is used to generate proposal values.
+
+        """
         epsilon = random.gauss(0, 0.1)
         rand_val = abs(noise+epsilon)
         p_noise = copy.deepcopy(rand_val)
         return p_noise
 
     def proposal(self, params, K, p_params):
+        """The proposal function for direction of arrival parameters. The parameters are initially
+        sampled from a uniform distribution. Gaussian probability densities are used to make new
+        proposals centred on the current parameter values.
+
+        """
         p_K = 0
         # choose random phase (assuming constant frequency)
         if len(params) == 0:
@@ -500,6 +522,12 @@ class RJMCMCBeamformer(Base, BufferedGenerator):
         return p_params, p_K
 
     def proposal_func(self, params, K, p_params, max_targets):
+        """The proposal function for the RJMCMC moves. A coin toss is used to decide whether an
+        update move or revesible-jump move is proposed. If a reversible-jump move is chosen, a
+        further coin toss decides whether the proposed move is a birth or death move (adding or
+        removing a target).
+
+        """
         update_type = random.uniform(0, 1)
         p_K = 0
         Qratio = 1  # ratio of proposal probabilities for forwards and backwards moves

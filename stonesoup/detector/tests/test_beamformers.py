@@ -2,6 +2,7 @@
 import numpy as np
 from os import path
 from datetime import datetime
+from typing import Sequence
 
 import pytest
 
@@ -9,7 +10,7 @@ from stonesoup.detector import beamformers
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
                                                ConstantVelocity
 from stonesoup.models.measurement.linear import LinearGaussian
-from stonesoup.types.array import CovarianceMatrix
+from stonesoup.types.array import StateVector, CovarianceMatrix
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.updater.kalman import KalmanUpdater
 from stonesoup.types.state import GaussianState
@@ -24,12 +25,16 @@ def detector(request):
     X = [0, 0, 0, 10, 10, 10, 20, 20, 20]
     Y = [0, 10, 20, 0, 10, 20, 0, 10, 20]
     Z = [0, 0, 0, 0, 0, 0, 0, 0, 0]
-    sensor_pos = np.empty([9, 3, 2])
+    #sensor_pos = Sequence[StateVector]
+    sensor_pos_sequence = []
     for i in range(0, 2):
+        sensor_pos_xyz = []
         for j in range(0, 9):
-            sensor_pos[j, 0, i] = X[j]
-            sensor_pos[j, 1, i] = Y[j]
-            sensor_pos[j, 2, i] = Z[j]
+            sensor_pos_xyz.append(X[j])
+            sensor_pos_xyz.append(Y[j])
+            sensor_pos_xyz.append(Z[j])
+        sensor_pos_sequence.append(StateVector(sensor_pos_xyz))
+    sensor_pos: Sequence[StateVector] = sensor_pos_sequence
     extra_args = {'seed': 12345} if request.param is beamformers.RJMCMCBeamformer else {}
     return request.param(data_file, sensor_loc=sensor_pos, fs=2000, omega=50, wave_speed=1481,
                          window_size=800, **extra_args)
