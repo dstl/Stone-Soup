@@ -56,8 +56,8 @@ class RandomSensorManager(SensorManager):
 
     """
 
-    sensors: Set[Sensor] = Property(doc="The sensor(s) which the sensor manager is managing. "
-                                        "These must be capable of returning available actions.")
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def choose_actions(self, tracks_list, timestamp, nchoose=1, *args, **kwargs):
         """Returns a randomly chosen [list of] action(s) from the action set for each sensor.
@@ -94,15 +94,6 @@ class BruteForceSensorManager(SensorManager):
     selecting the option which returns the maximum reward as calculated by a reward function.
 
     """
-
-    sensors: Set[Sensor] = Property(doc="The sensor(s) which the sensor manager is managing. "
-                                        "These must be capable of returning available actions.")
-    reward_function: Callable = Property(doc="A function or class to calculate the reward "
-                                             "associated with a given configuration of sensors "
-                                             "and actions. The configuration which gives the "
-                                             "maximum value of this reward will be selected as "
-                                             "the chosen configuration of sensors and actions "
-                                             "at this time step.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
