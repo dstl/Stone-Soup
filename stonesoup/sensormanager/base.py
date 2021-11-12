@@ -90,8 +90,9 @@ class RandomSensorManager(SensorManager):
 
 
 class BruteForceSensorManager(SensorManager):
-    """A sensor manager which returns a choice of action from those available,
-    selecting the option which returns the maximum reward as calculated by a reward function.
+    """A sensor manager which returns a choice of action from those available. The sensor manager
+    iterates through every possible configuration of sensors and actions and
+    selects the configuration which returns the maximum reward as calculated by a reward function.
 
     """
 

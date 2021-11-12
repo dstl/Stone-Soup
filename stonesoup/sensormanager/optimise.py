@@ -44,6 +44,23 @@ class _OptimizeSensorManager(BruteForceSensorManager):
 
 
 class OptimizeBruteSensorManager(_OptimizeSensorManager):
+    """
+    A sensor manager built around the SciPy `optimize.brute` method. The sensor manager
+    takes all possible configurations of sensors and actions and
+    uses
+    the optimising function to optimise a given reward function,
+    returning the optimal configuration.
+
+    SciPy optimize provides functions which can minimize or maximize functions using a variety
+    of algorithms. The :meth:`scipy.optimize.brute` minimizes a function over a given range,
+    using a brute force method. This is done by computing the function's value at each point of
+    a multidimensional grid of points, to find the global minimum.
+
+    This brute force method also applies a polishing function to the result of
+    the brute force minimization. By default this is set as :func:`scipy.optimize.fmin` which
+    minimizes a function using the downhill simplex algorithm.
+    """
+
     number_of_grid_points: int = Property(
         default=10,
         doc="Number of grid points to search along axis. See Ns in :func:`scipy.optimize.brute`. "
@@ -61,6 +78,17 @@ class OptimizeBruteSensorManager(_OptimizeSensorManager):
 
 
 class OptimizeBasinHoppingSensorManager(_OptimizeSensorManager):
+    """
+    A sensor manager built around the SciPy `optimize.basinhopping` method. The sensor manager
+    takes all possible configurations of sensors and actions and
+    uses
+    the optimising function to optimise a given reward function,
+    returning the optimal configuration for the sensing system.
+
+    The :meth:`scipy.optimize.basinhopping` finds the global minimum of a function using the
+    basin-hopping algorithm. This is a combination of a global stepping algorithm and local
+    minimization at each step.
+    """
 
     def _optimiser(self, optimise_func, all_action_generators):
         initial_values = [
