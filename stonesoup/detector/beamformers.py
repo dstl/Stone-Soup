@@ -475,7 +475,7 @@ class RJMCMCBeamformer(DetectionReader):
         """
         epsilon = random.gauss(0, 0.1)
         rand_val = abs(noise+epsilon)
-        p_noise = copy.deepcopy(rand_val)
+        p_noise = rand_val
         return p_noise
 
     def proposal(self, params, K, p_params):
@@ -498,14 +498,14 @@ class RJMCMCBeamformer(DetectionReader):
                     rand_val = rand_val-2*math.pi
                 elif rand_val < 0:
                     rand_val = rand_val+2*math.pi
-                p_params[k][0] = copy.deepcopy(rand_val)
+                p_params[k][0] = rand_val
                 epsilon = random.gauss(0, 0.5)
                 rand_val = params[k][1]+epsilon
                 if rand_val > 2*math.pi:
                     rand_val = rand_val-2*math.pi
                 elif rand_val < 0:
                     rand_val = rand_val+2*math.pi
-                p_params[k][1] = copy.deepcopy(rand_val)
+                p_params[k][1] = rand_val
             p_K = copy.deepcopy(K)
         return p_params, p_K
 
