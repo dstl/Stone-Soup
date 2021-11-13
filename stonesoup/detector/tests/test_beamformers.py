@@ -34,7 +34,7 @@ def detector(request):
             sensor_pos_xyz.append(Z[j])
         sensor_pos_sequence.append(StateVector(sensor_pos_xyz))
     sensor_pos: Sequence[StateVector] = sensor_pos_sequence
-    extra_args = {'seed': 12345} if request.param is beamformers.RJMCMCBeamformer else {}
+    extra_args = {'seed': 1234} if request.param is beamformers.RJMCMCBeamformer else {}
     return request.param(data_file, sensor_loc=sensor_pos, fs=2000, omega=50, wave_speed=1481,
                          window_size=800, **extra_args)
 
