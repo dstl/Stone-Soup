@@ -25,7 +25,6 @@ def detector(request):
     X = [0, 0, 0, 10, 10, 10, 20, 20, 20]
     Y = [0, 10, 20, 0, 10, 20, 0, 10, 20]
     Z = [0, 0, 0, 0, 0, 0, 0, 0, 0]
-    #sensor_pos = Sequence[StateVector]
     sensor_pos_sequence = []
     for i in range(0, 2):
         sensor_pos_xyz = []

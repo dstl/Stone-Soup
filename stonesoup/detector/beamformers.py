@@ -25,6 +25,7 @@ from ..buffered_generator import BufferedGenerator
 from ..models.measurement.linear import LinearGaussian
 from ..types.array import StateVector, CovarianceMatrix
 from ..types.detection import Detection
+from ..types.angle import Elevation, Bearing
 from ..reader import DetectionReader
 
 
@@ -58,7 +59,7 @@ class CaponBeamformer(DetectionReader):
 
             # Use a csv reader to read the file
             reader = csv.reader(csv_file, delimiter=',')
-            
+
             current_time = self.start_time
 
             # Calculate the number of scans/timesteps
@@ -90,9 +91,6 @@ class CaponBeamformer(DetectionReader):
 
                 for theta in thetavals:
                     for phi in phivals:
-
-                        # NOTE: The next few lines are faster (10-fold), but equivalent to ...
-
                         # directional unit vector
                         # convert from spherical polar coordinates to cartesian
                         a = np.array([np.cos(theta) * np.sin(phi),
@@ -104,22 +102,6 @@ class CaponBeamformer(DetectionReader):
 
                         # steering vector
                         v = np.cos(phases) - np.sin(phases) * 1j
-
-                        # (NOTE cont'd) ... these:
-                        # # steering vector
-                        # v = np.zeros(N, dtype=np.complex)
-                        #
-                        # # directional unit vector
-                        # a = np.zeros(3)
-                        #
-                        # # convert from spherical polar coordinates to cartesian
-                        # a[0] = math.cos(theta) * math.sin(phi)
-                        # a[1] = math.sin(theta) * math.sin(phi)
-                        # a[2] = math.cos(phi)
-                        # a = a / math.sqrt(np.sum(a * a))
-                        # for n in range(0, N):
-                        #     phase = np.sum(a * np.transpose(z[n,])) / c
-                        #     v[n] = math.cos(phase) - math.sin(phase) * 1j
 
                         F = 1 / ((L - self.num_sensors) * np.conj(v).T @ R_inv @ v)
                         if F > maxF:
@@ -186,7 +168,7 @@ class RJMCMCBeamformer(DetectionReader):
 
             # Use a csv reader to read the file
             reader = csv.reader(csv_file, delimiter=',')
-            
+
             current_time = self.start_time
 
             # Calculate the number of scans/timesteps
@@ -202,7 +184,6 @@ class RJMCMCBeamformer(DetectionReader):
 
                 L = len(y)
 
-
                 raw_data = np.asarray(self.sensor_loc[i])
                 self.num_sensors = int(raw_data.size/3)
                 self.sensor_pos = np.reshape(raw_data, [self.num_sensors, 3])
@@ -214,7 +195,10 @@ class RJMCMCBeamformer(DetectionReader):
                 order_hist = np.zeros([self.max_targets])
 
                 # initialise params
-                p_params = np.empty([self.max_targets, 2])
+                angle_params = []
+                for i in range(0, self.max_targets):
+                    angle_params.append(StateVector([Elevation(0), Bearing(0)]))
+                p_params: Sequence[StateVector] = angle_params
                 noise = self.noise_proposal(0)
                 [params, K] = self.proposal([], 0, p_params)
 
@@ -236,11 +220,14 @@ class RJMCMCBeamformer(DetectionReader):
 
                 for t in range(0, L):
                     sumsinsq = sumsinsq \
-                        + math.sin(2*math.pi*t*self.omega/self.fs)*math.sin(2*math.pi*t*self.omega/self.fs)
+                        + math.sin(2*math.pi*t*self.omega/self.fs) \
+                        * math.sin(2*math.pi*t*self.omega/self.fs)
                     sumcossq = sumcossq \
-                        + math.cos(2*math.pi*t*self.omega/self.fs)*math.cos(2*math.pi*t*self.omega/self.fs)
+                        + math.cos(2*math.pi*t*self.omega/self.fs) \
+                        * math.cos(2*math.pi*t*self.omega/self.fs)
                     sumsincos = sumsincos \
-                        + math.sin(2*math.pi*t*self.omega/self.fs)*math.cos(2*math.pi*t*self.omega/self.fs)
+                        + math.sin(2*math.pi*t*self.omega/self.fs) \
+                        * math.cos(2*math.pi*t*self.omega/self.fs)
                 sumsincos = 0
                 old_logp = self.log_prob(noise, params, K, y, L, sinTy, cosTy, yTy,
                                          sumsinsq, sumcossq, sumsincos, N)
@@ -262,23 +249,23 @@ class RJMCMCBeamformer(DetectionReader):
                             K = copy.deepcopy(p_K)
                             for k in range(0, K):
                                 # correct for mirrored DOAs in elevation
-                                if ((params[k, 0] > math.pi/2) & (params[k, 0] <= math.pi)):
-                                    params[k, 0] = math.pi - params[k, 0]
-                                elif ((params[k, 0] > math.pi) & (params[k, 0] <= 3*math.pi/2)):
-                                    params[k, 0] = params[k, 0] - math.pi
-                                    params[k, 1] = params[k, 1] - math.pi
-                                elif ((params[k, 0] > 3*math.pi/2) & (params[k, 0] <= 2*math.pi)):
-                                    params[k, 0] = 2*math.pi - params[k, 0]
-                                    params[k, 1] = params[k, 1] - math.pi
-                                if (params[k, 1] < 0):
-                                    params[k, 1] += 2*math.pi
-                                elif (params[k, 1] > 2*math.pi):
-                                    params[k, 1] -= 2*math.pi
+                                if ((params[k][0] > math.pi/2) & (params[k][0] <= math.pi)):
+                                    params[k][0] = math.pi - params[k][0]
+                                elif ((params[k][0] > math.pi) & (params[k][0] <= 3*math.pi/2)):
+                                    params[k][0] = params[k][0] - math.pi
+                                    params[k][1] = params[k][1] - math.pi
+                                elif ((params[k][0] > 3*math.pi/2) & (params[k][0] <= 2*math.pi)):
+                                    params[k][0] = 2*math.pi - params[k][0]
+                                    params[k][1] = params[k][1] - math.pi
+                                if (params[k][1] < 0):
+                                    params[k][1] += 2*math.pi
+                                elif (params[k][1] > 2*math.pi):
+                                    params[k][1] -= 2*math.pi
                         for k in range(0, K):
                             bin_ind = [0, 0]
                             for ind in range(0, 2):
                                 edge = bin_steps[ind]
-                                while edge < params[k, ind]:
+                                while edge < params[k][ind]:
                                     edge += bin_steps[ind]
                                     bin_ind[ind] += 1
                                     if bin_ind[ind] == self.nbins-1:
@@ -398,15 +385,15 @@ class RJMCMCBeamformer(DetectionReader):
             # calculate phase offsets relative to first sensor in the array
             for sensor_ind in range(0, self.num_sensors):
                 alpha = 2*math.pi*self.omega*((self.sensor_pos[sensor_ind, 1]
-                                               - self.sensor_pos[0, 1]) * math.sin(p_params[k, 1])
-                                              * math.sin(p_params[k, 0])
+                                               - self.sensor_pos[0, 1]) * math.sin(p_params[k][1])
+                                              * math.sin(p_params[k][0])
                                               + (self.sensor_pos[sensor_ind, 0]
                                                  - self.sensor_pos[0, 0])
-                                              * math.cos(p_params[k, 1])
-                                              * math.sin(p_params[k, 0])
+                                              * math.cos(p_params[k][1])
+                                              * math.sin(p_params[k][0])
                                               + (self.sensor_pos[sensor_ind, 2]
                                                  - self.sensor_pos[0, 2])
-                                              * math.sin(p_params[k, 0])) / self.wave_speed
+                                              * math.sin(p_params[k][0])) / self.wave_speed
                 DTy[k] = DTy[k] + math.cos(alpha) * sinTy[sensor_ind] \
                     + math.sin(alpha) * cosTy[sensor_ind]
                 sinalpha[k, sensor_ind] = math.sin(alpha)
@@ -428,7 +415,8 @@ class RJMCMCBeamformer(DetectionReader):
 
         Dterm = np.matmul(np.linalg.solve(1001*DTD, DTy), np.transpose(DTy))
         log_posterior = - (p_K * np.log(1.001) / 2) - (N / 2) * np.log((yTy - Dterm) / 2) \
-            + p_K * np.log(self.Lambda) - np.log(np.math.factorial(p_K)) - p_K*np.log(math.pi * math.pi)
+            + p_K * np.log(self.Lambda) - np.log(np.math.factorial(p_K)) \
+            - p_K*np.log(math.pi * math.pi)
         # note: math.pi*math.pi comes from area of parameter space in one dimension (i.e. range of
         # azimuth * range of elevation)
 
@@ -442,14 +430,14 @@ class RJMCMCBeamformer(DetectionReader):
         """
         for k in range(0, p_K):
             # transform to first mode
-            if p_params[k, 0] > 3*math.pi/2:
-                p_params[k, 0] = 2*math.pi - p_params[k, 0]
-                p_params[k, 1] = p_params[k, 1] - math.pi
-            elif p_params[k, 0] > math.pi:
-                p_params[k, 0] = p_params[k, 0] - math.pi
-                p_params[k, 1] = p_params[k, 1] - math.pi
-            elif p_params[k, 0] > math.pi/2:
-                p_params[k, 0] = math.pi - p_params[k, 0]
+            if p_params[k][0] > 3*math.pi/2:
+                p_params[k][0] = 2*math.pi - p_params[k][0]
+                p_params[k][1] = p_params[k][1] - math.pi
+            elif p_params[k][0] > math.pi:
+                p_params[k][0] = p_params[k][0] - math.pi
+                p_params[k][1] = p_params[k][1] - math.pi
+            elif p_params[k][0] > math.pi/2:
+                p_params[k][0] = math.pi - p_params[k][0]
 
             # do coin toss to decide mode to jump to
             toss = random.uniform(0, 1)
@@ -458,25 +446,25 @@ class RJMCMCBeamformer(DetectionReader):
                 pass
             elif toss < 0.5:
                 # second mode
-                p_params[k, 0] = math.pi - p_params[k, 0]
+                p_params[k][0] = math.pi - p_params[k][0]
             elif toss < 0.75:
                 # third mode
-                p_params[k, 0] = p_params[k, 0] + math.pi
-                p_params[k, 1] = p_params[k, 1] + math.pi
+                p_params[k][0] = p_params[k][0] + math.pi
+                p_params[k][1] = p_params[k][1] + math.pi
             else:
                 # fourth mode
-                p_params[k, 0] = 2*math.pi - p_params[k, 0]
-                p_params[k, 1] = p_params[k, 1] + math.pi
+                p_params[k][0] = 2*math.pi - p_params[k][0]
+                p_params[k][1] = p_params[k][1] + math.pi
 
             # wrap angles
-            if p_params[k, 0] < 0:
-                p_params[k, 0] = p_params[k, 0] + 2*math.pi
-            elif p_params[k, 0] > 2*math.pi:
-                p_params[k, 0] = p_params[k, 0] - 2*math.pi
-            if p_params[k, 1] < 0:
-                p_params[k, 1] = p_params[k, 1] + 2*math.pi
-            elif p_params[k, 1] > 2*math.pi:
-                p_params[k, 1] = p_params[k, 1] - 2*math.pi
+            if p_params[k][0] < 0:
+                p_params[k][0] = p_params[k][0] + 2*math.pi
+            elif p_params[k][0] > 2*math.pi:
+                p_params[k][0] = p_params[k][0] - 2*math.pi
+            if p_params[k][1] < 0:
+                p_params[k][1] = p_params[k][1] + 2*math.pi
+            elif p_params[k][1] > 2*math.pi:
+                p_params[k][1] = p_params[k][1] - 2*math.pi
 
         return p_params
 
@@ -499,25 +487,25 @@ class RJMCMCBeamformer(DetectionReader):
         p_K = 0
         # choose random phase (assuming constant frequency)
         if len(params) == 0:
-            p_params[0, 0] = random.uniform(0, math.pi*2)  # phi (elevation)
-            p_params[0, 1] = random.uniform(0, math.pi*2)  # theta (azimuth)
+            p_params[0] = StateVector([random.uniform(0, 2*math.pi),
+                                      random.uniform(0, 2*math.pi)])
             p_K = 1
         else:
             for k in range(0, K):
                 epsilon = random.gauss(0, 0.125)
-                rand_val = params[k, 0]+epsilon
+                rand_val = params[k][0]+epsilon
                 if rand_val > 2*math.pi:
                     rand_val = rand_val-2*math.pi
                 elif rand_val < 0:
                     rand_val = rand_val+2*math.pi
-                p_params[k, 0] = copy.deepcopy(rand_val)
+                p_params[k][0] = copy.deepcopy(rand_val)
                 epsilon = random.gauss(0, 0.5)
-                rand_val = params[k, 1]+epsilon
+                rand_val = params[k][1]+epsilon
                 if rand_val > 2*math.pi:
                     rand_val = rand_val-2*math.pi
                 elif rand_val < 0:
                     rand_val = rand_val+2*math.pi
-                p_params[k, 1] = copy.deepcopy(rand_val)
+                p_params[k][1] = copy.deepcopy(rand_val)
             p_K = copy.deepcopy(K)
         return p_params, p_K
 
@@ -548,7 +536,7 @@ class RJMCMCBeamformer(DetectionReader):
                         Qratio = 2  # birth moves not possible for K=max_targets
                     [p_temp, K_temp] = self.proposal([], 1, p_params)
                     p_params = copy.deepcopy(params)
-                    p_params[K, :] = p_temp[0, :]
+                    p_params[K] = p_temp[0]
                     p_K = K + 1
             else:
                 # death move
@@ -561,12 +549,12 @@ class RJMCMCBeamformer(DetectionReader):
                     if death_select > 1:
                         if death_select < K:
                             if death_select == 2:
-                                p_params[0, :] = params[0, :]
-                                p_params[1:-1, :] = params[2:, :]
+                                p_params[0] = params[0]
+                                p_params[1:-1] = params[2:]
                             else:
-                                p_params[0:death_select-2, :] = params[0:death_select-2, :]
-                                p_params[death_select-1:-1, :] = params[death_select:, :]
+                                p_params[0:death_select-2] = params[0:death_select-2]
+                                p_params[death_select-1:-1] = params[death_select:]
                     else:
-                        p_params[0:-1, :] = params[1:, :]
+                        p_params[0:-1] = params[1:]
                     p_K = K - 1
         return p_params, p_K, Qratio
