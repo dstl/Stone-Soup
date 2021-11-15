@@ -183,3 +183,8 @@ def test_read_config_file_csv():
 
     assert type(csv_data) is np.ndarray
     file.close()
+
+
+def test_multiprocess_run():
+    test_mp_result = rmc.run_multiprocess([[2, 2],[2, 3],[3, 2]])
+    assert test_mp_result == [4, 8, 9]

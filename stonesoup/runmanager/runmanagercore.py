@@ -4,11 +4,12 @@ import logging
 import sys
 from datetime import datetime
 import numpy as np
+import multiprocessing as mp
 
 from stonesoup.serialise import YAML
-from .inputmanager import InputManager
-from .runmanagermetrics import RunmanagerMetrics
-from .base import RunManager
+from inputmanager import InputManager
+from runmanagermetrics import RunmanagerMetrics
+from base import RunManager
 
 
 class RunManagerCore(RunManager):
@@ -22,6 +23,11 @@ class RunManagerCore(RunManager):
         with open(json_input) as json_file:
             json_data = json.load(json_file)
             return json_data
+
+    def run_multiprocess(self, args_list):
+        pool = mp.Pool(mp.cpu_count())
+        result = pool.starmap(self.run_simulation, args_list)
+        return result
 
     def run(self, config_path, parameters_path, groundtruth_setting, output_path=None):
         """Run the run manager
@@ -60,22 +66,30 @@ class RunManagerCore(RunManager):
             combo_dict, tracker, ground_truth, metric_manager)
         now = datetime.now()
         dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
-        for idx in range(0, len(trackers)):
-            for runs_num in range(0, json_data["configuration"]["runs_num"]):
-                dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs_num}"
-                RunmanagerMetrics.parameters_to_csv(dir_name, combo_dict[idx])
-                RunmanagerMetrics.generate_config(
-                    dir_name, trackers[idx], ground_truths[idx], metric_managers[idx])
-                if groundtruth_setting == 0:
-                    groundtruth = trackers[idx].detector.groundtruth
-                else:
-                    groundtruth = ground_truths[idx]
-                print("RUN")
-                self.run_simulation(trackers[idx], groundtruth, metric_managers[idx],
-                                    dir_name, groundtruth_setting, idx, combo_dict)
-
+        multiprocess = True
+        if multiprocess:
+            dir_name = f"metrics_{dt_string}/simulation_/run_"
+            all_args = [(trackers[idx], ground_truths[idx], metric_managers[idx],
+                         dir_name, groundtruth_setting, idx, combo_dict) for idx in range(0, len(trackers))]
+            print("RUN")
+            self.run_multiprocess(all_args)
+        else:
+            for idx in range(0, len(trackers)):
+                for runs_num in range(0, json_data["configuration"]["runs_num"]):
+                    dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs_num}"
+                    RunmanagerMetrics.parameters_to_csv(dir_name, combo_dict[idx])
+                    RunmanagerMetrics.generate_config(
+                        dir_name, trackers[idx], ground_truths[idx], metric_managers[idx])
+                    if groundtruth_setting == 0:
+                        groundtruth = trackers[idx].detector.groundtruth
+                    else:
+                        groundtruth = ground_truths[idx]
+                    print("RUN")
+                    self.run_simulation(trackers[idx], groundtruth, metric_managers[idx],
+                                        dir_name, groundtruth_setting, idx, combo_dict)
         # Final line of the log show total time taken to run.
         logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
+        print(f'All simulations completed. Time taken to run: {datetime.now() - now}')
 
     def run_simulation(self, tracker, ground_truth,
                        metric_manager, dir_name,
@@ -246,17 +260,19 @@ if __name__ == "__main__":
     except Exception as e:
         # configInput = "C:\\Users\\Davidb1\\Documents\\Python\\data\\testConfigs\\\
         #                testConfigs\\metrics_config_v5.yaml"
-        configInput = "C:\\Users\\gbellant.LIVAD\\Documents\\Projects\\serapis\\\
-            Serapis C38 LOT 1\\config.yaml"
+        # configInput = "C:\\Users\\gbellant.LIVAD\\Documents\\Projects\\serapis\\\
+        #     Serapis C38 LOT 1\\config.yaml"
+        configInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\testConfigs\\alltogtut_config.yaml"
         logging.error(e)
 
     try:
         parametersInput = args[1]
     except Exception as e:
-        parametersInput = "C:\\Users\\gbellant.LIVAD\\Documents\\Projects\\serapis\\\
-            Serapis C38 LOT 1\\parameters.json"
+        # parametersInput = "C:\\Users\\gbellant.LIVAD\\Documents\\Projects\\serapis\\\
+        #     Serapis C38 LOT 1\\parameters.json"
         logging.error(e)
         # parametersInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\dummy3.json"
+        parametersInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\Data\\dummy2.json"
 
     try:
         groundtruthSettings = args[2]

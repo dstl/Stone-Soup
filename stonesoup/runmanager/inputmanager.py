@@ -1,5 +1,5 @@
 
-from .base import RunManager
+from base import RunManager
 import numpy as np
 import itertools
 from stonesoup.types.array import StateVector, CovarianceMatrix
