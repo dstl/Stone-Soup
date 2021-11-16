@@ -24,10 +24,19 @@ class RunManagerCore(RunManager):
             json_data = json.load(json_file)
             return json_data
 
-    def run_multiprocess(self, args_list):
-        pool = mp.Pool(mp.cpu_count())
-        result = pool.starmap(self.run_simulation, args_list)
-        return result
+    def run_sim_multiprocess(self, tracker, ground_truth, metric_manager, groundtruth_setting,
+                            idx, combo_dict, dt_string, runs_num):
+
+        dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs_num}"
+        RunmanagerMetrics.parameters_to_csv(dir_name, combo_dict)
+        RunmanagerMetrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
+        if groundtruth_setting == 0:
+            groundtruth = tracker.detector.groundtruth
+        else:
+            groundtruth = ground_truth
+
+        self.run_simulation(tracker, ground_truth, metric_manager, dir_name,
+                            groundtruth_setting, idx, combo_dict)
 
     def run(self, config_path, parameters_path, groundtruth_setting, output_path=None):
         """Run the run manager
@@ -66,13 +75,14 @@ class RunManagerCore(RunManager):
             combo_dict, tracker, ground_truth, metric_manager)
         now = datetime.now()
         dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
-        multiprocess = True
+        multiprocess = False
         if multiprocess:
-            dir_name = f"metrics_{dt_string}/simulation_/run_"
-            all_args = [(trackers[idx], ground_truths[idx], metric_managers[idx],
-                         dir_name, groundtruth_setting, idx, combo_dict) for idx in range(0, len(trackers))]
-            print("RUN")
-            self.run_multiprocess(all_args)
+            for runs_num in range(0, json_data["configuration"]["runs_num"]):
+                all_args = [(trackers[idx], ground_truths[idx], metric_managers[idx],
+                             groundtruth_setting, idx, combo_dict, dt_string, runs_num) for idx in range(0, len(trackers))]
+                pool = mp.Pool(json_data["configuration"]["proc_num"])
+                print("RUN")
+                pool.starmap(self.run_sim_multiprocess, all_args)
         else:
             for idx in range(0, len(trackers)):
                 for runs_num in range(0, json_data["configuration"]["runs_num"]):
@@ -262,7 +272,7 @@ if __name__ == "__main__":
         #                testConfigs\\metrics_config_v5.yaml"
         # configInput = "C:\\Users\\gbellant.LIVAD\\Documents\\Projects\\serapis\\\
         #     Serapis C38 LOT 1\\config.yaml"
-        configInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\testConfigs\\alltogtut_config.yaml"
+        configInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\Data\\2021_Nov_16_10_30_34_510322.yaml"
         logging.error(e)
 
     try:
@@ -272,7 +282,7 @@ if __name__ == "__main__":
         #     Serapis C38 LOT 1\\parameters.json"
         logging.error(e)
         # parametersInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\dummy3.json"
-        parametersInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\Data\\dummy2.json"
+        parametersInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\Data\\2021_Nov_16_10_30_34_510322_parameters.json"
 
     try:
         groundtruthSettings = args[2]
