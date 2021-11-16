@@ -1,9 +1,9 @@
 import copy
 import json
 import logging
-import sys
 from datetime import datetime
 import numpy as np
+import os
 
 from stonesoup.serialise import YAML
 from .inputmanager import InputManager
@@ -23,7 +23,7 @@ class RunManagerCore(RunManager):
             json_data = json.load(json_file)
             return json_data
 
-    def run(self, config_path, parameters_path, groundtruth_setting, output_path=None):
+    def run(self, config_path=None, parameters_path=None, groundtruth_setting=None, dir=None, output_path=None):
         """Run the run manager
 
         Args:
@@ -38,19 +38,22 @@ class RunManagerCore(RunManager):
             json_data["parameters"])
         combo_dict = input_manager.generate_all_combos(trackers_combination_dict)
 
+        paths = self.get_filepaths(dir)
+        pairs = self.get_config_and_param_lists(paths)
+        print("pairs: ", pairs)
         try:
             with open(config_path, 'r') as file:
                 tracker, ground_truth, metric_manager, csv_data = self.read_config_file(file)
         except Exception as e:
             print(e)
             logging.error(f'{datetime.now()} : {e}')
-
+            
         if ground_truth is None:
             try:
                 ground_truth = tracker.detector.groundtruth
             except Exception as e:
                 logging.error(f'{datetime.now()} : {e}')
-                print(f'No groundtruth in tracker detector {e}', flush=True)
+                print((f'No grountruth in tracker detector {e}', flush=True))
 
         trackers = []
         ground_truths = []
@@ -168,7 +171,7 @@ class RunManagerCore(RunManager):
         trackers = []
         ground_truths = []
         metric_managers = []
-
+        
         for parameter in combo_dict:
             tracker_copy, ground_truth_copy, metric_manager_copy = copy.deepcopy(
                 (tracker, ground_truth, metric_manager))
@@ -236,34 +239,62 @@ class RunManagerCore(RunManager):
 
         return tracker, gt, mm, csv_data
 
+    def read_config_dir(self, config_dir):
+        files = os.listdir(config_dir)
+        return files
+    
+    def get_filepaths(self, directory):
+        file_paths =[]
+        for root, directories, files in os.walk(directory):
+            for filename in files:
+                filepath = os.path.join(root, filename)
+                file_paths.append(filepath)
+        return file_paths
 
-if __name__ == "__main__":
-    args = sys.argv[1:]
+    def get_config_and_param_lists(self, files):
+        pair = []
+        pairs = []
+        
+        for file in files:
+            if not pair:
+                pair.append(file)
+            elif file.startswith(pair[0].split('.', 1)[0]):
+                pair.append(file)
+                pairs.append(pair)
+                pair = []
+            else:
+                pair = []
+        return pairs
+    
+    
 
-    try:
-        configInput = args[0]
+# if __name__ == "__main__":
 
-    except Exception as e:
-        # configInput = "C:\\Users\\Davidb1\\Documents\\Python\\data\\testConfigs\\\
-        #                testConfigs\\metrics_config_v5.yaml"
-        configInput = "C:\\Users\\gbellant.LIVAD\\Documents\\Projects\\serapis\\\
-            Serapis C38 LOT 1\\config.yaml"
-        logging.error(e)
+#     # args = sys.argv[1:]
+#     try:
+#         configInput = args.config
 
-    try:
-        parametersInput = args[1]
-    except Exception as e:
-        parametersInput = "C:\\Users\\gbellant.LIVAD\\Documents\\Projects\\serapis\\\
-            Serapis C38 LOT 1\\parameters.json"
-        logging.error(e)
-        # parametersInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\dummy3.json"
+#     except Exception as e:
+#         # configInput = "C:\\Users\\Davidb1\\Documents\\Python\\data\\testConfigs\\\
+#         #                testConfigs\\metrics_config_v5.yaml"
+#         configInput = "C:\\Users\\gbellant.LIVAD\\Documents\\Projects\\serapis\\\
+#             Serapis C38 LOT 1\\config.yaml"
+#         logging.error(e)
 
-    try:
-        groundtruthSettings = args[2]
-    except Exception as e:
-        groundtruthSettings = 1
-        logging.error(e)
+#     try:
+#         parametersInput = args.parameter
+#     except Exception as e:
+#         parametersInput = "C:\\Users\\gbellant.LIVAD\\Documents\\Projects\\serapis\\\
+#             Serapis C38 LOT 1\\parameters.json"
+#         logging.error(e)
+#         # parametersInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\dummy3.json"
 
-    rmc = RunManagerCore()
+#     try:
+#         groundtruthSettings = args[2]
+#     except Exception as e:
+#         groundtruthSettings = 1
+#         logging.error(e)
 
-    rmc.run(configInput, parametersInput, groundtruthSettings)
+#     rmc = RunManagerCore()
+
+#     rmc.run(configInput, parametersInput, groundtruthSettings)
