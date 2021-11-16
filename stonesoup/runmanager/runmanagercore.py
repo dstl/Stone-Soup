@@ -53,7 +53,7 @@ class RunManagerCore(RunManager):
         trackers_combination_dict = input_manager.generate_parameters_combinations(
             json_data["parameters"])
         combo_dict = input_manager.generate_all_combos(trackers_combination_dict)
-
+        
         try:
             with open(config_path, 'r') as file:
                 tracker, ground_truth, metric_manager, csv_data = self.read_config_file(file)
@@ -61,6 +61,7 @@ class RunManagerCore(RunManager):
             print(e)
             logging.error(f'{datetime.now()} : {e}')
 
+        
         if ground_truth is None:
             try:
                 ground_truth = tracker.detector.groundtruth
@@ -246,6 +247,10 @@ class RunManagerCore(RunManager):
         tracker, gt, mm, csv_data = None, None, None, None
 
         config_data = YAML('safe').load(config_string)
+        
+        if not hasattr(config_data, "__len__"):
+            config_data = [config_data]
+        
         for x in config_data:
             if "Tracker" in str(type(x)):
                 tracker = x
