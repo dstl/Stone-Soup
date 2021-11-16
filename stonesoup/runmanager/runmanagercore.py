@@ -28,15 +28,14 @@ class RunManagerCore(RunManager):
                             idx, combo_dict, dt_string, runs_num):
 
         dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs_num}"
-        RunmanagerMetrics.parameters_to_csv(dir_name, combo_dict)
+        RunmanagerMetrics.parameters_to_csv(dir_name, combo_dict[idx])
         RunmanagerMetrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
         if groundtruth_setting == 0:
             groundtruth = tracker.detector.groundtruth
         else:
             groundtruth = ground_truth
 
-        print("RUN")
-        self.run_simulation(tracker, ground_truth, metric_manager, dir_name,
+        self.run_simulation(tracker, groundtruth, metric_manager, dir_name,
                             groundtruth_setting, idx, combo_dict)
 
     def run(self, config_path, parameters_path, groundtruth_setting, output_path=None):
@@ -82,13 +81,14 @@ class RunManagerCore(RunManager):
             for runs_num in range(0, json_data["configuration"]["runs_num"]):
                 print("RUN: ", runs_num)
                 all_args = [(trackers[idx], ground_truths[idx], metric_managers[idx],
-                             groundtruth_setting, idx, combo_dict[idx], dt_string, runs_num) for idx in range(0, len(trackers))]
+                             groundtruth_setting, idx, combo_dict, dt_string, runs_num) for idx in range(0, len(trackers))]
                 pool = mp.Pool(json_data["configuration"]["proc_num"])
                 #pool = mp.Pool(mp.cpu_count())
                 pool.starmap(self.run_sim_multiprocess, all_args)
         else:
-            for idx in range(0, len(trackers)):
-                for runs_num in range(0, json_data["configuration"]["runs_num"]):
+            for runs_num in range(0, json_data["configuration"]["runs_num"]):
+                print("RUN: ", runs_num)
+                for idx in range(0, len(trackers)):
                     dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs_num}"
                     RunmanagerMetrics.parameters_to_csv(dir_name, combo_dict[idx])
                     RunmanagerMetrics.generate_config(
@@ -97,7 +97,6 @@ class RunManagerCore(RunManager):
                         groundtruth = trackers[idx].detector.groundtruth
                     else:
                         groundtruth = ground_truths[idx]
-                    print("RUN")
                     self.run_simulation(trackers[idx], groundtruth, metric_managers[idx],
                                         dir_name, groundtruth_setting, idx, combo_dict)
         # Final line of the log show total time taken to run.
@@ -279,7 +278,7 @@ if __name__ == "__main__":
         #                testConfigs\\metrics_config_v5.yaml"
         # configInput = "C:\\Users\\gbellant.LIVAD\\Documents\\Projects\\serapis\\\
         #     Serapis C38 LOT 1\\config.yaml"
-        configInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\testConfigs\\multisens_movplatsim_config.yaml"
+        configInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\testConfigs\\alltogtut_config.yaml"
         logging.error(e)
 
     try:
@@ -289,7 +288,7 @@ if __name__ == "__main__":
         #     Serapis C38 LOT 1\\parameters.json"
         logging.error(e)
         # parametersInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\dummy3.json"
-        parametersInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\Data\\parameters.json"
+        parametersInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\Data\\dummy3.json"
 
     try:
         groundtruthSettings = args[2]
