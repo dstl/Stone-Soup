@@ -87,7 +87,7 @@ class ClutterBearingRange(MeasurementModel):
             return set()
 
         # Generate the clutter for this time step
-        timestamp = list(ground_truths)[0].timestamp
+        timestamp = next(iter(ground_truths)).timestamp
         clutter = set()
         for _ in range(np.random.poisson(self.clutter_rate)):
             if self.distribution == 'uniform':
