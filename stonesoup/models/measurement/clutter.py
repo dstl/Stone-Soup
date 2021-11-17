@@ -1,23 +1,28 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from scipy.stats import uniform
-from typing import Set, Union
+from typing import Set, Union, Tuple
+from enum import Enum
 
 from ..base import Property
 from .base import MeasurementModel
 from ...types.detection import Clutter
 from ...types.angle import Bearing, Elevation
 from ...types.groundtruth import GroundTruthState
-from ...types.array import CovarianceMatrix
-from ...functions import cart2pol, cart2sphere
-from ...types.array import StateVector, StateVectors
+from ...types.array import CovarianceMatrix, StateVector, StateVectors
 from ...types.numeric import Probability
 from ...types.state import State
+from ...functions import cart2pol, cart2sphere
 
+class Distribution(Enum):
+    """
+    Explicitly define the distributions that are supported for the clutter model.
+    """
+    uniform = "uniform"
+    normal = "normal"
 
 class ClutterBearingRange(MeasurementModel):
-    """A simulation that generates sensor clutter (false alarms) according to a specified 
+    """A simulator that generates sensor clutter (false alarms) according to a specified 
     distribution in 2D space relative to the sensor's position.
 
     Note
@@ -29,18 +34,18 @@ class ClutterBearingRange(MeasurementModel):
         default=1.0,
         doc="The average number of clutter points per time step. The actual "
             "number is Poisson distributed")
-    distribution: np.string_ = Property(
-        default='uniform',
+    distribution: Distribution = Property(
+        default=Distribution.uniform,
         doc="The type of distribution that the clutter follows. Supported "
-            "distributions are: uniform, normal (Gaussian)")
-    state_space: list = Property(
+            "types are described by the Enum Distribution class.")
+    state_space: Tuple[Tuple[float, float], Tuple[float, float]] = Property(
         default=None,
         doc="A 2-D list in the form of math:`[[x_min, dx], [y_min, dy]]`. These give the "
             "dimension bounds in the Cartesian space. For example, if the sensor is "
             "positioned at -100 in the x-axis and can 'see' for 200m, then "
             "math:`[x_min, dx] = [-100, 200]`. This is only needed when the distribution "
             "is uniform.")
-    mean: list = Property(
+    mean: Tuple[float, float, float] = Property(
         default=None,
         doc="The mean of the distribution for normally-distributed clutter. The "
         "mean is defined in Cartesian space and must have length 2."
@@ -55,12 +60,10 @@ class ClutterBearingRange(MeasurementModel):
         super().__init__(*args, **kwargs)
 
         # Check that the chosen distribution matches the parameters given
-        if self.distribution == 'uniform' and self.state_space is None:
+        if self.distribution == Distribution.uniform and self.state_space is None:
             raise ValueError("To use the uniform distribution, the state_space parameter must be defined")
-        elif self.distribution == 'normal' and self.mean is None and self.covariance is None:
+        elif self.distribution == Distribution.normal and self.mean is None and self.covariance is None:
             raise ValueError("To use the normal distribution, the mean and covariance parameters must be defined")
-        elif self.distribution not in ['uniform', 'normal']:
-            raise ValueError("The clutter model currently supports only uniform or normal (Gaussian) distributions.")
 
     def function(self, ground_truths: Set[GroundTruthState], position=None, **kwargs) -> Set[Clutter]:
         """
@@ -90,7 +93,7 @@ class ClutterBearingRange(MeasurementModel):
         timestamp = next(iter(ground_truths)).timestamp
         clutter = set()
         for _ in range(np.random.poisson(self.clutter_rate)):
-            if self.distribution == 'uniform':
+            if self.distribution == Distribution.uniform:
                 random_vector = self.generate_uniform_vector()
             else:
                 random_vector = self.generate_normal_vector()
@@ -119,12 +122,11 @@ class ClutterBearingRange(MeasurementModel):
         Returns
         -------
         : :class:`numpy.array`
-            A uniform random vector with length 2.
+            A uniform random vector with length equal to self.ndim_meas.
         """
-        x = uniform.rvs(self.state_space[0][0], self.state_space[0][1])
-        y = uniform.rvs(self.state_space[1][0], self.state_space[1][1])
-
-        return np.array([x, y])
+        arr = np.array([np.random.default_rng().uniform(*space) 
+                for space in self.state_space])
+        return arr
         
 
     def generate_normal_vector(self):
@@ -133,7 +135,7 @@ class ClutterBearingRange(MeasurementModel):
 
         Returns
         -------
-        : `list`
+        : :class:`numpy.array`
             A normal random vector. Has the same length as the mean.
         """
         # Generate a multivariate random normal vector according to our parameters
@@ -175,13 +177,13 @@ class ClutterElevationBearingRange(ClutterBearingRange):
     This implementation of this class assumes a 3D Cartesian space.
     """
 
-    state_space: list = Property(
+    state_space: Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]] = Property(
         default=None,
         doc="A 2-D list in the form of math:`[[x_min, dx], [y_min, dy], [z_min, dz]]`. "
             "These give the dimension bounds in the Cartesian space. For example, if the sensor "
             "is positioned at -100 in the x-axis and can 'see' for 200m, then "
             "math:`[x_min, dx] = [-100, 200]`. This is only needed when the distribution is uniform.")
-    mean: list = Property(
+    mean: Tuple[float, float, float] = Property(
         default=None,
         doc="The mean of the distribution for normally-distributed clutter. The "
         "mean is defined in Cartesian space and must have length 3."
@@ -223,7 +225,7 @@ class ClutterElevationBearingRange(ClutterBearingRange):
         for _ in range(np.random.poisson(self.clutter_rate)):
             # Call the appropriate helper function according to 
             # the chosen distribution
-            if self.distribution == 'uniform':
+            if self.distribution == Distribution.uniform:
                 random_vector = self.generate_uniform_vector()
             else:
                 random_vector = self.generate_normal_vector()
@@ -245,19 +247,6 @@ class ClutterElevationBearingRange(ClutterBearingRange):
 
         return clutter
     
-    def generate_uniform_vector(self):
-        """Generate a random vector in the uniform distribution according
-        to the sensor's defined state space.
-
-        Returns
-        -------
-        : :class:`numpy.array`
-            A uniform random vector with length 3.
-        """
-        x = uniform.rvs(self.state_space[0][0], self.state_space[0][1])
-        y = uniform.rvs(self.state_space[1][0], self.state_space[1][1])
-        z = uniform.rvs(self.state_space[2][0], self.state_space[2][1])
-        return np.array([x, y, z])
     
     @property
     def ndim_meas(self) -> int:
