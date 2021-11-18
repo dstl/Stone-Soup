@@ -10,7 +10,7 @@ via action types.
 
 # %%
 # Creating Action and Action Generator
-# ----------------------------------------
+# ------------------------------------
 # We will create a simple actionable sensor that can 'look' at one sector out of several at any
 # one time.
 # To do so, we require an :class:`~.Action` and :class:`~.ActionGenerator`.
