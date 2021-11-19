@@ -72,7 +72,7 @@ class RadarBearingRange(Sensor):
         # Generate clutter at this time step
         if self.clutter_model is not None: 
             self.clutter_model.measurement_model = measurement_model
-            clutter = self.clutter_model.function(ground_truths, position=self.position)
+            clutter = self.clutter_model.function(ground_truths)
             detections = set.union(detections, clutter)
 
         return detections
@@ -229,7 +229,7 @@ class RadarElevationBearingRange(RadarBearingRange):
         # Generate clutter at this time step
         if self.clutter_model is not None: 
             self.clutter_model.measurement_model = measurement_model
-            clutter = self.clutter_model.function(ground_truths, position=self.position)
+            clutter = self.clutter_model.function(ground_truths)
             detections = set.union(detections, clutter)
 
         return detections
