@@ -9,7 +9,6 @@ from ...types.track import Track
 from ...types.groundtruth import GroundTruthPath
 from ...types.state import State, GaussianState, ParticleState
 from ...types.detection import Detection
-from ...types.particle import Particles
 from ...types.array import StateVectors
 
 
@@ -24,8 +23,8 @@ def test_twodplotter():
                                           timestamp=timestamp1 + datetime.timedelta(
                                           seconds=i),
                                           covar=np.diag([0.5, 0.5])) for i in range(11)])}
-    tracksB = {Track(states=[ParticleState(particles=Particles(
-        state_vector=StateVectors([[1], [2]])),
+    tracksB = {Track(states=[ParticleState(
+        state_vector=StateVectors([[1], [2]]),
         timestamp=timestamp1 + datetime.timedelta(
             seconds=i)) for i in range(11)])}
     truths = {GroundTruthPath(states=[State(np.array([[1], [2]]),
