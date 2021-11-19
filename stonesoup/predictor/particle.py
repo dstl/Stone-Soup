@@ -4,7 +4,7 @@ from .base import Predictor
 from ._utils import predict_lru_cache
 from .kalman import KalmanPredictor, ExtendedKalmanPredictor
 from ..base import Property
-from ..types.particle import Particles
+# from ..types.particle import Particles
 from ..types.prediction import Prediction, ParticleStatePrediction
 from ..types.state import GaussianState
 
@@ -43,16 +43,16 @@ class ParticlePredictor(Predictor):
             time_interval = None
 
         new_state_vector = self.transition_model.function(
-            prior.particles,
+            prior,
             noise=True,
             time_interval=time_interval,
-            num_samples=len(prior.particles),
+            num_samples=len(prior),
             **kwargs)
-        new_particles = Particles(state_vector=new_state_vector,
-                                  weight=prior.particles.weight,
-                                  parent=prior.particles.parent)
+        # new_particles = Particles(state_vector=new_state_vector,
+        #                           weight=prior.particles.weight,
+        #                           parent=prior.particles.parent)
 
-        return Prediction.from_state(prior, particles=new_particles, timestamp=timestamp,
+        return Prediction.from_state(prior, state_vector=new_state_vector, timestamp=timestamp,
                                      transition_model=self.transition_model)
 
 
