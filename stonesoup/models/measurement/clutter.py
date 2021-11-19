@@ -7,12 +7,10 @@ from enum import Enum
 from ..base import Property
 from .base import MeasurementModel
 from ...types.detection import Clutter
-from ...types.angle import Bearing, Elevation
 from ...types.groundtruth import GroundTruthState
 from ...types.array import CovarianceMatrix, StateVector, StateVectors
 from ...types.numeric import Probability
 from ...types.state import State
-from ...functions import cart2pol, cart2sphere
 
 class Distribution(Enum):
     """
@@ -65,7 +63,7 @@ class ClutterBearingRange(MeasurementModel):
         elif self.distribution == Distribution.normal and self.mean is None and self.covariance is None:
             raise ValueError("To use the normal distribution, the mean and covariance parameters must be defined")
 
-    def function(self, ground_truths: Set[GroundTruthState], position=None, **kwargs) -> Set[Clutter]:
+    def function(self, ground_truths: Set[GroundTruthState], **kwargs) -> Set[Clutter]:
         """
         Use the defined distribution and parameters to create simulated clutter
         for the current time step. Return this clutter to the calling sensor so
@@ -75,8 +73,6 @@ class ClutterBearingRange(MeasurementModel):
         ----------
         ground_truths : a set of :class:`~.GroundTruthState`
             The truth states which exist at this time step.
-        position : a 2x1 :class:`~.StateVector` of Cartesian coordinates
-            The position of the sensor which uses this model.
         
         Returns
         -------
@@ -98,17 +94,17 @@ class ClutterBearingRange(MeasurementModel):
             else:
                 random_vector = self.generate_normal_vector()
             
-            # Subtract the mounting sensor's position from the clutter,
-            # then convert to polar coordinates.
-            if position is not None:
-                clutter_vector = random_vector - position[0:2].flatten()
+            # Make a State object with the random vector
+            state = State([0.0] * self.measurement_model.ndim_state, timestamp=timestamp)
+            state.state_vector[self.measurement_model.mapping, 0] += random_vector 
 
-            rho, phi = cart2pol(*clutter_vector)
-            clutter_vector = np.array([Bearing(phi), rho])
-            
-            # Create a clutter object. The measurement_model is
-            # inherited from the Detector on which the sensor 
-            # and platform are mounted once it is used.
+            # Use the sensor's measurement model to incorporate the
+            # translation offset and sensor rotation. This will also
+            # convert the vector to the proper measurement space
+            # (polar coordinates). 
+            clutter_vector = self.measurement_model.function(state)
+
+            # Create a clutter object.
             clutter.add(Clutter(state_vector=clutter_vector, 
                                 timestamp=timestamp,
                                 measurement_model=self.measurement_model))
@@ -150,10 +146,10 @@ class ClutterBearingRange(MeasurementModel):
         Returns
         -------
         :class:`int`
-            The number of measurement dimensions
+            The number of measurement dimensions. Equal to the number of dimensions in the 
+            Sensor's measurement model.
         """
-
-        return 2
+        return self.measurement_model.ndim_state
 
     def rvs(self, num_samples: int = 1, **kwargs) -> Union[StateVector, StateVectors]:
         """
@@ -193,69 +189,3 @@ class ClutterElevationBearingRange(ClutterBearingRange):
         doc="Covariance matrix of the distribution for normally-distributed clutter. "
         "It must be a 3x3 matrix. This parameter is only needed when using the normal "
         "distribution.")
-
-    def function(self, ground_truths: Set[GroundTruthState], position=None, **kwargs) -> Set[Clutter]:
-        """
-        Use the defined distribution and parameters to create simulated clutter
-        for the current time step. Return this clutter to the calling sensor so
-        that it can be added to the measurements.
-
-        Parameters
-        ----------
-        ground_truths : a set of :class:`~.GroundTruthState`
-            The truth states which exist at this time step.
-        position : a 3x1 :class:`~.StateVector` of Cartesian coordinates
-            The position of the sensor which uses this model.
-        
-        Returns
-        -------
-        : set of :class:`~.Clutter`
-            The simulated clutter.
-        """
-
-        # Extract the timestamp from the ground_truths. Groundtruth is
-        # necessary to get the proper timestamp. If there is no
-        # groundtruth return a set of no Clutter.
-        if not ground_truths:
-            return set()
-
-        # Generate the clutter for this time step
-        timestamp = list(ground_truths)[0].timestamp
-        clutter = set()
-        for _ in range(np.random.poisson(self.clutter_rate)):
-            # Call the appropriate helper function according to 
-            # the chosen distribution
-            if self.distribution == Distribution.uniform:
-                random_vector = self.generate_uniform_vector()
-            else:
-                random_vector = self.generate_normal_vector()
-            
-            # Subtract the mounting sensor's position from the clutter,
-            # then convert to spherical coordinates.
-            if position is not None:
-                clutter_vector = random_vector - position[0:3].flatten()
-
-            rho, phi, theta = cart2sphere(*clutter_vector)
-            clutter_vector = np.array([Elevation(theta), Bearing(phi), rho])
-
-            # Create a clutter object. The measurement_model is
-            # inherited from the Detector on which the sensor 
-            # and platform are mounted once it is used.
-            clutter.add(Clutter(state_vector=clutter_vector, 
-                                timestamp=timestamp,
-                                measurement_model=self.measurement_model))
-
-        return clutter
-    
-    
-    @property
-    def ndim_meas(self) -> int:
-        """ndim_meas getter method
-
-        Returns
-        -------
-        :class:`int`
-            The number of measurement dimensions
-        """
-
-        return 3
