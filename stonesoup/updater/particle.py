@@ -44,29 +44,34 @@ class ParticleUpdater(Updater):
         : :class:`~.ParticleState`
             The state posterior
         """
-        particles = copy.copy(hypothesis.prediction.particles)
+        predicted_state = hypothesis.prediction
 
         if hypothesis.measurement.measurement_model is None:
             measurement_model = self.measurement_model
         else:
             measurement_model = hypothesis.measurement.measurement_model
 
-        particles.weight = particles.weight * measurement_model.pdf(
-            hypothesis.measurement, particles, num_samples=len(particles),
+        predicted_state.weight = predicted_state.weight * measurement_model.pdf(
+            hypothesis.measurement, predicted_state, num_samples=len(predicted_state),
             **kwargs)
 
         # Normalise the weights
-        sum_w = np.array(Probability.sum(particles.weight))
-        particles.weight = particles.weight / sum_w
+        sum_w = np.array(Probability.sum(predicted_state.weight))
+        predicted_state.weight = predicted_state.weight / sum_w
 
         # Resample
         if self.resampler is not None:
-            particles = self.resampler.resample(particles)
+            predicted_state = self.resampler.resample(predicted_state)
+
+        # print(hypothesis)
 
         return Update.from_state(
-            hypothesis.prediction,
-            particles=particles, hypothesis=hypothesis,
-            timestamp=hypothesis.measurement.timestamp)
+            state=hypothesis.prediction,
+            state_vector=predicted_state.state_vector,
+            weight=predicted_state.weight,
+            hypothesis=hypothesis,
+            timestamp=hypothesis.measurement.timestamp
+            )
 
     @lru_cache()
     def predict_measurement(self, state_prediction, measurement_model=None,
