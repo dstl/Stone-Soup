@@ -2,14 +2,14 @@ import copy
 import json
 import logging
 import sys
-from datetime import datetime, time
+from datetime import datetime
 import numpy as np
 import multiprocessing as mp
 
 from stonesoup.serialise import YAML
-from inputmanager import InputManager
-from runmanagermetrics import RunmanagerMetrics
-from base import RunManager
+from .inputmanager import InputManager
+from .runmanagermetrics import RunmanagerMetrics
+from .base import RunManager
 
 
 class RunManagerCore(RunManager):
@@ -25,7 +25,7 @@ class RunManagerCore(RunManager):
             return json_data
 
     def run_sim_multiprocess(self, tracker, ground_truth, metric_manager, groundtruth_setting,
-                            idx, combo_dict, dt_string, runs_num):
+                             idx, combo_dict, dt_string, runs_num):
 
         dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs_num}"
         RunmanagerMetrics.parameters_to_csv(dir_name, combo_dict[idx])
@@ -38,7 +38,8 @@ class RunManagerCore(RunManager):
         self.run_simulation(tracker, groundtruth, metric_manager, dir_name,
                             groundtruth_setting, idx, combo_dict)
 
-    def run(self, config_path, parameters_path, groundtruth_setting, multiprocess, output_path=None):
+    def run(self, config_path, parameters_path, groundtruth_setting, multiprocess,
+            output_path=None):
         """Run the run manager
 
         Args:
@@ -52,7 +53,7 @@ class RunManagerCore(RunManager):
         trackers_combination_dict = input_manager.generate_parameters_combinations(
             json_data["parameters"])
         combo_dict = input_manager.generate_all_combos(trackers_combination_dict)
-        
+
         try:
             with open(config_path, 'r') as file:
                 tracker, ground_truth, metric_manager, csv_data = self.read_config_file(file)
@@ -60,7 +61,6 @@ class RunManagerCore(RunManager):
             print(e)
             logging.error(f'{datetime.now()} : {e}')
 
-        
         if ground_truth is None:
             try:
                 ground_truth = tracker.detector.groundtruth
@@ -76,12 +76,13 @@ class RunManagerCore(RunManager):
             combo_dict, tracker, ground_truth, metric_manager)
         now = datetime.now()
         dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
-        #multiprocess = True
+        # multiprocess = True
         if multiprocess:
             for runs_num in range(0, json_data["configuration"]["runs_num"]):
                 print("RUN: ", runs_num)
                 all_args = [(trackers[idx], ground_truths[idx], metric_managers[idx],
-                             groundtruth_setting, idx, combo_dict, dt_string, runs_num) for idx in range(0, len(trackers))]
+                             groundtruth_setting, idx, combo_dict,
+                             dt_string, runs_num) for idx in range(0, len(trackers))]
                 pool = mp.Pool(json_data["configuration"]["proc_num"])
                 # pool = mp.Pool(mp.cpu_count())
                 pool.starmap(self.run_sim_multiprocess, all_args)
@@ -247,10 +248,10 @@ class RunManagerCore(RunManager):
         tracker, gt, mm, csv_data = None, None, None, None
 
         config_data = YAML('safe').load(config_string)
-        
+
         if not hasattr(config_data, "__len__"):
             config_data = [config_data]
-        
+
         for x in config_data:
             if "Tracker" in str(type(x)):
                 tracker = x
@@ -279,7 +280,8 @@ if __name__ == "__main__":
         #                testConfigs\\metrics_config_v5.yaml"
         # configInput = "C:\\Users\\gbellant.LIVAD\\Documents\\Projects\\serapis\\\
         #     Serapis C38 LOT 1\\config.yaml"
-        configInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\Data\\2021_Nov_19_09_33_54_996714.yaml"
+        configInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\Data\\\
+            2021_Nov_19_09_33_54_996714.yaml"
         logging.error(e)
 
     try:
@@ -289,7 +291,8 @@ if __name__ == "__main__":
         #     Serapis C38 LOT 1\\parameters.json"
         logging.error(e)
         # parametersInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\dummy3.json"
-        parametersInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\Data\\2021_Nov_19_09_33_54_996714_parameters (2).json"
+        parametersInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\Data\\\
+            2021_Nov_19_09_33_54_996714_parameters (2).json"
 
     try:
         groundtruthSettings = args[2]
