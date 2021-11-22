@@ -41,7 +41,7 @@ class Plotter:
     def __init__(self):
         # Generate plot axes
         self.fig = plt.figure(figsize=(10, 6))
-        self.ax = plt.axes(projection='3d')
+        self.ax = self.fig.add_subplot(111, projection='3d')
         self.ax.set_xlabel("$x$")
         self.ax.set_ylabel("$y$")
         self.ax.set_zlabel("$z$")
@@ -132,7 +132,7 @@ class Plotter:
             if meas_model is None:
                 meas_model = measurement_model  # measurement_model from input
 
-            if isinstance(meas_model, LinearModel):
+            if isinstance(meas_model, LinearModel):  # check to see if meas_model is a LinearModel type
                 model_matrix = meas_model.matrix()
                 inv_model_matrix = np.linalg.pinv(model_matrix)
                 state_vec = inv_model_matrix @ state.state_vector
@@ -161,7 +161,7 @@ class Plotter:
 
         if plot_detections:
             detection_array = np.array(plot_detections)
-            self.ax.scatter(detection_array[:, 0], detection_array[:, 1], **measurement_kwargs)
+            self.ax.scatter(detection_array[:, 0], detection_array[:, 1], detection_array[:, 2], **measurement_kwargs)
             measurements_handle = Line2D([], [], linestyle='', **measurement_kwargs)
 
             # Generate legend items for measurements
@@ -170,7 +170,7 @@ class Plotter:
 
         if plot_clutter:
             clutter_array = np.array(plot_clutter)
-            self.ax.scatter(clutter_array[:, 0], clutter_array[:, 1], color='y', marker='2')
+            self.ax.scatter(clutter_array[:, 0], clutter_array[:, 1], clutter_array[:, 2], color='y', marker='2')
             clutter_handle = Line2D([], [], linestyle='', marker='2', color='y')
             clutter_label = "Clutter"
 
@@ -221,6 +221,7 @@ class Plotter:
         for track in tracks:
             line = self.ax.plot([state.state_vector[mapping[0]] for state in track],
                                 [state.state_vector[mapping[1]] for state in track],
+                                [state.state_vector[mapping[2]] for state in track],
                                 **tracks_kwargs)
             track_colors[track] = plt.getp(line[0], 'color')
 
@@ -243,15 +244,28 @@ class Plotter:
                     max_ind = np.argmax(w)
                     min_ind = np.argmin(w)
                     orient = np.arctan2(v[1, max_ind], v[0, max_ind])
-                    ellipse = Ellipse(xy=state.state_vector[mapping[:2], 0],
+                    
+                    xl = state.state_vector[mapping[0]]
+                    yl = state.state_vector[mapping[1]]
+                    zl = state.state_vector[mapping[2]]
+                                            
+                    x_err = w[0]
+                    y_err = w[1]
+                    z_err = w[2]
+                    
+                    self.ax.plot3D([xl+x_err, xl-x_err], [yl, yl], [zl, zl], marker="_", color=tracks_kwargs['color'])
+                    self.ax.plot3D([xl, xl], [yl+y_err, yl-y_err], [zl, zl], marker="_", color=tracks_kwargs['color'])
+                    self.ax.plot3D([xl, xl], [yl, yl], [zl+z_err, zl-z_err], marker="_", color=tracks_kwargs['color'])
+                                            
+                    '''ellipse = Ellipse(xy=state.state_vector[mapping[:2], 0],
                                       width=2 * np.sqrt(w[max_ind]),
                                       height=2 * np.sqrt(w[min_ind]),
                                       angle=np.rad2deg(orient), alpha=0.2,
                                       color=track_colors[track])
-                    self.ax.add_artist(ellipse)
+                    #self.ax.add_artist(ellipse)'''
 
             # Generate legend items for uncertainty ellipses
-            ellipse_handle = Ellipse((0.5, 0.5), 0.5, 0.5, alpha=0.2, color=tracks_kwargs['color'])
+            '''ellipse_handle = Ellipse((0.5, 0.5), 0.5, 0.5, alpha=0.2, color=tracks_kwargs['color'])
             ellipse_label = "Uncertainty"
 
             self.handles_list.append(ellipse_handle)
@@ -259,7 +273,7 @@ class Plotter:
 
             # Generate legend
             self.ax.legend(handles=self.handles_list, labels=self.labels_list,
-                           handler_map={Ellipse: _HandlerEllipse()})
+                           handler_map={Ellipse: _HandlerEllipse()})'''
 
         elif particle:
             # Plot particles
