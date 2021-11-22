@@ -146,7 +146,7 @@ class InputManager(RunManager):
                     combination_list[path] = iteration_list
                     combination_dict.update(combination_list)
 
-                if param["type"] == "Tuple" and key == "value_min":
+                if (param["type"] == "Tuple" or param["type"] == "list") and key == "value_min":
                     if len(param['value_min']) > 0 and len(param['value_max']) > 0:
                         for x in range(len(val)):
                             iteration_list.append(self.iterations(param["value_min"][x],

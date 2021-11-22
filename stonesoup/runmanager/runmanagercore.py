@@ -2,7 +2,7 @@ import copy
 import json
 import logging
 import sys
-from datetime import datetime
+from datetime import datetime, time
 import numpy as np
 import multiprocessing as mp
 
@@ -38,7 +38,7 @@ class RunManagerCore(RunManager):
         self.run_simulation(tracker, groundtruth, metric_manager, dir_name,
                             groundtruth_setting, idx, combo_dict)
 
-    def run(self, config_path, parameters_path, groundtruth_setting, output_path=None):
+    def run(self, config_path, parameters_path, groundtruth_setting, multiprocess, output_path=None):
         """Run the run manager
 
         Args:
@@ -76,14 +76,14 @@ class RunManagerCore(RunManager):
             combo_dict, tracker, ground_truth, metric_manager)
         now = datetime.now()
         dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
-        multiprocess = True
+        #multiprocess = True
         if multiprocess:
             for runs_num in range(0, json_data["configuration"]["runs_num"]):
                 print("RUN: ", runs_num)
                 all_args = [(trackers[idx], ground_truths[idx], metric_managers[idx],
                              groundtruth_setting, idx, combo_dict, dt_string, runs_num) for idx in range(0, len(trackers))]
                 pool = mp.Pool(json_data["configuration"]["proc_num"])
-                #pool = mp.Pool(mp.cpu_count())
+                # pool = mp.Pool(mp.cpu_count())
                 pool.starmap(self.run_sim_multiprocess, all_args)
         else:
             for runs_num in range(0, json_data["configuration"]["runs_num"]):
@@ -102,6 +102,7 @@ class RunManagerCore(RunManager):
         # Final line of the log show total time taken to run.
         logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
         print(f'All simulations completed. Time taken to run: {datetime.now() - now}')
+        print("Used multiprocess") if multiprocess else print("No multiprocess used")
 
     def run_simulation(self, tracker, ground_truth,
                        metric_manager, dir_name,
@@ -278,7 +279,7 @@ if __name__ == "__main__":
         #                testConfigs\\metrics_config_v5.yaml"
         # configInput = "C:\\Users\\gbellant.LIVAD\\Documents\\Projects\\serapis\\\
         #     Serapis C38 LOT 1\\config.yaml"
-        configInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\testConfigs\\alltogtut_config.yaml"
+        configInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\Data\\2021_Nov_19_09_33_54_996714.yaml"
         logging.error(e)
 
     try:
@@ -288,7 +289,7 @@ if __name__ == "__main__":
         #     Serapis C38 LOT 1\\parameters.json"
         logging.error(e)
         # parametersInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\dummy3.json"
-        parametersInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\Data\\dummy3.json"
+        parametersInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\Data\\2021_Nov_19_09_33_54_996714_parameters (2).json"
 
     try:
         groundtruthSettings = args[2]
@@ -297,5 +298,4 @@ if __name__ == "__main__":
         logging.error(e)
 
     rmc = RunManagerCore()
-
-    rmc.run(configInput, parametersInput, groundtruthSettings)
+    rmc.run(configInput, parametersInput, groundtruthSettings, True)
