@@ -140,7 +140,7 @@ def test_assoc_distances_sum_t(generator, mapping):
         distance_sum = generator._assoc_distances_sum_t(manager,
                                                         tstart + datetime.timedelta(seconds=i),
                                                         getattr(generator, mapping),
-                                                        1)
+                                                        None)
         assert distance_sum == 1
 
     associations = {assoc1, assoc2}
@@ -150,7 +150,7 @@ def test_assoc_distances_sum_t(generator, mapping):
         distance_sum = generator._assoc_distances_sum_t(manager,
                                                         tstart + datetime.timedelta(seconds=i),
                                                         getattr(generator, mapping),
-                                                        1)
+                                                        None)
         assert distance_sum == 2
 
 
@@ -197,7 +197,7 @@ def test_assoc_distances_sum_t_2maps(generator, mapping, mapping2):
         distance_sum = generator._assoc_distances_sum_t(manager,
                                                         tstart + datetime.timedelta(seconds=i),
                                                         getattr(generator, mapping),
-                                                        1,
+                                                        None,
                                                         getattr(generator, mapping2))
         assert distance_sum == 1
 
@@ -208,7 +208,7 @@ def test_assoc_distances_sum_t_2maps(generator, mapping, mapping2):
         distance_sum = generator._assoc_distances_sum_t(manager,
                                                         tstart + datetime.timedelta(seconds=i),
                                                         getattr(generator, mapping),
-                                                        1,
+                                                        None,
                                                         getattr(generator, mapping2))
         assert distance_sum == 2
 
@@ -773,7 +773,7 @@ def test_compute_metric(generator):
            sum(generator._assoc_distances_sum_t(manager,
                                                 timestamp,
                                                 generator.position_mapping,
-                                                1,
+                                                None,
                                                 generator.position_mapping2)
                for timestamp in manager.list_timestamps()) \
            / generator._na_sum(manager, manager.list_timestamps())
@@ -790,7 +790,7 @@ def test_compute_metric(generator):
         numerator = generator._assoc_distances_sum_t(manager,
                                                      timestamp,
                                                      generator.position_mapping,
-                                                     1,
+                                                     None,
                                                      generator.position_mapping2)
         if generator._na_t(manager, timestamp) != 0:
             assert t_metric.value == numerator / generator._na_t(manager, timestamp)
@@ -807,7 +807,7 @@ def test_compute_metric(generator):
     numerator = sum(generator._assoc_distances_sum_t(manager,
                                                      timestamp,
                                                      generator.velocity_mapping,
-                                                     1,
+                                                     None,
                                                      generator.velocity_mapping2)
                     for timestamp in manager.list_timestamps())
     assert va.value == numerator / generator._na_sum(manager, manager.list_timestamps())
@@ -824,7 +824,7 @@ def test_compute_metric(generator):
         numerator = generator._assoc_distances_sum_t(manager,
                                                      timestamp,
                                                      generator.velocity_mapping,
-                                                     1,
+                                                     None,
                                                      generator.velocity_mapping2)
         if generator._na_t(manager, timestamp) != 0:
             assert t_metric.value == numerator / generator._na_t(manager, timestamp)

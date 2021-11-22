@@ -34,19 +34,19 @@ def test_measure_raise_error():
 def test_euclidean():
 
     measure = measures.Euclidean()
-    assert measure(state_u, state_v) == distance.euclidean(u, v)
+    assert measure(state_u, state_v) == distance.euclidean(u[:, 0], v[:, 0])
 
 
 def test_euclideanweighted():
-    weight = np.array([[1], [2], [3], [1]])
+    weight = np.array([1, 2, 3, 1])
     measure = measures.EuclideanWeighted(weight)
-    assert measure(state_u, state_v) == distance.euclidean(u, v, weight)
+    assert measure(state_u, state_v) == distance.euclidean(u[:, 0], v[:, 0], weight)
 
 
 def test_mahalanobis():
     measure = measures.Mahalanobis()
-    assert measure(state_u, state_v) == distance.mahalanobis(u,
-                                                             v,
+    assert measure(state_u, state_v) == distance.mahalanobis(u[:, 0],
+                                                             v[:, 0],
                                                              np.linalg.inv(ui))
 
 
@@ -121,12 +121,12 @@ def test_hellinger_partial_mapping(mapping_type):
 def test_mahalanobis_full_mapping(mapping_type):
     mapping = mapping_type(np.arange(len(u)))
     measure = measures.Mahalanobis(mapping=mapping)
-    assert measure(state_u, state_v) == distance.mahalanobis(u,
-                                                             v,
+    assert measure(state_u, state_v) == distance.mahalanobis(u[:, 0],
+                                                             v[:, 0],
                                                              np.linalg.inv(ui))
     measure = measures.Mahalanobis(mapping=mapping, mapping2=mapping)
-    assert measure(state_u, state_v) == distance.mahalanobis(u,
-                                                             v,
+    assert measure(state_u, state_v) == distance.mahalanobis(u[:, 0],
+                                                             v[:, 0],
                                                              np.linalg.inv(ui))
 
 
@@ -135,99 +135,99 @@ def test_mahalanobis_partial_mapping(mapping_type):
     measure = measures.Mahalanobis(mapping=mapping)
     reduced_ui = CovarianceMatrix(np.diag([100, 10]))
     assert measure(state_u, state_v) == \
-        distance.mahalanobis([[10], [1]],
-                             [[11], [10]], np.linalg.inv(reduced_ui))
+        distance.mahalanobis([10, 1],
+                             [11, 10], np.linalg.inv(reduced_ui))
     mapping = np.array([0, 3])
     reduced_ui = CovarianceMatrix(np.diag([100, 10]))
     measure = measures.Mahalanobis(mapping=mapping)
     assert measure(state_u, state_v) == \
-        distance.mahalanobis([[10], [1]],
-                             [[11], [2]], np.linalg.inv(reduced_ui))
+        distance.mahalanobis([10, 1],
+                             [11, 2], np.linalg.inv(reduced_ui))
 
     mapping = mapping_type([0, 1])
     measure = measures.Mahalanobis(mapping=mapping, mapping2=mapping)
     assert measure(state_u, state_v) == \
-        distance.mahalanobis([[10], [1]],
-                             [[11], [10]], np.linalg.inv(reduced_ui))
+        distance.mahalanobis([10, 1],
+                             [11, 10], np.linalg.inv(reduced_ui))
     mapping = np.array([0, 3])
     measure = measures.Mahalanobis(mapping=mapping, mapping2=mapping)
     assert measure(state_u, state_v) == \
-        distance.mahalanobis([[10], [1]],
-                             [[11], [2]], np.linalg.inv(reduced_ui))
+        distance.mahalanobis([10, 1],
+                             [11, 2], np.linalg.inv(reduced_ui))
 
     mapping = mapping_type([0, 1])
     mapping2 = np.array([0, 3])
     measure = measures.Mahalanobis(mapping=mapping, mapping2=mapping2)
     assert measure(state_u, state_v) == \
-        distance.mahalanobis([[10], [1]],
-                             [[11], [2]], np.linalg.inv(reduced_ui))
+        distance.mahalanobis([10, 1],
+                             [11, 2], np.linalg.inv(reduced_ui))
 
 
 def test_euclidean_full_mapping(mapping_type):
     mapping = mapping_type(np.arange(len(u)))
     measure = measures.Euclidean(mapping=mapping)
-    assert measure(state_u, state_v) == distance.euclidean(u, v)
+    assert measure(state_u, state_v) == distance.euclidean(u[:, 0], v[:, 0])
     measure = measures.Euclidean(mapping=mapping, mapping2=mapping)
-    assert measure(state_u, state_v) == distance.euclidean(u, v)
+    assert measure(state_u, state_v) == distance.euclidean(u[:, 0], v[:, 0])
 
 
 def test_euclidean_partial_mapping(mapping_type):
     mapping = mapping_type([0, 1])
     measure = measures.Euclidean(mapping=mapping)
     assert measure(state_u, state_v) == \
-        distance.euclidean([[10], [1]], [[11], [10]])
+        distance.euclidean([10, 1], [11, 10])
     mapping = np.array([0, 3])
     measure = measures.Euclidean(mapping=mapping)
     assert measure(state_u, state_v) == \
-        distance.euclidean([[10], [1]], [[11], [2]])
+        distance.euclidean([10, 1], [11, 2])
 
     mapping = mapping_type([0, 1])
     measure = measures.Euclidean(mapping=mapping, mapping2=mapping)
     assert measure(state_u, state_v) == \
-        distance.euclidean([[10], [1]], [[11], [10]])
+        distance.euclidean([10, 1], [11, 10])
     mapping = np.array([0, 3])
     measure = measures.Euclidean(mapping=mapping, mapping2=mapping)
     assert measure(state_u, state_v) == \
-        distance.euclidean([[10], [1]], [[11], [2]])
+        distance.euclidean([10, 1], [11, 2])
 
     mapping = mapping_type([0, 1])
     mapping2 = np.array([0, 3])
     measure = measures.Euclidean(mapping=mapping, mapping2=mapping2)
     assert measure(state_u, state_v) == \
-        distance.euclidean([[10], [1]], [[11], [2]])
+        distance.euclidean([10, 1], [11, 2])
 
 
 def test_euclideanweighted_full_mapping(mapping_type):
     mapping = mapping_type(np.arange(len(u)))
-    weight = np.array([[1], [2], [3], [1]])
+    weight = np.array([1, 2, 3, 1])
     measure = measures.EuclideanWeighted(weight, mapping=mapping)
-    assert measure(state_u, state_v) == distance.euclidean(u, v, weight)
+    assert measure(state_u, state_v) == distance.euclidean(u[:, 0], v[:, 0], weight)
     measure = measures.EuclideanWeighted(weight, mapping=mapping, mapping2=mapping)
-    assert measure(state_u, state_v) == distance.euclidean(u, v, weight)
+    assert measure(state_u, state_v) == distance.euclidean(u[:, 0], v[:, 0], weight)
 
 
 def test_euclideanweighted_partial_mapping(mapping_type):
     mapping = mapping_type([0, 1])
-    weight = np.array([[1], [2]])
+    weight = np.array([1, 2])
     measure = measures.EuclideanWeighted(weight, mapping=mapping)
     assert measure(state_u, state_v) == \
-        distance.euclidean([[10], [1]], [[11], [10]], weight)
+        distance.euclidean([10, 1], [11, 10], weight)
     mapping = np.array([0, 3])
     measure = measures.EuclideanWeighted(weight, mapping=mapping)
     assert measure(state_u, state_v) == \
-        distance.euclidean([[10], [1]], [[11], [2]], weight)
+        distance.euclidean([10, 1], [11, 2], weight)
 
     mapping = mapping_type([0, 1])
     measure = measures.EuclideanWeighted(weight, mapping=mapping, mapping2=mapping)
     assert measure(state_u, state_v) == \
-        distance.euclidean([[10], [1]], [[11], [10]], weight)
+        distance.euclidean([10, 1], [11, 10], weight)
     mapping = np.array([0, 3])
     measure = measures.EuclideanWeighted(weight, mapping=mapping, mapping2=mapping)
     assert measure(state_u, state_v) == \
-        distance.euclidean([[10], [1]], [[11], [2]], weight)
+        distance.euclidean([10, 1], [11, 2], weight)
 
     mapping = np.array([0, 1])
     mapping2 = np.array([0, 3])
     measure = measures.EuclideanWeighted(weight, mapping=mapping, mapping2=mapping2)
     assert measure(state_u, state_v) == \
-        distance.euclidean([[10], [1]], [[11], [2]], weight)
+        distance.euclidean([10, 1], [11, 2], weight)
