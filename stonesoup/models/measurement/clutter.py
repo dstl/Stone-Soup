@@ -13,7 +13,7 @@ from ...types.state import State
 
 class ClutterModel(MeasurementModel):
     """A simulator that generates sensor clutter (false alarms) according to a specified 
-    distribution in 2D space relative to the sensor's position.
+    distribution in space relative to the sensor's position.
 
     Note
     ----
