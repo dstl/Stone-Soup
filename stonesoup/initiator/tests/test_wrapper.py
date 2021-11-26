@@ -24,7 +24,8 @@ def test_states_length_limiter(max_len):
     measurements = []
     for i in range(10):
         measurements.append(Detection(np.array([[i*2.0]]),
-                                      timestamp=start_time+timedelta(seconds=i*100)))
+                                      timestamp=start_time+timedelta(seconds=i*100),
+                                      metadata={"colour": np.random.choice(["red", "blue"])}))
 
     # Tracking components
     # ===================
@@ -60,3 +61,4 @@ def test_states_length_limiter(max_len):
         assert len(track) <= max_len
 
     assert len(track) == max_len
+    assert len(track.metadatas) == max_len

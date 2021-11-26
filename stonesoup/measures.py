@@ -82,10 +82,10 @@ class Euclidean(Measure):
         """
         # Calculate Euclidean distance between two state
         if self.mapping is not None:
-            return distance.euclidean(state1.state_vector[self.mapping, :],
-                                      state2.state_vector[self.mapping2, :])
+            return distance.euclidean(state1.state_vector[self.mapping, 0],
+                                      state2.state_vector[self.mapping2, 0])
         else:
-            return distance.euclidean(state1.state_vector, state2.state_vector)
+            return distance.euclidean(state1.state_vector[:, 0], state2.state_vector[:, 0])
 
 
 class EuclideanWeighted(Measure):
@@ -127,12 +127,12 @@ class EuclideanWeighted(Measure):
 
         """
         if self.mapping is not None:
-            return distance.euclidean(state1.state_vector[self.mapping, :],
-                                      state2.state_vector[self.mapping2, :],
+            return distance.euclidean(state1.state_vector[self.mapping, 0],
+                                      state2.state_vector[self.mapping2, 0],
                                       self.weighting)
         else:
-            return distance.euclidean(state1.state_vector,
-                                      state2.state_vector,
+            return distance.euclidean(state1.state_vector[:, 0],
+                                      state2.state_vector[:, 0],
                                       self.weighting)
 
 
@@ -167,15 +167,15 @@ class Mahalanobis(Measure):
 
         """
         if self.mapping is not None:
-            u = state1.state_vector[self.mapping, :]
-            v = state2.state_vector[self.mapping2, :]
+            u = state1.state_vector[self.mapping, 0]
+            v = state2.state_vector[self.mapping2, 0]
             # extract the mapped covariance data
             rows = np.array(self.mapping, dtype=np.intp)
             columns = np.array(self.mapping, dtype=np.intp)
             cov = state1.covar[rows[:, np.newaxis], columns]
         else:
-            u = state1.state_vector
-            v = state2.state_vector
+            u = state1.state_vector[:, 0]
+            v = state2.state_vector[:, 0]
             cov = state1.covar
 
         vi = np.linalg.inv(cov)
