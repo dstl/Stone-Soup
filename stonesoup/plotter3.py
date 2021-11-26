@@ -47,9 +47,9 @@ class Plotter:
         self.ax.set_zlabel("$z$")
         self.ax.axis('auto')
 
-        # Create empty lists for legend handles and labels
-        self.handles_list = []
-        self.labels_list = []
+        # Create empty dictionary for legend handles and labels - dict used to
+        # prevent multiple entries with the same label from displaying on legend
+        self.legend_dict = {}  # create an empty dictionary to hold legend entries
 
     def plot_ground_truths(self, truths, mapping, truths_label="Ground Truth", **kwargs):
         """Plots ground truth(s)
@@ -85,11 +85,9 @@ class Plotter:
 
         # Generate legend items
         truths_handle = Line2D([], [], linestyle=truths_kwargs['linestyle'], color='black')
-        self.handles_list.append(truths_handle)
-        self.labels_list.append(truths_label)
-
+        self.legend_dict[truths_label] = truths_handle
         # Generate legend
-        self.ax.legend(handles=self.handles_list, labels=self.labels_list)
+        self.ax.legend(handles=self.legend_dict.values(), labels=self.legend_dict.keys())
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
                           measurements_label="Measurements", **kwargs):
@@ -165,8 +163,7 @@ class Plotter:
             measurements_handle = Line2D([], [], linestyle='', **measurement_kwargs)
 
             # Generate legend items for measurements
-            self.handles_list.append(measurements_handle)
-            self.labels_list.append(measurements_label)
+            self.legend_dict[measurements_label] = measurements_handle
 
         if plot_clutter:
             clutter_array = np.array(plot_clutter)
@@ -175,13 +172,12 @@ class Plotter:
             clutter_label = "Clutter"
 
             # Generate legend items for clutter
-            self.handles_list.append(clutter_handle)
-            self.labels_list.append(clutter_label)
+            self.legend_dict[clutter_label] = clutter_handle
 
         # Generate legend
-        self.ax.legend(handles=self.handles_list, labels=self.labels_list)
+        self.ax.legend(handles=self.legend_dict.values(), labels=self.legend_dict.keys())
 
-    def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, track_label="Track",
+    def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, track_label="Track", err_freq=1, 
                     **kwargs):
         """Plots track(s)
 
@@ -232,48 +228,29 @@ class Plotter:
         # Generate legend items for track
         track_handle = Line2D([], [], linestyle=tracks_kwargs['linestyle'],
                               marker=tracks_kwargs['marker'], color=tracks_kwargs['color'])
-        self.handles_list.append(track_handle)
-        self.labels_list.append(track_label)
+        self.legend_dict[track_label] = track_handle
 
         if uncertainty:
             # Plot uncertainty ellipses
             for track in tracks:
                 HH = np.eye(track.ndim)[mapping, :]  # Get position mapping matrix
+                check = err_freq
                 for state in track:
-                    w, v = np.linalg.eig(HH @ state.covar @ HH.T)
-                    max_ind = np.argmax(w)
-                    min_ind = np.argmin(w)
-                    orient = np.arctan2(v[1, max_ind], v[0, max_ind])
-                    
-                    xl = state.state_vector[mapping[0]]
-                    yl = state.state_vector[mapping[1]]
-                    zl = state.state_vector[mapping[2]]
-                                            
-                    x_err = w[0]
-                    y_err = w[1]
-                    z_err = w[2]
-                    
-                    self.ax.plot3D([xl+x_err, xl-x_err], [yl, yl], [zl, zl], marker="_", color=tracks_kwargs['color'])
-                    self.ax.plot3D([xl, xl], [yl+y_err, yl-y_err], [zl, zl], marker="_", color=tracks_kwargs['color'])
-                    self.ax.plot3D([xl, xl], [yl, yl], [zl+z_err, zl-z_err], marker="_", color=tracks_kwargs['color'])
-                                            
-                    '''ellipse = Ellipse(xy=state.state_vector[mapping[:2], 0],
-                                      width=2 * np.sqrt(w[max_ind]),
-                                      height=2 * np.sqrt(w[min_ind]),
-                                      angle=np.rad2deg(orient), alpha=0.2,
-                                      color=track_colors[track])
-                    #self.ax.add_artist(ellipse)'''
-
-            # Generate legend items for uncertainty ellipses
-            '''ellipse_handle = Ellipse((0.5, 0.5), 0.5, 0.5, alpha=0.2, color=tracks_kwargs['color'])
-            ellipse_label = "Uncertainty"
-
-            self.handles_list.append(ellipse_handle)
-            self.labels_list.append(ellipse_label)
-
-            # Generate legend
-            self.ax.legend(handles=self.handles_list, labels=self.labels_list,
-                           handler_map={Ellipse: _HandlerEllipse()})'''
+                    if not check % err_freq:
+                        w, v = np.linalg.eig(HH @ state.covar @ HH.T)
+                        
+                        xl = state.state_vector[mapping[0]]
+                        yl = state.state_vector[mapping[1]]
+                        zl = state.state_vector[mapping[2]]
+                                                
+                        x_err = w[0]
+                        y_err = w[1]
+                        z_err = w[2]
+                        
+                        self.ax.plot3D([xl+x_err, xl-x_err], [yl, yl], [zl, zl], marker="_", color=tracks_kwargs['color'])
+                        self.ax.plot3D([xl, xl], [yl+y_err, yl-y_err], [zl, zl], marker="_", color=tracks_kwargs['color'])
+                        self.ax.plot3D([xl, xl], [yl, yl], [zl+z_err, zl-z_err], marker="_", color=tracks_kwargs['color'])
+                    check += 1
 
         elif particle:
             # Plot particles
@@ -286,14 +263,13 @@ class Plotter:
             # Generate legend items for particles
             particle_handle = Line2D([], [], linestyle='', color="black", marker='.', markersize=1)
             particle_label = "Particles"
-            self.handles_list.append(particle_handle)
-            self.labels_list.append(particle_label)
+            self.legend_dict[particle_label] = particle_handle
 
             # Generate legend
-            self.ax.legend(handles=self.handles_list, labels=self.labels_list)
+            self.ax.legend(handles=self.legend_dict.values(), labels=self.legend_dict.keys())
 
         else:
-            self.ax.legend(handles=self.handles_list, labels=self.labels_list)
+            self.ax.legend(handles=self.legend_dict.values(), labels=self.legend_dict.keys())
 
     # Ellipse legend patch (used in Tutorial 3)
     @staticmethod
