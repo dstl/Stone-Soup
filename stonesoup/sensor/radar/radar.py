@@ -20,7 +20,7 @@ from ...types.detection import TrueDetection
 from ...types.groundtruth import GroundTruthState
 from ...types.numeric import Probability
 from ...types.state import State, StateVector
-from ...models.measurement.clutter import ClutterBearingRange
+from ...models.measurement.clutter import ClutterModel
 
 
 class RadarBearingRange(Sensor):
@@ -44,7 +44,7 @@ class RadarBearingRange(Sensor):
         doc="The sensor noise covariance matrix. This is utilised by "
             "(and follow in format) the underlying "
             ":class:`~.CartesianToBearingRange` model")
-    clutter_model: ClutterBearingRange = Property(
+    clutter_model: ClutterModel = Property(
         default=None,
         doc="An optional clutter generator that adds a set of simulated "
             ":class:`Clutter` ojects to the measurements at each time step. "
@@ -135,7 +135,7 @@ class RadarRotatingBearingRange(RadarBearingRange):
         for truth in ground_truths:
             # Transform state to measurement space and generate
             # random noise
-            measurement_vector = measurement_model.function(truth, noise=False, **kwargs)
+            measurement_vector = measurement_model.function(truth, noise=noise, **kwargs)
 
             if noise is True:
                 measurement_noise = measurement_model.rvs()
