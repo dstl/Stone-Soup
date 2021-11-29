@@ -40,7 +40,8 @@ class RunManagerCore(RunManager):
 
         try:
             with open(config_path, 'r') as file:
-                tracker, ground_truth, metric_manager, csv_data = self.read_config_file(file)
+                tracker, ground_truth, metric_manager = self.read_config_file(file,
+                                                                              groundtruth_setting)
         except Exception as e:
             print(e)
             logging.error(f'{datetime.now()} : {e}')
@@ -205,7 +206,7 @@ class RunManagerCore(RunManager):
             if len(split_path) > 0:
                 setattr(el, split_path[0], value)
 
-    def read_config_file(self, config_file):
+    def read_config_file(self, config_file, groundtruth_setting):
         """Read the configuration file
 
         Args:
@@ -220,21 +221,32 @@ class RunManagerCore(RunManager):
         tracker, gt, mm, csv_data = None, None, None, None
 
         config_data = YAML('safe').load(config_string)
-        for x in config_data:
-            if "Tracker" in str(type(x)):
-                tracker = x
-                print("Tracker found")
-            elif "GroundTruth" in str(type(x)):
-                gt = x
-                print("Groundtruth found")
-            elif "metricgenerator" in str(type(x)):
-                mm = x
-                print("Metric manager found")
-            elif type(x) is np.ndarray:
-                csv_data = x
-                print("CSV data found")
 
-        return tracker, gt, mm, csv_data
+        # Set explicitly if user has included groundtruth in config and set flag
+        if groundtruth_setting == 0:
+            tracker = config_data[0]
+            gt = config_data[1]
+            if len(config_data) > 2:
+                mm = config_data[2]
+        else:
+            for x in config_data:
+                if "Tracker" in str(type(x)):
+                    tracker = x
+                elif "GroundTruth" in str(type(x)):
+                    gt = x
+                elif "metricgenerator" in str(type(x)):
+                    mm = x
+                elif type(x) is np.ndarray:
+                    csv_data = x
+                    print("CSV data found")
+
+        print("TRACKER: ", tracker)
+        print("GROUNDTRUTH: ", gt)
+        print("METRICMANAGER: ", mm)
+
+        return tracker, gt, mm
+
+
 
 
 if __name__ == "__main__":
