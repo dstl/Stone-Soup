@@ -13,6 +13,9 @@ from .base import RunManager
 
 class RunManagerCore(RunManager):
 
+    def __init__(self):
+        logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
+
     def read_json(self, json_input):
         """ Reads JSON Files and stores in dictionary
 
@@ -24,16 +27,17 @@ class RunManagerCore(RunManager):
             return json_data
 
     def run(self, config_path=None, parameters_path=None, 
-            groundtruth_setting=None, dir=None, output_path=None):
+            ground_truth=None, dir=None, output_path=None):
         """Run the run manager
 
         Args:
             config_path : Path of the config file
             parameters_path : Path of the parameters file
-            groundtruth_setting : Checks if there is a ground truth available in the config file
+            groundtruth : Checks if there is a ground truth available in the config file
         """
         pairs = []
-        logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
+        tracker = None
+        metric_manager = None
         input_manager = InputManager()
         if dir is not None:
             paths = self.get_filepaths(dir)
@@ -43,48 +47,58 @@ class RunManagerCore(RunManager):
             pairs = [[config_path, parameters_path]]
 
         print(pairs)
-        json_data = self.read_json(parameters_path)
-        trackers_combination_dict = input_manager.generate_parameters_combinations(
-            json_data["parameters"])
-        combo_dict = input_manager.generate_all_combos(trackers_combination_dict)
-
-        
-        try:
-            with open(config_path, 'r') as file:
-                tracker, ground_truth, metric_manager, csv_data = self.read_config_file(file)
-        except Exception as e:
-            print(e)
-            logging.error(f'{datetime.now()} : {e}')
+        for path in pairs:
+            print(path[0])
+            print("yam", path[1])
+            param_path = path[1]
+            yaml_path = path[0]
+            json_data = self.read_json(param_path)
+            trackers_combination_dict = input_manager.generate_parameters_combinations(
+                json_data["parameters"])
+            combo_dict = input_manager.generate_all_combos(trackers_combination_dict)
             
-        if ground_truth is None:
-            try:
-                ground_truth = tracker.detector.groundtruth
+            try: 
+                with open(config_path, 'r') as file:
+                    tracker, ground_truth, metric_manager, csv_data = self.read_config_file(yaml_path)
             except Exception as e:
-                logging.error(f'{datetime.now()} : {e}')
-                print(f'No groundtruth in tracker detector {e}', flush=True)
+                if ground_truth is None:
+                    ground_truth = tracker.detector.groundtruth   
+            # try:
+            #     with open(config_path, 'r') as file:
+            #         tracker, ground_truth, metric_manager, csv_data = self.read_config_file(yaml_path)
+            # except Exception as e:
+            #     print(e)
+            #     logging.error(f'{datetime.now()} : {e}')
+                            
+            # if ground_truth is None:
+            #     try:
+            #         ground_truth = tracker.detector.groundtruth
+            #     except Exception as e:
+            #         logging.error(f'{datetime.now()} : {e}')
+            #         print(f'No groundtruth in tracker detector {e}', flush=True)
 
-        trackers = []
-        ground_truths = []
-        metric_managers = []
+            trackers = []
+            ground_truths = []
+            metric_managers = []
 
-        trackers, ground_truths, metric_managers = self.set_trackers(
-            combo_dict, tracker, ground_truth, metric_manager)
-        now = datetime.now()
-        dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
-        for idx in range(0, len(trackers)):
-            for runs_num in range(0, json_data["configuration"]["runs_num"]):
-                dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs_num}"
-                RunmanagerMetrics.parameters_to_csv(dir_name, combo_dict[idx])
-                RunmanagerMetrics.generate_config(
-                    dir_name, trackers[idx], ground_truths[idx], metric_managers[idx])
-                if groundtruth_setting == 0:
-                    groundtruth = trackers[idx].detector.groundtruth
-                else:
-                    groundtruth = ground_truths[idx]
-                print("RUN")
-                self.run_simulation(trackers[idx], groundtruth, metric_managers[idx],
-                                    dir_name, groundtruth_setting, idx, combo_dict)
-            
+            trackers, ground_truths, metric_managers = self.set_trackers(
+                combo_dict, tracker, ground_truth, metric_manager)
+            now = datetime.now()
+            dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
+            for idx in range(0, len(trackers)):
+                for runs_num in range(0, json_data["configuration"]["runs_num"]):
+                    dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs_num}"
+                    RunmanagerMetrics.parameters_to_csv(dir_name, combo_dict[idx])
+                    RunmanagerMetrics.generate_config(
+                        dir_name, trackers[idx], ground_truths[idx], metric_managers[idx])
+                    if groundtruth_setting == 0:
+                        groundtruth = trackers[idx].detector.groundtruth
+                    else:
+                        groundtruth = ground_truths[idx]
+                    print("RUN")
+                    self.run_simulation(trackers[idx], groundtruth, metric_managers[idx],
+                                        dir_name, groundtruth_setting, idx, combo_dict)
+                
         logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
 
     def run_simulation(self, tracker, ground_truth,
