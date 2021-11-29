@@ -135,7 +135,7 @@ class RadarRotatingBearingRange(RadarBearingRange):
         for truth in ground_truths:
             # Transform state to measurement space and generate
             # random noise
-            measurement_vector = measurement_model.function(truth, noise=noise, **kwargs)
+            measurement_vector = measurement_model.function(truth, noise=False, **kwargs)
 
             if noise is True:
                 measurement_noise = measurement_model.rvs()
