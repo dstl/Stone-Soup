@@ -6,9 +6,9 @@ from datetime import datetime
 import numpy as np
 
 from stonesoup.serialise import YAML
-from .inputmanager import InputManager
-from .runmanagermetrics import RunmanagerMetrics
-from .base import RunManager
+from inputmanager import InputManager
+from runmanagermetrics import RunmanagerMetrics
+from base import RunManager
 
 
 class RunManagerCore(RunManager):
@@ -67,10 +67,7 @@ class RunManagerCore(RunManager):
                 RunmanagerMetrics.parameters_to_csv(dir_name, combo_dict[idx])
                 RunmanagerMetrics.generate_config(
                     dir_name, trackers[idx], ground_truths[idx], metric_managers[idx])
-                if groundtruth_setting == 0:
-                    groundtruth = trackers[idx].detector.groundtruth
-                else:
-                    groundtruth = ground_truths[idx]
+                groundtruth = ground_truths[idx]
                 print("RUN")
                 self.run_simulation(trackers[idx], groundtruth, metric_managers[idx],
                                     dir_name, groundtruth_setting, idx, combo_dict)
@@ -223,12 +220,14 @@ class RunManagerCore(RunManager):
         config_data = YAML('safe').load(config_string)
 
         # Set explicitly if user has included groundtruth in config and set flag
-        if groundtruth_setting == 0:
+        if groundtruth_setting is True:
+            print("MANUAL READ")
             tracker = config_data[0]
             gt = config_data[1]
             if len(config_data) > 2:
                 mm = config_data[2]
         else:
+            print("AUTOMATIC READ")
             for x in config_data:
                 if "Tracker" in str(type(x)):
                     tracker = x
@@ -258,22 +257,20 @@ if __name__ == "__main__":
     except Exception as e:
         # configInput = "C:\\Users\\Davidb1\\Documents\\Python\\data\\testConfigs\\\
         #                testConfigs\\metrics_config_v5.yaml"
-        configInput = "C:\\Users\\gbellant.LIVAD\\Documents\\Projects\\serapis\\\
-            Serapis C38 LOT 1\\config.yaml"
+        configInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\testConfigs\\alltogtut_config.yaml"
         logging.error(e)
 
     try:
         parametersInput = args[1]
     except Exception as e:
-        parametersInput = "C:\\Users\\gbellant.LIVAD\\Documents\\Projects\\serapis\\\
-            Serapis C38 LOT 1\\parameters.json"
+        parametersInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\Data\\dummy2.json"
         logging.error(e)
         # parametersInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\dummy3.json"
 
     try:
         groundtruthSettings = args[2]
     except Exception as e:
-        groundtruthSettings = 1
+        groundtruthSettings = False
         logging.error(e)
 
     rmc = RunManagerCore()
