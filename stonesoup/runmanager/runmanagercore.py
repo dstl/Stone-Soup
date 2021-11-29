@@ -13,9 +13,6 @@ from .base import RunManager
 
 class RunManagerCore(RunManager):
 
-    def __init__(self):
-        logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
-
     def read_json(self, json_input):
         """ Reads JSON Files and stores in dictionary
 
@@ -27,7 +24,7 @@ class RunManagerCore(RunManager):
             return json_data
 
     def run(self, config_path=None, parameters_path=None, 
-            ground_truth=None, dir=None, output_path=None):
+            ground_truth=None, dir=None, nruns=1, nprocesses=None, output_path=None):
         """Run the run manager
 
         Args:
@@ -36,53 +33,66 @@ class RunManagerCore(RunManager):
             groundtruth : Checks if there is a ground truth available in the config file
         """
         pairs = []
+        trackers = []
+        ground_truths = []
+        metric_managers = []
         tracker = None
         metric_manager = None
         input_manager = InputManager()
-        if dir is not None:
+        logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
+        
+        if dir:
             paths = self.get_filepaths(dir)
             pairs = self.get_config_and_param_lists(paths)
             
-        elif config_path and parameters_path is not None:
-            pairs = [[config_path, parameters_path]]
-
-        print(pairs)
+        elif config_path and parameters_path:
+            pairs = [[parameters_path, config_path]]
+            
+        elif dir and config_path and parameters_path:
+            paths = self.get_filepaths(dir)
+            pairs = self.get_config_and_param_lists(paths)
+            pairs.append([parameters_path, config_path])
+            
+        elif config_path and parameters_path is None:
+            try:
+                with open(config_path, 'r') as file:
+                    tracker, ground_truth, metric_manager, csv_data = self.read_config_file(file)
+            except Exception as e:
+                print(e)
+                logging.error(f'{datetime.now()} : {e}')
+            for runs in range(0, (nruns)):
+                now = datetime.now()
+                dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
+                dir_name = f"metrics_{dt_string}/simulation_{runs}/run_{nruns}"
+                print("RUN")
+                self.run_simulation(tracker, ground_truth, metric_manager,
+                                            dir_name, ground_truth)            
         for path in pairs:
-            print(path[0])
-            print("yam", path[1])
-            param_path = path[1]
-            yaml_path = path[0]
+            param_path = path[0]
+            yaml_path = path[1]
             json_data = self.read_json(param_path)
             trackers_combination_dict = input_manager.generate_parameters_combinations(
                 json_data["parameters"])
+            
             combo_dict = input_manager.generate_all_combos(trackers_combination_dict)
             
-            try: 
-                with open(config_path, 'r') as file:
-                    tracker, ground_truth, metric_manager, csv_data = self.read_config_file(yaml_path)
+            try:
+                with open(yaml_path, 'r') as file:
+                    tracker, ground_truth, metric_manager, csv_data = self.read_config_file(file)
             except Exception as e:
-                if ground_truth is None:
-                    ground_truth = tracker.detector.groundtruth   
-            # try:
-            #     with open(config_path, 'r') as file:
-            #         tracker, ground_truth, metric_manager, csv_data = self.read_config_file(yaml_path)
-            # except Exception as e:
-            #     print(e)
-            #     logging.error(f'{datetime.now()} : {e}')
-                            
-            # if ground_truth is None:
-            #     try:
-            #         ground_truth = tracker.detector.groundtruth
-            #     except Exception as e:
-            #         logging.error(f'{datetime.now()} : {e}')
-            #         print(f'No groundtruth in tracker detector {e}', flush=True)
+                print(e)
+                logging.error(f'{datetime.now()} : {e}')
 
-            trackers = []
-            ground_truths = []
-            metric_managers = []
+            if ground_truth is None:
+                try:
+                    ground_truth = tracker.detector.groundtruth
+                except Exception as e:
+                    logging.error(f'{datetime.now()} : {e}')
+                    print(f'No groundtruth in tracker detector {e}', flush=True)
 
             trackers, ground_truths, metric_managers = self.set_trackers(
                 combo_dict, tracker, ground_truth, metric_manager)
+            
             now = datetime.now()
             dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
             for idx in range(0, len(trackers)):
@@ -91,19 +101,19 @@ class RunManagerCore(RunManager):
                     RunmanagerMetrics.parameters_to_csv(dir_name, combo_dict[idx])
                     RunmanagerMetrics.generate_config(
                         dir_name, trackers[idx], ground_truths[idx], metric_managers[idx])
-                    if groundtruth_setting == 0:
+                    if ground_truth == None:
                         groundtruth = trackers[idx].detector.groundtruth
                     else:
                         groundtruth = ground_truths[idx]
                     print("RUN")
                     self.run_simulation(trackers[idx], groundtruth, metric_managers[idx],
-                                        dir_name, groundtruth_setting, idx, combo_dict)
-                
-        logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
+                                        dir_name, ground_truth, idx, combo_dict)
+            
+            logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
 
     def run_simulation(self, tracker, ground_truth,
                        metric_manager, dir_name,
-                       groundtruth_setting, index, combos):
+                       groundtruth_setting, index=None, combos=None):
         """Start the simulation
 
         Args:
@@ -162,14 +172,14 @@ class RunManagerCore(RunManager):
             timeTotal = timeAfter-timeFirst
             print(timeTotal)
         except Exception as e:
-            logging.error(f'{log_time}: Simulation {index} failed in {datetime.now() - log_time}.'
-                          f'error: {e}  . Parameters: {combos[index]}')
+            # logging.error(f'{log_time}: Simulation {index} failed in {datetime.now() - log_time}.'
+            #               f'error: {e}  . Parameters: {combos[index]}')
             print(f'Failed to run Simulation: {e}', flush=True)
 
         else:
-            logging.info(f'{log_time}: Simulation {index} / {len(combos)-1} ran '
-                         'successfully in {datetime.now() - log_time}.'
-                         'With Parameters: {combos[index]}')
+            # logging.info(f'{log_time}: Simulation {index} / {len(combos)-1} ran '
+            #              'successfully in {datetime.now() - log_time}.'
+            #              'With Parameters: {combos[index]}')
             print('Success!', flush=True)
 
     def set_trackers(self, combo_dict, tracker, ground_truth, metric_manager):
