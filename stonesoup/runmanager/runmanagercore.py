@@ -34,9 +34,7 @@ class RunManagerCore(RunManager):
             parameters_path : Path of the parameters file
             groundtruth : Checks if there is a ground truth available in the config file
         """
-        
         pairs = []
-
         input_manager = InputManager()
                 
         if dir:
