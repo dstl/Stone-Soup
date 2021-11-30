@@ -185,7 +185,6 @@ def test_read_config_file_csv():
     assert type(csv_data) is np.ndarray
     file.close()
     
-    
 def test_read_config_dir():
     result = rmc.read_config_dir(test_config_dir)
     assert type(result) is list
@@ -206,4 +205,5 @@ def test_get_config_and_param_lists():
     files = rmc.get_filepaths(test_config_dir)
     pair = rmc.get_config_and_param_lists(files)
     assert type(pair) is list
+
 
