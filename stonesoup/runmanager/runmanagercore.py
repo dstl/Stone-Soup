@@ -12,7 +12,9 @@ from .base import RunManager
 
 
 class RunManagerCore(RunManager):
-
+    def __init__(self):
+        logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
+        
     def read_json(self, json_input):
         """ Reads JSON Files and stores in dictionary
 
@@ -22,7 +24,7 @@ class RunManagerCore(RunManager):
         with open(json_input) as json_file:
             json_data = json.load(json_file)
             return json_data
-
+            
     def run(self, config_path=None, parameters_path=None, 
             ground_truth=None, dir=None, nruns=1, nprocesses=None, output_path=None):
         """Run the run manager
@@ -32,56 +34,39 @@ class RunManagerCore(RunManager):
             parameters_path : Path of the parameters file
             groundtruth : Checks if there is a ground truth available in the config file
         """
-        pairs = []
-        trackers = []
-        ground_truths = []
-        metric_managers = []
-        tracker = None
-        metric_manager = None
-        input_manager = InputManager()
-        logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
         
+        pairs = []
+        trackers = [] 
+        ground_truths = [] 
+        metric_managers = []
+        tracker = None 
+        metric_manager = None
+        
+        input_manager = InputManager()
+                
         if dir:
             paths = self.get_filepaths(dir)
             pairs = self.get_config_and_param_lists(paths)
-            
+
         elif config_path and parameters_path:
             pairs = [[parameters_path, config_path]]
-            
+
         elif dir and config_path and parameters_path:
             paths = self.get_filepaths(dir)
             pairs = self.get_config_and_param_lists(paths)
             pairs.append([parameters_path, config_path])
-            
+
         elif config_path and parameters_path is None:
-            try:
-                with open(config_path, 'r') as file:
-                    tracker, ground_truth, metric_manager, csv_data = self.read_config_file(file)
-            except Exception as e:
-                print(e)
-                logging.error(f'{datetime.now()} : {e}')
-            for runs in range(0, (nruns)):
-                now = datetime.now()
-                dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
-                dir_name = f"metrics_{dt_string}/simulation_{runs}/run_{nruns}"
-                print("RUN")
-                self.run_simulation(tracker, ground_truth, metric_manager,
-                                            dir_name, ground_truth)            
+           self.prepare_and_run_single_sim(config_path, nruns)
+
         for path in pairs:
             param_path = path[0]
-            yaml_path = path[1]
+            config_path = path[1]
             json_data = self.read_json(param_path)
             trackers_combination_dict = input_manager.generate_parameters_combinations(
                 json_data["parameters"])
-            
             combo_dict = input_manager.generate_all_combos(trackers_combination_dict)
-            
-            try:
-                with open(yaml_path, 'r') as file:
-                    tracker, ground_truth, metric_manager, csv_data = self.read_config_file(file)
-            except Exception as e:
-                print(e)
-                logging.error(f'{datetime.now()} : {e}')
+            tracker, ground_truth, metric_manager, csv_data = self.set_components(config_path)
 
             if ground_truth is None:
                 try:
@@ -206,13 +191,11 @@ class RunManagerCore(RunManager):
         for parameter in combo_dict:
             tracker_copy, ground_truth_copy, metric_manager_copy = copy.deepcopy(
                 (tracker, ground_truth, metric_manager))
+            
             for k, v in parameter.items():
                 split_path = k.split('.')
                 if len(split_path) > 1:
-                    # path_param = '.'.join(split_path[1::])
                     split_path = split_path[1::]
-
-                # setattr(tracker_copy.initiator, split_path[-1], v)
                 self.set_param(split_path, tracker_copy, v)
             trackers.append(tracker_copy)
             ground_truths.append(ground_truth_copy)
@@ -230,12 +213,9 @@ class RunManagerCore(RunManager):
         """
 
         if len(split_path) > 1:
-            # print(split_path[0])
             newEl = getattr(el, split_path[0])
             self.set_param(split_path[1::], newEl, value)
         else:
-            # print(value)
-            # print(getattr(el,split_path[0]))
             if len(split_path) > 0:
                 setattr(el, split_path[0], value)
 
@@ -271,15 +251,19 @@ class RunManagerCore(RunManager):
         return tracker, gt, mm, csv_data
 
     def read_config_dir(self, config_dir):
-        files = os.listdir(config_dir)
+        if os.path.exists(config_dir):
+            files = os.listdir(config_dir)
+        else:  
+            return None
         return files
     
     def get_filepaths(self, directory):
         file_paths =[]
-        for root, directories, files in os.walk(directory):
-            for filename in files:
-                filepath = os.path.join(root, filename)
-                file_paths.append(filepath)
+        if os.path.exists(directory):
+            for root, directories, files in os.walk(directory):
+                for filename in files:
+                    filepath = os.path.join(root, filename)
+                    file_paths.append(filepath)
         return file_paths
 
     def get_config_and_param_lists(self, files):
@@ -297,43 +281,25 @@ class RunManagerCore(RunManager):
                 pair = []
         return pairs
     
-    def prepare_files(self, config_path=None, parameters_path=None, dir=None):
-        if config_path is not None and parameters_path is not None:
-            config_parameter_directory = [config_path, parameters_path]
-            return config_parameter_directory
-        elif dir is not None:
-            config_parameter_directory = self.get_config_and_param_lists(dir)
-            return config_parameter_directory
-            
-    
+    def prepare_and_run_single_sim(self, config_path, nruns):
+        try:
+            now = datetime.now()
+            dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
+            tracker, ground_truth, metric_manager, csv_data = self.set_components(config_path)
+            for runs in range(nruns):
+                dir_name = f"metrics_{dt_string}/run_{runs}"
+                print("RUN")
+                self.run_simulation(tracker, ground_truth, metric_manager,
+                                            dir_name, ground_truth)
+        except Exception as e:
+            print(f'{datetime.now()} Preparing simulation error: {e}')
+            logging.error(f'{datetime.now()} Could not run simulation. error: {e}')
 
-# if __name__ == "__main__":
-
-#     # args = sys.argv[1:]
-#     try:
-#         configInput = args.config
-
-#     except Exception as e:
-#         # configInput = "C:\\Users\\Davidb1\\Documents\\Python\\data\\testConfigs\\\
-#         #                testConfigs\\metrics_config_v5.yaml"
-#         configInput = "C:\\Users\\gbellant.LIVAD\\Documents\\Projects\\serapis\\\
-#             Serapis C38 LOT 1\\config.yaml"
-#         logging.error(e)
-
-#     try:
-#         parametersInput = args.parameter
-#     except Exception as e:
-#         parametersInput = "C:\\Users\\gbellant.LIVAD\\Documents\\Projects\\serapis\\\
-#             Serapis C38 LOT 1\\parameters.json"
-#         logging.error(e)
-#         # parametersInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\dummy3.json"
-
-#     try:
-#         groundtruthSettings = args[2]
-#     except Exception as e:
-#         groundtruthSettings = 1
-#         logging.error(e)
-
-#     rmc = RunManagerCore()
-
-#     rmc.run(configInput, parametersInput, groundtruthSettings)
+    def set_components(self, config_path):
+        try:
+            with open(config_path, 'r') as file:
+                tracker, ground_truth, metric_manager, csv_data = self.read_config_file(file)
+        except Exception as e:
+            print(f'{datetime.now()} Could not read config file: {e}')
+            logging.error(f'{datetime.now()} Could not read config file: {e}')
+        return tracker, ground_truth, metric_manager, csv_data

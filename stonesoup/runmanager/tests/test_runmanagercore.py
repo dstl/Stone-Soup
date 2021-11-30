@@ -23,6 +23,7 @@ test_config_nomm = "stonesoup/runmanager/tests/test_configs/test_config_nomm.yam
 test_config_nogt = "stonesoup/runmanager/tests/test_configs/test_config_nogt.yaml"
 test_config_trackeronly = "stonesoup/runmanager/tests/test_configs/test_config_trackeronly.yaml"
 test_json = "stonesoup/runmanager/tests/test_configs/dummy.json"
+test_config_dir = "stonesoup/runmanager/tests/test_configs/"
 
 
 def test_cwd_path():
@@ -183,3 +184,26 @@ def test_read_config_file_csv():
 
     assert type(csv_data) is np.ndarray
     file.close()
+    
+    
+def test_read_config_dir():
+    result = rmc.read_config_dir(test_config_dir)
+    assert type(result) is list
+
+def test_read_config_dir_empty():
+    result = rmc.read_config_dir('')
+    assert result is None
+    
+def test_get_filepaths():
+    file_path = rmc.get_filepaths(test_config_dir)
+    assert type(file_path) is list
+
+def test_get_filepaths_empty():
+    file_path = rmc.get_filepaths('')
+    assert len(file_path) == 0
+
+def test_get_config_and_param_lists():
+    files = rmc.get_filepaths(test_config_dir)
+    pair = rmc.get_config_and_param_lists(files)
+    assert type(pair) is list
+
