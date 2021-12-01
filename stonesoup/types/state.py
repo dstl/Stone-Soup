@@ -6,7 +6,7 @@ from typing import MutableSequence, Any, Optional
 import numpy as np
 import uuid
 
-from ..base import Property, Base
+from ..base import Property
 from .array import StateVector, CovarianceMatrix, PrecisionMatrix
 from .base import Type
 from .particle import Particles
@@ -32,6 +32,45 @@ class State(Type):
     def ndim(self):
         """The number of dimensions represented by the state."""
         return self.state_vector.shape[0]
+
+    @staticmethod
+    def from_state(state: 'State', *args: Any, **kwargs: Any) -> 'State':
+        """Class utility function to create a new state. The type and properties of this new state
+        are defined by `state`. Specific properties can be overwritten via `args` and `kwargs`.
+
+        This method was introduced to combat the need for deep copies in platform `move` methods,
+        and to allow platforms to use different state types, such as :class:`~.GroundTruthState`,
+        whereby the state metadata will be carried forward at each call to :meth:`move`.
+        The process here is similar to that of the :class:`~.Prediction` and :class:`~.Update`
+        `from_state` methods.
+
+        Parameters
+        ----------
+        state: State
+            :class:`~.State` to use existing properties from, and identify new state-type from.
+        \\*args: Sequence
+            Arguments to pass to newly created state, replacing those with same name in `state`.
+        \\*\\*kwargs: Mapping
+            New property names and associate value for use in newly created state, replacing those
+            on the `state` parameter.
+        """
+        # Handle being initialised with state sequence
+        if isinstance(state, StateMutableSequence):
+            state = state.state
+
+        state_type = type(state)
+
+        args_property_names = {
+            name for n, name in enumerate(state_type.properties) if n < len(args)}
+
+        new_kwargs = {
+            name: getattr(state, name)
+            for name in state_type.properties.keys()
+            if name not in args_property_names}
+
+        new_kwargs.update(kwargs)
+
+        return state_type(*args, **new_kwargs)
 
 
 class CreatableFromState:

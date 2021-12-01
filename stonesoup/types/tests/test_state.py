@@ -6,6 +6,7 @@ import scipy.linalg
 import pytest
 
 from stonesoup.base import Property
+from stonesoup.types.groundtruth import GroundTruthState
 from ..angle import Bearing
 from ..array import StateVector, CovarianceMatrix
 from ..numeric import Probability
@@ -344,3 +345,63 @@ def test_state_mutable_sequence_error_message():
     test_obj.test_property = 5
     with pytest.raises(AttributeError, match="Custom error message"):
         _ = test_obj.complicated_attribute
+
+
+def test_from_state():
+    start = datetime.datetime.now()
+    kwargs = {"state_vector": np.arange(4), "timestamp": start}
+
+    states = [
+        State(**kwargs),
+        GaussianState(**kwargs, covar=np.eye(4)),
+        GroundTruthState(**kwargs, metadata={"colour": "blue"})
+    ]
+
+    for state in states:
+
+        # test replacement arg
+        new_state = State.from_state(state, np.ones(4))
+        assert isinstance(new_state, type(state))
+        assert np.array_equal(new_state.state_vector.flatten(), np.ones(4))
+        assert new_state.timestamp == start
+        if isinstance(state, GaussianState):
+            assert np.array_equal(new_state.covar, state.covar)
+        elif isinstance(state, GroundTruthState):
+            assert new_state.metadata == state.metadata
+
+        # test replacement kwarg
+        new_time = start + datetime.timedelta(seconds=5)
+        new_state = State.from_state(state, timestamp=new_time)
+        assert isinstance(new_state, type(state))
+        assert np.array_equal(new_state.state_vector, state.state_vector)
+        assert new_state.timestamp == new_time
+        if isinstance(state, GaussianState):
+            assert np.array_equal(new_state.covar, state.covar)
+        elif isinstance(state, GroundTruthState):
+            assert new_state.metadata == state.metadata
+
+        # test replacement arg and kwarg
+        new_time = start + datetime.timedelta(seconds=5)
+        new_state = State.from_state(state, np.ones(4), timestamp=new_time)
+        assert isinstance(new_state, type(state))
+        assert np.array_equal(new_state.state_vector.flatten(), np.ones(4))
+        assert new_state.timestamp == new_time
+        if isinstance(state, GaussianState):
+            assert np.array_equal(new_state.covar, state.covar)
+        elif isinstance(state, GroundTruthState):
+            assert new_state.metadata == state.metadata
+
+    # test covar overwrite
+    new_state = State.from_state(states[1], covar=2 * np.eye(4))
+    assert isinstance(new_state, type(states[1]))
+    assert np.array_equal(new_state.state_vector, states[1].state_vector)
+    assert new_state.timestamp == states[1].timestamp
+    assert np.array_equal(new_state.covar, 2 * np.eye(4))
+
+    # test metadata overwrite
+    new_metadata = {"size": "big"}
+    new_state = State.from_state(states[2], metadata=new_metadata)
+    assert isinstance(new_state, type(states[2]))
+    assert np.array_equal(new_state.state_vector, states[2].state_vector)
+    assert new_state.timestamp == states[2].timestamp
+    assert new_state.metadata == new_metadata
