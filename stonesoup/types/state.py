@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 import datetime
 from collections import abc
-from typing import MutableSequence
+from typing import MutableSequence, Any, Optional
 
 import numpy as np
 import uuid
 
-from ..base import Property
+from ..base import Property, Base
 from .array import StateVector, CovarianceMatrix, PrecisionMatrix
 from .base import Type
 from .particle import Particles
@@ -32,6 +32,65 @@ class State(Type):
     def ndim(self):
         """The number of dimensions represented by the state."""
         return self.state_vector.shape[0]
+
+
+class CreatableFromState:
+    class_mapping = {}
+
+    def __init_subclass__(cls, **kwargs):
+        state_type = cls.__bases__[-1]
+        base_class = cls.__bases__[0]
+        if base_class not in CreatableFromState.class_mapping:
+            CreatableFromState.class_mapping[base_class] = {}
+        CreatableFromState.class_mapping[base_class][state_type] = cls
+        super().__init_subclass__(**kwargs)
+
+    @classmethod
+    def from_state(
+            cls,
+            state: State,
+            *args: Any,
+            destination_type: Optional[type] = None,
+            **kwargs: Any) -> 'CreatableFromState':
+        """
+        TODO Update docs
+        Return new (Measurement)Prediction instance of suitable type using existing properties
+
+        Parameters
+        ----------
+        state: State
+            :class:`~.State` to use existing properties from, and identify prediction type from
+        \\*args: Sequence
+            Arguments to pass to newly created prediction, replacing those with same name on
+            ``state`` parameter.
+        destination_type: :class:`~.Prediction` or :class:`~.MeasurementPrediction`, optional
+            Type to use for prediction, overriding one from :attr:`class_mapping`.
+        \\*\\*kwargs: Mapping
+            New property names and associate value for use in newly created prediction, replacing
+            those on the ``state`` parameter.
+        """
+        # Handle being initialised with state sequence
+        if isinstance(state, StateMutableSequence):
+            state = state.state
+        try:
+            state_type = next(type_ for type_ in type(state).mro()
+                              if type_ in CreatableFromState.class_mapping[cls])
+        except StopIteration:
+            raise TypeError(f'{cls.__name__} type not defined for {type(state).__name__}')
+        if destination_type is None:
+            destination_type = CreatableFromState.class_mapping[cls][state_type]
+
+        args_property_names = {
+            name for n, name in enumerate(destination_type.properties) if n < len(args)}
+        # Use current state kwargs that also properties of prediction type
+        new_kwargs = {
+            name: getattr(state, name)
+            for name in state_type.properties.keys() & destination_type.properties.keys()
+            if name not in args_property_names}
+        # And replace them with any newly defined kwargs
+        new_kwargs.update(kwargs)
+
+        return destination_type(*args, **new_kwargs)
 
 
 class StateMutableSequence(Type, abc.MutableSequence):

@@ -213,7 +213,7 @@ class GromovFlowKalmanParticleUpdater(GromovFlowParticleUpdater):
         kalman_prediction = self.kalman_updater.predict_measurement(
             Prediction.from_state(
                 state_prediction, state_prediction.state_vector, state_prediction.covar,
-                prediction_type=GaussianStatePrediction),
+                destination_type=GaussianStatePrediction),
             *args, **kwargs)
 
         return ParticleMeasurementPrediction(
