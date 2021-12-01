@@ -216,7 +216,7 @@ fig
 # Constant Jerk
 # ^^^^^^^^^^^^^
 # The next method is :meth:`~simulator.ConstantJerkSimulator.create_models`
-
+#
 # This method takes a series of states with cartesian kinematic state space elements and returns a
 # chain (list) of :class:`~.ConstantJerkSimulator` transition models and transition times.
 #
@@ -246,7 +246,7 @@ states = [
 
 
 # %%
-# Plotting the three target destinations (in blue) and the target initial bearing in green:
+# Plotting the three target destinations in blue and orientations in green:
 
 fig = plt.figure(figsize=(10, 6))
 ax = fig.add_subplot(1, 1, 1)
