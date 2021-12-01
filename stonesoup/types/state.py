@@ -2,6 +2,7 @@
 import datetime
 from collections import abc
 from typing import MutableSequence, Any, Optional
+import typing
 
 import numpy as np
 import uuid
@@ -34,15 +35,14 @@ class State(Type):
         return self.state_vector.shape[0]
 
     @staticmethod
-    def from_state(state: 'State', *args: Any, **kwargs: Any) -> 'State':
-        """Class utility function to create a new state. The type and properties of this new state
-        are defined by `state`. Specific properties can be overwritten via `args` and `kwargs`.
+    def from_state(state: 'State', *args: Any, target_type: Optional[typing.Type] = None,
+                   **kwargs: Any) -> 'State':
+        """Class utility function to create a new state (or compatible type) from an existing
+        state. The type and properties of this new state are defined by `state` except for any
+        explicitly overwritten via `args` and `kwargs`.
 
-        This method was introduced to combat the need for deep copies in platform `move` methods,
-        and to allow platforms to use different state types, such as :class:`~.GroundTruthState`,
-        whereby the state metadata will be carried forward at each call to :meth:`move`.
-        The process here is similar to that of the :class:`~.Prediction` and :class:`~.Update`
-        `from_state` methods.
+        It acts similarly in feel to a copy constructor, with the optional over-writing of
+        properties.
 
         Parameters
         ----------
@@ -50,6 +50,11 @@ class State(Type):
             :class:`~.State` to use existing properties from, and identify new state-type from.
         \\*args: Sequence
             Arguments to pass to newly created state, replacing those with same name in `state`.
+        target_type: Type,  optional
+            Optional argument specifying the type of of object to be created. This need not
+            necessarily be :class:`~.State` subclass. Any arguments that match between the input
+            `state` and the target type will be copied from the old to the new object (except those
+            explicitly specified in `args` and `kwargs`.
         \\*\\*kwargs: Mapping
             New property names and associate value for use in newly created state, replacing those
             on the `state` parameter.
@@ -58,19 +63,20 @@ class State(Type):
         if isinstance(state, StateMutableSequence):
             state = state.state
 
-        state_type = type(state)
+        if target_type is None:
+            target_type = type(state)
 
         args_property_names = {
-            name for n, name in enumerate(state_type.properties) if n < len(args)}
+            name for n, name in enumerate(target_type.properties) if n < len(args)}
 
         new_kwargs = {
             name: getattr(state, name)
-            for name in state_type.properties.keys()
+            for name in type(state).properties.keys() & target_type.properties.keys()
             if name not in args_property_names}
 
         new_kwargs.update(kwargs)
 
-        return state_type(*args, **new_kwargs)
+        return target_type(*args, **new_kwargs)
 
 
 class CreatableFromState:
@@ -89,11 +95,35 @@ class CreatableFromState:
             cls,
             state: State,
             *args: Any,
-            destination_type: Optional[type] = None,
-            **kwargs: Any) -> 'CreatableFromState':
+            target_type: Optional[type] = None,
+            **kwargs: Any) -> 'State':
         """
-        TODO Update docs
-        Return new (Measurement)Prediction instance of suitable type using existing properties
+        Return new object instance of suitable type from an existing `state`.
+        The type returned can be explicitly specified using the `target_type` argument, otherwise
+        it is chosen by introspection of the created subclasses of this type: see below for an
+        example. Any compatible properties are copied from the input `state` to the returned
+        object, except for those specified by `args` and `kwargs`, which take precedence over those
+        from the input `state`.
+
+        This method is primarily concerned with type selection, with actual copying performed by
+        the static :meth:`~.State.from_state` method. As an example of the type selection
+        algorithm, consider the case of the class
+        `GaussianStatePrediction(Prediction, GaussianState)`. This is subclass of `Prediction`,
+        and `GaussianState` and so the `class_mapping` property will have an entry added (when
+        `GaussianStatePrediction` is defined) such that
+        `class_mapping[Prediction][GaussianState] = GaussianStatePrediction`. If this method is
+        then called like below
+
+        >>>> gaussian_state = GaussianState(some_arguments)
+        >>>> new_prediction = Prediction.from_state(gaussian_state, *args, **kwargs)
+
+        then the `from_state` method will look up the class mapping and see that
+        `Prediction.from_state()` called with a `GaussianState` input should return a
+        `GaussianStatePrediction` object, and therefore the type of `new_prediction` will be
+        `GaussianStatePrediction`
+
+        The functionality is currently used by :class:`~.Prediction` and :class:`~.Updater`
+        objects.
 
         Parameters
         ----------
@@ -102,7 +132,7 @@ class CreatableFromState:
         \\*args: Sequence
             Arguments to pass to newly created prediction, replacing those with same name on
             ``state`` parameter.
-        destination_type: :class:`~.Prediction` or :class:`~.MeasurementPrediction`, optional
+        target_type: Type, optional
             Type to use for prediction, overriding one from :attr:`class_mapping`.
         \\*\\*kwargs: Mapping
             New property names and associate value for use in newly created prediction, replacing
@@ -116,20 +146,10 @@ class CreatableFromState:
                               if type_ in CreatableFromState.class_mapping[cls])
         except StopIteration:
             raise TypeError(f'{cls.__name__} type not defined for {type(state).__name__}')
-        if destination_type is None:
-            destination_type = CreatableFromState.class_mapping[cls][state_type]
+        if target_type is None:
+            target_type = CreatableFromState.class_mapping[cls][state_type]
 
-        args_property_names = {
-            name for n, name in enumerate(destination_type.properties) if n < len(args)}
-        # Use current state kwargs that also properties of prediction type
-        new_kwargs = {
-            name: getattr(state, name)
-            for name in state_type.properties.keys() & destination_type.properties.keys()
-            if name not in args_property_names}
-        # And replace them with any newly defined kwargs
-        new_kwargs.update(kwargs)
-
-        return destination_type(*args, **new_kwargs)
+        return State.from_state(state, *args, **kwargs, target_type=target_type)
 
 
 class StateMutableSequence(Type, abc.MutableSequence):
