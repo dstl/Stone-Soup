@@ -358,39 +358,43 @@ def test_from_state():
         GroundTruthState(**kwargs, metadata={"colour": "blue"})
     ]
 
-    for state in states:
+    for use_sequence in (False, True):
+        for state in states:
 
-        # test replacement arg
-        new_state = State.from_state(state, np.ones(4))
-        assert isinstance(new_state, type(state))
-        assert np.array_equal(new_state.state_vector.flatten(), np.ones(4))
-        assert new_state.timestamp == start
-        if isinstance(state, GaussianState):
-            assert np.array_equal(new_state.covar, state.covar)
-        elif isinstance(state, GroundTruthState):
-            assert new_state.metadata == state.metadata
+            original_type = type(state)
+            if use_sequence:
+                state = StateMutableSequence(states=[state])
+            # test replacement arg
+            new_state = State.from_state(state, np.ones(4))
+            assert isinstance(new_state, original_type)
+            assert np.array_equal(new_state.state_vector.flatten(), np.ones(4))
+            assert new_state.timestamp == start
+            if original_type is GaussianState:
+                assert np.array_equal(new_state.covar, state.covar)
+            elif original_type is GroundTruthState:
+                assert new_state.metadata == state.metadata
 
-        # test replacement kwarg
-        new_time = start + datetime.timedelta(seconds=5)
-        new_state = State.from_state(state, timestamp=new_time)
-        assert isinstance(new_state, type(state))
-        assert np.array_equal(new_state.state_vector, state.state_vector)
-        assert new_state.timestamp == new_time
-        if isinstance(state, GaussianState):
-            assert np.array_equal(new_state.covar, state.covar)
-        elif isinstance(state, GroundTruthState):
-            assert new_state.metadata == state.metadata
+            # test replacement kwarg
+            new_time = start + datetime.timedelta(seconds=5)
+            new_state = State.from_state(state, timestamp=new_time)
+            assert isinstance(new_state, original_type)
+            assert np.array_equal(new_state.state_vector, state.state_vector)
+            assert new_state.timestamp == new_time
+            if original_type is GaussianState:
+                assert np.array_equal(new_state.covar, state.covar)
+            elif original_type is GroundTruthState:
+                assert new_state.metadata == state.metadata
 
-        # test replacement arg and kwarg
-        new_time = start + datetime.timedelta(seconds=5)
-        new_state = State.from_state(state, np.ones(4), timestamp=new_time)
-        assert isinstance(new_state, type(state))
-        assert np.array_equal(new_state.state_vector.flatten(), np.ones(4))
-        assert new_state.timestamp == new_time
-        if isinstance(state, GaussianState):
-            assert np.array_equal(new_state.covar, state.covar)
-        elif isinstance(state, GroundTruthState):
-            assert new_state.metadata == state.metadata
+            # test replacement arg and kwarg
+            new_time = start + datetime.timedelta(seconds=5)
+            new_state = State.from_state(state, np.ones(4), timestamp=new_time)
+            assert isinstance(new_state, original_type)
+            assert np.array_equal(new_state.state_vector.flatten(), np.ones(4))
+            assert new_state.timestamp == new_time
+            if original_type is GaussianState:
+                assert np.array_equal(new_state.covar, state.covar)
+            elif original_type is GroundTruthState:
+                assert new_state.metadata == state.metadata
 
     # test covar overwrite
     new_state = State.from_state(states[1], covar=2 * np.eye(4))
@@ -416,4 +420,14 @@ def test_creatable_from_state_error():
                        match='The first superclass of a CreatableFromState subclass must be a '
                              'CreatableFromState \\(or a subclass\\)'):
         class SubSubclassCfs(State, SubclassCfs):
+            pass
+
+
+# noinspection PyUnusedLocal
+def test_creatable_from_state_multi_base_error():
+    class SubclassCfs(CreatableFromState):
+        pass
+    with pytest.raises(TypeError,
+                       match='A CreatableFromState subclass must have exactly two superclasses'):
+        class SubSubclassCfs(State, StateMutableSequence, SubclassCfs):
             pass
