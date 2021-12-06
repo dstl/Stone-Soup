@@ -257,13 +257,13 @@ if __name__ == "__main__":
     except Exception as e:
         # configInput = "C:\\Users\\Davidb1\\Documents\\Python\\data\\testConfigs\\\
         #                testConfigs\\metrics_config_v5.yaml"
-        configInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\testConfigs\\alltogtut_config.yaml"
+        configInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\Data\\2021_Nov_19_09_33_54_996714.yaml"
         logging.error(e)
 
     try:
         parametersInput = args[1]
     except Exception as e:
-        parametersInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\Data\\dummy2.json"
+        parametersInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\Data\\2021_Nov_19_09_33_54_996714_parameters (2).json"
         logging.error(e)
         # parametersInput= "C:\\Users\\gbellant\\Documents\\Projects\\Serapis\\dummy3.json"
 
