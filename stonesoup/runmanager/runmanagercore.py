@@ -26,7 +26,7 @@ class RunManagerCore(RunManager):
             return json_data
             
     def run(self, config_path, parameters_path, 
-            ground_truth, dir, nruns, nprocesses, output_path=None):
+            groundtruth_setting, dir, nruns, nprocesses, output_path=None):
         """Run the run manager
 
         Args:
@@ -52,11 +52,12 @@ class RunManagerCore(RunManager):
         elif config_path and parameters_path is None:
             if nruns is None:
                 nruns=1
-            self.prepare_and_run_single_sim(config_path, nruns)
+            self.prepare_and_run_single_sim(config_path, groundtruth_setting, nruns)
 
         for path in pairs:
-            param_path = path[0]
-            config_path = path[1]
+            # add check file type
+            param_path = path[1]
+            config_path = path[0]
             json_data = self.read_json(param_path)
             if nruns is None:
                 if json_data['configuration']['runs_num']:
@@ -66,7 +67,7 @@ class RunManagerCore(RunManager):
             trackers_combination_dict = input_manager.generate_parameters_combinations(
                 json_data["parameters"])
             combo_dict = input_manager.generate_all_combos(trackers_combination_dict)
-            self.prepare_and_run_multi_sim(config_path, combo_dict, nruns)
+            self.prepare_and_run_multi_sim(config_path, combo_dict, groundtruth_setting, nruns)
 
             #logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
 
@@ -193,7 +194,7 @@ class RunManagerCore(RunManager):
             if len(split_path) > 0:
                 setattr(el, split_path[0], value)
 
-    def read_config_file(self, config_file):
+    def read_config_file(self, config_file, groundtruth_setting):
         """Read the configuration file
 
         Args:
@@ -208,21 +209,34 @@ class RunManagerCore(RunManager):
         tracker, gt, mm, csv_data = None, None, None, None
 
         config_data = YAML('safe').load(config_string)
-        for x in config_data:
-            if "Tracker" in str(type(x)):
-                tracker = x
-                print("Tracker found")
-            elif "GroundTruth" in str(type(x)):
-                gt = x
-                print("Groundtruth found")
-            elif "metricgenerator" in str(type(x)):
-                mm = x
-                print("Metric manager found")
-            elif type(x) is np.ndarray:
-                csv_data = x
-                print("CSV data found")
 
-        return tracker, gt, mm, csv_data
+        # Set explicitly if user has included groundtruth in config and set flag
+        if groundtruth_setting is True:
+            print("MANUAL READ")
+            tracker = config_data[0]
+            gt = config_data[1]
+            if len(config_data) > 2:
+                mm = config_data[2]
+        else:
+            print("AUTOMATIC READ")
+            for x in config_data:
+                if "Tracker" in str(type(x)):
+                    tracker = x
+                elif "GroundTruth" in str(type(x)):
+                    gt = x
+                elif "metricgenerator" in str(type(x)):
+                    mm = x
+                elif type(x) is np.ndarray:
+                    csv_data = x
+                    print("CSV data found")
+
+        #print("TRACKER: ", tracker)
+        #print("GROUNDTRUTH: ", gt)
+        #print("METRICMANAGER: ", mm)
+
+        return tracker, gt, mm
+
+
 
     def read_config_dir(self, config_dir):
         if os.path.exists(config_dir):
@@ -255,11 +269,11 @@ class RunManagerCore(RunManager):
                 pair = []
         return pairs
     
-    def prepare_and_run_single_sim(self, config_path, nruns):
+    def prepare_and_run_single_sim(self, config_path, groundtruth_setting, nruns):
         try:
             now = datetime.now()
             dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
-            tracker, ground_truth, metric_manager, csv_data = self.set_components(config_path)
+            tracker, ground_truth, metric_manager = self.set_components(config_path, groundtruth_setting)
             for runs in range(nruns):
                 dir_name = f"metrics_{dt_string}/run_{runs}"
                 print("RUN")
@@ -269,16 +283,8 @@ class RunManagerCore(RunManager):
             print(f'{datetime.now()} Preparing simulation error: {e}')
             logging.error(f'{datetime.now()} Could not run simulation. error: {e}')
             
-    def prepare_and_run_multi_sim(self, config_path, combo_dict, nruns):
-        tracker, ground_truth, metric_manager, csv_data = self.set_components(config_path)
-
-        if ground_truth is None:
-            try:
-                ground_truth = tracker.detector.groundtruth
-            except Exception as e:
-                logging.error(f'{datetime.now()} : {e}')
-                print(f'No groundtruth in tracker detector {e}', flush=True)
-
+    def prepare_and_run_multi_sim(self, config_path, combo_dict, groundtruth_setting, nruns):
+        tracker, ground_truth, metric_manager = self.set_components(config_path, groundtruth_setting)
         trackers, ground_truths, metric_managers = self.set_trackers(
             combo_dict, tracker, ground_truth, metric_manager)
         now = datetime.now()
@@ -289,20 +295,16 @@ class RunManagerCore(RunManager):
                 RunmanagerMetrics.parameters_to_csv(dir_name, combo_dict[idx])
                 RunmanagerMetrics.generate_config(
                     dir_name, trackers[idx], ground_truths[idx], metric_managers[idx])
-                if ground_truth == None:
-                    groundtruth = trackers[idx].detector.groundtruth
-                else:
-                    groundtruth = ground_truths[idx]
                 print("RUN")
-                self.run_simulation(trackers[idx], groundtruth, metric_managers[idx],
-                                    dir_name, ground_truth, idx, combo_dict)
-                    
-    def set_components(self, config_path):
-        tracker, ground_truth, metric_manager, csv_data = None, None, None, None
+                self.run_simulation(trackers[idx], ground_truths[idx], metric_managers[idx],
+                                    dir_name, groundtruth_setting, idx, combo_dict)
+    
+    def set_components(self, config_path, groundtruth_setting):
+        tracker, ground_truth, metric_manager= None, None, None
         try:
             with open(config_path, 'r') as file:
-                tracker, ground_truth, metric_manager, csv_data = self.read_config_file(file)
+                tracker, ground_truth, metric_manager = self.read_config_file(file, groundtruth_setting)
         except Exception as e:
             print(f'{datetime.now()} Could not read config file: {e}')
             logging.error(f'{datetime.now()} Could not read config file: {e}')
-        return tracker, ground_truth, metric_manager, csv_data
+        return tracker, ground_truth, metric_manager
