@@ -1,5 +1,5 @@
 
-from base import RunManager
+from .base import RunManager
 import numpy as np
 import itertools
 from stonesoup.types.array import StateVector, CovarianceMatrix
@@ -222,9 +222,11 @@ class InputManager(RunManager):
                                                                   param["n_samples"][x]))
                         combination_list[path] = self.get_array_list(iteration_list,
                                                                      len(param["value_min"]))
-                                                                     
+
                         if param["type"] == "Tuple":
                             combination_list[path] = self.set_tuple(combination_list[path])
+                        if param["type"] == "list":
+                            combination_list[path] = [list(i) for i in combination_list[path]]
 
                     combination_dict.update(combination_list)
 
