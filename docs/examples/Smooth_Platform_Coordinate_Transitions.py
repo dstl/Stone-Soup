@@ -215,7 +215,7 @@ fig
 # %%
 # Constant Jerk
 # ^^^^^^^^^^^^^
-# The next method is :meth:`~simulator.ConstantJerkSimulator.create_models`
+# The next method is :meth:`~.simulator.transition.ConstantJerkSimulator.create_models`
 #
 # This method takes a series of states with cartesian kinematic state space elements and returns a
 # chain (list) of :class:`~.ConstantJerkSimulator` transition models and transition times.
@@ -224,10 +224,10 @@ fig
 # noiseless, constant jerk transition in the kinematic, cartesian subspace of the state space.
 #
 # The user will need to provide both initial and final position and velocities. This can be of any
-# dimension. For example, constant jerk in the space :math:`(x, vx, y, vy)` and
-# :math:`(x, vx, y, vy, z, vz`)` are valid (elements need not be in this order, as a position
-# mapping and velocity mapping can be passed to the method to specify where the position and
-# velocity components are respectively).
+# dimension. For example, constant jerk in the space :math:`(x, \dot{x}, y, \dot{y})` and
+# :math:`(x, \dot{x}, y, \dot{y}, z, \dot{z})` are valid (elements need not be in this order, as a
+# position  mapping and velocity mapping can be passed to the method to specify where the position
+# and velocity components are respectively).
 
 
 # %%
@@ -262,8 +262,8 @@ for state in states:
 
 # %%
 # To create the list of transition models and durations, pass the list of states, position mapping
-# and velocity mapping (optional) to the :meth:`~simulator.ConstantJerkSimulator.create_models`
-# method.
+# and velocity mapping (optional) to the
+# :meth:`~.simulator.transition.ConstantJerkSimulator.create_models` method.
 
 from stonesoup.simulator.transition import ConstantJerkSimulator
 transition_models, transition_times = ConstantJerkSimulator.create_models(states,
