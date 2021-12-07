@@ -16,24 +16,42 @@ class RunManagerCore(RunManager):
         logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
         
     def read_json(self, json_input):
-        """ Reads JSON Files and stores in dictionary
+        """Read json file from directory
 
-        Args:
-            json_input : json file filled with parameters
+        Parameters
+        ----------
+        json_input : str
+            path to json file
+
+        Returns
+        -------
+        dict
+            returns a dictionary of json data
         """
         with open(json_input) as json_file:
             json_data = json.load(json_file)
             return json_data
             
     def run(self, config_path, parameters_path, 
-            groundtruth_setting, dir, nruns, nprocesses, output_path=None):
-        """Run the run manager
+            groundtruth_setting, dir, nruns=1, nprocesses=1):
+        """Handles the running of multiple files, single files and defines the structure
+        of the run.
 
-        Args:
-            config_path : Path of the config file
-            parameters_path : Path of the parameters file
-            groundtruth : Checks if there is a ground truth available in the config file
-        """
+        Parameters
+        ----------
+        config_path : str
+            path to configuration file
+        parameters_path : str
+            path to parameter file
+        groundtruth_setting : bool
+            define if ground truth exists
+        dir : str
+            directory of configuration files
+        nruns : int, optional
+            number of monte-carlo runs
+        nprocesses : int, optional
+            number of processing cores to use
+        """        
         pairs = []
         input_manager = InputManager()
                 
@@ -72,18 +90,19 @@ class RunManagerCore(RunManager):
             #logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
 
     def run_simulation(self, tracker, ground_truth,
-                       metric_manager, dir_name,
-                       groundtruth_setting, index=None, combos=None):
-        """Start the simulation
+                       metric_manager, dir_name):
+        """Runs a simulation 
 
-        Args:
-            tracker: Tracker
-            groundtruth: GroundTruth
-            metric_manager: Metric Manager
-            dir_name: Directory name for saving the simulations
-            groundtruth_setting: unsued
-            index: Keeps a track of which simulation is being ran
-            combos: List of combinations for logging the parameters for each simulation.
+        Parameters
+        ----------
+        tracker : Tracker
+            Stonesoup tracker object
+        ground_truth : GroundTruth
+            ground truth object, can be csv
+        metric_manager : MetricManager
+            Metric manager object
+        dir_name : str 
+            output directory for metrics
         """
 
         log_time = datetime.now()
@@ -145,20 +164,27 @@ class RunManagerCore(RunManager):
     def set_trackers(self, combo_dict, tracker, ground_truth, metric_manager):
         """Set the trackers, groundtruths and metricmanagers list (stonesoup objects)
 
-        Args:
-            combo_dict (dict): dictionary of all the possible combinations of values
+        Parameters
+        ----------
+        combo_dict : dict
+            dictionary of all the possible combinations of values
+        tracker : tracker
+            stonesoup tracker
+        ground_truth : groundtruth
+            stonesoup groundtruth
+        metric_manager : metricmanager
+            stonesoup metric_manager
 
-            tracker (tracker): stonesoup tracker
-
-            groundtruth (groundtruth): stonesoup groundtruth
-
-            metric_manager (metricmanager): stonesoup metric_manager
-
-        Returns:
-            list: list of trackers
-            list: list of groundtruths
-            list: list of metric managers
+        Returns
+        -------
+        list: 
+            list of trackers
+        list: 
+            list of groundtruths
+        list: 
+            list of metric managers
         """
+
         trackers = []
         ground_truths = []
         metric_managers = []
@@ -179,14 +205,17 @@ class RunManagerCore(RunManager):
         return trackers, ground_truths, metric_managers
 
     def set_param(self, split_path, el, value):
-        """[summary]
+        """Sets the paramater file value to the attribute in the stone soup object
 
-        Args:
-            split_path ([type]): [description]
-            el ([type]): [description]
-            value ([type]): [description]
+        Parameters
+        ----------
+        split_path : str
+            path to object attribute
+        el : str
+            tracker
+        value : str
+            attribute value
         """
-
         if len(split_path) > 1:
             newEl = getattr(el, split_path[0])
             self.set_param(split_path[1::], newEl, value)
@@ -195,14 +224,23 @@ class RunManagerCore(RunManager):
                 setattr(el, split_path[0], value)
 
     def read_config_file(self, config_file, groundtruth_setting):
-        """Read the configuration file
+        """[summary]
 
-        Args:
-            config_file (file path): file path of the configuration file
+        Parameters
+        ----------
+        config_file : str
+            file path to configuration file
+        groundtruth_setting : bool
+            checks if ground truth exists
 
-        Returns:
-            trackers,ground_truth,metric_manager: trackers, ground_truth and
-            metric manager stonesoup structure
+        Returns
+        -------
+        str
+            Tracker
+        str
+            Ground Truth
+        str
+            Metric manager
         """
         config_string = config_file.read()
 
@@ -230,15 +268,22 @@ class RunManagerCore(RunManager):
                     csv_data = x
                     print("CSV data found")
 
-        #print("TRACKER: ", tracker)
-        #print("GROUNDTRUTH: ", gt)
-        #print("METRICMANAGER: ", mm)
-
         return tracker, gt, mm
 
 
-
     def read_config_dir(self, config_dir):
+        """Reads a directory and returns a list of all of the file paths
+
+        Parameters
+        ----------
+        config_dir : str
+            directory location
+
+        Returns
+        -------
+        list
+            returns a list of files paths from specified directory
+        """
         if os.path.exists(config_dir):
             files = os.listdir(config_dir)
         else:  
@@ -246,6 +291,18 @@ class RunManagerCore(RunManager):
         return files
     
     def get_filepaths(self, directory):
+        """Returns the filepaths for a specific directory
+
+        Parameters
+        ----------
+        directory : str
+            path to directory
+
+        Returns
+        -------
+        list
+            list of all file paths from specified directory
+        """
         file_paths =[]
         if os.path.exists(directory):
             for root, directories, files in os.walk(directory):
@@ -255,6 +312,19 @@ class RunManagerCore(RunManager):
         return file_paths
 
     def get_config_and_param_lists(self, files):
+        """Matches the config file and parameter file by name and pairs them together
+        within a list
+
+        Parameters
+        ----------
+        files : list
+            List of file paths
+
+        Returns
+        -------
+        List
+            List of file paths pair together
+        """
         pair = []
         pairs = []
         
@@ -270,6 +340,17 @@ class RunManagerCore(RunManager):
         return pairs
     
     def prepare_and_run_single_sim(self, config_path, groundtruth_setting, nruns):
+        """Prepares a single simulation for a run
+
+        Parameters
+        ----------
+        config_path : str
+            path to configuration
+        groundtruth_setting : bool
+            Defines if ground truth is present
+        nruns : int
+            Number of monte-carlo runs
+        """
         try:
             now = datetime.now()
             dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
@@ -284,6 +365,19 @@ class RunManagerCore(RunManager):
             logging.error(f'{datetime.now()} Could not run simulation. error: {e}')
             
     def prepare_and_run_multi_sim(self, config_path, combo_dict, groundtruth_setting, nruns):
+        """Prepares multiple trackers for simulation runs
+
+        Parameters
+        ----------
+        config_path : str
+            path to configuration
+        combo_dict : dict
+            dictionary of all parameter combinations for monte-carlo
+        groundtruth_setting : bool
+            Defines if ground truth is present
+        nruns : int
+            Number of monte-carlo runs
+        """
         tracker, ground_truth, metric_manager = self.set_components(config_path, groundtruth_setting)
         trackers, ground_truths, metric_managers = self.set_trackers(
             combo_dict, tracker, ground_truth, metric_manager)
@@ -300,6 +394,25 @@ class RunManagerCore(RunManager):
                                     dir_name, groundtruth_setting, idx, combo_dict)
     
     def set_components(self, config_path, groundtruth_setting):
+        """Sets the tracker, ground truth and metric manager to the correct variables
+        from the configuration file.
+
+        Parameters
+        ----------
+        config_path : str
+            path to configuration
+        groundtruth_setting : bool
+            Defines if ground truth is present
+
+        Returns
+        -------
+        Tracker: 
+            Tracker
+        GroundTruth: 
+            Ground Truth
+        MetricManager: 
+            Metric manager
+        """
         tracker, ground_truth, metric_manager= None, None, None
         try:
             with open(config_path, 'r') as file:
