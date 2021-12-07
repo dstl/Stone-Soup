@@ -214,14 +214,20 @@ class InputManager(RunManager):
                     combination_list[path] = iteration_list
                     combination_dict.update(combination_list)
 
-                if param["type"] == "Tuple" and key == "value_min":
+                if (param["type"] == "Tuple" or param["type"] == "list") and key == "value_min":
                     if len(param['value_min']) > 0 and len(param['value_max']) > 0:
                         for x in range(len(val)):
                             iteration_list.append(self.iterations(param["value_min"][x],
                                                                   param["value_max"][x],
                                                                   param["n_samples"][x]))
-                        combination_list[path] = self.set_tuple(self.get_array_list(iteration_list,
-                                                                len(param["value_min"])))
+                        combination_list[path] = self.get_array_list(iteration_list,
+                                                                     len(param["value_min"]))
+
+                        if param["type"] == "Tuple":
+                            combination_list[path] = self.set_tuple(combination_list[path])
+                        if param["type"] == "list":
+                            combination_list[path] = [list(i) for i in combination_list[path]]
+
                     combination_dict.update(combination_list)
 
                 if param["type"] == "timedelta" and key == "value_min":
