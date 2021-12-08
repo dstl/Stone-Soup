@@ -15,7 +15,7 @@ from ..types.state import State
 
 
 def create_smooth_transition_models(initial_state, x_coords, y_coords, times, turn_rate):
-    """Generate a list of constant-turn and constant acceleration transition models alongside a
+    r"""Generate a list of constant-turn and constant acceleration transition models alongside a
     list of transition times to provide smooth transitions between 2D cartesian coordinates and
     time pairs.
     An assumption is that the initial_state's x, y coordinates are the first elements of x_ccords
@@ -23,7 +23,8 @@ def create_smooth_transition_models(initial_state, x_coords, y_coords, times, tu
 
     Parameters
     ----------
-    initial_state: :class:`~.State` The initial state of the platform.
+    initial_state: :class:`~.State`
+        The initial state of the platform.
     x_coords:
         A list of int/float x-coordinates (cartesian) in the order that the target must follow.
     y_coords:
@@ -46,8 +47,9 @@ def create_smooth_transition_models(initial_state, x_coords, y_coords, times, tu
     Notes
     -----
     x_coords, y_coords and times must be of same length.
-    This method assumes a cartesian state space with velocities eg. (x, vx, y, vy). It returns
-    transition models for 2 cartesian coordinates and their corresponding velocities.
+    This method assumes a cartesian state space with velocities eg.
+    :math:`(x, \dot{x}, y, \dot{y})`. It returns transition models for 2 cartesian coordinates and
+    their corresponding velocities.
     """
 
     state = deepcopy(initial_state)  # don't alter platform state with calculations
@@ -318,14 +320,14 @@ class ConstantJerkSimulator(TransitionModel):
     Solution given by :math:`\vec{\ddddot{x}} = \vec{0}`
 
     The user will provide an initial and final state, each of which containing initial cartesian
-    position and velocities. For example, :math:`(x, vx, y, vy)`.
+    position and velocities. For example, :math:`(x, \dot{x}, y, \dot{y})`.
 
     Components of the state vector that are not position or velocity are kept constant.
     Initial and final accelerations are uniquely defined by this input.
 
     Notes
     -----
-        * Acceleration instantaneously changes at each target state
+    Acceleration instantaneously changes at each target state
     """
     position_mapping: Sequence[int] = Property(
         doc="Mapping between platform position and state vector.")
@@ -418,7 +420,7 @@ class ConstantJerkSimulator(TransitionModel):
 
     @staticmethod
     def calculate_pos(init_x, init_v, init_a, jerk, T):
-        """Calculate position, along a particular axis.
+        r"""Calculate position, along a particular axis.
 
         Parameters
         ----------
@@ -443,96 +445,20 @@ class ConstantJerkSimulator(TransitionModel):
 
     @staticmethod
     def calculate_vel(init_v, init_a, jerk, T):
-        """Calculate velocity, along a particular axis.
-
-        Parameters
-        ----------
-        init_v: float
-            Initial velocity along axis
-        init_a: float
-            Initial acceleration along axis
-        jerk: float
-            Constant jerk value along axis
-        T: float
-            Number for seconds to carry-out jerk transition
-
-        Returns
-        -------
-        float
-            New velocity along axis, given by:
-            :math:`V' = \frac{J_0 T^2}{2} + A_0 T + V_0`
-        """
         return (jerk * T ** 2) / 2 + init_a * T + init_v
 
     @staticmethod
     def calculate_init_accel(init_x, final_x, init_v, final_v, T):
-        """Calculate initial acceleration, along a particular axis.
-
-        Parameters
-        ----------
-        init_x: float
-            Initial position along axis
-        final_x: float
-            Final position along axis
-        init_v: float
-            Initial velocity along axis
-        final_v: float
-            Final velocity along axis
-        T: float
-            Number for seconds to get from initial to final state
-
-        Returns
-        -------
-        float
-            Initial acceleration along axis, given by:
-            :math:`A_0 = \frac{6}{T^2}(X_1 - X_0 - \frac{2 V_0 T}{3} - \frac{V_1 T}{3})`
-        """
         return (6 / T ** 2) * (final_x - init_x - (2 * init_v * T / 3) - (final_v * T / 3))
 
     @staticmethod
     def calculate_final_accel(init_v, final_v, init_a, T):
-        """Calculate final acceleration, along a particular axis.
-
-        Parameters
-        ----------
-        init_v: float
-            Initial velocity along axis
-        final_v: float
-            Final velocity along axis
-        init_a: float
-            Initial acceleration along axis
-        T: float
-            Number for seconds to get from initial to final state
-
-        Returns
-        -------
-        float
-            Final acceleration along axis, given by:
-            :math:`A_1 = \frac{2}{T} (V_1 - V_0) - A_0`
-        """
         if T == 0:
             return 0
         return (2 / T) * (final_v - init_v) - init_a
 
     @staticmethod
     def calculate_jerk(init_a, final_a, T):
-        """Calculate constant jerk, along a particular axis.
-
-        Parameters
-        ----------
-        init_a: float
-            Initial acceleration along axis
-        final_a: float
-            Final acceleration along axis
-        T: float
-            Number for seconds to get from initial to final state
-
-        Returns
-        -------
-        float
-            Constant jerk along axis, given by:
-            :math:`J = \frac{A_1 - A_0}{T}`
-        """
         return (final_a - init_a) / T
 
     @classmethod

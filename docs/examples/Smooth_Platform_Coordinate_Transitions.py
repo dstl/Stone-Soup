@@ -35,8 +35,8 @@ Creating Smooth Transitions Between Coordinates
 
 
 # %%
-# A Simple Demo
-# -------------
+# A Simple Demo of Constant Acceleration
+# --------------------------------------
 # Start with the target (platform) facing top-right (45 degrees clockwise from North).
 # The target begins at the origin, at time = start.
 #
@@ -150,8 +150,8 @@ fig
 
 
 # %%
-# Running through multiple coordinates
-# ------------------------------------
+# Running through multiple coordinates with Constant Acceleration
+# ---------------------------------------------------------------
 # A demonstration using several coordinates.
 
 np.random.seed(101)
@@ -231,8 +231,8 @@ fig
 
 
 # %%
-# A Simple Demo
-# -------------
+# A Simple Demo of Constant Jerk
+# ------------------------------
 # We will use the same set-up as before, but specify an initial and final velocity as well.
 
 start = datetime.now()
@@ -295,8 +295,8 @@ fig
 
 
 # %%
-# Running through multiple coordinates
-# ------------------------------------
+# Running through multiple coordinates with Constant Jerk
+# -------------------------------------------------------
 # A demonstration using several coordinates.
 
 ndim_state = np.random.randint(4, 6)
