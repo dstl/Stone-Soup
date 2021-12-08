@@ -2,22 +2,26 @@
 
 import numpy as np
 from typing import Set, Union, Callable, Tuple
+from abc import ABC
 
+from .base import Model
 from ..base import Property
-from .base import MeasurementModel
-from ...types.detection import Clutter
-from ...types.groundtruth import GroundTruthState
-from ...types.array import StateVector, StateVectors
-from ...types.numeric import Probability
-from ...types.state import State
+from ..types.detection import Clutter
+from ..types.groundtruth import GroundTruthState
+from ..types.array import StateVector, StateVectors
+from ..types.numeric import Probability
+from ..types.state import State
 
-class ClutterModel(MeasurementModel):
-    """A simulator that generates sensor clutter (false alarms) according to a specified 
-    distribution in space relative to the sensor's position.
+class ClutterModel(Model, ABC):
+    """A model for generating sensor clutter (false alarms) according to a specified 
+    distribution in the state space relative to the sensor's position.
 
     Note
     ----
-    This implementation of this class assumes a 3D Cartesian space.
+    Instances of this class do not hold information about the measurement space until
+    immediately before they are called to function. As such, the same :class:`~.ClutterModel` 
+    object could be used with multiple different :class:`~.Clutter`MeasurementModel`s as long 
+    as they operate in the same state space.
     """
 
     clutter_rate: float = Property(
@@ -32,7 +36,7 @@ class ClutterModel(MeasurementModel):
     dist_params: Tuple = Property(
         default=((-200, 200), (-200, 200)),
         doc="The required parameters for the clutter distribution function. The "
-        "length of the list must be equal to the number of dimensions (`self.ndim_meas`) "
+        "length of the list must be equal to the number of state dimensions "
         "and should be defined for use in Cartesian space."
         "The default defines the space for a uniform distribution in 2D. The call "
         "`np.array([self.distribution(*arg) for arg in self.dist_params])` "
@@ -60,9 +64,9 @@ class ClutterModel(MeasurementModel):
         # groundtruth return a set of no Clutter.
         if not ground_truths:
             return set()
+        timestamp = next(iter(ground_truths)).timestamp
 
         # Generate the clutter for this time step
-        timestamp = next(iter(ground_truths)).timestamp
         clutter = set()
         for _ in range(np.random.poisson(self.clutter_rate)):
             # Call the distribution function to generate a random vector in the space
@@ -85,19 +89,17 @@ class ClutterModel(MeasurementModel):
 
         return clutter
     
-    
     @property
-    def ndim_meas(self) -> int:
-        """ndim_meas getter method
-
-        Returns
-        -------
-        :class:`int`
-            The number of measurement dimensions. Equal to the number of dimensions in the 
-            Sensor's measurement model.
-        """
-        return self.measurement_model.ndim_state
-
+    def ndim(self) -> int:
+        '''
+        Return the number of measurement dimensions or, if a measurement model has 
+        not yet been assigned, the number of state dimensions.
+        '''
+        if hasattr(self, 'measurement_model'):
+            return self.measurement_model.ndim_meas
+        else:
+            return len(self.dist_params)
+    
     def rvs(self, num_samples: int = 1, **kwargs) -> Union[StateVector, StateVectors]:
         """
         Must be implemented to properly inherit the parent Model.
