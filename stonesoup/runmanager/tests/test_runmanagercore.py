@@ -213,14 +213,15 @@ def test_set_components_no_gt():
     assert ground_truth == None
     assert "metricgenerator" in str(type(metric_manager))
     
-def test_set_components_no_gt():
+def test_set_components_no_gt_mm():
     tracker, ground_truth, metric_manager = rmc.set_components(test_config_trackeronly, False)
     assert "tracker" in str(type(tracker))
     assert ground_truth == None
     assert metric_manager == None
 
-def test_set_components_no_gt():
+def test_set_components_no_mm():
     tracker, ground_truth, metric_manager = rmc.set_components(test_config_nomm, True)
     assert "tracker" in str(type(tracker))
     assert ground_truth == tracker.detector.groundtruth
     assert metric_manager == None
+
