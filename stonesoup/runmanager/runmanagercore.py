@@ -407,11 +407,11 @@ class RunManagerCore(RunManager):
         Returns
         -------
         Tracker: 
-            Tracker
+            Tracker stone soup object
         GroundTruth: 
-            Ground Truth
+            Ground Truth stone soup object
         MetricManager: 
-            Metric manager
+            Metric manager stone soup object
         """
         tracker, ground_truth, metric_manager= None, None, None
         try:

@@ -257,12 +257,18 @@ class InputManager(RunManager):
         """Not used at the moment. Navigate inside the ndarray with a n depth and
         calculate all the iterations
 
-        Args:
-            val ([type]): [description]
-            val_min ([type]): [description]
-            val_max ([type]): [description]
-            iteration_list ([type]): [description]
-            n_samples ([type]): [description]
+        Parameters
+        ----------
+        val : [type]
+            [description]
+        val_min : [type]
+            [description]
+        val_max : [type]
+            [description]
+        iteration_list : [type]
+            [description]
+        n_samples : int
+            number of parameter combinations
         """
         if(type(val) is list):
             for x in range(len(val)):
@@ -275,13 +281,25 @@ class InputManager(RunManager):
 
     # Calculate the steps for each item in a list
     def iterations(self, min_value, max_value, num_samples, index=0):
-        """ Calculates the step different between the min
+        """Calculates the step different between the min
             and max value given in the parameter file.
             If n_samples is 0 return 1 value, if it is >=1 return num_samples+2 values
-        Args:
-            self : self
-            min_value : Minimum parameter value
-            maz_value : Maximum parameter value
+
+        Parameters
+        ----------
+        min_value : Object
+            Minimum parameter value
+        max_value : Object
+            Minimum parameter value
+        num_samples : int
+            number of parameter samples to calculate
+        index : int, optional
+            [description], by default 0
+
+        Returns
+        -------
+        list
+            list of steps required for the monte-carlo run
         """
         temp = []
 

@@ -12,18 +12,23 @@ from .base import RunManager
 class RunmanagerMetrics(RunManager):
     """Class for generating
 
-    Args:
-        Runmanager : Run manager base class
+    Parameters
+    ----------
+    Runmanager : Class
+        Run manager base class
     """
     def tracks_to_csv(dir_name, tracks, overwrite=False):
         """Create a csv file for the track. It will contain the following columns:
             time    id    state    mean    covar
 
-        Args:
-            dir_name: name of the directory where to create the config file
-            tracks: tracks data
-            overwrite: overwrite the file.
-
+        Parameters
+        ----------
+        dir_name : str
+            name of the directory where to create the config file
+        tracks : Track
+            Stonesoup track data
+        overwrite : bool, optional
+            overwrite the file, by default False
         """
         if not os.path.exists(dir_name):
             os.makedirs(dir_name)
@@ -49,11 +54,14 @@ class RunmanagerMetrics(RunManager):
         """Create a csv file for the metrics. It will contain the following columns:
             title    value    generator    timestamp
 
-        Args:
-            dir_name: name of the directory where to create the config file
-            tracks: tracks data
-            overwrite: overwrite the file.
-
+        Parameters
+        ----------
+        dir_name : [type]
+            name of the directory where to create the config file
+        metrics : Metric
+            Metrics object
+        overwrite : bool, optional
+            overwrite the file, by default False
         """
         filename = "metrics.csv"
         if not os.path.exists(dir_name):
@@ -83,10 +91,14 @@ class RunmanagerMetrics(RunManager):
         """Create a csv file for the detections. It will contain the following columns:
             time    x  y
 
-        Args:
-            dir_name: name of the directory where to create the config file
-            detections: detections data
-            overwrite: overwrite the file.
+        Parameters
+        ----------
+        dir_name : str
+            name of the directory where to create the config file
+        detections : Detections
+            Detections Stonesoup
+        overwrite : bool, optional
+            overwrite the file., by default False
         """
         filename = "detections.csv"
         if not os.path.exists(dir_name):
@@ -107,12 +119,16 @@ class RunmanagerMetrics(RunManager):
                                     str(d_set.state_vector[1])])
 
     def groundtruth_to_csv(dir_name, groundtruths, overwrite=False):
-        """Create a csv file for the grountruth. It will contain the following columns:
+        """Create a csv file for the grountruth.
 
-        Args:
-            dir_name: name of the directory where to create the config file
-            groundtruths: groundtruths data
-            overwrite: overwrite the file.
+        Parameters
+        ----------
+        dir_name : str
+            name of the directory where to create the config file
+        groundtruths : GrouthTruth
+            GrouthTruth Stonesoup
+        overwrite : bool, optional
+            overwrite the file., by default False
         """
         filename = "groundtruth.csv"
 
@@ -134,10 +150,14 @@ class RunmanagerMetrics(RunManager):
     def parameters_to_csv(dir_name, parameters, overwrite=False):
         """Create a csv file for the parameters. It will contain the parameter name for each simulation.
 
-        Args:
-            dir_name: name of the directory where to create the config file
-            parameters: dictionary of the parameter details for the simulation runs.
-            overwrite: overwrite the file.
+        Parameters
+        ----------
+        dir_name : str
+            name of the directory where to create the config file
+        parameters : dict
+            Dictionary of paramater details for the simulation run
+        overwrite : bool, optional
+            overwrite the file, by default False
         """
         filename = "parameters.json"
         if not os.path.exists(dir_name):
@@ -161,11 +181,19 @@ class RunmanagerMetrics(RunManager):
     def generate_config(dir_name, tracker=None, groundtruth=None, metrics=None, overwrite=False):
         """Creates a config.yaml file using the parameters you specificed in the model.
 
-        Args:
-            dir_name: name of the directory where to create the config file
-            parameters: dictionary of the parameter details for the simulation runs.
-            overwrite: overwrite the file.
-        """
+        Parameters
+        ----------
+        dir_name : str
+            name of the directory where to create the config file
+        tracker : Tracker, optional
+            Stonesoup tracker object, by default None
+        groundtruth : GrouthTruth, optional
+            Stonesoup tracker object, by default None
+        metrics : Metrics, optional
+            Stone soup metrics object, by default None
+        overwrite : bool, optional
+            overwrite the file, by default False
+        """       
         data = [tracker, groundtruth, metrics]
         filename = "config.yaml"
         if not os.path.exists(dir_name):
