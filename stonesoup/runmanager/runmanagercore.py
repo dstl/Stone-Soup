@@ -23,7 +23,8 @@ class RunManagerCore(RunManager):
         self.run_manager_metrics = RunmanagerMetrics()
 
         logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
-        
+        logging.info(f'RunManagerCore started. {datetime.now()}')
+
     def read_json(self, json_input):
         """Read json file from directory
 
@@ -39,7 +40,9 @@ class RunManagerCore(RunManager):
         """
         with open(json_input) as json_file:
             json_data = json.load(json_file)
+            logging.info(f'{datetime.now()} Accessed jsonfile {json_file}')
             return json_data
+
             
     def run(self, nruns=1, nprocesses=1):
         """Handles the running of multiple files, single files and defines the structure
@@ -59,11 +62,12 @@ class RunManagerCore(RunManager):
             number of monte-carlo runs
         nprocesses : int, optional
             number of processing cores to use
-        """        
+        """
         pairs = []
 
         if self.dir:
             paths = self.get_filepaths(self.dir)
+
             pairs = self.get_config_and_param_lists(paths)
 
         elif self.config_path and self.parameters_path:
@@ -76,13 +80,15 @@ class RunManagerCore(RunManager):
 
         elif self.config_path and self.parameters_path is None:
             if nruns is None:
-                nruns=1
+                nruns = 1
             self.prepare_and_run_single_sim(self.config_path, self.groundtruth_setting, nruns)
+            logging.info(f'{datetime.now()} Ran single run successfully.')
+
 
         for path in pairs:
             # add check file type
-            param_path = path[1]
-            config_path = path[0]
+            param_path = path[0]
+            config_path = path[1]
             json_data = self.read_json(param_path)
             if nruns is None:
                 if json_data['configuration']['runs_num']:
@@ -94,11 +100,11 @@ class RunManagerCore(RunManager):
             combo_dict = self.input_manager.generate_all_combos(trackers_combination_dict)
             self.prepare_and_run_multi_sim(config_path, combo_dict, self.groundtruth_setting, nruns)
 
-            #logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
+            logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
 
     def run_simulation(self, tracker, ground_truth,
                        metric_manager, dir_name):
-        """Runs a simulation 
+        """Runs a simulation
 
         Parameters
         ----------
@@ -108,7 +114,7 @@ class RunManagerCore(RunManager):
             ground truth object, can be csv
         metric_manager : MetricManager
             Metric manager object
-        dir_name : str 
+        dir_name : str
             output directory for metrics
         """
 
@@ -158,14 +164,13 @@ class RunManagerCore(RunManager):
             timeTotal = timeAfter-timeFirst
             print(timeTotal)
         except Exception as e:
-            # logging.error(f'{log_time}: Simulation {index} failed in {datetime.now() - log_time}.'
-            #               f'error: {e}  . Parameters: {combos[index]}')
-            print(f'Failed to run Simulation: {e}', flush=True)
+            logging.error(f'{log_time}: Failed to run Simulation: {e}', flush=True)
 
         else:
             # logging.info(f'{log_time}: Simulation {index} / {len(combos)-1} ran '
             #              'successfully in {datetime.now() - log_time}.'
             #              'With Parameters: {combos[index]}')
+            logging.info(f'{log_time} Successfully ran simulation in {datetime.now() - log_time} ')
             print('Success!', flush=True)
 
     def set_trackers(self, combo_dict, tracker, ground_truth, metric_manager):
@@ -184,22 +189,22 @@ class RunManagerCore(RunManager):
 
         Returns
         -------
-        list: 
+        list:
             list of trackers
-        list: 
+        list:
             list of groundtruths
-        list: 
+        list:
             list of metric managers
         """
 
         trackers = []
         ground_truths = []
         metric_managers = []
-        
+
         for parameter in combo_dict:
             tracker_copy, ground_truth_copy, metric_manager_copy = copy.deepcopy(
                 (tracker, ground_truth, metric_manager))
-            
+
             for k, v in parameter.items():
                 split_path = k.split('.')
                 if len(split_path) > 1:
@@ -276,7 +281,6 @@ class RunManagerCore(RunManager):
                     print("CSV data found")
 
         return tracker, gt, mm
-
 
     def read_config_dir(self, config_dir):
         """Reads a directory and returns a list of all of the file paths
@@ -388,18 +392,22 @@ class RunManagerCore(RunManager):
         tracker, ground_truth, metric_manager = self.set_components(self.config_path, self.groundtruth_setting)
         trackers, ground_truths, metric_managers = self.set_trackers(
             combo_dict, tracker, ground_truth, metric_manager)
-        now = datetime.now()
-        dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
-        for idx in range(0, len(trackers)):
-            for runs_num in range(nruns):
-                dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs_num}"
-                self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
-                self.run_manager_metrics.generate_config(
-                    dir_name, trackers[idx], ground_truths[idx], metric_managers[idx])
-                print("RUN")
-                self.run_simulation(trackers[idx], ground_truths[idx], metric_managers[idx],
-                                    dir_name, self.groundtruth_setting, idx, combo_dict)
-    
+        try:
+            now = datetime.now()
+            dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
+            for idx in range(0, len(trackers)):
+                for runs_num in range(nruns):
+                    dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs_num}"
+                    self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
+                    self.run_manager_metrics.generate_config(
+                        dir_name, trackers[idx], ground_truths[idx], metric_managers[idx])
+                    print("RUN")
+                    self.run_simulation(trackers[idx], ground_truths[idx], metric_managers[idx],
+                                        dir_name)
+        except Exception as e:
+            print(f'{datetime.now()} Preparing simulation error: {e}')
+            logging.error(f'{datetime.now()} Could not run simulation. error: {e}')
+
     def set_components(self, config_path, groundtruth_setting):
         """Sets the tracker, ground truth and metric manager to the correct variables
         from the configuration file.
