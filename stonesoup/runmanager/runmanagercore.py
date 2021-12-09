@@ -48,21 +48,47 @@ class RunManagerCore(RunManager):
 
         Parameters
         ----------
-        config_path : str
-            path to configuration file
-        parameters_path : str
-            path to parameter file
-        groundtruth_setting : bool
-            define if ground truth exists
-        dir : str
-            directory of configuration files
         nruns : int, optional
-            number of monte-carlo runs
+            number of monte-carlo runs, by default 1
         nprocesses : int, optional
-            number of processing cores to use
+            number of processing cores to use, by default 1
         """
-        pairs = []
+        pairs = self.config_parameter_pairing()
 
+        if self.config_path and self.parameters_path is None:
+            if nruns is None:
+                nruns = 1
+            self.prepare_and_run_single_sim(self.config_path, self.groundtruth_setting, nruns)
+            logging.info(f'{datetime.now()} Ran single run successfully.')
+
+        for path in pairs:
+            # Get the param and config
+            param_path = path[0]
+            config_path = path[1]
+
+            # Read the param data
+            nruns, combo_dict = self.prepare_monte_carlo(nruns, param_path)
+            self.run_monte_carlo_simulation(config_path, combo_dict,
+                                            self.groundtruth_setting, nruns)
+
+    def prepare_monte_carlo(self, nruns, param_path):
+        json_data = self.read_json(param_path)
+        if nruns is None:
+            if json_data['configuration']['runs_num']:
+                nruns = json_data['configuration']['runs_num']
+            else:
+                nruns = 1
+        # Generate all the parameters for the monte carlo run
+        trackers_combination_dict = self.input_manager.generate_parameters_combinations(
+                json_data["parameters"])
+        # Generate all the the possible combinations with the parameters
+        combo_dict = self.input_manager.generate_all_combos(trackers_combination_dict)
+        return nruns, combo_dict
+
+        # logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
+
+    def config_parameter_pairing(self):
+        pairs = []
         if self.dir:
             paths = self.get_filepaths(self.dir)
 
@@ -99,6 +125,8 @@ class RunManagerCore(RunManager):
                                            self.groundtruth_setting, nruns)
 
             # logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
+
+        return pairs
 
     def run_simulation(self, tracker, ground_truth,
                        metric_manager, dir_name):
@@ -378,22 +406,21 @@ class RunManagerCore(RunManager):
             print(f'{datetime.now()} Preparing simulation error: {e}')
             logging.error(f'{datetime.now()} Could not run simulation. error: {e}')
 
-    def prepare_and_run_multi_sim(self, combo_dict, nruns):
+    def run_monte_carlo_simulation(self, combo_dict, nruns):
         """Prepares multiple trackers for simulation runs
 
         Parameters
         ----------
-        config_path : str
-            path to configuration
         combo_dict : dict
             dictionary of all parameter combinations for monte-carlo
-        groundtruth_setting : bool
-            Defines if ground truth is present
         nruns : int
             Number of monte-carlo runs
         """
+
+        # Load the tracker from the config file
         tracker, ground_truth, metric_manager = self.set_components(self.config_path,
                                                                     self.groundtruth_setting)
+        # Generate all the trackers from the loaded tracker
         trackers, ground_truths, metric_managers = self.set_trackers(
             combo_dict, tracker, ground_truth, metric_manager)
         try:
