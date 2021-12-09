@@ -3,8 +3,6 @@ import os
 
 from ..runmanagercore import RunManagerCore
 
-rmc = RunManagerCore()
-
 # Run from stonesoup working directory
 # def setup_module():
 #     while os.getcwd().split('\\')[-1] != 'stonesoup':
@@ -24,6 +22,8 @@ test_config_nogt = "stonesoup/runmanager/tests/test_configs/test_config_nogt.yam
 test_config_trackeronly = "stonesoup/runmanager/tests/test_configs/test_config_trackeronly.yaml"
 test_json = "stonesoup/runmanager/tests/test_configs/dummy.json"
 test_config_dir = "stonesoup/runmanager/tests/test_configs/"
+
+rmc = RunManagerCore(test_config, test_json, False, test_config_dir)
 
 
 def test_cwd_path():

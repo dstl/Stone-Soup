@@ -12,8 +12,14 @@ from .base import RunManager
 
 
 class RunManagerCore(RunManager):
-    def __init__(self):
+    def __init__(self, config_path, parameters_path, groundtruth_setting, dir):
 
+        self.config_path = config_path
+        self.parameters_path = parameters_path
+        self.groudtruth_setting = groundtruth_setting
+        self.dir = dir
+
+        self.input_manager = InputManager()
         self.run_manager_metrics = RunmanagerMetrics()
 
         logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
@@ -35,8 +41,7 @@ class RunManagerCore(RunManager):
             json_data = json.load(json_file)
             return json_data
             
-    def run(self, config_path, parameters_path, 
-            groundtruth_setting, dir, nruns=1, nprocesses=1):
+    def run(self, nruns=1, nprocesses=1):
         """Handles the running of multiple files, single files and defines the structure
         of the run.
 
@@ -56,24 +61,23 @@ class RunManagerCore(RunManager):
             number of processing cores to use
         """        
         pairs = []
-        input_manager = InputManager()
-                
-        if dir:
-            paths = self.get_filepaths(dir)
+
+        if self.dir:
+            paths = self.get_filepaths(self.dir)
             pairs = self.get_config_and_param_lists(paths)
 
-        elif config_path and parameters_path:
-            pairs = [[parameters_path, config_path]]
+        elif self.config_path and self.parameters_path:
+            pairs = [[self.parameters_path, self.config_path]]
 
-        elif dir and config_path and parameters_path:
+        elif dir and self.config_path and self.parameters_path:
             paths = self.get_filepaths(dir)
             pairs = self.get_config_and_param_lists(paths)
-            pairs.append([parameters_path, config_path])
+            pairs.append([self.parameters_path, self.config_path])
 
-        elif config_path and parameters_path is None:
+        elif self.config_path and self.parameters_path is None:
             if nruns is None:
                 nruns=1
-            self.prepare_and_run_single_sim(config_path, groundtruth_setting, nruns)
+            self.prepare_and_run_single_sim(self.config_path, self.groundtruth_setting, nruns)
 
         for path in pairs:
             # add check file type
@@ -85,10 +89,10 @@ class RunManagerCore(RunManager):
                     nruns = json_data['configuration']['runs_num']
                 else:
                     nruns= 1
-            trackers_combination_dict = input_manager.generate_parameters_combinations(
+            trackers_combination_dict = self.input_manager.generate_parameters_combinations(
                 json_data["parameters"])
-            combo_dict = input_manager.generate_all_combos(trackers_combination_dict)
-            self.prepare_and_run_multi_sim(config_path, combo_dict, groundtruth_setting, nruns)
+            combo_dict = self.input_manager.generate_all_combos(trackers_combination_dict)
+            self.prepare_and_run_multi_sim(config_path, combo_dict, self.groundtruth_setting, nruns)
 
             #logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
 

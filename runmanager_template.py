@@ -29,5 +29,5 @@ if __name__ == "__main__":
         groundtruthSettings = 1
         print(e)
 
-    rmc = RunManagerCore()
-    rmc.run(configInput, parametersInput, groundtruthSettings, dir)
+    rmc = RunManagerCore(configInput, parametersInput, groundtruthSettings, dir)
+    rmc.run()
