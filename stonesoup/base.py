@@ -180,11 +180,11 @@ class Property:
 class BaseRepr(Repr):
     def __init__(self):
         self.maxlevel = 10
-        self.maxtuple = 8
-        self.maxlist = 8
-        self.maxarray = 8
+        self.maxtuple = 10
+        self.maxlist = 10
+        self.maxarray = 10
         self.maxdict = 20
-        self.maxset = 8
+        self.maxset = 10
         self.maxfrozenset = 10
         self.maxdeque = 10
         self.maxstring = 500
@@ -199,6 +199,19 @@ class BaseRepr(Repr):
             return f'[{first},\n ...\n ...\n ...\n {last}]'
         else:
             return '[{}]'.format(',\n '.join(self.repr1(x, level - 1) for x in obj))
+
+    @classmethod
+    def whitespace_remove(cls, maxlen_whitespace, val):
+        """Remove excess whitespace, replacing with ellipses"""
+        large_whitespace = ' ' * (maxlen_whitespace+1)
+        fixed_whitespace = ' ' * maxlen_whitespace
+        if large_whitespace in val:
+            excess = val.find(large_whitespace)  # Find the excess whitespace
+            line_end = ''.join(val[excess:].partition('\n')[1:])
+            val = ''.join([val[0:excess], fixed_whitespace, '...', line_end])
+            return cls.whitespace_remove(maxlen_whitespace, val)
+        else:
+            return val
 
 
 class BaseMeta(ABCMeta):
@@ -377,18 +390,6 @@ class Base(metaclass=BaseMeta):
                 value = repr_value.replace('\n', '\n' + extra_whitespace)
             params.append(f'{whitespace}{name}={value}')
         value = "{}(\n{})".format(type(self).__name__, ",\n".join(params))
-        rep = self.whitespace_remove(max_len_whitespace, value)
+        rep = Base._repr.whitespace_remove(max_len_whitespace, value)
         truncate = '\n...\n...  (truncated due to length)\n...'
         return ''.join([rep[:max_out], truncate]) if len(rep) > max_out else rep
-
-    def whitespace_remove(self, maxlen_whitespace, val):
-        """Remove excess whitespace, replacing with ellipses"""
-        large_whitespace = ' ' * (maxlen_whitespace+1)
-        fixed_whitespace = ' ' * maxlen_whitespace
-        if large_whitespace in val:
-            excess = val.find(large_whitespace)  # Find the excess whitespace
-            line_end = ''.join(val[excess:].partition('\n')[1:])
-            val = ''.join([val[0:excess], fixed_whitespace, '...', line_end])
-            return self.whitespace_remove(maxlen_whitespace, val)
-        else:
-            return val
