@@ -54,7 +54,7 @@ class RunmanagerMetrics(RunManager):
         except Exception as e:
             print(f'{datetime.now()}: Failed to write to {dir_name}')
             
-    def metrics_to_csv(dir_name, metrics, overwrite=False):
+    def metrics_to_csv(self, dir_name, metrics, overwrite=False):
         """Create a csv file for the metrics. It will contain the following columns:
             title    value    generator    timestamp
 
@@ -72,14 +72,8 @@ class RunmanagerMetrics(RunManager):
             if not os.path.exists(dir_name):
                 os.makedirs(dir_name)
 
-            metricDictionary = {}
-            for metric in metrics:
-                if(isinstance(metric.value, list)):
-                    metricDictionary[metric.title] = []
-                    metricDictionary["timestamp"] = []
-                    for metric_line in metric.value:
-                        metricDictionary[metric.title].append(metric_line.value)
-                        metricDictionary["timestamp"].append(metric_line.timestamp)
+            
+            metricDictionary = self.create_metric_dict(metrics)
 
             keys = sorted(metricDictionary.keys())
             if not os.path.isfile(os.path.join(dir_name, filename)) or overwrite:
@@ -93,7 +87,32 @@ class RunmanagerMetrics(RunManager):
                 writer.writerows(zip(*[metricDictionary[key] for key in keys]))
         except Exception as e:
             print(f'{datetime.now()}: Failed to write to {filename}')
+            
+            
+    def create_metric_dict(self, metrics):
+        """Creates a dictionary of the metric values
 
+        Parameters
+        ----------
+        metrics : MetricManager
+            stonesoup metric object
+
+        Returns
+        -------
+        dict
+            dictionary version of metric manager to be used for printing csv files
+        """
+        metricDictionary = {}
+        for metric in metrics:
+                if(isinstance(metric.value, list)):
+                    metricDictionary[metric.title] = []
+                    metricDictionary["timestamp"] = []
+                    for metric_line in metric.value:
+                        metricDictionary[metric.title].append(metric_line.value)
+                        metricDictionary["timestamp"].append(metric_line.timestamp)
+        return metricDictionary
+    
+    
     def detection_to_csv(dir_name, detections, overwrite=False):
         """Create a csv file for the detections. It will contain the following columns:
             time    x  y
