@@ -2,7 +2,6 @@ import copy
 import json
 import logging
 from datetime import datetime
-import numpy as np
 import os
 
 from stonesoup.serialise import YAML
@@ -107,6 +106,31 @@ class RunManagerCore(RunManager):
             paths = self.get_filepaths(dir)
             pairs = self.get_config_and_param_lists(paths)
             pairs.append([self.parameters_path, self.config_path])
+
+        elif self.config_path and self.parameters_path is None:
+            if nruns is None:
+                nruns = 1
+            self.prepare_and_run_single_sim(self.config_path, self.groundtruth_setting, nruns)
+            logging.info(f'{datetime.now()} Ran single run successfully.')
+
+        for path in pairs:
+            # add check file type
+            param_path = path[0]
+            config_path = path[1]
+            json_data = self.read_json(param_path)
+            if nruns is None:
+                if json_data['configuration']['runs_num']:
+                    nruns = json_data['configuration']['runs_num']
+                else:
+                    nruns = 1
+            trackers_combination_dict = self.input_manager.generate_parameters_combinations(
+                json_data["parameters"])
+            combo_dict = self.input_manager.generate_all_combos(trackers_combination_dict)
+            self.prepare_and_run_multi_sim(config_path, combo_dict,
+                                           self.groundtruth_setting, nruns)
+
+            # logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
+
         return pairs
 
     def check_ground_truth(ground_truth):
@@ -134,7 +158,9 @@ class RunManagerCore(RunManager):
             timeFirst = datetime.now()
             for time, ctracks in tracker.tracks_gen():
                 # Update groundtruth, tracks and detections
+
                 self.run_manager_metrics.groundtruth_to_csv(dir_name, ground_truth)
+
                 self.run_manager_metrics.tracks_to_csv(dir_name, ctracks)
                 self.run_manager_metrics.detection_to_csv(dir_name, tracker.detector.detections)
 
@@ -220,7 +246,7 @@ class RunManagerCore(RunManager):
             if len(split_path) > 0:
                 setattr(el, split_path[0], value)
 
-    def read_config_file(self, config_file, groundtruth_setting):
+    def read_config_file(self, config_file):
         """[summary]
 
         Parameters
@@ -241,31 +267,34 @@ class RunManagerCore(RunManager):
         """
         config_string = config_file.read()
 
-        tracker, gt, mm, csv_data = None, None, None, None
+        tracker, groundtruth, metric_manager = None, None, None
 
-        config_data = YAML('safe').load(config_string)
+        try:
+            config_data = YAML('safe').load(config_string)
+        except Exception as e:
+            print("Failed to load config data: ", e)
+            config_data = [None, None, None]
 
-        # Set explicitly if user has included groundtruth in config and set flag
-        if groundtruth_setting is True:
-            print("MANUAL READ")
-            tracker = config_data[0]
-            gt = config_data[1]
+        tracker = config_data[0]
+
+        # User has set a flag to use the groundtruth added in config file
+        if self.groundtruth_setting is True:
+            groundtruth = config_data[1]
+            # Also set metric manager if it has been added in config file
+            # (Change this to flag setting too?)
             if len(config_data) > 2:
-                mm = config_data[2]
+                metric_manager = config_data[2]
         else:
-            print("AUTOMATIC READ")
+            # Try to find groundtruth and metric manager if user has not flagged
             for x in config_data:
-                if "Tracker" in str(type(x)):
-                    tracker = x
-                elif "GroundTruth" in str(type(x)):
-                    gt = x
+                if "GroundTruth" in str(type(x)) or "MovingPlatform" in str(type(x)):
+                    groundtruth = x
                 elif "metricgenerator" in str(type(x)):
-                    mm = x
-                elif type(x) is np.ndarray:
-                    csv_data = x
-                    print("CSV data found")
+                    metric_manager = x
 
-        return tracker, gt, mm
+        return {"tracker": tracker,
+                "groundtruth": groundtruth,
+                "metric_manager": metric_manager}
 
     def read_config_dir(self, config_dir):
         """Reads a directory and returns a list of all of the file paths
@@ -299,7 +328,7 @@ class RunManagerCore(RunManager):
         list
             list of all file paths from specified directory
         """
-        file_paths =[]
+        file_paths = []
         if os.path.exists(directory):
             for root, directories, files in os.walk(directory):
                 for filename in files:
@@ -336,6 +365,7 @@ class RunManagerCore(RunManager):
         return pairs
 
     def prepare_and_run_single_simulation(self, nruns):
+
         """Prepares a single simulation for a run
 
         Parameters
@@ -350,7 +380,8 @@ class RunManagerCore(RunManager):
         try:
             now = datetime.now()
             dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
-            tracker, ground_truth, metric_manager = self.set_components(self.config_path, self.groundtruth_setting)
+            tracker, ground_truth, metric_manager = self.set_components(self.config_path,
+                                                                        self.groundtruth_setting)
             for runs in range(nruns):
                 dir_name = f"metrics_{dt_string}/run_{runs}"
                 print("RUN")
@@ -363,6 +394,7 @@ class RunManagerCore(RunManager):
 
                 self.run_simulation(simulation_parameters,
                                     dir_name)
+
         except Exception as e:
             print(f'{datetime.now()} Preparing simulation error: {e}')
             logging.error(f'{datetime.now()} Could not run simulation. error: {e}')
@@ -430,7 +462,10 @@ class RunManagerCore(RunManager):
         tracker, ground_truth, metric_manager = None, None, None
         try:
             with open(config_path, 'r') as file:
-                tracker, ground_truth, metric_manager = self.read_config_file(file, groundtruth_setting)
+                config_data = self.read_config_file(file)
+            tracker = config_data["tracker"]
+            ground_truth = config_data["groundtruth"]
+            metric_manager = config_data["metric_manager"]
         except Exception as e:
             print(f'{datetime.now()} Could not read config file: {e}')
             logging.error(f'{datetime.now()} Could not read config file: {e}')
