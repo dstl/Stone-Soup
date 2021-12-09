@@ -14,13 +14,13 @@ if __name__ == "__main__":
     try:
         configInput = args.config
     except Exception as e:
-        configInput = "C:\\Users\\Davidb1\\Documents\\Python\\data\\config.yaml"
+        configInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\Data\\2021_Nov_16_10_30_34_510322.yaml"
         print(e)
 
     try:
         parametersInput = args.parameter
     except Exception as e:
-        parametersInput = "C:\\Users\\Davidb1\\Documents\\Python\\data\\parameters.json"
+        parametersInput = "C:\\Users\\hayden97\\Documents\\Projects\\Serapis\\Data\\2021_Nov_16_10_30_34_510322_parameters.json"
         print(e)
 
     try:
@@ -29,5 +29,5 @@ if __name__ == "__main__":
         groundtruthSettings = 1
         print(e)
 
-    rmc = RunManagerCore()
-    rmc.run(configInput, parametersInput, groundtruthSettings, dir)
+    rmc = RunManagerCore(configInput, parametersInput, groundtruthSettings, dir)
+    rmc.run()
