@@ -183,6 +183,18 @@ class InputManager(RunManager):
         return combination_dict
 
     def generate_ndarray_combinations(self, parameter):
+        """Generate combinations of ndarray
+
+        Parameters
+        ----------
+        parameter : dict
+            dictionary of the parameter with value_max, value_min, n_samples and path
+
+        Returns
+        -------
+        set
+            set of all the possible values
+        """
         path = parameter["path"]
         combination_list = {}
         iteration_list = []
@@ -199,6 +211,18 @@ class InputManager(RunManager):
         return combination_list
 
     def generate_timedelta_combinations(self, parameter):
+        """Generate combinations of timedelta
+
+        Parameters
+        ----------
+        parameter : dict
+            dictionary of the parameter with value_max, value_min, n_samples and path
+
+        Returns
+        -------
+        set
+            set of all the possible values
+        """
         path = parameter["path"]
         combination_list = {}
         iteration_list = self.iterations(parameter["value_min"],
@@ -208,6 +232,18 @@ class InputManager(RunManager):
         return combination_list
 
     def generate_tuple_list_combinations(self, parameter):
+        """Generate combinations of tuple or list
+
+        Parameters
+        ----------
+        parameter : dict
+            dictionary of the parameter with value_max, value_min, n_samples and path
+
+        Returns
+        -------
+        set
+            set of all the possible values
+        """
         path = parameter["path"]
         combination_list = {}
         iteration_list = []
@@ -226,6 +262,18 @@ class InputManager(RunManager):
         return combination_list
 
     def generate_date_time_combinations(self, parameter):
+        """Generate combinations of date time
+
+        Parameters
+        ----------
+        parameter : dict
+            dictionary of the parameter with value_max, value_min, n_samples and path
+
+        Returns
+        -------
+        set
+            set of all the possible values
+        """
         path= parameter["path"]
         combination_list = {}
         min_date = datetime.strptime(parameter["value_min"], '%Y-%m-%d %H:%M:%S.%f')
@@ -236,6 +284,18 @@ class InputManager(RunManager):
 
 
     def generate_covariance_combinations(self, parameter):
+        """Generate combinations of covariance matrix
+
+        Parameters
+        ----------
+        parameter : dict
+            dictionary of the parameter with value_max, value_min, n_samples and path
+
+        Returns
+        -------
+        set
+            set of all the possible values
+        """
         path = parameter["path"]
         combination_list = {}
         iteration_list = []
@@ -261,12 +321,36 @@ class InputManager(RunManager):
         return combination_list
     
     def generate_bool_combinations(self, parameter):
+        """Generate combinations of bool 
+
+        Parameters
+        ----------
+        parameter : dict
+            dictionary of the parameter with value_max, value_min, n_samples and path
+
+        Returns
+        -------
+        set
+            set of all the possible values
+        """
         path = parameter["path"]
         combination_list = {}
         combination_list[path] = [True, False]
         return combination_list
 
     def generate_probability_combinations(self, parameter):
+        """Generate combinations of probability
+
+        Parameters
+        ----------
+        parameter : dict
+            dictionary of the parameter with value_max, value_min, n_samples and path
+
+        Returns
+        -------
+        set
+            set of all the possible values
+        """
         path = parameter["path"]
         combination_list = {}
         iteration_list = self.iterations(parameter["value_min"],
@@ -276,6 +360,18 @@ class InputManager(RunManager):
         return combination_list
 
     def generate_float_combinations(self, parameter):
+        """Generate combinations of float
+
+        Parameters
+        ----------
+        parameter : dict
+            dictionary of the parameter with value_max, value_min, n_samples and path
+
+        Returns
+        -------
+        set
+            set of all the possible values
+        """
         path = parameter["path"]
         combination_list = {}
         iteration_list = self.iterations(parameter["value_min"],
@@ -285,6 +381,18 @@ class InputManager(RunManager):
         return combination_list
 
     def generate_int_combinations(self, parameter):
+        """Generate combinations of int
+
+        Parameters
+        ----------
+        parameter : dict
+            dictionary of the parameter with value_max, value_min, n_samples and path
+
+        Returns
+        -------
+        set
+            set of all the possible values
+        """
         path = parameter["path"]
         combination_list = {}
                 # iteration_list = []
@@ -295,6 +403,18 @@ class InputManager(RunManager):
         return combination_list
 
     def generate_state_vector_combinations(self, parameter):
+        """Generate combinations of state vector
+
+        Parameters
+        ----------
+        parameter : dict
+            dictionary of the parameter with value_max, value_min, n_samples and path
+
+        Returns
+        -------
+        set
+            set of all the possible values
+        """
         if len(parameter['value_min']) > 0 and len(parameter['value_max']) > 0:
             path = parameter["path"]
             combination_list = {}
