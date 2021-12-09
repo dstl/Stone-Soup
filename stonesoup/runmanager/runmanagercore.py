@@ -346,7 +346,7 @@ class RunManagerCore(RunManager):
                 pair = []
         return pairs
     
-    def prepare_and_run_single_sim(self, config_path, groundtruth_setting, nruns):
+    def prepare_and_run_single_sim(self, nruns):
         """Prepares a single simulation for a run
 
         Parameters
@@ -361,7 +361,7 @@ class RunManagerCore(RunManager):
         try:
             now = datetime.now()
             dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
-            tracker, ground_truth, metric_manager = self.set_components(config_path, groundtruth_setting)
+            tracker, ground_truth, metric_manager = self.set_components(self.config_path, self.groundtruth_setting)
             for runs in range(nruns):
                 dir_name = f"metrics_{dt_string}/run_{runs}"
                 print("RUN")
@@ -371,7 +371,7 @@ class RunManagerCore(RunManager):
             print(f'{datetime.now()} Preparing simulation error: {e}')
             logging.error(f'{datetime.now()} Could not run simulation. error: {e}')
             
-    def prepare_and_run_multi_sim(self, config_path, combo_dict, groundtruth_setting, nruns):
+    def prepare_and_run_multi_sim(self, combo_dict, nruns):
         """Prepares multiple trackers for simulation runs
 
         Parameters
@@ -385,7 +385,7 @@ class RunManagerCore(RunManager):
         nruns : int
             Number of monte-carlo runs
         """
-        tracker, ground_truth, metric_manager = self.set_components(config_path, groundtruth_setting)
+        tracker, ground_truth, metric_manager = self.set_components(self.config_path, self.groundtruth_setting)
         trackers, ground_truths, metric_managers = self.set_trackers(
             combo_dict, tracker, ground_truth, metric_manager)
         now = datetime.now()
@@ -398,7 +398,7 @@ class RunManagerCore(RunManager):
                     dir_name, trackers[idx], ground_truths[idx], metric_managers[idx])
                 print("RUN")
                 self.run_simulation(trackers[idx], ground_truths[idx], metric_managers[idx],
-                                    dir_name, groundtruth_setting, idx, combo_dict)
+                                    dir_name, self.groundtruth_setting, idx, combo_dict)
     
     def set_components(self, config_path, groundtruth_setting):
         """Sets the tracker, ground truth and metric manager to the correct variables
