@@ -234,7 +234,7 @@ class RunManagerCore(RunManager):
             if len(split_path) > 0:
                 setattr(el, split_path[0], value)
 
-    def read_config_file(self, config_file, groundtruth_setting):
+    def read_config_file(self, config_file):
         """[summary]
 
         Parameters
@@ -266,7 +266,7 @@ class RunManagerCore(RunManager):
         tracker = config_data[0]
 
         # User has set a flag to use the groundtruth added in config file
-        if groundtruth_setting is True:
+        if self.groundtruth_setting is True:
             groundtruth = config_data[1]
             # Also set metric manager if it has been added in config file
             # (Change this to flag setting too?)
@@ -280,7 +280,9 @@ class RunManagerCore(RunManager):
                 elif "metricgenerator" in str(type(x)):
                     metric_manager = x
 
-        return tracker, groundtruth, metric_manager
+        return {"tracker": tracker,
+                "groundtruth": groundtruth,
+                "metric_manager": metric_manager}
 
     def read_config_dir(self, config_dir):
         """Reads a directory and returns a list of all of the file paths
@@ -431,7 +433,10 @@ class RunManagerCore(RunManager):
         tracker, ground_truth, metric_manager= None, None, None
         try:
             with open(config_path, 'r') as file:
-                tracker, ground_truth, metric_manager = self.read_config_file(file, groundtruth_setting)
+                config_data = self.read_config_file(file)
+            tracker = config_data["tracker"]
+            ground_truth = config_data["groundtruth"]
+            metric_manager = config_data["metric_manager"]
         except Exception as e:
             print(f'{datetime.now()} Could not read config file: {e}')
             logging.error(f'{datetime.now()} Could not read config file: {e}')
