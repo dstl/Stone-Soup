@@ -383,8 +383,10 @@ class RunManagerCore(RunManager):
         try:
             now = datetime.now()
             dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
-            tracker, ground_truth, metric_manager = self.set_components(self.config_path,
-                                                                        self.groundtruth_setting)
+            components = self.set_components(self.config_path, self.groundtruth_setting)
+            tracker = components["tracker"]
+            ground_truth = components["groundtruth"]
+            metric_manager = components["metric_manager"]
             for runs in range(nruns):
                 dir_name = f"metrics_{dt_string}/run_{runs}"
                 print("RUN")
@@ -442,7 +444,7 @@ class RunManagerCore(RunManager):
             print(f'{datetime.now()} Preparing simulation error: {e}')
             logging.error(f'{datetime.now()} Could not run simulation. error: {e}')
 
-    def set_components(self, config_path, groundtruth_setting):
+    def set_components(self, config_path):
         """Sets the tracker, ground truth and metric manager to the correct variables
         from the configuration file.
 
@@ -472,4 +474,6 @@ class RunManagerCore(RunManager):
         except Exception as e:
             print(f'{datetime.now()} Could not read config file: {e}')
             logging.error(f'{datetime.now()} Could not read config file: {e}')
-        return tracker, ground_truth, metric_manager
+        return {"tracker": tracker,
+                "ground_truth": ground_truth,
+                "metric_manager": metric_manager}
