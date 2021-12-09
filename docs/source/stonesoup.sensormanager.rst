@@ -9,6 +9,7 @@ Sensor Managers
 
 .. automodule:: stonesoup.sensormanager.optimise
     :show-inheritance:
+    :inherited-members:
 
 
 Reward Functions

@@ -51,7 +51,8 @@ class OptimizeBruteSensorManager(_OptimizeSensorManager):
     the optimising function to optimise a given reward function,
     returning the optimal configuration.
 
-    SciPy optimize provides functions which can minimize or maximize functions using a variety
+    `Scipy optimize <https://docs.scipy.org/doc/scipy/reference/optimize.html#utilities>`_ provides
+    functions which can minimize or maximize functions using a variety
     of algorithms. The :meth:`scipy.optimize.brute` minimizes a function over a given range,
     using a brute force method. This is done by computing the function's value at each point of
     a multidimensional grid of points, to find the global minimum.
@@ -85,7 +86,7 @@ class OptimizeBasinHoppingSensorManager(_OptimizeSensorManager):
     the optimising function to optimise a given reward function,
     returning the optimal configuration for the sensing system.
 
-    The :meth:`scipy.optimize.basinhopping` finds the global minimum of a function using the
+    The :func:`scipy.optimize.basinhopping` finds the global minimum of a function using the
     basin-hopping algorithm. This is a combination of a global stepping algorithm and local
     minimization at each step.
     """
