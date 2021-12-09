@@ -17,6 +17,7 @@ class RunmanagerMetrics(RunManager):
     Runmanager : Class
         Run manager base class
     """
+    
     def tracks_to_csv(dir_name, tracks, overwrite=False):
         """Create a csv file for the track. It will contain the following columns:
             time    id    state    mean    covar
@@ -52,6 +53,7 @@ class RunmanagerMetrics(RunManager):
                                     c])
         except Exception as e:
             print(f'{datetime.now()}: Failed to write to {dir_name}')
+            
     def metrics_to_csv(dir_name, metrics, overwrite=False):
         """Create a csv file for the metrics. It will contain the following columns:
             title    value    generator    timestamp
@@ -157,8 +159,9 @@ class RunmanagerMetrics(RunManager):
                                     ' '.join([str(n) for n in gt.state.state_vector])])
         except Exception as e:
             print(f'{datetime.now()}: Failed to write to {filename}')
-
-    def parameters_to_csv(dir_name, parameters, overwrite=False):
+            
+    
+    def parameters_to_csv(self, dir_name, parameters, overwrite=False):
         """Create a csv file for the parameters. It will contain the parameter name for each simulation.
 
         Parameters
@@ -175,16 +178,8 @@ class RunmanagerMetrics(RunManager):
         try:
             if not os.path.exists(dir_name):
                 os.makedirs(dir_name)
-
-            for k, v in parameters.items():
-                if isinstance(v, StateVector) or isinstance(v, CovarianceMatrix):
-                    parameters[k] = list(v)
-                    if type(parameters[k][0]) is CovarianceMatrix:
-                        for i in range(len(parameters[k])):
-                            parameters[k][i] = list(parameters[k][i])
-                elif isinstance(v, timedelta):
-                    parameters[k] = str(v)
-
+            
+            parameters = self.write_params(parameters)
             with open(os.path.join(dir_name, filename), 'a', newline='') as paramfile:
                 json.dump(parameters, paramfile)
         except Exception as e:
@@ -218,3 +213,31 @@ class RunmanagerMetrics(RunManager):
             f.close()
         except Exception as e:
             print(f'{datetime.now()}: Failed to write to {filename}')
+            
+
+    def write_params(self, parameters):
+        """Finds the correct parameters to print out to file for quick access
+        to which parameters have been changed in the config.
+
+        Parameters
+        ----------
+        parameters : dict
+            list of parameters used in the configuration
+
+        Returns
+        -------
+        dict
+            dictionary of parameters in json format
+        """
+        try:
+            for k, v in parameters.items():
+                if isinstance(v, StateVector) or isinstance(v, CovarianceMatrix):
+                    parameters[k] = list(v)
+                    if type(parameters[k][0]) is CovarianceMatrix:
+                        for i in range(len(parameters[k])):
+                            parameters[k][i] = list(parameters[k][i])
+                elif isinstance(v, timedelta):
+                    parameters[k] = str(v)
+        except Exception as e:
+            print(f'{datetime.now()}: failed to write parameters correctly.')
+        return parameters
