@@ -56,35 +56,40 @@ class RunManagerCore(RunManager):
         """
         pairs = self.config_parameter_pairing()
 
+        # Single simulation. No param file detected
         if self.config_path and self.parameters_path is None:
             if nruns is None:
                 nruns = 1
-            self.prepare_and_run_single_simulation(self.config_path, self.groundtruth_setting, nruns)
+            self.prepare_and_run_single_simulation(self.config_path,
+                                                   self.groundtruth_setting,
+                                                   nruns)
             logging.info(f'{datetime.now()} Ran single run successfully.')
 
         for path in pairs:
-            # Get the param and config
-            param_path = path[0]
-            config_path = path[1]
-
             # Read the param data
-            nruns, combo_dict = self.prepare_monte_carlo(nruns, param_path)
-            self.run_monte_carlo_simulation(config_path, combo_dict,
-                                            self.groundtruth_setting, nruns)
+            json_data = self.read_json(self.parameters_path)
 
-    def prepare_monte_carlo(self, nruns, param_path):
-        json_data = self.read_json(param_path)
+            nruns = self.set_runs_number(nruns, json_data)
+            combo_dict = self.prepare_monte_carlo(json_data)
+
+            self.run_monte_carlo_simulation(combo_dict,
+                                            nruns)
+
+    def set_runs_number(self, nruns, json_data):
         if nruns is None:
             if json_data['configuration']['runs_num']:
                 nruns = json_data['configuration']['runs_num']
-            else:
-                nruns = 1
+        else:
+            nruns = 1
+        return nruns
+
+    def prepare_monte_carlo(self, json_data):
         # Generate all the parameters for the monte carlo run
         trackers_combination_dict = self.input_manager.generate_parameters_combinations(
-                json_data["parameters"])
+            json_data["parameters"])
         # Generate all the the possible combinations with the parameters
         combo_dict = self.input_manager.generate_all_combos(trackers_combination_dict)
-        return nruns, combo_dict
+        return combo_dict
 
         # logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
 
@@ -277,10 +282,10 @@ class RunManagerCore(RunManager):
         """
         if os.path.exists(config_dir):
             files = os.listdir(config_dir)
-        else:  
+        else:
             return None
         return files
-    
+
     def get_filepaths(self, directory):
         """Returns the filepaths for a specific directory
 
@@ -417,12 +422,12 @@ class RunManagerCore(RunManager):
         -------
         Tracker:
             Tracker stone soup object
-        GroundTruth: 
+        GroundTruth:
             Ground Truth stone soup object
-        MetricManager: 
+        MetricManager:
             Metric manager stone soup object
         """
-        tracker, ground_truth, metric_manager= None, None, None
+        tracker, ground_truth, metric_manager = None, None, None
         try:
             with open(config_path, 'r') as file:
                 tracker, ground_truth, metric_manager = self.read_config_file(file, groundtruth_setting)
