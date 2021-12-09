@@ -59,7 +59,7 @@ class RunManagerCore(RunManager):
         if self.config_path and self.parameters_path is None:
             if nruns is None:
                 nruns = 1
-            self.prepare_and_run_single_sim(self.config_path, self.groundtruth_setting, nruns)
+            self.prepare_and_run_single_simulation(self.config_path, self.groundtruth_setting, nruns)
             logging.info(f'{datetime.now()} Ran single run successfully.')
 
         for path in pairs:
@@ -104,64 +104,45 @@ class RunManagerCore(RunManager):
             pairs.append([self.parameters_path, self.config_path])
         return pairs
 
-    def run_simulation(self, tracker, ground_truth,
-                       metric_manager, dir_name):
-        """Runs a simulation
+    def check_ground_truth(ground_truth):
+        try:
+            return ground_truth.groundtruth_paths
+        except Exception:
+            return ground_truth
+
+    def run_simulation(self, simulation_parameters, dir_name):
+        """Runs a single simulation
 
         Parameters
         ----------
-        tracker : Tracker
-            Stonesoup tracker object
-        ground_truth : GroundTruth
-            ground truth object, can be csv
-        metric_manager : MetricManager
-            Metric manager object
+        simulation_parameters : dict
+            contains the tracker, the ground_truth and the metric manager
         dir_name : str
             output directory for metrics
         """
+        tracker = simulation_parameters.tracker
+        ground_truth = simulation_parameters.ground_truth
+        metric_manager = simulation_parameters.metric_manager
 
         log_time = datetime.now()
         try:
             timeFirst = datetime.now()
             for time, ctracks in tracker.tracks_gen():
                 # Update groundtruth, tracks and detections
-
-                try:
-                    self.run_manager_metrics.groundtruth_to_csv(dir_name, ground_truth.groundtruth_paths)
-                except Exception as e:
-                    logging.error(e)
-                    try:
-                        self.run_manager_metrics.groundtruth_to_csv(dir_name, ground_truth)
-                    except Exception as e:
-                        logging.error(e)
-                        pass
-                # tracks.update(ctracks)
-                # detections.update(tracker.detector.detections)
-
+                self.run_manager_metrics.groundtruth_to_csv(dir_name, ground_truth)
                 self.run_manager_metrics.tracks_to_csv(dir_name, ctracks)
                 self.run_manager_metrics.detection_to_csv(dir_name, tracker.detector.detections)
 
-                try:
-                    if metric_manager is not None:
-                        # Generate the metrics
-                        try:
-                            metric_manager.add_data(ground_truth.groundtruth_paths,
-                                                    ctracks, tracker.detector.detections,
-                                                    overwrite=False)
-                        except Exception:
-                            metric_manager.add_data(ground_truth,
-                                                    ctracks,
-                                                    tracker.detector.detections,
-                                                    overwrite=False)
-                except Exception as e:
-                    print(f"Error with metric manager. {e}")
-                    logging.error(f"{datetime.now()}, Error: {e}")
-            try:
-                metrics = metric_manager.generate_metrics()
-                self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
-            except Exception as e:
-                print("Metric manager: {}".format(e))
-            timeAfter = datetime.now()
+                if metric_manager is not None:
+                    # Generate the metrics
+                    metric_manager.add_data(ground_truth,
+                                            ctracks, tracker.detector.detections,
+                                            overwrite=False)
+
+                    metrics = metric_manager.generate_metrics()
+                    self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
+
+                timeAfter = datetime.now()
 
             timeTotal = timeAfter-timeFirst
             print(timeTotal)
@@ -169,9 +150,6 @@ class RunManagerCore(RunManager):
             logging.error(f'{log_time}: Failed to run Simulation: {e}', flush=True)
 
         else:
-            # logging.info(f'{log_time}: Simulation {index} / {len(combos)-1} ran '
-            #              'successfully in {datetime.now() - log_time}.'
-            #              'With Parameters: {combos[index]}')
             logging.info(f'{log_time} Successfully ran simulation in {datetime.now() - log_time} ')
             print('Success!', flush=True)
 
@@ -340,7 +318,7 @@ class RunManagerCore(RunManager):
         """
         pair = []
         pairs = []
-        
+
         for file in files:
             if not pair:
                 pair.append(file)
@@ -351,8 +329,8 @@ class RunManagerCore(RunManager):
             else:
                 pair = []
         return pairs
-    
-    def prepare_and_run_single_sim(self, nruns):
+
+    def prepare_and_run_single_simulation(self, nruns):
         """Prepares a single simulation for a run
 
         Parameters
@@ -371,8 +349,15 @@ class RunManagerCore(RunManager):
             for runs in range(nruns):
                 dir_name = f"metrics_{dt_string}/run_{runs}"
                 print("RUN")
-                self.run_simulation(tracker, ground_truth, metric_manager,
-                                            dir_name, ground_truth)
+                ground_truth = self.check_ground_truth(ground_truth)
+                simulation_parameters = dict(
+                    tracker=tracker,
+                    ground_truth=ground_truth,
+                    metric_manager=metric_manager
+                )
+
+                self.run_simulation(simulation_parameters,
+                                    dir_name)
         except Exception as e:
             print(f'{datetime.now()} Preparing simulation error: {e}')
             logging.error(f'{datetime.now()} Could not run simulation. error: {e}')
@@ -404,7 +389,14 @@ class RunManagerCore(RunManager):
                     self.run_manager_metrics.generate_config(
                         dir_name, trackers[idx], ground_truths[idx], metric_managers[idx])
                     print("RUN")
-                    self.run_simulation(trackers[idx], ground_truths[idx], metric_managers[idx],
+
+                    simulation_parameters = dict(
+                        tracker=trackers[idx],
+                        ground_truth=self.check_ground_truth(ground_truths[idx]),
+                        metric_manager=metric_managers[idx]
+                    )
+
+                    self.run_simulation(simulation_parameters,
                                         dir_name)
         except Exception as e:
             print(f'{datetime.now()} Preparing simulation error: {e}')
@@ -423,7 +415,7 @@ class RunManagerCore(RunManager):
 
         Returns
         -------
-        Tracker: 
+        Tracker:
             Tracker stone soup object
         GroundTruth: 
             Ground Truth stone soup object
