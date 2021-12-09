@@ -84,7 +84,6 @@ class RunManagerCore(RunManager):
             self.prepare_and_run_single_sim(self.config_path, self.groundtruth_setting, nruns)
             logging.info(f'{datetime.now()} Ran single run successfully.')
 
-
         for path in pairs:
             # add check file type
             param_path = path[0]
@@ -264,19 +263,19 @@ class RunManagerCore(RunManager):
             print("Failed to load config data: ", e)
             config_data = [None, None, None]
 
-        # Set explicitly if user has included groundtruth in config and set flag
+        tracker = config_data[0]
+
+        # User has set a flag to use the groundtruth added in config file
         if groundtruth_setting is True:
-            print("MANUAL READ")
-            tracker = config_data[0]
             groundtruth = config_data[1]
+            # Also set metric manager if it has been added in config file
+            # (Change this to flag setting too?)
             if len(config_data) > 2:
                 metric_manager = config_data[2]
         else:
-            print("AUTOMATIC READ")
+            # Try to find groundtruth and metric manager if user has not flagged
             for x in config_data:
-                if "Tracker" in str(type(x)):
-                    tracker = x
-                elif "GroundTruth" in str(type(x)):
+                if "GroundTruth" in str(type(x)) or "MovingPlatform" in str(type(x)):
                     groundtruth = x
                 elif "metricgenerator" in str(type(x)):
                     metric_manager = x
