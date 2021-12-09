@@ -140,49 +140,50 @@ class InputManager(RunManager):
         """
         combination_dict = {}
         for parameter in parameters:
-            if not hasattr(parameter, "type"):
-                break
+            combination_list = {}
+            try:
+                if parameter["type"] == "StateVector":
+                    combination_list = self.generate_state_vector_combinations(parameter)
 
-            if parameter["type"] == "StateVector":
-                combination_list = self.generate_state_vector_combinations(parameter)
-                combination_dict.update(combination_list)
+                    combination_dict.update(combination_list)
 
-            if parameter["type"] == "int":
-                combination_list = self.generate_int_combinations(parameter)
-                combination_dict.update(combination_list)
+                if parameter["type"] == "int":
+                    combination_list = self.generate_int_combinations(parameter)
+                    combination_dict.update(combination_list)
 
-            if parameter["type"] == "float":
-                combination_list = self.generate_float_combinations(parameter)
-                combination_dict.update(combination_list)
+                if parameter["type"] == "float":
+                    combination_list = self.generate_float_combinations(parameter)
+                    combination_dict.update(combination_list)
 
-            if parameter["type"] == "Probability":
-                combination_list = self.generate_probability_combinations(parameter)
-                combination_dict.update(combination_list)
+                if parameter["type"] == "Probability":
+                    combination_list = self.generate_probability_combinations(parameter)
+                    combination_dict.update(combination_list)
 
-            if parameter["type"] == 'bool':
-                combination_list = self.generate_bool_combinations(parameter)
-                combination_dict.update(combination_list)
+                if parameter["type"] == 'bool':
+                    combination_list = self.generate_bool_combinations(parameter)
+                    combination_dict.update(combination_list)
 
-            if parameter["type"] == "CovarianceMatrix":
-                combination_list = self.generate_covariance_combinations(parameter)
-                combination_dict.update(combination_list)
+                if parameter["type"] == "CovarianceMatrix":
+                    combination_list = self.generate_covariance_combinations(parameter)
+                    combination_dict.update(combination_list)
 
-            if parameter["type"] == "DateTime":
-                combination_list = self.generate_date_time_combinations(parameter)
-                combination_dict.update(combination_list)
+                if parameter["type"] == "DateTime":
+                    combination_list = self.generate_date_time_combinations(parameter)
+                    combination_dict.update(combination_list)
 
-            if (parameter["type"] == "Tuple" or parameter["type"] == "list"):
-                combination_list = self.generate_tuple_list_combinations(parameter)
-                combination_dict.update(combination_list)
+                if (parameter["type"] == "Tuple" or parameter["type"] == "list"):
+                    combination_list = self.generate_tuple_list_combinations(parameter)
+                    combination_dict.update(combination_list)
 
-            if parameter["type"] == "timedelta":
-                combination_list = self.generate_timedelta_combinations(parameter)
-                combination_dict.update(combination_list)
+                if parameter["type"] == "timedelta":
+                    combination_list = self.generate_timedelta_combinations(parameter)
+                    combination_dict.update(combination_list)
 
-            if parameter["type"] == "ndarray":
-                combination_list = self.generate_ndarray_combinations(parameter)
-                combination_dict.update(combination_list)
-
+                if parameter["type"] == "ndarray":
+                    combination_list = self.generate_ndarray_combinations(parameter)
+                    combination_dict.update(combination_list)
+            except KeyError:
+                pass
         return combination_dict
 
     def generate_ndarray_combinations(self, parameter):
