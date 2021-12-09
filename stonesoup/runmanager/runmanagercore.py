@@ -190,16 +190,19 @@ class RunManagerCore(RunManager):
             tracker_copy, ground_truth_copy, metric_manager_copy = copy.deepcopy(
                 (tracker, ground_truth, metric_manager))
 
-            for k, v in parameter.items():
-                split_path = k.split('.')
-                if len(split_path) > 1:
-                    split_path = split_path[1::]
-                self.set_param(split_path, tracker_copy, v)
+            self.set_tracker_parameters(parameter, tracker_copy)
             trackers.append(tracker_copy)
             ground_truths.append(ground_truth_copy)
             metric_managers.append(metric_manager_copy)
 
         return trackers, ground_truths, metric_managers
+
+    def set_tracker_parameters(self, parameter, tracker):
+        for k, v in parameter.items():
+            split_path = k.split('.')
+            if len(split_path) > 1:
+                split_path = split_path[1::]
+            self.set_param(split_path, tracker, v)
 
     def set_param(self, split_path, el, value):
         """Sets the paramater file value to the attribute in the stone soup object
