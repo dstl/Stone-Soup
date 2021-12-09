@@ -13,6 +13,9 @@ from .base import RunManager
 
 class RunManagerCore(RunManager):
     def __init__(self):
+
+        self.run_manager_metrics = RunmanagerMetrics()
+
         logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
         
     def read_json(self, json_input):
@@ -112,19 +115,19 @@ class RunManagerCore(RunManager):
                 # Update groundtruth, tracks and detections
 
                 try:
-                    RunmanagerMetrics.groundtruth_to_csv(dir_name, ground_truth.groundtruth_paths)
+                    self.run_manager_metrics.groundtruth_to_csv(dir_name, ground_truth.groundtruth_paths)
                 except Exception as e:
                     logging.error(e)
                     try:
-                        RunmanagerMetrics.groundtruth_to_csv(dir_name, ground_truth)
+                        self.run_manager_metrics.groundtruth_to_csv(dir_name, ground_truth)
                     except Exception as e:
                         logging.error(e)
                         pass
                 # tracks.update(ctracks)
                 # detections.update(tracker.detector.detections)
 
-                RunmanagerMetrics.tracks_to_csv(dir_name, ctracks)
-                RunmanagerMetrics.detection_to_csv(dir_name, tracker.detector.detections)
+                self.run_manager_metrics.tracks_to_csv(dir_name, ctracks)
+                self.run_manager_metrics.detection_to_csv(dir_name, tracker.detector.detections)
 
                 try:
                     if metric_manager is not None:
@@ -143,7 +146,7 @@ class RunManagerCore(RunManager):
                     logging.error(f"{datetime.now()}, Error: {e}")
             try:
                 metrics = metric_manager.generate_metrics()
-                RunmanagerMetrics.metrics_to_csv(dir_name, metrics)
+                self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
             except Exception as e:
                 print("Metric manager: {}".format(e))
             timeAfter = datetime.now()
@@ -386,8 +389,8 @@ class RunManagerCore(RunManager):
         for idx in range(0, len(trackers)):
             for runs_num in range(nruns):
                 dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs_num}"
-                RunmanagerMetrics.parameters_to_csv(dir_name, combo_dict[idx])
-                RunmanagerMetrics.generate_config(
+                self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
+                self.run_manager_metrics.generate_config(
                     dir_name, trackers[idx], ground_truths[idx], metric_managers[idx])
                 print("RUN")
                 self.run_simulation(trackers[idx], ground_truths[idx], metric_managers[idx],
