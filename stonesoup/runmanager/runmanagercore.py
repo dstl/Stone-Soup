@@ -63,27 +63,14 @@ class RunManagerCore(RunManager):
         nprocesses : int, optional
             number of processing cores to use
         """
-        pairs = []
 
-        if self.dir:
-            paths = self.get_filepaths(self.dir)
+        pairs = self.config_parameter_pairing()
 
-            pairs = self.get_config_and_param_lists(paths)
-
-        elif self.config_path and self.parameters_path:
-            pairs = [[self.parameters_path, self.config_path]]
-
-        elif dir and self.config_path and self.parameters_path:
-            paths = self.get_filepaths(dir)
-            pairs = self.get_config_and_param_lists(paths)
-            pairs.append([self.parameters_path, self.config_path])
-
-        elif self.config_path and self.parameters_path is None:
+        if self.config_path and self.parameters_path is None:
             if nruns is None:
                 nruns = 1
             self.prepare_and_run_single_sim(self.config_path, self.groundtruth_setting, nruns)
             logging.info(f'{datetime.now()} Ran single run successfully.')
-
 
         for path in pairs:
             # add check file type
@@ -101,6 +88,22 @@ class RunManagerCore(RunManager):
             self.prepare_and_run_multi_sim(config_path, combo_dict, self.groundtruth_setting, nruns)
 
             logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
+
+    def config_parameter_pairing(self):
+        pairs = []
+        if self.dir:
+            paths = self.get_filepaths(self.dir)
+
+            pairs = self.get_config_and_param_lists(paths)
+
+        elif self.config_path and self.parameters_path:
+            pairs = [[self.parameters_path, self.config_path]]
+
+        elif dir and self.config_path and self.parameters_path:
+            paths = self.get_filepaths(dir)
+            pairs = self.get_config_and_param_lists(paths)
+            pairs.append([self.parameters_path, self.config_path])
+        return pairs
 
     def run_simulation(self, tracker, ground_truth,
                        metric_manager, dir_name):
