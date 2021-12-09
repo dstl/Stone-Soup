@@ -256,31 +256,32 @@ class RunManagerCore(RunManager):
         """
         config_string = config_file.read()
 
-        tracker, gt, mm, csv_data = None, None, None, None
+        tracker, groundtruth, metric_manager = None, None, None
 
-        config_data = YAML('safe').load(config_string)
+        try:
+            config_data = YAML('safe').load(config_string)
+        except Exception as e:
+            print("Failed to load config data: ", e)
+            config_data = [None, None, None]
 
         # Set explicitly if user has included groundtruth in config and set flag
         if groundtruth_setting is True:
             print("MANUAL READ")
             tracker = config_data[0]
-            gt = config_data[1]
+            groundtruth = config_data[1]
             if len(config_data) > 2:
-                mm = config_data[2]
+                metric_manager = config_data[2]
         else:
             print("AUTOMATIC READ")
             for x in config_data:
                 if "Tracker" in str(type(x)):
                     tracker = x
                 elif "GroundTruth" in str(type(x)):
-                    gt = x
+                    groundtruth = x
                 elif "metricgenerator" in str(type(x)):
-                    mm = x
-                elif type(x) is np.ndarray:
-                    csv_data = x
-                    print("CSV data found")
+                    metric_manager = x
 
-        return tracker, gt, mm
+        return tracker, groundtruth, metric_manager
 
     def read_config_dir(self, config_dir):
         """Reads a directory and returns a list of all of the file paths
