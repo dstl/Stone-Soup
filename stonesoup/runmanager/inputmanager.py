@@ -140,6 +140,9 @@ class InputManager(RunManager):
         """
         combination_dict = {}
         for parameter in parameters:
+            if not hasattr(parameter, "type"):
+                break
+
             if parameter["type"] == "StateVector":
                 combination_list = self.generate_state_vector_combinations(parameter)
                 combination_dict.update(combination_list)
@@ -407,9 +410,10 @@ class InputManager(RunManager):
         set
             set of all the possible values
         """
+        combination_list = {}
+
         if len(parameter['value_min']) > 0 and len(parameter['value_max']) > 0:
             path = parameter["path"]
-            combination_list = {}
             iteration_list = []
             if type(parameter["n_samples"]) is list:
                 for x in range(len(parameter['value_min'])):
