@@ -12,9 +12,19 @@ from .base import RunManager
 
 
 class RunManagerCore(RunManager):
-    def __init__(self):
+    def __init__(self, config_path, parameters_path, groundtruth_setting, dir):
+
+        self.config_path = config_path
+        self.parameters_path = parameters_path
+        self.groudtruth_setting = groundtruth_setting
+        self.dir = dir
+
+        self.input_manager = InputManager()
+        self.run_manager_metrics = RunmanagerMetrics()
+
         logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
         logging.info(f'RunManagerCore started. {datetime.now()}')
+
     def read_json(self, json_input):
         """Read json file from directory
 
@@ -32,9 +42,9 @@ class RunManagerCore(RunManager):
             json_data = json.load(json_file)
             logging.info(f'{datetime.now()} Accessed jsonfile {json_file}')
             return json_data
+
             
-    def run(self, config_path, parameters_path, 
-            groundtruth_setting, dir, nruns=1, nprocesses=1):
+    def run(self, nruns=1, nprocesses=1):
         """Handles the running of multiple files, single files and defines the structure
         of the run.
 
@@ -52,28 +62,28 @@ class RunManagerCore(RunManager):
             number of monte-carlo runs
         nprocesses : int, optional
             number of processing cores to use
-        """        
+        """
         pairs = []
-        input_manager = InputManager()
-        now = datetime.now()
-                
-        if dir:
-            paths = self.get_filepaths(dir)
+
+        if self.dir:
+            paths = self.get_filepaths(self.dir)
+
             pairs = self.get_config_and_param_lists(paths)
 
-        elif config_path and parameters_path:
-            pairs = [[parameters_path, config_path]]
+        elif self.config_path and self.parameters_path:
+            pairs = [[self.parameters_path, self.config_path]]
 
-        elif dir and config_path and parameters_path:
+        elif dir and self.config_path and self.parameters_path:
             paths = self.get_filepaths(dir)
             pairs = self.get_config_and_param_lists(paths)
-            pairs.append([parameters_path, config_path])
+            pairs.append([self.parameters_path, self.config_path])
 
-        elif config_path and parameters_path is None:
+        elif self.config_path and self.parameters_path is None:
             if nruns is None:
-                nruns=1
-            self.prepare_and_run_single_sim(config_path, groundtruth_setting, nruns)
+                nruns = 1
+            self.prepare_and_run_single_sim(self.config_path, self.groundtruth_setting, nruns)
             logging.info(f'{datetime.now()} Ran single run successfully.')
+
 
         for path in pairs:
             # add check file type
@@ -85,16 +95,16 @@ class RunManagerCore(RunManager):
                     nruns = json_data['configuration']['runs_num']
                 else:
                     nruns= 1
-            trackers_combination_dict = input_manager.generate_parameters_combinations(
+            trackers_combination_dict = self.input_manager.generate_parameters_combinations(
                 json_data["parameters"])
-            
-            combo_dict = input_manager.generate_all_combos(trackers_combination_dict)
-            self.prepare_and_run_multi_sim(config_path, combo_dict, groundtruth_setting, nruns)
+            combo_dict = self.input_manager.generate_all_combos(trackers_combination_dict)
+            self.prepare_and_run_multi_sim(config_path, combo_dict, self.groundtruth_setting, nruns)
+
             logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
 
     def run_simulation(self, tracker, ground_truth,
                        metric_manager, dir_name):
-        """Runs a simulation 
+        """Runs a simulation
 
         Parameters
         ----------
@@ -104,7 +114,7 @@ class RunManagerCore(RunManager):
             ground truth object, can be csv
         metric_manager : MetricManager
             Metric manager object
-        dir_name : str 
+        dir_name : str
             output directory for metrics
         """
 
@@ -115,19 +125,19 @@ class RunManagerCore(RunManager):
                 # Update groundtruth, tracks and detections
 
                 try:
-                    RunmanagerMetrics.groundtruth_to_csv(dir_name, ground_truth.groundtruth_paths)
+                    self.run_manager_metrics.groundtruth_to_csv(dir_name, ground_truth.groundtruth_paths)
                 except Exception as e:
                     logging.error(e)
                     try:
-                        RunmanagerMetrics.groundtruth_to_csv(dir_name, ground_truth)
+                        self.run_manager_metrics.groundtruth_to_csv(dir_name, ground_truth)
                     except Exception as e:
                         logging.error(e)
                         pass
                 # tracks.update(ctracks)
                 # detections.update(tracker.detector.detections)
 
-                RunmanagerMetrics.tracks_to_csv(dir_name, ctracks)
-                RunmanagerMetrics.detection_to_csv(dir_name, tracker.detector.detections)
+                self.run_manager_metrics.tracks_to_csv(dir_name, ctracks)
+                self.run_manager_metrics.detection_to_csv(dir_name, tracker.detector.detections)
 
                 try:
                     if metric_manager is not None:
@@ -146,7 +156,7 @@ class RunManagerCore(RunManager):
                     logging.error(f"{datetime.now()}, Error: {e}")
             try:
                 metrics = metric_manager.generate_metrics()
-                RunmanagerMetrics.metrics_to_csv(dir_name, metrics)
+                self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
             except Exception as e:
                 print("Metric manager: {}".format(e))
             timeAfter = datetime.now()
@@ -162,7 +172,6 @@ class RunManagerCore(RunManager):
             #              'With Parameters: {combos[index]}')
             logging.info(f'{log_time} Successfully ran simulation in {datetime.now() - log_time} ')
             print('Success!', flush=True)
-
 
     def set_trackers(self, combo_dict, tracker, ground_truth, metric_manager):
         """Set the trackers, groundtruths and metricmanagers list (stonesoup objects)
@@ -180,22 +189,22 @@ class RunManagerCore(RunManager):
 
         Returns
         -------
-        list: 
+        list:
             list of trackers
-        list: 
+        list:
             list of groundtruths
-        list: 
+        list:
             list of metric managers
         """
 
         trackers = []
         ground_truths = []
         metric_managers = []
-        
+
         for parameter in combo_dict:
             tracker_copy, ground_truth_copy, metric_manager_copy = copy.deepcopy(
                 (tracker, ground_truth, metric_manager))
-            
+
             for k, v in parameter.items():
                 split_path = k.split('.')
                 if len(split_path) > 1:
@@ -273,7 +282,6 @@ class RunManagerCore(RunManager):
 
         return tracker, gt, mm
 
-
     def read_config_dir(self, config_dir):
         """Reads a directory and returns a list of all of the file paths
 
@@ -342,7 +350,7 @@ class RunManagerCore(RunManager):
                 pair = []
         return pairs
     
-    def prepare_and_run_single_sim(self, config_path, groundtruth_setting, nruns):
+    def prepare_and_run_single_sim(self, nruns):
         """Prepares a single simulation for a run
 
         Parameters
@@ -357,7 +365,7 @@ class RunManagerCore(RunManager):
         try:
             now = datetime.now()
             dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
-            tracker, ground_truth, metric_manager = self.set_components(config_path, groundtruth_setting)
+            tracker, ground_truth, metric_manager = self.set_components(self.config_path, self.groundtruth_setting)
             for runs in range(nruns):
                 dir_name = f"metrics_{dt_string}/run_{runs}"
                 print("RUN")
@@ -367,7 +375,7 @@ class RunManagerCore(RunManager):
             print(f'{datetime.now()} Preparing simulation error: {e}')
             logging.error(f'{datetime.now()} Could not run simulation. error: {e}')
             
-    def prepare_and_run_multi_sim(self, config_path, combo_dict, groundtruth_setting, nruns):
+    def prepare_and_run_multi_sim(self, combo_dict, nruns):
         """Prepares multiple trackers for simulation runs
 
         Parameters
@@ -381,7 +389,7 @@ class RunManagerCore(RunManager):
         nruns : int
             Number of monte-carlo runs
         """
-        tracker, ground_truth, metric_manager = self.set_components(config_path, groundtruth_setting)
+        tracker, ground_truth, metric_manager = self.set_components(self.config_path, self.groundtruth_setting)
         trackers, ground_truths, metric_managers = self.set_trackers(
             combo_dict, tracker, ground_truth, metric_manager)
         try:
@@ -390,8 +398,8 @@ class RunManagerCore(RunManager):
             for idx in range(0, len(trackers)):
                 for runs_num in range(nruns):
                     dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs_num}"
-                    RunmanagerMetrics.parameters_to_csv(dir_name, combo_dict[idx])
-                    RunmanagerMetrics.generate_config(
+                    self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
+                    self.run_manager_metrics.generate_config(
                         dir_name, trackers[idx], ground_truths[idx], metric_managers[idx])
                     print("RUN")
                     self.run_simulation(trackers[idx], ground_truths[idx], metric_managers[idx],
@@ -399,7 +407,6 @@ class RunManagerCore(RunManager):
         except Exception as e:
             print(f'{datetime.now()} Preparing simulation error: {e}')
             logging.error(f'{datetime.now()} Could not run simulation. error: {e}')
-
 
     def set_components(self, config_path, groundtruth_setting):
         """Sets the tracker, ground truth and metric manager to the correct variables
