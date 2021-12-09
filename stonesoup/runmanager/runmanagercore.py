@@ -74,8 +74,8 @@ class RunManagerCore(RunManager):
 
         for path in pairs:
             # add check file type
-            param_path = path[1]
-            config_path = path[0]
+            param_path = path[0]
+            config_path = path[1]
             json_data = self.read_json(param_path)
             if nruns is None:
                 if json_data['configuration']['runs_num']:
@@ -391,8 +391,9 @@ class RunManagerCore(RunManager):
                     dir_name, trackers[idx], ground_truths[idx], metric_managers[idx])
                 print("RUN")
                 self.run_simulation(trackers[idx], ground_truths[idx], metric_managers[idx],
-                                    dir_name, groundtruth_setting, idx, combo_dict)
-    
+                                    dir_name)
+
+
     def set_components(self, config_path, groundtruth_setting):
         """Sets the tracker, ground truth and metric manager to the correct variables
         from the configuration file.
