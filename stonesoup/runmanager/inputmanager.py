@@ -201,13 +201,10 @@ class InputManager(RunManager):
         if parameter["value_min"].size > 0 and parameter["value_max"].size > 0:
             for x in range(len(parameter["value_min"])):
                 iteration_list.append(self.iterations(parameter["value_min"][x],
-                                                                parameter["value_max"][x],
-                                                                parameter["n_samples"][x]))
-
+                                                      parameter["value_max"][x],
+                                                      parameter["n_samples"][x]))
             combination_list[path] = self.set_ndArray(self.get_array_list(
-                                                                iteration_list,
-                                                                len(parameter["value_min"])))
-                                                        
+                iteration_list, len(parameter["value_min"])))
         return combination_list
 
     def generate_timedelta_combinations(self, parameter):
@@ -226,8 +223,8 @@ class InputManager(RunManager):
         path = parameter["path"]
         combination_list = {}
         iteration_list = self.iterations(parameter["value_min"],
-                                                    parameter["value_max"],
-                                                    parameter["n_samples"])
+                                         parameter["value_max"],
+                                         parameter["n_samples"])
         combination_list[path] = [self.set_time_delta(x) for x in iteration_list]
         return combination_list
 
@@ -250,10 +247,10 @@ class InputManager(RunManager):
         if len(parameter['value_min']) > 0 and len(parameter['value_max']) > 0:
             for x in range(len(parameter["value_min"])):
                 iteration_list.append(self.iterations(parameter["value_min"][x],
-                                                                parameter["value_max"][x],
-                                                                parameter["n_samples"][x]))
+                                                      parameter["value_max"][x],
+                                                      parameter["n_samples"][x]))
             combination_list[path] = self.get_array_list(iteration_list,
-                                                                    len(parameter["value_min"]))
+                                                         len(parameter["value_min"]))
 
             if parameter["type"] == "Tuple":
                 combination_list[path] = self.set_tuple(combination_list[path])
@@ -274,14 +271,13 @@ class InputManager(RunManager):
         set
             set of all the possible values
         """
-        path= parameter["path"]
+        path = parameter["path"]
         combination_list = {}
         min_date = datetime.strptime(parameter["value_min"], '%Y-%m-%d %H:%M:%S.%f')
         max_date = datetime.strptime(parameter["value_max"], '%Y-%m-%d %H:%M:%S.%f')
         iteration_list = self.iterations(min_date, max_date, parameter["n_samples"])
         combination_list[path] = iteration_list
         return combination_list
-
 
     def generate_covariance_combinations(self, parameter):
         """Generate combinations of covariance matrix
@@ -300,28 +296,24 @@ class InputManager(RunManager):
         combination_list = {}
         iteration_list = []
 
-        if (type(parameter["value_min"]) is  list and
-                type(parameter["value_max"]) is  list):
+        if (type(parameter["value_min"]) is list and
+                type(parameter["value_max"]) is list):
             covar_min = CovarianceMatrix(parameter["value_min"])
             covar_max = CovarianceMatrix(parameter["value_max"])
             covar_diag_min = covar_min.diagonal()
             covar_diag_max = covar_max.diagonal()
             if type(parameter["n_samples"]) is list:
-                #Check if we have a list of list
+                # Check if we have a list of list
                 for x in range(len(parameter["value_min"])):
                     iteration_list.append(self.iterations(covar_diag_min[x],
-                                                            covar_diag_max[x],
-                                                            parameter["n_samples"][x][x]))
-            else:
-                iteration_list.append(self.iterations(covar_diag_min[x],
-                                                        covar_diag_max[x],
-                                                        parameter["n_samples"]))
+                                                          covar_diag_max[x],
+                                                          parameter["n_samples"][x][x]))
             combination_list[path] = self.get_covar_trackers_list(iteration_list,
-                                                                    len(covar_min))
+                                                                  len(covar_min))
         return combination_list
-    
+
     def generate_bool_combinations(self, parameter):
-        """Generate combinations of bool 
+        """Generate combinations of bool
 
         Parameters
         ----------
@@ -354,8 +346,8 @@ class InputManager(RunManager):
         path = parameter["path"]
         combination_list = {}
         iteration_list = self.iterations(parameter["value_min"],
-                                                    parameter["value_max"],
-                                                    parameter["n_samples"])
+                                         parameter["value_max"],
+                                         parameter["n_samples"])
         combination_list[path] = [Probability(x) for x in iteration_list]
         return combination_list
 
@@ -375,8 +367,8 @@ class InputManager(RunManager):
         path = parameter["path"]
         combination_list = {}
         iteration_list = self.iterations(parameter["value_min"],
-                                                    parameter["value_max"],
-                                                    parameter["n_samples"])
+                                         parameter["value_max"],
+                                         parameter["n_samples"])
         combination_list[path] = [float(x) for x in iteration_list]
         return combination_list
 
@@ -395,10 +387,10 @@ class InputManager(RunManager):
         """
         path = parameter["path"]
         combination_list = {}
-                # iteration_list = []
+        # iteration_list = []
         iteration_list = self.iterations(parameter["value_min"],
-                                                    parameter["value_max"],
-                                                    parameter["n_samples"])
+                                         parameter["value_max"],
+                                         parameter["n_samples"])
         combination_list[path] = [int(x) for x in iteration_list]
         return combination_list
 
@@ -422,17 +414,17 @@ class InputManager(RunManager):
             if type(parameter["n_samples"]) is list:
                 for x in range(len(parameter['value_min'])):
                     iteration_list.append(self.iterations(parameter["value_min"][x],
-                                                                    parameter["value_max"][x],
-                                                                    parameter["n_samples"][x]))
+                                                          parameter["value_max"][x],
+                                                          parameter["n_samples"][x]))
             else:
                 for x in range(parameter['value_min']):
                     iteration_list.append(self.iterations(parameter["value_min"][x],
-                                                                    parameter["value_max"][x],
-                                                                    parameter["n_samples"]))
+                                                          parameter["value_max"][x],
+                                                          parameter["n_samples"]))
 
             combination_list[path] = self.set_stateVector(
                         self.get_array_list(iteration_list, len(parameter["value_min"])))
-                
+
         return combination_list
 
     def darray_navigator(self, val, val_min, val_max, iteration_list, n_samples):
