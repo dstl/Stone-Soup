@@ -66,13 +66,15 @@ class RunManagerCore(RunManager):
 
         for path in pairs:
             # Read the param data
-            json_data = self.read_json(self.parameters_path)
+            config_path = path[0]
+            param_path = path[1]
+            json_data = self.read_json(param_path)
 
             nruns = self.set_runs_number(nruns, json_data)
             combo_dict = self.prepare_monte_carlo(json_data)
 
             self.run_monte_carlo_simulation(combo_dict,
-                                            nruns)
+                                            nruns,config_path)
 
     def set_runs_number(self, nruns, json_data):
         if nruns is None:
@@ -402,7 +404,7 @@ class RunManagerCore(RunManager):
             print(f'{datetime.now()} Preparing simulation error: {e}')
             logging.error(f'{datetime.now()} Could not run simulation. error: {e}')
 
-    def run_monte_carlo_simulation(self, combo_dict, nruns):
+    def run_monte_carlo_simulation(self, combo_dict, nruns, config_path):
         """Prepares multiple trackers for simulation runs
 
         Parameters
@@ -414,7 +416,7 @@ class RunManagerCore(RunManager):
         """
 
         # Load the tracker from the config file
-        tracker, ground_truth, metric_manager = self.set_components(self.config_path,
+        tracker, ground_truth, metric_manager = self.set_components(config_path,
                                                                     self.groundtruth_setting)
         # Generate all the trackers from the loaded tracker
         trackers, ground_truths, metric_managers = self.set_trackers(
