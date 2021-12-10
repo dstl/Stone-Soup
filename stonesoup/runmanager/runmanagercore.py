@@ -11,6 +11,10 @@ from .base import RunManager
 
 
 class RunManagerCore(RunManager):
+    TRACKER = "tracker"
+    GROUNDTRUTH = "ground_truth"
+    METRIC_MANAGER = "metric_manager"
+
     def __init__(self, config_path, parameters_path, groundtruth_setting, dir):
 
         self.config_path = config_path
@@ -243,12 +247,7 @@ class RunManagerCore(RunManager):
 
         Returns
         -------
-        str
-            Tracker
-        str
-            Ground Truth
-        str
-            Metric manager
+        object dictionary with tracker, groundtruth and metric_manager
         """
         config_string = config_file.read()
 
@@ -277,9 +276,9 @@ class RunManagerCore(RunManager):
                 elif "metricgenerator" in str(type(x)):
                     metric_manager = x
 
-        return {"tracker": tracker,
-                "groundtruth": groundtruth,
-                "metric_manager": metric_manager}
+        return {self.TRACKER: tracker,
+                self.GROUNDTRUTH: groundtruth,
+                self.METRIC_MANAGER: metric_manager}
 
     def read_config_dir(self, config_dir):
         """Reads a directory and returns a list of all of the file paths
@@ -366,9 +365,9 @@ class RunManagerCore(RunManager):
             now = datetime.now()
             dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
             components = self.set_components(self.config_path)
-            tracker = components["tracker"]
-            ground_truth = components["groundtruth"]
-            metric_manager = components["metric_manager"]
+            tracker = components[self.TRACKER]
+            ground_truth = components[self.GROUNDTRUTH]
+            metric_manager = components[self.METRIC_MANAGER]
             for runs in range(nruns):
                 dir_name = f"metrics_{dt_string}/run_{runs}"
                 print("RUN")
@@ -400,9 +399,9 @@ class RunManagerCore(RunManager):
         # Load the tracker from the config file
         config_data = self.set_components(config_path)
 
-        tracker = config_data["tracker"]
-        ground_truth = config_data["ground_truth"]
-        metric_manager = config_data["metric_manager"]
+        tracker = config_data[self.TRACKER]
+        ground_truth = config_data[self.GROUNDTRUTH]
+        metric_manager = config_data[self.METRIC_MANAGER]
 
         # Generate all the trackers from the loaded tracker
         trackers, ground_truths, metric_managers = self.set_trackers(
@@ -455,12 +454,12 @@ class RunManagerCore(RunManager):
         try:
             with open(config_path, 'r') as file:
                 config_data = self.read_config_file(file)
-            tracker = config_data["tracker"]
-            ground_truth = config_data["groundtruth"]
-            metric_manager = config_data["metric_manager"]
+            tracker = config_data[self.TRACKER]
+            ground_truth = config_data[self.GROUNDTRUTH]
+            metric_manager = config_data[self.METRIC_MANAGER]
         except Exception as e:
             print(f'{datetime.now()} Could not read config file: {e}')
             logging.error(f'{datetime.now()} Could not read config file: {e}')
-        return {"tracker": tracker,
-                "ground_truth": ground_truth,
-                "metric_manager": metric_manager}
+        return {self.TRACKER: tracker,
+                self.GROUNDTRUTH: ground_truth,
+                self.METRIC_MANAGER: metric_manager}
