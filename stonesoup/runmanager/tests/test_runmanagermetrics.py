@@ -19,6 +19,7 @@ from ..runmanagermetrics import RunmanagerMetrics as runmanager_metrics
 test_dir_name = "stonesoup/runmanager/tests/test_csvs"
 runmanager_metrics = runmanager_metrics()
 
+
 class DummyTrack:
     def __init__(self, state, id, covar):
         self.state = state
@@ -175,7 +176,6 @@ def test_generate_config():
     test_metrics = {"metrics": 987}
 
     runmanager_metrics.generate_config(test_dir_name, test_tracker, test_gt, test_metrics)
-
     with open(test_dir_name+"/config.yaml", 'r') as file:
         tracker, gt, mm = YAML('safe').load(file)
 
