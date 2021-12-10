@@ -22,3 +22,6 @@ htmlcov/
 
 #vscode
 .vscode
+
+#run-manager csv file for the test
+stonesoup/tests/test_csvs/*.csv
