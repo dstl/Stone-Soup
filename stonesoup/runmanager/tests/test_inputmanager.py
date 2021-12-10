@@ -277,7 +277,7 @@ def test_generate_parameters_tuple():
 
 def test_generate_parameters_list():
     test_empty_list = {'path': 'pathname', 'var_name': 'var_name', 'type': 'list',
-                        'value_min': [], 'value_max': [], 'n_samples': 2}
+                       'value_min': [], 'value_max': [], 'n_samples': 2}
     test_list_0nsamples = {'path': 'pathname', 'var_name': 'var_name', 'type': 'list',
                            'value_min': [1, 1], 'value_max': [2, 2], 'n_samples': [0, 0]}
 
