@@ -503,11 +503,11 @@ class InputManager(RunManager):
             list: list all the possible combinations
         """
 
-        temp = []
+        array_list = []
         for x in range(0, n):
-            temp.append(iterations_container_list[x])
+            array_list.append(iterations_container_list[x])
 
-        list_combinations = list(itertools.product(*temp))
+        list_combinations = list(itertools.product(*array_list))
         # Using a set to remove any duplicates
         set_combinations = list(set(list_combinations))
         return set_combinations
@@ -524,11 +524,11 @@ class InputManager(RunManager):
         Returns:
             list: list all the possible combinations
         """
-        temp = []
+        array_list = []
         for x in range(0, n):
-            temp.append(iterations_container_list[x])
+            array_list.append(iterations_container_list[x])
 
-        list_combinations = [list(tup) for tup in itertools.product(*temp)]
+        list_combinations = [list(tup) for tup in itertools.product(*array_list)]
         # Using a set to remove any duplicates
         # set_combinations = list(set(list_combinations))
 
