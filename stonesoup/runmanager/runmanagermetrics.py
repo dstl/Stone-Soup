@@ -18,7 +18,7 @@ class RunmanagerMetrics(RunManager):
         Run manager base class
     """
     
-    def tracks_to_csv(dir_name, tracks, overwrite=False):
+    def tracks_to_csv(self, dir_name, tracks, overwrite=False):
         """Create a csv file for the track. It will contain the following columns:
             time    id    state    mean    covar
 
@@ -113,7 +113,7 @@ class RunmanagerMetrics(RunManager):
         return metricDictionary
     
     
-    def detection_to_csv(dir_name, detections, overwrite=False):
+    def detection_to_csv(self, dir_name, detections, overwrite=False):
         """Create a csv file for the detections. It will contain the following columns:
             time    x  y
 
@@ -148,7 +148,7 @@ class RunmanagerMetrics(RunManager):
             print(f'{datetime.now()}: Failed to write to {filename}')
             
             
-    def groundtruth_to_csv(dir_name, groundtruths, overwrite=False):
+    def groundtruth_to_csv(self, dir_name, groundtruths, overwrite=False):
         """Create a csv file for the grountruth.
 
         Parameters
@@ -161,6 +161,7 @@ class RunmanagerMetrics(RunManager):
             overwrite the file., by default False
         """
         filename = "groundtruth.csv"
+        
         try:
             if not os.path.exists(dir_name):
                 os.makedirs(dir_name)
@@ -173,11 +174,15 @@ class RunmanagerMetrics(RunManager):
 
             with open(os.path.join(dir_name, filename), 'a', newline='') as csvfile:
                 writer = csv.writer(csvfile)
+            
                 for gt in groundtruths:
                     writer.writerow([gt.state.timestamp, gt.id,
                                     ' '.join([str(n) for n in gt.state.state_vector])])
+
+                    
         except Exception as e:
             print(f'{datetime.now()}: Failed to write to {filename}')
+            
             
     
     def parameters_to_csv(self, dir_name, parameters, overwrite=False):
@@ -193,7 +198,6 @@ class RunmanagerMetrics(RunManager):
             overwrite the file, by default False
         """
         filename = "parameters.json"
-        
         try:
             if not os.path.exists(dir_name):
                 os.makedirs(dir_name)
@@ -204,7 +208,7 @@ class RunmanagerMetrics(RunManager):
         except Exception as e:
             print(f'{datetime.now()}: Failed to write to {filename}')
 
-    def generate_config(dir_name, tracker=None, groundtruth=None, metrics=None, overwrite=False):
+    def generate_config(self, dir_name, tracker=None, groundtruth=None, metrics=None, overwrite=False):
         """Creates a config.yaml file using the parameters you specificed in the model.
 
         Parameters
@@ -220,18 +224,17 @@ class RunmanagerMetrics(RunManager):
         overwrite : bool, optional
             overwrite the file, by default False
         """
-        try:
-            data = [tracker, groundtruth, metrics]
-            filename = "config.yaml"
-            if not os.path.exists(dir_name):
-                os.makedirs(dir_name)
 
-            f = open(os.path.join(dir_name, filename), "w")
-            yaml = YAML()
-            yaml.dump(data, f)
-            f.close()
-        except Exception as e:
-            print(f'{datetime.now()}: Failed to write to {filename}')
+        data = [tracker, groundtruth, metrics]
+        filename = "config.yaml"
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name)
+
+        f = open(os.path.join(dir_name, filename), "w")
+        yaml = YAML()
+        yaml.dump(data, f)
+        f.close()
+
             
 
     def write_params(self, parameters):

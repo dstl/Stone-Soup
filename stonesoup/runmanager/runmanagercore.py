@@ -15,7 +15,7 @@ class RunManagerCore(RunManager):
 
         self.config_path = config_path
         self.parameters_path = parameters_path
-        self.groudtruth_setting = groundtruth_setting
+        self.groundtruth_setting = groundtruth_setting
         self.dir = dir
 
         self.input_manager = InputManager()
@@ -66,15 +66,15 @@ class RunManagerCore(RunManager):
 
         for path in pairs:
             # Read the param data
-            config_path = path[0]
-            param_path = path[1]
+            config_path = path[1]
+            param_path = path[0]
             json_data = self.read_json(param_path)
 
             nruns = self.set_runs_number(nruns, json_data)
             combo_dict = self.prepare_monte_carlo(json_data)
 
             self.run_monte_carlo_simulation(combo_dict,
-                                            nruns,config_path)
+                                            nruns, config_path)
 
     def set_runs_number(self, nruns, json_data):
         if nruns is None:
@@ -104,42 +104,20 @@ class RunManagerCore(RunManager):
         elif self.config_path and self.parameters_path:
             pairs = [[self.parameters_path, self.config_path]]
 
-        elif dir and self.config_path and self.parameters_path:
-            paths = self.get_filepaths(dir)
+        elif self.dir and self.config_path and self.parameters_path:
+            paths = self.get_filepaths(self.dir)
             pairs = self.get_config_and_param_lists(paths)
             pairs.append([self.parameters_path, self.config_path])
-
-        elif self.config_path and self.parameters_path is None:
-            if nruns is None:
-                nruns = 1
-            self.prepare_and_run_single_sim(self.config_path, self.groundtruth_setting, nruns)
-            logging.info(f'{datetime.now()} Ran single run successfully.')
-
-        for path in pairs:
-            # add check file type
-            param_path = path[0]
-            config_path = path[1]
-            json_data = self.read_json(param_path)
-            if nruns is None:
-                if json_data['configuration']['runs_num']:
-                    nruns = json_data['configuration']['runs_num']
-                else:
-                    nruns = 1
-            trackers_combination_dict = self.input_manager.generate_parameters_combinations(
-                json_data["parameters"])
-            combo_dict = self.input_manager.generate_all_combos(trackers_combination_dict)
-            self.prepare_and_run_multi_sim(config_path, combo_dict,
-                                           self.groundtruth_setting, nruns)
-
             # logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
 
         return pairs
 
-    def check_ground_truth(ground_truth):
+    def check_ground_truth(self, ground_truth):
         try:
-            return ground_truth.groundtruth_paths
+            ground_truth = ground_truth.groundtruth_paths
         except Exception:
-            return ground_truth
+            ground_truth = ground_truth
+        return ground_truth
 
     def run_simulation(self, simulation_parameters, dir_name):
         """Runs a single simulation
@@ -151,36 +129,38 @@ class RunManagerCore(RunManager):
         dir_name : str
             output directory for metrics
         """
-        tracker = simulation_parameters.tracker
-        ground_truth = simulation_parameters.ground_truth
-        metric_manager = simulation_parameters.metric_manager
+        tracker = simulation_parameters['tracker']
+        ground_truth = simulation_parameters['ground_truth']
+        metric_manager = simulation_parameters['metric_manager']
 
         log_time = datetime.now()
         try:
             timeFirst = datetime.now()
             for time, ctracks in tracker.tracks_gen():
                 # Update groundtruth, tracks and detections
-
-                self.run_manager_metrics.groundtruth_to_csv(dir_name, ground_truth)
-
+                self.run_manager_metrics.groundtruth_to_csv(dir_name,
+                                                            self.check_ground_truth(ground_truth))
                 self.run_manager_metrics.tracks_to_csv(dir_name, ctracks)
                 self.run_manager_metrics.detection_to_csv(dir_name, tracker.detector.detections)
-
                 if metric_manager is not None:
                     # Generate the metrics
-                    metric_manager.add_data(ground_truth,
-                                            ctracks, tracker.detector.detections,
+                    metric_manager.add_data(self.check_ground_truth(ground_truth), ctracks,
+                                            tracker.detector.detections,
                                             overwrite=False)
 
-                    metrics = metric_manager.generate_metrics()
-                    self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
+                    # Sometimes the metric manager generate metrics fails.
+                    # We can't remove this try catch.
+                    try:
+                        metrics = metric_manager.generate_metrics()
+                        self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
+                    except Exception as e:
+                        print("Metric manager: {}".format(e))
 
-                timeAfter = datetime.now()
-
+            timeAfter = datetime.now()
             timeTotal = timeAfter-timeFirst
             print(timeTotal)
         except Exception as e:
-            logging.error(f'{log_time}: Failed to run Simulation: {e}', flush=True)
+            logging.error(f'{log_time}: Failed to run Simulation: {e}')
 
         else:
             logging.info(f'{log_time} Successfully ran simulation in {datetime.now() - log_time} ')
@@ -385,14 +365,14 @@ class RunManagerCore(RunManager):
         try:
             now = datetime.now()
             dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
-            components = self.set_components(self.config_path, self.groundtruth_setting)
+            components = self.set_components(self.config_path)
             tracker = components["tracker"]
             ground_truth = components["groundtruth"]
             metric_manager = components["metric_manager"]
             for runs in range(nruns):
                 dir_name = f"metrics_{dt_string}/run_{runs}"
                 print("RUN")
-                ground_truth = self.check_ground_truth(ground_truth)
+                # ground_truth = self.check_ground_truth(ground_truth)
                 simulation_parameters = dict(
                     tracker=tracker,
                     ground_truth=ground_truth,
@@ -418,11 +398,16 @@ class RunManagerCore(RunManager):
         """
 
         # Load the tracker from the config file
-        tracker, ground_truth, metric_manager = self.set_components(config_path,
-                                                                    self.groundtruth_setting)
+        config_data = self.set_components(config_path)
+
+        tracker = config_data["tracker"]
+        ground_truth = config_data["ground_truth"]
+        metric_manager = config_data["metric_manager"]
+
         # Generate all the trackers from the loaded tracker
         trackers, ground_truths, metric_managers = self.set_trackers(
             combo_dict, tracker, ground_truth, metric_manager)
+
         try:
             now = datetime.now()
             dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
@@ -436,7 +421,7 @@ class RunManagerCore(RunManager):
 
                     simulation_parameters = dict(
                         tracker=trackers[idx],
-                        ground_truth=self.check_ground_truth(ground_truths[idx]),
+                        ground_truth=ground_truths[idx],
                         metric_manager=metric_managers[idx]
                     )
 
