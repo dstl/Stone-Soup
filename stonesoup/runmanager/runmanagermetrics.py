@@ -161,6 +161,7 @@ class RunmanagerMetrics(RunManager):
             overwrite the file., by default False
         """
         filename = "groundtruth.csv"
+        
         try:
             if not os.path.exists(dir_name):
                 os.makedirs(dir_name)
@@ -173,11 +174,15 @@ class RunmanagerMetrics(RunManager):
 
             with open(os.path.join(dir_name, filename), 'a', newline='') as csvfile:
                 writer = csv.writer(csvfile)
+            
                 for gt in groundtruths:
                     writer.writerow([gt.state.timestamp, gt.id,
                                     ' '.join([str(n) for n in gt.state.state_vector])])
+
+                    
         except Exception as e:
             print(f'{datetime.now()}: Failed to write to {filename}')
+            
             
     
     def parameters_to_csv(self, dir_name, parameters, overwrite=False):

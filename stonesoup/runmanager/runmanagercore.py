@@ -112,11 +112,12 @@ class RunManagerCore(RunManager):
 
         return pairs
 
-    def check_ground_truth(ground_truth):
+    def check_ground_truth(self, ground_truth):
         try:
-            return ground_truth.groundtruth_paths
+            ground_truth = ground_truth.groundtruth_paths
         except Exception:
-            return ground_truth
+            ground_truth = ground_truth
+        return ground_truth
 
     def run_simulation(self, simulation_parameters, dir_name):
         """Runs a single simulation
@@ -128,31 +129,34 @@ class RunManagerCore(RunManager):
         dir_name : str
             output directory for metrics
         """
-        tracker = simulation_parameters.tracker
-        ground_truth = simulation_parameters.ground_truth
-        metric_manager = simulation_parameters.metric_manager
+        tracker = simulation_parameters['tracker']
+        ground_truth = simulation_parameters['ground_truth']
+        metric_manager = simulation_parameters['metric_manager']
 
         log_time = datetime.now()
         try:
             timeFirst = datetime.now()
             for time, ctracks in tracker.tracks_gen():
                 # Update groundtruth, tracks and detections
-
-                self.run_manager_metrics.groundtruth_to_csv(dir_name, ground_truth)
+                self.run_manager_metrics.groundtruth_to_csv(dir_name,
+                                                            self.check_ground_truth(ground_truth))
                 self.run_manager_metrics.tracks_to_csv(dir_name, ctracks)
                 self.run_manager_metrics.detection_to_csv(dir_name, tracker.detector.detections)
-
                 if metric_manager is not None:
                     # Generate the metrics
-                    metric_manager.add_data(ground_truth,
-                                            ctracks, tracker.detector.detections,
+                    metric_manager.add_data(self.check_ground_truth(ground_truth), ctracks,
+                                            tracker.detector.detections,
                                             overwrite=False)
 
-                    metrics = metric_manager.generate_metrics()
-                    self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
+                    # Sometimes the metric manager generate metrics fails.
+                    # We can't remove this try catch.
+                    try:
+                        metrics = metric_manager.generate_metrics()
+                        self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
+                    except Exception as e:
+                        print("Metric manager: {}".format(e))
 
-                timeAfter = datetime.now()
-
+            timeAfter = datetime.now()
             timeTotal = timeAfter-timeFirst
             print(timeTotal)
         except Exception as e:
@@ -368,7 +372,7 @@ class RunManagerCore(RunManager):
             for runs in range(nruns):
                 dir_name = f"metrics_{dt_string}/run_{runs}"
                 print("RUN")
-                ground_truth = self.check_ground_truth(ground_truth)
+                # ground_truth = self.check_ground_truth(ground_truth)
                 simulation_parameters = dict(
                     tracker=tracker,
                     ground_truth=ground_truth,
@@ -394,11 +398,16 @@ class RunManagerCore(RunManager):
         """
 
         # Load the tracker from the config file
-        tracker, ground_truth, metric_manager = self.set_components(config_path)
+        config_data = self.set_components(config_path)
+
+        tracker = config_data["tracker"]
+        ground_truth = config_data["ground_truth"]
+        metric_manager = config_data["metric_manager"]
+
         # Generate all the trackers from the loaded tracker
         trackers, ground_truths, metric_managers = self.set_trackers(
             combo_dict, tracker, ground_truth, metric_manager)
-        
+
         try:
             now = datetime.now()
             dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
@@ -412,7 +421,7 @@ class RunManagerCore(RunManager):
 
                     simulation_parameters = dict(
                         tracker=trackers[idx],
-                        ground_truth=self.check_ground_truth(ground_truths[idx]),
+                        ground_truth=ground_truths[idx],
                         metric_manager=metric_managers[idx]
                     )
 
