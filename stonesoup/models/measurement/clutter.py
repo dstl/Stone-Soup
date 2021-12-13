@@ -12,6 +12,7 @@ from ..types.array import StateVector, StateVectors
 from ..types.numeric import Probability
 from ..types.state import State
 
+
 class ClutterModel(Model, ABC):
     """A model for generating sensor clutter (false alarms) according to a specified 
     distribution in the state space relative to the sensor's position.
