@@ -1,5 +1,4 @@
 import os
-import multiprocessing as mp
 
 from ..runmanagercore import RunManagerCore
 
@@ -285,41 +284,3 @@ def test_set_components_no_mm():
     assert "tracker" in str(type(tracker))
     assert ground_truth == tracker.detector.groundtruth
     assert metric_manager is None
-
-    assert type(csv_data) is np.ndarray
-    file.close()
-
-
-def my_testmp_func(x, y):
-    return x**y
-
-
-def test_multiprocess():
-    test_process_one = mp.Process(target=my_testmp_func, args=(2, 2))
-    test_process_one.start()
-    assert test_process_one.is_alive()
-    test_process_one.join()
-    assert not test_process_one.is_alive()
-
-    test_process_two = mp.Process(target=my_testmp_func, args=(2, 3))
-    test_process_three = mp.Process(target=my_testmp_func, args=(3, 2))
-
-    test_process_two.start()
-    test_process_three.start()
-
-    assert test_process_two.is_alive()
-    assert test_process_three.is_alive()
-
-    test_process_two.join()
-    assert not test_process_two.is_alive()
-    test_process_three.join()
-    assert not test_process_three.is_alive()
-
-
-def test_multiprocess_pool():
-    test_args = [[2, 2], [2, 3], [3, 2]]
-    test_pool = mp.Pool(mp.cpu_count())
-
-    test_mp_result = test_pool.starmap(my_testmp_func, test_args)
-    assert test_mp_result == [4, 8, 9]
-

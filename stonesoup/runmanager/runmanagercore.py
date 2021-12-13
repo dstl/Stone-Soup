@@ -5,10 +5,6 @@ from datetime import datetime
 
 import os
 
-import numpy as np
-import multiprocessing as mp
-
-
 from stonesoup.serialise import YAML
 from .inputmanager import InputManager
 from .runmanagermetrics import RunmanagerMetrics
@@ -467,5 +463,3 @@ class RunManagerCore(RunManager):
         return {self.TRACKER: tracker,
                 self.GROUNDTRUTH: ground_truth,
                 self.METRIC_MANAGER: metric_manager}
-
-
