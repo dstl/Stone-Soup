@@ -43,7 +43,6 @@ class ClutterModel(Model, ABC):
         "`np.array([self.distribution(*arg) for arg in self.dist_params])` "
         "must return a numpy array of length equal to the number of dimensions.")
 
-
     def function(self, ground_truths: Set[GroundTruthState], **kwargs) -> Set[Clutter]:
         """
         Use the defined distribution and parameters to create simulated clutter
