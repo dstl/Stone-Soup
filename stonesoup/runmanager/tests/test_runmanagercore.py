@@ -286,9 +286,6 @@ def test_set_components_no_mm():
     assert ground_truth == tracker.detector.groundtruth
     assert metric_manager is None
 
-    assert type(csv_data) is np.ndarray
-    file.close()
-
 
 def my_testmp_func(x, y):
     return x**y
