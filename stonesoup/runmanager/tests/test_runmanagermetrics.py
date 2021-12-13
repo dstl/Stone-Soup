@@ -7,7 +7,7 @@ import os
 
 from stonesoup.serialise import YAML
 from stonesoup.types import metric, array
-from ..runmanagermetrics import RunmanagerMetrics as rmm
+from ..runmanagermetrics import RunmanagerMetrics as runmanager_metrics
 
 
 # Run from stonesoup working directory
@@ -17,6 +17,7 @@ from ..runmanagermetrics import RunmanagerMetrics as rmm
 
 # test_dir_name = "stonesoup\\runmanager\\tests\\test_csvs"
 test_dir_name = "stonesoup/runmanager/tests/test_csvs"
+runmanager_metrics = runmanager_metrics()
 
 
 class DummyTrack:
@@ -52,7 +53,7 @@ def test_tracks_to_csv():
     assert test_tracks[0].id is not None
     assert test_tracks[0].covar is not None
 
-    rmm.tracks_to_csv(test_dir_name, test_tracks)
+    runmanager_metrics.tracks_to_csv(test_dir_name, test_tracks)
 
     with open(test_dir_name+"/tracks.csv") as csvfile:
         test_tracks_loaded = csv.DictReader(csvfile, delimiter=",")
@@ -87,7 +88,7 @@ def test_metrics_to_csv():
 
     test_metrics = [test_metric, test_metric2]
 
-    rmm.metrics_to_csv(test_dir_name, test_metrics)
+    runmanager_metrics.metrics_to_csv(test_dir_name, test_metrics)
 
     with open(test_dir_name+"/metrics.csv") as csvfile:
         test_metrics_loaded = csv.DictReader(csvfile, delimiter=",")
@@ -110,7 +111,7 @@ def test_detection_to_csv():
 
     test_detections = [test_detection1, test_detection2]
 
-    rmm.detection_to_csv(test_dir_name, test_detections)
+    runmanager_metrics.detection_to_csv(test_dir_name, test_detections)
 
     with open(test_dir_name+"/detections.csv") as csvfile:
         test_detections_loaded = csv.DictReader(csvfile, delimiter=",")
@@ -133,7 +134,7 @@ def test_groundtruth_to_csv():
 
     test_groundtruths = [test_gt1, test_gt2, test_gt3]
 
-    rmm.groundtruth_to_csv(test_dir_name, test_groundtruths)
+    runmanager_metrics.groundtruth_to_csv(test_dir_name, test_groundtruths)
 
     with open(test_dir_name+"/groundtruth.csv") as csvfile:
         test_groundtruths_loaded = csv.DictReader(csvfile, delimiter=",")
@@ -156,7 +157,7 @@ def test_parameters_to_csv():
                        "e": "string",
                        "f": None}
 
-    rmm.parameters_to_csv(test_dir_name, test_parameters)
+    runmanager_metrics.parameters_to_csv(test_dir_name, test_parameters)
 
     with open(test_dir_name + "/parameters.json") as json_file:
         test_parameters_loaded = json.load(json_file)
@@ -174,8 +175,7 @@ def test_generate_config():
     test_gt = {"groundtruth": 567}
     test_metrics = {"metrics": 987}
 
-    rmm.generate_config(test_dir_name, test_tracker, test_gt, test_metrics)
-
+    runmanager_metrics.generate_config(test_dir_name, test_tracker, test_gt, test_metrics)
     with open(test_dir_name+"/config.yaml", 'r') as file:
         tracker, gt, mm = YAML('safe').load(file)
 
