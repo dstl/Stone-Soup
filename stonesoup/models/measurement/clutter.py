@@ -91,10 +91,10 @@ class ClutterModel(Model, ABC):
     
     @property
     def ndim(self) -> int:
-        '''
+        """
         Return the number of measurement dimensions or, if a measurement model has 
         not yet been assigned, the number of state dimensions.
-        '''
+        """
         if hasattr(self, 'measurement_model'):
             return self.measurement_model.ndim_meas
         else:
