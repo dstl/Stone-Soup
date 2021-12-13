@@ -62,6 +62,11 @@ class RunManagerCore(RunManager):
         nprocesses : int, optional
             number of processing cores to use, by default 1
         """
+        # if nprocesses > 1:
+        #     pool = mp.Pool(nprocesses)
+        #     pool.starmap(self.run, (nruns, 1))
+        #     exit()
+
         pairs = self.config_parameter_pairing()
 
         # Single simulation. No param file detected
@@ -81,7 +86,7 @@ class RunManagerCore(RunManager):
 
             nruns = self.set_runs_number(nruns, json_data)
             combo_dict = self.prepare_monte_carlo(json_data)
-
+            
             self.run_monte_carlo_simulation(combo_dict,
                                             nruns, config_path)
 
