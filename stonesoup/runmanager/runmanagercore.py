@@ -2,7 +2,12 @@ import copy
 import json
 import logging
 from datetime import datetime
+
 import os
+
+import numpy as np
+import multiprocessing as mp
+
 
 from stonesoup.serialise import YAML
 from .inputmanager import InputManager
@@ -250,7 +255,6 @@ class RunManagerCore(RunManager):
         object dictionary with tracker, groundtruth and metric_manager
         """
         config_string = config_file.read()
-
         tracker, groundtruth, metric_manager = None, None, None
 
         try:
@@ -463,3 +467,5 @@ class RunManagerCore(RunManager):
         return {self.TRACKER: tracker,
                 self.GROUNDTRUTH: ground_truth,
                 self.METRIC_MANAGER: metric_manager}
+
+
