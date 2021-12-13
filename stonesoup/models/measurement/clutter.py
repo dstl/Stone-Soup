@@ -14,14 +14,14 @@ from ..types.state import State
 
 
 class ClutterModel(Model, ABC):
-    """A model for generating sensor clutter (false alarms) according to a specified 
+    """A model for generating sensor clutter (false alarms) according to a specified
     distribution in the state space relative to the sensor's position.
 
     Note
     ----
     Instances of this class do not hold information about the measurement space until
-    immediately before they are called to function. As such, the same :class:`~.ClutterModel` 
-    object could be used with multiple different :class:`~.Clutter`MeasurementModel`s as long 
+    immediately before they are called to function. As such, the same :class:`~.ClutterModel`
+    object could be used with multiple different :class:`~.Clutter`MeasurementModel`s as long
     as they operate in the same state space.
     """
 
@@ -53,7 +53,7 @@ class ClutterModel(Model, ABC):
         ----------
         ground_truths : a set of :class:`~.GroundTruthState`
             The truth states which exist at this time step.
-        
+
         Returns
         -------
         : set of :class:`~.Clutter`
@@ -71,10 +71,10 @@ class ClutterModel(Model, ABC):
         for _ in range(np.random.poisson(self.clutter_rate)):
             # Call the distribution function to generate a random vector in the space
             random_vector = np.array([self.distribution(*arg) for arg in self.dist_params])
-            
+
             # Make a State object with the random vector
             state = State([0.0] * self.measurement_model.ndim_state, timestamp=timestamp)
-            state.state_vector[self.measurement_model.mapping, 0] += random_vector 
+            state.state_vector[self.measurement_model.mapping, 0] += random_vector
 
             # Use the sensor's measurement model to incorporate the
             # translation offset and sensor rotation. This will also
@@ -83,29 +83,29 @@ class ClutterModel(Model, ABC):
             clutter_vector = self.measurement_model.function(state)
 
             # Create a clutter object.
-            clutter.add(Clutter(state_vector=clutter_vector, 
+            clutter.add(Clutter(state_vector=clutter_vector,
                                 timestamp=timestamp,
                                 measurement_model=self.measurement_model))
 
         return clutter
-    
+
     @property
     def ndim(self) -> int:
         """
-        Return the number of measurement dimensions or, if a measurement model has 
+        Return the number of measurement dimensions or, if a measurement model has
         not yet been assigned, the number of state dimensions.
         """
         if hasattr(self, 'measurement_model'):
             return self.measurement_model.ndim_meas
         else:
             return len(self.dist_params)
-    
+
     def rvs(self, num_samples: int = 1, **kwargs) -> Union[StateVector, StateVectors]:
         """
         Must be implemented to properly inherit the parent Model.
         """
-        return None 
-    
+        return None
+
     def pdf(self, state1: State, state2: State, **kwargs) -> Union[Probability, np.ndarray]:
         """
         Must be implemented to properly inherit the parent Model.
