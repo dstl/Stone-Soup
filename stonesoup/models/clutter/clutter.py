@@ -4,13 +4,13 @@ import numpy as np
 from typing import Set, Union, Callable, Tuple
 from abc import ABC
 
-from .base import Model
-from ..base import Property
-from ..types.detection import Clutter
-from ..types.groundtruth import GroundTruthState
-from ..types.array import StateVector, StateVectors
-from ..types.numeric import Probability
-from ..types.state import State
+from ..base import Model
+from ...base import Property
+from ...types.detection import Clutter
+from ...types.groundtruth import GroundTruthState
+from ...types.array import StateVector, StateVectors
+from ...types.numeric import Probability
+from ...types.state import State
 
 
 class ClutterModel(Model, ABC):
