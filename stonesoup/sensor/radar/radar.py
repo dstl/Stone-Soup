@@ -20,7 +20,7 @@ from ...types.detection import TrueDetection
 from ...types.groundtruth import GroundTruthState
 from ...types.numeric import Probability
 from ...types.state import State, StateVector
-from ...models.clutter import ClutterModel
+from ...models.clutter.clutter import ClutterModel
 
 
 class RadarBearingRange(Sensor):
