@@ -45,7 +45,8 @@ def test_model(ModelClass, clutter_rate, dist, dist_params):
             noise_covar=np.eye(3))
     model_test.measurement_model = meas_model
 
-    truth = State(StateVector([1, 1, 1]), timestamp=datetime.now)
+    truth = State(StateVector([1, 1, 1]), timestamp=datetime.datetime.now)
+
     clutter = model_test.function(truth)
 
     assert np.all(isinstance(c, Clutter) for c in clutter)
