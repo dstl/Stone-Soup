@@ -12,10 +12,6 @@ from ....types.array import StateVector
 from ....types.state import State
 
 @pytest.mark.parametrize(
-    "model_class",
-    [ClutterModel]
-)
-@pytest.mark.parametrize(
     "ModelClass, clutter_rate, dist,\
      dist_params",
     [
