@@ -198,31 +198,19 @@ def test_particlestate_angle():
     # [[pi+0.1,pi+0.1,pi+0.1,pi+0.1,pi+0.1,pi-0.1,pi-0.1,pi-0.1,pi-0.1,pi-0.1],
     #  [   -10,   -10,   -10,   -10,   -10,    20,    20,    20,    20,    20]]
     # use same weights
+    # Be extremely cautious with the use of integers in the statevectors here.
+    # There's interplay between the Bearing and Probability types and resulting
+    # rounding approximations can fail the test.
     particles = StateVectors(
-        np.concatenate((np.tile([[Bearing(np.pi + 0.1)], [-10]], num_particles//2),
-                        np.tile([[Bearing(np.pi - 0.1)], [20]], num_particles//2)), axis=1))
+        np.concatenate((np.tile([[Bearing(np.pi + 0.1)], [-10.0]], num_particles//2),
+                        np.tile([[Bearing(np.pi - 0.1)], [20.0]], num_particles//2)), axis=1))
 
-    # TODO: Work out why the probability type doesn't work here
     weight = Probability(1/num_particles)
     weights = np.tile(weight, num_particles)
-    weights2 = np.tile(0.1, num_particles)
-
-    print(particles)
-
-    print(weights)
-    print(type(weights))
 
     # Test state without timestamp
     state = ParticleState(particles, weight=weights)
 
-    print(np.average(state.state_vector, axis=1))
-    print(np.average(state.state_vector, axis=1, weights=weights))
-    print(np.average(state.state_vector, axis=1, weights=weights2))
-    # TODO Eh ????!!?!?!? WTF?
-
-    print(sum(weights))
-    print(state.mean)
-    print(state.covar)
     assert np.allclose(state.mean, StateVector([[np.pi], [5.]]))
     assert np.allclose(state.covar, CovarianceMatrix([[0.01, -1.5], [-1.5, 225]]))
 
