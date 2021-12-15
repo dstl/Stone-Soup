@@ -20,8 +20,8 @@ class ClutterModel(Model, ABC):
     Note
     ----
     Instances of this class do not hold information about the measurement space until
-    immediately before they are called to function. As such, the same :class:`~.ClutterModel`
-    object could be used with multiple different :class:`~.Clutter`MeasurementModel`s as long
+    immediately before they are called to function. As such, the same :class:`ClutterModel`
+    object could be used with multiple different :class:`~.MeasurementModel` as long
     as they operate in the same state space.
     """
 
