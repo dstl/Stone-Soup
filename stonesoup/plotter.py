@@ -265,7 +265,7 @@ class Plotter:
                                         [state.mean[mapping[1]] for state in track],
                                         [state.mean[mapping[2]] for state in track],
                                         **tracks_kwargs)
-            except:
+            except AttributeError:
                 if self.dimension is Dimension.TWO:
                     line = self.ax.plot([state.state_vector[mapping[0]] for state in track],
                                         [state.state_vector[mapping[1]] for state in track],

@@ -44,10 +44,11 @@ class SystematicResampler(Resampler):
         u_j = u_i + (1 / n_particles) * np.arange(n_particles)
         index = weight_order[np.searchsorted(cdf, np.log(u_j))]
         new_particles = ParticleState(state_vector=particles.state_vector[:, index],
-                                      weight=[weight] * n_particles,
-                                      parent=ParticleState(state_vector=particles.state_vector[:, index],
-                                                           weight=particles.weight[index],
-                                                           timestamp=particles.timestamp),
+                                      weight=[weight]*n_particles,
+                                      parent=ParticleState(
+                                          state_vector=particles.state_vector[:, index],
+                                          weight=particles.weight[index],
+                                          timestamp=particles.timestamp),
                                       timestamp=particles.timestamp)
         return new_particles
 

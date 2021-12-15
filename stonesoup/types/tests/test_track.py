@@ -3,10 +3,9 @@ import datetime
 
 import numpy as np
 import pytest
-from stonesoup.types.detection import Detection
-from stonesoup.types.hypothesis import SingleHypothesis
-from stonesoup.types.update import Update
-
+from ..detection import Detection
+from ..hypothesis import SingleHypothesis
+from ..update import Update
 from ..particle import Particle
 from ..state import State, GaussianState, ParticleState
 from ..track import Track

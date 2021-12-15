@@ -6,7 +6,7 @@ import pytest
 
 from ..tests import test_platform_base
 from ...types.state import State
-from stonesoup.platform import MovingPlatform, FixedPlatform
+from ...platform import MovingPlatform, FixedPlatform
 from ...models.transition.linear import ConstantVelocity, CombinedLinearGaussianTransitionModel
 from ...sensor.radar.radar import RadarBearingRange
 from ...types.array import StateVector, CovarianceMatrix

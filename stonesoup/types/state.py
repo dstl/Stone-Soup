@@ -447,13 +447,16 @@ class ParticleState(State):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if (self.particle_list is not None) and (self.state_vector is not None or self.weight is not None):
+        if (self.particle_list is not None) and \
+                (self.state_vector is not None or self.weight is not None):
             raise ValueError("Use either a list of Particle objects or StateVectors and weights,"
                              " but not both.")
 
         if self.particle_list and isinstance(self.particle_list, list):
-            self.state_vector = StateVectors([particle.state_vector for particle in self.particle_list])
-            self.weight = np.array([Probability(particle.weight) for particle in self.particle_list])
+            self.state_vector = \
+                StateVectors([particle.state_vector for particle in self.particle_list])
+            self.weight = \
+                np.array([Probability(particle.weight) for particle in self.particle_list])
             parent_list = [particle.parent for particle in self.particle_list]
 
             if parent_list.count(None) == 0:
