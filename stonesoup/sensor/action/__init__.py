@@ -22,9 +22,9 @@ class Action(Base):
 
         Parameters
         ----------
-        current_time: datetime.timedelta
+        current_time: datetime.datetime
             Current time
-        timestamp: datetime.timedelta
+        timestamp: datetime.datetime
             Modification of attribute ends at this time stamp
         init_value: Any
             Current value of the modifiable attribute
