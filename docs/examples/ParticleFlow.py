@@ -170,11 +170,12 @@ from stonesoup.dataassociator.tracktotrack import TrackToTruth
 from stonesoup.metricgenerator.manager import SimpleManager
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
 from stonesoup.plotter import Plotter
+from stonesoup.measures import Euclidean
 
 updaters[0].resampler = SystematicResampler()  # Allow particle filter to re-sample
 
 pa = dict()
-siap_gen = SIAPMetrics(position_mapping=[0, 2])
+siap_gen = SIAPMetrics(position_measure=Euclidean((0, 2)), velocity_measure=Euclidean((1, 3)))
 
 for predictor, updater, colour, filter, particle_count \
         in zip(predictors, updaters, colours, filters, particle_counts):
@@ -201,7 +202,7 @@ for predictor, updater, colour, filter, particle_count \
     metric_manager.add_data(tracks={track}, groundtruth_paths={truth})
 
     pa[filter] = {metric for metric in metric_manager.generate_metrics()
-                  if metric.title.startswith('time-based SIAP PA')}.pop()
+                  if metric.title.startswith("SIAP Position Accuracy at times")}.pop()
 
 # %%
 # Positional Accuracy
