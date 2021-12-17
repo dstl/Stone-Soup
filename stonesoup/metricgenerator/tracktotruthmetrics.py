@@ -489,13 +489,13 @@ class IDSIAPMetrics(SIAPMetrics):
     Notes
     -----
         * This implementation assumes that track and ground truth path IDs are implemented via
-        metadata, whereby the strings :attr:`track_id` and :attr:`truth_id` are keys to track and
-        truth metadata entries with ID data respectively.
+          metadata, whereby the strings :attr:`track_id` and :attr:`truth_id` are keys to track and
+          truth metadata entries with ID data respectively.
         * :class:`~.Track` types store metadata outside of their `states` attribute. Therefore the
-        ID SIAPs make metadata comparisons via the tracks' last ID metadata values (as calling
-        `track.metadata` will return a track's metadata at the end of its life). To provide a
-        better implementation, one might modify :class:`~.Track` types to contain a list of
-        `state` types that hold their own metadata.
+          ID SIAPs make metadata comparisons via the tracks' last ID metadata values (as calling
+          `track.metadata` will return a track's metadata at the end of its life). To provide a
+          better implementation, one might modify :class:`~.Track` types to contain a list of
+          `state` types that hold their own metadata.
 
     Reference
         [1] Single Integrated Air Picture (SIAP) Metrics Implementation, Votruba et al, 29-10-2001
