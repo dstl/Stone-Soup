@@ -30,3 +30,9 @@ Trees
 
 .. automodule:: stonesoup.dataassociator.tree
     :show-inheritance:
+
+Multi-Frame Assignment
+----------------------
+
+.. automodule:: stonesoup.dataassociator.mfa
+    :show-inheritance:

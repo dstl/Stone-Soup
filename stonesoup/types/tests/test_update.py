@@ -15,7 +15,8 @@ from ..state import (
     State, GaussianState, SqrtGaussianState, TaggedWeightedGaussianState, ParticleState)
 from ..track import Track
 from ..update import (
-    Update, StateUpdate, GaussianStateUpdate, SqrtGaussianStateUpdate, ParticleStateUpdate)
+    Update, StateUpdate, GaussianStateUpdate, SqrtGaussianStateUpdate, ParticleStateUpdate,
+    TaggedWeightedGaussianStateUpdate)
 
 
 def test_stateupdate():
@@ -154,7 +155,7 @@ def test_from_state():
     state = TaggedWeightedGaussianState(
         [[0]], [[2]], weight=0.5, timestamp=datetime.datetime.now())
     update = Update.from_state(state, [[1]], [[3]], hypothesis=None)
-    assert isinstance(update, GaussianStateUpdate)
+    assert isinstance(update, TaggedWeightedGaussianStateUpdate)
     assert update.timestamp == state.timestamp
     assert update.state_vector[0] == 1
     assert update.covar[0] == 3

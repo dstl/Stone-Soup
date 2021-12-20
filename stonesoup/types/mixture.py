@@ -1,9 +1,14 @@
+import numpy as np
+
 from collections.abc import Sized, Iterable, Container
 from typing import MutableSequence
 
 from .base import Type
 from ..base import Property
 from .state import TaggedWeightedGaussianState, WeightedGaussianState
+from .array import StateVectors
+from .numeric import Probability
+from ..functions import gm_reduce_single
 
 
 class GaussianMixture(Type, Sized, Iterable, Container):
@@ -55,6 +60,40 @@ class GaussianMixture(Type, Sized, Iterable, Container):
 
     def extend(self, new_components):
         return self.components.extend(new_components)
+
+    @property
+    def ndim(self):
+        if len(self.components):
+            return self.components[0].ndim
+        return 0
+
+    @property
+    def means(self):
+        return StateVectors([component.mean for component in self.components])
+
+    @property
+    def covars(self):
+        return np.stack([component.covar for component in self.components], axis=2)
+
+    @property
+    def weights(self):
+        return np.asarray([component.weight for component in self.components])
+
+    @property
+    def state_vector(self):
+        return self.mean
+
+    @property
+    def mean(self):
+        means = self.means
+        weights = self.weights / Probability.sum(self.weights)
+        return np.average(means, axis=1, weights=weights)
+
+    @property
+    def covar(self):
+        _, covar = gm_reduce_single(self.means, self.covars,
+                                    self.weights)
+        return covar
 
     @property
     def component_tags(self):

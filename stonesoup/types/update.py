@@ -5,7 +5,8 @@ from .hypothesis import Hypothesis, CompositeHypothesis
 from .mixture import GaussianMixture
 from .state import CreatableFromState, CompositeState
 from .state import State, GaussianState, ParticleState, EnsembleState, \
-    SqrtGaussianState, InformationState, CategoricalState
+    SqrtGaussianState, WeightedGaussianState, TaggedWeightedGaussianState, \
+    InformationState, CategoricalState
 from ..base import Property
 
 
@@ -41,6 +42,22 @@ class SqrtGaussianStateUpdate(Update, SqrtGaussianState):
     This is equivalent to a Gaussian state update object, but with the
     covariance of the Gaussian distribution stored in matrix square root
     form.
+    """
+
+
+class WeightedGaussianStateUpdate(Update, WeightedGaussianState):
+    """ WeightedGaussianStateUpdate type
+
+    This is a simple Gaussian state update object, which, as the name suggests, is described
+    by a Gaussian distribution with an associated weight.
+    """
+
+
+class TaggedWeightedGaussianStateUpdate(Update, TaggedWeightedGaussianState):
+    """ TaggedWeightedGaussianStateUpdate type
+
+    This is a simple Gaussian state update object, which, as the name suggests, is described
+    by a Gaussian distribution, with an associated weight and unique tag.
     """
 
 
