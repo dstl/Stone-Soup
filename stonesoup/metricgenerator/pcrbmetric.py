@@ -16,13 +16,17 @@ from ..types.time import TimeRange
 
 class PCRBMetric(MetricGenerator):
     """
-    Computes the Posterior Cramer Rao Bound (PCRB) [1] for a given ground truth prior. PCRB
-    provides a MSE bound on the performance of unbiased filtering algorithms.
+    Computes the Posterior Cramer-Rao Bound (PCRB) [1] for a given ground truth prior, using a
+    Riccati recursion [2]. PCRB provides a MSE bound on the performance of unbiased filtering
+    algorithms.
 
     Reference:
-        [1] M. L. Hernandez and A. Farina, "Posterior Cramér-Rao Bound for Target Tracking in the
-        Presence of Multipath," 2018 21st International Conference on Information Fusion (FUSION),
-        2018, pp. 151-158, doi: 10.23919/ICIF.2018.8455619.
+        [1] M. L. Hernandez, B. Ristic and A. Farina, "A performance bound for maneuvering target
+        tracking using best-fitting Gaussian distributions," 2005 7th International Conference on
+        Information Fusion, 2005, pp. 8 pp.-, doi: 10.1109/ICIF.2005.1591829.
+        [2] P. Tichavsky, C. H. Muravchik and A. Nehorai, "Posterior Cramer-Rao bounds for
+        discrete-time nonlinear filtering," in IEEE Transactions on Signal Processing, vol. 46,
+        no. 5, pp. 1386-1396, May 1998, doi: 10.1109/78.668800.
     """
     prior: GaussianState = Property(doc="The prior used to initiate the track")
     transition_model: TransitionModel = Property(
