@@ -319,4 +319,3 @@ def test_multiprocess_pool():
 
     test_mp_result = test_pool.starmap(my_testmp_func, test_args)
     assert test_mp_result == [4, 8, 9]
-

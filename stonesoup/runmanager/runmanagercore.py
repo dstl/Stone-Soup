@@ -4,8 +4,6 @@ import logging
 from datetime import datetime
 
 import os
-
-import numpy as np
 import multiprocessing as mp
 
 
@@ -69,8 +67,8 @@ class RunManagerCore(RunManager):
             if nruns is None:
                 nruns = 1
             self.prepare_and_run_single_simulation(self.config_path,
-                                                self.groundtruth_setting,
-                                                nruns)
+                                                   self.groundtruth_setting,
+                                                   nruns)
             logging.info(f'{datetime.now()} Ran single run successfully.')
 
         for path in pairs:
@@ -81,7 +79,7 @@ class RunManagerCore(RunManager):
 
             nruns = self.set_runs_number(nruns, json_data)
             combo_dict = self.prepare_monte_carlo(json_data)
-            
+
             self.run_monte_carlo_simulation(combo_dict, nruns,
                                             nprocesses, config_path)
 
@@ -451,13 +449,13 @@ class RunManagerCore(RunManager):
             a list of extra arguments required: dt_string, combo_dict, runs_num,
             len_of_trackers, nprocesses
         """
-        
+
         dt_string = misc_args[0]
         combo_dict = misc_args[1]
         runs_num = misc_args[2]
         len_of_trackers = misc_args[3]
         nprocesses = misc_args[4]
-        
+
         mp_args = [(zip_tracker[idx], dt_string, combo_dict[idx],
                     idx, runs_num) for idx in range(0, len_of_trackers)]
         pool = mp.Pool(nprocesses)
@@ -531,5 +529,3 @@ class RunManagerCore(RunManager):
         return {self.TRACKER: tracker,
                 self.GROUNDTRUTH: ground_truth,
                 self.METRIC_MANAGER: metric_manager}
-
-
