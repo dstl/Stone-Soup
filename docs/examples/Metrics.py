@@ -114,7 +114,8 @@ ospa_generator = OSPAMetric(c=10, p=1, measure=Euclidean([0, 2]))
 # of multiple individual metrics. [#]_
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
 
-siap_generator = SIAPMetrics(position_mapping=[0, 2], velocity_mapping=[1, 3])
+siap_generator = SIAPMetrics(position_measure=Euclidean((0, 2)),
+                             velocity_measure=Euclidean((1, 3)))
 
 # %%
 # The SIAP Metrics requires a way to associate tracks to truth, so we'll use a Track to Truth
@@ -183,8 +184,11 @@ _ = ax.set_xlabel("Time")
 # indication, as well as provide a description for each metric.
 from stonesoup.metricgenerator.metrictables import SIAPTableGenerator
 
-_ = SIAPTableGenerator(
-    {metric for metric in metrics if metric.title.startswith("SIAP")}).compute_metric()
+siap_averages = {metric for metric in metrics
+                 if metric.title.startswith("SIAP") and not metric.title.endswith(" at times")}
+siap_time_based = {metric for metric in metrics if metric.title.endswith(' at times')}
+
+_ = SIAPTableGenerator(siap_averages).compute_metric()
 
 # %%
 # Plotting appropriate SIAP values at each timestamp gives:
@@ -193,25 +197,13 @@ fig2, axes = plt.subplots(5)
 
 fig2.subplots_adjust(hspace=1)
 
-t_siaps = {metric for metric in metrics if metric.title.startswith('time-based SIAP')}
+t_siaps = siap_time_based
 
 times = metric_manager.list_timestamps()
 
 for siap, axis in zip(t_siaps, axes):
-    name = siap.title[16:]
-    if name == 'C':
-        title = 'Completeness'
-    elif name == 'A':
-        title = 'Ambiguity'
-    elif name == 'S':
-        title = 'Spuriousness'
-    elif name == 'PA':
-        title = 'Positional Accuracy'
-    elif name == 'VA':
-        title = 'Velocity Accuracy'
-    else:
-        raise ValueError(f'Unknown title:{name}')
-    axis.set(title=title, xlabel='Time', ylabel=name)
+    siap_type = siap.title[:-13]  # remove the ' at timestamp' part
+    axis.set(title=siap.title, xlabel='Time', ylabel=siap_type)
     axis.tick_params(length=1)
     axis.plot(times, [t_siap.value for t_siap in siap.value])
 

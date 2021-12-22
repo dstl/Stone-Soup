@@ -1,24 +1,22 @@
 # -*- coding: utf-8 -*-
-import copy
 import datetime
 from abc import abstractmethod, ABC
 from functools import lru_cache
-
-from math import cos, sin
-from typing import Sequence, Tuple
+from typing import Sequence, Tuple, MutableSequence, Optional
 
 import numpy as np
+from math import cos, sin
 from scipy.linalg import expm
 
-from stonesoup.functions import cart2sphere, cart2pol, build_rotation_matrix, rotz
-from stonesoup.types.array import StateVector
 from stonesoup.base import Property
-from stonesoup.types.state import State, StateMutableSequence
+from stonesoup.functions import cart2sphere, cart2pol, build_rotation_matrix, rotz
 from stonesoup.models.transition import TransitionModel
+from stonesoup.types.array import StateVector
+from stonesoup.types.state import State, StateMutableSequence
 
 
 class Movable(StateMutableSequence, ABC):
-    states: Sequence[State] = Property(
+    states: MutableSequence[State] = Property(
         doc="A list of States which enables the platform's history to be "
             "accessed in simulators and for plotting. Initiated as a "
             "state, for a static platform, this would usually contain its "
@@ -29,7 +27,7 @@ class Movable(StateMutableSequence, ABC):
         doc="Mapping between platform position and state vector. For a "
             "position-only 3d platform this might be ``[0, 1, 2]``. For a "
             "position and velocity platform: ``[0, 2, 4]``")
-    velocity_mapping: Sequence[int] = Property(
+    velocity_mapping: Optional[Sequence[int]] = Property(
         default=None,
         doc="Mapping between platform velocity and state dims. If not "
             "set, it will default to ``[m+1 for m in position_mapping]``")
@@ -222,8 +220,7 @@ class FixedMovable(Movable):
 
     def move(self, timestamp: datetime.datetime, **kwargs) -> None:
         """For a fixed platform this method has no effect other than to update the timestamp."""
-        new_state = copy.deepcopy(self.state)
-        new_state.timestamp = timestamp
+        new_state = State.from_state(self.state, timestamp=timestamp)
         self.states.append(new_state)
 
 
@@ -338,14 +335,13 @@ class MovingMovable(Movable):
         if self.transition_model is None:
             raise AttributeError('Platform without a transition model cannot be moved')
 
-        self.states.append(State(
-            state_vector=self.transition_model.function(
-                state=self.state,
-                noise=True,
-                timestamp=timestamp,
-                time_interval=time_interval,
-                **kwargs),
-            timestamp=timestamp))
+        state_vector = self.transition_model.function(state=self.state,
+                                                      noise=True,
+                                                      timestamp=timestamp,
+                                                      time_interval=time_interval,
+                                                      **kwargs)
+        new_state = State.from_state(self.state, state_vector=state_vector, timestamp=timestamp)
+        self.states.append(new_state)
 
 
 class MultiTransitionMovable(MovingMovable):
@@ -409,27 +405,31 @@ class MultiTransitionMovable(MovingMovable):
         temp_state = self.state
         while time_interval.total_seconds() != 0:
             if time_interval >= self.current_interval:
-                temp_state = State(
-                    state_vector=self.transition_model.function(
-                        state=temp_state,
-                        noise=True,
-                        time_interval=self.current_interval,
-                        **kwargs),
-                    timestamp=timestamp
+
+                temp_state_vector = self.transition_model.function(
+                    state=temp_state,
+                    noise=True,
+                    time_interval=self.current_interval,
+                    **kwargs
                 )
+                temp_state = State.from_state(self.state,
+                                              state_vector=temp_state_vector,
+                                              timestamp=timestamp)
+
                 time_interval -= self.current_interval
                 self.transition_index = (self.transition_index + 1) % len(self.transition_models)
                 self.current_interval = self.transition_times[self.transition_index]
 
             else:
-                temp_state = State(
-                    state_vector=self.transition_model.function(
-                        state=temp_state,
-                        noise=True,
-                        time_interval=time_interval,
-                        **kwargs),
-                    timestamp=timestamp
+                temp_state_vector = self.transition_model.function(
+                    state=temp_state,
+                    noise=True,
+                    time_interval=time_interval,
+                    **kwargs
                 )
+                temp_state = State.from_state(self.state,
+                                              state_vector=temp_state_vector,
+                                              timestamp=timestamp)
                 self.current_interval -= time_interval
                 break
         self.states.append(temp_state)
