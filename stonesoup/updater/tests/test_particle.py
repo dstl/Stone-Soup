@@ -8,6 +8,7 @@ import pytest
 
 from ...models.measurement.linear import LinearGaussian
 from ...resampler.particle import SystematicResampler
+from ...types.array import StateVectors
 from ...types.detection import Detection
 from ...types.hypothesis import SingleHypothesis
 from ...types.particle import Particle
@@ -44,19 +45,17 @@ def test_particle(updater):
                  Particle([[30], [30]], 1 / 9),
                  ]
 
-    prediction = ParticleStatePrediction(particles,
+    prediction = ParticleStatePrediction(None, particle_list=particles,
                                          timestamp=timestamp)
     measurement = Detection([[20.0]], timestamp=timestamp)
-    eval_measurement_prediction = ParticleMeasurementPrediction([
+    eval_measurement_prediction = ParticleMeasurementPrediction(None, particle_list=[
                                             Particle(i.state_vector[0, :], 1 / 9)
                                             for i in particles],
                                             timestamp=timestamp)
 
     measurement_prediction = updater.predict_measurement(prediction)
 
-    assert np.all([eval_measurement_prediction.particles[i].state_vector ==
-                   measurement_prediction.particles[i].state_vector
-                   for i in range(9)])
+    assert np.all(eval_measurement_prediction.state_vector == measurement_prediction.state_vector)
     assert measurement_prediction.timestamp == timestamp
 
     updated_state = updater.update(SingleHypothesis(
@@ -65,12 +64,9 @@ def test_particle(updater):
     # Don't know what the particles will exactly be due to randomness so check
     # some obvious properties
 
-    assert np.all(particle.weight == 1 / 9
-                  for particle in updated_state.particles)
+    assert np.all(weight == 1 / 9 for weight in updated_state.weight)
     assert updated_state.timestamp == timestamp
-    assert updated_state.hypothesis.measurement_prediction \
-        == measurement_prediction
+    assert updated_state.hypothesis.measurement_prediction == measurement_prediction
     assert updated_state.hypothesis.prediction == prediction
     assert updated_state.hypothesis.measurement == measurement
-    assert np.allclose(updated_state.state_vector, np.array([[20.0], [20.0]]),
-                       rtol=2e-2)
+    assert np.allclose(updated_state.mean, StateVectors([[20.0], [20.0]]), rtol=2e-2)

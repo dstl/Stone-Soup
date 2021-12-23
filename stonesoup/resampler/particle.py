@@ -25,7 +25,7 @@ class SystematicResampler(Resampler):
         """
 
         if not isinstance(particles, ParticleState):
-            particles = ParticleState(particle_list=particles)
+            particles = ParticleState(None, particle_list=particles)
         n_particles = len(particles)
         weight = Probability(1 / n_particles)
 

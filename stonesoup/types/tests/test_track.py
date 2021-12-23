@@ -6,7 +6,7 @@ import pytest
 from ..detection import Detection
 from ..hypothesis import SingleHypothesis
 from ..update import Update
-from ..particle import Particle
+from ..numeric import Probability
 from ..state import State, GaussianState, ParticleState
 from ..track import Track
 
@@ -20,7 +20,7 @@ def test_track_empty():
 @pytest.mark.parametrize('state', [
     State(np.array([[0]]), datetime.datetime.now()),
     GaussianState(np.array([[0]]), np.array([[0]]), datetime.datetime.now()),
-    ParticleState([Particle(np.array([[0]]), 1)], datetime.datetime.now()),
+    ParticleState([[0]], datetime.datetime.now(), [Probability(1)]),
     ],
     ids=['State', 'GaussianState', 'ParticleState'])
 def test_track_state(state):

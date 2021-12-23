@@ -361,10 +361,10 @@ def test_gaussian_particle(gaussian_initiator):
         assert isinstance(track.state, ParticleStateUpdate)
         print(track.state.mean)
         if track.state.mean > 0:
-            assert np.allclose(track.state_vector, np.array([[5]]), atol=0.4)
+            assert np.allclose(track.state.mean, np.array([[5]]), atol=0.4)
             assert track.state.hypothesis.measurement is detections[0]
         else:
-            assert np.allclose(track.state_vector, np.array([[-5]]), atol=0.4)
+            assert np.allclose(track.state.mean, np.array([[-5]]), atol=0.4)
             assert track.state.hypothesis.measurement is detections[1]
         assert track.timestamp == timestamp
 

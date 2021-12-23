@@ -10,7 +10,6 @@ from stonesoup.types.state import CreatableFromState
 from ..angle import Bearing
 from ..array import StateVector, CovarianceMatrix, StateVectors
 from ..numeric import Probability
-from ..particle import Particle
 from ..state import State, GaussianState, ParticleState, \
     StateMutableSequence, WeightedGaussianState, SqrtGaussianState, CategoricalState
 from ...base import Property
@@ -140,7 +139,7 @@ def test_particlestate():
     num_particles = 10
     weight = Probability(1/num_particles)
     particles = StateVectors(np.concatenate(
-        (np.tile([[0]],num_particles//2), np.tile([[100]],num_particles//2)), axis=1))
+        (np.tile([[0]], num_particles//2), np.tile([[100]], num_particles//2)), axis=1))
     weights = np.tile(weight, num_particles)
 
     # Test state without timestamp
@@ -160,7 +159,7 @@ def test_particlestate():
     #  [0,0,0,0,0,200,200,200,200,200]]
     # use same weights
     particles = StateVectors(np.concatenate((np.tile([[0], [0]], num_particles//2),
-                                             np.tile([[100], [200]],num_particles//2)),
+                                             np.tile([[100], [200]], num_particles//2)),
                                             axis=1))
 
     state = ParticleState(particles, weight=weights)

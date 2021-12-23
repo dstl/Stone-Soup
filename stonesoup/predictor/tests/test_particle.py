@@ -45,7 +45,7 @@ def test_particle(predictor_class):
                        Particle(np.array([[30], [30]]),
                                 1 / 9),
                        ]
-    prior = ParticleState(prior_particles, timestamp=timestamp)
+    prior = ParticleState(None, particle_list=prior_particles, timestamp=timestamp)
 
     eval_particles = [Particle(cv.matrix(timestamp=new_timestamp,
                                          time_interval=time_interval)
@@ -55,7 +55,7 @@ def test_particle(predictor_class):
     eval_mean = np.mean(np.hstack([i.state_vector for i in eval_particles]),
                         axis=1).reshape(2, 1)
 
-    eval_prediction = ParticleStatePrediction(eval_particles, new_timestamp)
+    eval_prediction = ParticleStatePrediction(None, new_timestamp, particle_list=eval_particles)
 
     predictor = predictor_class(transition_model=cv)
 
@@ -63,6 +63,6 @@ def test_particle(predictor_class):
 
     assert np.allclose(prediction.mean, eval_mean)
     assert prediction.timestamp == new_timestamp
-    assert np.all([eval_prediction.particles[i].state_vector ==
-                   prediction.particles[i].state_vector for i in range(9)])
-    assert np.all([prediction.particles[i].weight == 1 / 9 for i in range(9)])
+    assert np.all([eval_prediction.state_vector[:, i] ==
+                   prediction.state_vector[:, i] for i in range(9)])
+    assert np.all([prediction.weight[i] == 1 / 9 for i in range(9)])

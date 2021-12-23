@@ -4,7 +4,6 @@ import datetime
 import numpy as np
 import pytest
 
-from ..particle import Particle
 from ..prediction import (
     Prediction, MeasurementPrediction,
     StatePrediction, StateMeasurementPrediction,

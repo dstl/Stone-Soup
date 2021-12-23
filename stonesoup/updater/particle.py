@@ -11,7 +11,6 @@ from ..base import Property
 from ..functions import cholesky_eps, sde_euler_maruyama_integration
 from ..resampler import Resampler
 from ..types.numeric import Probability
-from ..types.particle import Particle
 from ..types.prediction import (
     Prediction, ParticleMeasurementPrediction, GaussianStatePrediction, MeasurementPrediction)
 from ..types.update import ParticleStateUpdate, Update
@@ -70,7 +69,8 @@ class ParticleUpdater(Updater):
             state_vector=predicted_state.state_vector,
             weight=predicted_state.weight,
             hypothesis=hypothesis,
-            timestamp=hypothesis.measurement.timestamp
+            timestamp=hypothesis.measurement.timestamp,
+            particle_list=None
             )
 
     @lru_cache()
@@ -80,16 +80,20 @@ class ParticleUpdater(Updater):
         if measurement_model is None:
             measurement_model = self.measurement_model
 
-        new_particles = []
-        for particle in state_prediction.particles:
-            new_state_vector = measurement_model.function(particle, **kwargs)
-            new_particles.append(
-                Particle(new_state_vector,
-                         weight=particle.weight,
-                         parent=particle.parent))
+        # new_particles = []
+        # for particle in state_prediction.particles:
+        #    new_state_vector = measurement_model.function(particle, **kwargs)
+        #    new_particles.append(
+        #        Particle(new_state_vector,
+        #                 weight=particle.weight,
+        #                 parent=particle.parent))
+
+        new_state_vector = measurement_model.function(state_prediction, **kwargs)
+        new_weight = state_prediction.weight
 
         return MeasurementPrediction.from_state(
-            state_prediction, particles=new_particles, timestamp=state_prediction.timestamp)
+            state_prediction, state_vector=new_state_vector, timestamp=state_prediction.timestamp,
+            particle_list=None, weight=new_weight)
 
 
 class GromovFlowParticleUpdater(Updater):
@@ -128,7 +132,8 @@ class GromovFlowParticleUpdater(Updater):
         inv_R = inv(R)
 
         # Start by making our own copy of the particle before we move them...
-        particles = [copy.copy(particle) for particle in hypothesis.prediction.particles]
+        # particles = [copy.copy(particle) for particle in hypothesis.prediction.particles]
+        particles = hypothesis.prediction
 
         def function(state, lambda_):
             try:
@@ -148,12 +153,15 @@ class GromovFlowParticleUpdater(Updater):
 
             return f, B
 
-        for particle in particles:
-            particle.state_vector = sde_euler_maruyama_integration(function, time_steps, particle)
+        # for particle in particles:
+        #    particle.state_vector = sde_euler_maruyama_integration(function, time_steps, particle)
+        new_state_vector = sde_euler_maruyama_integration(function, time_steps, particles)
 
         return ParticleStateUpdate(
-            particles,
+            new_state_vector,
             hypothesis,
+            weight=hypothesis.prediction.weight,
+            particle_list=None,
             timestamp=hypothesis.measurement.timestamp)
 
     predict_measurement = ParticleUpdater.predict_measurement
@@ -205,13 +213,14 @@ class GromovFlowKalmanParticleUpdater(GromovFlowParticleUpdater):
         kalman_update = self.kalman_updater.update(kalman_hypothesis, **kwargs)
 
         return ParticleStateUpdate(
-            particle_update.particles,
+            particle_update.state_vector,
             hypothesis,
-            kalman_update.covar,
+            weight=particle_update.weight,
+            fixed_covar=kalman_update.covar,
+            particle_list=None,
             timestamp=particle_update.timestamp)
 
-    def predict_measurement(
-            self, state_prediction, *args, **kwargs):
+    def predict_measurement(self, state_prediction, *args, **kwargs):
         particle_prediction = super().predict_measurement(
             state_prediction, *args, **kwargs)
 
@@ -222,6 +231,8 @@ class GromovFlowKalmanParticleUpdater(GromovFlowParticleUpdater):
             *args, **kwargs)
 
         return ParticleMeasurementPrediction(
-            particle_prediction.particles,
-            kalman_prediction.covar,
+            state_vector=particle_prediction.state_vector,
+            weight=state_prediction.weight,
+            fixed_covar=kalman_prediction.covar,
+            particle_list=None,
             timestamp=particle_prediction.timestamp)
