@@ -251,6 +251,7 @@ class Plotter:
                         self.ax.plot3D([xl, xl], [yl+y_err, yl-y_err], [zl, zl], marker="_", color=tracks_kwargs['color'])
                         self.ax.plot3D([xl, xl], [yl, yl], [zl+z_err, zl-z_err], marker="_", color=tracks_kwargs['color'])
                     check += 1
+            self.ax.legend(handles=self.legend_dict.values(), labels=self.legend_dict.keys())
 
         elif particle:
             # Plot particles
