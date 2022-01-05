@@ -89,26 +89,37 @@ def test_listtimestamps():
 
 
 def test_generate_metrics():
-    class DummyGenerator(MetricGenerator):
+    class DummyGenerator1(MetricGenerator):
 
         def compute_metric(self, manager, *args, **kwargs):
-            return Metric(title="Test metric",
-                          value=5,
+            return Metric(title="Test metric1",
+                          value=25,
                           generator=self)
 
-    generator1 = DummyGenerator()
-    generator2 = DummyGenerator()
+    class DummyGenerator2(MetricGenerator):
+
+        def compute_metric(self, manager, *args, **kwargs):
+            return Metric(title="Test metric2 at times",
+                          value=50,
+                          generator=self)
+
+    generator1 = DummyGenerator1()
+    generator2 = DummyGenerator2()
 
     manager = SimpleManager(generators=[generator1, generator2])
 
     metrics = manager.generate_metrics()
-    metric1 = [i for i in metrics if i.generator == generator1][0]
-    metric2 = [i for i in metrics if i.generator == generator2][0]
+    metric1 = [metrics[i] for i in metrics if metrics[i].generator == generator1][0]
+    metric2 = [metrics[i] for i in metrics if metrics[i].generator == generator2][0]
 
     assert len(metrics) == 2
-    assert metric1.title == "Test metric"
-    assert np.array_equal(metric1.value, 5)
+    assert metric1.title == "Test metric1"
+    assert metrics.get("Test metric1") == metric1
+    assert np.array_equal(metric1.value, 25)
     assert np.array_equal(metric1.generator, generator1)
-    assert metric2.title == "Test metric"
-    assert np.array_equal(metric2.value, 5)
+    assert metric2.title == "Test metric2 at times"
+    assert metrics.get("Test metric2") == metric2
+    # ' at times' should have been removed to shorten the key
+    assert metrics.get("Test metric2 at times") is None
+    assert np.array_equal(metric2.value, 50)
     assert np.array_equal(metric2.generator, generator2)
