@@ -22,7 +22,7 @@ setup(name='stonesoup',
           'Topic :: Scientific/Engineering',
       ],
       packages=find_packages(exclude=('docs', '*.tests')),
-      python_requires='>=3.6',
+      python_requires='>=3.7',
       setup_requires=['setuptools_scm', 'setuptools_scm_git_archive'],
       use_scm_version=True,
       install_requires=[
