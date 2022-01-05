@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 import datetime
+import uuid
 from collections import abc
-from typing import MutableSequence, Any, Optional
+from typing import MutableSequence, Any, Optional, Sequence
 import typing
 
 import numpy as np
-import uuid
 
-from ..base import Property
 from .array import StateVector, CovarianceMatrix, PrecisionMatrix
 from .base import Type
-from .particle import Particles
 from .numeric import Probability
+from .particle import Particles
+from ..base import Property
 
 
 class State(Type):
@@ -469,4 +469,50 @@ class ParticleState(Type):
         cov = np.cov(self.particles.state_vector, ddof=0, aweights=np.array(self.particles.weight))
         # Fix one dimensional covariances being returned with zero dimension
         return cov
+
+
 State.register(ParticleState)  # noqa: E305
+
+
+class CategoricalState(State):
+    r"""CategoricalState type.
+
+    State object representing an object in a categorical state space. A state vector
+    :math:`\mathbf{x}_i = P(\phi_i)` defines a categorical distribution over a finite set of
+    discrete categories :math:`\Phi = \{\phi_m|m\in Z_{\ge0}\}`."""
+
+    category_names: Sequence[str] = Property(
+        default=None,
+        doc="Sequence of category names corresponding to each state vector component. Defaults to "
+            "a list of integers."
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Check there is a category name for each state vector component
+        if self.category_names and len(self.category_names) != self.ndim:
+            raise ValueError(f"{len(self.category_names)} category names were given for a state "
+                             f"vector with {self.ndim} elements")
+
+        # Build default list of integers if no category names given
+        if self.category_names is None:
+            self.category_names = list(range(self.ndim))
+
+        # Check all vector elements are valid probabilities
+        if any(p < 0 or p > 1 for p in self.state_vector):
+            raise ValueError("Category probabilities must lie in the closed interval [0, 1]")
+
+        # Check vector is normalised
+        if not np.isclose(np.sum(self.state_vector), 1):
+            raise ValueError("Category probabilities must sum to 1")
+
+    def __str__(self):
+        strings = [f"P({category}) = {p}"
+                   for category, p in zip(self.category_names, self.state_vector)]
+        return f"({', '.join(strings)})"
+
+    @property
+    def category(self):
+        """Return the name of the most likely category"""
+        return self.category_names[np.argmax(self.state_vector)]

@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 from typing import MutableMapping
 
-from ..base import Property
 from .groundtruth import GroundTruthPath
+from .state import CategoricalState
 from .state import State, GaussianState, StateVector
+from ..base import Property
 from ..models.measurement import MeasurementModel
 
 
@@ -60,3 +61,11 @@ class MissedDetection(Detection):
 
     def __bool__(self):
         return False
+
+
+class CategoricalDetection(Detection, CategoricalState):
+    """Categorical detection type."""
+
+
+class TrueCategoricalDetection(TrueDetection, CategoricalDetection):
+    """TrueCategoricalDetection type for categorical detections that come from ground truth."""
