@@ -418,7 +418,8 @@ class RunManagerCore(RunManager):
                 for runs_num in range(nruns):
                     print("RUN ", runs_num)
                     mp_args = [(trackers[idx], ground_truths[idx], metric_managers[idx],
-                                dt_string, combo_dict, idx, runs_num) for idx in range(len(trackers))]
+                                dt_string, combo_dict,
+                                idx, runs_num) for idx in range(len(trackers))]
                     pool.starmap(self.run_multi_process_simulation, mp_args)
             else:
                 for runs_num in range(nruns):
@@ -440,26 +441,6 @@ class RunManagerCore(RunManager):
         except Exception as e:
             print(f'{datetime.now()} Preparing simulation error: {e}')
             logging.error(f'{datetime.now()} Could not run simulation. error: {e}')
-
-    def prepare_and_run_multiprocess(self, trackers, ground_truths, metric_managers,
-                                     dt_string, combo_dict, runs_num, len_trackers, nprocesses):
-        """Prepares simulation runs on a number of processes.
-
-        Parameters
-        ----------
-        tracker_zip : list
-            a list of a zip of a single tracker, groundtruth and metric manager
-        misc_args : list
-            a list of extra arguments required: dt_string, combo_dict, runs_num,
-            len_of_trackers, nprocesses
-        """
-
-        print("Preparing multiprocess parameters...")
-
-        mp_args = [(trackers[idx], ground_truths[idx], metric_managers[idx],
-                    dt_string, combo_dict, idx, runs_num) for idx in range(len_trackers)]
-        pool = mp.Pool(nprocesses)
-        pool.starmap(self.run_multi_process_simulation, mp_args)
 
     def run_multi_process_simulation(self, tracker, ground_truth, metric_manager,
                                      dt_string, combo_dict, idx, runs_num):
