@@ -348,7 +348,7 @@ class CategoricalState(State):
 
     State object representing an object in a categorical state space. A state vector
     :math:`\mathbf{x}_i = P(\phi_i)` defines a categorical distribution over a finite set of
-    discrete categories :math:`\Phi = \{\phi_m|m\in\Z_{\ge0}\}`."""
+    discrete categories :math:`\Phi = \{\phi_m|m\in Z_{\ge0}\}`."""
 
     category_names: Sequence[str] = Property(
         default=None,

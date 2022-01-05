@@ -8,7 +8,7 @@ from ..types.state import CategoricalState
 
 
 class HMMPredictor(Predictor):
-    r"""Models the prediction step of a hidden Markov model"""
+    r"""Models the prediction step of a Hidden Markov Model"""
 
     transition_model: CategoricalTransitionModel = Property(doc="The transition model to be used.")
 

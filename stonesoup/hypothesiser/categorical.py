@@ -40,7 +40,7 @@ class CategoricalHypothesiser(Hypothesiser):
         track: :class:`~.Track`
             The track object to hypothesise on. Composed of :class:`~.CategoricalState` types.
         detections: :class:`set`
-            A set of :class:`~CategoricalDetection` objects, representing the available
+            A set of :class:`~.CategoricalDetection` objects, representing the available
             detections.
         timestamp: :class:`datetime.datetime`
             A timestamp used when evaluating the state and measurement predictions. Note that if a
@@ -50,7 +50,7 @@ class CategoricalHypothesiser(Hypothesiser):
         Returns
         -------
         : :class:`~.MultipleHypothesis`
-            A container of :class:`~SingleProbabilityHypothesis` objects
+            A container of :class:`~.SingleProbabilityHypothesis` objects
         """
 
         hypotheses = list()

@@ -8,7 +8,7 @@ This is a demonstration using the implemented Hidden Markov model to classify mu
 
 We will attempt to classify 3 targets in an undefined region.
 Our sensor will be all-seeing, and provide us with indirect observations of the targets such that,
-using the implemented hidden Markov Model (HMM), we should hopefully successfully classify exactly
+using the implemented Hidden Markov Model (HMM), we should hopefully successfully classify exactly
 3 targets correctly.
 """
 
@@ -86,7 +86,7 @@ for states in np.vstack(ground_truths).T:
 # %%
 # Measurement
 # ^^^^^^^^^^^
-# Using a hidden markov model, it is assumed the hidden class of a target cannot be directly
+# Using a Hidden markov model, it is assumed the hidden class of a target cannot be directly
 # observed, and instead indirect observations are taken. In this instance, observations of the
 # targets' sizes are taken ('small' or 'large'), which have direct implications as to the targets'
 # hidden classes, and this relationship is modelled by the `emission matrix` of the
@@ -112,8 +112,11 @@ eo = CategoricalSensor(measurement_model=model,
 
 # Generating measurements
 measurements = list()
-for states in np.vstack(ground_truths).T:
-    measurements_at_time = eo.measure(states)
+for index, states in enumerate(np.vstack(ground_truths).T):
+    if index == 5:
+        measurements_at_time = set()  # Give tracker chance to use prediction instead
+    else:
+        measurements_at_time = eo.measure(states)
     timestamp = next(iter(states)).timestamp
     measurements.append((timestamp, measurements_at_time))
 
@@ -142,7 +145,6 @@ updater = HMMUpdater()
 # %%
 # Hypothesiser
 # ------------
-# %%
 # A :class:`~.CategoricalHypothesiser` is used for calculating categorical hypotheses.
 # It utilises the :class:`~.ObservationAccuracy` measure: a multi-dimensional extension of an
 # 'accuracy' score, essentially providing a measure of the similarity between two categorical
@@ -207,8 +209,16 @@ for track in tracks:
     certainty = track.state_vector[np.argmax(track.state_vector)][0] * 100
     print(f"id: {track.id} -- category: {track.category} -- certainty: {certainty}%")
     for state in track:
-        meas_string = f"associated measurement: {state.hypothesis.measurement.category}"
-        print(f"{state.timestamp} -- {state.category} -- {meas_string}")
+        _time = state.timestamp.strftime('%H:%M')
+        _type = str(type(state)).replace("class 'stonesoup.types.", "").strip("<>'. ")
+        state_string = f"{_time} -- {_type} -- {state.category}"
+        try:
+            meas_string = f"associated measurement: {state.hypothesis.measurement.category}"
+        except AttributeError:
+            pass
+        else:
+            state_string += f" -- {meas_string}"
+        print(state_string)
     print()
 
 # %%
@@ -216,17 +226,24 @@ for track in tracks:
 # ^^^^^^
 # Determining tracking accuracy.
 # In calculating how many targets were classified correctly, only tracks with the highest
-# classification certainty are considered.
+# classification certainty are considered. In the situation where probabilities are equal, a
+# random classification is chosen.
 
 excess_tracks = len(tracks) - len(ground_truths)  # target value = 0
 sorted_tracks = sorted(tracks,
                        key=lambda track: track.state_vector[np.argmax(track.state_vector)][0],
                        reverse=True)
 best_tracks = sorted_tracks[:3]
-true_classifications = {ground_truth.category for ground_truth in ground_truths}
-track_classifications = {track.category for track in best_tracks}
+true_classifications = [ground_truth.category for ground_truth in ground_truths]
+track_classifications = [track.category for track in best_tracks]
 
-num_correct_classifications = len(true_classifications & track_classifications)
+num_correct_classifications = 0  # target value = num ground truths
+for true_classification in true_classifications:
+    for i in range(len(track_classifications)):
+        if track_classifications[i] == true_classification:
+            num_correct_classifications += 1
+            del track_classifications[i]
+            break
 
 print(f"Excess tracks: {excess_tracks}")
 print(f"No. correct classifications: {num_correct_classifications}")

@@ -13,7 +13,7 @@ class CategoricalMeasurementModel(MeasurementModel):
     r"""Measurement model which returns a category.
     This is a time invariant model for simple observations of a state.
     A measurement can take one of a finite number of observation categories
-    :math:`Y = \{y_k|k\in\Z_{\gt0}\}` and a measurement vector :math:`(z_k)_i = P(y_i, k)` will
+    :math:`Y = \{y_k|k\in Z_{\gt0}\}` and a measurement vector :math:`(z_k)_i = P(y_i, k)` will
     define a categorical distribution over these categories. Measurements are generated via random
     sampling.
 
@@ -83,7 +83,7 @@ class CategoricalMeasurementModel(MeasurementModel):
         state: :class:`~.CategoricalState`
             An input (hidden class) state, where the state vector defines a categorical
             distribution over the set of possible hidden states
-            :math:`\Phi = \{\phi_m|m\in\Z_{\gt0}\}`.
+            :math:`\Phi = \{\phi_m|m\in Z_{\gt0}\}`.
         noise: bool
             If 'True', additive noise (generated via random sampling) will be included. Noise
             vectors cannot be defined beforehand. Only a boolean value is valid.

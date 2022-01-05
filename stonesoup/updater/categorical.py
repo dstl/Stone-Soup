@@ -72,7 +72,7 @@ class HMMUpdater(Updater):
 
         Returns
         -------
-        : :class:`MeasurementPrediction`
+        : :class:`~.MeasurementPrediction`
             The measurement prediction, :math:`Y_{k|k-1}`
         """
 
