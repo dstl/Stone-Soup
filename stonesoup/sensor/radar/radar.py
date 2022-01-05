@@ -20,6 +20,7 @@ from ...types.detection import TrueDetection
 from ...types.groundtruth import GroundTruthState
 from ...types.numeric import Probability
 from ...types.state import State, StateVector
+from ...models.clutter.clutter import ClutterModel
 
 
 class RadarBearingRange(Sensor):
@@ -43,6 +44,11 @@ class RadarBearingRange(Sensor):
         doc="The sensor noise covariance matrix. This is utilised by "
             "(and follow in format) the underlying "
             ":class:`~.CartesianToBearingRange` model")
+    clutter_model: ClutterModel = Property(
+        default=None,
+        doc="An optional clutter generator that adds a set of simulated "
+            ":class:`Clutter` ojects to the measurements at each time step. "
+            "The clutter is simulated according to the provided distribution.")
 
     def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
                 **kwargs) -> Set[TrueDetection]:
@@ -62,6 +68,12 @@ class RadarBearingRange(Sensor):
                                       timestamp=truth.timestamp,
                                       groundtruth_path=truth)
             detections.add(detection)
+
+        # Generate clutter at this time step
+        if self.clutter_model is not None:
+            self.clutter_model.measurement_model = measurement_model
+            clutter = self.clutter_model.function(ground_truths)
+            detections = set.union(detections, clutter)
 
         return detections
 
@@ -213,6 +225,12 @@ class RadarElevationBearingRange(RadarBearingRange):
                                       timestamp=truth.timestamp,
                                       groundtruth_path=truth)
             detections.add(detection)
+
+        # Generate clutter at this time step
+        if self.clutter_model is not None:
+            self.clutter_model.measurement_model = measurement_model
+            clutter = self.clutter_model.function(ground_truths)
+            detections = set.union(detections, clutter)
 
         return detections
 

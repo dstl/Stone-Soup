@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 from pytest import approx
 
-from stonesoup.types.detection import TrueDetection
 from ..beam_pattern import StationaryBeam
 from ..beam_shape import Beam2DGaussian
 from ..radar import RadarBearingRange, RadarElevationBearingRange, RadarRotatingBearingRange, \
@@ -16,6 +15,8 @@ from ....types.angle import Bearing, Elevation
 from ....types.array import StateVector, CovarianceMatrix
 from ....types.groundtruth import GroundTruthState, GroundTruthPath
 from ....types.state import State
+from ....types.detection import TrueDetection
+from ....models.clutter.clutter import ClutterModel
 
 
 def h2d(state, pos_map, translation_offset, rotation_offset):
@@ -647,3 +648,28 @@ def test_target_rcs():
             ValueError, match="Truth missing 'rcs' attribute and no default 'rcs' provided"):
         rcs_missing = (GroundTruthState([150e3, 0.0, 0.0], timestamp=None))
         radar.gen_probability(rcs_missing)
+
+
+@pytest.mark.parametrize("radar, clutter_params", [
+        (RadarBearingRange(ndim_state=4,
+                           position_mapping=[0, 2],
+                           noise_covar=np.eye(2)),
+            ((-50, 50), (-50, 50))),
+        (RadarElevationBearingRange(ndim_state=6,
+                                    position_mapping=[0, 2, 4],
+                                    noise_covar=np.eye(3)),
+            ((-50, 50), (-50, 50), (-50, 50))),
+    ],
+    ids=["RadarBearingRange", "RadarElevationBearingRange"]
+)
+def test_clutter_model(radar, clutter_params):
+    # Test that the radar correctly adds clutter when it has a clutter
+    # model. Make clutter rate sufficiently high that there is clutter
+    model_test = ClutterModel(clutter_rate=5,
+                              distribution=np.random.default_rng().uniform,
+                              dist_params=clutter_params)
+    radar.clutter_model = model_test
+    truth = State(StateVector([1, 1, 1, 1, 1, 1]), timestamp=datetime.datetime.now())
+    measurements = radar.measure({truth})
+    assert len([target for target in measurements if (isinstance(target, TrueDetection))]) == 1
+    assert len(measurements) > 1
