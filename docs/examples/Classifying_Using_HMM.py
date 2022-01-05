@@ -78,9 +78,9 @@ for i in range(1, 4):
     ground_truths.append(ground_truth)
 
 for states in np.vstack(ground_truths).T:
-    print(f"{new_state.timestamp:%H:%M:%S}", end="")
+    print(f"{states[0].timestamp:%H:%M:%S}", end="")
     for state in states:
-        print(f" -- {new_state.category}", end="")
+        print(f" -- {state.category}", end="")
     print()
 
 # %%
