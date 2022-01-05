@@ -49,7 +49,7 @@ class RunManagerCore(RunManager):
             logging.info(f'{datetime.now()} Accessed jsonfile {json_file}')
             return json_data
 
-    def run(self, nruns=1, nprocesses=1):
+    def run(self, nruns=None, nprocesses=1):
         """Handles the running of multiple files, single files and defines the structure
         of the run.
 
@@ -79,7 +79,6 @@ class RunManagerCore(RunManager):
 
             nruns = self.set_runs_number(nruns, json_data)
             combo_dict = self.prepare_monte_carlo(json_data)
-
             self.run_monte_carlo_simulation(combo_dict, nruns,
                                             nprocesses, config_path)
 
@@ -136,6 +135,7 @@ class RunManagerCore(RunManager):
         dir_name : str
             output directory for metrics
         """
+        print("RUN")
         tracker = simulation_parameters['tracker']
         ground_truth = simulation_parameters['ground_truth']
         metric_manager = simulation_parameters['metric_manager']
@@ -372,7 +372,7 @@ class RunManagerCore(RunManager):
             metric_manager = components[self.METRIC_MANAGER]
             for runs in range(nruns):
                 dir_name = f"metrics_{dt_string}/run_{runs}"
-                print("RUN")
+                print("RUN SINGLE")
                 # ground_truth = self.check_ground_truth(ground_truth)
                 simulation_parameters = dict(
                     tracker=tracker,
@@ -412,19 +412,22 @@ class RunManagerCore(RunManager):
         try:
             now = datetime.now()
             dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
-            for runs_num in range(nruns):
-                if nprocesses > 1:
-                    # Run with multiprocess
-                    zip_tracker = list(zip(trackers, ground_truths, metric_managers))
-                    misc_args = [dt_string, combo_dict, runs_num, len(trackers), nprocesses]
-                    self.prepare_and_run_multiprocess(zip_tracker, misc_args)
-                else:
+            if nprocesses > 1:
+                # Run with multiprocess
+                pool = mp.Pool(nprocesses)
+                for runs_num in range(nruns):
+                    print("RUN ", runs_num)
+                    mp_args = [(trackers[idx], ground_truths[idx], metric_managers[idx],
+                                dt_string, combo_dict, idx, runs_num) for idx in range(len(trackers))]
+                    pool.starmap(self.run_multi_process_simulation, mp_args)
+            else:
+                for runs_num in range(nruns):
+                    print("RUN ", runs_num)
                     for idx in range(0, len(trackers)):
                         dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs_num}"
                         self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
                         self.run_manager_metrics.generate_config(
                             dir_name, trackers[idx], ground_truths[idx], metric_managers[idx])
-                        print("RUN")
 
                         simulation_parameters = dict(
                             tracker=trackers[idx],
@@ -438,7 +441,8 @@ class RunManagerCore(RunManager):
             print(f'{datetime.now()} Preparing simulation error: {e}')
             logging.error(f'{datetime.now()} Could not run simulation. error: {e}')
 
-    def prepare_and_run_multiprocess(self, zip_tracker, misc_args):
+    def prepare_and_run_multiprocess(self, trackers, ground_truths, metric_managers,
+                                     dt_string, combo_dict, runs_num, len_trackers, nprocesses):
         """Prepares simulation runs on a number of processes.
 
         Parameters
@@ -450,18 +454,15 @@ class RunManagerCore(RunManager):
             len_of_trackers, nprocesses
         """
 
-        dt_string = misc_args[0]
-        combo_dict = misc_args[1]
-        runs_num = misc_args[2]
-        len_of_trackers = misc_args[3]
-        nprocesses = misc_args[4]
+        print("Preparing multiprocess parameters...")
 
-        mp_args = [(zip_tracker[idx], dt_string, combo_dict[idx],
-                    idx, runs_num) for idx in range(0, len_of_trackers)]
+        mp_args = [(trackers[idx], ground_truths[idx], metric_managers[idx],
+                    dt_string, combo_dict, idx, runs_num) for idx in range(len_trackers)]
         pool = mp.Pool(nprocesses)
         pool.starmap(self.run_multi_process_simulation, mp_args)
 
-    def run_multi_process_simulation(self, tracker_zip, dt_string, combo_dict, idx, runs_num):
+    def run_multi_process_simulation(self, tracker, ground_truth, metric_manager,
+                                     dt_string, combo_dict, idx, runs_num):
         """Runs a single simulation in its own process so that other simulations can be run
         in parallel in other processes.
 
@@ -479,12 +480,8 @@ class RunManagerCore(RunManager):
             the index of the current run
         """
 
-        tracker = tracker_zip[0]
-        ground_truth = tracker_zip[1]
-        metric_manager = tracker_zip[2]
-
         dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs_num}"
-        self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict)
+        self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
 
         simulation_parameters = dict(
@@ -493,7 +490,6 @@ class RunManagerCore(RunManager):
             metric_manager=metric_manager
         )
 
-        print("RUN MP")
         self.run_simulation(simulation_parameters, dir_name)
 
     def set_components(self, config_path):
