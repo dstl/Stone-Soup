@@ -13,6 +13,9 @@ from ...types.prediction import GaussianStatePrediction
 from ...types.time import TimeRange
 from ...types.track import Track
 from ...types.update import GaussianStateUpdate
+from ...types.array import CovarianceMatrix, StateVector
+from ...models.transition.linear import CombinedLinearGaussianTransitionModel, ConstantVelocity
+from ...models.measurement.linear import LinearGaussian
 
 
 @pytest.fixture()
@@ -213,3 +216,25 @@ def trial_manager(trial_truths, trial_tracks, trial_associations):
     manager.association_set = trial_associations
 
     return manager
+
+
+@pytest.fixture()
+def transition_model():
+    return CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05), ConstantVelocity(0.05)])
+
+
+@pytest.fixture()
+def measurement_model():
+    return LinearGaussian(ndim_state=4, mapping=[0, 2],
+                          noise_covar=CovarianceMatrix(np.diag([5., 5.])))
+
+
+@pytest.fixture()
+def groundtruth():
+    now = datetime.now()
+    init_sv = StateVector([0., 1., 0., 1.])
+    increment_sv = StateVector([1., 0., 1., 0])
+    states = [GroundTruthState(init_sv + i*increment_sv, timestamp=now+timedelta(seconds=i))
+              for i in range(21)]
+    path = GroundTruthPath(states)
+    return path
