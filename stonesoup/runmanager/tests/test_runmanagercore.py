@@ -325,4 +325,4 @@ def test_config_parameter_pairing():
     test_pairs = rmc.config_parameter_pairing()
 
     assert type(test_pairs) is list
-    assert len(test_pairs) is 0
+    assert len(test_pairs) == 0
