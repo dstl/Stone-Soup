@@ -319,3 +319,10 @@ def test_multiprocess_pool():
 
     test_mp_result = test_pool.starmap(my_testmp_func, test_args)
     assert test_mp_result == [4, 8, 9]
+
+
+def test_config_parameter_pairing():
+    test_pairs = rmc.config_parameter_pairing()
+
+    assert type(test_pairs) is list
+    assert len(test_pairs) is 0
