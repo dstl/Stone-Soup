@@ -1,6 +1,7 @@
-import pickle
 import pytest
 import numpy as np
+from pathlib import Path
+import matplotlib.image as mpimg
 
 from stonesoup.reader.image import SingleImageFileReader
 
@@ -21,9 +22,8 @@ def test_cfar_detections(datadir):
     feeder = CFAR(reader, train_size=10, guard_size=4, alpha=4, squared=True)
     for _, frame in feeder:
         th1 = feeder.current[1].pixels
-    expected_result_filename = datadir.join('expected_result_cfar.pickle')
-    file = open(expected_result_filename, 'rb')
-    img = pickle.load(file)
+    expected_result_filename = Path(datadir.join('expected_result_cfar.png'))
+    img = mpimg.imread(expected_result_filename)*255
     assert np.array_equal(th1, img)
 
 
@@ -34,7 +34,6 @@ def test_ccl_detections(datadir):
     feeder = CCL(cfar)
     for _, frame in feeder:
         labels_img = frame.pixels
-    expected_result_filename = datadir.join('expected_result_ccl.pickle')
-    file = open(expected_result_filename, 'rb')
-    img2 = pickle.load(file)
-    assert np.array_equal(labels_img, img2)
+    expected_result_filename = Path(datadir.join('expected_result_ccl.png'))
+    img = mpimg.imread(expected_result_filename) * 255
+    assert np.array_equal(labels_img, img)
