@@ -31,3 +31,9 @@ Time Based
 .. automodule:: stonesoup.feeder.time
     :show-inheritance:
 
+Image
+-----
+
+.. automodule:: stonesoup.feeder.image
+    :show-inheritance:
+

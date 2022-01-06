@@ -13,9 +13,23 @@ from ..types.sensordata import ImageFrame
 
 
 class CFAR(Feeder):
+    """Cell-averaging (CA) Constant False Alarm Rate (CFAR) image data feeder
+
+    The CFAR feeder reads grayscale frames from an appropriate :class:`~.FrameReader`or
+    :class:`~.Feeder` and outputs binary frames whose pixel values are either 0 or 255,
+    indicating the lack or presence of a detection, respectively.
+
+    See `here <https://en.wikipedia.org/wiki/Constant_false_alarm_rate#Cell-averaging_CFAR>`_ for
+    more information on CA-CFAR.
+
+    .. note::
+        The frames forwarded by the :attr:`~.CFAR.reader` must be grayscale :class:`~.ImageFrame`
+        objects. As such :attr:`~.ImageFrame.pixels` for all frames must be 2-D arrays, containing
+        grayscale intensity values.
+    """
     train_size: int = Property(doc="The number of train pixels", default=10)
     guard_size: int = Property(doc="The number of guard pixels", default=4)
-    alpha: float = Property(doc="The threshold value", default=1)
+    alpha: float = Property(doc="The threshold value", default=1.)
     squared: bool = Property(doc="If set to True, the threshold will be computed as a function of "
                                  "the sum of squares. The default is False, in which case a "
                                  "simple sum will be evaluated.", default=False)
@@ -29,17 +43,18 @@ class CFAR(Feeder):
             yield timestamp, new_frame
 
     @staticmethod
-    def cfar(input_img, train_size=10, guard_size=4, alpha=1, squared=False):
+    def cfar(input_img, train_size=10, guard_size=4, alpha=1., squared=False):
         """ Perform Constant False Alarm Rate (CFAR) detection on an input image
+
         Parameters
         ----------
         input_img: numpy.ndarray
-            The input image.
+            The input grayscale image.
         train_size: int
             The number of train pixels.
         guard_size: int
             The number of guard pixels.
-        alpha: int
+        alpha: float
             The threshold value.
         squared: bool
             If set to True, the threshold will be computed as a function of the sum of squares.
@@ -88,7 +103,20 @@ class CFAR(Feeder):
 
 
 class CCL(Feeder):
+    """Connected Component Labelling (CCL) image data feeder
 
+    The CCL feeder reads binary frames from an appropriate :class:`~.FrameReader`or
+    :class:`~.Feeder` and outputs labelled frames whose pixel values contain the label of the
+    connected component to which each pixel is has been assigned.
+
+    See `here <https://en.wikipedia.org/wiki/Connected-component_labeling#Graphical_example_of_
+    two-pass_algorithm>`_ for more information on and example applications of CCL.
+
+    .. note::
+        The frames forwarded by the :attr:`~.CCL.reader` must be binary :class:`~.ImageFrame`
+        objects. As such :attr:`~.ImageFrame.pixels` for all frames must be 2-D arrays, where each
+        element can take only 1 of 2 possible values (e.g. [0 or 1], [0 or 255], etc.).
+    """
     @BufferedGenerator.generator_method
     def data_gen(self):
         for timestamp, frame in self.reader:
