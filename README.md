@@ -31,7 +31,7 @@ Stone Soup uses the following dependencies:
 
 | Name | License |
 | ---- | ------- |
-| [Python](https://www.python.org/) (v3.6+) | PSFL |
+| [Python](https://www.python.org/) (v3.7+) | PSFL |
 | [numpy](https://numpy.org/) | BSD |
 | [SciPy](https://www.scipy.org/) | BSD |
 | [matplotlib](https://matplotlib.org/) | [PSF/BSD-compatible](https://matplotlib.org/users/license.html) |

@@ -229,10 +229,6 @@ class BaseMeta(ABCMeta):
 
     _repr = BaseRepr()
 
-    @classmethod
-    def __prepare__(mcls, name, bases, **kwargs):
-        return OrderedDict()
-
     def __new__(mcls, name, bases, namespace):
         if '__init__' not in namespace:
             # Must replace init so we don't overwrite parent class's
