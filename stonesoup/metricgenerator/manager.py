@@ -85,8 +85,7 @@ class SimpleManager(MetricManager):
             if not isinstance(metric_list, list):
                 metric_list = [metric_list]
             for metric in metric_list:
-                key = metric.title.replace(' at times', '')  # Shorten key a little
-                metrics[key] = metric
+                metrics[metric.title] = metric
         return metrics
 
     def list_timestamps(self):

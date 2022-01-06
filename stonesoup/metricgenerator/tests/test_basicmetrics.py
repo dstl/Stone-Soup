@@ -54,7 +54,7 @@ def test_basicmetrics():
     for metric_name in ["Number of targets",
                         "Number of tracks", "Track-to-target ratio"]:
         calc_metric = [i for i in correct_metrics if i.title == metric_name][0]
-        meas_metric = [metrics[i] for i in metrics if i == metric_name][0]
+        meas_metric = metrics.get(metric_name)
         assert calc_metric.value == meas_metric.value
         assert calc_metric.time_range.start_timestamp == \
             meas_metric.time_range.start_timestamp

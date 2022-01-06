@@ -109,8 +109,8 @@ def test_generate_metrics():
     manager = SimpleManager(generators=[generator1, generator2])
 
     metrics = manager.generate_metrics()
-    metric1 = [metrics[i] for i in metrics if metrics[i].generator == generator1][0]
-    metric2 = [metrics[i] for i in metrics if metrics[i].generator == generator2][0]
+    metric1 = [metrics.get(i) for i in metrics if metrics[i].generator == generator1][0]
+    metric2 = [metrics.get(i) for i in metrics if metrics[i].generator == generator2][0]
 
     assert len(metrics) == 2
     assert metric1.title == "Test metric1"
@@ -118,8 +118,6 @@ def test_generate_metrics():
     assert np.array_equal(metric1.value, 25)
     assert np.array_equal(metric1.generator, generator1)
     assert metric2.title == "Test metric2 at times"
-    assert metrics.get("Test metric2") == metric2
-    # ' at times' should have been removed to shorten the key
-    assert metrics.get("Test metric2 at times") is None
+    assert metrics.get("Test metric2 at times") == metric2
     assert np.array_equal(metric2.value, 50)
     assert np.array_equal(metric2.generator, generator2)
