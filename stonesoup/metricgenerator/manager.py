@@ -78,17 +78,15 @@ class SimpleManager(MetricManager):
         if self.associator is not None and self.association_set is None:
             self.associate_tracks()
 
-        metrics = set()
+        metrics = {}
         for generator in self.generators:
-            metric = generator.compute_metric(self)
-            # Metrics can be lists or not, there's probably a neater way to do
-            # this
-            if isinstance(metric, list):
-                metrics.update(metric)
-            else:
-                metrics.add(metric)
-
-        return set(metrics)
+            metric_list = generator.compute_metric(self)
+            # If not already a list, force it to be one below
+            if not isinstance(metric_list, list):
+                metric_list = [metric_list]
+            for metric in metric_list:
+                metrics[metric.title] = metric
+        return metrics
 
     def list_timestamps(self):
         """List all the timestamps used in the tracks and truth, in order
