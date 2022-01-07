@@ -6,7 +6,6 @@ from datetime import datetime
 import os
 import multiprocessing as mp
 
-
 from stonesoup.serialise import YAML
 from .inputmanager import InputManager
 from .runmanagermetrics import RunmanagerMetrics

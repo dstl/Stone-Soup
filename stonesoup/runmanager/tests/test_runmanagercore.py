@@ -1,5 +1,4 @@
 import os
-import multiprocessing as mp
 
 from ..runmanagercore import RunManagerCore
 
@@ -326,3 +325,4 @@ def test_config_parameter_pairing():
 
     assert type(test_pairs) is list
     assert len(test_pairs) == 0
+
