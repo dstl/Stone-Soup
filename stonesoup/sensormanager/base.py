@@ -37,7 +37,7 @@ class SensorManager(Base, ABC):
                           "any type and in any units.")
 
     @abstractmethod
-    def choose_actions(self, *args, **kwargs):
+    def choose_actions(self, timestamp, nchoose, **kwargs):
         """A method which returns a set of actions, designed to be enacted by a sensor, or
         sensors, chosen by some means. This will likely make use of optimisation algorithms.
 
@@ -60,7 +60,7 @@ class RandomSensorManager(SensorManager):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def choose_actions(self, tracks, timestamp, nchoose=1, *args, **kwargs):
+    def choose_actions(self, tracks, timestamp, nchoose=1, **kwargs):
         """Returns a randomly chosen [list of] action(s) from the action set for each sensor.
 
         Parameters
@@ -100,7 +100,7 @@ class BruteForceSensorManager(SensorManager):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def choose_actions(self, tracks, timestamp, nchoose=1, *args, **kwargs):
+    def choose_actions(self, tracks, timestamp, nchoose=1, **kwargs):
         """Returns a chosen [list of] action(s) from the action set for each sensor.
         Chosen action(s) is selected by finding the configuration of sensors: actions which returns
         the maximum reward, as calculated by a reward function.
