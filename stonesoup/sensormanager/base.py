@@ -59,13 +59,13 @@ class RandomSensorManager(SensorManager):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def choose_actions(self, tracks_list, timestamp, nchoose=1, *args, **kwargs):
+    def choose_actions(self, tracks, timestamp, nchoose=1, *args, **kwargs):
         """Returns a randomly chosen [list of] action(s) from the action set for each sensor.
 
         Parameters
         ----------
-        tracks_list: list of :class:`~Track`
-            List of tracks at given time. Used in reward function.
+        tracks: set of :class:`~Track`
+            Set of tracks at given time. Used in reward function.
         timestamp: :class:`datetime.datetime`
             Time at which the actions are carried out until
         nchoose : int
@@ -99,15 +99,15 @@ class BruteForceSensorManager(SensorManager):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def choose_actions(self, tracks_list, timestamp, nchoose=1, *args, **kwargs):
+    def choose_actions(self, tracks, timestamp, nchoose=1, *args, **kwargs):
         """Returns a chosen [list of] action(s) from the action set for each sensor.
         Chosen action(s) is selected by finding the configuration of sensors: actions which returns
         the maximum reward, as calculated by a reward function.
 
         Parameters
         ----------
-        tracks_list: list of :class:`~Track`
-            List of tracks at given time. Used in reward function.
+        tracks: set of :class:`~Track`
+            Set of tracks at given time. Used in reward function.
         timestamp: :class:`datetime.datetime`
             Time at which the actions are carried out until
         nchoose : int
@@ -138,7 +138,7 @@ class BruteForceSensorManager(SensorManager):
         selected_configs = [None] * nchoose
         for config in configs:
             # calculate reward for dictionary of sensors: actions
-            reward = self.reward_function(config, tracks_list, timestamp)
+            reward = self.reward_function(config, tracks, timestamp)
             if reward > min(best_rewards):
                 selected_configs[np.argmin(best_rewards)] = config
                 best_rewards[np.argmin(best_rewards)] = reward

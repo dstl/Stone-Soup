@@ -14,7 +14,7 @@ class _OptimizeSensorManager(BruteForceSensorManager):
     def _optimiser(self, optimise_func, all_action_generators):
         raise NotImplementedError
 
-    def choose_actions(self, tracks_list, timestamp, nchoose=1, *args, **kwargs):
+    def choose_actions(self, tracks, timestamp, nchoose=1, *args, **kwargs):
         if nchoose > 1:
             raise ValueError("Can only return best result (nchoose=1)")
         all_action_generators = dict()
@@ -34,7 +34,7 @@ class _OptimizeSensorManager(BruteForceSensorManager):
 
         def optimise_func(x):
             config = config_from_x(x)
-            return -self.reward_function(config, tracks_list, timestamp)
+            return -self.reward_function(config, tracks, timestamp)
 
         best_x = self._optimiser(optimise_func, all_action_generators)
 

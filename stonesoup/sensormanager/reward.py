@@ -52,7 +52,7 @@ class UncertaintyRewardFunction(RewardFunction):
     updater: ExtendedKalmanUpdater = Property(doc="Updater used to update "
                                                   "the track to the new state.")
 
-    def calculate_reward(self, config, tracks_list, metric_time):
+    def calculate_reward(self, config, tracks, metric_time):
         """
         For a given configuration of sensors and actions this reward function calculates the
         potential uncertainty reduction of each track by
@@ -73,7 +73,7 @@ class UncertaintyRewardFunction(RewardFunction):
         # Create dictionary of predictions for the tracks in the configuration
         predictions = {track: self.predictor.predict(track[-1],
                                                      timestamp=metric_time)
-                       for track in tracks_list}
+                       for track in tracks}
         # Running updates
         r_updates = dict()
 
@@ -91,7 +91,7 @@ class UncertaintyRewardFunction(RewardFunction):
         for sensor in predicted_sensors:
             # some logic needed here to check if sensor is platform...
 
-            for track in tracks_list:
+            for track in tracks:
 
                 # If the track is selected by a sensor for the first time -
                 # 'previous' is the prediction
