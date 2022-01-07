@@ -124,10 +124,10 @@ def test_brute_force_choose_actions():
             for sensor in sensor_set:
                 sensor.timestamp = time_start
 
-        sensor_managerA = BruteForceSensorManager(sensorsA, reward_function.calculate_reward)
-        sensor_managerB = OptimizeBruteSensorManager(sensorsB, reward_function.calculate_reward)
+        sensor_managerA = BruteForceSensorManager(sensorsA, reward_function)
+        sensor_managerB = OptimizeBruteSensorManager(sensorsB, reward_function)
         sensor_managerC = OptimizeBasinHoppingSensorManager(sensorsC,
-                                                            reward_function.calculate_reward)
+                                                            reward_function)
 
         sensor_managers = [sensor_managerA,
                            sensor_managerB,

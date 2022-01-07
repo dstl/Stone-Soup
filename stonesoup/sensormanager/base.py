@@ -30,7 +30,8 @@ class SensorManager(Base, ABC):
 
     reward_function: Callable = Property(
         default=None, doc="A function or class designed to work out the reward associated with an "
-                          "action or set of actions. This may also incorporate a notion of the "
+                          "action or set of actions. For an example see :class:`~.RewardFunction`."
+                          " This may also incorporate a notion of the "
                           "cost of making a measurement. The values returned may be scalar or "
                           "vector in the case of multi-objective optimisation. Metrics may be of "
                           "any type and in any units.")

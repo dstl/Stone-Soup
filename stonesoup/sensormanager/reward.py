@@ -2,32 +2,38 @@
 
 from copy import deepcopy
 import numpy as np
+import datetime
 
-from abc import abstractmethod, ABC
+from abc import ABC
+from typing import Mapping, Sequence, Set
 from stonesoup.base import Base, Property
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.updater.kalman import ExtendedKalmanUpdater
 from stonesoup.types.track import Track
 from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.sensor.sensor import Sensor
+from stonesoup.sensor.action import Action
 
 
 class RewardFunction(Base, ABC):
     """
     The reward function base class.
 
-    A reward function is used by a sensor manager to determine the best choice of action(s) for
-    a sensor or group of sensors to take. For a given configuration of sensors and actions the
-    reward function calculates a metric to evaluate how useful that choice of actions would be
-    with a particular objective or objectives in mind.
+    A reward function is a callable used by a sensor manager to determine the best choice of
+    action(s) for a sensor or group of sensors to take. For a given configuration of sensors
+    and actions the reward function calculates a metric to evaluate how useful that choice
+    of actions would be with a particular objective or objectives in mind.
     The sensor manager algorithm compares this metric for different possible configurations
     and chooses the appropriate sensing configuration to use at that time step.
     """
 
-    @abstractmethod
-    def calculate_reward(self, *args, **kwargs):
-        """A method which returns a reward metric based on information about the state of the
-        system, sensors and possible actions they can take.
+    def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: Set[Track],
+                 metric_time: datetime.datetime, *args, **kwargs):
+        """
+        A method which returns a reward metric based on information about the state of the
+        system, sensors and possible actions they can take. This requires a mapping of
+        sensors to action(s) to be evaluated by reward function, a set of tracks at given
+        time and the time at which the actions would be carried out until.
 
         Returns
         -------
@@ -52,12 +58,17 @@ class UncertaintyRewardFunction(RewardFunction):
     updater: ExtendedKalmanUpdater = Property(doc="Updater used to update "
                                                   "the track to the new state.")
 
-    def calculate_reward(self, config, tracks, metric_time):
+    def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: Set[Track],
+                 metric_time: datetime.datetime, *args, **kwargs):
         """
         For a given configuration of sensors and actions this reward function calculates the
         potential uncertainty reduction of each track by
         computing the difference between the covariance matrix norms of the prediction
         and the posterior assuming a predicted measurement corresponding to that prediction.
+
+        This requires a mapping of sensors to action(s)
+        to be evaluated by reward function, a set of tracks at given time and the time at which
+        the actions would be carried out until.
 
         The metric returned is the total potential reduction in uncertainty across all tracks.
 
@@ -65,6 +76,7 @@ class UncertaintyRewardFunction(RewardFunction):
         -------
         : float
             Metric of uncertainty for given configuration
+
         """
 
         # Reward value

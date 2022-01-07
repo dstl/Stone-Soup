@@ -16,3 +16,4 @@ Reward Functions
 ----------------
 .. automodule:: stonesoup.sensormanager.reward
     :show-inheritance:
+    :special-members:
