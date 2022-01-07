@@ -7,7 +7,7 @@ from stonesoup.types.array import CovarianceMatrix, StateVector
 from datetime import timedelta
 from stonesoup.serialise import YAML
 from .base import RunManager
-import datetime
+from datetime import datetime
 
 
 class RunmanagerMetrics(RunManager):
