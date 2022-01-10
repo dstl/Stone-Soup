@@ -106,7 +106,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Stone Soup'
-copyright = '2017-2021 Stone Soup contributors'
+copyright = '2017-2022 Stone Soup contributors'
 author = 'Dstl'
 
 # The version info for the project you're documenting, acts as replacement for
