@@ -37,7 +37,7 @@ class ProbabilityHypothesis(Hypothesis):
         return self.probability <= other.probability
 
     def __eq__(self, other):
-        return self.probability == other.probability
+        return isinstance(other, ProbabilityHypothesis) and self.probability == other.probability
 
     def __gt__(self, other):
         return self.probability > other.probability
