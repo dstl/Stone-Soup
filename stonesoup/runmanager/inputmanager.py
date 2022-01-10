@@ -171,7 +171,7 @@ class InputManager(RunManager):
                     combination_list = self.generate_date_time_combinations(parameter)
                     combination_dict.update(combination_list)
 
-                if (parameter["type"] == "Tuple"):
+                if (parameter["type"] == "Tuple" or parameter["type"] == "list"):
                     combination_list = self.generate_tuple_list_combinations(parameter)
                     combination_dict.update(combination_list)
 
@@ -179,7 +179,7 @@ class InputManager(RunManager):
                     combination_list = self.generate_timedelta_combinations(parameter)
                     combination_dict.update(combination_list)
 
-                if parameter["type"] == "ndarray" : 
+                if parameter["type"] == "ndarray":
                     combination_list = self.generate_ndarray_combinations(parameter)
                     combination_dict.update(combination_list)
             except KeyError:
