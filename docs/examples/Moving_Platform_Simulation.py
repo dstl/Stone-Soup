@@ -110,19 +110,20 @@ radar_noise_covar = CovarianceMatrix(np.diag(
               100.,  # Range
               25.])))  # Range Rate
 
-radar = RadarElevationBearingRangeRate(ndim_state=6,
-                                       position_mapping=(0, 2, 4),
-                                       velocity_mapping=(1, 3, 5),
-                                       noise_covar=radar_noise_covar)
-
 # radar mountings
 radar_mounting_offsets = StateVector([10, 0, 0])  # e.g. nose cone
 radar_rotation_offsets = StateVector([0, 0, 0])
 
 # Mount the radar onto the platform
-sensor_platform.add_sensor(radar,
-                           mounting_offset=radar_mounting_offsets,
-                           rotation_offset=radar_rotation_offsets)
+
+radar = RadarElevationBearingRangeRate(ndim_state=6,
+                                       position_mapping=(0, 2, 4),
+                                       velocity_mapping=(1, 3, 5),
+                                       noise_covar=radar_noise_covar,
+                                       mounting_offset=radar_mounting_offsets,
+                                       rotation_offset=radar_rotation_offsets,
+                                       )
+sensor_platform.add_sensor(radar)
 
 # %%
 # Our second sensor is a passive sensor, capable of measuring the bearing (:math:`\phi`) and elevation (:math:`\theta`)
@@ -164,18 +165,18 @@ from stonesoup.sensor.passive import PassiveElevationBearing
 imager_noise_covar = CovarianceMatrix(np.diag(np.array([np.deg2rad(0.05),  # Elevation
                                                         np.deg2rad(0.05)])))  # Bearing
 
-imager = PassiveElevationBearing(ndim_state=6,
-                                 mapping=(0, 2, 4),
-                                 noise_covar=imager_noise_covar)
-
 # imager mounting offset
 imager_mounting_offsets = StateVector([0, 8, -1])  # e.g. wing mounted imaging pod
 imager_rotation_offsets = StateVector([0, 0, 0])
 
 # Mount the imager onto the platform
-sensor_platform.add_sensor(imager,
-                           mounting_offset=imager_mounting_offsets,
-                           rotation_offset=imager_rotation_offsets)
+imager = PassiveElevationBearing(ndim_state=6,
+                                 mapping=(0, 2, 4),
+                                 noise_covar=imager_noise_covar,
+                                 mounting_offset=imager_mounting_offsets,
+                                 rotation_offset=imager_rotation_offsets,
+                                 )
+sensor_platform.add_sensor(imager)
 
 # %%
 # Notice that we have added sensors to specific locations on the aircraft, defined by the mounting_offset parameter.

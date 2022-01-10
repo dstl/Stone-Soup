@@ -46,7 +46,7 @@ def test_nested_declarative(base, serialised_file):
 
 
 def test_duplicate_tag_warning(base, serialised_file):
-    if 'safe' in serialised_file._yaml.typ:
+    if 'safe' in serialised_file.typ:
         pytest.xfail("With 'safe' constructor, warning isn't raised")
 
     class _TestDuplicateBase(base):

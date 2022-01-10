@@ -2,12 +2,13 @@
 
 from abc import abstractmethod
 from collections import UserDict
+
 import numpy as np
 
 from .base import Type
-from ..base import Property
 from .detection import Detection, MissedDetection
 from .prediction import MeasurementPrediction, Prediction
+from ..base import Property
 from ..types.numeric import Probability
 
 
@@ -23,6 +24,30 @@ class Hypothesis(Type):
     single Track and multiple Measurements of which one *might* be associated
     with it
     """
+
+
+class ProbabilityHypothesis(Hypothesis):
+    probability: Probability = Property(
+        doc="Probability that detection is true location of prediction")
+
+    def __lt__(self, other):
+        return self.probability < other.probability
+
+    def __le__(self, other):
+        return self.probability <= other.probability
+
+    def __eq__(self, other):
+        return isinstance(other, ProbabilityHypothesis) and self.probability == other.probability
+
+    def __gt__(self, other):
+        return self.probability > other.probability
+
+    def __ge__(self, other):
+        return self.probability >= other.probability
+
+    @property
+    def weight(self):
+        return self.probability
 
 
 class SingleHypothesis(Hypothesis):
@@ -73,38 +98,14 @@ class SingleDistanceHypothesis(SingleHypothesis):
             return float('inf')
 
 
-class SingleProbabilityHypothesis(SingleHypothesis):
-    """Single Measurement Probability scored hypothesis subclass.
-
-    """
-
-    probability: Probability = Property(
-        doc="Probability that detection is true location of prediction")
-
-    def __lt__(self, other):
-        return self.probability < other.probability
-
-    def __le__(self, other):
-        return self.probability <= other.probability
-
-    def __eq__(self, other):
-        return self.probability == other.probability
-
-    def __gt__(self, other):
-        return self.probability > other.probability
-
-    def __ge__(self, other):
-        return self.probability >= other.probability
-
-    @property
-    def weight(self):
-        return self.probability
+class SingleProbabilityHypothesis(ProbabilityHypothesis, SingleHypothesis):
+    """Single Measurement Probability scored hypothesis subclass."""
 
 
 class JointHypothesis(Type, UserDict):
     """Joint Hypothesis base type
 
-    A Joint Hypothesis consists of multiple Hypothesese, each with a single
+    A Joint Hypothesis consists of multiple Hypotheses, each with a single
     Track and a single Prediction.  A Joint Hypothesis can be a
     'ProbabilityJointHypothesis' or a 'DistanceJointHypothesis', with a
     probability or distance that is a function of the Hypothesis
@@ -154,17 +155,19 @@ class JointHypothesis(Type, UserDict):
         raise NotImplementedError
 
 
-class ProbabilityJointHypothesis(JointHypothesis):
-    """Probability-scored Joint Hypothesis subclass.
+class ProbabilityJointHypothesis(ProbabilityHypothesis, JointHypothesis):
+    """Probability-scored Joint Hypothesis subclass."""
 
-    """
+    probability: Probability = Property(
+        default=None,
+        doc="Probability that detection is true location of prediction. Defaults to `None`, "
+            "whereby the probability is calculated as being the product of the constituent "
+            "multiple-hypotheses' probabilities.")
 
-    probability: Probability = Property(default=None, doc='Probability of the Joint Hypothesis')
-
-    def __init__(self, hypotheses, *args, **kwargs):
-        super().__init__(hypotheses, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.probability = Probability(np.prod(
-            [hypothesis.probability for hypothesis in hypotheses.values()]))
+            [hypothesis.probability for hypothesis in self.hypotheses.values()]))
 
     def normalise(self):
         sum_probability = Probability.sum(
@@ -172,24 +175,8 @@ class ProbabilityJointHypothesis(JointHypothesis):
         for hypothesis in self.hypotheses.values():
             hypothesis.probability /= sum_probability
 
-    def __lt__(self, other):
-        return self.probability < other.probability
 
-    def __le__(self, other):
-        return self.probability <= other.probability
-
-    def __eq__(self, other):
-        return self.probability == other.probability
-
-    def __gt__(self, other):
-        return self.probability > other.probability
-
-    def __ge__(self, other):
-        return self.probability >= other.probability
-
-
-class DistanceJointHypothesis(
-   JointHypothesis):
+class DistanceJointHypothesis(JointHypothesis):
     """Distance scored Joint Hypothesis subclass.
 
     Notes

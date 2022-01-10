@@ -7,7 +7,6 @@ of video data/streams.
 
 import datetime
 import threading
-from abc import abstractmethod
 from queue import Queue
 from typing import Mapping, Tuple, Sequence, Any
 from urllib.parse import ParseResult
@@ -25,56 +24,12 @@ except ImportError as error:
         from error
 
 
-from .base import SensorDataReader
+from .base import FrameReader
 from .file import FileReader
 from .url import UrlReader
 from ..base import Property
 from ..buffered_generator import BufferedGenerator
 from ..types.sensordata import ImageFrame
-
-
-class FrameReader(SensorDataReader):
-    """FrameReader base class
-
-    A FrameReader produces :class:`~.SensorData` in the form of
-    :class:`~ImageFrame` objects.
-    """
-
-    @property
-    def frame(self):
-        return self.sensor_data
-
-    @abstractmethod
-    @BufferedGenerator.generator_method
-    def frames_gen(self):
-        """Returns a generator of frames for each time step.
-
-        Yields
-        ------
-        : :class:`datetime.datetime`
-            Datetime of current time step
-        : set of :class:`~.ImageFrame`
-            Generated frame in the time step
-        """
-        raise NotImplementedError
-
-    @BufferedGenerator.generator_method
-    def sensor_data_gen(self):
-        """Returns a generator of frames for each time step.
-
-        Note
-        ----
-        This is just a wrapper around (and therefore performs identically
-        to) :meth:`~frames_gen`.
-
-        Yields
-        ------
-        : :class:`datetime.datetime`
-            Datetime of current time step
-        : set of :class:`~.ImageFrame`
-            Generated frame in the time step
-        """
-        yield from self.frames_gen()
 
 
 class VideoClipReader(FileReader, FrameReader):
@@ -105,14 +60,15 @@ class VideoClipReader(FileReader, FrameReader):
     .. _MoviePy: https://zulko.github.io/moviepy/index.html
     .. _documentation: https://zulko.github.io/moviepy/getting_started/effects.html
      """  # noqa:E501
-    start_time = Property(datetime.timedelta,
-                          doc="Start time expressed as duration "
-                              "from the start of the clip",
-                          default=datetime.timedelta(seconds=0))
-    end_time = Property(datetime.timedelta,
-                        doc="End time expressed as duration "
-                            "from the start of the clip",
-                        default=None)
+    start_time: datetime.timedelta = Property(
+        doc="Start time expressed as duration from the start of the clip",
+        default=datetime.timedelta(seconds=0))
+    end_time: datetime.timedelta = Property(
+        doc="End time expressed as duration from the start of the clip",
+        default=None)
+    timestamp: datetime.datetime = Property(
+        doc="Timestamp given to the first frame",
+        default=None)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -122,7 +78,9 @@ class VideoClipReader(FileReader, FrameReader):
 
     @BufferedGenerator.generator_method
     def frames_gen(self):
-        start_time = datetime.datetime.now()
+        if self.timestamp is None:
+            self.timestamp = datetime.datetime.now()
+        start_time = self.timestamp
         for timestamp_sec, pixels in self.clip.iter_frames(with_times=True):
             timestamp = start_time + datetime.timedelta(seconds=timestamp_sec)
             frame = ImageFrame(pixels, timestamp)

@@ -47,6 +47,9 @@ def test_lgmodel(H, R, ndim_state, mapping):
     # Ensure ```lg.transfer_function()``` returns H
     assert np.array_equal(H, lg.matrix())
 
+    # Ensure lg.jacobian() returns H
+    assert np.array_equal(H, lg.jacobian(state=state))
+
     # Ensure ```lg.covar()``` returns R
     assert np.array_equal(R, lg.covar())
 
@@ -90,3 +93,17 @@ def test_lgmodel(H, R, ndim_state, mapping):
         meas_pred_w_enoise.T,
         mean=np.array(H@state_vec).ravel(),
         cov=R)
+
+    # Test random seed give consistent results
+    lg1 = LinearGaussian(ndim_state=ndim_state,
+                         noise_covar=R,
+                         mapping=mapping,
+                         seed=1)
+    lg2 = LinearGaussian(ndim_state=ndim_state,
+                         noise_covar=R,
+                         mapping=mapping,
+                         seed=1)
+
+    # Check first values produced by seed match
+    for _ in range(3):
+        assert all(lg1.rvs() == lg2.rvs())

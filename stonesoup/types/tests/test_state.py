@@ -2,15 +2,18 @@
 import datetime
 
 import numpy as np
-import scipy.linalg
 import pytest
+import scipy.linalg
 
+from stonesoup.types.groundtruth import GroundTruthState
+from stonesoup.types.state import CreatableFromState
 from ..angle import Bearing
 from ..array import StateVector, CovarianceMatrix
 from ..numeric import Probability
 from ..particle import Particle
 from ..state import State, GaussianState, ParticleState, \
-    StateMutableSequence, WeightedGaussianState, SqrtGaussianState
+    StateMutableSequence, WeightedGaussianState, SqrtGaussianState, CategoricalState
+from ...base import Property
 
 
 def test_state():
@@ -165,6 +168,8 @@ def test_particlestate():
         state_vector2, weight=weight) for _ in range(num_particles//2))
 
     state = ParticleState(particles)
+    assert isinstance(state, State)
+    assert ParticleState in State.subclasses
     assert np.allclose(state.state_vector, StateVector([[50], [100]]))
     assert np.allclose(state.covar, CovarianceMatrix([[2500, 5000], [5000, 10000]]))
 
@@ -252,6 +257,18 @@ def test_state_mutable_sequence_slice():
 
     assert sequence[timestamp] == sequence.states[0]
 
+    end_timestamp = sequence.timestamp
+    assert sequence[end_timestamp] == sequence.states[-1]
+    assert sequence[end_timestamp].state_vector == StateVector([[0]])
+
+    # Add state at same time
+    sequence.append(State(state_vector + 1, timestamp=end_timestamp))
+    assert sequence[end_timestamp]
+    assert sequence[end_timestamp].state_vector == StateVector([[1]])
+
+    assert len(sequence) == 11
+    assert len(list(sequence.last_timestamp_generator())) == 10
+
     with pytest.raises(TypeError):
         sequence[timestamp:1]
 
@@ -276,3 +293,169 @@ def test_state_mutable_sequence_sequence_init():
 
     del sequence[-1]
     assert sequence.timestamp == timestamp + delta * 8
+
+
+def test_state_mutable_sequence_error_message():
+    """Test that __getattr__ doesn't incorrectly identify the source of a missing attribute"""
+
+    class TestSMS(StateMutableSequence):
+        test_property: int = Property(default=3)
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.test_variable = 5
+
+        def test_method(self):
+            pass
+
+        @property
+        def complicated_attribute(self):
+            if self.test_property == 3:
+                return self.test_property
+            else:
+                raise AttributeError('Custom error message')
+
+    timestamp = datetime.datetime.now()
+    test_obj = TestSMS(states=State(state_vector=StateVector([1, 2, 3]), timestamp=timestamp))
+
+    # First check no errors on assigned vars
+    test_obj.test_method()
+    assert test_obj.test_property == 3
+    test_obj.test_property = 6
+    assert test_obj.test_property == 6
+    assert test_obj.test_variable == 5
+
+    # Now check that state variables are proxied correctly
+    assert np.array_equal(test_obj.state_vector, StateVector([1, 2, 3]))
+    assert test_obj.timestamp == timestamp
+
+    # Now check that the right error messages are raised on missing attributes
+    with pytest.raises(AttributeError, match="'TestSMS' object has no attribute 'missing_method'"):
+        test_obj.missing_method()
+
+    with pytest.raises(AttributeError, match="'TestSMS' object has no attribute "
+                                             "'missing_variable'"):
+        _ = test_obj.missing_variable
+
+    # And check custom error messages are not swallowed
+    # in the default case (test_property == 3), complicated_attribute works
+    test_obj.test_property = 3
+    assert test_obj.complicated_attribute == 3
+
+    # when test_property != 3  it raises a custom error.
+    test_obj.test_property = 5
+    with pytest.raises(AttributeError, match="Custom error message"):
+        _ = test_obj.complicated_attribute
+
+
+def test_from_state():
+    start = datetime.datetime.now()
+    kwargs = {"state_vector": np.arange(4), "timestamp": start}
+
+    states = [
+        State(**kwargs),
+        GaussianState(**kwargs, covar=np.eye(4)),
+        GroundTruthState(**kwargs, metadata={"colour": "blue"})
+    ]
+
+    for use_sequence in (False, True):
+        for state in states:
+
+            original_type = type(state)
+            if use_sequence:
+                state = StateMutableSequence(states=[state])
+            # test replacement arg
+            new_state = State.from_state(state, np.ones(4))
+            assert isinstance(new_state, original_type)
+            assert np.array_equal(new_state.state_vector.flatten(), np.ones(4))
+            assert new_state.timestamp == start
+            if original_type is GaussianState:
+                assert np.array_equal(new_state.covar, state.covar)
+            elif original_type is GroundTruthState:
+                assert new_state.metadata == state.metadata
+
+            # test replacement kwarg
+            new_time = start + datetime.timedelta(seconds=5)
+            new_state = State.from_state(state, timestamp=new_time)
+            assert isinstance(new_state, original_type)
+            assert np.array_equal(new_state.state_vector, state.state_vector)
+            assert new_state.timestamp == new_time
+            if original_type is GaussianState:
+                assert np.array_equal(new_state.covar, state.covar)
+            elif original_type is GroundTruthState:
+                assert new_state.metadata == state.metadata
+
+            # test replacement arg and kwarg
+            new_time = start + datetime.timedelta(seconds=5)
+            new_state = State.from_state(state, np.ones(4), timestamp=new_time)
+            assert isinstance(new_state, original_type)
+            assert np.array_equal(new_state.state_vector.flatten(), np.ones(4))
+            assert new_state.timestamp == new_time
+            if original_type is GaussianState:
+                assert np.array_equal(new_state.covar, state.covar)
+            elif original_type is GroundTruthState:
+                assert new_state.metadata == state.metadata
+
+    # test covar overwrite
+    new_state = State.from_state(states[1], covar=2 * np.eye(4))
+    assert isinstance(new_state, type(states[1]))
+    assert np.array_equal(new_state.state_vector, states[1].state_vector)
+    assert new_state.timestamp == states[1].timestamp
+    assert np.array_equal(new_state.covar, 2 * np.eye(4))
+
+    # test metadata overwrite
+    new_metadata = {"size": "big"}
+    new_state = State.from_state(states[2], metadata=new_metadata)
+    assert isinstance(new_state, type(states[2]))
+    assert np.array_equal(new_state.state_vector, states[2].state_vector)
+    assert new_state.timestamp == states[2].timestamp
+    assert new_state.metadata == new_metadata
+
+
+# noinspection PyUnusedLocal
+def test_creatable_from_state_error():
+    class SubclassCfs(CreatableFromState):
+        pass
+    with pytest.raises(TypeError,
+                       match='The first superclass of a CreatableFromState subclass must be a '
+                             'CreatableFromState \\(or a subclass\\)'):
+        class SubSubclassCfs(State, SubclassCfs):
+            pass
+
+
+# noinspection PyUnusedLocal
+def test_creatable_from_state_multi_base_error():
+    class SubclassCfs(CreatableFromState):
+        pass
+    with pytest.raises(TypeError,
+                       match='A CreatableFromState subclass must have exactly two superclasses'):
+        class SubSubclassCfs(State, StateMutableSequence, SubclassCfs):
+            pass
+
+
+def test_categorical_state():
+
+    # Test instantiation errors
+    with pytest.raises(ValueError, match="2 category names were given for a state vector with 3 "
+                                         "elements"):
+        CategoricalState(state_vector=StateVector([0.1, 0.4, 0.5]), category_names=['1', '2'])
+    with pytest.raises(ValueError, match=r"Category probabilities must lie in the closed interval "
+                                         r"\[0, 1\]"):
+        CategoricalState(state_vector=StateVector([1.1, 0.4, 0.5]))
+    with pytest.raises(ValueError, match="Category probabilities must sum to 1"):
+        CategoricalState(state_vector=StateVector([0.6, 0.7, 0.7]))
+    with pytest.raises(ValueError, match="Category probabilities must sum to 1"):
+        CategoricalState(state_vector=StateVector([0.2, 0.2, 0.3]))
+
+    # Test defaults
+    state = CategoricalState(state_vector=StateVector([0.1, 0.4, 0.5]))
+    assert state.category_names == [0, 1, 2]
+
+    # Test str
+    state = CategoricalState(state_vector=StateVector([0.1, 0.4, 0.5]),
+                             timestamp=datetime.datetime.now(),
+                             category_names=['red', 'blue', 'yellow'])
+    assert str(state) == "(P(red) = 0.1, P(blue) = 0.4, P(yellow) = 0.5)"
+
+    # Test category
+    assert state.category == 'yellow'

@@ -162,7 +162,7 @@ class GaussianMixtureReducer(MixtureReducer):
             for component in remaining_components.copy():
                 # Calculate distance between component and best component
                 distance = dist.mahalanobis(
-                    best_component.mean, component.mean, best_component.covar)
+                    best_component.mean[:, 0], component.mean[:, 0], best_component.covar)
                 # Merge if similar
                 if distance < self.merge_threshold:
                     remaining_components.remove(component)
@@ -182,7 +182,8 @@ class GaussianMixtureReducer(MixtureReducer):
                     shared_components = sorted(
                         (component for component in merged_components
                             if component.tag == shared_tag),
-                        key=attrgetter('weight'))
+                        key=attrgetter('weight'),
+                        reverse=True)
                     final_merged_components.append(shared_components[0])
                     for component in shared_components[1:]:
                         # Assign a new uuid

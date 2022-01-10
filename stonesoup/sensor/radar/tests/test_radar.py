@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 from pytest import approx
 
-from stonesoup.types.detection import TrueDetection
 from ..beam_pattern import StationaryBeam
 from ..beam_shape import Beam2DGaussian
 from ..radar import RadarBearingRange, RadarElevationBearingRange, RadarRotatingBearingRange, \
@@ -16,6 +15,8 @@ from ....types.angle import Bearing, Elevation
 from ....types.array import StateVector, CovarianceMatrix
 from ....types.groundtruth import GroundTruthState, GroundTruthPath
 from ....types.state import State
+from ....types.detection import TrueDetection
+from ....models.clutter.clutter import ClutterModel
 
 
 def h2d(state, pos_map, translation_offset, rotation_offset):
@@ -258,36 +259,54 @@ def test_range_rate_radar(h, sensorclass, pos_mapping, vel_mapping, noise_covar,
         assert measurement.groundtruth_path in truth
 
 
-def test_rotating_radar():
-    # Input arguments
-    # TODO: pytest parametarization
+@pytest.mark.parametrize(
+    "radar_position, radar_orientation, state, measurement_mapping, noise_covar,"
+    " dwell_center, rpm, max_range, fov_angle, timestamp_flag",
+    [
+        (
+            StateVector(np.array(([[1], [1]]))),  # radar_position
+            StateVector([[0], [0], [np.pi]]),  # radar_orientation
+            2,  # state
+            np.array([0, 1]),  # measurement_mapping
+            CovarianceMatrix(np.array([[0.015, 0], [0, 0.1]])),  # noise_covar
+            State(StateVector([[-np.pi]])),  # dwell_center
+            20,  # rpm
+            100,  # max_range
+            np.pi / 3,  # fov_angle
+            True  # timestamp_flag
+        ),
+        (
+            StateVector(np.array(([[1], [1]]))),  # radar_position
+            StateVector([[0], [0], [np.pi]]),  # radar_orientation
+            2,  # state
+            np.array([0, 1]),  # measurement_mapping
+            CovarianceMatrix(np.array([[0.015, 0], [0, 0.1]])),  # noise_covar
+            State(StateVector([[-np.pi]])),  # dwell_center
+            20,  # rpm
+            100,  # max_range
+            np.pi / 3,  # fov_angle
+            False  # timestamp_flag
+        )
+    ],
+    ids=["TimestampInitiatied", "TimestampUninitiated"]
+)
+def test_rotating_radar(radar_position, radar_orientation, state, measurement_mapping,
+                        noise_covar, dwell_center, rpm, max_range, fov_angle, timestamp_flag):
     timestamp = datetime.datetime.now()
-    noise_covar = CovarianceMatrix(np.array([[0.015, 0],
-                                             [0, 0.1]]))
-
-    # The radar is positioned at (1,1)
-    radar_position = StateVector(
-        np.array(([[1], [1]])))
-    # The radar is facing left/east
-    radar_orientation = StateVector([[0], [0], [np.pi]])
-    # The radar antenna is facing opposite the radar orientation
-    dwell_center = State(StateVector([[-np.pi]]),
-                         timestamp=timestamp)
-    rpm = 20  # 20 Rotations Per Minute
-    max_range = 100  # Max range of 100m
-    fov_angle = np.pi / 3  # FOV angle of pi/3
 
     target_state = GroundTruthState(radar_position + np.array([[5], [5]]), timestamp=timestamp)
     target_truth = GroundTruthPath([target_state])
 
-    truth = {target_truth}
+    # timestamp_flag set to true if testing with dwell_center.timestamp initiated
+    if timestamp_flag:
+        dwell_center.timestamp = timestamp
 
-    measurement_mapping = np.array([0, 1])
+    truth = {target_truth}
 
     # Create a radar object
     radar = RadarRotatingBearingRange(position=radar_position,
                                       orientation=radar_orientation,
-                                      ndim_state=2,
+                                      ndim_state=state,
                                       position_mapping=measurement_mapping,
                                       noise_covar=noise_covar,
                                       dwell_center=dwell_center,
@@ -629,3 +648,28 @@ def test_target_rcs():
             ValueError, match="Truth missing 'rcs' attribute and no default 'rcs' provided"):
         rcs_missing = (GroundTruthState([150e3, 0.0, 0.0], timestamp=None))
         radar.gen_probability(rcs_missing)
+
+
+@pytest.mark.parametrize("radar, clutter_params", [
+        (RadarBearingRange(ndim_state=4,
+                           position_mapping=[0, 2],
+                           noise_covar=np.eye(2)),
+            ((-50, 50), (-50, 50))),
+        (RadarElevationBearingRange(ndim_state=6,
+                                    position_mapping=[0, 2, 4],
+                                    noise_covar=np.eye(3)),
+            ((-50, 50), (-50, 50), (-50, 50))),
+    ],
+    ids=["RadarBearingRange", "RadarElevationBearingRange"]
+)
+def test_clutter_model(radar, clutter_params):
+    # Test that the radar correctly adds clutter when it has a clutter
+    # model. Make clutter rate sufficiently high that there is clutter
+    model_test = ClutterModel(clutter_rate=5,
+                              distribution=np.random.default_rng().uniform,
+                              dist_params=clutter_params)
+    radar.clutter_model = model_test
+    truth = State(StateVector([1, 1, 1, 1, 1, 1]), timestamp=datetime.datetime.now())
+    measurements = radar.measure({truth})
+    assert len([target for target in measurements if (isinstance(target, TrueDetection))]) == 1
+    assert len(measurements) > 1

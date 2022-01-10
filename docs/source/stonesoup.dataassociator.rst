@@ -24,3 +24,9 @@ Track-to-track Association
 
 .. automodule:: stonesoup.dataassociator.tracktotrack
     :show-inheritance:
+
+Trees
+--------------------------
+
+.. automodule:: stonesoup.dataassociator.tree
+    :show-inheritance:

@@ -133,6 +133,8 @@ class StateVectors(Matrix):
             if isinstance(states[0], StateVector):
                 return np.hstack(states).view(cls)
         array = np.asarray(states, *args, **kwargs)
+        if array.shape[1] == 1:
+            return array.view(StateVector)
         return array.view(cls)
 
     @classmethod
@@ -231,3 +233,23 @@ class CovarianceMatrix(Matrix):
             raise ValueError("Covariance should have ndim of 2: got {}"
                              "".format(array.ndim))
         return array.view(cls)
+
+
+class PrecisionMatrix(Matrix):
+    """Precision matrix. This is the matrix inverse of a covariance matrix.
+
+    This class returns a view to a :class:`numpy.ndarray`, but ensures that
+    its initialised as an *NxN* matrix. It's called similar to
+    :func:`numpy.asarray`.
+    """
+
+    def __new__(cls, *args, **kwargs):
+        array = np.asarray(*args, **kwargs)
+        if not array.ndim == 2:
+            raise ValueError("Information matrix should have ndim of 2: got {}"
+                             "".format(array.ndim))
+        return array.view(cls)
+
+    # TODO: ensure positive definiteness on initiation?
+
+    # TODO: overwrite/provide the inverse function to return a covariance matrix

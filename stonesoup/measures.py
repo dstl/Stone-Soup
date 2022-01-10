@@ -5,6 +5,7 @@ import numpy as np
 from scipy.spatial import distance
 
 from .base import Base, Property
+from .types.state import State
 
 
 class Measure(Base):
@@ -18,6 +19,21 @@ class Measure(Base):
         doc="Mapping array which specifies which elements within the"
             " state vectors are to be assessed as part of the measure"
     )
+    mapping2: np.ndarray = Property(
+        default=None,
+        doc="A second mapping for when the states being compared exist "
+            "in different parameter spaces. Defaults to the same as the"
+            " first mapping"
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.mapping2 is not None and self.mapping is None:
+            raise ValueError("Cannot set mapping2 if mapping is None. "
+                             "If this is really what you meant to do, then"
+                             " set mapping to include all dimensions.")
+        if self.mapping2 is None and self.mapping is not None:
+            self.mapping2 = self.mapping
 
     @abstractmethod
     def __call__(self, state1, state2):
@@ -67,10 +83,10 @@ class Euclidean(Measure):
         """
         # Calculate Euclidean distance between two state
         if self.mapping is not None:
-            return distance.euclidean(state1.state_vector[self.mapping],
-                                      state2.state_vector[self.mapping])
+            return distance.euclidean(state1.state_vector[self.mapping, 0],
+                                      state2.state_vector[self.mapping2, 0])
         else:
-            return distance.euclidean(state1.state_vector, state2.state_vector)
+            return distance.euclidean(state1.state_vector[:, 0], state2.state_vector[:, 0])
 
 
 class EuclideanWeighted(Measure):
@@ -112,12 +128,12 @@ class EuclideanWeighted(Measure):
 
         """
         if self.mapping is not None:
-            return distance.euclidean(state1.state_vector[self.mapping],
-                                      state2.state_vector[self.mapping],
+            return distance.euclidean(state1.state_vector[self.mapping, 0],
+                                      state2.state_vector[self.mapping2, 0],
                                       self.weighting)
         else:
-            return distance.euclidean(state1.state_vector,
-                                      state2.state_vector,
+            return distance.euclidean(state1.state_vector[:, 0],
+                                      state2.state_vector[:, 0],
                                       self.weighting)
 
 
@@ -152,15 +168,15 @@ class Mahalanobis(Measure):
 
         """
         if self.mapping is not None:
-            u = state1.state_vector[self.mapping]
-            v = state2.state_vector[self.mapping]
+            u = state1.state_vector[self.mapping, 0]
+            v = state2.state_vector[self.mapping2, 0]
             # extract the mapped covariance data
             rows = np.array(self.mapping, dtype=np.intp)
             columns = np.array(self.mapping, dtype=np.intp)
             cov = state1.covar[rows[:, np.newaxis], columns]
         else:
-            u = state1.state_vector
-            v = state2.state_vector
+            u = state1.state_vector[:, 0]
+            v = state2.state_vector[:, 0]
             cov = state1.covar
 
         vi = np.linalg.inv(cov)
@@ -211,8 +227,8 @@ class SquaredGaussianHellinger(Measure):
 
         """
         if self.mapping is not None:
-            mu1 = state1.state_vector[self.mapping]
-            mu2 = state2.state_vector[self.mapping]
+            mu1 = state1.state_vector[self.mapping, :]
+            mu2 = state2.state_vector[self.mapping2, :]
 
             # extract the mapped covariance data
             rows = np.array(self.mapping, dtype=np.intp)
@@ -272,3 +288,25 @@ class GaussianHellinger(SquaredGaussianHellinger):
 
         """
         return np.sqrt(super().__call__(state1, state2))
+
+
+class ObservationAccuracy(Measure):
+    r"""Accuracy measure
+
+    This measure evaluates the accuracy of a categorical distribution with respect to another."""
+
+    def __call__(self, state1, state2):
+
+        if isinstance(state1, State):
+            s1 = state1.state_vector
+        else:
+            s1 = state1
+
+        if isinstance(state2, State):
+            s2 = state2.state_vector
+        else:
+            s2 = state2
+
+        mins = [min(s1, s2) for s1, s2 in zip(s1, s2)]
+        maxs = [max(s1, s2) for s1, s2 in zip(s1, s2)]
+        return np.sum(mins)/np.sum(maxs)

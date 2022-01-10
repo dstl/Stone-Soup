@@ -27,4 +27,5 @@ class StatesLengthLimiter(Initiator):
         tracks = self.initiator.initiate(*args, **kwargs)
         for track in tracks:
             track.states = collections.deque(track.states, self.max_length)
+            track.metadatas = collections.deque(track.metadatas, self.max_length)
         return tracks

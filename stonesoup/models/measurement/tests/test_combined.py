@@ -36,6 +36,8 @@ def test_non_linear(model):
     assert np.array_equal(meas_vector,
                           np.array([[np.pi/2], [10], [-np.pi/2], [10]]))
 
+    assert model.mapping == [0, 1, 3, 4]
+
 
 def test_jacobian(model):
     state = State(StateVector([[10.0], [10.0], [0.0], [10.0], [0.0]]))

@@ -1,13 +1,37 @@
 import pytest
 import numpy as np
 from numpy import deg2rad
-from pytest import approx
+from scipy.linalg import cholesky, LinAlgError
+from pytest import approx, raises
 
 from .. import (
-    jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma,
+    cholesky_eps, jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma,
     rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart, dotproduct)
 from ...types.array import StateVector, StateVectors, Matrix
 from ...types.state import State, GaussianState
+
+
+def test_cholesky_eps():
+    matrix = np.array([[0.4, -0.2, 0.1],
+                       [0.3, 0.1, -0.2],
+                       [-0.3, 0.0, 0.4]])
+    matrix = matrix@matrix.T
+
+    cholesky_matrix = cholesky(matrix)
+
+    assert cholesky_eps(matrix) == approx(cholesky_matrix)
+    assert cholesky_eps(matrix, True) == approx(cholesky_matrix.T)
+
+
+def test_cholesky_eps_bad():
+    matrix = np.array(
+        [[ 0.05201447,  0.02882126, -0.00569971, -0.00733617],  # noqa: E201
+         [ 0.02882126,  0.01642966, -0.00862847, -0.00673035],  # noqa: E201
+         [-0.00569971, -0.00862847,  0.06570757,  0.03251551],
+         [-0.00733617, -0.00673035,  0.03251551,  0.01648615]])
+    with raises(LinAlgError):
+        cholesky(matrix)
+    cholesky_eps(matrix)
 
 
 def test_jacobian():
@@ -33,14 +57,14 @@ def test_jacobian2():
 
     def fun1d(ins):
         """ test function with vector input, scalar output"""
-        out = 2*ins.state_vector[0]+3*ins.state_vector[1]
-        return out
+        out = 2*ins.state_vector[0, :]+3*ins.state_vector[1, :]
+        return np.atleast_2d(out)
 
     def fun2d(vec):
         """ test function with 2d input and 2d output"""
-        out = np.empty((2, 1))
-        out[0] = 2*vec.state_vector[0]**2 + 3*vec.state_vector[1]**2
-        out[1] = 2*vec.state_vector[0]+3*vec.state_vector[1]
+        out = np.empty(vec.state_vector.shape)
+        out[0, :] = 2*vec.state_vector[0, :]**2 + 3*vec.state_vector[1, :]**2
+        out[1, :] = 2*vec.state_vector[0, :]+3*vec.state_vector[1, :]
         return out
 
     x = 3
@@ -66,6 +90,20 @@ def test_jacobian2():
     assert len(FOM[0]) == 0
 
 
+def test_jacobian_param():
+    """ jacobian function test """
+
+    # Sample functions to compute Jacobian on
+    def fun(x, value=0.0):
+        """ function for jabcobian parameter passing"""
+        return value*x.state_vector
+
+    x = 4
+    value = 2.0
+    jac = jacobian(fun, State(StateVector([[x]])), value=value)
+    assert np.allclose(value, jac)
+
+
 def test_jacobian_large_values():
     # State related variables
     state = State(StateVector([[1E10], [1.0]]))
@@ -86,6 +124,13 @@ def test_gm_reduce_single():
     weights = np.array([1, 2, 5])
 
     mean, covar = gm_reduce_single(means, covars, weights)
+
+    assert np.allclose(mean, np.array([[4], [5]]))
+    assert np.allclose(covar, np.array([[3.675, 3.35],
+                                        [3.2, 3.3375]]))
+
+    # Test handling of means as array instead of StateVectors
+    mean, covar = gm_reduce_single(means.view(np.ndarray), covars, weights)
 
     assert np.allclose(mean, np.array([[4], [5]]))
     assert np.allclose(covar, np.array([[3.675, 3.35],

@@ -5,9 +5,10 @@ import numpy as np
 
 from ...types.state import StateVector
 from .base import _CombinedGaussianTransitionModel
+from ..base import NonLinearModel
 
 
-class CombinedNonlinearGaussianTransitionModel(_CombinedGaussianTransitionModel):
+class CombinedNonlinearGaussianTransitionModel(_CombinedGaussianTransitionModel, NonLinearModel):
     r"""Combine multiple models into a single model by stacking them.
 
     The assumption is that all models are Gaussian.

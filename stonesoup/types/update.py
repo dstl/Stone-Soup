@@ -1,71 +1,21 @@
 # -*- coding: utf-8 -*-
-from typing import Any, Optional
 
+from stonesoup.types.state import CreatableFromState
 from ..base import Property
 from .base import Type
 from .hypothesis import Hypothesis
-from .state import State, GaussianState, ParticleState, SqrtGaussianState, StateMutableSequence
+from .state import State, GaussianState, ParticleState, SqrtGaussianState,  \
+    InformationState, CategoricalState
 from .mixture import GaussianMixture
 
 
-def _from_state(
-        cls,
-        state: State,
-        *args: Any,
-        update_type: Optional['Update'] = None,
-        **kwargs: Any) -> 'Update':
-    """Return new Update instance of suitable type using existing properties
-
-    Parameters
-    ----------
-    state: State
-        :class:`~.State` to use existing properties from, and identify update type from
-    \\*args: Sequence
-        Arguments to pass to newly created update, replacing those with same name on ``state``
-        parameter.
-    update_type: :class:`~.Update`, optional
-        Type to use for update, overriding one from :attr:`class_mapping`.
-    \\*\\*kwargs: Mapping
-        New property names and associate value for use in newly created update, replacing those
-        on the ``state`` parameter.
-    """
-    # Handle being initialised with state sequence
-    if isinstance(state, StateMutableSequence):
-        state = state.state
-    try:
-        state_type = next(type_ for type_ in type(state).mro() if type_ in cls.class_mapping)
-    except StopIteration:
-        raise TypeError(f'{cls.__name__} type not defined for {type(state).__name__}')
-    if update_type is None:
-        update_type = cls.class_mapping[state_type]
-
-    args_property_names = {name for n, name in enumerate(update_type.properties) if n < len(args)}
-    # Use current state kwargs that also properties of update type, it not provided in args
-    new_kwargs = {
-        name: getattr(state, name)
-        for name in state_type.properties.keys() & update_type.properties.keys()
-        if name not in args_property_names}
-    # And replace them with any newly defined kwargs
-    new_kwargs.update(kwargs)
-
-    return update_type(*args, **new_kwargs)
-
-
-class Update(Type):
+class Update(Type, CreatableFromState):
     """ Update type
 
     The base update class. Updates are returned by :class:'~.Updater' objects
     and contain the information that was used to perform the updating"""
 
     hypothesis: Hypothesis = Property(doc="Hypothesis used for updating")
-
-    class_mapping = {}
-    from_state = classmethod(_from_state)
-
-    def __init_subclass__(cls, **kwargs):
-        state_type = cls.__bases__[-1]
-        Update.class_mapping[state_type] = cls
-        super().__init_subclass__(**kwargs)
 
 
 class StateUpdate(Update, State):
@@ -107,3 +57,15 @@ class ParticleStateUpdate(Update, ParticleState):
 
     This is a simple Particle state update object.
     """
+
+
+class InformationStateUpdate(Update, InformationState):
+    """ InformationUpdate type
+
+    This is a simple Information state update object, which, as the name
+    suggests, is described by a precision matrix and its corresponding state vector.
+    """
+
+
+class CategoricalStateUpdate(Update, CategoricalState):
+    """Categorical state prediction type"""

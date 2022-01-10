@@ -71,30 +71,6 @@ class KalmanUpdater(Updater):
         doc="A flag to force the output covariance matrix to be symmetric by way of a simple "
             "geometric combination of the matrix and transpose. Default is False.")
 
-    def _check_measurement_model(self, measurement_model):
-        """Check that the measurement model passed actually exists. If not
-        attach the one in the updater. If that one's not specified, return an
-        error.
-
-        Parameters
-        ----------
-        measurement_model : :class`~.MeasurementModel`
-            A measurement model to be checked
-
-        Returns
-        -------
-        : :class`~.MeasurementModel`
-            The measurement model to be used
-
-        """
-        if measurement_model is None:
-            if self.measurement_model is None:
-                raise ValueError("No measurement model specified")
-            else:
-                measurement_model = self.measurement_model
-
-        return measurement_model
-
     def _measurement_matrix(self, predicted_state=None, measurement_model=None,
                             **kwargs):
         r"""This is straightforward Kalman so just get the Matrix from the

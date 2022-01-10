@@ -59,7 +59,7 @@ autosectionlabel_prefix_document = True
 
 binder_branch = os.environ.get("READTHEDOCS_VERSION", "latest")
 if binder_branch == "latest":
-    binder_branch = "master"
+    binder_branch = "main"
 
 sphinx_gallery_conf = {
     'examples_dirs': ['../tutorials', '../examples', '../demos'],
@@ -69,7 +69,7 @@ sphinx_gallery_conf = {
     'abort_on_example_error': False,
     'reference_url': {'stonesoup': None},
     'remove_config_comments': True,
-    'ignore_repr_types': r'matplotlib\.(?:figure|animation)',
+    'ignore_repr_types': r'matplotlib\.(?:figure|animation|legend)',
     'within_subsection_order': FileNameSortKey,
     'matplotlib_animations': True,
     'notebook_images':
@@ -106,7 +106,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Stone Soup'
-copyright = '2017-2020 Stone Soup contributors'
+copyright = '2017-2022 Stone Soup contributors'
 author = 'Dstl'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -185,7 +185,7 @@ html_theme = 'sphinx_rtd_theme'
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-# html_logo = None
+html_logo = "_static/stone_soup_logo.svg"
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32

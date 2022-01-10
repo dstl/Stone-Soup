@@ -4,8 +4,8 @@ import datetime
 import pytest
 
 from stonesoup.sensor.radar.radar import RadarElevationBearingRangeRate
-from ...platform.base import FixedPlatform
-from ..base import BaseSensor
+from stonesoup.platform import FixedPlatform
+from ..base import PlatformMountable
 from ..sensor import Sensor
 from ...types.array import StateVector, CovarianceMatrix
 from ...types.state import State
@@ -18,7 +18,7 @@ class DummySensor(Sensor):
         pass
 
 
-class DummyBaseSensor(BaseSensor):
+class DummyBaseSensor(PlatformMountable):
     def measure(self, **kwargs):
         pass
 
@@ -43,16 +43,6 @@ def test_sensor_position_orientation_setting():
         sensor.orientation = StateVector([0, 1, 0])
 
 
-def test_warning_on_moving_sensor():
-    sensor = DummySensor()
-    platform_state = State(StateVector([0, 1, 0]), timestamp=datetime.datetime.now())
-    platform1 = FixedPlatform(states=platform_state, position_mapping=[0, 1, 2])
-    platform2 = FixedPlatform(states=platform_state, position_mapping=[0, 1, 2])
-    platform1.add_sensor(sensor)
-    with pytest.warns(UserWarning):
-        platform2.add_sensor(sensor)
-
-
 def test_default_platform():
     sensor = DummySensor(position=StateVector([0, 0, 1]))
     assert np.array_equal(sensor.position, StateVector([0, 0, 1]))
@@ -65,13 +55,13 @@ def test_default_platform():
 
 def test_internal_platform_flag():
     sensor = DummySensor(position=StateVector([0, 0, 1]))
-    assert sensor._has_internal_platform
+    assert sensor._has_internal_controller
 
     sensor = DummySensor()
-    assert not sensor._has_internal_platform
+    assert not sensor._has_internal_controller
 
     sensor = DummyBaseSensor()
-    assert not sensor._has_internal_platform
+    assert not sensor._has_internal_controller
 
 
 def test_changing_platform_from_default():
@@ -106,16 +96,12 @@ def radar_platform_target():
     platform_1_prior_state_vector = StateVector([[5], [0], [0], [0.25], [0], [0]])
     platform_1_state = State(platform_1_prior_state_vector, timestamp_init)
 
-    mounting_offsets = [StateVector([[0], [0], [0]])]
-    rotation_offsets = [StateVector([[0], [0], [0]])]
+    radar.mounting_offset = StateVector([[0], [0], [0]])
+    radar.rotation_offset = StateVector([[0], [0], [0]])
 
     platform = FixedPlatform(states=platform_1_state,
                              position_mapping=pos_mapping,
-                             velocity_mapping=vel_mapping,
-                             sensors=[radar],
-                             mounting_offsets=mounting_offsets,
-                             rotation_offsets=rotation_offsets)
-
+                             sensors=[radar])
     target = State(StateVector([[0], [0], [0], [0], [0], [0]]), timestamp_init)
 
     return radar, platform, target
@@ -136,7 +122,7 @@ def test_platform_deepcopy(radar_platform_target):
     assert platform_2 is not platform_1
     assert platform_2.sensors[0] is not platform_1.sensors[0]
 
-    assert platform_2.sensors[0].platform is platform_2
+    assert platform_2.sensors[0].movement_controller is platform_2.movement_controller
     # check no error in measurement
     _ = platform_2.sensors[0].measure({target_state})
 
@@ -148,12 +134,10 @@ def test_sensor_assignment(radar_platform_target):
     radar_2 = copy.deepcopy(radar_1)
     radar_3 = copy.deepcopy(radar_1)
 
-    with pytest.warns(UserWarning, match="Sensor has been moved from one platform to another"):
-        platform.add_sensor(radar_2)
-        platform.add_sensor(radar_3)
+    platform.add_sensor(radar_2)
+    platform.add_sensor(radar_3)
 
     assert len(platform.sensors) == 3
-    validate_lengths(platform)
     assert platform.sensors == (radar_1, radar_2, radar_3)
 
     with pytest.raises(AttributeError):
@@ -164,21 +148,12 @@ def test_sensor_assignment(radar_platform_target):
 
     platform.pop_sensor(1)
     assert len(platform.sensors) == 2
-    validate_lengths(platform)
     assert platform.sensors == (radar_1, radar_3)
 
-    with pytest.warns(UserWarning, match="Sensor has been moved from one platform to another"):
-        platform.add_sensor(radar_2)
+    platform.add_sensor(radar_2)
     assert len(platform.sensors) == 3
-    validate_lengths(platform)
     assert platform.sensors == (radar_1, radar_3, radar_2)
 
     platform.remove_sensor(radar_3)
     assert len(platform.sensors) == 2
-    validate_lengths(platform)
     assert platform.sensors == (radar_1, radar_2)
-
-
-def validate_lengths(platform):
-    assert len(platform.sensors) == len(platform.mounting_offsets)
-    assert len(platform.sensors) == len(platform.rotation_offsets)

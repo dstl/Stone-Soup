@@ -10,7 +10,7 @@ from ...types.update import StateUpdate
 
 
 def test_update_time_steps_deleter():
-    deleter = UpdateTimeStepsDeleter(3)
+    deleter = UpdateTimeStepsDeleter(time_steps_since_update=3)
 
     track = Track([
         StateUpdate(
@@ -45,7 +45,7 @@ def test_update_time_steps_deleter():
 
 
 def test_update_time_deleter():
-    deleter = UpdateTimeDeleter(datetime.timedelta(minutes=20))
+    deleter = UpdateTimeDeleter(time_since_update=datetime.timedelta(minutes=20))
 
     track = Track([
         StateUpdate(

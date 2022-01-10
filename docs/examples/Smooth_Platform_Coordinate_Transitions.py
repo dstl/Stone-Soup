@@ -6,8 +6,17 @@ Creating Smooth Transitions Between Coordinates
 """
 
 # %%
-# This is a demonstration of the :meth:`~simulator.transition.get_smooth_transition_models`
-# method for use with the :class:`~.MultiTransitionMovingPlatform`.
+# This is a demonstration of two methods for calculating transition models between given
+# coordinates in a cartesian state space.
+# These methods are intended to be used in conjunction with
+# :class:`~.MultiTransitionMovingPlatform`, which can be passed a list of models and
+# model-durations, such that, for example, the platform could undergo constant velocity transition
+# for 5 minutes, followed by constant acceleration for 2 minutes.
+
+# %%
+# Constant Acceleration
+# ^^^^^^^^^^^^^^^^^^^^^
+# The first method is :meth:`~simulator.transition.get_smooth_transition_models`.
 #
 # This method takes a series of 2D cartesian coordinates, and returns a chain (list) of
 # :class:`~.ConstantTurn` transition models, alongside a list of transition times that each
@@ -26,8 +35,8 @@ Creating Smooth Transitions Between Coordinates
 
 
 # %%
-# Simple demonstration
-# ^^^^^^^^^^^^^^^^^^^^
+# A Simple Demo of Constant Acceleration
+# --------------------------------------
 # Start with the target (platform) facing top-right (45 degrees clockwise from North).
 # The target begins at the origin, at time = start.
 #
@@ -141,8 +150,8 @@ fig
 
 
 # %%
-# Running through multiple coordinates
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Running through multiple coordinates with Constant Acceleration
+# ---------------------------------------------------------------
 # A demonstration using several coordinates.
 
 np.random.seed(101)
@@ -188,6 +197,7 @@ platform = MultiTransitionMovingPlatform(states=platform_state,
 
 
 # %%
+
 platform_coords = []
 sim_rate = 100  # 'sim_rate'-seconds each time-step.
 for i in range(int((times[-1] - times[0]).total_seconds()/sim_rate)):
@@ -201,4 +211,135 @@ ax.plot([coord[0] for coord in platform_coords],
         linewidth=3)
 fig
 
-# sphinx_gallery_thumbnail_number = 4
+
+# %%
+# Constant Jerk
+# ^^^^^^^^^^^^^
+# The next method is :meth:`~.simulator.transition.ConstantJerkSimulator.create_models`
+#
+# This method takes a series of states with cartesian kinematic state space elements and returns a
+# chain (list) of :class:`~.ConstantJerkSimulator` transition models and transition times.
+#
+# The :class:`~.ConstantJerkSimulator` type of transition model is an implementation of a
+# noiseless, constant jerk transition in the kinematic, cartesian subspace of the state space.
+#
+# The user will need to provide both initial and final position and velocities. This can be of any
+# dimension. For example, constant jerk in the space :math:`(x, \dot{x}, y, \dot{y})` and
+# :math:`(x, \dot{x}, y, \dot{y}, z, \dot{z})` are valid (elements need not be in this order, as a
+# position  mapping and velocity mapping can be passed to the method to specify where the position
+# and velocity components are respectively).
+
+
+# %%
+# A Simple Demo of Constant Jerk
+# ------------------------------
+# We will use the same set-up as before, but specify an initial and final velocity as well.
+
+start = datetime.now()
+position_mapping = (0, 2)
+velocity_mapping = (1, 3)
+states = [
+    State(StateVector([0, 1, 0, 1]), start),  # at origin, pointing NE
+    State(StateVector([-10, 0, 10, -2]), start + timedelta(seconds=5)),  # at (-10, 10), pointing N
+    State(StateVector([-20, 0, 0, 0]), start + timedelta(seconds=10))  # at (-20, 10), 0 velocity
+]
+
+
+# %%
+# Plotting the three target destinations in blue and orientations in green:
+
+fig = plt.figure(figsize=(10, 6))
+ax = fig.add_subplot(1, 1, 1)
+ax.set_xlabel("$x$")
+ax.set_ylabel("$y$")
+ax.axis('equal')
+ax.scatter(*zip(*[state.state_vector[(0, 2), :] for state in states]),
+           color='lightskyblue', s=100, edgecolors='black')
+for state in states:
+    x, vx, y, vy = state.state_vector
+    ax.plot((x, x+vx), (y, y+vy), color='lightgreen', linewidth=2)
+
+
+# %%
+# To create the list of transition models and durations, pass the list of states, position mapping
+# and velocity mapping (optional) to the
+# :meth:`~.simulator.transition.ConstantJerkSimulator.create_models` method.
+
+from stonesoup.simulator.transition import ConstantJerkSimulator
+transition_models, transition_times = ConstantJerkSimulator.create_models(states,
+                                                                          position_mapping,
+                                                                          velocity_mapping)
+
+for transition_time, transition_model in zip(transition_times, transition_models):
+    print(f"Duration: {transition_time}s, Model: {type(transition_model)},"
+          f"Initial Accels: {transition_model.init_A}, Final Accels: {transition_model.final_A}, "
+          f"Jerk Values: {transition_model.jerk}")
+
+# %%
+# Create a :class:`~.MultiTransitionMovingPlatform` using the output transition models and times.
+platform = MultiTransitionMovingPlatform(states=states[0],
+                                         position_mapping=position_mapping,
+                                         transition_models=transition_models,
+                                         transition_times=transition_times)
+
+
+# %%
+# Plot the platform path (light blue).
+
+while platform.timestamp < states[-1].timestamp:
+    platform.move(timestamp=platform.timestamp+timedelta(seconds=0.01))
+
+ax.plot(*np.array([state.state_vector[(0, 2), :].flatten() for state in platform.states]).T,
+        color='lightskyblue', linewidth=3)
+fig
+
+
+# %%
+# Running through multiple coordinates with Constant Jerk
+# -------------------------------------------------------
+# A demonstration using several coordinates.
+
+ndim_state = np.random.randint(4, 6)
+states = [State(np.random.rand(ndim_state, 1), start + timedelta(minutes=i))
+          for i in range(5)]
+for state in states:
+    state.state_vector[position_mapping, :] *= 100  # increase distances between states
+if ndim_state > 4:
+    for state in states[1:]:
+        for i in range(4, ndim_state):
+            # non-kinematic elements stay the same
+            state.state_vector[i] = states[0].state_vector[i]
+
+fig = plt.figure(figsize=(10, 6))
+ax = fig.add_subplot(1, 1, 1)
+ax.set_xlabel("$x$")
+ax.set_ylabel("$y$")
+ax.axis('equal')
+ax.scatter(*zip(*[state.state_vector[(0, 2), :] for state in states]),
+           color='lightskyblue', s=100, edgecolors='black')
+for state in states:
+    x, vx, y, vy, *_ = state.state_vector
+    ax.plot((x, x+vx), (y, y+vy), color='lightgreen', linewidth=2)
+
+
+# %%
+
+transition_models, transition_times = ConstantJerkSimulator.create_models(states,
+                                                                          position_mapping,
+                                                                          velocity_mapping)
+platform = MultiTransitionMovingPlatform(states=states[0],
+                                         position_mapping=position_mapping,
+                                         transition_models=transition_models,
+                                         transition_times=transition_times)
+
+
+# %%
+
+# sphinx_gallery_thumbnail_number = 8
+
+while platform.timestamp < states[-1].timestamp:
+    platform.move(timestamp=platform.timestamp+timedelta(seconds=0.01))
+
+ax.plot(*np.array([state.state_vector[(0, 2), :].flatten() for state in platform.states]).T,
+        color='lightskyblue', linewidth=3)
+fig

@@ -71,7 +71,7 @@ def test_phd_single_component_update(UpdaterClass, measurement_model,
                   MultipleHypothesis([SingleHypothesis(
                                     prediction=prediction,
                                     measurement=None)])]
-    # print(hypotheses)
+
     updated_mixture = phd_updater.update(hypotheses)
     # One for updated component, one for missed detection
     assert len(updated_mixture) == 2
@@ -143,7 +143,7 @@ def test_lcc_single_component_update(UpdaterClass, measurement_model,
                   MultipleHypothesis([SingleHypothesis(
                                     prediction=prediction,
                                     measurement=None)])]
-    # print(hypotheses)
+
     updated_mixture = phd_updater.update(hypotheses)
     # One for updated component, one for missed detection
     assert len(updated_mixture) == 2

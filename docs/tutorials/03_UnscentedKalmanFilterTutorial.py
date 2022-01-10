@@ -297,8 +297,6 @@ color_list = ['r', 'g']
 plotter.ellipse_legend(ax, label_list, color_list)
 fig
 
-# sphinx_gallery_thumbnail_number = 5
-
 # %%
 # You may have to spend some time fiddling with the parameters to see major differences between the
 # EKF and UKF. Indeed the point to make is not that there is any great magic about the UKF. Its
@@ -320,3 +318,5 @@ fig
 # .. [#] Julier S.J. 2002, The scaled unscented transformation, Proceedings of the 2002 American
 #        Control Conference (IEEE Cat. No.CH37301), Anchorage, AK, USA, 2002, pp. 4555-4559 vol.6,
 #        doi: 10.1109/ACC.2002.1025369.
+
+# sphinx_gallery_thumbnail_number = 5

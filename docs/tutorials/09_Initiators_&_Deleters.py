@@ -139,7 +139,7 @@ data_associator = GNNWith2DAssignment(hypothesiser)
 # your state vector. So the higher the threshold value, the longer tracks that haven't been
 # updated will remain.
 from stonesoup.deleter.error import CovarianceBasedDeleter
-deleter = CovarianceBasedDeleter(4)
+deleter = CovarianceBasedDeleter(covar_trace_thresh=4)
 
 # %%
 # Creating an Initiator
@@ -177,7 +177,7 @@ initiator = MultiMeasurementInitiator(
 # important, so tracks that have just been created, aren't deleted straight away. (The
 # implementation below is the same as :class:`~.MultiTargetTracker`)
 
-tracks = set()
+tracks, all_tracks = set(), set()
 
 for n, measurements in enumerate(all_measurements):
     # Calculate all hypothesis pairs and associate the elements in the best subset to the tracks.
@@ -196,12 +196,14 @@ for n, measurements in enumerate(all_measurements):
 
     # Carry out deletion and initiation
     tracks -= deleter.delete_tracks(tracks)
-    tracks |= initiator.initiate(measurements - associated_measurements)
+    tracks |= initiator.initiate(measurements - associated_measurements,
+                                 start_time + timedelta(seconds=n))
+    all_tracks |= tracks
 
 # %%
 # Plot the resulting tracks.
 
-plotter.plot_tracks(tracks, [0, 2], uncertainty=True)
-plotter.fig
-
 # sphinx_gallery_thumbnail_number = 3
+
+plotter.plot_tracks(all_tracks, [0, 2], uncertainty=True)
+plotter.fig

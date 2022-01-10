@@ -15,3 +15,6 @@ exclude_lines =
 
     # Ignore pass:
     pass
+
+    # Ignore type checking:
+    if TYPE_CHECKING:

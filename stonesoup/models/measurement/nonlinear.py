@@ -31,7 +31,6 @@ class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel,
     :exc:`NotImplementedError` if any model isn't either a
     :class:`~.LinearModel` or :class:`~.ReversibleModel`.
     """
-    mapping = None
     model_list: Sequence[GaussianModel] = Property(doc="List of Measurement Models.")
 
     def __init__(self, *args, **kwargs):
@@ -49,6 +48,10 @@ class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel,
     @property
     def ndim_meas(self) -> int:
         return sum(model.ndim_meas for model in self.model_list)
+
+    @property
+    def mapping(self):
+        return [x for model in self.model_list for x in model.mapping]
 
     def function(self, state, **kwargs) -> StateVector:
         return np.vstack([model.function(state, **kwargs)
@@ -264,8 +267,11 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
 
         # Convert to Spherical
         rho, phi, theta = cart2sphere(*xyz_rot)
+        elevations = [Elevation(i) for i in np.atleast_1d(theta)]
+        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
+        rhos = np.atleast_1d(rho)
 
-        return StateVector([[Elevation(theta)], [Bearing(phi)], [rho]]) + noise
+        return StateVectors([elevations, bearings, rhos]) + noise
 
     def inverse_function(self, detection, **kwargs) -> StateVector:
 
@@ -352,7 +358,7 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
         super().__init__(*args, **kwargs)
         # Set values to defaults if not provided
         if self.translation_offset is None:
-            self.translation_offset = StateVector([0] * 2)
+            self.translation_offset = StateVector([0] * len(self.mapping))
 
     @property
     def ndim_meas(self) -> int:
@@ -382,7 +388,7 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
         xy = xyz[0:2]
 
         res = np.zeros((self.ndim_state, 1)).view(StateVector)
-        res[self.mapping, :] = xy + self.translation_offset
+        res[self.mapping[:2], :] = xy + self.translation_offset[:2, :]
 
         return res
 
@@ -411,19 +417,18 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
                 noise = 0
 
         # Account for origin offset
-        xyz = [[state.state_vector[self.mapping[0], 0]
-                - self.translation_offset[0, 0]],
-               [state.state_vector[self.mapping[1], 0]
-                - self.translation_offset[1, 0]],
-               [0]]
+        xyz = np.array([state.state_vector[self.mapping[0], :] - self.translation_offset[0, 0],
+                        state.state_vector[self.mapping[1], :] - self.translation_offset[1, 0],
+                        [0] * state.state_vector.shape[1]
+                        ])
 
         # Rotate coordinates
         xyz_rot = self._rotation_matrix @ xyz
 
         # Covert to polar
-        rho, phi = cart2pol(*xyz_rot[:2, 0])
-
-        return StateVector([[Bearing(phi)], [rho]]) + noise
+        rho, phi = cart2pol(*xyz_rot[:2, :])
+        bearings = [Bearing(i) for i in phi]
+        return StateVectors([bearings, rho]) + noise
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
@@ -546,7 +551,9 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
         # Convert to Angles
         phi, theta = cart2angles(*xyz_rot)
 
-        return StateVector([[Elevation(theta)], [Bearing(phi)]]) + noise
+        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
+        elevations = [Elevation(i) for i in np.atleast_1d(theta)]
+        return StateVectors([elevations, bearings]) + noise
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
@@ -631,19 +638,19 @@ class Cartesian2DToBearing(NonLinearGaussianMeasurement):
                 noise = 0
 
         # Account for origin offset
-        xyz = [[state.state_vector[self.mapping[0], 0]
-                - self.translation_offset[0, 0]],
-               [state.state_vector[self.mapping[1], 0]
-                - self.translation_offset[1, 0]],
-               [0]]
+        xyz = np.array([state.state_vector[self.mapping[0], :] - self.translation_offset[0, 0],
+                        state.state_vector[self.mapping[1], :] - self.translation_offset[1, 0],
+                        [0] * state.state_vector.shape[1]
+                        ])
 
         # Rotate coordinates
         xyz_rot = self._rotation_matrix @ xyz
 
         # Covert to polar
-        _, phi = cart2pol(*xyz_rot[:2, 0])
+        _, phi = cart2pol(*xyz_rot[:2, :])
+        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
 
-        return StateVector([[Bearing(phi)]]) + noise
+        return StateVectors([bearings]) + noise
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
@@ -784,9 +791,12 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
         xy_vel = state.state_vector[self.velocity_mapping, :] - self.velocity
 
         # Use polar to calculate range rate
-        rr = np.dot(xy_pos[:, 0], xy_vel[:, 0]) / np.linalg.norm(xy_pos)
+        rr = np.einsum('ij,ij->j', xy_pos, xy_vel) / np.linalg.norm(xy_pos, axis=0)
 
-        return StateVector([[Bearing(phi)], [rho], [rr]]) + noise
+        # Convert to bearings
+        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
+
+        return StateVectors([bearings, np.atleast_1d(rho), rr]) + noise
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
@@ -929,11 +939,14 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
         xyz_vel = state.state_vector[self.velocity_mapping, :] - self.velocity
 
         # Use polar to calculate range rate
-        rr = np.dot(xyz_pos[:, 0], xyz_vel[:, 0]) / np.linalg.norm(xyz_pos)
-        return StateVector([[Elevation(theta)],
-                            [Bearing(phi)],
-                            [rho],
-                            [rr]]) + noise
+        rr = np.einsum('ij,ij->j', xyz_pos, xyz_vel) / np.linalg.norm(xyz_pos, axis=0)
+
+        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
+        elevations = [Elevation(i) for i in np.atleast_1d(theta)]
+        return StateVectors([elevations,
+                             bearings,
+                             np.atleast_1d(rho),
+                             rr]) + noise
 
     def inverse_function(self, detection, **kwargs) -> StateVector:
         theta, phi, rho, rho_rate = detection.state_vector
@@ -1045,8 +1058,8 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
     expects a 6D state space.
     """
 
-    range_res = Property(float, doc="Size of the range bins in m")
-    range_rate_res = Property(float, doc="Size of the velocity bins in m/s")
+    range_res: float = Property(doc="Size of the range bins in m")
+    range_rate_res: float = Property(doc="Size of the velocity bins in m/s")
 
     @property
     def ndim_meas(self):

@@ -110,13 +110,13 @@ from stonesoup.simulator.platform import PlatformDetectionSimulator
 from stonesoup.types.state import State
 
 sensor = RadarElevationBearingRange(
-    [0, 2, 4],
-    meas_covar,
-    6,
+    position_mapping=[0, 2, 4],
+    noise_covar=meas_covar,
+    ndim_state=6,
 )
 platform = FixedPlatform(
     State([0, 0, 0, 0, 0, 0]),  # Sensor at reference point, zero velocity
-    [0, 2, 4],
+    position_mapping=[0, 2, 4],
     sensors=[sensor]
 )
 
@@ -145,8 +145,9 @@ from stonesoup.initiator.simple import SimpleMeasurementInitiator
 from stonesoup.types.track import Track
 from stonesoup.types.hypothesis import SingleHypothesis
 
+
 class Initiator(SimpleMeasurementInitiator):
-    def initiate(self, detections, **kwargs):
+    def initiate(self, detections, timestamp, **kwargs):
         MAX_DEV = 400.
         tracks = set()
         measurement_model = self.measurement_model

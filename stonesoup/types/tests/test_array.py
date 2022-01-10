@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 
-from ..array import Matrix, StateVector, CovarianceMatrix
+from ..array import Matrix, StateVector, CovarianceMatrix, PrecisionMatrix
 
 
 def test_statevector():
@@ -87,6 +87,21 @@ def test_covariancematrix():
 
     covar_matrix = CovarianceMatrix(covar_nparray)
     assert(np.array_equal(covar_matrix, covar_nparray))
+
+
+def test_precisionmatrix():
+    """ CovarianceMatrix Type test """
+
+    with pytest.raises(ValueError):
+        PrecisionMatrix(np.array([0]))
+
+    prec_nparray = np.array([[7, 1, 0.5, 0],
+                             [1, 4, 2, 0.4],
+                             [0.5, 2, 6, 0.3],
+                             [0, 0.4, 0.3, 5]])
+
+    prec_matrix = PrecisionMatrix(prec_nparray)
+    assert(np.array_equal(prec_matrix, prec_nparray))
 
 
 def test_matrix():

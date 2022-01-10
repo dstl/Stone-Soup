@@ -119,3 +119,12 @@ class AssociationSet(Type):
                 for association in self.associations
                 for object_ in objects
                 if object_ in association.objects}
+
+    def __contains__(self, item):
+        return item in self.associations
+
+    def __iter__(self):
+        return iter(self.associations)
+
+    def __len__(self):
+        return len(self.associations)
