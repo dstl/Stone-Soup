@@ -26,8 +26,13 @@ class RunManagerCore(RunManager):
 
         self.input_manager = InputManager()
         self.run_manager_metrics = RunmanagerMetrics()
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.DEBUG)
+        handler = logging.FileHandler('Img_To_Local_Python.log', 'w', 'utf-8')
+        root_logger.addHandler(handler)
 
-        logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
+
+        # logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
         logging.info(f'RunManagerCore started. {datetime.now()}')
 
     def read_json(self, json_input):
