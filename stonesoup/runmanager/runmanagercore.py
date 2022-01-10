@@ -111,12 +111,12 @@ class RunManagerCore(RunManager):
             pairs = self.get_config_and_param_lists(paths)
 
         elif self.config_path and self.parameters_path:
-            pairs = [[self.parameters_path, self.config_path]]
+            pairs = [[self.config_path,self.parameters_path]]
 
         elif self.dir and self.config_path and self.parameters_path:
             paths = self.get_filepaths(self.dir)
             pairs = self.get_config_and_param_lists(paths)
-            pairs.append([self.parameters_path, self.config_path])
+            pairs.append([ self.config_path,self.parameters_path,])
             # logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
 
         return pairs
@@ -159,11 +159,12 @@ class RunManagerCore(RunManager):
 
                     # Sometimes the metric manager generate metrics fails.
                     # We can't remove this try catch.
-                    try:
-                        metrics = metric_manager.generate_metrics()
-                        self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
-                    except Exception as e:
-                        print("Metric manager: {}".format(e))
+            if metric_manager is not None:
+                try:
+                    metrics = metric_manager.generate_metrics()
+                    self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
+                except Exception as e:
+                    print("Metric manager: {}".format(e))
 
             timeAfter = datetime.now()
             timeTotal = timeAfter-timeFirst

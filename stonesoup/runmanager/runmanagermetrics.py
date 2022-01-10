@@ -168,11 +168,17 @@ class RunmanagerMetrics(RunManager):
 
             with open(os.path.join(dir_name, filename), 'a', newline='') as csvfile:
                 writer = csv.writer(csvfile)
-                
                 for gt in groundtruths:
-                    print(gt)
-                    writer.writerow([gt.state.timestamp, gt.id,
-                                    ' '.join([str(n) for n in gt.state.state_vector])])
+                    try:
+                        state = gt.state
+                    except Exception:
+                        state = gt
+                    try: 
+                       id = gt.id
+                    except Exception:
+                        id = ""
+                    writer.writerow([state.timestamp, id,
+                                    ' '.join([str(n) for n in state.state_vector])])
 
         except Exception as e:
             print(f'{datetime.now()}: Failed to write to {filename}, {e}')
