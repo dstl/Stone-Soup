@@ -73,8 +73,8 @@ class RunManagerCore(RunManager):
 
         for path in pairs:
             # Read the param data
-            config_path = path[1]
-            param_path = path[0]
+            config_path = path[0]
+            param_path = path[1]
             json_data = self.read_json(param_path)
 
             nruns = self.set_runs_number(nruns, json_data)
@@ -109,12 +109,12 @@ class RunManagerCore(RunManager):
             pairs = self.get_config_and_param_lists(paths)
 
         elif self.config_path and self.parameters_path:
-            pairs = [[self.parameters_path, self.config_path]]
+            pairs = [[self.config_path,self.parameters_path]]
 
         elif self.dir and self.config_path and self.parameters_path:
             paths = self.get_filepaths(self.dir)
             pairs = self.get_config_and_param_lists(paths)
-            pairs.append([self.parameters_path, self.config_path])
+            pairs.append([self.config_path,self.parameters_path])
             # logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
 
         return pairs
