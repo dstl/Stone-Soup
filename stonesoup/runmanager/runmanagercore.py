@@ -84,6 +84,20 @@ class RunManagerCore(RunManager):
                                             nprocesses, config_path)
 
     def set_runs_number(self, nruns, json_data):
+        """Set the number of runs
+
+        Parameters
+        ----------
+        nruns : int
+            number of run from the terminal
+        json_data : object
+            json parameter object
+
+        Returns
+        -------
+        int
+            number of run
+        """
         if nruns is None:
             if json_data['configuration']['runs_num']:
                 nruns = json_data['configuration']['runs_num']
@@ -92,6 +106,20 @@ class RunManagerCore(RunManager):
         return nruns
 
     def set_processes_number(self, nprocess, json_data):
+        """Set the number of process
+
+        Parameters
+        ----------
+        nprocess : int
+            number of process from the terminal
+        json_data : object
+            json parameter object
+
+        Returns
+        -------
+        int
+            number of process
+        """
         if nprocess is None:
             if json_data['configuration']['proc_num']:
                 proc_num = json_data['configuration']['proc_num']
@@ -102,6 +130,18 @@ class RunManagerCore(RunManager):
         return proc_num
 
     def prepare_monte_carlo(self, json_data):
+        """Prepare the monte carlo run
+
+        Parameters
+        ----------
+        json_data : string in json format
+            data from the parameter file
+
+        Returns
+        -------
+        dict
+            combination of all the parameters to run a monte-carlo
+        """
         # Generate all the parameters for the monte carlo run
         trackers_combination_dict = self.input_manager.generate_parameters_combinations(
             json_data["parameters"])
@@ -112,6 +152,14 @@ class RunManagerCore(RunManager):
         # logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
 
     def config_parameter_pairing(self):
+        """Pair the config file with the parameter file
+
+        Returns
+        -------
+        array
+            array that contains of config path and parameter path
+            [config_path, parameter_path]
+        """
         pairs = []
         if self.dir:
             paths = self.get_filepaths(self.dir)
@@ -129,6 +177,19 @@ class RunManagerCore(RunManager):
         return pairs
 
     def check_ground_truth(self, ground_truth):
+        """Check if the groundtruth has generate path or no.
+        If yes return the generate path
+
+        Parameters
+        ----------
+        ground_truth : stonesoup object
+            ground_truth
+
+        Returns
+        -------
+        groundtruth
+            groundtruth object after the checking
+        """
         try:
             ground_truth = ground_truth.groundtruth_paths
         except Exception:
@@ -256,9 +317,6 @@ class RunManagerCore(RunManager):
         ----------
         config_file : str
             file path to configuration file
-        groundtruth_setting : bool
-            checks if ground truth exists
-
         Returns
         -------
         object dictionary with tracker, groundtruth and metric_manager
@@ -367,10 +425,6 @@ class RunManagerCore(RunManager):
 
         Parameters
         ----------
-        config_path : str
-            path to configuration
-        groundtruth_setting : bool
-            Defines if ground truth is present
         nruns : int
             Number of monte-carlo runs
         """
@@ -399,7 +453,8 @@ class RunManagerCore(RunManager):
             logging.error(f'{datetime.now()} Could not run simulation. error: {e}')
 
     def run_monte_carlo_simulation(self, combo_dict, nruns, nprocesses, config_path):
-        """Prepares multiple trackers for simulation runs
+        """Prepares multiple trackers for simulation run and run a multi-processor or a single
+        processor simulation
 
         Parameters
         ----------
@@ -407,8 +462,11 @@ class RunManagerCore(RunManager):
             dictionary of all parameter combinations for monte-carlo
         nruns : int
             Number of monte-carlo runs
+        nprocesses : int
+            Number of processor to be used
+        config_path : string
+            configuration path
         """
-
         # Load the tracker from the config file
         config_data = self.set_components(config_path)
         tracker = config_data[self.TRACKER]
@@ -497,17 +555,12 @@ class RunManagerCore(RunManager):
         ----------
         config_path : str
             path to configuration
-        groundtruth_setting : bool
-            Defines if ground truth is present
-
         Returns
         -------
-        Tracker:
-            Tracker stone soup object
-        GroundTruth:
-            Ground Truth stone soup object
-        MetricManager:
-            Metric manager stone soup object
+        Object:
+            TRACKER: tracker,
+            GROUNDTRUTH: ground_truth,
+            METRIC_MANAGER: metric_manager
         """
         tracker, ground_truth, metric_manager = None, None, None
         try:
