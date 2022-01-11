@@ -5,14 +5,14 @@ import numpy as np
 import pytest
 import scipy.linalg
 
-from stonesoup.types.groundtruth import GroundTruthState
-from stonesoup.types.state import CreatableFromState
 from ..angle import Bearing
 from ..array import StateVector, CovarianceMatrix
+from ..groundtruth import GroundTruthState
 from ..numeric import Probability
 from ..particle import Particle
-from ..state import State, GaussianState, ParticleState, \
-    StateMutableSequence, WeightedGaussianState, SqrtGaussianState, CategoricalState
+from ..state import CreatableFromState
+from ..state import State, GaussianState, ParticleState, StateMutableSequence, \
+    WeightedGaussianState, SqrtGaussianState, CategoricalState, CompositeState
 from ...base import Property
 
 
@@ -459,3 +459,60 @@ def test_categorical_state():
 
     # Test category
     assert state.category == 'yellow'
+
+
+def test_composite_state_timestamp():
+    with pytest.raises(ValueError,
+                       match="All sub-states must share the same timestamp if defined"):
+        CompositeState([State([0], timestamp=1), State([0], timestamp=2)])
+    with pytest.raises(ValueError,
+                       match="Sub-state timestamps and default timestamp must be the same if "
+                             "defined"):
+        CompositeState([State([0], timestamp=1)], default_timestamp=2)
+    with pytest.raises(ValueError,
+                       match="Sub-state timestamps and default timestamp must be the same if "
+                             "defined"):
+        CompositeState([State([0], timestamp=1), State([0], timestamp=1)], default_timestamp=2)
+
+    for i in range(1, 4):
+        assert CompositeState(i * [State([0], timestamp=1)]).timestamp == 1
+        assert CompositeState(i * [State([0], timestamp=1)],
+                              default_timestamp=1).timestamp == 1
+        assert CompositeState(i * [State([0])]).timestamp is None
+
+
+def test_composite_state():
+    # Test error on empty composite
+    with pytest.raises(ValueError, match="Cannot create an empty composite state"):
+        CompositeState([])
+
+    a = State([0, 1], timestamp=1)
+    b = State([2], timestamp=1)
+    c = State([3, 4], timestamp=1)
+    sub_states = [a, b, c]
+    state = CompositeState(sub_states)
+
+    # Test state vectors
+    for actual, expected in zip(state.state_vectors,
+                                [StateVector([0, 1]), StateVector([2]), StateVector([3, 4])]):
+        assert (actual == expected).all()
+
+    # Test state vector
+    assert (state.state_vector == StateVector([0, 1, 2, 3, 4])).all()
+
+    # Test contains and getitem
+    for index, sub_state in enumerate(sub_states):
+        assert sub_state in state
+        assert state[index] is sub_state
+    assert State([5, 6], timestamp=1) not in state
+    assert "a" not in state
+    state_slice = state[1:]
+    assert isinstance(state_slice, CompositeState)
+    assert state_slice.sub_states == sub_states[1:]
+
+    # Test iter
+    for exp_sub_state, actual_sub_state in zip(sub_states, state):
+        assert exp_sub_state is actual_sub_state
+
+    # Test len
+    assert len(state) == 3

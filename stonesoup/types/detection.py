@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from typing import MutableMapping
+from typing import MutableMapping, Sequence
 
 from .groundtruth import GroundTruthPath
-from .state import CategoricalState
+from .state import CategoricalState, CompositeState
 from .state import State, GaussianState, StateVector
 from ..base import Property
 from ..models.measurement import MeasurementModel
@@ -69,3 +69,40 @@ class CategoricalDetection(Detection, CategoricalState):
 
 class TrueCategoricalDetection(TrueDetection, CategoricalDetection):
     """TrueCategoricalDetection type for categorical detections that come from ground truth."""
+
+
+class CompositeDetection(CompositeState):
+    """Composite detection type
+
+    Composition of :class:`~.Detection`.
+    """
+
+    sub_states: Sequence[Detection] = Property(
+        doc="Sequence of sub-detections comprising the composite detection. All sub-detections "
+            "must have matching timestamp. Must not be empty.")
+    groundtruth_path: GroundTruthPath = Property(
+        default=None,
+        doc="Ground truth path that this detection came from.")
+    mapping: Sequence[int] = Property(
+        default=None,
+        doc="Mapping of detections to composite state space. Defaults to `None`, where "
+            "sub-detections map to sub-state spaces in order.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.mapping and len(self.mapping) != len(self.sub_states):
+            raise ValueError("Mappings and sub-detections must have same count")
+        elif self.mapping is None:
+            self.mapping = list(range(len(self.sub_states)))
+
+    @property
+    def metadata(self):
+        """Combined metadata of all sub-detections."""
+        metadata = dict()
+        for sub_detection in self.sub_states:
+            metadata.update(sub_detection.metadata)
+        return metadata
+
+
+Detection.register(CompositeDetection)  # noqa: E305

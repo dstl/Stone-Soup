@@ -516,3 +516,83 @@ class CategoricalState(State):
     def category(self):
         """Return the name of the most likely category"""
         return self.category_names[np.argmax(self.state_vector)]
+
+
+class CompositeState(Type):
+    """Composite state type.
+
+    A composition of ordered sub-states (:class:`State`) existing at the same timestamp,
+    representing an object with a state for (potentially) multiple, distinct state spaces.
+    """
+
+    sub_states: Sequence[State] = Property(
+        doc="Sequence of sub-states comprising the composite state. All sub-states must have "
+            "matching timestamp. Must not be empty.")
+    default_timestamp: datetime.datetime = Property(
+        default=None,
+        doc="Default timestamp if no sub-states exist to attain timestamp from. Defaults to "
+            "`None`, whereby sub-states will be required to have timestamps.")
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        if len(self.sub_states) == 0:
+            raise ValueError("Cannot create an empty composite state")
+
+        self._check_timestamp()  # validate timestamps of sub-states
+
+    @property
+    def timestamp(self):
+        return self.default_timestamp
+
+    def _check_timestamp(self):
+        """Check all timestamps are equal. Replace empty sub-state timestamps with validated
+        timestamp."""
+
+        self._timestamp = None
+
+        sub_timestamps = {sub_state.timestamp
+                          for sub_state in self.sub_states
+                          if sub_state.timestamp}
+
+        if len(sub_timestamps) > 1:
+            raise ValueError("All sub-states must share the same timestamp if defined")
+
+        if (sub_timestamps and self.default_timestamp
+                and not sub_timestamps == {self.default_timestamp}):
+            raise ValueError("Sub-state timestamps and default timestamp must be the same if "
+                             "defined")
+
+        if sub_timestamps:
+            self.default_timestamp = sub_timestamps.pop()
+
+        for sub_state in self.sub_states:
+            sub_state.timestamp = self.default_timestamp
+
+    @property
+    def state_vectors(self):
+        return [state.state_vector for state in self.sub_states]
+
+    @property
+    def state_vector(self):
+        """A combination of the component states' state vectors."""
+        return StateVector(np.concatenate(self.state_vectors))
+
+    def __contains__(self, item):
+
+        return self.sub_states.__contains__(item)
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            return self.__class__(self.sub_states.__getitem__(index))
+        return self.sub_states.__getitem__(index)
+
+    def __iter__(self):
+        return self.sub_states.__iter__()
+
+    def __len__(self):
+        return self.sub_states.__len__()
+
+
+State.register(CompositeState)  # noqa: E305
