@@ -27,7 +27,11 @@ class RunManagerCore(RunManager):
         self.input_manager = InputManager()
         self.run_manager_metrics = RunmanagerMetrics()
 
-        logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.DEBUG)
+        handler = logging.FileHandler('simulation.log', 'w', 'utf-8')
+        root_logger.addHandler(handler)
+        # logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
         logging.info(f'RunManagerCore started. {datetime.now()}')
 
     def read_json(self, json_input):
@@ -74,7 +78,7 @@ class RunManagerCore(RunManager):
             json_data = self.read_json(param_path)
 
             nruns = self.set_runs_number(nruns, json_data)
-            nprocesses = self.set_processes_number(nprocesses, json_data)
+            # nprocesses = self.set_processes_number(nprocesses, json_data)
             combo_dict = self.prepare_monte_carlo(json_data)
             self.run_monte_carlo_simulation(combo_dict, nruns,
                                             nprocesses, config_path)
