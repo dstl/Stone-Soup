@@ -94,6 +94,7 @@ class RunManagerCore(RunManager):
         else:
             proc_num = 1
         return proc_num
+
     def prepare_monte_carlo(self, json_data):
         # Generate all the parameters for the monte carlo run
         trackers_combination_dict = self.input_manager.generate_parameters_combinations(
@@ -116,7 +117,7 @@ class RunManagerCore(RunManager):
         elif self.dir and self.config_path and self.parameters_path:
             paths = self.get_filepaths(self.dir)
             pairs = self.get_config_and_param_lists(paths)
-            pairs.append([ self.config_path,self.parameters_path,])
+            pairs.append([self.config_path, self.parameters_path])
             # logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
 
         return pairs
@@ -429,8 +430,8 @@ class RunManagerCore(RunManager):
                         dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs_num}"
                         self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
                         self.run_manager_metrics.generate_config(
-                            dir_name, trackers[idx], ground_truths[idx], metric_managers[idx])
-                        
+                            dir_name, trackers[idx], ground_truths[idx],
+                            metric_managers[idx])
                         simulation_parameters = dict(
                             tracker=trackers[idx],
                             ground_truth=ground_truths[idx],
@@ -470,7 +471,6 @@ class RunManagerCore(RunManager):
             ground_truth=ground_truth,
             metric_manager=metric_manager
         )
-        
         self.run_simulation(simulation_parameters, dir_name)
 
     def set_components(self, config_path):
@@ -497,14 +497,14 @@ class RunManagerCore(RunManager):
         try:
             with open(config_path, 'r') as file:
                 config_data = self.read_config_file(file)
-            
+
             tracker = config_data[self.TRACKER]
             ground_truth = config_data[self.GROUNDTRUTH]
             metric_manager = config_data[self.METRIC_MANAGER]
         except Exception as e:
             print(f'{datetime.now()} Could not read config file: {e}')
             logging.error(f'{datetime.now()} Could not read config file: {e}')
-        
+
         return {self.TRACKER: tracker,
                 self.GROUNDTRUTH: ground_truth,
                 self.METRIC_MANAGER: metric_manager}

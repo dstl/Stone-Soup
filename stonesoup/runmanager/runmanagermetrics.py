@@ -155,7 +155,6 @@ class RunmanagerMetrics(RunManager):
             overwrite the file., by default False
         """
         filename = "groundtruth.csv"
-        
         try:
             if not os.path.exists(dir_name):
                 os.makedirs(dir_name)
@@ -173,8 +172,8 @@ class RunmanagerMetrics(RunManager):
                         state = gt.state
                     except Exception:
                         state = gt
-                    try: 
-                       id = gt.id
+                    try:
+                        id = gt.id
                     except Exception:
                         id = ""
                     writer.writerow([state.timestamp, id,
