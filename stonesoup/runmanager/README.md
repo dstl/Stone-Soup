@@ -29,9 +29,14 @@ The runmanager will work with 3 different options:
 2. A single configuration file with a parameter file. This will run n amount of times based on amount of parameter combinations. Example: `python runmanager.py -c "path/to/config.yaml -p "path/to/parameters.json"`
 3. A directory of configuration files with parameter files. This will run n amount of times based on amount of parameter combinations across all configs. Example: `python runmanager.py -d "path/to/configdirectory"`
 
-### Ground truth
-In the case where the ground truth is a csv datafile make sure this is in the same directory that you execute the runmanager from. The runmanager will automatically pick up the ground truth from this location if it is present.
----
+## Ground truth
+In the case where the ground truth is a csv datafile make sure this is in the directory which is specified in the configuration file. The runmanager will automatically pick up the ground truth from this location if it is present.
+
+
+## Number of runs
+Number of runs or `-n` specifies the number of monte-carlo runs that you want wish to execute for each configuration file.
+
+
 ## Multiprocessing
 To use multiprocessing you simply need to use the -p command with the number of cores you wish to use. This will run multiple simulations in parallel. If there are a large number of simulations to be ran please use this option. The multiprocessing module will batch process the simulations.
 
@@ -56,5 +61,8 @@ The run manager will produce a `simulation.log` file at your root directory. Thi
 ---
 ## Known Issues
 
-#### Errors
+### Errors
 The terminal and simulation will sometimes log ERROR with certain parameter combinations. This is likely due to a parameter combination that is generated in the monte-carlo runs which isn't compatible with the configuration of StoneSoup. Typically it shouldn't cause much of a problem it just means that these simulations can be ignored as they have invalid parameter combinations. 
+
+### Custom initiator
+The current runmanager system will not work if the configuration file contains a custom initiator class.
