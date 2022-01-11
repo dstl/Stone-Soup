@@ -1,6 +1,6 @@
 import os
 import multiprocessing as mp
-
+from pathos.multiprocessing import ProcessingPool as Pool
 from ..runmanagercore import RunManagerCore
 
 # Run from stonesoup working directory
@@ -315,9 +315,9 @@ def test_multiprocess():
 
 def test_multiprocess_pool():
     test_args = [[2, 2], [2, 3], [3, 2]]
-    test_pool = mp.Pool(mp.cpu_count())
+    test_pool = Pool(mp.cpu_count())
 
-    test_mp_result = test_pool.starmap(my_testmp_func, test_args)
+    test_mp_result = test_pool.map(my_testmp_func, [2, 2, 3], [2, 3, 2])
     assert test_mp_result == [4, 8, 9]
 
 

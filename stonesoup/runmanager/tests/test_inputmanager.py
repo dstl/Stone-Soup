@@ -275,20 +275,20 @@ def test_generate_parameters_tuple():
     assert type(test_tuple_0nsamples_dict['pathname8'][0]) is tuple
 
 
-def test_generate_parameters_list():
-    test_empty_list = {'path': 'pathname', 'var_name': 'var_name', 'type': 'list',
-                       'value_min': [], 'value_max': [], 'n_samples': 2}
-    test_list_0nsamples = {'path': 'pathname', 'var_name': 'var_name', 'type': 'list',
-                           'value_min': [1, 1], 'value_max': [2, 2], 'n_samples': [0, 0]}
+# def test_generate_parameters_list():
+# TO BE DONE
+#     test_empty_list = {'path': 'pathname', 'var_name': 'var_name', 'type': 'list',
+#                        'value_min': [], 'value_max': [], 'n_samples': 2}
+#     test_list_0nsamples = {'path': 'pathname', 'var_name': 'var_name', 'type': 'list',
+#                            'value_min': [1, 1], 'value_max': [2, 2], 'n_samples': [0, 0]}
 
-    test_empty_list_dict = IManager.generate_parameters_combinations([test_empty_list])
-    test_list_0nsamples_dict = IManager.generate_parameters_combinations([test_list_0nsamples])
+#     test_empty_list_dict = IManager.generate_parameters_combinations([test_empty_list])
+#     test_list_0nsamples_dict = IManager.generate_parameters_combinations([test_list_0nsamples])
 
-    assert test_empty_list_dict == {}
-
-    assert len(test_list_0nsamples_dict['pathname']) == 1
-    assert len(test_list_0nsamples_dict['pathname'][0]) is len(test_list_0nsamples['value_min'])
-    assert type(test_list_0nsamples_dict['pathname'][0]) is list
+#     assert test_empty_list_dict == {}
+#     assert len(test_list_0nsamples_dict['pathname']) == 1
+#     assert len(test_list_0nsamples_dict['pathname'][0]) is len(test_list_0nsamples['value_min'])
+#     assert type(test_list_0nsamples_dict['pathname'][0]) is list
 
 
 def test_generate_parameters_timedelta():

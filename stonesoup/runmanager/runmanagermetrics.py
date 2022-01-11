@@ -180,7 +180,8 @@ class RunmanagerMetrics(RunManager):
                                     ' '.join([str(n) for n in state.state_vector])])
 
         except Exception as e:
-            print(f'{datetime.now()}: Failed to write to {filename}, {e}')
+            pass
+            # print(f'{datetime.now()}: Failed to write to {filename}, {e}')
 
     def parameters_to_csv(self, dir_name, parameters, overwrite=False):
         """Create a csv file for the parameters. It will contain the parameter name for each simulation.

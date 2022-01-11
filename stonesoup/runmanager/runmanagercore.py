@@ -150,6 +150,7 @@ class RunManagerCore(RunManager):
         ground_truth = simulation_parameters['ground_truth']
         metric_manager = simulation_parameters['metric_manager']
         log_time = datetime.now()
+
         try:
             timeFirst = datetime.now()
             for time, ctracks in tracker.tracks_gen():
@@ -425,6 +426,7 @@ class RunManagerCore(RunManager):
                 pool = Pool(nprocesses)
                 for runs_num in range(nruns):
                     print("RUN ", runs_num)
+                    # this was used in the old multiprocessing
                     # mp_args = [(trackers[idx], ground_truths[idx], metric_managers[idx],
                     #             dt_string, combo_dict,
                     #             idx, runs_num) for idx in range(len(trackers))]
@@ -433,7 +435,8 @@ class RunManagerCore(RunManager):
                     combo_dict_ = [combo_dict] * len(trackers)
                     runs_num_ = [runs_num] * len(trackers)
                     pool.map(self.run_multi_process_simulation, trackers, ground_truths, metric_managers, dt_string_, combo_dict_, range(0,len(trackers)), runs_num_)
-                    #pool.map(self.run_multi_process_simulation, mp_args)
+                    # old multiprocessing
+                    # pool.map(self.run_multi_process_simulation, mp_args)
             else:
                 for runs_num in range(nruns):
                     print("RUN ", runs_num)
