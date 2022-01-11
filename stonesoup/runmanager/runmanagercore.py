@@ -118,7 +118,7 @@ class RunManagerCore(RunManager):
             pairs = self.get_config_and_param_lists(paths)
 
         elif self.config_path and self.parameters_path:
-            pairs = [[self.config_path,self.parameters_path]]
+            pairs = [[self.config_path, self.parameters_path]]
 
         elif self.dir and self.config_path and self.parameters_path:
             paths = self.get_filepaths(self.dir)
@@ -434,7 +434,9 @@ class RunManagerCore(RunManager):
                     dt_string_ = [dt_string] * len(trackers)
                     combo_dict_ = [combo_dict] * len(trackers)
                     runs_num_ = [runs_num] * len(trackers)
-                    pool.map(self.run_multi_process_simulation, trackers, ground_truths, metric_managers, dt_string_, combo_dict_, range(0,len(trackers)), runs_num_)
+                    pool.map(self.run_multi_process_simulation, trackers, ground_truths,
+                             metric_managers, dt_string_, combo_dict_,
+                             range(0, len(trackers)), runs_num_)
                     # old multiprocessing
                     # pool.map(self.run_multi_process_simulation, mp_args)
             else:

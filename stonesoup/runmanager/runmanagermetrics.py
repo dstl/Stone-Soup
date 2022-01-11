@@ -179,7 +179,7 @@ class RunmanagerMetrics(RunManager):
                     writer.writerow([state.timestamp, id,
                                     ' '.join([str(n) for n in state.state_vector])])
 
-        except Exception as e:
+        except Exception:
             pass
             # print(f'{datetime.now()}: Failed to write to {filename}, {e}')
 
