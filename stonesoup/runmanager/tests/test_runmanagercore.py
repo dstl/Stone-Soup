@@ -314,7 +314,6 @@ def test_multiprocess():
 
 
 def test_multiprocess_pool():
-    test_args = [[2, 2], [2, 3], [3, 2]]
     test_pool = Pool(mp.cpu_count())
 
     test_mp_result = test_pool.map(my_testmp_func, [2, 2, 3], [2, 3, 2])
