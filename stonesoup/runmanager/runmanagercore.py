@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 
 import os
-import multiprocessing as mp
+from pathos.multiprocessing import ProcessingPool as Pool
 
 from stonesoup.serialise import YAML
 from .inputmanager import InputManager
@@ -78,7 +78,7 @@ class RunManagerCore(RunManager):
             json_data = self.read_json(param_path)
 
             nruns = self.set_runs_number(nruns, json_data)
-            # nprocesses = self.set_processes_number(nprocesses, json_data)
+            nprocesses = self.set_processes_number(nprocesses, json_data)
             combo_dict = self.prepare_monte_carlo(json_data)
             self.run_monte_carlo_simulation(combo_dict, nruns,
                                             nprocesses, config_path)
@@ -95,6 +95,8 @@ class RunManagerCore(RunManager):
         if nprocess is None:
             if json_data['configuration']['proc_num']:
                 proc_num = json_data['configuration']['proc_num']
+        elif nprocess > 1:
+            proc_num = nprocess
         else:
             proc_num = 1
         return proc_num
@@ -420,13 +422,18 @@ class RunManagerCore(RunManager):
             dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
             if nprocesses > 1:
                 # Run with multiprocess
-                pool = mp.Pool(nprocesses)
+                pool = Pool(nprocesses)
                 for runs_num in range(nruns):
                     print("RUN ", runs_num)
-                    mp_args = [(trackers[idx], ground_truths[idx], metric_managers[idx],
-                                dt_string, combo_dict,
-                                idx, runs_num) for idx in range(len(trackers))]
-                    pool.starmap(self.run_multi_process_simulation, mp_args)
+                    # mp_args = [(trackers[idx], ground_truths[idx], metric_managers[idx],
+                    #             dt_string, combo_dict,
+                    #             idx, runs_num) for idx in range(len(trackers))]
+                    print(len(trackers))
+                    dt_string_ = [dt_string] * len(trackers)
+                    combo_dict_ = [combo_dict] * len(trackers)
+                    runs_num_ = [runs_num] * len(trackers)
+                    pool.map(self.run_multi_process_simulation, trackers, ground_truths, metric_managers, dt_string_, combo_dict_, range(0,len(trackers)), runs_num_)
+                    #pool.map(self.run_multi_process_simulation, mp_args)
             else:
                 for runs_num in range(nruns):
                     print("RUN ", runs_num)
