@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
+from typing import Sequence
 
-from stonesoup.types.state import CreatableFromState
-from ..base import Property
 from .base import Type
-from .hypothesis import Hypothesis
-from .state import State, GaussianState, ParticleState, SqrtGaussianState,  \
-    InformationState, CategoricalState
+from .hypothesis import Hypothesis, CompositeHypothesis
 from .mixture import GaussianMixture
+from .state import CreatableFromState, CompositeState
+from .state import State, GaussianState, ParticleState, SqrtGaussianState, \
+    InformationState, CategoricalState
+from ..base import Property
 
 
 class Update(Type, CreatableFromState):
@@ -69,3 +70,15 @@ class InformationStateUpdate(Update, InformationState):
 
 class CategoricalStateUpdate(Update, CategoricalState):
     """Categorical state prediction type"""
+
+
+class CompositeUpdate(Update, CompositeState):
+    """Composite update type
+
+    Composition of :class:`~.Update`.
+    """
+
+    sub_states: Sequence[Update] = Property(
+        doc="Sequence of sub-updates comprising the composite update. All sub-updates must have "
+            "matching timestamp. Must not be empty.")
+    hypothesis: CompositeHypothesis = Property(doc="Hypothesis used for updating")
