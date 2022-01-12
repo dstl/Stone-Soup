@@ -225,7 +225,6 @@ class RunManagerCore(RunManager):
                     metric_manager.add_data(self.check_ground_truth(ground_truth), ctracks,
                                             tracker.detector.detections,
                                             overwrite=False)
-
                     # Sometimes the metric manager generate metrics fails.
                     # We can't remove this try catch.
             if metric_manager is not None:
@@ -340,7 +339,16 @@ class RunManagerCore(RunManager):
             if len(config_data) > 2:
                 metric_manager = config_data[2]
         else:
+            if len(config_data) > 1:
+                metric_manager = config_data[len(config_data)-1]
+
             # Try to find groundtruth and metric manager if user has not flagged
+            try:
+                groundtruth = tracker.detector.groundtruth
+            except Exception:
+                pass
+
+            print(groundtruth)
             for x in config_data:
                 if "GroundTruth" in str(type(x)) or "MovingPlatform" in str(type(x)):
                     groundtruth = x
