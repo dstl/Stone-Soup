@@ -52,17 +52,17 @@ def test_set_float():
 
 def test_set_covariance():
 
-    test_covar1 = IManager.set_covariance([[1, 2, 3]])
-    test_covar2 = IManager.set_covariance(array.CovarianceMatrix([[4, 5, 6]]))
-    test_empty_covar = IManager.set_covariance([])
+    test_covar1 = IManager.set_covariance([(1, 2, 3)])
+    test_covar2 = IManager.set_covariance([(4, 5, 6)])
+    test_empty_covar = IManager.set_covariance([()])
 
-    assert type(test_covar1) is np.ndarray
-    assert type(test_covar2) is np.ndarray
-    assert type(test_empty_covar) is np.ndarray
+    assert type(test_covar1) is list
+    assert type(test_covar2) is list
+    assert type(test_empty_covar) is list
 
-    assert type(test_covar1[0]) is np.ndarray
-    assert type(test_covar2[0]) is np.ndarray
-    assert len(test_empty_covar) == 0
+    assert type(test_covar1[0]) is array.CovarianceMatrix
+    assert type(test_covar2[0]) is array.CovarianceMatrix
+    assert len(test_empty_covar) == 1
 
 
 def test_set_tuple():
@@ -130,8 +130,8 @@ def test_generate_parameters_combinations():
                     {'path': 'path.name5', 'var_name': 'var_name5', 'type': 'bool',
                      'value_min': True, 'value_max': False, 'n_samples': 4},
                     {'path': 'pathname6', 'var_name': 'var_name6', 'type': 'CovarianceMatrix',
-                     'value_min': [[1, 2, 3], [4, 5, 6]], 'value_max': [[7, 8, 9], [10, 11, 12]],
-                     'n_samples': [[3, 3, 3], [3, 3, 3]]}]
+                     'value_min': [1, 2, 3, 0], 'value_max': [10, 11, 12, 0],
+                     'n_samples': [1, 0, 0, 0]}]
 
     test_params3 = [{'path': 'pathname7', 'var_name': 'var_name7', 'type': 'DateTime',
                      'value_min': str_datetime, 'value_max': str_datetime, 'n_samples': 2},
@@ -148,7 +148,7 @@ def test_generate_parameters_combinations():
     test_combo_dict2 = IManager.generate_parameters_combinations(test_params2)
     test_combo_dict3 = IManager.generate_parameters_combinations(test_params3)
     test_combo_dict4 = IManager.generate_parameters_combinations(test_params4)
-
+    print(len(test_combo_dict2['pathname6']))
     # Testing for correct number of samples
     assert (len(test_combo_dict1['path_name']) is
             (test_params[0]['n_samples'][0] + 2)**len(test_params[0]['value_min']))
@@ -157,8 +157,7 @@ def test_generate_parameters_combinations():
 
     assert len(test_combo_dict2['path_name4']) is test_params2[0]['n_samples'] + 2
     assert len(test_combo_dict2['path.name5']) == 2  # Boolean only has 2, no steps between 0-1
-    assert (len(test_combo_dict2['pathname6']) is
-            (test_params2[2]['n_samples'][0][0] + 2)**len(test_params2[2]['value_min']))
+    assert (len(test_combo_dict2['pathname6'][0][0])**len(test_params2[2]['value_min']))
 
     assert len(test_combo_dict3['pathname7']) == 1
     assert (len(test_combo_dict3['pathname8']) is
@@ -231,20 +230,20 @@ def test_generate_parameters_bool():
 
 def test_generate_parameters_covariancematrix():
     test_empty_cv = {'path': 'pathname6', 'var_name': 'var_name6', 'type': 'CovarianceMatrix',
-                     'value_min': array.CovarianceMatrix([[]]),
-                     'value_max': array.CovarianceMatrix([[]]), 'n_samples': [[3]]}
+                     'value_min': [],
+                     'value_max': [], 'n_samples': []}
     test_cv_0nsamples = {'path': 'pathname6', 'var_name': 'var_name6', 'type': 'CovarianceMatrix',
-                         'value_min': [[1, 1], [1, 1]], 'value_max': [[2, 2], [2, 2]],
-                         'n_samples': [[0, 0], [0, 0]]}
+                         'value_min': [1, 1, 1, 1], 'value_max': [2, 2, 2, 2],
+                         'n_samples': [1, 0, 0, 0]}
 
     test_empty_cv_dict = IManager.generate_parameters_combinations([test_empty_cv])
     test_cv_0nsamples_dict = IManager.generate_parameters_combinations([test_cv_0nsamples])
 
     assert test_empty_cv_dict == {}
 
-    assert len(test_cv_0nsamples_dict['pathname6']) == 1
+    assert len(test_cv_0nsamples_dict['pathname6']) == 3
     assert len(test_cv_0nsamples_dict['pathname6'][0]) is len(test_cv_0nsamples['value_min'])
-    assert type(test_cv_0nsamples_dict['pathname6'][0]) is np.ndarray
+    assert type(test_cv_0nsamples_dict['pathname6'][0]) is array.CovarianceMatrix
 
 
 def test_generate_parameters_datetime():

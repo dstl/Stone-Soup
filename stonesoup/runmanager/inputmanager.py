@@ -58,8 +58,14 @@ class InputManager(RunManager):
         Returns:
             CovarianceMatrix: covariance
         """
-        covar = np.array(covar)
-        return covar
+        print(covar)
+        covar_list = []
+        for idx, elem in enumerate(covar):
+            covariance_matrix = np.zeros((len(elem), len(elem)), dtype=int)
+            #covar_list.append(list(elem))
+            np.fill_diagonal(covariance_matrix, list(elem))
+            covar_list.append(CovarianceMatrix(covariance_matrix))
+        return covar_list
 
     def set_tuple(self, list_tuple):
         """
@@ -299,21 +305,27 @@ class InputManager(RunManager):
         path = parameter["path"]
         combination_list = {}
         iteration_list = []
+        n_samples = parameter["n_samples"]
+        n_samples_matrix = np.zeros((len(n_samples), len(n_samples)), dtype=int)
+        np.fill_diagonal(n_samples_matrix, n_samples)
+        min_val = parameter["value_min"]
+        covar_min_array = np.zeros((len(min_val), len(min_val)), dtype=int)
+        np.fill_diagonal(covar_min_array, min_val)
+        max_val = parameter["value_max"]
+        covar_max_array = np.zeros((len(max_val), len(max_val)), dtype=int)
+        np.fill_diagonal(covar_max_array, max_val)
 
-        if (type(parameter["value_min"]) is list and
-                type(parameter["value_max"]) is list):
-            covar_min = CovarianceMatrix(parameter["value_min"])
-            covar_max = CovarianceMatrix(parameter["value_max"])
-            covar_diag_min = covar_min.diagonal()
-            covar_diag_max = covar_max.diagonal()
+        if len(parameter['value_min']) > 0 and len(parameter['value_max']) > 0:
+            path = parameter["path"]
+            iteration_list = []
             if type(parameter["n_samples"]) is list:
-                # Check if we have a list of list
-                for x in range(len(parameter["value_min"])):
-                    iteration_list.append(self.iterations(covar_diag_min[x],
-                                                          covar_diag_max[x],
-                                                          parameter["n_samples"][x][x]))
-            combination_list[path] = self.get_covar_trackers_list(iteration_list,
-                                                                  len(covar_min))
+                for x in range(len(parameter['value_min'])):
+                    iteration_list.append(self.iterations(parameter["value_min"][x],
+                                                          parameter["value_max"][x],
+                                                          parameter["n_samples"][x]))
+            combination_list[path] = self.set_covariance(self.get_array_list(iteration_list, 
+                                                         len(parameter["value_min"])))
+
         return combination_list
 
     def generate_bool_combinations(self, parameter):
@@ -429,7 +441,6 @@ class InputManager(RunManager):
 
             combination_list[path] = self.set_stateVector(
                         self.get_array_list(iteration_list, len(parameter["value_min"])))
-
         return combination_list
 
     def darray_navigator(self, val, val_min, val_max, iteration_list, n_samples):
@@ -558,7 +569,7 @@ class InputManager(RunManager):
         list_combinations = list(itertools.product(*temp))
         set_combinations = np.array(list(set(list_combinations)))
         for y in set_combinations:
-            temp_array = np.empty((n, n), dtype=int)
+            temp_array = np.zeros((n, n), dtype=int)
             np.fill_diagonal(temp_array, y)
             combinations.append(temp_array)
         return combinations
