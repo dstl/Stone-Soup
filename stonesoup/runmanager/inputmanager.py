@@ -58,11 +58,9 @@ class InputManager(RunManager):
         Returns:
             CovarianceMatrix: covariance
         """
-        print(covar)
         covar_list = []
         for idx, elem in enumerate(covar):
             covariance_matrix = np.zeros((len(elem), len(elem)), dtype=int)
-            #covar_list.append(list(elem))
             np.fill_diagonal(covariance_matrix, list(elem))
             covar_list.append(CovarianceMatrix(covariance_matrix))
         return covar_list
@@ -150,7 +148,6 @@ class InputManager(RunManager):
             try:
                 if parameter["type"] == "StateVector":
                     combination_list = self.generate_state_vector_combinations(parameter)
-
                     combination_dict.update(combination_list)
 
                 if parameter["type"] == "int":
@@ -323,9 +320,8 @@ class InputManager(RunManager):
                     iteration_list.append(self.iterations(parameter["value_min"][x],
                                                           parameter["value_max"][x],
                                                           parameter["n_samples"][x]))
-            combination_list[path] = self.set_covariance(self.get_array_list(iteration_list, 
+            combination_list[path] = self.set_covariance(self.get_array_list(iteration_list,
                                                          len(parameter["value_min"])))
-
         return combination_list
 
     def generate_bool_combinations(self, parameter):
@@ -441,6 +437,7 @@ class InputManager(RunManager):
 
             combination_list[path] = self.set_stateVector(
                         self.get_array_list(iteration_list, len(parameter["value_min"])))
+
         return combination_list
 
     def darray_navigator(self, val, val_min, val_max, iteration_list, n_samples):
@@ -496,6 +493,8 @@ class InputManager(RunManager):
         # If num_samples is 0 or less don't calculate any
         if num_samples <= 0 or min_value == max_value or num_samples is None:
             temp.append(min_value)
+            if min_value != max_value:
+                temp.append(max_value)
             return temp
 
         else:

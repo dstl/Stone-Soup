@@ -119,7 +119,7 @@ def test_generate_parameters_combinations():
 
     # Issue with StateVector, CovarianceMatrix, Tuple, ndarray
     test_params = [{'path': 'path_name', 'var_name': 'var_name', 'type': 'StateVector',
-                    'value_min': [1, 1, 1], 'value_max': [3, 4, 5], 'n_samples': [3, 3, 3]},
+                    'value_min': [0, 0, 0], 'value_max': [100, 100, 100], 'n_samples': [1, 1, 0]},
                    {'path': 'path.name2', 'var_name': 'var_name2', 'type': 'int',
                     'value_min': 500, 'value_max': 700, 'n_samples': 4},
                    {'path': 'path.name.3', 'var_name': 'var_name3', 'type': 'float',
@@ -148,10 +148,13 @@ def test_generate_parameters_combinations():
     test_combo_dict2 = IManager.generate_parameters_combinations(test_params2)
     test_combo_dict3 = IManager.generate_parameters_combinations(test_params3)
     test_combo_dict4 = IManager.generate_parameters_combinations(test_params4)
-    print(len(test_combo_dict2['pathname6']))
+
     # Testing for correct number of samples
-    assert (len(test_combo_dict1['path_name']) is
-            (test_params[0]['n_samples'][0] + 2)**len(test_params[0]['value_min']))
+    prod_1 = test_params[0]['n_samples'][0] + 2
+    prod_2 = test_params[0]['n_samples'][1] + 2
+    prod_3 = test_params[0]['n_samples'][2] + 2
+
+    assert len(test_combo_dict1['path_name']) is prod_1 * prod_2 * prod_3
     assert len(test_combo_dict1['path.name2']) is test_params[1]['n_samples'] + 2
     assert len(test_combo_dict1['path.name.3']) is test_params[2]['n_samples'] + 2
 
@@ -178,7 +181,7 @@ def test_generate_parameters_statevector():
 
     assert test_empty_sv_dict == {}
 
-    assert len(test_sv_0nsamples_dict['path_name']) == 1
+    assert len(test_sv_0nsamples_dict['path_name']) == 2
     assert len(test_sv_0nsamples_dict['path_name'][0]) is len(test_sv_0nsamples['value_min'])
     assert type(test_sv_0nsamples_dict['path_name'][0]) is array.StateVector
 
@@ -189,7 +192,7 @@ def test_generate_parameters_int():
 
     test_int_0nsamples_dict = IManager.generate_parameters_combinations([test_int_0nsamples])
 
-    assert len(test_int_0nsamples_dict['path_name']) == 1
+    assert len(test_int_0nsamples_dict['path_name']) == 2
     assert test_int_0nsamples_dict['path_name'][0] == 1
     assert type(test_int_0nsamples_dict['path_name'][0]) is int
 
@@ -200,7 +203,7 @@ def test_generate_parameters_float():
 
     test_float_0nsamples_dict = IManager.generate_parameters_combinations([test_float_0nsamples])
 
-    assert len(test_float_0nsamples_dict['path_name']) == 1
+    assert len(test_float_0nsamples_dict['path_name']) == 2
     assert test_float_0nsamples_dict['path_name'][0] == 1.0
     assert type(test_float_0nsamples_dict['path_name'][0]) is float
 
@@ -212,7 +215,7 @@ def test_generate_parameters_probability():
 
     test_prob_0nsamples_dict = IManager.generate_parameters_combinations([test_prob_0nsamples])
 
-    assert len(test_prob_0nsamples_dict['path_name']) == 1
+    assert len(test_prob_0nsamples_dict['path_name']) == 2
     assert test_prob_0nsamples_dict['path_name'][0] == Probability(1.0)
     assert type(test_prob_0nsamples_dict['path_name'][0]) is Probability
 
@@ -238,10 +241,10 @@ def test_generate_parameters_covariancematrix():
 
     test_empty_cv_dict = IManager.generate_parameters_combinations([test_empty_cv])
     test_cv_0nsamples_dict = IManager.generate_parameters_combinations([test_cv_0nsamples])
-
+    print(len(test_cv_0nsamples_dict))
     assert test_empty_cv_dict == {}
 
-    assert len(test_cv_0nsamples_dict['pathname6']) == 3
+    assert len(test_cv_0nsamples_dict['pathname6']) == 24
     assert len(test_cv_0nsamples_dict['pathname6'][0]) is len(test_cv_0nsamples['value_min'])
     assert type(test_cv_0nsamples_dict['pathname6'][0]) is array.CovarianceMatrix
 
@@ -269,7 +272,7 @@ def test_generate_parameters_tuple():
 
     assert test_empty_tuple_dict == {}
 
-    assert len(test_tuple_0nsamples_dict['pathname8']) == 1
+    assert len(test_tuple_0nsamples_dict['pathname8']) == 4
     assert len(test_tuple_0nsamples_dict['pathname8'][0]) is len(test_tuple_0nsamples['value_min'])
     assert type(test_tuple_0nsamples_dict['pathname8'][0]) is tuple
 
@@ -295,7 +298,7 @@ def test_generate_parameters_timedelta():
                          'value_min': 1, 'value_max': 2, 'n_samples': 0}
 
     test_td_0nsamples_dict = IManager.generate_parameters_combinations([test_td_0nsamples])
-    assert len(test_td_0nsamples_dict['pathname9']) == 1
+    assert len(test_td_0nsamples_dict['pathname9']) == 2
     assert str(test_td_0nsamples_dict['pathname9'][0]) == '1 day, 0:00:00'
     assert type(test_td_0nsamples_dict['pathname9'][0]) is timedelta
 
@@ -312,7 +315,7 @@ def test_generate_parameters_ndarray():
 
     assert test_empty_ndarray_dict == {}
 
-    assert len(test_ndarr_0nsamples_dict['pathname10']) == 1
+    assert len(test_ndarr_0nsamples_dict['pathname10']) == 4
     assert (len(test_ndarr_0nsamples_dict['pathname10'][0]) is
             len(test_ndarr_0nsamples['value_min']))
     assert type(test_ndarr_0nsamples_dict['pathname10'][0]) is np.ndarray
@@ -369,7 +372,7 @@ def test_iterations():
     test_num_samples = 3
     test_iters = IManager.iterations(test_min_value, test_max_value, test_num_samples)
     assert len(test_iters) is test_num_samples + 2
-    assert test_iters == [0.0, 25.0, 50.0, 75.0, 100.0]
+    assert test_iters == [0.0, 25.0, 50.0, 75.0, 100]
 
     test_min_value1 = 100
     test_max_value1 = 50
@@ -397,14 +400,14 @@ def test_iterations():
     test_num_samples4 = 1
     test_iters4 = IManager.iterations(test_min_value4, test_max_value4, test_num_samples4)
     assert len(test_iters4) == 3
-    assert test_iters4 == [-20.0, -5.0, 10.0]
+    assert test_iters4 == [-20.0, -5.0, 10]
 
     test_min_value5 = -20.0
     test_max_value5 = 10
     test_num_samples5 = -1
     test_iters5 = IManager.iterations(test_min_value5, test_max_value5, test_num_samples5)
-    assert len(test_iters5) == 1
-    assert test_iters5 == [-20.0]
+    assert len(test_iters5) == 2
+    assert test_iters5 == [-20.0, 10]
 
 
 def test_get_array_list():

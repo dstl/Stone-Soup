@@ -351,7 +351,6 @@ class RunManagerCore(RunManager):
             except Exception:
                 pass
 
-            print(groundtruth)
             for x in config_data:
                 if "GroundTruth" in str(type(x)) or "MovingPlatform" in str(type(x)):
                     groundtruth = x
