@@ -328,20 +328,13 @@ class RunManagerCore(RunManager):
         except Exception as e:
             print("Failed to load config data: ", e)
             config_data = [None, None, None]
+
         tracker = config_data[0]
 
         # User has set a flag to use the groundtruth added in config file
         if self.groundtruth_setting is True:
-            print('here')
             groundtruth = config_data[1]
-            # Also set metric manager if it has been added in config file
-            # (Change this to flag setting too?)
-            if len(config_data) > 2:
-                metric_manager = config_data[2]
         else:
-            if len(config_data) > 1:
-                metric_manager = config_data[len(config_data)-1]
-
             # Try to find groundtruth and metric manager if user has not flagged
             try:
                 if len(config_data) > 2:
@@ -351,11 +344,9 @@ class RunManagerCore(RunManager):
             except Exception:
                 pass
 
-            for x in config_data:
-                if "GroundTruth" in str(type(x)) or "MovingPlatform" in str(type(x)):
-                    groundtruth = x
-                elif "metricgenerator" in str(type(x)):
-                    metric_manager = x
+            # Try to find metric manager in config if not already set
+            if len(config_data) > 2:
+                metric_manager = config_data[len(config_data)-1]
 
         return {self.TRACKER: tracker,
                 self.GROUNDTRUTH: groundtruth,

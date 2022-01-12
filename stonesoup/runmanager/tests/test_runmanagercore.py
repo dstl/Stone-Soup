@@ -150,6 +150,7 @@ def test_read_config_file():
     tracker = config_data[rmc.TRACKER]
     gt = config_data[rmc.GROUNDTRUTH]
     mm = config_data[rmc.METRIC_MANAGER]
+
     assert "tracker" in str(type(tracker))
     assert gt == tracker.detector.groundtruth
     assert "metricgenerator" in str(type(mm))
@@ -167,36 +168,6 @@ def test_read_config_file_nomm():
     mm = config_data[rmc.METRIC_MANAGER]
     assert "tracker" in str(type(tracker))
     assert gt == tracker.detector.groundtruth
-    assert mm is None
-    file.close()
-
-
-def test_read_config_file_nogt():
-
-    # Config with tracker and metric manager but no groundtruth
-    with open(test_config_nogt, 'r') as file:
-        config_data = rmc.read_config_file(file)
-
-    tracker = config_data[rmc.TRACKER]
-    gt = config_data[rmc.GROUNDTRUTH]
-    mm = config_data[rmc.METRIC_MANAGER]
-
-    assert "tracker" in str(type(tracker))
-    assert gt is None
-    assert "metricgenerator" in str(type(mm))
-    file.close()
-
-
-def test_read_config_file_tracker_only():
-    # Config with tracker only
-    with open(test_config_trackeronly, 'r') as file:
-        config_data = rmc.read_config_file(file)
-    tracker = config_data[rmc.TRACKER]
-    gt = config_data[rmc.GROUNDTRUTH]
-    mm = config_data[rmc.METRIC_MANAGER]
-
-    assert "tracker" in str(type(tracker))
-    assert gt is None
     assert mm is None
     file.close()
 
@@ -249,30 +220,6 @@ def test_set_components():
     assert "tracker" in str(type(tracker))
     assert ground_truth == tracker.detector.groundtruth
     assert "metricgenerator" in str(type(metric_manager))
-
-
-def test_set_components_no_gt():
-    config_data = rmc.set_components(test_config_nogt)
-
-    tracker = config_data[rmc.TRACKER]
-    ground_truth = config_data[rmc.GROUNDTRUTH]
-    metric_manager = config_data[rmc.METRIC_MANAGER]
-
-    assert "tracker" in str(type(tracker))
-    assert ground_truth is None
-    assert "metricgenerator" in str(type(metric_manager))
-
-
-def test_set_components_no_gt_mm():
-    config_data = rmc.set_components(test_config_trackeronly)
-
-    tracker = config_data[rmc.TRACKER]
-    ground_truth = config_data[rmc.GROUNDTRUTH]
-    metric_manager = config_data[rmc.METRIC_MANAGER]
-
-    assert "tracker" in str(type(tracker))
-    assert ground_truth is None
-    assert metric_manager is None
 
 
 def test_set_components_no_mm():
