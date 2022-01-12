@@ -344,7 +344,10 @@ class RunManagerCore(RunManager):
 
             # Try to find groundtruth and metric manager if user has not flagged
             try:
-                groundtruth = tracker.detector.groundtruth
+                if len(config_data) > 2:
+                    groundtruth = config_data[1]
+                else:
+                    groundtruth = tracker.detector.groundtruth
             except Exception:
                 pass
 
