@@ -343,9 +343,8 @@ class RunManagerCore(RunManager):
                     groundtruth = tracker.detector.groundtruth
             except Exception:
                 pass
-
             # Try to find metric manager in config if not already set
-            if len(config_data) > 2:
+            if len(config_data) > 1:
                 metric_manager = config_data[len(config_data)-1]
 
         return {self.TRACKER: tracker,
