@@ -7,7 +7,7 @@ configuration file, configuration file along with a parameter file or a director
 
 ## Setup
 
-**Requires pathos module to work. This is a dependancy for the multiprocessing feature.**
+**Requires pathos module to work. This is a dependancy for the multiprocessing feature. (BSD LICENSE)**
 
 To use the runmanager you must make a copy of the runmanager.py folder in the directory you wish to run from i.e your root folder.
 
