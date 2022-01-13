@@ -25,7 +25,7 @@ The following arguments are accepted.
 - `-g` or `--groundtruth`: Ground truth setting. True if a ground truth is present, False if no ground truth is present. (_Default False_)
 - `-d` or `--dir`: Directory to a set of configuration files & parameter files. Used to run multiple trackers in a directory.
 - `-n` or `--nruns`: Number of monte-carlo runs. This feature supersedes if nruns is also set in the parameter.json file. (_Default 1 run_)
-- `-pc` or `--processes`: Number of cpu processing cores to use. This feature supersedes if num_proc is also set in the parameter.json file. (_Default 1 core_)
+- `-pc` or `--processes`: Number of cpu processing cores to use. This feature supersedes if num*proc is also set in the parameter.json file. (\_Default 1 core*)
 
 The runmanager will work with 3 different options:
 
@@ -46,13 +46,13 @@ If the file has 2 components, they will be recognise as:
 - Tracker
 - Metric Manager
 
-The groundtruth will be search inside the tracker.
+The groundtruth will be set as `tracker.detection.groundtruth`.
 
 If the file has 1 component, it will be recognise as:
 
 - Tracker
 
-The ground_truth will be search inside the file.
+The groundtruth will be set as `tracker.detection.groundtruth`.
 No metric manager.
 
 If the command line has the argument `-g` the components will be recognise as:
