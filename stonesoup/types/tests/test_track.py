@@ -42,7 +42,8 @@ def test_track_state(state):
 
     # Particle
     if hasattr(state, 'particles'):
-        assert track.particles == state.particles
+        for track_particle, state_particle in zip(track.particles, state.particles):
+            assert track_particle.state_vector == state_particle.state_vector
     else:
         with pytest.raises(AttributeError):
             track.particles

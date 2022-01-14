@@ -486,6 +486,10 @@ class ParticleState(State):
                             parent=p)
         return particle
 
+    @property
+    def particles(self):
+        return [particle for particle in self]
+
     def __len__(self):
         return self.state_vector.shape[1]
 

@@ -121,14 +121,13 @@ handles, labels = [], []
 
 for predictor, updater, colour, filter, particle_count \
         in zip(predictors, updaters, colours, filters, particle_counts):
-    prior = ParticleState(particles[:particle_count], timestamp=start_time)
+    prior = ParticleState(None, particle_list=particles[:particle_count], timestamp=start_time)
 
     prediction = predictor.predict(prior, timestamp=measurement.timestamp)
     hypothesis = SingleHypothesis(prediction, measurement)
     post = updater.update(hypothesis)
 
-    data = np.array([particle.state_vector for particle in post.particles])
-    handles.append(ax.scatter(data[:, 0], data[:, 2], color=colour, s=2))
+    handles.append(ax.scatter(post.state_vector[0, :], post.state_vector[2, :], color=colour, s=2))
 
     labels.append(filter)
 
@@ -180,7 +179,7 @@ siap_gen = SIAPMetrics(position_measure=Euclidean((0, 2)), velocity_measure=Eucl
 for predictor, updater, colour, filter, particle_count \
         in zip(predictors, updaters, colours, filters, particle_counts):
     track = Track()
-    prior = ParticleState(particles[:particle_count], timestamp=start_time)
+    prior = ParticleState(None, particle_list=particles[:particle_count], timestamp=start_time)
 
     for measurement in measurements:
         prediction = predictor.predict(prior, timestamp=measurement.timestamp)

@@ -132,8 +132,7 @@ class GromovFlowParticleUpdater(Updater):
         inv_R = inv(R)
 
         # Start by making our own copy of the particle before we move them...
-        # particles = [copy.copy(particle) for particle in hypothesis.prediction.particles]
-        particles = hypothesis.prediction
+        particles = [copy.copy(particle) for particle in hypothesis.prediction.particles]
 
         def function(state, lambda_):
             try:
@@ -153,15 +152,13 @@ class GromovFlowParticleUpdater(Updater):
 
             return f, B
 
-        # for particle in particles:
-        #    particle.state_vector = sde_euler_maruyama_integration(function, time_steps, particle)
-        new_state_vector = sde_euler_maruyama_integration(function, time_steps, particles)
+        for particle in particles:
+            particle.state_vector = sde_euler_maruyama_integration(function, time_steps, particle)
 
         return ParticleStateUpdate(
-            new_state_vector,
+            None,
             hypothesis,
-            weight=hypothesis.prediction.weight,
-            particle_list=None,
+            particle_list=particles,
             timestamp=hypothesis.measurement.timestamp)
 
     predict_measurement = ParticleUpdater.predict_measurement
@@ -207,7 +204,7 @@ class GromovFlowKalmanParticleUpdater(GromovFlowParticleUpdater):
         kalman_hypothesis = copy.copy(hypothesis)
         # Convert to GaussianState
         kalman_hypothesis.prediction = GaussianStatePrediction(
-            particle_pred.state_vector, particle_pred.covar, particle_pred.timestamp)
+            particle_pred.mean, particle_pred.covar, particle_pred.timestamp)
         # Needed for cross covar
         kalman_hypothesis.measurement_prediction = None
         kalman_update = self.kalman_updater.update(kalman_hypothesis, **kwargs)
