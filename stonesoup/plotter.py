@@ -12,12 +12,21 @@ from .models.base import LinearModel, NonLinearModel
 
 from enum import Enum
 
+
 class Dimension(Enum):
     """Dimension Enum class for specifying plotting parameters in the Plotter class.
     Used to sanitize inputs for the dimension attribute of Plotter().
+
+    Attributes
+    ----------
+    TWO: str
+        Specifies 2D plotting for Plotter object
+    THREE: str
+        Specifies 3D plotting for Plotter object
     """
-    TWO = '2D' #  2D plotting mode (original plotter.py functionality)
-    THREE = '3D' #  3D plotting mode
+    TWO = 2  # 2D plotting mode (original plotter.py functionality)
+    THREE = 3  # 3D plotting mode
+
 
 class Plotter:
     """Plotting class for building graphs of Stone Soup simulations
@@ -26,6 +35,11 @@ class Plotter:
     measurements, clutter and tracks. Tracks can be plotted with uncertainty ellipses or
     particles if required. Legends are automatically generated with each plot.
     Three dimensional plots can be created using the optional dimension parameter.
+
+    Parameters
+    ----------
+    dimension: enum \'Dimension\'
+        Optional parameter to specify 2D or 3D plotting. Default is 2D plotting.
 
     Attributes
     ----------
@@ -38,8 +52,12 @@ class Plotter:
         and labels as str
     """
 
-    def __init__(self, dimension = Dimension.TWO):
-        self.dimension = dimension
+    def __init__(self, dimension=Dimension.TWO):
+        if isinstance(dimension, type(Dimension.TWO)):
+            self.dimension = dimension
+        else:
+            raise TypeError("""%s is an unsupported type for \'dimension\';
+                            expected type %s""" % (type(dimension), type(Dimension.TWO)))
         # Generate plot axes
         self.fig = plt.figure(figsize=(10, 6))
         if self.dimension is Dimension.TWO:  # 2D axes
@@ -88,11 +106,13 @@ class Plotter:
                 self.ax.plot([state.state_vector[mapping[0]] for state in truth],
                              [state.state_vector[mapping[1]] for state in truth],
                              **truths_kwargs)
-            else:  #  plots the ground truths in xyz
+            elif self.dimension is Dimension.THREE:  # plots the ground truths in xyz
                 self.ax.plot3D([state.state_vector[mapping[0]] for state in truth],
                                [state.state_vector[mapping[1]] for state in truth],
                                [state.state_vector[mapping[2]] for state in truth],
                                **truths_kwargs)
+            else:
+                raise NotImplementedError('Unsupported dimension type for truth plotting')
         # Generate legend items
         truths_handle = Line2D([], [], linestyle=truths_kwargs['linestyle'], color='black')
         self.legend_dict[truths_label] = truths_handle
@@ -169,7 +189,7 @@ class Plotter:
 
         if plot_detections:
             detection_array = np.array(plot_detections)
-            # *detection_array.T unpacks detection_array by coloumns 
+            # *detection_array.T unpacks detection_array by coloumns
             # (same as passing in detection_array[:,0], detection_array[:,1], etc...)
             self.ax.scatter(*detection_array.T, **measurement_kwargs)
             measurements_handle = Line2D([], [], linestyle='', **measurement_kwargs)
@@ -268,9 +288,10 @@ class Plotter:
                                           angle=np.rad2deg(orient), alpha=0.2,
                                           color=track_colors[track])
                         self.ax.add_artist(ellipse)
-    
+
                 # Generate legend items for uncertainty ellipses
-                ellipse_handle = Ellipse((0.5, 0.5), 0.5, 0.5, alpha=0.2, color=tracks_kwargs['color'])
+                ellipse_handle = Ellipse((0.5, 0.5), 0.5, 0.5, alpha=0.2,
+                                         color=tracks_kwargs['color'])
                 ellipse_label = "Uncertainty"
                 self.legend_dict[ellipse_label] = ellipse_handle
                 # Generate legend
@@ -310,16 +331,18 @@ class Plotter:
                         data = state.particles.state_vector[mapping[:2], :]
                         self.ax.plot(data[0], data[1], linestyle='', marker=".",
                                      markersize=1, alpha=0.5)
-    
+
                 # Generate legend items for particles
-                particle_handle = Line2D([], [], linestyle='', color="black", marker='.', markersize=1)
+                particle_handle = Line2D([], [], linestyle='', color="black", marker='.',
+                                         markersize=1)
                 particle_label = "Particles"
                 self.legend_dict[particle_label] = particle_handle
                 # Generate legend
                 self.ax.legend(handles=self.legend_dict.values(),
-                               labels=self.legend_dict.keys()) #particle error legend
+                               labels=self.legend_dict.keys())  # particle error legend
             else:
-                warnings.warn('Particle plotting is not supported for 3D visualization')
+                raise NotImplementedError("""Particle plotting is not currently supported for
+                                          3D visualization""")
 
         else:
             self.ax.legend(handles=self.legend_dict.values(), labels=self.legend_dict.keys())
