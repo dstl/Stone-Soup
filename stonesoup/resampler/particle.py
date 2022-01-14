@@ -15,13 +15,13 @@ class SystematicResampler(Resampler):
 
         Parameters
         ----------
-        particles : list of :class:`~.Particle`
-            The particles to be resampled according to their weight
+        particles : :class:`~.ParticleState` or list of :class:`~.Particle`
+            The particles or particle state to be resampled according to their weights
 
         Returns
         -------
-        particles : list of :class:`~.Particle`
-            The resampled particles
+        particle state: :class:`~.ParticleState`
+            The particle state after resampling
         """
 
         if not isinstance(particles, ParticleState):
