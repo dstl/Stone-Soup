@@ -85,8 +85,8 @@ class ESSResampler(Resampler):
         particles : list of :class:`~.Particle`
             The particles, either unchanged or resampled, depending on weight degeneracy
         """
-        if not isinstance(particles, Particles):
-            particles = Particles(particle_list=particles)
+        if not isinstance(particles, ParticleState):
+            particles = ParticleState(None, particle_list=particles)
         if self.threshold is None:
             self.threshold = len(particles) / 2
         if 1 / np.sum(np.square(particles.weight)) < self.threshold:  # If ESS too small, resample
