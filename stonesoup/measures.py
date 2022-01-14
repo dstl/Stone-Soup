@@ -82,6 +82,15 @@ class Euclidean(Measure):
 
         """
         # Calculate Euclidean distance between two state
+        if hasattr(state1, 'mean'):
+            state_vector1 = state1.mean
+        else:
+            state_vector1 = state1.state_vector
+        if hasattr(state2, 'mean'):
+            state_vector2 = state2.mean
+        else:
+            state_vector2 = state2.state_vector
+
         if self.mapping is not None:
             return distance.euclidean(state_vector1[self.mapping, 0],
                                       state_vector2[self.mapping2, 0])
@@ -127,6 +136,15 @@ class EuclideanWeighted(Measure):
             :class:`~.State` objects
 
         """
+        if hasattr(state1, 'mean'):
+            state_vector1 = state1.mean
+        else:
+            state_vector1 = state1.state_vector
+        if hasattr(state2, 'mean'):
+            state_vector2 = state2.mean
+        else:
+            state_vector2 = state2.state_vector
+
         if self.mapping is not None:
             return distance.euclidean(state_vector1[self.mapping, 0],
                                       state_vector2[self.mapping2, 0],
