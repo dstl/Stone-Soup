@@ -433,9 +433,6 @@ class ParticleState(State):
     This is a particle state object which describes the state as a
     distribution of particles"""
 
-    # timestamp: datetime.datetime = Property(default=None,
-    #                                         doc="Timestamp of the state. Default None.")
-    # state_vector: StateVectors = Property(default=None, doc="State vectors of particles")
     weight: MutableSequence[Probability] = Property(default=None, doc='Weights of particles')
     parent: 'ParticleState' = Property(default=None, doc='Parent particles')
     particle_list: MutableSequence[Particle] = Property(default=None,
@@ -473,8 +470,6 @@ class ParticleState(State):
         if self.weight is not None and isinstance(self.weight, np.ndarray):
             self.weight = np.array(self.weight)
 
-        # super().__init__(*args, **kwargs)
-
     def __getitem__(self, item):
         if self.parent:
             p = self.parent[item]
@@ -505,12 +500,6 @@ class ParticleState(State):
                             weights=self.weight)
         # Convert type as may have type of weights
         return result
-
-    # ###From Particles class###
-    # @property
-    # def state_vector(self):
-    #     """The mean value of the particle states"""
-    #     return self.mean
 
     @property
     def covar(self):

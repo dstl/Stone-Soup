@@ -4,7 +4,6 @@ import numpy as np
 from .base import Resampler
 from ..base import Property
 from ..types.numeric import Probability
-# from ..types.particle import Particles
 from ..types.state import ParticleState
 
 

@@ -62,8 +62,6 @@ class ParticleUpdater(Updater):
         if self.resampler is not None:
             predicted_state = self.resampler.resample(predicted_state)
 
-        # print(hypothesis)
-
         return Update.from_state(
             state=hypothesis.prediction,
             state_vector=predicted_state.state_vector,
@@ -79,14 +77,6 @@ class ParticleUpdater(Updater):
 
         if measurement_model is None:
             measurement_model = self.measurement_model
-
-        # new_particles = []
-        # for particle in state_prediction.particles:
-        #    new_state_vector = measurement_model.function(particle, **kwargs)
-        #    new_particles.append(
-        #        Particle(new_state_vector,
-        #                 weight=particle.weight,
-        #                 parent=particle.parent))
 
         new_state_vector = measurement_model.function(state_prediction, **kwargs)
         new_weight = state_prediction.weight

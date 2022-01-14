@@ -48,10 +48,6 @@ class ParticlePredictor(Predictor):
             num_samples=len(prior),
             **kwargs)
 
-        # new_particles = Particles(state_vector=new_state_vector,
-        #                           weight=prior.particles.weight,
-        #                           parent=prior.particles.parent)
-
         return Prediction.from_state(prior, state_vector=new_state_vector, weight=prior.weight,
                                      timestamp=timestamp, particle_list=None,
                                      transition_model=self.transition_model)
@@ -96,12 +92,6 @@ class ParticleFlowKalmanPredictor(ParticlePredictor):
             GaussianState(prior.state_vector, prior.covar, prior.timestamp),
             *args, **kwargs)
 
-        # The second parameter here in a particle state is the weight...?
-        # or is that the fixed_covar property
-        # return ParticleStatePrediction(particle_prediction.state_vector,
-        #                              particle_prediction.weight,
-        #    fixed_covar=kalman_prediction.covar,
-        #    timestamp=particle_prediction.timestamp)
         return Prediction.from_state(prior, state_vector=particle_prediction.state_vector,
                                      weight=particle_prediction.weight,
                                      timestamp=particle_prediction.timestamp,
