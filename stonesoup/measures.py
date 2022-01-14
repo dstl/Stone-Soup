@@ -185,16 +185,25 @@ class Mahalanobis(Measure):
             objects
 
         """
+        if hasattr(state1, 'mean'):
+            state_vector1 = state1.mean
+        else:
+            state_vector1 = state1.state_vector
+        if hasattr(state2, 'mean'):
+            state_vector2 = state2.mean
+        else:
+            state_vector2 = state2.state_vector
+
         if self.mapping is not None:
-            u = state1.state_vector[self.mapping, 0]
-            v = state2.state_vector[self.mapping2, 0]
+            u = state_vector1[self.mapping, 0]
+            v = state_vector2[self.mapping2, 0]
             # extract the mapped covariance data
             rows = np.array(self.mapping, dtype=np.intp)
             columns = np.array(self.mapping, dtype=np.intp)
             cov = state1.covar[rows[:, np.newaxis], columns]
         else:
-            u = state1.state_vector[:, 0]
-            v = state2.state_vector[:, 0]
+            u = state_vector1[:, 0]
+            v = state_vector2[:, 0]
             cov = state1.covar
 
         vi = np.linalg.inv(cov)
