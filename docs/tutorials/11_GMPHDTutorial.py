@@ -94,7 +94,7 @@
 # %%
 # A Ground-Based Multi-Target Simulation
 # --------------------------------------
-# This simulation will include several targets moving in different directions accross the 2D
+# This simulation will include several targets moving in different directions across the 2D
 # Cartesian plane. The start locations of each object are random. These start locations are
 # called priors and are known to the filter, via the density :math:`p_{0}(\cdot)` discussed above.
 #
@@ -189,8 +189,8 @@ plotter.plot_ground_truths(truths, [0, 2])
 # Generate detections with clutter
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Next, generate detections with clutter just as in the previous tutorial. The clutter is
-# assumed to be uniformly distributed accross the entire field of view, here assumed to
-# be the space where :math:`x \in [-100, 100]` and :math:`y \in [-100, 100]`.
+# assumed to be uniformly distributed across the entire field of view, here assumed to
+# be the space where :math:`x \in [-200, 200]` and :math:`y \in [-200, 200]`.
 
 # Make the measurement model
 from stonesoup.models.measurement.linear import LinearGaussian
@@ -237,8 +237,8 @@ for k in range(number_steps):
 
     # Generate clutter at this time-step
     for _ in range(np.random.poisson(clutter_rate)):
-        x = uniform.rvs(-100, 200)
-        y = uniform.rvs(-100, 200)
+        x = uniform.rvs(-200, 400)
+        y = uniform.rvs(-200, 400)
         measurement_set.add(Clutter(np.array([[x], [y]]), timestamp=timestamp,
                                     measurement_model=measurement_model))
 
