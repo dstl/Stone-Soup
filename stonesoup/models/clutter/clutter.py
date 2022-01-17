@@ -45,9 +45,6 @@ class ClutterModel(Model, ABC):
     random_state: Optional[np.random.RandomState] = Property(
         default=np.random.RandomState(1),
         doc="A numpy random state for reproducibility of random number generation.")
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
     def function(self, ground_truths: Set[GroundTruthState], **kwargs) -> Set[Clutter]:
         """
