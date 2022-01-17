@@ -2,8 +2,8 @@
 import uuid
 from typing import MutableSequence, MutableMapping
 
+from .state import State, StateMutableSequence, CategoricalState
 from ..base import Property
-from .state import State, StateMutableSequence
 
 
 class GroundTruthState(State):
@@ -15,6 +15,10 @@ class GroundTruthState(State):
         super().__init__(state_vector, *args, **kwargs)
         if self.metadata is None:
             self.metadata = {}
+
+
+class CategoricalGroundTruthState(GroundTruthState, CategoricalState):
+    """Categorical Ground Truth State type"""
 
 
 class GroundTruthPath(StateMutableSequence):

@@ -163,13 +163,13 @@ metrics = metric_manager.generate_metrics()
 # So first we'll loop through the metrics and print out the basic metrics, which simply gives
 # details on number of tracks versus targets.
 for metric in metrics:
-    if not any(s in metric.title for s in ('SIAP', 'OSPA', 'plot')):
-        print("{0.title}: {0.value}".format(metric))
+    if not any(s in metric for s in ('SIAP', 'OSPA', 'plot')):
+        print(f"{metric} : {metrics.get(metric).value}")
 
 # %%
 # Next we'll take a look at the OSPA metric, plotting it to show how it varies over time. In this
 # example, targets are created and remove randomly, so expect this to be fairly variable.
-ospa_metric = {metric for metric in metrics if metric.title == "OSPA distances"}.pop()
+ospa_metric = metrics['OSPA distances']
 
 fig = plt.figure()
 ax = fig.add_subplot(1, 1, 1)
@@ -184,9 +184,9 @@ _ = ax.set_xlabel("Time")
 # indication, as well as provide a description for each metric.
 from stonesoup.metricgenerator.metrictables import SIAPTableGenerator
 
-siap_averages = {metric for metric in metrics
-                 if metric.title.startswith("SIAP") and not metric.title.endswith(" at times")}
-siap_time_based = {metric for metric in metrics if metric.title.endswith(' at times')}
+siap_averages = {metrics.get(metric) for metric in metrics
+                 if metric.startswith("SIAP") and not metric.endswith(" at times")}
+siap_time_based = {metrics.get(metric) for metric in metrics if metric.endswith(' at times')}
 
 _ = SIAPTableGenerator(siap_averages).compute_metric()
 

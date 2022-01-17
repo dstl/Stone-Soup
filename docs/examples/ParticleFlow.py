@@ -201,8 +201,8 @@ for predictor, updater, colour, filter, particle_count \
         [siap_gen], associator=TrackToTruth(association_threshold=np.inf))
     metric_manager.add_data(tracks={track}, groundtruth_paths={truth})
 
-    pa[filter] = {metric for metric in metric_manager.generate_metrics()
-                  if metric.title.startswith("SIAP Position Accuracy at times")}.pop()
+    metrics = metric_manager.generate_metrics()
+    pa[filter] = metrics.get("SIAP Position Accuracy at times")
 
 # %%
 # Positional Accuracy

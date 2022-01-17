@@ -80,12 +80,14 @@ def test_single_probability_hypothesis_comparison():
         prediction, detection, 0.9, measurement_prediction)
     h2 = SingleProbabilityHypothesis(
         prediction, detection, 0.1, measurement_prediction)
+    h3 = SingleHypothesis(prediction, detection, measurement_prediction)
 
     assert h1 > h2
     assert h2 < h1
     assert h1 <= h1
     assert h1 >= h1
     assert h1 == h1
+    assert h1 != h3
 
 
 def test_probability_joint_hypothesis():
