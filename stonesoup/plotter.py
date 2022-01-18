@@ -214,7 +214,7 @@ class Plotter:
         """Plots track(s)
 
         Plots each track generated, generating a legend automatically. If ``uncertainty=True``
-        and is being plotted in 2D, error elipses are plotted. If beingp plotted in
+        and is being plotted in 2D, error elipses are plotted. If being plotted in
         3D, uncertainty bars are plotted every :attr:`err_freq` measurement, default
         plots unceratinty bars at every track step. Tracks are plotted as solid
         lines with point markers and default colors. Uncertainty bars are plotted
