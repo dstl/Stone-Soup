@@ -232,7 +232,7 @@ class Plotter:
             List of items specifying the mapping of the position
             components of the state space.
         uncertainty : bool
-            If True, function plots uncertainty bars in x, y, and z.
+            If True, function plots uncertainty ellipses or bars.
         particle : bool
             If True, function plots particles.
         track_label: str
