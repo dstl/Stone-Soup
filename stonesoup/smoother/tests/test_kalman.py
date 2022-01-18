@@ -7,6 +7,7 @@ import numpy as np
 from datetime import datetime, timedelta
 
 from stonesoup.types.detection import Detection
+from stonesoup.types.multihypothesis import MultipleHypothesis
 from stonesoup.types.state import GaussianState
 from stonesoup.types.prediction import GaussianStatePrediction
 from stonesoup.types.track import Track
@@ -14,27 +15,27 @@ from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.models.transition.linear import ConstantVelocity
 from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.predictor.kalman import KalmanPredictor
+from stonesoup.types.update import GaussianStateUpdate
 from stonesoup.updater.kalman import KalmanUpdater
 from stonesoup.smoother.kalman import KalmanSmoother, ExtendedKalmanSmoother, \
     UnscentedKalmanSmoother
 
 
-@pytest.mark.parametrize(
-    "SmootherClass",
-    [
-        (   # Standard Kalman
-            KalmanSmoother
-        ),
-        (   # Extended Kalman
-            ExtendedKalmanSmoother
-        ),
-        (   # Unscented Kalman
-            UnscentedKalmanSmoother
-        ),
+@pytest.fixture(
+    params=[
+        KalmanSmoother,  # Standard Kalman
+        ExtendedKalmanSmoother,  # Extended Kalman
+        UnscentedKalmanSmoother,  # Unscented Kalman
     ],
     ids=["standard", "extended", "unscented"]
 )
-def test_kalman_smoother(SmootherClass):
+def smoother_class(request):
+    return request.param
+
+
+@pytest.mark.parametrize("multi_hypothesis", [False, True],
+                         ids=["SingleHypothesis", "MultipleHypothesis"])
+def test_kalman_smoother(smoother_class, multi_hypothesis):
 
     # First create a track from some detections and then smooth - check the output.
 
@@ -72,9 +73,11 @@ def test_kalman_smoother(SmootherClass):
         # Update
         cstate = updater.update(hypothesis)
         # write to track
+        if multi_hypothesis:
+            cstate.hypothesis = MultipleHypothesis([hypothesis])
         track.append(cstate)
 
-    smoother = SmootherClass(transition_model=trans_model)
+    smoother = smoother_class(transition_model=trans_model)
     smoothed_track = smoother.smooth(track)
     smoothed_state_vectors = [
         state.state_vector for state in smoothed_track]
@@ -100,3 +103,37 @@ def test_kalman_smoother(SmootherClass):
     track[-1] = detections[-1]
     with pytest.raises(TypeError):
         smoother._prediction(track[-1])
+
+
+def test_multi_prediction_exception(smoother_class):
+    """Check error raised with multi-hypothesis with multiple predictions"""
+    start = datetime.now()
+    track = Track()
+    track.states = [
+        GaussianStateUpdate(
+            state_vector=[1],
+            covar=[[1]],
+            timestamp=start,
+            hypothesis=MultipleHypothesis([
+                SingleHypothesis(
+                    GaussianStatePrediction([1], [[1]], timestamp=start), None),
+                SingleHypothesis(
+                    GaussianStatePrediction([2], [[1]], timestamp=start), None),
+                ])
+        ),
+        GaussianStateUpdate(
+            state_vector=[1],
+            covar=[[1]],
+            timestamp=start+timedelta(1),
+            hypothesis=MultipleHypothesis([
+                SingleHypothesis(
+                    GaussianStatePrediction([1], [[1]], timestamp=start+timedelta(1)), None),
+                SingleHypothesis(
+                    GaussianStatePrediction([2], [[1]], timestamp=start+timedelta(1)), None),
+            ])
+        )
+    ]
+    smoother = smoother_class(transition_model=ConstantVelocity(1))
+    with pytest.raises(
+            ValueError, match="Track has MultipleHypothesis updates with multiple predictions"):
+        smoother.smooth(track)
