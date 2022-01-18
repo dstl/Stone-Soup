@@ -229,7 +229,7 @@ class Plotter:
             Set of tracks which will be plotted. If not a set, and instead a single
             :class:`~.Track` type, the argument is modified to be a set to allow for iteration.
         mapping: list
-            List of 3 items specifying the mapping of the x, y, and z position
+            List of items specifying the mapping of the position
             components of the state space.
         uncertainty : bool
             If True, function plots uncertainty bars in x, y, and z.
