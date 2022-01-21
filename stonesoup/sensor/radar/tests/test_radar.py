@@ -2,7 +2,6 @@
 import datetime
 
 import numpy as np
-from scipy.stats import poisson
 import pytest
 from pytest import approx
 
@@ -673,7 +672,7 @@ def test_clutter_model(radar, clutter_params):
     clutter_rate = 5
     seed = 1
     random_state_test = np.random.RandomState(seed=seed)
-    p_test = poisson.rvs(clutter_rate, random_state=random_state_test)
+    p_test = random_state_test.poisson(clutter_rate)
     while p_test <= 0:
         seed += 1
         random_state_test = np.random.RandomState(seed=seed)
@@ -684,7 +683,7 @@ def test_clutter_model(radar, clutter_params):
     model_test = ClutterModel(clutter_rate=clutter_rate,
                               distribution=random_state.uniform,
                               dist_params=clutter_params,
-                              seed=random_state)
+                              random_state=random_state)
     radar.clutter_model = model_test
     truth = State(StateVector([1, 1, 1, 1, 1, 1]), timestamp=datetime.datetime.now())
     measurements = radar.measure({truth})
