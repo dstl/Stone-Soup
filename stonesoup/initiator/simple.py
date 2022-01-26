@@ -166,15 +166,15 @@ class MultiMeasurementInitiator(GaussianInitiator):
     Does cause slight delay in initiation to tracker."""
 
     prior_state: GaussianState = Property(doc="Prior state information")
-    measurement_model: MeasurementModel = Property(
-        default=None,
-        doc="Measurement model. Can be left as None if all detections have a "
-            "valid measurement model.")
     deleter: Deleter = Property(doc="Deleter used to delete the track.")
     data_associator: DataAssociator = Property(
         doc="Association algorithm to pair predictions to detections.")
     updater: Updater = Property(
         doc="Updater used to update the track object to the new state.")
+    measurement_model: MeasurementModel = Property(
+        default=None,
+        doc="Measurement model. Can be left as None if all detections have a "
+            "valid measurement model.")
     min_points: int = Property(
         default=2, doc="Minimum number of track points required to confirm a track.")
     updates_only: bool = Property(

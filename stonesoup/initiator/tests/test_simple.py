@@ -278,7 +278,8 @@ def test_multi_measurement(updates_only):
 
     measurement_initiator = MultiMeasurementInitiator(
         GaussianState([[0], [0], [0], [0]], np.diag([0, 15, 0, 15])),
-        measurement_model, deleter, data_associator, updater, updates_only=updates_only)
+        deleter, data_associator, updater,
+        measurement_model=measurement_model, updates_only=updates_only)
 
     timestamp = datetime.datetime.now()
     first_detections = {Detection(np.array([[5], [2]]), timestamp),
@@ -318,7 +319,7 @@ def test_measurement_model(initiator):
     # model. The SimpleMeasurementInitiator will raise an error in the if/else
     # blocks.
     with pytest.raises(ValueError):
-        _ = initiator.initiate(dummy_detection, timestamp)
+        _ = initiator.initiate({dummy_detection}, timestamp)
 
 
 @pytest.mark.parametrize("gaussian_initiator", [
