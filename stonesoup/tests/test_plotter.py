@@ -26,8 +26,6 @@ from stonesoup.types.state import GaussianState
 
 from stonesoup.types.track import Track
 
-np.random.seed(1991)
-
 start_time = datetime.now()
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),
                                                           ConstantVelocity(0.005)])
