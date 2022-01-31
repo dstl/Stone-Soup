@@ -256,9 +256,9 @@ len(tracks)
 import folium
 
 m = folium.Map(
-    location=[52.41, -0.4543], zoom_start=6,
-    tiles='http://{s}.tiles.wmflabs.org/bw-mapnik/{z}/{x}/{y}.png',
-    attr='&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>')
+    location=[52.41, -0.4543], zoom_start=6)
+
+folium.TileLayer('openstreetmap').add_to(m)
 
 
 folium.Marker([51.47, -0.4543],
@@ -556,7 +556,7 @@ TimestampedGeoJson(
 
 # %%
 
-# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/OpenSky_thumb.png'
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/OpenSky_openstreet_thumb.png'
 
 m
 
