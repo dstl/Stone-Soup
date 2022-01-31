@@ -10,14 +10,10 @@ Tracking Groundtruth ADS-B Data by Simulating Radar Detections
 # ------------
 # Our goal in this demonstration is to plot time series data of Stone Soup's :class:`~.MultiTargetTracker`
 # being applied to air traffic over and surrounding the UK.
-# To do this, we will be using a CSV file of ADS–B data sourced from `The OpenSky Network`_ [#]_ [#]_.
-# This data will be used as our groundtruth. We will be simulate radar detections, and establish
-# the individual components
-#
-#
-#
-# required for our tracker, including simulating radar detection data from our groundtruth, and
-# plot these tracks using the Folium plugin `TimestampedGeoJson`_.
+# We will establish the individual components required for our tracker, including simulating radar
+# detection data from our groundtruth, which will be read in from a CSV file of ADS–B data sourced
+# from `The OpenSky Network`_ [#]_ [#]_. Finally, we will plot our tracks using the Folium plugin
+# `TimestampedGeoJson`_.
 #
 # .. _The OpenSky Network: https://www.opensky-network.org
 # .. _TimestampedGeoJson:  https://python-visualization.github.io/folium/plugins.html
