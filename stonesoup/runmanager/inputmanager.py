@@ -1,13 +1,26 @@
 
+from math import comb
+from random import randrange
+from statistics import variance
 from .base import RunManager
 import numpy as np
 import itertools
 from stonesoup.types.array import StateVector, CovarianceMatrix
 from stonesoup.types.numeric import Probability
 from datetime import datetime, timedelta
-
+import random
 
 class InputManager(RunManager):
+    def __init__(self, montecarlo, seed) -> None:
+        super().__init__()
+        self.seed = random.seed(seed)
+        self.montecarlo = montecarlo
+        TYPE = "type"
+        PATH = "path"
+        NSAMPLES = "n_samples"
+        VALUE_MIN = "value_min"
+        VALUE_MAX = "value_max"
+
 
     def set_stateVector(self, list_state_vector):
         """Get a list and return a state vector
@@ -145,13 +158,19 @@ class InputManager(RunManager):
         combination_dict = {}
         for parameter in parameters:
             combination_list = {}
+
             try:
                 if parameter["type"] == "StateVector":
                     combination_list = self.generate_state_vector_combinations(parameter)
                     combination_dict.update(combination_list)
 
                 if parameter["type"] == "int":
-                    combination_list = self.generate_int_combinations(parameter)
+                    if self.montecarlo == 0:
+                        combination_list = self.generate_int_combinations(parameter)
+                    if self.montecarlo == 1:
+                        combination_list = self.logarithmic_range_gen(parameter)
+                    if self.montecarlo == 3:
+                        combination_list = self.variance_distribution(parameter)
                     combination_dict.update(combination_list)
 
                 if parameter["type"] == "float":
@@ -188,6 +207,51 @@ class InputManager(RunManager):
             except KeyError:
                 pass
         return combination_dict
+        
+    def logarithmic_range_gen(self, parameter):
+        path = parameter["path"]
+        iteration_list = np.logspace(np.log10(parameter["value_min"]),
+                           np.log10(parameter["value_max"]),
+                           parameter["n_samples"],
+                           dtype=int, base=10)
+        combination_list = {}
+        combination_list[path] = iteration_list
+        return combination_list
+    # def logarithmic_range_gen(self, parameter):
+    #     log_scale = np.random.lognormal(size=[parameter["value_min"], parameter["value_max"]])
+    #     return log_scale
+    
+    def exponential_range_gen(self, parameter):
+        path = parameter["path"]
+        exponential = np.random.exponential(scale=1.0, size=[parameter["value_min"], parameter["value_max"]])
+        return exponential
+
+    def variance_distribution(self, parameter):
+        """Creates a list of random values within a 10% tolerance for each 
+        index within the list.
+
+        Parameters
+        ----------
+        combination_list : dict
+            Dictionary value of generated parameters
+
+        Returns
+        -------
+        dict
+            Returns a new dictionary of values with a random variation of 10%
+        """
+        combination_list = self.generate_int_combinations(parameter)
+        random_list = []
+        random_dictionary = {}
+        for key, value in combination_list.items():
+            for idx in value:
+                random_num = random.randrange(int(idx*0.9), int(idx*1.1))
+                random_list.append(random_num)
+            random_dictionary[key] = random_list
+        return random_dictionary
+
+    def compare_min_max(self, list):
+        NotImplementedError
 
     def generate_ndarray_combinations(self, parameter):
         """Generate combinations of ndarray

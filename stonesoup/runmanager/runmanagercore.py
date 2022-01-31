@@ -17,14 +17,20 @@ class RunManagerCore(RunManager):
     GROUNDTRUTH = "ground_truth"
     METRIC_MANAGER = "metric_manager"
 
-    def __init__(self, config_path, parameters_path, groundtruth_setting, dir):
+    def __init__(self, config_path, parameters_path, groundtruth_setting, dir, montecarlo):
 
         self.config_path = config_path
         self.parameters_path = parameters_path
         self.groundtruth_setting = groundtruth_setting
         self.dir = dir
+        
+        # Set montecarlo to 1 as default
+        if montecarlo is None:
+            self.montecarlo = 0
+        else:
+            self.montecarlo = montecarlo
 
-        self.input_manager = InputManager()
+        self.input_manager = InputManager(self.montecarlo, seed=5)
         self.run_manager_metrics = RunmanagerMetrics()
 
         root_logger = logging.getLogger()
@@ -503,7 +509,7 @@ class RunManagerCore(RunManager):
                     print("RUN ", runs_num)
                     for idx in range(0, len(trackers)):
                         dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs_num}"
-                        self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
+                        #self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
                         self.run_manager_metrics.generate_config(
                             dir_name, trackers[idx], ground_truths[idx],
                             metric_managers[idx])
@@ -539,7 +545,7 @@ class RunManagerCore(RunManager):
         """
 
         dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs_num}"
-        self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
+        #self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
         simulation_parameters = dict(
             tracker=tracker,
