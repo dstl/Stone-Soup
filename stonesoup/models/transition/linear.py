@@ -577,9 +577,9 @@ class SingerApproximate(Singer):
         return CovarianceMatrix(covar)
 
 
-class ConstantTurnSandwich(LinearGaussianTransitionModel, TimeVariantModel):
+class KnownTurnRateSandwich(LinearGaussianTransitionModel, TimeVariantModel):
     r"""This is a class implementation of a time-variant 2D Constant Turn
-    Model. This model is used, as opposed to the normal :class:`~.ConstantTurn`
+    Model. This model is used, as opposed to the normal :class:`~.KnownTurnRate`
     model, when the turn occurs in 2 dimensions that are not adjacent in the
     state vector, eg if the turn occurs in the x-z plane but the state vector
     is of the form :math:`(x,y,z)`. The list of transition models are to be
@@ -654,7 +654,7 @@ class ConstantTurnSandwich(LinearGaussianTransitionModel, TimeVariantModel):
         return CovarianceMatrix(block_diag(ctc1, *covar_list, ctc2))
 
 
-class ConstantTurn(ConstantTurnSandwich):
+class KnownTurnRate(KnownTurnRateSandwich):
     r"""This is a class implementation of a discrete, time-variant 2D Constant
     Turn Model.
 

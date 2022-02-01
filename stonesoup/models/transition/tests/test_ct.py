@@ -5,22 +5,22 @@ from pytest import approx
 import numpy as np
 from scipy.stats import multivariate_normal
 
-from ..linear import ConstantTurn
+from ..linear import KnownTurnRate
 from ....types.state import State
 
 
 def test_ctmodel():
-    """ ConstantTurn Transition Model test """
+    """ KnownTurnRate Transition Model test """
     state = State(np.array([[3.0], [1.0], [2.0], [1.0]]))
     turn_noise_diff_coeffs = np.array([0.01, 0.01])
     turn_rate = 0.1
-    base(ConstantTurn, state, turn_noise_diff_coeffs, turn_rate)
+    base(KnownTurnRate, state, turn_noise_diff_coeffs, turn_rate)
 
 
 def base(model, state, turn_noise_diff_coeffs, turn_rate):
     """ Base test for n-dimensional ConstantAcceleration Transition Models """
 
-    # Create an ConstantTurn model object
+    # Create an KnownTurnRate model object
     model = model
     model_obj = model(turn_noise_diff_coeffs=turn_noise_diff_coeffs,
                       turn_rate=turn_rate)
