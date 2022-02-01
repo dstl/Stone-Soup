@@ -198,7 +198,6 @@ class RJMCMCBeamformer(DetectionReader):
                 for n in range(0, self.max_targets):
                     angle_params.append(StateVector([Elevation(0), Bearing(0)]))
                 p_params: Sequence[StateVector] = angle_params
-                noise = self.noise_proposal(0)
                 [params, K] = self.proposal([], 0, p_params)
 
                 # calculate sinTy and cosTy
@@ -228,16 +227,15 @@ class RJMCMCBeamformer(DetectionReader):
                         + math.sin(2*math.pi*t*self.omega/self.fs) \
                         * math.cos(2*math.pi*t*self.omega/self.fs)
                 sumsincos = 0
-                old_logp = self.log_prob(noise, params, K, y, sinTy, cosTy, yTy,
+                old_logp = self.log_prob(params, K, sinTy, cosTy, yTy,
                                          sumsinsq, sumcossq, sumsincos, N)
                 n = 0
 
                 while n < self.num_samps:
-                    p_noise = self.noise_proposal(noise)
                     [p_params, p_K, Qratio] = self.proposal_func(params, K, p_params,
                                                                  self.max_targets)
                     if p_K != 0:
-                        new_logp = self.log_prob(p_noise, p_params, p_K, y, sinTy, cosTy, yTy,
+                        new_logp = self.log_prob(p_params, p_K, sinTy, cosTy, yTy,
                                                  sumsinsq, sumcossq, sumsincos, N)
                         logA = new_logp - old_logp + np.log(Qratio)
 
@@ -288,7 +286,6 @@ class RJMCMCBeamformer(DetectionReader):
                     [unique_peak_inds1, unique_peak_inds2] = np.unravel_index(
                                                              param_hist[0, :, :].argmax(),
                                                              param_hist[0, :, :].shape)
-                    num_peaks = 1
                 else:
                     # multiple targets
                     order_ind = max_ind - 1
@@ -369,7 +366,7 @@ class RJMCMCBeamformer(DetectionReader):
 
                 yield current_time, {detection}
 
-    def log_prob(self, p_noise, p_params, p_K, y, sinTy, cosTy, yTy, sumsinsq, sumcossq,
+    def log_prob(self, p_params, p_K, sinTy, cosTy, yTy, sumsinsq, sumcossq,
                  sumsincos, N):
         """Calculates the log probability of the unnormalised posterior distribution for a given
         set of parameters and data.
@@ -467,16 +464,6 @@ class RJMCMCBeamformer(DetectionReader):
 
         return p_params
 
-    def noise_proposal(self, noise):
-        """The proposal function for the noise variance. A Gaussian probability density centred
-        on the current value of the noise variance is used to generate proposal values.
-
-        """
-        epsilon = norm.rvs(0, 0.1, 1, random_state=self.random_state)
-        rand_val = abs(noise+epsilon)
-        p_noise = rand_val
-        return p_noise
-
     def proposal(self, params, K, p_params):
         """The proposal function for direction of arrival parameters. The parameters are initially
         sampled from a uniform distribution. Gaussian probability densities are used to make new
@@ -515,8 +502,7 @@ class RJMCMCBeamformer(DetectionReader):
         removing a target).
 
         """
-        update_type = uniform.rvs(random_state=self.random_state)
-        p_K = 0
+        # update_type = uniform.rvs(random_state=self.random_state)
         Qratio = 1  # ratio of proposal probabilities for forwards and backwards moves
         update_type = 1  # forced temporarily (for single-target examples)
         if update_type > 0.5:
