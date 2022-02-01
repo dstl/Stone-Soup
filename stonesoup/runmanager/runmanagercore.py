@@ -16,6 +16,8 @@ class RunManagerCore(RunManager):
     TRACKER = "tracker"
     GROUNDTRUTH = "ground_truth"
     METRIC_MANAGER = "metric_manager"
+    logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
+    # logging.info(f'RunManagerCore started. {datetime.now()}')
 
     def __init__(self, config_path, parameters_path, groundtruth_setting, dir, montecarlo):
 
@@ -23,7 +25,7 @@ class RunManagerCore(RunManager):
         self.parameters_path = parameters_path
         self.groundtruth_setting = groundtruth_setting
         self.dir = dir
-        
+
         # Set montecarlo to 1 as default
         if montecarlo is None:
             self.montecarlo = 0
@@ -33,12 +35,11 @@ class RunManagerCore(RunManager):
         self.input_manager = InputManager(self.montecarlo, seed=5)
         self.run_manager_metrics = RunmanagerMetrics()
 
-        root_logger = logging.getLogger()
-        root_logger.setLevel(logging.DEBUG)
-        handler = logging.FileHandler('simulation.log', 'w', 'utf-8')
-        root_logger.addHandler(handler)
-        # logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
-        logging.info(f'RunManagerCore started. {datetime.now()}')
+        # root_logger = logging.getLogger()
+        # root_logger.setLevel(logging.DEBUG)
+        # handler = logging.FileHandler('simulation.log', 'w', 'utf-8')
+        # root_logger.addHandler(handler)
+
 
     def read_json(self, json_input):
         """Read json file from directory
@@ -151,6 +152,7 @@ class RunManagerCore(RunManager):
         # Generate all the parameters for the monte carlo run
         trackers_combination_dict = self.input_manager.generate_parameters_combinations(
             json_data["parameters"])
+        print(trackers_combination_dict)
         # Generate all the the possible combinations with the parameters
         combo_dict = self.input_manager.generate_all_combos(trackers_combination_dict)
         return combo_dict
@@ -509,7 +511,7 @@ class RunManagerCore(RunManager):
                     print("RUN ", runs_num)
                     for idx in range(0, len(trackers)):
                         dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs_num}"
-                        #self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
+                        # self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
                         self.run_manager_metrics.generate_config(
                             dir_name, trackers[idx], ground_truths[idx],
                             metric_managers[idx])
@@ -545,7 +547,7 @@ class RunManagerCore(RunManager):
         """
 
         dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs_num}"
-        #self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
+        # self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
         simulation_parameters = dict(
             tracker=tracker,
