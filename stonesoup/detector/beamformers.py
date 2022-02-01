@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """Beamforming algorithms for direction of arrival estimation.
 
-These algorithms take sensor data measured by an array with specified geometry and return
-bearings in the form of target detections.
+These algorithms take sensor data measured by an array with specified geometry and return bearings
+in the form of target detections.
 
-The data from the array is passed to the algorithms in a csv file, with each column storing a
-time series from a single sensor.
+The data from the array is passed to the algorithms in a csv file, with each column storing a time
+series from a single sensor.
 
-The relative sensor locations is passed to each algorithm in a separate string argument,
-listing the Cartesian coordinates for each time window.
+The relative sensor locations is passed to each algorithm in a separate csv file, which lists the
+lists the Cartesian coordinates for each time window.
 
 """
 import csv
@@ -18,6 +18,7 @@ from scipy.stats import norm, uniform
 from itertools import islice
 from pathlib import Path
 from datetime import datetime, timedelta
+from itertools import zip_longest
 import numpy as np
 from typing import Sequence
 from ..base import Property
@@ -27,6 +28,12 @@ from ..types.array import StateVector, CovarianceMatrix
 from ..types.detection import Detection
 from ..types.angle import Elevation, Bearing
 from ..reader import DetectionReader
+
+
+def grouper(iterable, n):
+    "Collect data into non-overlapping fixed-length chunks or blocks"
+    args = [iter(iterable)] * n
+    return zip_longest(*args, fillvalue=None)
 
 
 class CaponBeamformer(DetectionReader):
@@ -39,8 +46,9 @@ class CaponBeamformer(DetectionReader):
     """
     path: Path = Property(doc='The path to the csv file containing the raw data')
     fs: float = Property(doc='Sampling frequency (Hz)')
-    sensor_loc: Sequence[StateVector] = Property(doc='Cartesian coordinates of the sensors in the\
-                                                 format "X1 Y1 Z1; X2 Y2 Z2;...."')
+    loc_path: Path = Property(doc='The path to the csv file containing the Cartesian coordinates\
+                              of the sensors in the format "X1, Y1, Z1\n X2, Y2, Z2\n...."')
+    num_sensors: int = Property(doc='Number of sensors')
     omega: float = Property(doc='Signal frequency (Hz)')
     wave_speed: float = Property(doc='Speed of wave in the medium')
     window_size: int = Property(doc='Window size', default=750)
@@ -53,32 +61,26 @@ class CaponBeamformer(DetectionReader):
 
     @BufferedGenerator.generator_method
     def detections_gen(self):
-        with self.path.open(newline='') as csv_file:
-            num_lines = sum(1 for line in csv_file)
-            csv_file.seek(0)  # Reset file read position
+        with self.path.open(newline='') as csv_file, open(self.loc_path, newline='') as loc_file:
+            thetavals = np.linspace(0, 2*np.pi, num=400)
+            phivals = np.linspace(0, np.pi/2, num=100)
 
-            # Use a csv reader to read the file
+            # Use a csv reader to read the files
             reader = csv.reader(csv_file, delimiter=',')
+            reader_loc = csv.reader(loc_file, delimiter=',')
 
             current_time = self.start_time
 
-            # Calculate the number of scans/timesteps
-            num_timesteps = int(num_lines/self.window_size)
-            for i in range(num_timesteps):
+            # Use itertools to grab windows (in case of streaming data)
+            windows = grouper(reader, self.window_size)
+            sensor_loc = grouper(reader_loc, self.num_sensors)
 
+            for (window, sensor_pos) in zip(windows, sensor_loc):
                 # Grab the next `window_size` lines from the reader and read it into y (also
                 # convert to float)
-                y = np.array([row for row in islice(reader, self.window_size)]).astype(float)
-
-                L = len(y)
-
-                thetavals = np.linspace(0, 2*np.pi, num=400)
-                phivals = np.linspace(0, np.pi/2, num=100)
-
+                y = np.array(window).astype(float)
                 # spatial locations of hydrophones
-                raw_data = np.asarray(self.sensor_loc[i])
-                self.num_sensors = int(raw_data.size/3)
-                z = np.reshape(raw_data, [self.num_sensors, 3])
+                z = np.reshape(np.asarray(sensor_pos, dtype=float), [self.num_sensors, 3])
 
                 c = self.wave_speed/(2*self.omega*np.pi)
 
@@ -103,7 +105,7 @@ class CaponBeamformer(DetectionReader):
                         # steering vector
                         v = np.cos(phases) - np.sin(phases) * 1j
 
-                        F = 1 / ((L - self.num_sensors) * np.conj(v).T @ R_inv @ v)
+                        F = 1 / ((self.window_size - self.num_sensors) * np.conj(v).T @ R_inv @ v)
                         if F > maxF:
                             maxF = F
                             maxtheta = theta
@@ -114,10 +116,9 @@ class CaponBeamformer(DetectionReader):
                 covar = CovarianceMatrix(np.array([[1, 0], [0, 1]]))
                 measurement_model = LinearGaussian(ndim_state=4, mapping=[0, 2],
                                                    noise_covar=covar)
-                current_time = current_time + timedelta(milliseconds=1000*L/self.fs)
+                current_time = current_time + timedelta(milliseconds=1000*self.window_size/self.fs)
                 detection = Detection(state_vector, timestamp=current_time,
                                       measurement_model=measurement_model)
-
                 yield current_time, {detection}
 
 
@@ -137,9 +138,10 @@ class RJMCMCBeamformer(DetectionReader):
     """
     path: str = Property(doc='The path to the csv file, containing the raw data')
     fs: float = Property(doc='Sampling frequency (Hz)')
+    loc_path: Path = Property(doc='The path to the csv file containing the Cartesian coordinates\
+                              of the sensors in the format "X1, Y1, Z1\n X2, Y2, Z2\n...."')
+    num_sensors: int = Property(doc='Number of sensors')
     omega: float = Property(doc='Signal frequency (Hz)')
-    sensor_loc: Sequence[StateVector] = Property(doc='Cartesian coordinates of the sensors in the\
-                                                 format "X1 Y1 Z1; X2 Y2 Z2;...."')
     wave_speed: float = Property(doc='Speed of wave in the medium')
     max_targets: int = Property(default=5, doc='Maximum number of targets')
     seed: int = Property(doc='Random number generator seed for reproducible output. Set to 0 for\
@@ -162,33 +164,30 @@ class RJMCMCBeamformer(DetectionReader):
 
     @BufferedGenerator.generator_method
     def detections_gen(self):
-        with self.path.open(newline='') as csv_file:
-            num_lines = sum(1 for line in csv_file)
+        with self.path.open(newline='') as csv_file, open(self.loc_path, newline='') as loc_file:
             csv_file.seek(0)  # Reset file read position
 
             # Use a csv reader to read the file
             reader = csv.reader(csv_file, delimiter=',')
+            reader_loc = csv.reader(loc_file, delimiter=',')
 
             current_time = self.start_time
 
-            # Calculate the number of scans/timesteps
-            num_timesteps = int(num_lines/self.window_size)
+            # Use itertools to grab windows (in case of streaming data)
+            windows = grouper(reader, self.window_size)
+            sensor_loc = grouper(reader_loc, self.num_sensors)
 
             bin_steps = [math.pi/(2*self.nbins), 2*math.pi/self.nbins]
 
-            for i in range(num_timesteps):
-
+            for (window, sensor_pos) in zip(windows, sensor_loc):
                 # Grab the next `window_size` lines from the reader and read it into y (also
                 # convert to float)
                 y = np.array([row for row in islice(reader, self.window_size)]).astype(float)
 
-                L = len(y)
+                self.sensor_pos = np.reshape(np.asarray(sensor_pos, dtype=float),
+                                             [self.num_sensors, 3])
 
-                raw_data = np.asarray(self.sensor_loc[i])
-                self.num_sensors = int(raw_data.size/3)
-                self.sensor_pos = np.reshape(raw_data, [self.num_sensors, 3])
-
-                N = self.num_sensors*L
+                N = self.num_sensors*self.window_size
 
                 # initialise histograms
                 param_hist = np.zeros([self.max_targets, self.nbins, self.nbins])
@@ -196,7 +195,7 @@ class RJMCMCBeamformer(DetectionReader):
 
                 # initialise params
                 angle_params = []
-                for i in range(0, self.max_targets):
+                for n in range(0, self.max_targets):
                     angle_params.append(StateVector([Elevation(0), Bearing(0)]))
                 p_params: Sequence[StateVector] = angle_params
                 noise = self.noise_proposal(0)
@@ -209,7 +208,7 @@ class RJMCMCBeamformer(DetectionReader):
                 yTy = 0
 
                 for k in range(0, self.num_sensors):
-                    for t in range(0, L):
+                    for t in range(0, self.window_size):
                         sinTy[k] = sinTy[k] + math.sin(2*math.pi*t*self.omega/self.fs)*y[t, k]
                         cosTy[k] = cosTy[k] + math.cos(2*math.pi*t*self.omega/self.fs)*y[t, k]
                         yTy = yTy + y[t, k]*y[t, k]
@@ -218,7 +217,7 @@ class RJMCMCBeamformer(DetectionReader):
                 sumcossq = 0
                 sumsincos = 0
 
-                for t in range(0, L):
+                for t in range(0, self.window_size):
                     sumsinsq = sumsinsq \
                         + math.sin(2*math.pi*t*self.omega/self.fs) \
                         * math.sin(2*math.pi*t*self.omega/self.fs)
@@ -229,7 +228,7 @@ class RJMCMCBeamformer(DetectionReader):
                         + math.sin(2*math.pi*t*self.omega/self.fs) \
                         * math.cos(2*math.pi*t*self.omega/self.fs)
                 sumsincos = 0
-                old_logp = self.log_prob(noise, params, K, y, L, sinTy, cosTy, yTy,
+                old_logp = self.log_prob(noise, params, K, y, sinTy, cosTy, yTy,
                                          sumsinsq, sumcossq, sumsincos, N)
                 n = 0
 
@@ -238,7 +237,7 @@ class RJMCMCBeamformer(DetectionReader):
                     [p_params, p_K, Qratio] = self.proposal_func(params, K, p_params,
                                                                  self.max_targets)
                     if p_K != 0:
-                        new_logp = self.log_prob(p_noise, p_params, p_K, y, L, sinTy, cosTy, yTy,
+                        new_logp = self.log_prob(p_noise, p_params, p_K, y, sinTy, cosTy, yTy,
                                                  sumsinsq, sumcossq, sumsincos, N)
                         logA = new_logp - old_logp + np.log(Qratio)
 
@@ -364,13 +363,13 @@ class RJMCMCBeamformer(DetectionReader):
                 covar = CovarianceMatrix(np.array([[1, 0], [0, 1]]))
                 measurement_model = LinearGaussian(ndim_state=4, mapping=[0, 2],
                                                    noise_covar=covar)
-                current_time = current_time + timedelta(milliseconds=1000*L/self.fs)
+                current_time = current_time + timedelta(milliseconds=1000*self.window_size/self.fs)
                 detection = Detection(state_vector, timestamp=current_time,
                                       measurement_model=measurement_model)
 
                 yield current_time, {detection}
 
-    def log_prob(self, p_noise, p_params, p_K, y, T, sinTy, cosTy, yTy, sumsinsq, sumcossq,
+    def log_prob(self, p_noise, p_params, p_K, y, sinTy, cosTy, yTy, sumsinsq, sumcossq,
                  sumsincos, N):
         """Calculates the log probability of the unnormalised posterior distribution for a given
         set of parameters and data.
