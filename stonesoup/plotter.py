@@ -220,7 +220,7 @@ class Plotter:
         lines with point markers and default colors. Uncertainty bars are plotted
         with a default color which is the same for all tracks.
 
-        Users can change linestyle, color and marker using keyword arguments. Uncertainty ellipses/bars
+        Users can change linestyle, color and marker using keyword arguments. Uncertainty metrics
         will also be plotted with the user defined colour and any changes will apply to all tracks.
 
         Parameters
