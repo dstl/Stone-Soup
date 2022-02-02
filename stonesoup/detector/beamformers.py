@@ -44,6 +44,7 @@ class CaponBeamformer(DetectionReader):
     (1969)
 
     """
+
     path: Path = Property(doc='The path to the csv file containing the raw data')
     fs: float = Property(doc='Sampling frequency (Hz)')
     loc_path: Path = Property(doc='The path to the csv file containing the Cartesian coordinates\
@@ -136,6 +137,7 @@ class RJMCMCBeamformer(DetectionReader):
     Networks, Neural Computation 13:2359–2407 (2001)
 
     """
+
     path: str = Property(doc='The path to the csv file, containing the raw data')
     fs: float = Property(doc='Sampling frequency (Hz)')
     loc_path: Path = Property(doc='The path to the csv file containing the Cartesian coordinates\
