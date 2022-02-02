@@ -11,6 +11,7 @@ The relative sensor locations is passed to each algorithm in a separate csv file
 lists the Cartesian coordinates for each time window.
 
 """
+
 import csv
 import copy
 import math
@@ -373,7 +374,35 @@ class RJMCMCBeamformer(DetectionReader):
         """Calculates the log probability of the unnormalised posterior distribution for a given
         set of parameters and data.
 
+        Parameters
+        ==========
+        p_params : :class:`Sequence[StateVector]`
+            A sequence of the proposed bearings and elevations for each target.
+        p_K : int
+            The proposed number of targets.
+        sinTy: numpy.ndarray
+            Array of dot products between the sine wave at the given frequency and the sensor data.
+        cosTy: numpy.ndarray
+            Array of dot products between the cosine wave at the given frequency and the sensor
+            data.
+        yTy: numpy.ndarray
+            Array of dot products between the data for each sensor.
+        sumsinsq: float
+            Sum over the square of the sine wave at the given frequency.
+        sumcossq: float
+            Sum over the square of the cosine wave at the given frequency.
+        sumsincos: float
+            Sum over the sine wave multiplied by the cos wave at the given frequency.
+        N: int
+            Number of data points summed over all of the sensors.
+
+        Returns
+        =======
+        : float
+            The value of the log joint probability distribution for the given parameters.
+
         """
+
         DTy = np.zeros(p_K)
         DTD = np.zeros((p_K, p_K))
         sinalpha = np.zeros((p_K, self.num_sensors))
@@ -425,7 +454,20 @@ class RJMCMCBeamformer(DetectionReader):
         duplicate modes across the posterior probability distribution. This function uses a coin
         toss to jump to another mode to ensure full and unbiased exploration of the Markov chain.
 
+        Parameters
+        ==========
+        p_params : :class:`Sequence[StateVector]`
+            A sequence of the current bearings and elevations for each target.
+        p_K : int
+            Current number of targets.
+
+        Returns
+        =======
+        : :class:`Sequence[StateVector]`
+            A sequence of the bearings and elevations for each target.
+
         """
+
         for k in range(0, p_K):
             # transform to first mode
             if p_params[k][0] > 3*math.pi/2:
@@ -471,7 +513,24 @@ class RJMCMCBeamformer(DetectionReader):
         sampled from a uniform distribution. Gaussian probability densities are used to make new
         proposals centred on the current parameter values.
 
+        Parameters
+        ==========
+        params : :class:`Sequence[StateVector]`
+            A sequence of the current bearings and elevations for each target.
+        K : int
+            Current number of targets.
+        p_params: :class:`Sequence[StateVector]`
+            A sequence to store the proposed bearings and elevations for each target.
+
+        Returns
+        =======
+        : :class:`Sequence[StateVector]`
+            A sequence of the proposed bearings and elevations for each target.
+        : int
+            The proposed number of targets.
+
         """
+
         p_K = 0
         # choose random phase (assuming constant frequency)
         if len(params) == 0:
@@ -503,9 +562,30 @@ class RJMCMCBeamformer(DetectionReader):
         further coin toss decides whether the proposed move is a birth or death move (adding or
         removing a target).
 
+        Parameters
+        ==========
+        params : :class:`Sequence[StateVector]`
+            A sequence of the current bearings and elevations for each target.
+        K : int
+            Current number of targets.
+        p_params: :class:`Sequence[StateVector]`
+            A sequence to store the proposed bearings and elevations for each target.
+        max_targets: int
+            Maximum number of targets.
+
+        Returns
+        =======
+        : :class:`Sequence[StateVector]`
+            A sequence of the proposed bearings and elevations for each target.
+        : int
+            The proposed number of targets.
+        : float
+            Ratio of proposal probabilities for forwards and backwards moves.
+
         """
+
         # update_type = uniform.rvs(random_state=self.random_state)
-        Qratio = 1  # ratio of proposal probabilities for forwards and backwards moves
+        Qratio = 1.0  # ratio of proposal probabilities for forwards and backwards moves
         update_type = 1  # forced temporarily (for single-target examples)
         if update_type > 0.5:
             # update params
@@ -520,7 +600,7 @@ class RJMCMCBeamformer(DetectionReader):
                     if K == 1:
                         Qratio = 0.5  # death moves not possible for K=1
                     if K == max_targets-1:
-                        Qratio = 2  # birth moves not possible for K=max_targets
+                        Qratio = 2.0  # birth moves not possible for K=max_targets
                     [p_temp, K_temp] = self.proposal([], 1, p_params)
                     p_params = copy.deepcopy(params)
                     p_params[K] = p_temp[0]
@@ -531,7 +611,7 @@ class RJMCMCBeamformer(DetectionReader):
                     if K == max_targets:
                         Qratio = 0.5  # birth moves not possible for K=max_targets
                     if K == 2:
-                        Qratio = 2  # death moves not possible for K=1
+                        Qratio = 2.0  # death moves not possible for K=1
                     death_select = int(np.ceil(K*uniform.rvs(random_state=self.random_state)))
                     if death_select > 1:
                         if death_select < K:
