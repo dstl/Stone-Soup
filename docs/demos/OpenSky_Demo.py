@@ -74,7 +74,7 @@ from stonesoup.types.state import State
 from stonesoup.platform.base import FixedPlatform, MultiTransitionMovingPlatform
 from stonesoup.simulator.platform import PlatformDetectionSimulator
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel,\
-    ConstantVelocity, ConstantTurn
+    ConstantVelocity, KnownTurnRate
 
 # Create locations for reference later
 
@@ -89,10 +89,10 @@ transition_modelStraight = CombinedLinearGaussianTransitionModel((ConstantVeloci
                                                                   ConstantVelocity(0.01),
                                                                   ConstantVelocity(0.01)))
 
-transition_modelLeft = CombinedLinearGaussianTransitionModel((ConstantTurn((0.01, 0.01),
+transition_modelLeft = CombinedLinearGaussianTransitionModel((KnownTurnRate((0.01, 0.01),
                                                               np.radians(3)), ConstantVelocity(0.01)))
 
-transition_modelRight = CombinedLinearGaussianTransitionModel((ConstantTurn((0.01,0.01),
+transition_modelRight = CombinedLinearGaussianTransitionModel((KnownTurnRate((0.01,0.01),
                                                                np.radians(-3)), ConstantVelocity(0.01)))
 
 # Create specific transition model for example moving platform
