@@ -10,14 +10,10 @@ Tracking Groundtruth ADS-B Data by Simulating Radar Detections
 # ------------
 # Our goal in this demonstration is to plot time series data of Stone Soup's :class:`~.MultiTargetTracker`
 # being applied to air traffic over and surrounding the UK.
-# To do this, we will be using a CSV file of ADS–B data sourced from `The OpenSky Network`_ [#]_ [#]_.
-# This data will be used as our groundtruth. We will be simulate radar detections, and establish
-# the individual components
-#
-#
-#
-# required for our tracker, including simulating radar detection data from our groundtruth, and
-# plot these tracks using the Folium plugin `TimestampedGeoJson`_.
+# We will establish the individual components required for our tracker, including simulating radar
+# detection data from our groundtruth, which will be read in from a CSV file of ADS–B data sourced
+# from `The OpenSky Network`_ [#]_ [#]_. Finally, we will plot our tracks using the Folium plugin
+# `TimestampedGeoJson`_.
 #
 # .. _The OpenSky Network: https://www.opensky-network.org
 # .. _TimestampedGeoJson:  https://python-visualization.github.io/folium/plugins.html
@@ -260,9 +256,9 @@ len(tracks)
 import folium
 
 m = folium.Map(
-    location=[52.41, -0.4543], zoom_start=6,
-    tiles='http://{s}.tiles.wmflabs.org/bw-mapnik/{z}/{x}/{y}.png',
-    attr='&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>')
+    location=[52.41, -0.4543], zoom_start=6)
+
+folium.TileLayer('openstreetmap').add_to(m)
 
 
 folium.Marker([51.47, -0.4543],
@@ -560,7 +556,7 @@ TimestampedGeoJson(
 
 # %%
 
-# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/OpenSky_thumb.png'
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/OpenSky_openstreet_thumb.png'
 
 m
 
