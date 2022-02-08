@@ -20,9 +20,9 @@ from ...types.update import GaussianStateUpdate
 @pytest.fixture()
 def initiator():
     class TestInitiator:
-        def initiate(self, unassociated_detections):
+        def initiate(self, detections, timestamp):
             return {Track([detection])
-                    for detection in unassociated_detections}
+                    for detection in detections}
     return TestInitiator()
 
 
@@ -57,11 +57,11 @@ def detector():
 @pytest.fixture()
 def data_associator():
     class TestDataAssociator:
-        def associate(self, tracks, detections, time):
+        def associate(self, tracks, detections, timestamp):
             associations = {}
             for track in tracks:
                 prediction = GaussianStatePrediction(track.state_vector + 1,
-                                                     [[5]], time)
+                                                     [[5]], timestamp)
                 measurement_prediction = StateMeasurementPrediction(
                     prediction.state_vector)
                 for detection in detections:
@@ -81,11 +81,11 @@ def data_associator():
 @pytest.fixture()
 def data_mixture_associator():
     class TestDataMixtureAssociator:
-        def associate(self, tracks, detections, time):
+        def associate(self, tracks, detections, timestamp):
             associations = {}
             for track in tracks:
                 prediction = GaussianStatePrediction(track.state_vector + 1,
-                                                     [[5]], time)
+                                                     [[5]], timestamp)
                 measurement_prediction = StateMeasurementPrediction(
                     prediction.state_vector)
                 multihypothesis = []
@@ -100,7 +100,7 @@ def data_mixture_associator():
                             ))
                         multihypothesis.append(
                             SingleProbabilityHypothesis(
-                                prediction, MissedDetection(timestamp=time),
+                                prediction, MissedDetection(timestamp=timestamp),
                                 measurement_prediction=measurement_prediction,
                                 probability=0.1
                             ))
@@ -108,7 +108,7 @@ def data_mixture_associator():
                 else:
                     multihypothesis.append(
                         SingleProbabilityHypothesis(
-                            prediction, MissedDetection(timestamp=time),
+                            prediction, MissedDetection(timestamp=timestamp),
                             measurement_prediction=measurement_prediction,
                             probability=0.1
                         ))

@@ -28,8 +28,8 @@ class YAMLWriter(Writer):
 
         yaml = YAML()
         # Required as will be writing multiple documents to file
-        yaml._yaml.explicit_start = True
-        yaml._yaml.explicit_end = True
+        yaml.explicit_start = True
+        yaml.explicit_end = True
         self._yaml = yaml
 
     def write(self):

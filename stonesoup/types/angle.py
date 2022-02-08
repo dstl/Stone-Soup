@@ -6,6 +6,7 @@ from math import trunc, ceil, floor
 import numpy as np
 
 from ..functions import mod_bearing, mod_elevation
+from ..functions.orbital import mod_inclination, mod_elongitude
 
 
 class Angle(Real):
@@ -206,3 +207,27 @@ class Latitude(Elevation):
     The return type for addition and subtraction is Latitude.
     Multiplication or division produces a float object rather than Latitude.
     """
+
+
+class Inclination(Angle):
+    """(Orbital) Inclination angle class.
+
+    Inclination handles modulo arithmetic for adding and subtracting angles.
+    The return type for addition and subtraction is Inclination.
+    Multiplication or division produces a float object rather than Inclination.
+    """
+    @staticmethod
+    def mod_angle(value):
+        return mod_inclination(value)
+
+
+class EclipticLongitude(Angle):
+    """(Orbital) Ecliptic Longitude angle class.
+
+    Ecliptic Longitude handles modulo arithmetic for adding and subtracting angles.
+    The return type for addition and subtraction is Ecliptic Longitude.
+    Multiplication or division produces a float object rather than Ecliptic Longitude.
+    """
+    @staticmethod
+    def mod_angle(value):
+        return mod_elongitude(value)

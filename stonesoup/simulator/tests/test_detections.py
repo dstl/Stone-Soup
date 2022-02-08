@@ -45,6 +45,18 @@ def test_simple_detection_simulator(
 
     assert simulate_detections.clutter_spatial_density == 3e-8
 
+    # Check random seed gives consistent results
+    simulate_detections1 = SimpleDetectionSimulator(
+        groundtruth, measurement_model, meas_range, clutter_rate=3, seed=1)
+    simulate_detections2 = SimpleDetectionSimulator(
+        groundtruth, measurement_model, meas_range, clutter_rate=3, seed=1)
+
+    for (_, detections1), (_, detections2) in zip(simulate_detections1, simulate_detections2):
+        state_vectors1 = tuple(tuple(det.state_vector) for det in detections1)
+        state_vectors2 = tuple(tuple(det.state_vector) for det in detections2)
+        for sv in state_vectors1:
+            assert sv in state_vectors2
+
 
 def test_switch_detection_simulator(
         transition_model1, transition_model2, measurement_model, timestep):

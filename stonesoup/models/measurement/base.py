@@ -13,11 +13,11 @@ class MeasurementModel(Model, ABC):
     mapping: Sequence[int] = Property(doc="Mapping between measurement and state dims")
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         return self.ndim_meas
 
     @property
     @abstractmethod
-    def ndim_meas(self):
+    def ndim_meas(self) -> int:
         """Number of measurement dimensions"""
         pass

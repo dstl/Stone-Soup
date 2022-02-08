@@ -48,7 +48,7 @@ class Plotter:
         self.handles_list = []
         self.labels_list = []
 
-    def plot_ground_truths(self, truths, mapping, **kwargs):
+    def plot_ground_truths(self, truths, mapping, truths_label="Ground Truth", **kwargs):
         """Plots ground truth(s)
 
         Plots each ground truth path passed in to :attr:`truths` and generates a legend
@@ -81,14 +81,14 @@ class Plotter:
 
         # Generate legend items
         truths_handle = Line2D([], [], linestyle=truths_kwargs['linestyle'], color='black')
-        truths_label = "Ground Truth"
         self.handles_list.append(truths_handle)
         self.labels_list.append(truths_label)
 
         # Generate legend
         self.ax.legend(handles=self.handles_list, labels=self.labels_list)
 
-    def plot_measurements(self, measurements, mapping, measurement_model=None, **kwargs):
+    def plot_measurements(self, measurements, mapping, measurement_model=None,
+                          measurements_label="Measurements", **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -115,15 +115,13 @@ class Plotter:
         measurement_kwargs = dict(marker='o', color='b')
         measurement_kwargs.update(kwargs)
 
-        measurements_handle = Line2D([], [], linestyle='', **measurement_kwargs)
-        measurements_label = "Measurements"
-        clutter_handle = None
-        clutter_label = None
-
         if any(isinstance(item, set) for item in measurements):
             measurements_set = chain.from_iterable(measurements)  # Flatten into one set
         else:
             measurements_set = measurements
+
+        plot_detections = []
+        plot_clutter = []
 
         for state in measurements_set:
             meas_model = state.measurement_model  # measurement_model from detections
@@ -148,25 +146,30 @@ class Plotter:
 
             if isinstance(state, detection.Clutter):
                 # Plot clutter
-                self.ax.scatter(*state_vec[mapping],
-                                color='y', marker='2')
-                if clutter_handle is None:
-                    clutter_handle = Line2D([], [], linestyle='', marker='2', color='y')
-                    clutter_label = "Clutter"
+                plot_clutter.append((*state_vec[mapping], ))
 
             elif isinstance(state, detection.Detection):
                 # Plot detections
-                self.ax.scatter(*state_vec[mapping],
-                                **measurement_kwargs)
+                plot_detections.append((*state_vec[mapping], ))
             else:
                 warnings.warn(f'Unknown type {type(state)}')
                 continue
 
-        # Generate legend items for measurements
-        self.handles_list.append(measurements_handle)
-        self.labels_list.append(measurements_label)
+        if plot_detections:
+            detection_array = np.array(plot_detections)
+            self.ax.scatter(detection_array[:, 0], detection_array[:, 1], **measurement_kwargs)
+            measurements_handle = Line2D([], [], linestyle='', **measurement_kwargs)
 
-        if clutter_handle is not None:
+            # Generate legend items for measurements
+            self.handles_list.append(measurements_handle)
+            self.labels_list.append(measurements_label)
+
+        if plot_clutter:
+            clutter_array = np.array(plot_clutter)
+            self.ax.scatter(clutter_array[:, 0], clutter_array[:, 1], color='y', marker='2')
+            clutter_handle = Line2D([], [], linestyle='', marker='2', color='y')
+            clutter_label = "Clutter"
+
             # Generate legend items for clutter
             self.handles_list.append(clutter_handle)
             self.labels_list.append(clutter_label)
@@ -174,7 +177,8 @@ class Plotter:
         # Generate legend
         self.ax.legend(handles=self.handles_list, labels=self.labels_list)
 
-    def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, **kwargs):
+    def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, track_label="Track",
+                    **kwargs):
         """Plots track(s)
 
         Plots each track generated, generating a legend automatically. If ``uncertainty=True``,
@@ -196,6 +200,8 @@ class Plotter:
             If True, function plots uncertainty ellipses.
         particle : bool
             If True, function plots particles.
+        track_label: str
+            Label to apply to all tracks for legend.
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function. Defaults are ``linestyle="-"``,
             ``marker='.'`` and ``color=None``.
@@ -207,15 +213,20 @@ class Plotter:
             tracks = {tracks}  # Make a set of length 1
 
         # Plot tracks
+        track_colors = {}
         for track in tracks:
-            self.ax.plot([state.state_vector[mapping[0]] for state in track],
-                         [state.state_vector[mapping[1]] for state in track],
-                         **tracks_kwargs)
+            line = self.ax.plot([state.state_vector[mapping[0]] for state in track],
+                                [state.state_vector[mapping[1]] for state in track],
+                                **tracks_kwargs)
+            track_colors[track] = plt.getp(line[0], 'color')
+
+        # Assuming a single track or all plotted as the same colour then the following will work.
+        # Otherwise will just render the final track colour.
+        tracks_kwargs['color'] = plt.getp(line[0], 'color')
 
         # Generate legend items for track
         track_handle = Line2D([], [], linestyle=tracks_kwargs['linestyle'],
-                              marker=tracks_kwargs['marker'], color='black')
-        track_label = "Track"
+                              marker=tracks_kwargs['marker'], color=tracks_kwargs['color'])
         self.handles_list.append(track_handle)
         self.labels_list.append(track_label)
 
@@ -228,11 +239,11 @@ class Plotter:
                     max_ind = np.argmax(w)
                     min_ind = np.argmin(w)
                     orient = np.arctan2(v[1, max_ind], v[0, max_ind])
-                    ellipse = Ellipse(xy=(state.state_vector[0], state.state_vector[2]),
+                    ellipse = Ellipse(xy=state.state_vector[mapping[:2], 0],
                                       width=2 * np.sqrt(w[max_ind]),
                                       height=2 * np.sqrt(w[min_ind]),
                                       angle=np.rad2deg(orient), alpha=0.2,
-                                      color=tracks_kwargs['color'])
+                                      color=track_colors[track])
                     self.ax.add_artist(ellipse)
 
             # Generate legend items for uncertainty ellipses
@@ -250,8 +261,8 @@ class Plotter:
             # Plot particles
             for track in tracks:
                 for state in track:
-                    data = np.array([particle.state_vector for particle in state.particles])
-                    self.ax.plot(data[:, 0], data[:, 2], linestyle='', marker=".",
+                    data = state.particles.state_vector[mapping[:2], :]
+                    self.ax.plot(data[0], data[1], linestyle='', marker=".",
                                  markersize=1, alpha=0.5)
 
             # Generate legend items for particles

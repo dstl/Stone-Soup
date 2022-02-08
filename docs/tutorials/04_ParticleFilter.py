@@ -159,23 +159,25 @@ updater = ParticleUpdater(measurement_model, resampler)
 
 from scipy.stats import multivariate_normal
 
-from stonesoup.types.particle import Particle
+from stonesoup.types.particle import Particles
 from stonesoup.types.numeric import Probability  # Similar to a float type
 from stonesoup.types.state import ParticleState
+from stonesoup.types.array import StateVectors
 
-number_particles = 200
+number_particles = 1000
 
 # Sample from the prior Gaussian distribution
 samples = multivariate_normal.rvs(np.array([0, 1, 0, 1]),
                                   np.diag([1.5, 0.5, 1.5, 0.5]),
                                   size=number_particles)
 
-particles = [
-    Particle(sample.reshape(-1, 1), weight=Probability(1/number_particles)) for sample in samples]
+# Create state vectors and weights for particles
+particles = Particles(state_vector=StateVectors(samples.T),
+                      weight=np.array([Probability(1/number_particles)]*number_particles)
+                      )
 
 # Create prior particle state.
 prior = ParticleState(particles, timestamp=start_time)
-
 # %%
 # Run the tracker
 # ^^^^^^^^^^^^^^^
@@ -198,8 +200,6 @@ for measurement in measurements:
 plotter.plot_tracks(track, [0, 2], particle=True)
 plotter.fig
 
-# sphinx_gallery_thumbnail_number = 3
-
 # %%
 # Key points
 # ----------
@@ -218,3 +218,5 @@ plotter.fig
 #
 # .. [#] Carpenter J., Clifford P., Fearnhead P. 1999, An improved particle filter for non-linear
 #        problems, IEE Proc., Radar Sonar Navigation, 146:2–7
+
+# sphinx_gallery_thumbnail_number = 3

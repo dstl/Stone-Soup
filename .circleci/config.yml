@@ -3,31 +3,32 @@ workflows:
   version: 2
   test:
     jobs:
-      - test-36
       - test-37
       - test-38
       - test-39
+      - test-310
   docs:
     jobs:
       - docs
 jobs:
-  test-36: &test-template
+  test-37: &test-template
     docker:
-      - image: circleci/python:3.6
+      - image: cimg/python:3.7
     steps:
       - checkout
       - restore_cache:
-          key: v1-dependencies-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
+          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
       - run:
           name: Install Dependencies
           command: |
-            python3 -m venv venv
+            python -m venv venv
             . venv/bin/activate
+            pip install --upgrade pip
             pip install -e .[dev]
       - save_cache:
           paths:
             - ./venv
-          key: v1-dependencies-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
+          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
       - run:
           name: Run Tests
           command: |
@@ -45,35 +46,36 @@ jobs:
               -f test-reports/coverage.xml \
               -F unittests \
               -n ${CIRCLE_BUILD_NUM}
-  test-37:
-    <<: *test-template
-    docker:
-      - image: circleci/python:3.7
   test-38:
     <<: *test-template
     docker:
-      - image: circleci/python:3.8
+      - image: cimg/python:3.8
   test-39:
     <<: *test-template
     docker:
-      - image: circleci/python:3.9
+      - image: cimg/python:3.9
+  test-310:
+    <<: *test-template
+    docker:
+      - image: cimg/python:3.10
   docs:
     docker:
-      - image: circleci/python:3.9
+      - image: cimg/python:3.10
     steps:
       - checkout
       - restore_cache:
-          key: v1-dependencies-test-39-{{ checksum "setup.py" }}
+          key: dependencies-{{ .Environment.CACHE_VERSION }}-test-310-{{ checksum "setup.py" }}
       - run:
           name: Install Dependencies
           command: |
-            python3 -m venv venv
+            python -m venv venv
             . venv/bin/activate
+            pip install --upgrade pip
             pip install -e .[dev]
       - save_cache:
           paths:
             - ./venv
-          key: v1-dependencies-test-39-{{ checksum "setup.py" }}
+          key: dependencies-{{ .Environment.CACHE_VERSION }}-test-310-{{ checksum "setup.py" }}
       - run:
           name: Build Docs
           command: |

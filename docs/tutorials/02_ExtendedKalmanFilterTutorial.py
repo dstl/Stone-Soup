@@ -192,8 +192,6 @@ for measurement in measurements:
 plotter.plot_tracks(track, [0, 2], uncertainty=True)
 plotter.fig
 
-# sphinx_gallery_thumbnail_number = 3
-
 # %%
 # Key points
 # ----------
@@ -217,3 +215,5 @@ plotter.fig
 # ----------
 # .. [#] Anderson & Moore 2012, Optimal filtering,
 #        (http://users.cecs.anu.edu.au/~john/papers/BOOK/B02.PDF)
+
+# sphinx_gallery_thumbnail_number = 3

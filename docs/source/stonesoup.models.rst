@@ -3,6 +3,7 @@ Models
 
 .. toctree::
 
+    stonesoup.models.clutter
     stonesoup.models.control
     stonesoup.models.measurement
     stonesoup.models.transition

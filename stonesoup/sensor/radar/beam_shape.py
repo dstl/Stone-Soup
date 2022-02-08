@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from abc import abstractmethod
 
 import numpy as np
 
@@ -9,7 +10,8 @@ class BeamShape(Base):
     """Base class for beam shape"""
     peak_power: float = Property(doc="peak power of the main lobe in Watts")
 
-    def beam_power(self, azimuth, elevation, **kwargs):
+    @abstractmethod
+    def beam_power(self, azimuth, elevation, beam_width, **kwargs):
         """beam power sent in the direction of the target.
         azimuth = elevation = 0 for center of beam"""
         raise NotImplementedError
@@ -28,9 +30,10 @@ class Beam2DGaussian(BeamShape):
      from the centre. :math:`B_w` is the beam width and :math:`P_p` is the peak
      power.
      """
-    beam_width: float = Property(default=None, doc='Width of the radar beam')
+    # Full width half maximum
+    FWHM = 2 * np.sqrt(2 * np.log(2))
 
-    def beam_power(self, azimuth, elevation, **kwargs):
+    def beam_power(self, azimuth, elevation, beam_width, **kwargs):
         """
         Parameters
         ----------
@@ -40,6 +43,8 @@ class Beam2DGaussian(BeamShape):
         elevation : `float`
             The angle of the target away from the boresight of the radar in
             elevation
+        beam_width: `float`
+            The width of the radar beam
 
         Returns
         -------
@@ -47,5 +52,4 @@ class Beam2DGaussian(BeamShape):
             the power directed towards the target
         """
         return self.peak_power * np.exp(
-            -0.5 * ((azimuth / (self.beam_width / 2.35482)) ** 2 +
-                    (elevation / (self.beam_width / 2.35482)) ** 2))
+            -0.5 * ((azimuth/beam_width*self.FWHM)**2 + (elevation/beam_width*self.FWHM)**2))

@@ -11,6 +11,7 @@ Stone Soup Framework
     stonesoup.functions
     stonesoup.measures
     stonesoup.plotter
+    stonesoup.plugins
     stonesoup.serialise
 
 Components
@@ -25,13 +26,12 @@ Enabling Components
     stonesoup.detector
     stonesoup.feeder
     stonesoup.metricgenerator
+    stonesoup.platform
     stonesoup.reader
+    stonesoup.sensor
     stonesoup.simulator
-    stonesoup.smoother
     stonesoup.tracker
     stonesoup.writer
-    stonesoup.platform
-    stonesoup.sensor
 
 Algorithm Components
 ^^^^^^^^^^^^^^^^^^^^
@@ -46,6 +46,7 @@ Algorithm Components
     stonesoup.models
     stonesoup.predictor
     stonesoup.resampler
+    stonesoup.smoother
     stonesoup.updater
 
 Data Types

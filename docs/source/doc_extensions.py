@@ -60,8 +60,15 @@ def declarative_class(app, what, name, obj, options, lines):
             param_index += len(new_lines)
 
 
+def shorten_type_hints(app, what, name, obj, options, signature, return_annotation):
+    if signature is not None:
+        signature = STONESOUP_TYPE_REGEX.sub('', signature)
+    return signature, return_annotation
+
+
 def setup(app):
     app.connect('autodoc-process-docstring', declarative_class)
+    app.connect('autodoc-process-signature', shorten_type_hints)
 
 
 import os
@@ -77,6 +84,7 @@ from sphinx_gallery.scrapers import (
 class gallery_scraper():
     def __init__(self):
         self.plotted_figures = set()
+        self.current_src_file = None
 
     def __call__(self, block, block_vars, gallery_conf, **kwargs):
         """Scrape Matplotlib images.
@@ -102,6 +110,13 @@ class gallery_scraper():
             The ReSTructuredText that will be rendered to HTML containing
             the images. This is often produced by :func:`figure_rst`.
         """
+        # New file, so close all currently open figures
+        if block_vars['src_file'] != self.current_src_file:
+            for fig in self.plotted_figures:
+                plt.close(fig)
+            self.plotted_figures = set()
+            self.current_src_file = block_vars['src_file']
+
         from matplotlib.animation import Animation
         from matplotlib.figure import Figure
         image_path_iterator = block_vars['image_path_iterator']

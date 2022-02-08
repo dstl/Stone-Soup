@@ -174,11 +174,11 @@ platform.sensors
 # platform functionality which is shown in a subsequent example.
 #
 # We can also check to ensure that the default mounting_offsets have been applied:
-platform.mounting_offsets
+radar.mounting_offset
 
 # %%
 # And that the rotation_offsets have been applied:
-platform.rotation_offsets
+radar.rotation_offset
 
 # %%
 # Building a simulation
@@ -274,7 +274,7 @@ from stonesoup.types.hypothesis import SingleHypothesis
 
 
 class Initiator(SimpleMeasurementInitiator):
-    def initiate(self, detections, **kwargs):
+    def initiate(self, detections, timestamp, **kwargs):
         MAX_DEV = 500.
         tracks = set()
         measurement_model = self.measurement_model

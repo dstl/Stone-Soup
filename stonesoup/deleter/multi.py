@@ -23,18 +23,6 @@ class CompositeDeleter(Deleter):
             "deletion results. Default is `True`, applying an intersection.")
 
     def check_for_deletion(self, track, **kwargs):
-        """Check if a given track should be deleted.
-
-        Parameters
-        ----------
-        track : :class:`stonesoup.types.Track`
-            A track object to be checked for deletion.
-
-        Returns
-        -------
-        : :class:`bool`
-            `True` if track should be deleted, `False` otherwise.
-        """
         if self.intersect:
             for deleter in self.deleters:
                 if not deleter.check_for_deletion(track, **kwargs):

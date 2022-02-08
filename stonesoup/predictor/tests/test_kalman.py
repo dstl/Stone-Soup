@@ -67,6 +67,9 @@ def test_kalman(PredictorClass, transition_model,
     prediction = predictor.predict(prior=prior,
                                    timestamp=new_timestamp)
 
+    # Assert presence of transition model
+    assert hasattr(prediction, 'transition_model')
+
     assert np.allclose(prediction.mean,
                        eval_prediction.mean, 0, atol=1.e-14)
     assert np.allclose(prediction.covar,
@@ -124,6 +127,9 @@ def test_sqrt_kalman():
     prediction = predictor.predict(prior=prior, timestamp=new_timestamp)
     sqrt_prediction = sqrt_predictor.predict(prior=sqrt_prior,
                                              timestamp=new_timestamp)
+
+    # Assert presence of transition model
+    assert hasattr(prediction, 'transition_model')
 
     assert np.allclose(prediction.mean, sqrt_prediction.mean, 0, atol=1.e-14)
     assert np.allclose(prediction.covar,

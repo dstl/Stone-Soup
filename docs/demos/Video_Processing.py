@@ -58,7 +58,7 @@ Video processing, Object detection & Tracking
 #
 # .. code::
 #
-#     pip install pytube3
+#     pip install pytube
 
 # %%
 # Using the Stone Soup :class:`~.FrameReader` classes

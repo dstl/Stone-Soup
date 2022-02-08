@@ -1,3 +1,9 @@
+img.logo {
+    height: 100px !important;
+}
+.anim-state label {
+    display: inline-block;
+}
 .sphx-glr-thumbcontainer {
     min-height: 320px !important;
     margin: 20px !important;

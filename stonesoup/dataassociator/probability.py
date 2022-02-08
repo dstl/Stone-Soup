@@ -22,28 +22,10 @@ class PDA(DataAssociator):
     hypothesiser: Hypothesiser = Property(
         doc="Generate a set of hypotheses for each prediction-detection pair")
 
-    def associate(self, tracks, detections, time):
-        """Associate detections with predicted states.
-
-        Parameters
-        ----------
-        tracks : list of :class:`Track`
-            Current tracked objects
-        detections : list of :class:`Detection`
-            Retrieved measurements
-        time : datetime
-            Detection time to predict to
-
-        Returns
-        -------
-        dict
-            Key value pair of tracks with associated detection
-        """
+    def associate(self, tracks, detections, timestamp, **kwargs):
 
         # Generate a set of hypotheses for each track on each detection
-        hypotheses = {
-            track: self.hypothesiser.hypothesise(track, detections, time)
-            for track in tracks}
+        hypotheses = self.generate_hypotheses(tracks, detections, timestamp, **kwargs)
 
         # Ensure association probabilities are normalised
         for track, hypothesis in hypotheses.items():
@@ -75,29 +57,11 @@ class JPDA(DataAssociator):
     hypothesiser: PDAHypothesiser = Property(
         doc="Generate a set of hypotheses for each prediction-detection pair")
 
-    def associate(self, tracks, detections, time):
-        """Associate detections with predicted states.
-
-        Parameters
-        ----------
-        tracks : list of :class:`Track`
-            Current tracked objects
-        detections : list of :class:`Detection`
-            Retrieved measurements
-        time : datetime
-            Detection time to predict to
-
-        Returns
-        -------
-        dict
-            Key value pair of tracks with associated detection
-        """
+    def associate(self, tracks, detections, timestamp, **kwargs):
 
         # Calculate MultipleHypothesis for each Track over all
         # available Detections
-        hypotheses = {
-            track: self.hypothesiser.hypothesise(track, detections, time)
-            for track in tracks}
+        hypotheses = self.generate_hypotheses(tracks, detections, timestamp, **kwargs)
 
         # enumerate the Joint Hypotheses of track/detection associations
         joint_hypotheses = \
@@ -120,7 +84,7 @@ class JPDA(DataAssociator):
             single_measurement_hypotheses.append(
                 SingleProbabilityHypothesis(
                     hypotheses[track][0].prediction,
-                    MissedDetection(timestamp=time),
+                    MissedDetection(timestamp=timestamp),
                     measurement_prediction=hypotheses[track][0].measurement_prediction,
                     probability=prob_misdetect))
 

@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
+import itertools
+
 import numpy as np
 
-from .base import DataAssociator
 from ._assignment import assign2D
+from .base import DataAssociator
 from ..base import Property
 from ..hypothesiser import Hypothesiser
-from ..types.hypothesis import SingleHypothesis, SingleProbabilityHypothesis
+from ..types.hypothesis import SingleHypothesis, JointHypothesis, \
+    ProbabilityHypothesis
 
 
 class NearestNeighbour(DataAssociator):
@@ -18,28 +21,10 @@ class NearestNeighbour(DataAssociator):
     hypothesiser: Hypothesiser = Property(
         doc="Generate a set of hypotheses for each prediction-detection pair")
 
-    def associate(self, tracks, detections, time):
-        """Associate detections with predicted states.
-
-        Parameters
-        ----------
-        tracks : list of :class:`Track`
-            Current tracked objects
-        detections : list of :class:`Detection`
-            Retrieved measurements
-        time : datetime
-            Detection time to predict to
-
-        Returns
-        -------
-        dict
-            Key value pair of tracks with associated detection
-        """
+    def associate(self, tracks, detections, timestamp, **kwargs):
 
         # Generate a set of hypotheses for each track on each detection
-        hypotheses = {
-            track: self.hypothesiser.hypothesise(track, detections, time)
-            for track in tracks}
+        hypotheses = self.generate_hypotheses(tracks, detections, timestamp, **kwargs)
 
         # Only associate tracks with one or more hypotheses
         associate_tracks = {track
@@ -79,34 +64,75 @@ class GlobalNearestNeighbour(DataAssociator):
     hypothesiser: Hypothesiser = Property(
         doc="Generate a set of hypotheses for each prediction-detection pair")
 
-    def associate(self, tracks, detections, time):
-        """Associate a set of detections with predicted states.
-
-        Parameters
-        ----------
-        tracks : list of :class:`Track`
-            Current tracked objects
-        detections : list of :class:`Detection`
-            Retrieved measurements
-        time : datetime
-            Detection time to predict to
-
-        Returns
-        -------
-        dict
-            Key value pair of tracks with associated detection
-        """
+    def associate(self, tracks, detections, timestamp, **kwargs):
 
         # Generate a set of hypotheses for each track on each detection
-        hypotheses = {
-            track: self.hypothesiser.hypothesise(track, detections, time)
-            for track in tracks}
+        hypotheses = self.generate_hypotheses(tracks, detections, timestamp, **kwargs)
 
         # Link hypotheses into a set of joint_hypotheses and evaluate
         joint_hypotheses = self.enumerate_joint_hypotheses(hypotheses)
         associations = max(joint_hypotheses)
 
         return associations
+
+    @staticmethod
+    def isvalid(joint_hypothesis):
+        """Determine whether a joint_hypothesis is valid.
+
+        Check the set of hypotheses that define a joint hypothesis to ensure a
+        single detection is not associated to more than one track.
+
+        Parameters
+        ----------
+        joint_hypothesis : :class:`JointHypothesis`
+            A set of hypotheses linking each prediction to a single detection
+
+        Returns
+        -------
+        bool
+            Whether joint_hypothesis is a valid set of hypotheses
+        """
+
+        number_hypotheses = len(joint_hypothesis)
+        unique_hypotheses = len(
+            {hyp.measurement for hyp in joint_hypothesis if hyp})
+        number_null_hypotheses = sum(not hyp for hyp in joint_hypothesis)
+
+        # joint_hypothesis is invalid if one detection is assigned to more than
+        # one prediction. Multiple missed detections are valid.
+        if unique_hypotheses + number_null_hypotheses == number_hypotheses:
+            return True
+        else:
+            return False
+
+    @classmethod
+    def enumerate_joint_hypotheses(cls, hypotheses):
+        """Enumerate the possible joint hypotheses.
+
+        Create a list of all possible joint hypotheses from the individual
+        hypotheses and determine whether each is valid.
+
+        Parameters
+        ----------
+        hypotheses : dict of :class:`~.Track`: :class:`~.Hypothesis`
+            A list of all hypotheses linking predictions to detections,
+            including missed detections
+
+        Returns
+        -------
+        joint_hypotheses : list of :class:`JointHypothesis`
+            A list of all valid joint hypotheses with a score on each
+        """
+
+        # Create a list of dictionaries of valid track-hypothesis pairs
+        joint_hypotheses = [
+            JointHypothesis({
+                track: hypothesis
+                for track, hypothesis in zip(hypotheses, joint_hypothesis)})
+            for joint_hypothesis in itertools.product(*hypotheses.values())
+            if cls.isvalid(joint_hypothesis)]
+
+        return joint_hypotheses
 
 
 class GNNWith2DAssignment(DataAssociator):
@@ -120,7 +146,7 @@ class GNNWith2DAssignment(DataAssociator):
     hypothesiser: Hypothesiser = Property(
         doc="Generate a set of hypotheses for each prediction-detection pair")
 
-    def associate(self, tracks, detections, time):
+    def associate(self, tracks, detections, timestamp, **kwargs):
         """Associate a set of detections with predicted states.
 
         Parameters
@@ -129,7 +155,7 @@ class GNNWith2DAssignment(DataAssociator):
             Current tracked objects
         detections : set of :class:`Detection`
             Retrieved measurements
-        time : datetime
+        timestamp : datetime.datetime
             Detection time to predict to
 
         Returns
@@ -139,9 +165,7 @@ class GNNWith2DAssignment(DataAssociator):
         """
 
         # Generate a set of hypotheses for each track on each detection
-        hypotheses = {
-            track: self.hypothesiser.hypothesise(track, detections, time)
-            for track in tracks}
+        hypotheses = self.generate_hypotheses(tracks, detections, timestamp, **kwargs)
 
         # Create dictionary for associations
         associations = {}
@@ -183,7 +207,7 @@ class GNNWith2DAssignment(DataAssociator):
         # Probability is maximise problem, distance is minimise problem
         # Mixed hypotheses cannot be computed at this time
         hypothesis_types = {
-            isinstance(hypothesis, SingleProbabilityHypothesis)
+            isinstance(hypothesis, ProbabilityHypothesis)
             for row in hypothesis_matrix for hypothesis in row
             if hypothesis is not None}
         if len(hypothesis_types) > 1:

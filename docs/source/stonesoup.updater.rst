@@ -19,8 +19,26 @@ Particle
 .. automodule:: stonesoup.updater.particle
     :show-inheritance:
 
+Information
+-----------
+
+.. automodule:: stonesoup.updater.information
+    :show-inheritance:
+
 Point Process
 -------------
 
 .. automodule:: stonesoup.updater.pointprocess
+    :show-inheritance:
+
+AlphaBeta
+---------
+
+.. automodule:: stonesoup.updater.alphabeta
+    :show-inheritance:
+
+Categorical
+-----------
+
+.. automodule:: stonesoup.updater.categorical
     :show-inheritance:

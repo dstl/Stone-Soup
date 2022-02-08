@@ -35,8 +35,9 @@ from stonesoup.updater.kalman import KalmanUpdater
 
 # Models
 transition_model = CombinedLinearGaussianTransitionModel(
-    [ConstantVelocity(1), ConstantVelocity(1)])
-measurement_model = LinearGaussian(4, [0, 2], np.diag([0.5, 0.5]))
+    [ConstantVelocity(1), ConstantVelocity(1)], seed=1)
+
+measurement_model = LinearGaussian(4, [0, 2], np.diag([0.5, 0.5]), seed=2)
 
 # Simulators
 groundtruth_sim = MultiTargetGroundTruthSimulator(
@@ -47,7 +48,8 @@ groundtruth_sim = MultiTargetGroundTruthSimulator(
     timestep=datetime.timedelta(seconds=5),
     number_steps=100,
     birth_rate=0.2,
-    death_probability=0.05
+    death_probability=0.05,
+    seed=3
 )
 detection_sim = SimpleDetectionSimulator(
     groundtruth=groundtruth_sim,
@@ -55,6 +57,7 @@ detection_sim = SimpleDetectionSimulator(
     meas_range=np.array([[-1, 1], [-1, 1]]) * 5000,  # Area to generate clutter
     detection_probability=0.9,
     clutter_rate=1,
+    seed=4
 )
 
 # Filter
@@ -111,7 +114,8 @@ ospa_generator = OSPAMetric(c=10, p=1, measure=Euclidean([0, 2]))
 # of multiple individual metrics. [#]_
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
 
-siap_generator = SIAPMetrics(position_mapping=[0, 2], velocity_mapping=[1, 3])
+siap_generator = SIAPMetrics(position_measure=Euclidean((0, 2)),
+                             velocity_measure=Euclidean((1, 3)))
 
 # %%
 # The SIAP Metrics requires a way to associate tracks to truth, so we'll use a Track to Truth
@@ -125,7 +129,7 @@ associator = TrackToTruth(association_threshold=30)
 # output of our tracker.
 from stonesoup.metricgenerator.plotter import TwoDPlotter
 
-plot_generator = TwoDPlotter([0, 2], [0, 2], [0, 1])
+plot_generator = TwoDPlotter([0, 2], [0, 2], [0, 2])
 
 # %%
 # Once we've created a set of metrics, these are added to a Metric Manager, along with the
@@ -159,13 +163,13 @@ metrics = metric_manager.generate_metrics()
 # So first we'll loop through the metrics and print out the basic metrics, which simply gives
 # details on number of tracks versus targets.
 for metric in metrics:
-    if not any(s in metric.title for s in ('SIAP', 'OSPA', 'plot')):
-        print("{0.title}: {0.value}".format(metric))
+    if not any(s in metric for s in ('SIAP', 'OSPA', 'plot')):
+        print(f"{metric} : {metrics.get(metric).value}")
 
 # %%
 # Next we'll take a look at the OSPA metric, plotting it to show how it varies over time. In this
 # example, targets are created and remove randomly, so expect this to be fairly variable.
-ospa_metric = {metric for metric in metrics if metric.title == "OSPA distances"}.pop()
+ospa_metric = metrics['OSPA distances']
 
 fig = plt.figure()
 ax = fig.add_subplot(1, 1, 1)
@@ -180,8 +184,11 @@ _ = ax.set_xlabel("Time")
 # indication, as well as provide a description for each metric.
 from stonesoup.metricgenerator.metrictables import SIAPTableGenerator
 
-_ = SIAPTableGenerator(
-    {metric for metric in metrics if metric.title.startswith("SIAP")}).compute_metric()
+siap_averages = {metrics.get(metric) for metric in metrics
+                 if metric.startswith("SIAP") and not metric.endswith(" at times")}
+siap_time_based = {metrics.get(metric) for metric in metrics if metric.endswith(' at times')}
+
+_ = SIAPTableGenerator(siap_averages).compute_metric()
 
 # %%
 # Plotting appropriate SIAP values at each timestamp gives:
@@ -190,25 +197,13 @@ fig2, axes = plt.subplots(5)
 
 fig2.subplots_adjust(hspace=1)
 
-t_siaps = {metric for metric in metrics if metric.title.startswith('T ')}
+t_siaps = siap_time_based
 
 times = metric_manager.list_timestamps()
 
 for siap, axis in zip(t_siaps, axes):
-    name = siap.title[2:]
-    if name == 'C':
-        title = 'Completeness'
-    elif name == 'A':
-        title = 'Ambiguity'
-    elif name == 'S':
-        title = 'Spuriousness'
-    elif name == 'PA':
-        title = 'Positional Accuracy'
-    elif name == 'VA':
-        title = 'Velocity Accuracy'
-    else:
-        raise ValueError(f'Unknown title:{name}')
-    axis.set(title=title, xlabel='Time', ylabel=name)
+    siap_type = siap.title[:-13]  # remove the ' at timestamp' part
+    axis.set(title=siap.title, xlabel='Time', ylabel=siap_type)
     axis.tick_params(length=1)
     axis.plot(times, [t_siap.value for t_siap in siap.value])
 

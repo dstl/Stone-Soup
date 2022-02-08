@@ -99,7 +99,11 @@ from datetime import datetime, timedelta
 # ^^^^^^^^^^^^^^^^^
 #
 # We consider a 2d Cartesian scheme where the state vector is
-# :math:`[x \ \dot{x} \ y \ \dot{y}]^T`. To start we'll create a simple truth path, sampling at 1
+# :math:`[x \ \dot{x} \ y \ \dot{y}]^T`.  That is, we'll model the target motion as a position
+# and velocity component in each dimension. The units used are unimportant, but do need to be
+# consistent.
+#
+# To start we'll create a simple truth path, sampling at 1
 # second intervals. We'll do this by employing one of Stone Soup's native transition models.
 #
 # These inputs are required:
@@ -112,7 +116,7 @@ start_time = datetime.now()
 
 # %%
 # We note that it can sometimes be useful to fix our random number generator in order to probe a
-# particular example repeatedly. That option is available by uncommenting the next line.
+# particular example repeatedly.
 
 np.random.seed(1991)
 
@@ -151,14 +155,17 @@ np.random.seed(1991)
 #                        \end{bmatrix}
 #
 # We want a 2d simulation, so we'll do:
-transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05),
-                                                          ConstantVelocity(0.05)])
+q_x = 0.05
+q_y = 0.05
+transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(q_x),
+                                                          ConstantVelocity(q_y)])
 
 # %%
-# A 'truth path' is created starting at 0,0 moving to the NE
+# A 'truth path' is created starting at (0,0) moving to the NE at one distance unit per (time) step in each dimension.
 truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=start_time)])
 
-for k in range(1, 21):
+num_steps = 20
+for k in range(1, num_steps + 1):
     truth.append(GroundTruthState(
         transition_model.function(truth[k-1], noise=True, time_interval=timedelta(seconds=1)),
         timestamp=start_time+timedelta(seconds=k)))
@@ -169,6 +176,8 @@ for k in range(1, 21):
 # Stone Soup has an in-built plotting class which can be used to plot
 # ground truths, measurements and tracks in a consistent format. It can be accessed by importing
 # the class :class:`Plotter` from Stone Soup as below.
+#
+# Note that the mapping argument is [0, 2] because those are the x and y position indices from our state vector.
 
 from stonesoup.plotter import Plotter
 plotter = Plotter()
@@ -183,7 +192,7 @@ transition_model.matrix(time_interval=timedelta(seconds=1))
 transition_model.covar(time_interval=timedelta(seconds=1))
 
 # %%
-# At this point you can play with the various parameters and see how it effects the simulated
+# At this point you can play with the various parameters and see how it affects the simulated
 # output.
 
 # %%
@@ -242,7 +251,7 @@ for state in truth:
                                   measurement_model=measurement_model))
 
 # %%
-# Plot the result
+# Plot the result, again mapping the x and y position values
 plotter.plot_measurements(measurements, [0, 2])
 plotter.fig
 
@@ -333,10 +342,10 @@ for measurement in measurements:
 # %%
 # Plot the resulting track, including uncertainty ellipses
 
+
 plotter.plot_tracks(track, [0, 2], uncertainty=True)
 plotter.fig
 
-# sphinx_gallery_thumbnail_number = 3
 
 # %%
 # Key points
@@ -357,5 +366,7 @@ plotter.fig
 # .. [#] Kalman 1960, A New Approach to Linear Filtering and Prediction Problems, Transactions of
 #        the ASME, Journal of Basic Engineering, 82 (series D), 35
 #        (https://pdfs.semanticscholar.org/bb55/c1c619c30f939fc792b049172926a4a0c0f7.pdf?_ga=2.51363242.2056055521.1592932441-1812916183.1592932441)
-# .. [#] Anderson & Moore 2012, Optimal filtering,
+# .. [#] Anderson & Moore 1979, Optimal filtering,
 #        (http://users.cecs.anu.edu.au/~john/papers/BOOK/B02.PDF)
+
+# sphinx_gallery_thumbnail_number = 3

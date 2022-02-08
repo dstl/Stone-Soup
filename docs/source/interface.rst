@@ -14,8 +14,6 @@ Enabling Components
     :noindex:
 .. autoclass:: stonesoup.metricgenerator.MetricGenerator
     :noindex:
-.. autoclass:: stonesoup.smoother.Smoother
-    :noindex:
 .. autoclass:: stonesoup.tracker.Tracker
     :noindex:
 
@@ -71,6 +69,8 @@ Algorithm Components
 .. autoclass:: stonesoup.predictor.Predictor
     :noindex:
 .. autoclass:: stonesoup.resampler.Resampler
+    :noindex:
+.. autoclass:: stonesoup.smoother.Smoother
     :noindex:
 .. autoclass:: stonesoup.updater.Updater
     :noindex:
