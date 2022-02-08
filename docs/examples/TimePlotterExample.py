@@ -34,6 +34,7 @@ from stonesoup.types.array import StateVector, CovarianceMatrix
 from stonesoup.types.state import GaussianState
 from stonesoup.updater.kalman import KalmanUpdater
 from stonesoup.plotter import TimeBasedPlotter
+from stonesoup.types.detection import Clutter, TrueDetection
 
 # Models
 transition_model = CombinedLinearGaussianTransitionModel(
@@ -52,7 +53,7 @@ groundtruth_sim = MultiTargetGroundTruthSimulator(
         timestamp=start_time),
     timestep=datetime.timedelta(seconds=5),
     number_steps=200,
-    birth_rate=0.5,
+    birth_rate=0.05,
     death_probability=0.05
 )
 detection_sim = SimpleDetectionSimulator(
@@ -72,7 +73,7 @@ hypothesiser = DistanceHypothesiser(predictor, updater, Mahalanobis(), missed_di
 data_associator = GNNWith2DAssignment(hypothesiser)
 
 # Initiator & Deleter
-deleter = CovarianceBasedDeleter(covar_trace_thresh=1E3)
+deleter = CovarianceBasedDeleter(covar_trace_thresh=1E2)
 initiator = MultiMeasurementInitiator(
     GaussianState(np.array([[0], [0], [0], [0]]),
                   np.diag([0, 100, 0, 1000]),
@@ -81,7 +82,7 @@ initiator = MultiMeasurementInitiator(
     deleter=deleter,
     data_associator=data_associator,
     updater=updater,
-    min_points=3,
+    min_points=5,
 )
 
 # Tracker
@@ -93,16 +94,25 @@ tracker = MultiTargetTracker(
     updater=updater,
 )
 
-for time, tracks in tracker.tracks_gen():
-    pass
+
+groundtruth = set()
+detections = set()
+tracks = set()
+
+for time, ctracks in tracker:
+    groundtruth.update(groundtruth_sim.groundtruth_paths)
+    detections.update(detection_sim.detections)
+    tracks.update(ctracks)
+
 
 all_plotting = []
 colours = colors.cnames
 
-for idx, ground_truth in enumerate(groundtruth_sim.groundtruth_paths):
+for idx, ground_truth in enumerate(groundtruth):
+    #print(ground_truth[0].timestamp, "    ", ground_truth[-1].timestamp)
     all_plotting.append(TimeBasedPlotter(plotting_data=ground_truth.states,
                                          legend_key='Ground Truth'+str(idx),
-                                         linestyle='--', marker='.', alpha=0.5,
+                                         linestyle='--', marker='o', alpha=0.5,
                                          color=random.choice(list(colours.values()))
                                          ))
 
@@ -112,8 +122,37 @@ for idx, track in enumerate(tracks):
                                          color=random.choice(list(colours.values()))
                                          ))
 
+all_plotting.append(TimeBasedPlotter(
+    plotting_data=[detection for detection in detections if isinstance(detection, Clutter)],
+    legend_key='Clutter', linestyle='', marker='o', alpha=0.5
+))
+
+all_plotting.append(TimeBasedPlotter(
+    plotting_data=[detection for detection in detections if isinstance(detection, TrueDetection)],
+    legend_key='True Detections', linestyle='', marker='x', alpha=0.5
+))
+
+
 times_to_plot = [start_time + x * groundtruth_sim.timestep
                  for x in range(groundtruth_sim.number_steps)]
+
+"""
+min_time = min(state.timestamp
+               for tp in all_plotting
+               for state in tp.plotting_data)
+
+max_time = max(state.timestamp
+               for tp in all_plotting
+               for state in tp.plotting_data)
+
+times_to_plot2 = [min_time + x * groundtruth_sim.timestep
+                 for x in range(int(np.ceil((max_time - min_time)/groundtruth_sim.timestep)))]
+
+for time1, time2 in zip(times_to_plot, times_to_plot2):
+    print(time1, "    ", time2)
+"""
+
+
 line_ani = TimeBasedPlotter.run_animation(times_to_plot, all_plotting)
 
 line_ani.save('example.mp4')

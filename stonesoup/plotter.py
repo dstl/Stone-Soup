@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 import copy
 import warnings
 from itertools import chain
-from typing import Iterable
+from typing import Iterable, List, Optional
+from datetime import datetime
+
 
 import numpy as np
 from matplotlib import pyplot as plt, animation as animation
@@ -11,7 +15,7 @@ from matplotlib.legend_handler import HandlerPatch
 
 from stonesoup.base import Base, Property
 from stonesoup.types.detection import Detection
-from stonesoup.types.state import State
+from stonesoup.types.state import State, StateVector
 
 from .types import detection
 from .models.base import LinearModel, NonLinearModel
@@ -124,24 +128,9 @@ class Plotter:
         plot_clutter = []
 
         for state in measurements_set:
-            meas_model = state.measurement_model  # measurement_model from detections
-            if meas_model is None:
-                meas_model = measurement_model  # measurement_model from input
 
-            if isinstance(meas_model, LinearModel):
-                model_matrix = meas_model.matrix()
-                inv_model_matrix = np.linalg.pinv(model_matrix)
-                state_vec = inv_model_matrix @ state.state_vector
-
-            elif isinstance(meas_model, NonLinearModel):
-                try:
-                    state_vec = meas_model.inverse_function(state)
-                except (NotImplementedError, AttributeError):
-                    warnings.warn('Nonlinear measurement model used with no inverse '
-                                  'function available')
-                    continue
-            else:
-                warnings.warn('Measurement model type not specified for all detections')
+            state_vec = convert_detection(state, measurement_model=measurement_model)
+            if state_vec is None:
                 continue
 
             if isinstance(state, detection.Clutter):
@@ -323,11 +312,35 @@ class _HandlerEllipse(HandlerPatch):
         return [p]
 
 
+def convert_detection(state: Detection, measurement_model=None) -> Optional[StateVector]:
+    meas_model = state.measurement_model  # measurement_model from detections
+    if meas_model is None:
+        meas_model = measurement_model  # measurement_model from input
+
+    if isinstance(meas_model, LinearModel):
+        model_matrix = meas_model.matrix()
+        inv_model_matrix = np.linalg.pinv(model_matrix)
+        state_vec = inv_model_matrix @ state.state_vector
+
+    elif isinstance(meas_model, NonLinearModel):
+        try:
+            state_vec = meas_model.inverse_function(state)
+        except (NotImplementedError, AttributeError):
+            warnings.warn('Nonlinear measurement model used with no inverse '
+                          'function available')
+            state_vec = None
+    else:
+        warnings.warn('Measurement model type not specified for all detections')
+        state_vec = None
+
+    return state_vec
+
+
 class TimeBasedPlotter(Base):
 
-    plotting_data: Iterable[State] = Property()
-    legend_key: str = Property(default='Not specified', doc="Todo")
-    plotting_keyword_arguments: dict = Property(default=None, doc='Todo')
+    plotting_data = Property(Iterable[State])
+    legend_key = Property(str, default='Not specified', doc="Todo")
+    plotting_keyword_arguments = Property(dict, default=None, doc='Todo')
 
     def __init__(self, *args, **kwargs):
         class_keywords, plotting_keywords = self.get_plotting_keywords(kwargs)
@@ -361,7 +374,20 @@ class TimeBasedPlotter(Base):
         return class_keywords, plotting_keywords
 
     @staticmethod
-    def run_animation(times_to_plot, data, mapping=(0, 2)):
+    def run_animation(times_to_plot: Iterable[datetime],
+                      data: Iterable[TimeBasedPlotter],
+                      mapping=(0, 2)):
+        """
+
+        Parameters
+        ----------
+        times_to_plot : Iterable[datetime]
+            All the times, that the plotter should plot
+        data : Iterable[datetime]
+            All the data that should be plotted
+        mapping : tuple
+            The indices of the state vector that should be plotted
+        """
 
         fig1 = plt.figure()
 
@@ -388,11 +414,15 @@ class TimeBasedPlotter(Base):
             # else:
             # Do nothing
 
-        plt.xlim([min(state.state_vector[0] for line in data for state in line.plotting_data),
-                  max(state.state_vector[0] for line in data for state in line.plotting_data)])
+        plt.xlim([min(state.state_vector[mapping[0]]
+                      for line in data for state in line.plotting_data),
+                  max(state.state_vector[mapping[0]]
+                      for line in data for state in line.plotting_data)])
 
-        plt.ylim([min(state.state_vector[2] for line in data for state in line.plotting_data),
-                  max(state.state_vector[2] for line in data for state in line.plotting_data)])
+        plt.ylim([min(state.state_vector[mapping[1]]
+                      for line in data for state in line.plotting_data),
+                  max(state.state_vector[mapping[1]]
+                      for line in data for state in line.plotting_data)])
 
         plt.axis('equal')
         plt.xlabel("$x$")
@@ -403,7 +433,7 @@ class TimeBasedPlotter(Base):
 
         line_ani = animation.FuncAnimation(fig1, TimeBasedPlotter.update_animation,
                                            frames=times_to_plot,
-                                           fargs=(the_lines, plotting_data),
+                                           fargs=(the_lines, plotting_data, mapping),
                                            interval=interval_time, blit=False,
                                            repeat=False)
 
@@ -413,15 +443,30 @@ class TimeBasedPlotter(Base):
         return line_ani
 
     @staticmethod
-    def update_animation(timestamp, lines, data_list):
+    def update_animation(timestamp: datetime, lines: List[Line2D], data_list: List[List[State]],
+                         mapping):
+        """
 
+        Parameters
+        ----------
+        timestamp : datetime
+            Show all data points before this time
+        lines : List[Line2D]
+            todo
+        data_list : List[List[State]]
+            All the data that should be plotted
+        mapping : tuple
+            The indices of the state vector that should be plotted
+        """
+        plt.title(timestamp)
         for i, data_source in enumerate(data_list):
 
             if data_source is not None:
                 the_data = np.array([a_state.state_vector for a_state in data_source
                                      if a_state.timestamp <= timestamp])
                 if the_data.size > 0:
-                    lines[i].set_data(the_data[:, 0], the_data[:, 2])
+                    lines[i].set_data(the_data[:, mapping[0]],
+                                      the_data[:, mapping[1]])
         return lines
 
     @staticmethod
@@ -444,14 +489,12 @@ class TimeBasedPlotter(Base):
             raise NotImplementedError("Unknown type of data to process")
 
         if all(isinstance(list_item, Detection) for list_item in data_source):
-            try:
-                output = [State(a_detection.measurement_model.inverse_function(a_detection),
-                                timestamp=a_detection.timestamp)
-                          for a_detection in data_source]
-            except AttributeError:
-                warnings.warn("Cannot reverse measurement model to produce coordinates to plot "
-                              "detections.")
-                output = None
+            output = []
+            for a_detection in data_source:
+                converted_state_vector = convert_detection(a_detection)
+                if converted_state_vector is not None:
+                    output.append(State(convert_detection(a_detection),
+                                        timestamp=a_detection.timestamp))
         else:
             output = data_source
 
