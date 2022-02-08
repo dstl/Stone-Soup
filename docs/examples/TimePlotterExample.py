@@ -94,7 +94,6 @@ tracker = MultiTargetTracker(
     updater=updater,
 )
 
-
 groundtruth = set()
 detections = set()
 tracks = set()
@@ -109,7 +108,6 @@ all_plotting = []
 colours = colors.cnames
 
 for idx, ground_truth in enumerate(groundtruth):
-    #print(ground_truth[0].timestamp, "    ", ground_truth[-1].timestamp)
     all_plotting.append(TimeBasedPlotter(plotting_data=ground_truth.states,
                                          legend_key='Ground Truth'+str(idx),
                                          linestyle='--', marker='o', alpha=0.5,
@@ -124,35 +122,16 @@ for idx, track in enumerate(tracks):
 
 all_plotting.append(TimeBasedPlotter(
     plotting_data=[detection for detection in detections if isinstance(detection, Clutter)],
-    legend_key='Clutter', linestyle='', marker='o', alpha=0.5
-))
+    legend_key='Clutter', linestyle='', marker='.', alpha=0.5, color='k'))
 
 all_plotting.append(TimeBasedPlotter(
     plotting_data=[detection for detection in detections if isinstance(detection, TrueDetection)],
-    legend_key='True Detections', linestyle='', marker='x', alpha=0.5
-))
-
+    legend_key='True Detections', linestyle='', marker='.', alpha=0.5, color='r'))
 
 times_to_plot = [start_time + x * groundtruth_sim.timestep
                  for x in range(groundtruth_sim.number_steps)]
 
-"""
-min_time = min(state.timestamp
-               for tp in all_plotting
-               for state in tp.plotting_data)
-
-max_time = max(state.timestamp
-               for tp in all_plotting
-               for state in tp.plotting_data)
-
-times_to_plot2 = [min_time + x * groundtruth_sim.timestep
-                 for x in range(int(np.ceil((max_time - min_time)/groundtruth_sim.timestep)))]
-
-for time1, time2 in zip(times_to_plot, times_to_plot2):
-    print(time1, "    ", time2)
-"""
-
-
-line_ani = TimeBasedPlotter.run_animation(times_to_plot, all_plotting)
+line_ani = TimeBasedPlotter.run_animation(times_to_plot, all_plotting,
+                                          plot_item_expiry=datetime.timedelta(seconds=60))
 
 line_ani.save('example.mp4')

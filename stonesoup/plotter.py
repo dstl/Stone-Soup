@@ -4,7 +4,7 @@ import copy
 import warnings
 from itertools import chain
 from typing import Iterable, List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 import numpy as np
@@ -19,6 +19,7 @@ from stonesoup.types.state import State, StateVector
 
 from .types import detection
 from .models.base import LinearModel, NonLinearModel
+from .models.measurement.base import MeasurementModel
 
 
 class Plotter:
@@ -312,7 +313,16 @@ class _HandlerEllipse(HandlerPatch):
         return [p]
 
 
-def convert_detection(state: Detection, measurement_model=None) -> Optional[StateVector]:
+def convert_detection(state: Detection, measurement_model: MeasurementModel = None)\
+        -> Optional[StateVector]:
+    """
+    :param state: Detection
+        Detection to be converted
+    :param measurement_model: MeasurementModel
+        Measurement model if the measurement model isn't provided in the detection
+    :return: StateVector or None
+        StateVector if the detection can be converted or `None' if it can't
+    """
     meas_model = state.measurement_model  # measurement_model from detections
     if meas_model is None:
         meas_model = measurement_model  # measurement_model from input
@@ -374,19 +384,26 @@ class TimeBasedPlotter(Base):
         return class_keywords, plotting_keywords
 
     @staticmethod
-    def run_animation(times_to_plot: Iterable[datetime],
+    def run_animation(times_to_plot: List[datetime],
                       data: Iterable[TimeBasedPlotter],
-                      mapping=(0, 2)):
+                      plot_item_expiry: Optional[timedelta] = None,
+                      mapping=(0, 2)) -> animation.FuncAnimation:
         """
-
         Parameters
         ----------
         times_to_plot : Iterable[datetime]
             All the times, that the plotter should plot
         data : Iterable[datetime]
             All the data that should be plotted
+        plot_item_expiry: timedelta
+            How long a state should be displayed for
         mapping : tuple
             The indices of the state vector that should be plotted
+
+        Returns
+        -------
+        : animation.FuncAnimation
+            Animation object
         """
 
         fig1 = plt.figure()
@@ -431,9 +448,18 @@ class TimeBasedPlotter(Base):
 
         interval_time = 50  # milliseconds
 
+        if plot_item_expiry is None:
+            min_plot_time = min(state.timestamp
+                                for line in data
+                                for state in line.plotting_data)
+            min_plot_times = [min_plot_time]*len(times_to_plot)
+        else:
+            min_plot_times = [time - plot_item_expiry for time in times_to_plot]
+
         line_ani = animation.FuncAnimation(fig1, TimeBasedPlotter.update_animation,
-                                           frames=times_to_plot,
-                                           fargs=(the_lines, plotting_data, mapping),
+                                           frames=len(times_to_plot),
+                                           fargs=(the_lines, plotting_data, mapping, min_plot_times,
+                                                  times_to_plot),
                                            interval=interval_time, blit=False,
                                            repeat=False)
 
@@ -443,27 +469,39 @@ class TimeBasedPlotter(Base):
         return line_ani
 
     @staticmethod
-    def update_animation(timestamp: datetime, lines: List[Line2D], data_list: List[List[State]],
-                         mapping):
+    def update_animation(index: int, lines: List[Line2D], data_list: List[List[State]],
+                         mapping, start_times: List[datetime], end_times: List[datetime]):
         """
-
         Parameters
         ----------
-        timestamp : datetime
-            Show all data points before this time
+        index : int
+            Which index of the start_times and end_times should be used
         lines : List[Line2D]
-            todo
+            The data that will be plotted, to be plotted.
         data_list : List[List[State]]
             All the data that should be plotted
         mapping : tuple
             The indices of the state vector that should be plotted
+        start_times : List[datetime]
+            lowest (earliest) time for an item to be plotted
+        end_times : List[datetime]
+            highest (latest) time for an item to be plotted
+
+        Returns
+        -------
+        : List[Line2D]
+            The data that will be plotted
         """
-        plt.title(timestamp)
+
+        min_time = start_times[index]
+        max_time = end_times[index]
+
+        plt.title(max_time)
         for i, data_source in enumerate(data_list):
 
             if data_source is not None:
                 the_data = np.array([a_state.state_vector for a_state in data_source
-                                     if a_state.timestamp <= timestamp])
+                                     if min_time <= a_state.timestamp <= max_time])
                 if the_data.size > 0:
                     lines[i].set_data(the_data[:, mapping[0]],
                                       the_data[:, mapping[1]])
