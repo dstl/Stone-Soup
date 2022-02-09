@@ -98,14 +98,14 @@ for k in range(20):
                                               timestamp=truth_state.timestamp,
                                               measurement_model=measurement_model))
 
-            # Generate clutter at this time-step
-            truth_x = truth_state.state_vector[0]
-            truth_y = truth_state.state_vector[2]
-            for _ in range(np.random.randint(2)):
-                x = uniform.rvs(truth_x - 10, 20)
-                y = uniform.rvs(truth_y - 10, 20)
-                measurement_set.add(Clutter(np.array([[x], [y]]), timestamp=timestamp,
-                                            measurement_model=measurement_model))
+        # Generate clutter at this time-step
+        truth_x = truth_state.state_vector[0]
+        truth_y = truth_state.state_vector[2]
+        for _ in range(np.random.randint(2)):
+            x = uniform.rvs(truth_x - 10, 20)
+            y = uniform.rvs(truth_y - 10, 20)
+            measurement_set.add(Clutter(np.array([[x], [y]]), timestamp=timestamp,
+                                        measurement_model=measurement_model))
     all_measurements.append(measurement_set)
 
 # Plot true detections and clutter.
