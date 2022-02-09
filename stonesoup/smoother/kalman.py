@@ -6,6 +6,7 @@ import numpy as np
 
 from .base import Smoother
 from ..base import Property
+from ..types.multihypothesis import MultipleHypothesis
 from ..types.prediction import Prediction, GaussianStatePrediction
 from ..types.update import Update, GaussianStateUpdate
 from ..models.base import LinearModel
@@ -75,7 +76,17 @@ class KalmanSmoother(Smoother):
         if isinstance(state, GaussianStatePrediction):
             return state
         elif isinstance(state, GaussianStateUpdate):
-            return state.hypothesis.prediction
+            if isinstance(state.hypothesis, MultipleHypothesis):
+                predictions = {hypothesis.prediction for hypothesis in state.hypothesis}
+                if len(predictions) == 1:
+                    # One predictions, this is fine to use.
+                    return predictions.pop()
+                else:
+                    # Multiple predictions, so can't process this.
+                    raise ValueError(
+                        "Track has MultipleHypothesis updates with multiple predictions.")
+            else:
+                return state.hypothesis.prediction
         else:
             raise TypeError("States must be GaussianStatePredictions or GaussianStateUpdates.")
 
