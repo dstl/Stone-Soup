@@ -52,7 +52,7 @@ class RunManagerCore(RunManager):
             logging.info(f'{datetime.now()} Accessed jsonfile {json_file}')
             return json_data
 
-    def run(self, nruns=None, nprocesses=1):
+    def run(self, nruns=None, nprocesses=None):
         """Handles the running of multiple files, single files and defines the structure
         of the run.
 
@@ -68,7 +68,9 @@ class RunManagerCore(RunManager):
         if self.config_path and self.parameters_path is None:
             if nruns is None:
                 nruns = 1
-            self.prepare_and_run_single_simulation(nruns)
+            if nprocesses is None:
+                nprocesses = 1
+            self.prepare_and_run_single_simulation(nruns, nprocesses)
             logging.info(f'{datetime.now()} Ran single run successfully.')
 
         for path in pairs:
@@ -419,7 +421,7 @@ class RunManagerCore(RunManager):
                 pair = []
         return pairs
 
-    def prepare_and_run_single_simulation(self, nruns):
+    def prepare_and_run_single_simulation(self, nruns, nprocesses):
 
         """Prepares a single simulation for a run
 
@@ -435,22 +437,46 @@ class RunManagerCore(RunManager):
             tracker = components[self.TRACKER]
             ground_truth = components[self.GROUNDTRUTH]
             metric_manager = components[self.METRIC_MANAGER]
-            for runs in range(nruns):
-                dir_name = f"metrics_{dt_string}/run_{runs}"
-                print("RUN SINGLE")
-                # ground_truth = self.check_ground_truth(ground_truth)
-                simulation_parameters = dict(
-                    tracker=tracker,
-                    ground_truth=ground_truth,
-                    metric_manager=metric_manager
-                )
+            if nprocesses > 1:
+                # Execute runs in separate processes
+                range_nruns = list(range(0, nruns))
+                trackers = [tracker] * nruns
+                ground_truths = [ground_truth] * nruns
+                metric_managers = [metric_manager] * nruns
+                dt_string_ = [dt_string] * nruns
+                print(range_nruns)
+                pool = Pool(nprocesses)
+                pool.map(self.run_single_multiprocess_simulation, trackers, ground_truths, metric_managers, range_nruns, dt_string_)
+            else:
+                for runs in range(nruns):
+                    dir_name = f"metrics_{dt_string}/run_{runs}"
+                    print("RUN SINGLE")
+                    # ground_truth = self.check_ground_truth(ground_truth)
+                    simulation_parameters = dict(
+                        tracker=tracker,
+                        ground_truth=ground_truth,
+                        metric_manager=metric_manager
+                    )
 
-                self.run_simulation(simulation_parameters,
-                                    dir_name)
+                    self.run_simulation(simulation_parameters,
+                                        dir_name)
 
         except Exception as e:
             print(f'{datetime.now()} Preparing simulation error: {e}')
             logging.error(f'{datetime.now()} Could not run simulation. error: {e}')
+    
+    def run_single_multiprocess_simulation(self, tracker, ground_truth, metric_manager, runs_num, dt_string):
+        dir_name = f"metrics_{dt_string}/run_{runs_num}"
+        print("RUN SINGLE")
+        # ground_truth = self.check_ground_truth(ground_truth)
+        simulation_parameters = dict(
+            tracker=tracker,
+            ground_truth=ground_truth,
+            metric_manager=metric_manager
+        )
+
+        self.run_simulation(simulation_parameters,
+                            dir_name)
 
     def run_monte_carlo_simulation(self, combo_dict, nruns, nprocesses, config_path):
         """Prepares multiple trackers for simulation run and run a multi-processor or a single
@@ -488,7 +514,6 @@ class RunManagerCore(RunManager):
                     # mp_args = [(trackers[idx], ground_truths[idx], metric_managers[idx],
                     #             dt_string, combo_dict,
                     #             idx, runs_num) for idx in range(len(trackers))]
-                    print(len(trackers))
                     dt_string_ = [dt_string] * len(trackers)
                     combo_dict_ = [combo_dict] * len(trackers)
                     runs_num_ = [runs_num] * len(trackers)
