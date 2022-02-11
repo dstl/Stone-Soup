@@ -444,7 +444,6 @@ class RunManagerCore(RunManager):
                 ground_truths = [ground_truth] * nruns
                 metric_managers = [metric_manager] * nruns
                 dt_string_ = [dt_string] * nruns
-                print(range_nruns)
                 pool = Pool(nprocesses)
                 pool.map(self.run_single_multiprocess_simulation, trackers, ground_truths, metric_managers, range_nruns, dt_string_)
             else:
@@ -467,7 +466,7 @@ class RunManagerCore(RunManager):
     
     def run_single_multiprocess_simulation(self, tracker, ground_truth, metric_manager, runs_num, dt_string):
         dir_name = f"metrics_{dt_string}/run_{runs_num}"
-        print("RUN SINGLE")
+        print("RUN SINGLE: ", runs_num)
         # ground_truth = self.check_ground_truth(ground_truth)
         simulation_parameters = dict(
             tracker=tracker,
