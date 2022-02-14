@@ -103,6 +103,8 @@ class RunManagerCore(RunManager):
         if nruns is None:
             if json_data['configuration']['runs_num']:
                 nruns = json_data['configuration']['runs_num']
+        elif nruns > 1:
+            nruns = nruns
         else:
             nruns = 1
         return nruns
@@ -518,7 +520,7 @@ class RunManagerCore(RunManager):
         # Generate all the trackers from the loaded tracker
         trackers, ground_truths, metric_managers = self.set_trackers(
             combo_dict, tracker, ground_truth, metric_manager)
-
+        
         try:
             now = datetime.now()
             dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
