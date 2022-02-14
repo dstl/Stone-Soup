@@ -286,6 +286,15 @@ class RunManagerCore(RunManager):
         return trackers, ground_truths, metric_managers
 
     def set_tracker_parameters(self, parameter, tracker):
+        """Sets the paramater file value to the tracker
+
+        Parameters
+        ----------
+        parameter:
+            the value to set
+        tracker:
+            the tracker to set the parameter to
+        """
         for k, v in parameter.items():
             split_path = k.split('.')
             if len(split_path) > 1:
@@ -312,7 +321,8 @@ class RunManagerCore(RunManager):
                 setattr(el, split_path[0], value)
 
     def read_config_file(self, config_file):
-        """[summary]
+        """
+        Reads and loads configuration data from given config.yaml file
 
         Parameters
         ----------
@@ -422,13 +432,14 @@ class RunManagerCore(RunManager):
         return pairs
 
     def prepare_single_simulation(self, nruns, nprocesses):
-
         """Prepares a single simulation for a run
 
         Parameters
         ----------
         nruns : int
             Number of monte-carlo runs
+        nprocesses: int
+            Number of processes to use to run simulations
         """
         try:
             now = datetime.now()
@@ -457,6 +468,21 @@ class RunManagerCore(RunManager):
             logging.error(f'{datetime.now()} Could not run simulation. error: {e}')
 
     def run_single_simulation(self, tracker, ground_truth, metric_manager, runs_num, dt_string):
+        """Sets parameters for a single simulation run
+
+        Parameters
+        ----------
+        tracker : list
+            a single tracker used in the simulation run
+        ground_truth:
+            the ground truth for the simulation run
+        metric_manager:
+            the metric manager for the simulation run
+        runs_num : int
+            the index of the current run
+        dt_string : str
+            string of the datetime for the metrics directory name
+        """
         dir_name = f"metrics_{dt_string}/run_{runs_num}"
         print("RUN SINGLE: ", runs_num)
         # ground_truth = self.check_ground_truth(ground_truth)
@@ -531,8 +557,12 @@ class RunManagerCore(RunManager):
 
         Parameters
         ----------
-        tracker_zip : list
-            a list of a zip of a single tracker, groundtruth and metric manager
+        tracker : list
+            a single tracker used in the simulation run
+        ground_truth:
+            the ground truth for the simulation run
+        metric_manager:
+            the metric manager for the simulation run
         dt_string : str
             string of the datetime for the metrics directory name
         combo_dict : dict
