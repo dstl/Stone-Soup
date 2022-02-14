@@ -520,7 +520,7 @@ class RunManagerCore(RunManager):
         # Generate all the trackers from the loaded tracker
         trackers, ground_truths, metric_managers = self.set_trackers(
             combo_dict, tracker, ground_truth, metric_manager)
-        
+
         try:
             now = datetime.now()
             dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
