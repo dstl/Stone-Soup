@@ -82,6 +82,7 @@ class RunManagerCore(RunManager):
             json_data = self.read_json(param_path)
 
             nruns = self.set_runs_number(nruns, json_data)
+            print(nruns)
             nprocesses = self.set_processes_number(nprocesses, json_data)
             combo_dict = self.prepare_monte_carlo(json_data)
             self.run_monte_carlo_simulation(combo_dict, nruns,
@@ -215,8 +216,11 @@ class RunManagerCore(RunManager):
 
         try:
             log_time = datetime.now()
-            print(f'{log_time} Started simulation')
-            logging.info(f'{log_time} Started simulation')
+            if self.total_trackers > 1:
+                logging.info(f"{log_time} Starting simulation {self.current_trackers}"
+                             f" / {self.total_trackers} and monte-carlo  {self.current_run} / {self.total_runs}")
+                print(f"{log_time} Starting simulation {self.current_trackers}"
+                      f" / {self.total_trackers} and monte-carlo  {self.current_run} / {self.total_runs}")
             for time, ctracks in tracker.tracks_gen():
                 # Update groundtruth, tracks and detections
                 self.run_manager_metrics.tracks_to_csv(dir_name, ctracks)
@@ -238,11 +242,27 @@ class RunManagerCore(RunManager):
                     logging.info(f'{log_time} Metric manager: {e}')
                     print(f'{log_time} Metric manager: {e}')
 
-            logging.info(f'{log_time} Successfully ran simulation in {datetime.now() - log_time} ')
-            print(f'{log_time} Successfully ran simulation in {datetime.now() - log_time} ')
-            print('--------------------------------')
+            if self.total_trackers > 1:
+                logging.info(f"{log_time} Successfully ran simulation {self.current_trackers} /"
+                             f"{self.total_trackers} and monte-carlo"
+                             f"{self.current_run} / {self.total_runs}"
+                             f"in {datetime.now() - log_time}")
+                print(f"{log_time} Successfully ran simulation {self.current_trackers} /"
+                      f" {self.total_trackers} and monte-carlo"
+                      f" {self.current_run} / {self.total_runs}"
+                      f" in {datetime.now() - log_time}")
+                print('--------------------------------')
+            else:
+                logging.info(f"{log_time} Successfully ran simulation {self.current_run}"
+                             f"{self.total_runs} in {datetime.now() - log_time}")
+                print(f"{log_time} Successfully ran simulation "
+                      f"{self.current_run + 1} / {self.total_runs} in {datetime.now() - log_time}")
+                print('--------------------------------')
         except Exception as e:
-            logging.error(f'{datetime.now()}: Failed to run Simulation: {e}')
+            logging.error(f"{datetime.now()}: Failed to run Simulation "
+                          f"{self.current_run + 1} / {self.total_runs}: {e}")
+            print(f"{datetime.now()}: Failed to run Simulation "
+                  f"{self.current_run + 1} / {self.total_runs}: {e}")
 
     def set_trackers(self, combo_dict, tracker, ground_truth, metric_manager):
         """Set the trackers, groundtruths and metricmanagers list (stonesoup objects)
@@ -438,6 +458,8 @@ class RunManagerCore(RunManager):
                 ground_truth = components[self.GROUNDTRUTH]
                 metric_manager = components[self.METRIC_MANAGER]
                 for runs in range(nruns):
+                    self.total_runs = nruns
+                    self.current_run = runs
                     dir_name = f"metrics_{dt_string}/run_{runs}"
                     # ground_truth = self.check_ground_truth(ground_truth)
                     simulation_parameters = dict(
@@ -476,33 +498,30 @@ class RunManagerCore(RunManager):
         # Generate all the trackers from the loaded tracker
         trackers, ground_truths, metric_managers = self.set_trackers(
             combo_dict, tracker, ground_truth, metric_manager)
-
         try:
             now = datetime.now()
             dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
             if nprocesses > 1:
                 # Run with multiprocess
                 pool = Pool(nprocesses)
-                for runs_num in range(nruns):
-                    print("RUN ", runs_num)
-                    # this was used in the old multiprocessing
-                    # mp_args = [(trackers[idx], ground_truths[idx], metric_managers[idx],
-                    #             dt_string, combo_dict,
-                    #             idx, runs_num) for idx in range(len(trackers))]
-                    print(len(trackers))
+                for runs in range(nruns):
+                    self.total_runs = nruns
+                    self.current_run = runs
                     dt_string_ = [dt_string] * len(trackers)
                     combo_dict_ = [combo_dict] * len(trackers)
-                    runs_num_ = [runs_num] * len(trackers)
+                    runs_num_ = [runs] * len(trackers)
                     pool.map(self.run_multi_process_simulation, trackers, ground_truths,
                              metric_managers, dt_string_, combo_dict_,
                              range(0, len(trackers)), runs_num_)
-                    # old multiprocessing
-                    # pool.map(self.run_multi_process_simulation, mp_args)
+
             else:
-                for runs_num in range(nruns):
-                    print("RUN ", runs_num)
+                for runs in range(nruns):
+                    self.total_runs = nruns
+                    self.current_run = runs
                     for idx in range(0, len(trackers)):
-                        dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs_num}"
+                        self.total_trackers = len(trackers)
+                        self.current_trackers = idx + 1
+                        dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs}"
                         self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
                         self.run_manager_metrics.generate_config(
                             dir_name, trackers[idx], ground_truths[idx],
