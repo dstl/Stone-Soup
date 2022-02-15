@@ -82,7 +82,6 @@ class RunManagerCore(RunManager):
             json_data = self.read_json(param_path)
 
             nruns = self.set_runs_number(nruns, json_data)
-            print(nruns)
             nprocesses = self.set_processes_number(nprocesses, json_data)
             combo_dict = self.prepare_monte_carlo(json_data)
             self.run_monte_carlo_simulation(combo_dict, nruns,
@@ -450,7 +449,7 @@ class RunManagerCore(RunManager):
         """
         try:
             now = datetime.now()
-            dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
+            dt_string = now.strftime("%Y_%m_%d_%H_%M_%S")
             components = self.set_components(self.config_path)
             component_check = all(x is None for x in components.values())
             if not component_check:
@@ -500,7 +499,7 @@ class RunManagerCore(RunManager):
             combo_dict, tracker, ground_truth, metric_manager)
         try:
             now = datetime.now()
-            dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
+            dt_string = now.strftime("%Y_%m_%d_%H_%M_%S")
             if nprocesses > 1:
                 # Run with multiprocess
                 pool = Pool(nprocesses)
