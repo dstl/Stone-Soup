@@ -23,7 +23,7 @@ if __name__ == "__main__":
                         False for no ground_truth. Default is False""",
                         type=bool)
     parser.add_argument("--dir", "-d",
-                        help="Specify a directoy with config & parameter files.",
+                        help="Specify a directory with config & parameter files.",
                         type=str)
     parser.add_argument("--nruns", "-n",
                         help="""Specify the number of monte carlo runs you

@@ -63,13 +63,17 @@ class RunManagerCore(RunManager):
         nprocesses : int, optional
             number of processing cores to use, by default 1
         """
-        pairs = self.config_parameter_pairing()
+
         # Single simulation. No param file detected
         if self.config_path and self.parameters_path is None:
             if nruns is None:
                 nruns = 1
             self.prepare_and_run_single_simulation(nruns)
-            logging.info(f'{datetime.now()} Ran single run successfully.')
+
+        pairs = self.config_parameter_pairing()
+        if not pairs and not self.config_path:
+            print(f"{datetime.now()} No files in current directory: {self.dir}")
+            logging.info(f"{datetime.now()} No files in current directory: {self.dir}")
 
         for path in pairs:
             # Read the param data
@@ -172,7 +176,6 @@ class RunManagerCore(RunManager):
             paths = self.get_filepaths(self.dir)
             pairs = self.get_config_and_param_lists(paths)
             pairs.append([self.config_path, self.parameters_path])
-            # logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
 
         return pairs
 
@@ -206,14 +209,14 @@ class RunManagerCore(RunManager):
         dir_name : str
             output directory for metrics
         """
-        print("RUN")
         tracker = simulation_parameters['tracker']
         ground_truth = simulation_parameters['ground_truth']
         metric_manager = simulation_parameters['metric_manager']
-        log_time = datetime.now()
 
         try:
-            timeFirst = datetime.now()
+            log_time = datetime.now()
+            print(f'{log_time} Started simulation')
+            logging.info(f'{log_time} Started simulation')
             for time, ctracks in tracker.tracks_gen():
                 # Update groundtruth, tracks and detections
                 self.run_manager_metrics.tracks_to_csv(dir_name, ctracks)
@@ -232,17 +235,14 @@ class RunManagerCore(RunManager):
                     metrics = metric_manager.generate_metrics()
                     self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
                 except Exception as e:
-                    print("Metric manager: {}".format(e))
+                    logging.info(f'{log_time} Metric manager: {e}')
+                    print(f'{log_time} Metric manager: {e}')
 
-            timeAfter = datetime.now()
-            timeTotal = timeAfter-timeFirst
-            print(timeTotal)
-        except Exception as e:
-            logging.error(f'{log_time}: Failed to run Simulation: {e}')
-
-        else:
             logging.info(f'{log_time} Successfully ran simulation in {datetime.now() - log_time} ')
-            print('Success!', flush=True)
+            print(f'{log_time} Successfully ran simulation in {datetime.now() - log_time} ')
+            print('--------------------------------')
+        except Exception as e:
+            logging.error(f'{datetime.now()}: Failed to run Simulation: {e}')
 
     def set_trackers(self, combo_dict, tracker, ground_truth, metric_manager):
         """Set the trackers, groundtruths and metricmanagers list (stonesoup objects)
@@ -432,21 +432,22 @@ class RunManagerCore(RunManager):
             now = datetime.now()
             dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
             components = self.set_components(self.config_path)
-            tracker = components[self.TRACKER]
-            ground_truth = components[self.GROUNDTRUTH]
-            metric_manager = components[self.METRIC_MANAGER]
-            for runs in range(nruns):
-                dir_name = f"metrics_{dt_string}/run_{runs}"
-                print("RUN SINGLE")
-                # ground_truth = self.check_ground_truth(ground_truth)
-                simulation_parameters = dict(
-                    tracker=tracker,
-                    ground_truth=ground_truth,
-                    metric_manager=metric_manager
-                )
+            component_check = all(x is None for x in components.values())
+            if not component_check:
+                tracker = components[self.TRACKER]
+                ground_truth = components[self.GROUNDTRUTH]
+                metric_manager = components[self.METRIC_MANAGER]
+                for runs in range(nruns):
+                    dir_name = f"metrics_{dt_string}/run_{runs}"
+                    # ground_truth = self.check_ground_truth(ground_truth)
+                    simulation_parameters = dict(
+                        tracker=tracker,
+                        ground_truth=ground_truth,
+                        metric_manager=metric_manager
+                    )
 
-                self.run_simulation(simulation_parameters,
-                                    dir_name)
+                    self.run_simulation(simulation_parameters,
+                                        dir_name)
 
         except Exception as e:
             print(f'{datetime.now()} Preparing simulation error: {e}')
@@ -562,8 +563,9 @@ class RunManagerCore(RunManager):
             GROUNDTRUTH: ground_truth,
             METRIC_MANAGER: metric_manager
         """
-        tracker, ground_truth, metric_manager = None, None, None
+        
         try:
+            tracker, ground_truth, metric_manager = None, None, None
             with open(config_path, 'r') as file:
                 config_data = self.read_config_file(file)
 
