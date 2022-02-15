@@ -237,6 +237,12 @@ class RunManagerCore(RunManager):
                     self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
                 except Exception as e:
                     print("Metric manager: {}".format(e))
+                finally:
+                    # Clear manager after run to stop subsequent runs slowing down
+                    metrics = set()
+                    metric_manager.tracks = set()
+                    metric_manager.groundtruth_paths = set()
+                    metric_manager.detections = set()
 
             timeAfter = datetime.now()
             timeTotal = timeAfter-timeFirst
