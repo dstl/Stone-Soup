@@ -1,0 +1,52 @@
+# Remove all comments from this file before running.
+
+# Configuration: Configuration is where you set certain constraints on your Simulations.
+# proc_num: means number of processing cores to use when using the multiprocessing option. Set this to your maximum number of CPU cores.
+# runs_num: means the number of monte carlo runs you want to run for a cofiguration file. 
+
+#Parameters: Parameters are the parameters you want to use for each simulation. These should match the parameters
+available in your configuration file.
+# n_samples: This is the number of samples you want to generate for each simulation. For instance you want 5 different values 
+between the min and max of the parameter.
+# path: This is the stone soup object that you wish to change.
+# type: This is the type of the specific stone soup object you wish to change. 
+Supported types are: StateVector, int, float, Probability, bool, CovarianceMatrix, DateTime, Tuple, timedelta, ndarray
+# value_max: This is the maximum value you want to use in the simulation.
+# value_min This is the minimum value you want to use in the simulation. 
+{
+    "configuration": {
+        "proc_num": 1,
+        "runs_num": 10
+    },
+    "parameters": [
+        {
+            "n_samples": [
+                2,
+                2,
+                2,
+                2
+            ],
+            "path": "list[0].initiator.initiator.prior_state.state_vector",
+            "type": "StateVector",
+            "value_max": [
+                1000,
+                100,
+                100,
+                100
+            ],
+            "value_min": [
+                0,
+                0,
+                0,
+                0
+            ]
+        },
+        {
+            "n_samples": 5,
+            "path": "list[0].initiator.deleter.covar_trace_thresh",
+            "type": "float",
+            "value_max": 10000,
+            "value_min": 1000
+        }
+    ]
+}
