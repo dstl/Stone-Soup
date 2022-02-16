@@ -1,5 +1,6 @@
 from stonesoup.runmanager.runmanagercore import RunManagerCore
 import argparse
+import time
 
 
 def manage_if(arg):
@@ -42,4 +43,6 @@ if __name__ == "__main__":
     nprocesses = manage_if(args.processes)
 
     rmc = RunManagerCore(config, parameter, groundtruth, dir)
+    start_time = time.time()
     rmc.run(nruns, nprocesses)
+    print("--- %s seconds ---" % (time.time() - start_time))
