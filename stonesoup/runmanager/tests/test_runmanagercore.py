@@ -158,6 +158,7 @@ def test_read_config_file():
 
 
 def test_read_config_file_nomm():
+    rmc.groundtruth_setting = True
 
     # Config with tracker and groundtruth but no metric manager
     with open(test_config_nomm, 'r') as file:
@@ -223,6 +224,8 @@ def test_set_components():
 
 
 def test_set_components_no_mm():
+    rmc.groundtruth_setting = True
+
     config_data = rmc.set_components(test_config_nomm)
 
     tracker = config_data[rmc.TRACKER]
