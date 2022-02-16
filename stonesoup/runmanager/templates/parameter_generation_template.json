@@ -2,9 +2,10 @@
 
 # Configuration: Configuration is where you set certain constraints on your Simulations.
 # proc_num: means number of processing cores to use when using the multiprocessing option. Set this to your maximum number of CPU cores.
-# runs_num: means the number of monte carlo runs you want to run for a cofiguration file. 
+the command line argument will overwrite this option.
+# runs_num: means the number of monte carlo runs you want to run for a configuration file. 
 
-#Parameters: Parameters are the parameters you want to use for each simulation. These should match the parameters
+# Parameters: Parameters are the parameters you want to use for each simulation. These should match the parameters
 available in your configuration file.
 # n_samples: This is the number of samples you want to generate for each simulation. For instance you want 5 different values 
 between the min and max of the parameter.

@@ -217,7 +217,8 @@ class RunManagerCore(RunManager):
             log_time = datetime.now()
             if self.total_trackers > 1:
                 logging.info(f"{log_time} Starting simulation {self.current_trackers}"
-                             f" / {self.total_trackers} and monte-carlo  {self.current_run} / {self.total_runs}")
+                             f" / {self.total_trackers} and monte-carlo"
+                             f"{self.current_run} / {self.total_runs}")
                 print(f"{log_time} Starting simulation {self.current_trackers}"
                       f" / {self.total_trackers} and monte-carlo  {self.current_run} / {self.total_runs}")
             for time, ctracks in tracker.tracks_gen():
@@ -255,13 +256,23 @@ class RunManagerCore(RunManager):
                 logging.info(f"{log_time} Successfully ran simulation {self.current_run}"
                              f"{self.total_runs} in {datetime.now() - log_time}")
                 print(f"{log_time} Successfully ran simulation "
-                      f"{self.current_run + 1} / {self.total_runs} in {datetime.now() - log_time}")
+                      f"{self.current_run} / {self.total_runs} in {datetime.now() - log_time}")
                 print('--------------------------------')
         except Exception as e:
-            logging.error(f"{datetime.now()}: Failed to run Simulation "
-                          f"{self.current_run + 1} / {self.total_runs}: {e}")
-            print(f"{datetime.now()}: Failed to run Simulation "
-                  f"{self.current_run + 1} / {self.total_runs}: {e}")
+            if self.total_trackers > 1:
+                logging.info(f"{log_time} Successfully ran simulation {self.current_trackers} /"
+                             f"{self.total_trackers} and monte-carlo"
+                             f"{self.current_run} / {self.total_runs}"
+                             f"in {datetime.now() - log_time}")
+                print(f"{log_time} Successfully ran simulation {self.current_trackers} /"
+                      f" {self.total_trackers} and monte-carlo"
+                      f" {self.current_run} / {self.total_runs}"
+                      f" in {datetime.now() - log_time}")
+            else:
+                logging.error(f"{datetime.now()}: Failed to run Simulation "
+                            f"{self.current_run} / {self.total_runs}: {e}")
+                print(f"{datetime.now()}: Failed to run Simulation "
+                    f"{self.current_run} / {self.total_runs}: {e}")
 
     def set_trackers(self, combo_dict, tracker, ground_truth, metric_manager):
         """Set the trackers, groundtruths and metricmanagers list (stonesoup objects)
