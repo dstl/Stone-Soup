@@ -107,6 +107,7 @@ class RunManagerCore(RunManager):
             nruns = nruns
         else:
             nruns = 1
+        print("Number of runs: ", nruns)
         return nruns
 
     def set_processes_number(self, nprocess, json_data):
@@ -131,6 +132,7 @@ class RunManagerCore(RunManager):
             proc_num = nprocess
         else:
             proc_num = 1
+        print("Number of processes: ", proc_num)
         return proc_num
 
     def prepare_monte_carlo(self, json_data):
