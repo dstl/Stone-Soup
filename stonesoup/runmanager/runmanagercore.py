@@ -17,21 +17,27 @@ class RunManagerCore(RunManager):
     GROUNDTRUTH = "ground_truth"
     METRIC_MANAGER = "metric_manager"
 
-    def __init__(self, config_path, parameters_path, groundtruth_setting, dir):
+    def __init__(self, config_path, parameters_path, groundtruth_setting, dir, nruns=None, nprocesses=None):
 
         self.config_path = config_path
         self.parameters_path = parameters_path
         self.groundtruth_setting = groundtruth_setting
         self.dir = dir
+        self.nruns = nruns
+        self.nprocesses = nprocesses
+
+        self.total_trackers = 0
+        self.current_run = 0
+        self.current_trackers = 0
 
         self.input_manager = InputManager()
         self.run_manager_metrics = RunmanagerMetrics()
 
-        root_logger = logging.getLogger()
-        root_logger.setLevel(logging.DEBUG)
-        handler = logging.FileHandler('simulation.log', 'w', 'utf-8')
-        root_logger.addHandler(handler)
-        # logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
+        # root_logger = logging.getLogger()
+        # root_logger.setLevel(logging.DEBUG)
+        # handler = logging.FileHandler('simulation.log', 'w', 'utf-8')
+        # root_logger.addHandler(handler)
+        logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
         logging.info(f'RunManagerCore started. {datetime.now()}')
 
     def read_json(self, json_input):
@@ -52,7 +58,7 @@ class RunManagerCore(RunManager):
             logging.info(f'{datetime.now()} Accessed jsonfile {json_file}')
             return json_data
 
-    def run(self, nruns=None, nprocesses=None):
+    def run(self):
         """Handles the running of multiple files, single files and defines the structure
         of the run.
 
@@ -63,15 +69,20 @@ class RunManagerCore(RunManager):
         nprocesses : int, optional
             number of processing cores to use, by default 1
         """
-        pairs = self.config_parameter_pairing()
+
         # Single simulation. No param file detected
         if self.config_path and self.parameters_path is None:
-            if nruns is None:
-                nruns = 1
-            if nprocesses is None:
-                nprocesses = 1
-            self.prepare_single_simulation(nruns, nprocesses)
-            logging.info(f'{datetime.now()} Ran single run successfully.')
+            if self.nruns is None:
+                self.nruns = 1
+            if self.nprocesses is None:
+                self.nprocesses = 1
+            self.prepare_single_simulation()
+            #self.prepare_and_run_single_simulation(nruns)
+
+        pairs = self.config_parameter_pairing()
+        if not pairs and not self.config_path:
+            print(f"{datetime.now()} No files in current directory: {self.dir}")
+            logging.info(f"{datetime.now()} No files in current directory: {self.dir}")
 
         for path in pairs:
             # Read the param data
@@ -79,10 +90,10 @@ class RunManagerCore(RunManager):
             param_path = path[1]
             json_data = self.read_json(param_path)
 
-            nruns = self.set_runs_number(nruns, json_data)
-            nprocesses = self.set_processes_number(nprocesses, json_data)
+            self.nruns = self.set_runs_number(self.nruns, json_data)
+            nprocesses = self.set_processes_number(self.nprocesses, json_data)
             combo_dict = self.prepare_monte_carlo(json_data)
-            self.prepare_monte_carlo_simulation(combo_dict, nruns,
+            self.prepare_monte_carlo_simulation(combo_dict, self.nruns,
                                                 nprocesses, config_path)
 
     def set_runs_number(self, nruns, json_data):
@@ -107,7 +118,6 @@ class RunManagerCore(RunManager):
             nruns = nruns
         else:
             nruns = 1
-        print("Number of runs: ", nruns)
         return nruns
 
     def set_processes_number(self, nprocess, json_data):
@@ -132,7 +142,6 @@ class RunManagerCore(RunManager):
             proc_num = nprocess
         else:
             proc_num = 1
-        print("Number of processes: ", proc_num)
         return proc_num
 
     def prepare_monte_carlo(self, json_data):
@@ -178,7 +187,6 @@ class RunManagerCore(RunManager):
             paths = self.get_filepaths(self.dir)
             pairs = self.get_config_and_param_lists(paths)
             pairs.append([self.config_path, self.parameters_path])
-            # logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
 
         return pairs
 
@@ -212,14 +220,13 @@ class RunManagerCore(RunManager):
         dir_name : str
             output directory for metrics
         """
-        print("RUN")
         tracker = simulation_parameters['tracker']
         ground_truth = simulation_parameters['ground_truth']
         metric_manager = simulation_parameters['metric_manager']
-        log_time = datetime.now()
 
         try:
-            timeFirst = datetime.now()
+            log_time = datetime.now()
+            self.logging_starting(log_time)
             for time, ctracks in tracker.tracks_gen():
                 # Update groundtruth, tracks and detections
                 self.run_manager_metrics.tracks_to_csv(dir_name, ctracks)
@@ -231,30 +238,26 @@ class RunManagerCore(RunManager):
                     metric_manager.add_data(self.check_ground_truth(ground_truth), ctracks,
                                             tracker.detector.detections,
                                             overwrite=False)
-                    # Sometimes the metric manager generate metrics fails.
-                    # We can't remove this try catch.
             if metric_manager is not None:
                 try:
                     metrics = metric_manager.generate_metrics()
                     self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
                 except Exception as e:
-                    print("Metric manager: {}".format(e))
-                finally:
-                    # Clear manager after run to stop subsequent runs slowing down
-                    metrics = set()
-                    metric_manager.tracks = set()
-                    metric_manager.groundtruth_paths = set()
-                    metric_manager.detections = set()
+                    self.logging_metric_manager_fail(e)
+            self.logging_success(log_time)
 
-            timeAfter = datetime.now()
-            timeTotal = timeAfter-timeFirst
-            print(timeTotal)
         except Exception as e:
-            logging.error(f'{log_time}: Failed to run Simulation: {e}')
+            self.logging_failed_simulation(log_time, e)
+            #print(f"Metric manager error: {e}")
 
-        else:
-            logging.info(f'{log_time} Successfully ran simulation in {datetime.now() - log_time} ')
-            print('Success!', flush=True)
+        finally:
+            # Clear manager after run to stop subsequent runs slowing down
+            metrics = set()
+            metric_manager.tracks = set()
+            metric_manager.groundtruth_paths = set()
+            metric_manager.detections = set()
+            
+            print('--------------------------------')
 
     def set_trackers(self, combo_dict, tracker, ground_truth, metric_manager):
         """Set the trackers, groundtruths and metricmanagers list (stonesoup objects)
@@ -348,7 +351,8 @@ class RunManagerCore(RunManager):
         try:
             config_data = YAML('safe').load(config_string)
         except Exception as e:
-            print("Failed to load config data: ", e)
+            print(f"{datetime.now()} Failed to load config data: {e}")
+            logging.error(f"{datetime.now()} Failed to load config data: {e}")
             config_data = [None, None, None]
 
         tracker = config_data[0]
@@ -441,7 +445,7 @@ class RunManagerCore(RunManager):
                 pair = []
         return pairs
 
-    def prepare_single_simulation(self, nruns, nprocesses):
+    def prepare_single_simulation(self):
         """Prepares a single simulation for a run
 
         Parameters
@@ -453,23 +457,23 @@ class RunManagerCore(RunManager):
         """
         try:
             now = datetime.now()
-            dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
+            dt_string = now.strftime("%Y_%m_%d_%H_%M_%S")
             components = self.set_components(self.config_path)
             tracker = components[self.TRACKER]
             ground_truth = components[self.GROUNDTRUTH]
             metric_manager = components[self.METRIC_MANAGER]
-            if nprocesses > 1:
+            if self.nprocesses > 1:
                 # Execute runs in separate processes
-                range_nruns = list(range(0, nruns))
-                trackers = [tracker] * nruns
-                ground_truths = [ground_truth] * nruns
-                metric_managers = [metric_manager] * nruns
-                dt_string_ = [dt_string] * nruns
-                pool = Pool(nprocesses)
+                range_nruns = list(range(0, self.nruns))
+                trackers = [tracker] * self.nruns
+                ground_truths = [ground_truth] * self.nruns
+                metric_managers = [metric_manager] * self.nruns
+                dt_string_ = [dt_string] * self.nruns
+                pool = Pool(self.nprocesses)
                 pool.map(self.run_single_simulation, trackers, ground_truths, metric_managers,
                          range_nruns, dt_string_)
             else:
-                for runs in range(nruns):
+                for runs in range(self.nruns):
                     self.run_single_simulation(tracker, ground_truth, metric_manager,
                                                runs, dt_string)
 
@@ -494,7 +498,8 @@ class RunManagerCore(RunManager):
             string of the datetime for the metrics directory name
         """
         dir_name = f"metrics_{dt_string}/run_{runs_num}"
-        print("RUN SINGLE: ", runs_num)
+        self.current_run = runs_num
+
         # ground_truth = self.check_ground_truth(ground_truth)
         simulation_parameters = dict(
             tracker=tracker,
@@ -528,34 +533,31 @@ class RunManagerCore(RunManager):
         # Generate all the trackers from the loaded tracker
         trackers, ground_truths, metric_managers = self.set_trackers(
             combo_dict, tracker, ground_truth, metric_manager)
-
+        self.total_trackers = len(trackers)
         try:
             now = datetime.now()
-            dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
+            dt_string = now.strftime("%Y_%m_%d_%H_%M_%S")
             if nprocesses > 1:
                 # Run with multiprocess
                 pool = Pool(nprocesses)
-                for runs_num in range(nruns):
-                    print("RUN ", runs_num)
-                    # this was used in the old multiprocessing
-                    # mp_args = [(trackers[idx], ground_truths[idx], metric_managers[idx],
-                    #             dt_string, combo_dict,
-                    #             idx, runs_num) for idx in range(len(trackers))]
+                for runs in range(nruns):
+                    self.total_runs = nruns
+                    self.current_run = runs
                     dt_string_ = [dt_string] * len(trackers)
                     combo_dict_ = [combo_dict] * len(trackers)
-                    runs_num_ = [runs_num] * len(trackers)
+                    runs_num_ = [runs] * len(trackers)
                     pool.map(self.run_monte_carlo_simulation, trackers, ground_truths,
                              metric_managers, dt_string_, combo_dict_,
                              range(0, len(trackers)), runs_num_)
-                    # old multiprocessing
-                    # pool.map(self.run_multi_process_simulation, mp_args)
+
             else:
-                for runs_num in range(nruns):
-                    print("RUN ", runs_num)
+                for runs in range(nruns):
+                    self.total_runs = nruns
+                    self.current_run = runs
                     for idx in range(0, len(trackers)):
                         self.run_monte_carlo_simulation(trackers[idx], ground_truths[idx],
                                                         metric_managers[idx], dt_string,
-                                                        combo_dict, idx, runs_num)
+                                                        combo_dict, idx, runs)
         except Exception as e:
             print(f'{datetime.now()} Preparing simulation error: {e}')
             logging.error(f'{datetime.now()} Could not run simulation. error: {e}')
@@ -582,7 +584,7 @@ class RunManagerCore(RunManager):
         runs_num : int
             the index of the current run
         """
-
+        self.current_trackers = idx
         dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs_num}"
         self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
@@ -608,8 +610,9 @@ class RunManagerCore(RunManager):
             GROUNDTRUTH: ground_truth,
             METRIC_MANAGER: metric_manager
         """
-        tracker, ground_truth, metric_manager = None, None, None
+        
         try:
+            tracker, ground_truth, metric_manager = None, None, None
             with open(config_path, 'r') as file:
                 config_data = self.read_config_file(file)
 
@@ -623,3 +626,60 @@ class RunManagerCore(RunManager):
         return {self.TRACKER: tracker,
                 self.GROUNDTRUTH: ground_truth,
                 self.METRIC_MANAGER: metric_manager}
+
+    def logging_starting(self, log_time):
+        if self.total_trackers > 1:
+            logging.info(f"{log_time} Starting simulation {self.current_trackers}"
+                         f" / {self.total_trackers} and monte-carlo"
+                         f" {self.current_run} / {self.nruns}")
+            print(f"{log_time} Starting simulation {self.current_trackers}"
+                  f" / {self.total_trackers} and monte-carlo"
+                  f" {self.current_run} / {self.nruns}")
+        else:
+            logging.info(f"{log_time} Starting simulation"
+                         f" {self.current_run} / {self.nruns}")
+            print(f"{log_time} Starting simulation"
+                  f" {self.current_run} / {self.nruns}")
+
+    def logging_success(self, log_time):
+        if self.total_trackers > 1:
+            logging.info(f"{log_time} Successfully ran simulation {self.current_trackers} /"
+                         f" {self.total_trackers} and monte-carlo"
+                         f" {self.current_run} / {self.nruns}"
+                         f" in {datetime.now() - log_time}")
+            print(f"{log_time} Successfully ran simulation {self.current_trackers} /"
+                  f" {self.total_trackers} and monte-carlo"
+                  f" {self.current_run} / {self.nruns}"
+                  f" in {datetime.now() - log_time}")
+
+        else:
+            logging.info(f"{log_time} Successfully ran simulation {self.current_run}"
+                            f"{self.nruns} in {datetime.now() - log_time}")
+            print(f"{log_time} Successfully ran simulation "
+                    f"{self.current_run} / {self.nruns} in {datetime.now() - log_time}")
+
+    def logging_failed_simulation(self, log_time, e):
+        if self.total_trackers > 1:
+            logging.info(f"{datetime.now()} Failed to run Simulation {self.current_trackers} /"
+                         f" {self.total_trackers} and monte-carlo"
+                         f" {self.current_run} / {self.nruns}"
+                         f" in {datetime.now() - log_time}")
+            logging.exception(f"{e}")
+
+            print(f"{datetime.now()} Failed to run Simulation {self.current_trackers} /"
+                  f" {self.total_trackers} and monte-carlo"
+                  f" {self.current_run} / {self.nruns}"
+                  f" in {datetime.now() - log_time}")
+            print(f"{e}")
+            
+        else:
+            logging.error(f"{datetime.now()}: Failed to run Simulation"
+                          f" {self.current_run} / {self.nruns}")
+            logging.exception(f"{e}")
+            
+            print(f"{datetime.now()}: Failed to run Simulation"
+                 f" {self.current_run} / {self.nruns}: {e}")
+
+    def logging_metric_manager_fail(self, e):
+        logging.info(f'{datetime.now()} Metric manager error: {e}')
+        print(f'{datetime.now()} Metric manager error: {e}')

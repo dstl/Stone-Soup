@@ -1,6 +1,5 @@
 from stonesoup.runmanager.runmanagercore import RunManagerCore
 import argparse
-import time
 
 
 def manage_if(arg):
@@ -9,7 +8,6 @@ def manage_if(arg):
     else:
         dir = None
     return dir
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -24,7 +22,7 @@ if __name__ == "__main__":
                         False for no ground_truth. Default is False""",
                         type=bool)
     parser.add_argument("--dir", "-d",
-                        help="Specify a directory with config & parameter files.",
+                        help="Specify a directoy with config & parameter files.",
                         type=str)
     parser.add_argument("--nruns", "-n",
                         help="""Specify the number of monte carlo runs you
@@ -32,6 +30,10 @@ if __name__ == "__main__":
                         type=int)
     parser.add_argument("--processes", "-pc",
                         help="Specify the number of processing cores to use",
+                        type=int)
+    parser.add_argument("--montecarlo", "-mc",
+                        help="""Specify the type of Monte-Carlo distribution you want.
+                        0: Equal 1: Logarithmic, 2: Exponential, 3: Random Distributed""",
                         type=int)
     args = parser.parse_args()
 
@@ -41,8 +43,7 @@ if __name__ == "__main__":
     dir = manage_if(args.dir)
     nruns = manage_if(args.nruns)
     nprocesses = manage_if(args.processes)
+    montecarlo = manage_if(args.montecarlo)
 
-    rmc = RunManagerCore(config, parameter, groundtruth, dir)
-    start_time = time.time()
-    rmc.run(nruns, nprocesses)
-    print("--- %s seconds ---" % (time.time() - start_time))
+    rmc = RunManagerCore(config, parameter, groundtruth, dir, montecarlo, nruns, nprocesses)
+    rmc.run()

@@ -1,0 +1,751 @@
+RunManagerCore started. 2022-01-31 16:35:48.934447
+2022-01-31 16:35:48.934447 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\config-param-pairs\\metrics_config_parameters.json' mode='r' encoding='cp1252'>
+2022-01-31 16:35:49.989454 Successfully ran simulation in 0:00:00.923753 
+2022-01-31 16:35:50.927211: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:35:50.943261: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:35:50.959208: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:35:50.973207: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:35:50.990215: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:35:51.005205: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:35:51.024206: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:35:51.038258: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:35:51.052255: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:35:51.065205 Successfully ran simulation in 0:00:00.990583 
+2022-01-31 16:35:52.072787: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:35:52.089788: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 8)
+2022-01-31 16:35:52.109789: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:35:52.123788: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:35:52.140789: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:35:52.163789: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:35:52.183787: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:35:52.203790: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 69)
+2022-01-31 16:35:52.223788: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:35:52.237927 Successfully ran simulation in 0:00:00.847871 
+2022-01-31 16:35:53.099796: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 5)
+2022-01-31 16:35:53.112795: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:35:53.128795: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:35:53.142796: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 16)
+2022-01-31 16:35:53.158808: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:35:53.175796: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:35:53.189797: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:35:53.203798: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 69)
+2022-01-31 16:35:53.218796: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:35:53.231836 Successfully ran simulation in 0:00:00.833969 
+2022-01-31 16:35:54.080805: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:35:54.095807: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:35:54.112805: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:35:54.126807: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 16)
+2022-01-31 16:35:54.140804: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:35:54.159804: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:35:54.172803: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:35:54.186804: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:35:54.199805: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:35:54.213805 Successfully ran simulation in 0:00:00.729008 
+2022-01-31 16:35:54.955814: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:35:54.972843: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:35:54.985814: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 11)
+2022-01-31 16:35:55.000845: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:35:55.013811: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:35:55.026813: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:35:55.040812: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 48)
+2022-01-31 16:35:55.058812: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:35:55.070812: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:35:55.084815 Successfully ran simulation in 0:00:01.187565 
+2022-01-31 16:35:56.287377: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:35:56.302380: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:35:56.323377: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 11)
+2022-01-31 16:35:56.338381: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:35:56.352378: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 23)
+2022-01-31 16:35:56.367378: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:35:56.385381: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:35:56.400385: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:35:56.413380: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:35:56.426379 Successfully ran simulation in 0:00:00.725005 
+2022-01-31 16:35:57.164384: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 5)
+2022-01-31 16:35:57.180402: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:35:57.195385: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 11)
+2022-01-31 16:35:57.209385: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:35:57.223385: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:35:57.244386: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 34)
+2022-01-31 16:35:57.259386: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:35:57.276386: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:35:57.289386: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:35:57.308390 Successfully ran simulation in 0:00:01.240006 
+2022-01-31 16:35:58.561396: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:35:58.575398: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 8)
+2022-01-31 16:35:58.592397: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:35:58.609397: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 16)
+2022-01-31 16:35:58.623396: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:35:58.640409: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:35:58.656400: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 48)
+2022-01-31 16:35:58.673399: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:35:58.686397: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 100)
+2022-01-31 16:35:58.700397 Successfully ran simulation in 0:00:01.203014 
+2022-01-31 16:35:59.915408: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 5)
+2022-01-31 16:35:59.928410: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:35:59.943409: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:35:59.956409: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 16)
+2022-01-31 16:35:59.970419: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:35:59.989410: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:00.006408: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:00.025409: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:00.038409: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:00.053408 Successfully ran simulation in 0:00:01.085023 
+2022-01-31 16:36:01.152419: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:36:01.166421: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:01.181423: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:01.195419: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:01.208421: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 23)
+2022-01-31 16:36:01.225001: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:01.238002: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 48)
+2022-01-31 16:36:01.252001: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 69)
+2022-01-31 16:36:01.270002: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:01.286002 Successfully ran simulation in 0:00:01.871617 
+2022-01-31 16:36:03.175619: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 5)
+2022-01-31 16:36:03.192615: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:03.210661: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:03.224617: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 16)
+2022-01-31 16:36:03.238616: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:03.253616: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 34)
+2022-01-31 16:36:03.272616: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 48)
+2022-01-31 16:36:03.287616: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:03.307618: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:03.321617 Successfully ran simulation in 0:00:00.925008 
+2022-01-31 16:36:04.259636: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 5)
+2022-01-31 16:36:04.271625: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:04.284625: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:04.299628: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:04.312626: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:04.326626: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:04.338625: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 48)
+2022-01-31 16:36:04.356625: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:04.369625: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:04.382626 Successfully ran simulation in 0:00:01.007008 
+2022-01-31 16:36:05.402635: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:36:05.416635: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:05.430635: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:05.443635: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:05.455635: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:05.468636: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:05.482636: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:05.497635: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 69)
+2022-01-31 16:36:05.510649: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:05.523637 Successfully ran simulation in 0:00:01.100631 
+2022-01-31 16:36:06.638271: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:36:06.651269: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 8)
+2022-01-31 16:36:06.665270: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:06.681269: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:06.694270: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:06.708272: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:06.721270: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 48)
+2022-01-31 16:36:06.738269: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:06.752269: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:06.766276 Successfully ran simulation in 0:00:01.455005 
+2022-01-31 16:36:08.234282: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 5)
+2022-01-31 16:36:08.248283: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:08.261283: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:08.274284: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 16)
+2022-01-31 16:36:08.287283: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:08.302282: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:08.319282: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 48)
+2022-01-31 16:36:08.333282: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:08.347329: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 100)
+2022-01-31 16:36:08.364284 Successfully ran simulation in 0:00:01.974015 
+2022-01-31 16:36:10.355305: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 5)
+2022-01-31 16:36:10.373303: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:10.392305: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:10.412304: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:10.436303: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:10.455301: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:10.477303: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 48)
+2022-01-31 16:36:10.494302: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 69)
+2022-01-31 16:36:10.511302: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:10.535305 Successfully ran simulation in 0:00:01.526613 
+2022-01-31 16:36:12.075919: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 5)
+2022-01-31 16:36:12.093919: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:12.113919: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:12.128917: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:12.143919: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 23)
+2022-01-31 16:36:12.165950: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:12.180919: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:12.195917: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:12.214920: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:12.229918 Successfully ran simulation in 0:00:01.649016 
+2022-01-31 16:36:13.895933: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:36:13.912967: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 8)
+2022-01-31 16:36:13.933934: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:13.951944: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 16)
+2022-01-31 16:36:13.970938: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 23)
+2022-01-31 16:36:13.988937: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:14.010934: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:14.031968: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:14.052935: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:14.072936 Successfully ran simulation in 0:00:01.158008 
+2022-01-31 16:36:15.245943: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 5)
+2022-01-31 16:36:15.260991: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:15.278946: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:15.293945: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 16)
+2022-01-31 16:36:15.309945: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:15.324946: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 34)
+2022-01-31 16:36:15.340948: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:15.357945: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:15.373946: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:15.394945 Successfully ran simulation in 0:00:01.425653 
+2022-01-31 16:36:16.836601: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 5)
+2022-01-31 16:36:16.859601: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:16.878599: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 11)
+2022-01-31 16:36:16.895600: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:17.021601: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:17.046601: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 34)
+2022-01-31 16:36:17.062600: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:17.079603: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:17.100602: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:17.120607 Successfully ran simulation in 0:00:01.861010 
+2022-01-31 16:36:18.996616: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:36:19.013618: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:19.030617: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:19.055620: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:19.073617: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:19.090617: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:19.106618: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 48)
+2022-01-31 16:36:19.128644: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:19.145619: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:19.166649 Successfully ran simulation in 0:00:01.201982 
+2022-01-31 16:36:20.384659: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:36:20.405629: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:20.420629: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:20.436629: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:20.456630: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:20.472660: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:20.488629: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:20.507630: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:20.522629: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 100)
+2022-01-31 16:36:20.538631 Successfully ran simulation in 0:00:01.281584 
+2022-01-31 16:36:21.837214: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:36:21.853245: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:21.870213: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:21.890213: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:21.906215: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 23)
+2022-01-31 16:36:21.924216: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:21.940214: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:21.965214: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:21.982218: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:21.998215 Successfully ran simulation in 0:00:01.264009 
+2022-01-31 16:36:23.276226: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:36:23.294225: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 8)
+2022-01-31 16:36:23.315225: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 11)
+2022-01-31 16:36:23.330225: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:23.345226: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 23)
+2022-01-31 16:36:23.360226: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:23.376229: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:23.397226: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 69)
+2022-01-31 16:36:23.413273: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 100)
+2022-01-31 16:36:23.433258 Successfully ran simulation in 0:00:01.958292 
+2022-01-31 16:36:25.407506: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:36:25.427508: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:25.443510: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:25.458508: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:25.477509: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:25.493511: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:25.512507: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:25.527509: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:25.543511: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:25.559512 Successfully ran simulation in 0:00:01.404633 
+2022-01-31 16:36:26.979099: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:36:26.994132: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:27.013101: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:27.031097: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 16)
+2022-01-31 16:36:27.046099: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:27.061137: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:27.080098: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:27.094099: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:27.109103: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 100)
+2022-01-31 16:36:27.124100 Successfully ran simulation in 0:00:01.000011 
+2022-01-31 16:36:28.140108: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:36:28.161110: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:28.177110: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:28.193109: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:28.209110: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:28.224108: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:28.240108: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 48)
+2022-01-31 16:36:28.261111: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 69)
+2022-01-31 16:36:28.277111: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 100)
+2022-01-31 16:36:28.294109 Successfully ran simulation in 0:00:01.195044 
+2022-01-31 16:36:29.504118: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 5)
+2022-01-31 16:36:29.519164: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:29.533120: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:29.548119: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:29.563118: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:29.578121: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:29.593120: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:29.609120: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:29.624121: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:29.649121 Successfully ran simulation in 0:00:01.441052 
+2022-01-31 16:36:31.108134: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 5)
+2022-01-31 16:36:31.135137: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 8)
+2022-01-31 16:36:31.156195: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:31.173134: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:31.190134: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 23)
+2022-01-31 16:36:31.213135: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:31.230134: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:31.249137: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:31.266135: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 100)
+2022-01-31 16:36:31.284135 Successfully ran simulation in 0:00:01.457016 
+2022-01-31 16:36:32.756178: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:36:32.772146: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 8)
+2022-01-31 16:36:32.788148: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:32.804146: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:32.820147: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:32.836149: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 34)
+2022-01-31 16:36:32.856149: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:32.873149: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 69)
+2022-01-31 16:36:32.888178: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:32.911148 Successfully ran simulation in 0:00:02.223019 
+2022-01-31 16:36:35.149167: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:36:35.164169: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 8)
+2022-01-31 16:36:35.179167: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 11)
+2022-01-31 16:36:35.195168: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:35.210168: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 23)
+2022-01-31 16:36:35.231169: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:35.246169: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:35.262168: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:35.281170: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:35.404171 Successfully ran simulation in 0:00:01.205059 
+2022-01-31 16:36:36.625180: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:36:36.645218: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:36.662182: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:36.678181: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 16)
+2022-01-31 16:36:36.695230: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:36.834183: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:36.858185: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:36.876214: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 69)
+2022-01-31 16:36:36.897218: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:36.913217 Successfully ran simulation in 0:00:00.957004 
+2022-01-31 16:36:37.885189: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:36:37.903221: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 8)
+2022-01-31 16:36:37.919238: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:37.934192: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:37.950190: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:37.965236: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:37.980191: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:37.999192: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:38.018190: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:38.033192 Successfully ran simulation in 0:00:01.073879 
+2022-01-31 16:36:39.123072: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:36:39.142073: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:39.157070: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 11)
+2022-01-31 16:36:39.179070: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:39.194069: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:39.214070: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:39.229073: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:39.245071: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:39.265102: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:39.285070 Successfully ran simulation in 0:00:02.158022 
+2022-01-31 16:36:41.459090: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 5)
+2022-01-31 16:36:41.482091: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:41.499092: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:41.519090: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:41.539090: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:41.559088: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 34)
+2022-01-31 16:36:41.576091: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:41.592091: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:41.609092: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:41.625094 Successfully ran simulation in 0:00:01.786014 
+2022-01-31 16:36:43.426149: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:36:43.441106: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:43.455104: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:43.470104: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 16)
+2022-01-31 16:36:43.489106: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:43.535105: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:43.553105: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 48)
+2022-01-31 16:36:43.569108: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 69)
+2022-01-31 16:36:43.584150: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:43.622107 Successfully ran simulation in 0:00:01.307593 
+2022-01-31 16:36:44.944701: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:36:44.958702: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:44.973700: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:44.987698: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:45.003700: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:45.022700: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:45.037699: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:45.052702: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:45.067699: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:45.082732 Successfully ran simulation in 0:00:01.347025 
+2022-01-31 16:36:46.444714: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:36:46.459713: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 8)
+2022-01-31 16:36:46.479713: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 11)
+2022-01-31 16:36:46.494713: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:46.510713: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:46.528717: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:46.543743: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:46.563717: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:46.578717: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:46.599716 Successfully ran simulation in 0:00:01.114038 
+2022-01-31 16:36:47.730735: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 5)
+2022-01-31 16:36:47.748724: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:47.774726: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:47.792725: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:47.817725: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:47.835724: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:47.860725: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:47.878727: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:47.895727: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:47.917757 Successfully ran simulation in 0:00:01.299980 
+2022-01-31 16:36:49.232769: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:36:49.247735: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:49.262774: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 11)
+2022-01-31 16:36:49.280740: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:49.299739: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:49.318738: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 34)
+2022-01-31 16:36:49.337737: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:49.355737: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:49.371741: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:49.387737 Successfully ran simulation in 0:00:01.795059 
+2022-01-31 16:36:51.303805: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:36:51.322764: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:51.337765: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:51.352809: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:51.367807: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 23)
+2022-01-31 16:36:51.382763: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:51.397764: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:51.412795: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:51.427831: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:51.446806 Successfully ran simulation in 0:00:01.352971 
+2022-01-31 16:36:52.816778: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:36:52.834776: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 8)
+2022-01-31 16:36:52.852775: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 11)
+2022-01-31 16:36:52.870775: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:52.887776: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:52.905777: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 34)
+2022-01-31 16:36:52.924776: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:52.946777: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:52.963777: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:52.980777 Successfully ran simulation in 0:00:01.174008 
+2022-01-31 16:36:54.170785: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 5)
+2022-01-31 16:36:54.185788: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 8)
+2022-01-31 16:36:54.201831: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 11)
+2022-01-31 16:36:54.222831: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 16)
+2022-01-31 16:36:54.237831: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:54.253788: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:54.269812: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:54.284837: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:54.299790: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:54.318831 Successfully ran simulation in 0:00:01.155967 
+2022-01-31 16:36:55.489798: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 5)
+2022-01-31 16:36:55.505801: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 8)
+2022-01-31 16:36:55.523801: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 11)
+2022-01-31 16:36:55.539798: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:55.555798: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:55.572801: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:55.588798: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 48)
+2022-01-31 16:36:55.609799: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:55.625798: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:55.644799 Successfully ran simulation in 0:00:01.225044 
+2022-01-31 16:36:56.883807: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:36:56.898809: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 8)
+2022-01-31 16:36:56.913866: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:56.927812: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:56.942840: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:56.961812: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:56.979811: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 48)
+2022-01-31 16:36:56.994810: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:57.009809: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:57.024809 Successfully ran simulation in 0:00:01.508014 
+2022-01-31 16:36:58.548823: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 5)
+2022-01-31 16:36:58.564825: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:36:58.580825: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:36:58.597824: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:36:58.614855: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:36:58.635824: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:36:58.652827: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:36:58.670856: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:36:58.687827: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:36:58.705829 Successfully ran simulation in 0:00:01.903486 
+2022-01-31 16:37:00.624278: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:37:00.641274: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:37:00.657277: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 11)
+2022-01-31 16:37:00.678306: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 16)
+2022-01-31 16:37:00.698306: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:37:00.713277: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:37:00.729279: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:37:00.745306: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:37:00.761276: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:37:00.782306 Successfully ran simulation in 0:00:01.446982 
+2022-01-31 16:37:02.244287: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 5)
+2022-01-31 16:37:02.260289: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:37:02.281319: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 11)
+2022-01-31 16:37:02.301298: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:37:02.316292: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 23)
+2022-01-31 16:37:02.336335: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:37:02.352290: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 48)
+2022-01-31 16:37:02.368290: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 69)
+2022-01-31 16:37:02.388289: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:37:02.405289 Successfully ran simulation in 0:00:01.418039 
+2022-01-31 16:37:03.840302: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:37:03.858306: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:37:03.876303: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 11)
+2022-01-31 16:37:03.901334: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 16)
+2022-01-31 16:37:03.919354: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 23)
+2022-01-31 16:37:03.936301: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:37:03.954304: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 48)
+2022-01-31 16:37:03.975305: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 69)
+2022-01-31 16:37:03.993307: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:37:04.011308 Successfully ran simulation in 0:00:01.072051 
+2022-01-31 16:37:05.098357: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:37:05.113316: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 8)
+2022-01-31 16:37:05.131316: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:37:05.147312: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:37:05.165314: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:37:05.180362: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:37:05.199315: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:37:05.217314: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:37:05.233316: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:37:05.251346 Successfully ran simulation in 0:00:01.008976 
+2022-01-31 16:37:06.274326: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:37:06.289322: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:37:06.307324: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:37:06.322325: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:37:06.341325: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:37:06.356322: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 34)
+2022-01-31 16:37:06.374327: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:37:06.389326: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:37:06.404326: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+2022-01-31 16:37:06.422367 Successfully ran simulation in 0:00:01.015003 
+2022-01-31 16:37:07.452335: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+2022-01-31 16:37:07.468335: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+2022-01-31 16:37:07.488334: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+2022-01-31 16:37:07.504334: Failed to run Simulation: operands could not be broadcast together with shapes (16,16) (4,4) 
+2022-01-31 16:37:07.519332: Failed to run Simulation: operands could not be broadcast together with shapes (23,23) (4,4) 
+2022-01-31 16:37:07.538336: Failed to run Simulation: operands could not be broadcast together with shapes (34,34) (4,4) 
+2022-01-31 16:37:07.553381: Failed to run Simulation: operands could not be broadcast together with shapes (48,48) (4,4) 
+2022-01-31 16:37:07.568336: Failed to run Simulation: operands could not be broadcast together with shapes (69,69) (4,4) 
+2022-01-31 16:37:07.586378: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+INFO:root:2022-02-07 15:41:59.271954 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\config-param-pairs\\metrics_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 15:42:00.629955 Successfully ran simulation in 0:00:01.225064 
+ERROR:root:2022-02-07 15:42:01.868955: Failed to run Simulation: operands could not be broadcast together with shapes (12,12) (4,4) 
+ERROR:root:2022-02-07 15:42:01.880954: Failed to run Simulation: operands could not be broadcast together with shapes (21,21) (4,4) 
+ERROR:root:2022-02-07 15:42:01.897955: Failed to run Simulation: operands could not be broadcast together with shapes (30,30) (4,4) 
+ERROR:root:2022-02-07 15:42:01.915000: Failed to run Simulation: operands could not be broadcast together with shapes (38,38) (4,4) 
+ERROR:root:2022-02-07 15:42:01.927956: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 47)
+ERROR:root:2022-02-07 15:42:01.942955: Failed to run Simulation: operands could not be broadcast together with shapes (56,56) (4,4) 
+ERROR:root:2022-02-07 15:42:01.955956: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 65)
+ERROR:root:2022-02-07 15:42:01.968978: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 73)
+ERROR:root:2022-02-07 15:42:01.982958: Failed to run Simulation: operands could not be broadcast together with shapes (82,82) (4,4) 
+ERROR:root:2022-02-07 15:42:01.999959: Failed to run Simulation: operands could not be broadcast together with shapes (91,91) (4,4) 
+ERROR:root:2022-02-07 15:42:02.012961: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+INFO:root:2022-02-07 15:42:02.026957 Successfully ran simulation in 0:00:00.943999 
+ERROR:root:2022-02-07 15:42:02.983956: Failed to run Simulation: operands could not be broadcast together with shapes (12,12) (4,4) 
+ERROR:root:2022-02-07 15:42:02.998956: Failed to run Simulation: operands could not be broadcast together with shapes (21,21) (4,4) 
+ERROR:root:2022-02-07 15:42:03.016956: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 30)
+ERROR:root:2022-02-07 15:42:03.032970: Failed to run Simulation: operands could not be broadcast together with shapes (38,38) (4,4) 
+ERROR:root:2022-02-07 15:42:03.047957: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 47)
+ERROR:root:2022-02-07 15:42:03.063957: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 56)
+ERROR:root:2022-02-07 15:42:03.081956: Failed to run Simulation: operands could not be broadcast together with shapes (65,65) (4,4) 
+ERROR:root:2022-02-07 15:42:03.101957: Failed to run Simulation: operands could not be broadcast together with shapes (73,73) (4,4) 
+ERROR:root:2022-02-07 15:42:03.120957: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 82)
+ERROR:root:2022-02-07 15:42:03.136956: Failed to run Simulation: operands could not be broadcast together with shapes (91,91) (4,4) 
+ERROR:root:2022-02-07 15:42:03.155004: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 100)
+INFO:root:2022-02-07 15:42:03.173958 Successfully ran simulation in 0:00:00.676004 
+ERROR:root:2022-02-07 15:42:03.863993: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 12)
+ERROR:root:2022-02-07 15:42:03.879958: Failed to run Simulation: operands could not be broadcast together with shapes (21,21) (4,4) 
+ERROR:root:2022-02-07 15:42:03.895959: Failed to run Simulation: operands could not be broadcast together with shapes (30,30) (4,4) 
+ERROR:root:2022-02-07 15:42:03.910964: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 38)
+ERROR:root:2022-02-07 15:42:03.930956: Failed to run Simulation: operands could not be broadcast together with shapes (47,47) (4,4) 
+ERROR:root:2022-02-07 15:42:03.946003: Failed to run Simulation: operands could not be broadcast together with shapes (56,56) (4,4) 
+ERROR:root:2022-02-07 15:42:03.959956: Failed to run Simulation: operands could not be broadcast together with shapes (65,65) (4,4) 
+ERROR:root:2022-02-07 15:42:03.973956: Failed to run Simulation: operands could not be broadcast together with shapes (73,73) (4,4) 
+ERROR:root:2022-02-07 15:42:03.986958: Failed to run Simulation: operands could not be broadcast together with shapes (82,82) (4,4) 
+ERROR:root:2022-02-07 15:42:04.001956: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 91)
+ERROR:root:2022-02-07 15:42:04.014957: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 100)
+INFO:root:2022-02-07 15:42:04.028973 Successfully ran simulation in 0:00:00.967584 
+ERROR:root:2022-02-07 15:42:05.011558: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 12)
+ERROR:root:2022-02-07 15:42:05.026569: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 21)
+ERROR:root:2022-02-07 15:42:05.040588: Failed to run Simulation: operands could not be broadcast together with shapes (30,30) (4,4) 
+ERROR:root:2022-02-07 15:42:05.057558: Failed to run Simulation: operands could not be broadcast together with shapes (38,38) (4,4) 
+ERROR:root:2022-02-07 15:42:05.071555: Failed to run Simulation: operands could not be broadcast together with shapes (47,47) (4,4) 
+ERROR:root:2022-02-07 15:42:05.085579: Failed to run Simulation: operands could not be broadcast together with shapes (56,56) (4,4) 
+ERROR:root:2022-02-07 15:42:05.099555: Failed to run Simulation: operands could not be broadcast together with shapes (65,65) (4,4) 
+ERROR:root:2022-02-07 15:42:05.112555: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 73)
+ERROR:root:2022-02-07 15:42:05.129605: Failed to run Simulation: operands could not be broadcast together with shapes (82,82) (4,4) 
+ERROR:root:2022-02-07 15:42:05.142557: Failed to run Simulation: operands could not be broadcast together with shapes (91,91) (4,4) 
+ERROR:root:2022-02-07 15:42:05.156592: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+INFO:root:2022-02-07 15:42:05.172594 Successfully ran simulation in 0:00:00.864963 
+ERROR:root:2022-02-07 15:42:06.049557: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 12)
+ERROR:root:2022-02-07 15:42:06.063616: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 21)
+ERROR:root:2022-02-07 15:42:06.075557: Failed to run Simulation: operands could not be broadcast together with shapes (30,30) (4,4) 
+ERROR:root:2022-02-07 15:42:06.094592: Failed to run Simulation: operands could not be broadcast together with shapes (38,38) (4,4) 
+ERROR:root:2022-02-07 15:42:06.107600: Failed to run Simulation: operands could not be broadcast together with shapes (47,47) (4,4) 
+ERROR:root:2022-02-07 15:42:06.119555: Failed to run Simulation: operands could not be broadcast together with shapes (56,56) (4,4) 
+ERROR:root:2022-02-07 15:42:06.133606: Failed to run Simulation: operands could not be broadcast together with shapes (65,65) (4,4) 
+ERROR:root:2022-02-07 15:42:06.146557: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 73)
+ERROR:root:2022-02-07 15:42:06.165615: Failed to run Simulation: operands could not be broadcast together with shapes (82,82) (4,4) 
+ERROR:root:2022-02-07 15:42:06.184584: Failed to run Simulation: operands could not be broadcast together with shapes (91,91) (4,4) 
+ERROR:root:2022-02-07 15:42:06.205627: Failed to run Simulation: operands could not be broadcast together with shapes (100,100) (4,4) 
+INFO:root:2022-02-07 15:43:29.255515 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\metrics_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 15:43:29.980538 Successfully ran simulation in 0:00:01.104673 
+INFO:root:2022-02-07 15:43:31.098160 Successfully ran simulation in 0:00:00.956000 
+INFO:root:2022-02-07 15:43:32.069171 Successfully ran simulation in 0:00:00.976040 
+INFO:root:2022-02-07 15:43:33.060163 Successfully ran simulation in 0:00:01.737013 
+INFO:root:2022-02-07 15:43:34.811163 Successfully ran simulation in 0:00:01.352579 
+INFO:root:2022-02-07 15:43:36.178734 Successfully ran simulation in 0:00:00.764188 
+INFO:root:2022-02-07 15:43:36.955927 Successfully ran simulation in 0:00:00.786003 
+INFO:root:2022-02-07 15:43:37.756939 Successfully ran simulation in 0:00:01.415538 
+INFO:root:2022-02-07 15:43:39.186440 Successfully ran simulation in 0:00:00.959020 
+INFO:root:2022-02-07 15:43:40.157421 Successfully ran simulation in 0:00:01.004723 
+INFO:root:2022-02-07 15:43:41.175637 Successfully ran simulation in 0:00:00.772007 
+INFO:root:2022-02-07 15:43:41.959643 Successfully ran simulation in 0:00:01.219537 
+INFO:root:2022-02-07 15:43:43.237181 Successfully ran simulation in 0:00:00.811066 
+INFO:root:2022-02-07 15:43:44.062180 Successfully ran simulation in 0:00:01.178029 
+INFO:root:2022-02-07 15:43:45.254181 Successfully ran simulation in 0:00:00.603174 
+INFO:root:2022-02-07 15:43:45.872316 Successfully ran simulation in 0:00:01.197752 
+INFO:root:2022-02-07 15:43:47.084068 Successfully ran simulation in 0:00:01.292999 
+INFO:root:2022-02-07 15:43:48.391068 Successfully ran simulation in 0:00:01.744957 
+INFO:root:2022-02-07 15:43:50.151985 Successfully ran simulation in 0:00:01.265998 
+INFO:root:2022-02-07 15:43:51.431983 Successfully ran simulation in 0:00:01.172039 
+INFO:root:2022-02-07 15:43:52.618022 Successfully ran simulation in 0:00:02.331450 
+INFO:root:2022-02-07 15:43:54.963496 Successfully ran simulation in 0:00:01.279726 
+INFO:root:2022-02-07 15:43:56.257219 Successfully ran simulation in 0:00:01.516490 
+INFO:root:2022-02-07 15:43:57.787668 Successfully ran simulation in 0:00:02.256534 
+INFO:root:2022-02-07 15:44:00.057194 Successfully ran simulation in 0:00:01.090959 
+INFO:root:2022-02-07 15:44:01.162193 Successfully ran simulation in 0:00:01.631026 
+INFO:root:2022-02-07 15:44:02.807190 Successfully ran simulation in 0:00:00.897141 
+INFO:root:2022-02-07 15:44:03.718300 Successfully ran simulation in 0:00:01.196000 
+INFO:root:2022-02-07 15:44:04.928359 Successfully ran simulation in 0:00:00.746982 
+INFO:root:2022-02-07 15:44:05.691297 Successfully ran simulation in 0:00:01.185138 
+INFO:root:2022-02-07 15:44:06.891405 Successfully ran simulation in 0:00:01.416992 
+INFO:root:2022-02-07 15:44:08.322356 Successfully ran simulation in 0:00:01.401931 
+INFO:root:2022-02-07 15:44:09.737288 Successfully ran simulation in 0:00:01.014819 
+INFO:root:2022-02-07 15:44:10.767107 Successfully ran simulation in 0:00:01.326999 
+INFO:root:2022-02-07 15:44:12.107106 Successfully ran simulation in 0:00:00.912456 
+INFO:root:2022-02-07 15:44:13.034567 Successfully ran simulation in 0:00:01.036741 
+INFO:root:2022-02-07 15:44:14.085311 Successfully ran simulation in 0:00:01.294621 
+INFO:root:2022-02-07 15:44:15.460278 Successfully ran simulation in 0:00:00.975209 
+INFO:root:2022-02-07 15:44:16.449486 Successfully ran simulation in 0:00:01.259639 
+INFO:root:2022-02-07 15:44:17.722171 Successfully ran simulation in 0:00:01.174759 
+INFO:root:2022-02-07 15:44:18.910778 Successfully ran simulation in 0:00:01.375715 
+INFO:root:2022-02-07 15:44:20.300474 Successfully ran simulation in 0:00:00.746955 
+INFO:root:2022-02-07 15:44:21.062431 Successfully ran simulation in 0:00:01.275542 
+INFO:root:2022-02-07 15:44:22.352974 Successfully ran simulation in 0:00:00.837043 
+INFO:root:2022-02-07 15:44:23.203975 Successfully ran simulation in 0:00:01.123424 
+INFO:root:2022-02-07 15:44:24.342424 Successfully ran simulation in 0:00:01.581643 
+INFO:root:2022-02-07 15:44:25.937064 Successfully ran simulation in 0:00:01.731958 
+INFO:root:2022-02-07 15:44:27.683027 Successfully ran simulation in 0:00:01.412059 
+INFO:root:2022-02-07 15:44:29.109182 Successfully ran simulation in 0:00:01.419238 
+INFO:root:2022-02-07 15:44:30.542387 Successfully ran simulation in 0:00:01.472010 
+INFO:root:2022-02-07 15:44:32.028386 Successfully ran simulation in 0:00:01.699053 
+INFO:root:2022-02-07 15:44:33.740430 Successfully ran simulation in 0:00:01.946000 
+INFO:root:2022-02-07 15:44:35.700388 Successfully ran simulation in 0:00:01.832044 
+INFO:root:2022-02-07 15:44:37.546389 Successfully ran simulation in 0:00:01.592047 
+INFO:root:2022-02-07 15:44:39.152388 Successfully ran simulation in 0:00:01.388095 
+INFO:root:2022-02-07 15:44:40.555440 Successfully ran simulation in 0:00:01.858999 
+INFO:root:2022-02-07 15:44:42.428443 Successfully ran simulation in 0:00:01.293047 
+INFO:root:2022-02-07 15:44:43.735540 Successfully ran simulation in 0:00:01.095366 
+INFO:root:2022-02-07 15:44:44.844875 Successfully ran simulation in 0:00:01.258457 
+INFO:root:2022-02-07 15:44:46.117330 Successfully ran simulation in 0:00:01.237001 
+INFO:root:2022-02-07 15:44:47.367331 Successfully ran simulation in 0:00:01.383002 
+INFO:root:2022-02-07 15:44:48.764332 Successfully ran simulation in 0:00:01.217001 
+INFO:root:2022-02-07 15:44:53.099214 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\metrics_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:02:10.344908 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\metrics_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:03:14.325421 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\metrics_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:03:39.478242 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\metrics_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:03:40.035187 Successfully ran simulation in 0:00:01.346001 
+INFO:root:2022-02-07 16:03:50.123279 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\metrics_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:08:26.802641 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\metrics_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:09:07.360356 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\metrics_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:10:50.250778 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\metrics_config_parameters.json' mode='r' encoding='cp1252'>
+ERROR:root:2022-02-07 16:10:50.528795: Failed to run Simulation: operands could not be broadcast together with shapes (3,3) (4,4) 
+ERROR:root:2022-02-07 16:10:50.543800: Failed to run Simulation: operands could not be broadcast together with shapes (6,6) (4,4) 
+ERROR:root:2022-02-07 16:10:50.561803: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+ERROR:root:2022-02-07 16:10:50.574798: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 11)
+ERROR:root:2022-02-07 16:10:50.589799: Failed to run Simulation: operands could not be broadcast together with shapes (13,13) (4,4) 
+ERROR:root:2022-02-07 16:10:50.606797: Failed to run Simulation: operands could not be broadcast together with shapes (15,15) (4,4) 
+ERROR:root:2022-02-07 16:10:50.619797: Failed to run Simulation: operands could not be broadcast together with shapes (19,19) (4,4) 
+INFO:root:2022-02-07 16:10:50.620796 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\multisens_movplatsim_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:12:00.857886 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\metrics_config_parameters.json' mode='r' encoding='cp1252'>
+ERROR:root:2022-02-07 16:12:01.116889: Failed to run Simulation: operands could not be broadcast together with shapes (3,3) (4,4) 
+ERROR:root:2022-02-07 16:12:01.134888: Failed to run Simulation: operands could not be broadcast together with shapes (6,6) (4,4) 
+ERROR:root:2022-02-07 16:12:01.148887: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+ERROR:root:2022-02-07 16:12:01.161886: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+ERROR:root:2022-02-07 16:12:01.175888: Failed to run Simulation: operands could not be broadcast together with shapes (13,13) (4,4) 
+ERROR:root:2022-02-07 16:12:01.189888: Failed to run Simulation: operands could not be broadcast together with shapes (15,15) (4,4) 
+ERROR:root:2022-02-07 16:12:01.202886: Failed to run Simulation: operands could not be broadcast together with shapes (19,19) (4,4) 
+INFO:root:2022-02-07 16:12:01.203890 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\multisens_movplatsim_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:12:39.390840 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\metrics_config_parameters.json' mode='r' encoding='cp1252'>
+ERROR:root:2022-02-07 16:12:39.638844: Failed to run Simulation: operands could not be broadcast together with shapes (3,3) (4,4) 
+ERROR:root:2022-02-07 16:12:39.651842: Failed to run Simulation: operands could not be broadcast together with shapes (6,6) (4,4) 
+ERROR:root:2022-02-07 16:12:39.669432: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+ERROR:root:2022-02-07 16:12:39.682437: Failed to run Simulation: operands could not be broadcast together with shapes (11,11) (4,4) 
+ERROR:root:2022-02-07 16:12:39.695438: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 13)
+ERROR:root:2022-02-07 16:12:39.711437: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 15)
+ERROR:root:2022-02-07 16:12:39.724481: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 19)
+INFO:root:2022-02-07 16:12:39.726482 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\multisens_movplatsim_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:21:02.108089 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\metrics_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:21:02.430098 Successfully ran simulation in 0:00:00.753710 
+ERROR:root:2022-02-07 16:21:03.196808: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+ERROR:root:2022-02-07 16:21:03.210809: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+ERROR:root:2022-02-07 16:21:03.227810: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 13)
+ERROR:root:2022-02-07 16:21:03.245809: Failed to run Simulation: operands could not be broadcast together with shapes (20,20) (4,4) 
+INFO:root:2022-02-07 16:21:03.259808 Successfully ran simulation in 0:00:00.700001 
+ERROR:root:2022-02-07 16:21:03.974810: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 5)
+ERROR:root:2022-02-07 16:21:03.988812: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+ERROR:root:2022-02-07 16:21:04.002809: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 13)
+ERROR:root:2022-02-07 16:21:04.016810: Failed to run Simulation: operands could not be broadcast together with shapes (20,20) (4,4) 
+INFO:root:2022-02-07 16:21:04.035810 Successfully ran simulation in 0:00:00.707031 
+ERROR:root:2022-02-07 16:21:04.755833: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+ERROR:root:2022-02-07 16:21:04.773813: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+ERROR:root:2022-02-07 16:21:04.788837: Failed to run Simulation: operands could not be broadcast together with shapes (13,13) (4,4) 
+ERROR:root:2022-02-07 16:21:04.806824: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 20)
+INFO:root:2022-02-07 16:21:04.821814 Successfully ran simulation in 0:00:00.964043 
+ERROR:root:2022-02-07 16:21:05.799860: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+ERROR:root:2022-02-07 16:21:05.813814: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+ERROR:root:2022-02-07 16:21:05.827815: Failed to run Simulation: operands could not be broadcast together with shapes (13,13) (4,4) 
+ERROR:root:2022-02-07 16:21:05.844816: Failed to run Simulation: operands could not be broadcast together with shapes (20,20) (4,4) 
+INFO:root:2022-02-07 16:21:05.859814 Successfully ran simulation in 0:00:00.924016 
+ERROR:root:2022-02-07 16:21:06.796821: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+ERROR:root:2022-02-07 16:21:06.813818: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+ERROR:root:2022-02-07 16:21:06.833842: Failed to run Simulation: operands could not be broadcast together with shapes (13,13) (4,4) 
+ERROR:root:2022-02-07 16:21:06.849819: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 20)
+INFO:root:2022-02-07 16:21:06.864818 Successfully ran simulation in 0:00:01.269073 
+ERROR:root:2022-02-07 16:21:08.147891: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+ERROR:root:2022-02-07 16:21:08.163849: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+ERROR:root:2022-02-07 16:21:08.182850: Failed to run Simulation: operands could not be broadcast together with shapes (13,13) (4,4) 
+ERROR:root:2022-02-07 16:21:08.201849: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 20)
+INFO:root:2022-02-07 16:21:08.216850 Successfully ran simulation in 0:00:00.757070 
+ERROR:root:2022-02-07 16:21:08.985919: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+ERROR:root:2022-02-07 16:21:08.999922: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+ERROR:root:2022-02-07 16:21:09.012964: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 13)
+ERROR:root:2022-02-07 16:21:09.026952: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 20)
+INFO:root:2022-02-07 16:23:17.482439 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\metrics_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:25:38.090864 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\metrics_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:26:23.716120 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\metrics_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:29:07.262100 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\metrics_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:30:15.602462 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\metrics_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:30:15.904423 Successfully ran simulation in 0:00:01.081012 
+INFO:root:2022-02-07 16:30:16.986449 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\multisens_movplatsim_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:31:05.774819 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\metrics_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:31:06.040787 Successfully ran simulation in 0:00:01.177166 
+ERROR:root:2022-02-07 16:31:07.232953: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+ERROR:root:2022-02-07 16:31:07.249967: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+ERROR:root:2022-02-07 16:31:07.263953: Failed to run Simulation: operands could not be broadcast together with shapes (13,13) (4,4) 
+ERROR:root:2022-02-07 16:31:07.279005: Failed to run Simulation: operands could not be broadcast together with shapes (20,20) (4,4) 
+INFO:root:2022-02-07 16:31:07.282957 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\multisens_movplatsim_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:31:16.625769 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\metrics_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:31:16.920179 Successfully ran simulation in 0:00:00.922966 
+ERROR:root:2022-02-07 16:31:17.856187: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 5)
+ERROR:root:2022-02-07 16:31:17.871146: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+ERROR:root:2022-02-07 16:31:17.885146: Failed to run Simulation: operands could not be broadcast together with shapes (13,13) (4,4) 
+ERROR:root:2022-02-07 16:31:17.898144: Failed to run Simulation: operands could not be broadcast together with shapes (20,20) (4,4) 
+INFO:root:2022-02-07 16:31:17.900177 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\multisens_movplatsim_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:31:57.221929 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\metrics_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:31:57.512024 Successfully ran simulation in 0:00:01.031791 
+ERROR:root:2022-02-07 16:31:58.556783: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+ERROR:root:2022-02-07 16:31:58.572792: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+ERROR:root:2022-02-07 16:31:58.590691: Failed to run Simulation: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4 is different from 13)
+ERROR:root:2022-02-07 16:31:58.604695: Failed to run Simulation: operands could not be broadcast together with shapes (20,20) (4,4) 
+INFO:root:2022-02-07 16:31:58.605696 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\multisens_movplatsim_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:37:18.785499 Accessed jsonfile <_io.TextIOWrapper name='C:\\Users\\Davidb1\\Documents\\Python\\data\\configs\\v1.04b\\metrics_config_parameters.json' mode='r' encoding='cp1252'>
+INFO:root:2022-02-07 16:37:19.075021 Successfully ran simulation in 0:00:00.714220 
+ERROR:root:2022-02-07 16:37:19.803241: Failed to run Simulation: operands could not be broadcast together with shapes (5,5) (4,4) 
+ERROR:root:2022-02-07 16:37:19.817243: Failed to run Simulation: operands could not be broadcast together with shapes (8,8) (4,4) 
+ERROR:root:2022-02-07 16:37:19.834243: Failed to run Simulation: operands could not be broadcast together with shapes (13,13) (4,4) 
+ERROR:root:2022-02-07 16:37:19.851243: Failed to run Simulation: operands could not be broadcast together with shapes (20,20) (4,4) 
