@@ -164,18 +164,26 @@ def test_nonlinear_measurement(meas_model, skip_non_linear):
 
 
 def test_linear_measurement_non_direct():
-    class _LinearMeasurementModel:
+    class _LinearMeasurementModel(LinearModel):
         ndim_state = 2
         ndmim_meas = 2
         mapping = (0, 1)
 
-        @staticmethod
-        def matrix():
+        def matrix(self):
             return np.array([[0, 1], [2, 0]])
 
         @staticmethod
         def covar():
             return np.diag([10, 50])
+
+        def ndim(self):
+            pass
+
+        def pdf(self):
+            pass
+
+        def rvs(slef):
+            pass
 
     measurement_model = _LinearMeasurementModel()
     measurement_initiator = SimpleMeasurementInitiator(
@@ -211,19 +219,27 @@ def test_linear_measurement_non_direct():
 
 
 def test_linear_measurement_extra_state_dim():
-    class _LinearMeasurementModel:
+    class _LinearMeasurementModel(LinearModel):
         ndim_state = 3
         ndmim_meas = 2
 
         mapping = (0, 2)
 
-        @staticmethod
-        def matrix():
+        def matrix(self):
             return np.array([[1, 0, 0], [0, 0, 1]])
 
         @staticmethod
         def covar():
             return np.diag([10, 50])
+
+        def ndim(self):
+            pass
+
+        def pdf(self):
+            pass
+
+        def rvs(self):
+            pass
 
     measurement_model = _LinearMeasurementModel()
     measurement_initiator = SimpleMeasurementInitiator(

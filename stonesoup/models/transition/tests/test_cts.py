@@ -5,18 +5,19 @@ from pytest import approx
 import numpy as np
 from scipy.stats import multivariate_normal
 
-from ..linear import ConstantTurnSandwich, ConstantVelocity
+from ..linear import KnownTurnRateSandwich
+from ..linear import ConstantVelocity
 from ....types.state import State
 
 
 def test_ctmodel():
-    """ ConstantTurnSandwich Transition Model test """
+    """ KnownTurnRateSandwich Transition Model test """
     state = State(np.array([[3.0], [1.0], [2.0], [1.0], [1.0], [1.0]]))
     turn_noise_diff_coeffs = np.array([0.01, 0.01])
     turn_rate = 0.1
     noise_diff_cv = 0.1
     model_list = [ConstantVelocity(noise_diff_cv)]
-    base(ConstantTurnSandwich, state, turn_noise_diff_coeffs, turn_rate,
+    base(KnownTurnRateSandwich, state, turn_noise_diff_coeffs, turn_rate,
          noise_diff_cv, model_list)
 
 

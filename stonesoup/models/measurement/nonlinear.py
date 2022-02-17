@@ -15,7 +15,7 @@ from ...functions import cart2pol, pol2cart, \
     rotx, roty, rotz
 from ...types.array import StateVector, CovarianceMatrix, StateVectors
 from ...types.angle import Bearing, Elevation
-from ..base import LinearModel, NonLinearModel, GaussianModel, ReversibleModel
+from ..base import LinearModel, GaussianModel, ReversibleModel
 from .base import MeasurementModel
 
 
@@ -95,7 +95,7 @@ class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel,
             return rvs_vectors.view(StateVectors)
 
 
-class NonLinearGaussianMeasurement(MeasurementModel, NonLinearModel, GaussianModel, ABC):
+class NonLinearGaussianMeasurement(MeasurementModel, GaussianModel, ABC):
     r"""This class combines the MeasurementModel, NonLinearModel and \
     GaussianModel classes. It is not meant to be instantiated directly \
     but subclasses should be derived from this class.

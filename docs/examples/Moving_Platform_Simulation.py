@@ -210,7 +210,7 @@ sensor_platform.sensors
 # seconds, and it will turn through 45 degrees over the course of the turn manoeuvre.
 
 # Import a Constant Turn model to enable target to perform basic manoeuvre
-from stonesoup.models.transition.linear import ConstantTurn
+from stonesoup.models.transition.linear import KnownTurnRate
 
 straight_level = CombinedLinearGaussianTransitionModel(
     [ConstantVelocity(0.), ConstantVelocity(0.), ConstantVelocity(0.)])
@@ -220,7 +220,7 @@ turn_noise_diff_coeffs = np.array([0., 0.])
 
 turn_rate = np.pi/32  # specified in radians per seconds...
 
-turn_model = ConstantTurn(turn_noise_diff_coeffs=turn_noise_diff_coeffs, turn_rate=turn_rate)
+turn_model = KnownTurnRate(turn_noise_diff_coeffs=turn_noise_diff_coeffs, turn_rate=turn_rate)
 
 # Configure turn model to maintain current altitude
 turning = CombinedLinearGaussianTransitionModel(

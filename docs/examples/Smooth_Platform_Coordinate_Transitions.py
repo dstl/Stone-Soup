@@ -105,11 +105,11 @@ transition_models, transition_times = create_smooth_transition_models(initial_st
 
 # %%
 # This gives the transition times/models:
-from stonesoup.models.transition.linear import ConstantTurn
+from stonesoup.models.transition.linear import KnownTurnRate
 for transition_time, transition_model in zip(transition_times, transition_models):
     print('Duration: ', transition_time.total_seconds(), 's ',
           'Model: ', type(transition_model), end=' ')
-    if isinstance(transition_model, ConstantTurn):
+    if isinstance(transition_model, KnownTurnRate):
         print('turn-rate: ', transition_model.turn_rate)
     else:
         print('x-acceleration: ', transition_model.ax, end=', ')
