@@ -26,14 +26,18 @@ class RunManagerCore(RunManager):
         self.nruns = nruns
         self.nprocesses = nprocesses
 
+        self.total_trackers = 0
+        self.current_run = 0
+        self.current_trackers = 0
+
         self.input_manager = InputManager()
         self.run_manager_metrics = RunmanagerMetrics()
 
-        root_logger = logging.getLogger()
-        root_logger.setLevel(logging.DEBUG)
-        handler = logging.FileHandler('simulation.log', 'w', 'utf-8')
-        root_logger.addHandler(handler)
-        # logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
+        # root_logger = logging.getLogger()
+        # root_logger.setLevel(logging.DEBUG)
+        # handler = logging.FileHandler('simulation.log', 'w', 'utf-8')
+        # root_logger.addHandler(handler)
+        logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
         logging.info(f'RunManagerCore started. {datetime.now()}')
 
     def read_json(self, json_input):
@@ -86,10 +90,10 @@ class RunManagerCore(RunManager):
             param_path = path[1]
             json_data = self.read_json(param_path)
 
-            nruns = self.set_runs_number(self.nruns, json_data)
+            self.nruns = self.set_runs_number(self.nruns, json_data)
             nprocesses = self.set_processes_number(self.nprocesses, json_data)
             combo_dict = self.prepare_monte_carlo(json_data)
-            self.prepare_monte_carlo_simulation(combo_dict, nruns,
+            self.prepare_monte_carlo_simulation(combo_dict, self.nruns,
                                                 nprocesses, config_path)
 
     def set_runs_number(self, nruns, json_data):
@@ -114,7 +118,6 @@ class RunManagerCore(RunManager):
             nruns = nruns
         else:
             nruns = 1
-        print("Number of runs: ", nruns)
         return nruns
 
     def set_processes_number(self, nprocess, json_data):
@@ -139,7 +142,6 @@ class RunManagerCore(RunManager):
             proc_num = nprocess
         else:
             proc_num = 1
-        print("Number of processes: ", proc_num)
         return proc_num
 
     def prepare_monte_carlo(self, json_data):
@@ -224,12 +226,7 @@ class RunManagerCore(RunManager):
 
         try:
             log_time = datetime.now()
-            if self.total_trackers > 1:
-                logging.info(f"{log_time} Starting simulation {self.current_trackers}"
-                             f" / {self.total_trackers} and monte-carlo"
-                             f"{self.current_run} / {self.total_runs}")
-                print(f"{log_time} Starting simulation {self.current_trackers}"
-                      f" / {self.total_trackers} and monte-carlo  {self.current_run} / {self.total_runs}")
+            self.logging_starting(log_time)
             for time, ctracks in tracker.tracks_gen():
                 # Update groundtruth, tracks and detections
                 self.run_manager_metrics.tracks_to_csv(dir_name, ctracks)
@@ -241,54 +238,28 @@ class RunManagerCore(RunManager):
                     metric_manager.add_data(self.check_ground_truth(ground_truth), ctracks,
                                             tracker.detector.detections,
                                             overwrite=False)
-                    # Sometimes the metric manager generate metrics fails.
-                    # We can't remove this try catch.
+
             if metric_manager is not None:
                 try:
                     metrics = metric_manager.generate_metrics()
                     self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
                 except Exception as e:
-                    logging.info(f'{log_time} Metric manager: {e}')
-                    print(f'{log_time} Metric manager: {e}')
+                    self.logging_metric_manager_fail(e)
 
-            if self.total_trackers > 1:
-                logging.info(f"{log_time} Successfully ran simulation {self.current_trackers} /"
-                             f"{self.total_trackers} and monte-carlo"
-                             f"{self.current_run} / {self.total_runs}"
-                             f"in {datetime.now() - log_time}")
-                print(f"{log_time} Successfully ran simulation {self.current_trackers} /"
-                      f" {self.total_trackers} and monte-carlo"
-                      f" {self.current_run} / {self.total_runs}"
-                      f" in {datetime.now() - log_time}")
-                print('--------------------------------')
-            else:
-                logging.info(f"{log_time} Successfully ran simulation {self.current_run}"
-                             f"{self.total_runs} in {datetime.now() - log_time}")
-                print(f"{log_time} Successfully ran simulation "
-                      f"{self.current_run} / {self.total_runs} in {datetime.now() - log_time}")
-                print('--------------------------------')
+            self.logging_success(log_time)
+
         except Exception as e:
-            if self.total_trackers > 1:
-                logging.info(f"{log_time} Successfully ran simulation {self.current_trackers} /"
-                             f"{self.total_trackers} and monte-carlo"
-                             f"{self.current_run} / {self.total_runs}"
-                             f"in {datetime.now() - log_time}")
-                print(f"{log_time} Successfully ran simulation {self.current_trackers} /"
-                      f" {self.total_trackers} and monte-carlo"
-                      f" {self.current_run} / {self.total_runs}"
-                      f" in {datetime.now() - log_time}")
-            else:
-                logging.error(f"{datetime.now()}: Failed to run Simulation "
-                            f"{self.current_run} / {self.total_runs}: {e}")
-                print(f"{datetime.now()}: Failed to run Simulation "
-                    f"{self.current_run} / {self.total_runs}: {e}")
-                print("Metric manager: {}".format(e))
+            self.logging_failed_simulation(log_time, e)
+            print(f"Metric manager error: {e}")
+
         finally:
             # Clear manager after run to stop subsequent runs slowing down
             metrics = set()
             metric_manager.tracks = set()
             metric_manager.groundtruth_paths = set()
             metric_manager.detections = set()
+            
+            print('--------------------------------')
 
     def set_trackers(self, combo_dict, tracker, ground_truth, metric_manager):
         """Set the trackers, groundtruths and metricmanagers list (stonesoup objects)
@@ -382,7 +353,8 @@ class RunManagerCore(RunManager):
         try:
             config_data = YAML('safe').load(config_string)
         except Exception as e:
-            print("Failed to load config data: ", e)
+            print(f"{datetime.now()} Failed to load config data: {e}")
+            logging.error(f"{datetime.now()} Failed to load config data: {e}")
             config_data = [None, None, None]
 
         tracker = config_data[0]
@@ -528,7 +500,6 @@ class RunManagerCore(RunManager):
             string of the datetime for the metrics directory name
         """
         dir_name = f"metrics_{dt_string}/run_{runs_num}"
-        print("RUN SINGLE: ", runs_num)
         self.current_run = runs_num
 
         # ground_truth = self.check_ground_truth(ground_truth)
@@ -657,3 +628,53 @@ class RunManagerCore(RunManager):
         return {self.TRACKER: tracker,
                 self.GROUNDTRUTH: ground_truth,
                 self.METRIC_MANAGER: metric_manager}
+
+    def logging_starting(self, log_time):
+        if self.total_trackers > 1:
+            logging.info(f"{log_time} Starting simulation {self.current_trackers}"
+                            f" / {self.total_trackers} and monte-carlo"
+                            f"{self.current_run} / {self.nruns}")
+            print(f"{log_time} Starting simulation {self.current_trackers}"
+                    f" / {self.total_trackers} and monte-carlo  {self.current_run} / {self.nruns}")
+        else:
+            logging.info(f"{log_time} Starting simulation "
+                            f"{self.current_run} / {self.nruns}")
+            print(f"{log_time} Starting simulation "
+                    f"{self.current_run} / {self.nruns}")
+
+    def logging_success(self, log_time):
+        if self.total_trackers > 1:
+            logging.info(f"{log_time} Successfully ran simulation {self.current_trackers} /"
+                            f"{self.total_trackers} and monte-carlo"
+                            f"{self.current_run} / {self.nruns}"
+                            f"in {datetime.now() - log_time}")
+            print(f"{log_time} Successfully ran simulation {self.current_trackers} /"
+                    f" {self.total_trackers} and monte-carlo"
+                    f" {self.current_run} / {self.nruns}"
+                    f" in {datetime.now() - log_time}")
+
+        else:
+            logging.info(f"{log_time} Successfully ran simulation {self.current_run}"
+                            f"{self.nruns} in {datetime.now() - log_time}")
+            print(f"{log_time} Successfully ran simulation "
+                    f"{self.current_run} / {self.nruns} in {datetime.now() - log_time}")
+
+    def logging_failed_simulation(self, log_time, e):
+        if self.total_trackers > 1:
+            logging.info(f"{datetime.now()} Failed to run Simulation {self.current_trackers} /"
+                         f"{self.total_trackers} and monte-carlo"
+                         f"{self.current_run} / {self.nruns}"
+                         f"in {datetime.now() - log_time}")
+            print(f"{datetime.now()} Failed to run Simulation {self.current_trackers} /"
+                    f" {self.total_trackers} and monte-carlo"
+                    f" {self.current_run} / {self.nruns}"
+                    f" in {datetime.now() - log_time}")
+        else:
+            logging.error(f"{datetime.now()}: Failed to run Simulation "
+                          f"{self.current_run} / {self.nruns}: {e}")
+            print(f"{datetime.now()}: Failed to run Simulation "
+                f"{self.current_run} / {self.nruns}: {e}")
+
+    def logging_metric_manager_fail(self, e):
+        logging.info(f'{datetime.now()} Metric manager error: {e}')
+        print(f'{datetime.now()} Metric manager error: {e}')
