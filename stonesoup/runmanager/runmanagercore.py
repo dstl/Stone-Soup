@@ -238,19 +238,17 @@ class RunManagerCore(RunManager):
                     metric_manager.add_data(self.check_ground_truth(ground_truth), ctracks,
                                             tracker.detector.detections,
                                             overwrite=False)
-
             if metric_manager is not None:
                 try:
                     metrics = metric_manager.generate_metrics()
                     self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
                 except Exception as e:
                     self.logging_metric_manager_fail(e)
-
             self.logging_success(log_time)
 
         except Exception as e:
             self.logging_failed_simulation(log_time, e)
-            print(f"Metric manager error: {e}")
+            #print(f"Metric manager error: {e}")
 
         finally:
             # Clear manager after run to stop subsequent runs slowing down
@@ -632,26 +630,27 @@ class RunManagerCore(RunManager):
     def logging_starting(self, log_time):
         if self.total_trackers > 1:
             logging.info(f"{log_time} Starting simulation {self.current_trackers}"
-                            f" / {self.total_trackers} and monte-carlo"
-                            f"{self.current_run} / {self.nruns}")
+                         f" / {self.total_trackers} and monte-carlo"
+                         f" {self.current_run} / {self.nruns}")
             print(f"{log_time} Starting simulation {self.current_trackers}"
-                    f" / {self.total_trackers} and monte-carlo  {self.current_run} / {self.nruns}")
+                  f" / {self.total_trackers} and monte-carlo"
+                  f" {self.current_run} / {self.nruns}")
         else:
-            logging.info(f"{log_time} Starting simulation "
-                            f"{self.current_run} / {self.nruns}")
-            print(f"{log_time} Starting simulation "
-                    f"{self.current_run} / {self.nruns}")
+            logging.info(f"{log_time} Starting simulation"
+                         f" {self.current_run} / {self.nruns}")
+            print(f"{log_time} Starting simulation"
+                  f" {self.current_run} / {self.nruns}")
 
     def logging_success(self, log_time):
         if self.total_trackers > 1:
             logging.info(f"{log_time} Successfully ran simulation {self.current_trackers} /"
-                            f"{self.total_trackers} and monte-carlo"
-                            f"{self.current_run} / {self.nruns}"
-                            f"in {datetime.now() - log_time}")
+                         f" {self.total_trackers} and monte-carlo"
+                         f" {self.current_run} / {self.nruns}"
+                         f" in {datetime.now() - log_time}")
             print(f"{log_time} Successfully ran simulation {self.current_trackers} /"
-                    f" {self.total_trackers} and monte-carlo"
-                    f" {self.current_run} / {self.nruns}"
-                    f" in {datetime.now() - log_time}")
+                  f" {self.total_trackers} and monte-carlo"
+                  f" {self.current_run} / {self.nruns}"
+                  f" in {datetime.now() - log_time}")
 
         else:
             logging.info(f"{log_time} Successfully ran simulation {self.current_run}"
@@ -662,18 +661,24 @@ class RunManagerCore(RunManager):
     def logging_failed_simulation(self, log_time, e):
         if self.total_trackers > 1:
             logging.info(f"{datetime.now()} Failed to run Simulation {self.current_trackers} /"
-                         f"{self.total_trackers} and monte-carlo"
-                         f"{self.current_run} / {self.nruns}"
-                         f"in {datetime.now() - log_time}")
+                         f" {self.total_trackers} and monte-carlo"
+                         f" {self.current_run} / {self.nruns}"
+                         f" in {datetime.now() - log_time}")
+            logging.exception(f"{e}")
+
             print(f"{datetime.now()} Failed to run Simulation {self.current_trackers} /"
-                    f" {self.total_trackers} and monte-carlo"
-                    f" {self.current_run} / {self.nruns}"
-                    f" in {datetime.now() - log_time}")
+                  f" {self.total_trackers} and monte-carlo"
+                  f" {self.current_run} / {self.nruns}"
+                  f" in {datetime.now() - log_time}")
+            print(f"{e}")
+            
         else:
-            logging.error(f"{datetime.now()}: Failed to run Simulation "
-                          f"{self.current_run} / {self.nruns}: {e}")
-            print(f"{datetime.now()}: Failed to run Simulation "
-                f"{self.current_run} / {self.nruns}: {e}")
+            logging.error(f"{datetime.now()}: Failed to run Simulation"
+                          f" {self.current_run} / {self.nruns}")
+            logging.exception(f"{e}")
+            
+            print(f"{datetime.now()}: Failed to run Simulation"
+                 f" {self.current_run} / {self.nruns}: {e}")
 
     def logging_metric_manager_fail(self, e):
         logging.info(f'{datetime.now()} Metric manager error: {e}')
