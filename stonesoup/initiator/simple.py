@@ -25,7 +25,10 @@ class SinglePointInitiator(GaussianInitiator):
     """
 
     prior_state: GaussianState = Property(doc="Prior state information")
-    measurement_model: MeasurementModel = Property(doc="Measurement model")
+    measurement_model: MeasurementModel = Property(
+        default=None,
+        doc="Measurement model. Can be left as None if all detections have a "
+            "valid measurement model.")
 
     def initiate(self, detections, timestamp, **kwargs):
         """Initiates tracks given unassociated measurements
@@ -64,6 +67,8 @@ class SimpleMeasurementInitiator(GaussianInitiator):
 
     This initiator utilises the :class:`~.MeasurementModel` matrix to convert
     :class:`~.Detection` state vector and model covariance into state space.
+    It either takes the :class:`~.MeasurementModel` from the given detection
+    or uses the :attr:`measurement_model`.
 
     Utilises the ReversibleModel inverse function to convert
     non-linear spherical co-ordinates into Cartesian x/y co-ordinates
@@ -77,7 +82,10 @@ class SimpleMeasurementInitiator(GaussianInitiator):
     decompositions.
     """
     prior_state: GaussianState = Property(doc="Prior state information")
-    measurement_model: MeasurementModel = Property(doc="Measurement model")
+    measurement_model: MeasurementModel = Property(
+        default=None,
+        doc="Measurement model. Can be left as None if all detections have a "
+            "valid measurement model.")
     skip_non_reversible: bool = Property(default=False)
     diag_load: float = Property(default=0.0, doc="Positive float value for diagonal loading")
 
@@ -94,7 +102,10 @@ class SimpleMeasurementInitiator(GaussianInitiator):
             if detection.measurement_model is not None:
                 measurement_model = detection.measurement_model
             else:
-                measurement_model = self.measurement_model
+                if self.measurement_model is None:
+                    raise ValueError("No measurement model specified")
+                else:
+                    measurement_model = self.measurement_model
 
             if isinstance(measurement_model, LinearModel):
                 model_matrix = measurement_model.matrix()
@@ -155,12 +166,15 @@ class MultiMeasurementInitiator(GaussianInitiator):
     Does cause slight delay in initiation to tracker."""
 
     prior_state: GaussianState = Property(doc="Prior state information")
-    measurement_model: MeasurementModel = Property(doc="Measurement model")
     deleter: Deleter = Property(doc="Deleter used to delete the track.")
     data_associator: DataAssociator = Property(
         doc="Association algorithm to pair predictions to detections.")
     updater: Updater = Property(
         doc="Updater used to update the track object to the new state.")
+    measurement_model: MeasurementModel = Property(
+        default=None,
+        doc="Measurement model. Can be left as None if all detections have a "
+            "valid measurement model.")
     min_points: int = Property(
         default=2, doc="Minimum number of track points required to confirm a track.")
     updates_only: bool = Property(

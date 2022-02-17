@@ -16,7 +16,7 @@ from ...deleter.time import UpdateTimeDeleter
 from ...hypothesiser.distance import DistanceHypothesiser
 from ...dataassociator.neighbour import NearestNeighbour
 from ...measures import Mahalanobis
-from ...types.detection import Detection
+from ...types.detection import Detection, TrueDetection
 from ...types.hypothesis import SingleHypothesis
 from ...types.prediction import Prediction
 from ...types.state import GaussianState
@@ -294,7 +294,8 @@ def test_multi_measurement(updates_only):
 
     measurement_initiator = MultiMeasurementInitiator(
         GaussianState([[0], [0], [0], [0]], np.diag([0, 15, 0, 15])),
-        measurement_model, deleter, data_associator, updater, updates_only=updates_only)
+        deleter, data_associator, updater,
+        measurement_model=measurement_model, updates_only=updates_only)
 
     timestamp = datetime.datetime.now()
     first_detections = {Detection(np.array([[5], [2]]), timestamp),
@@ -316,6 +317,25 @@ def test_multi_measurement(updates_only):
         assert any(isinstance(track.state, Prediction) for track in second_tracks)
     assert any(isinstance(track.state, Update) for track in second_tracks)
     assert len(measurement_initiator.holding_tracks) == 0
+
+
+@pytest.mark.parametrize("initiator", [
+    SinglePointInitiator(
+        GaussianState(np.array([[0]]), np.array([[100]]))
+    ),
+    SimpleMeasurementInitiator(
+        GaussianState(np.array([[0]]), np.array([[100]]))
+    ),
+], ids=['SinglePoint', 'LinearMeasurement'])
+def test_measurement_model(initiator):
+    timestamp = datetime.datetime.now()
+    dummy_detection = TrueDetection(np.array([0, 0]), timestamp)
+    # The SinglePointInitiator will raise an error when the ExtendedKalmanUpdater
+    # is called and neither the detection nor the initiator has a measurement
+    # model. The SimpleMeasurementInitiator will raise an error in the if/else
+    # blocks.
+    with pytest.raises(ValueError):
+        _ = initiator.initiate({dummy_detection}, timestamp)
 
 
 @pytest.mark.parametrize("gaussian_initiator", [
