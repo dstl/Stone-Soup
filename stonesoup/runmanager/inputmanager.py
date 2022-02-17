@@ -2,6 +2,8 @@
 from math import comb
 from random import randrange
 from statistics import variance
+
+from pytest import param
 from .base import RunManager
 import numpy as np
 import itertools
@@ -136,6 +138,58 @@ class InputManager(RunManager):
         """
         raise NotImplementedError
 
+    def state_vector_helper(self, parameter):
+        if self.montecarlo == 0:
+            combinations = self.generate_combinations_list(parameter)
+        elif self.montecarlo == 1:
+            NotImplementedError
+        elif self.montecarlo == 2:
+            NotImplementedError
+        elif self.montecarlo == 3:
+            combinations = self.variance_distribution_list(parameter)
+        combinations = self.get_array_list(combinations, len(parameter["value_min"]))
+        output_values = self.set_stateVector(combinations)
+        return output_values
+
+    def integer_helper(self, parameter):
+        if self.montecarlo == 0:
+            combinations = self.generate_combinations(parameter)
+        elif self.montecarlo == 1:
+            NotImplementedError
+        elif self.montecarlo == 2:
+            NotImplementedError
+        elif self.montecarlo == 3:
+            combinations = self.variance_distribution(parameter)
+        output_values = [int(x) for x in combinations]
+
+        return output_values
+    
+    def float_helper(self, parameter):
+        if self.montecarlo == 0:
+            combinations = self.generate_combinations(parameter)
+        elif self.montecarlo == 1:
+            NotImplementedError
+        elif self.montecarlo == 2:
+            NotImplementedError
+        elif self.montecarlo == 3:
+            combinations = self.variance_distribution(parameter)
+        output_values = [float(x) for x in combinations]
+
+        return output_values
+
+    def probability_helper(self, parameter):
+        if self.montecarlo == 0:
+            combinations = self.generate_combinations(parameter)
+        elif self.montecarlo == 1:
+            NotImplementedError
+        elif self.montecarlo == 2:
+            NotImplementedError
+        elif self.montecarlo == 3:
+            combinations = self.variance_distribution(parameter)
+        output_values = [Probability(x) for x in combinations]
+
+        return output_values
+    
     def generate_parameters_combinations(self, parameters):
         """From a list of parameters with, min, max and n_samples values
         generate all the possible values
@@ -155,66 +209,51 @@ class InputManager(RunManager):
             combination_list = {}
             path = parameter["path"]
             try:
-                if self.montecarlo == 0:
-                    if parameter["type"] == "StateVector":
-                        combination_list = self.generate_state_vector_combinations(parameter)
-                        combination_dict.update(combination_list)
-
-                    if parameter["type"] == "int":
-                        iteration_list = self.generate_combinations(parameter)
-                        combination_list[path] = [int(x) for x in iteration_list]
-                        combination_dict.update(combination_list)
-
-                    if parameter["type"] == "float":
-                        iteration_list = self.generate_combinations(parameter)
-                        combination_list[path] = [float(x) for x in iteration_list]
-                        combination_dict.update(combination_list)
-
-                    if parameter["type"] == "Probability":
-                        iteration_list = self.generate_combinations(parameter)
-                        combination_list[path] = [Probability(x) for x in iteration_list]
-                        combination_dict.update(combination_list)
-
-                    if parameter["type"] == 'bool':
-                        combination_list = self.generate_bool_combinations(parameter)
-                        combination_dict.update(combination_list)
-
-                    if parameter["type"] == "CovarianceMatrix":
-                        combination_list = self.generate_covariance_combinations(parameter)
-                        combination_dict.update(combination_list)
-
-                    if parameter["type"] == "DateTime":
-                        combination_list = self.generate_date_time_combinations(parameter)
-                        combination_dict.update(combination_list)
-
-                    if (parameter["type"] == "Tuple"):
-                        combination_list = self.generate_tuple_list_combinations(parameter)
-                        combination_dict.update(combination_list)
-
-                    if parameter["type"] == "timedelta":
-                        iteration_list = self.generate_combinations(parameter)
-                        combination_list[path] = [self.set_time_delta(x) for x in iteration_list]
-                        combination_dict.update(combination_list)
-
-                    if parameter["type"] == "ndarray":
-                        combination_list = self.generate_ndarray_combinations(parameter)
-                        combination_dict.update(combination_list)
-
-                # Logarithmic monte-carlo.
-                elif self.montecarlo == 1:
-                    combination_list = self.logarithmic_range_gen(parameter)
+                if parameter["type"] == "StateVector":
+                    combination_list[path] = self.state_vector_helper(parameter)
                     combination_dict.update(combination_list)
 
-                # Exponential not implemented yet.
-                elif self.montecarlo == 2:
-                    pass
-
-                # Randomly distributed monte-carlo.
-                elif self.montecarlo == 3:
-                    combination_list = self.variance_distribution(parameter)
+                if parameter["type"] == "int":
+                    combination_list[path] = self.integer_helper(parameter)
                     combination_dict.update(combination_list)
+
+                if parameter["type"] == "float":
+                    combination_list[path] = self.float_helper(parameter)
+                    combination_dict.update(combination_list)
+
+                if parameter["type"] == "Probability":
+                    combination_list[path] = self.probability_helper(parameter)
+                    combination_dict.update(combination_list)
+
+                if parameter["type"] == 'bool':
+                    # Doesn't require changing for monte-carlo
+                    combination_list = self.generate_bool_combinations(parameter)
+                    combination_dict.update(combination_list)
+
+                if parameter["type"] == "CovarianceMatrix":
+                    combination_list = self.generate_covariance_combinations(parameter)
+                    combination_dict.update(combination_list)
+
+                if parameter["type"] == "DateTime":
+                    combination_list = self.generate_date_time_combinations(parameter)
+                    combination_dict.update(combination_list)
+
+                if (parameter["type"] == "Tuple"):
+                    combination_list = self.generate_tuple_list_combinations(parameter)
+                    combination_dict.update(combination_list)
+
+                if parameter["type"] == "timedelta":
+                    iteration_list = self.generate_combinations(parameter)
+                    combination_list[path] = [self.set_time_delta(x) for x in iteration_list]
+                    combination_dict.update(combination_list)
+
+                if parameter["type"] == "ndarray":
+                    combination_list = self.generate_ndarray_combinations(parameter)
+                    combination_dict.update(combination_list)
+
             except KeyError:
                 pass
+
         return combination_dict
 
     # def logarithmic_range_gen(self, parameter):
@@ -640,15 +679,19 @@ class InputManager(RunManager):
                                                       np.log10(parameter["value_max"][x]),
                                                       parameter["n_samples"][x],
                                                       dtype=int, base=10))
+                combination_list[path] = self.set_stateVector(self.get_array_list(
+                                                            iteration_list,
+                                                            len(parameter["value_min"])))
             else:
                 for x in range(parameter['value_min']):
                     iteration_list.append(np.logspace(np.log10(parameter["value_min"][x]),
                                                       np.log10(parameter["value_max"][x]),
                                                       parameter["n_samples"],
                                                       dtype=int, base=10))
-            combination_list[path] = self.set_stateVector(self.get_array_list(
-                                                          iteration_list,
-                                                          len(parameter["value_min"])))
+                combination_list[path] = self.set_stateVector(self.get_array_list(
+                                                            iteration_list,
+                                                            len(parameter["value_min"])))
+
 
         elif parameter["type"] == "int":
             iteration_list = np.logspace(np.log10(parameter["value_min"]),
@@ -656,7 +699,6 @@ class InputManager(RunManager):
                                          parameter["n_samples"],
                                          dtype=int, base=10)
             combination_list[path] = iteration_list
-            print(combination_list)
 
         elif parameter["type"] == "float":
             iteration_list = np.logspace(np.log10(parameter["value_min"]),
@@ -711,11 +753,66 @@ class InputManager(RunManager):
             Returns a new dictionary of values with a random variation of 10%
         """
         combination_list = self.generate_combinations(parameter)
+        key = parameter["path"]
         random_list = []
-        random_dictionary = {}
-        for key, value in combination_list.items():
-            for idx in value:
-                random_num = random.randrange(int(idx*0.9), int(idx*1.1))
-                random_list.append(random_num)
-            random_dictionary[key] = random_list
-        return random_dictionary
+        for idx in combination_list:
+            random_num = random.randrange(int(idx*0.9), int(idx*1.1))
+            random_list.append(random_num)
+        return random_list
+
+    def variance_distribution_list(self, parameter):
+        """Creates a list of random values within a 10% tolerance for each
+        index within the list.
+
+        Parameters
+        ----------
+        combination_list : dict
+            Dictionary value of generated parameters
+
+        Returns
+        -------
+        dict
+            Returns a new dictionary of values with a random variation of 10%
+        """
+        combination_list = self.generate_combinations_list(parameter)
+        for c_idx, c_value in enumerate(combination_list):
+            for v_idx, v_value in enumerate(c_value):
+                if v_idx == 0:
+                    combination_list[c_idx][v_idx] = 0
+                else:
+                    random_num = random.randrange(int(v_value*0.9), int(v_value*1.1))
+                    combination_list[c_idx][v_idx] = random_num
+        return combination_list
+
+    def generate_combinations_list(self, parameter):
+            """Generate combinations for a list type from json
+
+            Parameters
+            ----------
+            parameter : dict
+                dictionary of the parameter with value_max, value_min, n_samples and path
+
+            Returns
+            -------
+            set
+                set of all the possible values
+            """
+            combination_list = {}
+
+            if len(parameter['value_min']) > 0 and len(parameter['value_max']) > 0:
+                path = parameter["path"]
+                iteration_list = []
+                if type(parameter["n_samples"]) is list:
+                    #if n_samples is a list (changing each parameter individually)
+                    for x in range(len(parameter['value_min'])):
+                        iteration_list.append(self.iterations(parameter["value_min"][x],
+                                                            parameter["value_max"][x],
+                                                            parameter["n_samples"][x]))
+                else:
+                    # If n_samples is a single value
+                    for x in range(parameter['value_min']):
+                        iteration_list.append(self.iterations(parameter["value_min"][x],
+                                                            parameter["value_max"][x],
+                                                            parameter["n_samples"]))
+
+            return iteration_list

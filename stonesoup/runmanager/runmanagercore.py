@@ -152,7 +152,6 @@ class RunManagerCore(RunManager):
         # Generate all the parameters for the monte carlo run
         trackers_combination_dict = self.input_manager.generate_parameters_combinations(
             json_data["parameters"])
-        print(trackers_combination_dict)
         # Generate all the the possible combinations with the parameters
         combo_dict = self.input_manager.generate_all_combos(trackers_combination_dict)
         return combo_dict
