@@ -4,6 +4,7 @@ import logging
 from datetime import datetime
 
 import os
+from xml.sax.handler import property_interning_dict
 from pathos.multiprocessing import ProcessingPool as Pool
 
 from stonesoup.serialise import YAML
@@ -86,7 +87,7 @@ class RunManagerCore(RunManager):
 
         for path in pairs:
             # Read the param data
-            config_path = path[0]
+            self.config_path = path[0]
             param_path = path[1]
             json_data = self.read_json(param_path)
 
@@ -94,7 +95,7 @@ class RunManagerCore(RunManager):
             nprocesses = self.set_processes_number(self.nprocesses, json_data)
             combo_dict = self.prepare_monte_carlo(json_data)
             self.prepare_monte_carlo_simulation(combo_dict, self.nruns,
-                                                nprocesses, config_path)
+                                                nprocesses, self.config_path)
 
     def set_runs_number(self, nruns, json_data):
         """Set the number of runs
@@ -497,7 +498,8 @@ class RunManagerCore(RunManager):
         dt_string : str
             string of the datetime for the metrics directory name
         """
-        dir_name = f"metrics_{dt_string}/run_{runs_num}"
+        path, config = os.path.split(self.config_path)
+        dir_name = f"{config}_{dt_string}/run_{runs_num}"
         self.current_run = runs_num
 
         # ground_truth = self.check_ground_truth(ground_truth)
@@ -585,7 +587,8 @@ class RunManagerCore(RunManager):
             the index of the current run
         """
         self.current_trackers = idx
-        dir_name = f"metrics_{dt_string}/simulation_{idx}/run_{runs_num}"
+        path, config = os.path.split(self.config_path)
+        dir_name = f"{config}_{dt_string}/simulation_{idx}/run_{runs_num}"
         self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
         simulation_parameters = dict(
