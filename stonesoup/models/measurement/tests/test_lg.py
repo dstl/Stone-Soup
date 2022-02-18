@@ -61,7 +61,7 @@ def test_lgmodel(H, R, ndim_state, mapping):
     # Evaluate the likelihood of the predicted measurement, given the state
     # (without noise)
     prob = lg.pdf(State(meas_pred_wo_noise), state)
-    assert approx(prob), multivariate_normal.pdf(
+    assert approx(prob) == multivariate_normal.pdf(
         meas_pred_wo_noise.T,
         mean=np.array(H@state_vec).ravel(),
         cov=R)
