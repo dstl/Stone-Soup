@@ -135,7 +135,7 @@ class InputManager(RunManager):
         raise NotImplementedError
 
     def generate_parameters_combinations(self, parameters):
-        """Generates all the possible combination values from a list 
+        """Generates all the possible combination values from a list
         of parameters with, min, max and n_samples values.
 
         Parameters

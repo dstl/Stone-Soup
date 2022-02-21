@@ -1,5 +1,6 @@
 import os
 import multiprocessing as mp
+# from re import L
 from pathos.multiprocessing import ProcessingPool as Pool
 from ..runmanagercore import RunManagerCore
 
@@ -23,7 +24,7 @@ test_config_trackeronly = "stonesoup/runmanager/tests/test_configs/test_config_t
 test_json = "stonesoup/runmanager/tests/test_configs/dummy.json"
 test_config_dir = "stonesoup/runmanager/tests/test_configs/"
 
-rmc = RunManagerCore(test_config, test_json, False, test_config_dir)
+rmc = RunManagerCore(test_config, test_json, False, False, test_config_dir, 1, 1)
 
 
 def test_cwd_path():
@@ -34,6 +35,48 @@ def test_read_json():
 
     test_json_data = rmc.read_json(test_json)
     assert type(test_json_data) is dict
+
+
+def test_set_runs_number_none():
+    test_json_data = rmc.read_json(test_json)
+    test_nruns = rmc.set_runs_number(None, test_json_data)
+    assert test_nruns == 4  # nruns set as 4 in dummy.json
+
+
+def test_set_runs_number_one():
+    test_json_data = rmc.read_json(test_json)
+    test_nruns = rmc.set_runs_number(1, test_json_data)
+    assert test_nruns == 1
+
+
+def test_set_runs_number_multiple():
+    test_json_data = rmc.read_json(test_json)
+    test_nruns = rmc.set_runs_number(2, test_json_data)
+    assert test_nruns == 2
+
+
+def test_set_processes_number_none():
+    test_json_data = rmc.read_json(test_json)
+    test_nruns = rmc.set_processes_number(None, test_json_data)
+    assert test_nruns == 1  # nprocesses set as 1 in dummy.json
+
+
+def test_set_processes_number_one():
+    test_json_data = rmc.read_json(test_json)
+    test_nruns = rmc.set_processes_number(1, test_json_data)
+    assert test_nruns == 1
+
+
+def test_set_processes_number_multiple():
+    test_json_data = rmc.read_json(test_json)
+    test_nruns = rmc.set_processes_number(2, test_json_data)
+    assert test_nruns == 2
+
+
+def test_prepare_monte_carlo():
+    test_json_data = rmc.read_json(test_json)
+    test_combo_dict = rmc.prepare_monte_carlo(test_json_data)
+    assert len(test_combo_dict) == 256
 
 
 def test_set_trackers():

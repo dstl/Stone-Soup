@@ -9,6 +9,7 @@ def manage_if(arg):
         dir = None
     return dir
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", "-c",

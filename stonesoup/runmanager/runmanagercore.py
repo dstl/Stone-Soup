@@ -14,7 +14,7 @@ from .base import RunManager
 
 class RunManagerCore(RunManager):
     """
-    The main RunManager class that contains all functionality for loading configuration and parameter
+    Core RunManager class that contains all functionality for loading configuration and parameter
     files, generating and setting parameters as well as running a number of montecarlo simulations,
     either with or without multiprocessing.
     """
@@ -22,7 +22,8 @@ class RunManagerCore(RunManager):
     GROUNDTRUTH = "ground_truth"
     METRIC_MANAGER = "metric_manager"
 
-    def __init__(self, config_path, parameters_path, groundtruth_setting, montecarlo, dir, nruns=None, nprocesses=None):
+    def __init__(self, config_path, parameters_path, groundtruth_setting,
+                 montecarlo, dir, nruns=None, nprocesses=None):
 
         self.config_path = config_path
         self.parameters_path = parameters_path
@@ -83,7 +84,7 @@ class RunManagerCore(RunManager):
             if self.nprocesses is None:
                 self.nprocesses = 1
             self.prepare_single_simulation()
-            #self.prepare_and_run_single_simulation(nruns)
+            # self.prepare_and_run_single_simulation(nruns)
 
         pairs = self.config_parameter_pairing()
         if not pairs and not self.config_path:
@@ -254,7 +255,7 @@ class RunManagerCore(RunManager):
 
         except Exception as e:
             self.logging_failed_simulation(log_time, e)
-            #print(f"Metric manager error: {e}")
+            # print(f"Metric manager error: {e}")
 
         finally:
             # Clear manager after run to stop subsequent runs slowing down
@@ -262,7 +263,7 @@ class RunManagerCore(RunManager):
             metric_manager.tracks = set()
             metric_manager.groundtruth_paths = set()
             metric_manager.detections = set()
-            
+
             print('--------------------------------')
 
     def set_trackers(self, combo_dict, tracker, ground_truth, metric_manager):
@@ -613,7 +614,7 @@ class RunManagerCore(RunManager):
             GROUNDTRUTH: ground_truth,
             METRIC_MANAGER: metric_manager
         """
-        
+
         try:
             tracker, ground_truth, metric_manager = None, None, None
             with open(config_path, 'r') as file:
@@ -673,9 +674,9 @@ class RunManagerCore(RunManager):
 
         else:
             logging.info(f"{log_time} Successfully ran simulation {self.current_run}"
-                            f"{self.nruns} in {datetime.now() - log_time}")
+                         f"{self.nruns} in {datetime.now() - log_time}")
             print(f"{log_time} Successfully ran simulation "
-                    f"{self.current_run} / {self.nruns} in {datetime.now() - log_time}")
+                  f"{self.current_run} / {self.nruns} in {datetime.now() - log_time}")
 
     def logging_failed_simulation(self, log_time, e):
         """Handles logging and output for messages regarding failed simulation
@@ -698,14 +699,14 @@ class RunManagerCore(RunManager):
                   f" {self.current_run} / {self.nruns}"
                   f" in {datetime.now() - log_time}")
             print(f"{e}")
-            
+
         else:
             logging.error(f"{datetime.now()}: Failed to run Simulation"
                           f" {self.current_run} / {self.nruns}")
             logging.exception(f"{e}")
-            
+
             print(f"{datetime.now()}: Failed to run Simulation"
-                 f" {self.current_run} / {self.nruns}: {e}")
+                  f" {self.current_run} / {self.nruns}: {e}")
 
     def logging_metric_manager_fail(self, e):
         """Handles logging and output for messages regarding errors
