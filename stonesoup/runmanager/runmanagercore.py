@@ -4,7 +4,6 @@ import logging
 from datetime import datetime
 
 import os
-from xml.sax.handler import property_interning_dict
 from pathos.multiprocessing import ProcessingPool as Pool
 
 from stonesoup.serialise import YAML
@@ -224,27 +223,40 @@ class RunManagerCore(RunManager):
         tracker = simulation_parameters['tracker']
         ground_truth = simulation_parameters['ground_truth']
         metric_manager = simulation_parameters['metric_manager']
+        tracks = set()
+        truths = set()
 
         try:
             log_time = datetime.now()
             self.logging_starting(log_time)
             for time, ctracks in tracker.tracks_gen():
+                tracks.update(ctracks)
+                truths.update(tracker.detector.groundtruth.current[1])
                 # Update groundtruth, tracks and detections
                 self.run_manager_metrics.tracks_to_csv(dir_name, ctracks)
                 self.run_manager_metrics.detection_to_csv(dir_name, tracker.detector.detections)
                 self.run_manager_metrics.groundtruth_to_csv(dir_name,
                                                             self.check_ground_truth(ground_truth))
-                if metric_manager is not None:
-                    # Generate the metrics
-                    metric_manager.add_data(self.check_ground_truth(ground_truth), ctracks,
-                                            tracker.detector.detections,
-                                            overwrite=False)
+
             if metric_manager is not None:
+                metric_manager.add_data(truths, tracks)
+                metrics = metric_manager.generate_metrics()
                 try:
-                    metrics = metric_manager.generate_metrics()
                     self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
-                except Exception as e:
-                    self.logging_metric_manager_fail(e)
+                except:
+                    print("Could not write to metrics.csv")
+            #     if metric_manager is not None:
+            #         # Generate the metrics
+            #         metric_manager.add_data(self.check_ground_truth(ground_truth), ctracks,
+            #                                 tracker.detector.detections,
+            #                                 overwrite=False)
+            # if metric_manager is not None:
+            #     try:
+            #         metrics = metric_manager.generate_metrics()
+            #         self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
+            #     except Exception as e:
+            #         self.logging_metric_manager_fail(e)
+
             self.logging_success(log_time)
 
         except Exception as e:
@@ -253,10 +265,13 @@ class RunManagerCore(RunManager):
 
         finally:
             # Clear manager after run to stop subsequent runs slowing down
-            metrics = set()
-            metric_manager.tracks = set()
-            metric_manager.groundtruth_paths = set()
-            metric_manager.detections = set()
+            del metric_manager
+            del ground_truth
+            del tracker
+
+            # metric_manager.tracks = set()
+            # metric_manager.groundtruth_paths = set()
+            # metric_manager.detections = set()
             
             print('--------------------------------')
 
@@ -463,6 +478,7 @@ class RunManagerCore(RunManager):
             tracker = components[self.TRACKER]
             ground_truth = components[self.GROUNDTRUTH]
             metric_manager = components[self.METRIC_MANAGER]
+
             if self.nprocesses > 1:
                 # Execute runs in separate processes
                 range_nruns = list(range(0, self.nruns))
@@ -477,6 +493,11 @@ class RunManagerCore(RunManager):
                 for runs in range(self.nruns):
                     self.run_single_simulation(tracker, ground_truth, metric_manager,
                                                runs, dt_string)
+                    # Each tracker object needs to be reset
+                    components = self.set_components(self.config_path)
+                    tracker = components[self.TRACKER]
+                    ground_truth = components[self.GROUNDTRUTH]
+                    metric_manager = components[self.METRIC_MANAGER]
 
         except Exception as e:
             print(f'{datetime.now()} Preparing simulation error: {e}')
@@ -500,6 +521,7 @@ class RunManagerCore(RunManager):
         """
         path, config = os.path.split(self.config_path)
         dir_name = f"{config}_{dt_string}/run_{runs_num}"
+        self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
         self.current_run = runs_num
 
         # ground_truth = self.check_ground_truth(ground_truth)
@@ -508,7 +530,6 @@ class RunManagerCore(RunManager):
             ground_truth=ground_truth,
             metric_manager=metric_manager
         )
-
         self.run_simulation(simulation_parameters,
                             dir_name)
 
@@ -656,7 +677,7 @@ class RunManagerCore(RunManager):
                   f" in {datetime.now() - log_time}")
 
         else:
-            logging.info(f"{log_time} Successfully ran simulation {self.current_run}"
+            logging.info(f"{log_time} Successfully ran simulation {self.current_run} /"
                             f"{self.nruns} in {datetime.now() - log_time}")
             print(f"{log_time} Successfully ran simulation "
                     f"{self.current_run} / {self.nruns} in {datetime.now() - log_time}")
