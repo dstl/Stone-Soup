@@ -17,12 +17,13 @@ class RunManagerCore(RunManager):
     GROUNDTRUTH = "ground_truth"
     METRIC_MANAGER = "metric_manager"
 
-    def __init__(self, config_path, parameters_path, groundtruth_setting, dir, nruns=None, nprocesses=None):
+    def __init__(self, config_path, parameters_path, groundtruth_setting, dir, montecarlo, nruns=None, nprocesses=None):
 
         self.config_path = config_path
         self.parameters_path = parameters_path
         self.groundtruth_setting = groundtruth_setting
         self.dir = dir
+        self.montecarlo = montecarlo
         self.nruns = nruns
         self.nprocesses = nprocesses
 
@@ -244,20 +245,19 @@ class RunManagerCore(RunManager):
                     self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
                 except Exception as e:
                     self.logging_metric_manager_fail(e)
+                finally:
+                    # Clear manager after run to stop subsequent runs slowing down
+                    metrics = set()
+                    metric_manager.tracks = set()
+                    metric_manager.groundtruth_paths = set()
+                    metric_manager.detections = set()
             self.logging_success(log_time)
 
         except Exception as e:
             self.logging_failed_simulation(log_time, e)
             #print(f"Metric manager error: {e}")
-
-        finally:
-            # Clear manager after run to stop subsequent runs slowing down
-            metrics = set()
-            metric_manager.tracks = set()
-            metric_manager.groundtruth_paths = set()
-            metric_manager.detections = set()
             
-            print('--------------------------------')
+        print('--------------------------------')
 
     def set_trackers(self, combo_dict, tracker, ground_truth, metric_manager):
         """Set the trackers, groundtruths and metricmanagers list (stonesoup objects)
