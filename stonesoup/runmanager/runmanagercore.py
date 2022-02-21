@@ -13,6 +13,11 @@ from .base import RunManager
 
 
 class RunManagerCore(RunManager):
+    """
+    The main RunManager class that contains all functionality for loading configuration and parameter
+    files, generating and setting parameters as well as running a number of montecarlo simulations,
+    either with or without multiprocessing.
+    """
     TRACKER = "tracker"
     GROUNDTRUTH = "ground_truth"
     METRIC_MANAGER = "metric_manager"
@@ -191,8 +196,8 @@ class RunManagerCore(RunManager):
         return pairs
 
     def check_ground_truth(self, ground_truth):
-        """Check if the groundtruth has generate path or no.
-        If yes return the generate path
+        """Check if the groundtruth has generate path or not.
+        If yes return the generate path and if not simply return groundtruth.
 
         Parameters
         ----------
@@ -211,7 +216,7 @@ class RunManagerCore(RunManager):
         return ground_truth
 
     def run_simulation(self, simulation_parameters, dir_name):
-        """Runs a single simulation
+        """Runs a single simulation on a tracker, groundtruth and metric manager
 
         Parameters
         ----------
@@ -343,7 +348,7 @@ class RunManagerCore(RunManager):
             file path to configuration file
         Returns
         -------
-        object dictionary with tracker, groundtruth and metric_manager
+        object dictionary with the loaded tracker, groundtruth and metric_manager
         """
         config_string = config_file.read()
         tracker, groundtruth, metric_manager = None, None, None
@@ -446,14 +451,10 @@ class RunManagerCore(RunManager):
         return pairs
 
     def prepare_single_simulation(self):
-        """Prepares a single simulation for a run
-
-        Parameters
-        ----------
-        nruns : int
-            Number of monte-carlo runs
-        nprocesses: int
-            Number of processes to use to run simulations
+        """Prepares a single simulation run by setting tracker,
+        groundtruth and metric manager with their components.
+        Also sets up a multiprocessing pool of processes if
+        multiprocessing is being used.
         """
         try:
             now = datetime.now()
@@ -482,7 +483,8 @@ class RunManagerCore(RunManager):
             logging.error(f'{datetime.now()} Could not run simulation. error: {e}')
 
     def run_single_simulation(self, tracker, ground_truth, metric_manager, runs_num, dt_string):
-        """Sets parameters for a single simulation run
+        """Finallising setting current run parameters for a single simulation and then
+        executes the simulation. Is ran in its own process if multiprocessing is used.
 
         Parameters
         ----------
@@ -564,8 +566,8 @@ class RunManagerCore(RunManager):
 
     def run_monte_carlo_simulation(self, tracker, ground_truth, metric_manager,
                                    dt_string, combo_dict, idx, runs_num):
-        """Runs a single simulation in its own process so that other simulations can be run
-        in parallel in other processes.
+        """Finallising setting current run parameters for montecarlo simulations and then
+        executes the simulation. Is ran in its own process if multiprocessing is used.
 
         Parameters
         ----------
@@ -628,6 +630,14 @@ class RunManagerCore(RunManager):
                 self.METRIC_MANAGER: metric_manager}
 
     def logging_starting(self, log_time):
+        """Handles logging and output for messages regarding the start
+        of a simulation.
+
+        Parameters
+        ----------
+        log_time : str
+            timestamp of log information
+        """
         if self.total_trackers > 1:
             logging.info(f"{log_time} Starting simulation {self.current_trackers}"
                          f" / {self.total_trackers} and monte-carlo"
@@ -642,6 +652,14 @@ class RunManagerCore(RunManager):
                   f" {self.current_run} / {self.nruns}")
 
     def logging_success(self, log_time):
+        """Handles logging and output for messages regarding successful
+        simulation runs.
+
+        Parameters
+        ----------
+        log_time : str
+            timestamp of log information
+        """
         if self.total_trackers > 1:
             logging.info(f"{log_time} Successfully ran simulation {self.current_trackers} /"
                          f" {self.total_trackers} and monte-carlo"
@@ -659,6 +677,14 @@ class RunManagerCore(RunManager):
                     f"{self.current_run} / {self.nruns} in {datetime.now() - log_time}")
 
     def logging_failed_simulation(self, log_time, e):
+        """Handles logging and output for messages regarding failed simulation
+        runs.
+
+        Parameters
+        ----------
+        log_time : str
+            timestamp of log information
+        """
         if self.total_trackers > 1:
             logging.info(f"{datetime.now()} Failed to run Simulation {self.current_trackers} /"
                          f" {self.total_trackers} and monte-carlo"
@@ -681,5 +707,13 @@ class RunManagerCore(RunManager):
                  f" {self.current_run} / {self.nruns}: {e}")
 
     def logging_metric_manager_fail(self, e):
+        """Handles logging and output for messages regarding errors
+        in the metric manager.
+
+        Parameters
+        ----------
+        log_time : str
+            timestamp of log information
+        """
         logging.info(f'{datetime.now()} Metric manager error: {e}')
         print(f'{datetime.now()} Metric manager error: {e}')

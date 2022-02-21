@@ -11,7 +11,8 @@ from datetime import datetime
 
 
 class RunmanagerMetrics(RunManager):
-    """Class for generating
+    """Class for generating metrics and storing simulation results and output data
+    into csv files.
 
     Parameters
     ----------
