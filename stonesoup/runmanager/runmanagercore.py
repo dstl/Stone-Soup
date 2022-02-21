@@ -22,11 +22,12 @@ class RunManagerCore(RunManager):
     GROUNDTRUTH = "ground_truth"
     METRIC_MANAGER = "metric_manager"
 
-    def __init__(self, config_path, parameters_path, groundtruth_setting, dir, nruns=None, nprocesses=None):
+    def __init__(self, config_path, parameters_path, groundtruth_setting, montecarlo, dir, nruns=None, nprocesses=None):
 
         self.config_path = config_path
         self.parameters_path = parameters_path
         self.groundtruth_setting = groundtruth_setting
+        self.montecarlo = montecarlo
         self.dir = dir
         self.nruns = nruns
         self.nprocesses = nprocesses
