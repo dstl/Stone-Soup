@@ -1,15 +1,18 @@
 import copy
+from distutils.log import error
 import json
 import logging
 from datetime import datetime
 
 import os
 from pathos.multiprocessing import ProcessingPool as Pool
+import multiprocessing
 
 from stonesoup.serialise import YAML
 from .inputmanager import InputManager
 from .runmanagermetrics import RunmanagerMetrics
 from .base import RunManager
+
 
 
 class RunManagerCore(RunManager):
@@ -32,13 +35,10 @@ class RunManagerCore(RunManager):
 
         self.input_manager = InputManager()
         self.run_manager_metrics = RunmanagerMetrics()
-
-        # root_logger = logging.getLogger()
-        # root_logger.setLevel(logging.DEBUG)
-        # handler = logging.FileHandler('simulation.log', 'w', 'utf-8')
-        # root_logger.addHandler(handler)
-        logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
-        logging.info(f'RunManagerCore started. {datetime.now()}')
+        
+        
+        # logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
+        info_logger.info(f'RunManagerCore started. {datetime.now()}')
 
     def read_json(self, json_input):
         """Read json file from directory
@@ -82,7 +82,7 @@ class RunManagerCore(RunManager):
         pairs = self.config_parameter_pairing()
         if not pairs and not self.config_path:
             print(f"{datetime.now()} No files in current directory: {self.dir}")
-            logging.info(f"{datetime.now()} No files in current directory: {self.dir}")
+            info_logger.info(f"{datetime.now()} No files in current directory: {self.dir}")
 
         for path in pairs:
             # Read the param data
@@ -230,32 +230,29 @@ class RunManagerCore(RunManager):
             log_time = datetime.now()
             self.logging_starting(log_time)
             for time, ctracks in tracker.tracks_gen():
-                tracks.update(ctracks)
-                truths.update(tracker.detector.groundtruth.current[1])
+                # tracks.update(ctracks)
+                # truths.update(tracker.detector.groundtruth.current[1])
                 # Update groundtruth, tracks and detections
                 self.run_manager_metrics.tracks_to_csv(dir_name, ctracks)
                 self.run_manager_metrics.detection_to_csv(dir_name, tracker.detector.detections)
                 self.run_manager_metrics.groundtruth_to_csv(dir_name,
                                                             self.check_ground_truth(ground_truth))
 
-            if metric_manager is not None:
-                metric_manager.add_data(truths, tracks)
-                metrics = metric_manager.generate_metrics()
-                try:
-                    self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
-                except:
-                    print("Could not write to metrics.csv")
-            #     if metric_manager is not None:
-            #         # Generate the metrics
-            #         metric_manager.add_data(self.check_ground_truth(ground_truth), ctracks,
-            #                                 tracker.detector.detections,
-            #                                 overwrite=False)
             # if metric_manager is not None:
+            #     metric_manager.add_data(truths, tracks)
+            #     metrics = metric_manager.generate_metrics()
             #     try:
-            #         metrics = metric_manager.generate_metrics()
             #         self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
-            #     except Exception as e:
-            #         self.logging_metric_manager_fail(e)
+            #     except:
+            #         print("Could not write to metrics.csv")
+                if metric_manager is not None:
+                        # Generate the metrics
+                        metric_manager.add_data(self.check_ground_truth(ground_truth), ctracks,
+                                                tracker.detector.detections,
+                                                overwrite=False)
+            metrics = metric_manager.generate_metrics()
+            self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
+            
 
             self.logging_success(log_time)
 
@@ -368,7 +365,7 @@ class RunManagerCore(RunManager):
             config_data = YAML('safe').load(config_string)
         except Exception as e:
             print(f"{datetime.now()} Failed to load config data: {e}")
-            logging.error(f"{datetime.now()} Failed to load config data: {e}")
+            info_logger.error(f"Failed to load config data: {e}")
             config_data = [None, None, None]
 
         tracker = config_data[0]
@@ -501,7 +498,7 @@ class RunManagerCore(RunManager):
 
         except Exception as e:
             print(f'{datetime.now()} Preparing simulation error: {e}')
-            logging.error(f'{datetime.now()} Could not run simulation. error: {e}')
+            info_logger.error(f'Could not run simulation. error: {e}')
 
     def run_single_simulation(self, tracker, ground_truth, metric_manager, runs_num, dt_string):
         """Sets parameters for a single simulation run
@@ -582,8 +579,7 @@ class RunManagerCore(RunManager):
                                                         metric_managers[idx], dt_string,
                                                         combo_dict, idx, runs)
         except Exception as e:
-            print(f'{datetime.now()} Preparing simulation error: {e}')
-            logging.error(f'{datetime.now()} Could not run simulation. error: {e}')
+            info_logger.error(f'Could not run simulation. error: {e}')
 
     def run_monte_carlo_simulation(self, tracker, ground_truth, metric_manager,
                                    dt_string, combo_dict, idx, runs_num):
@@ -645,7 +641,7 @@ class RunManagerCore(RunManager):
             metric_manager = config_data[self.METRIC_MANAGER]
         except Exception as e:
             print(f'{datetime.now()} Could not read config file: {e}')
-            logging.error(f'{datetime.now()} Could not read config file: {e}')
+            info_logger.error(f'Could not read config file: {e}')
 
         return {self.TRACKER: tracker,
                 self.GROUNDTRUTH: ground_truth,
@@ -653,57 +649,74 @@ class RunManagerCore(RunManager):
 
     def logging_starting(self, log_time):
         if self.total_trackers > 1:
-            logging.info(f"{log_time} Starting simulation {self.current_trackers}"
+            info_logger.info(f"Starting simulation {self.current_trackers}"
                          f" / {self.total_trackers} and monte-carlo"
                          f" {self.current_run} / {self.nruns}")
-            print(f"{log_time} Starting simulation {self.current_trackers}"
-                  f" / {self.total_trackers} and monte-carlo"
-                  f" {self.current_run} / {self.nruns}")
         else:
-            logging.info(f"{log_time} Starting simulation"
+            info_logger.info(f"Starting simulation"
                          f" {self.current_run} / {self.nruns}")
-            print(f"{log_time} Starting simulation"
-                  f" {self.current_run} / {self.nruns}")
 
     def logging_success(self, log_time):
         if self.total_trackers > 1:
-            logging.info(f"{log_time} Successfully ran simulation {self.current_trackers} /"
+            info_logger.info(f"Successfully ran simulation {self.current_trackers} /"
                          f" {self.total_trackers} and monte-carlo"
                          f" {self.current_run} / {self.nruns}"
                          f" in {datetime.now() - log_time}")
-            print(f"{log_time} Successfully ran simulation {self.current_trackers} /"
-                  f" {self.total_trackers} and monte-carlo"
-                  f" {self.current_run} / {self.nruns}"
-                  f" in {datetime.now() - log_time}")
-
         else:
-            logging.info(f"{log_time} Successfully ran simulation {self.current_run} /"
+            info_logger.info(f"Successfully ran simulation {self.current_run} /"
                             f"{self.nruns} in {datetime.now() - log_time}")
-            print(f"{log_time} Successfully ran simulation "
-                    f"{self.current_run} / {self.nruns} in {datetime.now() - log_time}")
 
     def logging_failed_simulation(self, log_time, e):
         if self.total_trackers > 1:
-            logging.info(f"{datetime.now()} Failed to run Simulation {self.current_trackers} /"
+            info_logger.info(f"Failed to run Simulation {self.current_trackers} /"
                          f" {self.total_trackers} and monte-carlo"
                          f" {self.current_run} / {self.nruns}"
                          f" in {datetime.now() - log_time}")
-            logging.exception(f"{e}")
+            info_logger.exception(f"{e}")
 
-            print(f"{datetime.now()} Failed to run Simulation {self.current_trackers} /"
+            print(f"Failed to run Simulation {self.current_trackers} /"
                   f" {self.total_trackers} and monte-carlo"
                   f" {self.current_run} / {self.nruns}"
                   f" in {datetime.now() - log_time}")
             print(f"{e}")
             
         else:
-            logging.error(f"{datetime.now()}: Failed to run Simulation"
+            info_logger.error(f"Failed to run Simulation"
                           f" {self.current_run} / {self.nruns}")
-            logging.exception(f"{e}")
+            info_logger.exception(f"{e}")
             
             print(f"{datetime.now()}: Failed to run Simulation"
                  f" {self.current_run} / {self.nruns}: {e}")
 
     def logging_metric_manager_fail(self, e):
-        logging.info(f'{datetime.now()} Metric manager error: {e}')
+        info_logger.error(f'Metric manager error: {e}')
         print(f'{datetime.now()} Metric manager error: {e}')
+
+def setup_logger(name, log_file, level=logging.INFO):
+    """ Create new Logging files which work with multiprocessing.
+
+    Parameters
+    ----------
+    log_file : str
+        file name
+    level : logging, optional
+        Level of logging required, by default logging.INFO
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
+
+    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+    handler = logging.FileHandler(log_file)        
+    handler.setFormatter(formatter)
+
+    logger = multiprocessing.log_to_stderr()
+    logger.setLevel(level)
+    logger.addHandler(handler)
+
+    return logger
+
+info_logger = setup_logger('info_logger', 'simulation_info.log')
+#error_logger = setup_logger('error_logger', 'simulation_error.log')
