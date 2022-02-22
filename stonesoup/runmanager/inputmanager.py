@@ -12,7 +12,12 @@ class InputManager(RunManager):
     The Input Manager is a component of the Run Manager that handles
     the inputs of parameters by setting the inputs to their correct
     types and generates the combinations of parameters to be ran
-    in the Run Manager simulations.
+    in the RunManagerCore simulations.
+
+    Parameters
+    ----------
+    Runmanager : Class
+        Run manager base class
     """
 
     def set_stateVector(self, list_state_vector):
@@ -88,7 +93,7 @@ class InputManager(RunManager):
 
     def set_bool():
         """
-        Set bool
+        Set bool, Not Yet Implemented
 
         Parameters:
             input_bool: value to convert
@@ -100,7 +105,7 @@ class InputManager(RunManager):
 
     def set_ndArray(self, arr):
         """
-        Set ndArray
+        Gets an array and sets it to numpy array
 
         Parameters:
             input_ndarray: value to convert
@@ -124,7 +129,7 @@ class InputManager(RunManager):
 
     def set_probability():
         """
-        Set probability
+        Set probability, Not Yet Implemented
 
         Parameters:
             input_probability: value to convert

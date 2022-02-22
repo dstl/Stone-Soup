@@ -20,8 +20,8 @@ class RunmanagerMetrics(RunManager):
         Run manager base class
     """
     def tracks_to_csv(self, dir_name, tracks, overwrite=False):
-        """Create a csv file for the track. It will contain the following columns:
-            time    id    state    mean    covar
+        """Create a csv file for the tracks. It will contain the following columns:
+            time  |  id  |  state  |  mean  |  covar
 
         Parameters
         ----------
@@ -57,11 +57,11 @@ class RunmanagerMetrics(RunManager):
 
     def metrics_to_csv(self, dir_name, metrics, overwrite=False):
         """Create a csv file for the metrics. It will contain the following columns:
-            title    value    generator    timestamp
+            title  |  value  |  generator  |  timestamp
 
         Parameters
         ----------
-        dir_name : [type]
+        dir_name : str
             name of the directory where to create the config file
         metrics : Metric
             Metrics object
@@ -111,14 +111,14 @@ class RunmanagerMetrics(RunManager):
 
     def detection_to_csv(self, dir_name, detections, overwrite=False):
         """Create a csv file for the detections. It will contain the following columns:
-            time    x  y
+            time  |  x  |  y
 
         Parameters
         ----------
         dir_name : str
             name of the directory where to create the config file
         detections : Detections
-            Detections Stonesoup
+            Detections Stonesoup values
         overwrite : bool, optional
             overwrite the file., by default False
         """
@@ -144,14 +144,15 @@ class RunmanagerMetrics(RunManager):
             print(f'{datetime.now()}: Failed to write to {filename}, {e}')
 
     def groundtruth_to_csv(self, dir_name, groundtruths, overwrite=False):
-        """Create a csv file for the grountruth.
+        """Create a csv file for the grountruth. It will contain the following columns:
+            time  |  id  |  state
 
         Parameters
         ----------
         dir_name : str
             name of the directory where to create the config file
         groundtruths : GrouthTruth
-            GrouthTruth Stonesoup
+            GrouthTruth Stonesoup values
         overwrite : bool, optional
             overwrite the file., by default False
         """

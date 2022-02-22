@@ -17,6 +17,11 @@ class RunManagerCore(RunManager):
     Core RunManager class that contains all functionality for loading configuration and parameter
     files, generating and setting parameters as well as running a number of montecarlo simulations,
     either with or without multiprocessing.
+
+    Parameters
+    ----------
+    Runmanager : Class
+        Run manager base class
     """
     TRACKER = "tracker"
     GROUNDTRUTH = "ground_truth"
@@ -24,7 +29,27 @@ class RunManagerCore(RunManager):
 
     def __init__(self, config_path, parameters_path, groundtruth_setting,
                  montecarlo, dir, nruns=None, nprocesses=None):
+        """The init function for RunManagerCore, initiating the key settings to allow
+        the running of simulations.
 
+        Parameters
+        ----------
+        config_path : str
+            The path to the configuration file containing the tracker
+        parameters_path : str
+            The path to the parameters json file containing the parameters for a configuration
+        groundtruth_setting : bool
+            A boolean flag to indicate whether the user has included the groundtruth in the
+            configuration file or not
+        montecarlo : bool
+            A boolean to indicate if montecarlo simulations are to be used
+        dir : str
+            The path to the directory containing configuration and parameter pairs
+        nruns : int, optional
+            number of monte-carlo runs, by default 1
+        nprocesses : int, optional
+            number of processing cores to use, by default 1
+        """
         self.config_path = config_path
         self.parameters_path = parameters_path
         self.groundtruth_setting = groundtruth_setting
@@ -48,7 +73,7 @@ class RunManagerCore(RunManager):
         logging.info(f'RunManagerCore started. {datetime.now()}')
 
     def read_json(self, json_input):
-        """Read json file from directory
+        """Opens and reads a json file from a given path.
 
         Parameters
         ----------
@@ -66,15 +91,8 @@ class RunManagerCore(RunManager):
             return json_data
 
     def run(self):
-        """Handles the running of multiple files, single files and defines the structure
+        """Handles the running of single file configurations, multiple files and defines the structure
         of the run.
-
-        Parameters
-        ----------
-        nruns : int, optional
-            number of monte-carlo runs, by default 1
-        nprocesses : int, optional
-            number of processing cores to use, by default 1
         """
 
         # Single simulation. No param file detected
@@ -104,7 +122,7 @@ class RunManagerCore(RunManager):
                                                 nprocesses, config_path)
 
     def set_runs_number(self, nruns, json_data):
-        """Set the number of runs
+        """Sets the number of runs.
 
         Parameters
         ----------
@@ -116,7 +134,7 @@ class RunManagerCore(RunManager):
         Returns
         -------
         int
-            number of run
+            number of runs
         """
         if nruns is None:
             if json_data['configuration']['runs_num']:
@@ -128,7 +146,7 @@ class RunManagerCore(RunManager):
         return nruns
 
     def set_processes_number(self, nprocess, json_data):
-        """Set the number of process
+        """Sets the number of processes.
 
         Parameters
         ----------
@@ -152,7 +170,7 @@ class RunManagerCore(RunManager):
         return proc_num
 
     def prepare_monte_carlo(self, json_data):
-        """Prepare the monte carlo run
+        """Prepares the combination of parameters for a monte carlo run.
 
         Parameters
         ----------
@@ -174,7 +192,7 @@ class RunManagerCore(RunManager):
         # logging.info(f'All simulations completed. Time taken to run: {datetime.now() - now}')
 
     def config_parameter_pairing(self):
-        """Pair the config file with the parameter file
+        """Pairs the config file with the parameter file.
 
         Returns
         -------
@@ -306,7 +324,7 @@ class RunManagerCore(RunManager):
         return trackers, ground_truths, metric_managers
 
     def set_tracker_parameters(self, parameter, tracker):
-        """Sets the paramater file value to the tracker
+        """Sets the paramater value to the tracker.
 
         Parameters
         ----------
@@ -322,7 +340,7 @@ class RunManagerCore(RunManager):
             self.set_param(split_path, tracker, v)
 
     def set_param(self, split_path, el, value):
-        """Sets the paramater file value to the attribute in the stone soup object
+        """Sets the paramater value to the attribute in the stone soup object
 
         Parameters
         ----------
