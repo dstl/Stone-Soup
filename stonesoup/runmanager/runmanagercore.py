@@ -684,7 +684,7 @@ class RunManagerCore(RunManager):
 
         Parameters
         ----------
-        log_time : str
+        log_time : datetime
             timestamp of log information
         """
         if self.total_trackers > 1:
