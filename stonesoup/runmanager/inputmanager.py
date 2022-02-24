@@ -8,6 +8,17 @@ from datetime import datetime, timedelta
 
 
 class InputManager(RunManager):
+    """
+    The Input Manager is a component of the Run Manager that handles
+    the inputs of parameters by setting the inputs to their correct
+    types and generates the combinations of parameters to be ran
+    in the RunManagerCore simulations.
+
+    Parameters
+    ----------
+    Runmanager : Class
+        Run manager base class
+    """
 
     def set_stateVector(self, list_state_vector):
         """Get a list and return a state vector
@@ -25,7 +36,7 @@ class InputManager(RunManager):
 
     def set_int(self, input_int):
         """
-        Set int
+        Sets input value to int type
 
         Parameters:
             input_int: value to convert
@@ -38,7 +49,7 @@ class InputManager(RunManager):
 
     def set_float(self, input_float):
         """
-        Set float
+        Set input value to float type
 
         Parameters:
             input_float: value to convert
@@ -67,7 +78,7 @@ class InputManager(RunManager):
 
     def set_tuple(self, list_tuple):
         """
-        Set tuple
+        Set list input to tuple type
 
         Parameters:
             input_tuple: list of tuple
@@ -82,7 +93,7 @@ class InputManager(RunManager):
 
     def set_bool():
         """
-        Set bool
+        Set bool, Not Yet Implemented
 
         Parameters:
             input_bool: value to convert
@@ -94,7 +105,7 @@ class InputManager(RunManager):
 
     def set_ndArray(self, arr):
         """
-        Set ndArray
+        Gets an array and sets it to numpy array
 
         Parameters:
             input_ndarray: value to convert
@@ -106,7 +117,7 @@ class InputManager(RunManager):
 
     def set_time_delta(self, time_delta):
         """
-        Set timedelta
+        Set time input to timedelta type
 
         Parameters:
             input_timedelta: value to convert
@@ -118,7 +129,7 @@ class InputManager(RunManager):
 
     def set_probability():
         """
-        Set probability
+        Set probability, Not Yet Implemented
 
         Parameters:
             input_probability: value to convert
@@ -129,8 +140,8 @@ class InputManager(RunManager):
         raise NotImplementedError
 
     def generate_parameters_combinations(self, parameters):
-        """From a list of parameters with, min, max and n_samples values
-        generate all the possible values
+        """Generates all the possible combination values from a list
+        of parameters with, min, max and n_samples values.
 
         Parameters
         ----------
@@ -190,7 +201,7 @@ class InputManager(RunManager):
         return combination_dict
 
     def generate_ndarray_combinations(self, parameter):
-        """Generate combinations of ndarray
+        """Generate list of combinations to set in an ndarray
 
         Parameters
         ----------
@@ -215,7 +226,8 @@ class InputManager(RunManager):
         return combination_list
 
     def generate_timedelta_combinations(self, parameter):
-        """Generate combinations of timedelta
+        """
+        Generate list of timedelta combinations
 
         Parameters
         ----------
@@ -325,7 +337,7 @@ class InputManager(RunManager):
         return combination_list
 
     def generate_bool_combinations(self, parameter):
-        """Generate combinations of bool
+        """Generate combinations of booleans
 
         Parameters
         ----------
