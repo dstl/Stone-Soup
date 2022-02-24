@@ -31,10 +31,10 @@ if __name__ == "__main__":
     parser.add_argument("--processes", "-pc",
                         help="Specify the number of processing cores to use",
                         type=int)
-    parser.add_argument("--montecarlo", "-mc",
-                        help="""Specify the type of Monte-Carlo distribution you want.
-                        0: Equal 1: Logarithmic, 2: Exponential, 3: Random Distributed""",
-                        type=int)
+    # parser.add_argument("--montecarlo", "-mc",
+    #                     help="""Specify the type of Monte-Carlo distribution you want.
+    #                     0: Equal 1: Logarithmic, 2: Exponential, 3: Random Distributed""",
+    #                     type=int)
     args = parser.parse_args()
 
     config = manage_if(args.config)
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     dir = manage_if(args.dir)
     nruns = manage_if(args.nruns)
     nprocesses = manage_if(args.processes)
-    montecarlo = manage_if(args.montecarlo)
+    # montecarlo = manage_if(args.montecarlo)
 
-    rmc = RunManagerCore(config, parameter, groundtruth, dir, montecarlo, nruns, nprocesses)
+    rmc = RunManagerCore(config, parameter, groundtruth, dir, nruns, nprocesses)
     rmc.run()
