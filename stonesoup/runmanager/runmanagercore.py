@@ -578,6 +578,10 @@ class RunManagerCore(RunManager):
                         self.run_monte_carlo_simulation(trackers[idx], ground_truths[idx],
                                                         metric_managers[idx], dt_string,
                                                         combo_dict, idx, runs)
+                        config_data = self.set_components(config_path)
+                        tracker = config_data[self.TRACKER]
+                        ground_truth = config_data[self.GROUNDTRUTH]
+                        metric_manager = config_data[self.METRIC_MANAGER]
         except Exception as e:
             info_logger.error(f'Could not run simulation. error: {e}')
 
