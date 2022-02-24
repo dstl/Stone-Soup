@@ -15,14 +15,14 @@ from ..runmanagercore import RunManagerCore
 # test_config_nogt = "stonesoup\\runmanager\\tests\\test_configs\\test_config_nogt.yaml"
 # test_config_trackeronly =
 # "stonesoup\\runmanager\\tests\\test_configs\\test_config_trackeronly.yaml"
-# test_json = "stonesoup\\runmanager\\tests\\test_configs\\dummy.json"
+# test_json = "stonesoup\\runmanager\\tests\\test_configs\\dummy_parameters.json"
 
 # These paths for circleci tests
 test_config = "stonesoup/runmanager/tests/test_configs/test_config_all.yaml"
 test_config_nomm = "stonesoup/runmanager/tests/test_configs/test_config_nomm.yaml"
 test_config_nogt = "stonesoup/runmanager/tests/test_configs/test_config_nogt.yaml"
 test_config_trackeronly = "stonesoup/runmanager/tests/test_configs/test_config_trackeronly.yaml"
-test_json = "stonesoup/runmanager/tests/test_configs/dummy.json"
+test_json = "stonesoup/runmanager/tests/test_configs/dummy_parameters.json"
 test_config_dir = "stonesoup/runmanager/tests/test_configs/"
 
 rmc = RunManagerCore(test_config, test_json, False, False, test_config_dir, 1, 1)
@@ -41,7 +41,7 @@ def test_read_json():
 def test_set_runs_number_none():
     test_json_data = rmc.read_json(test_json)
     test_nruns = rmc.set_runs_number(None, test_json_data)
-    assert test_nruns == 4  # nruns set as 4 in dummy.json
+    assert test_nruns == 4  # nruns set as 4 in dummy_parameters.json
 
 
 def test_set_runs_number_one():
@@ -59,7 +59,7 @@ def test_set_runs_number_multiple():
 def test_set_processes_number_none():
     test_json_data = rmc.read_json(test_json)
     test_nruns = rmc.set_processes_number(None, test_json_data)
-    assert test_nruns == 1  # nprocesses set as 1 in dummy.json
+    assert test_nruns == 1  # nprocesses set as 1 in dummy_parameters.json
 
 
 def test_set_processes_number_one():
@@ -77,7 +77,7 @@ def test_set_processes_number_multiple():
 def test_prepare_monte_carlo():
     test_json_data = rmc.read_json(test_json)
     test_combo_dict = rmc.prepare_monte_carlo(test_json_data)
-    assert len(test_combo_dict) == 256
+    assert len(test_combo_dict) == 24
 
 
 def test_config_parameter_pairing():
@@ -251,12 +251,12 @@ def test_get_filepaths_empty():
 
 def test_get_config_and_param_lists():
     files = rmc.get_filepaths(test_config_dir)
-    pair = rmc.get_config_and_param_lists(files)
-    assert type(pair) is list
-    assert len(pair) == 1
-    assert len(pair[0]) == 2
-    assert 'stonesoup/runmanager/tests/test_configs/dummy.json' in (pair[0])
-    assert 'stonesoup/runmanager/tests/test_configs/dummy.yaml' in (pair[0])
+    pairs = rmc.get_config_and_param_lists(files)
+    assert type(pairs) is list
+    assert len(pairs) == 1
+    assert len(pairs[0]) == 2
+    assert 'stonesoup/runmanager/tests/test_configs/dummy_parameters.json' == (pairs[0][1])
+    assert 'stonesoup/runmanager/tests/test_configs/dummy.yaml' in (pairs[0][0])
 
 
 def test_set_components_empty():
@@ -328,24 +328,59 @@ def test_multiprocess_pool():
     assert test_mp_result == [4, 8, 9]
 
 
-def test_prepare_and_run_simulations():
-    test_param_path = 'stonesoup/runmanager/tests/test_configs/dummy.json'
-    test_config_path = 'stonesoup/runmanager/tests/test_configs/dummy.yaml'
-    test_json_data = rmc.read_json(test_param_path)
-    test_nruns = 1
-    test_nprocesses = 1
-    test_combo_dict = rmc.prepare_monte_carlo(test_json_data)
+# def test_prepare_and_run_simulations():
+#     test_param_path = 'stonesoup/runmanager/tests/test_configs/dummy_parameters.json'
+#     test_config_path = 'stonesoup/runmanager/tests/test_configs/dummy.yaml'
+#     test_json_data = rmc.read_json(test_param_path)
+#     test_nruns = 1
+#     test_nprocesses = 1
+#     test_combo_dict = rmc.prepare_monte_carlo(test_json_data)
 
-    # rmc.run()
-    rmc.prepare_single_simulation()
-    rmc.prepare_monte_carlo_simulation(test_combo_dict, test_nruns,
-                                       test_nprocesses, test_config_path)
+#     rmc.run()
+#     # rmc.prepare_single_simulation()
+#     # rmc.prepare_monte_carlo_simulation(test_combo_dict, test_nruns,
+#     #                                    test_nprocesses, test_config_path)
 
-    # Multiprocessing simulations
-    test_nprocesses = 2
-    rmc.prepare_single_simulation()
-    rmc.prepare_monte_carlo_simulation(test_combo_dict, test_nruns,
-                                       test_nprocesses, test_config_path)
+#     # # Multiprocessing simulations
+#     # test_nprocesses = 2
+#     rmc.nprocesses = 2
+#     rmc.run()
+#     # rmc.prepare_single_simulation()
+#     # rmc.prepare_monte_carlo_simulation(test_combo_dict, test_nruns,
+#     #                                    test_nprocesses, test_config_path)
+
+
+def test_single_run():
+    rmc.config_path = "stonesoup/runmanager/tests/test_configs/dummy.yaml"
+    rmc.parameters_path = None
+    rmc.nruns = None
+    rmc.nprocesses = None
+    rmc.run()
+
+
+def test_single_run_multiprocess():
+    rmc.config_path = "stonesoup/runmanager/tests/test_configs/dummy.yaml"
+    rmc.parameters_path = None
+    rmc.nruns = 2
+    rmc.nprocesses = 2
+    rmc.run()
+
+
+# #### Makes tests go on for a while
+# def test_montecarlo_run():
+#     rmc.config_path = "stonesoup/runmanager/tests/test_configs/dummy.yaml"
+#     rmc.parameters_path = "stonesoup/runmanager/tests/test_configs/dummy_parameters.json"
+#     rmc.nruns = None
+#     rmc.nprocesses = None
+#     rmc.run()
+
+
+# def test_montecarlo_run_multiprocess():
+#     rmc.config_path = "stonesoup/runmanager/tests/test_configs/dummy.yaml"
+#     rmc.parameters_path = "stonesoup/runmanager/tests/test_configs/dummy_parameters.json"
+#     rmc.nruns = 1
+#     rmc.nprocesses = 2
+#     rmc.run()
 
 
 def test_logging_failed():

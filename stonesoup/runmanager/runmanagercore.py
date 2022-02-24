@@ -270,8 +270,9 @@ class RunManagerCore(RunManager):
                     metric_manager.add_data(self.check_ground_truth(ground_truth), ctracks,
                                             tracker.detector.detections,
                                             overwrite=False)
-            metrics = metric_manager.generate_metrics()
-            self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
+            if metric_manager is not None:
+                metrics = metric_manager.generate_metrics()
+                self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
             self.logging_success(log_time)
 
         except Exception as e:
@@ -383,26 +384,57 @@ class RunManagerCore(RunManager):
             config_data = YAML('safe').load(config_string)
         except Exception as e:
             print(f"{datetime.now()} Failed to load config data: {e}")
-            info_logger.error(f"Failed to load config data: {e}")
+            logging.error(f"{datetime.now()} Failed to load config data: {e}")
             config_data = [None, None, None]
 
         tracker = config_data[0]
 
-        # User has set a flag to use the groundtruth added in config file
-        if self.groundtruth_setting is True:
+        # If config has more than just tracker (len > 1)
+        #   If user has set flag for gt to be in config
+        #     Set gt = config_data[1]
+        #   Else set metric manager = config_data[1]
+        # If groundtruth is None
+        #   throw exception groundtruth not found
+
+        if len(config_data) > 1:
+            if self.groundtruth_setting is True:
+                groundtruth = config_data[1]
+            else:
+                metric_manager = config_data[1]
+        if len(config_data) > 2:
             groundtruth = config_data[1]
-        else:
-            # Try to find groundtruth and metric manager if user has not flagged
+            metric_manager = config_data[len(config_data)-1]
+
+        # Try to find groundtruth in tracker if not set
+        if groundtruth is None:
             try:
-                if len(config_data) > 2:
-                    groundtruth = config_data[1]
-                else:
-                    groundtruth = tracker.detector.groundtruth
-            except Exception:
+                groundtruth = tracker.detector.groundtruth
+            except Exception as e:
+                print("Ground truth not found, error: ", e)
+                print("Check -g command is set to True and Groundtruth is in config file")
                 pass
-            # Try to find metric manager in config if not already set
-            if len(config_data) > 1:
-                metric_manager = config_data[len(config_data)-1]
+
+        # User has set a flag to use the groundtruth added in config file
+        # if len(config_data) > 1:
+        #     if self.groundtruth_setting is True:
+        #         groundtruth = config_data[1]
+        #     else:
+        #         # Try to find groundtruth and metric manager if user has not flagged
+        #         try:
+        #             if len(config_data) > 2:
+        #                 groundtruth = config_data[1]
+        #                 metric_manager = config_data[len(config_data)-1]
+        #             else:
+        #                 # groundtruth = tracker.detector.groundtruth
+        #                 metric_manager = config_data[1]
+        #         except Exception as e:
+        #             print("Could not find groundtruth, error: ", e)
+        #             print("Check -g command is set to True and Groundtruth is in config file")
+        #             pass
+
+        # print("TRACKER: ", tracker)
+        # print("GROUNDTRUTH: ", groundtruth)
+        # print("METRIC MANAGER: : ", metric_manager)
 
         return {self.TRACKER: tracker,
                 self.GROUNDTRUTH: groundtruth,
@@ -747,8 +779,8 @@ def setup_logger(name, log_file, level=logging.INFO):
 
     Returns
     -------
-    _type_
-        _description_
+    logger : Object
+       The logger object to log outputs to a file
     """
 
     formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')

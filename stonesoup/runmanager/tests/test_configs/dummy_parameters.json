@@ -6,10 +6,10 @@
     "parameters": [
         {
             "n_samples": [
-                2,
-                2,
-                2,
-                2
+                1,
+                0,
+                0,
+                0
             ],
             "path": "list[0].initiator.initiator.prior_state.state_vector",
             "type": "StateVector",
