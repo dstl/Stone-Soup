@@ -238,7 +238,7 @@ kalman_tracker = MultiTargetTracker(
 )
 
 tracks = set()
-for step, (time, current_tracks) in enumerate(kalman_tracker.tracks_gen(), 1):
+for step, (time, current_tracks) in enumerate(kalman_tracker, 1):
     tracks.update(current_tracks)
 
 # %%
