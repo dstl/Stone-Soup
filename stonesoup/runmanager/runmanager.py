@@ -23,7 +23,7 @@ if __name__ == "__main__":
                         False for no ground_truth. Default is False""",
                         type=bool)
     parser.add_argument("--dir", "-d",
-                        help="Specify a directoy with config & parameter files.",
+                        help="Specify a directory with config & parameter files.",
                         type=str)
     parser.add_argument("--nruns", "-n",
                         help="""Specify the number of monte carlo runs you
@@ -33,7 +33,7 @@ if __name__ == "__main__":
                         help="Specify the number of processing cores to use",
                         type=int)
     parser.add_argument("--montecarlo", "-mc",
-                        help="""Specify the type of Monte-Carlo distribution you want.
+                        help="""NOT YET IMPLEMENTED. Specify the type of Monte-Carlo distribution you want.
                         0: Equal 1: Logarithmic, 2: Exponential, 3: Random Distributed""",
                         type=int)
     args = parser.parse_args()
