@@ -730,12 +730,12 @@ class RunManagerCore(RunManager):
             timestamp of log information
         """
         if self.total_trackers > 1:
-            self.info_logger.info(f"Starting simulation {self.current_trackers}"
-                                  f" / {self.total_trackers} and monte-carlo"
-                                  f" {self.current_run} / {self.nruns}")
+            self.info_logger.info(f"Starting simulation {self.current_trackers + 1}"
+                                  f" / {self.total_trackers + 1} and monte-carlo"
+                                  f" {self.current_run + 1} / {self.nruns}")
         else:
             self.info_logger.info(f"Starting simulation"
-                                  f" {self.current_run} / {self.nruns}")
+                                  f" {self.current_run + 1} / {self.nruns}")
 
     def logging_success(self, log_time):
         """Handles logging and output for messages regarding successful
@@ -747,12 +747,12 @@ class RunManagerCore(RunManager):
             timestamp of log information
         """
         if self.total_trackers > 1:
-            self.info_logger.info(f"Successfully ran simulation {self.current_trackers} /"
+            self.info_logger.info(f"Successfully ran simulation {self.current_trackers + 1} /"
                                   f" {self.total_trackers} and monte-carlo"
-                                  f" {self.current_run} / {self.nruns}"
+                                  f" {self.current_run + 1} / {self.nruns}"
                                   f" in {datetime.now() - log_time}")
         else:
-            self.info_logger.info(f"Successfully ran simulation {self.current_run} /"
+            self.info_logger.info(f"Successfully ran simulation {self.current_run + 1} /"
                                   f"{self.nruns} in {datetime.now() - log_time}")
 
     def logging_failed_simulation(self, log_time, e):
@@ -765,13 +765,13 @@ class RunManagerCore(RunManager):
             timestamp of log information
         """
         if self.total_trackers > 1:
-            self.info_logger.info(f"Failed to run Simulation {self.current_trackers} /"
+            self.info_logger.info(f"Failed to run Simulation {self.current_trackers + 1} /"
                                   f" {self.total_trackers} and monte-carlo"
                                   f" {self.current_run} / {self.nruns}"
                                   f" in {datetime.now() - log_time}")
             self.info_logger.exception(f"{e}")
 
-            print(f"Failed to run Simulation {self.current_trackers} /"
+            print(f"Failed to run Simulation {self.current_trackers + 1} /"
                   f" {self.total_trackers} and monte-carlo"
                   f" {self.current_run} / {self.nruns}"
                   f" in {datetime.now() - log_time}")
@@ -779,10 +779,10 @@ class RunManagerCore(RunManager):
 
         else:
             self.info_logger.error(f"Failed to run Simulation"
-                                   f" {self.current_run} / {self.nruns}")
+                                   f" {self.current_run + 1} / {self.nruns}")
             self.info_logger.exception(f"{e}")
             print(f"{datetime.now()}: Failed to run Simulation"
-                  f" {self.current_run} / {self.nruns}: {e}")
+                  f" {self.current_run + 1} / {self.nruns}: {e}")
 
     def logging_metric_manager_fail(self, e):
         self.info_logger.error(f'Metric manager error: {e}')

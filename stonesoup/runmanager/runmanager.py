@@ -19,8 +19,10 @@ if __name__ == "__main__":
                         help="A Parameter .json file",
                         type=str)
     parser.add_argument("--groundtruth", "-g",
-                        help="""Ground truth setting. True for ground truth,
-                        False for no ground_truth. Default is False""",
+                        help="""Ground truth setting. Set True if a groundtruth has been appended
+                         to the config after the track and you wish to explicitly use that
+                         groundtruth. Otherwise, set to False if
+                         no ground_truth explicitly added config. Default is False""",
                         type=bool)
     parser.add_argument("--dir", "-d",
                         help="Specify a directory with config & parameter files.",
