@@ -2,6 +2,7 @@ import copy
 import json
 import logging
 from datetime import datetime
+import time
 
 import os
 from pathos.multiprocessing import ProcessingPool as Pool
@@ -95,6 +96,7 @@ class RunManagerCore(RunManager):
         """
 
         # Start timer
+        start = time.time()
         # Single simulation. No param file detected
         if self.config_path and self.parameters_path is None:
             if self.nruns is None:
@@ -122,6 +124,9 @@ class RunManagerCore(RunManager):
                                                     nprocesses, self.config_path)
 
         # End timer
+        end = time.time()
+        info_logger.info(f"{datetime.now()} Finished all simulations in " + 
+                         f"--- {end - start} seconds ---")
 
     def set_runs_number(self, nruns, json_data):
         """Sets the number of runs.

@@ -406,6 +406,15 @@ def test_montecarlo_run_multiprocess():
         print("Couldn't run with multiprocessing: ", e)
 
 
+def test__no_file_run():
+    rmc.config_path = None
+    rmc.parameters_path = None
+    rmc.dir = None
+    rmc.nruns = None
+    rmc.nprocesses = None
+    rmc.run()
+
+
 def test_logging_failed():
     rmc.logging_failed_simulation(datetime.now(), "test error message")
 
