@@ -378,24 +378,32 @@ def test_single_run_multiprocess():
     rmc.parameters_path = None
     rmc.nruns = 2
     rmc.nprocesses = 2
-    rmc.run()
+    # Catch exception if can't do mp
+    try:
+        rmc.run()
+    except Exception as e:
+        print("Couldn't run with multiprocessing: ", e)
 
 
 # #### Makes tests go on for a while
-# def test_montecarlo_run():
-#     rmc.config_path = "stonesoup/runmanager/tests/test_configs/dummy.yaml"
-#     rmc.parameters_path = "stonesoup/runmanager/tests/test_configs/dummy_parameters.json"
-#     rmc.nruns = None
-#     rmc.nprocesses = None
-#     rmc.run()
+def test_montecarlo_run():
+    rmc.config_path = "stonesoup/runmanager/tests/test_configs/dummy.yaml"
+    rmc.parameters_path = "stonesoup/runmanager/tests/test_configs/dummy_parameters.json"
+    rmc.nruns = None
+    rmc.nprocesses = None
+    rmc.run()
 
 
-# def test_montecarlo_run_multiprocess():
-#     rmc.config_path = "stonesoup/runmanager/tests/test_configs/dummy.yaml"
-#     rmc.parameters_path = "stonesoup/runmanager/tests/test_configs/dummy_parameters.json"
-#     rmc.nruns = 1
-#     rmc.nprocesses = 2
-#     rmc.run()
+def test_montecarlo_run_multiprocess():
+    rmc.config_path = "stonesoup/runmanager/tests/test_configs/dummy.yaml"
+    rmc.parameters_path = "stonesoup/runmanager/tests/test_configs/dummy_parameters.json"
+    rmc.nruns = 1
+    rmc.nprocesses = 2
+    # Catch exception if can't do mp
+    try:
+        rmc.run()
+    except Exception as e:
+        print("Couldn't run with multiprocessing: ", e)
 
 
 def test_logging_failed():
