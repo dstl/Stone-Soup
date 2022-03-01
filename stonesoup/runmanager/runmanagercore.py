@@ -125,7 +125,7 @@ class RunManagerCore(RunManager):
 
         # End timer
         end = time.time()
-        info_logger.info(f"{datetime.now()} Finished all simulations in " + 
+        info_logger.info(f"{datetime.now()} Finished all simulations in " +
                          f"--- {end - start} seconds ---")
 
     def set_runs_number(self, nruns, json_data):
@@ -266,7 +266,7 @@ class RunManagerCore(RunManager):
         try:
             log_time = datetime.now()
             self.logging_starting(log_time)
-            for time, ctracks in tracker.tracks_gen():
+            for _, ctracks in tracker.tracks_gen():
                 # TODO: Review
                 # tracks.update(ctracks)
                 # truths.update(tracker.detector.groundtruth.current[1])
