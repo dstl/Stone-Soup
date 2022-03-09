@@ -8,6 +8,8 @@ from datetime import timedelta
 from stonesoup.serialise import YAML
 from .base import RunManager
 from datetime import datetime
+import pandas as pd
+import glob
 
 
 class RunmanagerMetrics(RunManager):
@@ -263,3 +265,19 @@ class RunmanagerMetrics(RunManager):
         except Exception as e:
             print(f'{datetime.now()}: failed to write parameters correctly. {e}')
         return parameters
+
+    def average_simulations(self, directory):
+        directory = "gt_csv_config"
+        files = glob.glob(f'./{directory}*/run*/metrics.csv', recursive=True)
+        self.batch_list(files, 10)
+        print(files)
+        dfs = (pd.read_csv(f, infer_datetime_format=True) for f in files)
+        average = next(dfs)
+        averagedf = pd.concat(dfs, ignore_index=False).groupby(level=0).mean()
+        averagedf["timestamp"] = average.iloc[:, -1]
+        averagedf.to_csv("average.csv", index=False)
+
+    def batch_list(self, lst, n):
+        """Yield successive n-sized chunks from lst."""
+        for i in range(0, len(lst), n):
+            yield lst[i:i + n]

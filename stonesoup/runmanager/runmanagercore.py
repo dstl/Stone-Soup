@@ -30,7 +30,7 @@ class RunManagerCore(RunManager):
     METRIC_MANAGER = "metric_manager"
 
     def __init__(self, config_path, parameters_path, groundtruth_setting,
-                 dir, montecarlo, nruns=None, nprocesses=None):
+                 dir, montecarlo, nruns, nprocesses):
         """The init function for RunManagerCore, initiating the key settings to allow
         the running of simulations.
 
