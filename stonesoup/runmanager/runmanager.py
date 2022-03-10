@@ -1,4 +1,5 @@
 from stonesoup.runmanager.runmanagercore import RunManagerCore
+from stonesoup.runmanager.runmanagerscheduler import RunManagerScheduler
 import argparse
 
 
@@ -38,6 +39,10 @@ if __name__ == "__main__":
                         help="""NOT YET IMPLEMENTED. Specify the type of Monte-Carlo distribution you want.
                         0: Equal 1: Logarithmic, 2: Exponential, 3: Random Distributed""",
                         type=int)
+    parser.add_argument("--slurm", "-s",
+                        help="""Slurm setting, set True if using a HPC and need to schedule RunManager 
+                        executions/jobs using slurm. Default is False""",
+                        type=bool)
     args = parser.parse_args()
 
     config = manage_if(args.config)
@@ -47,6 +52,21 @@ if __name__ == "__main__":
     nruns = manage_if(args.nruns)
     nprocesses = manage_if(args.processes)
     montecarlo = manage_if(args.montecarlo)
+    slurm = manage_if(args.slurm)
 
-    rmc = RunManagerCore(config, parameter, groundtruth, dir, montecarlo, nruns, nprocesses)
-    rmc.run()
+    if slurm:
+        print("Using slurm scheduler enabled.")
+        rm_args = {
+            "config": config,
+            "parameter": parameter,
+            "groundtruth": groundtruth,
+            "dir": dir,
+            "montecarlo": montecarlo,
+            "nruns": nruns,
+            "processes": nprocesses
+            }
+        rm_scheduler = RunManagerScheduler(rm_args)
+        rm_scheduler.schedule_jobs()
+    else:
+        rmc = RunManagerCore(config, parameter, groundtruth, dir, montecarlo, nruns, nprocesses)
+        rmc.run()

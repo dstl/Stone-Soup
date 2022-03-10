@@ -736,7 +736,7 @@ class RunManagerCore(RunManager):
         """
         if self.total_trackers > 1:
             info_logger.info(f"Starting simulation {self.current_trackers + 1}"
-                             f" / {self.total_trackers + 1} and monte-carlo"
+                             f" / {self.total_trackers} and monte-carlo"
                              f" {self.current_run + 1} / {self.nruns}")
         else:
             info_logger.info(f"Starting simulation"
