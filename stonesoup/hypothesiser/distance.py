@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-import warnings
-from typing import Sequence
+from typing import Mapping
 
 from .base import Hypothesiser
 from ..base import Property
@@ -105,51 +104,52 @@ class MultiDistanceHypothesiser(Hypothesiser):
     to find the model's corresponding hypothesiser and use its output.
     """
 
-    hypothesisers: Sequence[DistanceHypothesiser] = Property(
-        doc="Sequence of hypothesisers to utilise output of.")
-    measurement_models: Sequence[MeasurementModel] = Property(
-        doc="Sequence of measurement models that will be compared against incoming detections. "
-            "Must be same length as hypothesisers sequence."
+    hypothesiser_dict: Mapping[type[MeasurementModel], DistanceHypothesiser] = Property(
+        doc="Mapping of measurement model class - hypothesiser pairs. Each incoming detection's "
+            "measurement model will be compared against this mapping."
     )
 
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
 
-        if len(self.hypothesisers) != len(self.measurement_models):
-            raise ValueError("Number of hypothesisers must equal number of measurement models in "
-                             "MultiDistanceHypothesiser")
-
     def hypothesise(self, track, detections, timestamp, **kwargs):
-        """Passes detections that do not have measurement model or have a model with no
-        corresponding hypothesiser, to the first hypothesiser in the sequence. Uses the
-        null-hypothesis of the first hypothesiser and will ignore those of the other
-        :attr:`hypothesisers`."""
+        """Hypothesise track-detections pairs using detections' corresponding hypothesisers from
+        :attr:`hypothesiser_dict`. Raises error if an incoming detection as no measurement model,
+        or a model with no corresponding hypothesiser. Resultant hypothesis collection will
+        contain a null hypothesis from each hypothesiser."""
 
         # Keep track of detections attributed to each hypothesiser
-        hypothesisers_detections = {hypothesiser: set() for hypothesiser in self.hypothesisers}
+        hypothesisers_detections = {
+            hypothesiser: set() for hypothesiser in self.hypothesiser_dict.values()
+        }
 
         # True detection hypotheses
         for detection in detections:
-            try:
-                detection_measurement_model = detection.measurement_model
-                index_of_model = self.measurement_models.index(detection_measurement_model)
-            except (AttributeError, ValueError):
+
+            detection_measurement_model = detection.measurement_model
+
+            relevant_hypothesiser = self.hypothesiser_dict.get(type(detection_measurement_model))
+
+            if relevant_hypothesiser is None:
                 # detection either doesn't have measurement model
-                # or its model is not accounted for in class model sequence
-                index_of_model = 0  # first in sequence is default hypothesiser
-                warnings.warn("Defaulting to first hypothesiser")
-            relevant_hypothesiser = self.hypothesisers[index_of_model]
+                # or its model is not accounted for in hypothesiser_dict
+                print(f"{detection_measurement_model =}")
+                if detection_measurement_model is None:
+                    raise ValueError("Hypothesiser received detection with no measurement model")
+                else:
+                    raise ValueError(f"Hypothesiser received detection with measurement model of "
+                                     f"type {type(detection_measurement_model)} which has no "
+                                     f"corresponding hypothesiser")
+
             hypothesisers_detections[relevant_hypothesiser].add(detection)
 
-        # Add good-detection hypotheses
-        multiple_hypotheses = {
-            hypothesiser.hypothesise(track, relevant_detections, timestamp, **kwargs)
-            for hypothesiser, relevant_detections in hypothesisers_detections.items()
-        }
-        hypotheses = [hypothesis
-                      for n, multi_hypothesis in enumerate(multiple_hypotheses)
-                      for hypothesis in multi_hypothesis
-                      if hypothesis or n == 0]
+        hypotheses = list()
+        for hypothesiser, relevant_detections in hypothesisers_detections.items():
+            multi_hypothesis = hypothesiser.hypothesise(track,
+                                                        relevant_detections,
+                                                        timestamp,
+                                                        **kwargs)
+            hypotheses.extend(multi_hypothesis.single_hypotheses)
 
         return MultipleHypothesis(sorted(hypotheses, reverse=True))

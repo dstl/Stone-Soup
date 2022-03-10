@@ -8,6 +8,7 @@ import pytest
 from ..distance import DistanceHypothesiser, MultiDistanceHypothesiser
 from ... import measures
 from ...measures import Euclidean
+from ...models.measurement.categorical import CategoricalMeasurementModel
 from ...models.measurement.linear import LinearGaussian
 from ...models.measurement.nonlinear import CartesianToBearingRange
 from ...models.transition.linear import CombinedLinearGaussianTransitionModel, \
@@ -99,6 +100,8 @@ def test_multi_distance(predictor, updater):
                              include_all=False)  # don't include missed detections
     ]
 
+    hypothesiser_dict = dict(zip(map(lambda x: type(x), measurement_models), hypothesisers))
+
     timestamp = datetime.datetime.now()
     track = Track([GaussianState(np.array([[1, 0, 1, 0]]), np.eye(4), timestamp)])
 
@@ -111,22 +114,33 @@ def test_multi_distance(predictor, updater):
     detection4 = Detection(np.array([[np.radians(120)]]), measurement_model=measurement_models[1],
                            timestamp=timestamp)
     detection5 = Detection(np.array([8, 8]),
-                           measurement_model=LinearGaussian(ndim_state=4,
-                                                            mapping=(0, 1),
-                                                            noise_covar=np.eye(1)),
+                           measurement_model=CategoricalMeasurementModel(
+                               ndim_state=4,
+                               emission_matrix=np.eye(4),
+                               emission_covariance=np.eye(4)),
+                           timestamp=timestamp)
+    detection6 = Detection(np.array([9, 9]),
                            timestamp=timestamp)
 
-    detections = [detection1, detection2, detection3, detection4, detection5]
+    detections = [detection1, detection2, detection3, detection4, detection5, detection6]
 
-    # Test mismatch sequence length error
-    with pytest.raises(ValueError, match="Number of hypothesisers must equal number of "
-                                         "measurement models in MultiDistanceHypothesiser"):
-        MultiDistanceHypothesiser(hypothesisers[1:], measurement_models)
+    hypothesiser = MultiDistanceHypothesiser(hypothesiser_dict)
 
-    hypothesiser = MultiDistanceHypothesiser(hypothesisers, measurement_models)
+    with pytest.raises(
+            ValueError,
+            match=f"Hypothesiser received detection with measurement model of type "
+            f"{type(detection5.measurement_model)} which has no corresponding hypothesiser"):
+        hypothesiser.hypothesise(track, detections, timestamp)
 
-    with pytest.warns(UserWarning, match="Defaulting to first hypothesiser"):
-        hypotheses = hypothesiser.hypothesise(track, detections, timestamp)
+    detections = [detection1, detection2, detection3, detection4, detection6]  # remove detection5
+    with pytest.raises(
+            ValueError,
+            match="Hypothesiser received detection with no measurement model"):
+        hypothesiser.hypothesise(track, detections, timestamp)
+
+    detections = [detection1, detection2, detection3, detection4]  # remove detection6
+
+    hypotheses = hypothesiser.hypothesise(track, detections, timestamp)
 
     # There are 4 hypotheses - Detections and Missed Detection but not for detection4
     assert len(hypotheses) == 5
