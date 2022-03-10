@@ -266,18 +266,48 @@ class RunmanagerMetrics(RunManager):
             print(f'{datetime.now()}: failed to write parameters correctly. {e}')
         return parameters
 
-    def average_simulations(self, directory):
-        directory = "gt_csv_config"
-        files = glob.glob(f'./{directory}*/run*/metrics.csv', recursive=True)
-        self.batch_list(files, 10)
-        print(files)
-        dfs = (pd.read_csv(f, infer_datetime_format=True) for f in files)
-        average = next(dfs)
-        averagedf = pd.concat(dfs, ignore_index=False).groupby(level=0).mean()
-        averagedf["timestamp"] = average.iloc[:, -1]
-        averagedf.to_csv("average.csv", index=False)
 
-    def batch_list(self, lst, n):
-        """Yield successive n-sized chunks from lst."""
-        for i in range(0, len(lst), n):
-            yield lst[i:i + n]
+def average_simulations(dataframes, length_files):
+    timestamps = dataframes[0].iloc[:, -1]
+    summed = pd.concat(dataframes, ignore_index=False).groupby(level=0).sum()
+    averaged_dataframe = summed.div(length_files)
+    averaged_dataframe["timestamp"] = timestamps
+    averaged_dataframe.to_csv("average.csv", index=False)
+    return averaged_dataframe
+
+
+def sum_simulations(directory, chunk_size: int):
+    all_files = glob.glob(f'./{directory}*/run*/metrics.csv', recursive=True)
+    batch = batch_list(all_files, chunk_size)
+    summed_dataframes = []
+
+    for files in batch:
+        dfs = [pd.read_csv(file, infer_datetime_format=True) for file in files]
+        averagedf = pd.concat(dfs, ignore_index=False).groupby(level=0).sum()
+        averagedf["timestamp"] = dfs[0].iloc[:, -1]
+        summed_dataframes.append(averagedf)
+
+    return summed_dataframes, len(all_files)
+
+
+def batch_list(lst, n):
+    """ Splits list into batches
+
+    Parameters
+    ----------
+    lst : _type_
+        _description_
+    n : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
+    if n == 0:
+        n = len(lst)
+    chunked_lists = []
+    for i in range(0, len(lst), n):
+        chunked_lists.append(lst[i:i + n])
+    return chunked_lists
