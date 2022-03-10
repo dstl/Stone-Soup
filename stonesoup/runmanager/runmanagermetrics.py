@@ -267,27 +267,49 @@ class RunmanagerMetrics(RunManager):
         return parameters
 
 
-def average_simulations(dataframes, length_files):
-    timestamps = dataframes[0].iloc[:, -1]
-    summed = pd.concat(dataframes, ignore_index=False).groupby(level=0).sum()
-    averaged_dataframe = summed.div(length_files)
-    averaged_dataframe["timestamp"] = timestamps
-    averaged_dataframe.to_csv("average.csv", index=False)
-    return averaged_dataframe
+def average_simulations(dataframes, length):
+    """ Calculates the average for each cell in the dataframe
+
+    Parameters
+    ----------
+    dataframes : DataFrame
+        Pandas dataframe
+    length : int
+        the value maximum length of the run to divide by
+    """
+    df = dataframes.iloc[:, :-1].div(length)
+    df.to_csv("average.csv", index=False)
 
 
 def sum_simulations(directory, chunk_size: int):
+    """_summary_
+
+    Parameters
+    ----------
+    directory : str
+        Directory where the results are located
+    chunk_size : int
+        Chunk size to reduce memory usage for large datasets
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     all_files = glob.glob(f'./{directory}*/run*/metrics.csv', recursive=True)
     batch = batch_list(all_files, chunk_size)
-    summed_dataframes = []
-
+    summed_dataframe = pd.DataFrame()
     for files in batch:
         dfs = [pd.read_csv(file, infer_datetime_format=True) for file in files]
         averagedf = pd.concat(dfs, ignore_index=False).groupby(level=0).sum()
         averagedf["timestamp"] = dfs[0].iloc[:, -1]
-        summed_dataframes.append(averagedf)
+        
+        if not summed_dataframe.empty:
+            summed_dataframe = summed_dataframe + averagedf
+        if summed_dataframe.empty:
+            summed_dataframe = averagedf
 
-    return summed_dataframes, len(all_files)
+    return summed_dataframe, len(all_files)
 
 
 def batch_list(lst, n):
