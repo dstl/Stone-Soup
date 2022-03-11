@@ -11,6 +11,7 @@ import multiprocessing
 from stonesoup.serialise import YAML
 from .inputmanager import InputManager
 from .runmanagermetrics import RunmanagerMetrics
+from .runmanagerscheduler import RunManagerScheduler
 from .base import RunManager
 
 
@@ -29,8 +30,16 @@ class RunManagerCore(RunManager):
     GROUNDTRUTH = "ground_truth"
     METRIC_MANAGER = "metric_manager"
 
-    def __init__(self, config_path, parameters_path, groundtruth_setting,
-                 dir, montecarlo, nruns=None, nprocesses=None):
+    def __init__(self, rm_args={
+        "config": None,
+        "parameter": None,
+        "groundtruth": None,
+        "dir": None,
+        "montecarlo": None,
+        "nruns": None,
+        "processes": None,
+        "slurm": None
+    }):
         """The init function for RunManagerCore, initiating the key settings to allow
         the running of simulations.
 
@@ -52,13 +61,15 @@ class RunManagerCore(RunManager):
         nprocesses : int, optional
             number of processing cores to use, by default 1
         """
-        self.config_path = config_path
-        self.parameters_path = parameters_path
-        self.groundtruth_setting = groundtruth_setting
-        self.montecarlo = montecarlo  # Not used yet
-        self.dir = dir
-        self.nruns = nruns
-        self.nprocesses = nprocesses
+
+        self.config_path = rm_args["config"]
+        self.parameters_path = rm_args["parameter"]
+        self.groundtruth_setting = rm_args["groundtruth"]
+        self.montecarlo = rm_args["montecarlo"]  # Not used yet
+        self.dir = rm_args["dir"]
+        self.nruns = rm_args["nruns"]
+        self.nprocesses = rm_args["processes"]
+        self.slurm = rm_args["slurm"]
 
         self.total_trackers = 0
         self.current_run = 0
@@ -66,6 +77,11 @@ class RunManagerCore(RunManager):
 
         self.input_manager = InputManager()
         self.run_manager_metrics = RunmanagerMetrics()
+        # If using slurm hpc, setup scheduler here
+        print("Using slurm scheduler enabled.")
+        if self.slurm:
+            rm_args['slurm'] = None
+            self.run_manager_scheduler = RunManagerScheduler(rm_args)
 
         # logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
         # self.info_logger = self.setup_logger('self.info_logger', 'simulation_info.log')
@@ -120,6 +136,11 @@ class RunManagerCore(RunManager):
                 self.nruns = self.set_runs_number(self.nruns, json_data)
                 nprocesses = self.set_processes_number(self.nprocesses, json_data)
                 combo_dict = self.prepare_monte_carlo(json_data)
+                # if using slurm hpc:
+                    # split combo_dict into n_node batches
+                    # sbatch python -c 'import rmc; rmc.prepare_monte_carlo_simulation(combo_dict[1:n], nruns, nprocesses, configpath)'
+                    # for node in range(n_nodes):
+                    #   subprocess.run(python -c 'import rmc; rmc.prepare_monte_carlo_simulation(combo_dict[1:n], nruns, nprocesses, configpath)')
                 self.prepare_monte_carlo_simulation(combo_dict, self.nruns,
                                                     nprocesses, self.config_path)
 

@@ -10,7 +10,7 @@ class RunManagerScheduler(RunManager):
         try:
             self.n_nodes = int(input("How many nodes would you like to use? "))
         except Exception as e:
-            print("Invalid input for number of nodes, must be an int. ", e)
+            print("Invalid input for number of nodes, must be a numerical value. ", e)
 
         print("Number of nodes:", self.n_nodes)
         self.node_split = self.rm_args['nruns']//self.n_nodes
@@ -22,15 +22,20 @@ class RunManagerScheduler(RunManager):
         # for node in n_nodes: sbatch runmanager.py with jobarray=1-self.rm_args['nruns'],
         # slurm=False, rmargs
 
+        # If using slurm job-array, replace nruns parameter
+        # job_array_size = self.rm_args['nruns']
+        # self.rm_args['nruns'] = None
+
+        # Reset command line arguments for running on nodes
         rm_args_str = ""
         for key, arg in self.rm_args.items():
             if arg is not None:
                 rm_args_str += '--' + str(key) + ' ' + str(arg) + ' '
 
         rm_args_new = f"python stonesoup/runmanager/runmanager.py {rm_args_str}"
-        # rm_args_new = f"sbatch python stonesoup/runmanager/runmanager.py {rm_args_str}"
+        # rm_args_new = f"sbatch --array=1-{self.rm_args['nruns']} python stonesoup/runmanager/runmanager.py {rm_args_str}"
 
-        for node_n in range(self.n_nodes):
-            print("Running on node: ", node_n)
-            subprocess.run(rm_args_new)
+        # for node_n in range(self.n_nodes):
+        #     print("Running on node: ", node_n)
+        subprocess.run(rm_args_new)
         pass

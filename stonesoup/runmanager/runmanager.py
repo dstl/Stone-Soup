@@ -1,5 +1,4 @@
 from stonesoup.runmanager.runmanagercore import RunManagerCore
-from stonesoup.runmanager.runmanagerscheduler import RunManagerScheduler
 import argparse
 
 
@@ -54,19 +53,19 @@ if __name__ == "__main__":
     montecarlo = manage_if(args.montecarlo)
     slurm = manage_if(args.slurm)
 
+    rm_args = {
+        "config": config,
+        "parameter": parameter,
+        "groundtruth": groundtruth,
+        "dir": dir,
+        "montecarlo": montecarlo,
+        "nruns": nruns,
+        "processes": nprocesses,
+        "slurm": slurm
+        }
+    
+    rmc = RunManagerCore(rm_args)
     if slurm:
-        print("Using slurm scheduler enabled.")
-        rm_args = {
-            "config": config,
-            "parameter": parameter,
-            "groundtruth": groundtruth,
-            "dir": dir,
-            "montecarlo": montecarlo,
-            "nruns": nruns,
-            "processes": nprocesses
-            }
-        rm_scheduler = RunManagerScheduler(rm_args)
-        rm_scheduler.schedule_jobs()
+        rmc.run_manager_scheduler.schedule_jobs()
     else:
-        rmc = RunManagerCore(config, parameter, groundtruth, dir, montecarlo, nruns, nprocesses)
         rmc.run()
