@@ -39,7 +39,7 @@ if __name__ == "__main__":
                         0: Equal 1: Logarithmic, 2: Exponential, 3: Random Distributed""",
                         type=int)
     parser.add_argument("--slurm", "-s",
-                        help="""Slurm setting, set True if using a HPC and need to schedule RunManager 
+                        help="""Slurm setting, set True if using a HPC and need to schedule RunManager
                         executions/jobs using slurm. Default is False""",
                         type=bool)
     args = parser.parse_args()
@@ -63,7 +63,7 @@ if __name__ == "__main__":
         "processes": nprocesses,
         "slurm": slurm
         }
-    
+
     rmc = RunManagerCore(rm_args)
     if rmc.slurm:
         rmc.run_manager_scheduler.schedule_jobs(rmc)

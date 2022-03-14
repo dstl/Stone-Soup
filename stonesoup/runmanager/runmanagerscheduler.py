@@ -3,8 +3,9 @@ from .base import RunManager
 import subprocess
 import numpy as np
 
+
 class RunManagerScheduler(RunManager):
-    
+
     def __init__(self, rm_args, logger):
         # Initialise run manager parameters for slurm
         self.rm_args = rm_args
@@ -20,7 +21,7 @@ class RunManagerScheduler(RunManager):
             self.split_sims = False
         else:
             try:
-                self.split_sims = bool(int(input("Split runs(0) or simulations(1) across nodes? ")))
+                self.split_sims = bool(int(input("Split runs(0) or simulations(1) over nodes? ")))
             except Exception as e:
                 self.logger.error(f"Invalid input for node split option, must be a 0 or 1. {e}")
 
@@ -54,12 +55,13 @@ class RunManagerScheduler(RunManager):
         if self.rm_args['nruns'] is not None:
             self.node_split = np.array_split(range(self.rm_args['nruns']), self.n_nodes)
             self.rm_args['nruns'] = self.node_split
-            self.logger.info(f"Number of runs per node: {[len(self.rm_args['nruns'][i]) for i in range(self.n_nodes)]}")
+            self.logger.info(f"Number of runs per node:\
+                            {[len(self.rm_args['nruns'][i]) for i in range(self.n_nodes)]}")
 
         # Reset command line arguments for running on nodes
         rm_args_str = ""
         for key, arg in self.rm_args.items():
-            if arg != None and key != 'nruns':
+            if arg is not None and key != 'nruns':
                 if type(arg) is str:
                     arg = f'"{arg}"'
                 rm_args_str += f"--{str(key)} {str(arg)} "
@@ -69,8 +71,10 @@ class RunManagerScheduler(RunManager):
             if node_nruns > 0:
                 self.logger.info(f"Running on node: {node_n}")
                 nruns_arg = f"--nruns {node_nruns} "
-                rm_args_new = f"python stonesoup/runmanager/runmanager.py {rm_args_str} {nruns_arg}"
-                # rm_args_new = f"sbatch --array=1-{self.rm_args['nruns']} python stonesoup/runmanager/runmanager.py {rm_args_str} {nruns_arg}"
+                rm_args_new = f"python stonesoup/runmanager/runmanager.py\
+                    {rm_args_str} {nruns_arg}"
+                # rm_args_new = f"sbatch --array=1-{self.rm_args['nruns']}\
+                # python stonesoup/runmanager/runmanager.py {rm_args_str} {nruns_arg}"
                 subprocess.run(rm_args_new)
 
     def schedule_simulations(self, run_manager):

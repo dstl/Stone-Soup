@@ -85,7 +85,8 @@ class RunManagerCore(RunManager):
             info_logger.info("Slurm scheduler enabled.")
             rm_args['slurm'] = None
             if self.parameters_path:
-                rm_args['nruns'] = self.set_runs_number(self.nruns, self.read_json(self.parameters_path))
+                rm_args['nruns'] = self.set_runs_number(self.nruns,
+                                                        self.read_json(self.parameters_path))
             self.run_manager_scheduler = RunManagerScheduler(rm_args, info_logger)
 
         # logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
@@ -159,7 +160,8 @@ class RunManagerCore(RunManager):
         # For each node, run monte carlo simulations on a batch
         for combo_dict_batch in combo_dict_split:
             info_logger.info(f"Running parameter batch: {combo_batch_i+1}")
-            # Pickle this RunManager instance so it is the same instance for each batch and can pass parameters
+            # Pickle this RunManager so it is the same instance
+            # for each batch/node and can pass same parameters
             pickle_batch_params = pickle.dumps([self, combo_dict_batch, self.nruns,
                                                 nprocesses, self.config_path])
             subprocess.run(
@@ -175,7 +177,8 @@ class RunManagerCore(RunManager):
     @staticmethod
     def load_batch_params(rmc, params):
         params_list = pickle.loads(params)
-        rmc.prepare_monte_carlo_simulation(params_list[0], params_list[1], params_list[2], params_list[3], params_list[4])
+        rmc.prepare_monte_carlo_simulation(params_list[0], params_list[1], params_list[2],
+                                           params_list[3], params_list[4])
 
     def set_runs_number(self, nruns, json_data):
         """Sets the number of runs.
