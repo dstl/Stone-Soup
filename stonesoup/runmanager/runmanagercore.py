@@ -3,6 +3,9 @@ import json
 import logging
 from datetime import datetime
 import time
+import numpy as np
+import subprocess
+import pickle
 
 import os
 from pathos.multiprocessing import ProcessingPool as Pool
@@ -78,10 +81,12 @@ class RunManagerCore(RunManager):
         self.input_manager = InputManager()
         self.run_manager_metrics = RunmanagerMetrics()
         # If using slurm hpc, setup scheduler here
-        print("Using slurm scheduler enabled.")
         if self.slurm:
+            info_logger.info("Slurm scheduler enabled.")
             rm_args['slurm'] = None
-            self.run_manager_scheduler = RunManagerScheduler(rm_args)
+            if self.parameters_path:
+                rm_args['nruns'] = self.set_runs_number(self.nruns, self.read_json(self.parameters_path))
+            self.run_manager_scheduler = RunManagerScheduler(rm_args, info_logger)
 
         # logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
         # self.info_logger = self.setup_logger('self.info_logger', 'simulation_info.log')
@@ -136,18 +141,41 @@ class RunManagerCore(RunManager):
                 self.nruns = self.set_runs_number(self.nruns, json_data)
                 nprocesses = self.set_processes_number(self.nprocesses, json_data)
                 combo_dict = self.prepare_monte_carlo(json_data)
-                # if using slurm hpc:
-                    # split combo_dict into n_node batches
-                    # sbatch python -c 'import rmc; rmc.prepare_monte_carlo_simulation(combo_dict[1:n], nruns, nprocesses, configpath)'
-                    # for node in range(n_nodes):
-                    #   subprocess.run(python -c 'import rmc; rmc.prepare_monte_carlo_simulation(combo_dict[1:n], nruns, nprocesses, configpath)')
-                self.prepare_monte_carlo_simulation(combo_dict, self.nruns,
-                                                    nprocesses, self.config_path)
+                if self.slurm:
+                    self.schedule_simulations(combo_dict, nprocesses)
+                else:
+                    self.prepare_monte_carlo_simulation(combo_dict, self.nruns,
+                                                        nprocesses, self.config_path)
 
         # End timer
         end = time.time()
         info_logger.info(f"{datetime.now()} Finished all simulations in " +
                          f"--- {end - start} seconds ---")
+
+    def schedule_simulations(self, combo_dict, nprocesses):
+        # Split generated parameter combinations into n_node batches
+        combo_dict_split = np.array_split(combo_dict, self.run_manager_scheduler.n_nodes)
+        combo_batch_i = 0
+        # For each node, run monte carlo simulations on a batch
+        for combo_dict_batch in combo_dict_split:
+            info_logger.info(f"Running parameter batch: {combo_batch_i+1}")
+            # Pickle this RunManager instance so it is the same instance for each batch and can pass parameters
+            pickle_batch_params = pickle.dumps([self, combo_dict_batch, self.nruns,
+                                                nprocesses, self.config_path])
+            subprocess.run(
+                f'python -c "from stonesoup.runmanager.runmanagercore\
+                    import RunManagerCore as rmc;\
+                    rmc.load_batch_params(rmc, {pickle_batch_params})"')
+            # subprocess.run(
+            #     f'sbatch python -c "from stonesoup.runmanager.runmanagercore\
+            #         import RunManagerCore as rmc;\
+            #         rmc.load_batch_params(rmc, {pickle_batch_params})"')
+            combo_batch_i += 1
+
+    @staticmethod
+    def load_batch_params(rmc, params):
+        params_list = pickle.loads(params)
+        rmc.prepare_monte_carlo_simulation(params_list[0], params_list[1], params_list[2], params_list[3], params_list[4])
 
     def set_runs_number(self, nruns, json_data):
         """Sets the number of runs.
@@ -169,12 +197,13 @@ class RunManagerCore(RunManager):
                 nruns = json_data['configuration']['runs_num']
                 self.set_runs_number(nruns, None)
             except Exception as e:
-                print(e, "runs_num value from json not found, defaulting to 1")
+                info_logger.error(e, "runs_num value from json not found, defaulting to 1")
                 nruns = 1
         elif nruns > 1:
             pass
         else:
             nruns = 1
+
         return nruns
 
     def set_processes_number(self, nprocess, json_data):
@@ -197,7 +226,7 @@ class RunManagerCore(RunManager):
                 nprocess = json_data['configuration']['proc_num']
                 self.set_processes_number(nprocess, None)
             except Exception as e:
-                print(e, "proc_num value from json not found, defaulting to 1")
+                info_logger.error(e, "proc_num value from json not found, defaulting to 1")
                 nprocess = 1
         elif nprocess > 1:
             pass

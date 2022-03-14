@@ -65,7 +65,7 @@ if __name__ == "__main__":
         }
     
     rmc = RunManagerCore(rm_args)
-    if slurm:
-        rmc.run_manager_scheduler.schedule_jobs()
+    if rmc.slurm:
+        rmc.run_manager_scheduler.schedule_jobs(rmc)
     else:
         rmc.run()
