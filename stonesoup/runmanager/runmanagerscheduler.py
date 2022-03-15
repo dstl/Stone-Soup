@@ -74,7 +74,7 @@ class RunManagerScheduler(RunManager):
                 rm_args_new = f"python3 stonesoup/runmanager/runmanager.py {rm_args_str} {nruns_arg}"
                 # rm_args_new = f"sbatch --array=1-{self.rm_args['nruns']}\
                 # python stonesoup/runmanager/runmanager.py {rm_args_str} {nruns_arg}"
-                subprocess.run(rm_args_new)
+                subprocess.run(rm_args_new, shell=True)
 
     def schedule_simulations(self, run_manager):
         """ Simulations split handled in the run manager core run function"""
