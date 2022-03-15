@@ -71,7 +71,7 @@ class RunManagerScheduler(RunManager):
             if node_nruns > 0:
                 self.logger.info(f"Running on node: {node_n}")
                 nruns_arg = f"--nruns {node_nruns} "
-                rm_args_new = f"python stonesoup/runmanager/runmanager.py\
+                rm_args_new = f"python3 stonesoup/runmanager/runmanager.py\
                     {rm_args_str} {nruns_arg}"
                 # rm_args_new = f"sbatch --array=1-{self.rm_args['nruns']}\
                 # python stonesoup/runmanager/runmanager.py {rm_args_str} {nruns_arg}"
