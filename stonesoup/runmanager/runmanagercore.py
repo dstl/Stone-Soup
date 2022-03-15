@@ -165,9 +165,7 @@ class RunManagerCore(RunManager):
             pickle_batch_params = pickle.dumps([self, combo_dict_batch, self.nruns,
                                                 nprocesses, self.config_path])
             subprocess.run(
-                f'python3 -c "from stonesoup.runmanager.runmanagercore\
-                    import RunManagerCore as rmc;\
-                    rmc.load_batch_params(rmc, {pickle_batch_params})"')
+                f'python3 -c "from stonesoup.runmanager.runmanagercore import RunManagerCore as rmc; rmc.load_batch_params(rmc, {pickle_batch_params})"')
             # subprocess.run(
             #     f'sbatch python -c "from stonesoup.runmanager.runmanagercore\
             #         import RunManagerCore as rmc;\
