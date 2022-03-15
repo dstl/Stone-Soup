@@ -296,7 +296,7 @@ def sum_simulations(directory, chunk_size: int):
     _type_
         _description_
     """
-    all_files = glob.glob(f'./{directory}*/run*/metrics.csv', recursive=True)
+    all_files = glob.glob(f'./{directory}*/run*[!_]/metrics.csv', recursive=True)
     batch = batch_list(all_files, chunk_size)
     summed_dataframe = pd.DataFrame()
     for files in batch:
@@ -333,3 +333,4 @@ def batch_list(lst, n):
     for i in range(0, len(lst), n):
         chunked_lists.append(lst[i:i + n])
     return chunked_lists
+

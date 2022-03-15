@@ -267,10 +267,6 @@ class RunManagerCore(RunManager):
             log_time = datetime.now()
             self.logging_starting(log_time)
             for _, ctracks in tracker.tracks_gen():
-                # TODO: Review
-                # tracks.update(ctracks)
-                # truths.update(tracker.detector.groundtruth.current[1])
-                # Update groundtruth, tracks and detections
                 self.run_manager_metrics.tracks_to_csv(dir_name, ctracks)
                 self.run_manager_metrics.detection_to_csv(dir_name, tracker.detector.detections)
                 self.run_manager_metrics.groundtruth_to_csv(dir_name,
@@ -285,8 +281,9 @@ class RunManagerCore(RunManager):
                 metrics = metric_manager.generate_metrics()
                 self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
             self.logging_success(log_time)
-
+            
         except Exception as e:
+            os.rename(dir_name, dir_name + "_FAILED")
             self.logging_failed_simulation(log_time, e)
 
         finally:
@@ -591,7 +588,7 @@ class RunManagerCore(RunManager):
             string of the datetime for the metrics directory name
         """
         path, config = os.path.split(self.config_path)
-        dir_name = f"{config}_{dt_string}/run_{runs_num}"
+        dir_name = f"{config}_{dt_string}/run_{runs_num + 1}"
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
         self.current_run = runs_num
 
@@ -683,7 +680,7 @@ class RunManagerCore(RunManager):
         """
         self.current_trackers = idx
         path, config = os.path.split(self.config_path)
-        dir_name = f"{config}_{dt_string}/simulation_{idx}/run_{runs_num}"
+        dir_name = f"{config}_{dt_string}/simulation_{idx}/run_{runs_num + 1}"
         self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
         simulation_parameters = dict(
