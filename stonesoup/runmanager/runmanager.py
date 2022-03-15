@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from stonesoup.runmanager.runmanagercore import RunManagerCore
 import argparse
 
