@@ -41,7 +41,8 @@ class RunManagerCore(RunManager):
         "montecarlo": None,
         "nruns": None,
         "processes": None,
-        "slurm": None
+        "slurm": None,
+        "node": ""
     }):
         """The init function for RunManagerCore, initiating the key settings to allow
         the running of simulations.
@@ -73,6 +74,7 @@ class RunManagerCore(RunManager):
         self.nruns = rm_args["nruns"]
         self.nprocesses = rm_args["processes"]
         self.slurm = rm_args["slurm"]
+        self.node = rm_args["node"]
 
         self.total_trackers = 0
         self.current_run = 0
@@ -142,11 +144,11 @@ class RunManagerCore(RunManager):
                 self.nruns = self.set_runs_number(self.nruns, json_data)
                 nprocesses = self.set_processes_number(self.nprocesses, json_data)
                 combo_dict = self.prepare_monte_carlo(json_data)
-                if self.slurm:
-                    self.schedule_simulations(combo_dict, nprocesses)
-                else:
-                    self.prepare_monte_carlo_simulation(combo_dict, self.nruns,
-                                                        nprocesses, self.config_path)
+                # if self.slurm:
+                    # self.schedule_simulations(combo_dict, nprocesses)
+                # else:
+                self.prepare_monte_carlo_simulation(combo_dict, self.nruns,
+                                                    nprocesses, self.config_path)
 
         # End timer
         end = time.time()
@@ -592,7 +594,7 @@ class RunManagerCore(RunManager):
         """
         try:
             now = datetime.now()
-            dt_string = now.strftime("%Y_%m_%d_%H_%M_%S")
+            dt_string = now.strftime("%Y_%m_%d_%H_%M_%S") + self.node
             components = self.set_components(self.config_path)
             tracker = components[self.TRACKER]
             ground_truth = components[self.GROUNDTRUTH]
@@ -679,7 +681,7 @@ class RunManagerCore(RunManager):
         self.total_trackers = len(trackers)
         try:
             now = datetime.now()
-            dt_string = now.strftime("%Y_%m_%d_%H_%M_%S")
+            dt_string = now.strftime("%Y_%m_%d_%H_%M_%S") + self.node
             if nprocesses > 1:
                 # Run with multiprocess
                 pool = Pool(nprocesses)

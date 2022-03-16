@@ -44,6 +44,10 @@ if __name__ == "__main__":
                         help="""Slurm setting, set True if using a HPC and need to schedule RunManager
                         executions/jobs using slurm. Default is False""",
                         type=bool)
+    parser.add_argument("--node", "-nd",
+                        help="""Optional. The name of the node/pc the RunManager is running on. Is
+                        automatically set when slurm scheduling is used.""",
+                        type=str)
     args = parser.parse_args()
 
     config = manage_if(args.config)
@@ -54,6 +58,7 @@ if __name__ == "__main__":
     nprocesses = manage_if(args.processes)
     montecarlo = manage_if(args.montecarlo)
     slurm = manage_if(args.slurm)
+    node = manage_if(args.node)
 
     rm_args = {
         "config": config,
@@ -63,7 +68,8 @@ if __name__ == "__main__":
         "montecarlo": montecarlo,
         "nruns": nruns,
         "processes": nprocesses,
-        "slurm": slurm
+        "slurm": slurm,
+        "node": node
         }
 
     rmc = RunManagerCore(rm_args)
