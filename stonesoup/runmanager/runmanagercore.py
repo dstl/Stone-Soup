@@ -745,8 +745,8 @@ class RunManagerCore(RunManager):
         """
         self.current_trackers = idx
         path, config = os.path.split(self.config_path)
-        dir_name = f"\
-            {self.slurm_dir}{config}_{dt_string}/simulation_{idx}/run_{runs_num}{self.node}"
+        dir_name = f"{self.slurm_dir}{config}_{dt_string}/" + \
+            "simulation_{idx}/run_{runs_num}{self.node}"
         self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
         simulation_parameters = dict(
