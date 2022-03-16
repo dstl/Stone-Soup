@@ -20,13 +20,13 @@ class RunManagerScheduler(RunManager):
             self.logger.error(f"Invalid input for number of nodes, must be a numerical value. {e}")
 
         # if self.rm_args['parameter'] is None:
-            # self.logger.info("No parameter json given, defaulting to splitting across runs.")
-            # self.split_sims = False
+        #     self.logger.info("No parameter json given, defaulting to splitting across runs.")
+        #     self.split_sims = False
         # else:
-            # try:
-                # self.split_sims = bool(int(input("Split runs(0) or simulations(1) over nodes? ")))
-            # except Exception as e:
-                # self.logger.error(f"Invalid input for node split option, must be a 0 or 1. {e}")
+        #     try:
+        #         self.split_sims=bool(int(input("Split runs(0) or simulations(1) over nodes? ")))
+        #     except Exception as e:
+        #         self.logger.error(f"Invalid input for node split option, must be a 0 or 1. {e}")
 
         self.email = str(input("Enter email address to notify on each job update: "))
         self.split_sims = False
@@ -81,9 +81,15 @@ class RunManagerScheduler(RunManager):
             if node_nruns > 0:
                 self.logger.info(f"Running on node: {node_n}")
                 nruns_arg = f"--nruns {node_nruns} "
-                # rm_args_new = f"python3 stonesoup/runmanager/runmanager.py {rm_args_str} {nruns_arg}"
-                rm_args_new = f"sbatch --output={slurm_output_dir}node{node_n}-output.out --mail-user={self.email} --mail-type=ALL stonesoup/runmanager/runmanager.py {rm_args_str} {nruns_arg} --slurm_dir {slurm_output_dir}/ --node _{hostname}_{node_n}"
-                subprocess.run(rm_args_new, shell=True)
+                # rm_args_new = f"python3 stonesoup/runmanager/runmanager.py\
+                #  {rm_args_str} {nruns_arg}"
+                output_str = f"{slurm_output_dir}node{node_n}-output.out"
+                node_str = f"_{hostname}_{node_n}"
+                rm_args = f"{rm_args_str} {nruns_arg}" + \
+                    f" --slurm_dir {slurm_output_dir} --node {node_str}"
+                sb_comm = f"sbatch --output={output_str} --mail-user={self.email} --mail-type=ALL"
+                rm_comm = f"{sb_comm} stonesoup/runmanager/runmanager.py {rm_args}"
+                subprocess.run(rm_comm, shell=True)
 
     def schedule_simulations(self, run_manager):
         """ Simulations split handled in the run manager core run function"""

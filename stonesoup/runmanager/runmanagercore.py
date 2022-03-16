@@ -79,9 +79,9 @@ class RunManagerCore(RunManager):
         self.node = rm_args["node"]
 
         if self.slurm_dir is None:
-           self.slurm_dir = ""
+            self.slurm_dir = ""
         if self.node is None:
-           self.node = ""
+            self.node = ""
 
         self.total_trackers = 0
         self.current_run = 0
@@ -152,7 +152,7 @@ class RunManagerCore(RunManager):
                 nprocesses = self.set_processes_number(self.nprocesses, json_data)
                 combo_dict = self.prepare_monte_carlo(json_data)
                 # if self.slurm:
-                    # self.schedule_simulations(combo_dict, nprocesses)
+                #     self.schedule_simulations(combo_dict, nprocesses)
                 # else:
                 self.prepare_monte_carlo_simulation(combo_dict, self.nruns,
                                                     nprocesses, self.config_path)
@@ -174,9 +174,13 @@ class RunManagerCore(RunManager):
             pickle_batch_params = pickle.dumps([self, combo_dict_batch, self.nruns,
                                                 nprocesses, self.config_path])
             # subprocess.run(
-            #     f'python3 -c "from stonesoup.runmanager.runmanagercore import RunManagerCore as rmc; rmc.load_batch_params(rmc, {pickle_batch_params})"', shell=True)
+            #     f'python3 -c\
+            #          "from stonesoup.runmanager.runmanagercore import RunManagerCore as rmc;\
+            #               rmc.load_batch_params(rmc, {pickle_batch_params})"', shell=True)
             subprocess.run(
-                f'sbatch "#!/usr/bin/python3 from stonesoup.runmanager.runmanagercore import RunManagerCore as rmc; rmc.load_batch_params(rmc, {pickle_batch_params})"', shell=True)
+                f'sbatch "#!/usr/bin/python3\
+                 from stonesoup.runmanager.runmanagercore import RunManagerCore as rmc;\
+                      rmc.load_batch_params(rmc, {pickle_batch_params})"', shell=True)
             combo_batch_i += 1
 
     @staticmethod
@@ -649,7 +653,7 @@ class RunManagerCore(RunManager):
             string of the datetime for the metrics directory name
         """
         path, config = os.path.split(self.config_path)
-        dir_name = f"{self.slurm_dir}{config}_{dt_string}/run_{runs_num}"
+        dir_name = f"{self.slurm_dir}{config}_{dt_string}/run_{runs_num}{self.node}"
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
         self.current_run = runs_num
 
@@ -741,7 +745,8 @@ class RunManagerCore(RunManager):
         """
         self.current_trackers = idx
         path, config = os.path.split(self.config_path)
-        dir_name = f"{self.slurm_dir}{config}_{dt_string}/simulation_{idx}/run_{runs_num}"
+        dir_name = f"\
+            {self.slurm_dir}{config}_{dt_string}/simulation_{idx}/run_{runs_num}{self.node}"
         self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
         simulation_parameters = dict(
