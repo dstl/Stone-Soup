@@ -42,6 +42,7 @@ class RunManagerCore(RunManager):
         "nruns": None,
         "processes": None,
         "slurm": None,
+        "slurm_dir": None,
         "node": ""
     }):
         """The init function for RunManagerCore, initiating the key settings to allow
@@ -74,7 +75,13 @@ class RunManagerCore(RunManager):
         self.nruns = rm_args["nruns"]
         self.nprocesses = rm_args["processes"]
         self.slurm = rm_args["slurm"]
+        self.slurm_dir = rm_args["slurm_dir"]
         self.node = rm_args["node"]
+
+        if self.slurm_dir is None:
+           self.slurm_dir = ""
+        if self.node is None:
+           self.node = ""
 
         self.total_trackers = 0
         self.current_run = 0
@@ -642,7 +649,7 @@ class RunManagerCore(RunManager):
             string of the datetime for the metrics directory name
         """
         path, config = os.path.split(self.config_path)
-        dir_name = f"{config}_{dt_string}/run_{runs_num}"
+        dir_name = f"{self.slurm_dir}{config}_{dt_string}/run_{runs_num}"
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
         self.current_run = runs_num
 
@@ -734,7 +741,7 @@ class RunManagerCore(RunManager):
         """
         self.current_trackers = idx
         path, config = os.path.split(self.config_path)
-        dir_name = f"{config}_{dt_string}/simulation_{idx}/run_{runs_num}"
+        dir_name = f"{self.slurm_dir}{config}_{dt_string}/simulation_{idx}/run_{runs_num}"
         self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
         simulation_parameters = dict(

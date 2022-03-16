@@ -4,6 +4,8 @@ import subprocess
 import numpy as np
 from datetime import datetime
 import os
+import socket
+
 
 class RunManagerScheduler(RunManager):
 
@@ -70,8 +72,9 @@ class RunManagerScheduler(RunManager):
                 rm_args_str += f"--{str(key)} {str(arg)} "
 
         datetime_str = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-        slurm_output_dir = f"stonesoup-slurm_{datetime_str}/"
+        slurm_output_dir = f"runmanager-slurm_{datetime_str}/"
         os.mkdir(slurm_output_dir)
+        hostname = socket.gethostname()
 
         for node_n in range(self.n_nodes):
             node_nruns = len(self.rm_args['nruns'][node_n])
@@ -79,7 +82,7 @@ class RunManagerScheduler(RunManager):
                 self.logger.info(f"Running on node: {node_n}")
                 nruns_arg = f"--nruns {node_nruns} "
                 # rm_args_new = f"python3 stonesoup/runmanager/runmanager.py {rm_args_str} {nruns_arg}"
-                rm_args_new = f"sbatch --output={slurm_output_dir}node{node_n}-output.out --mail-user={self.email} --mail-type=ALL stonesoup/runmanager/runmanager.py {rm_args_str} {nruns_arg} --node {node_n}"
+                rm_args_new = f"sbatch --output={slurm_output_dir}node{node_n}-output.out --mail-user={self.email} --mail-type=ALL stonesoup/runmanager/runmanager.py {rm_args_str} {nruns_arg} --slurm_dir {slurm_output_dir}/ --node _{hostname}_{node_n}"
                 subprocess.run(rm_args_new, shell=True)
 
     def schedule_simulations(self, run_manager):
