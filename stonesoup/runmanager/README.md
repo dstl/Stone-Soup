@@ -91,6 +91,14 @@ If a configuration file has both a ground truth and metric manager, the followin
 
 ---
 
+## Averaging metrics
+
+Once all simulations have ran the runmanager will average all of the monte-carlo run metric files and collate them into a single metrics file per simulation. This will allow the user to compare results of different parameter combinations. The average is across all runs per simulation on a cell level in order to retain the timestamp.
+
+The metrics averaging will only work with real ground truth samples or a ground truth simulator where there is a fixed seed as the metrics.csv files need to be of the same length.
+
+Within each simulation folder a file named `average.csv`  will appear. This is the average metric value of all monte-carlo runs for this simulation.
+
 ## Log file
 
 The run manager will produce a `simulation.log` file at your root directory. This logs any errors which may occur in the runmanager.

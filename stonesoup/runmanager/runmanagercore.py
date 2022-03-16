@@ -129,32 +129,49 @@ class RunManagerCore(RunManager):
         info_logger.info(f"{datetime.now()} Finished all simulations in " +
                          f"--- {end - start} seconds ---")
         # Average all of the metrics at the end
-        self.average_metrics(200)
+        self.average_metrics()
 
-    def average_metrics(self, batch_size):
+    def average_metrics(self):
+        """Handles the averaging of the metric files for both single simulations
+        and multi simulations.
+
+        In future updates better memory handling should be implemented to automatically
+        load as many dataframes as possible into memory to provide a more efficient process.
+
+        Parameters
+        ----------
+        batch_size : int
+            Size of the batches to split the dataframes.
+            May need adjusting for very large datasets to save memory space.
+        """
+        batch_size = 200
         start = time.time()
         path, config = os.path.split(self.config_path)
 
         try:
-            info_logger.info(f"{datetime.now()} Averaging metrics for all Monte-Carlo Simuatlions ")
-            directory = glob.glob(f'./{config}_{self.config_starttime}*/simulation*', recursive=False)
+            info_logger.info(f"{datetime.now()} Averaging metrics for all Monte-Carlo Simuatlions")
+            directory = glob.glob(f'./{config}_{self.config_starttime}*/simulation*',
+                                  recursive=False)
             if directory:
                 for simulation in directory:
-                    summed_df, length_of_sims = self.run_manager_metrics.sum_simulations(simulation, batch_size)
-                    df = self.run_manager_metrics.average_simulations(summed_df, length_of_sims)
+                    summed_df, sim_amt = self.run_manager_metrics.sum_simulations(simulation,
+                                                                                  batch_size)
+                    df = self.run_manager_metrics.average_simulations(summed_df, sim_amt)
                     df.to_csv(f"./{simulation}/average.csv", index=False)
             else:
                 directory = glob.glob(f'{config}_{self.config_starttime}*', recursive=False)
-                summed_df, length_of_sims = self.run_manager_metrics.sum_simulations(directory, batch_size)
-                df = self.run_manager_metrics.average_simulations(summed_df, length_of_sims)
+                summed_df, sim_amt = self.run_manager_metrics.sum_simulations(directory,
+                                                                              batch_size)
+                df = self.run_manager_metrics.average_simulations(summed_df, sim_amt)
                 df.to_csv(f"./{config}_{self.config_starttime}/average.csv", index=False)
             end = time.time()
             info_logger.info(f"{datetime.now()} Finished Averaging in " +
                              f"--- {end - start} seconds ---")
-        except:
-            info_logger.info(f"{datetime.now()} Failed to average simulations.")
 
-        
+        except Exception as e:
+            info_logger.error(f"{datetime.now()} Failed to average simulations.")
+            info_logger.error(f"{datetime.now()} {e}")
+            print(f"{datetime.now()} Failed to average simulations.")
 
     def set_runs_number(self, nruns, json_data):
         """Sets the number of runs.
@@ -309,7 +326,7 @@ class RunManagerCore(RunManager):
                 metrics = metric_manager.generate_metrics()
                 self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
             self.logging_success(log_time)
-            
+
         except Exception as e:
             os.rename(dir_name, dir_name + "_FAILED")
             self.logging_failed_simulation(log_time, e)
@@ -785,7 +802,7 @@ class RunManagerCore(RunManager):
                              f" in {datetime.now() - log_time}")
         else:
             info_logger.info(f"Successfully ran simulation {self.current_run + 1} /"
-                             f"{self.nruns} in {datetime.now() - log_time}")
+                             f" {self.nruns} in {datetime.now() - log_time}")
 
     def logging_failed_simulation(self, log_time, e):
         """Handles logging and output for messages regarding failed simulation

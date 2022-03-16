@@ -266,7 +266,6 @@ class RunmanagerMetrics(RunManager):
             print(f'{datetime.now()}: failed to write parameters correctly. {e}')
         return parameters
 
-
     def average_simulations(self, dataframes, length_files):
         """Takes list of dataframes and averages them on cell level
 
@@ -282,11 +281,10 @@ class RunmanagerMetrics(RunManager):
         _type_
             _description_
         """
-        timestamp = dataframes.iloc[:,-1]
+        timestamp = dataframes.iloc[:, -1]
         df = dataframes.iloc[:, :-1].div(length_files)
         df["timestamp"] = timestamp
         return df
-
 
     def sum_simulations(self, directory, chunk_size: int):
         """Sums metrics.csv files and processes them in batches to reserve memory space.
@@ -296,9 +294,9 @@ class RunmanagerMetrics(RunManager):
         directory : str
             directory path where metrics.csv is located
         chunk_size : int
-            size of batches 
+            size of batches
 
-        Returns sum of dataframes loaded from csv files. 
+        Returns sum of dataframes loaded from csv files.
         -------
         DataFrame
             Returns pandas DataFrame
@@ -317,9 +315,8 @@ class RunmanagerMetrics(RunManager):
 
         return summed_dataframe, len(all_files)
 
-
     def batch_list(self, lst, n):
-        """ Splits list into batches/chunks to be used when memory issues arise with 
+        """ Splits list into batches/chunks to be used when memory issues arise with
         averaging large datasets.
 
         Parameters
