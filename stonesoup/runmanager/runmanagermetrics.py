@@ -268,6 +268,20 @@ class RunmanagerMetrics(RunManager):
 
 
     def average_simulations(self, dataframes, length_files):
+        """Takes list of dataframes and averages them on cell level
+
+        Parameters
+        ----------
+        dataframes : DataFrame
+            pandas dataframe
+        length_files : length of dataframe set
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         timestamp = dataframes.iloc[:,-1]
         df = dataframes.iloc[:, :-1].div(length_files)
         df["timestamp"] = timestamp
@@ -275,6 +289,20 @@ class RunmanagerMetrics(RunManager):
 
 
     def sum_simulations(self, directory, chunk_size: int):
+        """Sums metrics.csv files and processes them in batches to reserve memory space.
+
+        Parameters
+        ----------
+        directory : str
+            directory path where metrics.csv is located
+        chunk_size : int
+            size of batches 
+
+        Returns sum of dataframes loaded from csv files. 
+        -------
+        DataFrame
+            Returns pandas DataFrame
+        """
         all_files = glob.glob(f'./{directory}*/run*[!_]/metrics.csv', recursive=True)
         batch = self.batch_list(all_files, chunk_size)
         summed_dataframe = pd.DataFrame()
@@ -291,19 +319,20 @@ class RunmanagerMetrics(RunManager):
 
 
     def batch_list(self, lst, n):
-        """ Splits list into batches
+        """ Splits list into batches/chunks to be used when memory issues arise with 
+        averaging large datasets.
 
         Parameters
         ----------
-        lst : _type_
-            _description_
-        n : _type_
-            _description_
+        lst : list
+            List object
+        n : int
+            number of items per batch
 
         Returns
         -------
-        _type_
-            _description_
+        List
+            Returns a list containing n number of batches
         """
         if n == 0:
             n = len(lst)
