@@ -129,7 +129,7 @@ class RunManagerCore(RunManager):
         info_logger.info(f"{datetime.now()} Finished all simulations in " +
                          f"--- {end - start} seconds ---")
         # Average all of the metrics at the end
-        self.average_metrics(20)
+        self.average_metrics(200)
 
     def average_metrics(self, batch_size):
         start = time.time()
@@ -148,12 +148,13 @@ class RunManagerCore(RunManager):
                 summed_df, length_of_sims = self.run_manager_metrics.sum_simulations(directory, batch_size)
                 df = self.run_manager_metrics.average_simulations(summed_df, length_of_sims)
                 df.to_csv(f"./{config}_{self.config_starttime}/average.csv", index=False)
+            end = time.time()
+            info_logger.info(f"{datetime.now()} Finished Averaging in " +
+                             f"--- {end - start} seconds ---")
         except:
             info_logger.info(f"{datetime.now()} Failed to average simulations.")
 
-        end = time.time()
-        info_logger.info(f"{datetime.now()} Finished Averaging in " +
-                         f"--- {end - start} seconds ---")
+        
 
     def set_runs_number(self, nruns, json_data):
         """Sets the number of runs.
@@ -568,6 +569,7 @@ class RunManagerCore(RunManager):
         try:
             now = datetime.now()
             dt_string = now.strftime("%Y_%m_%d_%H_%M_%S")
+            self.config_starttime = dt_string
             components = self.set_components(self.config_path)
             tracker = components[self.TRACKER]
             ground_truth = components[self.GROUNDTRUTH]
@@ -615,7 +617,6 @@ class RunManagerCore(RunManager):
             string of the datetime for the metrics directory name
         """
         path, config = os.path.split(self.config_path)
-        self.config_starttime = dt_string
         dir_name = f"{config}_{dt_string}/run_{runs_num + 1}"
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
         self.current_run = runs_num
