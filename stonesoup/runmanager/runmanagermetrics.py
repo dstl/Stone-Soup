@@ -301,7 +301,7 @@ class RunmanagerMetrics(RunManager):
         DataFrame
             Returns pandas DataFrame
         """
-        all_files = glob.glob(f'./{directory}*/run*[!_]/metrics.csv', recursive=True)
+        all_files = glob.glob(f'./{directory}*/run*[!%]/metrics.csv', recursive=True)
         batch = self.batch_list(all_files, chunk_size)
         summed_dataframe = pd.DataFrame()
         for files in batch:
