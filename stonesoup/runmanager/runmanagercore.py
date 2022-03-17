@@ -191,9 +191,9 @@ class RunManagerCore(RunManager):
                     summed_df, sim_amt = self.run_manager_metrics.sum_simulations(simulation,
                                                                                   batch_size)
                     df = self.run_manager_metrics.average_simulations(summed_df, sim_amt)
-                    df.to_csv(f"./{self.slurm_dir}{simulation}/average.csv", index=False)
+                    df.to_csv(f"./{simulation}/average.csv", index=False)
             else:
-                directory = glob.glob(f'{config}_{self.config_starttime}*', recursive=False)
+                directory = glob.glob(f'{self.slurm_dir}{config}_{self.config_starttime}*', recursive=False)
                 summed_df, sim_amt = self.run_manager_metrics.sum_simulations(directory,
                                                                               batch_size)
                 df = self.run_manager_metrics.average_simulations(summed_df, sim_amt)
