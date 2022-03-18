@@ -708,7 +708,7 @@ class RunManagerCore(RunManager):
             string of the datetime for the metrics directory name
         """
         path, config = os.path.split(self.config_path)
-        dir_name = f"{self.slurm}{config}_{dt_string}/run_{runs_num + 1}{self.node}"
+        dir_name = f"{self.slurm_dir}{config}_{dt_string}/run_{runs_num + 1}{self.node}"
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
         self.current_run = runs_num
 
