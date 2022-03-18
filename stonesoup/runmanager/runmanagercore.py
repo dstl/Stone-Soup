@@ -771,7 +771,7 @@ class RunManagerCore(RunManager):
         self.parameter_details_log["Tracking Status"] = tracker_status
         self.parameter_details_log["Metric Status"] = metric_status
         self.parameter_details_log["Fail Status"] = fail_status
-        self.run_manager_metrics.create_summary_csv(f"{config}_{dt_string}",
+        self.run_manager_metrics.create_summary_csv(f"{self.slurm_dir}{config}_{dt_string}",
                                                     self.parameter_details_log)
 
     def prepare_monte_carlo_simulation(self, combo_dict, nruns, nprocesses, config_path):
@@ -876,7 +876,7 @@ class RunManagerCore(RunManager):
         self.parameter_details_log["Tracking Status"] = tracker_status
         self.parameter_details_log["Metric Status"] = metric_status
         self.parameter_details_log["Fail Status"] = fail_status
-        self.run_manager_metrics.create_summary_csv(f"{config}_{dt_string}",
+        self.run_manager_metrics.create_summary_csv(f"{self.slurm_dir}{config}_{dt_string}",
                                                     self.parameter_details_log)
 
     def set_components(self, config_path):
