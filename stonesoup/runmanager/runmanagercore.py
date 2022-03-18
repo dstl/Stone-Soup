@@ -386,21 +386,22 @@ class RunManagerCore(RunManager):
                     metric_manager.add_data(self.check_ground_truth(ground_truth), ctracks,
                                             tracker.detector.detections,
                                             overwrite=False)
-            if metric_manager is not None:
-                try:
-                    metrics = metric_manager.generate_metrics()
-                    self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
-                    metric_status = "Success"
-                except Exception as e:
-                    self.logging_failed_simulation(log_time, e)
-                    fail_status = e
-                    metric_status = "Failed"
+            try:
+                metrics = metric_manager.generate_metrics()
+                self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
+                metric_status = "Success"
+            except Exception as e:
+                os.rename(dir_name, dir_name + "!FAILED")
+                fail_status = e
+                metric_status = "Failed"
+                self.logging_failed_simulation(log_time, e)
 
             self.logging_success(log_time)
             tracker_status = "Success"
         except Exception as e:
-            os.rename(dir_name, dir_name + "_FAILED")
+            os.rename(dir_name, dir_name + "!FAILED")
             tracker_status = "Failed"
+            metric_status = "Failed"
             fail_status = e
             self.logging_failed_simulation(log_time, e)
 
