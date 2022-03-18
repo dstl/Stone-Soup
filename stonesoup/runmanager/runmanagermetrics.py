@@ -266,6 +266,25 @@ class RunmanagerMetrics(RunManager):
             print(f'{datetime.now()}: failed to write parameters correctly. {e}')
         return parameters
 
+    def create_summary_csv(self, dir_name, run_info):
+        filename = "tracking_log.csv"
+        try:
+            if not os.path.exists(dir_name):
+                os.makedirs(dir_name)
+
+            if not os.path.isfile(os.path.join(dir_name, filename)):
+                with open(os.path.join(dir_name, filename), 'w', newline='') as csvfile:
+                    writer = csv.DictWriter(csvfile, run_info.keys())
+                    writer.writeheader()
+                    csvfile.close()
+
+            with open(os.path.join(dir_name, filename), 'a', newline='') as csvfile:
+                writer = csv.DictWriter(csvfile, run_info.keys())
+                writer.writerow(run_info)
+
+        except Exception as e:
+            print(e)
+
     def average_simulations(self, dataframes, length_files):
         """Takes list of dataframes and averages them on cell level
 
