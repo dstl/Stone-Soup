@@ -1007,4 +1007,11 @@ def setup_logger(name, log_file, level=logging.INFO):
     return logger
 
 
+if os.path.exists('./simulation_info.log'):
+    try:
+        os.remove('./simulation_info.log')
+    except Exception:
+        pass
+else:
+    print("Simulation log does not exist.")
 info_logger = setup_logger('info_logger', 'simulation_info.log')
