@@ -184,20 +184,20 @@ class RunManagerCore(RunManager):
 
         try:
             info_logger.info(f"{datetime.now()} Averaging metrics for all Monte-Carlo Simuatlions")
-            directory = glob.glob(f'./{self.slurm}{config}_{self.config_starttime}*/simulation*',
+            directory = glob.glob(f'./{self.slurm_dir}{config}_{self.config_starttime}*/simulation*',
                                   recursive=False)
             if directory:
                 for simulation in directory:
                     summed_df, sim_amt = self.run_manager_metrics.sum_simulations(simulation,
                                                                                   batch_size)
                     df = self.run_manager_metrics.average_simulations(summed_df, sim_amt)
-                    df.to_csv(f"./{self.slurm}{simulation}/average.csv", index=False)
+                    df.to_csv(f"./{simulation}/average.csv", index=False)
             else:
-                directory = glob.glob(f'{config}_{self.config_starttime}*', recursive=False)
+                directory = glob.glob(f'{self.slurm_dir}{config}_{self.config_starttime}*', recursive=False)
                 summed_df, sim_amt = self.run_manager_metrics.sum_simulations(directory,
                                                                               batch_size)
                 df = self.run_manager_metrics.average_simulations(summed_df, sim_amt)
-                df.to_csv(f"./{self.slurm}{config}_{self.config_starttime}/average.csv", index=False)
+                df.to_csv(f"./{self.slurm_dir}{config}_{self.config_starttime}/average.csv", index=False)
             end = time.time()
             info_logger.info(f"{datetime.now()} Finished Averaging in " +
                              f"--- {end - start} seconds ---")
