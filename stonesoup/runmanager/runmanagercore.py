@@ -369,7 +369,9 @@ class RunManagerCore(RunManager):
         tracker = simulation_parameters['tracker']
         ground_truth = simulation_parameters['ground_truth']
         metric_manager = simulation_parameters['metric_manager']
-
+        tracker_status = None
+        metric_status = None
+        fail_status = ""
         try:
             log_time = datetime.now()
             self.logging_starting(log_time)
@@ -378,19 +380,28 @@ class RunManagerCore(RunManager):
                 self.run_manager_metrics.detection_to_csv(dir_name, tracker.detector.detections)
                 self.run_manager_metrics.groundtruth_to_csv(dir_name,
                                                             self.check_ground_truth(ground_truth))
-
+            
                 if metric_manager is not None:
                     # Generate the metrics
                     metric_manager.add_data(self.check_ground_truth(ground_truth), ctracks,
                                             tracker.detector.detections,
                                             overwrite=False)
             if metric_manager is not None:
-                metrics = metric_manager.generate_metrics()
-                self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
-            self.logging_success(log_time)
+                try:
+                    metrics = metric_manager.generate_metrics()
+                    self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
+                    metric_status = "Success"
+                except Exception as e:
+                    self.logging_failed_simulation(log_time, e)
+                    fail_status = e
+                    metric_status = "Failed"
 
+            self.logging_success(log_time)
+            tracker_status = "Success"
         except Exception as e:
             os.rename(dir_name, dir_name + "_FAILED")
+            tracker_status = "Failed"
+            fail_status = e
             self.logging_failed_simulation(log_time, e)
 
         finally:
@@ -398,8 +409,8 @@ class RunManagerCore(RunManager):
             del metric_manager
             del ground_truth
             del tracker
-
             print('--------------------------------')
+            return tracker_status, metric_status, fail_status
 
     def set_trackers(self, combo_dict, tracker, ground_truth, metric_manager):
         """Set the trackers, groundtruths and metricmanagers list (stonesoup objects)
@@ -697,7 +708,7 @@ class RunManagerCore(RunManager):
             string of the datetime for the metrics directory name
         """
         path, config = os.path.split(self.config_path)
-        dir_name = f"{self.slurm_dir}{config}_{dt_string}/run_{runs_num + 1}{self.node}"
+        dir_name = f"{self.slurm}{config}_{dt_string}/run_{runs_num + 1}{self.node}"
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
         self.current_run = runs_num
 
@@ -707,8 +718,15 @@ class RunManagerCore(RunManager):
             ground_truth=ground_truth,
             metric_manager=metric_manager
         )
-        self.run_simulation(simulation_parameters,
-                            dir_name)
+        tracker_status, metric_status, fail_status = self.run_simulation(simulation_parameters,
+                                                                         dir_name)
+
+        self.parameter_details_log = {}
+        self.parameter_details_log["Monte-Carlo Run"] = runs_num + 1
+        self.parameter_details_log["Tracking Status"] = tracker_status
+        self.parameter_details_log["Metric Status"] = metric_status
+        self.parameter_details_log["Fail Status"] = fail_status
+        self.run_manager_metrics.create_summary_csv(f"{config}_{dt_string}", self.parameter_details_log)
 
     def prepare_monte_carlo_simulation(self, combo_dict, nruns, nprocesses, config_path):
         """Prepares multiple trackers for simulation run and run a multi-processor or a single
@@ -759,11 +777,12 @@ class RunManagerCore(RunManager):
                     for idx in range(0, len(trackers)):
                         self.run_monte_carlo_simulation(trackers[idx], ground_truths[idx],
                                                         metric_managers[idx], dt_string,
-                                                        combo_dict, idx, runs)
+                                                        combo_dict, idx, runs)                        
                         config_data = self.set_components(config_path)
                         tracker = config_data[self.TRACKER]
                         ground_truth = config_data[self.GROUNDTRUTH]
                         metric_manager = config_data[self.METRIC_MANAGER]
+                    
         except Exception as e:
             info_logger.error(f'Could not run simulation. error: {e}')
 
@@ -793,14 +812,24 @@ class RunManagerCore(RunManager):
         path, config = os.path.split(self.config_path)
         dir_name = f"{self.slurm_dir}{config}_{dt_string}/" + \
             f"simulation_{idx}/run_{runs_num + 1}{self.node}"
-        self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
+        # self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
         simulation_parameters = dict(
             tracker=tracker,
             ground_truth=ground_truth,
             metric_manager=metric_manager
         )
-        self.run_simulation(simulation_parameters, dir_name)
+        tracker_status, metric_status, fail_status = self.run_simulation(simulation_parameters, dir_name)
+
+        self.parameter_details_log = {}
+        self.parameter_details_log["Simulation ID"] = idx
+        self.parameter_details_log["Monte-Carlo Run"] = runs_num + 1
+        for key, value in combo_dict[idx].items():
+            self.parameter_details_log[key] = value
+        self.parameter_details_log["Tracking Status"] = tracker_status
+        self.parameter_details_log["Metric Status"] = metric_status
+        self.parameter_details_log["Fail Status"] = fail_status
+        self.run_manager_metrics.create_summary_csv(f"{config}_{dt_string}", self.parameter_details_log)
 
     def set_components(self, config_path):
         """Sets the tracker, ground truth and metric manager to the correct variables
