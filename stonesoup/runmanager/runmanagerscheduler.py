@@ -10,6 +10,9 @@ import socket
 class RunManagerScheduler(RunManager):
 
     def __init__(self, rm_args, logger):
+        """The constructor for scheduling jobs for when using slurm.
+        Asks the user for slurm required slurm arguments.
+        """
         # Initialise run manager parameters for slurm
         self.rm_args = rm_args
         self.logger = logger
@@ -28,18 +31,22 @@ class RunManagerScheduler(RunManager):
         #     except Exception as e:
         #         self.logger.error(f"Invalid input for node split option, must be a 0 or 1. {e}")
 
-        self.email = str(input("Enter email address to notify on each job update: "))
+        # Emailing did not seem to work for me
+        # self.email = str(input("Enter email address to notify on each job update: "))
         self.split_sims = False
         self.logger.info(f"Number of nodes: {self.n_nodes}")
 
     def schedule_jobs(self, run_manager):
-        # Simply run runmanager number of times with same parameters on different nodes
-        # for node in n_nodes: sbatch runmanager.py with jobarray=1-self.rm_args['nruns'],
-        # slurm=False, rmargs
+        """Simply run runmanager number of times with same parameters on different nodes
+        for node in n_nodes.
 
-        # If using slurm job-array, replace nruns parameter
-        # job_array_size = self.rm_args['nruns']
-        # self.rm_args['nruns'] = None
+        Parameters
+        ---------
+        run_manager : RunManagerCore
+            NOT USED. The RunManagerCore instance for scheduling simulations.
+
+        """
+
 
         if self.split_sims:
             self.logger.info("Splitting simulations across nodes...")
@@ -54,8 +61,8 @@ class RunManagerScheduler(RunManager):
 
     def schedule_runs(self):
         """
-        Creates n_nodes new run manager instances, runs node_split times
-        on each node.
+        Creates n_nodes new run manager instances and splits total runs into even splits per node,
+        runs node_split times on each node.
         """
         if self.rm_args['nruns'] is not None:
             self.node_split = np.array_split(range(self.rm_args['nruns']), self.n_nodes)
@@ -87,10 +94,10 @@ class RunManagerScheduler(RunManager):
                 node_str = f"_{hostname}_{node_n}"
                 rm_args = f"{rm_args_str} {nruns_arg}" + \
                     f" --slurm_dir {slurm_output_dir} --node {node_str}"
-                sb_comm = f"sbatch --output={output_str} --mail-user={self.email} --mail-type=ALL"
+                sb_comm = f"sbatch --output={output_str}"
                 rm_comm = f"{sb_comm} stonesoup/runmanager/runmanager.py {rm_args}"
                 subprocess.run(rm_comm, shell=True)
 
     def schedule_simulations(self, run_manager):
-        """ Simulations split handled in the run manager core run function"""
+        """NOT YET USED. Simulations split handled in the run manager core run function"""
         run_manager.run()
