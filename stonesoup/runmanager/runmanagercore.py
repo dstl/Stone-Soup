@@ -132,7 +132,7 @@ class RunManagerCore(RunManager):
         # Single simulation. No param file detected
         if self.config_path and self.parameters_path is None:
             self.run_single_config()
-
+            self.average_metrics()
         else:
             pairs = self.config_parameter_pairing()
             if not pairs and not self.config_path:
@@ -156,6 +156,7 @@ class RunManagerCore(RunManager):
                     combo_dict = self.prepare_monte_carlo(json_data)
                     self.prepare_monte_carlo_simulation(combo_dict, self.nruns,
                                                         nprocesses, self.config_path)
+                self.average_metrics()
                 self.total_trackers = 0
 
         # End timer
@@ -163,7 +164,6 @@ class RunManagerCore(RunManager):
         info_logger.info(f"{datetime.now()} Finished all simulations in " +
                          f"--- {end - start} seconds ---")
         # Average all of the metrics at the end
-        self.average_metrics()
 
     def run_single_config(self):
         """
