@@ -1,6 +1,7 @@
 import copy
 import json
 import logging
+from re import search
 import time
 import glob
 import numpy as np
@@ -131,32 +132,32 @@ class RunManagerCore(RunManager):
         start = time.time()
         # Single simulation. No param file detected
         if self.config_path and self.parameters_path is None:
-            if self.nruns is None:
-                self.nruns = 1
-            if self.nprocesses is None:
-                self.nprocesses = 1
-            self.prepare_single_simulation()
+            self.run_single_config()
 
         else:
             pairs = self.config_parameter_pairing()
             if not pairs and not self.config_path:
-                print(f"{datetime.now()} No files in current directory: {self.dir}")
+                # print(f"{datetime.now()} No files in current directory: {self.dir}")
                 info_logger.info(f"{datetime.now()} No files in " +
                                  f"current directory: {self.dir}")
 
             for path in pairs:
                 # Read the param data
-                self.config_path, param_path = path[0], path[1]
-                json_data = self.read_json(param_path)
-
-                self.nruns = self.set_runs_number(self.nruns, json_data)
-                nprocesses = self.set_processes_number(self.nprocesses, json_data)
-                combo_dict = self.prepare_monte_carlo(json_data)
-                # if self.slurm:
-                #     self.schedule_simulations(combo_dict, nprocesses)
-                # else:
-                self.prepare_monte_carlo_simulation(combo_dict, self.nruns,
-                                                    nprocesses, self.config_path)
+                if len(path) == 1:
+                    self.config_path = path[0]
+                    info_logger.info(f'Running {self.config_path}')
+                    self.parameters_path = None
+                    self.run_single_config()
+                else:
+                    self.config_path, param_path = path[0], path[1]
+                    info_logger.info(f'Running {self.config_path}')
+                    json_data = self.read_json(param_path)
+                    self.nruns = self.set_runs_number(self.nruns, json_data)
+                    nprocesses = self.set_processes_number(self.nprocesses, json_data)
+                    combo_dict = self.prepare_monte_carlo(json_data)
+                    self.prepare_monte_carlo_simulation(combo_dict, self.nruns,
+                                                        nprocesses, self.config_path)
+                self.total_trackers = 0
 
         # End timer
         end = time.time()
@@ -164,6 +165,13 @@ class RunManagerCore(RunManager):
                          f"--- {end - start} seconds ---")
         # Average all of the metrics at the end
         self.average_metrics()
+
+    def run_single_config(self):
+        if self.nruns is None:
+            self.nruns = 1
+        if self.nprocesses is None:
+            self.nprocesses = 1
+        self.prepare_single_simulation()
 
     def average_metrics(self):
         """Handles the averaging of the metric files for both single simulations
@@ -630,18 +638,24 @@ class RunManagerCore(RunManager):
         List
             List of file paths pair together
         """
-        pair = []
-        pairs = []
 
+        pairs = []
+        paired = []
         for file in files:
-            if not pair:
-                pair.append(file)
-            elif file.startswith(pair[0].split('.', 1)[0]):
-                pair.append(file)
-                pairs.append(pair)
-                pair = []
-            else:
-                pair = []
+            if file not in paired:
+                pair = self.search_pair(file, files)
+                if len(pair) > 0:
+                    pairs.append(pair)
+                    paired += pairs
+        # for file in files:
+        #     if not pair:
+        #         pair.append(file)
+        #     elif file.startswith(pair[0].split('.', 1)[0]) and file.endswith('json'):
+        #         pair.append(file)
+        #         pairs.append(pair)
+        #         pair = []
+        #     else:
+        #         pair = []
 
         for idx, path in enumerate(pairs):
             path = self.order_pairs(path)
@@ -649,7 +663,34 @@ class RunManagerCore(RunManager):
 
         return pairs
 
+    def search_pair(self, search_file, files):
+        pair = []
+        split = search_file.split(".", 1)
+
+        for file in files:
+            if ".json" in split[1]:
+                json_split = split[0].split("_parameters")[0]
+                if file == json_split+".yaml":
+                    pair.append(file)
+                    pair.append(search_file)
+            else:
+                if file == split[0]+"_parameters.json":
+                    pair.append(search_file)
+                    pair.append(file)
+
+            # if file.startswith(search_file.split(".", 1)[0]+"_parameters"):
+            #     pair.append(search_file)
+            #     pair.append(file)
+            #     return pair
+
+        if search_file.endswith(".yaml"):
+            pair.append(search_file)
+        print(pair)
+        return pair
+
     def order_pairs(self, path):
+        if len(path) <= 1:
+            return path
         if path[0].endswith('yaml'):
             config_path = path[0]
             param_path = path[1]
@@ -886,7 +927,7 @@ class RunManagerCore(RunManager):
                              f" / {self.total_trackers} and monte-carlo"
                              f" {self.current_run + 1} / {self.nruns}")
         else:
-            info_logger.info(f"Starting simulation"
+            info_logger.info(f"Starting monte-carlo run"
                              f" {self.current_run + 1} / {self.nruns}")
 
     def logging_success(self, log_time):
@@ -904,7 +945,7 @@ class RunManagerCore(RunManager):
                              f" {self.current_run + 1} / {self.nruns}"
                              f" in {datetime.now() - log_time}")
         else:
-            info_logger.info(f"Successfully ran simulation {self.current_run + 1} /"
+            info_logger.info(f"Successfully ran monte-carlo {self.current_run + 1} /"
                              f" {self.nruns} in {datetime.now() - log_time}")
 
     def logging_failed_simulation(self, log_time, e):
@@ -930,10 +971,10 @@ class RunManagerCore(RunManager):
             print(f"{e}")
 
         else:
-            info_logger.error(f"Failed to run Simulation"
+            info_logger.error(f"Failed to run Monte-Carlo"
                               f" {self.current_run + 1} / {self.nruns}")
             info_logger.exception(f"{e}")
-            print(f"{datetime.now()}: Failed to run Simulation"
+            print(f"{datetime.now()}: Failed to run Monte-Carlo"
                   f" {self.current_run + 1} / {self.nruns}: {e}")
 
     def logging_metric_manager_fail(self, e):
