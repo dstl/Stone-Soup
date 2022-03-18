@@ -166,6 +166,9 @@ class RunManagerCore(RunManager):
         self.average_metrics()
 
     def run_single_config(self):
+        """
+        Prepares running a single simulation for a single config file.
+        """
         if self.nruns is None:
             self.nruns = 1
         if self.nprocesses is None:
@@ -224,6 +227,17 @@ class RunManagerCore(RunManager):
             print(f"{datetime.now()} Failed to average simulations.")
 
     def schedule_simulations(self, combo_dict, nprocesses):
+        """NOT YET USED. For when using slurm and there are multiple simulations in a single run,
+        the run manager will split the simulations into batches to be run as separate slurm jobs
+        in different nodes.
+
+        Parameters
+        ----------
+        combo_dict : list
+            The list of simulations to be split into batches
+        nprocesses: int
+            The number of processes to be used on each HPC compute node.
+        """
         # Split generated parameter combinations into n_node batches
         combo_dict_split = np.array_split(combo_dict, self.run_manager_scheduler.n_nodes)
         combo_batch_i = 0
@@ -234,10 +248,6 @@ class RunManagerCore(RunManager):
             # for each batch/node and can pass same parameters
             pickle_batch_params = pickle.dumps([self, combo_dict_batch, self.nruns,
                                                 nprocesses, self.config_path])
-            # subprocess.run(
-            #     f'python3 -c\
-            #          "from stonesoup.runmanager.runmanagercore import RunManagerCore as rmc;\
-            #               rmc.load_batch_params(rmc, {pickle_batch_params})"', shell=True)
             subprocess.run(
                 f'sbatch "#!/usr/bin/python3\
                  from stonesoup.runmanager.runmanagercore import RunManagerCore as rmc;\
@@ -246,6 +256,17 @@ class RunManagerCore(RunManager):
 
     @staticmethod
     def load_batch_params(rmc, params):
+        """NOT YET USED. For when using slurm scheduling simulations, loads the batch parameters
+        with the same RunManager instance and prepares that batch for preparing monte-carlo
+        simulations.
+
+        Parameters
+        ----------
+        rmc : RunManagerCore
+            The instance of RunManagerCore to run the simulations with
+        params: list
+            The list of batch parameters to run for monte carlo simulations
+        """
         params_list = pickle.loads(params)
         rmc.prepare_monte_carlo_simulation(params_list[0], params_list[1], params_list[2],
                                            params_list[3], params_list[4])
@@ -664,6 +685,21 @@ class RunManagerCore(RunManager):
         return pairs
 
     def search_pair(self, search_file, files):
+        """Searches for a parameters.json file pair of a given config file
+        in a directory.
+
+        Parameters
+        --------
+        search_file : str
+            The configuration file name to find a parameter pair of
+        files : 
+            The filenames in a directory to find a pair for the config file
+        
+        Returns:
+        --------
+        pair : list
+            The found config and parameter file pair in a list
+        """
         pair = []
         split = search_file.split(".", 1)
 
@@ -684,6 +720,18 @@ class RunManagerCore(RunManager):
         return pair
 
     def order_pairs(self, path):
+        """Orders the config and parameter pairs so that the config is
+        always the first argument in the list and parameter the second.
+
+        Parameters
+        ---------
+        path : list
+            The pair path to order
+        
+        Returns
+        ---------
+        The ordered pair
+        """
         if len(path) <= 1:
             return path
         if path[0].endswith('yaml'):
