@@ -1,7 +1,6 @@
 import copy
 import json
 import logging
-from re import search
 import time
 import glob
 import numpy as np
@@ -202,7 +201,8 @@ class RunManagerCore(RunManager):
                     df.to_csv(f"./{simulation}/average.csv", index=False)
             else:
                 if self.slurm_dir != "":
-                    directory = glob.glob(f'{self.slurm_dir}{config}_{self.config_starttime}*', recursive=False)
+                    directory = glob.glob(f'{self.slurm_dir}{config}_{self.config_starttime}*', 
+                                          recursive=False)
                     for node in directory:
                         summed_df, sim_amt = self.run_manager_metrics.sum_simulations(node,
                                                                                       batch_size)
@@ -211,7 +211,7 @@ class RunManagerCore(RunManager):
                 else:
                     directory = glob.glob(f'{config}_{self.config_starttime}*', recursive=False)
                     summed_df, sim_amt = self.run_manager_metrics.sum_simulations(directory,
-                                                                                batch_size)
+                                                                                  batch_size)
                     df = self.run_manager_metrics.average_simulations(summed_df, sim_amt)
                     df.to_csv(f"./{config}_{self.config_starttime}/average.csv", index=False)
             end = time.time()
@@ -396,7 +396,7 @@ class RunManagerCore(RunManager):
                 self.run_manager_metrics.detection_to_csv(dir_name, tracker.detector.detections)
                 self.run_manager_metrics.groundtruth_to_csv(dir_name,
                                                             self.check_ground_truth(ground_truth))
-            
+
                 if metric_manager is not None:
                     # Generate the metrics
                     metric_manager.add_data(self.check_ground_truth(ground_truth), ctracks,
@@ -526,9 +526,9 @@ class RunManagerCore(RunManager):
         try:
             config_data = YAML('safe').load(config_string)
         except Exception as e:
-            print(f"{datetime.now()} Failed to load config data: {e}")
             info_logger.error(f"{datetime.now()} Failed to load config data: {e}")
             config_data = [None, None, None]
+            exit()
 
         tracker = config_data[0]
 
@@ -678,14 +678,9 @@ class RunManagerCore(RunManager):
                     pair.append(search_file)
                     pair.append(file)
 
-            # if file.startswith(search_file.split(".", 1)[0]+"_parameters"):
-            #     pair.append(search_file)
-            #     pair.append(file)
-            #     return pair
-
         if search_file.endswith(".yaml"):
             pair.append(search_file)
-        print(pair)
+
         return pair
 
     def order_pairs(self, path):
@@ -776,7 +771,8 @@ class RunManagerCore(RunManager):
         self.parameter_details_log["Tracking Status"] = tracker_status
         self.parameter_details_log["Metric Status"] = metric_status
         self.parameter_details_log["Fail Status"] = fail_status
-        self.run_manager_metrics.create_summary_csv(f"{config}_{dt_string}", self.parameter_details_log)
+        self.run_manager_metrics.create_summary_csv(f"{config}_{dt_string}",
+                                                    self.parameter_details_log)
 
     def prepare_monte_carlo_simulation(self, combo_dict, nruns, nprocesses, config_path):
         """Prepares multiple trackers for simulation run and run a multi-processor or a single
@@ -827,12 +823,12 @@ class RunManagerCore(RunManager):
                     for idx in range(0, len(trackers)):
                         self.run_monte_carlo_simulation(trackers[idx], ground_truths[idx],
                                                         metric_managers[idx], dt_string,
-                                                        combo_dict, idx, runs)                        
+                                                        combo_dict, idx, runs)
                         config_data = self.set_components(config_path)
                         tracker = config_data[self.TRACKER]
                         ground_truth = config_data[self.GROUNDTRUTH]
                         metric_manager = config_data[self.METRIC_MANAGER]
-                    
+
         except Exception as e:
             info_logger.error(f'Could not run simulation. error: {e}')
 
@@ -869,7 +865,8 @@ class RunManagerCore(RunManager):
             ground_truth=ground_truth,
             metric_manager=metric_manager
         )
-        tracker_status, metric_status, fail_status = self.run_simulation(simulation_parameters, dir_name)
+        tracker_status, metric_status, fail_status = self.run_simulation(simulation_parameters,
+                                                                         dir_name)
 
         self.parameter_details_log = {}
         self.parameter_details_log["Simulation ID"] = idx
@@ -879,7 +876,8 @@ class RunManagerCore(RunManager):
         self.parameter_details_log["Tracking Status"] = tracker_status
         self.parameter_details_log["Metric Status"] = metric_status
         self.parameter_details_log["Fail Status"] = fail_status
-        self.run_manager_metrics.create_summary_csv(f"{config}_{dt_string}", self.parameter_details_log)
+        self.run_manager_metrics.create_summary_csv(f"{config}_{dt_string}",
+                                                    self.parameter_details_log)
 
     def set_components(self, config_path):
         """Sets the tracker, ground truth and metric manager to the correct variables
