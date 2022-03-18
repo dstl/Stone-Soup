@@ -997,7 +997,7 @@ def setup_logger(name, log_file, level=logging.INFO):
     """
     # TODO: set normal logger for non multiprocessing
     formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-    handler = logging.FileHandler(log_file)
+    handler = logging.FileHandler(log_file, 'w+')
     handler.setFormatter(formatter)
 
     logger = multiprocessing.log_to_stderr()
