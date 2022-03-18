@@ -27,7 +27,17 @@ test_json_no_run = "stonesoup/runmanager/tests/test_configs/dummy_parameters_no_
 
 test_config_dir = "stonesoup/runmanager/tests/test_configs/"
 
-rmc = RunManagerCore(test_config, test_json, False, False, test_config_dir, 1, 1)
+test_rm_args = {"config": test_config,
+                "parameter": test_json,
+                "groundtruth": False,
+                "dir": test_config_dir,
+                "montecarlo": False,
+                "nruns": 1,
+                "processes": 1,
+                "slurm": None,
+                "slurm_dir": None,
+                "node": ""}
+rmc = RunManagerCore(test_rm_args)
 
 
 def test_cwd_path():
