@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from stonesoup.runmanager.runmanagercore import RunManagerCore
+from stonesoup.runmanager.runmanagercore import RunManagerCore, info_logger
 import argparse
 
 
@@ -83,3 +83,6 @@ if __name__ == "__main__":
         rmc.run_manager_scheduler.schedule_jobs(rmc)
     else:
         rmc.run()
+
+    for handler in info_logger.handlers:
+        handler.close()
