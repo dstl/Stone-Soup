@@ -865,8 +865,8 @@ class RunManagerCore(RunManager):
             ground_truth = config_data[self.GROUNDTRUTH]
             metric_manager = config_data[self.METRIC_MANAGER]
         except Exception as e:
-            print(f'{datetime.now()} Could not read config file: {e}')
             info_logger.error(f'Could not read config file: {e}')
+            exit()
 
         return {self.TRACKER: tracker,
                 self.GROUNDTRUTH: ground_truth,
