@@ -107,8 +107,9 @@ def test_prepare_monte_carlo():
 def test_config_parameter_pairing():
     test_pairs = rmc.config_parameter_pairing()
 
+    print(test_pairs)
     assert type(test_pairs) is list
-    assert len(test_pairs) == 1
+    assert len(test_pairs) == 5
 
 
 def test_check_ground_truth():
@@ -281,8 +282,9 @@ def test_order_pairs():
 def test_get_config_and_param_lists():
     files = rmc.get_filepaths(test_config_dir)
     pairs = rmc.get_config_and_param_lists(files)
+    print(pairs)
     assert type(pairs) is list
-    assert len(pairs) == 1
+    assert len(pairs) == 5
     assert len(pairs[0]) == 2
     assert 'stonesoup/runmanager/tests/test_configs/dummy_parameters.json' == (pairs[0][1])
     assert 'stonesoup/runmanager/tests/test_configs/dummy.yaml' in (pairs[0][0])
@@ -291,30 +293,17 @@ def test_get_config_and_param_lists():
 def test_get_config_and_param_lists_wrong_order():
     files = rmc.get_filepaths('stonesoup/runmanager/tests/test_configs/test_wrong_order_dir/')
     pairs = rmc.get_config_and_param_lists(files)
+    print(pairs)
     assert type(pairs) is list
     assert len(pairs) == 2
-    assert len(pairs[0]) == 2
+    assert len(pairs[0]) == 1
     assert len(pairs[1]) == 2
-    assert ('stonesoup/runmanager/tests/test_configs' +
-            '/test_wrong_order_dir/dummy.json') == (pairs[0][1])
     assert ('stonesoup/runmanager/tests/test_configs' +
             '/test_wrong_order_dir/dummy.yaml') == (pairs[0][0])
     assert ('stonesoup/runmanager/tests/test_configs' +
-            '/test_wrong_order_dir/dummy1.json') == (pairs[1][1])
+            '/test_wrong_order_dir/dummy1_parameters.json') == (pairs[1][1])
     assert ('stonesoup/runmanager/tests/test_configs' +
             '/test_wrong_order_dir/dummy1.yaml') == (pairs[1][0])
-
-
-def test_set_components_empty():
-    config_data = rmc.set_components('')
-
-    tracker = config_data[rmc.TRACKER]
-    ground_truth = config_data[rmc.GROUNDTRUTH]
-    metric_manager = config_data[rmc.METRIC_MANAGER]
-
-    assert tracker is None
-    assert ground_truth is None
-    assert metric_manager is None
 
 
 def test_set_components():

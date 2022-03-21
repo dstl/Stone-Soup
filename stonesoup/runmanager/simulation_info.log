@@ -1,0 +1,36 @@
+2022-02-28 10:34:18,511 INFO RunManagerCore started. 2022-02-28 10:34:18.511530
+2022-02-28 10:34:19,290 ERROR Could not read config file: [Errno 2] No such file or directory: ''
+2022-02-28 10:34:19,292 ERROR Could not read config file: [Errno 2] No such file or directory: 'stonesoup/runmanager/tests/test_configs/test_config_all.yaml'
+2022-02-28 10:34:19,301 ERROR Could not read config file: [Errno 2] No such file or directory: 'stonesoup/runmanager/tests/test_configs/test_config_nomm.yaml'
+2022-02-28 10:34:20,750 INFO RunManagerCore started. 2022-02-28 10:34:20.750874
+2022-02-28 10:34:20,750 INFO child process calling self.run()
+2022-02-28 10:34:20,761 INFO process shutting down
+2022-02-28 10:34:20,761 INFO process exiting with exitcode 0
+2022-02-28 10:34:22,305 INFO RunManagerCore started. 2022-02-28 10:34:22.304850
+2022-02-28 10:34:22,305 INFO child process calling self.run()
+2022-02-28 10:34:22,315 INFO process shutting down
+2022-02-28 10:34:22,315 INFO process exiting with exitcode 0
+2022-02-28 10:34:22,329 INFO RunManagerCore started. 2022-02-28 10:34:22.329811
+2022-02-28 10:34:22,329 INFO child process calling self.run()
+2022-02-28 10:34:22,329 INFO process shutting down
+2022-02-28 10:34:22,329 INFO process exiting with exitcode 0
+2022-02-28 10:34:25,064 INFO RunManagerCore started. 2022-02-28 10:34:25.064854
+2022-02-28 10:34:25,101 INFO RunManagerCore started. 2022-02-28 10:34:25.101791
+2022-02-28 10:34:25,125 INFO RunManagerCore started. 2022-02-28 10:34:25.125972
+2022-02-28 10:34:25,128 ERROR Could not read config file: [Errno 2] No such file or directory: 'stonesoup/runmanager/tests/test_configs/dummy.yaml'
+2022-02-28 10:34:25,130 INFO Starting simulation 0 / 1
+2022-02-28 10:34:25,130 ERROR Failed to run Simulation 0 / 1
+2022-02-28 10:34:25,130 ERROR 'NoneType' object has no attribute 'tracks_gen'
+Traceback (most recent call last):
+  File "C:\Users\hayden97\Documents\Projects\Serapis\Stone-Soup\stonesoup\runmanager\runmanagercore.py", line 264, in run_simulation
+    for time, ctracks in tracker.tracks_gen():
+AttributeError: 'NoneType' object has no attribute 'tracks_gen'
+2022-02-28 10:34:25,132 ERROR Could not read config file: [Errno 2] No such file or directory: 'stonesoup/runmanager/tests/test_configs/dummy.yaml'
+2022-02-28 10:34:25,135 ERROR Could not read config file: [Errno 2] No such file or directory: 'stonesoup/runmanager/tests/test_configs/dummy.yaml'
+2022-02-28 10:34:27,555 ERROR Failed to run Simulation 0 / 1
+2022-02-28 10:34:27,555 ERROR test error message
+NoneType: None
+2022-02-28 10:34:30,744 INFO process shutting down
+2022-02-28 10:34:30,803 INFO process shutting down
+2022-02-28 10:34:30,803 INFO process shutting down
+2022-02-28 10:34:30,831 INFO process shutting down

@@ -8,6 +8,10 @@ import socket
 
 
 class RunManagerScheduler(RunManager):
+    """The RunManagerScheduler. Created when the user wishes to use slurm scheduling,
+    creates job splits and creates new RunManager instances to run slurm jobs on
+    compute nodes.
+    """
 
     def __init__(self, rm_args, logger):
         """The constructor for scheduling jobs for when using slurm.
@@ -22,6 +26,7 @@ class RunManagerScheduler(RunManager):
         except Exception as e:
             self.logger.error(f"Invalid input for number of nodes, must be a numerical value. {e}")
 
+        #  ############ Not yet used, issue with threading.
         # if self.rm_args['parameter'] is None:
         #     self.logger.info("No parameter json given, defaulting to splitting across runs.")
         #     self.split_sims = False
@@ -46,8 +51,6 @@ class RunManagerScheduler(RunManager):
             NOT USED. The RunManagerCore instance for scheduling simulations.
 
         """
-
-
         if self.split_sims:
             self.logger.info("Splitting simulations across nodes...")
             self.schedule_simulations(run_manager)
