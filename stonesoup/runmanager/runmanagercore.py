@@ -39,7 +39,7 @@ class RunManagerCore(RunManager):
         "parameter": None,
         "groundtruth": None,
         "dir": None,
-        "montecarlo": None,
+        # "montecarlo": None,
         "nruns": None,
         "processes": None,
         "slurm": None,
@@ -59,7 +59,7 @@ class RunManagerCore(RunManager):
             A boolean flag to indicate whether the user has included the groundtruth in the
             configuration file or not
         montecarlo : bool
-            A boolean to indicate if montecarlo simulations are to be used
+            Not implemented yet. A boolean to indicate if montecarlo simulations are to be used
         dir : str
             The path to the directory containing configuration and parameter pairs
         nruns : int, optional
@@ -71,7 +71,7 @@ class RunManagerCore(RunManager):
         self.config_path = rm_args["config"]
         self.parameters_path = rm_args["parameter"]
         self.groundtruth_setting = rm_args["groundtruth"]
-        self.montecarlo = rm_args["montecarlo"]  # Not used yet
+        # self.montecarlo = rm_args["montecarlo"] Not implemented yet
         self.dir = rm_args["dir"]
         self.nruns = rm_args["nruns"]
         self.nprocesses = rm_args["processes"]

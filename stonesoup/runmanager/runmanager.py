@@ -36,10 +36,10 @@ if __name__ == "__main__":
     parser.add_argument("--processes", "-pc",
                         help="Specify the number of processing cores to use",
                         type=int)
-    parser.add_argument("--montecarlo", "-mc",
-                        help="""NOT YET IMPLEMENTED. Specify the type of Monte-Carlo distribution you want.
-                        0: Equal 1: Logarithmic, 2: Exponential, 3: Random Distributed""",
-                        type=int)
+    # parser.add_argument("--montecarlo", "-mc",
+    #                    help="""NOT YET IMPLEMENTED. Specify the type of Monte-Carlo distribution you want.
+    #                    0: Equal 1: Logarithmic, 2: Exponential, 3: Random Distributed""",
+    #                    type=int)
     parser.add_argument("--slurm", "-s",
                         help="""Slurm setting, set True if using a HPC and need to schedule RunManager
                         executions/jobs using slurm. Default is False""",
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     dir = manage_if(args.dir)
     nruns = manage_if(args.nruns)
     nprocesses = manage_if(args.processes)
-    montecarlo = manage_if(args.montecarlo)
+    # montecarlo = manage_if(args.montecarlo)
     slurm = manage_if(args.slurm)
     slurm_dir = manage_if(args.slurm_dir)
     node = manage_if(args.node)
@@ -70,7 +70,7 @@ if __name__ == "__main__":
         "parameter": parameter,
         "groundtruth": groundtruth,
         "dir": dir,
-        "montecarlo": montecarlo,
+        # "montecarlo": montecarlo,
         "nruns": nruns,
         "processes": nprocesses,
         "slurm": slurm,
