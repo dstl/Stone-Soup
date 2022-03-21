@@ -194,8 +194,8 @@ class RunManagerCore(RunManager):
 
         try:
             info_logger.info(f"{datetime.now()} Averaging metrics for all Monte-Carlo Simuatlions")
-            directory = glob.glob(f'./{self.slurm_dir}{config}_{self.config_starttime} \
-                                  */simulation*',
+            directory = glob.glob(f'./{self.slurm_dir}{config}_{self.config_starttime}'
+                                  f'*/simulation*',
                                   recursive=False)
             if directory:
                 for simulation in directory:
