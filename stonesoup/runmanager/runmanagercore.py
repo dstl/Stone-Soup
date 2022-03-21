@@ -194,7 +194,8 @@ class RunManagerCore(RunManager):
 
         try:
             info_logger.info(f"{datetime.now()} Averaging metrics for all Monte-Carlo Simuatlions")
-            directory = glob.glob(f'./{self.slurm_dir}{config}_{self.config_starttime}*/simulation*',
+            directory = glob.glob(f'./{self.slurm_dir}{config}_{self.config_starttime} \
+                                  */simulation*',
                                   recursive=False)
             if directory:
                 for simulation in directory:
@@ -204,7 +205,7 @@ class RunManagerCore(RunManager):
                     df.to_csv(f"./{simulation}/average.csv", index=False)
             else:
                 if self.slurm_dir != "":
-                    directory = glob.glob(f'{self.slurm_dir}{config}_{self.config_starttime}*', 
+                    directory = glob.glob(f'{self.slurm_dir}{config}_{self.config_starttime}*',
                                           recursive=False)
                     for node in directory:
                         summed_df, sim_amt = self.run_manager_metrics.sum_simulations(node,
@@ -692,9 +693,9 @@ class RunManagerCore(RunManager):
         --------
         search_file : str
             The configuration file name to find a parameter pair of
-        files : 
+        files :
             The filenames in a directory to find a pair for the config file
-        
+
         Returns:
         --------
         pair : list
@@ -727,7 +728,7 @@ class RunManagerCore(RunManager):
         ---------
         path : list
             The pair path to order
-        
+
         Returns
         ---------
         The ordered pair

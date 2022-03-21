@@ -37,7 +37,8 @@ if __name__ == "__main__":
                         help="Specify the number of processing cores to use",
                         type=int)
     # parser.add_argument("--montecarlo", "-mc",
-    #                    help="""NOT YET IMPLEMENTED. Specify the type of Monte-Carlo distribution you want.
+    #                    help="""NOT YET IMPLEMENTED. Specify the type of Monte-Carlo
+    #                    distribution you want.
     #                    0: Equal 1: Logarithmic, 2: Exponential, 3: Random Distributed""",
     #                    type=int)
     parser.add_argument("--slurm", "-s",

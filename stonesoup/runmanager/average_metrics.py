@@ -1,9 +1,9 @@
 import pandas as pd
 import glob
 
-"""A Python script which will allow you to enter a directory of simulations and average the results. 
-This is typically already done automatically with the run manager however, may be needed for some cases in
-AWS instances or HPC when runs are split over several nodes."""
+"""A Python script which will allow you to enter a directory of simulations and averagethe results.
+This is typically already done automatically with the run manager however, may be needed for some
+cases in AWS instances or HPC when runs are split over several nodes."""
 
 
 def average_simulations(dataframes, length_files):
@@ -95,7 +95,8 @@ def average_metrics():
         May need adjusting for very large datasets to save memory space.
     """
     batch_size = 200
-    config_filename = input("Enter the configuration filename (testing.yaml_2022_03_16 for example): ")
+    config_filename = input("Enter the configuration filename \
+                            (testing.yaml_2022_03_16 for example): ")
 
     try:
         directory = glob.glob(f'./{config_filename}*/simulation*', recursive=False)
