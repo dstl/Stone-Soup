@@ -109,42 +109,42 @@ Stonesoup RunManager slurm guide:
 1. Running the RunManager locally:
 
 Example commands: 
--- runmanager.py -c config.yaml -p param.json -g True -n 8 -pc 4
+- runmanager.py -c config.yaml -p param.json -g True -n 8 -pc 4
 
-- You may want to run the RunManager locally first with less runs or computer intensive parameters to test
-- your simulations first, in which case make sure to omit the '-s' flag or set it to False when running your command,
-- as this flag expects slurm scheduling to be used when it is set to True. In the case where this has been left in,
-- the simulation will fail and will output an error similar to:
-- ''sbatch' is not recognized as an internal or external command, operable program or batch file.'
-- if slurm is not install on your local machine.
-- In another case where slurm is installed on your local machine and this flag is left as True, the simulation can still
-- run without error and the RunManager will execute on the available nodes only, which will just be the local machine.
+ You may want to run the RunManager locally first with less runs or computer intensive parameters to test
+ your simulations first, in which case make sure to omit the '-s' flag or set it to False when running your command,
+ as this flag expects slurm scheduling to be used when it is set to True. In the case where this has been left in,
+ the simulation will fail and will output an error similar to:
+ ''sbatch' is not recognized as an internal or external command, operable program or batch file.'
+ if slurm is not install on your local machine.
+ In another case where slurm is installed on your local machine and this flag is left as True, the simulation can still
+ run without error and the RunManager will execute on the available nodes only, which will just be the local machine.
 
 2. Running the RunManager on a compute cluster with Slurm scheduling:
 
 Example commands: 
--- runmanager.py -c config.yaml -p param.json -g True -n 8 -pc 4 -s True
+- runmanager.py -c config.yaml -p param.json -g True -n 8 -pc 4 -s True
 
-- When the '-s' flag is set to True, the RunManager will assume the user wishes to execute the command across a number
-- of jobs on compute nodes that are scheduled and managed by Slurm.
-- When the command is run with this flag as True, the RunManager will prompt the user to input how many compute nodes
-- they would like to use for the simulations. The RunManager will then only use this number of nodes during execution,
-- even if there are other available nodes. If the user inputs too many nodes than there are available, the RunManager will
-- only use the available nodes and slurm will automatically schedule the remaining jobs until more nodes are free.
-- The total number of runs intended to be ran will then be evenly divided across the number of compute nodes intended to
-- be used. For example, if the user wants to execute 80 runs across 4 nodes, each node will execute 20 runs. In cases where
-- there is not an even division, some nodes may do 1 more run that some of the others.
-- Here, the '-n' or '--nruns' flag substitutes the need for a user to set a job-array slurm command that would
-- define how many times the command will be run. It is important to remember '-n' is the TOTAL number of runs you wish to do,
-- not runs per node.
-- The RunManagerScheduler will then create n_node number of new RunManager instances to run on each node
-- the divided n number of times.
-- In order to organise the outputs of the slurm jobs, a new directory with the name pattern:
-- 'runmanager-slurm_YYYY_MM_DD_hh_mm_ss'
-- which will contain the regular RunManager output directories for each node containing each simulation output for each run,
-- as well as the slurm.out output files where the RunManager command line logs are written to.
-- All of the logs for the simulations on all nodes can also be found in the 'simulation_info.log' file the same way as
-- local RunManager executions.
+ When the '-s' flag is set to True, the RunManager will assume the user wishes to execute the command across a number
+ of jobs on compute nodes that are scheduled and managed by Slurm.
+ When the command is run with this flag as True, the RunManager will prompt the user to input how many compute nodes
+ they would like to use for the simulations. The RunManager will then only use this number of nodes during execution,
+ even if there are other available nodes. If the user inputs too many nodes than there are available, the RunManager will
+ only use the available nodes and slurm will automatically schedule the remaining jobs until more nodes are free.
+ The total number of runs intended to be ran will then be evenly divided across the number of compute nodes intended to
+ be used. For example, if the user wants to execute 80 runs across 4 nodes, each node will execute 20 runs. In cases where
+ there is not an even division, some nodes may do 1 more run that some of the others.
+ Here, the '-n' or '--nruns' flag substitutes the need for a user to set a job-array slurm command that would
+ define how many times the command will be run. It is important to remember '-n' is the TOTAL number of runs you wish to do,
+ not runs per node.
+ The RunManagerScheduler will then create n_node number of new RunManager instances to run on each node
+ the divided n number of times.
+ In order to organise the outputs of the slurm jobs, a new directory with the name pattern:
+ 'runmanager-slurm_YYYY_MM_DD_hh_mm_ss'
+ which will contain the regular RunManager output directories for each node containing each simulation output for each run,
+ as well as the slurm.out output files where the RunManager command line logs are written to.
+ All of the logs for the simulations on all nodes can also be found in the 'simulation_info.log' file the same way as
+ local RunManager executions.
 
 -- Example RunManager with Slurm workflow:
 - Setup
