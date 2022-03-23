@@ -8,8 +8,6 @@ from matplotlib.patches import Ellipse
 from matplotlib.legend_handler import HandlerPatch
 
 from .types import detection
-from .models.base import LinearModel, NonLinearModel
-from .types.update import ParticleStateUpdate
 from .models.base import LinearModel, Model
 
 from enum import Enum
