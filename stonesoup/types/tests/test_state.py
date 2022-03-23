@@ -10,7 +10,7 @@ from stonesoup.types.state import CreatableFromState
 from ..angle import Bearing
 from ..array import StateVector, CovarianceMatrix, StateVectors
 from ..numeric import Probability
-from ..state import State, GaussianState, ParticleState, \
+from ..state import State, GaussianState, ParticleState, Particle, \
     StateMutableSequence, WeightedGaussianState, SqrtGaussianState, CategoricalState
 from ...base import Property
 
@@ -167,6 +167,34 @@ def test_particlestate():
     assert ParticleState in State.subclasses
     assert np.allclose(state.mean, StateVector([[50], [100]]))
     assert np.allclose(state.covar, CovarianceMatrix([[2500, 5000], [5000, 10000]]))
+    assert state.ndim == 2
+
+    # Create ParticleState from state vectors, weights and particle list
+    state_vector_array = np.concatenate((np.tile([[0], [0]], num_particles // 2),
+                                         np.tile([[100], [200]], num_particles // 2)),
+                                        axis=1)
+    state_vector_gen = ([state_vector_array[0][particle],
+                         state_vector_array[1][particle]] for particle in range(num_particles))
+    weight = Probability(1 / num_particles)
+    particle_list = [Particle(state_vector,
+                              weight=weight) for state_vector in state_vector_gen]
+    with pytest.raises(ValueError):
+        ParticleState(particles, particle_list=particle_list, weight=weight)
+
+    parent_list = particle_list
+    particle_list2 = [Particle([0, 0],
+                      weight=weight,
+                      parent=parent) for parent in parent_list]
+    state = ParticleState(None, particle_list=particle_list2, timestamp=timestamp)
+    assert isinstance(state.parent, ParticleState)
+
+    particle_list3 = particle_list[1:]
+    particle_parent = Particle([0, 0], weight=weight)
+    particle = Particle([0, 0], weight=weight, parent=particle_parent)
+    particle_list3.append(particle)
+
+    with pytest.raises(ValueError):
+        ParticleState(None, particle_list=particle_list3, timestamp=timestamp)
 
 
 def test_particlestate_weighted():

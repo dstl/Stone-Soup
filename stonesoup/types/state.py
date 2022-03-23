@@ -25,8 +25,7 @@ class State(Type):
     def __init__(self, state_vector, *args, **kwargs):
         # Don't cast away subtype of state_vector if not necessary
         if state_vector is not None \
-                and not isinstance(state_vector, StateVector)\
-                and not isinstance(state_vector, StateVectors):
+                and not isinstance(state_vector, (StateVector, StateVectors)):
             state_vector = StateVector(state_vector)
         super().__init__(state_vector, *args, **kwargs)
 
@@ -457,17 +456,17 @@ class ParticleState(State):
             parent_list = [particle.parent for particle in self.particle_list]
 
             if parent_list.count(None) == 0:
-                self.parent = ParticleState(particle_list=parent_list)
+                self.parent = ParticleState(None, particle_list=parent_list)
             elif 0 < parent_list.count(None) < len(parent_list):
                 raise ValueError("Either all particles should have"
                                  " parents or none of them should.")
 
         if self.parent:
-            self.parent.parent = None
+            self.parent.parent = None  # Removed to avoid using significant memory
 
         if self.state_vector is not None and not isinstance(self.state_vector, StateVectors):
             self.state_vector = StateVectors(self.state_vector)
-        if self.weight is not None and isinstance(self.weight, np.ndarray):
+        if self.weight is not None and not isinstance(self.weight, np.ndarray):
             self.weight = np.array(self.weight)
 
     def __getitem__(self, item):
