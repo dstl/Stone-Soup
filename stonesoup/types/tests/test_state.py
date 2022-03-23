@@ -185,8 +185,10 @@ def test_particlestate():
     particle_list2 = [Particle([0, 0],
                       weight=weight,
                       parent=parent) for parent in parent_list]
-    state = ParticleState(None, particle_list=particle_list2, timestamp=timestamp)
+    state = ParticleState(None, particle_list=particle_list2,
+                          timestamp=timestamp, fixed_covar=[1, 1])
     assert isinstance(state.parent, ParticleState)
+    assert state.covar == [1, 1]
 
     particle_list3 = particle_list[1:]
     particle_parent = Particle([0, 0], weight=weight)
