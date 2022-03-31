@@ -18,7 +18,10 @@ def test_categorical_initiator():
                   [20, 25, 10],
                   [10, 25, 80],
                   [40, 25, 5]])
-    measurement_model = MarkovianMeasurementModel(E)
+
+    measurement_categories = ['red', 'green', 'blue', 'yellow']
+
+    measurement_model = MarkovianMeasurementModel(E, measurement_categories=measurement_categories)
 
     updater = HMMUpdater(measurement_model)
 
@@ -27,7 +30,6 @@ def test_categorical_initiator():
     # Prior state information
     prior_state = CategoricalState([80, 10, 10], timestamp=now)
 
-    measurement_categories = ['red', 'green', 'blue', 'yellow']
     detection1 = CategoricalDetection(StateVector([10, 20, 30, 40]),
                                       timestamp=now,
                                       categories=measurement_categories)

@@ -72,8 +72,7 @@ class HMMHypothesiser(Hypothesiser):
             measurement_prediction = self.updater.predict_measurement(
                 predicted_state=prediction,
                 measurement_model=detection.measurement_model,
-                noise=False,
-                measurement=detection
+                noise=False
             )
 
             probability = self.measure(measurement_prediction, detection)
