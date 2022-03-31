@@ -4,7 +4,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from ..categorical import SimpleCategoricalInitiator
+from stonesoup.updater.categorical import HMMUpdater
+from ..categorical import SimpleCategoricalMeasurementInitiator
 from ..composite import CompositeUpdateInitiator
 from ..simple import SinglePointInitiator, GaussianParticleInitiator
 from ...predictor.tests.test_composite import create_state
@@ -92,7 +93,7 @@ def initiators_measurement(num_sub_states, timestamp):
         SinglePointInitiator(sub_priors[1]),
         SinglePointInitiator(sub_priors[2]),
         GaussianParticleInitiator(SinglePointInitiator(sub_priors[3])),
-        SimpleCategoricalInitiator(sub_priors[4])
+        SimpleCategoricalMeasurementInitiator(sub_priors[4], HMMUpdater())
     ]
 
     measurements = composite_measurements(num_sub_states, ndim_states, timestamp)
