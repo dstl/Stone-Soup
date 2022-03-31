@@ -12,22 +12,22 @@ tracking modules in order to categorise a target as well as track its kinematics
 # All non-generic imports will be given in order of usage.
 
 from datetime import datetime, timedelta
+
 import matplotlib.pyplot as plt
 import numpy as np
+
+from stonesoup.models.transition.linear import ConstantVelocity, \
+    CombinedLinearGaussianTransitionModel
+from stonesoup.types.groundtruth import GroundTruthState
 
 # %%
 # Ground Truth, Categorical and Composite States
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # We will attempt to track and classify 3 targets.
-
 # %%
 # True Kinematics
 # ---------------
 # They will move in random directions from defined starting points.
-
-from stonesoup.types.groundtruth import GroundTruthState
-from stonesoup.models.transition.linear import ConstantVelocity,\
-    CombinedLinearGaussianTransitionModel
 
 start = datetime.now()
 
@@ -43,7 +43,7 @@ kinematic_transition = CombinedLinearGaussianTransitionModel([ConstantVelocity(0
 # --------------------
 # A target may take one of three discrete hidden classes: 'bike', 'car' and 'bus'.
 # It will be assumed that the targets cannot transition from one class to another, hence an
-# identity transition matrix is given to the :class:`~.CategoricalTransitionModel` for all targets.
+# identity transition matrix is given to the :class:`~.MarkovianTransitionModel` for all targets.
 #
 # A :class:`~.CategoricalState` class is used to store information on the classification/'category'
 # of the targets. The state vector of each will define a categorical distribution over the 3
@@ -58,16 +58,15 @@ kinematic_transition = CombinedLinearGaussianTransitionModel([ConstantVelocity(0
 # :class:`~.CategoricalState`.
 
 from stonesoup.types.groundtruth import CategoricalGroundTruthState
-from stonesoup.models.transition.categorical import CategoricalTransitionModel
+from stonesoup.models.transition.categorical import MarkovianTransitionModel
 
 hidden_classes = ['bike', 'car', 'bus']
-gt_kwargs = {'timestamp': start, 'category_names': hidden_classes}
+gt_kwargs = {'timestamp': start, 'categories': hidden_classes}
 category_state1 = CategoricalGroundTruthState([0, 0, 1], **gt_kwargs)
 category_state2 = CategoricalGroundTruthState([1, 0, 0], **gt_kwargs)
 category_state3 = CategoricalGroundTruthState([0, 1, 0], **gt_kwargs)
 
-category_transition = CategoricalTransitionModel(transition_matrix=np.eye(3),
-                                                 transition_covariance=0.1*np.eye(3))
+category_transition = MarkovianTransitionModel(transition_matrix=np.eye(3))
 
 # %%
 # Composite States
@@ -107,7 +106,7 @@ for GT in ground_truth_paths:
                                                    time_interval=timedelta(seconds=1))
         category = CategoricalGroundTruthState(category_sv,
                                                timestamp=GT[-1].timestamp + timedelta(seconds=1),
-                                               category_names=hidden_classes)
+                                               categories=hidden_classes)
 
         GT.append(CompositeGroundTruthState([kinematic, category]))
 
@@ -169,7 +168,7 @@ set_axes_limits()
 # Detections relating to both the kinematics and classification will be needed. Therefore we will
 # create a sensor that outputs :class:`~.CompositeDetection` types. The input `sensors` list will
 # provide the contents of these compositions. For this example we will provide a
-# :class:`~.RadarBearingRange` and a :class:`~.CategoricalSensor` for kinematics and classification
+# :class:`~.RadarBearingRange` and a :class:`~.HMMSensor` for kinematics and classification
 # respectively.
 # :class:`~.CompositeDetection` types have a `mapping` attribute, which defines what sub-state
 # index each sub-detection was created from. For example, with a composite state of form:
@@ -236,7 +235,6 @@ radar = RadarBearingRange(ndim_state=4,
                           position_mapping=[0, 2],
                           noise_covar=np.diag([np.radians(0.05), 0.1]))
 
-
 # %%
 # Categorical Measurement
 # -----------------------
@@ -244,25 +242,21 @@ radar = RadarBearingRange(ndim_state=4,
 # observed, and instead indirect observations are taken. In this instance, observations of the
 # target's size are taken ('small' or 'large'), which have direct implications as to the target's
 # hidden class, and this relationship is modelled by the `emission matrix` of the
-# :class:`~.CategoricalMeasurementModel`, which is used by the :class:`~.CategoricalSensor` to
+# :class:`~.MarkovianMeasurementModel`, which is used by the :class:`~.HMMSensor` to
 # provide :class:`~.CategoricalDetection` types.
 # We will model this such that a 'bike' has a very small chance of being observed as a 'big'
 # target. Similarly, a 'bus' will tend to appear as 'large'. Whereas, a 'car' has equal chance of
 # being observed as either.
 
-from stonesoup.models.measurement.categorical import CategoricalMeasurementModel
-from stonesoup.sensor.categorical import CategoricalSensor
+from stonesoup.models.measurement.categorical import MarkovianMeasurementModel
+from stonesoup.sensor.categorical import HMMSensor
 
-E = np.array([[0.99, 0.01],  # P(small | bike)  P(large | bike)
-              [0.5, 0.5],
-              [0.01, 0.99]])
-model = CategoricalMeasurementModel(ndim_state=3,
-                                    emission_matrix=E,
-                                    emission_covariance=0.1*np.eye(2),
-                                    mapping=[0, 1, 2])
+E = np.array([[0.99, 0.5, 0.01],  # P(small | bike), P(small | car), P(small | bus
+              [0.01, 0.5, 0.99]])
+model = MarkovianMeasurementModel(emission_matrix=E,
+                                  measurement_categories=['small', 'large'])
 
-eo = CategoricalSensor(measurement_model=model,
-                       category_names=['small', 'large'])
+eo = HMMSensor(measurement_model=model)
 
 # %%
 # Composite Sensor
@@ -283,7 +277,7 @@ for gts1, gts2, gts3 in zip(GT1, GT2, GT3):
     all_measurements.append((timestamp, measurements_at_time))
 
 # Printing some measurements
-for i,  (time, measurements_at_time) in enumerate(all_measurements):
+for i, (time, measurements_at_time) in enumerate(all_measurements):
     if i > 2:
         break
     print(f"{time:%H:%M:%S}")
@@ -302,7 +296,7 @@ for time, measurements in all_measurements:
     for measurement in measurements:
         loc = measurement[1].state_vector
         obs = measurement[0].state_vector
-        col = list(measurement[0].measurement_model.emission_matrix @ obs)
+        col = list(measurement[0].measurement_model.emission_matrix.T @ obs)
 
         phi = loc[0]
         rho = loc[1]
@@ -331,7 +325,7 @@ fig
 # Though not used by the tracking components here, a :class:`~.CompositePredictor` will predict
 # the component states of a composite state forward, according to a list of sub-predictors.
 #
-# A :class:`~.HMMPredictor` specifically uses :class:`~.CategoricalTransitionModel` types to
+# A :class:`~.HMMPredictor` specifically uses :class:`~.MarkovianTransitionModel` types to
 # predict.
 
 from stonesoup.predictor.kalman import KalmanPredictor
@@ -388,7 +382,7 @@ class ProbabilityHypothesiser(DistanceHypothesiser):
         for hypothesis in single_hypotheses:
             prob_hypothesis = SingleProbabilityHypothesis(hypothesis.prediction,
                                                           hypothesis.measurement,
-                                                          1/hypothesis.distance,
+                                                          1 / hypothesis.distance,
                                                           hypothesis.measurement_prediction)
             prob_single_hypotheses.append(prob_hypothesis)
         return MultipleHypothesis(prob_single_hypotheses, normalise=False, total_weight=1)
@@ -399,16 +393,16 @@ kinematic_hypothesiser = ProbabilityHypothesiser(predictor=kinematic_predictor,
                                                  measure=Mahalanobis())
 
 # %%
-# A :class:`~.CategoricalHypothesiser` is used for calculating categorical hypotheses.
+# A :class:`~.HMMHypothesiser` is used for calculating categorical hypotheses.
 # It utilises the :class:`~.ObservationAccuracy` measure: a multi-dimensional extension of an
 # 'accuracy' score, essentially providing a measure of the similarity between two categorical
 # distributions.
 
-from stonesoup.hypothesiser.categorical import CategoricalHypothesiser
+from stonesoup.hypothesiser.categorical import HMMHypothesiser
 from stonesoup.hypothesiser.composite import CompositeHypothesiser
 
-category_hypothesiser = CategoricalHypothesiser(predictor=category_predictor,
-                                                updater=category_updater)
+category_hypothesiser = HMMHypothesiser(predictor=category_predictor,
+                                        updater=category_updater)
 hypothesiser = CompositeHypothesiser(
     sub_hypothesisers=[kinematic_hypothesiser, category_hypothesiser]
 )
@@ -433,7 +427,7 @@ data_associator = GNNWith2DAssignment(hypothesiser)
 from stonesoup.types.state import GaussianState, CategoricalState, CompositeState
 
 kinematic_prior = GaussianState([0, 0, 0, 0], np.diag([10, 10, 10, 10]))
-category_prior = CategoricalState([1/3, 1/3, 1/3], category_names=hidden_classes)
+category_prior = CategoricalState([1 / 3, 1 / 3, 1 / 3], categories=hidden_classes)
 prior = CompositeState([kinematic_prior, category_prior])
 
 # %%
@@ -444,19 +438,18 @@ prior = CompositeState([kinematic_prior, category_prior])
 # and categorical information to initiate the 2 state space sub-states from. However, in an
 # instance where a detection only provides one of these, the missing sub-state for the track will
 # be initiated as the given prior's sub-state (eg. if a detection provides only kinematic
-# information of the target, the track will initiate its categorical sub-state as the category_
-# prior defined earlier).
+# information of the target, the track will initiate its categorical sub-state as the
+# category_prior defined earlier).
 
 from stonesoup.initiator.simple import SimpleMeasurementInitiator
-from stonesoup.initiator.categorical import SimpleCategoricalInitiator
+from stonesoup.initiator.categorical import SimpleCategoricalMeasurementInitiator
 from stonesoup.initiator.composite import CompositeUpdateInitiator
 
 kinematic_initiator = SimpleMeasurementInitiator(prior_state=kinematic_prior,
                                                  measurement_model=None)
-category_initiator = SimpleCategoricalInitiator(prior_state=category_prior,
-                                                measurement_model=None)
-initiator = CompositeUpdateInitiator(prior_state=prior,
-                                     sub_initiators=[kinematic_initiator, category_initiator])
+category_initiator = SimpleCategoricalMeasurementInitiator(prior_state=category_prior,
+                                                           updater=category_updater)
+initiator = CompositeUpdateInitiator(sub_initiators=[kinematic_initiator, category_initiator])
 
 # %%
 # Deleter
@@ -500,7 +493,7 @@ for track in tracks:
 
 for track in tracks:
     for i, state in enumerate(track[1:], 1):
-        loc0 = track[i-1][0].state_vector.flatten()
+        loc0 = track[i - 1][0].state_vector.flatten()
         loc1 = state[0].state_vector.flatten()
         X = [loc0[0], loc1[0]]
         Y = [loc0[2], loc1[2]]
