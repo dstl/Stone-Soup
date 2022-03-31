@@ -52,11 +52,11 @@ def dummy_category_updater():
         def measurement_model(self):
             pass
 
-        def predict_measurement(self, state_prediction, measurement_model=None, **kwargs):
+        def predict_measurement(self, predicted_state, measurement_model=None, **kwargs):
             """Return the first two state vector elements, normalised."""
-            vector = state_prediction.state_vector[:2]
+            vector = predicted_state.state_vector[:2]
             vector = vector / np.sum(vector)
             return CategoricalMeasurementPrediction(vector,
-                                                    timestamp=state_prediction.timestamp)
+                                                    timestamp=predicted_state.timestamp)
 
     return DummyCategoricalUpdater()
