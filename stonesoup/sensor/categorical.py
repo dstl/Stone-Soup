@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from typing import Sequence
-
 from scipy.stats import multinomial
 
 from ..base import Property
@@ -21,9 +19,6 @@ class HMMSensor(Sensor):
     measurement_model: MarkovianMeasurementModel = Property(
         doc="Measurement model to generate detection vectors from"
     )
-    measurement_categories: Sequence[str] = Property(doc="Sequence of measurement category names. "
-                                                         "Defaults to a list of integers",
-                                                     default=None)
 
     @property
     def ndim_state(self):
@@ -32,18 +27,6 @@ class HMMSensor(Sensor):
     @property
     def ndim_meas(self):
         return self.measurement_model.ndim_meas
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if self.measurement_categories is None:
-            self.measurement_categories = list(map(str, range(self.ndim_meas)))
-
-        if len(self.measurement_categories) != self.ndim_meas:
-            raise ValueError(
-                f"ndim_meas of {self.ndim_meas} does not match number of measurement categories "
-                f"{len(self.measurement_categories)}"
-            )
 
     def measure(self, ground_truths, noise: bool = True, **kwargs):
         r"""Generate a categorical measurement for a given set of true categorical state.
@@ -80,11 +63,13 @@ class HMMSensor(Sensor):
                 rv = multinomial(n=1, p=detection_vector.flatten())
                 detection_vector = StateVector(rv.rvs(size=1, random_state=None))
 
-            detection = TrueCategoricalDetection(state_vector=detection_vector,
-                                                 timestamp=timestamp,
-                                                 categories=self.measurement_categories,
-                                                 measurement_model=self.measurement_model,
-                                                 groundtruth_path=truth)
+            detection = TrueCategoricalDetection(
+                state_vector=detection_vector,
+                timestamp=timestamp,
+                categories=self.measurement_model.measurement_categories,
+                measurement_model=self.measurement_model,
+                groundtruth_path=truth
+            )
             detections.add(detection)
 
         return detections

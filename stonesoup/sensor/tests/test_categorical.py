@@ -3,7 +3,6 @@
 from datetime import datetime
 
 import numpy as np
-import pytest
 
 from ..categorical import HMMSensor
 from ...models.measurement.categorical import MarkovianMeasurementModel
@@ -20,15 +19,7 @@ def test_hmm_sensor():
 
     model = MarkovianMeasurementModel(E)
 
-    # Test mismatched number of category names
-    with pytest.raises(ValueError, match="ndim_meas of 4 does not match number of measurement "
-                                         "categories 2"):
-        HMMSensor(measurement_model=model, measurement_categories=['red', 'blue'])
-
     sensor = HMMSensor(measurement_model=model)
-
-    # Test default category names
-    assert sensor.measurement_categories == ['0', '1', '2', '3']
 
     # Test ndim state
     assert sensor.ndim_state == 3

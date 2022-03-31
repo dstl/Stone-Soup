@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import Sequence
 
 import numpy as np
 
@@ -33,12 +34,24 @@ class MarkovianMeasurementModel(MeasurementModel):
             r"probability that a measurement is category :math:`\zeta^i` at 'time' :math:`t` "
             r"given that the true state category is :math:`\phi^j` at 'time' :math:`t`. "
             r"Columns will be normalised.")
+    measurement_categories: Sequence[str] = Property(doc="Sequence of measurement category names. "
+                                                         "Defaults to a list of integers",
+                                                     default=None)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         # Normalise matrix columns
         self.emission_matrix = self.emission_matrix / np.sum(self.emission_matrix, axis=0)
+
+        if self.measurement_categories is None:
+            self.measurement_categories = list(map(str, range(self.ndim_meas)))
+
+        if len(self.measurement_categories) != self.ndim_meas:
+            raise ValueError(
+                f"ndim_meas of {self.ndim_meas} does not match number of measurement categories "
+                f"{len(self.measurement_categories)}"
+            )
 
     def function(self, state, **kwargs):
         r"""Applies the linear transformation:

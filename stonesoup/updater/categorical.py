@@ -103,7 +103,7 @@ class HMMUpdater(Updater):
 
         return measurement_model
 
-    def predict_measurement(self, predicted_state, measurement_model, measurement, **kwargs):
+    def predict_measurement(self, predicted_state, measurement_model, **kwargs):
         r"""Predict the measurement implied by the predicted state.
 
         Parameters
@@ -127,4 +127,8 @@ class HMMUpdater(Updater):
 
         pred_meas = measurement_model.function(predicted_state, **kwargs)
 
-        return MeasurementPrediction.from_state(measurement, state_vector=pred_meas)
+        return MeasurementPrediction.from_state(
+            predicted_state,
+            pred_meas,
+            categories=measurement_model.measurement_categories
+        )

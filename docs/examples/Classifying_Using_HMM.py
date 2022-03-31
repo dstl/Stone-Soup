@@ -106,10 +106,10 @@ E = np.array([[0.8, 0.1],  # P(small | bike), P(small | car)
               [0.19, 0.3],  # P(medium | bike), P(medium | car)
               [0.01, 0.6]])  # P(large | bike), P(large | car)
 
-model = MarkovianMeasurementModel(emission_matrix=E)
+model = MarkovianMeasurementModel(emission_matrix=E,
+                                  measurement_categories=['small', 'medium', 'large'])
 
-eo = HMMSensor(measurement_model=model,
-               measurement_categories=['small', 'medium', 'large'])
+eo = HMMSensor(measurement_model=model)
 
 # Generating measurements
 measurements = list()

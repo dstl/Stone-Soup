@@ -20,7 +20,10 @@ def test_hmm_updater():
                   [20, 25, 10],
                   [10, 25, 80],
                   [40, 25, 5]])
-    measurement_model = MarkovianMeasurementModel(E)
+
+    measurement_categories = ['red', 'green', 'blue', 'yellow']
+
+    measurement_model = MarkovianMeasurementModel(E, measurement_categories=measurement_categories)
 
     updater = HMMUpdater(measurement_model)
 
@@ -41,7 +44,6 @@ def test_hmm_updater():
                                                         mapping=(0, 1, 2),
                                                         noise_covar=np.eye(3)))
 
-    measurement_categories = ['red', 'green', 'blue', 'yellow']
     measurement = CategoricalDetection(StateVector([10, 20, 30, 40]),
                                        timestamp=now,
                                        measurement_model=measurement_model,
@@ -49,8 +51,7 @@ def test_hmm_updater():
 
     # Test measurement prediction
     measurement_prediction = updater.predict_measurement(prediction,
-                                                         measurement_model,
-                                                         measurement)
+                                                         measurement_model)
     exp_measurement_prediction_vector = measurement_model.function(prediction, noise=False)
     assert isinstance(measurement_prediction, CategoricalMeasurementPrediction)
     assert np.allclose(measurement_prediction.state_vector, exp_measurement_prediction_vector)

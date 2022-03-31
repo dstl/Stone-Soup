@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import pytest
 
 from ....models.measurement.categorical import MarkovianMeasurementModel
 from ....types.array import StateVector
@@ -14,7 +15,15 @@ def test_categorical_measurement_model():
                   [10, 25, 80],
                   [40, 25, 5]])
 
+    # Test mismatched number of category names
+    with pytest.raises(ValueError, match="ndim_meas of 4 does not match number of measurement "
+                                         "categories 2"):
+        MarkovianMeasurementModel(E, measurement_categories=['red', 'blue'])
+
     model = MarkovianMeasurementModel(E)
+
+    # Test default category names
+    assert model.measurement_categories == ['0', '1', '2', '3']
 
     # Test normalised
     expected_array = np.array([[3 / 10, 1 / 4, 1 / 20],
