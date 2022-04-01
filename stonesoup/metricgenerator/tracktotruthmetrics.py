@@ -572,7 +572,7 @@ class IDSIAPMetrics(SIAPMetrics):
             )
             id_correctness_at_times.append(
                 SingleTimeMetric(title="SIAP ID Correctness at timestamp",
-                                 value=JCt / JTt if JUt != 0 else 0,
+                                 value=JCt / JTt if JTt != 0 else 0,
                                  timestamp=timestamp,
                                  generator=self)
             )
