@@ -435,30 +435,24 @@ def test_creatable_from_state_multi_base_error():
 
 def test_categorical_state():
 
-    # Test instantiation errors
-    with pytest.raises(ValueError, match="2 category names were given for a state vector with 3 "
-                                         "elements"):
-        CategoricalState(state_vector=StateVector([0.1, 0.4, 0.5]), category_names=['1', '2'])
-    with pytest.raises(ValueError, match=r"Category probabilities must lie in the closed interval "
-                                         r"\[0, 1\]"):
-        CategoricalState(state_vector=StateVector([1.1, 0.4, 0.5]))
-    with pytest.raises(ValueError, match="Category probabilities must sum to 1"):
-        CategoricalState(state_vector=StateVector([0.6, 0.7, 0.7]))
-    with pytest.raises(ValueError, match="Category probabilities must sum to 1"):
-        CategoricalState(state_vector=StateVector([0.2, 0.2, 0.3]))
+    # Test mismatched number of category names
+    with pytest.raises(ValueError, match="ndim of 3 does not match number of categories 4"):
+        CategoricalState(state_vector=StateVector([50, 60, 90]),
+                         categories=['red', 'green', 'blue', 'yellow'])
 
-    # Test defaults
-    state = CategoricalState(state_vector=StateVector([0.1, 0.4, 0.5]))
-    assert state.category_names == [0, 1, 2]
+    state = CategoricalState(state_vector=StateVector([50, 60, 90]))
 
-    # Test str
-    state = CategoricalState(state_vector=StateVector([0.1, 0.4, 0.5]),
-                             timestamp=datetime.datetime.now(),
-                             category_names=['red', 'blue', 'yellow'])
-    assert str(state) == "(P(red) = 0.1, P(blue) = 0.4, P(yellow) = 0.5)"
+    # Test normalised
+    state.state_vector == [0.25, 0.3, 0.45]
+
+    # Test default category names
+    assert state.categories == ['0', '1', '2']
+
+    # Test string
+    assert str(state) == "P(0) = 0.25,\nP(1) = 0.3,\nP(2) = 0.45"
 
     # Test category
-    assert state.category == 'yellow'
+    assert state.category == '2'
 
 
 def test_composite_state_timestamp():

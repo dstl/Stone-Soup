@@ -1,116 +1,89 @@
 # -*- coding: utf-8 -*-
-from typing import Union
+
+from datetime import timedelta
 
 import numpy as np
+from scipy.stats import multinomial
 
 from .base import Property
 from ...models.transition import TransitionModel
-from ...types.array import Matrix, StateVector, StateVectors, CovarianceMatrix
-from ...types.state import CategoricalState
+from ...types.array import Matrix, StateVector
 
 
-class CategoricalTransitionModel(TransitionModel):
-    r"""The transition model for categorical data
-    This is a time invariant model for the transition of a state that can take one of a finite
-    number of categories :math:`\{\phi_m|m\in Z_{\gt0}\}`, where a state space vector takes the
-    form :math:`x_{k_i} = P(\phi_i, k)`, i.e. the :math:`i`-th state vector component is the
-    probability that the state is of category :math:`\phi_i` at 'time' :math:`k`.
+class MarkovianTransitionModel(TransitionModel):
+    r"""The transition model for categorical states
+
+    This is a time invariant, transition model of a Markov process.
+
+    A state space vector takes the form :math:`\alpha_t^i = P(\phi_t^i)`, representing a
+    categorical distribution over a discrete, finite set of possible categories
+    :math:`\Phi = \{\phi^m|m\in \mathbf{N}, m\le M\}` (for some finite :math:`M`).
+
+    Models the transition from one category to another.
 
     Intended to be used in conjunction with the :class:`~.CategoricalState` type.
     """
     transition_matrix: Matrix = Property(
-        doc=r"Stochastic matrix :math:`(F_{k+1})_{ij} = P(\phi_i, k+1 | \phi_j, k)` determining "
-            r"the conditional probability that an object is category :math:`\phi_i` at 'time' "
-            r":math:`k + 1` given that it was category :math:`\phi_j` at 'time' :math:`k`. "
-            r"Columns must sum to 1.")
-    transition_covariance: CovarianceMatrix = Property(
-        default=None,
-        doc="Transition covariance, used in noise generation.")
+        doc=r"Stochastic matrix :math:`F_t^{ij} = F^{ij} = P(\phi_t^i|\phi_{t-1}^j)` determining "
+            r"the conditional probability that an object is category :math:`\phi^i` at 'time' "
+            r":math:`t` given that it was category :math:`\phi^j` at 'time' :math:`t-1`. "
+            r"Columns are normalised.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for i, col in enumerate(self.transition_matrix.T):
-            if not np.isclose(np.sum(col), 1):
-                raise ValueError(f"Column {i} of transition matrix does not sum to 1")
 
-    @property
-    def ndim_state(self):
-        """Number of model state dimensions/categories."""
-        return self.transition_matrix.shape[0]
+        # Normalise matrix columns
+        self.transition_matrix = self.transition_matrix / np.sum(self.transition_matrix, axis=0)
 
-    def function(self, state: CategoricalState, noise: bool = False, **kwargs) -> StateVector:
+    def function(self, state, time_interval: timedelta = None, noise: bool = False, **kwargs):
         r"""Applies the linear transformation:
 
         .. math::
-            (F_{k+1}\mathbf{x}_k)_{i} = P(\phi_i, k+1 | \phi_j, k)P(\phi_j, k)
+            F^{ij}\alpha_{t-1}^j = P(\phi_t^i|\phi_{t-1}^j)P(\phi_t^j)
 
-        The resultant vector is transformed to the interval :math:`[-\infty, \infty]` via a logit
-        function, in order to add noise.
-        This is then transformed back to the interval :math:`[0, 1]` and normalised.
+        The resultant vector is normalised.
+
+        Though this model is time-invariant, a check is made to see whether the time-interval given
+        is 0. In this instance, no transformation is applied.
 
         Parameters
         ----------
-        state : :class:`~.CategoricalState`
-            The state to be transitioned according to the models in :py:attr:`~model_list`.
+        state: :class:`~.CategoricalState`
+            The state to be transitioned.
+        time_interval: datetime.timedelta
+            Duration to transition state for.
         noise: bool
-            If 'True', additive log noise (generated via random sampling) will be included prior
-            to transformation back to the interval :math:`[0, 1]`. Noise vectors cannot be defined
-            beforehand. Only a boolean value is valid.
+            Indicates whether transitioned vector is sampled from and the resultant category
+            returned instead. This is a discrete category instead of a distribution
+            over the state space. It is represented by an M-tuples, with all components
+            equal to 0, except at an index corresponding to the relevant category.
+            For example :math:`e^k` indicates that the category is :math:`\phi^k`.
+            If `False`, the resultant distribution is returned.
 
         Returns
         -------
         state_vector: :class:`stonesoup.types.array.StateVector`
             of shape (:py:attr:`~ndim_state, 1`). The resultant state vector of the transition.
-
-        Notes
-        -----
-        For p=0 or p=1 infinities will be generated. We manage that by using the `numpy.finfo()`
-        function.
         """
-        if isinstance(noise, bool) and noise:
-            noise = self.rvs()
-        elif not noise:
-            noise = 0
+
+        if time_interval is None or time_interval.total_seconds() == 0:
+            return state.state_vector
+
+        new_vector = self.transition_matrix @ state.state_vector
+        new_vector = new_vector / np.sum(new_vector)  # normalise
+
+        if noise:
+            rv = multinomial(n=1, p=new_vector.flatten())
+            return StateVector(rv.rvs(size=1, random_state=None))
         else:
-            raise ValueError("Noise is generated via random sampling, and defined noise is not "
-                             "implemented")
+            return StateVector(new_vector)
 
-        # what to do if p=1
-        fp = self.transition_matrix @ state.state_vector
+    @property
+    def ndim_state(self):
+        return self.transition_matrix.shape[1]
 
-        with np.errstate(divide='ignore', over='ignore', under='ignore'):
-            if any(fp == 1):
-                y = fp.astype(float)
-                y[fp == 1] = np.finfo(np.float64).max
-                y[fp == 0] = np.finfo(np.float64).min
-            else:
-                y = np.log(fp / (1 - fp))
+    def rvs(self):
+        raise NotImplementedError
 
-            y += noise
-
-            p = 1 / (1 + np.exp(-y))
-            return p / np.sum(p)
-
-    def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
-        r"""Create noise samples. This samples from a multivariate normal distribution with
-        :math:`mean=0` and covariance defined by the transition covariance matrix.
-
-        Note:
-            * This is additive log noise, so multiplicative but with its effect largest at
-              :math:`p=0.5` (:math:`logit(p)=0`) and :math:`nil` when :math:`p=0`
-              (:math:`logit(p)=-\infty`, or :math:`p=1` (:math:`logit(p)=+\infty`).
-            * One could 'normalise' this such that the effect is more constant across :math:`p`
-              but it's impossible to escape the points that map to infinity in the logit function,
-              so :math:`p = 1 + noise` will still be :math:`p = 1 (+etc)`, unless a different form
-              is used.
-        """
-        omega = np.random.multivariate_normal(np.zeros(self.ndim_state),
-                                              self.transition_covariance,
-                                              size=num_samples)
-        return StateVectors(omega).T
-
-    def pdf(self, state1, state2, **kwargs):
-        """Assumes that state 1 is binary and this returns the probability that the transited
-        state2 is state1"""
-        Fx = self.transition_matrix @ state2.state_vector
-        return Fx.T @ state1.state_vector
+    def pdf(self):
+        raise NotImplementedError

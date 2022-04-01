@@ -4,14 +4,11 @@ import datetime
 import numpy as np
 import pytest
 
-from ..categorical import CategoricalHypothesiser
+from ..categorical import HMMHypothesiser
 from ..composite import CompositeHypothesiser
 from ..probability import PDAHypothesiser
-from ...models.measurement.categorical import CategoricalMeasurementModel
-from ...models.transition.tests.test_categorical import create_categorical, \
-    create_categorical_matrix
+from ...models.measurement.categorical import MarkovianMeasurementModel
 from ...predictor.composite import CompositePredictor
-from ...types.array import CovarianceMatrix
 from ...types.detection import Detection, MissedDetection, CompositeDetection, CategoricalDetection
 from ...types.hypothesis import CompositeHypothesis, CompositeProbabilityHypothesis
 from ...types.multihypothesis import MultipleHypothesis
@@ -19,14 +16,10 @@ from ...types.state import GaussianState, CompositeState, CategoricalState
 from ...types.track import Track
 
 
-def make_categorical_measurement_model(ndim_state, ndim_meas, mapping):
-    E = create_categorical_matrix(ndim_state, ndim_meas)
-    Ecov = CovarianceMatrix(0.1 * np.eye(ndim_meas))
+def make_categorical_measurement_model(ndim_state, ndim_meas):
+    E = np.random.rand(ndim_state, ndim_meas)
 
-    model = CategoricalMeasurementModel(ndim_state=ndim_state,
-                                        emission_matrix=E,
-                                        emission_covariance=Ecov,
-                                        mapping=mapping)
+    model = MarkovianMeasurementModel(emission_matrix=E)
     return model
 
 
@@ -34,12 +27,12 @@ def test_composite(predictor, updater, dummy_category_predictor, dummy_category_
     sub_hypothesisers = [
         PDAHypothesiser(predictor, updater, clutter_spatial_density=1.2e-2, prob_detect=0.9,
                         prob_gate=0.99),
-        CategoricalHypothesiser(dummy_category_predictor, dummy_category_updater,
-                                prob_detect=0.7, prob_gate=0.95),
+        HMMHypothesiser(dummy_category_predictor, dummy_category_updater,
+                        prob_detect=0.7, prob_gate=0.95),
         PDAHypothesiser(predictor, updater, clutter_spatial_density=1.4e-2, prob_detect=0.5,
                         prob_gate=0.98),
-        CategoricalHypothesiser(dummy_category_predictor, dummy_category_updater,
-                                prob_detect=0.8, prob_gate=0.97)
+        HMMHypothesiser(dummy_category_predictor, dummy_category_updater,
+                        prob_detect=0.8, prob_gate=0.97)
     ]
 
     # Test instantiation errors
@@ -67,16 +60,16 @@ def test_composite(predictor, updater, dummy_category_predictor, dummy_category_
                                   default_timestamp=then)])
 
     detection1 = CompositeDetection([Detection([3, 3, 3, 3], timestamp=now),
-                                     CategoricalDetection(create_categorical(2), timestamp=now),
+                                     CategoricalDetection(np.random.rand(2), timestamp=now),
                                      Detection([2, 4, 6], timestamp=now),
-                                     CategoricalDetection(create_categorical(2), timestamp=now)],
+                                     CategoricalDetection(np.random.rand(2), timestamp=now)],
                                     mapping=[0, 1, 2, 3])
     detection2 = CompositeDetection([Detection([4, 4, 4, 4], timestamp=now),
-                                     CategoricalDetection(create_categorical(2), timestamp=now),
-                                     CategoricalDetection(create_categorical(2), timestamp=now)],
+                                     CategoricalDetection(np.random.rand(2), timestamp=now),
+                                     CategoricalDetection(np.random.rand(2), timestamp=now)],
                                     mapping=[0, 1, 3])
-    detection3 = CompositeDetection([CategoricalDetection(create_categorical(2), timestamp=now),
-                                     CategoricalDetection(create_categorical(2), timestamp=now)],
+    detection3 = CompositeDetection([CategoricalDetection(np.random.rand(2), timestamp=now),
+                                     CategoricalDetection(np.random.rand(2), timestamp=now)],
                                     mapping=[3, 1])
 
     detections = {detection1, detection2, detection3}

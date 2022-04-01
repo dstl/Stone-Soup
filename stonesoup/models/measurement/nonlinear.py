@@ -199,7 +199,7 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
 
     The :py:attr:`mapping` property of the model is a 3 element vector, \
     whose first (i.e. :py:attr:`mapping[0]`), second (i.e. \
-    :py:attr:`mapping[1]`) and third (i.e. :py:attr:`mapping[2`) elements \
+    :py:attr:`mapping[1]`) and third (i.e. :py:attr:`mapping[2]`) elements \
     contain the state index of the :math:`x`, :math:`y` and :math:`z`  \
     coordinates, respectively.
 
@@ -338,7 +338,7 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
 
     The :py:attr:`mapping` property of the model is a 2 element vector, \
     whose first (i.e. :py:attr:`mapping[0]`) and second (i.e. \
-    :py:attr:`mapping[0]`) elements contain the state index of the \
+    :py:attr:`mapping[1]`) elements contain the state index of the \
     :math:`x` and :math:`y` coordinates, respectively.
 
     Note

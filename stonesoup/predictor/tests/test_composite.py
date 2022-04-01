@@ -5,11 +5,9 @@ import numpy as np
 import pytest
 from scipy.stats import multivariate_normal
 
-from ...models.transition.categorical import CategoricalTransitionModel
+from ...models.transition.categorical import MarkovianTransitionModel
 from ...models.transition.linear import RandomWalk, \
     CombinedLinearGaussianTransitionModel
-from ...models.transition.tests.test_categorical import create_categorical, \
-    create_categorical_matrix
 from ...predictor.categorical import HMMPredictor
 from ...predictor.composite import CompositePredictor
 from ...predictor.kalman import KalmanPredictor, ExtendedKalmanPredictor, \
@@ -42,7 +40,7 @@ def create_state(gaussian: bool, particles: bool, ndim_state: int, timestamp: da
         return GaussianState(sv, cov, timestamp=timestamp)
     else:
         # create categorical state
-        return CategoricalState(create_categorical(ndim_state), timestamp=timestamp)
+        return CategoricalState(np.random.rand(ndim_state), timestamp=timestamp)
 
 
 def create_transition_model(gaussian: bool, ndim_state: int):
@@ -52,7 +50,7 @@ def create_transition_model(gaussian: bool, ndim_state: int):
         models = ndim_state * [RandomWalk(0.1)]
         return CombinedLinearGaussianTransitionModel(models)
     else:
-        return CategoricalTransitionModel(create_categorical_matrix(ndim_state, ndim_state).T)
+        return MarkovianTransitionModel(np.random.rand(ndim_state, ndim_state))
 
 
 def random_predictor_and_prior(num_predictors, timestamp):
@@ -86,7 +84,6 @@ def random_predictor_and_prior(num_predictors, timestamp):
 
 @pytest.mark.parametrize('num_predictors', [1, 2, 3, 4, 5, 6])
 def test_composite_predictor(num_predictors):
-
     now = datetime.now()
     future = now + timedelta(seconds=5)
 

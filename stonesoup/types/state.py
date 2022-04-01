@@ -478,44 +478,36 @@ class CategoricalState(State):
     r"""CategoricalState type.
 
     State object representing an object in a categorical state space. A state vector
-    :math:`\mathbf{x}_i = P(\phi_i)` defines a categorical distribution over a finite set of
-    discrete categories :math:`\Phi = \{\phi_m|m\in Z_{\ge0}\}`."""
+    :math:`\mathbf{\alpha}_t^i = P(\phi_t^i)` defines a categorical distribution over a finite set
+    of discrete categories :math:`\Phi = \{\phi^m|m\in \mathbf{N}, m\le M\}` for some finite
+    :math:`M`."""
 
-    category_names: Sequence[str] = Property(
-        default=None,
-        doc="Sequence of category names corresponding to each state vector component. Defaults to "
-            "a list of integers."
-    )
+    categories: Sequence[float] = Property(doc="Category names. Defaults to a list of integers.",
+                                           default=None)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Check there is a category name for each state vector component
-        if self.category_names and len(self.category_names) != self.ndim:
-            raise ValueError(f"{len(self.category_names)} category names were given for a state "
-                             f"vector with {self.ndim} elements")
+        self.state_vector = self.state_vector / np.sum(self.state_vector)  # normalise state vector
 
-        # Build default list of integers if no category names given
-        if self.category_names is None:
-            self.category_names = list(range(self.ndim))
+        if self.categories is None:
+            self.categories = list(map(str, range(self.ndim)))
 
-        # Check all vector elements are valid probabilities
-        if any(p < 0 or p > 1 for p in self.state_vector):
-            raise ValueError("Category probabilities must lie in the closed interval [0, 1]")
-
-        # Check vector is normalised
-        if not np.isclose(np.sum(self.state_vector), 1):
-            raise ValueError("Category probabilities must sum to 1")
+        if len(self.categories) != self.ndim:
+            raise ValueError(
+                f"ndim of {self.ndim} does not match number of categories {len(self.categories)}"
+            )
 
     def __str__(self):
         strings = [f"P({category}) = {p}"
-                   for category, p in zip(self.category_names, self.state_vector)]
-        return f"({', '.join(strings)})"
+                   for category, p in zip(self.categories, self.state_vector)]
+        string = ',\n'.join(strings)
+        return string
 
     @property
     def category(self):
-        """Return the name of the most likely category"""
-        return self.category_names[np.argmax(self.state_vector)]
+        """Return the name of the most likely category."""
+        return self.categories[np.argmax(self.state_vector)]
 
 
 class CompositeState(Type):

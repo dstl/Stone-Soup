@@ -5,9 +5,8 @@ from copy import copy
 import numpy as np
 import pytest
 
-from ...models.measurement.categorical import CategoricalMeasurementModel
+from ...models.measurement.categorical import MarkovianMeasurementModel
 from ...models.measurement.linear import LinearGaussian
-from ...models.transition.tests.test_categorical import create_categorical_matrix
 from ...predictor.tests.test_composite import create_state
 from ...types.detection import Detection, CompositeDetection, CategoricalDetection, MissedDetection
 from ...types.hypothesis import SingleHypothesis, CompositeHypothesis
@@ -27,10 +26,8 @@ def create_measurement_model(gaussian: bool, ndim_state: int):
                               noise_covar=np.eye(ndim_state),
                               mapping=np.arange(ndim_state))
     else:
-        return CategoricalMeasurementModel(
-            ndim_state=ndim_state,
-            emission_matrix=create_categorical_matrix(ndim_state, ndim_state),
-            emission_covariance=0.1 * np.eye(2)
+        return MarkovianMeasurementModel(
+            emission_matrix=np.random.rand(ndim_state, ndim_state)
         )
 
 
