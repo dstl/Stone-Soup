@@ -130,7 +130,7 @@ for index, states in enumerate(np.vstack(ground_truths).T):
 # %%
 # Predictor
 # ---------
-# A :class:`~.HMMPredictor` specifically uses :class:`~.CategoricalTransitionModel` types to
+# A :class:`~.HMMPredictor` specifically uses :class:`~.MarkovianTransitionModel` types to
 # predict.
 from stonesoup.predictor.categorical import HMMPredictor
 
@@ -260,6 +260,8 @@ print(f"No. correct classifications: {num_correct_classifications}")
 # ^^^^^^^^
 # Plotting the probability that each one of our targets and tracks is a 'bike' will help to
 # visualise this 2-hidden class problem.
+#
+# Dotted lines indicate ground truth probabilities, and solid lines for tracks.
 
 import matplotlib.pyplot as plt
 
@@ -274,6 +276,6 @@ def plot(path, style):
 
 
 for truth in ground_truths:
-    plot(truth, '-')
+    plot(truth, '--')
 for track in tracks:
-    plot(track, '--')
+    plot(track, '-')

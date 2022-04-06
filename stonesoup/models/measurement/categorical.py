@@ -14,7 +14,7 @@ class MarkovianMeasurementModel(MeasurementModel):
     This is a time invariant, measurement model of a hidden Markov process.
 
     A measurement can take one of a finite number of observable categories
-    :math:`Z = \{\zeta^n|n\in \mathbf{N}, n\le N\} (for some finite :math:`N`). A measurement
+    :math:`Z = \{\zeta^n|n\in \mathbf{N}, n\le N\}` (for some finite :math:`N`). A measurement
     vector represents a categorical distribution over :math:`Z`.
 
     .. math::

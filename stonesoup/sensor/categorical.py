@@ -13,7 +13,7 @@ class HMMSensor(Sensor):
     r"""Sensor model that observes a categorical state space and returns categorical measurements.
 
     Measurements are categorical distributions over a finite set of categories
-    :math:`Z = \{\zeta^n|n\in \mathbf{N}, n\le N\} (for some finite :math:`N`).
+    :math:`Z = \{\zeta^n|n\in \mathbf{N}, n\le N\}` (for some finite :math:`N`).
     """
 
     measurement_model: MarkovianMeasurementModel = Property(

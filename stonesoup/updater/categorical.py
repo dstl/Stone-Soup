@@ -25,7 +25,7 @@ class HMMUpdater(Updater):
             \alpha_t^i = E^{ki}(F\alpha_{t-1})^i
 
         Measurements are assumed to be discrete categories from a finite set of measurement
-        categories :math:`Z = \{\zeta^n|n\in \mathbf{N}, n\le N\} (for some finite :math:`N`).
+        categories :math:`Z = \{\zeta^n|n\in \mathbf{N}, n\le N\}` (for some finite :math:`N`).
         A measurement should be equivalent to a basis vector :math:`e^k`, (the N-tuple with all
         components equal to 0, except the k-th (indices starting at 0), which is 1). This
         indicates that the measured category is :math:`\zeta^k`.
@@ -109,7 +109,7 @@ class HMMUpdater(Updater):
         Parameters
         ----------
         predicted_state : :class:`~.CategoricalState`
-            The predicted state..
+            The predicted state.
         measurement_model : :class:`~.MeasurementModel`
             The measurement model. If omitted, the model in the updater object is used.
         measurement : :class:`~.CategoricalState`.
