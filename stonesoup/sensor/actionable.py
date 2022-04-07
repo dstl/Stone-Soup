@@ -109,6 +109,7 @@ class Actionable(Base, ABC):
         -------
         bool
             Return True if actions accepted. False if rejected.
+            Returns neither if timestamp is invalid.
 
         Raises
         ------

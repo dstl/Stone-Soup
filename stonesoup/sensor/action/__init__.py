@@ -72,6 +72,7 @@ class ActionGenerator(Base):
 
 
 class RealNumberActionGenerator(ActionGenerator):
+    """Action generator where action is a choice of a real number."""
 
     @property
     @abstractmethod
