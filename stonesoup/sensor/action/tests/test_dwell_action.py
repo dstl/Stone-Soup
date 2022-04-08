@@ -62,15 +62,15 @@ def test_dwell_action(initial_bearing):
     assert generator.rps == actionable.rpm / 60
 
     # Test angles
-    assert pytest.approx(generator.angle_delta, np.radians(90))
-    assert pytest.approx(generator.min, actionable.dwell_centre[0, 0] - np.radians(90))
-    assert pytest.approx(generator.max, actionable.dwell_centre[0, 0] + np.radians(90))
+    assert generator.angle_delta == pytest.approx(np.radians(90))
+    assert generator.min == pytest.approx(Angle(actionable.dwell_centre[0, 0]) - np.radians(90))
+    assert generator.max == pytest.approx(Angle(actionable.dwell_centre[0, 0]) + np.radians(90))
 
     # Test contains and end-time/direction
     for angle in np.linspace(0, 90, 10):
 
-        angle1 = Angle(actionable.dwell_centre[0, 0]) + np.radians(angle)
-        angle2 = Angle(actionable.dwell_centre[0, 0]) - np.radians(angle)
+        angle1 = Angle(actionable.dwell_centre[0, 0]) + Angle(np.radians(angle))
+        angle2 = Angle(actionable.dwell_centre[0, 0]) - Angle(np.radians(angle))
 
         # any bearing in [dwell - 90, dwell + 90] should be achievable
         assert angle1 in generator
@@ -104,8 +104,8 @@ def test_dwell_action(initial_bearing):
         else:
             assert increasing1
             assert not increasing2
-        assert pytest.approx(rot_end1, rot_end)
-        assert pytest.approx(rot_end2, rot_end)
+        assert rot_end1 == pytest.approx(rot_end)
+        assert rot_end2 == pytest.approx(rot_end)
 
     # Test iterable
     actions = [action for action in generator]
@@ -115,9 +115,10 @@ def test_dwell_action(initial_bearing):
     target_bearings = target_bearings.tolist()
     for action, target_bearing in zip(actions, target_bearings):
         # actions in value order and all values accounted for
-        assert pytest.approx(action.target_value, target_bearing)
+        assert action.target_value == pytest.approx(target_bearing)
 
     # Test action from value
+    generator(np.radians(20))
     for angle in np.linspace(0, 180, 10):
         angle1 = Angle(actionable.dwell_centre[0, 0]) + np.radians(angle)
         angle2 = Angle(actionable.dwell_centre[0, 0]) - np.radians(angle)
@@ -130,9 +131,9 @@ def test_dwell_action(initial_bearing):
             assert action2 is None
         else:
             assert isinstance(action1, ChangeDwellAction)
-            assert pytest.approx(action1.target_value, angle1)
+            assert pytest.approx(action1.target_value) == angle1
             assert isinstance(action2, ChangeDwellAction)
-            assert pytest.approx(action2.target_value, angle2)
+            assert pytest.approx(action2.target_value) == angle2
 
             # Test equality
             if np.isclose(angle, 180) or np.isclose(angle, 0):

@@ -183,20 +183,47 @@ class DwellActionsGenerator(RealNumberActionGenerator):
             Action which wil achieve this dwell centre.
         """
 
-        if isinstance(value, (int, float, Angle)):
+        if isinstance(value, (int, float)):
             value = Angle(value)
+        elif isinstance(value, Angle):
+            value = value
         else:
             raise ValueError("Can only generate action from an Angle/float/int type")
 
         if value not in self:
             return None  # Should this raise an error?
 
-        value -= value % self.resolution
+        # Use resolution to reach target value from initial value - does not exceed
+        current_value = previous_value = self.initial_value
 
-        rot_end_time, increasing = self._end_time_direction(value)
+        if value > self.initial_value:
+            while not np.isclose(float(abs(current_value)), float(abs(value)), atol=1e-6):
+                if current_value > value:
+                    current_value = previous_value
+                    break
+                previous_value = current_value
+                current_value += self.resolution
+
+        elif value < self.initial_value:
+            while not np.isclose(float(abs(current_value)), float(abs(value)), atol=1e-6):
+                if current_value < value:
+                    current_value = previous_value
+                    break
+                previous_value = current_value
+                current_value -= self.resolution
+
+        elif value == self.initial_value:
+            current_value = value
+
+        else:
+            raise ValueError()
+
+        target_value = current_value
+
+        rot_end_time, increasing = self._end_time_direction(target_value)
 
         return ChangeDwellAction(rotation_end_time=rot_end_time,
                                  generator=self,
                                  end_time=self.end_time,
-                                 target_value=value,
+                                 target_value=target_value,
                                  increasing_angle=increasing)
