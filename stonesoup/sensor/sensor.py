@@ -1,11 +1,12 @@
 from abc import abstractmethod, ABC
-from typing import Set, Union
+from typing import Set, Union, Sequence
 
 import numpy as np
 
-from stonesoup.types.detection import TrueDetection
-from stonesoup.types.groundtruth import GroundTruthState
-from .base import PlatformMountable
+from ..base import Property
+from ..sensor.base import PlatformMountable
+from ..types.detection import TrueDetection
+from ..types.groundtruth import GroundTruthState
 
 
 class Sensor(PlatformMountable, ABC):
@@ -38,3 +39,42 @@ class Sensor(PlatformMountable, ABC):
             from.
         """
         raise NotImplementedError
+
+
+class SensorSuite(Sensor):
+    """Sensor composition type
+
+    Models a suite of sensors all returning detections at the same 'time'. Returns all detections
+    in one go.
+    Can append information of the sensors to the metadata of their corresponding detections.
+    """
+
+    sensors: Sequence[Sensor] = Property(doc="Suite of sensors to get detections from.")
+
+    attributes_inform: Set[str] = Property(
+        doc="Names of attributes to store the value of at time of detection."
+    )
+
+    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[bool, np.ndarray] = True,
+                **kwargs) -> Set[TrueDetection]:
+        """Call each sub-sensor's measure method in turn. Key word arguments are passed to the
+        measure method of each sensor.
+
+        Append additional metadata to each sensor's set of detections. Which keys are appended is
+        dictated by :attr:`attributes_inform`."""
+
+        all_detections = set()
+
+        for sensor in self.sensors:
+
+            detections = sensor.measure(ground_truths, noise, **kwargs)
+
+            attributes_dict = {attribute_name: sensor.__getattribute__(attribute_name)
+                               for attribute_name in self.attributes_inform}
+
+            for detection in detections:
+                detection.metadata.update(attributes_dict)
+
+            all_detections.update(detections)
+
+        return all_detections
