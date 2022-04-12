@@ -43,6 +43,12 @@ AlphaBeta
 .. automodule:: stonesoup.updater.alphabeta
     :show-inheritance:
 
+Sliding Innovation Filter
+-------------------------
+
+.. automodule:: stonesoup.updater.slidinginnovation
+    :show-inheritance:
+
 Categorical
 -----------
 
