@@ -67,8 +67,10 @@ class SwitchOneTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.index = 0
-        self.random_state = np.random.RandomState(self.seed)
+        if self.seed is not None:
+            self.random_state = np.random.RandomState(self.seed)
+        else:
+            self.random_state = np.random.mtrand._rand
 
     @property
     def transition_model(self):
@@ -95,7 +97,10 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.random_state = np.random.RandomState(self.seed)
+        if self.seed is not None:
+            self.random_state = np.random.RandomState(self.seed)
+        else:
+            self.random_state = np.random.mtrand._rand
 
     @BufferedGenerator.generator_method
     def groundtruth_paths_gen(self, random_state=None):
@@ -147,11 +152,6 @@ class SwitchMultiTargetGroundTruthSimulator(MultiTargetGroundTruthSimulator):
     seed: Optional[int] = Property(default=None, doc="Seed for random number generation."
                                                      " Default None")
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.index = 0
-        self.random_state = np.random.RandomState(self.seed)
-
     @property
     def transition_model(self, random_state=None):
         random_state = random_state if random_state is not None else self.random_state
@@ -183,7 +183,10 @@ class SimpleDetectionSimulator(DetectionSimulator):
         self.real_detections = set()
         self.clutter_detections = set()
         self.index = 0
-        self.random_state = np.random.RandomState(self.seed)
+        if self.seed is not None:
+            self.random_state = np.random.RandomState(self.seed)
+        else:
+            self.random_state = np.random.mtrand._rand
 
     @property
     def clutter_spatial_density(self):
