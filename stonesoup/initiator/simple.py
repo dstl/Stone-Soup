@@ -10,7 +10,7 @@ from ..models.measurement import MeasurementModel
 from ..types.hypothesis import SingleHypothesis
 from ..types.numeric import Probability
 from ..types.particle import Particle
-from ..types.state import State, GaussianState
+from ..types.state import State, GaussianState, ParticleState
 from ..types.track import Track
 from ..types.update import GaussianStateUpdate, ParticleStateUpdate, Update
 from ..updater import Updater
@@ -238,6 +238,30 @@ class GaussianParticleInitiator(ParticleInitiator):
         doc="If `True`, the Gaussian state covariance is used for the "
             ":class:`~.ParticleState` as a fixed covariance. Default `False`.")
 
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        # Create prior particle state
+        try:
+            samples = multivariate_normal.rvs(self.initiator.prior_state.state_vector.ravel(),
+                                              self.initiator.prior_state.covar,
+                                              size=self.number_particles)
+        except AttributeError:
+            raise AttributeError("No prior state")
+        particles = [
+            Particle(sample.reshape(-1, 1), weight=self.weight)
+            for sample in samples]
+
+        self.prior_state = ParticleState(
+            particles,
+            fixed_covar=self.initiator.prior_state.covar if self.use_fixed_covar else None
+        )
+
+    @property
+    def weight(self):
+        return Probability(1 / self.number_particles)
+
     def initiate(self, detections, timestamp, **kwargs):
         """Initiates tracks given unassociated measurements
 
@@ -254,13 +278,13 @@ class GaussianParticleInitiator(ParticleInitiator):
             A list of new tracks with a initial :class:`~.ParticleState`
         """
         tracks = self.initiator.initiate(detections, timestamp, **kwargs)
-        weight = Probability(1 / self.number_particles)
+
         for track in tracks:
             samples = multivariate_normal.rvs(track.state_vector.ravel(),
                                               track.covar,
                                               size=self.number_particles)
             particles = [
-                Particle(sample.reshape(-1, 1), weight=weight)
+                Particle(sample.reshape(-1, 1), weight=self.weight)
                 for sample in samples]
             track[-1] = ParticleStateUpdate(
                 particles,

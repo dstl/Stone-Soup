@@ -2,10 +2,10 @@
 import pytest
 import numpy as np
 
-from ..detection import Detection
-from ..multihypothesis import MultipleHypothesis
-from ..hypothesis import SingleProbabilityHypothesis, SingleDistanceHypothesis
-from ..prediction import GaussianStatePrediction, GaussianMeasurementPrediction
+from ..detection import Detection, MissedDetection
+from ..multihypothesis import MultipleHypothesis, MultipleCompositeHypothesis
+from ..hypothesis import SingleProbabilityHypothesis, SingleDistanceHypothesis, SingleHypothesis
+from ..prediction import GaussianStatePrediction, GaussianMeasurementPrediction, StatePrediction
 from ..numeric import Probability
 
 
@@ -42,13 +42,13 @@ def test_multiplehypothesis():
             for hypothesis in multihypothesis)
     assert len(multihypothesis) == 2
     assert multihypothesis[0] is \
-        probability_hypothesis_1
+           probability_hypothesis_1
     assert multihypothesis[1] is \
-        probability_hypothesis_2
+           probability_hypothesis_2
     assert multihypothesis[detection1].measurement is \
-        detection1
+           detection1
     assert multihypothesis[prediction].prediction is \
-        prediction
+           prediction
     assert probability_hypothesis_1 in multihypothesis
     assert prediction in multihypothesis
     assert detection1 in multihypothesis
@@ -123,3 +123,73 @@ def test_multiplehypothesis_edge_cases():
     # test the case where no SingleHypotheses are passed in
     multihypothesis = MultipleHypothesis()
     assert len(multihypothesis) == 0
+
+
+def test_multi_composite_hypothesis(composite_hypothesis1,
+                                    composite_hypothesis2,
+                                    composite_probability_hypothesis1,
+                                    composite_probability_hypothesis2):
+    # default empty list
+    assert MultipleCompositeHypothesis().single_hypotheses == list()
+
+    # error on non-composite hypotheses
+    with pytest.raises(ValueError, match="Cannot form MultipleHypothesis out of "
+                                         "non-CompositeHypothesis inputs!"):
+        MultipleCompositeHypothesis([
+            composite_hypothesis1,
+            SingleHypothesis(prediction=StatePrediction([3]), measurement=Detection([8]))
+        ])
+
+    multi_hypothesis = MultipleCompositeHypothesis([composite_probability_hypothesis1,
+                                                    composite_probability_hypothesis2],
+                                                   normalise=True)
+
+    # Test normalise
+    # error on no-probability hypotheses
+    with pytest.raises(ValueError, match="MultipleHypothesis not composed of composite hypotheses "
+                                         "with probabilities"):
+        MultipleCompositeHypothesis([composite_hypothesis1, composite_hypothesis2], normalise=True)
+
+    assert np.isclose(float(multi_hypothesis.single_hypotheses[0].probability),
+                      (0.5 ** 2) / (0.5 ** 2 + 0.2 ** 2))
+    assert np.isclose(float(multi_hypothesis.single_hypotheses[1].probability),
+                      (0.2 ** 2) / (0.5 ** 2 + 0.2 ** 2))
+    multi_hypothesis.normalise_probabilities(total_weight=5)
+    assert np.isclose(float(multi_hypothesis.single_hypotheses[0].probability),
+                      (5 * 0.5 ** 2) / (0.5 ** 2 + 0.2 ** 2))
+    assert np.isclose(float(multi_hypothesis.single_hypotheses[1].probability),
+                      (5 * 0.2 ** 2) / (0.5 ** 2 + 0.2 ** 2))
+
+    multi_hypothesis = MultipleCompositeHypothesis([composite_probability_hypothesis1,
+                                                    composite_probability_hypothesis2],
+                                                   normalise=True)
+
+    # Test len
+    assert len(multi_hypothesis) == 2
+
+    # Test contains
+    assert composite_probability_hypothesis1 in multi_hypothesis
+    assert composite_probability_hypothesis2 in multi_hypothesis
+    assert composite_hypothesis1 not in MultipleCompositeHypothesis(
+        single_hypotheses=[composite_probability_hypothesis1])
+    assert 'a' not in multi_hypothesis
+
+    # Test iter
+    for actual_hypothesis, exp_hypothesis in zip(iter(multi_hypothesis),
+                                                 [composite_probability_hypothesis1,
+                                                  composite_probability_hypothesis2]):
+        assert actual_hypothesis == exp_hypothesis
+
+    # Test get
+    assert multi_hypothesis[0] == composite_probability_hypothesis1
+    assert multi_hypothesis[1] == composite_probability_hypothesis2
+
+    # Test get missed detection probability
+    assert multi_hypothesis.get_missed_detection_probability() is None
+
+    # create null-composite-hypothesis
+    for sub_hypothesis in composite_probability_hypothesis1:
+        sub_hypothesis.measurement = MissedDetection()
+    # equal to probability of first composite hypothesis which is now null
+    assert np.isclose(float(multi_hypothesis.get_missed_detection_probability()),
+                      (0.5 ** 2) / (0.5 ** 2 + 0.2 ** 2))

@@ -31,3 +31,8 @@ Categorical
 .. automodule:: stonesoup.hypothesiser.categorical
     :show-inheritance:
 
+Composite
+---------
+
+.. automodule:: stonesoup.hypothesiser.composite
+    :show-inheritance:

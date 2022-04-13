@@ -4,63 +4,67 @@
 """
 Classification Using Hidden Markov Model
 ========================================
-This is a demonstration using the implemented Hidden Markov model to classify multiple targets.
+This is a demonstration using the implemented forward algorithm in the context of a hidden Markov
+model to classify multiple targets.
 
 We will attempt to classify 3 targets in an undefined region.
-Our sensor will be all-seeing, and provide us with indirect observations of the targets such that,
-using the implemented Hidden Markov Model (HMM), we should hopefully successfully classify exactly
-3 targets correctly.
 """
 
 # %%
 # All Stone Soup imports will be given in order of usage.
 
 from datetime import datetime, timedelta
+
 import numpy as np
+
+from stonesoup.models.transition.categorical import MarkovianTransitionModel
+from stonesoup.types.groundtruth import CategoricalGroundTruthState
+from stonesoup.types.groundtruth import GroundTruthPath
 
 # %%
 # Ground Truth
 # ^^^^^^^^^^^^
-# The targets may take one of three discrete hidden classes: 'bike', 'car' and 'bus'.
-# It will be assumed that the targets cannot transition from one class to another, hence an
-# identity transition matrix is given to the :class:`~.CategoricalTransitionModel`.
+# The targets may take one of two discrete hidden classes: 'bike', and 'car'.
+# A target may be able to transition from one class to another (this could be considered as a
+# person switching from riding a bike to driving a car and vice versa).
+# This behaviour will be modelled in the transition matrix of the
+# :class:`~.MarkovianTransitionModel`. This transition matrix is a Markov process matrix, whereby
+# it is assumed that the state of a target is wholly dependent on its previous state, and nothing
+# else.
 #
 # A :class:`~.CategoricalState` class is used to store information on the classification/category
-# of the targets. The state vector will define a categorical distribution over the 3 possible
+# of the targets. The state vector will define a categorical distribution over the 2 possible
 # classes, whereby each component defines the probability that a target is of the corresponding
-# class. For example, the state vector (0.2, 0.3, 0.5), with category names ('bike', 'car', 'bus')
-# indicates that a target has a 20% probability of being class 'bike', a 30% probability of being
-# class 'car' etc.
+# class. For example, the state vector (0.2, 0.8), with category names ('bike', 'car')
+# indicates that a target has a 20% probability of being class 'bike' and an 80% probability of
+# being class 'car' etc.
 # It does not make sense to have a true target being a distribution over the possible classes, and
 # therefore the true categorical states will have binary state vectors indicating a specific class
-# (i.e. a '1' at one state vector index, and '0's elsewhere).
+# (i.e. a '1' at one state vector index, and '0's elsewhere). This can be considered as stating
+# there is a 100% probability that the target is of a particular class. We specify that there
+# should be noise when functioning our transition model in order to sample the resultant
+# distribution and receive this binary vector.
 # The :class:`~.CategoricalGroundTruthState` class inherits directly from the base
 # :class:`~.CategoricalState` class.
 #
-# While the category will remain the same, a :class:`~.CategoricalTransitionModel` is used here
-# for the sake of demonstration.
-#
 # The category and timings for one of the ground truth paths will be printed.
 
-from stonesoup.models.transition.categorical import CategoricalTransitionModel
-from stonesoup.types.groundtruth import CategoricalGroundTruthState
-from stonesoup.types.groundtruth import GroundTruthPath
-
-category_transition = CategoricalTransitionModel(transition_matrix=np.eye(3),
-                                                 transition_covariance=0.1 * np.eye(3))
+transition_matrix = np.array([[0.8, 0.2],  # P(bike | bike), P(bike | car)
+                              [0.4, 0.6]])  # P(car | bike), P(car | car)
+category_transition = MarkovianTransitionModel(transition_matrix=transition_matrix)
 
 start = datetime.now()
 
-hidden_classes = ['bike', 'car', 'bus']
+hidden_classes = ['bike', 'car']
 
 # Generating ground truth
 ground_truths = list()
-for i in range(1, 4):
-    state_vector = np.zeros(3)  # create a vector with 3 zeroes
-    state_vector[np.random.choice(3, 1, p=[1/3, 1/3, 1/3])] = 1  # pick a random class out of the 3
+for i in range(1, 4):  # 4 targets
+    state_vector = np.zeros(2)  # create a vector with 2 zeroes
+    state_vector[np.random.choice(2, 1, p=[1 / 2, 1 / 2])] = 1  # pick a random class out of the 2
     ground_truth_state = CategoricalGroundTruthState(state_vector,
                                                      timestamp=start,
-                                                     category_names=hidden_classes)
+                                                     categories=hidden_classes)
 
     ground_truth = GroundTruthPath([ground_truth_state], id=f"GT{i}")
 
@@ -71,7 +75,7 @@ for i in range(1, 4):
         new_state = CategoricalGroundTruthState(
             new_vector,
             timestamp=ground_truth[-1].timestamp + timedelta(seconds=1),
-            category_names=hidden_classes
+            categories=hidden_classes
         )
 
         ground_truth.append(new_state)
@@ -86,29 +90,26 @@ for states in np.vstack(ground_truths).T:
 # %%
 # Measurement
 # ^^^^^^^^^^^
-# Using a Hidden markov model, it is assumed the hidden class of a target cannot be directly
-# observed, and instead indirect observations are taken. In this instance, observations of the
-# targets' sizes are taken ('small' or 'large'), which have direct implications as to the targets'
-# hidden classes, and this relationship is modelled by the `emission matrix` of the
-# :class:`~.CategoricalMeasurementModel`, which is used by the :class:`~.CategoricalSensor` to
+# Using a Hidden markov model, it is assumed the true class of a target cannot be directly
+# observed (hence 'hidden'), and instead observations that are dependent on this class are taken.
+# In this instance, observations of the targets' sizes are taken ('small', 'medium' or 'large').
+# The relationship between true class and observed size is modelled by the `emission matrix` of the
+# :class:`~.MarkovianMeasurementModel`, which is used by the :class:`~.HMMSensor` to
 # provide :class:`~.CategoricalDetection` types.
 # We will model this such that a 'bike' has a very small chance of being observed as a 'big'
-# target. Similarly, a 'bus' will tend to appear as 'large'. Whereas, a 'car' has equal chance of
-# being observed as either.
+# target etc.
 
-from stonesoup.models.measurement.categorical import CategoricalMeasurementModel
-from stonesoup.sensor.categorical import CategoricalSensor
+from stonesoup.models.measurement.categorical import MarkovianMeasurementModel
+from stonesoup.sensor.categorical import HMMSensor
 
-E = np.array([[0.99, 0.01],  # P(small | bike)  P(large | bike)
-              [0.5, 0.5],
-              [0.01, 0.99]])
-model = CategoricalMeasurementModel(ndim_state=3,
-                                    emission_matrix=E,
-                                    emission_covariance=0.1 * np.eye(2),
-                                    mapping=[0, 1, 2])
+E = np.array([[0.8, 0.1],  # P(small | bike), P(small | car)
+              [0.19, 0.3],  # P(medium | bike), P(medium | car)
+              [0.01, 0.6]])  # P(large | bike), P(large | car)
 
-eo = CategoricalSensor(measurement_model=model,
-                       category_names=['small', 'large'])
+model = MarkovianMeasurementModel(emission_matrix=E,
+                                  measurement_categories=['small', 'medium', 'large'])
+
+eo = HMMSensor(measurement_model=model)
 
 # Generating measurements
 measurements = list()
@@ -129,9 +130,14 @@ for index, states in enumerate(np.vstack(ground_truths).T):
 # %%
 # Predictor
 # ---------
-# A :class:`~.HMMPredictor` specifically uses :class:`~.CategoricalTransitionModel` types to
+# A :class:`~.HMMPredictor` specifically uses :class:`~.MarkovianTransitionModel` types to
 # predict.
 from stonesoup.predictor.categorical import HMMPredictor
+
+# It would be cheating to use the same transition model as in ground truth generation!
+transition_matrix = np.array([[0.81, 0.19],  # P(bike | bike), P(bike | car)
+                              [0.39, 0.61]])  # P(car | bike), P(car | car)
+category_transition = MarkovianTransitionModel(transition_matrix=transition_matrix)
 
 predictor = HMMPredictor(category_transition)
 
@@ -145,13 +151,13 @@ updater = HMMUpdater()
 # %%
 # Hypothesiser
 # ------------
-# A :class:`~.CategoricalHypothesiser` is used for calculating categorical hypotheses.
+# A :class:`~.HMMHypothesiser` is used for calculating categorical hypotheses.
 # It utilises the :class:`~.ObservationAccuracy` measure: a multi-dimensional extension of an
 # 'accuracy' score, essentially providing a measure of the similarity between two categorical
 # distributions.
-from stonesoup.hypothesiser.categorical import CategoricalHypothesiser
+from stonesoup.hypothesiser.categorical import HMMHypothesiser
 
-hypothesiser = CategoricalHypothesiser(predictor=predictor, updater=updater)
+hypothesiser = HMMHypothesiser(predictor=predictor, updater=updater)
 
 # %%
 # Data Associator
@@ -169,16 +175,17 @@ data_associator = GNNWith2DAssignment(hypothesiser)
 # might take (the category names are also provided here).
 from stonesoup.types.state import CategoricalState
 
-prior = CategoricalState([1 / 3, 1 / 3, 1 / 3], category_names=hidden_classes)
+prior = CategoricalState([1 / 2, 1 / 2], categories=hidden_classes)
 
 # %%
 # Initiator
 # ---------
 # For each unassociated detection, a new track will be initiated. In this instance we use a
-# :class:`~.SimpleCategoricalInitiator`, which specifically handles categorical state priors.
-from stonesoup.initiator.categorical import SimpleCategoricalInitiator
+# :class:`~.SimpleCategoricalMeasurementInitiator`, which specifically handles categorical state
+# priors.
+from stonesoup.initiator.categorical import SimpleCategoricalMeasurementInitiator
 
-initiator = SimpleCategoricalInitiator(prior_state=prior, measurement_model=None)
+initiator = SimpleCategoricalMeasurementInitiator(prior_state=prior, updater=updater)
 
 # %%
 # Deleter
@@ -247,3 +254,28 @@ for true_classification in true_classifications:
 
 print(f"Excess tracks: {excess_tracks}")
 print(f"No. correct classifications: {num_correct_classifications}")
+
+# %%
+# Plotting
+# ^^^^^^^^
+# Plotting the probability that each one of our targets and tracks is a 'bike' will help to
+# visualise this 2-hidden class problem.
+#
+# Dotted lines indicate ground truth probabilities, and solid lines for tracks.
+
+import matplotlib.pyplot as plt
+
+
+def plot(path, style):
+    times = list()
+    probs = list()
+    for state in path:
+        times.append(state.timestamp)
+        probs.append(state.state_vector[0])
+    plt.plot(times, probs, linestyle=style)
+
+
+for truth in ground_truths:
+    plot(truth, '--')
+for track in tracks:
+    plot(track, '-')

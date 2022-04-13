@@ -1,118 +1,97 @@
 # -*- coding: utf-8 -*-
-from typing import Union, Sequence
+from typing import Sequence
 
 import numpy as np
-from scipy.stats import multinomial
 
-from .base import MeasurementModel
+from ..measurement import MeasurementModel
 from ...base import Property
-from ...types.array import Matrix, StateVector, StateVectors, CovarianceMatrix
+from ...types.array import Matrix, StateVector
 
 
-class CategoricalMeasurementModel(MeasurementModel):
-    r"""Measurement model which returns a category.
-    This is a time invariant model for simple observations of a state.
-    A measurement can take one of a finite number of observation categories
-    :math:`Y = \{y_k|k\in Z_{\gt0}\}` and a measurement vector :math:`(z_k)_i = P(y_i, k)` will
-    define a categorical distribution over these categories. Measurements are generated via random
-    sampling.
+class MarkovianMeasurementModel(MeasurementModel):
+    r"""The measurement model for categorical states
+
+    This is a time invariant, measurement model of a hidden Markov process.
+
+    A measurement can take one of a finite number of observable categories
+    :math:`Z = \{\zeta^n|n\in \mathbf{N}, n\le N\}` (for some finite :math:`N`). A measurement
+    vector represents a categorical distribution over :math:`Z`.
+
+    .. math::
+        \mathbf{y}_t^i = P(\zeta_t^i)
+
+    A state space vector takes the form :math:`\alpha_t^i = P(\phi_t^i)`, representing a
+    categorical distribution over a discrete, finite set of possible categories
+    :math:`\Phi = \{\phi^m|m\in \mathbf{N}, m\le M\}` (for some finite :math:`M`).
+
+    It is assumed that a measurement is independent of everything but the true state of a target.
 
     Intended to be used in conjunction with the :class:`~.CategoricalState` type.
     """
     emission_matrix: Matrix = Property(
-        doc=r"The emission matrix defining emission probability "
-            r":math:`(E_k)_{ij} = P(z_{j}, k | \phi_{i}, k)` (the probability of receiving an "
-            r"observation :math:`z` from state :math:`x_{k_j} = P(\phi_j, k)`. "
-            r"Rows of the matrix must sum to 1.")
-    emission_covariance: CovarianceMatrix = Property(doc="Emission covariance.")
-    mapping: Sequence[int] = Property(default=None,
-                                      doc="Mapping between measurement and state dims.")
+        doc=r"Matrix of emission/output probabilities "
+            r":math:`E_t^{ij} = E^{ij} = P(\zeta_t^i | \phi_t^j)`, determining the conditional "
+            r"probability that a measurement is category :math:`\zeta^i` at 'time' :math:`t` "
+            r"given that the true state category is :math:`\phi^j` at 'time' :math:`t`. "
+            r"Columns will be normalised.")
+    measurement_categories: Sequence[str] = Property(doc="Sequence of measurement category names. "
+                                                         "Defaults to a list of integers",
+                                                     default=None)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        for i, row in enumerate(self.emission_matrix):
-            if not np.isclose(np.sum(row), 1):
-                raise ValueError(f"Row {i} of emission matrix does not sum to 1")
+        # Normalise matrix columns
+        self.emission_matrix = self.emission_matrix / np.sum(self.emission_matrix, axis=0)
 
-        if self.mapping is None:
-            self.mapping = np.arange(self.ndim_state)
-        elif len(self.mapping) != np.shape(self.emission_matrix)[0]:
-            raise ValueError(f"Emission matrix maps from {np.shape(self.emission_matrix)[0]} "
-                             f"elements of the state space, but the mapping is length "
-                             f"{len(self.mapping)}")
+        if self.measurement_categories is None:
+            self.measurement_categories = list(map(str, range(self.ndim_meas)))
 
-    @property
-    def ndim_meas(self):
-        """Number of observation dimensions/categories."""
-        return self.emission_matrix.shape[1]
+        if len(self.measurement_categories) != self.ndim_meas:
+            raise ValueError(
+                f"ndim_meas of {self.ndim_meas} does not match number of measurement categories "
+                f"{len(self.measurement_categories)}"
+            )
 
-    def _cond_prob_emission(self, state, noise=False, **kwargs):
-        """This function returns the probability of each observation category conditioned on the
-        input state, :math:`(p(z_j|x_i) p(x_i)` (this should come out normalised).
-        Noise is additive, and used by transforming resultant vectors using a logit function."""
+    def function(self, state, **kwargs):
+        r"""Applies the linear transformation:
 
-        if type(noise) is bool and noise:
-            noise = self.rvs()
-        elif not noise:
-            noise = 0
-        else:
-            raise ValueError("Noise is generated via random sampling, and defined noise is not "
-                             "implemented")
+        .. math::
+            E^{ij}\alpha_{t-1}^j = P(\zeta_t^i|\phi_t^j)P(\phi_t^j)
 
-        hp = self.emission_matrix.T @ state.state_vector[self.mapping]
-
-        with np.errstate(divide='ignore', over='ignore', under='ignore'):
-            if any(hp == 1):
-                y = hp.astype(float)
-                y[hp == 1] = np.finfo(np.float64).max
-                y[hp == 0] = np.finfo(np.float64).min
-            else:
-                y = np.log(hp / (1 - hp))
-
-            y += noise
-
-            p = 1 / (1 + np.exp(-y))
-            return p / np.sum(p)
-
-    def function(self, state, noise=False, **kwargs):
-        r"""Observation function
+        The resultant vector is normalised.
 
         Parameters
         ----------
         state: :class:`~.CategoricalState`
-            An input (hidden class) state, where the state vector defines a categorical
-            distribution over the set of possible hidden states
-            :math:`\Phi = \{\phi_m|m\in Z_{\gt0}\}`.
-        noise: bool
-            If 'True', additive noise (generated via random sampling) will be included. Noise
-            vectors cannot be defined beforehand. Only a boolean value is valid.
+            The state to be measured.
 
         Returns
         -------
         state_vector: :class:`stonesoup.types.array.StateVector`
             of shape (:py:attr:`~ndim_meas, 1`). The resultant measurement vector.
-            The resultant vector represents a categorical distribution over the set of possible
-            measurement categories. A definitive measurement category is chosen, hence the vector
-            will be binary.
         """
-        cond_prob_emission = self._cond_prob_emission(state, noise=noise, **kwargs)
-        rv = multinomial(n=1, p=cond_prob_emission.flatten())
-        if noise:
-            return StateVector(rv.rvs(size=1, random_state=None))
-        else:
-            return StateVector(cond_prob_emission)
 
-    def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
-        """Additive noise."""
-        omega = np.random.multivariate_normal(np.zeros(self.ndim),
-                                              self.emission_covariance,
-                                              size=num_samples)
-        return StateVectors(omega).T
+        meas_vector = self.emission_matrix @ state.state_vector
+        meas_vector = meas_vector / np.sum(meas_vector)  # normalise
 
-    def pdf(self, state1, state2, **kwargs):
-        """Assumes that state 1 is a binary measurement state (i.e. one vector element is 1 and
-        the rest are zeroes).
-        Returns the probability that the emission of state 2 is state 1."""
-        Hx = self._cond_prob_emission(state2)
-        return Hx.T @ state1.state_vector
+        return StateVector(meas_vector)
+
+    @property
+    def ndim_state(self):
+        return self.emission_matrix.shape[1]
+
+    @property
+    def ndim_meas(self):
+        return self.emission_matrix.shape[0]
+
+    @property
+    def mapping(self):
+        """Assumes that all elements of the state space are considered."""
+        return np.arange(self.ndim_state)
+
+    def rvs(self):
+        raise NotImplementedError
+
+    def pdf(self):
+        raise NotImplementedError
