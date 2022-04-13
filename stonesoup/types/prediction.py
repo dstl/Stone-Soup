@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
+from typing import Sequence
 
-from stonesoup.types.state import CreatableFromState
-from ..base import Property
 from .array import CovarianceMatrix
 from .base import Type
 from .state import (State, GaussianState, ParticleState, SqrtGaussianState, InformationState,
                     TaggedWeightedGaussianState, WeightedGaussianState, CategoricalState)
+from ..base import Property
 from ..models.transition.base import TransitionModel
+from ..types.state import CreatableFromState, CompositeState
 
 
 class Prediction(Type, CreatableFromState):
@@ -123,3 +124,32 @@ class CategoricalStatePrediction(Prediction, CategoricalState):
 
 class CategoricalMeasurementPrediction(MeasurementPrediction, CategoricalState):
     """Categorical measurement prediction type"""
+
+
+class CompositePrediction(Prediction, CompositeState):
+    """Composite prediction type
+
+    Composition of :class:`~.Prediction`.
+    """
+
+    sub_states: Sequence[Prediction] = Property(
+        doc="Sequence of sub-predictions comprising the composite prediction. All sub-predictions "
+            "must have matching timestamp. Must not be empty.")
+
+
+Prediction.register(CompositeState)  # noqa: E305
+
+
+class CompositeMeasurementPrediction(MeasurementPrediction, CompositeState):
+    """Composite measurement prediction type
+
+    Composition of :class:`~.MeasurementPrediction`.
+    """
+
+    sub_states: Sequence[MeasurementPrediction] = Property(
+        default=None,
+        doc="Sequence of sub-measurement-predictions comprising the composite measurement "
+            "prediction. All sub-measurement-predictions must have matching timestamp.")
+
+
+MeasurementPrediction.register(CompositeState)  # noqa: E305

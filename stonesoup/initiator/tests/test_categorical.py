@@ -1,57 +1,52 @@
 # -*- coding: utf-8 -*-
+
 from datetime import datetime
 
 import numpy as np
-import pytest
 
-from ..categorical import SimpleCategoricalInitiator
-from ...models.measurement.categorical import CategoricalMeasurementModel
-from ...models.transition.tests.test_categorical import create_categorical, \
-    create_categorical_matrix
+from ..categorical import SimpleCategoricalMeasurementInitiator
+from ...models.measurement.categorical import MarkovianMeasurementModel
+from ...types.array import StateVector
 from ...types.detection import CategoricalDetection
 from ...types.state import CategoricalState
 from ...types.update import CategoricalStateUpdate
+from ...updater.categorical import HMMUpdater
 
 
-@pytest.mark.parametrize(
-    'measurement_model',
-    [CategoricalMeasurementModel(ndim_state=3,
-                                 emission_matrix=create_categorical_matrix(3, 3),
-                                 emission_covariance=0.1 * np.eye(3),
-                                 mapping=[0, 1, 2]),
-     CategoricalMeasurementModel(ndim_state=3,
-                                 emission_matrix=create_categorical_matrix(2, 2),
-                                 emission_covariance=0.1 * np.eye(3),
-                                 mapping=[0, 1]),
-     CategoricalMeasurementModel(ndim_state=3,
-                                 emission_matrix=create_categorical_matrix(2, 2),
-                                 emission_covariance=0.1 * np.eye(3),
-                                 mapping=[0, 2]),
-     CategoricalMeasurementModel(ndim_state=3,
-                                 emission_matrix=create_categorical_matrix(2, 2),
-                                 emission_covariance=0.1 * np.eye(3),
-                                 mapping=[2, 0])
-     ],
-    ids=['[0, 1, 2]', '[0, 1]', '[0, 2]', '[2, 0]'])
-def test_categorical_initiator(measurement_model):
+def test_categorical_initiator():
+    E = np.array([[30, 25, 5],
+                  [20, 25, 10],
+                  [10, 25, 80],
+                  [40, 25, 5]])
+
+    measurement_categories = ['red', 'green', 'blue', 'yellow']
+
+    measurement_model = MarkovianMeasurementModel(E, measurement_categories=measurement_categories)
+
+    updater = HMMUpdater(measurement_model)
+
     now = datetime.now()
 
     # Prior state information
-    prior_state = CategoricalState([1 / 3, 1 / 3, 1 / 3], category_names=['red', 'green', 'blue'])
+    prior_state = CategoricalState([80, 10, 10], timestamp=now)
 
-    ndim_meas = measurement_model.ndim_meas
+    detection1 = CategoricalDetection(StateVector([10, 20, 30, 40]),
+                                      timestamp=now,
+                                      categories=measurement_categories)
+    detection2 = CategoricalDetection(StateVector([40, 30, 20, 10]),
+                                      timestamp=now,
+                                      categories=measurement_categories)
+    detection3 = CategoricalDetection(StateVector([10, 40, 40, 10]),
+                                      timestamp=now,
+                                      categories=measurement_categories)
+    detections = {detection1, detection2, detection3}
 
-    measurements = [CategoricalDetection(create_categorical(ndim_meas), timestamp=now,
-                                         measurement_model=measurement_model),
-                    CategoricalDetection(create_categorical(ndim_meas), timestamp=now)]
+    initiator = SimpleCategoricalMeasurementInitiator(prior_state=prior_state, updater=updater)
 
-    initiator = SimpleCategoricalInitiator(prior_state, measurement_model=measurement_model)
+    tracks = initiator.initiate(detections)
 
-    tracks = initiator.initiate(measurements, now)
-
-    assert len(tracks) == 2
+    assert len(tracks) == 3
     for track in tracks:
         assert len(track) == 1
         assert isinstance(track.state, CategoricalStateUpdate)
-
-    assert set(measurements) == set(track.state.hypothesis.measurement for track in tracks)
+        assert track.state.hypothesis.measurement in detections

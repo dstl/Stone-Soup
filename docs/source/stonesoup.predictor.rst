@@ -25,6 +25,12 @@ Categorical
 .. automodule:: stonesoup.predictor.categorical
     :show-inheritance:
 
+Composite
+---------
+
+.. automodule:: stonesoup.predictor.composite
+    :show-inheritance:
+
 Information
 -----------
 
