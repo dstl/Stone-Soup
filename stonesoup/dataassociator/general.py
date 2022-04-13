@@ -1,8 +1,8 @@
-
+from abc import abstractmethod
 
 from stonesoup.dataassociator.base import Associator
-from stonesoup.types.association import  AssociationSet
-from typing import Set, List, Callable, Any, Union
+from stonesoup.types.association import AssociationSet
+from typing import Set, List, Union
 import numpy as np
 from stonesoup.base import Property, Base
 from stonesoup.measures import GenericMeasure
@@ -12,11 +12,18 @@ from stonesoup.types.association import Association
 
 class GeneralAssociationGate(Base):
 
+    @abstractmethod
+    def __call__(self, item1, item2) -> bool:
+        raise NotImplementedError
+
+
+class MeasureThresholdGate(GeneralAssociationGate):
+
     minimise_measure: bool = Property(default=True)
     association_threshold: float = Property()
     measure: GenericMeasure = Property()
 
-    def pass_gate(self, item1, item2) -> bool:
+    def __call__(self, item1, item2) -> bool:
         distance_measure = self.measure(item1, item2)
         if self.minimise_measure:
             return distance_measure <= self.association_threshold
@@ -24,11 +31,11 @@ class GeneralAssociationGate(Base):
             return self.association_threshold <= distance_measure
 
 
-class GeneralAssociator(Associator):
+class OneToOneAssociatorWithGates(Associator):
 
-    gates: List[Callable[[Any, Any], bool]] = Property(default=[])
+    gates: List[GeneralAssociationGate] = Property(default=None)
 
-    doesnt_pass_gate: Union[int, float, complex, np.number] = Property(default=None)
+    fail_gate_value: Union[int, float, complex, np.number] = Property(default=None)
 
     measure: GenericMeasure = Property()
     association_threshold: float = Property(default=None)
@@ -38,11 +45,14 @@ class GeneralAssociator(Associator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if self.doesnt_pass_gate is None:
+        if self.gates is None:
+            self.gates = []
+
+        if self.fail_gate_value is None:
             if self.maximise_measure:
-                self.doesnt_pass_gate = 0
+                self.fail_gate_value = 0
             else:
-                self.doesnt_pass_gate = np.inf
+                self.fail_gate_value = np.inf
 
         if self.association_threshold is None:
             if self.maximise_measure:
@@ -118,58 +128,13 @@ class GeneralAssociator(Associator):
     def individual_weighting(self, a, b):
 
         for gate in self.gates:
-            if gate(a, b):
-                return self.doesnt_pass_gate
+            if not gate(a, b):
+                return self.fail_gate_value
 
         return self.measure(a, b)
 
 
-def words_association_example():
 
-    class LetterMeasure(GenericMeasure):
-
-        def __call__(self, item1: str, item2: str) -> float:
-            r"""
-            Compute the distance between a pair of :class:`~.str` objects
-
-            Parameters
-            ----------
-            item1 : str
-            item2 : str
-
-            Returns
-            -------
-            float
-                distance measure between a pair of input objects
-
-            """
-            measure = 0
-            for letter1 in item1:
-                if letter1 in item2:
-                    measure = measure + 1
-
-            return measure
-
-    words1 = ["aaaaa", "bbbab", "abcdef", "ccccc", "zzzzz", "aaa"]
-    words2 = ["aaaba", "cdef", "bbc", "cbbc", "ppppp"]
-
-    ga = GeneralAssociator(measure=LetterMeasure(),
-                           maximise_weighting=True,
-                           association_threshold=0.1)
-
-    associations, unassociated_a, unassociated_b = ga.associate(words1, words2)
-
-    for assoc in associations.associations:
-        print(*assoc.objects)
-
-    print("Not Associated in A: ", unassociated_a)
-    print("Not Associated in B: ", unassociated_b)
-
-    five = 5
-
-
-if __name__ == '__main__':
-    words_association_example()
 
 
 
