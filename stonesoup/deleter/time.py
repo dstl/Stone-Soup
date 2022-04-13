@@ -27,8 +27,8 @@ class UpdateTimeStepsDeleter(Deleter):
         Returns
         -------
         bool
-            `True` if track has an :class:`~.Update` with measurements within
-            time steps; `False` otherwise.
+            `False` if track has an :class:`~.Update` with measurements within
+            time steps; `True` otherwise.
         """
         return not any(isinstance(state, Update) and state.hypothesis
                        for state in track[-self.time_steps_since_update:])
@@ -57,8 +57,8 @@ class UpdateTimeDeleter(Deleter):
         Returns
         -------
         bool
-            `True` if track has an :class:`~.Update` with measurements within
-            time; `False` otherwise.
+            `False` if track has an :class:`~.Update` with measurements within
+            time; `True` otherwise.
         """
         if timestamp is None:
             timestamp = track.timestamp
