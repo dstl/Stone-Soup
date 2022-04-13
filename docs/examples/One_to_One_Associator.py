@@ -119,8 +119,8 @@ def track_association_example():
 
     from stonesoup.plotter import Plotter
     plotter = Plotter()
-    plotter.plot_tracks(tracks_a, mapping=[0, 1], track_label="Tracks A")
-    plotter.plot_tracks(tracks_b, mapping=[0, 1], track_label="Tracks B")
+    plotter.plot_tracks(tracks_a, mapping=[0, 1], track_label="Tracks A", same_colour=True)
+    plotter.plot_tracks(tracks_b, mapping=[0, 1], track_label="Tracks B", same_colour=True)
 
     import matplotlib.pyplot as plt
     plt.show()
