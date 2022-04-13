@@ -1,13 +1,18 @@
 from abc import abstractmethod
+from operator import attrgetter
+from datetime import datetime
+from statistics import mean
 
 from stonesoup.dataassociator.base import Associator
 from stonesoup.types.association import AssociationSet
-from typing import Set, List, Union
+from typing import Set, List, Union, Tuple, Dict, Optional
 import numpy as np
 from stonesoup.base import Property, Base
-from stonesoup.measures import GenericMeasure
+from stonesoup.measures import GenericMeasure, Measure
 from stonesoup.dataassociator._assignment import assign2D
 from stonesoup.types.association import Association
+from stonesoup.types.track import Track
+from stonesoup.types.state import State
 
 
 class GeneralAssociationGate(Base):
@@ -31,6 +36,35 @@ class MeasureThresholdGate(GeneralAssociationGate):
             return self.association_threshold <= distance_measure
 
 
+class RecentTrackMeasure(GenericMeasure):
+    state_measure: Measure = Property()
+    max_timestep_to_look_back: int = Property(default=10)
+
+    def __call__(self, track1: Track, track2: Track) -> Optional[float]:
+
+        track_1_dict: Dict[datetime, State] = \
+            {state.timestamp: state for i, state in enumerate(reversed(track1.states))
+             if i < self.max_timestep_to_look_back}
+
+        track_2_dict = {state.timestamp: state for i, state in enumerate(reversed(track2.states)) if
+                        i < self.max_timestep_to_look_back}
+
+        all_times = set(track_1_dict.keys()) | set(track_2_dict.keys())
+
+        measures = []
+        for time in all_times:
+            state1 = track_1_dict.get(time)
+            state2 = track_2_dict.get(time)
+
+            if state1 is not None and state2 is not None:
+                measures.append(self.state_measure(state1, state2))
+
+        if len(measures) != 0:
+            return mean(measures)
+        else:
+            return None
+
+
 class OneToOneAssociatorWithGates(Associator):
 
     gates: List[GeneralAssociationGate] = Property(default=None)
@@ -52,16 +86,16 @@ class OneToOneAssociatorWithGates(Associator):
             if self.maximise_measure:
                 self.fail_gate_value = 0
             else:
-                self.fail_gate_value = np.inf
+                self.fail_gate_value = 1e6
 
         if self.association_threshold is None:
             if self.maximise_measure:
                 self.association_threshold = 0
             else:
-                self.association_threshold = np.inf
+                self.association_threshold = 1e6
 
     def associate(self, objects_a: Set, objects_b: Set) \
-            -> AssociationSet:
+            -> Tuple[AssociationSet, Set, Set]:
         """Associate two sets of tracks together.
 
         Parameters
@@ -131,7 +165,11 @@ class OneToOneAssociatorWithGates(Associator):
             if not gate(a, b):
                 return self.fail_gate_value
 
-        return self.measure(a, b)
+        measure_output = self.measure(a, b)
+        if measure_output is None:
+            return self.fail_gate_value
+        else:
+            return measure_output
 
 
 
