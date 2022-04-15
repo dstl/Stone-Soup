@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-from ..groundtruth import GroundTruthState, GroundTruthPath
+from ..groundtruth import GroundTruthState, GroundTruthPath, CategoricalGroundTruthState, \
+    CompositeGroundTruthState
 
 
 def test_groundtruthpath():
@@ -28,3 +29,11 @@ def test_groundtruthpath():
 
     del groundtruth_path[0]
     assert state2 not in groundtruth_path
+
+
+def test_composite_groundtruth():
+    sub_state1 = GroundTruthState([0], metadata={'colour': 'red'})
+    sub_state2 = GroundTruthState([1], metadata={'speed': 'fast'})
+    sub_state3 = CategoricalGroundTruthState([0.6, 0.4], metadata={'shape': 'square'})
+    state = CompositeGroundTruthState(sub_states=[sub_state1, sub_state2, sub_state3])
+    assert state.metadata == {'colour': 'red', 'speed': 'fast', 'shape': 'square'}

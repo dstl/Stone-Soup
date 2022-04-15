@@ -17,7 +17,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
+          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "setup.py" }}
       - run:
           name: Install Dependencies
           command: |
@@ -28,7 +28,7 @@ jobs:
       - save_cache:
           paths:
             - ./venv
-          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
+          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "setup.py" }}
       - run:
           name: Run Tests
           command: |
@@ -64,7 +64,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: dependencies-{{ .Environment.CACHE_VERSION }}-test-310-{{ checksum "setup.py" }}
+          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "setup.py" }}
       - run:
           name: Install Dependencies
           command: |
@@ -75,7 +75,7 @@ jobs:
       - save_cache:
           paths:
             - ./venv
-          key: dependencies-{{ .Environment.CACHE_VERSION }}-test-310-{{ checksum "setup.py" }}
+          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "setup.py" }}
       - run:
           name: Build Docs
           command: |

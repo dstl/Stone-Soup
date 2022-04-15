@@ -478,39 +478,31 @@ class CategoricalState(State):
     r"""CategoricalState type.
 
     State object representing an object in a categorical state space. A state vector
-    :math:`\mathbf{x}_i = P(\phi_i)` defines a categorical distribution over a finite set of
-    discrete categories :math:`\Phi = \{\phi_m|m\in Z_{\ge0}\}`."""
+    :math:`\mathbf{\alpha}_t^i = P(\phi_t^i)` defines a categorical distribution over a finite set
+    of discrete categories :math:`\Phi = \{\phi^m|m\in \mathbf{N}, m\le M\}` for some finite
+    :math:`M`."""
 
-    category_names: Sequence[str] = Property(
-        default=None,
-        doc="Sequence of category names corresponding to each state vector component. Defaults to "
-            "a list of integers."
-    )
+    categories: Sequence[float] = Property(doc="Category names. Defaults to a list of integers.",
+                                           default=None)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Check there is a category name for each state vector component
-        if self.category_names and len(self.category_names) != self.ndim:
-            raise ValueError(f"{len(self.category_names)} category names were given for a state "
-                             f"vector with {self.ndim} elements")
+        self.state_vector = self.state_vector / np.sum(self.state_vector)  # normalise state vector
 
-        # Build default list of integers if no category names given
-        if self.category_names is None:
-            self.category_names = list(range(self.ndim))
+        if self.categories is None:
+            self.categories = list(map(str, range(self.ndim)))
 
-        # Check all vector elements are valid probabilities
-        if any(p < 0 or p > 1 for p in self.state_vector):
-            raise ValueError("Category probabilities must lie in the closed interval [0, 1]")
-
-        # Check vector is normalised
-        if not np.isclose(np.sum(self.state_vector), 1):
-            raise ValueError("Category probabilities must sum to 1")
+        if len(self.categories) != self.ndim:
+            raise ValueError(
+                f"ndim of {self.ndim} does not match number of categories {len(self.categories)}"
+            )
 
     def __str__(self):
         strings = [f"P({category}) = {p}"
-                   for category, p in zip(self.category_names, self.state_vector)]
-        return f"({', '.join(strings)})"
+                   for category, p in zip(self.categories, self.state_vector)]
+        string = ',\n'.join(strings)
+        return string
 
     @property
     def category(self):
@@ -631,3 +623,86 @@ class EnsembleState(Type):
             
 State.register(EnsembleState)
 
+        """Return the name of the most likely category."""
+        return self.categories[np.argmax(self.state_vector)]
+
+
+class CompositeState(Type):
+    """Composite state type.
+
+    A composition of ordered sub-states (:class:`State`) existing at the same timestamp,
+    representing an object with a state for (potentially) multiple, distinct state spaces.
+    """
+
+    sub_states: Sequence[State] = Property(
+        doc="Sequence of sub-states comprising the composite state. All sub-states must have "
+            "matching timestamp. Must not be empty.")
+    default_timestamp: datetime.datetime = Property(
+        default=None,
+        doc="Default timestamp if no sub-states exist to attain timestamp from. Defaults to "
+            "`None`, whereby sub-states will be required to have timestamps.")
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        if len(self.sub_states) == 0:
+            raise ValueError("Cannot create an empty composite state")
+
+        self._check_timestamp()  # validate timestamps of sub-states
+
+    @property
+    def timestamp(self):
+        return self.default_timestamp
+
+    def _check_timestamp(self):
+        """Check all timestamps are equal. Replace empty sub-state timestamps with validated
+        timestamp."""
+
+        self._timestamp = None
+
+        sub_timestamps = {sub_state.timestamp
+                          for sub_state in self.sub_states
+                          if sub_state.timestamp}
+
+        if len(sub_timestamps) > 1:
+            raise ValueError("All sub-states must share the same timestamp if defined")
+
+        if (sub_timestamps and self.default_timestamp
+                and not sub_timestamps == {self.default_timestamp}):
+            raise ValueError("Sub-state timestamps and default timestamp must be the same if "
+                             "defined")
+
+        if sub_timestamps:
+            self.default_timestamp = sub_timestamps.pop()
+
+        for sub_state in self.sub_states:
+            sub_state.timestamp = self.default_timestamp
+
+    @property
+    def state_vectors(self):
+        return [state.state_vector for state in self.sub_states]
+
+    @property
+    def state_vector(self):
+        """A combination of the component states' state vectors."""
+        return StateVector(np.concatenate(self.state_vectors))
+
+    def __contains__(self, item):
+
+        return self.sub_states.__contains__(item)
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            return self.__class__(self.sub_states.__getitem__(index))
+        return self.sub_states.__getitem__(index)
+
+    def __iter__(self):
+        return self.sub_states.__iter__()
+
+    def __len__(self):
+        return self.sub_states.__len__()
+
+
+State.register(CompositeState)  # noqa: E305
+>>>>>>> 468cfcc32935aad3b7b9d44e43f517914987d17f

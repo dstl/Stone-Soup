@@ -1,56 +1,50 @@
 # coding: utf-8
-import datetime
 
+from datetime import datetime, timedelta
+import copy
 import numpy as np
-import pytest
 
-from ...models.transition.categorical import CategoricalTransitionModel
-from ...models.transition.tests.test_categorical import create_categorical, \
-    create_categorical_matrix
+from ...models.transition.categorical import MarkovianTransitionModel
 from ...predictor.categorical import HMMPredictor
-from ...types.prediction import StatePrediction, CategoricalStatePrediction
-from ...types.state import State, CategoricalState
+from ...types.prediction import CategoricalStatePrediction
+from ...types.state import CategoricalState
 
 
-@pytest.mark.parametrize('ndim_state', (2, 3, 4))
-def test_hmm_predictor(ndim_state):
-    timestamp = datetime.datetime.now()
-    timediff = 2  # 2sec
-    new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
+def test_hmm_predictor():
+    F = np.array([[50, 5, 30],
+                  [25, 90, 30],
+                  [25, 5, 30]])
+    model = MarkovianTransitionModel(F)
 
-    F = create_categorical_matrix(ndim_state, ndim_state).T  # normalised columns
-    Q = np.eye(ndim_state)
-    transition_model = CategoricalTransitionModel(F, Q)
+    predictor = HMMPredictor(model)
 
-    # Test state prediction
-    predictor = HMMPredictor(transition_model)
+    now = datetime.now()
+    interval = timedelta(seconds=1)
+    future = now + interval
 
-    # Test wrong prior type
-    with pytest.raises(ValueError, match="Prior must be a categorical state type"):
-        predictor.predict(prior=State([1, 2, 3]), timestamp=new_timestamp)
+    prior = CategoricalState([80, 10, 10], timestamp=now)
 
-    priors = [CategoricalState(create_categorical(ndim_state),
-                               timestamp=timestamp)
-              for _ in range(5)]
-    for prior in priors:
-        for next_time in [new_timestamp, None]:
-            # Evaluate prediction
-            Fx = F @ prior.state_vector
-            eval_prediction = StatePrediction(Fx / sum(Fx), timestamp=next_time)
+    # Test interval
+    assert predictor._predict_over_interval(prior, future) == interval
+    assert predictor._predict_over_interval(prior, None) is None
+    prior.timestamp = None
+    assert predictor._predict_over_interval(prior, future) is None
+    prior.timestamp = now
 
-            # Test state prediction
-            prediction = predictor.predict(prior=prior, timestamp=next_time)
+    # Test predict (with timestamp)
+    prediction = predictor.predict(prior=prior, timestamp=future)
+    assert isinstance(prediction, CategoricalStatePrediction)
+    expected_vector = model.function(prior, time_interval=interval, noise=False)
+    assert np.allclose(prediction.state_vector, expected_vector)
 
-            # Assert presence of transition model
-            assert hasattr(prediction, 'transition_model')
+    # Test predict (without timestamp)
+    prediction = predictor.predict(prior=prior, timestamp=None)
+    assert isinstance(prediction, CategoricalStatePrediction)
+    assert np.allclose(prediction.state_vector, prior.state_vector)
 
-            # Test prediction state vector
-            assert np.allclose(prediction.state_vector,
-                               eval_prediction.state_vector,
-                               0,
-                               atol=1.e-14)
-            assert prediction.timestamp == next_time
-
-            # Test prediction type
-            assert isinstance(prediction, CategoricalStatePrediction)
-            assert prediction.category_names == prior.category_names
+    # Test predict (without prior timestamp)
+    prior = copy.deepcopy(prior)  # predictor caches .predict returns
+    prior.timestamp = None
+    prediction = predictor.predict(prior=prior, timestamp=future)
+    assert isinstance(prediction, CategoricalStatePrediction)
+    assert np.allclose(prediction.state_vector, prior.state_vector)

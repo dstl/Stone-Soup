@@ -20,3 +20,8 @@ Categorical
 .. automodule:: stonesoup.initiator.categorical
     :show-inheritance:
 
+Composite
+---------
+
+.. automodule:: stonesoup.initiator.composite
+    :show-inheritance:

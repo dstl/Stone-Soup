@@ -1,98 +1,75 @@
 # coding: utf-8
+
 import datetime
 
 import numpy as np
 import pytest
 
-from ...models.measurement.categorical import CategoricalMeasurementModel
+from ...models.measurement.categorical import MarkovianMeasurementModel
 from ...models.measurement.linear import LinearGaussian
-from ...models.transition.tests.test_categorical import create_categorical, \
-    create_categorical_matrix
+from ...types.array import StateVector
 from ...types.detection import CategoricalDetection
 from ...types.hypothesis import SingleHypothesis
-from ...types.prediction import CategoricalMeasurementPrediction
-from ...types.state import CategoricalState, GaussianState
+from ...types.prediction import CategoricalMeasurementPrediction, CategoricalStatePrediction
 from ...types.update import CategoricalStateUpdate
 from ...updater.categorical import HMMUpdater
 
 
-@pytest.mark.parametrize('ndim_state', (2, 3, 4))
-@pytest.mark.parametrize('ndim_meas', (2, 3, 4))
-def test_classification_updater(ndim_state, ndim_meas):
-    now = datetime.datetime.now()
-    future = now + datetime.timedelta(seconds=5)
+def test_hmm_updater():
+    E = np.array([[30, 25, 5],
+                  [20, 25, 10],
+                  [10, 25, 80],
+                  [40, 25, 5]])
 
-    E = create_categorical_matrix(ndim_state, ndim_meas)
-    Ecov = 0.1 * np.eye(ndim_meas)
-    measurement_model = CategoricalMeasurementModel(ndim_state=ndim_state,
-                                                    emission_matrix=E,
-                                                    emission_covariance=Ecov)
+    measurement_categories = ['red', 'green', 'blue', 'yellow']
 
-    prediction = CategoricalState(create_categorical(ndim_state))
-    prediction.timestamp = future
+    measurement_model = MarkovianMeasurementModel(E, measurement_categories=measurement_categories)
 
     updater = HMMUpdater(measurement_model)
-    empty_updater = HMMUpdater()
-    wrong_updater = HMMUpdater(LinearGaussian(ndim_state=ndim_state,
-                                              mapping=[0, 1],
-                                              noise_covar=np.eye(ndim_state)))
+
+    now = datetime.datetime.now()
+
+    prediction = CategoricalStatePrediction([80, 10, 10], timestamp=now)
+
+    # Test check measurement model
+    assert updater._check_measurement_model(measurement_model) == measurement_model
+    assert updater._check_measurement_model(None) == measurement_model
+    updater.measurement_model = None
+    with pytest.raises(ValueError, match="No measurement model specified"):
+        updater._check_measurement_model(None)
+    updater.measurement_model = measurement_model
+    with pytest.raises(ValueError, match="HMMUpdater must be used in conjuction with "
+                                         "HiddenMarkovianMeasurementModel types"):
+        updater._check_measurement_model(LinearGaussian(np.eye(3),
+                                                        mapping=(0, 1, 2),
+                                                        noise_covar=np.eye(3)))
+
+    measurement = CategoricalDetection(StateVector([10, 20, 30, 40]),
+                                       timestamp=now,
+                                       measurement_model=measurement_model,
+                                       categories=measurement_categories)
 
     # Test measurement prediction
-    eval_measurement_prediction = measurement_model.function(prediction)
-    measurement_prediction = updater.predict_measurement(prediction)
+    measurement_prediction = updater.predict_measurement(prediction,
+                                                         measurement_model)
+    exp_measurement_prediction_vector = measurement_model.function(prediction, noise=False)
     assert isinstance(measurement_prediction, CategoricalMeasurementPrediction)
-    assert (np.allclose(measurement_prediction.state_vector,
-                        eval_measurement_prediction,
-                        0,
-                        atol=1.e-14))
+    assert np.allclose(measurement_prediction.state_vector, exp_measurement_prediction_vector)
+    assert measurement_prediction.categories == measurement_categories
 
-    E = measurement_model.emission_matrix
-    measurement = measurement_model.function(CategoricalState(create_categorical(E.shape[0])))
-    hypothesis = SingleHypothesis(
-        prediction=prediction,
-        measurement=CategoricalDetection(measurement, timestamp=future,
-                                         measurement_model=measurement_model)
-    )
+    # Test update (with/without measurement prediction)
 
-    # Test get emission matrix
-    assert (updater._get_emission_matrix(hypothesis) == E).all()
+    for hypothesis in [SingleHypothesis(prediction=prediction,
+                                        measurement=measurement),
+                       SingleHypothesis(prediction=prediction,
+                                        measurement=measurement,
+                                        measurement_prediction=measurement_prediction)]:
+        update = updater.update(hypothesis)
 
-    # Test update with and without measurement prediction
-    for meas_pred in [None, measurement_prediction]:
-        hypothesis.measurement_prediction = meas_pred
-        eval_posterior = np.multiply(prediction.state_vector, E @ measurement)
-        eval_posterior = eval_posterior / np.sum(eval_posterior)
-        posterior = updater.update(hypothesis)
+        measurement_prediction = hypothesis.measurement_prediction
+        assert isinstance(measurement_prediction, CategoricalMeasurementPrediction)
+        assert np.allclose(measurement_prediction.state_vector, exp_measurement_prediction_vector)
 
-        assert isinstance(posterior, CategoricalStateUpdate)
-        assert posterior.category_names == prediction.category_names
-        assert (np.allclose(posterior.state_vector, eval_posterior, 0, atol=1.e-14))
-        assert posterior.timestamp == prediction.timestamp
-
-        # Assert presence of measurement
-        assert hasattr(posterior, 'hypothesis')
-        assert posterior.hypothesis == hypothesis
-
-    # Test measurement model error
-    empty_hypothesis = SingleHypothesis(
-        prediction=prediction,
-        measurement=CategoricalDetection(measurement, timestamp=future)
-    )
-
-    with pytest.raises(ValueError,
-                       match="No measurement model specified"):
-        empty_updater.update(empty_hypothesis)
-    with pytest.raises(ValueError,
-                       match="Measurement model must be categorical. I.E. it must have an "
-                             "Emission matrix property for the HMMUpdater"):
-        wrong_updater.update(empty_hypothesis)
-
-    # Test non-categorical prediction
-
-    bad_hypothesis = SingleHypothesis(
-        prediction=GaussianState(create_categorical(ndim_state), np.eye(ndim_state)),
-        measurement=CategoricalDetection(measurement, timestamp=future)
-    )
-
-    with pytest.raises(ValueError, match="Prediction must be a categorical state type"):
-        updater.update(bad_hypothesis)
+        assert isinstance(update, CategoricalStateUpdate)
+        assert update.hypothesis == hypothesis
+        assert update.state_vector.shape[0] == 3

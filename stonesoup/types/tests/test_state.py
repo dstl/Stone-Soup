@@ -5,14 +5,22 @@ import numpy as np
 import pytest
 import scipy.linalg
 
-from stonesoup.types.groundtruth import GroundTruthState
-from stonesoup.types.state import CreatableFromState
 from ..angle import Bearing
+<<<<<<< HEAD
 from ..array import StateVector, StateVectors CovarianceMatrix
 from ..numeric import Probability
 from ..particle import Particle
 from ..state import State, GaussianState, ParticleState, EnsembleState, \
     StateMutableSequence, WeightedGaussianState, SqrtGaussianState, CategoricalState
+=======
+from ..array import StateVector, CovarianceMatrix
+from ..groundtruth import GroundTruthState
+from ..numeric import Probability
+from ..particle import Particle
+from ..state import CreatableFromState
+from ..state import State, GaussianState, ParticleState, StateMutableSequence, \
+    WeightedGaussianState, SqrtGaussianState, CategoricalState, CompositeState
+>>>>>>> 468cfcc32935aad3b7b9d44e43f517914987d17f
 from ...base import Property
 
 
@@ -435,29 +443,24 @@ def test_creatable_from_state_multi_base_error():
 
 def test_categorical_state():
 
-    # Test instantiation errors
-    with pytest.raises(ValueError, match="2 category names were given for a state vector with 3 "
-                                         "elements"):
-        CategoricalState(state_vector=StateVector([0.1, 0.4, 0.5]), category_names=['1', '2'])
-    with pytest.raises(ValueError, match=r"Category probabilities must lie in the closed interval "
-                                         r"\[0, 1\]"):
-        CategoricalState(state_vector=StateVector([1.1, 0.4, 0.5]))
-    with pytest.raises(ValueError, match="Category probabilities must sum to 1"):
-        CategoricalState(state_vector=StateVector([0.6, 0.7, 0.7]))
-    with pytest.raises(ValueError, match="Category probabilities must sum to 1"):
-        CategoricalState(state_vector=StateVector([0.2, 0.2, 0.3]))
+    # Test mismatched number of category names
+    with pytest.raises(ValueError, match="ndim of 3 does not match number of categories 4"):
+        CategoricalState(state_vector=StateVector([50, 60, 90]),
+                         categories=['red', 'green', 'blue', 'yellow'])
 
-    # Test defaults
-    state = CategoricalState(state_vector=StateVector([0.1, 0.4, 0.5]))
-    assert state.category_names == [0, 1, 2]
+    state = CategoricalState(state_vector=StateVector([50, 60, 90]))
 
-    # Test str
-    state = CategoricalState(state_vector=StateVector([0.1, 0.4, 0.5]),
-                             timestamp=datetime.datetime.now(),
-                             category_names=['red', 'blue', 'yellow'])
-    assert str(state) == "(P(red) = 0.1, P(blue) = 0.4, P(yellow) = 0.5)"
+    # Test normalised
+    state.state_vector == [0.25, 0.3, 0.45]
+
+    # Test default category names
+    assert state.categories == ['0', '1', '2']
+
+    # Test string
+    assert str(state) == "P(0) = 0.25,\nP(1) = 0.3,\nP(2) = 0.45"
 
     # Test category
+<<<<<<< HEAD
     assert state.category == 'yellow'
     
 def test_ensemblestate():
@@ -509,3 +512,63 @@ def test_ensemblestate_gaussian_init():
     assert isinstance(ensemble_state.timestamp,datetime.datetime)
     assert ensemble_state.timestamp == timestamp
     
+=======
+    assert state.category == '2'
+
+
+def test_composite_state_timestamp():
+    with pytest.raises(ValueError,
+                       match="All sub-states must share the same timestamp if defined"):
+        CompositeState([State([0], timestamp=1), State([0], timestamp=2)])
+    with pytest.raises(ValueError,
+                       match="Sub-state timestamps and default timestamp must be the same if "
+                             "defined"):
+        CompositeState([State([0], timestamp=1)], default_timestamp=2)
+    with pytest.raises(ValueError,
+                       match="Sub-state timestamps and default timestamp must be the same if "
+                             "defined"):
+        CompositeState([State([0], timestamp=1), State([0], timestamp=1)], default_timestamp=2)
+
+    for i in range(1, 4):
+        assert CompositeState(i * [State([0], timestamp=1)]).timestamp == 1
+        assert CompositeState(i * [State([0], timestamp=1)],
+                              default_timestamp=1).timestamp == 1
+        assert CompositeState(i * [State([0])]).timestamp is None
+
+
+def test_composite_state():
+    # Test error on empty composite
+    with pytest.raises(ValueError, match="Cannot create an empty composite state"):
+        CompositeState([])
+
+    a = State([0, 1], timestamp=1)
+    b = State([2], timestamp=1)
+    c = State([3, 4], timestamp=1)
+    sub_states = [a, b, c]
+    state = CompositeState(sub_states)
+
+    # Test state vectors
+    for actual, expected in zip(state.state_vectors,
+                                [StateVector([0, 1]), StateVector([2]), StateVector([3, 4])]):
+        assert (actual == expected).all()
+
+    # Test state vector
+    assert (state.state_vector == StateVector([0, 1, 2, 3, 4])).all()
+
+    # Test contains and getitem
+    for index, sub_state in enumerate(sub_states):
+        assert sub_state in state
+        assert state[index] is sub_state
+    assert State([5, 6], timestamp=1) not in state
+    assert "a" not in state
+    state_slice = state[1:]
+    assert isinstance(state_slice, CompositeState)
+    assert state_slice.sub_states == sub_states[1:]
+
+    # Test iter
+    for exp_sub_state, actual_sub_state in zip(sub_states, state):
+        assert exp_sub_state is actual_sub_state
+
+    # Test len
+    assert len(state) == 3
+>>>>>>> 468cfcc32935aad3b7b9d44e43f517914987d17f
