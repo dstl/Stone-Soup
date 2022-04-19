@@ -3,10 +3,15 @@ import datetime
 
 import pytest
 
-from stonesoup.sensor.radar.radar import RadarElevationBearingRangeRate
+from stonesoup.models.measurement.nonlinear import CartesianToBearingRange, \
+    CartesianToElevationBearingRange
+from stonesoup.movable import FixedMovable
+from stonesoup.sensor.radar.radar import RadarElevationBearingRangeRate, RadarBearingRange, \
+    RadarElevationBearingRange
 from stonesoup.platform import FixedPlatform
+from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from ..base import PlatformMountable
-from ..sensor import Sensor
+from ..sensor import Sensor, SensorSuite
 from ...types.array import StateVector, CovarianceMatrix
 from ...types.state import State
 
@@ -68,7 +73,7 @@ def test_changing_platform_from_default():
     position = StateVector([0, 0, 1])
     sensor = DummySensor(position=StateVector([0, 0, 1]))
 
-    platform_state = State(state_vector=position+1, timestamp=datetime.datetime.now())
+    platform_state = State(state_vector=position + 1, timestamp=datetime.datetime.now())
     platform = FixedPlatform(states=platform_state, position_mapping=[0, 1, 2])
     with pytest.raises(AttributeError):
         platform.add_sensor(sensor)
@@ -157,3 +162,70 @@ def test_sensor_assignment(radar_platform_target):
     platform.remove_sensor(radar_3)
     assert len(platform.sensors) == 2
     assert platform.sensors == (radar_1, radar_2)
+
+
+def test_informative():
+    dummy_truth1 = GroundTruthPath([GroundTruthState([1, 1, 1, 1]),
+                                    GroundTruthState([2, 1, 2, 1]),
+                                    GroundTruthState([3, 1, 3, 1])])
+    dummy_truth2 = GroundTruthPath([GroundTruthState([1, 0, -1, -1]),
+                                    GroundTruthState([1, 0, -2, -1]),
+                                    GroundTruthState([1, 0, -3, -1])])
+
+    position = State(StateVector([0, 0, 0, 0]))
+    orientation = StateVector([np.radians(90), 0, 0])
+    test_radar = RadarBearingRange(ndim_state=4,
+                                   position_mapping=(0, 2),
+                                   noise_covar=np.diag([np.radians(1) ** 2, 5 ** 2]),
+                                   movement_controller=FixedMovable(states=[position],
+                                                                    orientation=orientation,
+                                                                    position_mapping=(0, 2))
+                                   )
+    test_sensor = SensorSuite(attributes_inform=['position', 'orientation'],
+                              sensors=[test_radar])
+
+    detections = test_sensor.measure({dummy_truth1, dummy_truth2})
+
+    assert len(detections) == 2
+
+    for detection in detections:
+        assert isinstance(detection.measurement_model, CartesianToBearingRange)
+        metadata_position = detection.metadata.get('position')
+        assert np.allclose(metadata_position, position.state_vector[(0, 2), :])
+        metadata_orientation = detection.metadata.get('orientation')
+        assert np.allclose(metadata_orientation, orientation)
+
+    position2 = State(StateVector([50, 0, 50, 0]))
+    orientation2 = StateVector([np.radians(-90), np.radians(10), 0])
+    test_radar2 = RadarElevationBearingRange(ndim_state=4,
+                                             position_mapping=(0, 2, 3),
+                                             noise_covar=np.diag(
+                                                 [np.radians(10) ** 2,
+                                                  np.radians(2) ** 2,
+                                                  0.1 ** 2]
+                                             ),
+                                             movement_controller=FixedMovable(
+                                                 states=[position2],
+                                                 orientation=orientation2,
+                                                 position_mapping=(0, 2, 3)
+                                             )
+                                             )
+
+    test_sensor = SensorSuite(attributes_inform=['position', 'orientation'],
+                              sensors=[test_radar, test_radar2])
+
+    detections = test_sensor.measure({dummy_truth1, dummy_truth2})
+
+    assert len(detections) == 4
+
+    for detection in detections:
+        assert isinstance(detection.measurement_model, CartesianToBearingRange) \
+               or isinstance(detection.measurement_model, CartesianToElevationBearingRange)
+        metadata_position = detection.metadata.get('position')
+        metadata_orientation = detection.metadata.get('orientation')
+        if isinstance(detection.measurement_model, CartesianToBearingRange):
+            assert np.allclose(metadata_position, position.state_vector[(0, 2), :])
+            assert np.allclose(metadata_orientation, orientation)
+        else:
+            assert np.allclose(metadata_position, position2.state_vector[(0, 2, 3), :])
+            assert np.allclose(metadata_orientation, orientation2)
