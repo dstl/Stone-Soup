@@ -8,6 +8,7 @@ from ..hypothesiser import Hypothesiser
 from ..types.detection import Detection
 from ..types.hypothesis import Hypothesis
 from ..types.track import Track
+from ..types.association import AssociationSet
 
 
 class DataAssociator(Base):
@@ -60,4 +61,21 @@ class Associator(Base):
 
 
 class TrackToTrackAssociator(Associator):
-    """Associates two sets of :class:`~.Track` objects together"""
+    """Associates 'n' sets of :class:`~.Track` objects together"""
+
+    @abstractmethod
+    def associate_tracks(self, *tracks_sets: Set[Track]) \
+            -> AssociationSet:
+        """Associate n sets of tracks together.
+
+        Parameters
+        ----------
+        tracks_sets : n sets of :class:`~.Track` objects
+            Tracks to associate to other track sets
+
+        Returns
+        -------
+        AssociationSet
+            Contains a set of :class:`~.Association` objects
+
+        """

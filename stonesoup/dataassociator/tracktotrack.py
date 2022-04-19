@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from operator import attrgetter
-from typing import Set
+from typing import Set, Union, List
+import numpy as np
 
 from .base import TrackToTrackAssociator
 from ..base import Property
@@ -9,6 +10,8 @@ from ..types.association import AssociationSet, TimeRangeAssociation, Associatio
 from ..types.groundtruth import GroundTruthPath
 from ..types.track import Track
 from ..types.time import TimeRange
+
+from .general import OneToOneAssociatorWithGates, RecentTrackMeasure, GenericMeasure, GeneralAssociationGate
 
 
 class TrackToTrack(TrackToTrackAssociator):
@@ -361,3 +364,38 @@ class TrackIDbased(TrackToTrackAssociator):
                         associations.add(Association((track, truth)))
 
         return AssociationSet(associations)
+
+
+class OneToOneTrackAssociator(TrackToTrackAssociator, OneToOneAssociatorWithGates):
+
+    maximise_measure: bool = Property(default=False)
+
+    measure: GenericMeasure = Property(default=None)
+
+    n_states_to_compare: int = Property(default=10)
+    state_measure: Measure = Property(default=None)
+    mapping: np.ndarray = Property(
+        default=None,
+        doc="Mapping array which specifies which elements within the"
+            " state vectors are to be assessed as part of the measure"
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.measure is None:
+
+            if self.state_measure is None:
+                self.state_measure = Euclidean(mapping=self.mapping)
+
+            self.measure = RecentTrackMeasure(self.state_measure, self.n_states_to_compare)
+
+    def associate_tracks(self, *tracks_sets: Set[Track]) -> AssociationSet:
+        if len(tracks_sets) != 2:  # Should have one unique time
+            raise ValueError("There should be two sources of tracks to compare")
+
+        tracks_a, tracks_b = tracks_sets
+
+        associated_tracks, _, _ = self.associate(tracks_a, tracks_b)
+
+        return associated_tracks

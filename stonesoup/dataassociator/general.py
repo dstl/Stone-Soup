@@ -38,16 +38,16 @@ class MeasureThresholdGate(GeneralAssociationGate):
 
 class RecentTrackMeasure(GenericMeasure):
     state_measure: Measure = Property()
-    max_timestep_to_look_back: int = Property(default=10)
+    n_states_to_compare: int = Property(default=10)
 
     def __call__(self, track1: Track, track2: Track) -> Optional[float]:
 
         track_1_dict: Dict[datetime, State] = \
             {state.timestamp: state for i, state in enumerate(reversed(track1.states))
-             if i < self.max_timestep_to_look_back}
+             if i < self.n_states_to_compare}
 
         track_2_dict = {state.timestamp: state for i, state in enumerate(reversed(track2.states)) if
-                        i < self.max_timestep_to_look_back}
+                        i < self.n_states_to_compare}
 
         all_times = set(track_1_dict.keys()) | set(track_2_dict.keys())
 

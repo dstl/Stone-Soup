@@ -131,6 +131,9 @@ def track_association_example():
         association_threshold=10,
         fail_gate_value=1e6
     )
+    from stonesoup.dataassociator.tracktotrack import OneToOneTrackAssociator
+    associator = OneToOneTrackAssociator(state_measure=Euclidean(mapping=[0, 1]),
+                                         association_threshold=10)
 
     associations, unassociated_a, unassociated_b = associator.associate(tracks_a, tracks_b)
 
