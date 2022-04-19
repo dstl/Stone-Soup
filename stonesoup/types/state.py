@@ -623,9 +623,6 @@ class EnsembleState(Type):
             
 State.register(EnsembleState)
 
-        """Return the name of the most likely category."""
-        return self.categories[np.argmax(self.state_vector)]
-
 
 class CompositeState(Type):
     """Composite state type.
@@ -705,4 +702,3 @@ class CompositeState(Type):
 
 
 State.register(CompositeState)  # noqa: E305
->>>>>>> 468cfcc32935aad3b7b9d44e43f517914987d17f
