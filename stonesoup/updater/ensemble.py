@@ -128,7 +128,7 @@ class EnsembleUpdater(KalmanUpdater):
             and a timestamp.
 
         """
-        #More readible variable names
+        #Assigning more readible variable names
         hypothesis = self._check_measurement_prediction(hypothesis)
         pred_state = hypothesis.prediction
         meas_mean = hypothesis.measurement.state_vector
@@ -142,16 +142,18 @@ class EnsembleUpdater(KalmanUpdater):
                                                                        num_vectors=num_vectors)
         
         #Calculate Kalman Gain according to Jan Mandel's EnKF formulation
-        A = hypothesis.prediction.ensemble - hypothesis.prediction.mean
+        innovation_ensemble = hypothesis.prediction.ensemble - hypothesis.prediction.mean
 
-        HA = StateVectors([self.measurement_model.function(
+        meas_innovation = StateVectors([self.measurement_model.function(
             State(state_vector=col),noise=False) - self.measurement_model.function(
                 State(state_vector=hypothesis.prediction.mean),noise=False)
             for col in prior_ensemble.T])
+        
         #Calculate Kalman Gain
-        kalman_gain = 1/(num_vectors-1) * A @ HA.T @ np.linalg.inv(
-            1/(num_vectors-1)* HA @ HA.T+meas_covar)
+        kalman_gain = 1/(num_vectors-1) * innovation_ensemble @ meas_innovation @
+        np.linalg.inv(1/(num_vectors-1)* meas_innovation @ meas_innovation.T + meas_covar)
 
+        #Calculate Posterior Ensemble
         posterior_ensemble = pred_state.ensemble + \
                             kalman_gain@(measurement_ensemble -
                             hypothesis.measurement_prediction.ensemble)
