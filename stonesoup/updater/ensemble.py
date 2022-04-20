@@ -141,7 +141,7 @@ class EnsembleUpdater(KalmanUpdater):
                                                                        covar=meas_covar,
                                                                        num_vectors=num_vectors)
         
-        #Calculate Kalman Gain according to Jan Mandel's EnKF formulation
+        #Calculate Kalman Gain according to Dr. Jan Mandel's EnKF formalism.
         innovation_ensemble = hypothesis.prediction.ensemble - hypothesis.prediction.mean
 
         meas_innovation = StateVectors([self.measurement_model.function(
@@ -150,7 +150,7 @@ class EnsembleUpdater(KalmanUpdater):
             for col in prior_ensemble.T])
         
         #Calculate Kalman Gain
-        kalman_gain = 1/(num_vectors-1) * innovation_ensemble @ meas_innovation @
+        kalman_gain = 1/(num_vectors-1) * innovation_ensemble @ meas_innovation.T @ \
         np.linalg.inv(1/(num_vectors-1)* meas_innovation @ meas_innovation.T + meas_covar)
 
         #Calculate Posterior Ensemble
@@ -161,73 +161,3 @@ class EnsembleUpdater(KalmanUpdater):
         return Update.from_state(hypothesis.prediction,
                     posterior_ensemble,timestamp=hypothesis.measurement.timestamp,
                     hypothesis=hypothesis)
-    
-class EnsembleSqrtUpdater(EnsembleUpdater):
-    r"""Polynomial Chaos Expansion based Ensemble Kalman Filter Updater class
-
-    The PCEnKF (Polynomial Chaos Ensemble Kalman Filter) quantifies the state
-    with a Polynomial Chaos Expansion, a sum of orthogonal Hermite Polynomials
-    and associated coefficients.
-    
-    The coefficients of these expansions allow for easy computation of the mean
-    and covariance for an ensemble of state vectors. A new ensemble can then be
-    sampled from this mean and covariance specified by the coefficients.
-    
-    This updater class uses the EnKF updating routine to obtain the posterior
-    ensemble, then the corresponding PCE Expansion is computed for that ensemble.
-    """
-    
-    def update(self, hypothesis, **kwargs):
-        r"""The Ensemble Kalman update method. The Ensemble Square Root filter
-        propagates the mean and square root covariance through time, and samples
-        a new ensemble. This has the advantage of not peturbing the measurement
-        with statistical noise, and thus is less prone to sampling error for 
-        small ensembles.
-
-        Parameters
-        ----------
-        hypothesis : :class:`~.SingleHypothesis`
-            the prediction-measurement association hypothesis. This hypothesis
-            may carry a predicted measurement, or a predicted state. In the
-            latter case a predicted measurement will be calculated.
-
-        Returns
-        -------
-        : :class:`~.EnsembleStateUpdate`
-            The posterior state which contains an ensemble of state vectors
-            and a timestamp.
-        """
-        #More readible variable names
-        hypothesis = self._check_measurement_prediction(hypothesis)
-        pred_state = hypothesis.prediction
-        num_vectors=hypothesis.prediction.num_vectors
-        measurement = hypothesis.measurement.state_vector      
-        meas_covar = self.measurement_model.covar()
-        
-        #Calculate Kalman Gain     
-        cross_covar = pred_state.sqrt_covar @ hypothesis.measurement_prediction.sqrt_covar.T
-        innovation_covar = hypothesis.measurement_prediction.sqrt_covar @ hypothesis.measurement_prediction.sqrt_covar.T + meas_covar
-        kalman_gain = cross_covar @ np.linalg.inv(innovation_covar)
-        
-        #Calculate posterior sqrt covar
-        posterior_sqrt_covar = pred_state.sqrt_covar @ \
-                ((np.eye(num_vectors) - 
-                hypothesis.measurement_prediction.sqrt_covar.T @ 
-                np.linalg.inv(innovation_covar) @
-                hypothesis.measurement_prediction.sqrt_covar))
-        
-        #Calculate new mean and covar, then sample new ensemble
-        posterior_mean = pred_state.state_vector + \
-                         kalman_gain@(measurement - 
-                                      hypothesis.measurement_prediction.state_vector)
-        posterior_covar = posterior_sqrt_covar @ posterior_sqrt_covar.T
-        
-        posterior_ensemble = pred_state.generate_ensemble(posterior_mean,
-                                                          posterior_covar,
-                                                          hypothesis.prediction.num_vectors)
-        
-        return Update.from_state(hypothesis.prediction,
-                    posterior_ensemble,timestamp=hypothesis.measurement.timestamp,
-                    hypothesis=hypothesis)
-
-
