@@ -136,3 +136,29 @@ class CSVDetectionReader(DetectionReader, _CSVReader):
 
             # Yield remaining
             yield previous_time, detections
+
+
+class CSVDetectionReader_WAMI(CSVDetectionReader):
+    """A simple detection reader for csv files of detections.
+    CSV file must have headers, as these are used to determine which fields to use to generate
+    the detection. Detections at the same time are yielded together, and such assume file is in
+    time order.
+    Parameters
+    ----------
+    """
+    init_time: datetime = Property(doc='Initial timestamp')
+
+    def _get_time(self, row):
+        return self.init_time + timedelta(seconds=int(row[self.time_field])/1.5)
+
+    def _get_metadata(self, row):
+        if self.metadata_fields is None:
+            local_metadata = dict(row)
+            for key in list(local_metadata):
+                if key in self.state_vector_fields:
+                    del local_metadata[key]
+        else:
+            local_metadata = {field: row[field]
+                              for field in self.metadata_fields
+                              if field in row}
+        return local_metadata
