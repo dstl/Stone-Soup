@@ -8,6 +8,7 @@ from ...predictor.ensemble import EnsemblePredictor
 from ...types.state import GaussianState, EnsembleState
 from ...types.array import StateVector, CovarianceMatrix
 
+
 def test_ensemble():
     # Initialise a transition model
     transition_model = ConstantVelocity(noise_diff_coeff=0)
@@ -18,27 +19,26 @@ def test_ensemble():
     new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
     time_interval = new_timestamp - timestamp
 
-    # Define prior state  
+    # Define prior state
     mean = StateVector([[10], [10]])
     covar = CovarianceMatrix(np.eye(2))
-    gaussian_state = GaussianState(mean,covar,timestamp)
-    num_vectors = 250
-    prior_state = EnsembleState.from_gaussian_state(gaussian_state,num_vectors)
+    gaussian_state = GaussianState(mean, covar, timestamp)
+    num_vectors = 50
+    prior_state = EnsembleState.from_gaussian_state(gaussian_state, num_vectors)
     prior_ensemble = prior_state.ensemble
 
-    #Create Predictor object, run prediction
+    # Create Predictor object, run prediction
     predictor = EnsemblePredictor(transition_model)
     prediction = predictor.predict(prior_state, timestamp=new_timestamp)
-    
-    #Evaluate mean and covariance
+
+    # Evaluate mean and covariance
     eval_ensemble = transition_model.matrix(timestamp=new_timestamp,
-                                         time_interval=time_interval) @ prior_ensemble
-    eval_mean = StateVector((np.average(eval_ensemble,axis=1)))
+                                            time_interval=time_interval) @ prior_ensemble
+    eval_mean = StateVector((np.average(eval_ensemble, axis=1)))
     eval_cov = np.cov(eval_ensemble)
-    
-    #Compare evaluated mean and covariance with predictor results
+
+    # Compare evaluated mean and covariance with predictor results
     assert np.allclose(prediction.mean, eval_mean)
     assert np.allclose(prediction.ensemble, eval_ensemble)
     assert np.allclose(prediction.covar, eval_cov)
     assert prediction.timestamp == new_timestamp
-    

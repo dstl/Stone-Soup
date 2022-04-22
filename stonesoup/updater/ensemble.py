@@ -1,40 +1,29 @@
 # -*- coding: utf-8 -*-
-import numpy as np
-import scipy.linalg
+import scipy
 
 from .kalman import KalmanUpdater
 from ..base import Property
 from ..types.state import State
 from ..types.array import StateVectors
 from ..types.prediction import MeasurementPrediction
-from ..types.update import Update, EnsembleStateUpdate
+from ..types.update import Update
 from ..models.measurement import MeasurementModel
+
 
 class EnsembleUpdater(KalmanUpdater):
     r"""Ensemble Kalman Filter Updater class
 
-    The EnKF is a hybrid of the Kalman updating scheme and the 
+    The EnKF is a hybrid of the Kalman updating scheme and the
     Monte Carlo aproach of the the particle filter.
-    
-    Deliberatly structured to resemble the Vanilla Kalman Filter,
+
+    Deliberately structured to resemble the Vanilla Kalman Filter,
     :meth:`update` first calls :meth:`predict_measurement` function which
     proceeds by calculating the predicted measurement, innovation covariance
-    and measurement cross-covariance,
+    and measurement cross-covariance.
 
-    .. math::
-
-        \mathbf{z}_{k|k-1} = H_k \mathbf{x}_{k|k-1}
-
-        S_k = H_k P_{k|k-1} H_k^T + R_k
-
-        Upsilon_k = P_{k|k-1} H_k^T
-
-    where :math:`P_{k|k-1}` is the predicted state covariance.
-    :meth:`predict_measurement` returns a
-    :class:`~.EnsembleMeasurementPrediction`. The Kalman gain is then
-    calculated identically as in the Linear Kalman Filter, however the mean
-    of the ensemble is used as the representation of the system's state prediction
-    covariance.
+    The Kalman gain is then calculated identically as in the Linear Kalman
+    Filter, however the sample covariance of the ensemble is used as the
+    representation of the system's state prediction covariance.
     """
 
     measurement_model: MeasurementModel = Property(
@@ -44,7 +33,7 @@ class EnsembleUpdater(KalmanUpdater):
             "construction, or in the measurement, then error will be thrown. "
             )
 
-    def _check_measurement_prediction(self, hypothesis,**kwargs):    
+    def _check_measurement_prediction(self, hypothesis, **kwargs):
         """Check to see if a measurement prediction exists in the hypothesis.
 
         Parameters
@@ -60,24 +49,25 @@ class EnsembleUpdater(KalmanUpdater):
             the prediction-measurement association hypothesis. This hypothesis
             may carry a predicted measurement, or a predicted state. In the
             latter case a predicted measurement will be calculated.
-
         """
-        
-        # Get the predicted state from the hypothesis
+
+        # Get the predicted state out of the hypothesis
         predicted_state = hypothesis.prediction
         # If there is no measurement prediction in the hypothesis then do the
         # measurement prediction (and attach it back to the hypothesis).
         if hypothesis.measurement_prediction is None:
             # Get the measurement model out of the measurement if it's there.
-            # If not, use the one native to the updater 
+            # If not, use the one native to the updater (which might still be
+            # none)
             measurement_model = hypothesis.measurement.measurement_model
-            measurement_model = self._check_measurement_model(measurement_model)
+            measurement_model = self._check_measurement_model(
+                measurement_model)
+
             # Attach the measurement prediction to the hypothesis
             hypothesis.measurement_prediction = self.predict_measurement(
-                predicted_state=predicted_state, 
-                measurement_model=measurement_model, **kwargs)
-            return hypothesis
-    
+                predicted_state, measurement_model=measurement_model, **kwargs)
+        return hypothesis
+
     def predict_measurement(self, predicted_state, measurement_model=None,
                             **kwargs):
         r"""Predict the measurement implied by the predicted state mean
@@ -100,12 +90,15 @@ class EnsembleUpdater(KalmanUpdater):
         # native to the updater
         measurement_model = self._check_measurement_model(measurement_model)
 
-        pred_meas_ensemble = StateVectors([measurement_model.function(State(state_vector=ensemble_member),
-                                      noise=True) for ensemble_member in predicted_state.ensemble.T])
+        # Propagate each vector through the measurement model.
+        pred_meas_ensemble = StateVectors(
+                [measurement_model.function(State(state_vector=ensemble_member),
+                                            noise=True)
+                 for ensemble_member in predicted_state.ensemble.T])
 
         return MeasurementPrediction.from_state(
-            predicted_state, pred_meas_ensemble)
-    
+                   predicted_state, pred_meas_ensemble)
+
     def update(self, hypothesis, **kwargs):
         r"""The Ensemble Kalman update method. The Ensemble Kalman filter
         simply uses the Kalman Update scheme
@@ -128,36 +121,38 @@ class EnsembleUpdater(KalmanUpdater):
             and a timestamp.
 
         """
-        #Assigning more readible variable names
+        # Assigning more readible variable names
         hypothesis = self._check_measurement_prediction(hypothesis)
         pred_state = hypothesis.prediction
         meas_mean = hypothesis.measurement.state_vector
         meas_covar = self.measurement_model.covar()
         num_vectors = hypothesis.prediction.num_vectors
         prior_ensemble = hypothesis.prediction.ensemble
-        
-        #Generate an ensemble of measurements based on measurement
-        measurement_ensemble = hypothesis.prediction.generate_ensemble(mean=meas_mean,
-                                                                       covar=meas_covar,
-                                                                       num_vectors=num_vectors)
-        
-        #Calculate Kalman Gain according to Dr. Jan Mandel's EnKF formalism.
+
+        # Generate an ensemble of measurements based on measurement
+        measurement_ensemble = hypothesis.prediction.generate_ensemble(
+                                   mean=meas_mean,
+                                   covar=meas_covar,
+                                   num_vectors=num_vectors)
+
+        # Calculate Kalman Gain according to Dr. Jan Mandel's EnKF formalism.
         innovation_ensemble = hypothesis.prediction.ensemble - hypothesis.prediction.mean
 
         meas_innovation = StateVectors([self.measurement_model.function(
-            State(state_vector=col),noise=False) - self.measurement_model.function(
-                State(state_vector=hypothesis.prediction.mean),noise=False)
-            for col in prior_ensemble.T])
-        
-        #Calculate Kalman Gain
-        kalman_gain = 1/(num_vectors-1) * innovation_ensemble @ meas_innovation.T @ \
-        np.linalg.inv(1/(num_vectors-1)* meas_innovation @ meas_innovation.T + meas_covar)
+            State(state_vector=col), noise=False) - self.measurement_model.function(
+                State(state_vector=hypothesis.prediction.mean), noise=False)
+                for col in prior_ensemble.T])
 
-        #Calculate Posterior Ensemble
+        # Calculate Kalman Gain
+        kalman_gain = 1/(num_vectors-1) * innovation_ensemble @ meas_innovation.T @ \
+            scipy.linalg.inv(1/(num_vectors-1) * meas_innovation @ meas_innovation.T + meas_covar)
+
+        # Calculate Posterior Ensemble
         posterior_ensemble = pred_state.ensemble + \
-                            kalman_gain@(measurement_ensemble -
-                            hypothesis.measurement_prediction.ensemble)
+            kalman_gain @ (measurement_ensemble -
+                           hypothesis.measurement_prediction.ensemble)
 
         return Update.from_state(hypothesis.prediction,
-                    posterior_ensemble,timestamp=hypothesis.measurement.timestamp,
-                    hypothesis=hypothesis)
+                                 posterior_ensemble,
+                                 timestamp=hypothesis.measurement.timestamp,
+                                 hypothesis=hypothesis)
