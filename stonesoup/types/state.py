@@ -474,41 +474,6 @@ class ParticleState(Type):
 State.register(ParticleState)  # noqa: E305
 
 
-class CategoricalState(State):
-    r"""CategoricalState type.
-
-    State object representing an object in a categorical state space. A state vector
-    :math:`\mathbf{\alpha}_t^i = P(\phi_t^i)` defines a categorical distribution over a finite set
-    of discrete categories :math:`\Phi = \{\phi^m|m\in \mathbf{N}, m\le M\}` for some finite
-    :math:`M`."""
-
-    categories: Sequence[float] = Property(doc="Category names. Defaults to a list of integers.",
-                                           default=None)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.state_vector = self.state_vector / np.sum(self.state_vector)  # normalise state vector
-
-        if self.categories is None:
-            self.categories = list(map(str, range(self.ndim)))
-
-        if len(self.categories) != self.ndim:
-            raise ValueError(
-                f"ndim of {self.ndim} does not match number of categories {len(self.categories)}"
-            )
-
-    def __str__(self):
-        strings = [f"P({category}) = {p}"
-                   for category, p in zip(self.categories, self.state_vector)]
-        string = ',\n'.join(strings)
-        return string
-
-    @property
-    def category(self):
-        """Return the name of the most likely category"""
-        return self.category_names[np.argmax(self.state_vector)]
-    
 class EnsembleState(Type):
         """Ensemble State type
 
@@ -622,6 +587,44 @@ class EnsembleState(Type):
             return (self.ensemble - np.tile(self.mean,self.num_vectors))/np.sqrt(self.num_vectors-1)
             
 State.register(EnsembleState)
+
+
+class CategoricalState(State):
+    r"""CategoricalState type.
+
+    State object representing an object in a categorical state space. A state vector
+    :math:`\mathbf{\alpha}_t^i = P(\phi_t^i)` defines a categorical distribution over a finite set
+    of discrete categories :math:`\Phi = \{\phi^m|m\in \mathbf{N}, m\le M\}` for some finite
+    :math:`M`."""
+
+    categories: Sequence[float] = Property(doc="Category names. Defaults to a list of integers.",
+                                           default=None)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.state_vector = self.state_vector / np.sum(self.state_vector)  # normalise state vector
+
+        if self.categories is None:
+            self.categories = list(map(str, range(self.ndim)))
+
+        if len(self.categories) != self.ndim:
+            raise ValueError(
+                f"ndim of {self.ndim} does not match number of categories {len(self.categories)}"
+            )
+
+    def __str__(self):
+        strings = [f"P({category}) = {p}"
+                   for category, p in zip(self.categories, self.state_vector)]
+        string = ',\n'.join(strings)
+        return string
+
+    @property
+    def category(self):
+      """Return the name of the most likely category."""
+        return self.categories[np.argmax(self.state_vector)]
+      """Return the name of the most likely category"""
+        return self.category_names[np.argmax(self.state_vector)]
 
 
 class CompositeState(Type):

@@ -6,21 +6,15 @@ import pytest
 import scipy.linalg
 
 from ..angle import Bearing
-<<<<<<< HEAD
-from ..array import StateVector, StateVectors CovarianceMatrix
-from ..numeric import Probability
-from ..particle import Particle
-from ..state import State, GaussianState, ParticleState, EnsembleState, \
-    StateMutableSequence, WeightedGaussianState, SqrtGaussianState, CategoricalState
-=======
-from ..array import StateVector, CovarianceMatrix
+from ..array import StateVector, StateVectors, CovarianceMatrix
 from ..groundtruth import GroundTruthState
 from ..numeric import Probability
 from ..particle import Particle
 from ..state import CreatableFromState
-from ..state import State, GaussianState, ParticleState, StateMutableSequence, \
-    WeightedGaussianState, SqrtGaussianState, CategoricalState, CompositeState
->>>>>>> 468cfcc32935aad3b7b9d44e43f517914987d17f
+from ..state import State, GaussianState, ParticleState, EnsembleState, \
+    StateMutableSequence, WeightedGaussianState, SqrtGaussianState, CategoricalState, \
+    CompositeState
+
 from ...base import Property
 
 
@@ -225,6 +219,56 @@ def test_particlestate_angle():
     assert np.allclose(state.state_vector, StateVector([[np.pi], [5.]]))
     assert np.allclose(state.covar, CovarianceMatrix([[0.01, -1.5], [-1.5, 225]]))
 
+    
+    def test_ensemblestate():
+
+    # 1D
+    state_vector1 = StateVector(np.array([1.5]))
+    state_vector2 = StateVector(np.array([0.5]))
+    list_of_state_vectors = [state_vector1, state_vector2]
+    ensemble = StateVectors(list_of_state_vectors)
+    
+    # Test state without timestamp
+    state = EnsembleState(ensemble)
+    assert np.allclose(state.state_vector, StateVector([[1]]))
+    assert np.allclose(state.covar, CovarianceMatrix([[0.5]]))
+
+    # Test state with timestamp
+    timestamp = datetime.datetime(2021, 2, 25, 22, 29, 2)
+    state = EnsembleState(ensemble, timestamp=timestamp)
+    assert np.allclose(state.state_vector, StateVector([[1]]))
+    assert np.allclose(state.covar, CovarianceMatrix([[0.5]]))
+    assert state.timestamp == timestamp
+
+    # 2D
+    state_vector1 = StateVector(np.array([1.5,0.75]))
+    state_vector2 = StateVector(np.array([0.5,1.25]))
+    ensemble = StateVectors([state_vector1, state_vector2])
+
+    state = EnsembleState(ensemble)
+    assert np.allclose(state.state_vector, StateVector([[1], [1]]))
+    assert np.allclose(state.covar, CovarianceMatrix([[0.5, -0.25], [-0.25, 0.125]]))
+    assert np.allclose(state.sqrt_covar @ state.sqrt_covar.T, state.covar)
+    
+def test_ensemblestate_gaussian_init():
+    """Test initialising with an existing gaussian state object"""
+    
+    #Initialize GaussianState
+    mean = StateVector([[25], [25], [25], [25]])
+    covar = CovarianceMatrix(np.eye(4))
+    timestamp = datetime.datetime(2021, 2, 26, 16, 35, 42)
+    gaussian_state = GaussianState(mean,covar,timestamp)
+    #Generate EnsembleState
+    num_vectors = 500
+    ensemble_state = EnsembleState.from_gaussian_state(gaussian_state, num_vectors)
+
+    
+    assert isinstance(ensemble_state.state_vector,StateVector)
+    assert isinstance(ensemble_state.ensemble,StateVectors)
+    assert isinstance(ensemble_state.covar,CovarianceMatrix)
+    assert isinstance(ensemble_state.timestamp,datetime.datetime)
+    assert ensemble_state.timestamp == timestamp
+    
 
 def test_state_mutable_sequence_state():
     state_vector = StateVector([[0]])
@@ -460,62 +504,9 @@ def test_categorical_state():
     assert str(state) == "P(0) = 0.25,\nP(1) = 0.3,\nP(2) = 0.45"
 
     # Test category
-<<<<<<< HEAD
-    assert state.category == 'yellow'
-    
-def test_ensemblestate():
-
-    # 1D
-    state_vector1 = StateVector(np.array([1.5]))
-    state_vector2 = StateVector(np.array([0.5]))
-    list_of_state_vectors = [state_vector1, state_vector2]
-    ensemble = StateVectors(list_of_state_vectors)
-    
-    # Test state without timestamp
-    state = EnsembleState(ensemble)
-    assert np.allclose(state.state_vector, StateVector([[1]]))
-    assert np.allclose(state.covar, CovarianceMatrix([[0.5]]))
-
-    # Test state with timestamp
-    timestamp = datetime.datetime(2021, 2, 25, 22, 29, 2)
-    state = EnsembleState(ensemble, timestamp=timestamp)
-    assert np.allclose(state.state_vector, StateVector([[1]]))
-    assert np.allclose(state.covar, CovarianceMatrix([[0.5]]))
-    assert state.timestamp == timestamp
-
-    # 2D
-    state_vector1 = StateVector(np.array([1.5,0.75]))
-    state_vector2 = StateVector(np.array([0.5,1.25]))
-    ensemble = StateVectors([state_vector1, state_vector2])
-
-    state = EnsembleState(ensemble)
-    assert np.allclose(state.state_vector, StateVector([[1], [1]]))
-    assert np.allclose(state.covar, CovarianceMatrix([[0.5, -0.25], [-0.25, 0.125]]))
-    assert np.allclose(state.sqrt_covar @ state.sqrt_covar.T, state.covar)
-    
-def test_ensemblestate_gaussian_init():
-    """Test initialising with an existing gaussian state object"""
-    
-    #Initialize GaussianState
-    mean = StateVector([[25], [25], [25], [25]])
-    covar = CovarianceMatrix(np.eye(4))
-    timestamp = datetime.datetime(2021, 2, 26, 16, 35, 42)
-    gaussian_state = GaussianState(mean,covar,timestamp)
-    #Generate EnsembleState
-    num_vectors = 500
-    ensemble_state = EnsembleState.from_gaussian_state(gaussian_state, num_vectors)
-
-    
-    assert isinstance(ensemble_state.state_vector,StateVector)
-    assert isinstance(ensemble_state.ensemble,StateVectors)
-    assert isinstance(ensemble_state.covar,CovarianceMatrix)
-    assert isinstance(ensemble_state.timestamp,datetime.datetime)
-    assert ensemble_state.timestamp == timestamp
-    
-=======
     assert state.category == '2'
 
-
+    
 def test_composite_state_timestamp():
     with pytest.raises(ValueError,
                        match="All sub-states must share the same timestamp if defined"):
@@ -571,4 +562,4 @@ def test_composite_state():
 
     # Test len
     assert len(state) == 3
->>>>>>> 468cfcc32935aad3b7b9d44e43f517914987d17f
+

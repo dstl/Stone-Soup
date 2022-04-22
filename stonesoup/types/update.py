@@ -2,14 +2,11 @@
 from typing import Sequence
 
 from .base import Type
-from .hypothesis import Hypothesis
-from .state import State, GaussianState, ParticleState, EnsembleState, \
-                    SqrtGaussianState, InformationState, CategoricalState
 from .hypothesis import Hypothesis, CompositeHypothesis
 from .mixture import GaussianMixture
 from .state import CreatableFromState, CompositeState
-from .state import State, GaussianState, ParticleState, SqrtGaussianState, \
-    InformationState, CategoricalState
+from .state import State, GaussianState, ParticleState, EnsembleState, \
+    SqrtGaussianState, InformationState, CategoricalState
 from ..base import Property
 
 
