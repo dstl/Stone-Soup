@@ -491,7 +491,7 @@ class EnsembleState(Type):
         default=None, doc="Timestamp of the state. Default None.")
 
     @classmethod
-    def from_gaussian_state(self, gaussian_state, num_vectors, *args, **kwargs):
+    def from_gaussian_state(self, gaussian_state, num_vectors):
         """
         Returns an EnsembleState instance, from a given
         GaussianState object.
@@ -500,21 +500,19 @@ class EnsembleState(Type):
         ----------
         gaussian_state : :class:`~.GaussianState`
             The GaussianState used to create the new EnsembleState.
-        num_vectors : :type:`~.int`
+        num_vectors : `int`
             The number of desired column vectors present in the ensemble.
-
         Returns
         -------
         :class:`~.EnsembleState`
             Instance of EnsembleState.
         """
-
         mean = gaussian_state.state_vector.reshape((gaussian_state.ndim,))
         covar = gaussian_state.covar
         timestamp = gaussian_state.timestamp
 
         return EnsembleState(ensemble=self.generate_ensemble(mean, covar, num_vectors),
-                             timestamp=timestamp, *args, **kwargs)
+                             timestamp=timestamp)
 
     @classmethod
     def generate_ensemble(self, mean, covar, num_vectors):
@@ -530,16 +528,14 @@ class EnsembleState(Type):
         covar : :class:`~.numpy.ndarray`
             The covariance matrix of the distribution being sampled to
             generate ensemble.
-        num_vectors : :type:`~.int`
+        num_vectors : `int`
             The number of desired column vectors present in the ensemble,
             or the number of "samples".
-
         Returns
         -------
         :class:`~.EnsembleState`
             Instance of EnsembleState.
         """
-
         # This check is necessary, because the StateVector wrapper does
         # funny things with dimension.
         rng = np.random.default_rng()
