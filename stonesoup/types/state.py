@@ -7,7 +7,7 @@ import typing
 
 import numpy as np
 
-from .array import StateVector, CovarianceMatrix, PrecisionMatrix
+from .array import StateVector, StateVectors, CovarianceMatrix, PrecisionMatrix
 from .base import Type
 from .numeric import Probability
 from .particle import Particles
@@ -474,6 +474,121 @@ class ParticleState(Type):
 State.register(ParticleState)  # noqa: E305
 
 
+class EnsembleState(Type):
+        """Ensemble State type
+
+        This is an Ensemble state object which describes the system state as a
+        ensemble of state vectors for use in Ensemble based filters.
+        
+        This approach is functionally identical to the Particle state type except 
+        it doesn't use any weighting for any of the "particles" or ensemble members.
+        All "particles" or state vectors in the ensemble are equally weighted."""
+        
+        ensemble: StateVectors = Property(doc='''An ensemble of state vectors which represent
+                                    the state''')
+
+        timestamp: datetime.datetime = Property(
+            default=None, doc="Timestamp of the state. Default None.")
+
+        @classmethod
+        def from_gaussian_state(self, gaussian_state, num_vectors, *args, **kwargs):
+            """
+            Returns an EnsembleState instance, from a given
+            GaussianState object.
+
+            Parameters
+            ----------
+            gaussian_state : :class:`~.GaussianState`
+                The GaussianState used to create the new EnsembleState.
+            num_vectors : :type:`~.int`
+                The number of desired column vectors present in the ensemble.            
+
+            Returns
+            -------
+            :class:`~.EnsembleState`
+                Instance of EnsembleState.
+            """
+            
+            mean = gaussian_state.state_vector.reshape((gaussian_state.ndim,))
+            covar = gaussian_state.covar
+            timestamp = gaussian_state.timestamp
+
+            return EnsembleState(ensemble=self.generate_ensemble(mean,covar,num_vectors),
+                                 timestamp=timestamp,
+                                 *args, **kwargs)
+        
+        @classmethod
+        def generate_ensemble(self, mean, covar, num_vectors):
+            """
+            Returns a StateVectors wrapped ensemble of state vectors, from a given
+            mean and covariance matrix.
+
+            Parameters
+            ----------
+            mean : :class:`~.numpy.ndarray`
+                The mean value of the distribution being sampled to generate ensemble.
+            covar : :class:`~.numpy.ndarray`
+                The covariance matrix of the distribution being sampled to generate ensemble.
+            num_vectors : :type:`~.int`
+                The number of desired column vectors present in the ensemble, or the 
+                number of samples.            
+
+            Returns
+            -------
+            :class:`~.EnsembleState`
+                Instance of EnsembleState.
+            """
+            
+            #This check is necessary, because the StateVector wrapper does funny things with dimension.
+            rng = np.random.default_rng()
+            if mean.ndim != 1:
+                mean = mean.reshape(len(mean))
+            if mean.dtype == np.dtype('O'):
+                mean = np.array(mean,dtype=float)
+            try:
+                ensemble = StateVectors([StateVector((rng.multivariate_normal(mean, covar)))
+                                                 for n in range(num_vectors)])
+            #If covar is univariate, then use the univariate noise generation function.
+            except ValueError:
+                ensemble = StateVectors(
+                    [StateVector((rng.normal(mean, covar))) for n in range(num_vectors)])
+            
+            return ensemble
+        
+
+        @property
+        def ndim(self):
+            """Number of dimensions in state vectors"""
+            return np.shape(self.ensemble)[0]
+        
+        @property
+        def num_vectors(self):
+            """Number of columns in state ensemble"""
+            return np.shape(self.ensemble)[1]
+        
+        @property
+        def mean(self):
+            """The state mean, numerically equivalent to state vector"""
+            return np.average(self.ensemble,axis=1)
+
+        @property
+        def state_vector(self):
+            """State mean in StateVector wrapper."""
+            return StateVector(self.mean)
+
+        @property
+        def covar(self):
+            """Sample covariance matrix for ensemble"""
+            return np.cov(self.ensemble)
+           
+        @property
+        def sqrt_covar(self):
+            """sqrt of sample covariance matrix for ensemble, useful for some EnKF algorithms"""
+            return (self.ensemble - np.tile(self.mean,self.num_vectors))/np.sqrt(self.num_vectors-1)
+            
+State.register(EnsembleState)
+
+
 class CategoricalState(State):
     r"""CategoricalState type.
 
@@ -506,8 +621,10 @@ class CategoricalState(State):
 
     @property
     def category(self):
-        """Return the name of the most likely category."""
+      """Return the name of the most likely category."""
         return self.categories[np.argmax(self.state_vector)]
+      """Return the name of the most likely category"""
+        return self.category_names[np.argmax(self.state_vector)]
 
 
 class CompositeState(Type):
