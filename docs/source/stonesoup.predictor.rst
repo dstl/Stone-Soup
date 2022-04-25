@@ -19,6 +19,12 @@ Particle
 .. automodule:: stonesoup.predictor.particle
     :show-inheritance:
 
+Ensemble
+--------
+
+.. automodule:: stonesoup.predictor.ensemble
+    :show-inheritance:
+
 Categorical
 -----------
 
