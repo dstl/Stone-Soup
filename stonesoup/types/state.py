@@ -500,7 +500,7 @@ class EnsembleState(Type):
         ----------
         gaussian_state : :class:`~.GaussianState`
             The GaussianState used to create the new EnsembleState.
-        num_vectors : `int`
+        num_vectors : int
             The number of desired column vectors present in the ensemble.
         Returns
         -------
@@ -528,7 +528,7 @@ class EnsembleState(Type):
         covar : :class:`~.numpy.ndarray`
             The covariance matrix of the distribution being sampled to
             generate ensemble.
-        num_vectors : `int`
+        num_vectors : int
             The number of desired column vectors present in the ensemble,
             or the number of "samples".
         Returns
