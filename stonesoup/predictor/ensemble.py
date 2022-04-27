@@ -7,10 +7,16 @@ from ..types.prediction import Prediction
 
 
 class EnsemblePredictor(KalmanPredictor):
-    """Ensemble Kalman Filter Predictor class
+    r"""Ensemble Kalman Filter Predictor class
 
-    The EnKF is a hybrid of the Kalman updating scheme and the
-    Monte Carlo aproach of the the particle filter.
+    The EnKF predicts the state by treating each column of the ensemble matrix
+    as a state vector. The state is propagated through time by applying the
+    transition function to each member (vector) of the ensemble.
+
+    .. math::
+
+        \hat{X}_k = [f(x_1), f(x_2), ..., f(x_M)]
+
     """
     transition_model: TransitionModel = Property(doc="The transition model to be used.")
 

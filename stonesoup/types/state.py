@@ -475,14 +475,20 @@ State.register(ParticleState)  # noqa: E305
 
 
 class EnsembleState(Type):
-    """Ensemble State type
+    r"""Ensemble State type
 
     This is an Ensemble state object which describes the system state as a
     ensemble of state vectors for use in Ensemble based filters.
 
     This approach is functionally identical to the Particle state type except
     it doesn't use any weighting for any of the "particles" or ensemble members.
-    All "particles" or state vectors in the ensemble are equally weighted."""
+    All "particles" or state vectors in the ensemble are equally weighted.
+
+    .. math::
+
+        \mathbf{X} = [x_1, x_2, ..., x_M]
+
+    """
 
     ensemble: StateVectors = Property(doc='''An ensemble of state vectors which represent
                                 the state''')

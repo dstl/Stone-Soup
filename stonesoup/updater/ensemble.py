@@ -19,11 +19,51 @@ class EnsembleUpdater(KalmanUpdater):
     Deliberately structured to resemble the Vanilla Kalman Filter,
     :meth:`update` first calls :meth:`predict_measurement` function which
     proceeds by calculating the predicted measurement, innovation covariance
-    and measurement cross-covariance.
+    and measurement cross-covariance. Note however, these are not propagated
+    explicitly, they are derived from the sample covariance of the ensemble
+    itself.
 
-    The Kalman gain is then calculated identically as in the Linear Kalman
-    Filter, however the sample covariance of the ensemble is used as the
-    representation of the system's state prediction covariance.
+    Note that the EnKF equations are simpler when written in the following
+    formalism. Note that h is not neccisarily a matrix, but could be a
+    nonlinear measurement function.
+
+    .. math::
+
+        \mathbf{A}_k = \hat{X} - E(X)
+
+        \mathbf{HA}_k = h(\hat{X} - E(X))
+
+    The cross covariance and measurement covariance are given by:
+
+    .. math::
+
+        P_{xz} = \frac{1}{M-1} \mathbf{A}_k \mathbf{HA}_k^T
+
+        P_{zz} = \frac{1}{M-1} A_k \mathbf{HA}_k^T + R
+
+    The Kalman gain is then calculated via:
+
+    .. math::
+        K_{k} = P_{xz} P_{zz}^{-1}
+
+    and the posterior state mean and covariance are,
+
+    .. math::
+
+        \mathbf{x}_{k|k} = \mathbf{x}_{k|k-1} + K_k (\mathbf{z}_k - H_k
+        \mathbf{x}_{k|k-1})
+
+    This is returned as a :class:`~.EnsembleStateUpdate` object.
+
+    References
+    ----------
+    1. J. Hiles, S. M. O’Rourke, R. Niu and E. P. Blasch,
+    "Implementation of Ensemble Kalman Filters in Stone-Soup,"
+    International Conference on Information Fusion, (2021)
+
+    2. Mandel, Jan. "A brief tutorial on the ensemble Kalman filter."
+    arXiv preprint arXiv:0901.3725 (2009).
+
     """
 
     measurement_model: MeasurementModel = Property(
