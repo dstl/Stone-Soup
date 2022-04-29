@@ -59,10 +59,17 @@ class GaussianMixtureHypothesiser(Hypothesiser):
                                                                  **kwargs)
             for hypothesis in component_hypotheses:
                 if isinstance(component, TaggedWeightedGaussianState):
+                    # Ensure that a birth component without a measurement retains
+                    # the birth tag. This will prevent a track from being made
+                    if component.tag == 'birth' and isinstance(hypothesis.measurement, MissedDetection):
+                        tag = 'birth'
+                    elif component.tag == 'birth':
+                        tag = None # a new tag will be made
+                    else:
+                        tag = component.tag
                     hypothesis.prediction = \
                         TaggedWeightedGaussianStatePrediction(
-                            tag=component.tag if component.tag != "birth"
-                            else None,
+                            tag=tag,
                             weight=component.weight,
                             state_vector=hypothesis.prediction.state_vector,
                             covar=hypothesis.prediction.covar,
