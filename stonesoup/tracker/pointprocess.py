@@ -64,8 +64,7 @@ class PointProcessMultiTargetTracker(Tracker):
         """
         for component in self.gaussian_mixture:
             tag = component.tag
-            if tag != 0:
-                # Sanity check for birth component
+            if tag != 'birth':  # Sanity check for birth component
                 if tag in self.target_tracks:
                     # Track found, so update it
                     track = self.target_tracks[tag]
