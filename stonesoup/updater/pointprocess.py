@@ -2,6 +2,7 @@
 from abc import abstractmethod
 
 from scipy.stats import multivariate_normal
+import numpy as np
 
 from ..base import Base, Property
 from .kalman import KalmanUpdater
@@ -195,7 +196,7 @@ class LCCUpdater(PointProcessUpdater):
         misdetected_c2 = (misdetected_weight_sum**2)*l2
         self.second_order_cumulant = misdetected_c2 - detected_c2
         # Return the l1 correction factor for miss detected weight update
-        return l1
+        return np.float64(l1)
 
     @property
     def second_order_false_alarm_cumulant(self):
