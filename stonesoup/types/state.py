@@ -420,6 +420,8 @@ class TaggedWeightedGaussianState(WeightedGaussianState):
     """
     tag: str = Property(default=None, doc="Unique tag of the Gaussian State.")
 
+    BIRTH = 'birth'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.tag is None:

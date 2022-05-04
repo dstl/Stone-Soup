@@ -332,7 +332,7 @@ for truth in start_truths:
             state_vector=truth.state_vector,
             covar=covar**2,
             weight=0.25,
-            tag='birth',
+            tag=TaggedWeightedGaussianState.BIRTH,
             timestamp=start_time)
     tracks.add(Track(new_track))
 
