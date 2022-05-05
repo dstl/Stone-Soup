@@ -168,7 +168,7 @@ class TensorNetsColourBoxObjectDetector(_VideoAsyncBoxDetector):
 
                 # Split the image into RGB pixel colours and then convert them to
                 # hue, saturation, value (HSV)
-                image_np_expanded = matplotlib.colors.rgb_to_hsv(image_np_expanded)
+                image_np_expanded = matplotlib.colors.rgb_to_hsv(image_np_expanded/255)
                 h, s, v = np.split(image_np_expanded.squeeze(), 3, axis=2)
                 h, s, v = h.squeeze(), s.squeeze(), v.squeeze()
                 # Calculate median HSV values for the box
@@ -178,7 +178,7 @@ class TensorNetsColourBoxObjectDetector(_VideoAsyncBoxDetector):
                 ywindow = gaussian(box_corners[3] - box_corners[1], std=1)
                 weights = np.outer(ywindow, xwindow) * 100
                 avg_h = Angle.average(
-                    [list(map(lambda x: Angle(x), hue))
+                    [list(map(lambda x: Angle(x*2*np.pi), hue))
                         for hue in h[box_corners[1]:box_corners[3],
                                      box_corners[0]:box_corners[2]]],
                     weights=weights
@@ -188,7 +188,7 @@ class TensorNetsColourBoxObjectDetector(_VideoAsyncBoxDetector):
                                    weights=weights)
                 avg_v = np.average(v[box_corners[1]:box_corners[3],
                                      box_corners[0]:box_corners[2]],
-                                   weights=weights) / 255
+                                   weights=weights)
 
                 # Transform box to be in format (x, y, w, h)
                 detection = Detection(
