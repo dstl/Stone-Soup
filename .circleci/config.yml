@@ -24,7 +24,7 @@ jobs:
             python -m venv venv
             . venv/bin/activate
             pip install --upgrade pip
-            pip install -e .[dev]
+            pip install -e .[dev] opencv-python-headless
       - save_cache:
           paths:
             - ./venv
@@ -71,7 +71,7 @@ jobs:
             python -m venv venv
             . venv/bin/activate
             pip install --upgrade pip
-            pip install -e .[dev]
+            pip install -e .[dev] opencv-python-headless
       - save_cache:
           paths:
             - ./venv
