@@ -2,7 +2,7 @@
 import datetime
 import uuid
 from collections import abc
-from typing import MutableSequence, Union, Any, Optional, Sequence
+from typing import MutableSequence, Any, Optional, Sequence
 import typing
 
 import numpy as np
@@ -20,7 +20,7 @@ class State(Type):
     Most simple state type, which only has time and a state vector."""
     timestamp: datetime.datetime = Property(
         default=None, doc="Timestamp of the state. Default None.")
-    state_vector: Union[StateVector, StateVectors] = Property(doc='State vector.')
+    state_vector: StateVector = Property(doc='State vector.')
 
     def __init__(self, state_vector, *args, **kwargs):
         # Don't cast away subtype of state_vector if not necessary
@@ -432,6 +432,7 @@ class ParticleState(State):
     This is a particle state object which describes the state as a
     distribution of particles"""
 
+    state_vector: StateVectors = Property(doc='State vectors.')
     weight: MutableSequence[Probability] = Property(default=None, doc='Weights of particles')
     parent: 'ParticleState' = Property(default=None, doc='Parent particles')
     particle_list: MutableSequence[Particle] = Property(default=None,
