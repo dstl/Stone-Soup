@@ -155,7 +155,7 @@ updater = ParticleUpdater(measurement_model, resampler)
 # Initialise a prior
 # ^^^^^^^^^^^^^^^^^^
 # To start we create a prior estimate. This is a :class:`~.ParticleState` which describes
-# the state as a distribution of particles using :class:`~.StateVectors` and weights,.
+# the state as a distribution of particles using :class:`~.StateVectors` and weights.
 # This is sampled from the Gaussian distribution (using the same parameters we
 # had in the previous examples).
 
