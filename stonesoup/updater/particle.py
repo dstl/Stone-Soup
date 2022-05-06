@@ -43,7 +43,7 @@ class ParticleUpdater(Updater):
         : :class:`~.ParticleState`
             The state posterior
         """
-        predicted_state = hypothesis.prediction
+        predicted_state = copy.copy(hypothesis.prediction)
 
         if hypothesis.measurement.measurement_model is None:
             measurement_model = self.measurement_model
