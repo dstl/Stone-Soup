@@ -53,7 +53,7 @@ autodoc_default_options = {
     'member-order': 'bysource',
 }
 autodoc_mock_imports = [
-    'ffmpeg', 'moviepy', 'tensorflow', 'object_detection', 'tensornets']
+    'ffmpeg', 'moviepy', 'tensorflow', 'object_detection', 'tensornets', 'cv2']
 
 autosectionlabel_prefix_document = True
 

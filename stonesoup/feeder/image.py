@@ -19,7 +19,7 @@ class CFAR(Feeder):
     :class:`~.Feeder` and outputs binary frames whose pixel values are either 0 or 255,
     indicating the lack or presence of a detection, respectively.
 
-    See `here <https://en.wikipedia.org/wiki/Constant_false_alarm_rate#Cell-averaging_CFAR>`_ for
+    See `here <https://en.wikipedia.org/wiki/Constant_false_alarm_rate#Cell-averaging_CFAR>`__ for
     more information on CA-CFAR.
 
     .. note::
@@ -110,7 +110,7 @@ class CCL(Feeder):
     connected component to which each pixel is has been assigned.
 
     See `here <https://en.wikipedia.org/wiki/Connected-component_labeling#Graphical_example_of_
-    two-pass_algorithm>`_ for more information on and example applications of CCL.
+    two-pass_algorithm>`__ for more information on and example applications of CCL.
 
     .. note::
         The frames forwarded by the :attr:`~.CCL.reader` must be binary :class:`~.ImageFrame`
