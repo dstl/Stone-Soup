@@ -3,7 +3,7 @@ import datetime
 
 import pytest
 
-from ..tracktotrack import TrackToTrack, TrackToTruth, TrackIDbased
+from ..tracktotrack import TrackToTrackCounting, TrackToTruth, TrackIDbased
 from ...types.state import State
 from ...types.track import Track
 from ...types.groundtruth import GroundTruthPath, GroundTruthState
@@ -40,26 +40,68 @@ def tracks():
               timestamp=start_time + datetime.timedelta(seconds=i))
         for i in range(10)]))
 
+    # 5th should match with the first if only the first element of the state_vector is used
+    tracks.append(Track(states=[
+        State(state_vector=[[i], [i+100]],
+              timestamp=start_time + datetime.timedelta(seconds=i))
+        for i in range(10)]))
+
     return tracks
 
 
 def test_euclidiantracktotrack(tracks):
-    associator = TrackToTrack(
+    complete_associator = TrackToTrackCounting(
         association_threshold=10,
         consec_pairs_confirm=3,
-        consec_misses_end=2)
+        consec_misses_end=2,
+        mapping=[0, 1],
+        use_positional_only=False)
     start_time = datetime.datetime(2019, 1, 1, 14, 0, 0)
 
-    association_set = associator.associate_tracks({tracks[0], tracks[2]},
-                                                  {tracks[1], tracks[3]})
+    association_set_1 = complete_associator.associate_tracks({tracks[0], tracks[2]},
+                                                             {tracks[1], tracks[3], tracks[4]})
 
-    assert len(association_set.associations) == 1
-    assoc = list(association_set.associations)[0]
-    assert set(assoc.objects) == {tracks[0], tracks[1]}
-    assert assoc.time_range.start_timestamp \
+    positional_associator = TrackToTrackCounting(
+        association_threshold=10,
+        consec_pairs_confirm=3,
+        consec_misses_end=2,
+        mapping=[0],
+        use_positional_only=True)
+
+    association_set_2 = positional_associator.associate_tracks({tracks[0], tracks[2]},
+                                                               {tracks[1], tracks[3], tracks[4]})
+
+    # Should give same results as the positional_associator for these tracks
+    heavily_weighted_associator = TrackToTrackCounting(
+        association_threshold=10,
+        consec_pairs_confirm=3,
+        consec_misses_end=2,
+        mapping=[0],
+        use_positional_only=False,
+        position_weighting=0.999)
+
+    association_set_3 = heavily_weighted_associator.associate_tracks(
+                            {tracks[0], tracks[2]}, {tracks[1], tracks[3], tracks[4]})
+
+    assert len(association_set_1.associations) == 1
+    assoc1 = list(association_set_1.associations)[0]
+    assert set(assoc1.objects) == {tracks[0], tracks[1]}
+    assert assoc1.time_range.start_timestamp \
         == start_time + datetime.timedelta(seconds=1)
-    assert assoc.time_range.end_timestamp \
+    assert assoc1.time_range.end_timestamp \
         == start_time + datetime.timedelta(seconds=6)
+
+    assert len(association_set_2.associations) == 2
+    assoc20 = list(association_set_2.associations)[0]
+    assoc21 = list(association_set_2.associations)[1]
+    assert set(assoc20.objects) == {tracks[0], tracks[4]} or \
+           set(assoc21.objects) == {tracks[0], tracks[4]}
+
+    assert len(association_set_3.associations) == 2
+    assoc30 = list(association_set_3.associations)[0]
+    assoc31 = list(association_set_3.associations)[1]
+    assert set(assoc30.objects) == {tracks[0], tracks[4]} or \
+           set(assoc31.objects) == {tracks[0], tracks[4]}
 
 
 def test_euclidiantracktotruth(tracks):

@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
 from operator import attrgetter
 from typing import Set
+import copy
 
 from .base import TrackToTrackAssociator
 from ..base import Property
-from ..measures import Measure, Euclidean
+from ..types.array import StateVector
+from ..measures import Measure, Euclidean, EuclideanWeighted
 from ..types.association import AssociationSet, TimeRangeAssociation, Association
 from ..types.groundtruth import GroundTruthPath
 from ..types.track import Track
 from ..types.time import TimeRange
 
 
-class TrackToTrack(TrackToTrackAssociator):
-    """Track to track associator
+class TrackToTrackCounting(TrackToTrackAssociator):
+    """Track to track associator based on the Counting Technique [1]_.  Sagild et al, 2021.
 
     Compares two sets of :class:`~.tracks`, each formed of a sequence of
     :class:`~.State` objects and returns an :class:`~.Association` object for
@@ -31,12 +33,18 @@ class TrackToTrack(TrackToTrackAssociator):
     :class:`~.tracks` is assessed as close to more than one track then an
     :class:`~.Association` object will be return for all possible association
     combinations
+
+    References
+        ----------
+        .. [1] J. Å. Sagild, A. Gullikstad Hem and E. F. Brekke,
+        "Counting Technique versus Single-Time Test for Track-to-Track Association,"
+        2021 IEEE 24th International Conference on Information Fusion (FUSION), 2021, pp. 1-7
+
     """
 
     association_threshold: float = Property(
-        default=10,
         doc="Threshold distance measure which states must be within for an "
-            "association to be recorded.Default is 10")
+            "association to be recorded")
     consec_pairs_confirm: int = Property(
         default=3,
         doc="Number of consecutive time instances which track pairs are "
@@ -48,8 +56,24 @@ class TrackToTrack(TrackToTrackAssociator):
             "required to exceed a specified threshold in order for an "
             "association to be ended. Default is 2")
     measure: Measure = Property(
-        default=Euclidean(),
-        doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
+        default=EuclideanWeighted([0]),
+        doc="Distance measure to use. Must use :class:`~.measures.EuclideanWeighted()` if "
+            "`use_positional_only` set to True.  Default :class:`~.measures.EuclideanWeighted()` "
+            "(using equal weights unless use_positional_only is set to True)")
+    mapping: list = Property(
+        doc="List of items specifying the mapping of the position components "
+            "of the state space")
+    use_positional_only: bool = Property(
+        default=True,
+        doc="If True, the differences in velocity/acceleration values for each state are ignored "
+            "in the calculation for the association threshold.  Default is True"
+    )
+    position_weighting: float = Property(
+        default=0.6,
+        doc="If use_positional_only is set to False, this decides how much to weight "
+            "position components compared to others (such as velocity).  "
+            "Default is 0.6"
+    )
 
     def associate_tracks(self, tracks_set_1: Set[Track], tracks_set_2: Set[Track]):
         """Associate two sets of tracks together.
@@ -91,31 +115,50 @@ class TrackToTrack(TrackToTrackAssociator):
                 # At this point we should have two lists of states from
                 # track1 and 2 only at the times that they both existed
 
-                n_succesful = 0
-                n_unsuccesful = 0
+                n_successful = 0
+                n_unsuccessful = 0
                 start_timestamp = None
                 end_timestamp = None
                 # Loop through every detection pair and form associations
                 for state1, state2 in zip(track1_states, track2_states):
+                    tot = len(state1.state_vector)
+                    map_len = len(self.mapping)
+                    state1_copy = copy.deepcopy(state1)
+                    state2_copy = copy.deepcopy(state2)
+                    if not self.use_positional_only and tot-map_len > 0:
+                        v_weight = (1 - self.position_weighting) / (tot-map_len)
+                        p_weight = self.position_weighting / len(self.mapping)
+                        weights = [p_weight if i in self.mapping else v_weight for i in range(tot)]
+                    else:
+                        weights = [1 / len(self.mapping)]*len(self.mapping)
+                        state1_copy.state_vector = StateVector(
+                                                        [[state1.state_vector[i]]
+                                                            for i in self.mapping])
+                        state2_copy.state_vector = StateVector(
+                                                        [[state2.state_vector[i]]
+                                                            for i in self.mapping])
 
-                    distance = self.measure(state1, state2)
+                    if isinstance(self.measure, EuclideanWeighted):
+                        self.measure = EuclideanWeighted(weights)
+
+                    distance = self.measure(state1_copy, state2_copy)
 
                     if distance <= self.association_threshold:
-                        n_succesful += 1
-                        n_unsuccesful = 0
+                        n_successful += 1
+                        n_unsuccessful = 0
 
-                        if n_succesful == 1:
+                        if n_successful == 1:
                             first_timestamp = state1.timestamp
-                        if n_succesful == self.consec_pairs_confirm:
+                        if n_successful == self.consec_pairs_confirm:
                             start_timestamp = first_timestamp
                     else:
-                        n_succesful = 0
-                        n_unsuccesful += 1
+                        n_successful = 0
+                        n_unsuccessful += 1
 
-                        if n_unsuccesful == 1:
+                        if n_unsuccessful == 1:
                             end_timestamp = state1.timestamp
 
-                        if n_unsuccesful >= self.consec_misses_end and \
+                        if n_unsuccessful >= self.consec_misses_end and \
                                 start_timestamp:
                             associations.add(TimeRangeAssociation(
                                 (track1, track2),
@@ -157,9 +200,8 @@ class TrackToTruth(TrackToTrackAssociator):
     """
 
     association_threshold: float = Property(
-        default=10,
         doc="Threshold distance measure which states must be within for an "
-            "association to be recorded.Default is 10")
+            "association to be recorded")
     consec_pairs_confirm: int = Property(
         default=3,
         doc="Number of consecutive time instances which track-truth pairs are "
