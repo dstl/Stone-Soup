@@ -31,7 +31,9 @@ class PointProcessMultiTargetTracker(Tracker):
         default=None,
         doc="The birth component. The weight should be "
             "equal to the mean of the expected number of "
-            "births per timestep (Poission distributed)")
+            "births per timestep (Poission distributed). "
+            "The tag should be "
+            ":attr:`TaggedWeightedGaussianState.BIRTH`")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -64,8 +66,7 @@ class PointProcessMultiTargetTracker(Tracker):
         """
         for component in self.gaussian_mixture:
             tag = component.tag
-            if tag != 0:
-                # Sanity check for birth component
+            if tag != component.BIRTH:  # Sanity check for birth component
                 if tag in self.target_tracks:
                     # Track found, so update it
                     track = self.target_tracks[tag]
