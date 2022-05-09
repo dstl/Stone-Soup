@@ -180,7 +180,7 @@ class DwellActionsGenerator(RealNumberActionGenerator):
         Returns
         -------
         ChangeDwellAction
-            Action which wil achieve this dwell centre.
+            Action which will achieve this dwell centre.
         """
 
         if isinstance(value, (int, float)):
