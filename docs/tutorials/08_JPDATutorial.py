@@ -13,19 +13,49 @@
 # associator. This is the purpose of the *joint* probabilistic data association (JPDA) filter.
 #
 # Similar to the PDA, the JPDA algorithm calculates hypothesis pairs for every measurement
-# for every track. The weight of a track-measurement hypothesis is calculated by the normalised sum
-# of conditional probabilities that every other track is associated to every other measurement
-# (including missed detection). For example, with 3 tracks :math:`(A, B, C)` and 3 measurements
-# :math:`(x, y, z)` (including missed detection :math:`None`), the probability of track :math:`A`
-# being associated with measurement :math:`x` (:math:`A \to x`) is given by:
+# for every track. The probability of a track-measurement hypothesis is calculated by the sum of
+# normalised conditional probabilities that every other track is associated to every other
+# measurement (including missed detection). For example, with 3 tracks :math:`(A, B, C)` and 3
+# measurements :math:`(x, y, z)` (including missed detection :math:`None`), the probability of
+# track :math:`A` being associated with measurement :math:`x` (:math:`A \to x`) is given by:
 #
 # .. math::
-#       p(A \to x) &= \bar{p}(A \to x \cap B \to y \cap C \to z)\\
-#                  &+ \bar{p}(A \to x \cap B \to z \cap C \to y) +\\
+#       p(A \to x) &= \bar{p}(A \to x \cap B \to None \cap C \to None) +\\
+#                  &+ \bar{p}(A \to x \cap B \to None \cap C \to y) +\\
 #                  &+ \bar{p}(A \to x \cap B \to None \cap C \to z) +\\
-#                  &+ \bar{p}(A \to x \cap B \to None \cap C \to y) + ...
+#                  &+ \bar{p}(A \to x \cap B \to y \cap C \to None) +\\
+#                  &+ \bar{p}(A \to x \cap B \to y \cap C \to z) +\\
+#                  &+ \bar{p}(A \to x \cap B \to z \cap C \to None) +\\
+#                  &+ \bar{p}(A \to x \cap B \to z \cap C \to y)
 #
-# where :math:`\bar{p}(multi-hypothesis)` is the normalised probability of the multi-hypothesis.
+# where :math:`\bar{p}(\textit{multi-hypothesis})` is the normalised probability of the
+# multi-hypothesis.
+#
+# This is demonstrated for 2 tracks associating to 3 measurements in the diagrams below:
+#
+# .. image:: ../_static/jpda_diag_1.png
+#   :width: 250
+#   :height: 300
+#   :alt: Image showing two tracks approaching 3 detections with associated probabilities
+#
+# Where the probability (for example) of the orange track associating to the green measurement is
+# :math:`0.25`.
+# The probability of every possible association set is calculated. These probabilities are then
+# normalised.
+#
+# .. image:: ../_static/jpda_diag_2.png
+#   :width: 350
+#   :height: 300
+#   :alt: Image showing calculation of the conditional probabilities of every possible occurrence
+#
+# A track-measurement hypothesis weight is then recalculated as the sum of the probabilities of
+# every occurrence where that track associates to that measurement.
+#
+# .. image:: ../_static/jpda_diag_3.png
+#   :width: 500
+#   :height: 450
+#   :alt: Image showing the recalculated probabilities of each track-measurement hypothesis
+#
 
 # %%
 # Simulate ground truth
