@@ -89,7 +89,7 @@ VIDEO_PATH = os.path.join(os.getcwd(), VIDEO_FILENAME+VIDEO_EXTENTION)
 
 if not os.path.exists(VIDEO_PATH):
     yt = YouTube('http://www.youtube.com/watch?v=MNn9qKG2UFI')
-    yt.streams[0].download(filename=VIDEO_FILENAME)
+    yt.streams.get_by_itag(18).download(filename=VIDEO_PATH)
 
 # %%
 # Building the video reader
@@ -470,8 +470,8 @@ from stonesoup.deleter.time import UpdateTimeStepsDeleter
 prior_state = GaussianState(StateVector(np.zeros((6,1))),
                             CovarianceMatrix(np.diag([100**2, 30**2, 100**2, 30**2, 100**2, 100**2])))
 deleter_init = UpdateTimeStepsDeleter(time_steps_since_update=3)
-initiator = MultiMeasurementInitiator(prior_state, measurement_model, deleter_init,
-                                      data_associator, updater, min_points=10)
+initiator = MultiMeasurementInitiator(prior_state, deleter_init, data_associator, updater,
+                                      measurement_model, min_points=10)
 
 # %%
 # Track Deletion

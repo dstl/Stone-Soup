@@ -114,7 +114,7 @@ shown bellow will download the video and save it your working directory as ``sam
 
     if not os.path.exists(VIDEO_PATH):
         yt = YouTube('http://www.youtube.com/watch?v=MNn9qKG2UFI')
-        yt.streams[0].download(filename=VIDEO_FILENAME)
+        yt.streams.get_by_itag(18).download(filename=VIDEO_PATH)
 
 
 
@@ -237,7 +237,6 @@ read and visualise these frames using `matplotlib`.
         artists.append([artist])
 
     ani = animation.ArtistAnimation(fig, artists, interval=20, blit=True, repeat_delay=200)
-
 
 
 .. image::  ./images/sphx_glr_Video_Processing_001.gif
@@ -530,7 +529,6 @@ of how to read and visualise these detections using `matplotlib`.
     ani2 = animation.ArtistAnimation(fig2, artists2, interval=20, blit=True, repeat_delay=200)
 
 
-
 .. image:: ./images/sphx_glr_Video_Processing_002.gif
    :align: center
 
@@ -736,8 +734,8 @@ that have not been associated to a measurement in the last 3 frames.
     prior_state = GaussianState(StateVector(np.zeros((6,1))),
                                 CovarianceMatrix(np.diag([100**2, 30**2, 100**2, 30**2, 100**2, 100**2])))
     deleter_init = UpdateTimeStepsDeleter(time_steps_since_update=3)
-    initiator = MultiMeasurementInitiator(prior_state, measurement_model, deleter_init,
-                                          data_associator, updater, min_points=10)
+    initiator = MultiMeasurementInitiator(prior_state, deleter_init, data_associator, updater,
+                                          measurement_model, min_points=10)
 
 
 
@@ -904,7 +902,7 @@ Running the tracker
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 4 minutes  21.159 seconds)
+   **Total running time of the script:** ( 2 minutes  38.615 seconds)
 
 
 .. _sphx_glr_download_auto_demos_Video_Processing.py:
