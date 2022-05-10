@@ -21,11 +21,17 @@ class TrackToTrackCounting(TrackToTrackAssociator):
     each time at which the two :class:`~.State` within the :class:`~.tracks`
     are assessed to be associated.
 
-    Uses an algorithm called the Counting Technique [1]_.  Sagild et al, 2021.
+    Uses an algorithm called the Counting Technique [1]_.
     Associations are triggered by track states being within a threshold
     distance for a given number of timestamps. Associations are terminated when
     either the two :class:`~.tracks` end or the two :class:`~.State` are
     separated by a distance greater than the threshold at the next time step.
+
+    References
+        ----------
+        .. [1] J. Å. Sagild, A. Gullikstad Hem and E. F. Brekke, \
+        "Counting Technique versus Single-Time Test for Track-to-Track Association," \
+        2021 IEEE 24th International Conference on Information Fusion (FUSION), 2021, pp. 1-7
 
     Note
     ----
@@ -36,12 +42,6 @@ class TrackToTrackCounting(TrackToTrackAssociator):
     combinations.
 
     ----
-
-    References
-        ----------
-        .. [1] J. Å. Sagild, A. Gullikstad Hem and E. F. Brekke,
-        "Counting Technique versus Single-Time Test for Track-to-Track Association,"
-        2021 IEEE 24th International Conference on Information Fusion (FUSION), 2021, pp. 1-7
 
     """
 
