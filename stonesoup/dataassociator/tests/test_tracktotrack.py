@@ -46,6 +46,17 @@ def tracks():
               timestamp=start_time + datetime.timedelta(seconds=i))
         for i in range(10)]))
 
+    # 6th should match with 1st from the 2nd timestamp to the 7th, but continues after this point
+    tracks.append(Track(states=[
+        State(state_vector=[[20], [20]],
+              timestamp=start_time)]
+        + [State(state_vector=[[i + 2], [i + 2]],
+                 timestamp=start_time + datetime.timedelta(seconds=i))
+            for i in range(1, 7)]
+        + [State(state_vector=[[i + 1000], [i + 1000]],
+                 timestamp=start_time + datetime.timedelta(seconds=i))
+           for i in range(7, 10)]))
+
     return tracks
 
 
@@ -83,6 +94,8 @@ def test_euclidiantracktotrack(tracks):
     association_set_3 = heavily_weighted_associator.associate_tracks(
                             {tracks[0], tracks[2]}, {tracks[1], tracks[3], tracks[4]})
 
+    association_set_4 = complete_associator.associate_tracks({tracks[0]}, {tracks[5]})
+
     assert len(association_set_1.associations) == 1
     assoc1 = list(association_set_1.associations)[0]
     assert set(assoc1.objects) == {tracks[0], tracks[1]}
@@ -95,13 +108,20 @@ def test_euclidiantracktotrack(tracks):
     assoc20 = list(association_set_2.associations)[0]
     assoc21 = list(association_set_2.associations)[1]
     assert set(assoc20.objects) == {tracks[0], tracks[4]} or \
-           set(assoc21.objects) == {tracks[0], tracks[4]}
+        set(assoc21.objects) == {tracks[0], tracks[4]}
 
     assert len(association_set_3.associations) == 2
     assoc30 = list(association_set_3.associations)[0]
     assoc31 = list(association_set_3.associations)[1]
     assert set(assoc30.objects) == {tracks[0], tracks[4]} or \
-           set(assoc31.objects) == {tracks[0], tracks[4]}
+        set(assoc31.objects) == {tracks[0], tracks[4]}
+
+    assert len(association_set_4) == 1
+    assoc4 = list(association_set_4)[0]
+    assert assoc4.time_range.start_timestamp \
+        == start_time + datetime.timedelta(seconds=1)
+    assert assoc4.time_range.end_timestamp \
+        == start_time + datetime.timedelta(seconds=7)
 
 
 def test_euclidiantracktotruth(tracks):
