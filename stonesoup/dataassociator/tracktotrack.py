@@ -40,7 +40,6 @@ class TrackToTrackCounting(TrackToTrackAssociator):
     :class:`~.Association` object will be return for all possible association
     combinations.
 
-    
 
     """
 
