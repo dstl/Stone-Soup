@@ -28,11 +28,10 @@ class TrackToTrackCounting(TrackToTrackAssociator):
     separated by a distance greater than the threshold at the next time step.
 
     References
-        ----------
-        .. [1] J. Å. Sagild, A. Gullikstad Hem and E. F. Brekke, \
-        "Counting Technique versus Single-Time Test for Track-to-Track Association," \
-        2021 IEEE 24th International Conference on Information Fusion (FUSION), 2021, pp. 1-7
-
+    ----------
+    .. [1] J. Å. Sagild, A. Gullikstad Hem and E. F. Brekke,
+           "Counting Technique versus Single-Time Test for Track-to-Track Association,"
+           2021 IEEE 24th International Conference on Information Fusion (FUSION), 2021, pp. 1-7
     Note
     ----
     Association is not prioritised based on historic associations or distance.
