@@ -1,4 +1,9 @@
-from scipy.stats import multivariate_normal as mn
+from functools import lru_cache
+
+from scipy.stats import multivariate_normal, chi2
+from scipy.linalg import det
+from scipy.special import gamma
+import numpy as np
 
 from .base import Hypothesiser
 from ..base import Property
@@ -21,7 +26,10 @@ class PDAHypothesiser(Hypothesiser):
     predictor: Predictor = Property(doc="Predict tracks to detection times")
     updater: Updater = Property(doc="Updater used to get measurement prediction")
     clutter_spatial_density: float = Property(
-        doc="Spatial density of clutter - tied to probability of false detection")
+        default=None,
+        doc="Spatial density of clutter - tied to probability of false detection. Default is None "
+            "where the clutter spatial density is calculated based on assumption that "
+            "all but one measurement within the validation region of the track are clutter.")
     prob_detect: Probability = Property(
         default=Probability(0.85),
         doc="Target Detection Probability")
@@ -29,6 +37,16 @@ class PDAHypothesiser(Hypothesiser):
         default=Probability(0.95),
         doc="Gate Probability - prob. gate contains true measurement "
             "if detected")
+    include_all: bool = Property(
+        default=False,
+        doc="If `True`, hypotheses outside probability gates will be returned. This requires "
+            "that the clutter spatial density is also provided, as it may not be possible to"
+            "estimate this. Default `False`")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.include_all and self.clutter_spatial_density is None:
+            raise ValueError("Must provide clutter spatial density if including all hypotheses")
 
     def hypothesise(self, track, detections, timestamp, **kwargs):
         r"""Evaluate and return all track association hypotheses.
@@ -104,6 +122,7 @@ class PDAHypothesiser(Hypothesiser):
         """
 
         hypotheses = list()
+        validated_measurements = 0
 
         # Common state & measurement prediction
         prediction = self.predictor.predict(track, timestamp=timestamp, **kwargs)
@@ -118,6 +137,7 @@ class PDAHypothesiser(Hypothesiser):
 
         # True detection hypotheses
         for detection in detections:
+            valid_measurement = False
             # Re-evaluate prediction
             prediction = self.predictor.predict(
                 track, timestamp=detection.timestamp, **kwargs)
@@ -126,18 +146,57 @@ class PDAHypothesiser(Hypothesiser):
                 prediction, detection.measurement_model, **kwargs)
             # Calculate difference before to handle custom types (mean defaults to zero)
             # This is required as log pdf coverts arrays to floats
-            log_pdf = mn.logpdf(
+            log_pdf = multivariate_normal.logpdf(
                 (detection.state_vector - measurement_prediction.state_vector).ravel(),
                 cov=measurement_prediction.covar)
             pdf = Probability(log_pdf, log_value=True)
-            probability = (pdf * self.prob_detect)/self.clutter_spatial_density
 
-            # True detection hypothesis
-            hypotheses.append(
-                SingleProbabilityHypothesis(
-                    prediction,
-                    detection,
-                    probability,
-                    measurement_prediction))
+            if self._is_valid_measurement(measurement_prediction, detection):
+                validated_measurements += 1
+                valid_measurement = True
+
+            if self.include_all or valid_measurement:
+                probability = pdf * self.prob_detect
+                if self.clutter_spatial_density is None:
+                    # Note: will divide by validated measurements count later...
+                    probability *= self._validation_region_volume(
+                        self.prob_gate, measurement_prediction)
+                else:
+                    probability /= self.clutter_spatial_density
+
+                # True detection hypothesis
+                hypotheses.append(
+                    SingleProbabilityHypothesis(
+                        prediction,
+                        detection,
+                        probability,
+                        measurement_prediction))
+
+        if self.clutter_spatial_density is None:
+            for hypothesis in hypotheses[1:]:  # Skip missed detection
+                hypothesis.probability /= validated_measurements
 
         return MultipleHypothesis(hypotheses, normalise=True, total_weight=1)
+
+    def _is_valid_measurement(self, meas_pred, det):
+        z = meas_pred.state_vector - det.state_vector
+        return \
+            z.T@self._inv_cov(meas_pred)@z <= self._gate_threshold(self.prob_gate, meas_pred.ndim)
+
+    @classmethod
+    @lru_cache()
+    def _validation_region_volume(cls, prob_gate, meas_pred):
+        n = meas_pred.ndim
+        gate_threshold = cls._gate_threshold(prob_gate, n)
+        c_z = np.pi**(n/2) / gamma(n/2 + 1)
+        return c_z * gate_threshold**(n/2) * np.sqrt(det(meas_pred.covar))
+
+    @staticmethod
+    @lru_cache()
+    def _inv_cov(meas_pred):
+        return np.linalg.inv(meas_pred.covar)
+
+    @staticmethod
+    @lru_cache()
+    def _gate_threshold(prob_gate, n):
+        return chi2.ppf(float(prob_gate), n)

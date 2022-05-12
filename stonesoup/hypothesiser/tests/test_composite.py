@@ -25,11 +25,11 @@ def make_categorical_measurement_model(ndim_state, ndim_meas):
 def test_composite(predictor, updater, dummy_category_predictor, dummy_category_updater):
     sub_hypothesisers = [
         PDAHypothesiser(predictor, updater, clutter_spatial_density=1.2e-2, prob_detect=0.9,
-                        prob_gate=0.99),
+                        prob_gate=0.99, include_all=True),
         HMMHypothesiser(dummy_category_predictor, dummy_category_updater,
                         prob_detect=0.7, prob_gate=0.95),
         PDAHypothesiser(predictor, updater, clutter_spatial_density=1.4e-2, prob_detect=0.5,
-                        prob_gate=0.98),
+                        prob_gate=0.98, include_all=True),
         HMMHypothesiser(dummy_category_predictor, dummy_category_updater,
                         prob_detect=0.8, prob_gate=0.97)
     ]
