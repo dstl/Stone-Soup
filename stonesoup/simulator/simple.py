@@ -92,11 +92,13 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
         default=0.1, doc="Probability of track dying in each time step. Default 0.1.")
     seed: Optional[int] = Property(default=None, doc="Seed for random number generation."
                                                      " Default None")
-    preexisting_states: Tuple = Property(default=tuple(), doc="State vectors at time 0 for "
-                        "groundtruths which should exist at the start of simulation.")
-    initial_number_targets: int = Property(default=0, doc="Initial number of targets to be "
-                        "simulated. These simulated targets will be made in addition to those "
-                        "defined by :attr:`preexisting_states`.")
+    preexisting_states: Tuple = Property(
+        default=tuple(), doc="State vectors at time 0 for "
+                             "groundtruths which should exist at the start of simulation.")
+    initial_number_targets: int = Property(
+        default=0, doc="Initial number of targets to be "
+                       "simulated. These simulated targets will be made in addition to those "
+                       "defined by :attr:`preexisting_states`.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -107,11 +109,11 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
             self.initial_state.state_vector + \
             self.initial_state.covar @ \
             random_state.randn(self.initial_state.ndim, 1)
-        
+
         gttrack = GroundTruthPath()
         gttrack.append(GroundTruthState(
             state_vector=vector,
-            timestamp=time, 
+            timestamp=time,
             metadata={"index": self.index})
         )
         return gttrack
@@ -125,7 +127,7 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
         if self.preexisting_states or self.initial_number_targets:
             # Use preexisting_states to make some groundtruth paths
             preexisting_paths = OrderedSet(
-                self._new_target(time, random_state, state) for state in self.preexisting_states) 
+                self._new_target(time, random_state, state) for state in self.preexisting_states)
 
             # Simulate more groundtruth paths for the number of initial_simulated_states
             initial_simulated_paths = OrderedSet(
