@@ -65,7 +65,6 @@ def test_euclidiantracktotrack(tracks):
         association_threshold=10,
         consec_pairs_confirm=3,
         consec_misses_end=2,
-        mapping=[0, 1],
         use_positional_only=False)
     start_time = datetime.datetime(2019, 1, 1, 14, 0, 0)
 
@@ -76,7 +75,7 @@ def test_euclidiantracktotrack(tracks):
         association_threshold=10,
         consec_pairs_confirm=3,
         consec_misses_end=2,
-        mapping=[0],
+        pos_map=[0],
         use_positional_only=True)
 
     association_set_2 = positional_associator.associate_tracks({tracks[0], tracks[2]},
@@ -87,7 +86,7 @@ def test_euclidiantracktotrack(tracks):
         association_threshold=10,
         consec_pairs_confirm=3,
         consec_misses_end=2,
-        mapping=[0],
+        pos_map=[0],
         use_positional_only=False,
         position_weighting=0.999)
 

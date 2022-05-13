@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 from operator import attrgetter
 from typing import Set
-import copy
 
 from .base import TrackToTrackAssociator
 from ..base import Property
-from ..types.array import StateVector
 from ..measures import Measure, Euclidean, EuclideanWeighted
 from ..types.association import AssociationSet, TimeRangeAssociation, Association
 from ..types.groundtruth import GroundTruthPath
@@ -61,9 +59,12 @@ class TrackToTrackCounting(TrackToTrackAssociator):
         doc="Distance measure to use. Must use :class:`~.measures.EuclideanWeighted()` if "
             "`use_positional_only` set to True.  Default :class:`~.measures.EuclideanWeighted()` "
             "(using equal weights unless :attr:`use_positional_only` is set to `True`)")
-    mapping: list = Property(
+    pos_map: list = Property(
+        default=None,
         doc="List of items specifying the mapping of the position components "
-            "of the state space")
+            "of the state space for :attr:`tracks_set_1`.  "
+            "Defaults to whole :class:`~.array.StateVector()`, but must be provided whenever "
+            ":attr:`use_positional_only` is set to True")
     use_positional_only: bool = Property(
         default=True,
         doc="If `True`, the differences in velocity/acceleration values for each state are "
@@ -71,7 +72,7 @@ class TrackToTrackCounting(TrackToTrackAssociator):
     )
     position_weighting: float = Property(
         default=0.6,
-        doc="If use_positional_only is set to False, this decides how much to weight "
+        doc="If :attr:`use_positional_only` is set to False, this decides how much to weight "
             "position components compared to others (such as velocity).  "
             "Default is 0.6"
     )
@@ -92,6 +93,11 @@ class TrackToTrackCounting(TrackToTrackAssociator):
             Contains a set of :class:`~.Association` objects
 
         """
+        if self.position_weighting > 1 or self.position_weighting < 0:
+            raise ValueError("Position weighting must be between 0 and 1")
+        if not self.pos_map and self.use_positional_only:
+            raise ValueError("Must provide mapping of position components to pos_map")
+
         associations = set()
         for track2 in tracks_set_2:
             truth_timestamps = [state.timestamp for state in track2.states]
@@ -123,26 +129,23 @@ class TrackToTrackCounting(TrackToTrackAssociator):
                 # Loop through every detection pair and form associations
                 for state1, state2 in zip(track1_states, track2_states):
                     tot = len(state1.state_vector)
-                    map_len = len(self.mapping)
-                    state1_copy = copy.deepcopy(state1)
-                    state2_copy = copy.deepcopy(state2)
+                    if not self.pos_map:
+                        self.pos_map = [i for i in range(0, tot)]
+                    map_len = len(self.pos_map)
                     if not self.use_positional_only and tot-map_len > 0:
                         v_weight = (1 - self.position_weighting) / (tot-map_len)
-                        p_weight = self.position_weighting / len(self.mapping)
-                        weights = [p_weight if i in self.mapping else v_weight for i in range(tot)]
+                        p_weight = self.position_weighting / len(self.pos_map)
                     else:
-                        weights = [1 / len(self.mapping)]*len(self.mapping)
-                        state1_copy.state_vector = StateVector(
-                                                        [[state1.state_vector[i]]
-                                                            for i in self.mapping])
-                        state2_copy.state_vector = StateVector(
-                                                        [[state2.state_vector[i]]
-                                                            for i in self.mapping])
+                        p_weight = 1 / len(self.pos_map)
+                        v_weight = 0
+
+                    weights = [p_weight if i in self.pos_map else v_weight
+                               for i in range(tot)]
 
                     if isinstance(self.measure, EuclideanWeighted):
-                        self.measure = EuclideanWeighted(weights)
+                        self.measure = EuclideanWeighted(weighting=weights)
 
-                    distance = self.measure(state1_copy, state2_copy)
+                    distance = self.measure(state1, state2)
 
                     if distance <= self.association_threshold:
                         n_successful += 1

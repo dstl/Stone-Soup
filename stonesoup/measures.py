@@ -11,7 +11,7 @@ from .types.state import State
 class Measure(Base):
     """Measure base type
 
-    A measure provides a means to assess the seperation between two
+    A measure provides a means to assess the separation between two
     :class:`~.State` objects state1 and state2.
     """
     mapping: np.ndarray = Property(
