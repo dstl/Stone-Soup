@@ -32,7 +32,7 @@ from stonesoup.deleter.time import UpdateTimeStepsDeleter
 from stonesoup.tracker.simple import MultiTargetMixtureTracker
 from matplotlib import pyplot as plt
 
-
+# %%
 # We set the start time to be the moment when we begin the simulation; for
 # simulations, the actual time doesn't matter, only the time delta between the
 # start and the point in question. We also set a random seed to ensure a
@@ -49,20 +49,19 @@ random.seed(783)
 # Next, we will create a platform that will hold our radar sensor. In this
 # case, the platform is stationary and located at the point (0, 0, 0), though
 # in general it need not be.
-
-
-# First import the fixed platform
-from stonesoup.platform.base import FixedPlatform
-
+#
 # Define the initial platform position, in this case the origin
 platform_state_vector = StateVector([[0], [0], [0]])
 position_mapping = (0, 1, 2)
 
+# %%
 # Create the initial state (position, time). Notice that the time is set to
 # the simulation start time defined earlier
 platform_state = State(platform_state_vector, start_time)
 
+# %%
 # Create our fixed platform
+from stonesoup.platform.base import FixedPlatform
 platform = FixedPlatform(
     states=platform_state,
     position_mapping=position_mapping
@@ -110,7 +109,8 @@ clutter_model = ClutterModel(
      dist_params=params
 )
 
-# Instantiate the radar
+# %%
+# Instantiate the radar and finally, attach the sensor to the stationary platform we defined above.
 radar = RadarElevationBearingRange(
     ndim_state=6,
     position_mapping=radar_mapping,
@@ -118,7 +118,6 @@ radar = RadarElevationBearingRange(
     clutter_model=clutter_model
 )
 
-# And finally, attach the sensor to the stationary platform we defined above.
 platform.add_sensor(radar)
 
 # %%
@@ -128,12 +127,13 @@ platform.add_sensor(radar)
 # We will use the :class:`~.MultiTargetGroundTruthSimulator` class to simulate
 # the target paths, and then the :class:`~.PlatformDetectionSimulator` class
 # to handle the radar simulation.
-from stonesoup.simulator.simple import MultiTargetGroundTruthSimulator
 
+# %%
 # Set a constant velocity transition model for the targets
 transition_model = CombinedLinearGaussianTransitionModel(
     [ConstantVelocity(0.5), ConstantVelocity(0.5), ConstantVelocity(0.1)])
 
+# %%
 # Define the Gaussian State from which new targets are sampled on
 # initialisation
 initial_target_state = GaussianState(
@@ -141,6 +141,9 @@ initial_target_state = GaussianState(
     covar=CovarianceMatrix(np.diag([2000, 50, 2000, 50, 100, 1]))
 )
 
+# %%
+# And create the truth simulator for the targets
+from stonesoup.simulator.simple import MultiTargetGroundTruthSimulator
 groundtruth_sim = MultiTargetGroundTruthSimulator(
     transition_model=transition_model,  # target transition model
     initial_state=initial_target_state,  # add our initial state for targets
@@ -150,6 +153,7 @@ groundtruth_sim = MultiTargetGroundTruthSimulator(
     death_probability=0.05  # 5% chance of a target being killed
 )
 
+# %%
 # With our truth data generated and our sensor platform placed, we can now
 # construct a simulator to generate measurements of the targets from each
 # of the sensors in the simulation; in this case, just the stationary radar.
@@ -170,12 +174,14 @@ sim = PlatformDetectionSimulator(
 # "greedy" association algorithm such as the GNN may have issues in these
 # cases.
 
+# %%
 # First, we create a Kalman predictor using the transition model from the
 # target simulation. In real situations, you may not know the actual
 # transition model.
 from stonesoup.predictor.kalman import KalmanPredictor
 predictor = KalmanPredictor(transition_model)
 
+# %%
 # Next, we define a measurement model for the Kalman updater. Here we have
 # altered the noise covariance matrix slightly to make it harder for the
 # tracker.
@@ -187,11 +193,13 @@ meas_model = CartesianToElevationBearingRange(
     noise_covar=meas_covar_trk
 )
 
+# %%
 # Using the measurement model, we make a Kalman updator which we will pass
 # into our JPDA tracker.
 from stonesoup.updater.kalman import ExtendedKalmanUpdater
 updater = ExtendedKalmanUpdater(measurement_model=meas_model)
 
+# %%
 # The hypothesiser will assume that there is a 95% chance to measure any given
 # target at any given timestep. In real life, this probability is based on the
 # SNR of the target signals. The clutter spatial density of the hypothesiser
@@ -204,11 +212,13 @@ hypothesiser = PDAHypothesiser(predictor=predictor,
                                clutter_spatial_density=0.5,
                                prob_detect=Pd)
 
+# %%
 # Using the hypothesiser, we can make a data associator. Other MTT algorithms
 # may use different association algorithms (like GNN)
 from stonesoup.dataassociator.probability import JPDA
 data_associator = JPDA(hypothesiser=hypothesiser)
 
+# %%
 # We implement a simple deleter algorithm to delete tracks if no measurements
 # have fallen within the JPDA gating region in 3 time steps.
 deleter = UpdateTimeStepsDeleter(time_steps_since_update=3)
@@ -343,7 +353,7 @@ metric_manager = SimpleManager(
 
 
 # %%
-# Since we saveed the groundtruth and tracks before, we can easily add them
+# Since we saved the groundtruth and tracks before, we can easily add them
 # to the metric manager now, and then tell it to generate the metrics.
 metric_manager.add_data(groundtruth_plot, tracks_plot)
 metrics = metric_manager.generate_metrics()
@@ -357,7 +367,7 @@ fig, ax = plt.subplots()
 ax.plot([i.timestamp for i in ospa_metric.value],
         [i.value for i in ospa_metric.value])
 ax.set_ylabel("OSPA distance")
-ax.set_xlabel("Time")
+_ = ax.set_xlabel("Time")
 
 
 # %%
@@ -392,5 +402,5 @@ uncertainty_metric = metrics["Sum of Covariance Norms Metric"]
 fig, ax = plt.subplots()
 ax.plot([i.timestamp for i in uncertainty_metric.value],
         [i.value for i in uncertainty_metric.value])
-ax.set(title="Track Uncertainty Over Time", xlabel="Time",
-       ylabel="Sum of covariance matrix norms")
+_ = ax.set(title="Track Uncertainty Over Time", xlabel="Time",
+           ylabel="Sum of covariance matrix norms")
