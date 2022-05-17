@@ -33,15 +33,19 @@ class PassiveElevationBearing(Sensor):
             (and follow in format) the underlying \
             :class:`~.CartesianToElevationBearing` model")
 
-    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[TrueDetection]:
-
-        measurement_model = CartesianToElevationBearing(
+    @property
+    def measurement_model(self):
+        return CartesianToElevationBearing(
             ndim_state=self.ndim_state,
             mapping=self.mapping,
             noise_covar=self.noise_covar,
             translation_offset=self.position,
             rotation_offset=self.orientation)
+
+    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
+                **kwargs) -> Set[TrueDetection]:
+
+        measurement_model = self.measurement_model
 
         detections = set()
         for truth in ground_truths:

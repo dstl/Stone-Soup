@@ -262,7 +262,7 @@ def test_range_rate_radar(h, sensorclass, pos_mapping, vel_mapping, noise_covar,
 
 @pytest.mark.parametrize(
     "radar_position, radar_orientation, state, measurement_mapping, noise_covar,"
-    " dwell_center, rpm, max_range, fov_angle, timestamp_flag",
+    " dwell_centre, rpm, max_range, fov_angle, timestamp_flag",
     [
         (
             StateVector(np.array(([[1], [1]]))),  # radar_position
@@ -270,7 +270,7 @@ def test_range_rate_radar(h, sensorclass, pos_mapping, vel_mapping, noise_covar,
             2,  # state
             np.array([0, 1]),  # measurement_mapping
             CovarianceMatrix(np.array([[0.015, 0], [0, 0.1]])),  # noise_covar
-            State(StateVector([[-np.pi]])),  # dwell_center
+            StateVector([[-np.pi]]),  # dwell_centre
             20,  # rpm
             100,  # max_range
             np.pi / 3,  # fov_angle
@@ -282,7 +282,7 @@ def test_range_rate_radar(h, sensorclass, pos_mapping, vel_mapping, noise_covar,
             2,  # state
             np.array([0, 1]),  # measurement_mapping
             CovarianceMatrix(np.array([[0.015, 0], [0, 0.1]])),  # noise_covar
-            State(StateVector([[-np.pi]])),  # dwell_center
+            StateVector([[-np.pi]]),  # dwell_centre
             20,  # rpm
             100,  # max_range
             np.pi / 3,  # fov_angle
@@ -292,15 +292,11 @@ def test_range_rate_radar(h, sensorclass, pos_mapping, vel_mapping, noise_covar,
     ids=["TimestampInitiatied", "TimestampUninitiated"]
 )
 def test_rotating_radar(radar_position, radar_orientation, state, measurement_mapping,
-                        noise_covar, dwell_center, rpm, max_range, fov_angle, timestamp_flag):
+                        noise_covar, dwell_centre, rpm, max_range, fov_angle, timestamp_flag):
     timestamp = datetime.datetime.now()
 
     target_state = GroundTruthState(radar_position + np.array([[5], [5]]), timestamp=timestamp)
     target_truth = GroundTruthPath([target_state])
-
-    # timestamp_flag set to true if testing with dwell_center.timestamp initiated
-    if timestamp_flag:
-        dwell_center.timestamp = timestamp
 
     truth = {target_truth}
 
@@ -310,10 +306,14 @@ def test_rotating_radar(radar_position, radar_orientation, state, measurement_ma
                                       ndim_state=state,
                                       position_mapping=measurement_mapping,
                                       noise_covar=noise_covar,
-                                      dwell_center=dwell_center,
+                                      dwell_centre=dwell_centre,
                                       rpm=rpm,
                                       max_range=max_range,
                                       fov_angle=fov_angle)
+
+    # timestamp_flag set to true if testing with radar.timestamp initiated
+    if timestamp_flag:
+        radar.timestamp = timestamp
 
     # Assert that the object has been correctly initialised
     assert (np.equal(radar.position, radar_position).all())
@@ -326,6 +326,7 @@ def test_rotating_radar(radar_position, radar_orientation, state, measurement_ma
 
     # Rotate radar such that the target is in FOV
     timestamp = timestamp + datetime.timedelta(seconds=0.5)
+    radar.act(timestamp)
 
     target_state = GroundTruthState(radar_position + np.array([[5], [5]]), timestamp=timestamp)
     target_truth = GroundTruthPath([target_state])
@@ -340,7 +341,7 @@ def test_rotating_radar(radar_position, radar_orientation, state, measurement_ma
                  radar.position,
                  radar.orientation + [[0],
                                       [0],
-                                      [radar.dwell_center.state_vector[0, 0]]])
+                                      [radar.dwell_centre[0, 0]]])
 
     # Assert correction of generated measurement
     assert (measurement.timestamp == target_state.timestamp)
@@ -383,12 +384,12 @@ def test_raster_scan_radar():
     # The radar is facing left/east
     radar_orientation = StateVector([[0], [0], [np.pi]])
     # The radar antenna is facing opposite the radar orientation
-    dwell_center = State(StateVector([[np.pi / 4]]), timestamp=timestamp)
+    dwell_centre = StateVector([[np.pi / 4]])
     rpm = 20  # 20 Rotations Per Minute Counter-clockwise
     max_range = 100  # Max range of 100m
     fov_angle = np.pi / 12  # FOV angle of pi/12 (15 degrees)
     for_angle = np.pi + fov_angle  # FOR angle of pi*(13/12) (195 degrees)
-    # This will be mean the dwell center will reach at the limits -pi/2 and
+    # This will be mean the dwell centre will reach at the limits -pi/2 and
     # pi/2. As the edge of the beam will reach the full FOV
 
     target_state = GroundTruthState(radar_position + np.array([[-5], [5]]), timestamp=timestamp)
@@ -404,11 +405,12 @@ def test_raster_scan_radar():
                                         ndim_state=2,
                                         position_mapping=measurement_mapping,
                                         noise_covar=noise_covar,
-                                        dwell_center=dwell_center,
+                                        dwell_centre=dwell_centre,
                                         rpm=rpm,
                                         max_range=max_range,
                                         fov_angle=fov_angle,
                                         for_angle=for_angle)
+    radar.timestamp = timestamp
 
     # Assert that the object has been correctly initialised
     assert np.array_equal(radar.position, radar_position)
@@ -421,6 +423,7 @@ def test_raster_scan_radar():
 
     # Rotate radar
     timestamp = timestamp + datetime.timedelta(seconds=0.5)
+    radar.act(timestamp)
 
     target_state = GroundTruthState(radar_position + np.array([[-5], [5]]), timestamp=timestamp)
     target_truth = GroundTruthPath([target_state])
@@ -434,6 +437,7 @@ def test_raster_scan_radar():
 
     # Rotate radar such that the target is in FOV
     timestamp = timestamp + datetime.timedelta(seconds=1.0)
+    radar.act(timestamp)
 
     target_state = GroundTruthState(radar_position + np.array([[-5], [5]]), timestamp=timestamp)
     target_truth = GroundTruthPath([target_state])
@@ -448,7 +452,7 @@ def test_raster_scan_radar():
                  radar.position,
                  radar.orientation + [[0],
                                       [0],
-                                      [radar.dwell_center.state_vector[0, 0]]])
+                                      [radar.dwell_centre[0, 0]]])
 
     # Assert correction of generated measurement
     assert measurement.timestamp == target_state.timestamp

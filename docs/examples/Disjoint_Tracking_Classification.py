@@ -223,6 +223,10 @@ class CompositeSensor(Sensor):
 
         return detections
 
+    @property
+    def measurement_model(self):
+        raise NotImplementedError
+
 
 # %%
 # Kinematic Measurement

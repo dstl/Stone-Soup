@@ -4,6 +4,9 @@ Sensors
 .. toctree::
     stonesoup.sensor.radar
 
+.. toctree::
+    stonesoup.sensor.action
+
 .. automodule:: stonesoup.sensor
     :no-members:
 
@@ -22,4 +25,9 @@ Passive
 Categorical
 -----------
 .. automodule:: stonesoup.sensor.categorical
+    :show-inheritance:
+
+Actionable
+----------
+.. automodule:: stonesoup.sensor.actionable
     :show-inheritance:

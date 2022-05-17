@@ -256,6 +256,10 @@ def test_missing_property(base, serialised_file):
 
 def test_sensor_serialisation(serialised_file):
     class TestSensor(Sensor):
+        @property
+        def measurement_model(self):
+            raise NotImplementedError
+
         def measure(self):
             pass
 

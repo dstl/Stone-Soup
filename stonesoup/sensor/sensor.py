@@ -1,21 +1,47 @@
-from abc import abstractmethod, ABC
+from abc import abstractmethod
 from typing import Set, Union, Sequence
 
 import numpy as np
 
+from .actionable import Actionable
+from .base import PlatformMountable
 from ..base import Property
-from ..sensor.base import PlatformMountable
 from ..types.detection import TrueDetection
 from ..types.groundtruth import GroundTruthState
 
 
-class Sensor(PlatformMountable, ABC):
+class Sensor(PlatformMountable, Actionable):
     """Sensor Base class for general use.
 
     Most properties and methods are inherited from :class:`~.PlatformMountable`.
 
-    Sensors must have a measure function.
+    Notes
+    -----
+    * Sensors must have a measure function.
+    * Attributes that are modifiable via actioning the sensor should be
+      :class:`~.ActionableProperty` types.
+    * The sensor has a timestamp property that should be updated via its
+      :meth:`~Actionable.act` method.
+
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.timestamp = None
+
+    def validate_timestamp(self):
+
+        if self.timestamp:
+            return True
+
+        try:
+            self.timestamp = self.movement_controller.state.timestamp
+        except AttributeError:
+            return False
+        if self.timestamp is None:
+            return False
+        return True
 
     @abstractmethod
     def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
@@ -38,6 +64,12 @@ class Sensor(PlatformMountable, ABC):
             calculated from. Each measurement stores the ground truth path that it was produced
             from.
         """
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def measurement_model(self):
+        """Measurement model of the sensor, describing general sensor model properties"""
         raise NotImplementedError
 
 
@@ -78,3 +110,8 @@ class SensorSuite(Sensor):
             all_detections.update(detections)
 
         return all_detections
+
+    @property
+    def measurement_model(self):
+        """Measurement model of the sensor, describing general sensor model properties"""
+        raise NotImplementedError
