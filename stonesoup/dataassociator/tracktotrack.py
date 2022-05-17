@@ -55,10 +55,12 @@ class TrackToTrackCounting(TrackToTrackAssociator):
             "required to exceed a specified threshold in order for an "
             "association to be ended. Default is 2")
     measure: Measure = Property(
-        default=EuclideanWeighted([0]),
+        default=None,
         doc="Distance measure to use. Must use :class:`~.measures.EuclideanWeighted()` if "
-            "`use_positional_only` set to True.  Default :class:`~.measures.EuclideanWeighted()` "
-            "(using equal weights unless :attr:`use_positional_only` is set to `True`)")
+            "`use_positional_only` set to True.  Default  is "
+            ":class:`~.measures.EuclideanWeighted()` using :attr:`use_positional_only` "
+            "and :attr:`pos_map`.  Note if neither are provided this is equivalent to a "
+            "standard Euclidean")
     pos_map: list = Property(
         default=None,
         doc="List of items specifying the mapping of the position components "
@@ -98,6 +100,25 @@ class TrackToTrackCounting(TrackToTrackAssociator):
         if not self.pos_map and self.use_positional_only:
             raise ValueError("Must provide mapping of position components to pos_map")
 
+        if not self.measure:
+            state1 = list(tracks_set_1)[0][0]
+            total = len(state1.state_vector)
+            if not self.pos_map:
+                self.pos_map = [i for i in range(total)]
+
+            pos_map_len = len(self.pos_map)
+            if not self.use_positional_only and total - pos_map_len > 0:
+                v_weight = (1 - self.position_weighting) / (total - pos_map_len)
+                p_weight = self.position_weighting / pos_map_len
+            else:
+                p_weight = 1 / pos_map_len
+                v_weight = 0
+
+            weights = [p_weight if i in self.pos_map else v_weight
+                       for i in range(total)]
+
+            self.measure = EuclideanWeighted(weighting=weights)
+
         associations = set()
         for track2 in tracks_set_2:
             truth_timestamps = [state.timestamp for state in track2.states]
@@ -128,22 +149,6 @@ class TrackToTrackCounting(TrackToTrackAssociator):
                 end_timestamp = None
                 # Loop through every detection pair and form associations
                 for state1, state2 in zip(track1_states, track2_states):
-                    tot = len(state1.state_vector)
-                    if not self.pos_map:
-                        self.pos_map = [i for i in range(0, tot)]
-                    map_len = len(self.pos_map)
-                    if not self.use_positional_only and tot-map_len > 0:
-                        v_weight = (1 - self.position_weighting) / (tot-map_len)
-                        p_weight = self.position_weighting / len(self.pos_map)
-                    else:
-                        p_weight = 1 / len(self.pos_map)
-                        v_weight = 0
-
-                    weights = [p_weight if i in self.pos_map else v_weight
-                               for i in range(tot)]
-
-                    if isinstance(self.measure, EuclideanWeighted):
-                        self.measure = EuclideanWeighted(weighting=weights)
 
                     distance = self.measure(state1, state2)
 
