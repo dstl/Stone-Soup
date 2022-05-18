@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from typing import Optional
 import datetime
-from typing import Sequence, Tuple
+from typing import Sequence, Collection
 
 import numpy as np
 from ordered_set import OrderedSet
@@ -14,6 +14,7 @@ from ..types.detection import TrueDetection, Clutter
 from ..types.groundtruth import GroundTruthPath, GroundTruthState
 from ..types.numeric import Probability
 from ..types.state import GaussianState, State
+from ..types.array import StateVector
 from .base import DetectionSimulator, GroundTruthSimulator
 from stonesoup.buffered_generator import BufferedGenerator
 
@@ -92,9 +93,9 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
         default=0.1, doc="Probability of track dying in each time step. Default 0.1.")
     seed: Optional[int] = Property(default=None, doc="Seed for random number generation."
                                                      " Default None")
-    preexisting_states: Tuple = Property(
-        default=tuple(), doc="State vectors at time 0 for "
-                             "groundtruths which should exist at the start of simulation.")
+    preexisting_states: Collection[StateVector] = Property(
+        default=list(), doc="State vectors at time 0 for "
+                            "groundtruths which should exist at the start of simulation.")
     initial_number_targets: int = Property(
         default=0, doc="Initial number of targets to be "
                        "simulated. These simulated targets will be made in addition to those "
