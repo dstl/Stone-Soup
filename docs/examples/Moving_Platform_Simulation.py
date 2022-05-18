@@ -356,6 +356,8 @@ for time, ctracks in tracker:
             # obtain measurement angles and map to cartesian
             e, a = detection.state_vector
             x, y, _ = sphere2cart(r, a + az_offset, e + el_offset)
+            x += detection.measurement_model.translation_offset[0]
+            y += detection.measurement_model.translation_offset[1]
             color = 'g'
         X = [sensor_platform.state_vector[0], x]
         Y = [sensor_platform.state_vector[2], y]
