@@ -7,11 +7,11 @@ import typing
 
 import numpy as np
 
-from .array import StateVector, StateVectors, CovarianceMatrix, PrecisionMatrix
-from .base import Type
-from .numeric import Probability
-from .particle import Particles
 from ..base import Property
+from .array import StateVector, CovarianceMatrix, PrecisionMatrix, StateVectors
+from .base import Type
+from .particle import Particle
+from .numeric import Probability
 
 
 class State(Type):
@@ -25,7 +25,7 @@ class State(Type):
     def __init__(self, state_vector, *args, **kwargs):
         # Don't cast away subtype of state_vector if not necessary
         if state_vector is not None \
-                and not isinstance(state_vector, StateVector):
+                and not isinstance(state_vector, (StateVector, StateVectors)):
             state_vector = StateVector(state_vector)
         super().__init__(state_vector, *args, **kwargs)
 
@@ -429,47 +429,86 @@ class TaggedWeightedGaussianState(WeightedGaussianState):
             self.tag = str(uuid.uuid4())
 
 
-class ParticleState(Type):
+class ParticleState(State):
     """Particle State type
 
     This is a particle state object which describes the state as a
     distribution of particles"""
 
-    particles: Particles = Property(doc='All particles.')
+    state_vector: StateVectors = Property(doc='State vectors.')
+    weight: MutableSequence[Probability] = Property(default=None, doc='Weights of particles')
+    parent: 'ParticleState' = Property(default=None, doc='Parent particles')
+    particle_list: MutableSequence[Particle] = Property(default=None,
+                                                        doc='List of Particle objects')
     fixed_covar: CovarianceMatrix = Property(default=None,
                                              doc='Fixed covariance value. Default `None`, where'
                                                  'weighted sample covariance is then used.')
-    timestamp: datetime.datetime = Property(default=None,
-                                            doc="Timestamp of the state. Default None.")
 
-    def __init__(self, particles, *args, **kwargs):
-        if particles is not None and not isinstance(particles, Particles):
-            particles = Particles(particle_list=particles)
-        super().__init__(particles, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if (self.particle_list is not None) and \
+                (self.state_vector is not None or self.weight is not None):
+            raise ValueError("Use either a list of Particle objects or StateVectors and weights,"
+                             " but not both.")
+
+        if self.particle_list and isinstance(self.particle_list, list):
+            self.state_vector = \
+                StateVectors([particle.state_vector for particle in self.particle_list])
+            self.weight = \
+                np.array([Probability(particle.weight) for particle in self.particle_list])
+            parent_list = [particle.parent for particle in self.particle_list]
+
+            if parent_list.count(None) == 0:
+                self.parent = ParticleState(None, particle_list=parent_list)
+            elif 0 < parent_list.count(None) < len(parent_list):
+                raise ValueError("Either all particles should have"
+                                 " parents or none of them should.")
+
+        if self.parent:
+            self.parent.parent = None  # Removed to avoid using significant memory
+
+        if self.state_vector is not None and not isinstance(self.state_vector, StateVectors):
+            self.state_vector = StateVectors(self.state_vector)
+        if self.weight is not None and not isinstance(self.weight, np.ndarray):
+            self.weight = np.array(self.weight)
+
+    def __getitem__(self, item):
+        if self.parent:
+            p = self.parent[item]
+        else:
+            p = None
+
+        particle = Particle(state_vector=self.state_vector[:, item],
+                            weight=self.weight[item],
+                            parent=p)
+        return particle
+
+    @property
+    def particles(self):
+        return [particle for particle in self]
+
+    def __len__(self):
+        return self.state_vector.shape[1]
 
     @property
     def ndim(self):
-        return self.particles.ndim
+        return self.state_vector.shape[0]
 
     @property
     def mean(self):
         """The state mean, equivalent to state vector"""
-        result = np.average(self.particles.state_vector,
+        result = np.average(self.state_vector,
                             axis=1,
-                            weights=self.particles.weight)
+                            weights=self.weight)
         # Convert type as may have type of weights
         return result
-
-    @property
-    def state_vector(self):
-        """The mean value of the particle states"""
-        return self.mean
 
     @property
     def covar(self):
         if self.fixed_covar is not None:
             return self.fixed_covar
-        cov = np.cov(self.particles.state_vector, ddof=0, aweights=np.array(self.particles.weight))
+        cov = np.cov(self.state_vector, ddof=0, aweights=np.array(self.weight))
         # Fix one dimensional covariances being returned with zero dimension
         return cov
 

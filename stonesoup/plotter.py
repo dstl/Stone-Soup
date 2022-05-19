@@ -253,15 +253,27 @@ class Plotter:
         # Plot tracks
         track_colors = {}
         for track in tracks:
-            if self.dimension is Dimension.TWO:
-                line = self.ax.plot([state.state_vector[mapping[0]] for state in track],
-                                    [state.state_vector[mapping[1]] for state in track],
-                                    **tracks_kwargs)
-            else:
-                line = self.ax.plot([state.state_vector[mapping[0]] for state in track],
-                                    [state.state_vector[mapping[1]] for state in track],
-                                    [state.state_vector[mapping[2]] for state in track],
-                                    **tracks_kwargs)
+            try:
+                if self.dimension is Dimension.TWO:
+                    line = self.ax.plot([state.mean[mapping[0]] for state in track],
+                                        [state.mean[mapping[1]] for state in track],
+                                        **tracks_kwargs)
+                else:
+                    line = self.ax.plot([state.mean[mapping[0]] for state in track],
+                                        [state.mean[mapping[1]] for state in track],
+                                        [state.mean[mapping[2]] for state in track],
+                                        **tracks_kwargs)
+            except AttributeError:
+                if self.dimension is Dimension.TWO:
+                    line = self.ax.plot([state.state_vector[mapping[0]] for state in track],
+                                        [state.state_vector[mapping[1]] for state in track],
+                                        **tracks_kwargs)
+                else:
+                    line = self.ax.plot([state.state_vector[mapping[0]] for state in track],
+                                        [state.state_vector[mapping[1]] for state in track],
+                                        [state.state_vector[mapping[2]] for state in track],
+                                        **tracks_kwargs)
+                continue
             track_colors[track] = plt.getp(line[0], 'color')
 
         # Assuming a single track or all plotted as the same colour then the following will work.
@@ -328,7 +340,7 @@ class Plotter:
                 # Plot particles
                 for track in tracks:
                     for state in track:
-                        data = state.particles.state_vector[mapping[:2], :]
+                        data = state.state_vector[mapping[:2], :]
                         self.ax.plot(data[0], data[1], linestyle='', marker=".",
                                      markersize=1, alpha=0.5)
 

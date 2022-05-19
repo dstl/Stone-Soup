@@ -4,7 +4,6 @@ import datetime
 import numpy as np
 import pytest
 
-from ..particle import Particle
 from ..prediction import (
     Prediction, MeasurementPrediction,
     StatePrediction, StateMeasurementPrediction,
@@ -14,6 +13,7 @@ from ..prediction import (
 from ..state import (
     State, GaussianState, SqrtGaussianState, TaggedWeightedGaussianState, ParticleState)
 from ..track import Track
+from ..array import StateVectors
 
 
 def test_stateprediction():
@@ -166,8 +166,8 @@ def test_from_state(prediction_type):
         assert prediction.weight == 0.5
         assert prediction.tag == state.tag
 
-    state = ParticleState([Particle([[0]], weight=0.5)], timestamp=datetime.datetime.now())
-    prediction = prediction_type.from_state(state, particles=[Particle([[1]], weight=0.8)])
+    state = ParticleState(StateVectors([[1]]), weight=0.5, timestamp=datetime.datetime.now())
+    prediction = prediction_type.from_state(state)
     if prediction_type is Prediction:
         assert isinstance(prediction, ParticleStatePrediction)
     else:

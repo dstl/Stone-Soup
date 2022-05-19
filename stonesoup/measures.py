@@ -82,11 +82,20 @@ class Euclidean(Measure):
 
         """
         # Calculate Euclidean distance between two state
-        if self.mapping is not None:
-            return distance.euclidean(state1.state_vector[self.mapping, 0],
-                                      state2.state_vector[self.mapping2, 0])
+        if hasattr(state1, 'mean'):
+            state_vector1 = state1.mean
         else:
-            return distance.euclidean(state1.state_vector[:, 0], state2.state_vector[:, 0])
+            state_vector1 = state1.state_vector
+        if hasattr(state2, 'mean'):
+            state_vector2 = state2.mean
+        else:
+            state_vector2 = state2.state_vector
+
+        if self.mapping is not None:
+            return distance.euclidean(state_vector1[self.mapping, 0],
+                                      state_vector2[self.mapping2, 0])
+        else:
+            return distance.euclidean(state_vector1[:, 0], state_vector2[:, 0])
 
 
 class EuclideanWeighted(Measure):
@@ -127,13 +136,22 @@ class EuclideanWeighted(Measure):
             :class:`~.State` objects
 
         """
+        if hasattr(state1, 'mean'):
+            state_vector1 = state1.mean
+        else:
+            state_vector1 = state1.state_vector
+        if hasattr(state2, 'mean'):
+            state_vector2 = state2.mean
+        else:
+            state_vector2 = state2.state_vector
+
         if self.mapping is not None:
-            return distance.euclidean(state1.state_vector[self.mapping, 0],
-                                      state2.state_vector[self.mapping2, 0],
+            return distance.euclidean(state_vector1[self.mapping, 0],
+                                      state_vector2[self.mapping2, 0],
                                       self.weighting)
         else:
-            return distance.euclidean(state1.state_vector[:, 0],
-                                      state2.state_vector[:, 0],
+            return distance.euclidean(state_vector1[:, 0],
+                                      state_vector2[:, 0],
                                       self.weighting)
 
 
@@ -167,16 +185,25 @@ class Mahalanobis(Measure):
             objects
 
         """
+        if hasattr(state1, 'mean'):
+            state_vector1 = state1.mean
+        else:
+            state_vector1 = state1.state_vector
+        if hasattr(state2, 'mean'):
+            state_vector2 = state2.mean
+        else:
+            state_vector2 = state2.state_vector
+
         if self.mapping is not None:
-            u = state1.state_vector[self.mapping, 0]
-            v = state2.state_vector[self.mapping2, 0]
+            u = state_vector1[self.mapping, 0]
+            v = state_vector2[self.mapping2, 0]
             # extract the mapped covariance data
             rows = np.array(self.mapping, dtype=np.intp)
             columns = np.array(self.mapping, dtype=np.intp)
             cov = state1.covar[rows[:, np.newaxis], columns]
         else:
-            u = state1.state_vector[:, 0]
-            v = state2.state_vector[:, 0]
+            u = state_vector1[:, 0]
+            v = state_vector2[:, 0]
             cov = state1.covar
 
         vi = np.linalg.inv(cov)

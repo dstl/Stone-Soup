@@ -4,7 +4,7 @@ import scipy
 from .kalman import KalmanUpdater
 from ..base import Property
 from ..types.state import State
-from ..types.array import StateVectors
+from ..types.array import StateVector, StateVectors
 from ..types.prediction import MeasurementPrediction
 from ..types.update import Update
 from ..models.measurement import MeasurementModel
@@ -178,10 +178,10 @@ class EnsembleUpdater(KalmanUpdater):
         # Calculate Kalman Gain according to Dr. Jan Mandel's EnKF formalism.
         innovation_ensemble = hypothesis.prediction.ensemble - hypothesis.prediction.mean
 
-        meas_innovation = StateVectors([self.measurement_model.function(
-            State(state_vector=col), noise=False) - self.measurement_model.function(
-                State(state_vector=hypothesis.prediction.mean), noise=False)
-                for col in prior_ensemble.T])
+        meas_innovation = StateVectors(
+            [self.measurement_model.function(State(state_vector=StateVector(col)))
+             - self.measurement_model.function(State(state_vector=hypothesis.prediction.mean))
+             for col in prior_ensemble.T])
 
         # Calculate Kalman Gain
         kalman_gain = 1/(num_vectors-1) * innovation_ensemble @ meas_innovation.T @ \

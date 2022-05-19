@@ -64,7 +64,7 @@ def random_updater_prediction_and_measurement(num_updaters, timestamp):
             timestamp=timestamp,
             measurement_model=sub_updaters[2].measurement_model),
         Detection(
-            state_vector=create_state(True, True, ndim_states[3], timestamp).state_vector,
+            state_vector=create_state(True, False, ndim_states[3], timestamp).state_vector,
             timestamp=timestamp,
             measurement_model=sub_updaters[3].measurement_model),
         CategoricalDetection(
@@ -85,6 +85,8 @@ def test_composite_updater(num_updaters):
     now = datetime.datetime.now()
 
     updater, prediction, measurement = random_updater_prediction_and_measurement(num_updaters, now)
+    if any(isinstance(updater, ParticleUpdater) for updater in updater.sub_updaters):
+        pytest.xfail("Can't use ParticleState within CompositeState")
 
     sub_updaters = updater.sub_updaters
 

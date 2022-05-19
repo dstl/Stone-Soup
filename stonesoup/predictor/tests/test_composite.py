@@ -16,7 +16,6 @@ from ...predictor.particle import ParticlePredictor, ParticleFlowKalmanPredictor
 from ...types.array import StateVector
 from ...types.array import StateVectors
 from ...types.numeric import Probability
-from ...types.particle import Particles
 from ...types.prediction import CompositePrediction
 from ...types.state import ParticleState, CategoricalState
 from ...types.state import State, GaussianState, CompositeState
@@ -33,10 +32,10 @@ def create_state(gaussian: bool, particles: bool, ndim_state: int, timestamp: da
             # create particle state
             number_particles = 1000
             samples = multivariate_normal.rvs(sv.flatten(), cov, size=number_particles)
-            particles = Particles(state_vector=StateVectors(samples.T),
-                                  weight=np.array(
-                                      [Probability(1 / number_particles)] * number_particles))
-            return ParticleState(particles, timestamp=timestamp)
+            return ParticleState(state_vector=StateVectors(samples.T),
+                                 weight=np.array(
+                                     [Probability(1 / number_particles)] * number_particles),
+                                 timestamp=timestamp)
         return GaussianState(sv, cov, timestamp=timestamp)
     else:
         # create categorical state

@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 from PIL import Image
 
-from stonesoup.reader.image import SingleImageFileReader
+from ...reader.image import SingleImageFileReader
 
 
 @pytest.fixture()

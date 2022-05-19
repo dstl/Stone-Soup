@@ -14,7 +14,6 @@ from ..state import CreatableFromState
 from ..state import State, GaussianState, ParticleState, EnsembleState, \
     StateMutableSequence, WeightedGaussianState, SqrtGaussianState, CategoricalState, \
     CompositeState
-
 from ...base import Property
 
 
@@ -137,86 +136,113 @@ def test_particlestate():
     with pytest.raises(TypeError):
         ParticleState()
 
-    # 1D
+    # Create 10 1d particles: [[0,0,0,0,0,100,100,100,100,100]]
+    # with equal weight
     num_particles = 10
-    state_vector1 = StateVector([[0.]])
-    state_vector2 = StateVector([[100.]])
     weight = Probability(1/num_particles)
-    particles = []
-    particles.extend(Particle(
-        state_vector1, weight=weight) for _ in range(num_particles//2))
-    particles.extend(Particle(
-        state_vector2, weight=weight) for _ in range(num_particles//2))
+    particles = StateVectors(np.concatenate(
+        (np.tile([[0]], num_particles//2), np.tile([[100]], num_particles//2)), axis=1))
+    weights = np.tile(weight, num_particles)
 
     # Test state without timestamp
-    state = ParticleState(particles)
-    assert np.allclose(state.state_vector, StateVector([[50]]))
+    state = ParticleState(particles, weight=weights)
+    assert np.allclose(state.mean, StateVector([[50]]))
     assert np.allclose(state.covar, CovarianceMatrix([[2500]]))
 
     # Test state with timestamp
     timestamp = datetime.datetime.now()
-    state = ParticleState(particles, timestamp=timestamp)
-    assert np.allclose(state.state_vector, StateVector([[50]]))
+    state = ParticleState(particles, weight=weights, timestamp=timestamp)
+    assert np.allclose(state.mean, StateVector([[50]]))
     assert np.allclose(state.covar, CovarianceMatrix([[2500]]))
     assert state.timestamp == timestamp
 
-    # 2D
-    state_vector1 = StateVector([[0.], [0.]])
-    state_vector2 = StateVector([[100.], [200.]])
-    particles = []
-    particles.extend(Particle(
-        state_vector1, weight=weight) for _ in range(num_particles//2))
-    particles.extend(Particle(
-        state_vector2, weight=weight) for _ in range(num_particles//2))
+    # Now create 10 2d particles:
+    # [[0,0,0,0,0,100,100,100,100,100],
+    #  [0,0,0,0,0,200,200,200,200,200]]
+    # use same weights
+    particles = StateVectors(np.concatenate((np.tile([[0], [0]], num_particles//2),
+                                             np.tile([[100], [200]], num_particles//2)),
+                                            axis=1))
 
-    state = ParticleState(particles)
+    state = ParticleState(particles, weight=weights)
     assert isinstance(state, State)
     assert ParticleState in State.subclasses
-    assert np.allclose(state.state_vector, StateVector([[50], [100]]))
+    assert np.allclose(state.mean, StateVector([[50], [100]]))
     assert np.allclose(state.covar, CovarianceMatrix([[2500, 5000], [5000, 10000]]))
+    assert state.ndim == 2
+
+    # Create ParticleState from state vectors, weights and particle list
+    state_vector_array = np.concatenate((np.tile([[0], [0]], num_particles // 2),
+                                         np.tile([[100], [200]], num_particles // 2)),
+                                        axis=1)
+    state_vector_gen = ([state_vector_array[0][particle],
+                         state_vector_array[1][particle]] for particle in range(num_particles))
+    weight = Probability(1 / num_particles)
+    particle_list = [Particle(state_vector,
+                              weight=weight) for state_vector in state_vector_gen]
+    with pytest.raises(ValueError):
+        ParticleState(particles, particle_list=particle_list, weight=weight)
+
+    parent_list = particle_list
+    particle_list2 = [Particle([0, 0],
+                      weight=weight,
+                      parent=parent) for parent in parent_list]
+    state = ParticleState(None, particle_list=particle_list2,
+                          timestamp=timestamp, fixed_covar=[1, 1])
+    assert isinstance(state.parent, ParticleState)
+    assert state.covar == [1, 1]
+
+    particle_list3 = particle_list[1:]
+    particle_parent = Particle([0, 0], weight=weight)
+    particle = Particle([0, 0], weight=weight, parent=particle_parent)
+    particle_list3.append(particle)
+
+    with pytest.raises(ValueError):
+        ParticleState(None, particle_list=particle_list3, timestamp=timestamp)
 
 
 def test_particlestate_weighted():
     num_particles = 10
 
     # Half particles at high weight at 0
-    state_vector1 = StateVector([[0.]])
-    weight1 = Probability(0.75 / (num_particles / 2))
-
-    # Other half of particles low weight at 100
-    state_vector2 = StateVector([[100]])
-    weight2 = Probability(0.25 / (num_particles / 2))
-
-    particles = []
-    particles.extend(Particle(
-        state_vector1, weight=weight1) for _ in range(num_particles//2))
-    particles.extend(Particle(
-        state_vector2, weight=weight2) for _ in range(num_particles//2))
+    # Create 10 1d particles: [[0,0,0,0,0,100,100,100,100,100]]
+    # with different weights this time. First half have 0.75 and the second half 0.25.
+    particles = StateVectors([np.concatenate(
+        (np.tile(0, num_particles // 2), np.tile(100, num_particles // 2)))])
+    weights = np.concatenate(
+        (np.tile(Probability(0.75 / (num_particles / 2)), num_particles // 2),
+         np.tile(Probability(0.25 / (num_particles / 2)), num_particles // 2)))
 
     # Check particles sum to 1 still
-    assert pytest.approx(1) == sum(particle.weight for particle in particles)
+    assert pytest.approx(1) == sum(weight for weight in weights)
 
     # Test state vector is now weighted towards 0 from 50 (non-weighted mean)
-    state = ParticleState(particles)
-    assert np.allclose(state.state_vector, StateVector([[25]]))
+    state = ParticleState(particles, weight=weights)
+    assert np.allclose(state.mean, StateVector([[25]]))
     assert np.allclose(state.covar, CovarianceMatrix([[1875]]))
 
 
 def test_particlestate_angle():
     num_particles = 10
 
-    state_vector1 = StateVector([[Bearing(np.pi + 0.1)], [-10.]])
-    state_vector2 = StateVector([[Bearing(np.pi - 0.1)], [20.]])
+    # Create 10 2d particles of bearing type:
+    # [[pi+0.1,pi+0.1,pi+0.1,pi+0.1,pi+0.1,pi-0.1,pi-0.1,pi-0.1,pi-0.1,pi-0.1],
+    #  [   -10,   -10,   -10,   -10,   -10,    20,    20,    20,    20,    20]]
+    # use same weights
+    # Be extremely cautious with the use of integers in the statevectors here.
+    # There's interplay between the Bearing and Probability types and resulting
+    # rounding approximations can fail the test.
+    particles = StateVectors(
+        np.concatenate((np.tile([[Bearing(np.pi + 0.1)], [-10.0]], num_particles//2),
+                        np.tile([[Bearing(np.pi - 0.1)], [20.0]], num_particles//2)), axis=1))
+
     weight = Probability(1/num_particles)
-    particles = []
-    particles.extend(Particle(
-        state_vector1, weight=weight) for _ in range(num_particles//2))
-    particles.extend(Particle(
-        state_vector2, weight=weight) for _ in range(num_particles//2))
+    weights = np.tile(weight, num_particles)
 
     # Test state without timestamp
-    state = ParticleState(particles)
-    assert np.allclose(state.state_vector, StateVector([[np.pi], [5.]]))
+    state = ParticleState(particles, weight=weights)
+
+    assert np.allclose(state.mean, StateVector([[np.pi], [5.]]))
     assert np.allclose(state.covar, CovarianceMatrix([[0.01, -1.5], [-1.5, 225]]))
 
 

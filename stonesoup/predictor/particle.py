@@ -4,8 +4,7 @@ from .base import Predictor
 from ._utils import predict_lru_cache
 from .kalman import KalmanPredictor, ExtendedKalmanPredictor
 from ..base import Property
-from ..types.particle import Particles
-from ..types.prediction import Prediction, ParticleStatePrediction
+from ..types.prediction import Prediction
 from ..types.state import GaussianState
 
 
@@ -43,16 +42,14 @@ class ParticlePredictor(Predictor):
             time_interval = None
 
         new_state_vector = self.transition_model.function(
-            prior.particles,
+            prior,
             noise=True,
             time_interval=time_interval,
-            num_samples=len(prior.particles),
+            num_samples=len(prior),
             **kwargs)
-        new_particles = Particles(state_vector=new_state_vector,
-                                  weight=prior.particles.weight,
-                                  parent=prior.particles.parent)
 
-        return Prediction.from_state(prior, particles=new_particles, timestamp=timestamp,
+        return Prediction.from_state(prior, state_vector=new_state_vector, weight=prior.weight,
+                                     timestamp=timestamp, particle_list=None,
                                      transition_model=self.transition_model)
 
 
@@ -95,7 +92,8 @@ class ParticleFlowKalmanPredictor(ParticlePredictor):
             GaussianState(prior.state_vector, prior.covar, prior.timestamp),
             *args, **kwargs)
 
-        return ParticleStatePrediction(
-            particle_prediction.particles,
-            kalman_prediction.covar,
-            timestamp=particle_prediction.timestamp)
+        return Prediction.from_state(prior, state_vector=particle_prediction.state_vector,
+                                     weight=particle_prediction.weight,
+                                     timestamp=particle_prediction.timestamp,
+                                     fixed_covar=kalman_prediction.covar, particle_list=None,
+                                     transition_model=self.transition_model)

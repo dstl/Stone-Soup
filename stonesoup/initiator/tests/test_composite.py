@@ -44,7 +44,7 @@ def composite_measurements(num_sub_states, ndim_states, timestamp):
                 timestamp=timestamp,
                 measurement_model=measurement_models[2]),
             Detection(
-                state_vector=create_state(True, True, ndim_states[3], timestamp).state_vector,
+                state_vector=create_state(True, False, ndim_states[3], timestamp).state_vector,
                 timestamp=timestamp,
                 measurement_model=measurement_models[3]),
             CategoricalDetection(

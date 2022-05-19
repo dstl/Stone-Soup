@@ -218,7 +218,7 @@ samples = multivariate_normal.rvs(prediction.state_vector.ravel(),
 particles = [
     Particle(sample.reshape(-1, 1), weight=Probability(1/number_particles)) for sample in samples]
 # Create prior particle state.
-pred_samples = ParticleState(particles, timestamp=start_time)
+pred_samples = ParticleState(None, particle_list=particles, timestamp=start_time)
 
 from stonesoup.resampler.particle import SystematicResampler
 resampler = SystematicResampler()
