@@ -89,7 +89,7 @@ def test_gm_ordered_by_component(predictor, updater):
     assert all(isinstance(hyp, SingleHypothesis)
                for multi_hyp in hypotheses for hyp in multi_hyp)
     assert len(hypotheses) == 2
-    # Last element in each array isthe miss detected component
+    # Last element in each array is the miss detected component
     assert len(hypotheses[0]) == 3
     assert len(hypotheses[1]) == 3
 
