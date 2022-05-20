@@ -189,7 +189,9 @@ class RadarElevationBearingRange(RadarBearingRange):
         doc="The sensor noise covariance matrix. This is utilised by "
             "(and follow in format) the underlying "
             ":class:`~.CartesianToElevationBearingRange` model")
-    max_range: float = Property(doc="The maximum detection range of the radar (in meters)")
+    max_range: float = Property(
+        default=np.inf,
+        doc="The maximum detection range of the radar (in meters)")
 
     @property
     def measurement_model(self):
