@@ -189,6 +189,7 @@ class RadarElevationBearingRange(RadarBearingRange):
         doc="The sensor noise covariance matrix. This is utilised by "
             "(and follow in format) the underlying "
             ":class:`~.CartesianToElevationBearingRange` model")
+    max_range: float = Property(doc="The maximum detection range of the radar (in meters)")
 
     @property
     def measurement_model(self):
@@ -206,7 +207,23 @@ class RadarElevationBearingRange(RadarBearingRange):
 
         detections = set()
         for truth in ground_truths:
+            # Initially no noise is added to the measurement vector
             measurement_vector = measurement_model.function(truth, noise=noise, **kwargs)
+
+            if noise is True:
+                measurement_noise = measurement_model.rvs()
+            else:
+                measurement_noise = noise
+
+            # Check if state falls within range of sensor
+            range_t = measurement_vector[2, 0]  # Elevation(0), Bearing(1), Range(2)
+            # Do not measure if state is out of range
+            if range_t > self.max_range:
+                continue
+
+            # Add in measurement noise to the measurement vector
+            measurement_vector += measurement_noise
+
             detection = TrueDetection(measurement_vector,
                                       measurement_model=measurement_model,
                                       timestamp=truth.timestamp,
