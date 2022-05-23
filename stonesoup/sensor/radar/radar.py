@@ -210,7 +210,7 @@ class RadarElevationBearingRange(RadarBearingRange):
         detections = set()
         for truth in ground_truths:
             # Initially no noise is added to the measurement vector
-            measurement_vector = measurement_model.function(truth, noise=noise, **kwargs)
+            measurement_vector = measurement_model.function(truth, noise=False, **kwargs)
 
             if noise is True:
                 measurement_noise = measurement_model.rvs()
