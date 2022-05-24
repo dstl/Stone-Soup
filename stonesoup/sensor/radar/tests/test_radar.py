@@ -88,7 +88,8 @@ def h3d(state, pos_map, translation_offset, rotation_offset):
     ],
     ids=["RadarBearingRange", "RadarElevationBearingRange"]
 )
-def test_simple_radar(h, sensorclass, ndim_state, pos_mapping, noise_covar, position, target, max_range):
+def test_simple_radar(h, sensorclass, ndim_state, pos_mapping, noise_covar, position, target,
+                      max_range):
     # Instantiate the simple radar
     radar = sensorclass(ndim_state=ndim_state,
                         position_mapping=pos_mapping,
