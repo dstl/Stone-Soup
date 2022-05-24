@@ -60,7 +60,7 @@ def h3d(state, pos_map, translation_offset, rotation_offset):
 
 
 @pytest.mark.parametrize(
-    "h, sensorclass, ndim_state, pos_mapping, noise_covar, position, target",
+    "h, sensorclass, ndim_state, pos_mapping, noise_covar, position, target, max_range",
     [
         (
                 h2d,  # h
