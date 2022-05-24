@@ -51,6 +51,9 @@ class RadarBearingRange(Sensor):
         doc="An optional clutter generator that adds a set of simulated "
             ":class:`Clutter` ojects to the measurements at each time step. "
             "The clutter is simulated according to the provided distribution.")
+    max_range: float = Property(
+        default=np.inf,
+        doc="The maximum detection range of the radar (in meters)")
 
     @property
     def measurement_model(self):
@@ -68,7 +71,21 @@ class RadarBearingRange(Sensor):
 
         detections = set()
         for truth in ground_truths:
-            measurement_vector = measurement_model.function(truth, noise=noise, **kwargs)
+            measurement_vector = measurement_model.function(truth, noise=False, **kwargs)
+
+            if noise is True:
+                measurement_noise = measurement_model.rvs()
+            else:
+                measurement_noise = noise
+
+            range_t = measurement_vector[1, 0]  # Bearing(0), Range(1)
+            # Do not measure if state is out of range
+            if range_t > self.max_range:
+                continue
+
+            # Add in measurement noise to the measurement vector
+            measurement_vector += measurement_noise
+
             detection = TrueDetection(measurement_vector,
                                       measurement_model=measurement_model,
                                       timestamp=truth.timestamp,
