@@ -119,11 +119,14 @@ class RadarRotatingBearingRange(RadarBearingRange):
             "sensor frame/orientation. The angle is positive if the rotation is in the "
             "counter-clockwise direction when viewed by an observer looking down the z-axis of "
             "the sensor frame, towards the origin. Angle units are in radians",
-        generator_cls=DwellActionsGenerator
-    )
-    rpm: float = Property(doc="The number of antenna rotations per minute (RPM)")
-    max_range: float = Property(doc="The maximum detection range of the radar (in meters)")
-    fov_angle: float = Property(doc="The radar field of view (FOV) angle (in radians).")
+        generator_cls=DwellActionsGenerator)
+    rpm: float = Property(
+        doc="The number of antenna rotations per minute (RPM)")
+    max_range: float = Property(
+        default=np.inf,
+        doc="The maximum detection range of the radar (in meters)")
+    fov_angle: float = Property(
+        doc="The radar field of view (FOV) angle (in radians).")
 
     @property
     def measurement_model(self):
