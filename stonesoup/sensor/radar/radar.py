@@ -51,6 +51,9 @@ class RadarBearingRange(Sensor):
         doc="An optional clutter generator that adds a set of simulated "
             ":class:`Clutter` ojects to the measurements at each time step. "
             "The clutter is simulated according to the provided distribution.")
+    max_range: float = Property(
+        default=np.inf,
+        doc="The maximum detection range of the radar (in meters)")
 
     @property
     def measurement_model(self):
@@ -68,7 +71,21 @@ class RadarBearingRange(Sensor):
 
         detections = set()
         for truth in ground_truths:
-            measurement_vector = measurement_model.function(truth, noise=noise, **kwargs)
+            measurement_vector = measurement_model.function(truth, noise=False, **kwargs)
+
+            if noise is True:
+                measurement_noise = measurement_model.rvs()
+            else:
+                measurement_noise = noise
+
+            range_t = measurement_vector[1, 0]  # Bearing(0), Range(1)
+            # Do not measure if state is out of range
+            if range_t > self.max_range:
+                continue
+
+            # Add in measurement noise to the measurement vector
+            measurement_vector += measurement_noise
+
             detection = TrueDetection(measurement_vector,
                                       measurement_model=measurement_model,
                                       timestamp=truth.timestamp,
@@ -102,11 +119,14 @@ class RadarRotatingBearingRange(RadarBearingRange):
             "sensor frame/orientation. The angle is positive if the rotation is in the "
             "counter-clockwise direction when viewed by an observer looking down the z-axis of "
             "the sensor frame, towards the origin. Angle units are in radians",
-        generator_cls=DwellActionsGenerator
-    )
-    rpm: float = Property(doc="The number of antenna rotations per minute (RPM)")
-    max_range: float = Property(doc="The maximum detection range of the radar (in meters)")
-    fov_angle: float = Property(doc="The radar field of view (FOV) angle (in radians).")
+        generator_cls=DwellActionsGenerator)
+    rpm: float = Property(
+        doc="The number of antenna rotations per minute (RPM)")
+    max_range: float = Property(
+        default=np.inf,
+        doc="The maximum detection range of the radar (in meters)")
+    fov_angle: float = Property(
+        doc="The radar field of view (FOV) angle (in radians).")
 
     @property
     def measurement_model(self):
@@ -189,6 +209,9 @@ class RadarElevationBearingRange(RadarBearingRange):
         doc="The sensor noise covariance matrix. This is utilised by "
             "(and follow in format) the underlying "
             ":class:`~.CartesianToElevationBearingRange` model")
+    max_range: float = Property(
+        default=np.inf,
+        doc="The maximum detection range of the radar (in meters)")
 
     @property
     def measurement_model(self):
@@ -206,7 +229,23 @@ class RadarElevationBearingRange(RadarBearingRange):
 
         detections = set()
         for truth in ground_truths:
-            measurement_vector = measurement_model.function(truth, noise=noise, **kwargs)
+            # Initially no noise is added to the measurement vector
+            measurement_vector = measurement_model.function(truth, noise=False, **kwargs)
+
+            if noise is True:
+                measurement_noise = measurement_model.rvs()
+            else:
+                measurement_noise = noise
+
+            # Check if state falls within range of sensor
+            range_t = measurement_vector[2, 0]  # Elevation(0), Bearing(1), Range(2)
+            # Do not measure if state is out of range
+            if range_t > self.max_range:
+                continue
+
+            # Add in measurement noise to the measurement vector
+            measurement_vector += measurement_noise
+
             detection = TrueDetection(measurement_vector,
                                       measurement_model=measurement_model,
                                       timestamp=truth.timestamp,

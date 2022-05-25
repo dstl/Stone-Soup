@@ -60,7 +60,7 @@ def h3d(state, pos_map, translation_offset, rotation_offset):
 
 
 @pytest.mark.parametrize(
-    "h, sensorclass, ndim_state, pos_mapping, noise_covar, position, target",
+    "h, sensorclass, ndim_state, pos_mapping, noise_covar, position, target, max_range",
     [
         (
                 h2d,  # h
@@ -70,7 +70,8 @@ def h3d(state, pos_map, translation_offset, rotation_offset):
                 np.array([[0.015, 0],
                           [0, 0.1]]),  # noise_covar
                 StateVector([[1], [1]]),  # position
-                np.array([[200], [10]])  # target
+                np.array([[200], [10]]),  # target
+                1000  # max_range
         ),
         (
                 h3d,  # h
@@ -81,17 +82,20 @@ def h3d(state, pos_map, translation_offset, rotation_offset):
                           [0, 0.015, 0],
                           [0, 0, 0.1]]),  # noise_covar
                 StateVector([[1], [1], [0]]),  # position
-                np.array([[200], [10], [10]])  # target
+                np.array([[200], [10], [10]]),  # target
+                1000  # max_range
         )
     ],
     ids=["RadarBearingRange", "RadarElevationBearingRange"]
 )
-def test_simple_radar(h, sensorclass, ndim_state, pos_mapping, noise_covar, position, target):
-    # Instantiate the rotating radar
+def test_simple_radar(h, sensorclass, ndim_state, pos_mapping, noise_covar, position, target,
+                      max_range):
+    # Instantiate the simple radar
     radar = sensorclass(ndim_state=ndim_state,
                         position_mapping=pos_mapping,
                         noise_covar=noise_covar,
-                        position=position)
+                        position=position,
+                        max_range=max_range)
 
     assert (np.equal(radar.position, position).all())
 
@@ -131,6 +135,17 @@ def test_simple_radar(h, sensorclass, ndim_state, pos_mapping, noise_covar, posi
     for measurement in measurements:
         assert measurement.groundtruth_path in truth
         assert isinstance(measurement.groundtruth_path, GroundTruthPath)
+
+    # Assert that no detection is made when target is out of range
+    target3 = np.array([[2_000], [20], [20]])
+    target3_state = GroundTruthState(target3, timestamp=datetime.datetime.now())
+    target3_truth = GroundTruthPath([target3_state])
+
+    # Don't want any noise since we're range testing
+    measurement3 = radar.measure(target3_truth, noise=False)
+
+    # Check no detection have been made when target is out of range
+    assert (len(measurement3) == 0)
 
 
 def h2d_rr(state, pos_map, vel_map, translation_offset, rotation_offset, velocity):
