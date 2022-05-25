@@ -111,7 +111,7 @@ class PointProcessUpdater(Base):
                     covar=missed_detected_hypotheses.prediction.covar,
                     timestamp=missed_detected_hypotheses.prediction.timestamp)
                 updated_components.append(component)
-        
+
         # Ensure that no component has a weight of 0. This avoids divide
         # by 0 bugs in the GaussianMixtureReducer
         for component in updated_components:
