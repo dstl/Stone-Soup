@@ -89,8 +89,6 @@ transition_modelStraight = CombinedLinearGaussianTransitionModel((ConstantVeloci
 transition_modelLeft = CombinedLinearGaussianTransitionModel((KnownTurnRate((0.01, 0.01),
                                                               np.radians(3)), ConstantVelocity(0.01)))
 
-transition_modelRight = CombinedLinearGaussianTransitionModel((KnownTurnRate((0.01,0.01),
-                                                               np.radians(-3)), ConstantVelocity(0.01)))
 
 # Create specific transition model for example moving platform
 transition_models = [transition_modelStraight,
@@ -241,9 +239,9 @@ len(tracks)
 # %%
 # Plotting
 # ------------------
-# We will be using the Folium plotting library so we can visualize our tracks on a leaflet map.
-# These Folium markers will show where our stationary sensors are located. Since our FOV angles
-# are 360 degrees, we can easily use a fixed circle to display our radar's coverage.
+# We will be using the Folium plotting library so we can visualize our tracks on a two-dimensional
+# leaflet map. These Folium markers will show where our stationary sensors are located. Since our
+# FOV angles are 360 degrees, we can easily use a fixed circle to display our radar's coverage.
 
 import folium
 
