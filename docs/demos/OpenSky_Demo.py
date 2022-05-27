@@ -31,10 +31,11 @@ import utm
 
 truthslonlat = CSVGroundTruthReader(
     "OpenSky_Plane_States.csv",
-    state_vector_fields=("lon", "x_speed", "lat", "y_speed"),  # List of columns names to be used in state vector
-    path_id_field="icao24",                                    # Name of column to be used as path ID
-    time_field="time",                                         # Name of column to be used as time field
-    timestamp=True)                                            # Treat time field as a timestamp from epoch
+    state_vector_fields=("lon", "x_speed", "lat", "y_speed",
+                         "geoaltitude", "vertrate"),  # List of columns names to be used in state vector
+    path_id_field="icao24",                           # Name of column to be used as path ID
+    time_field="time",                                # Name of column to be used as time field
+    timestamp=True)                                   # Treat time field as a timestamp from epoch
 
 
 groundtruth = LongLatToUTMConverter(truthslonlat, zone_number=30,  mapping=[0, 2])
