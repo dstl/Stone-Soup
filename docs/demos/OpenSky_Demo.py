@@ -66,7 +66,7 @@ import datetime
 import numpy as np
 
 from stonesoup.types.array import StateVector
-from stonesoup.sensor.radar import RadarRotatingBearingRange
+from stonesoup.sensor.radar import RadarElevationBearingRange
 from stonesoup.types.state import State
 from stonesoup.platform.base import FixedPlatform, MultiTransitionMovingPlatform
 from stonesoup.simulator.platform import PlatformDetectionSimulator
@@ -101,35 +101,26 @@ transition_times = [datetime.timedelta(seconds=160),
 
 # List sensors in stationary platforms (sensor orientations are overwritten)
 stationarySensors = [
-    RadarRotatingBearingRange(
+    RadarElevationBearingRange(
         ndim_state=6,
-        position_mapping=(0, 2),
-        noise_covar=np.diag([np.radians(1)**2, 7**2]),   # The sensor noise covariance matrix
-        dwell_centre=StateVector([[-np.pi]]),
-        rpm=12.5,
-        max_range=100000,
-        fov_angle=np.radians(360)),
+        position_mapping=(0, 2, 4),
+        noise_covar=np.diag([np.radians(1)**2, np.radians(1)**2, 7**2]),
+        max_range=100000),
 
-    RadarRotatingBearingRange(
+    RadarElevationBearingRange(
         ndim_state=6,
-        position_mapping=(0, 2),
-        noise_covar=np.diag([np.radians(1)**2, 7**2]),
-        dwell_centre=StateVector([[-np.pi]]),
-        rpm=12.5,
-        max_range=100000,
-        fov_angle=np.radians(360)),
+        position_mapping=(0, 2, 4),
+        noise_covar=np.diag([np.radians(1)**2, np.radians(1)**2, 7**2]),
+        max_range=100000)
     ]
 
 # List sensors in moving platform (sensor orientations are overwritten)
 movingPlatformSensors = [
-    RadarRotatingBearingRange(
+    RadarElevationBearingRange(
         ndim_state=6,
-        position_mapping=(0, 2),
-        noise_covar=np.diag([np.radians(1.2)**2, 8**2]),
-        dwell_centre=StateVector([0]),
-        rpm=20,
-        max_range=60000,
-        fov_angle=np.radians(360)),
+        position_mapping=(0, 2, 4),
+        noise_covar=np.diag([np.radians(1.2)**2, np.radians(1.2)**2, 8**2]),
+        max_range=60000)
     ]
 
 platforms = []
@@ -143,9 +134,9 @@ for sensor, platformLocation in zip(stationarySensors, (heathrow, manchester)):
 # Create moving platform
 movingPlatformInitialLocation = utm.from_latlon(52.25, -0.9, utm_zone)
 movingPlatformState = State([[movingPlatformInitialLocation[0]], [0],
-                             [movingPlatformInitialLocation[1]], [250], [0], [0]])
+                             [movingPlatformInitialLocation[1]], [250], [5000], [0]])
 movingPlatforms = [MultiTransitionMovingPlatform(movingPlatformState,
-                                                 position_mapping=(0, 2),
+                                                 position_mapping=(0, 2, 4),
                                                  transition_models=transition_models,
                                                  transition_times=transition_times,
                                                  sensors=movingPlatformSensors)]
