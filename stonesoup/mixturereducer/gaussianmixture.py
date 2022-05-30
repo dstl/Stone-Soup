@@ -63,7 +63,7 @@ class GaussianMixtureReducer(MixtureReducer):
         if len(components_list) > 0:
             if self.pruning:
                 components_list = self.prune(components_list)
-            if len(components_list) > 1 & self.merging:
+            if len(components_list) > 1 and self.merging:
                 components_list = self.merge(components_list)
             if len(components_list) > self.max_number_components and self.truncating:
                 components_list = self.truncate(components_list)
@@ -92,7 +92,7 @@ class GaussianMixtureReducer(MixtureReducer):
                 pruned_weight_sum += component.weight
 
         remaining_components = [component for component in components_list
-                                if component.weight > self.prune_threshold]
+                                if component.weight >= self.prune_threshold]
         # Distribute pruned weights across remaining components
         for component in remaining_components:
             component.weight += \
