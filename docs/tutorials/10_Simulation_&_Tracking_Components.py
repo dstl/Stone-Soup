@@ -203,8 +203,7 @@ tracker = MultiTargetTracker(
 #
 # Plot the outputs
 # ^^^^^^^^^^^^^^^^
-# We plot the output using a Stone Soup :class:`MetricGenerator` which does plots (in this instance
-# :class:`TwoDPlotter`. This will produce plots equivalent to that seen in previous tutorials.
+# We plot the ground truth, detections and the tracker output using the Stone Soup :class:`Plotter`.
 groundtruth = set()
 detections = set()
 tracks = set()
@@ -218,6 +217,6 @@ for time, ctracks in tracker:
 from stonesoup.plotter import Plotter
 
 plotter = Plotter()
-plotter.plot_ground_truths(groundtruth, mapping=[0,2])
-plotter.plot_measurements(detections, mapping=[0,2])
-plotter.plot_tracks(tracks, mapping=[0,2])
+plotter.plot_ground_truths(groundtruth, mapping=[0, 2])
+plotter.plot_measurements(detections, mapping=[0, 2])
+plotter.plot_tracks(tracks, mapping=[0, 2])
