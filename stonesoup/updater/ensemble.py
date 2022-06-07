@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
+import numpy as np
 import scipy
 
 from .kalman import KalmanUpdater
 from ..base import Property
-from ..types.state import State
+from ..types.state import State, EnsembleState
 from ..types.array import StateVector, StateVectors
 from ..types.prediction import MeasurementPrediction
 from ..types.update import Update
@@ -12,7 +13,6 @@ from ..models.measurement import MeasurementModel
 
 class EnsembleUpdater(KalmanUpdater):
     r"""Ensemble Kalman Filter Updater class
-
     The EnKF is a hybrid of the Kalman updating scheme and the
     Monte Carlo aproach of the the particle filter.
 
@@ -30,7 +30,6 @@ class EnsembleUpdater(KalmanUpdater):
     .. math::
 
         \mathbf{A}_k = \hat{X} - E(X)
-
         \mathbf{HA}_k = h(\hat{X} - E(X))
 
     The cross covariance and measurement covariance are given by:
@@ -38,12 +37,12 @@ class EnsembleUpdater(KalmanUpdater):
     .. math::
 
         P_{xz} = \frac{1}{M-1} \mathbf{A}_k \mathbf{HA}_k^T
-
         P_{zz} = \frac{1}{M-1} A_k \mathbf{HA}_k^T + R
 
     The Kalman gain is then calculated via:
 
     .. math::
+
         K_{k} = P_{xz} P_{zz}^{-1}
 
     and the posterior state mean and covariance are,
@@ -54,7 +53,6 @@ class EnsembleUpdater(KalmanUpdater):
         \mathbf{x}_{k|k-1})
 
     This is returned as a :class:`~.EnsembleStateUpdate` object.
-
     References
     ----------
     1. J. Hiles, S. M. O’Rourke, R. Niu and E. P. Blasch,
@@ -63,7 +61,6 @@ class EnsembleUpdater(KalmanUpdater):
 
     2. Mandel, Jan. "A brief tutorial on the ensemble Kalman filter."
     arXiv preprint arXiv:0901.3725 (2009).
-
     """
 
     measurement_model: MeasurementModel = Property(
@@ -82,7 +79,6 @@ class EnsembleUpdater(KalmanUpdater):
             the prediction-measurement association hypothesis. This hypothesis
             may carry a predicted measurement, or a predicted state. In the
             latter case a predicted measurement will be calculated.
-
         Returns
         -------
         hypothesis : :class:`~.SingleHypothesis`
@@ -119,12 +115,10 @@ class EnsembleUpdater(KalmanUpdater):
         measurement_model : :class:`~.MeasurementModel`
             The measurement model. If omitted, the model in the updater object
             is used
-
         Returns
         -------
         : :class:`EnsembleMeasurementPrediction`
             The measurement prediction, :math:`\mathbf{z}_{k|k-1}`
-
         """
         # If a measurement model is not specified then use the one that's
         # native to the updater
@@ -132,9 +126,9 @@ class EnsembleUpdater(KalmanUpdater):
 
         # Propagate each vector through the measurement model.
         pred_meas_ensemble = StateVectors(
-                [measurement_model.function(State(state_vector=ensemble_member),
-                                            noise=True)
-                 for ensemble_member in predicted_state.ensemble.T])
+            [self.measurement_model.function(State(state_vector=StateVector(ensemble_member)),
+                                             noise=True)
+             for ensemble_member in predicted_state.ensemble.T])
 
         return MeasurementPrediction.from_state(
                    predicted_state, pred_meas_ensemble)
@@ -152,14 +146,11 @@ class EnsembleUpdater(KalmanUpdater):
             the prediction-measurement association hypothesis. This hypothesis
             may carry a predicted measurement, or a predicted state. In the
             latter case a predicted measurement will be calculated.
-
-
         Returns
         -------
         : :class:`~.EnsembleStateUpdate`
             The posterior state which contains an ensemble of state vectors
             and a timestamp.
-
         """
         # Assigning more readible variable names
         hypothesis = self._check_measurement_prediction(hypothesis)
@@ -195,4 +186,108 @@ class EnsembleUpdater(KalmanUpdater):
         return Update.from_state(hypothesis.prediction,
                                  posterior_ensemble,
                                  timestamp=hypothesis.measurement.timestamp,
+                                 hypothesis=hypothesis)
+
+
+class EnsembleSqrtUpdater(EnsembleUpdater):
+    r"""The Ensemble Square Root filter propagates the mean and square root
+    covariance through time, and samples a new ensemble.
+    This has the advantage of not requiring perturbation of the measurement
+    which reduces sampling error.
+    The posterior mean is calculated via:
+
+    .. math::
+
+        \mathbf{x}_{k|k} = \mathbf{x}_{k|k-1} + K_k (\mathbf{z}_k - H_k
+        \mathbf{x}_{k|k-1})
+
+    The Kalman gain is calculated via:
+
+    .. math::
+
+        K_{k} = P_{xz} P_{zz}^{-1}
+
+    The cross covariance and measurement covariance respectivley are approximated
+    via the sample square root covariances:
+
+    .. math::
+
+        P_{xz} \approx \tilde{P}_k (\tilde{Z}_k)^T
+
+        P_{zz} \approx \tilde{Z}_k (\tilde{Z}_k)^T + R_k
+
+    and the posterior covariance is propaged through time via:
+
+    .. math::
+
+        \mathbf{P}_{k|k} = \tilde{P}^- B (\tilde{P}^- B)^T
+
+    Where :math:`\tilde{P}^-` represents the prediction square root covariance
+    and B is the matrix square root of:
+
+    .. math::
+
+        B = \mathbf{I} - (\tilde{Z}_k)^T [\tilde{Z}_k (\tilde{Z}_k)^T]^{-1} \tilde{Z}_k
+
+    The posterior mean and covariance are used to sample a new ensemble.
+    The resulting state is returned via a :class:`~.EnsembleStateUpdate` object.
+
+    References
+    ----------
+    1. J. Hiles, S. M. O’Rourke, R. Niu and E. P. Blasch,
+    "Implementation of Ensemble Kalman Filters in Stone-Soup",
+    International Conference on Information Fusion, (2021)
+
+    2. T. Sun, R. Niu, M Haile,
+    "Ballistic Trajectory Estimation Using Polynomial
+    Chaos Based Square Root Ensemble Filter",
+    International Conference on Information Fusion, (2019)
+    """
+
+    def update(self, hypothesis, **kwargs):
+        r"""The Ensemble Square Root Kalman update method. The Ensemble Square
+        Root filter propagates the mean and square root covariance through time,
+        and samples a new ensemble. This has the advantage of not peturbing the
+        measurement with statistical noise, and thus is less prone to sampling
+        error for small ensembles.
+
+        Parameters
+        ----------
+        hypothesis : :class:`~.SingleHypothesis`
+            the prediction-measurement association hypothesis. This hypothesis
+            may carry a predicted measurement, or a predicted state. In the
+            latter case a predicted measurement will be calculated.
+        Returns
+        -------
+        : :class:`~.EnsembleStateUpdate`
+            The posterior state which contains an ensemble of state vectors
+            and a timestamp.
+        """
+        # More readible variable names
+        hypothesis = self._check_measurement_prediction(hypothesis)
+        pred_state = StateVector(hypothesis.prediction.mean)
+        pred_state_sqrt_covar = hypothesis.prediction.sqrt_covar
+        pred_measurement = StateVector(hypothesis.measurement_prediction.mean)
+        pred_meas_sqrt_covar = hypothesis.measurement_prediction.sqrt_covar
+        measurement = hypothesis.measurement.state_vector
+        meas_covar = self.measurement_model.covar()
+
+        # Calculate Posterior Mean
+        cross_covar = pred_state_sqrt_covar @ pred_meas_sqrt_covar.T
+        innovation_covar = pred_meas_sqrt_covar @ pred_meas_sqrt_covar.T + meas_covar
+        kalman_gain = cross_covar @ scipy.linalg.inv(innovation_covar)
+        posterior_mean = pred_state + kalman_gain @ (measurement - pred_measurement)
+
+        # Calculate Posterior Covariance. Note that B has no obvious name.
+        B = scipy.linalg.sqrtm(np.eye(hypothesis.prediction.num_vectors) -
+                               pred_meas_sqrt_covar.T @
+                               scipy.linalg.inv(pred_meas_sqrt_covar @ pred_meas_sqrt_covar.T)
+                               @ pred_meas_sqrt_covar)
+        posterior_covar = pred_state_sqrt_covar @ B @ (pred_state_sqrt_covar @ B).T
+        posterior_ensemble = EnsembleState.generate_ensemble(posterior_mean,
+                                                             posterior_covar,
+                                                             hypothesis.prediction.num_vectors)
+
+        return Update.from_state(hypothesis.prediction,
+                                 posterior_ensemble, timestamp=hypothesis.measurement.timestamp,
                                  hypothesis=hypothesis)
