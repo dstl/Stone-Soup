@@ -256,13 +256,13 @@ def test_ensemblestate():
 
     # Test state without timestamp
     state = EnsembleState(ensemble)
-    assert np.allclose(state.state_vector, StateVector([[1]]))
+    assert np.allclose(state.mean, StateVector([[1]]))
     assert np.allclose(state.covar, CovarianceMatrix([[0.5]]))
 
     # Test state with timestamp
     timestamp = datetime.datetime(2021, 2, 25, 22, 29, 2)
     state = EnsembleState(ensemble, timestamp=timestamp)
-    assert np.allclose(state.state_vector, StateVector([[1]]))
+    assert np.allclose(state.mean, StateVector([[1]]))
     assert np.allclose(state.covar, CovarianceMatrix([[0.5]]))
     assert state.timestamp == timestamp
 
@@ -272,7 +272,7 @@ def test_ensemblestate():
     ensemble = StateVectors([state_vector1, state_vector2])
 
     state = EnsembleState(ensemble)
-    assert np.allclose(state.state_vector, StateVector([[1], [1]]))
+    assert np.allclose(state.mean, StateVector([[1], [1]]))
     assert np.allclose(state.covar, CovarianceMatrix([[0.5, -0.25], [-0.25, 0.125]]))
     assert np.allclose(state.sqrt_covar @ state.sqrt_covar.T, state.covar)
 
@@ -307,8 +307,8 @@ def test_ensemblestate_gaussian_init():
     num_vectors = 50
     ensemble_state = EnsembleState.from_gaussian_state(gaussian_state, num_vectors)
 
-    assert isinstance(ensemble_state.state_vector, StateVector)
-    assert isinstance(ensemble_state.ensemble, StateVectors)
+    assert isinstance(ensemble_state.mean, StateVector)
+    assert isinstance(ensemble_state.state_vector, StateVectors)
     assert isinstance(ensemble_state.covar, CovarianceMatrix)
     assert isinstance(ensemble_state.timestamp, datetime.datetime)
     assert ensemble_state.timestamp == timestamp
