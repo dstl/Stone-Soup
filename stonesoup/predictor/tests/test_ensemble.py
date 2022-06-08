@@ -25,7 +25,7 @@ def test_ensemble():
     gaussian_state = GaussianState(mean, covar, timestamp)
     num_vectors = 50
     prior_state = EnsembleState.from_gaussian_state(gaussian_state, num_vectors)
-    prior_ensemble = prior_state.ensemble
+    prior_ensemble = prior_state.state_vector
 
     # Create Predictor object, run prediction
     predictor = EnsemblePredictor(transition_model)
@@ -39,6 +39,6 @@ def test_ensemble():
 
     # Compare evaluated mean and covariance with predictor results
     assert np.allclose(prediction.mean, eval_mean)
-    assert np.allclose(prediction.ensemble, eval_ensemble)
+    assert np.allclose(prediction.state_vector, eval_ensemble)
     assert np.allclose(prediction.covar, eval_cov)
     assert prediction.timestamp == new_timestamp

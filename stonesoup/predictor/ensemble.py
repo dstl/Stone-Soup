@@ -1,8 +1,6 @@
 from .base import Property
 from ..models.transition import TransitionModel
 from .kalman import KalmanPredictor
-from ..types.array import StateVector, StateVectors
-from ..types.state import State
 from ..types.prediction import Prediction
 
 
@@ -43,10 +41,8 @@ class EnsemblePredictor(KalmanPredictor):
         # Compute time_interval
         time_interval = self._predict_over_interval(prior, timestamp)
         # This block of code propagates each column through the transition model.
-        pred_ensemble = StateVectors(
-            [self.transition_model.function(State(state_vector=StateVector(ensemble_member)),
-                                            noise=True, time_interval=time_interval)
-             for ensemble_member in prior.ensemble.T])
+        pred_ensemble = self.transition_model.function(
+            prior, noise=True, time_interval=time_interval)
 
         return Prediction.from_state(prior, pred_ensemble, timestamp=timestamp,
                                      transition_model=self.transition_model)

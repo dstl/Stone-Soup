@@ -5,7 +5,7 @@ import scipy
 from .kalman import KalmanUpdater
 from ..base import Property
 from ..types.state import State, EnsembleState
-from ..types.array import StateVector, StateVectors
+from ..types.array import StateVector
 from ..types.prediction import MeasurementPrediction
 from ..types.update import Update
 from ..models.measurement import MeasurementModel
@@ -125,10 +125,7 @@ class EnsembleUpdater(KalmanUpdater):
         measurement_model = self._check_measurement_model(measurement_model)
 
         # Propagate each vector through the measurement model.
-        pred_meas_ensemble = StateVectors(
-            [self.measurement_model.function(State(state_vector=StateVector(ensemble_member)),
-                                             noise=True)
-             for ensemble_member in predicted_state.ensemble.T])
+        pred_meas_ensemble = measurement_model.function(predicted_state, noise=True)
 
         return MeasurementPrediction.from_state(
                    predicted_state, pred_meas_ensemble)
@@ -157,33 +154,31 @@ class EnsembleUpdater(KalmanUpdater):
         pred_state = hypothesis.prediction
         meas_mean = hypothesis.measurement.state_vector
         meas_covar = self.measurement_model.covar()
-        num_vectors = hypothesis.prediction.num_vectors
-        prior_ensemble = hypothesis.prediction.ensemble
+        num_vectors = pred_state.num_vectors
 
         # Generate an ensemble of measurements based on measurement
-        measurement_ensemble = hypothesis.prediction.generate_ensemble(
+        measurement_ensemble = pred_state.generate_ensemble(
                                    mean=meas_mean,
                                    covar=meas_covar,
                                    num_vectors=num_vectors)
 
         # Calculate Kalman Gain according to Dr. Jan Mandel's EnKF formalism.
-        innovation_ensemble = hypothesis.prediction.ensemble - hypothesis.prediction.mean
+        innovation_ensemble = pred_state.state_vector - pred_state.mean
 
-        meas_innovation = StateVectors(
-            [self.measurement_model.function(State(state_vector=StateVector(col)))
-             - self.measurement_model.function(State(state_vector=hypothesis.prediction.mean))
-             for col in prior_ensemble.T])
+        meas_innovation = (
+            self.measurement_model.function(pred_state)
+            - self.measurement_model.function(State(pred_state.mean)))
 
         # Calculate Kalman Gain
         kalman_gain = 1/(num_vectors-1) * innovation_ensemble @ meas_innovation.T @ \
             scipy.linalg.inv(1/(num_vectors-1) * meas_innovation @ meas_innovation.T + meas_covar)
 
         # Calculate Posterior Ensemble
-        posterior_ensemble = pred_state.ensemble + \
-            kalman_gain @ (measurement_ensemble -
-                           hypothesis.measurement_prediction.ensemble)
+        posterior_ensemble = (
+            pred_state.state_vector
+            + kalman_gain@(measurement_ensemble - hypothesis.measurement_prediction.state_vector))
 
-        return Update.from_state(hypothesis.prediction,
+        return Update.from_state(pred_state,
                                  posterior_ensemble,
                                  timestamp=hypothesis.measurement.timestamp,
                                  hypothesis=hypothesis)

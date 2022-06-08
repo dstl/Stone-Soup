@@ -532,9 +532,8 @@ class EnsembleState(Type):
 
     """
 
-    ensemble: StateVectors = Property(doc='''An ensemble of state vectors which represent
-                                the state''')
-
+    state_vector: StateVectors = Property(doc="An ensemble of state vectors which represent the "
+                                              "state")
     timestamp: datetime.datetime = Property(
         default=None, doc="Timestamp of the state. Default None.")
 
@@ -559,7 +558,7 @@ class EnsembleState(Type):
         covar = gaussian_state.covar
         timestamp = gaussian_state.timestamp
 
-        return EnsembleState(ensemble=self.generate_ensemble(mean, covar, num_vectors),
+        return EnsembleState(state_vector=self.generate_ensemble(mean, covar, num_vectors),
                              timestamp=timestamp)
 
     @classmethod
@@ -603,34 +602,29 @@ class EnsembleState(Type):
     @property
     def ndim(self):
         """Number of dimensions in state vectors"""
-        return np.shape(self.ensemble)[0]
+        return np.shape(self.state_vector)[0]
 
     @property
     def num_vectors(self):
         """Number of columns in state ensemble"""
-        return np.shape(self.ensemble)[1]
+        return np.shape(self.state_vector)[1]
 
     @property
     def mean(self):
         """The state mean, numerically equivalent to state vector"""
-        return np.average(self.ensemble, axis=1)
-
-    @property
-    def state_vector(self):
-        """State mean in StateVector wrapper."""
-        return StateVector(self.mean)
+        return np.average(self.state_vector, axis=1)
 
     @property
     def covar(self):
         """Sample covariance matrix for ensemble"""
-        return np.cov(self.ensemble)
+        return np.cov(self.state_vector)
 
     @property
     def sqrt_covar(self):
         """sqrt of sample covariance matrix for ensemble, useful for
         some EnKF algorithms"""
-        return ((self.ensemble - np.tile(self.mean, self.num_vectors)) /
-                np.sqrt(self.num_vectors - 1))
+        return ((self.state_vector-np.tile(self.mean, self.num_vectors))
+                / np.sqrt(self.num_vectors - 1))
 
 
 State.register(EnsembleState)  # noqa: E305
