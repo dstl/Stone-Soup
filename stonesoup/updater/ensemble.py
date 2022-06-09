@@ -222,7 +222,7 @@ class EnsembleSqrtUpdater(EnsembleUpdater):
 
     .. math::
 
-        B = \mathbf{I} - (\tilde{Z}_k)^T [\tilde{Z}_k (\tilde{Z}_k)^T]^{-1} \tilde{Z}_k
+        B = \mathbf{I} - (\tilde{Z}_k)^T [P_{zz}]^{-1} \tilde{Z}_k
 
     The posterior mean and covariance are used to sample a new ensemble.
     The resulting state is returned via a :class:`~.EnsembleStateUpdate` object.
@@ -233,10 +233,9 @@ class EnsembleSqrtUpdater(EnsembleUpdater):
     "Implementation of Ensemble Kalman Filters in Stone-Soup",
     International Conference on Information Fusion, (2021)
 
-    2. T. Sun, R. Niu, M Haile,
-    "Ballistic Trajectory Estimation Using Polynomial
-    Chaos Based Square Root Ensemble Filter",
-    International Conference on Information Fusion, (2019)
+    2. Livings, Dance, S. L., & Nichols, N. K. 
+    "Unbiased ensemble square root filters." 
+    Physica. D, 237(8), 1021–1028.  (2008)
     """
 
     def update(self, hypothesis, **kwargs):
@@ -260,9 +259,9 @@ class EnsembleSqrtUpdater(EnsembleUpdater):
         """
         # More readible variable names
         hypothesis = self._check_measurement_prediction(hypothesis)
-        pred_state = StateVector(hypothesis.prediction.mean)
+        pred_state = hypothesis.prediction.mean
         pred_state_sqrt_covar = hypothesis.prediction.sqrt_covar
-        pred_measurement = StateVector(hypothesis.measurement_prediction.mean)
+        pred_measurement = hypothesis.measurement_prediction.mean
         pred_meas_sqrt_covar = hypothesis.measurement_prediction.sqrt_covar
         measurement = hypothesis.measurement.state_vector
         meas_covar = self.measurement_model.covar()
@@ -276,7 +275,7 @@ class EnsembleSqrtUpdater(EnsembleUpdater):
         # Calculate Posterior Covariance. Note that B has no obvious name.
         B = scipy.linalg.sqrtm(np.eye(hypothesis.prediction.num_vectors) -
                                pred_meas_sqrt_covar.T @
-                               scipy.linalg.inv(pred_meas_sqrt_covar @ pred_meas_sqrt_covar.T)
+                               scipy.linalg.inv(innovation_covar)
                                @ pred_meas_sqrt_covar)
         posterior_covar = pred_state_sqrt_covar @ B @ (pred_state_sqrt_covar @ B).T
         posterior_ensemble = EnsembleState.generate_ensemble(posterior_mean,
