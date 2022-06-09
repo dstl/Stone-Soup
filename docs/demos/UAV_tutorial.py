@@ -2,8 +2,8 @@
 # coding: utf-8
 
 """
-UAV Tracking Demonstation
-=========================
+UAV Tracking Demonstration
+==========================
 """
 
 # %%
@@ -11,7 +11,7 @@ UAV Tracking Demonstation
 # --------
 # Starting with GPS data from an instrumented UAV, we will generate range, bearing, and
 # elevation measurements (from a given radar position). We will use Stone Soup's simple
-# :class:`~.SingleTargetTracker` to perform the tracking. At this point we are primarly interested
+# :class:`~.SingleTargetTracker` to perform the tracking. At this point we are primarily interested
 # in the necessary motion models that may be needed so the example is fairly simple, but
 # we want to be able to easily expand the simulation to handle more complex scenarios.
 #
@@ -189,7 +189,7 @@ initiator = Initiator(prior_state, meas_model)
 # Setup Deleter for the Tracker
 # -----------------------------
 # In the simple case of 1 target, we never want to delete the track. Because
-# this Deletor is so simple we haven't bothered using a subtype/inheritance
+# this Deleter is so simple we haven't bothered using a subtype/inheritance
 # and instead make use of Python's duck typing. 
 class MyDeleter:
     def delete_tracks(self, tracks):
@@ -277,7 +277,7 @@ ax2.legend()
 # --------------
 # What happens when:
 #
-# - Increase the bearing std deviation?
+# - Increase the bearing standard deviation?
 # - Increase the model process noise?
 # - Move the radar?
 #
