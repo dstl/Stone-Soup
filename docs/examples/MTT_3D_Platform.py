@@ -94,7 +94,7 @@ radar_mapping = (0, 2, 4)
 # %%
 # A newer feature of the Stone Soup platform simulations are the ability to
 # generate clutter directly from the sensors using the :class:`~.ClutterModel`
-# class. Using the clutter models, we can simulaterealistic clutter
+# class. Using the clutter models, we can simulate realistic clutter
 # originating from the measurement model. Clutter is defined in the Cartesian
 # plane and converted to the correct measurement types according to the
 # sensor. We will now add a clutter model to the radar sensor. This clutter
@@ -194,7 +194,7 @@ meas_model = CartesianToElevationBearingRange(
 )
 
 # %%
-# Using the measurement model, we make a Kalman updator which we will pass
+# Using the measurement model, we make a Kalman updater which we will pass
 # into our JPDA tracker.
 from stonesoup.updater.kalman import ExtendedKalmanUpdater
 updater = ExtendedKalmanUpdater(measurement_model=meas_model)
@@ -315,7 +315,7 @@ plotter2.plot_tracks(tracks_plot, [0, 2, 4], uncertainty=True, err_freq=5)
 # %%
 # Metrics
 # -------
-# To analyze the tracker performance, we will use the OSPA, SIAP, and
+# To analyse the tracker performance, we will use the OSPA, SIAP, and
 # uncertainty metrics. For each of these metrics, we make a generator
 # object which gets put into a metric manager.
 

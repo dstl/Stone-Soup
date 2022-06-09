@@ -12,7 +12,7 @@
 # -----------------------------------------
 #
 # As we've seen, more often than not, the difficult part of state estimation concerns the ambiguous
-# association of predicted states with measurements. This happens whenever there is more that one
+# association of predicted states with measurements. This happens whenever there is more than one
 # target under consideration, there are false alarms or clutter, targets can appear and disappear.
 # That is to say it happens everywhere.
 #
