@@ -3,7 +3,7 @@ from typing import Set
 
 from ..base import Property
 from .base import Type
-from .time import TimeRange
+from .time import CompoundTimeRange
 
 
 class Association(Type):
@@ -48,7 +48,7 @@ class TimeRangeAssociation(Association):
     range of times
     """
 
-    time_range: TimeRange = Property(
+    time_range: CompoundTimeRange = Property(
         default=None, doc="Range of times that association exists over. Default is None")
 
 
@@ -118,6 +118,29 @@ class AssociationSet(Type):
                 for association in self.associations
                 for object_ in objects
                 if object_ in association.objects}
+
+    def get_key_times(self):
+        """Return all times at which an association from the set begins or ends
+
+        This method will return an ordered list of the times at which an association in the set
+        begins or ends.  Note that in the case of a :class:`~.CompoundTimeRange`,
+        there are potentially multiple start and end times,
+        and for :class:`~.SingleTimeAssociation` associations, the start and end time are the same
+
+        Returns
+        -------
+        : list of :class:`datetime.datetime`
+            A list of times at which an association starts or ends
+        """
+        key_times = []
+        for association in self.associations:
+            if isinstance(association, SingleTimeAssociation):
+                key_times.append(association.timestamp)
+            else:
+                key_times.extend(association.time_range.get_key_times())
+
+        return key_times
+
 
     def __contains__(self, item):
         return item in self.associations
