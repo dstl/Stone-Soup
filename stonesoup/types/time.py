@@ -36,11 +36,6 @@ class TimeRange(Type):
 
         return self.end_timestamp - self.start_timestamp
 
-    @property
-    def key_times(self):
-        """Returns the start and end timestamp in a list"""
-        return [self.start_timestamp, self.end_timestamp]
-
     def __contains__(self, timestamp):
         """Checks if timestamp is within range
 
@@ -90,6 +85,22 @@ class CompoundTimeRange(Type):
         if not time_ranges:
             self.time_ranges = []
         self.check_overlap()
+
+    @property
+    def duration(self):
+        """Duration of the time range"""
+        total_duration = 0
+        for component in self.time_ranges:
+            total_duration += component.duration
+
+    @property
+    def key_times(self):
+        """Returns all timestamps at which a component starts or ends"""
+        key_times = set()
+        for component in self.time_ranges:
+            key_times.add(component.start_timestamp)
+            key_times.add(component.end_timestamp)
+        return list(key_times).sort()
 
     def check_overlap(self):
         """Returns a :class:`~.CompoundTimeRange` with overlap removed"""
