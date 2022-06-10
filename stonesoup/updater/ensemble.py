@@ -5,7 +5,6 @@ import scipy
 from .kalman import KalmanUpdater
 from ..base import Property
 from ..types.state import State, EnsembleState
-from ..types.array import StateVector
 from ..types.prediction import MeasurementPrediction
 from ..types.update import Update
 from ..models.measurement import MeasurementModel
@@ -233,8 +232,8 @@ class EnsembleSqrtUpdater(EnsembleUpdater):
     "Implementation of Ensemble Kalman Filters in Stone-Soup",
     International Conference on Information Fusion, (2021)
 
-    2. Livings, Dance, S. L., & Nichols, N. K. 
-    "Unbiased ensemble square root filters." 
+    2. Livings, Dance, S. L., & Nichols, N. K.
+    "Unbiased ensemble square root filters."
     Physica. D, 237(8), 1021–1028.  (2008)
     """
 
