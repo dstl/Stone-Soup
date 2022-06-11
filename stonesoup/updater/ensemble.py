@@ -124,7 +124,8 @@ class EnsembleUpdater(KalmanUpdater):
         measurement_model = self._check_measurement_model(measurement_model)
 
         # Propagate each vector through the measurement model.
-        pred_meas_ensemble = measurement_model.function(predicted_state, noise=True)
+        pred_meas_ensemble = measurement_model.function(predicted_state, noise=True,
+                                                        num_samples = predicted_state.num_vectors)
 
         return MeasurementPrediction.from_state(
                    predicted_state, pred_meas_ensemble)
@@ -165,7 +166,7 @@ class EnsembleUpdater(KalmanUpdater):
         innovation_ensemble = pred_state.state_vector - pred_state.mean
 
         meas_innovation = (
-            self.measurement_model.function(pred_state)
+            self.measurement_model.function(pred_state, num_samples = num_vectors)
             - self.measurement_model.function(State(pred_state.mean)))
 
         # Calculate Kalman Gain
