@@ -4,7 +4,7 @@
 """
 Creating an Actionable Sensor Example
 =====================================
-This example demonstrates the process of creating an actionable sensor. I.E. a sensor that has an
+This example demonstrates the process of creating an actionable sensor, i.e., a sensor that has an
 actionable property. This includes creation of :class:`~.Action` and :class:`~.ActionGenerator`
 that will handle how this property can evolves over time, and how to interface with the sensor via
 given actions.
@@ -14,7 +14,7 @@ given actions.
 # The Task
 # ^^^^^^^^
 # We will create a simple sensor with a field of view and infinite range. It lies on the 2D
-# cartesian plane and can look in 1 of 4 directions: East, North, West, South.
+# Cartesian plane and can look in 1 of 4 directions: East, North, West, South.
 # Let's call the attribute of the sensor that takes these values the `direction`, and model it
 # such that it can instantaneously switch to a new value.
 # We'll define its field of view (FoV) as 90 degrees so that its observation of a particular
@@ -173,7 +173,7 @@ class DirectionActionsGenerator(ActionGenerator):
 # corresponding actionable properties in the sensor's schedule dictionary. This will overwrite any
 # pre-existing actions for those properties.
 # * `act` handles the actual calling to each of the scheduled actions for every actionable
-# property. A timestamp is required so that the sensor know's what time to act until. For every
+# property. A timestamp is required so that the sensor knows what time to act until. For every
 # actionable property the sensor has, this method calls the property's corresponding scheduled
 # action, if it has one, up until the timestamp has been reached, and replaces the property's value
 # with the new calculated one. The method also handles situations where the given timestamp
@@ -338,7 +338,7 @@ print("Direction at 5s: ", sensor.direction)
 # %%
 # Creating simulator
 # ^^^^^^^^^^^^^^^^^^
-# We'll create a simple ground truth simulation on the 2D cartesian plane, with a state space
+# We'll create a simple ground truth simulation on the 2D Cartesian plane, with a state space
 # containing velocities. I.E. a state vector will be of the form :math:`(x, \dot{x}, y, \dot{y})`.
 #
 # The sensor starts the simulation by looking North. After 20 iterations of our simulation, we

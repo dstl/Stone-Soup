@@ -61,7 +61,7 @@
 # Simulate ground truth
 # ---------------------
 # As with the multi-target data association tutorial, we simulate two targets moving in the
-# positive x, y cartesian plane (intersecting approximately half-way through their transition).
+# positive x, y Cartesian plane (intersecting approximately half-way through their transition).
 # We then add truth detections with clutter at each time-step.
 
 from datetime import datetime

@@ -251,7 +251,7 @@ plotter.plot_measurements(all_measurements, [0, 2], color='g')
 plotter.fig
 
 # %%
-# Create the Predicter and Updater
+# Create the Predictor and Updater
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # The updater is a :class:`~.PHDUpdater`, and since it uses the mixed Gaussian paths, it is a
@@ -342,7 +342,7 @@ for truth in start_truths:
     tracks.add(Track(new_track))
 
 # %%
-# The hypothesier takes the current Gaussian mixture as a parameter. Here we will 
+# The hypothesiser takes the current Gaussian mixture as a parameter. Here we will
 # initialize it to use later. 
 reduced_states = set([track[-1] for track in tracks])
 
@@ -353,7 +353,7 @@ reduced_states = set([track[-1] for track in tracks])
 # must be equal to the expected number of births per timestep. For more information about 
 # the birth component, see the algorithm provided in [#]_. If the state space is very 
 # large, it becomes inefficient to hold a component that covers it. Alternative 
-# implementations (as well as more dicussion about the birth component) are discussed in 
+# implementations (as well as more discussion about the birth component) are discussed in
 # [#]_.
 birth_covar = CovarianceMatrix(np.diag([1000, 2, 1000, 2]))
 birth_component = TaggedWeightedGaussianState(
@@ -481,7 +481,7 @@ for measurement_set in all_measurements:
 
 # %%
 # Now we can use the :class:`~.Plotter` class to draw the tracks. Note that if the birth
-# component it plotted you will see its uncertainty ellipse centered around :math:`(0, 0)`.
+# component it plotted you will see its uncertainty ellipse centred around :math:`(0, 0)`.
 # This ellipse need not cover the entire state space, as long as the distribution does.
 
 # Plot the tracks
@@ -589,11 +589,11 @@ def animate(i, sf, truths, tracks, measurements, clutter):
     # Create a legend. The use of Line2D is purely for the visual in the legend
     data_types = [Line2D([0], [0], color='white', marker='o', markerfacecolor='blue', markersize=15,
                          label='Ground Truth'),
-                 Line2D([0], [0], color='white', marker='o', markerfacecolor='orange', markersize=15,
+                  Line2D([0], [0], color='white', marker='o', markerfacecolor='orange', markersize=15,
                          label='Clutter'),
-                 Line2D([0], [0], color='white', marker='o', markerfacecolor='green', markersize=15,
+                  Line2D([0], [0], color='white', marker='o', markerfacecolor='green', markersize=15,
                          label='Detection'),
-                 Line2D([0], [0], color='white', marker='o', markerfacecolor='red', markersize=15,
+                  Line2D([0], [0], color='white', marker='o', markerfacecolor='red', markersize=15,
                          label='Track')]
     axR.legend(handles=data_types, bbox_to_anchor=(1.0, 1), loc='upper left')
 
