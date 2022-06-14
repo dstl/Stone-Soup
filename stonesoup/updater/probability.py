@@ -5,17 +5,20 @@ import scipy.linalg as la
 from functools import lru_cache
 
 from .kalman import ExtendedKalmanUpdater
+from ..types.update import Update
+from ..types.array import StateVectors
+from ..functions import gm_reduce_single
 
 
 class PDAUpdater(ExtendedKalmanUpdater):
     r"""An updater which undertakes probabilistic data association (PDA), as defined in [1]. It
     differs slightly from the Kalman updater it inherits from in that instead of a single
-    hypothesis object, the :meth:`update` method it takes a hypotheses object returned by a
+    hypothesis object, the :meth:`update` method takes a hypotheses object returned by a
     :class:`~.PDA` (or similar) data associator. Functionally this is a list of single hypothesis
     objects which group tracks together with associated measuments and probabilities.
 
     The :class:`~.ExtendedKalmanUpdater` is used in order to inherit the ability to cope with
-    (slight) non-linearities.
+    (slight) non-linearities. Other inheritance structures should be trivial to implement.
 
     The update step proceeds as:
 
@@ -45,56 +48,100 @@ class PDAUpdater(ExtendedKalmanUpdater):
 
     """
 
-    def update(self, hypotheses, **kwargs):
-        r"""Of n hypotheses there should be 1 prediction (a missed detection) and n-1 different
-        measurement associations. Because we don't know where in the list this occurs, but we do
-        know that there's only one, we iterate til we find it, then start the calculation from
-        there, then return to the values we missed."""
+    def update(self, hypotheses, gm_method=False, **kwargs):
+        r"""The update step.
 
-        position_prediction = False  # flag to record whether we have the prediction
-        for n, hypothesis in enumerate(hypotheses):
+        Parameters
+        ----------
+        hypotheses : :class:`~.MultipleHypothesis`
+            the prediction-measurement association hypotheses. This hypotheses object carries
+            tracks, associated sets of measurements for each track together with a probability
+            measure which enumerates the likelihood of each track-measurement pair. (This is most
+            likely output by the :class:`~.PDA` associator).
 
-            # Check for the existence of an associated measurement. Because of the way the
-            # hypothesis is constructed, you can do this:
-            if not hypothesis:
+            In a single case (the missed detection hypothesis), the hypothesis will not have an
+            associated measurement or measurement prediction.
+            latter case a predicted measurement will be calculated.
+        gm_method : bool
 
-                # Predict the measurement and attach it to the hypothesis
-                hypothesis.measurement_prediction = self.predict_measurement(hypothesis.prediction)
-                # Now get P_k|k
-                posterior_covariance, kalman_gain = self._posterior_covariance(hypothesis)
+        **kwargs : various
+            These are passed to :meth:`predict_measurement`
 
-                # Add the weighted prediction to the weighted posterior
-                posterior_covariance = hypothesis.probability * hypothesis.prediction.covar + \
-                                       (1 - hypothesis.probability) * posterior_covariance
+        Returns
+        -------
+        : :class:`GaussianMeasurementPrediction`
+            The measurement prediction, :math:`\mathbf{z}_{k|k-1}`
 
-                posterior_mean = hypothesis.prediction.state_vector
-                total_innovation = 0 * hypothesis.measurement_prediction.state_vector
-                weighted_innovation_cov = 0 * total_innovation @ total_innovation.T
+        """
+        if gm_method:
+            posterior_mean, posterior_covariance = self._update_via_GM_reduction(hypotheses,**kwargs)
+        else:
+            posterior_mean, posterior_covariance = self._update_via_innovation(hypotheses, **kwargs)
 
-                # record the position in the list of the prediction
-                position_prediction = n
-            else:
-                if not position_prediction:
-                    continue
-                else:
-                    innovation = hypothesis.measurement.state_vector - hypothesis.measurement_prediction.state_vector
-                    total_innovation += hypothesis.probability * innovation
-                    weighted_innovation_cov += hypothesis.probability * innovation @ innovation.T
-
-        # and then return to do those elements on the list that weren't covered prior to the prediction.
-        for n, hypothesis in enumerate(hypotheses):
-            if n == position_prediction:
-                break
-            else:
-                innovation = hypothesis.measurement.state_vector - hypothesis.measurement_prediction.state_vector
-                total_innovation += hypothesis.probability * innovation
-                weighted_innovation_cov += hypothesis.probability * innovation @ innovation.T
-
-        posterior_mean += kalman_gain @ total_innovation
-        posterior_covariance += \
-            kalman_gain @ (weighted_innovation_cov - total_innovation @ total_innovation.T) @ kalman_gain.T
-
+        # Note that this does not check if all hypotheses are of the same type.
+        # It also assumes that all measurements have the same timestamp (updates are
+        # contemporaneous).
         return Update.from_state(
             hypotheses[0].prediction,
             posterior_mean, posterior_covariance,
-            timestamp=hypotheses[0].measurement.timestamp, hypothesis=hypotheses[0])
+            timestamp=hypotheses[0].measurement.timestamp, hypothesis=hypotheses)
+
+
+    def _update_via_GM_reduction(self, hypotheses, **kwargs):
+        """This method delivers the same as :meth:`update()` by way of a slightly different
+        calculation. It's also more intuitive."""
+
+        posterior_states = []
+        posterior_state_weights = []
+        for hypothesis in hypotheses:
+            if not hypothesis:
+                posterior_states.append(hypothesis.prediction)
+            else:
+                posterior_state = super().update(hypothesis, **kwargs)  # Use the EKF update
+                posterior_states.append(posterior_state)
+            posterior_state_weights.append(hypothesis.probability)
+
+        means = StateVectors([state.state_vector for state in posterior_states])
+        covars = np.stack([state.covar for state in posterior_states], axis=2)
+        weights = np.asarray(posterior_state_weights)
+
+        # Reduce mixture of states to one posterior estimate Gaussian.
+        post_mean, post_covar = gm_reduce_single(means, covars, weights)
+
+        return post_mean, post_covar
+
+    def _update_via_innovation(self, hypotheses, **kwargs):
+        """Of n hypotheses there should be 1 prediction (a missed detection) and n-1 different
+        measurement associations. Because we don't know where in the list this occurs, but we do
+        know that there's only one, we iterate til we find it, then start the calculation of the
+        posterior mean and covariance from there, then return to the values we missed."""
+
+        position_prediction = False  # flag to record whether we have the prediction
+        for n, hypothesis in enumerate(hypotheses):
+            # Check for the existence of an associated measurement. Because of the way the
+            # hypothesis is constructed, you can do this:
+            if not hypothesis:
+                hypothesis.measurement_prediction = self.predict_measurement(hypothesis.prediction)
+                innovation = hypothesis.measurement_prediction.state_vector - \
+                             hypothesis.measurement_prediction.state_vector  # is zero in this case
+                posterior_covariance, kalman_gain = self._posterior_covariance(hypothesis)
+                # Add the weighted prediction to the weighted posterior
+                posterior_covariance = hypothesis.probability * hypothesis.prediction.covar + \
+                                       (1 - hypothesis.probability) * posterior_covariance
+                posterior_mean = hypothesis.prediction.state_vector
+            else:
+                innovation = hypothesis.measurement.state_vector - hypothesis.measurement_prediction.state_vector
+
+            if n == 0:  # probably exists a less clunky way of doing this
+                sum_of_innovations = hypothesis.probability * innovation
+                sum_of_weighted_cov = hypothesis.probability * innovation @ innovation.T
+            else:
+                sum_of_innovations += hypothesis.probability * innovation
+                sum_of_weighted_cov += hypothesis.probability * innovation @ innovation.T
+
+        posterior_mean += kalman_gain @ sum_of_innovations
+        posterior_covariance += \
+                kalman_gain @ (sum_of_weighted_cov - sum_of_innovations @ sum_of_innovations.T) \
+                @ kalman_gain.T
+
+        return posterior_mean, posterior_covariance

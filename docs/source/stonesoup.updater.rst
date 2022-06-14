@@ -50,7 +50,13 @@ Categorical
     :show-inheritance:
 
 Composite
------------
+---------
 
 .. automodule:: stonesoup.updater.composite
+    :show-inheritance:
+
+Probabilistic
+-------------
+
+.. automodule:: stonesoup.updater.probability
     :show-inheritance:
