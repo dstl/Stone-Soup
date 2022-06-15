@@ -144,7 +144,7 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
 
             number_steps_remaining -= 1
             yield time, groundtruth_paths
-            self.time += self.timestep
+            time += self.timestep
 
         else:
             groundtruth_paths = OrderedSet()
