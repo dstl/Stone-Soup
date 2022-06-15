@@ -90,7 +90,7 @@ for states in np.vstack(ground_truths).T:
 # %%
 # Measurement
 # ^^^^^^^^^^^
-# Using a Hidden markov model, it is assumed the true class of a target cannot be directly
+# Using a Hidden Markov model, it is assumed the true class of a target cannot be directly
 # observed (hence 'hidden'), and instead observations that are dependent on this class are taken.
 # In this instance, observations of the targets' sizes are taken ('small', 'medium' or 'large').
 # The relationship between true class and observed size is modelled by the `emission matrix` of the
