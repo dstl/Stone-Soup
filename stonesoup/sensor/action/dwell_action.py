@@ -69,10 +69,10 @@ class DwellActionsGenerator(RealNumberActionGenerator):
 
     owner: object = Property(doc="Object with `timestamp`, `rpm` (revolutions per minute) and "
                                  "dwell-centre attributes")
+    resolution: Angle = Property(default=np.radians(1), doc="Resolution of action space")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.resolution = Angle(np.radians(1))
         self.epsilon = Angle(np.radians(1e-6))
 
     @property

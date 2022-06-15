@@ -52,6 +52,7 @@ class ActionGenerator(Base):
     attribute: str = Property(doc="The name of the attribute to be modified.")
     start_time: datetime.datetime = Property(doc="Start time of action.")
     end_time: datetime.datetime = Property(doc="End time of action.")
+    resolution: float = Property(default=None, doc="Resolution of action space")
 
     @abstractmethod
     def __contains__(self, item):
