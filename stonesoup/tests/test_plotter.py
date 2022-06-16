@@ -106,3 +106,12 @@ def test_particle_3d():  # warning should arise if particle is attempted in 3d m
     plotter3 = Plotter(dimension=Dimension.THREE)
     with pytest.raises(NotImplementedError):
         plotter3.plot_tracks(track, [0, 1, 2], particle=True, uncertainty=False)
+
+
+def test_figsize():
+    plotter_figsize_default = Plotter()
+    plotter_figsize_different = Plotter(figsize=(20, 15))
+    assert plotter_figsize_default.fig.get_figwidth() == 10
+    assert plotter_figsize_default.fig.get_figheight() == 6
+    assert plotter_figsize_different.fig.get_figwidth() == 20
+    assert plotter_figsize_different.fig.get_figheight() == 15
