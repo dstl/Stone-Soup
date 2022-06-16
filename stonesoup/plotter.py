@@ -1,5 +1,6 @@
 import warnings
 from itertools import chain
+from typing import Optional
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -9,6 +10,7 @@ from matplotlib.legend_handler import HandlerPatch
 
 from .types import detection
 from .models.base import LinearModel, Model
+from .base import Property
 
 from enum import Enum
 
@@ -40,6 +42,8 @@ class Plotter:
     ----------
     dimension: enum \'Dimension\'
         Optional parameter to specify 2D or 3D plotting. Default is 2D plotting.
+    figsize: tuple
+        Optional parameter to specify the size of the figure.
 
     Attributes
     ----------
@@ -52,14 +56,14 @@ class Plotter:
         and labels as str
     """
 
-    def __init__(self, dimension=Dimension.TWO):
+    def __init__(self, dimension=Dimension.TWO, figsize=(10, 6)):
         if isinstance(dimension, type(Dimension.TWO)):
             self.dimension = dimension
         else:
             raise TypeError("""%s is an unsupported type for \'dimension\';
                             expected type %s""" % (type(dimension), type(Dimension.TWO)))
         # Generate plot axes
-        self.fig = plt.figure(figsize=(10, 6))
+        self.fig = plt.figure(figsize=figsize)
         if self.dimension is Dimension.TWO:  # 2D axes
             self.ax = self.fig.add_subplot(1, 1, 1)
             self.ax.axis('equal')
