@@ -600,7 +600,7 @@ axes[1].legend()
 
 # %%
 # Similar to the OSPA distances the :class:`~.BruteForceSensorManager`
-# generally results in both a better positional accuracy anv velocity accuracy than the random observations
+# generally results in both a better positional accuracy and velocity accuracy than the random observations
 # of the :class:`~.RandomSensorManager`.
 #
 # Uncertainty metric
