@@ -52,10 +52,6 @@ def test_random_choose_actions():
                 assert isinstance(sensor, RadarRotatingBearingRange)
                 assert isinstance(actions[0], ChangeDwellAction)
 
-    assert dwell_centres[0] != dwell_centres[1]
-    assert dwell_centres[0] != dwell_centres[2]
-    assert dwell_centres[1] != dwell_centres[2]
-
 
 def test_brute_force_choose_actions():
     time_start = datetime.now()
