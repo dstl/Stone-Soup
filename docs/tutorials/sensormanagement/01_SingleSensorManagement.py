@@ -114,7 +114,7 @@ from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 # Following the methods from previous Stone Soup tutorials we generate a series of combined linear Gaussian transition
 # models and generate ground truths. Each ground truth is offset in the y-direction by 10.
 #
-# The number of targets in this simulation is defined by `n_truths` - here there are 3 targets travelling in different
+# The number of targets in this simulation is defined by `ntruths` - here there are 3 targets travelling in different
 # directions. The time the simulation is observed for is defined by `time_max`.
 #
 # We can fix our random number generator in order to probe a particular example repeatedly. This can be undone by

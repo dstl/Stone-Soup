@@ -65,7 +65,7 @@ from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 #
 # Generate transition model and ground truths as in Tutorial 1.
 #
-# The number of targets in this simulation is defined by `n_truths` - here there are 3 targets travelling
+# The number of targets in this simulation is defined by `ntruths` - here there are 3 targets travelling
 # in different directions. The time the
 # simulation is observed for is defined by `time_max`.
 #
@@ -224,7 +224,7 @@ for j, prior in enumerate(priors):
 # Create sensor managers
 # ^^^^^^^^^^^^^^^^^^^^^^
 #
-# Next we create our sensor management classes. As is Tutorial 1, two sensor manager classes are used -
+# Next we create our sensor management classes. As in Tutorial 1, two sensor manager classes are used -
 # :class:`~.RandomSensorManager` and :class:`~.BruteForceSensorManager`.
 #
 # Random sensor manager
@@ -457,9 +457,9 @@ plotterB.plot_tracks(set(tracksB), [0, 2], uncertainty=True)
 #
 # With a resolution of 1 degree there are 360 possible dwell centres for a sensor so the number of
 # possible configurations should be :math:`360^N`
-# where :math:`N` is the number of sensors. This exponential increase means that as larger number of
-# sensors slows down the run time of the sensor manager significantly because there are so many more iterations
-# to consider.
+# where :math:`N` is the number of sensors. This exponential increase means that as the number of
+# sensors increase, the run time of the sensor manager slows down significantly because there are so many more
+# iterations to consider.
 #
 # In this scenario :math:`N=2` so with a resolution of 1 degree that would 129,600
 # actions to consider.
