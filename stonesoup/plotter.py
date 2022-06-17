@@ -193,7 +193,7 @@ class Plotter:
 
         if plot_detections:
             detection_array = np.array(plot_detections)
-            # *detection_array.T unpacks detection_array by coloumns
+            # *detection_array.T unpacks detection_array by columns
             # (same as passing in detection_array[:,0], detection_array[:,1], etc...)
             self.ax.scatter(*detection_array.T, **measurement_kwargs)
             measurements_handle = Line2D([], [], linestyle='', **measurement_kwargs)
@@ -218,9 +218,9 @@ class Plotter:
         """Plots track(s)
 
         Plots each track generated, generating a legend automatically. If ``uncertainty=True``
-        and is being plotted in 2D, error elipses are plotted. If being plotted in
+        and is being plotted in 2D, error ellipses are plotted. If being plotted in
         3D, uncertainty bars are plotted every :attr:`err_freq` measurement, default
-        plots unceratinty bars at every track step. Tracks are plotted as solid
+        plots uncertainty bars at every track step. Tracks are plotted as solid
         lines with point markers and default colors. Uncertainty bars are plotted
         with a default color which is the same for all tracks.
 
