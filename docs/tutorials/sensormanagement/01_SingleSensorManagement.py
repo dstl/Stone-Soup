@@ -388,18 +388,11 @@ for timestep in timesteps[1:]:
 # %%
 # Plot ground truths, tracks and uncertainty ellipses for each target.
 
-from matplotlib.lines import Line2D
-from stonesoup.plotter import Plotter
-
 plotterA = Plotter()
 plotterA.ax.axis('auto')
 
 # Plot sensor position as black x marker
-plotterA.ax.scatter(sensorA.position[0], sensorA.position[1], marker='x', c='black')
-# Add to legend generated
-sensor_handle=Line2D([], [], linestyle='', marker='x', c='black')
-plotterA.legend_dict['Sensor']=sensor_handle
-
+plotterA.plot_sensors(sensorA)
 plotterA.plot_ground_truths(truths_set, [0, 2])
 plotterA.plot_tracks(set(tracksA), [0, 2], uncertainty=True)
 
@@ -466,11 +459,7 @@ plotterB = Plotter()
 plotterB.ax.axis('auto')
 
 # Plot sensor position as black x marker
-plotterB.ax.scatter(sensorB.position[0], sensorB.position[1], marker='x', c='black')
-# Add to legend generated
-sensor_handle=Line2D([], [], linestyle='', marker='x', c='black')
-plotterB.legend_dict['Sensor']=sensor_handle
-
+plotterB.plot_sensors(sensorB)
 plotterB.plot_ground_truths(truths_set, [0, 2])
 plotterB.plot_tracks(set(tracksB), [0, 2], uncertainty=True)
 
