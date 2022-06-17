@@ -389,9 +389,6 @@ for timestep in timesteps[1:]:
 # Plot ground truths, tracks and uncertainty ellipses for each target.
 
 plotterA = Plotter()
-plotterA.ax.axis('auto')
-
-# Plot sensor position as black x marker
 plotterA.plot_sensors(sensorA)
 plotterA.plot_ground_truths(truths_set, [0, 2])
 plotterA.plot_tracks(set(tracksA), [0, 2], uncertainty=True)
@@ -456,9 +453,6 @@ for timestep in timesteps[1:]:
 # Plot ground truths, tracks and uncertainty ellipses for each target.
 
 plotterB = Plotter()
-plotterB.ax.axis('auto')
-
-# Plot sensor position as black x marker
 plotterB.plot_sensors(sensorB)
 plotterB.plot_ground_truths(truths_set, [0, 2])
 plotterB.plot_tracks(set(tracksB), [0, 2], uncertainty=True)
