@@ -63,7 +63,8 @@ class PDAUpdater(ExtendedKalmanUpdater):
             associated measurement or measurement prediction.
             latter case a predicted measurement will be calculated.
         gm_method : bool
-
+            either use the innovation-based update methods (detailed above and in [1]), if False,
+            or use the GM-reduction (True).
         **kwargs : various
             These are passed to :meth:`predict_measurement`
 
@@ -86,10 +87,37 @@ class PDAUpdater(ExtendedKalmanUpdater):
             posterior_mean, posterior_covariance,
             timestamp=hypotheses[0].measurement.timestamp, hypothesis=hypotheses)
 
-
     def _update_via_GM_reduction(self, hypotheses, **kwargs):
-        """This method delivers the same as :meth:`update()` by way of a slightly different
-        calculation. It's also more intuitive."""
+        """This method delivers the same outcome as what's described above. It's slightly
+        different, but potentially more intuitive.
+
+        Here, each the hypotheses, including missed detection, are updated and then a weighted
+        Gaussian reduction is used to resolve the hypotheses to a single Gaussian distribution.
+
+        The reason this is equivalent is:
+            TBA
+
+        Parameters
+        ----------
+        hypotheses : :class:`~.MultipleHypothesis`
+            the prediction-measurement association hypotheses. This hypotheses object carries
+            tracks, associated sets of measurements for each track together with a probability
+            measure which enumerates the likelihood of each track-measurement pair. (This is most
+            likely output by the :class:`~.PDA` associator).
+
+            In a single case (the missed detection hypothesis), the hypothesis will not have an
+            associated measurement or measurement prediction.
+            latter case a predicted measurement will be calculated.
+         **kwargs : various
+            These are passed to :class:`~.ExtendedKalmanUpdater`:meth:`update`
+
+        Returns
+        -------
+        : :class:`~.StateVector`
+            The mean of the reduced/single Gaussian
+        : :class:`~.CovarianceMatrix`
+            The covariance of the reduced/single Gaussian
+        """
 
         posterior_states = []
         posterior_state_weights = []
@@ -111,17 +139,37 @@ class PDAUpdater(ExtendedKalmanUpdater):
         return post_mean, post_covar
 
     def _update_via_innovation(self, hypotheses, **kwargs):
-        """Of n hypotheses there should be 1 prediction (a missed detection) and n-1 different
-        measurement associations. Because we don't know where in the list this occurs, but we do
-        know that there's only one, we iterate til we find it, then start the calculation of the
-        posterior mean and covariance from there, then return to the values we missed."""
+        """Of n hypotheses there should be 1 prediction (a missed detection hypothesis) and n-1
+        different measurement associations. The update proceeds as described above.
 
-        position_prediction = False  # flag to record whether we have the prediction
+        Parameters
+        ----------
+        hypotheses : :class:`~.MultipleHypothesis`
+            the prediction-measurement association hypotheses. This hypotheses object carries
+            tracks, associated sets of measurements for each track together with a probability
+            measure which enumerates the likelihood of each track-measurement pair. (This is most
+            likely output by the :class:`~.PDA` associator).
+
+            In a single case (the missed detection hypothesis), the hypothesis will not have an
+            associated measurement or measurement prediction.
+            latter case a predicted measurement will be calculated.
+         **kwargs : various
+            These are passed to :meth:`predict_measurement`
+
+        Returns
+        -------
+        : :class:`~.StateVector`
+            The mean of the reduced/single Gaussian
+        : :class:`~.CovarianceMatrix`
+            The covariance of the reduced/single Gaussian
+        """
+
         for n, hypothesis in enumerate(hypotheses):
             # Check for the existence of an associated measurement. Because of the way the
             # hypothesis is constructed, you can do this:
             if not hypothesis:
-                hypothesis.measurement_prediction = self.predict_measurement(hypothesis.prediction)
+                hypothesis.measurement_prediction = self.predict_measurement(hypothesis.prediction,
+                                                                             **kwargs)
                 innovation = hypothesis.measurement_prediction.state_vector - \
                              hypothesis.measurement_prediction.state_vector  # is zero in this case
                 posterior_covariance, kalman_gain = self._posterior_covariance(hypothesis)
@@ -132,7 +180,7 @@ class PDAUpdater(ExtendedKalmanUpdater):
             else:
                 innovation = hypothesis.measurement.state_vector - hypothesis.measurement_prediction.state_vector
 
-            if n == 0:  # probably exists a less clunky way of doing this
+            if n == 0:  # probably exists a less clunky way of doing this using exists() or overwritten +=
                 sum_of_innovations = hypothesis.probability * innovation
                 sum_of_weighted_cov = hypothesis.probability * innovation @ innovation.T
             else:
