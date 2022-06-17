@@ -67,6 +67,38 @@ class AssociationSet(Type):
         if self.associations is None:
             self.associations = set()
 
+    @property
+    def key_times(self):
+        key_times = set(self.overall_time_range())
+        for association in self.associations:
+            if isinstance(association, SingleTimeAssociation):
+                key_times.add(association.timestamp)
+        return list(key_times).order()
+
+    @property
+    def overall_time_range(self):
+        """Return a :class:`~.CompoundTimeRange` of :class:`~.TimeRange`
+        objects in this instance.
+
+        :class:`SingleTimeAssociation`s are discarded
+        """
+        overall_range = CompoundTimeRange()
+        for association in self.associations:
+            if not isinstance(association, SingleTimeAssociation):
+                overall_range.add(association.time_range)
+        return overall_range
+
+    @property
+    def object_set(self):
+        """Return all objects in the set
+        Returned as a set
+        """
+        object_set = {}
+        for objects in self.associations.objects:
+            for obj in objects:
+                object_set.add(obj)
+        return object_set
+
     def associations_at_timestamp(self, timestamp):
         """Return the associations that exist at a given timestamp
 
@@ -80,7 +112,7 @@ class AssociationSet(Type):
 
         Returns
         -------
-        : set of :class:`~.Association`
+        : :class:`~.AssociationSet`
             Associations which occur at specified timestamp
         """
         ret_associations = set()
@@ -92,7 +124,7 @@ class AssociationSet(Type):
             else:
                 if timestamp in association.time_range:
                     ret_associations.add(association)
-        return ret_associations
+        return AssociationSet(ret_associations)
 
     def associations_including_objects(self, objects):
         """Return associations that include all the given objects
@@ -106,41 +138,21 @@ class AssociationSet(Type):
             Set of objects to look for in associations
         Returns
         -------
-        : set of :class:`~.Association`
+        : class:`~.AssociationSet`
             A set of objects which have been associated
         """
 
         # Ensure objects is iterable
         if not isinstance(objects, list) and not isinstance(objects, set):
             objects = {objects}
+        print(type(objects))
+        print(objects)
+        print(type(association for association in self.associations))
 
-        return {association
-                for association in self.associations
-                for object_ in objects
-                if object_ in association.objects}
-
-    def get_key_times(self):
-        """Return all times at which an association from the set begins or ends
-
-        This method will return an ordered list of the times at which an association in the set
-        begins or ends.  Note that in the case of a :class:`~.CompoundTimeRange`,
-        there are potentially multiple start and end times,
-        and for :class:`~.SingleTimeAssociation` associations, the start and end time are the same
-
-        Returns
-        -------
-        : list of :class:`datetime.datetime`
-            A list of times at which an association starts or ends
-        """
-        key_times = []
-        for association in self.associations:
-            if isinstance(association, SingleTimeAssociation):
-                key_times.append(association.timestamp)
-            else:
-                key_times.extend(association.time_range.get_key_times())
-
-        return key_times
-
+        return AssociationSet({association
+                              for association in self.associations
+                              for object_ in objects
+                              if object_ in association.objects})
 
     def __contains__(self, item):
         return item in self.associations

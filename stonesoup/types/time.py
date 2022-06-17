@@ -84,7 +84,7 @@ class CompoundTimeRange(Type):
         super().__init__(*args, **kwargs)
         if not time_ranges:
             self.time_ranges = []
-        self.check_overlap()
+        self.remove_overlap()
 
     @property
     def duration(self):
@@ -102,7 +102,7 @@ class CompoundTimeRange(Type):
             key_times.add(component.end_timestamp)
         return list(key_times).sort()
 
-    def check_overlap(self):
+    def remove_overlap(self):
         """Returns a :class:`~.CompoundTimeRange` with overlap removed"""
         overlap_check = CompoundTimeRange()
         for time_range in self.time_ranges:
@@ -118,7 +118,7 @@ class CompoundTimeRange(Type):
                 self.add(component)
         else:
             self.time_ranges.append(time_range)
-        self.check_overlap()
+        self.remove_overlap()
 
     def __contains__(self, time):
         """Checks if timestamp or is within range

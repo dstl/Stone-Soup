@@ -317,3 +317,35 @@ def assign2DBasic(C):
 # SOFTWARE AND ANY RELATED MATERIALS, AND AGREES TO INDEMNIFY THE NAVAL
 # RESEARCH LABORATORY FOR ALL THIRD-PARTY CLAIMS RESULTING FROM THE ACTIONS
 # OF RECIPIENT IN THE USE OF THE SOFTWARE.
+
+
+def multidimensional_deconfliction(association_set):
+    """Solves the Multidimensional Assignment Problem (MAP)
+
+    The assignment problem becomes more complex when time is added as a dimension.
+    This basic solution finds all the conflicts in an association set and then creates a
+    matrix of sums of conflicts in seconds, which is then passed to assign2D to solve as a
+    simple 2D assignment problem.  Therefore, each object will only ever be assigned to one other,
+    throughout the relevant time range.
+
+    Parameters
+    ----------
+    association_set: The :class:`AssociationSet` to de-conflict
+
+    Returns
+    -------
+    : :class:`AssociationSet`
+        The association set without contradictory associations
+    """
+    objects = list(association_set.object_set)
+    length = len(objects)
+    conflict_totals = numpy.zeros((length,length))
+    association_on = numpy.full((length, length), False)
+    key_times = association_set.key_times
+    for obj in objects:
+        obj_ass_set = association_set.associations_including_objects(obj)
+        for time in key_times:
+            time_ass_set = association_set.associations_at_timestamp
+
+
+
