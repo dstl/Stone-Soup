@@ -53,6 +53,45 @@ class TimeRange(Type):
 
         return self.start_timestamp <= timestamp <= self.end_timestamp
 
+    def minus(self, time_range):
+        """Removes the overlap between this instance and another :class:`~.TimeRange`, or
+        :class:`~.CompoundTimeRange`.
+
+        Parameters
+        ----------
+        time_range: Union[TimeRange, CompoundTimeRange]
+
+        Returns
+        -------
+        TimeRange
+            This instance less the overlap
+        """
+        if isinstance(time_range, CompoundTimeRange):
+            ans = self
+            for t_range in time_range:
+                ans = ans.minus(t_range)
+                if not ans:
+                    return None
+            return ans
+        else:
+            overlap = self.overlap(time_range)
+            if self == overlap:
+                return None
+            if self.start_timestamp < overlap.start_timestamp:
+                start = self.start_timestamp
+            else:
+                start = overlap.end_timestamp
+            if self.end_timestamp > overlap.end_timestamp:
+                end = self.end_timestamp
+            else:
+                end = overlap.start_timestamp
+            if self.start_timestamp < overlap.start_timestamp and \
+               self.end_timestamp > overlap.end_timestamp:
+                return CompoundTimeRange(TimeRange(self.start_timestamp, overlap.start_timestamp),
+                                         TimeRange(self.end_timestamp, overlap.end_timestamp))
+            else:
+                return TimeRange(start, end)
+
     def overlap(self, time_range):
         """Finds the intersection between this instance and another :class:`~.TimeRange`
 
@@ -145,6 +184,24 @@ class CompoundTimeRange(Type):
             raise TypeError("Supplied parameter must be an instance of either "
                             "datetime, TimeRange, or CompoundTimeRange")
 
+    def minus(self, time_range):
+        """Removes any overlap between this and another :class:`~.TimeRange` or
+        :class:`.~CompoundTimeRange`
+
+        Parameters
+        ----------
+        time_range: Union[TimeRange, CompoundTimeRange]
+
+        Returns
+        -------
+        CompoundTimeRange
+            The times contained by both this and time_range
+        """
+        ans = CompoundTimeRange()
+        for component in self.time_ranges:
+            ans.add(component.minus(time_range))
+        return ans
+
     def overlap(self, time_range):
         """Finds the intersection between this instance and another time range
 
@@ -163,10 +220,14 @@ class CompoundTimeRange(Type):
         if isinstance(time_range, CompoundTimeRange):
             for component in time_range.time_ranges:
                 total_overlap.add(self.overlap(component))
+            if total_overlap == CompoundTimeRange():
+                return None
             return total_overlap
         elif isinstance(time_range, TimeRange):
             for component in self.time_ranges:
                 total_overlap.add(component.overlap(time_range))
+            if total_overlap == CompoundTimeRange():
+                return None
             return total_overlap
         else:
             raise TypeError("Supplied parameter must be an instance of either "
