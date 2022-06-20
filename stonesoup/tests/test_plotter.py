@@ -142,3 +142,11 @@ def test_equal_3daxis():
                 max_xyz[n] = np.max([max_xyz[i], *line.get_data_3d()[i]])
         assert len(set(min_xyz)) == l
         assert len(set(max_xyz)) == l
+
+
+def test_equal_3daxis_2d():
+    plotter = Plotter(dimension=Dimension.TWO)
+    truths = GroundTruthPath(states=[State(state_vector=[-1000, -20, -3]),
+                                     State(state_vector=[1000, 20, 3])])
+    plotter.plot_ground_truths(truths, mapping=[0, 1])
+    plotter.set_equal_3daxis()
