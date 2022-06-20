@@ -138,8 +138,8 @@ def test_equal_3daxis():
         max_xyz = [0, 0, 0]
         for i in range(3):
             for line in plotter.ax.lines:
-                min_xyz[n] = np.min([min_xyz[i], *line.get_data_3d()[i]])
-                max_xyz[n] = np.max([max_xyz[i], *line.get_data_3d()[i]])
+                min_xyz[i] = np.min([min_xyz[i], *line.get_data_3d()[i]])
+                max_xyz[i] = np.max([max_xyz[i], *line.get_data_3d()[i]])
         assert len(set(min_xyz)) == l
         assert len(set(max_xyz)) == l
 
