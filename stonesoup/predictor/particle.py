@@ -15,16 +15,13 @@ class ParticlePredictor(Predictor):
     """
 
     @predict_lru_cache()
-    def predict(self, prior, control_input=None, timestamp=None, **kwargs):
+    def predict(self, prior, timestamp=None, **kwargs):
         """Particle Filter prediction step
 
         Parameters
         ----------
         prior : :class:`~.ParticleState`
             A prior state object
-        control_input : :class:`~.State`, optional
-            The control input. It will only have an effect if
-            :attr:`control_model` is not `None` (the default is `None`)
         timestamp: :class:`datetime.datetime`, optional
             A timestamp signifying when the prediction is performed
             (the default is `None`)
