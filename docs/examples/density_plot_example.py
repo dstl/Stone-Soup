@@ -13,7 +13,7 @@ analyse large data sets.
 # %%
 # Set the imports and set the start time
 from datetime import datetime, timedelta
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, animation
 
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
@@ -77,17 +77,24 @@ plotter.plot_density(truths, index=None)
 # The function allows you to pick an index of the state sequence (ground truth in this example) to
 # plot. In this example we're only interested in the final state of the sequences. An index of '-1'
 # is the last state in the sequence.
-# The resultant plot in much more spread out
+# The resultant plot is much more spread out
 plotter = Plotter()
 plotter.plot_density(truths, index=-1)
 
 # %%
-# Plot each state
+# Plot each state over time
 # -------------------------------------------------
-# Plot the density at each time-step and see how the density plot evolves
-plotter = Plotter()
-for i in range(1, n_time_steps):
-    plotter.plot_density(truths, index=i)
-    plt.show(block=False)
-    plt.pause(0.1)
+# Plot the density at each time-step and see how the density plot evolves. Define an animation
+# update function.
 
+
+def update(i):
+    plotter.ax.clear()
+    plotter.plot_density(truths, index=i)
+    return plotter.ax
+
+
+# %%
+# Plot the densities over time.
+plotter = Plotter()
+animation.FuncAnimation(plotter.fig, update, frames=range(1, n_time_steps))
