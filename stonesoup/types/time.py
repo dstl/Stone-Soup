@@ -1,5 +1,6 @@
 import datetime
 from typing import Union
+from itertools import combinations
 
 from ..base import Property
 from .base import Type
@@ -68,7 +69,7 @@ class TimeRange(Type):
         """
         if isinstance(time_range, CompoundTimeRange):
             ans = self
-            for t_range in time_range:
+            for t_range in time_range.time_ranges:
                 ans = ans.minus(t_range)
                 if not ans:
                     return None
@@ -117,12 +118,18 @@ class CompoundTimeRange(Type):
 
     A container class representing one or more :class:`TimeRange` objects together
     """
-    time_ranges: list[TimeRange] = Property(doc="List of TimeRange objects", default=None)
+    time_ranges: list[TimeRange] = Property(doc="List of TimeRange objects.  Can be empty",
+                                            default=None)
 
-    def __init__(self, time_ranges, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not time_ranges:
+        if self.time_ranges is None:
             self.time_ranges = []
+        if not isinstance(self.time_ranges, list):
+            raise TypeError("Time_ranges must be a list")
+        for component in self.time_ranges:
+            if not isinstance(component, TimeRange):
+                raise TypeError("Time_ranges must contain only TimeRange objects")
         self.remove_overlap()
 
     @property
@@ -142,7 +149,12 @@ class CompoundTimeRange(Type):
         return list(key_times).sort()
 
     def remove_overlap(self):
-        """Returns a :class:`~.CompoundTimeRange` with overlap removed"""
+        """Removes overlap between components of time_ranges"""
+        if len(self.time_ranges) == 0:
+            return
+        if all([component.overlap(component2) is None for (component, component2) in
+                combinations(self.time_ranges, 2)]):
+            return
         overlap_check = CompoundTimeRange()
         for time_range in self.time_ranges:
             overlap_check.add(time_range.minus(overlap_check.overlap(time_range)))
