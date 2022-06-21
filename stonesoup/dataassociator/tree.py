@@ -68,13 +68,18 @@ class DetectionKDTreeMixIn(DataAssociator):
             prediction = self.predictor.predict(track.state, timestamp)
             meas_pred = self.updater.predict_measurement(prediction)
 
+            try:
+                meas_pred_state_vector = meas_pred.mean
+            except AttributeError:
+                meas_pred_state_vector = meas_pred.state_vector
+
             if self.number_of_neighbours is None:
                 indexes = tree.query_ball_point(
-                    meas_pred.state_vector.ravel(),
+                    meas_pred_state_vector.ravel(),
                     r=self.max_distance)
             else:
                 _, indexes = tree.query(
-                    meas_pred.state_vector.ravel(),
+                    meas_pred_state_vector.ravel(),
                     k=self.number_of_neighbours,
                     distance_upper_bound=self.max_distance)
 
@@ -91,7 +96,14 @@ class DetectionKDTreeMixIn(DataAssociator):
 class TPRTreeMixIn(DataAssociator):
     """Detection TPR tree based mixin
 
-    Construct a TPR-tree.
+    Construct a TPR-tree to filter detections for generating hypotheses. This assumes
+    tracks move in constant velocity like model, using the mean and covariance to define
+    region to look for detections.
+
+    Notes
+    -----
+    This requires that track state has a mean (position and velocity) and covariance, which
+    is then approximated to a TPR node (position, velocity and time bounding box).
     """
     measurement_model: MeasurementModel = Property(
         doc="Measurement model used within the TPR tree")
@@ -125,10 +137,10 @@ class TPRTreeMixIn(DataAssociator):
         self._coords = dict()
 
     def _track_tree_coordinates(self, track):
-        state_vector = track.state_vector[self.pos_mapping, :]
+        state_vector = track.mean[self.pos_mapping, :]
         state_delta = 3 * np.sqrt(
             np.diag(track.covar)[self.pos_mapping].reshape(-1, 1))
-        vel_vector = track.state_vector[self.vel_mapping, :]
+        vel_vector = track.mean[self.vel_mapping, :]
         vel_delta = 3 * np.sqrt(
             np.diag(track.covar)[self.vel_mapping].reshape(-1, 1))
 

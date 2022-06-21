@@ -2,6 +2,8 @@ import datetime
 
 import pytest
 import numpy as np
+from scipy.stats import multivariate_normal
+
 try:
     import rtree
 except (ImportError, AttributeError, OSError):
@@ -13,10 +15,12 @@ from ..neighbour import (
 from ..probability import PDA, JPDA
 from ..tree import DetectionKDTreeMixIn, TPRTreeMixIn
 from ...models.measurement.nonlinear import CartesianToBearingRange
-from ...types.array import CovarianceMatrix
+from ...predictor.particle import ParticlePredictor
+from ...types.array import CovarianceMatrix, StateVectors
 from ...types.detection import Detection, MissedDetection
-from ...types.state import GaussianState
+from ...types.state import GaussianState, ParticleState
 from ...types.track import Track
+from ...updater.particle import ParticleUpdater
 
 
 class DetectionKDTreeNN(NearestNeighbour, DetectionKDTreeMixIn):
@@ -150,8 +154,6 @@ def test_nearest_neighbour(nn_associator):
 
 def test_tpr_tree_management(nn_associator, updater):
     '''Test method for TPR insert, delete and update'''
-    if not isinstance(nn_associator, TPRTreeNN):
-        return
     timestamp = datetime.datetime.now()
 
     t1 = Track([GaussianState(np.array([[0, 0, 0, 0]]), np.diag([1, 0.1, 1, 0.1]), timestamp)])
@@ -201,8 +203,6 @@ def test_tpr_tree_management(nn_associator, updater):
 
 def test_tpr_tree_measurement_models(nn_associator, measurement_model):
     '''Test method for TPR insert, delete and update using non linear measurement model'''
-    if not isinstance(nn_associator, TPRTreeNN):
-        return
     timestamp = datetime.datetime.now()
     measurement_model_nl = CartesianToBearingRange(
         ndim_state=4, mapping=[0, 2],
@@ -359,3 +359,49 @@ def test_no_tracks_probability(pda_associator):
 
     # Since no Tracks went in, there should be no associations
     assert not associations
+
+
+def test_particle_tree(nn_associator):
+    timestamp = datetime.datetime.now()
+    p1 = multivariate_normal.rvs(np.array([0, 0, 0, 0]),
+                                 np.diag([1, 0.1, 1, 0.1]),
+                                 size=200)
+    p2 = multivariate_normal.rvs(np.array([3, 0, 3, 0]),
+                                 np.diag([1, 0.1, 1, 0.1]),
+                                 size=200)
+    t1 = Track([ParticleState(StateVectors(p1.T), timestamp, np.full(200, 1 / 200))])
+    t2 = Track([ParticleState(StateVectors(p2.T), timestamp, np.full(200, 1 / 200))])
+    d1 = Detection(np.array([[2, 2]]), timestamp)
+    d2 = Detection(np.array([[5, 5]]), timestamp)
+
+    tracks = {t1, t2}
+    detections = {d1, d2}
+
+    # Switch predictor/updater to Particle ones.
+    nn_associator.hypothesiser.predictor = ParticlePredictor(
+        nn_associator.hypothesiser.predictor.transition_model)
+    nn_associator.hypothesiser.updater = ParticleUpdater(
+        nn_associator.hypothesiser.updater.measurement_model)
+    if isinstance(nn_associator, DetectionKDTreeMixIn):
+        nn_associator.predictor = nn_associator.hypothesiser.predictor
+        nn_associator.updater = nn_associator.hypothesiser.updater
+    associations = nn_associator.associate(tracks, detections, timestamp)
+
+    # There should be 2 associations
+    assert len(associations) == 2
+
+    # Each track should associate with a unique detection
+    associated_measurements = [hypothesis.measurement
+                               for hypothesis in associations.values()
+                               if hypothesis.measurement]
+    assert len(associated_measurements) == len(set(associated_measurements))
+
+    tracks = {}
+    associations = nn_associator.associate(tracks, detections, timestamp)
+    assert len(associations) == 0
+
+    tracks = {t1, t2}
+    detections = {}
+    associations = nn_associator.associate(tracks, detections, timestamp)
+
+    assert len([hypothesis for hypothesis in associations.values() if not hypothesis]) == 2
