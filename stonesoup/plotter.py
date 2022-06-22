@@ -383,7 +383,8 @@ class Plotter:
         \\*\\*kwargs: dict
             Additional arguments to be passed to pcolormesh function.
         """
-
+        if len(state_sequences) == 0:
+            raise ValueError("Skipping plotting density due to state_sequences being empty.")
         if index is None:  # Plot all states in the sequence
             x = np.array([a_state.state_vector[mapping[0]]
                           for a_state_sequence in state_sequences
@@ -396,7 +397,9 @@ class Plotter:
                           for a_state_sequence in state_sequences])
             y = np.array([a_state_sequence.states[index].state_vector[mapping[1]]
                           for a_state_sequence in state_sequences])
-
+        if np.allclose(x, y, atol=1e-10):
+            raise ValueError("Skipping plotting density due to x and y values are the same. "
+                             "This leads to a singular matrix in the kde function.")
         # Evaluate a gaussian kde on a regular grid of n_bins x n_bins over data extents
         k = kde.gaussian_kde([x, y])
         xi, yi = np.mgrid[x.min():x.max():n_bins * 1j, y.min():y.max():n_bins * 1j]
