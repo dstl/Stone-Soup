@@ -10,6 +10,7 @@ from datetime import timedelta
 
 from stonesoup.types.detection import TrueDetection
 from stonesoup.models.measurement.linear import LinearGaussian
+from stonesoup.sensor.radar.radar import RadarElevationBearingRange
 
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
                                                ConstantVelocity
@@ -104,5 +105,20 @@ def test_measurement_clutter():  # no clutter should be plotted
 
 def test_particle_3d():  # warning should arise if particle is attempted in 3d mode
     plotter3 = Plotter(dimension=Dimension.THREE)
+
     with pytest.raises(NotImplementedError):
         plotter3.plot_tracks(track, [0, 1, 2], particle=True, uncertainty=False)
+
+
+def test_plot_sensors():
+    plotter3d = Plotter(Dimension.THREE)
+    sensor = RadarElevationBearingRange(
+        position_mapping=(0, 2, 4),
+        noise_covar=np.array([[0, 0, 0],
+                              [0, 0, 0]]),
+        ndim_state=6,
+        position=np.array([[10], [50], [0]])
+    )
+    plotter3d.plot_sensors(sensor, marker='o', color='red')
+    plt.close()
+    assert 'Sensor' in plotter3d.legend_dict
