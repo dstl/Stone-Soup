@@ -42,8 +42,9 @@ class Plotter:
     ----------
     dimension: enum \'Dimension\'
         Optional parameter to specify 2D or 3D plotting. Default is 2D plotting.
-    figsize: tuple
-        Optional parameter to specify the size of the figure. Default is (10, 6).
+    \\*\\*kwargs: dict
+        Additional arguments to be passed to plot function. For example, figsize (Default is
+        (10, 6)).
 
     Attributes
     ----------
