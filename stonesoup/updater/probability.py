@@ -47,7 +47,6 @@ class PDAUpdater(ExtendedKalmanUpdater):
         \mathbf{y}_{k,i}^T - \mathbf{y}_k \mathbf{y}_k^T \] K_k^T
 
     """
-
     def update(self, hypotheses, gm_method=False, **kwargs):
         r"""The update step.
 

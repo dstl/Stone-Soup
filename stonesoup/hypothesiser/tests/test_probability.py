@@ -25,7 +25,7 @@ def test_pda(predictor, updater):
     mulltihypothesis = \
         hypothesiser.hypothesise(track, detections, timestamp)
 
-    # There are 3 weighted hypotheses - Detections 1 and 2, MissedDectection
+    # There are 3 weighted hypotheses - Detections 1 and 2, MissedDetection
     assert len(mulltihypothesis) == 3
 
     # Each hypothesis has a probability/weight attribute
