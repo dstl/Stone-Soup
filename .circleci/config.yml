@@ -3,32 +3,31 @@ workflows:
   version: 2
   test:
     jobs:
+      - test-36
       - test-37
       - test-38
       - test-39
-      - test-310
   docs:
     jobs:
       - docs
 jobs:
-  test-37: &test-template
+  test-36: &test-template
     docker:
-      - image: cimg/python:3.7
+      - image: circleci/python:3.6
     steps:
       - checkout
       - restore_cache:
-          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "setup.py" }}
+          key: v1-dependencies-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
       - run:
           name: Install Dependencies
           command: |
-            python -m venv venv
+            python3 -m venv venv
             . venv/bin/activate
-            pip install --upgrade pip
-            pip install -e .[dev] opencv-python-headless
+            pip install -e .[dev,astro]
       - save_cache:
           paths:
             - ./venv
-          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "setup.py" }}
+          key: v1-dependencies-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
       - run:
           name: Run Tests
           command: |
@@ -46,36 +45,35 @@ jobs:
               -f test-reports/coverage.xml \
               -F unittests \
               -n ${CIRCLE_BUILD_NUM}
+  test-37:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.7
   test-38:
     <<: *test-template
     docker:
-      - image: cimg/python:3.8
+      - image: circleci/python:3.8
   test-39:
     <<: *test-template
     docker:
-      - image: cimg/python:3.9
-  test-310:
-    <<: *test-template
-    docker:
-      - image: cimg/python:3.10
+      - image: circleci/python:3.9
   docs:
     docker:
-      - image: cimg/python:3.10
+      - image: circleci/python:3.9
     steps:
       - checkout
       - restore_cache:
-          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "setup.py" }}
+          key: v1-dependencies-test-39-{{ checksum "setup.py" }}
       - run:
           name: Install Dependencies
           command: |
-            python -m venv venv
+            python3 -m venv venv
             . venv/bin/activate
-            pip install --upgrade pip
-            pip install -e .[dev] opencv-python-headless
+            pip install -e .[dev,astro]
       - save_cache:
           paths:
             - ./venv
-          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "setup.py" }}
+          key: v1-dependencies-test-39-{{ checksum "setup.py" }}
       - run:
           name: Build Docs
           command: |
