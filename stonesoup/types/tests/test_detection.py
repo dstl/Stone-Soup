@@ -33,3 +33,4 @@ def test_composite_detection():
                                    mapping=[1, 0, 2, 3])
     # Last detection should overwrite metadata of earlier
     assert detection.metadata == {'colour': 'red', 'speed': 'fast', 'size': 'big'}
+

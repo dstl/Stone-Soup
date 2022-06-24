@@ -1,6 +1,7 @@
 import numpy
 import datetime
 from ..types.association import AssociationSet
+import warnings
 
 
 def assign2D(C, maximize=False):
@@ -321,7 +322,7 @@ def assign2DBasic(C):
 # OF RECIPIENT IN THE USE OF THE SOFTWARE.
 
 
-def multidimensional_deconfliction(association_set):
+def multidimensional_deconfliction(association_set, low_diff_warning=None):
     """Solves the Multidimensional Assignment Problem (MAP)
 
     The assignment problem becomes more complex when time is added as a dimension.
@@ -338,6 +339,10 @@ def multidimensional_deconfliction(association_set):
     Parameters
     ----------
     association_set: The :class:`AssociationSet` to de-conflict
+    low_diff_warning: If the longest association between objects minus the shortest (in seconds) is
+    less than this, a warning will be given.  This may occur if the range of times covered includes
+    only a low number of seconds.
+
 
     Returns
     -------
@@ -346,9 +351,11 @@ def multidimensional_deconfliction(association_set):
     """
     objects = list(association_set.object_set)
     length = len(objects)
+    if length <= 1:
+        return association_set
     totals = numpy.zeros((length, length))  # Time objects i and j are associated for in total
     association_on = numpy.full((length, length), False)
-    association_start = numpy.full(length, length, datetime.datetime.min)
+    association_start = numpy.full((length, length), datetime.datetime.min)
     key_times = association_set.key_times
     for time in key_times:
         associations_to_end = []
@@ -356,37 +363,44 @@ def multidimensional_deconfliction(association_set):
             for j in range(length):
                 if association_on[i][j]:
                     associations_to_end.append({i, j})
-        time_ass_set = association_set.associations_at_timestamp
+        time_ass_set = association_set.associations_at_timestamp(time)
         for association in time_ass_set:
-            obj_indices = [objects.index(list(association.objects)[0]),
-                           objects.index(list(association.objects)[1])]
             if len(association.objects) != 2:
                 raise ValueError("Supplied set must only contain pairs of associated objects")
+            obj_indices = [objects.index(list(association.objects)[0]),
+                           objects.index(list(association.objects)[1])]
             if not association_on[obj_indices[0], obj_indices[1]]:
                 association_on[obj_indices[0], obj_indices[1]] = True
                 association_start[obj_indices[0], obj_indices[1]] = time
-            else:
+            elif time != max(association.time_range.key_times):
                 associations_to_end.remove({obj_indices[0], obj_indices[1]})
-        for indices in associations_to_end:
-            association_on[indices[0], indices[1]] = False
-            totals[indices[0], indices[1]] = totals[indices[0, indices[1]]] + \
-                time - association_start[indices[0], indices[1]]
-        association_start = make_symmetric(association_start)
-        totals = make_symmetric(totals)
-        association_on = make_symmetric(association_on)
+        for inds in associations_to_end:
+            print("loop")
+            association_on[inds[0], inds[1]] = False
+            totals[inds[0], inds[1]] += (time -
+                                         association_start[inds[0], inds[1]]).total_seconds()
+        association_start = _make_symmetric(association_start)
+        totals = _make_symmetric(totals)
+        association_on = _make_symmetric(association_on)
+
+    totals = numpy.rint(totals).astype(int)
+    if low_diff_warning and numpy.max(totals) - numpy.min(totals) <= low_diff_warning:
+        warnings.warn(f"Difference between longest association and shortest is low after rounding"
+                      f"({numpy.max(totals) - numpy.min(totals)} seconds)")
+    numpy.fill_diagonal(totals, 0)  # Don't want to count associations of an object with itself
 
     solved_2d = assign2D(totals, maximize=True)[1]
-    winning_indices = [] # Pairs that are chosen by assign2D
+    winning_indices = []  # Pairs that are chosen by assign2D
     for i in range(length):
-        winning_indices.append({i, solved_2d[i]})
-
+        winning_indices.append([i, solved_2d[i]])
     cleaned_set = AssociationSet()
     for winner in winning_indices:
-        assoc = association_set.associations_including_objects({objects[list(winner)[0]],
-                                                                objects[list(winner)[1]]})
+        print(winner)
+        assoc = association_set.associations_including_objects({objects[winner[0]],
+                                                                objects[winner[1]]})
         cleaned_set.add(assoc)
         association_set.remove(assoc)
-
+    # Recursive step
     for assoc1 in association_set:
         for assoc2 in association_set:
             if conflicts(assoc1, assoc2):
@@ -403,15 +417,8 @@ def multidimensional_deconfliction(association_set):
     return cleaned_set
 
 
-
-
-
-
-
-
-
 def conflicts(assoc1, assoc2):
-    if not hasattr(assoc1, time_range) or not hasattr(assoc2, time_range):
+    if not hasattr(assoc1, 'time_range') or not hasattr(assoc2, 'time_range'):
         raise TypeError("Associations must have a time_range property")
     if assoc1.time_range.overlap(assoc2.time_range) and assoc1 != assoc2 \
             and len(assoc1.objects.intersection(assoc2.objects)) > 0:
@@ -420,8 +427,18 @@ def conflicts(assoc1, assoc2):
         return False
 
 
-def make_symmetric(matrix):
-    return numpy.tril(matrix) + numpy.triu(matrix.T, 1)
+def _make_symmetric(matrix):
+    if isinstance(matrix[0, 0], datetime.datetime):
+        ans = matrix
+        for i in range(matrix.shape[0]):
+            for j in range(matrix.shape[0]):
+                if matrix[i, j] >= matrix[j, i]:
+                    ans[j, i] = matrix[i, j]
+                else:
+                    ans[i, j] = matrix[j, i]
+        return ans
+    else:
+        return numpy.tril(matrix) + numpy.triu(matrix.T, k=1)
 
 
 

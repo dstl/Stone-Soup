@@ -57,13 +57,13 @@ class TimeRange(Type):
             return self.start_timestamp <= time.start_timestamp and \
                    self.end_timestamp >= time.end_timestamp
         else:
-            raise TypeError("Supplied parameter must be a datetime.datetime or TimeRange object")
+            raise TypeError("Supplied parameter must be a datetime or TimeRange object")
 
     def __eq__(self, other):
         if other is None:
             return False
         if not isinstance(other, TimeRange):
-            raise TypeError(f"Cannot compare between a CompoundTimeRange and {type(other)}")
+            return False
         if self.start_timestamp == other.start_timestamp and \
            self.end_timestamp == other.end_timestamp:
             return True
@@ -156,8 +156,8 @@ class CompoundTimeRange(Type):
         for component in self.time_ranges:
             if not isinstance(component, TimeRange):
                 raise TypeError("Time_ranges must contain only TimeRange objects")
-        self.remove_overlap()
-        self.fuse_components()
+        self._remove_overlap()
+        self._fuse_components()
 
     @property
     def duration(self):
@@ -178,7 +178,7 @@ class CompoundTimeRange(Type):
             key_times.add(component.end_timestamp)
         return sorted(list(key_times))
 
-    def remove_overlap(self):
+    def _remove_overlap(self):
         """Removes overlap between components of time_ranges"""
         if len(self.time_ranges) == 0:
             return
@@ -190,7 +190,7 @@ class CompoundTimeRange(Type):
             overlap_check.add(time_range.minus(overlap_check.overlap(time_range)))
         self.time_ranges = overlap_check.time_ranges
 
-    def fuse_components(self):
+    def _fuse_components(self):
         """Fuses two time ranges [a,b], [b,c] into [a,c] for all such pairs in this instance"""
         for (component, component2) in permutations(self.time_ranges, 2):
             if component.end_timestamp == component2.start_timestamp:
@@ -208,8 +208,8 @@ class CompoundTimeRange(Type):
                 self.add(component)
         else:
             self.time_ranges.append(time_range)
-        self.remove_overlap()
-        self.fuse_components()
+        self._remove_overlap()
+        self._fuse_components()
 
     def remove(self, time_range):
         """Remove a :class:`.~TimeRange` object from the time ranges.
@@ -237,7 +237,7 @@ class CompoundTimeRange(Type):
 
         if isinstance(time, datetime.datetime):
             for component in self.time_ranges:
-                if datetime in component:
+                if time in component:
                     return True
             return False
         elif isinstance(time, TimeRange) or isinstance(time, CompoundTimeRange):
@@ -253,7 +253,7 @@ class CompoundTimeRange(Type):
         if other is None:
             return False
         if not isinstance(other, CompoundTimeRange):
-            raise TypeError(f"Cannot compare between a CompoundTimeRange and {type(other)}")
+            return False
         if len(self.time_ranges) == 0:
             return True if len(other.time_ranges) == 0 else False
         for component in self.time_ranges:

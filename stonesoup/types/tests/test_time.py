@@ -211,12 +211,12 @@ def test_key_times(times):
 def test_remove_overlap(times):
     test1_ro = CompoundTimeRange([TimeRange(times[0], times[1]),
                                   TimeRange(times[3], times[4])])
-    test1_ro.remove_overlap()
+    test1_ro._remove_overlap()
     test2_ro = CompoundTimeRange([TimeRange(times[3], times[4]),
                                   TimeRange(times[0], times[4])])
-    test2_ro.remove_overlap()
+    test2_ro._remove_overlap()
     test3_ro = CompoundTimeRange()
-    test3_ro.remove_overlap()
+    test3_ro._remove_overlap()
 
     test1 = CompoundTimeRange([TimeRange(times[0], times[1]),
                                TimeRange(times[3], times[4])])
@@ -230,9 +230,9 @@ def test_remove_overlap(times):
 
 def test_fuse_components(times):
     # Note this is called inside the __init__ method, but is tested here explicitly
-    test1 = CompoundTimeRange([TimeRange(times[1], times[2])]).fuse_components()
+    test1 = CompoundTimeRange([TimeRange(times[1], times[2])])._fuse_components()
     test2 = CompoundTimeRange([TimeRange(times[1], times[2]),
-                               TimeRange(times[2], times[4])]).fuse_components()
+                               TimeRange(times[2], times[4])])._fuse_components()
     assert test1.time_ranges == {TimeRange(times[1], times[2])}
     assert test2.time_ranges == {TimeRange(times[1], times[4])}
 

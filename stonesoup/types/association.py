@@ -1,9 +1,10 @@
 import datetime
-from typing import Set
+from typing import Set, Union
+from itertools import combinations
 
 from ..base import Property
 from .base import Type
-from .time import CompoundTimeRange
+from .time import TimeRange, CompoundTimeRange
 
 
 class Association(Type):
@@ -48,7 +49,7 @@ class TimeRangeAssociation(Association):
     range of times
     """
 
-    time_range: CompoundTimeRange = Property(
+    time_range: Union[CompoundTimeRange, TimeRange] = Property(
         default=None, doc="Range of times that association exists over. Default is None")
 
 
@@ -66,6 +67,14 @@ class AssociationSet(Type):
         super().__init__(associations, *args, **kwargs)
         if self.associations is None:
             self.associations = set()
+        if not isinstance(self.associations, Set):
+            raise TypeError("Supplied parameter must be a set")
+        if not all([isinstance(member, Association) for member in self.associations]):
+            raise TypeError("Association set must contain only Association instances")
+        self._simplify()
+
+    def __eq__(self, other):
+        return True if self.associations == other.associations else False
 
     def add(self, association):
         if association is None:
@@ -77,11 +86,35 @@ class AssociationSet(Type):
                 self.add(component)
         else:
             raise TypeError("Supplied parameter must be an Association or AssociationSet")
+        self._simplify()
+
+    def _simplify(self):
+        """Where multiple associations describe the same pair of objects, combine them into one.
+        Note this is only implemented for pairs with a time_range attribute- others will be skipped
+        """
+        to_remove = []
+        for (assoc1, assoc2) in combinations(self.associations, 2):
+            if not (len(assoc1.objects) == 2 and len(assoc2. objects) == 2):
+                continue
+            if not(hasattr(assoc1, 'time_range') and hasattr(assoc2, 'time_range')):
+                continue
+            if assoc1.objects == assoc2.objects:
+                if isinstance(assoc1.time_range, CompoundTimeRange):
+                    assoc1.time_range.add(assoc2.time_range)
+                elif isinstance(assoc2.time_range, CompoundTimeRange):
+                    assoc1.time_range = assoc2.time_range.add(assoc1.time_range)
+                else:
+                    assoc1.time_range = CompoundTimeRange([assoc1.time_range, assoc2.time_range])
+                to_remove.append(assoc2)
+        for assoc in to_remove:
+            self.remove(assoc)
 
     def remove(self, association):
         if association is None:
             return
         elif isinstance(association, Association):
+            if association not in self.associations:
+                raise ValueError("Supplied parameter must be contained by this instance")
             self.associations.remove(association)
         elif isinstance(association, AssociationSet):
             for component in association:
@@ -91,11 +124,13 @@ class AssociationSet(Type):
 
     @property
     def key_times(self):
-        key_times = set(self.overall_time_range())
+        """Returns all timestamps at which a component starts or ends, or where there is a
+        :class:`.~SingleTimeAssociation`"""
+        key_times = list(self.overall_time_range.key_times)
         for association in self.associations:
             if isinstance(association, SingleTimeAssociation):
                 key_times.add(association.timestamp)
-        return list(key_times).order()
+        return sorted(list(key_times))
 
     @property
     def overall_time_range(self):
@@ -106,7 +141,7 @@ class AssociationSet(Type):
         """
         overall_range = CompoundTimeRange()
         for association in self.associations:
-            if not isinstance(association, SingleTimeAssociation):
+            if hasattr(association, 'time_range'):
                 overall_range.add(association.time_range)
         return overall_range
 
@@ -115,9 +150,9 @@ class AssociationSet(Type):
         """Return all objects in the set
         Returned as a set
         """
-        object_set = {}
-        for objects in self.associations.objects:
-            for obj in objects:
+        object_set = set()
+        for assoc in self.associations:
+            for obj in assoc.objects:
                 object_set.add(obj)
         return object_set
 
@@ -137,6 +172,8 @@ class AssociationSet(Type):
         : :class:`~.AssociationSet`
             Associations which occur at specified timestamp
         """
+        if not isinstance(timestamp, datetime.datetime):
+            raise TypeError("Supplied parameter must be a datetime.datetime object")
         ret_associations = set()
         for association in self.associations:
             # If the association is at a single time
@@ -163,13 +200,9 @@ class AssociationSet(Type):
         : class:`~.AssociationSet`
             A set of objects which have been associated
         """
-
         # Ensure objects is iterable
         if not isinstance(objects, list) and not isinstance(objects, set):
             objects = {objects}
-        print(type(objects))
-        print(objects)
-        print(type(association for association in self.associations))
 
         return AssociationSet({association
                               for association in self.associations
