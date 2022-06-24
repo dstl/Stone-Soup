@@ -11,7 +11,7 @@ from ..functions import gm_reduce_single
 
 
 class PDAUpdater(ExtendedKalmanUpdater):
-    r"""An updater which undertakes probabilistic data association (PDA), as defined in [1]. It
+    r"""An updater which undertakes probabilistic data association (PDA), as defined in [#]_. It
     differs slightly from the Kalman updater it inherits from in that instead of a single
     hypothesis object, the :meth:`update` method takes a hypotheses object returned by a
     :class:`~.PDA` (or similar) data associator. Functionally this is a list of single hypothesis
@@ -24,13 +24,13 @@ class PDAUpdater(ExtendedKalmanUpdater):
 
     .. math::
 
-        \mathbf{x}_{k|k} = \mathbf{x}_{k|k-1} + K_k \mathbf{y}_{k}
+        \mathbf{x}_{k|k} &= \mathbf{x}_{k|k-1} + K_k \mathbf{y}_k
 
-        P_{k|k} = \beta_0 P_{k|k-1} + (1 - \beta_0) P_^C_{k|k} + \tilde{P}
+        P_{k|k} &= \beta_0 P_{k|k-1} + (1 - \beta_0) P_{k|k} + \tilde{P}
 
-    where :math:`K_k` and :math:`P^C_{k|k} are the Kalman gain and posterior covariance
+    where :math:`K_k` and :math:`P_{k|k}` are the Kalman gain and posterior covariance
     respectively returned by the single-target Kalman update, :math:`\beta_0` is the probability
-    of missed detection. In this instance :math:`\mathbf{y}_k` is the {\em combined} innovation,
+    of missed detection. In this instance :math:`\mathbf{y}_k` is the *combined* innovation,
     over :math:`m_k` detections:
 
     .. math::
@@ -43,9 +43,14 @@ class PDAUpdater(ExtendedKalmanUpdater):
 
     .. math::
 
-        \tilde{P} \def K_k \[ \Sigma_{i=1}^{m_k} \beta_i \mathbf{y}_{k,i} \beta_i
-        \mathbf{y}_{k,i}^T - \mathbf{y}_k \mathbf{y}_k^T \] K_k^T
+        \tilde{P} \triangleq K_k [ \Sigma_{i=1}^{m_k} \beta_i \mathbf{y}_{k,i}\mathbf{y}_{k,i}^T -
+        \mathbf{y}_k \mathbf{y}_k^T ] K_k^T
 
+
+    References
+    ----------
+    .. [#] Bar-Shalom Y, Daum F, Huang F 2009, The Probabilistic Data Association Filter, IEEE
+           Control Systems Magazine
     """
     def update(self, hypotheses, gm_method=False, **kwargs):
         r"""The update step.
@@ -53,24 +58,23 @@ class PDAUpdater(ExtendedKalmanUpdater):
         Parameters
         ----------
         hypotheses : :class:`~.MultipleHypothesis`
-            the prediction-measurement association hypotheses. This hypotheses object carries
+            The prediction-measurement association hypotheses. This hypotheses object carries
             tracks, associated sets of measurements for each track together with a probability
             measure which enumerates the likelihood of each track-measurement pair. (This is most
             likely output by the :class:`~.PDA` associator).
 
             In a single case (the missed detection hypothesis), the hypothesis will not have an
             associated measurement or measurement prediction.
-            latter case a predicted measurement will be calculated.
         gm_method : bool
-            either use the innovation-based update methods (detailed above and in [1]), if False,
+            Either use the innovation-based update methods (detailed above and in [1]), if False,
             or use the GM-reduction (True).
         **kwargs : various
             These are passed to :meth:`predict_measurement`
 
         Returns
         -------
-        : :class:`GaussianMeasurementPrediction`
-            The measurement prediction, :math:`\mathbf{z}_{k|k-1}`
+        : :class:`GaussianUpdate`
+            The update, :math:`\mathbf{x}_{k|k}, P_{k|k}`
 
         """
         if gm_method:
@@ -99,14 +103,7 @@ class PDAUpdater(ExtendedKalmanUpdater):
         Parameters
         ----------
         hypotheses : :class:`~.MultipleHypothesis`
-            the prediction-measurement association hypotheses. This hypotheses object carries
-            tracks, associated sets of measurements for each track together with a probability
-            measure which enumerates the likelihood of each track-measurement pair. (This is most
-            likely output by the :class:`~.PDA` associator).
-
-            In a single case (the missed detection hypothesis), the hypothesis will not have an
-            associated measurement or measurement prediction.
-            latter case a predicted measurement will be calculated.
+            As in :meth:`update` method
          **kwargs : various
             These are passed to :class:`~.ExtendedKalmanUpdater`:meth:`update`
 
@@ -144,14 +141,7 @@ class PDAUpdater(ExtendedKalmanUpdater):
         Parameters
         ----------
         hypotheses : :class:`~.MultipleHypothesis`
-            the prediction-measurement association hypotheses. This hypotheses object carries
-            tracks, associated sets of measurements for each track together with a probability
-            measure which enumerates the likelihood of each track-measurement pair. (This is most
-            likely output by the :class:`~.PDA` associator).
-
-            In a single case (the missed detection hypothesis), the hypothesis will not have an
-            associated measurement or measurement prediction.
-            latter case a predicted measurement will be calculated.
+            As in :meth:`update` method
          **kwargs : various
             These are passed to :meth:`predict_measurement`
 
