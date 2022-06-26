@@ -111,6 +111,8 @@ def test_contains(times):
     assert test_range2 not in compound_test
     assert test_range2 not in compound_test2
     assert test_range3 not in compound_test
+    print("         \n       range3", test_range3, "test2", compound_test2)
+    print(compound_test2.overlap(test_range3))
     assert test_range3 in compound_test2
 
 
@@ -119,8 +121,7 @@ def test_equality(times):
     test2 = TimeRange(times[1], times[2])
     test3 = TimeRange(times[1], times[3])
 
-    with pytest.raises(TypeError):
-        test1 == "stonesoup"
+    assert test1 != "stonesoup"
 
     assert test1 == test2
     assert test2 == test1
@@ -129,8 +130,7 @@ def test_equality(times):
     ctest1 = CompoundTimeRange([test1, test3])
     ctest2 = CompoundTimeRange([TimeRange(times[1], times[3])])
 
-    with pytest.raises(TypeError):
-        ctest2 == "Stonesoup is the best!"
+    assert ctest2 != "Stonesoup is the best!"
 
     assert ctest1 == ctest2
     assert ctest2 == ctest1
@@ -181,8 +181,7 @@ def test_overlap(times):
     ctest1 = CompoundTimeRange([test2, test3])
     ctest2 = CompoundTimeRange([test1, test2])
 
-    with pytest.raises(TypeError):
-        test2.overlap(ctest1)
+    assert test2.overlap(ctest1) == ctest1.overlap(test2)
 
     assert test1.overlap(test1) == test1
     assert test1.overlap(None) is None
@@ -230,11 +229,13 @@ def test_remove_overlap(times):
 
 def test_fuse_components(times):
     # Note this is called inside the __init__ method, but is tested here explicitly
-    test1 = CompoundTimeRange([TimeRange(times[1], times[2])])._fuse_components()
+    test1 = CompoundTimeRange([TimeRange(times[1], times[2])])
+    test1._fuse_components()
     test2 = CompoundTimeRange([TimeRange(times[1], times[2]),
-                               TimeRange(times[2], times[4])])._fuse_components()
-    assert test1.time_ranges == {TimeRange(times[1], times[2])}
-    assert test2.time_ranges == {TimeRange(times[1], times[4])}
+                               TimeRange(times[2], times[4])])
+    test2._fuse_components()
+    assert test1 == CompoundTimeRange([TimeRange(times[1], times[2])])
+    assert test2 == CompoundTimeRange([TimeRange(times[1], times[4])])
 
 def test_add(times):
     test1 = CompoundTimeRange([TimeRange(times[1], times[2])])

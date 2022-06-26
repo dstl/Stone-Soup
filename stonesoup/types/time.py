@@ -110,17 +110,18 @@ class TimeRange(Type):
                 end = overlap.start_timestamp
             if self.start_timestamp < overlap.start_timestamp and \
                self.end_timestamp > overlap.end_timestamp:
-                return CompoundTimeRange(TimeRange(self.start_timestamp, overlap.start_timestamp),
-                                         TimeRange(self.end_timestamp, overlap.end_timestamp))
+                return CompoundTimeRange([TimeRange(self.start_timestamp, overlap.start_timestamp),
+                                         TimeRange(overlap.end_timestamp, self.end_timestamp)])
             else:
                 return TimeRange(start, end)
 
     def overlap(self, time_range):
-        """Finds the intersection between this instance and another :class:`~.TimeRange`
+        """Finds the intersection between this instance and another :class:`~.TimeRange` or
+        :class:`.~CompoundTimeRange`
 
         Parameters
         ----------
-        time_range: TimeRange
+        time_range: Union[TimeRange, CompoundTimeRange]
 
         Returns
         -------
@@ -129,6 +130,8 @@ class TimeRange(Type):
         """
         if time_range is None:
             return None
+        if isinstance(time_range, CompoundTimeRange):
+            return time_range.overlap(self)
         if not isinstance(time_range, TimeRange):
             raise TypeError("Supplied parameter must be a TimeRange object")
         start_timestamp = max(self.start_timestamp, time_range.start_timestamp)
@@ -180,7 +183,7 @@ class CompoundTimeRange(Type):
 
     def _remove_overlap(self):
         """Removes overlap between components of time_ranges"""
-        if len(self.time_ranges) == 0:
+        if len(self.time_ranges) in {0, 1}:
             return
         if all([component.overlap(component2) is None for (component, component2) in
                 combinations(self.time_ranges, 2)]):
@@ -198,6 +201,8 @@ class CompoundTimeRange(Type):
                 self.remove(component)
                 self.remove(component2)
                 self.add(fused_component)
+                # To avoid issues with having removed objects from the permutations
+                self._fuse_components()
 
     def add(self, time_range):
         """Add a :class:`~.TimeRange` or :class:`~.CompoundTimeRange` object to `time_ranges`"""
@@ -206,8 +211,10 @@ class CompoundTimeRange(Type):
         if isinstance(time_range, CompoundTimeRange):
             for component in time_range.time_ranges:
                 self.add(component)
-        else:
+        elif isinstance(time_range, TimeRange):
             self.time_ranges.append(time_range)
+        else:
+            raise TypeError("Supplied parameter must be a TimeRange or CompoundTimeRange object")
         self._remove_overlap()
         self._fuse_components()
 
@@ -218,6 +225,12 @@ class CompoundTimeRange(Type):
             raise TypeError("Supplied parameter must be a TimeRange object")
         if time_range in self.time_ranges:
             self.time_ranges.remove(time_range)
+        elif time_range in self:
+            for component in self.time_ranges:
+                if time_range in component:
+                    new = component.minus(time_range)
+                    self.time_ranges.remove(component)
+                    self.add(new)
         else:
             raise ValueError("Supplied parameter must be a member of time_ranges")
 
@@ -240,10 +253,9 @@ class CompoundTimeRange(Type):
                 if time in component:
                     return True
             return False
-        elif isinstance(time, TimeRange) or isinstance(time, CompoundTimeRange):
-            print(self.overlap(time))
-            print(time)
-            print(self.overlap(time) == time)
+        elif isinstance(time, TimeRange):
+            return True if self.overlap(time) == CompoundTimeRange([time]) else False
+        elif isinstance(time, CompoundTimeRange):
             return True if self.overlap(time) == time else False
         else:
             raise TypeError("Supplied parameter must be an instance of either "

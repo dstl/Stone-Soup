@@ -322,15 +322,16 @@ def assign2DBasic(C):
 # OF RECIPIENT IN THE USE OF THE SOFTWARE.
 
 
-def multidimensional_deconfliction(association_set, low_diff_warning=None):
+def multidimensional_deconfliction(association_set):
     """Solves the Multidimensional Assignment Problem (MAP)
 
     The assignment problem becomes more complex when time is added as a dimension.
     This basic solution finds all the conflicts in an association set and then creates a
     matrix of sums of conflicts in seconds, which is then passed to assign2D to solve as a
     simple 2D assignment problem.  Therefore, each object will only ever be assigned to one other
-    at any one time.  In the case of an association that only partially overlaps, the "weaker" one
-    (the one eliminated by assign2D) will be trimmed until there is no conflict.
+    at any one time.  In the case of an association that only partially overlaps, the time range
+    of the "weaker" one (the one eliminated by assign2D) will be trimmed
+    until there is no conflict.
 
     Due to the possibility of more than two conflicting associations at the same time,
     this algorithm is recursive, but it is not expected many (if any) recursions will be required
@@ -339,9 +340,6 @@ def multidimensional_deconfliction(association_set, low_diff_warning=None):
     Parameters
     ----------
     association_set: The :class:`AssociationSet` to de-conflict
-    low_diff_warning: If the longest association between objects minus the shortest (in seconds) is
-    less than this, a warning will be given.  This may occur if the range of times covered includes
-    only a low number of seconds.
 
 
     Returns
@@ -349,70 +347,66 @@ def multidimensional_deconfliction(association_set, low_diff_warning=None):
     : :class:`AssociationSet`
         The association set without contradictory associations
     """
+    # Check if there are any conflicts
+    nonecheck(2,association_set)
+    no_conflicts = True
+    for assoc1 in association_set:
+        for assoc2 in association_set:
+            if conflicts(assoc1, assoc2):
+                no_conflicts = False
+    if no_conflicts:
+        return association_set
+    nonecheck(1,association_set)
     objects = list(association_set.object_set)
     length = len(objects)
-    if length <= 1:
-        return association_set
     totals = numpy.zeros((length, length))  # Time objects i and j are associated for in total
-    association_on = numpy.full((length, length), False)
-    association_start = numpy.full((length, length), datetime.datetime.min)
-    key_times = association_set.key_times
-    for time in key_times:
-        associations_to_end = []
-        for i in range(length):
-            for j in range(length):
-                if association_on[i][j]:
-                    associations_to_end.append({i, j})
-        time_ass_set = association_set.associations_at_timestamp(time)
-        for association in time_ass_set:
-            if len(association.objects) != 2:
-                raise ValueError("Supplied set must only contain pairs of associated objects")
-            obj_indices = [objects.index(list(association.objects)[0]),
-                           objects.index(list(association.objects)[1])]
-            if not association_on[obj_indices[0], obj_indices[1]]:
-                association_on[obj_indices[0], obj_indices[1]] = True
-                association_start[obj_indices[0], obj_indices[1]] = time
-            elif time != max(association.time_range.key_times):
-                associations_to_end.remove({obj_indices[0], obj_indices[1]})
-        for inds in associations_to_end:
-            print("loop")
-            association_on[inds[0], inds[1]] = False
-            totals[inds[0], inds[1]] += (time -
-                                         association_start[inds[0], inds[1]]).total_seconds()
-        association_start = _make_symmetric(association_start)
-        totals = _make_symmetric(totals)
-        association_on = _make_symmetric(association_on)
+
+    for association in association_set.associations:
+        if len(association.objects) != 2:
+            raise ValueError("Supplied set must only contain pairs of associated objects")
+        obj_indices = [objects.index(list(association.objects)[0]),
+                       objects.index(list(association.objects)[1])]
+        totals[obj_indices[0], obj_indices[1]] = association.time_range.duration.total_seconds()
+        make_symmetric(totals)
+    nonecheck(2, association_set)
 
     totals = numpy.rint(totals).astype(int)
-    if low_diff_warning and numpy.max(totals) - numpy.min(totals) <= low_diff_warning:
-        warnings.warn(f"Difference between longest association and shortest is low after rounding"
-                      f"({numpy.max(totals) - numpy.min(totals)} seconds)")
     numpy.fill_diagonal(totals, 0)  # Don't want to count associations of an object with itself
 
     solved_2d = assign2D(totals, maximize=True)[1]
     winning_indices = []  # Pairs that are chosen by assign2D
     for i in range(length):
-        winning_indices.append([i, solved_2d[i]])
+        if i != solved_2d[i]:
+            winning_indices.append([i, solved_2d[i]])
     cleaned_set = AssociationSet()
+    nonecheck(3, association_set)
+    if len(winning_indices) == 0:
+        raise ValueError("Problem unsolvable using this method")
     for winner in winning_indices:
-        print(winner)
         assoc = association_set.associations_including_objects({objects[winner[0]],
                                                                 objects[winner[1]]})
         cleaned_set.add(assoc)
         association_set.remove(assoc)
+    nonecheck(4, association_set)
+
     # Recursive step
-    for assoc1 in association_set:
-        for assoc2 in association_set:
+    runners_up = set()
+    for assoc1 in association_set.associations:
+        for assoc2 in association_set.associations:
             if conflicts(assoc1, assoc2):
-                association_set = multidimensional_deconfliction(association_set)
+                runners_up = multidimensional_deconfliction(association_set).associations
+    nonecheck(5, association_set)
 
     # At this point, none of association_set should conflict with one another
-    for association in association_set:
+    for runner_up in runners_up:
         for winner in cleaned_set:
-            if conflicts(association, winner):
-                association.time_range.minus(winner.time_range)
-        if association.time_range is not None:
-            cleaned_set.add(association)
+            if conflicts(runner_up, winner):
+                runner_up.time_range.minus(winner.time_range)
+        if runner_up.time_range is not None:
+            cleaned_set.add(runner_up)
+        else:
+            runners_up.remove(runner_up)
+    nonecheck(6, association_set)
 
     return cleaned_set
 
@@ -420,6 +414,8 @@ def multidimensional_deconfliction(association_set, low_diff_warning=None):
 def conflicts(assoc1, assoc2):
     if not hasattr(assoc1, 'time_range') or not hasattr(assoc2, 'time_range'):
         raise TypeError("Associations must have a time_range property")
+    if assoc1.time_range is None or assoc2.time_range is None:
+        return False
     if assoc1.time_range.overlap(assoc2.time_range) and assoc1 != assoc2 \
             and len(assoc1.objects.intersection(assoc2.objects)) > 0:
         return True
@@ -427,19 +423,17 @@ def conflicts(assoc1, assoc2):
         return False
 
 
-def _make_symmetric(matrix):
-    if isinstance(matrix[0, 0], datetime.datetime):
-        ans = matrix
-        for i in range(matrix.shape[0]):
-            for j in range(matrix.shape[0]):
-                if matrix[i, j] >= matrix[j, i]:
-                    ans[j, i] = matrix[i, j]
-                else:
-                    ans[i, j] = matrix[j, i]
-        return ans
-    else:
-        return numpy.tril(matrix) + numpy.triu(matrix.T, k=1)
+def make_symmetric(matrix):
+    """Matrix must be square"""
+    length = matrix.shape[0]
+    for i in range(length):
+        for j in range(length):
+            if matrix[i, j] >= matrix[j, i]:
+                matrix[j, i] = matrix[i, j]
+            else:
+                matrix[i, j] = matrix[j, i]
 
-
-
-
+def nonecheck(flag, association_set):
+    for assoc in association_set.associations:
+        if assoc.time_range is None:
+            print(f"NONETYPE AT {flag}")

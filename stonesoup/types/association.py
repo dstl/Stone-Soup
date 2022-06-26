@@ -94,7 +94,7 @@ class AssociationSet(Type):
         """
         to_remove = []
         for (assoc1, assoc2) in combinations(self.associations, 2):
-            if not (len(assoc1.objects) == 2 and len(assoc2. objects) == 2):
+            if not (len(assoc1.objects) == 2 and len(assoc2.objects) == 2):
                 continue
             if not(hasattr(assoc1, 'time_range') and hasattr(assoc2, 'time_range')):
                 continue
@@ -102,7 +102,8 @@ class AssociationSet(Type):
                 if isinstance(assoc1.time_range, CompoundTimeRange):
                     assoc1.time_range.add(assoc2.time_range)
                 elif isinstance(assoc2.time_range, CompoundTimeRange):
-                    assoc1.time_range = assoc2.time_range.add(assoc1.time_range)
+                    assoc2.time_range.add(assoc1.time_range)
+                    assoc1.time_range = assoc2.time_range
                 else:
                     assoc1.time_range = CompoundTimeRange([assoc1.time_range, assoc2.time_range])
                 to_remove.append(assoc2)
@@ -198,7 +199,7 @@ class AssociationSet(Type):
         Returns
         -------
         : class:`~.AssociationSet`
-            A set of objects which have been associated
+            A set of associations containing every member of objects
         """
         # Ensure objects is iterable
         if not isinstance(objects, list) and not isinstance(objects, set):
@@ -206,8 +207,8 @@ class AssociationSet(Type):
 
         return AssociationSet({association
                               for association in self.associations
-                              for object_ in objects
-                              if object_ in association.objects})
+                              if all([object_ in association.objects
+                                      for object_ in objects])})
 
     def __contains__(self, item):
         return item in self.associations

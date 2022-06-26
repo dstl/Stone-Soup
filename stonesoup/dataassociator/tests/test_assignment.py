@@ -10,7 +10,7 @@ def test_multi_deconfliction():
     test = AssociationSet()
     tested = multidimensional_deconfliction(test)
     assert test == tested
-    tracks = [Track(), Track(), Track(), Track()]
+    tracks = [Track(id=0), Track(id=1), Track(id=2), Track(id=3)]
     times = [datetime.datetime(year=2022, month=6, day=1, hour=0),
              datetime.datetime(year=2022, month=6, day=1, hour=1),
              datetime.datetime(year=2022, month=6, day=1, hour=5),
@@ -30,4 +30,23 @@ def test_multi_deconfliction():
 
     # Objects do not conflict, so should do nothing
     test2 = AssociationSet({assoc1, assoc2})
-    assert multidimensional_deconfliction(test2).associations == test2.associations
+    assert multidimensional_deconfliction(test2).associations == {assoc1, assoc2}
+
+    # Objects do conflict, so remove the shorter one
+    assoc3 = TimeRangeAssociation({tracks[0], tracks[3]},
+                                  time_range=CompoundTimeRange([ranges[0], ranges[4]]))
+    test3 = AssociationSet({assoc1, assoc3})
+    # Should entirely remove assoc1
+    assert multidimensional_deconfliction(test3).associations == {assoc3}
+
+    assoc4 = TimeRangeAssociation({tracks[0], tracks[1]},
+                                  time_range=CompoundTimeRange([ranges[1], ranges[4]]))
+    test4 = AssociationSet({assoc1, assoc2, assoc3, assoc4})
+    # assoc1 and assoc4 should merge together, assoc3 should be removed, and assoc2 should remain
+    tested4 = multidimensional_deconfliction(test4)
+    assert len(tested4) == 2
+    assert assoc2 in tested4
+    merged = tested4.associations_including_objects({tracks[0], tracks[1]})
+    assert len(merged) == 1
+    merged = merged.associations.pop()
+    assert merged.time_range == CompoundTimeRange([ranges[0], ranges[1], ranges[4]])
