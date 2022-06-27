@@ -384,7 +384,7 @@ class SIAPMetrics(MetricGenerator):
             Minimum number of tracks needed to track `truth`
         """
         assocs = sorted(manager.association_set.associations_including_objects([truth]),
-                        key=attrgetter('time_range.key_times[-1]'),
+                        key=attrgetter('time_range.key_times')[-1],
                         reverse=True)
 
         if len(assocs) == 0:
