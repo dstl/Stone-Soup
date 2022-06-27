@@ -13,7 +13,7 @@ from ..particle import Particle
 from ..state import CreatableFromState
 from ..state import State, GaussianState, ParticleState, EnsembleState, \
     StateMutableSequence, WeightedGaussianState, SqrtGaussianState, CategoricalState, \
-    CompositeState
+    CompositeState, InformationState
 from ...base import Property
 
 
@@ -63,6 +63,46 @@ def test_gaussianstate():
     assert(np.array_equal(covar, state.covar))
     assert(state.ndim == mean.shape[0])
     assert(state.timestamp == timestamp)
+
+
+def test_informationstate():
+    """ InformationState Type test """
+
+    with pytest.raises(TypeError):
+        InformationState()
+
+    mean = StateVector([[-1.8513], [0.9994], [0], [0]]) * 1e4
+    covar = CovarianceMatrix([[2.2128, 0, 0, 0],
+                              [0.0002, 2.2130, 0, 0],
+                              [0.3897, -0.00004, 0.0128, 0],
+                              [0, 0.3897, 0.0013, 0.0135]]) * 1e3
+    timestamp = datetime.datetime.now()
+
+    information_matrix = np.linalg.inv(covar)
+    information_state = information_matrix @ mean
+
+    # Test state initiation without timestamp
+    # Test that the conversion back to gaussian equates to the above mean and covariance
+    state = InformationState(information_state, information_matrix)
+    assert(np.allclose(covar, state.covar))
+    assert(np.allclose(mean, state.mean))
+
+    # Test state initiation with timestamp
+    state = InformationState(information_state, information_matrix, timestamp)
+    assert (np.allclose(mean, state.mean))
+    assert (np.allclose(covar, state.covar))
+    assert (state.timestamp == timestamp)
+
+    # Testing from_gaussian state method
+    gs = GaussianState(mean, covar)
+    inf_state = InformationState.from_gaussian_state(gaussian_state=gs)
+    assert np.allclose(inf_state.mean, gs.state_vector)
+    assert np.allclose(inf_state.covar, gs.covar)
+
+    # Test gaussian_state property of InformationState
+    gs2 = inf_state.gaussian_state
+    assert np.allclose(gs.state_vector, gs2.state_vector)
+    assert np.allclose(gs.covar, gs2.covar)
 
 
 def test_gaussianstate_invalid_covar():
