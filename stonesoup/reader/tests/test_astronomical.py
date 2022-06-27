@@ -1,15 +1,16 @@
+# -*- coding: utf-8 -*-
 from textwrap import dedent
 from datetime import datetime
 
 import pytest
 import numpy as np
-from astropy.io import fits
 
 from ..astronomical import FITSReader, TLEFileReader
+from astropy.io import fits
 
 
-def test_fits(tmpdir):
-    fits_filename = str(tmpdir.join("test.fits"))
+def test_fits():
+    fits_filename = "test.fits"
     n = np.arange(100.0)
     n.shape = (10, 10)
     hdr = fits.Header()
@@ -24,6 +25,10 @@ def test_fits(tmpdir):
     assert np.array_equal(image_data, n)
     assert header['OBSERVER'] == 'Edwin Hubble'
     assert header['COMMENT'] == "Here's some commentary about this FITS file."
+
+
+if __name__ == '__main__':
+    test_fits()
 
 
 @pytest.fixture()
