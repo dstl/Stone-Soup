@@ -359,6 +359,42 @@ class Plotter:
         else:
             self.ax.legend(handles=self.legend_dict.values(), labels=self.legend_dict.keys())
 
+    def plot_sensors(self, sensors, sensor_label="Sensor", **kwargs):
+        """Plots sensor(s)
+
+        Plots sensors.  Users can change the color and marker of detections using keyword
+        arguments. Default is a black 'x' marker.
+
+        Parameters
+        ----------
+        sensors : list of :class:`~.Sensor`
+            ~~~
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to plot function for detections. Defaults are
+            ``marker='x'`` and ``color='black'``.
+        """
+
+        sensor_kwargs = dict(marker='x', color='black')
+        sensor_kwargs.update(kwargs)
+
+        if not isinstance(sensors, set):
+            sensors = {sensors}  # Make a set of length 1
+
+        for sensor in sensors:
+            if self.dimension is Dimension.TWO:  # plots the sensors in xy
+                self.ax.scatter(sensor.position[0],
+                                sensor.position[1],
+                                **sensor_kwargs)
+            elif self.dimension is Dimension.THREE:  # plots the sensors in xyz
+                self.ax.plot3D(sensor.position[0],
+                               sensor.position[1],
+                               sensor.position[2],
+                               **sensor_kwargs)
+            else:
+                raise NotImplementedError('Unsupported dimension type for sensor plotting')
+        self.legend_dict[sensor_label] = Line2D([], [], linestyle='', **sensor_kwargs)
+        self.ax.legend(handles=self.legend_dict.values(), labels=self.legend_dict.keys())
+
     # Ellipse legend patch (used in Tutorial 3)
     @staticmethod
     def ellipse_legend(ax, label_list, color_list, **kwargs):
