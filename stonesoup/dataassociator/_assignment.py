@@ -1,7 +1,5 @@
 import numpy
-import datetime
 from ..types.association import AssociationSet
-import warnings
 
 
 def assign2D(C, maximize=False):
@@ -348,7 +346,6 @@ def multidimensional_deconfliction(association_set):
         The association set without contradictory associations
     """
     # Check if there are any conflicts
-    nonecheck(2,association_set)
     no_conflicts = True
     for assoc1 in association_set:
         for assoc2 in association_set:
@@ -356,7 +353,6 @@ def multidimensional_deconfliction(association_set):
                 no_conflicts = False
     if no_conflicts:
         return association_set
-    nonecheck(1,association_set)
     objects = list(association_set.object_set)
     length = len(objects)
     totals = numpy.zeros((length, length))  # Time objects i and j are associated for in total
@@ -368,7 +364,6 @@ def multidimensional_deconfliction(association_set):
                        objects.index(list(association.objects)[1])]
         totals[obj_indices[0], obj_indices[1]] = association.time_range.duration.total_seconds()
         make_symmetric(totals)
-    nonecheck(2, association_set)
 
     totals = numpy.rint(totals).astype(int)
     numpy.fill_diagonal(totals, 0)  # Don't want to count associations of an object with itself
@@ -379,7 +374,6 @@ def multidimensional_deconfliction(association_set):
         if i != solved_2d[i]:
             winning_indices.append([i, solved_2d[i]])
     cleaned_set = AssociationSet()
-    nonecheck(3, association_set)
     if len(winning_indices) == 0:
         raise ValueError("Problem unsolvable using this method")
     for winner in winning_indices:
@@ -387,7 +381,6 @@ def multidimensional_deconfliction(association_set):
                                                                 objects[winner[1]]})
         cleaned_set.add(assoc)
         association_set.remove(assoc)
-    nonecheck(4, association_set)
 
     # Recursive step
     runners_up = set()
@@ -395,7 +388,6 @@ def multidimensional_deconfliction(association_set):
         for assoc2 in association_set.associations:
             if conflicts(assoc1, assoc2):
                 runners_up = multidimensional_deconfliction(association_set).associations
-    nonecheck(5, association_set)
 
     # At this point, none of association_set should conflict with one another
     for runner_up in runners_up:
@@ -406,7 +398,6 @@ def multidimensional_deconfliction(association_set):
             cleaned_set.add(runner_up)
         else:
             runners_up.remove(runner_up)
-    nonecheck(6, association_set)
 
     return cleaned_set
 
@@ -432,8 +423,3 @@ def make_symmetric(matrix):
                 matrix[j, i] = matrix[i, j]
             else:
                 matrix[i, j] = matrix[j, i]
-
-def nonecheck(flag, association_set):
-    for assoc in association_set.associations:
-        if assoc.time_range is None:
-            print(f"NONETYPE AT {flag}")

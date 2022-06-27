@@ -50,6 +50,7 @@ def test_siap(trial_manager, trial_truths, trial_tracks, trial_associations, mea
 
     # Test total_time_tracked
     assert siap_generator.total_time_tracked(trial_manager, trial_truths[0]) == 3  # seconds
+    print(trial_truths[1])
     assert siap_generator.total_time_tracked(trial_manager, trial_truths[1]) == 2
     assert siap_generator.total_time_tracked(trial_manager, trial_truths[2]) == 1
     assert siap_generator.total_time_tracked(trial_manager, GroundTruthPath()) == 0

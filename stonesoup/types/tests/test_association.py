@@ -43,7 +43,6 @@ def test_associationpair():
     assert np.array_equal(assoc.objects, set(objects[:2]))
 
 
-
 def test_singletimeassociation():
     with pytest.raises(TypeError):
         SingleTimeAssociation()
@@ -189,4 +188,3 @@ def test_association_set_properties():
     assert test3.key_times == [timestamp1, timestamp2]
     assert test3.overall_time_range == com_time_range
     assert test3.object_set == set(objects)
-

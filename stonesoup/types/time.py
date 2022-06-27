@@ -1,5 +1,4 @@
 import datetime
-from typing import Union
 from itertools import combinations, permutations
 
 from ..base import Property
@@ -36,6 +35,11 @@ class TimeRange(Type):
         """Duration of the time range"""
 
         return self.end_timestamp - self.start_timestamp
+
+    @property
+    def key_times(self):
+        """Times the TimeRange begins and ends"""
+        return [self.start_timestamp, self.end_timestamp]
 
     def __contains__(self, time):
         """Checks if timestamp is within range
@@ -325,4 +329,3 @@ class CompoundTimeRange(Type):
         else:
             raise TypeError("Supplied parameter must be an instance of either "
                             "TimeRange, or CompoundTimeRange")
-

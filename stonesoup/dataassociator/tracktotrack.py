@@ -79,8 +79,8 @@ class TrackToTrackCounting(TrackToTrackAssociator):
     )
     one_to_one: bool = Property(
         default=False,
-        doc="If True, the Hungarian Algorithm is applied to the results so that no track is "
-            "associated with more than one other at any given time step"
+        doc="If True, it is ensured no two associations ever contain the same track "
+            "at the same time"
     )
 
     def associate_tracks(self, tracks_set_1: Set[Track], tracks_set_2: Set[Track]):

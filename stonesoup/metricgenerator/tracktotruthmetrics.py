@@ -278,7 +278,7 @@ class SIAPMetrics(MetricGenerator):
             Number of associated tracks held by `manager` at `timestamp`.
         """
         associations = manager.association_set.associations_at_timestamp(timestamp)
-        association_objects = {thing for assoc in associations for thing in assoc.objects}
+        association_objects = associations.object_set
 
         return sum(1 for track in manager.tracks if track in association_objects)
 
@@ -355,7 +355,6 @@ class SIAPMetrics(MetricGenerator):
             return 0
 
         truth_timestamps = sorted(state.timestamp for state in truth.states)
-
         total_time = 0
         for current_time, next_time in zip(truth_timestamps[:-1], truth_timestamps[1:]):
             for assoc in assocs:
@@ -385,7 +384,7 @@ class SIAPMetrics(MetricGenerator):
             Minimum number of tracks needed to track `truth`
         """
         assocs = sorted(manager.association_set.associations_including_objects([truth]),
-                        key=attrgetter('time_range.end_timestamp'),
+                        key=attrgetter('time_range.key_times[-1]'),
                         reverse=True)
 
         if len(assocs) == 0:

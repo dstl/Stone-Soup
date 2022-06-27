@@ -4,6 +4,7 @@ import pytest
 
 from ..time import TimeRange, CompoundTimeRange
 
+
 @pytest.fixture
 def times():
     # Note times are returned chronologically for ease of reading
@@ -200,11 +201,13 @@ def test_key_times(times):
                                TimeRange(times[0], times[1])])
     test3 = CompoundTimeRange()
     test4 = CompoundTimeRange([TimeRange(times[0], times[4])])
+    test5 = TimeRange(times[0], times[4])
 
     assert test1.key_times == [times[0], times[1], times[3], times[4]]
     assert test2.key_times == [times[0], times[1], times[3], times[4]]
     assert test3.key_times == []
     assert test4.key_times == [times[0], times[4]]
+    assert test5.key_times == [times[0], times[4]]
 
 
 def test_remove_overlap(times):
@@ -237,6 +240,7 @@ def test_fuse_components(times):
     assert test1 == CompoundTimeRange([TimeRange(times[1], times[2])])
     assert test2 == CompoundTimeRange([TimeRange(times[1], times[4])])
 
+
 def test_add(times):
     test1 = CompoundTimeRange([TimeRange(times[1], times[2])])
     test2 = CompoundTimeRange([TimeRange(times[0], times[1])])
@@ -254,13 +258,18 @@ def test_add(times):
     test3.add(TimeRange(times[4], times[5]))
     assert test3 == test4
 
+
 def test_remove(times):
     test1 = CompoundTimeRange([TimeRange(times[0], times[2]),
                                TimeRange(times[4], times[5])])
     with pytest.raises(TypeError):
         test1.remove(0.4)
     with pytest.raises(ValueError):
-        test1.remove(TimeRange(times[0], times[1]))
-
-    test1.remove(TimeRange(times[0], times[2]))
+        test1.remove(TimeRange(times[2], times[3]))
+    # Remove part of a component
+    test1.remove(TimeRange(times[0], times[1]))
+    assert test1 == CompoundTimeRange([TimeRange(times[1], times[2]),
+                                       TimeRange(times[4], times[5])])
+    # Remove whole component
+    test1.remove(TimeRange(times[1], times[2]))
     assert test1 == CompoundTimeRange([TimeRange(times[4], times[5])])
