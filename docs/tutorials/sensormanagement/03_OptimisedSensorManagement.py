@@ -21,7 +21,7 @@
 # to make an observation.
 #
 # The optimised sensor managers are built around the SciPy optimize library. Similar to the brute
-# force method introduced previouslty the sensor manager considers all possible configurations of
+# force method introduced previously the sensor manager considers all possible configurations of
 # sensors and actions and here uses an optimising function to optimise over a given reward function,
 # returning the optimal configuration.
 #
@@ -57,7 +57,7 @@ from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 #
 # Generate transition model and ground truths as in Tutorials 1 & 2.
 #
-# The number of targets in this simulation is defined by `n_truths` - here there are 3 targets travelling in
+# The number of targets in this simulation is defined by `ntruths` - here there are 3 targets travelling in
 # different directions. The time the
 # simulation is observed for is defined by `time_max`.
 #
@@ -484,7 +484,7 @@ from stonesoup.metricgenerator.uncertaintymetric import SumofCovarianceNormsMetr
 uncertainty_generator = SumofCovarianceNormsMetric()
 
 # %%
-# Generate a metrics manager for each sensor management method.
+# Generate a metric manager for each sensor management method.
 
 from stonesoup.metricgenerator.manager import SimpleManager
 
@@ -617,8 +617,6 @@ print(f'Optimised Basin Hopping: {cell_run_time3} s')
 # whilst maintaining a similar tracking performance. This difference becomes more clear when the complexity of
 # the situation increases - including additional sensors for example.
 
-# sphinx_gallery_thumbnail_number = 7
-
 # %%
 # References
 # ----------
@@ -627,3 +625,5 @@ print(f'Optimised Basin Hopping: {cell_run_time3} s')
 #    Multi-Object Filters**, IEEE Trans. Signal Processing 2008
 # .. [#] *Votruba, Paul & Nisley, Rich & Rothrock, Ron and Zombro, Brett.*, **Single Integrated Air
 #    Picture (SIAP) Metrics Implementation**, 2001
+
+# sphinx_gallery_thumbnail_number = 7
