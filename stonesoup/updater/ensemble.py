@@ -129,8 +129,7 @@ class EnsembleUpdater(KalmanUpdater):
         measurement_model = self._check_measurement_model(measurement_model)
 
         # Propagate each vector through the measurement model.
-        pred_meas_ensemble = measurement_model.function(predicted_state, noise=True,
-                                                        num_samples=predicted_state.num_vectors)
+        pred_meas_ensemble = measurement_model.function(predicted_state, noise=True)
 
         return MeasurementPrediction.from_state(
                    predicted_state, pred_meas_ensemble)
