@@ -52,8 +52,10 @@ class EnsembleUpdater(KalmanUpdater):
         \mathbf{x}_{k|k-1})
 
     This is returned as a :class:`~.EnsembleStateUpdate` object.
+
     References
     ----------
+
     1. J. Hiles, S. M. O’Rourke, R. Niu and E. P. Blasch,
     "Implementation of Ensemble Kalman Filters in Stone-Soup,"
     International Conference on Information Fusion, (2021)
@@ -114,10 +116,13 @@ class EnsembleUpdater(KalmanUpdater):
         measurement_model : :class:`~.MeasurementModel`
             The measurement model. If omitted, the model in the updater object
             is used
+
+
         Returns
         -------
-        : :class:`EnsembleMeasurementPrediction`
-            The measurement prediction, :math:`\mathbf{z}_{k|k-1}`
+        : :class:`~.EnsembleMeasurementPrediction`
+
+        The measurement prediction, :math:`\mathbf{z}_{k|k-1}`
         """
         # If a measurement model is not specified then use the one that's
         # native to the updater
@@ -143,6 +148,8 @@ class EnsembleUpdater(KalmanUpdater):
             the prediction-measurement association hypothesis. This hypothesis
             may carry a predicted measurement, or a predicted state. In the
             latter case a predicted measurement will be calculated.
+
+
         Returns
         -------
         : :class:`~.EnsembleStateUpdate`

@@ -42,7 +42,7 @@ class EnsemblePredictor(KalmanPredictor):
         time_interval = self._predict_over_interval(prior, timestamp)
         # This block of code propagates each column through the transition model.
         pred_ensemble = self.transition_model.function(
-            prior, noise=True, time_interval=time_interval, num_samples=prior.num_vectors)
+            prior, noise=True, time_interval=time_interval)
 
         return Prediction.from_state(prior, pred_ensemble, timestamp=timestamp,
                                      transition_model=self.transition_model)
