@@ -9,7 +9,7 @@ import numpy as np
 from ..base import Property
 from ..functions.orbital import keplerian_to_rv, tru_anom_from_mean_anom
 from . import Type
-from .array import StateVector
+from .array import StateVectors
 from .state import State, GaussianState, ParticleState
 from .angle import Inclination, EclipticLongitude
 from ..reader.astronomical import TLEDictReader
@@ -167,9 +167,11 @@ class Orbital(Type):
 
     revolution_number: int = Property(default=None, doc="Number of revolutions at the epoch")
 
-    metadata: dict = Property(default=None, doc="Dictionary containing metadata about orbit")
+    metadata: Mapping[Any, Any] = Property(
+        default=None, doc="Dictionary containing metadata about orbit."
+    )
 
-    def __init__(self, state_vector, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         """"""
 
         super().__init__(*args, **kwargs)
@@ -186,7 +188,7 @@ class Orbital(Type):
                 tle = TLEDictReader({'line_1': kwargs['metadata']['line_1'],
                                      'line_2': kwargs['metadata']['line_2']})
 
-                self.state_vector = StateVector([tle.inclination, tle.longitude_of_ascending_node,
+                self.state_vector = StateVectors([tle.inclination, tle.longitude_of_ascending_node,
                                             tle.eccentricity, tle.arg_periapsis, tle.mean_anomaly,
                                             tle.mean_motion])
                 kwargs['timestamp'] = tle.epoch
@@ -258,7 +260,7 @@ class Orbital(Type):
 
             # Use given and derived quantities to convert from Keplarian to
             # Cartesian
-            self.state_vector = keplerian_to_rv(StateVector([self.state_vector[2], semimajor_axis,
+            self.state_vector = keplerian_to_rv(StateVectors([self.state_vector[2], semimajor_axis,
                                                              self.state_vector[0],
                                                              self.state_vector[1],
                                                              self.state_vector[3], tru_anom]),
@@ -288,7 +290,7 @@ class Orbital(Type):
             tru_anom = tru_anom_from_mean_anom(mean_anomaly, eccentricity)
 
             # Convert from Keplarian to Cartesian
-            self.state_vector = keplerian_to_rv(StateVector([eccentricity, semimajor_axis,
+            self.state_vector = keplerian_to_rv(StateVectors([eccentricity, semimajor_axis,
                                                              inclination, raan, arg_per,
                                                              tru_anom]),
                                                 grav_parameter=self.grav_parameter)
@@ -339,7 +341,7 @@ class Orbital(Type):
         r"""The state vector :math:`X_{t_0} = [r_x, r_y, r_z, \dot{r}_x, \dot{r}_y, \dot{r}_z]^{T}`
         in 'Primary-Centred' Inertial coordinates, equivalent to ECI in the case of the Earth.
         """
-        return StateVector(self.state_vector)
+        return StateVectors(self.state_vector)
 
     # Some scalar quantities
     @property
@@ -551,7 +553,7 @@ class Orbital(Type):
         ([length]), :math:`i` the inclination (radian), :math:`\Omega` is the longitude of the
         ascending node (radian), :math:`\omega` the argument of periapsis (radian), and
         :math:`\theta` the true anomaly (radian)."""
-        return StateVector(np.array([[self.eccentricity],
+        return StateVectors(np.array([[self.eccentricity],
                                      [self.semimajor_axis],
                                      [self.inclination],
                                      [self.longitude_ascending_node],
@@ -565,7 +567,7 @@ class Orbital(Type):
         (radian), :math:`e` is the orbital eccentricity (unitless), :math:`\omega` the argument of
         periapsis (radian), :math:`M_0` the mean anomaly (radian) :math:`n` the mean motion
         (rad/[time]). [2]_"""
-        return StateVector(np.array([[self.inclination],
+        return StateVectors(np.array([[self.inclination],
                                      [self.longitude_ascending_node],
                                      [self.eccentricity],
                                      [self.argument_periapsis],
@@ -580,7 +582,7 @@ class Orbital(Type):
         horizontal and vertical components of the inclination respectively (radian) and
         :math:`\lambda` is the mean longitude (radian). [3]_
         """
-        return StateVector(np.array([[self.semimajor_axis],
+        return StateVectors(np.array([[self.semimajor_axis],
                                      [self.equinoctial_h],
                                      [self.equinoctial_k],
                                      [self.equinoctial_p],

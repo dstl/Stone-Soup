@@ -624,28 +624,36 @@ def dotproduct(a, b):
 
     Parameters
     ----------
-    a : StateVector
-        A state vector
+    a : StateVectors
+        A (set of) state vector(s)
     b : StateVector
-        A state vector of equal length to :math:`a`
+        A state vector(s) object of equal dimension to :math:`a`
 
     Returns
     -------
     : float
-        A scalar value representing the dot product of the vectors.
+        A (set of) scalar value(s) representing the dot product of the vectors.
     """
-    if np.shape(a)[1] != 1 or np.shape(b)[1] != 1 or np.ndim(a) != 2 or \
-            np.ndim(b) != 2:
-        raise ValueError("Inputs must be column vectors")
 
-    if np.shape(a)[0] != np.shape(b)[0]:
-        raise ValueError("Input vectors must be the same length")
+    def _dotproductvectors(aa, bb):
+        oout=0
+        for a_i, b_i in zip(aa, bb):
+            oout += a_i*b_i
+        return oout
 
-    out = 0
-    for a_i, b_i in zip(a, b):
-        out += a_i*b_i
+    if np.shape(a) != np.shape(b):
+        raise ValueError("Inputs must be (a collection of) column vectors of the same dimension")
 
-    return out
+    # Decide whether this is a StateVector or a StateVectors
+    if type(a) is StateVector and type(b) is StateVector:
+        return _dotproductvectors(a, b)
+    elif type(a) is StateVectors and type(b) is StateVectors:
+        out = []
+        for aa, bb in zip(a.T, b.T):
+            out.append(_dotproductvectors(aa, bb))
+        return out
+    else:
+        raise ValueError("Inputs must be of the same type")
 
 
 def sde_euler_maruyama_integration(fun, t_values, state_x0):
