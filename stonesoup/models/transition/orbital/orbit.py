@@ -42,7 +42,7 @@ class CartesianKeplerianTransitionModel(OrbitalGaussianTransitionModel):
         """Dimension of the state vector is 6"""
         return 6
 
-    def transition(self, orbital_state, noise=False, time_interval=timedelta(seconds=0)):
+    def transition(self, orbital_state, noise=False, time_interval=timedelta(seconds=0), **kwargs):
         r"""Just passes parameters to the function which executes the transition
 
         Parameters
@@ -66,9 +66,9 @@ class CartesianKeplerianTransitionModel(OrbitalGaussianTransitionModel):
         ----
         This merely passes the parameters to the :meth:`.function()` function.
         """
-        return self.function(orbital_state, noise=noise, time_interval=time_interval)
+        return self.function(orbital_state, noise=noise, time_interval=time_interval, **kwargs)
 
-    def function(self, orbital_state, noise=False, time_interval=timedelta(seconds=0)):
+    def function(self, orbital_state, noise=False, time_interval=timedelta(seconds=0), **kwargs):
         r"""The transition proceeds as algorithm 3.4 in [1]
 
         Parameters
@@ -91,6 +91,7 @@ class CartesianKeplerianTransitionModel(OrbitalGaussianTransitionModel):
         noise = self._noiseinrightform(noise, time_interval=time_interval)
 
         # Get the position and velocity vectors
+        # Note that we have to cope with StateVectors
         bold_r_0 = orbital_state.cartesian_state_vector[0:3]
         bold_v_0 = orbital_state.cartesian_state_vector[3:6]
 
@@ -172,7 +173,7 @@ class TLEKeplerianTransitionModel(OrbitalGaussianTransitionModel, LinearModel):
         """The dimension of the state vector, 6"""
         return 6
 
-    def transition(self, orbital_state, noise=False, time_interval=timedelta(seconds=0)):
+    def transition(self, orbital_state, noise=False, time_interval=timedelta(seconds=0), **kwargs):
         r"""Execute the transition function
 
         Parameters
@@ -199,9 +200,9 @@ class TLEKeplerianTransitionModel(OrbitalGaussianTransitionModel, LinearModel):
             function.  Units of mean motion must be :math:`\mathrm{rad} \, s^{-1}`
 
         """
-        return self.function(orbital_state, noise=noise, time_interval=time_interval)
+        return self.function(orbital_state, noise=noise, time_interval=time_interval, **kwargs)
 
-    def function(self, orbital_state, noise=False, time_interval=timedelta(seconds=0)):
+    def function(self, orbital_state, noise=False, time_interval=timedelta(seconds=0), **kwargs):
         r"""Execute the transition function
 
         Parameters
@@ -229,7 +230,7 @@ class TLEKeplerianTransitionModel(OrbitalGaussianTransitionModel, LinearModel):
         """
         noise = self._noiseinrightform(noise, time_interval=time_interval)
 
-        out_statev = self.matrix(time_interval) @ orbital_state.two_line_element + noise
+        out_statev = self.matrix(time_interval, **kwargs) @ orbital_state.two_line_element + noise
 
         # preserve type - must be a better way
         return StateVector([Inclination(out_statev[0]), EclipticLongitude(out_statev[1]),
@@ -296,7 +297,7 @@ class SGP4TransitionModel(OrbitalGaussianTransitionModel):
 
         return e, tuple(br*scale_fac for br in bold_r), tuple(bv*scale_fac for bv in bold_v)
 
-    def transition(self, orbital_state, noise=False, time_interval=timedelta(seconds=0)):
+    def transition(self, orbital_state, noise=False, time_interval=timedelta(seconds=0), **kwargs):
         r"""Just passes parameters to the :meth:`function()` function
 
         Parameters
@@ -317,9 +318,9 @@ class SGP4TransitionModel(OrbitalGaussianTransitionModel):
             The orbital state vector returned by the transition function
 
         """
-        return self.function(orbital_state, noise=noise, time_interval=time_interval)
+        return self.function(orbital_state, noise=noise, time_interval=time_interval, **kwargs)
 
-    def function(self, orbital_state, noise=False, time_interval=timedelta(seconds=0)):
+    def function(self, orbital_state, noise=False, time_interval=timedelta(seconds=0), **kwargs):
         r"""
 
         Parameters
@@ -342,7 +343,7 @@ class SGP4TransitionModel(OrbitalGaussianTransitionModel):
         """
         noise = self._noiseinrightform(noise, time_interval=time_interval)
 
-        e, bold_r, bold_v = self._advance_by_metadata(orbital_state, time_interval)
+        e, bold_r, bold_v = self._advance_by_metadata(orbital_state, time_interval, **kwargs)
 
         # And put them together
         return StateVector(np.concatenate((bold_r, bold_v), axis=0)) + noise
