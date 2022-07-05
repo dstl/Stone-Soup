@@ -255,7 +255,7 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
 
         if isinstance(noise, bool) or noise is None:
             if noise:
-                noise = self.rvs()
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
             else:
                 noise = 0
 
@@ -412,7 +412,7 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
 
         if isinstance(noise, bool) or noise is None:
             if noise:
-                noise = self.rvs()
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
             else:
                 noise = 0
 
@@ -538,7 +538,7 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
 
         if isinstance(noise, bool) or noise is None:
             if noise:
-                noise = self.rvs()
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
             else:
                 noise = 0
 
@@ -633,7 +633,7 @@ class Cartesian2DToBearing(NonLinearGaussianMeasurement):
 
         if isinstance(noise, bool) or noise is None:
             if noise:
-                noise = self.rvs()
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
             else:
                 noise = 0
 
@@ -774,7 +774,7 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
 
         if isinstance(noise, bool) or noise is None:
             if noise:
-                noise = self.rvs()
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
             else:
                 noise = 0
 
@@ -922,7 +922,7 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
 
         if isinstance(noise, bool) or noise is None:
             if noise:
-                noise = self.rvs()
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
             else:
                 noise = 0
 

@@ -51,8 +51,7 @@ class ParticleUpdater(Updater):
             measurement_model = hypothesis.measurement.measurement_model
 
         predicted_state.weight = predicted_state.weight * measurement_model.pdf(
-            hypothesis.measurement, predicted_state, num_samples=len(predicted_state),
-            **kwargs)
+            hypothesis.measurement, predicted_state, **kwargs)
 
         # Normalise the weights
         sum_w = np.array(Probability.sum(predicted_state.weight))
