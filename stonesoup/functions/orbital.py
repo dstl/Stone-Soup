@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Orbital functions
 -----------------
@@ -8,7 +9,7 @@ Functions used within multiple orbital classes in Stone Soup
 import numpy as np
 
 from . import dotproduct
-from ..types.array import StateVector, StateVectors
+from ..types.array import StateVector, Matrix
 
 
 def stumpff_s(z):
@@ -22,18 +23,20 @@ def stumpff_s(z):
 
     Parameters
     ----------
-    z : float, array-like
+    z : float, StateVector, StateVectors
         input parameter, :math:`z` or :math:`[z]`
 
     Returns
     -------
-    : float, array-like
+    : float, StateVector, StateVectors
         Output value, :math:`S(z)` in the same format and same size as input.
 
     """
     gti = z > 0
     lti = z < 0
     eqi = z == 0
+
+    out = np.zeros(np.shape(z)).view(type(z))
 
     if not np.shape(z):
         if gti:
@@ -45,12 +48,21 @@ def stumpff_s(z):
         else:
             out = 1 / 6
     else:
-        out = np.zeros(np.shape(z)).view(type(z))
         out[gti] = (np.sqrt(z[gti]) - np.sin(np.sqrt(z[gti]))) / np.sqrt(z[gti]) ** 3
         out[lti] = (np.sinh(np.sqrt(-z[lti])) - np.sqrt(-z[lti])) / np.sqrt(-z[lti]) ** 3
         out[eqi] = 1 / 6
 
     return out
+
+
+    '''if z > 0:
+        sqz = np.sqrt(z)
+        return (sqz - np.sin(sqz)) / sqz ** 3
+    elif z < 0:
+        sqz = np.sqrt(-z)
+        return (np.sinh(sqz) - sqz) / sqz ** 3
+    else:  # which means z== 0:
+        return 1 / 6'''
 
 
 def stumpff_c(z):
@@ -64,18 +76,20 @@ def stumpff_c(z):
 
     Parameters
     ----------
-    z : float, array-like
+    z : float
         input parameter, :math:`z`
 
     Returns
     -------
-    : float, array-like
-        Output value, :math:`C(z)` in same format and size as input
+    : float
+        Output value, :math:`C(z)`
 
     """
     gti = z > 0
     lti = z < 0
     eqi = z == 0
+
+    out = np.zeros(np.shape(z)).view(type(z))
 
     if not np.shape(z):
         if gti:
@@ -85,12 +99,20 @@ def stumpff_c(z):
         else:
             out = 1 / 2
     else:
-        out = np.zeros(np.shape(z)).view(type(z))
         out[gti] = (1 - np.cos(np.sqrt(z[gti]))) / np.sqrt(z[gti]) ** 2
         out[lti] = (np.cosh(np.sqrt(-z[lti])) - 1) / np.sqrt(-z[lti]) ** 2
         out[eqi] = 1 / 2
 
     return out
+
+    '''if z > 0:
+        sqz = np.sqrt(z)
+        return (1 - np.cos(sqz)) / sqz ** 2
+    elif z < 0:
+        sqz = np.sqrt(-z)
+        return (np.cosh(sqz) - 1) / sqz ** 2
+    else:  # which means z == 0:
+        return 1 / 2'''
 
 
 def universal_anomaly_newton(o_state_vector, delta_t,
@@ -99,7 +121,7 @@ def universal_anomaly_newton(o_state_vector, delta_t,
 
     Parameters
     ----------
-    o_state_vector : :class:`~.StateVector`, :class:`~.StateVectors`
+    o_state_vector : :class:`~StateVector`
         The orbital state vector formed as
         :math:`[r_x, r_y, r_z, \dot{r}_x, \dot{r}_y, \dot{r}_z]^T`
     delta_t : timedelta
@@ -116,7 +138,7 @@ def universal_anomaly_newton(o_state_vector, delta_t,
 
     Returns
     -------
-    : numpy.ndarray
+    : float
         The universal anomaly, :math:`\chi`
 
     References
@@ -125,39 +147,43 @@ def universal_anomaly_newton(o_state_vector, delta_t,
 
     """
 
-    # This should really have the calculation abstracted out and then do
-    # if statevector do code, else do iteration over code
-    # if type(o_state_vector) != StateVectors:
-    #    o_state_vector = StateVectors([o_state_vector])
+    # For loop across StateVectors
+    out = Matrix(np.zeros((1,np.shape(o_state_vector)[1])))
 
-    mag_r_0 = np.sqrt(dotproduct(o_state_vector[0:3, :], o_state_vector[0:3, :]))
-    mag_v_0 = np.sqrt(dotproduct(o_state_vector[3:6, :], o_state_vector[3:6, :]))
-    v_rad_0 = dotproduct(o_state_vector[3:6, :], o_state_vector[0:3, :]) / mag_r_0
-    root_mu = np.sqrt(grav_parameter)
-    inv_sma = 2 / mag_r_0 - (mag_v_0 ** 2) / grav_parameter
-    chi_i = root_mu * np.abs(inv_sma) * delta_t.total_seconds()
+    for i in range(0,np.shape(o_state_vector)[1]):  # iteration over StateVectors should go this way...
 
-    out = []
-    for iinv_sma, cchi_i, mmag_r_0, mmag_v_0, vv_rad_0 in \
-            zip(inv_sma.ravel(), chi_i.ravel(), mag_r_0.ravel(), mag_v_0.ravel(), v_rad_0.ravel()):
+        oo_state_vector = StateVector(o_state_vector[:,i])
+
+        # For convenience
+        mag_r_0 = np.sqrt(dotproduct(oo_state_vector[0:3], oo_state_vector[0:3]))
+        mag_v_0 = np.sqrt(dotproduct(oo_state_vector[3:6], oo_state_vector[3:6]))
+        v_rad_0 = dotproduct(oo_state_vector[3:6], oo_state_vector[0:3])/mag_r_0
+        root_mu = np.sqrt(grav_parameter)
+        inv_sma = 2/mag_r_0 - (mag_v_0**2)/grav_parameter
+
+        # Initial estimate of Chi
+        chi_i = root_mu * np.abs(inv_sma) * delta_t.total_seconds()
         ratio = 1
         count = 0
+
         # Do Newton's method
         while np.abs(ratio) > precision and count <= max_iterations:
-            z_i = iinv_sma * cchi_i ** 2
-            f_chi_i = mmag_r_0 * vv_rad_0 / root_mu * cchi_i ** 2 * stumpff_c(z_i) + \
-                (1 - iinv_sma * mmag_r_0) * cchi_i ** 3 * stumpff_s(z_i) + mmag_r_0 * cchi_i \
-                - root_mu * delta_t.total_seconds()
-            fp_chi_i = mmag_r_0 * vv_rad_0 / root_mu * cchi_i * \
-                (1 - iinv_sma * cchi_i ** 2 * stumpff_s(z_i)) + (1 - iinv_sma * mmag_r_0) \
-                * cchi_i ** 2 * stumpff_c(z_i) + mmag_r_0
+            z_i = inv_sma * chi_i ** 2
+            f_chi_i = mag_r_0 * v_rad_0 / root_mu * chi_i ** 2 * \
+                stumpff_c(z_i) + (1 - inv_sma * mag_r_0) * chi_i ** 3 * \
+                stumpff_s(z_i) + mag_r_0 * chi_i - root_mu * \
+                delta_t.total_seconds()
+            fp_chi_i = mag_r_0 * v_rad_0 / root_mu * chi_i * \
+                (1 - inv_sma * chi_i ** 2 * stumpff_s(z_i)) + \
+                (1 - inv_sma * mag_r_0) * chi_i ** 2 * stumpff_c(z_i) + \
+                mag_r_0
             ratio = f_chi_i / fp_chi_i
-            cchi_i = cchi_i - ratio
+            chi_i = chi_i - ratio
             count += 1
 
-        out.append(cchi_i)
+        out[oo_state_vector] = chi_i
 
-    return np.reshape(out, np.shape(np.atleast_2d(o_state_vector[0, :])))
+    return out
 
 
 def lagrange_coefficients_from_universal_anomaly(o_state_vector, delta_t,
@@ -168,7 +194,7 @@ def lagrange_coefficients_from_universal_anomaly(o_state_vector, delta_t,
 
     Parameters
     ----------
-    o_state_vector : :class:`~.StateVector`, :class:`~.StateVectors`
+    o_state_vector : StateVector
         The (Cartesian) orbital state vector,
         :math:`[r_x, r_y, r_z, \dot{r}_x, \dot{r}_y, \dot{r}_z]^T`
     delta_t : timedelta
@@ -185,7 +211,7 @@ def lagrange_coefficients_from_universal_anomaly(o_state_vector, delta_t,
 
     Returns
     -------
-    : tuple(numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray)
+    : float, float, float, float
         The Lagrange coefficients, :math:`f, g, \dot{f}, \dot{g}`, in that order.
 
     References
@@ -200,8 +226,8 @@ def lagrange_coefficients_from_universal_anomaly(o_state_vector, delta_t,
                                     precision=precision, max_iterations=max_iterations)
 
     # Get the position and velocity vectors
-    bold_r_0 = o_state_vector[0:3, :]
-    bold_v_0 = o_state_vector[3:6, :]
+    bold_r_0 = o_state_vector[0:3]
+    bold_v_0 = o_state_vector[3:6]
 
     # Calculate the magnitude of the position and velocity vectors
     r_0 = np.sqrt(dotproduct(bold_r_0, bold_r_0))
@@ -298,9 +324,9 @@ def tru_anom_from_mean_anom(mean_anomaly, eccentricity, precision=1e-8, max_iter
     # return np.arccos(np.clip((eccentricity - cos_ecc_anom) /
     #                 (eccentricity*cos_ecc_anom - 1), -1, 1))
 
-    return np.remainder(np.arctan2(np.sqrt(1 - eccentricity ** 2) *
+    return np.remainder(np.arctan2(np.sqrt(1 - eccentricity**2) *
                                    sin_ecc_anom,
-                                   cos_ecc_anom - eccentricity), 2 * np.pi)
+                                   cos_ecc_anom - eccentricity), 2*np.pi)
 
 
 def perifocal_position(eccentricity, semimajor_axis, true_anomaly):
@@ -326,14 +352,13 @@ def perifocal_position(eccentricity, semimajor_axis, true_anomaly):
     c_tran = np.cos(true_anomaly)
     s_tran = np.sin(true_anomaly)
 
-    # Copes with floats and (row) arrays
-    rot_v = np.reshape(np.array([c_tran, s_tran, np.zeros(np.shape(c_tran))]),
-                       (3, np.shape(np.atleast_2d(true_anomaly))[1]))
-
-    return semimajor_axis * (1 - eccentricity ** 2) / (1 + eccentricity * c_tran) * rot_v
+    return semimajor_axis * (1 - eccentricity ** 2) / \
+        (1 + eccentricity * c_tran) * np.array([[c_tran], [s_tran],
+                                                [0]])
 
 
-def perifocal_velocity(eccentricity, semimajor_axis, true_anomaly, grav_parameter=3.986004418e14):
+def perifocal_velocity(eccentricity, semimajor_axis, true_anomaly,
+                       grav_parameter=3.986004418e14):
     r"""The velocity vector in perifocal coordinates calculated from the Keplerian elements
 
     Parameters
@@ -359,14 +384,8 @@ def perifocal_velocity(eccentricity, semimajor_axis, true_anomaly, grav_paramete
     c_tran = np.cos(true_anomaly)
     s_tran = np.sin(true_anomaly)
 
-    # Copes with floats and (row) arrays
-    rot_v = np.reshape(np.array([-s_tran, eccentricity + c_tran, np.zeros(np.shape(c_tran))]),
-                       (3, np.shape(np.atleast_2d(true_anomaly))[1]))
-
-    a_1_e_2 = np.array(semimajor_axis).astype(float) * \
-        (1 - np.array(eccentricity).astype(float) ** 2)
-
-    return np.sqrt(grav_parameter / a_1_e_2) * rot_v
+    return np.sqrt(grav_parameter / (semimajor_axis * (1 - eccentricity**2)))\
+        * np.array([[-s_tran], [eccentricity + c_tran], [0]])
 
 
 def perifocal_to_geocentric_matrix(inclination, raan, argp):
@@ -388,6 +407,7 @@ def perifocal_to_geocentric_matrix(inclination, raan, argp):
         coordinates
 
     """
+
     # Cache some trig functions
     s_incl = np.sin(inclination)
     c_incl = np.cos(inclination)
@@ -401,11 +421,11 @@ def perifocal_to_geocentric_matrix(inclination, raan, argp):
     # Build the matrix
     return np.array([[-s_raan * c_incl * s_aper + c_raan * c_aper,
                       -s_raan * c_incl * c_aper - c_raan * s_aper,
-                      s_raan * s_incl],
-                     [c_raan * c_incl * s_aper + s_raan * c_aper,
-                      c_raan * c_incl * c_aper - s_raan * s_aper,
-                      -c_raan * s_incl],
-                     [s_incl * s_aper, s_incl * c_aper, c_incl]])
+                    s_raan * s_incl],
+                    [c_raan * c_incl * s_aper + s_raan * c_aper,
+                    c_raan * c_incl * c_aper - s_raan * s_aper,
+                    -c_raan * s_incl],
+                    [s_incl * s_aper, s_incl * c_aper, c_incl]])
 
 
 def keplerian_to_rv(state_vector, grav_parameter=3.986004418e14):
@@ -413,7 +433,7 @@ def keplerian_to_rv(state_vector, grav_parameter=3.986004418e14):
 
     Parameters
     ----------
-    state_vector : :class:`~.StateVector`, :class:`~.StateVectors`
+    state_vector : :class:`~.StateVector`
         The Keplerian orbital state vector is defined as
 
         .. math::
@@ -434,7 +454,7 @@ def keplerian_to_rv(state_vector, grav_parameter=3.986004418e14):
 
     Returns
     -------
-    : :class:`~.StateVector`, :class:`~.StateVectors`
+    : :class:`~.StateVector`
         Orbital state vector as :math:`[r_x, r_y, r_z, \dot{r}_x, \dot{r}_y, \dot{r}_z]`
 
     Warning
@@ -443,35 +463,21 @@ def keplerian_to_rv(state_vector, grav_parameter=3.986004418e14):
 
     """
 
-    # The (hidden) function which does this on a single StateVector
-    def _kep_to_rv_statevector(statevector):
+    # Calculate the position vector in perifocal coordinates
+    rx = perifocal_position(state_vector[0], state_vector[1], state_vector[5])
 
-        # Calculate the position vector in perifocal coordinates
-        rx = perifocal_position(statevector[0], statevector[1], statevector[5])
+    # Calculate the velocity vector in perifocal coordinates
+    vx = perifocal_velocity(state_vector[0], state_vector[1], state_vector[5],
+                            grav_parameter=grav_parameter)
 
-        # Calculate the velocity vector in perifocal coordinates
-        vx = perifocal_velocity(statevector[0], statevector[1], statevector[5],
-                                grav_parameter=grav_parameter)
+    # Transform position (perifocal) and velocity (perifocal)
+    # into geocentric
+    r = perifocal_to_geocentric_matrix(state_vector[2], state_vector[3], state_vector[4]) @ rx
 
-        # Transform position (perifocal) and velocity (perifocal) into geocentric
-        r = perifocal_to_geocentric_matrix(statevector[2], statevector[3], statevector[4]) @ rx
+    v = perifocal_to_geocentric_matrix(state_vector[2], state_vector[3], state_vector[4]) @ vx
 
-        v = perifocal_to_geocentric_matrix(statevector[2], statevector[3], statevector[4]) @ vx
-
-        return StateVector(np.concatenate((r, v), axis=0))
-
-    # Do this a statevector at a time to avoid having to do tensor multiplication
-    if type(state_vector) is StateVector:
-        return _kep_to_rv_statevector(state_vector)
-    elif type(state_vector) is StateVectors:
-
-        outrv = np.zeros(np.shape(state_vector))
-        for i, sv in enumerate(state_vector):
-            outrv[:, slice(i, i+1)] = _kep_to_rv_statevector(sv)
-
-        return StateVectors(outrv)
-    else:
-        raise TypeError(r"Input must be :class:`~.StateVector` or :class:`~.StateVectors`")
+    # And put them into the state vector
+    return StateVector(np.concatenate((r, v), axis=0))
 
 
 def mod_inclination(x):
@@ -509,6 +515,6 @@ def mod_elongitude(x):
         Angle in radians in the range :math:`0` to :math:`+2 \pi`
     """
 
-    x = x % (2 * np.pi)
+    x = x % (2*np.pi)
 
     return x
