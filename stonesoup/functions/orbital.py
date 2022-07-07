@@ -9,7 +9,7 @@ Functions used within multiple orbital classes in Stone Soup
 import numpy as np
 
 from . import dotproduct
-from ..types.array import StateVector
+from ..types.array import StateVector, Matrix
 
 
 def stumpff_s(z):
@@ -23,23 +23,46 @@ def stumpff_s(z):
 
     Parameters
     ----------
-    z : float
-        input parameter, :math:`z`
+    z : float, StateVector, StateVectors
+        input parameter, :math:`z` or :math:`[z]`
 
     Returns
     -------
-    : float
-        Output value, :math:`S(z)`
+    : float, StateVector, StateVectors
+        Output value, :math:`S(z)` in the same format and same size as input.
 
     """
-    if z > 0:
+    gti = z > 0
+    lti = z < 0
+    eqi = z == 0
+
+    out = np.zeros(np.shape(z)).view(type(z))
+
+    if not np.shape(z):
+        if gti:
+            sqz = np.sqrt(z)
+            out = (sqz - np.sin(sqz)) / sqz ** 3
+        elif lti:
+            sqz = np.sqrt(-z)
+            out = (np.sinh(sqz) - sqz) / sqz ** 3
+        else:
+            out = 1 / 6
+    else:
+        out[gti] = (np.sqrt(z[gti]) - np.sin(np.sqrt(z[gti]))) / np.sqrt(z[gti]) ** 3
+        out[lti] = (np.sinh(np.sqrt(-z[lti])) - np.sqrt(-z[lti])) / np.sqrt(-z[lti]) ** 3
+        out[eqi] = 1 / 6
+
+    return out
+
+
+    '''if z > 0:
         sqz = np.sqrt(z)
         return (sqz - np.sin(sqz)) / sqz ** 3
     elif z < 0:
         sqz = np.sqrt(-z)
         return (np.sinh(sqz) - sqz) / sqz ** 3
     else:  # which means z== 0:
-        return 1 / 6
+        return 1 / 6'''
 
 
 def stumpff_c(z):
@@ -62,14 +85,34 @@ def stumpff_c(z):
         Output value, :math:`C(z)`
 
     """
-    if z > 0:
+    gti = z > 0
+    lti = z < 0
+    eqi = z == 0
+
+    out = np.zeros(np.shape(z)).view(type(z))
+
+    if not np.shape(z):
+        if gti:
+            out = (1 - np.cos(np.sqrt(z))) / np.sqrt(z) ** 2
+        elif lti:
+            out = (np.cosh(np.sqrt(-z)) - 1) / np.sqrt(-z) ** 2
+        else:
+            out = 1 / 2
+    else:
+        out[gti] = (1 - np.cos(np.sqrt(z[gti]))) / np.sqrt(z[gti]) ** 2
+        out[lti] = (np.cosh(np.sqrt(-z[lti])) - 1) / np.sqrt(-z[lti]) ** 2
+        out[eqi] = 1 / 2
+
+    return out
+
+    '''if z > 0:
         sqz = np.sqrt(z)
         return (1 - np.cos(sqz)) / sqz ** 2
     elif z < 0:
         sqz = np.sqrt(-z)
         return (np.cosh(sqz) - 1) / sqz ** 2
     else:  # which means z == 0:
-        return 1 / 2
+        return 1 / 2'''
 
 
 def universal_anomaly_newton(o_state_vector, delta_t,
@@ -104,34 +147,43 @@ def universal_anomaly_newton(o_state_vector, delta_t,
 
     """
 
-    # For convenience
-    mag_r_0 = np.sqrt(dotproduct(o_state_vector[0:3], o_state_vector[0:3]))
-    mag_v_0 = np.sqrt(dotproduct(o_state_vector[3:6], o_state_vector[3:6]))
-    v_rad_0 = dotproduct(o_state_vector[3:6], o_state_vector[0:3])/mag_r_0
-    root_mu = np.sqrt(grav_parameter)
-    inv_sma = 2/mag_r_0 - (mag_v_0**2)/grav_parameter
+    # For loop across StateVectors
+    out = Matrix(np.zeros((1,np.shape(o_state_vector)[1])))
 
-    # Initial estimate of Chi
-    chi_i = root_mu * np.abs(inv_sma) * delta_t.total_seconds()
-    ratio = 1
-    count = 0
+    for state_vector_ in o_state_vector.T:
 
-    # Do Newton's method
-    while np.abs(ratio) > precision and count <= max_iterations:
-        z_i = inv_sma * chi_i ** 2
-        f_chi_i = mag_r_0 * v_rad_0 / root_mu * chi_i ** 2 * \
-            stumpff_c(z_i) + (1 - inv_sma * mag_r_0) * chi_i ** 3 * \
-            stumpff_s(z_i) + mag_r_0 * chi_i - root_mu * \
-            delta_t.total_seconds()
-        fp_chi_i = mag_r_0 * v_rad_0 / root_mu * chi_i * \
-            (1 - inv_sma * chi_i ** 2 * stumpff_s(z_i)) + \
-            (1 - inv_sma * mag_r_0) * chi_i ** 2 * stumpff_c(z_i) + \
-            mag_r_0
-        ratio = f_chi_i / fp_chi_i
-        chi_i = chi_i - ratio
-        count += 1
+        oo_state_vector = StateVector(state_vector_)
 
-    return chi_i
+        # For convenience
+        mag_r_0 = np.sqrt(dotproduct(oo_state_vector[0:3], oo_state_vector[0:3]))
+        mag_v_0 = np.sqrt(dotproduct(oo_state_vector[3:6], oo_state_vector[3:6]))
+        v_rad_0 = dotproduct(oo_state_vector[3:6], oo_state_vector[0:3])/mag_r_0
+        root_mu = np.sqrt(grav_parameter)
+        inv_sma = 2/mag_r_0 - (mag_v_0**2)/grav_parameter
+
+        # Initial estimate of Chi
+        chi_i = root_mu * np.abs(inv_sma) * delta_t.total_seconds()
+        ratio = 1
+        count = 0
+
+        # Do Newton's method
+        while np.abs(ratio) > precision and count <= max_iterations:
+            z_i = inv_sma * chi_i ** 2
+            f_chi_i = mag_r_0 * v_rad_0 / root_mu * chi_i ** 2 * \
+                stumpff_c(z_i) + (1 - inv_sma * mag_r_0) * chi_i ** 3 * \
+                stumpff_s(z_i) + mag_r_0 * chi_i - root_mu * \
+                delta_t.total_seconds()
+            fp_chi_i = mag_r_0 * v_rad_0 / root_mu * chi_i * \
+                (1 - inv_sma * chi_i ** 2 * stumpff_s(z_i)) + \
+                (1 - inv_sma * mag_r_0) * chi_i ** 2 * stumpff_c(z_i) + \
+                mag_r_0
+            ratio = f_chi_i / fp_chi_i
+            chi_i = chi_i - ratio
+            count += 1
+
+        out[oo_state_vector] = chi_i
+
+    return out
 
 
 def lagrange_coefficients_from_universal_anomaly(o_state_vector, delta_t,
