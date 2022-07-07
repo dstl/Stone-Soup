@@ -150,9 +150,9 @@ def universal_anomaly_newton(o_state_vector, delta_t,
     # For loop across StateVectors
     out = Matrix(np.zeros((1,np.shape(o_state_vector)[1])))
 
-    for state_vector_ in o_state_vector.T:
+    for i in range(0,np.shape(o_state_vector)[1]):  # iteration over StateVectors should go this way...
 
-        oo_state_vector = StateVector(state_vector_)
+        oo_state_vector = StateVector(o_state_vector[:,i])
 
         # For convenience
         mag_r_0 = np.sqrt(dotproduct(oo_state_vector[0:3], oo_state_vector[0:3]))
