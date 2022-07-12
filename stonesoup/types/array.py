@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from collections.abc import Sequence
+from collections.abc import Sequence, Iterator
 
 import numpy as np
 
@@ -137,6 +137,11 @@ class StateVectors(Matrix):
             return array.view(StateVector)
         return array.view(cls)
 
+    def __iter__(self):
+        statev_gen = super(StateVectors, self.T).__iter__()
+        for statevector in statev_gen:
+            yield StateVector(statevector)
+    
     @classmethod
     def _cast(cls, val):
         out = super()._cast(val)
