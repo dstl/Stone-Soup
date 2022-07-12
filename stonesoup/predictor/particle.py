@@ -42,7 +42,6 @@ class ParticlePredictor(Predictor):
             prior,
             noise=True,
             time_interval=time_interval,
-            num_samples=len(prior),
             **kwargs)
 
         return Prediction.from_state(prior, state_vector=new_state_vector, weight=prior.weight,

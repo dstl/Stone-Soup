@@ -368,8 +368,8 @@ for time, ctracks in tracker:
     artists.extend(ax.plot(X, Y, color='r'))
 
     for track in ctracks:
-        X = [state.state_vector[0] for state in track]
-        Y = [state.state_vector[2] for state in track]
+        X = [state.mean[0] for state in track]
+        Y = [state.mean[2] for state in track]
         artists.extend(ax.plot(X, Y, color='k'))
 
     frames.append(artists)

@@ -134,7 +134,7 @@ class LinearModel(Model):
         """
         if isinstance(noise, bool) or noise is None:
             if noise:
-                noise = self.rvs(**kwargs)
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
             else:
                 noise = 0
 
