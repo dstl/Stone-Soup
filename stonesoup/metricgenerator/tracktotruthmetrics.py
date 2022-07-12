@@ -310,7 +310,7 @@ class SIAPMetrics(MetricGenerator):
         error_sum = 0
         for association in associations:
             truth, track = self.truth_track_from_association(association)
-            error_sum += measure(truth[timestamp], track[timestamp])
+            error_sum += measure(track[timestamp], truth[timestamp])
         return error_sum
 
     @staticmethod
