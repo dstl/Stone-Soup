@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-from scipy.spatial import distance as dist
 import uuid
 import numpy as np
 
 from ..base import Property
 from .base import MixtureReducer
 from ..types.state import TaggedWeightedGaussianState, WeightedGaussianState
+from ..measures import Mahalanobis
 from operator import attrgetter
 
 
@@ -175,8 +175,7 @@ class GaussianMixtureReducer(MixtureReducer):
             # (modifying list in loop, so copy used)
             for component in remaining_components.copy():
                 # Calculate distance between component and best component
-                distance = dist.mahalanobis(
-                    best_component.mean[:, 0], component.mean[:, 0], best_component.covar)
+                distance = (Mahalanobis(state1=component, state2=best_component))**2
                 # Merge if similar
                 if distance < self.merge_threshold:
                     remaining_components.remove(component)
