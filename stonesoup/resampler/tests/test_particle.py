@@ -74,7 +74,7 @@ def test_ess_inequality():
                  for i in range(10)]
     particles = ParticleState(None, particle_list=particles)
 
-    resampler1 = ESSResampler(3025/385)  # This resampler should not resample
+    resampler1 = ESSResampler()  # This resampler should not resample
     resampler2 = ESSResampler(3025/385 + 0.01)  # This resampler should resample
 
     new_particles1 = resampler1.resample(particles)
