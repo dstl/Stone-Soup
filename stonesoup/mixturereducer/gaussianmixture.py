@@ -168,6 +168,7 @@ class GaussianMixtureReducer(MixtureReducer):
 
         merged_components = []
         final_merged_components = []
+        measure = Mahalanobis()
         while remaining_components:
             # Get highest weighted component
             best_component = remaining_components.pop()
@@ -175,7 +176,7 @@ class GaussianMixtureReducer(MixtureReducer):
             # (modifying list in loop, so copy used)
             for component in remaining_components.copy():
                 # Calculate distance between component and best component
-                distance = (Mahalanobis(state1=component, state2=best_component))**2
+                distance = (measure(state1=component, state2=best_component))**2
                 # Merge if similar
                 if distance < self.merge_threshold:
                     remaining_components.remove(component)
