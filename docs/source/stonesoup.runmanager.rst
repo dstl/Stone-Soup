@@ -1,0 +1,5 @@
+RunManager
+==========
+
+.. automodule:: stonesoup.runmanager
+

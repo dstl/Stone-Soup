@@ -12,6 +12,7 @@ Stone Soup Framework
     stonesoup.measures
     stonesoup.plotter
     stonesoup.plugins
+    stonesoup.runmanager
     stonesoup.serialise
 
 Components
