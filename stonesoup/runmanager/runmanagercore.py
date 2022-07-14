@@ -10,7 +10,7 @@ import pickle
 import os
 import multiprocessing
 
-from pathos.multiprocessing import ProcessingPool as Pool
+from pathos.multiprocessing import ProcessPool as Pool
 from datetime import datetime
 from stonesoup.serialise import YAML
 from .inputmanager import InputManager
@@ -39,7 +39,7 @@ class RunManagerCore(RunManager):
         "parameter": None,
         "groundtruth": None,
         "dir": None,
-        # "montecarlo": None,
+        "montecarlo": False,
         "nruns": None,
         "processes": None,
         "slurm": None,
@@ -51,27 +51,31 @@ class RunManagerCore(RunManager):
 
         Parameters
         ----------
-        config_path : str
-            The path to the configuration file containing the tracker
-        parameters_path : str
-            The path to the parameters json file containing the parameters for a configuration
-        groundtruth_setting : bool
-            A boolean flag to indicate whether the user has included the groundtruth in the
-            configuration file or not
-        montecarlo : bool
-            Not implemented yet. A boolean to indicate if montecarlo simulations are to be used
-        dir : str
-            The path to the directory containing configuration and parameter pairs
-        nruns : int, optional
-            number of monte-carlo runs, by default 1
-        nprocesses : int, optional
-            number of processing cores to use, by default 1
+        rm_args : dict
+            A dictionary of run manager parameters including the following;
+                config_path : str
+                    The path to the configuration file containing the tracker
+                parameters_path : str
+                    The path to the parameters json file containing the parameters for a
+                    configuration
+                groundtruth_setting : bool
+                    A boolean flag to indicate whether the user has included the groundtruth in the
+                    configuration file or not
+                montecarlo : bool
+                    Not implemented yet. A boolean to indicate if montecarlo simulations are to be
+                    used. (Default is False)
+                dir : str
+                    The path to the directory containing configuration and parameter pairs
+                nruns : int, optional
+                    number of monte-carlo runs. (Default is 1)
+                nprocesses : int, optional
+                    number of processing cores to use. (Default is 1)
         """
 
         self.config_path = rm_args["config"]
         self.parameters_path = rm_args["parameter"]
         self.groundtruth_setting = rm_args["groundtruth"]
-        # self.montecarlo = rm_args["montecarlo"] Not implemented yet
+        self.montecarlo = rm_args["montecarlo"]  # Not implemented yet
         self.dir = rm_args["dir"]
         self.nruns = rm_args["nruns"]
         self.nprocesses = rm_args["processes"]
@@ -175,7 +179,7 @@ class RunManagerCore(RunManager):
             self.nprocesses = 1
         self.prepare_single_simulation()
 
-    def average_metrics(self):
+    def average_metrics(self, batch_size=200):
         """Handles the averaging of the metric files for both single simulations
         and multi simulations.
 
@@ -188,12 +192,12 @@ class RunManagerCore(RunManager):
             Size of the batches to split the dataframes.
             May need adjusting for very large datasets to save memory space.
         """
-        batch_size = 200
+
         start = time.time()
         path, config = os.path.split(self.config_path)
 
         try:
-            info_logger.info(f"{datetime.now()} Averaging metrics for all Monte-Carlo Simuatlions")
+            info_logger.info(f"{datetime.now()} Averaging metrics for all Monte-Carlo Simulations")
             directory = glob.glob(f'./{self.slurm_dir}{config}_{self.config_starttime}'
                                   f'*/simulation*',
                                   recursive=False)
@@ -390,7 +394,7 @@ class RunManagerCore(RunManager):
         """
         try:
             ground_truth = ground_truth.groundtruth_paths
-        except Exception:
+        except (ValueError, Exception):
             ground_truth = ground_truth
         return ground_truth
 
@@ -491,7 +495,7 @@ class RunManagerCore(RunManager):
         return trackers, ground_truths, metric_managers
 
     def set_tracker_parameters(self, parameter, tracker):
-        """Sets the paramater value to the tracker.
+        """Sets the parameter value to the tracker.
 
         Parameters
         ----------
@@ -507,7 +511,7 @@ class RunManagerCore(RunManager):
             self.set_param(split_path, tracker, v)
 
     def set_param(self, split_path, el, value):
-        """Sets the paramater value to the attribute in the stone soup object
+        """Sets the parameter value to the attribute in the stone soup object
 
         Parameters
         ----------
@@ -696,7 +700,7 @@ class RunManagerCore(RunManager):
         files :
             The filenames in a directory to find a pair for the config file
 
-        Returns:
+        Returns
         --------
         pair : list
             The found config and parameter file pair in a list
@@ -785,7 +789,7 @@ class RunManagerCore(RunManager):
             info_logger.error(f'Could not run simulation. error: {e}')
 
     def run_single_simulation(self, tracker, ground_truth, metric_manager, runs_num, dt_string):
-        """Finallising setting current run parameters for a single simulation and then
+        """Finalising setting current run parameters for a single simulation and then
         executes the simulation. Is ran in its own process if multiprocessing is used.
 
         Parameters
@@ -883,7 +887,7 @@ class RunManagerCore(RunManager):
 
     def run_monte_carlo_simulation(self, tracker, ground_truth, metric_manager,
                                    dt_string, combo_dict, idx, runs_num):
-        """Finallising setting current run parameters for montecarlo simulations and then
+        """Finalising setting current run parameters for montecarlo simulations and then
         executes the simulation. Is ran in its own process if multiprocessing is used.
 
         Parameters

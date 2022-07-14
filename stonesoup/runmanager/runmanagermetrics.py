@@ -16,10 +16,6 @@ class RunmanagerMetrics(RunManager):
     """Class for generating metrics and storing simulation results and output data
     into csv files.
 
-    Parameters
-    ----------
-    Runmanager : Class
-        Run manager base class
     """
     def tracks_to_csv(self, dir_name, tracks, overwrite=False):
         """Create a csv file for the tracks. It will contain the following columns:
@@ -32,7 +28,7 @@ class RunmanagerMetrics(RunManager):
         tracks : Track
             Stonesoup track data
         overwrite : bool, optional
-            overwrite the file, by default False
+            Overwrite the file. Default is False
         """
         try:
             if not os.path.exists(dir_name):
@@ -58,7 +54,7 @@ class RunmanagerMetrics(RunManager):
             print(f'{datetime.now()}: Failed to write to {dir_name}, {e}')
 
     def metrics_to_csv(self, dir_name, metrics, overwrite=False):
-        """Create a csv file for the metrics. It will contain the following columns:
+        """Create a CSV file for the metrics. It will contain the following columns:
             title  |  value  |  generator  |  timestamp
 
         Parameters
@@ -68,7 +64,7 @@ class RunmanagerMetrics(RunManager):
         metrics : Metric
             Metrics object
         overwrite : bool, optional
-            overwrite the file, by default False
+            overwrite the file. Default is False
         """
         filename = "metrics.csv"
         try:
@@ -99,11 +95,11 @@ class RunmanagerMetrics(RunManager):
         Returns
         -------
         dict
-            dictionary version of metric manager to be used for printing csv files
+            dictionary version of metric manager to be used for printing CSV files
         """
         metricDictionary = {}
         for metric in metrics:
-            if(isinstance(metric.value, list)):
+            if isinstance(metric.value, list):
                 metricDictionary[metric.title] = []
                 metricDictionary["timestamp"] = []
                 for metric_line in metric.value:
@@ -112,7 +108,7 @@ class RunmanagerMetrics(RunManager):
         return metricDictionary
 
     def detection_to_csv(self, dir_name, detections, overwrite=False):
-        """Create a csv file for the detections. It will contain the following columns:
+        """Create a CSV file for the detections. It will contain the following columns:
             time  |  x  |  y
 
         Parameters
@@ -146,15 +142,15 @@ class RunmanagerMetrics(RunManager):
             print(f'{datetime.now()}: Failed to write to {filename}, {e}')
 
     def groundtruth_to_csv(self, dir_name, groundtruths, overwrite=False):
-        """Create a csv file for the grountruth. It will contain the following columns:
+        """Create a CSV file for the groundtruth. It will contain the following columns:
             time  |  id  |  state
 
         Parameters
         ----------
         dir_name : str
             name of the directory where to create the config file
-        groundtruths : GrouthTruth
-            GrouthTruth Stonesoup values
+        groundtruths : GroundTruth
+            GroundTruth Stonesoup values
         overwrite : bool, optional
             overwrite the file., by default False
         """
@@ -188,14 +184,15 @@ class RunmanagerMetrics(RunManager):
             # print(f'{datetime.now()}: Failed to write to {filename}, {e}')
 
     def parameters_to_csv(self, dir_name, parameters, overwrite=False):
-        """Create a csv file for the parameters. It will contain the parameter name for each simulation.
+        """Create a CSV file for the parameters. It will contain the parameter name for each
+        simulation.
 
         Parameters
         ----------
         dir_name : str
             name of the directory where to create the config file
         parameters : dict
-            Dictionary of paramater details for the simulation run
+            Dictionary of parameter details for the simulation run
         overwrite : bool, optional
             overwrite the file, by default False
         """
@@ -213,7 +210,7 @@ class RunmanagerMetrics(RunManager):
     def generate_config(self, dir_name, tracker=None,
                         groundtruth=None, metrics=None,
                         overwrite=False):
-        """Creates a config.yaml file using the parameters you specificed in the model.
+        """Creates a config.yaml file using the parameters you specified in the model.
 
         Parameters
         ----------
@@ -221,7 +218,7 @@ class RunmanagerMetrics(RunManager):
             name of the directory where to create the config file
         tracker : Tracker, optional
             Stonesoup tracker object, by default None
-        groundtruth : GrouthTruth, optional
+        groundtruth : GroundTruth, optional
             Stonesoup tracker object, by default None
         metrics : Metrics, optional
             Stone soup metrics object, by default None
@@ -251,7 +248,7 @@ class RunmanagerMetrics(RunManager):
         Returns
         -------
         dict
-            dictionary of parameters in json format
+            dictionary of parameters in JSON format
         """
         try:
             for k, v in parameters.items():
@@ -290,15 +287,15 @@ class RunmanagerMetrics(RunManager):
 
         Parameters
         ----------
-        dataframes : DataFrame
-            pandas dataframe
-        length_files : length of dataframe set
-            _description_
+        dataframes : Sequence[DataFrame]
+            A set of dataframes to be averaged
+        length_files : int
+            Length of dataframe set
 
         Returns
         -------
-        _type_
-            _description_
+        DataFrame
+            Returns pandas DataFrame
         """
         timestamp = dataframes.iloc[:, -1]
         df = dataframes.iloc[:, :-1].div(length_files)
@@ -315,10 +312,10 @@ class RunmanagerMetrics(RunManager):
         chunk_size : int
             size of batches
 
-        Returns sum of dataframes loaded from csv files.
+        Returns
         -------
         DataFrame
-            Returns pandas DataFrame
+            Returns the sum of dataframes loaded from CSV files.
         """
         all_files = glob.glob(f'./{directory}*/run*[!!]/metrics.csv', recursive=True)
         batch = self.batch_list(all_files, chunk_size)

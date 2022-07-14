@@ -578,7 +578,6 @@ class InputManager(RunManager):
 
         Parameters:
             iteration_list (list): list all the possible values
-            value_min ([type]): [description]
 
         Returns:
             list: list all the possible combinations

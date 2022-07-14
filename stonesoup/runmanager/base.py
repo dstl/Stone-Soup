@@ -1,4 +1,5 @@
-# from ..base import Base
+# -*- coding: utf-8 -*-
+
 
 class RunManager():
     "Base run manager class"

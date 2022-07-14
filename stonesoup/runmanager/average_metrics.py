@@ -11,15 +11,15 @@ def average_simulations(dataframes, length_files):
 
     Parameters
     ----------
-    dataframes : DataFrame
-        pandas dataframe
-    length_files : length of dataframe set
-        _description_
+    dataframes : Sequence[DataFrame]
+        A set of pandas dataframes to be averaged
+    length_files : int
+        Length of dataframe set
 
     Returns
     -------
-    _type_
-        _description_
+    DataFrame : pandas DataFrame
+        Returns the average of dataframes loaded from CSV files.
     """
     timestamp = dataframes.iloc[:, -1]
     df = dataframes.iloc[:, :-1].div(length_files)
@@ -37,10 +37,10 @@ def sum_simulations(directory, chunk_size: int):
     chunk_size : int
         size of batches
 
-    Returns sum of dataframes loaded from csv files.
+    Returns
     -------
-    DataFrame
-        Returns pandas DataFrame
+    DataFrame : pandas DataFrame
+         Returns the sum of dataframes loaded from CSV files.
     """
     all_files = glob.glob(f'./{directory}*/run*[!_]/metrics.csv', recursive=True)
     batch = batch_list(all_files, chunk_size)
@@ -91,10 +91,10 @@ def average_metrics(batch_size=200):
     Parameters
     ----------
     batch_size : int
-        Size of the batches to split the dataframes.
-        May need adjusting for very large datasets to save memory space.
+        Size of the batches to split the dataframes. Default is 200. This may need adjusting for
+        very large datasets to save memory space.
     """
-    # batch_size = 200
+
     config_filename = input("Enter the configuration filename \
                             (testing.yaml_2022_03_16 for example): ")
 
