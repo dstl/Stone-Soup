@@ -20,7 +20,8 @@ class InputManager(RunManager):
         Run manager base class
     """
 
-    def set_stateVector(self, list_state_vector):
+    @staticmethod
+    def set_stateVector(list_state_vector):
         """Get a list and return a state vector
 
         Parameters:
@@ -34,7 +35,8 @@ class InputManager(RunManager):
             vector_list.append(StateVector(elem))
         return vector_list
 
-    def set_int(self, input_int):
+    @staticmethod
+    def set_int(input_int):
         """
         Sets input value to int type
 
@@ -44,10 +46,10 @@ class InputManager(RunManager):
         Returns:
             int: int value
         """
-        input_int = int(input_int)
-        return input_int
+        return int(input_int)
 
-    def set_float(self, input_float):
+    @staticmethod
+    def set_float(input_float):
         """
         Set input value to float type
 
@@ -57,10 +59,10 @@ class InputManager(RunManager):
         Returns:
             float: float value
         """
-        input_float = float(input_float)
-        return input_float
+        return float(input_float)
 
-    def set_covariance(self, covar):
+    @staticmethod
+    def set_covariance(list_state_covar):
         """Get a list and return a covar
 
         Parameters:
@@ -70,28 +72,30 @@ class InputManager(RunManager):
             CovarianceMatrix: covariance
         """
         covar_list = []
-        for idx, elem in enumerate(covar):
+        for idx, elem in enumerate(list_state_covar):
             covariance_matrix = np.zeros((len(elem), len(elem)), dtype=int)
             np.fill_diagonal(covariance_matrix, list(elem))
             covar_list.append(CovarianceMatrix(covariance_matrix))
         return covar_list
 
-    def set_tuple(self, list_tuple):
+    @staticmethod
+    def set_tuple(input_list_tuple):
         """
         Set list input to tuple type
 
         Parameters:
-            input_tuple: list of tuple
+            input_list_tuple: list of tuple
 
         Returns:
             tuple: tuple
         """
         tuple_list = []
-        for idx, elem in enumerate(list_tuple):
+        for idx, elem in enumerate(input_list_tuple):
             tuple_list.append(tuple(elem))
         return tuple_list
 
-    def set_bool():
+    @staticmethod
+    def set_bool(input_bool):
         """
         Set bool, Not Yet Implemented
 
@@ -103,7 +107,8 @@ class InputManager(RunManager):
         """
         raise NotImplementedError
 
-    def set_ndArray(self, arr):
+    @staticmethod
+    def set_ndArray(input_ndarray):
         """
         Gets an array and sets it to numpy array
 
@@ -113,9 +118,10 @@ class InputManager(RunManager):
         Returns:
             ndarray: ndarray value
         """
-        return np.array(arr)
+        return np.array(input_ndarray)
 
-    def set_time_delta(self, time_delta):
+    @staticmethod
+    def set_time_delta(input_timedelta):
         """
         Set time input to timedelta type
 
@@ -125,9 +131,10 @@ class InputManager(RunManager):
         Returns:
             timedelta: timedelta value
         """
-        return timedelta(time_delta)
+        return timedelta(input_timedelta)
 
-    def set_probability():
+    @staticmethod
+    def set_probability(input_probability):
         """
         Set probability, Not Yet Implemented
 
@@ -137,7 +144,8 @@ class InputManager(RunManager):
         Returns:
             Probability: probability value
         """
-        raise NotImplementedError
+        return Probability(input_probability)
+        # raise NotImplementedError
 
     def generate_parameters_combinations(self, parameters):
         """Generates all the possible combination values from a list
@@ -155,7 +163,7 @@ class InputManager(RunManager):
         """
         combination_dict = {}
         for parameter in parameters:
-            combination_list = {}
+            # combination_list = {}
             try:
                 if parameter["type"] == "StateVector":
                     combination_list = self.generate_state_vector_combinations(parameter)
@@ -185,7 +193,7 @@ class InputManager(RunManager):
                     combination_list = self.generate_date_time_combinations(parameter)
                     combination_dict.update(combination_list)
 
-                if (parameter["type"] == "Tuple"):
+                if parameter["type"] == "Tuple":
                     combination_list = self.generate_tuple_list_combinations(parameter)
                     combination_dict.update(combination_list)
 
@@ -311,9 +319,9 @@ class InputManager(RunManager):
         set
             set of all the possible values
         """
-        path = parameter["path"]
+        # path = parameter["path"]
         combination_list = {}
-        iteration_list = []
+        # iteration_list = []
         n_samples = parameter["n_samples"]
         n_samples_matrix = np.zeros((len(n_samples), len(n_samples)), dtype=int)
         np.fill_diagonal(n_samples_matrix, n_samples)
@@ -336,7 +344,8 @@ class InputManager(RunManager):
                                                          len(parameter["value_min"])))
         return combination_list
 
-    def generate_bool_combinations(self, parameter):
+    @staticmethod
+    def generate_bool_combinations(parameter):
         """Generate combinations of booleans
 
         Parameters
@@ -350,7 +359,7 @@ class InputManager(RunManager):
             set of all the possible values
         """
         path = parameter["path"]
-        combination_list = {}
+        combination_list = dict()
         combination_list[path] = [True, False]
         return combination_list
 
@@ -411,7 +420,6 @@ class InputManager(RunManager):
         """
         path = parameter["path"]
         combination_list = {}
-        # iteration_list = []
         iteration_list = self.iterations(parameter["value_min"],
                                          parameter["value_max"],
                                          parameter["n_samples"])
@@ -469,7 +477,7 @@ class InputManager(RunManager):
         n_samples : int
             number of parameter combinations
         """
-        if(type(val) is list):
+        if type(val) is list:
             for x in range(len(val)):
                 new_iteration_list = []
                 iteration_list.append(new_iteration_list)
@@ -479,7 +487,8 @@ class InputManager(RunManager):
             iteration_list.append(self.iterations(val_min, val_max, n_samples))
 
     # Calculate the steps for each item in a list
-    def iterations(self, min_value, max_value, num_samples, index=0):
+    @staticmethod
+    def iterations(min_value, max_value, num_samples):
         """Calculates the step different between the min
             and max value given in the parameter file.
             If n_samples is 0 return 1 value, if it is >=1 return num_samples+2 values
@@ -492,8 +501,6 @@ class InputManager(RunManager):
             Minimum parameter value
         num_samples : int
             number of parameter samples to calculate
-        index : int, optional
-            [description], by default 0
 
         Returns
         -------
@@ -517,7 +524,8 @@ class InputManager(RunManager):
                 temp.append(min_value + (x * factor))
             return temp
 
-    def get_array_list(self, iterations_container_list, n):
+    @staticmethod
+    def get_array_list(iterations_container_list, n):
         """Gets the combinations for one list of state vector and stores in list
            Once you have steps created from iterations, generate step combinations
            for one parameter
@@ -539,7 +547,8 @@ class InputManager(RunManager):
         set_combinations = list(set(list_combinations))
         return set_combinations
 
-    def get_ndarray_trackers_list(self, iterations_container_list, n):
+    @staticmethod
+    def get_ndarray_trackers_list(iterations_container_list, n):
         """Gets the combinations for one list of ndarray and stores in list
            Once you have steps created from iterations, generate step combinations
            for one parameter
@@ -561,7 +570,8 @@ class InputManager(RunManager):
 
         return list_combinations
 
-    def get_covar_trackers_list(self, iteration_list, n):
+    @staticmethod
+    def get_covar_trackers_list(iteration_list, n):
         """Gets the combinations for one list of ndarray and stores in list
            Once you have steps created from iterations, generate step combinations
            for one parameter
@@ -586,7 +596,8 @@ class InputManager(RunManager):
         return combinations
 
     # Generates all of the combinations between different parameters
-    def generate_all_combos(self, trackers_dict):
+    @staticmethod
+    def generate_all_combos(trackers_dict):
         """Generates all of the combinations between different parameters
 
         Parameters:

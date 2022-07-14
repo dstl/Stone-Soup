@@ -8,6 +8,8 @@ from datetime import timedelta
 from stonesoup.serialise import YAML
 from .base import RunManager
 from datetime import datetime
+import pandas as pd
+import glob
 
 
 class RunmanagerMetrics(RunManager):
@@ -263,3 +265,94 @@ class RunmanagerMetrics(RunManager):
         except Exception as e:
             print(f'{datetime.now()}: failed to write parameters correctly. {e}')
         return parameters
+
+    def create_summary_csv(self, dir_name, run_info):
+        filename = "tracking_log.csv"
+        try:
+            if not os.path.exists(dir_name):
+                os.makedirs(dir_name)
+
+            if not os.path.isfile(os.path.join(dir_name, filename)):
+                with open(os.path.join(dir_name, filename), 'w', newline='') as csvfile:
+                    writer = csv.DictWriter(csvfile, run_info.keys())
+                    writer.writeheader()
+                    csvfile.close()
+
+            with open(os.path.join(dir_name, filename), 'a', newline='') as csvfile:
+                writer = csv.DictWriter(csvfile, run_info.keys())
+                writer.writerow(run_info)
+
+        except Exception as e:
+            print(e)
+
+    def average_simulations(self, dataframes, length_files):
+        """Takes list of dataframes and averages them on cell level
+
+        Parameters
+        ----------
+        dataframes : DataFrame
+            pandas dataframe
+        length_files : length of dataframe set
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
+        timestamp = dataframes.iloc[:, -1]
+        df = dataframes.iloc[:, :-1].div(length_files)
+        df["timestamp"] = timestamp
+        return df
+
+    def sum_simulations(self, directory, chunk_size: int):
+        """Sums metrics.csv files and processes them in batches to reserve memory space.
+
+        Parameters
+        ----------
+        directory : str
+            directory path where metrics.csv is located
+        chunk_size : int
+            size of batches
+
+        Returns sum of dataframes loaded from csv files.
+        -------
+        DataFrame
+            Returns pandas DataFrame
+        """
+        all_files = glob.glob(f'./{directory}*/run*[!!]/metrics.csv', recursive=True)
+        batch = self.batch_list(all_files, chunk_size)
+        summed_dataframe = pd.DataFrame()
+        for files in batch:
+            dfs = [pd.read_csv(file, infer_datetime_format=True) for file in files]
+            averagedf = pd.concat(dfs, ignore_index=False).groupby(level=0).sum()
+            averagedf["timestamp"] = dfs[0].iloc[:, -1]
+            if not summed_dataframe.empty:
+                summed_dataframe = summed_dataframe + averagedf
+            if summed_dataframe.empty:
+                summed_dataframe = averagedf
+
+        return summed_dataframe, len(all_files)
+
+    def batch_list(self, lst, n):
+        """ Splits list into batches/chunks to be used when memory issues arise with
+        averaging large datasets.
+
+        Parameters
+        ----------
+        lst : list
+            List object
+        n : int
+            number of items per batch
+
+        Returns
+        -------
+        List
+            Returns a list containing n number of batches
+        """
+        if n == 0:
+            n = len(lst)
+        chunked_lists = []
+        for i in range(0, len(lst), n):
+            chunked_lists.append(lst[i:i + n])
+        return chunked_lists

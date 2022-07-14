@@ -1,16 +1,21 @@
 import copy
 import json
 import logging
-from datetime import datetime
 import time
+import glob
+import numpy as np
+import subprocess
+import pickle
 
 import os
-from pathos.multiprocessing import ProcessingPool as Pool
 import multiprocessing
 
+from pathos.multiprocessing import ProcessingPool as Pool
+from datetime import datetime
 from stonesoup.serialise import YAML
 from .inputmanager import InputManager
 from .runmanagermetrics import RunmanagerMetrics
+from .runmanagerscheduler import RunManagerScheduler
 from .base import RunManager
 
 
@@ -29,8 +34,18 @@ class RunManagerCore(RunManager):
     GROUNDTRUTH = "ground_truth"
     METRIC_MANAGER = "metric_manager"
 
-    def __init__(self, config_path, parameters_path, groundtruth_setting,
-                 dir, montecarlo, nruns=None, nprocesses=None):
+    def __init__(self, rm_args={
+        "config": None,
+        "parameter": None,
+        "groundtruth": None,
+        "dir": None,
+        # "montecarlo": None,
+        "nruns": None,
+        "processes": None,
+        "slurm": None,
+        "slurm_dir": None,
+        "node": ""
+    }):
         """The init function for RunManagerCore, initiating the key settings to allow
         the running of simulations.
 
@@ -44,7 +59,7 @@ class RunManagerCore(RunManager):
             A boolean flag to indicate whether the user has included the groundtruth in the
             configuration file or not
         montecarlo : bool
-            A boolean to indicate if montecarlo simulations are to be used
+            Not implemented yet. A boolean to indicate if montecarlo simulations are to be used
         dir : str
             The path to the directory containing configuration and parameter pairs
         nruns : int, optional
@@ -52,13 +67,22 @@ class RunManagerCore(RunManager):
         nprocesses : int, optional
             number of processing cores to use, by default 1
         """
-        self.config_path = config_path
-        self.parameters_path = parameters_path
-        self.groundtruth_setting = groundtruth_setting
-        self.montecarlo = montecarlo  # Not used yet
-        self.dir = dir
-        self.nruns = nruns
-        self.nprocesses = nprocesses
+
+        self.config_path = rm_args["config"]
+        self.parameters_path = rm_args["parameter"]
+        self.groundtruth_setting = rm_args["groundtruth"]
+        # self.montecarlo = rm_args["montecarlo"] Not implemented yet
+        self.dir = rm_args["dir"]
+        self.nruns = rm_args["nruns"]
+        self.nprocesses = rm_args["processes"]
+        self.slurm = rm_args["slurm"]
+        self.slurm_dir = rm_args["slurm_dir"]
+        self.node = rm_args["node"]
+
+        if self.slurm_dir is None:
+            self.slurm_dir = ""
+        if self.node is None:
+            self.node = ""
 
         self.total_trackers = 0
         self.current_run = 0
@@ -66,6 +90,14 @@ class RunManagerCore(RunManager):
 
         self.input_manager = InputManager()
         self.run_manager_metrics = RunmanagerMetrics()
+        # If using slurm hpc, setup scheduler here
+        if self.slurm:
+            info_logger.info("Slurm scheduler enabled.")
+            rm_args['slurm'] = None
+            if self.parameters_path:
+                rm_args['nruns'] = self.set_runs_number(self.nruns,
+                                                        self.read_json(self.parameters_path))
+            self.run_manager_scheduler = RunManagerScheduler(rm_args, info_logger)
 
         # logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
         # self.info_logger = self.setup_logger('self.info_logger', 'simulation_info.log')
@@ -99,34 +131,146 @@ class RunManagerCore(RunManager):
         start = time.time()
         # Single simulation. No param file detected
         if self.config_path and self.parameters_path is None:
-            if self.nruns is None:
-                self.nruns = 1
-            if self.nprocesses is None:
-                self.nprocesses = 1
-            self.prepare_single_simulation()
-
+            self.run_single_config()
+            self.average_metrics()
         else:
             pairs = self.config_parameter_pairing()
             if not pairs and not self.config_path:
-                print(f"{datetime.now()} No files in current directory: {self.dir}")
+                # print(f"{datetime.now()} No files in current directory: {self.dir}")
                 info_logger.info(f"{datetime.now()} No files in " +
                                  f"current directory: {self.dir}")
 
             for path in pairs:
                 # Read the param data
-                self.config_path, param_path = path[0], path[1]
-                json_data = self.read_json(param_path)
-
-                self.nruns = self.set_runs_number(self.nruns, json_data)
-                nprocesses = self.set_processes_number(self.nprocesses, json_data)
-                combo_dict = self.prepare_monte_carlo(json_data)
-                self.prepare_monte_carlo_simulation(combo_dict, self.nruns,
-                                                    nprocesses, self.config_path)
+                if len(path) == 1:
+                    self.config_path = path[0]
+                    info_logger.info(f'Running {self.config_path}')
+                    self.parameters_path = None
+                    self.run_single_config()
+                else:
+                    self.config_path, param_path = path[0], path[1]
+                    info_logger.info(f'Running {self.config_path}')
+                    json_data = self.read_json(param_path)
+                    self.nruns = self.set_runs_number(self.nruns, json_data)
+                    nprocesses = self.set_processes_number(self.nprocesses, json_data)
+                    combo_dict = self.prepare_monte_carlo(json_data)
+                    self.prepare_monte_carlo_simulation(combo_dict, self.nruns,
+                                                        nprocesses, self.config_path)
+                self.average_metrics()
+                self.total_trackers = 0
 
         # End timer
         end = time.time()
         info_logger.info(f"{datetime.now()} Finished all simulations in " +
                          f"--- {end - start} seconds ---")
+        # Average all of the metrics at the end
+
+    def run_single_config(self):
+        """
+        Prepares running a single simulation for a single config file.
+        """
+        if self.nruns is None:
+            self.nruns = 1
+        if self.nprocesses is None:
+            self.nprocesses = 1
+        self.prepare_single_simulation()
+
+    def average_metrics(self):
+        """Handles the averaging of the metric files for both single simulations
+        and multi simulations.
+
+        In future updates better memory handling should be implemented to automatically
+        load as many dataframes as possible into memory to provide a more efficient process.
+
+        Parameters
+        ----------
+        batch_size : int
+            Size of the batches to split the dataframes.
+            May need adjusting for very large datasets to save memory space.
+        """
+        batch_size = 200
+        start = time.time()
+        path, config = os.path.split(self.config_path)
+
+        try:
+            info_logger.info(f"{datetime.now()} Averaging metrics for all Monte-Carlo Simuatlions")
+            directory = glob.glob(f'./{self.slurm_dir}{config}_{self.config_starttime}'
+                                  f'*/simulation*',
+                                  recursive=False)
+            if directory:
+                for simulation in directory:
+                    summed_df, sim_amt = self.run_manager_metrics.sum_simulations(simulation,
+                                                                                  batch_size)
+                    df = self.run_manager_metrics.average_simulations(summed_df, sim_amt)
+                    df.to_csv(f"./{simulation}/average.csv", index=False)
+            else:
+                if self.slurm_dir != "":
+                    directory = glob.glob(f'{self.slurm_dir}{config}_{self.config_starttime}*',
+                                          recursive=False)
+                    for node in directory:
+                        summed_df, sim_amt = self.run_manager_metrics.sum_simulations(node,
+                                                                                      batch_size)
+                        df = self.run_manager_metrics.average_simulations(summed_df, sim_amt)
+                        df.to_csv(f"./{node}/average.csv", index=False)
+                else:
+                    directory = glob.glob(f'{config}_{self.config_starttime}*', recursive=False)
+                    summed_df, sim_amt = self.run_manager_metrics.sum_simulations(directory,
+                                                                                  batch_size)
+                    df = self.run_manager_metrics.average_simulations(summed_df, sim_amt)
+                    df.to_csv(f"./{config}_{self.config_starttime}/average.csv", index=False)
+            end = time.time()
+            info_logger.info(f"{datetime.now()} Finished Averaging in " +
+                             f"--- {end - start} seconds ---")
+
+        except Exception as e:
+            info_logger.error(f"{datetime.now()} Failed to average simulations.")
+            info_logger.error(f"{datetime.now()} {e}")
+            print(f"{datetime.now()} Failed to average simulations.")
+
+    def schedule_simulations(self, combo_dict, nprocesses):
+        """NOT YET USED. For when using slurm and there are multiple simulations in a single run,
+        the run manager will split the simulations into batches to be run as separate slurm jobs
+        in different nodes.
+
+        Parameters
+        ----------
+        combo_dict : list
+            The list of simulations to be split into batches
+        nprocesses: int
+            The number of processes to be used on each HPC compute node.
+        """
+        # Split generated parameter combinations into n_node batches
+        combo_dict_split = np.array_split(combo_dict, self.run_manager_scheduler.n_nodes)
+        combo_batch_i = 0
+        # For each node, run monte carlo simulations on a batch
+        for combo_dict_batch in combo_dict_split:
+            info_logger.info(f"Running parameter batch: {combo_batch_i+1}")
+            # Pickle this RunManager so it is the same instance
+            # for each batch/node and can pass same parameters
+            pickle_batch_params = pickle.dumps([self, combo_dict_batch, self.nruns,
+                                                nprocesses, self.config_path])
+            subprocess.run(
+                f'sbatch "#!/usr/bin/python3\
+                 from stonesoup.runmanager.runmanagercore import RunManagerCore as rmc;\
+                      rmc.load_batch_params(rmc, {pickle_batch_params})"', shell=True)
+            combo_batch_i += 1
+
+    @staticmethod
+    def load_batch_params(rmc, params):
+        """NOT YET USED. For when using slurm scheduling simulations, loads the batch parameters
+        with the same RunManager instance and prepares that batch for preparing monte-carlo
+        simulations.
+
+        Parameters
+        ----------
+        rmc : RunManagerCore
+            The instance of RunManagerCore to run the simulations with
+        params: list
+            The list of batch parameters to run for monte carlo simulations
+        """
+        params_list = pickle.loads(params)
+        rmc.prepare_monte_carlo_simulation(params_list[0], params_list[1], params_list[2],
+                                           params_list[3], params_list[4])
 
     def set_runs_number(self, nruns, json_data):
         """Sets the number of runs.
@@ -148,12 +292,13 @@ class RunManagerCore(RunManager):
                 nruns = json_data['configuration']['runs_num']
                 self.set_runs_number(nruns, None)
             except Exception as e:
-                print(e, "runs_num value from json not found, defaulting to 1")
+                info_logger.error(e, "runs_num value from json not found, defaulting to 1")
                 nruns = 1
         elif nruns > 1:
             pass
         else:
             nruns = 1
+
         return nruns
 
     def set_processes_number(self, nprocess, json_data):
@@ -176,7 +321,7 @@ class RunManagerCore(RunManager):
                 nprocess = json_data['configuration']['proc_num']
                 self.set_processes_number(nprocess, None)
             except Exception as e:
-                print(e, "proc_num value from json not found, defaulting to 1")
+                info_logger.error(e, "proc_num value from json not found, defaulting to 1")
                 nprocess = 1
         elif nprocess > 1:
             pass
@@ -262,15 +407,13 @@ class RunManagerCore(RunManager):
         tracker = simulation_parameters['tracker']
         ground_truth = simulation_parameters['ground_truth']
         metric_manager = simulation_parameters['metric_manager']
-
+        tracker_status = None
+        metric_status = None
+        fail_status = ""
         try:
             log_time = datetime.now()
             self.logging_starting(log_time)
-            for _, ctracks in tracker.tracks_gen():
-                # TODO: Review
-                # tracks.update(ctracks)
-                # truths.update(tracker.detector.groundtruth.current[1])
-                # Update groundtruth, tracks and detections
+            for _, ctracks in tracker:
                 self.run_manager_metrics.tracks_to_csv(dir_name, ctracks)
                 self.run_manager_metrics.detection_to_csv(dir_name, tracker.detector.detections)
                 self.run_manager_metrics.groundtruth_to_csv(dir_name,
@@ -281,12 +424,23 @@ class RunManagerCore(RunManager):
                     metric_manager.add_data(self.check_ground_truth(ground_truth), ctracks,
                                             tracker.detector.detections,
                                             overwrite=False)
-            if metric_manager is not None:
+            try:
                 metrics = metric_manager.generate_metrics()
                 self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
-            self.logging_success(log_time)
+                metric_status = "Success"
+            except Exception as e:
+                os.rename(dir_name, dir_name + "!FAILED")
+                fail_status = e
+                metric_status = "Failed"
+                self.logging_failed_simulation(log_time, e)
 
+            self.logging_success(log_time)
+            tracker_status = "Success"
         except Exception as e:
+            os.rename(dir_name, dir_name + "!FAILED")
+            tracker_status = "Failed"
+            metric_status = "Failed"
+            fail_status = e
             self.logging_failed_simulation(log_time, e)
 
         finally:
@@ -294,8 +448,8 @@ class RunManagerCore(RunManager):
             del metric_manager
             del ground_truth
             del tracker
-
             print('--------------------------------')
+            return tracker_status, metric_status, fail_status
 
     def set_trackers(self, combo_dict, tracker, ground_truth, metric_manager):
         """Set the trackers, groundtruths and metricmanagers list (stonesoup objects)
@@ -394,9 +548,9 @@ class RunManagerCore(RunManager):
         try:
             config_data = YAML(typ='safe').load(config_string)
         except Exception as e:
-            print(f"{datetime.now()} Failed to load config data: {e}")
             info_logger.error(f"{datetime.now()} Failed to load config data: {e}")
             config_data = [None, None, None]
+            exit()
 
         tracker = config_data[0]
 
@@ -506,18 +660,24 @@ class RunManagerCore(RunManager):
         List
             List of file paths pair together
         """
-        pair = []
-        pairs = []
 
+        pairs = []
+        paired = []
         for file in files:
-            if not pair:
-                pair.append(file)
-            elif file.startswith(pair[0].split('.', 1)[0]):
-                pair.append(file)
-                pairs.append(pair)
-                pair = []
-            else:
-                pair = []
+            if file not in paired:
+                pair = self.search_pair(file, files)
+                if len(pair) > 0:
+                    pairs.append(pair)
+                    paired += pairs
+        # for file in files:
+        #     if not pair:
+        #         pair.append(file)
+        #     elif file.startswith(pair[0].split('.', 1)[0]) and file.endswith('json'):
+        #         pair.append(file)
+        #         pairs.append(pair)
+        #         pair = []
+        #     else:
+        #         pair = []
 
         for idx, path in enumerate(pairs):
             path = self.order_pairs(path)
@@ -525,7 +685,56 @@ class RunManagerCore(RunManager):
 
         return pairs
 
+    def search_pair(self, search_file, files):
+        """Searches for a parameters.json file pair of a given config file
+        in a directory.
+
+        Parameters
+        --------
+        search_file : str
+            The configuration file name to find a parameter pair of
+        files :
+            The filenames in a directory to find a pair for the config file
+
+        Returns:
+        --------
+        pair : list
+            The found config and parameter file pair in a list
+        """
+        pair = []
+        split = search_file.split(".", 1)
+
+        for file in files:
+            if ".json" in split[1]:
+                json_split = split[0].split("_parameters")[0]
+                if file == json_split+".yaml":
+                    pair.append(file)
+                    pair.append(search_file)
+            else:
+                if file == split[0]+"_parameters.json":
+                    pair.append(search_file)
+                    pair.append(file)
+
+        if search_file.endswith(".yaml"):
+            pair.append(search_file)
+
+        return pair
+
     def order_pairs(self, path):
+        """Orders the config and parameter pairs so that the config is
+        always the first argument in the list and parameter the second.
+
+        Parameters
+        ---------
+        path : list
+            The pair path to order
+
+        Returns
+        ---------
+        The ordered pair
+        """
+        if len(path) <= 1:
+            return path
         if path[0].endswith('yaml'):
             config_path = path[0]
             param_path = path[1]
@@ -544,6 +753,8 @@ class RunManagerCore(RunManager):
         try:
             now = datetime.now()
             dt_string = now.strftime("%Y_%m_%d_%H_%M_%S")
+            self.config_starttime = dt_string
+            dt_string = dt_string + self.node
             components = self.set_components(self.config_path)
             tracker = components[self.TRACKER]
             ground_truth = components[self.GROUNDTRUTH]
@@ -591,7 +802,7 @@ class RunManagerCore(RunManager):
             string of the datetime for the metrics directory name
         """
         path, config = os.path.split(self.config_path)
-        dir_name = os.path.join(path, f"{config}_{dt_string}/run_{runs_num}")
+        dir_name = f"{self.slurm_dir}{config}_{dt_string}/run_{runs_num + 1}{self.node}"
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
         self.current_run = runs_num
 
@@ -601,8 +812,16 @@ class RunManagerCore(RunManager):
             ground_truth=ground_truth,
             metric_manager=metric_manager
         )
-        self.run_simulation(simulation_parameters,
-                            dir_name)
+        tracker_status, metric_status, fail_status = self.run_simulation(simulation_parameters,
+                                                                         dir_name)
+
+        self.parameter_details_log = {}
+        self.parameter_details_log["Monte-Carlo Run"] = runs_num + 1
+        self.parameter_details_log["Tracking Status"] = tracker_status
+        self.parameter_details_log["Metric Status"] = metric_status
+        self.parameter_details_log["Fail Status"] = fail_status
+        self.run_manager_metrics.create_summary_csv(f"{self.slurm_dir}{config}_{dt_string}",
+                                                    self.parameter_details_log)
 
     def prepare_monte_carlo_simulation(self, combo_dict, nruns, nprocesses, config_path):
         """Prepares multiple trackers for simulation run and run a multi-processor or a single
@@ -631,6 +850,8 @@ class RunManagerCore(RunManager):
         try:
             now = datetime.now()
             dt_string = now.strftime("%Y_%m_%d_%H_%M_%S")
+            self.config_starttime = dt_string
+            dt_string = dt_string + self.node
             if nprocesses > 1:
                 # Run with multiprocess
                 pool = Pool(nprocesses)
@@ -656,6 +877,7 @@ class RunManagerCore(RunManager):
                         tracker = config_data[self.TRACKER]
                         ground_truth = config_data[self.GROUNDTRUTH]
                         metric_manager = config_data[self.METRIC_MANAGER]
+
         except Exception as e:
             info_logger.error(f'Could not run simulation. error: {e}')
 
@@ -683,15 +905,28 @@ class RunManagerCore(RunManager):
         """
         self.current_trackers = idx
         path, config = os.path.split(self.config_path)
-        dir_name = os.path.join(path, f"{config}_{dt_string}/simulation_{idx}/run_{runs_num}")
-        self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
+        dir_name = f"{self.slurm_dir}{config}_{dt_string}/" + \
+            f"simulation_{idx}/run_{runs_num + 1}{self.node}"
+        # self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
         simulation_parameters = dict(
             tracker=tracker,
             ground_truth=ground_truth,
             metric_manager=metric_manager
         )
-        self.run_simulation(simulation_parameters, dir_name)
+        tracker_status, metric_status, fail_status = self.run_simulation(simulation_parameters,
+                                                                         dir_name)
+
+        self.parameter_details_log = {}
+        self.parameter_details_log["Simulation ID"] = idx
+        self.parameter_details_log["Monte-Carlo Run"] = runs_num + 1
+        for key, value in combo_dict[idx].items():
+            self.parameter_details_log[key] = value
+        self.parameter_details_log["Tracking Status"] = tracker_status
+        self.parameter_details_log["Metric Status"] = metric_status
+        self.parameter_details_log["Fail Status"] = fail_status
+        self.run_manager_metrics.create_summary_csv(f"{self.slurm_dir}{config}_{dt_string}",
+                                                    self.parameter_details_log)
 
     def set_components(self, config_path):
         """Sets the tracker, ground truth and metric manager to the correct variables
@@ -718,8 +953,8 @@ class RunManagerCore(RunManager):
             ground_truth = config_data[self.GROUNDTRUTH]
             metric_manager = config_data[self.METRIC_MANAGER]
         except Exception as e:
-            print(f'{datetime.now()} Could not read config file: {e}')
             info_logger.error(f'Could not read config file: {e}')
+            exit()
 
         return {self.TRACKER: tracker,
                 self.GROUNDTRUTH: ground_truth,
@@ -736,10 +971,10 @@ class RunManagerCore(RunManager):
         """
         if self.total_trackers > 1:
             info_logger.info(f"Starting simulation {self.current_trackers + 1}"
-                             f" / {self.total_trackers + 1} and monte-carlo"
+                             f" / {self.total_trackers} and monte-carlo"
                              f" {self.current_run + 1} / {self.nruns}")
         else:
-            info_logger.info(f"Starting simulation"
+            info_logger.info(f"Starting monte-carlo run"
                              f" {self.current_run + 1} / {self.nruns}")
 
     def logging_success(self, log_time):
@@ -757,8 +992,8 @@ class RunManagerCore(RunManager):
                              f" {self.current_run + 1} / {self.nruns}"
                              f" in {datetime.now() - log_time}")
         else:
-            info_logger.info(f"Successfully ran simulation {self.current_run + 1} /"
-                             f"{self.nruns} in {datetime.now() - log_time}")
+            info_logger.info(f"Successfully ran monte-carlo {self.current_run + 1} /"
+                             f" {self.nruns} in {datetime.now() - log_time}")
 
     def logging_failed_simulation(self, log_time, e):
         """Handles logging and output for messages regarding failed simulation
@@ -783,10 +1018,10 @@ class RunManagerCore(RunManager):
             print(f"{e}")
 
         else:
-            info_logger.error(f"Failed to run Simulation"
+            info_logger.error(f"Failed to run Monte-Carlo"
                               f" {self.current_run + 1} / {self.nruns}")
             info_logger.exception(f"{e}")
-            print(f"{datetime.now()}: Failed to run Simulation"
+            print(f"{datetime.now()}: Failed to run Monte-Carlo"
                   f" {self.current_run + 1} / {self.nruns}: {e}")
 
     def logging_metric_manager_fail(self, e):
@@ -821,4 +1056,11 @@ def setup_logger(name, log_file, level=logging.INFO):
     return logger
 
 
+if os.path.exists('./simulation_info.log'):
+    try:
+        os.remove('./simulation_info.log')
+    except Exception:
+        pass
+else:
+    print("Simulation log does not exist.")
 info_logger = setup_logger('info_logger', 'simulation_info.log')
