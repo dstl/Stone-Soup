@@ -429,9 +429,13 @@ class RunManagerCore(RunManager):
                                             tracker.detector.detections,
                                             overwrite=False)
             try:
-                metrics = metric_manager.generate_metrics()
-                self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
-                metric_status = "Success"
+                if metric_manager is not None:
+                    metrics = metric_manager.generate_metrics()
+                    self.run_manager_metrics.metrics_to_csv(dir_name, metrics)
+                    metric_status = "Success"
+                else:
+                    metric_status = "Not Applicable"
+                    info_logger.error("No Metric Manager provided in Config")
             except Exception as e:
                 os.rename(dir_name, dir_name + "!FAILED")
                 fail_status = e
