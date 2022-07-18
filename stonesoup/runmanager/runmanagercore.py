@@ -633,26 +633,30 @@ class RunManagerCore(RunManager):
             return None
         return files
 
-    def get_filepaths(self, directory):
+    @staticmethod
+    def get_filepaths(directory, excludesubfolders=True):
         """Returns the filepaths for a specific directory
 
         Parameters
         ----------
         directory : str
-            path to directory
+            Path to directory
+        excludesubfolders : bool
+            Flag to exclude filepaths from subfolders. Default is True.
 
         Returns
         -------
         list
-            list of all file paths from specified directory
+            List of all file paths from specified directory
         """
         file_paths = []
         if os.path.exists(directory):
             for root, directories, files in os.walk(directory):
-                for filename in files:
-                    filepath = os.path.join(root, filename)
+                if excludesubfolders:
+                    directories.clear()
+                    for filename in files:
+                        filepath = os.path.join(root, filename)
                     file_paths.append(filepath)
-                break
         return file_paths
 
     def get_config_and_param_lists(self, files):
