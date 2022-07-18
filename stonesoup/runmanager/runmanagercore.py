@@ -43,7 +43,7 @@ class RunManagerCore(RunManager):
         "nruns": None,
         "processes": None,
         "slurm": None,
-        "slurm_dir": None,
+        "output_dir": None,
         "node": ""
     }):
         """The init function for RunManagerCore, initiating the key settings to allow
@@ -80,11 +80,11 @@ class RunManagerCore(RunManager):
         self.nruns = rm_args["nruns"]
         self.nprocesses = rm_args["processes"]
         self.slurm = rm_args["slurm"]
-        self.slurm_dir = rm_args["slurm_dir"]
+        self.output_dir = rm_args["output_dir"]
         self.node = rm_args["node"]
 
-        if self.slurm_dir is None:
-            self.slurm_dir = ""
+        if self.output_dir is None:
+            self.output_dir = ""
         if self.node is None:
             self.node = ""
 
@@ -107,6 +107,7 @@ class RunManagerCore(RunManager):
         # self.info_logger = self.setup_logger('self.info_logger', 'simulation_info.log')
         # self.info_logger.info(f'RunManagerCore started. {datetime.now()}')
         info_logger.info(f'RunManagerCore started. {datetime.now()}')
+        info_logger.info(f'RunManager Output located in: {self.output_dir}')
 
     def read_json(self, json_input):
         """Opens and reads a json file from a given path.
@@ -198,7 +199,7 @@ class RunManagerCore(RunManager):
 
         try:
             info_logger.info(f"{datetime.now()} Averaging metrics for all Monte-Carlo Simulations")
-            directory = glob.glob(f'./{self.slurm_dir}{config}_{self.config_starttime}'
+            directory = glob.glob(f'./{self.output_dir}/{config}_{self.config_starttime}'
                                   f'*/simulation*',
                                   recursive=False)
             if directory:
@@ -208,8 +209,8 @@ class RunManagerCore(RunManager):
                     df = self.run_manager_metrics.average_simulations(summed_df, sim_amt)
                     df.to_csv(f"./{simulation}/average.csv", index=False)
             else:
-                if self.slurm_dir != "":
-                    directory = glob.glob(f'{self.slurm_dir}{config}_{self.config_starttime}*',
+                if self.output_dir != "":
+                    directory = glob.glob(f'{self.output_dir}/{config}_{self.config_starttime}*',
                                           recursive=False)
                     for node in directory:
                         summed_df, sim_amt = self.run_manager_metrics.sum_simulations(node,
@@ -810,7 +811,7 @@ class RunManagerCore(RunManager):
             string of the datetime for the metrics directory name
         """
         path, config = os.path.split(self.config_path)
-        dir_name = f"{self.slurm_dir}{config}_{dt_string}/run_{runs_num + 1}{self.node}"
+        dir_name = f"{self.output_dir}/{config}_{dt_string}/run_{runs_num + 1}{self.node}"
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
         self.current_run = runs_num
 
@@ -828,7 +829,7 @@ class RunManagerCore(RunManager):
         self.parameter_details_log["Tracking Status"] = tracker_status
         self.parameter_details_log["Metric Status"] = metric_status
         self.parameter_details_log["Fail Status"] = fail_status
-        self.run_manager_metrics.create_summary_csv(f"{self.slurm_dir}{config}_{dt_string}",
+        self.run_manager_metrics.create_summary_csv(f"{self.output_dir}{config}_{dt_string}",
                                                     self.parameter_details_log)
 
     def prepare_monte_carlo_simulation(self, combo_dict, nruns, nprocesses, config_path):
@@ -913,7 +914,7 @@ class RunManagerCore(RunManager):
         """
         self.current_trackers = idx
         path, config = os.path.split(self.config_path)
-        dir_name = f"{self.slurm_dir}{config}_{dt_string}/" + \
+        dir_name = f"{self.output_dir}{config}_{dt_string}/" + \
             f"simulation_{idx}/run_{runs_num + 1}{self.node}"
         # self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
@@ -933,7 +934,7 @@ class RunManagerCore(RunManager):
         self.parameter_details_log["Tracking Status"] = tracker_status
         self.parameter_details_log["Metric Status"] = metric_status
         self.parameter_details_log["Fail Status"] = fail_status
-        self.run_manager_metrics.create_summary_csv(f"{self.slurm_dir}{config}_{dt_string}",
+        self.run_manager_metrics.create_summary_csv(f"{self.output_dir}{config}_{dt_string}",
                                                     self.parameter_details_log)
 
     def set_components(self, config_path):
