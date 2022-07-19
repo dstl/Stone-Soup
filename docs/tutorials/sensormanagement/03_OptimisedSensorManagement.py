@@ -291,8 +291,8 @@ optimizebasinhoppingsensormanager = OptimizeBasinHoppingSensorManager(sensor_set
 # sensor, decided by the sensor managers.
 #
 # For each sensor management method, at each time step the chosen action is given to the sensors and then
-# measurements taken. The tracks are updated based on these measurements with predictions made for tracks
-# which have not been observed.
+# measurements taken. At each timestep the tracks are predicted and those with measurements associated are
+# updated.
 #
 # First a hypothesiser and data associator are required for use in each tracker.
 
