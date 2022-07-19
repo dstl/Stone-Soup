@@ -39,7 +39,7 @@ class GaussianMixtureReducer(MixtureReducer):
     merging: bool = Property(default=True, doc='Flag for merging')
     pruning: bool = Property(default=True,
                              doc='Flag for pruning components whose weight is below '
-                                 ':attr:`prune_threshold')
+                                 ':attr:`prune_threshold`')
     truncating: bool = Property(default=True,
                                 doc='Flag for truncating components, keeping a maximum '
                                     'of :attr:`max_number_components` components')
