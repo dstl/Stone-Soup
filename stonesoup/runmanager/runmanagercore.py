@@ -228,9 +228,11 @@ class RunManagerCore(RunManager):
                              f"--- {end - start} seconds ---")
 
         except Exception as e:
-            info_logger.error(f"{datetime.now()} Failed to average simulations.")
-            info_logger.error(f"{datetime.now()} {e}")
-            print(f"{datetime.now()} Failed to average simulations.")
+            info_logger.error(f"{datetime.now()} No metrics exist for simulations. "
+                              f"Failed to average simulations.")
+            # info_logger.error(f"{datetime.now()} {e}")
+            print(f"{datetime.now()} No metrics exist for simulations. "
+                  f"Failed to average simulations.")
 
     def schedule_simulations(self, combo_dict, nprocesses):
         """NOT YET USED. For when using slurm and there are multiple simulations in a single run,
