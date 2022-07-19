@@ -8,9 +8,11 @@ import socket
 
 
 class RunManagerScheduler(RunManager):
-    """The RunManagerScheduler. Created when the user wishes to use slurm scheduling,
-    creates job splits and creates new RunManager instances to run slurm jobs on
-    compute nodes.
+    """
+    The RunManagerScheduler.
+
+    Created when the user wishes to use slurm scheduling, creates job splits and creates new
+    RunManager instances to run slurm jobs on compute nodes.
     """
 
     def __init__(self, rm_args, logger):

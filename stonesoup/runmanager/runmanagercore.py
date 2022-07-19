@@ -21,14 +21,13 @@ from .base import RunManager
 
 class RunManagerCore(RunManager):
     """
-    Core RunManager class that contains all functionality for loading configuration and parameter
-    files, generating and setting parameters as well as running a number of montecarlo simulations,
-    either with or without multiprocessing.
+    Run Manager Core base class
 
-    Parameters
-    ----------
-    Runmanager : Class
-        Run manager base class
+    Core RunManager class that contains all functionality for;
+    - loading configuration and parameter files,
+    - generating and setting parameters,
+    - running a number of montecarlo simulations,
+    - with or without multiprocessing.
     """
     TRACKER = "tracker"
     GROUNDTRUTH = "ground_truth"
@@ -545,10 +544,6 @@ class RunManagerCore(RunManager):
         is set as groundtruth. If there are three objects in the config file,
         always assume groundtruth is second object and metric manager is third.
 
-        Parameters
-        ----------
-        config_file : str
-            file path to configuration file
         Returns
         -------
         object dictionary with the loaded tracker, groundtruth and metric_manager
