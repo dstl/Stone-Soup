@@ -267,7 +267,8 @@ from stonesoup.sensormanager import OptimizeBasinHoppingSensorManager
 #
 # Create an instance of each sensor manager class. For the optimised sensor managers the default settings
 # will be used meaning only a sensor set and reward function is required. The :class:`~.UncertaintyRewardFunction`
-# will be used for each sensor manager.
+# will be used for each sensor manager. For the :class:`~.OptimizeBruteSensorManager` a polishing function
+# is used by setting `finish=True`.
 
 
 # initiate reward function
@@ -277,7 +278,8 @@ bruteforcesensormanager = BruteForceSensorManager(sensor_setA,
                                                   reward_function=reward_function)
 
 optimizebrutesensormanager = OptimizeBruteSensorManager(sensor_setB,
-                                                        reward_function=reward_function)
+                                                        reward_function=reward_function,
+                                                        finish=True)
 
 optimizebasinhoppingsensormanager = OptimizeBasinHoppingSensorManager(sensor_setC,
                                                                       reward_function=reward_function)
