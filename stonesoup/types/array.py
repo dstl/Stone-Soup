@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from collections.abc import Sequence, Iterator
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -140,7 +140,7 @@ class StateVectors(Matrix):
     def __iter__(self):
         statev_gen = super(StateVectors, self.T).__iter__()
         for statevector in statev_gen:
-            yield StateVector(statevector)
+            yield StateVector(np.atleast_2d(statevector))
     
     @classmethod
     def _cast(cls, val):
@@ -185,14 +185,15 @@ class StateVectors(Matrix):
         elif axis == 1:  # Need to handle special cases of averaging potentially
             state_vector = StateVector(
                 np.empty((state_vectors.shape[0], 1), dtype=state_vectors.dtype))
-            for dim, row in enumerate(state_vectors):
+            for dim, row in enumerate(state_vectors.T):
                 type_ = type(row[0])  # Assume all the same type
                 if hasattr(type_, 'average'):
                     # Check if type has custom average method
                     state_vector[dim, 0] = type_.average(row, weights=weights)
                 else:
                     # Else use numpy built in, converting to float array
-                    state_vector[dim, 0] = type_(np.average(np.asfarray(row), weights=weights))
+                    state_vector[dim, 0] = type_(np.average(np.asfarray(row).flatten(),
+                                                            weights=weights))
         else:
             return NotImplemented
 

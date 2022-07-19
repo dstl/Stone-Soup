@@ -72,10 +72,10 @@ def test_rvs(model):
 
     rvs_state = model.rvs(10)
     assert rvs_state.shape == (4, 10)
-    assert all(isinstance(state, Bearing) for state in rvs_state[0])
-    assert all(not isinstance(state, Bearing) for state in rvs_state[1])
-    assert all(isinstance(state, Bearing) for state in rvs_state[2])
-    assert all(not isinstance(state, Bearing) for state in rvs_state[3])
+    assert all(isinstance(state[0], Bearing) for state in rvs_state[0])
+    assert all(not isinstance(state[0], Bearing) for state in rvs_state[1])
+    assert all(isinstance(state[0], Bearing) for state in rvs_state[2])
+    assert all(not isinstance(state[0], Bearing) for state in rvs_state[3])
 
 
 def test_pdf(model):
