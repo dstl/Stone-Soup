@@ -141,7 +141,7 @@ class StateVectors(Matrix):
         statev_gen = super(StateVectors, self.T).__iter__()
         for statevector in statev_gen:
             yield StateVector(np.atleast_2d(statevector))
-    
+
     @classmethod
     def _cast(cls, val):
         out = super()._cast(val)
