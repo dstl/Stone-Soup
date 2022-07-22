@@ -8,6 +8,8 @@ from matplotlib.patches import Ellipse
 from matplotlib.legend_handler import HandlerPatch
 
 from .types import detection
+from .types.state import State
+from .types.groundtruth import GroundTruthPath
 from .models.base import LinearModel, Model
 
 from enum import Enum
@@ -40,6 +42,9 @@ class Plotter:
     ----------
     dimension: enum \'Dimension\'
         Optional parameter to specify 2D or 3D plotting. Default is 2D plotting.
+    \\*\\*kwargs: dict
+        Additional arguments to be passed to plot function. For example, figsize (Default is
+        (10, 6)).
 
     Attributes
     ----------
@@ -52,14 +57,16 @@ class Plotter:
         and labels as str
     """
 
-    def __init__(self, dimension=Dimension.TWO):
+    def __init__(self, dimension=Dimension.TWO, **kwargs):
+        figure_kwargs = {"figsize": (10, 6)}
+        figure_kwargs.update(kwargs)
         if isinstance(dimension, type(Dimension.TWO)):
             self.dimension = dimension
         else:
             raise TypeError("""%s is an unsupported type for \'dimension\';
                             expected type %s""" % (type(dimension), type(Dimension.TWO)))
         # Generate plot axes
-        self.fig = plt.figure(figsize=(10, 6))
+        self.fig = plt.figure(**figure_kwargs)
         if self.dimension is Dimension.TWO:  # 2D axes
             self.ax = self.fig.add_subplot(1, 1, 1)
             self.ax.axis('equal')
@@ -189,7 +196,7 @@ class Plotter:
 
         if plot_detections:
             detection_array = np.array(plot_detections)
-            # *detection_array.T unpacks detection_array by coloumns
+            # *detection_array.T unpacks detection_array by columns
             # (same as passing in detection_array[:,0], detection_array[:,1], etc...)
             self.ax.scatter(*detection_array.T, **measurement_kwargs)
             measurements_handle = Line2D([], [], linestyle='', **measurement_kwargs)
@@ -214,9 +221,9 @@ class Plotter:
         """Plots track(s)
 
         Plots each track generated, generating a legend automatically. If ``uncertainty=True``
-        and is being plotted in 2D, error elipses are plotted. If being plotted in
+        and is being plotted in 2D, error ellipses are plotted. If being plotted in
         3D, uncertainty bars are plotted every :attr:`err_freq` measurement, default
-        plots unceratinty bars at every track step. Tracks are plotted as solid
+        plots uncertainty bars at every track step. Tracks are plotted as solid
         lines with point markers and default colors. Uncertainty bars are plotted
         with a default color which is the same for all tracks.
 
@@ -276,9 +283,10 @@ class Plotter:
                 continue
             track_colors[track] = plt.getp(line[0], 'color')
 
-        # Assuming a single track or all plotted as the same colour then the following will work.
-        # Otherwise will just render the final track colour.
-        tracks_kwargs['color'] = plt.getp(line[0], 'color')
+        if tracks:  # If no tracks `line` won't be defined
+            # Assuming a single track or all plotted as the same colour then the following will
+            # work. Otherwise will just render the final track colour.
+            tracks_kwargs['color'] = plt.getp(line[0], 'color')
 
         # Generate legend items for track
         track_handle = Line2D([], [], linestyle=tracks_kwargs['linestyle'],
@@ -394,6 +402,41 @@ class Plotter:
                 raise NotImplementedError('Unsupported dimension type for sensor plotting')
         self.legend_dict[sensor_label] = Line2D([], [], linestyle='', **sensor_kwargs)
         self.ax.legend(handles=self.legend_dict.values(), labels=self.legend_dict.keys())
+
+    def set_equal_3daxis(self, axes=None):
+        """Plots minimum/maximum points with no linestyle to increase the plotting region to
+        simulate `.ax.axis('equal')` from matplotlib 2d plots which is not possible using 3d
+        projection.
+
+        Parameters
+        ----------
+        axes: list
+            List of dimension index specifying the equal axes, equal x and y = [0,1].
+            Default is x,y [0,1].
+        """
+        if not axes:
+            axes = [0, 1]
+        if self.dimension is Dimension.THREE:
+            min_xyz = [0, 0, 0]
+            max_xyz = [0, 0, 0]
+            for n in range(3):
+                for line in self.ax.lines:
+                    min_xyz[n] = np.min([min_xyz[n], *line.get_data_3d()[n]])
+                    max_xyz[n] = np.max([max_xyz[n], *line.get_data_3d()[n]])
+
+            extremes = np.max([x - y for x, y in zip(max_xyz, min_xyz)])
+            equal_axes = [0, 0, 0]
+            for i in axes:
+                equal_axes[i] = 1
+            lower = ([np.mean([x, y]) for x, y in zip(max_xyz, min_xyz)] - extremes/2) * equal_axes
+            upper = ([np.mean([x, y]) for x, y in zip(max_xyz, min_xyz)] + extremes/2) * equal_axes
+            ghosts = GroundTruthPath(states=[State(state_vector=lower),
+                                             State(state_vector=upper)])
+
+            self.ax.plot3D([state.state_vector[0] for state in ghosts],
+                           [state.state_vector[1] for state in ghosts],
+                           [state.state_vector[2] for state in ghosts],
+                           linestyle="")
 
     # Ellipse legend patch (used in Tutorial 3)
     @staticmethod
