@@ -9,7 +9,7 @@ import scipy as sp
 from scipy.spatial import KDTree
 try:
     import rtree
-except (ImportError, AttributeError, OSError) as err:
+except (ImportError, AttributeError, OSError) as err:  # pragma: no cover
     # AttributeError or OSError raised when libspatialindex missing or unable to load.
     import warnings
     warnings.warn(f"Failed to import 'rtree': {err!r}")
