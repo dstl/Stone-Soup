@@ -368,16 +368,12 @@ class RunManagerCore(RunManager):
         if self.dir:
             paths = self.get_filepaths(self.dir)
             pairs = self.get_config_and_param_lists(paths)
-
-        elif self.config_path and self.parameters_path:
-            pairs = [[self.config_path, self.parameters_path]]
-
-        elif self.dir and self.config_path and self.parameters_path:
-            paths = self.get_filepaths(self.dir)
-            pairs = self.get_config_and_param_lists(paths)
-            if [self.config_path, self.parameters_path] not in pairs:
-                pairs.append([self.config_path, self.parameters_path])
-
+            if self.config_path and self.parameters_path:
+                if [self.config_path, self.parameters_path] not in pairs:
+                    pairs.append([self.config_path, self.parameters_path])
+        else:
+            if self.config_path and self.parameters_path:
+                pairs = [[self.config_path, self.parameters_path]]
         return pairs
 
     def check_ground_truth(self, ground_truth):
