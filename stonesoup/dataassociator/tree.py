@@ -15,8 +15,8 @@ except (ImportError, AttributeError, OSError) as err:  # pragma: no cover
     warnings.warn(f"Failed to import 'rtree': {err!r}")
     rtree = None
 
-from .base import DataAssociator
-from ..base import Property
+from ..base import Base, Property
+from ..hypothesiser import Hypothesiser
 from ..models.base import LinearModel
 from ..models.measurement import MeasurementModel
 from ..predictor import Predictor
@@ -24,7 +24,7 @@ from ..types.update import Update
 from ..updater import Updater
 
 
-class DetectionKDTreeMixIn(DataAssociator):
+class DetectionKDTreeMixIn(Base):
     """Detection kd-tree based mixin
 
     Construct a kd-tree from detections and then use a :class:`~.Predictor` and
@@ -37,6 +37,8 @@ class DetectionKDTreeMixIn(DataAssociator):
     This is only suitable where measurements are in same space as each other
     and at the same timestamp.
     """
+    hypothesiser: Hypothesiser = Property(
+        doc="Underlying hypothesiser used to generate detection-target pairs")
     predictor: Predictor = Property(
         doc="Predict tracks to detection times")
     updater: Updater = Property(
@@ -72,7 +74,7 @@ class DetectionKDTreeMixIn(DataAssociator):
 
         track_detections = defaultdict(set)
         for track in tracks:
-            prediction = self.predictor.predict(track.state, timestamp)
+            prediction = self.predictor.predict(track, timestamp)
             meas_pred = self.updater.predict_measurement(prediction)
             if self.max_distance_covariance_multiplier is None:
                 max_distance = self.max_distance
@@ -106,7 +108,7 @@ class DetectionKDTreeMixIn(DataAssociator):
             for track in tracks}
 
 
-class TPRTreeMixIn(DataAssociator):
+class TPRTreeMixIn(Base):
     """Detection TPR tree based mixin
 
     Construct a TPR-tree to filter detections for generating hypotheses. This assumes
@@ -118,6 +120,8 @@ class TPRTreeMixIn(DataAssociator):
     This requires that track state has a mean (position and velocity) and covariance, which
     is then approximated to a TPR node (position, velocity and time bounding box).
     """
+    hypothesiser: Hypothesiser = Property(
+        doc="Underlying hypothesiser used to generate detection-target pairs")
     measurement_model: MeasurementModel = Property(
         doc="Measurement model used within the TPR tree")
     horizon_time: datetime.timedelta = Property(
