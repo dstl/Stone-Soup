@@ -48,6 +48,13 @@ class DetectionKDTreeMixIn(DataAssociator):
     max_distance: float = Property(
         default=np.inf,
         doc="Max distance to return points. Default `inf`")
+    max_distance_covariance_multiplier: float = Property(
+        default=None,
+        doc="If set, the max distance will be limited to maximum of covariance "
+            "diagonal of the track state, multiplied by this attribute, or "
+            ":attr:`max_distance`, whichever is smallest. Default `None` where "
+            "only :attr:`max_distance` is used."
+    )
 
     def generate_hypotheses(self, tracks, detections, timestamp, **kwargs):
         # No need for tree here.
@@ -67,6 +74,12 @@ class DetectionKDTreeMixIn(DataAssociator):
         for track in tracks:
             prediction = self.predictor.predict(track.state, timestamp)
             meas_pred = self.updater.predict_measurement(prediction)
+            if self.max_distance_covariance_multiplier is None:
+                max_distance = self.max_distance
+            else:
+                max_distance = min(
+                    self.max_distance,
+                    np.max(np.diag(meas_pred.covar)) * self.max_distance_covariance_multiplier)
 
             try:
                 meas_pred_state_vector = meas_pred.mean
@@ -76,12 +89,12 @@ class DetectionKDTreeMixIn(DataAssociator):
             if self.number_of_neighbours is None:
                 indexes = tree.query_ball_point(
                     meas_pred_state_vector.ravel(),
-                    r=self.max_distance)
+                    r=max_distance)
             else:
                 _, indexes = tree.query(
                     meas_pred_state_vector.ravel(),
                     k=self.number_of_neighbours,
-                    distance_upper_bound=self.max_distance)
+                    distance_upper_bound=max_distance)
 
             for index in np.atleast_1d(indexes):
                 # Index is equal to length of detections when no neighbours found
