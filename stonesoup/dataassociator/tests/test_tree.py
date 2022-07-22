@@ -23,57 +23,53 @@ from ...types.track import Track
 from ...updater.particle import ParticleUpdater
 
 
-class DetectionKDTreeNN(NearestNeighbour, DetectionKDTreeMixIn):
-    '''DetectionKDTreeNN from NearestNeighbour and DetectionKDTreeMixIn'''
+class DetectionKDTreeNN(DetectionKDTreeMixIn, NearestNeighbour):
+    """DetectionKDTreeNN from NearestNeighbour and DetectionKDTreeMixIn"""
     pass
 
 
-class DetectionKDTreeGNN(GlobalNearestNeighbour, DetectionKDTreeMixIn):
-    '''DetectionKDTreeGNN from GlobalNearestNeighbour and DetectionKDTreeMixIn'''
+class DetectionKDTreeGNN(DetectionKDTreeMixIn, GlobalNearestNeighbour):
+    """DetectionKDTreeGNN from GlobalNearestNeighbour and DetectionKDTreeMixIn"""
     pass
 
 
-class DetectionKDTreeGNN2D(GNNWith2DAssignment, DetectionKDTreeMixIn):
-    '''DetectionKDTreeGNN2D from GNNWith2DAssignment and DetectionKDTreeMixIn'''
+class DetectionKDTreeGNN2D(DetectionKDTreeMixIn, GNNWith2DAssignment):
+    """DetectionKDTreeGNN2D from GNNWith2DAssignment and DetectionKDTreeMixIn"""
     pass
 
 
-class TPRTreeNN(NearestNeighbour, TPRTreeMixIn):
-    '''TPRTreeNN from NearestNeighbour and TPRTreeMixIn'''
+class TPRTreeNN(TPRTreeMixIn, NearestNeighbour):
+    """TPRTreeNN from NearestNeighbour and TPRTreeMixIn"""
     pass
 
 
-class TPRTreeGNN(GlobalNearestNeighbour, TPRTreeMixIn):
-    '''TPRTreeGNN from GlobalNearestNeighbour and TPRTreeMixIn'''
+class TPRTreeGNN(TPRTreeMixIn, GlobalNearestNeighbour):
+    """TPRTreeGNN from GlobalNearestNeighbour and TPRTreeMixIn"""
     pass
 
 
-class TPRTreeGNN2D(GNNWith2DAssignment, TPRTreeMixIn):
-    '''TPRTreeGNN2D from GNNWith2DAssignment and TPRTreeMixIn'''
+class TPRTreeGNN2D(TPRTreeMixIn, GNNWith2DAssignment):
+    """TPRTreeGNN2D from GNNWith2DAssignment and TPRTreeMixIn"""
     pass
 
 
-class KDTreePDA(PDA, DetectionKDTreeMixIn):
-    ''''''
+class KDTreePDA(DetectionKDTreeMixIn, PDA):
     pass
 
 
-class KDTreeJPDA(JPDA, DetectionKDTreeMixIn):
-    ''''''
+class KDTreeJPDA(DetectionKDTreeMixIn, JPDA):
     pass
 
 
-class TPRTreePDA(PDA, TPRTreeMixIn):
-    ''''''
+class TPRTreePDA(TPRTreeMixIn, PDA):
     pass
 
 
-class TPRTreeJPDA(JPDA, TPRTreeMixIn):
-    ''''''
+class TPRTreeJPDA(TPRTreeMixIn, JPDA):
     pass
 
 
-@pytest.fixture(params=[None, 10])
+@pytest.fixture(params=[None, 1, 10])
 def number_of_neighbours(request):
     return request.param
 
@@ -140,6 +136,8 @@ def test_nearest_neighbour(nn_associator):
                                for hypothesis in associations.values()
                                if hypothesis.measurement]
     assert len(associated_measurements) == len(set(associated_measurements))
+    if getattr(nn_associator, 'number_of_neighbours', None) is not None:
+        assert len(associated_measurements) <= nn_associator.number_of_neighbours
 
     tracks = {}
     associations = nn_associator.associate(tracks, detections, timestamp)
@@ -176,6 +174,8 @@ def test_tpr_tree_management(nn_associator, updater):
                                for hypothesis in associations.values()
                                if hypothesis.measurement]
     assert len(associated_measurements) == len(set(associated_measurements))
+    if getattr(nn_associator, 'number_of_neighbours', None) is not None:
+        assert len(associated_measurements) <= nn_associator.number_of_neighbours
 
     for track, hypothesis in associations.items():
         if hypothesis:
@@ -228,6 +228,8 @@ def test_tpr_tree_measurement_models(nn_associator, measurement_model):
                                for hypothesis in associations.values()
                                if hypothesis.measurement]
     assert len(associated_measurements) == len(set(associated_measurements))
+    if getattr(nn_associator, 'number_of_neighbours', None) is not None:
+        assert len(associated_measurements) <= nn_associator.number_of_neighbours
 
 
 def test_missed_detection_nearest_neighbour(nn_associator):
@@ -270,6 +272,8 @@ def test_probability_gnn(probability_associator):
                                for hypothesis in associations.values()
                                if hypothesis.measurement]
     assert len(associated_measurements) == len(set(associated_measurements))
+    if getattr(probability_associator, 'number_of_neighbours', None) is not None:
+        assert len(associated_measurements) <= nn_associator.number_of_neighbours
 
 
 def test_probability(pda_associator):
@@ -297,9 +301,15 @@ def test_probability(pda_associator):
                               if hyp.measurement is d1]
     prob_t2_d2_association = [hyp.probability for hyp in associations[t2]
                               if hyp.measurement is d2]
-
-    assert prob_t1_d1_association[0] > prob_t1_d2_association[0]
-    assert prob_t2_d1_association[0] < prob_t2_d2_association[0]
+    number_of_neighbours = getattr(pda_associator, 'number_of_neighbours', None)
+    if number_of_neighbours is None or number_of_neighbours > 1:
+        assert prob_t1_d1_association[0] > prob_t1_d2_association[0]
+        assert prob_t2_d1_association[0] < prob_t2_d2_association[0]
+    else:
+        assert prob_t1_d1_association
+        assert prob_t2_d2_association
+        assert not prob_t2_d1_association
+        assert not prob_t1_d2_association
 
 
 def test_missed_detection_probability(pda_associator):
@@ -395,6 +405,8 @@ def test_particle_tree(nn_associator):
                                for hypothesis in associations.values()
                                if hypothesis.measurement]
     assert len(associated_measurements) == len(set(associated_measurements))
+    if getattr(nn_associator, 'number_of_neighbours', None) is not None:
+        assert len(associated_measurements) <= nn_associator.number_of_neighbours
 
     tracks = {}
     associations = nn_associator.associate(tracks, detections, timestamp)
