@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+import pytest
 
 from stonesoup.mixturereducer.gaussianmixture import GaussianMixtureReducer
 from stonesoup.types.mixture import GaussianMixture
@@ -7,7 +8,12 @@ from stonesoup.types.state import (TaggedWeightedGaussianState,
                                    WeightedGaussianState)
 
 
-def test_gaussianmixture_reducer_w_tags():
+@pytest.fixture(params=[None, 10])
+def kdtree_max_distance(request):
+    return request.param
+
+
+def test_gaussianmixture_reducer_w_tags(kdtree_max_distance):
     dim = 4
     num_states = 10
     low_weight_states = [
@@ -32,13 +38,15 @@ def test_gaussianmixture_reducer_w_tags():
     )
     merge_threshold = 16
     prune_threshold = 1e-6
-    mixturereducer = GaussianMixtureReducer(prune_threshold=prune_threshold,
-                                            merge_threshold=merge_threshold)
+    mixturereducer = GaussianMixtureReducer(
+        prune_threshold=prune_threshold,
+        merge_threshold=merge_threshold,
+        kdtree_max_distance=kdtree_max_distance)
     reduced_mixture_state = mixturereducer.reduce(mixturestate)
     assert len(reduced_mixture_state) == 1
 
 
-def test_gaussianmixture_reducer():
+def test_gaussianmixture_reducer(kdtree_max_distance):
     dim = 4
     num_states = 10
     low_weight_states = [
@@ -61,8 +69,10 @@ def test_gaussianmixture_reducer():
     )
     merge_threshold = 16
     prune_threshold = 1e-6
-    mixturereducer = GaussianMixtureReducer(prune_threshold=prune_threshold,
-                                            merge_threshold=merge_threshold)
+    mixturereducer = GaussianMixtureReducer(
+        prune_threshold=prune_threshold,
+        merge_threshold=merge_threshold,
+        kdtree_max_distance=kdtree_max_distance)
     reduced_mixture_state = mixturereducer.reduce(mixturestate)
     assert len(reduced_mixture_state) == 1
 
