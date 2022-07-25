@@ -65,3 +65,28 @@ def test_gaussianmixture_reducer():
                                             merge_threshold=merge_threshold)
     reduced_mixture_state = mixturereducer.reduce(mixturestate)
     assert len(reduced_mixture_state) == 1
+
+
+def test_gaussianmixture_truncating():
+    """
+    Test that the trucating function of the GaussianMixtureReducer works
+    properly. It should remove low weight components and keep only a certain
+    number of them (in this case, 5).
+    """
+    dim = 4
+    num_states = 10
+    states = [
+        WeightedGaussianState(
+            state_vector=np.random.rand(dim, 1)*10,
+            covar=np.eye(dim),
+            weight=i/10,
+        ) for i in range(1, num_states+1)
+    ]
+    mixture = GaussianMixture(components=states)
+
+    prune_threshold = 0.15  # one component will be pruned
+    mixturereducer = GaussianMixtureReducer(prune_threshold=prune_threshold,
+                                            merging=False,
+                                            max_number_components=5)
+    reduced_mixture = mixturereducer.reduce(mixture)
+    assert len(reduced_mixture) == 5

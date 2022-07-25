@@ -301,7 +301,12 @@ hypothesiser = GaussianMixtureHypothesiser(base_hypothesiser, order_by_detection
 # the Gaussian mixture. To ease the computational complexity, a :class:`~.GaussianMixtureReducer`
 # is used to merge and prune many of the states based on provided thresholds. States whose
 # distance is less than the merging threshold will be combined, and states whose weight
-# is less than the pruning threshold will be removed.
+# is less than the pruning threshold will be removed. Additionally, the
+# :class:`~.GaussianMixtureReducer` has an optional parameter for the maximum number of 
+# components that will be kept in the mixture, `max_number_components`. The reducer will keep
+# only the `max_number_components` components with the highest weights. This threshold can be
+# used when the approximate number of targets is known, or when there is high uncertainty and it
+# is hard to decide on a pruning threshold. It will not be used in this example.
 from stonesoup.mixturereducer.gaussianmixture import GaussianMixtureReducer
 # Initialise a Gaussian Mixture reducer
 merge_threshold = 5
