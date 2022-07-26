@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 import uuid
+
 import numpy as np
+from ordered_set import OrderedSet
+from scipy.spatial import KDTree
 
 from ..base import Property
 from .base import MixtureReducer
@@ -43,6 +46,12 @@ class GaussianMixtureReducer(MixtureReducer):
     truncating: bool = Property(default=True,
                                 doc='Flag for truncating components, keeping a maximum '
                                     'of :attr:`max_number_components` components')
+    kdtree_max_distance: float = Property(
+        default=None,
+        doc="This defines the max Euclidean search distance for a kd-tree, "
+            "used as part of the merge process as a coarse gate. Default "
+            "`None` where tree isn't used and all components are checked "
+            "against the merge threshold.")
 
     def reduce(self, components_list):
         """
@@ -162,9 +171,16 @@ class GaussianMixtureReducer(MixtureReducer):
             Merged components
 
         """
+        if self.kdtree_max_distance is not None:
+            tree = KDTree(
+                np.vstack([component.state_vector[:, 0]
+                           for component in components_list]))
+        else:
+            tree = None
+
         # Sort components by weight
-        remaining_components = sorted(
-            components_list, key=attrgetter('weight'))
+        remaining_components = OrderedSet(sorted(
+            components_list, key=attrgetter('weight')))
 
         merged_components = []
         final_merged_components = []
@@ -172,9 +188,21 @@ class GaussianMixtureReducer(MixtureReducer):
         while remaining_components:
             # Get highest weighted component
             best_component = remaining_components.pop()
-            # Check for similar components
-            # (modifying list in loop, so copy used)
-            for component in remaining_components.copy():
+
+            # If kdtree_max_distance set, use this as gate
+            if tree:
+                indexes = tree.query_ball_point(
+                    best_component.state_vector.ravel(),
+                    r=self.kdtree_max_distance)
+                matched_components = {components_list[i]
+                                      for i in indexes
+                                      if components_list[i] in remaining_components}
+            else:
+                # Modifying list in loop, so copy used
+                matched_components = remaining_components.copy()
+
+            # Check for similar components against threshold
+            for component in matched_components:
                 # Calculate distance between component and best component
                 distance = (measure(state1=component, state2=best_component))**2
                 # Merge if similar
