@@ -81,9 +81,9 @@ Multi-Sensor Fusion: Covariance Intersection Using Tracks as Measurements
 #     sensors outputs tracks instead of raw measurements.
 #   * Create a GM-PHD tracker that will perform measurement fusion, using all measurements from
 #     both radars. This is created to compare with the covariance intersection method.
-#   * Define the ChernoffUpdater class, which implements the covariance intersection
+#   * Define the :class:`ChernoffUpdater` class, which implements the covariance intersection
 #   * Define a Detector class which converts tracks into Gaussian measurements
-#   * Create a GM-PHD tracker using the ChernoffUpdater for the covariance intersection
+#   * Create a GM-PHD tracker using the :class:`ChernoffUpdater` for the covariance intersection
 #   * Create metric managers for each of the four trackers
 #   * Run the simulation, plot the resulting tracks, and plot the metrics over time
 
@@ -137,7 +137,7 @@ clutter_model = ClutterModel(
 
 # %%
 # The first radar will be airborne, at an altitude of approximately 3000 m. It makes detections with
-# an elevation, bearing, and range measurement model. By setting the max_range to 3500, we can
+# an elevation, bearing, and range measurement model. By setting the `max_range` to 3500, we can
 # ensure that it does not make detections of the other radar (which will be far away on the
 # ground). We will later do a similar thing with the second radar. This mimics a real-life scenario
 # where each radar is outside the field-of-view of the other.
@@ -196,7 +196,7 @@ sensor2_platform = FixedPlatform(
 
 # %%
 # Now we can pass the platforms into a detection simulator. At each timestep, the simulator will
-# return the detections from the sensor1 platform, then the detections from the sensor2 platform.
+# return the detections from the `sensor1_platform`, then the detections from the `sensor2_platform`.
 
 # %%
 from stonesoup.simulator.platform import PlatformDetectionSimulator
@@ -409,8 +409,8 @@ meas_fusion_tracker = PointProcessMultiTargetTracker(
 # %%
 # 5: Define the Chernoff Updater Class
 # ------------------------------------
-# The ChernoffUpdater is where we will implement the covariance intersection. As an
-# :class:`~.Updater`, the ChernoffUpdater will need functions `predict_measurement()` and
+# The :class:`ChernoffUpdater` is where we will implement the covariance intersection. As an
+# :class:`~.Updater`, the :class:`ChernoffUpdater` will need the functions `predict_measurement()` and
 # `update()`.
 #
 # The value of `omega` in the covariance intersection method is adjustable. We will set it to 0.5 for
