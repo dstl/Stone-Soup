@@ -35,7 +35,7 @@ class DetectionKDTreeMixIn(DataAssociator):
     Notes
     -----
     This is only suitable where measurements are in same space as each other
-    and at the same timestamp.
+    (i.e. have the same measurement model) and at the same timestamp.
     """
     predictor: Predictor = Property(
         doc="Predict tracks to detection times")
@@ -58,6 +58,13 @@ class DetectionKDTreeMixIn(DataAssociator):
                 track, detections, timestamp, **kwargs)
                 for track in tracks}
 
+        measurement_models = {detection.measurement_model for detection in detections}
+        if len(measurement_models) > 1:
+            raise RuntimeError("KDTree requires all detections have same measurement model")
+        else:
+            # Must be single model (or all None)
+            measurement_model = measurement_models.pop()
+
         detections_list = list(detections)
         tree = KDTree(
             np.vstack([detection.state_vector[:, 0]
@@ -65,8 +72,8 @@ class DetectionKDTreeMixIn(DataAssociator):
 
         track_detections = defaultdict(set)
         for track in tracks:
-            prediction = self.predictor.predict(track.state, timestamp)
-            meas_pred = self.updater.predict_measurement(prediction)
+            prediction = self.predictor.predict(track, timestamp, **kwargs)
+            meas_pred = self.updater.predict_measurement(prediction, measurement_model, **kwargs)
 
             try:
                 meas_pred_state_vector = meas_pred.mean
