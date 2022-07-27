@@ -23,10 +23,11 @@ class ChernoffUpdater(Updater):
     using an optimization algorithm.
 
     In situations where :math:`p_1(x)` and :math:`p_2(x)` are multivariate Gaussian distributions,
-    the above formula is equal to the Covariance Intersection Algorithm from Julier and Uhlmann
-    [#]_. Let :math:`(a,A)` and :math:`(b,B)` be the means and covariances of the measurement and
-    prediction respectively. The Covariance Intersection Algorithm yields the update formulas for
-    the covariance, mean, and innovation:
+    the above formula is equal to the Covariance Intersection Algorithm from Julier and Uhlmann.
+    Let :math:`(a,A)` and :math:`(b,B)` be the means and covariances of the measurement and
+    prediction respectively. The Covariance Intersection Algorithm was reformulated for use in
+    Bayesian state estimation by Clark et al, yielding the update formulas for the covariance,
+    mean, and innovation:
 
     .. math::
 
@@ -46,6 +47,20 @@ class ChernoffUpdater(Updater):
     Note: If you have tracks that you would like to use as measurements for this updater, the
     :class:`~.Tracks2GaussianDetectionFeeder` class can be used to convert the tracks to the
     appropriate format.
+
+    References
+    ----------
+    [1] Hurley, M. B., “An information theoretic justification for covariance intersection and its
+    generalization,” in [Proceedings of the Fifth International Conference on Information Fusion.
+    FUSION 2002.(IEEE Cat. No. 02EX5997) ], 1, 505–511, IEEE (2002).
+    https://ieeexplore.ieee.org/document/1021196.
+    [2] Julier, S., Uhlmann, J., and Durrant-Whyte, H. F., “A new method for the nonlinear
+    transformation of means and covariances in filters and estimators,” IEEE Transactions on
+    automatic control 45(3), 477–482 (2000).
+    https://ieeexplore.ieee.org/abstract/document/847726/similar#similar.
+    [3] Clark, D. E. and Campbell, M. A., “Integrating covariance intersection into Bayesian
+    multi-target tracking filters,” preprint on TechRxiv. submitted to IEEE Transactions on
+    Aerospace and Electronic Systems .
     """
 
     omega: float = Property(
