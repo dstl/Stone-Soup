@@ -185,15 +185,14 @@ class StateVectors(Matrix):
         elif axis == 1:  # Need to handle special cases of averaging potentially
             state_vector = StateVector(
                 np.empty((state_vectors.shape[0], 1), dtype=state_vectors.dtype))
-            for dim, row in enumerate(state_vectors.T):
+            for dim, row in enumerate(np.asarray(state_vectors)):
                 type_ = type(row[0])  # Assume all the same type
                 if hasattr(type_, 'average'):
                     # Check if type has custom average method
                     state_vector[dim, 0] = type_.average(row, weights=weights)
                 else:
                     # Else use numpy built in, converting to float array
-                    state_vector[dim, 0] = type_(np.average(np.asfarray(row).flatten(),
-                                                            weights=weights))
+                    state_vector[dim, 0] = type_(np.average(row, weights=weights))
         else:
             return NotImplemented
 
