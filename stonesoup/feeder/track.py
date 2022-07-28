@@ -29,5 +29,5 @@ class Tracks2GaussianDetectionFeeder(DetectionFeeder):
                         measurement_model=LinearGaussian(dim, range(dim), np.asarray(track.covar)),
                         target_type=GaussianDetection)
                 )
-            print('Detections:', detections)
+
             yield time, detections
