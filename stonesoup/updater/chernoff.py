@@ -15,11 +15,12 @@ class ChernoffUpdater(Updater):
 
 
     The Chernoff fusion rule is written as
+
     .. math::
            p_{\omega}(x_{k}) = \frac{p_{1}(x_{k})^{\omega}p_{2}(x_{k})^{1-\omega}}
-                                    {\int p_{1}(x)^{\omega}p_{2}(x)^{1-\omega} \d x}
+                                    {\int p_{1}(x)^{\omega}p_{2}(x)^{1-\omega} \mathrm{d} x}
 
-    where :math:`omega` is a weighting parameter in the range :math:`(0,1]`, which can be found
+    where :math:`\omega` is a weighting parameter in the range :math:`(0,1]`, which can be found
     using an optimization algorithm.
 
     In situations where :math:`p_1(x)` and :math:`p_2(x)` are multivariate Gaussian distributions,
@@ -31,9 +32,9 @@ class ChernoffUpdater(Updater):
 
     .. math::
 
-            D = \left ( \omega A^{-1} + (1-\omega)B^{-1} \right )
-            d = D \left ( \omega A^{-1}a + (1-\omega)B^{-1}b \right )
-            V = \frac{A}{1-\omega} + \frac{B}{\omega}
+            D &= \left ( \omega A^{-1} + (1-\omega)B^{-1} \right )\\
+            d &= D \left ( \omega A^{-1}a + (1-\omega)B^{-1}b \right )\\
+            V &= \frac{A}{1-\omega} + \frac{B}{\omega}
 
 
     In filters where gating is required, the gating region can be written using the innovation
@@ -41,7 +42,7 @@ class ChernoffUpdater(Updater):
 
     .. math::
 
-            \mathcal{V}(\gamma) = \left { (a,A) : (a-b)^T V^{-1} (a-b) \leq \gamma \right }
+            \mathcal{V}(\gamma) = \left\{ (a,A) : (a-b)^T V^{-1} (a-b) \leq \gamma \right\}
 
 
     Note: If you have tracks that you would like to use as measurements for this updater, the
