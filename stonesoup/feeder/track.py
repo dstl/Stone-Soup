@@ -26,7 +26,8 @@ class Tracks2GaussianDetectionFeeder(DetectionFeeder):
                 detections.append(
                     GaussianDetection.from_state(
                         track.state,
-                        measurement_model=LinearGaussian(dim, range(dim), np.asarray(track.covar)),
+                        measurement_model=LinearGaussian(
+                            dim, list(range(dim)), np.asarray(track.covar)),
                         target_type=GaussianDetection)
                 )
 

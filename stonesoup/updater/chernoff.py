@@ -3,8 +3,8 @@ import numpy as np
 
 from ..base import Property
 from .base import Updater
-from ..types.prediction import GaussianMeasurementPrediction
-from ..types.update import GaussianStateUpdate
+from ..types.prediction import MeasurementPrediction
+from ..types.update import Update
 
 
 class ChernoffUpdater(Updater):
@@ -86,9 +86,9 @@ class ChernoffUpdater(Updater):
         meas_cross_cov = predicted_state.covar
 
         # Combine everything into a GaussianMeasurementPrediction object
-        return GaussianMeasurementPrediction(predicted_meas, innov_covar,
-                                             predicted_state.timestamp,
-                                             cross_covar=meas_cross_cov)
+        return MeasurementPrediction.from_state(predicted_state, predicted_meas, innov_covar,
+                                                predicted_state.timestamp,
+                                                cross_covar=meas_cross_cov)
 
     def update(self, hypothesis, force_symmetric_covariance=False, **kwargs):
         '''
@@ -127,6 +127,5 @@ class ChernoffUpdater(Updater):
                 (posterior_covariance + posterior_covariance.T)/2
 
         # Return the updated state
-        return GaussianStateUpdate(posterior_mean, posterior_covariance,
-                                   hypothesis,
-                                   hypothesis.measurement.timestamp)
+        return Update.from_state(hypothesis.prediction, posterior_mean, posterior_covariance,
+                                 hypothesis, hypothesis.measurement.timestamp)
