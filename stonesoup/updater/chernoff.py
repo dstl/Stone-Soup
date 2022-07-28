@@ -60,8 +60,8 @@ class ChernoffUpdater(Updater):
     References
     ----------
     .. [#] Hurley, M., “An information theoretic justification for covariance intersection and its
-       generalization,” in [Proceedings of the Fifth International Conference on Information Fusion.
-       FUSION 2002.(IEEE Cat. No. 02EX5997) ], 1, 505–511, IEEE (2002).
+       generalization,” in [Proceedings of the Fifth International Conference on Information
+       Fusion. FUSION 2002.(IEEE Cat. No. 02EX5997) ], 1, 505–511, IEEE (2002).
        https://ieeexplore.ieee.org/document/1021196.
     .. [#] Julier, S., Uhlmann, J., and Durrant-Whyte, H., “A new method for the nonlinear
        transformation of means and covariances in filters and estimators,” IEEE Transactions on
@@ -86,7 +86,7 @@ class ChernoffUpdater(Updater):
 
         Parameters
         ----------
-        predicted_state : :class:`~.State`
+        predicted_state : :class:`~.GaussianState`
             The predicted state :math:`\mathbf{x}_{k|k-1}`
         measurement_model : :class:`~.MeasurementModel`
             The measurement model. If omitted, the updater will use the model that was specified
