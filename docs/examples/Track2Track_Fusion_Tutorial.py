@@ -733,9 +733,8 @@ track_fusion_mm.add_data(tracks=track_fusion_tracks, overwrite=False)
 # The first plot will show all of the data, and the second plot will show a closer view of one
 # resultant track.
 #
-# These plots are done in 2D to make them more readable. They are still very busy, so you are
-# invited to run it yourself and remove some of the items from the plot. Or, if you are running
-# the notebook locally, add the next line to your code to make it an interactive plot.
+# These plots are done in 2D to make them more readable. We invite the reader to explore the plot
+# interactively using the following line in an active Jupyter session.
 #
 # %matplotlib widget
 
