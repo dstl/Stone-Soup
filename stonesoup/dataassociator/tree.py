@@ -35,7 +35,7 @@ class DetectionKDTreeMixIn(Base):
     Notes
     -----
     This is only suitable where measurements are in same space as each other
-    and at the same timestamp.
+    (i.e. have the same measurement model) and at the same timestamp.
     """
     hypothesiser: Hypothesiser = Property(
         doc="Underlying hypothesiser used to generate detection-target pairs")
@@ -67,6 +67,13 @@ class DetectionKDTreeMixIn(Base):
                 track, detections, timestamp, **kwargs)
                 for track in tracks}
 
+        measurement_models = {detection.measurement_model for detection in detections}
+        if len(measurement_models) > 1:
+            raise RuntimeError("KDTree requires all detections have same measurement model")
+        else:
+            # Must be single model (or all None)
+            measurement_model = measurement_models.pop()
+
         detections_list = list(detections)
         tree = KDTree(
             np.vstack([detection.state_vector[:, 0]
@@ -74,8 +81,8 @@ class DetectionKDTreeMixIn(Base):
 
         track_detections = defaultdict(set)
         for track in tracks:
-            prediction = self.predictor.predict(track, timestamp)
-            meas_pred = self.updater.predict_measurement(prediction)
+            prediction = self.predictor.predict(track, timestamp, **kwargs)
+            meas_pred = self.updater.predict_measurement(prediction, measurement_model, **kwargs)
             if self.max_distance_covariance_multiplier is None:
                 max_distance = self.max_distance
             else:

@@ -1,3 +1,4 @@
+import copy
 import datetime
 
 import pytest
@@ -150,8 +151,11 @@ def test_nearest_neighbour(nn_associator):
     assert len([hypothesis for hypothesis in associations.values() if not hypothesis]) == 2
 
 
-def test_tpr_tree_management(nn_associator, updater):
+@pytest.mark.skipif(rtree is None, reason="'rtree' module not available")
+def test_tpr_tree_management(distance_hypothesiser, measurement_model, vel_mapping, updater):
     '''Test method for TPR insert, delete and update'''
+    nn_associator = TPRTreeNN(distance_hypothesiser, measurement_model,
+                              datetime.timedelta(hours=1), vel_mapping=vel_mapping)
     timestamp = datetime.datetime.now()
 
     t1 = Track([GaussianState(np.array([[0, 0, 0, 0]]), np.diag([1, 0.1, 1, 0.1]), timestamp)])
@@ -201,12 +205,16 @@ def test_tpr_tree_management(nn_associator, updater):
     assert len([hypothesis for hypothesis in associations.values() if not hypothesis]) == 1
 
 
-def test_tpr_tree_measurement_models(nn_associator, measurement_model):
+@pytest.mark.skipif(rtree is None, reason="'rtree' module not available")
+def test_tpr_tree_measurement_models(
+        distance_hypothesiser, measurement_model, vel_mapping, updater):
     '''Test method for TPR insert, delete and update using non linear measurement model'''
     timestamp = datetime.datetime.now()
     measurement_model_nl = CartesianToBearingRange(
         ndim_state=4, mapping=[0, 2],
         noise_covar=CovarianceMatrix(np.diag([np.pi/180.0, 1])))
+    nn_associator = TPRTreeNN(distance_hypothesiser, measurement_model,
+                              datetime.timedelta(hours=1), vel_mapping=vel_mapping)
 
     t1 = Track([GaussianState(np.array([[0, 0, 0, 0]]), np.diag([1, 0.1, 1, 0.1]), timestamp)])
     t2 = Track([GaussianState(np.array([[3, 0, 3, 0]]), np.diag([1, 0.1, 1, 0.1]), timestamp)])
@@ -417,3 +425,32 @@ def test_particle_tree(nn_associator):
     associations = nn_associator.associate(tracks, detections, timestamp)
 
     assert len([hypothesis for hypothesis in associations.values() if not hypothesis]) == 2
+
+
+def test_kd_tree_measurement_models(distance_hypothesiser, predictor, updater, measurement_model):
+    timestamp = datetime.datetime.now()
+
+    t1 = Track([GaussianState(np.array([[0, 0, 0, 0]]), np.diag([1, 0.1, 1, 0.1]), timestamp)])
+    t2 = Track([GaussianState(np.array([[3, 0, 3, 0]]), np.diag([1, 0.1, 1, 0.1]), timestamp)])
+    tracks = {t1, t2}
+
+    d1 = Detection(np.array([[2, 0]]), measurement_model=measurement_model, timestamp=timestamp)
+    d2 = Detection(np.array([[5, 0]]), measurement_model=measurement_model, timestamp=timestamp)
+    detections = {d1, d2}
+
+    updater = copy.copy(updater)
+    updater.measurement_model = None  # Must therefore use model on detections
+    nn_associator = DetectionKDTreeNN(distance_hypothesiser, predictor, updater, max_distance=10)
+    associations = nn_associator.associate(tracks, detections, timestamp)
+
+    # There should be 2 associations
+    assert len(associations) == 2
+
+    measurement_model = copy.copy(measurement_model)
+    measurement_model.mapping = [0, 1]
+
+    d2.measurement_model = measurement_model  # Model mismatch from d1
+
+    with pytest.raises(
+            RuntimeError, match="KDTree requires all detections have same measurement model"):
+        nn_associator.associate(tracks, detections, timestamp)
