@@ -11,7 +11,7 @@ Multi-Sensor Fusion: Covariance Intersection Using Tracks as Measurements
 # %%
 # Background
 # ----------
-# The covariance intersection algorithm from Julier and Uhlmann [#]_ is a popular algorithm for
+# The Covariance Intersection Algorithm from Julier and Uhlmann [#]_ is a popular algorithm for
 # track-to-track fusion in target tracking systems. This approach is highly appealing due to its
 # robustness, simple structure, and applicability to any tracking system that uses Gaussians as the
 # basis for tracking. Generalisations to non-Gaussian systems have been proposed based on the
@@ -28,11 +28,11 @@ Multi-Sensor Fusion: Covariance Intersection Using Tracks as Measurements
 # In this example we demonstrate the approach with different multi-target trackers in a
 # multi-platform scenario where the sensors output estimated target tracks instead of raw
 # measurements. In real life situations, such sensors make multi-target tracking more accessible to
-# new researchers because they don't have to know about or implement target filtering and/or
-# tracking algorithms on their own. However, when there are multiple sensors measuring the same
-# target space and they all produce estimated tracks, as demonstrated in this example, it is not
-# immediately clear how to combine this information into a single set of tracks. This is where the
-# method of covariance intersection comes in.
+# new researchers because the researchers don't have to know about or implement target filtering
+# and/or tracking algorithms on their own. However, when there are multiple sensors measuring the
+# same target space and they all produce estimated tracks, as demonstrated in this example, it is
+# not immediately clear how to combine this information into a single set of tracks. This is where
+# covariance intersection comes in.
 #
 # The concept of covariance intersection relies on the aforementioned Chernoff fusion rule [#]_ :
 #
@@ -70,6 +70,10 @@ Multi-Sensor Fusion: Covariance Intersection Using Tracks as Measurements
 #         mean, updated covariance, innovation, Kalman gain, and innovation covariance in the
 #         GM-PHD and the GM-PHD Covariance Intersector algorithm.
 #
+#
+# The specifics for implementing the Covariance Intersection Algorithm in several popular
+# multi-target tracking algorithms was expanded upon recently by Clark et al [#]_. The work
+# includes a discussion of Stone Soup and and is used as the basis for this example.
 
 
 # %%
@@ -81,11 +85,14 @@ Multi-Sensor Fusion: Covariance Intersection Using Tracks as Measurements
 #     sensors outputs tracks instead of raw measurements.
 #   * Create a GM-PHD tracker that will perform measurement fusion, using all measurements from
 #     both radars. This is created to compare with the covariance intersection method.
-#   * Define the :class:`ChernoffUpdater` class, which implements the covariance intersection
-#   * Define a Detector class which converts tracks into Gaussian measurements
-#   * Create a GM-PHD tracker using the :class:`ChernoffUpdater` for the covariance intersection
+#   * Create a GM-PHD tracker that will perform track fusion via covariance intersection using
+#     the :class:`ChernoffUpdater` class.
 #   * Create metric managers for each of the four trackers
-#   * Run the simulation, plot the resulting tracks, and plot the metrics over time
+#   * Set up the detection feeders. Each tracker will receive measurements using a custom
+#     :class:`DummyDetector` class. The track fusion tracker will also use the
+#     :class:`Tracks2GaussianDetectionFeeder` class.
+#   * Run the simulation
+#   * Plot the resulting tracks and the metrics over time
 
 # %%
 from copy import deepcopy
@@ -136,9 +143,9 @@ clutter_model = ClutterModel(
 )
 
 # %%
-# The first radar will be airborne, at an altitude of approximately 3000 m. It makes detections with
-# an elevation, bearing, and range measurement model. By setting the `max_range` to 3500, we can
-# ensure that it does not make detections of the other radar (which will be far away on the
+# The first radar will be airborne, at an altitude of approximately 3000 m. It makes detections
+# with an elevation, bearing, and range measurement model. By setting the `max_range` to 3500, we
+# can ensure that it does not make detections of the other radar (which will be far away on the
 # ground). We will later do a similar thing with the second radar. This mimics a real-life scenario
 # where each radar is outside the field-of-view of the other.
 
@@ -196,7 +203,8 @@ sensor2_platform = FixedPlatform(
 
 # %%
 # Now we can pass the platforms into a detection simulator. At each timestep, the simulator will
-# return the detections from the `sensor1_platform`, then the detections from the `sensor2_platform`.
+# return the detections from the `sensor1_platform`, then the detections from the
+# `sensor2_platform`.
 
 # %%
 from stonesoup.simulator.platform import PlatformDetectionSimulator
@@ -406,141 +414,26 @@ meas_fusion_tracker = PointProcessMultiTargetTracker(
     extraction_threshold=0.90,
 )
 
-# %%
-# 5: Define the Chernoff Updater Class
-# ------------------------------------
-# The :class:`ChernoffUpdater` is where we will implement the covariance intersection. As an
-# :class:`~.Updater`, the :class:`ChernoffUpdater` will need the functions `predict_measurement()` and
-# `update()`.
-#
-# The value of `omega` in the covariance intersection method is adjustable. We will set it to 0.5 for
-# now.
 
 # %%
-from stonesoup.updater.base import Updater
-from stonesoup.types.prediction import GaussianMeasurementPrediction
-from stonesoup.types.update import GaussianStateUpdate
-
-
-class ChernoffUpdater(Updater):
-
-    def predict_measurement(self, predicted_state, measurement_model=None,  **kwargs):
-        '''
-        This function modifies the usual hypothesis.measurement to use a state covariance
-        and state vector (ie a track) as an input.
-        '''
-
-        # The innovation covariance uses the noise covariance from the measurement model
-        state_covar_m = measurement_model.noise_covar
-        omega = 0.5
-        innov_cov = 1/(1-omega)*state_covar_m+1/omega*predicted_state.covar
-
-        # The predicted measurement and measurement cross covariance can be taken from
-        # the predicted state
-        pred_meas = predicted_state.state_vector
-        meas_cross_cov = predicted_state.covar
-
-        # Combine everything into a GaussianMeasurementPrediction object
-        return GaussianMeasurementPrediction(pred_meas, innov_cov,
-                                             predicted_state.timestamp,
-                                             cross_covar=meas_cross_cov)
-
-    def update(self, hypothesis, force_symmetric_covariance=False, **kwargs):
-        '''
-        Given a hypothesis, calculate the posterior mean and covariance
-        '''
-
-        # Get the predicted state out of the hypothesis
-        predicted_state = hypothesis.prediction
-
-        # Extract the vector and covariance from the measurement
-        state_covar_m = hypothesis.measurement.covar
-        state_vector_m = hypothesis.measurement.state_vector
-
-        # Predict the measurement if it is not already done
-        if hypothesis.measurement_prediction is None:
-            measurement_model = self._check_measurement_model(
-                hypothesis.measurement.measurement_model
-            )
-            hypothesis.measurement_prediction = self.predict_measurement(
-                predicted_state,
-                measurement_model=measurement_model,
-                **kwargs
-            )
-
-        # Calculate the updated mean and covariance from covariance intersection
-        omega = 0.5
-        posterior_covariance = np.linalg.inv(omega*np.linalg.inv(state_covar_m)
-                                             + (1-omega)*np.linalg.inv(predicted_state.covar))
-        posterior_mean = posterior_covariance@(omega*np.linalg.inv(state_covar_m)@state_vector_m
-                                               + (1-omega)*np.linalg.inv(predicted_state.covar)
-                                               @ predicted_state.state_vector)
-
-        # Optionally force the posterior covariance to be a symmetric matrix
-        if force_symmetric_covariance:
-            posterior_covariance = \
-                (posterior_covariance + posterior_covariance.T)/2
-
-        # Return the updated state
-        return GaussianStateUpdate(posterior_mean, posterior_covariance,
-                                   hypothesis,
-                                   hypothesis.measurement.timestamp)
-
-# %%
-# 6: Define a Detector Class Using Tracks as Measurements
-# -------------------------------------------------------
-# In Stone Soup, normal measurements are fed into a tracker using a :class:`~.DetectionFeeder`
-# object. But the idea of covariance intersection is to use tracks (and thus, states) instead of
-# raw measurements. Thus, we have to make a custom :class:`~.DetectionFeeder` class which will
-# work with tracks. This custom class will accept a collection of live tracks and take the most
-# recent state from each track. Each of those states is then turned into a
-# :class:`~.GaussianDetection` object. All of the converted detections are returned and can be fed
-# into a regular GM-PHD tracker.
-
-# %%
-from stonesoup.types.detection import GaussianDetection
-from stonesoup.feeder.base import DetectionFeeder
-from stonesoup.models.measurement.linear import LinearGaussian
-
-
-class Tracks2GaussianDetectionFeeder(DetectionFeeder):
-    '''
-    A class which converts tracks to GaussianDetection objects.
-
-    At each time step, look at the set of live tracks being fed in. Take the
-    most recent state from each of those tracks, and turn it into a
-    GaussianDetection object. The covariance of the measurement model will
-    be equal to the state covariance.
-    '''
-    def data_gen(self):
-        for time, tracks in self.reader:
-            detections = []
-            for track in tracks:
-                detections.append(
-                    GaussianDetection.from_state(
-                        track.state,
-                        measurement_model=LinearGaussian(6, [0, 1, 2, 3, 4, 5],
-                                                         np.asarray(track.covar)),
-                        target_type=GaussianDetection)
-                )
-            yield time, detections
-
-# %%
-# 7: Define a GM-PHD Tracker for Track Fusion
+# 5: Define a GM-PHD Tracker for Track Fusion
 # -------------------------------------------
-# The tracker parameters have been kept the same as the measurement fusion tracker except where
-# noted. This will ensure a fair comparison of the results.
+# Track fusion using covariance intersection is implemented in Stone Soup using the
+# :class:`ChernoffUpdater` class. For use in a GM-PHD, we insert the :class:`ChernoffUpdater` as
+# the base updater, instead of a typical :class:`~.KalmanUpdater`. The `clutter_spatial_density`
+# parameter now refers to the estimated intensity of false tracks. Since the previous tracker will
+# (hopefully) have ignored some of the clutter, we can use a smaller intensity than in the previous
+# trackers. The `omega` parameter is also adjustable. We will set it to 0.5 for now.
+#
+# The remaining tracker parameters have been kept the same as the measurement fusion tracker except
+# where noted. This will ensure a fair comparison of the results.
 
 # %%
 
-
+from stonesoup.updater.chernoff import ChernoffUpdater
 from stonesoup.measures import Euclidean
 
 # Updater
-# Here we insert the ChernoffUpdater as the base updater, instead of a typical
-# :class:`~.KalmanUpdater`. The `clutter_spatial_density` parameter now refers to the estimated
-# intensity of false tracks. Since the previous trackers will (hopefully) have ignored some of the
-# clutter, we can user a smaller intensity than the others
 ch_updater = ChernoffUpdater(measurement_model=None)
 updater = PHDUpdater(
     ch_updater,
@@ -595,9 +488,9 @@ track_fusion_tracker = PointProcessMultiTargetTracker(
 )
 
 # %%
-# 8: Make Metric Managers
+# 6: Make Metric Managers
 # -----------------------
-# We will track metrics for each of the four trackers for comparison.
+# We will track the metrics of each of the four trackers for comparison.
 
 # %%
 from stonesoup.metricgenerator.basicmetrics import BasicMetrics
@@ -621,14 +514,23 @@ base_metric_manager = SimpleManager([basic_generator, ospa_generator, siap_gener
 sensor1_mm, sensor2_mm = deepcopy(base_metric_manager), deepcopy(base_metric_manager)
 meas_fusion_mm, track_fusion_mm = deepcopy(base_metric_manager), deepcopy(base_metric_manager)
 
+
 # %%
-# 9: Run Simulation
-# -----------------
+# 7: Set Up the Detection Feeders
+# -------------------------------
 # As one final step before running the simulation, we will write a little class which feeds the
 # detections for a single timestep. This makes sure that the two radars and the measurement
 # fusion tracker are getting the same measurements.
+#
+# The track fusion tracker will also use the :class:`~.Tracks2GaussianDetectionFeeder` class to
+# feed the tracks as measurements. At each time step, the resultant live tracks from the JPDA and
+# GM-LCC trackers will be put into a :class:`~.Tracks2GaussianDetectionFeeder` (using the
+# :class:`~.DummyDetector` we write below). The feeder will take the most recent state from each
+# track and turn it into a :class:`~.GaussianDetection` object. The set of detection objects will
+# be returned and passed into the tracker.
 
 # %%
+from stonesoup.feeder.track import Tracks2GaussianDetectionFeeder
 from stonesoup.buffered_generator import BufferedGenerator
 from stonesoup.reader.base import DetectionReader
 
@@ -641,11 +543,12 @@ class DummyDetector(DetectionReader):
     def detections_gen(self):
         yield self.current
 
-# %%
-# Now we are ready to run the simulation.
 
 # %%
+# 8: Run Simulation
+# -----------------
 
+# %%
 
 sensor1_detections, sensor2_detections = [], []
 jpda_tracks, gmlcc_tracks = set(), set()
@@ -727,7 +630,7 @@ meas_fusion_mm.add_data(tracks=meas_fusion_tracks, overwrite=False)
 track_fusion_mm.add_data(tracks=track_fusion_tracks, overwrite=False)
 
 # %%
-# 10: Plot the Results
+# 9: Plot the Results
 # --------------------
 # Next, we will plot all of the resulting tracks and measurements. This will be done in two plots.
 # The first plot will show all of the data, and the second plot will show a closer view of one
@@ -800,7 +703,8 @@ from matplotlib import pyplot as plt
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
 
 # Legend labels for each type of tracker
-labels = ['Airborne Radar (JPDAF)', 'Ground Radar (GM-LCC)', 'Measurement Fusion (GM-PHD)', 'Covariance Intersection (GM-PHD)']
+labels = ['Airborne Radar (JPDAF)', 'Ground Radar (GM-LCC)', 'Measurement Fusion (GM-PHD)',
+          'Covariance Intersection (GM-PHD)']
 linestyles = ['dashed', 'dotted', 'solid', 'dashdot']
 
 # Iterate through the SIAP and OSPA metrics
@@ -829,7 +733,8 @@ for metric_name in ['SIAP Position Accuracy at times', 'SIAP Velocity Accuracy a
         ax.set_ylabel(metric_name[5:-9])
 
     # Add units to y axis where applicable
-    if metric_name.startswith('SIAP Position') or metric_name.startswith('SIAP Velocity') or metric_name.startswith('OSPA'):
+    if metric_name.startswith('SIAP Position') or metric_name.startswith('SIAP Velocity') \
+       or metric_name.startswith('OSPA'):
         ax.set_ylabel(ax.yaxis.get_label().get_text() + ' $(m)$')
 
     # Add legend
@@ -873,3 +778,7 @@ ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
 #        intersection and its generalization,” in Proceedings of the Fifth
 #        International Conference on Information Fusion. FUSION 2002.(IEEE Cat.
 #        No. 02EX5997), vol. 1. IEEE, 2002, pp. 505–511
+#
+# .. [#] Clark, D. and Hunter, E. and Balaji, B. and O'Rourke, S., “Centralized multi-sensor
+#        multi-target data fusion with tracks as measurements,” to be submitted to SPIE Defense and
+#        Security Symposium 2023.
