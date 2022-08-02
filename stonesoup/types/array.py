@@ -140,12 +140,15 @@ class StateVectors(Matrix):
     def __iter__(self):
         statev_gen = super(StateVectors, self.T).__iter__()
         for statevector in statev_gen:
-            yield StateVector(np.atleast_2d(statevector))
+            yield StateVector(statevector)
+
+    def __getitem__(self, item):
+        return self._cast(super().__getitem__(item))
 
     @classmethod
     def _cast(cls, val):
         out = super()._cast(val)
-        if type(out) == Matrix:
+        if type(out) == Matrix and out.ndim == 2:
             # Assume still set of State Vectors
             return out.view(StateVectors)
         else:
