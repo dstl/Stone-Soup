@@ -187,3 +187,17 @@ class gallery_scraper():
                           for image in image_rsts]
             rst = HLIST_HEADER + ''.join(image_rsts)
         return rst
+
+
+class reset_numpy_random_seed:
+
+    def __init__(self):
+        self.state = None
+
+    def __call__(self, gallery_conf, fname, when):
+        import numpy as np
+        if when == 'before':
+            self.state = np.random.get_state()
+        elif when == 'after':
+            # Set state attribute back to `None`
+            self.state = np.random.set_state(self.state)

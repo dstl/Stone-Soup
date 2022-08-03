@@ -25,7 +25,7 @@ import re
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../../'))
 
-from doc_extensions import gallery_scraper
+from doc_extensions import gallery_scraper, reset_numpy_random_seed
 from sphinx_gallery.sorting import FileNameSortKey
 
 # -- General configuration ------------------------------------------------
@@ -66,6 +66,8 @@ sphinx_gallery_conf = {
     'gallery_dirs': ['auto_tutorials', 'auto_examples', 'auto_demos'],
     'filename_pattern': re.escape(os.sep),
     'image_scrapers': (gallery_scraper(),),
+    'reset_modules': ('matplotlib', 'seaborn', reset_numpy_random_seed()),
+    'reset_modules_order': 'both',
     'abort_on_example_error': False,
     'reference_url': {'stonesoup': None},
     'remove_config_comments': True,
