@@ -12,7 +12,7 @@ from threading import RLock
 _NOT_FOUND = object()
 
 
-class cached_property:
+class cached_property:  # pragma: no cover
     def __init__(self, func):
         self.func = func
         self.attrname = None
