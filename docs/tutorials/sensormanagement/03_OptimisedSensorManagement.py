@@ -30,7 +30,7 @@
 # uncertainties (as represented by the Frobenius norm of the covariance matrix) can be reduced the most by using
 # the chosen sensing configuration.
 #
-# As in the previous tutorials the OSPA [#]_, SIAP [#]_ and uncertainty metrics are used to assess the
+# As in the previous tutorials the SIAP [#]_ and uncertainty metrics are used to assess the
 # performance of the sensor managers.
 
 # %%
@@ -125,7 +125,7 @@ for n in range(0, total_no_sensors):
     sensor = RadarRotatingBearingRange(
         position_mapping=(0, 2),
         noise_covar=np.array([[np.radians(0.5) ** 2, 0],
-                              [0, 0.75 ** 2]]),
+                              [0, 1 ** 2]]),
         ndim_state=4,
         position=np.array([[10], [n * 50]]),
         rpm=60,
@@ -143,7 +143,7 @@ for n in range(0, total_no_sensors):
     sensor = RadarRotatingBearingRange(
         position_mapping=(0, 2),
         noise_covar=np.array([[np.radians(0.5) ** 2, 0],
-                              [0, 0.75 ** 2]]),
+                              [0, 1 ** 2]]),
         ndim_state=4,
         position=np.array([[10], [n * 50]]),
         rpm=60,
@@ -162,7 +162,7 @@ for n in range(0, total_no_sensors):
     sensor = RadarRotatingBearingRange(
         position_mapping=(0, 2),
         noise_covar=np.array([[np.radians(0.5) ** 2, 0],
-                              [0, 0.75 ** 2]]),
+                              [0, 1 ** 2]]),
         ndim_state=4,
         position=np.array([[10], [n * 50]]),
         rpm=60,
@@ -200,15 +200,16 @@ updater = ExtendedKalmanUpdater(measurement_model=None)
 from stonesoup.types.state import GaussianState
 
 priors = []
-xdirection = 1.5
-ydirection = 1.5
+xdirection = 1.2
+ydirection = 1.2
 for j in range(0, ntruths):
-    priors.append(GaussianState([[0], [xdirection], [yps[j]+0.5], [ydirection]],
-                                np.diag([1.5, 0.25, 1.5, 0.25]+np.random.normal(0,5e-4,4)),
+    priors.append(GaussianState([[0], [xdirection], [yps[j]+0.1], [ydirection]],
+                                np.diag([0.5, 0.5, 0.5, 0.5]+np.random.normal(0,5e-4,4)),
                                 timestamp=start_time))
     xdirection *= -1
     if j % 2 == 0:
         ydirection *= -1
+
 # %%
 # Initialise the tracks by creating an empty list and appending the priors generated. This needs to be done
 # separately for each sensor manager method as they will generate different sets of tracks.
@@ -468,11 +469,8 @@ plotterC.plot_tracks(set(tracksC), [0, 2], uncertainty=True)
 # Metrics
 # -------
 #
-# As in Tutorials 1 & 2 the OSPA, SIAP and uncertainty metrics are used to compare
+# As in Tutorials 1 & 2 the SIAP and uncertainty metrics are used to compare
 # the tracking performance of the sensor managers in more detail.
-
-from stonesoup.metricgenerator.ospametric import OSPAMetric
-ospa_generator = OSPAMetric(c=40, p=1)
 
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
 from stonesoup.measures import Euclidean
@@ -490,13 +488,13 @@ uncertainty_generator = SumofCovarianceNormsMetric()
 
 from stonesoup.metricgenerator.manager import SimpleManager
 
-metric_managerA = SimpleManager([ospa_generator, siap_generator, uncertainty_generator],
+metric_managerA = SimpleManager([siap_generator, uncertainty_generator],
                                 associator=associator)
 
-metric_managerB = SimpleManager([ospa_generator, siap_generator, uncertainty_generator],
+metric_managerB = SimpleManager([siap_generator, uncertainty_generator],
                                 associator=associator)
 
-metric_managerC = SimpleManager([ospa_generator, siap_generator, uncertainty_generator],
+metric_managerC = SimpleManager([siap_generator, uncertainty_generator],
                                 associator=associator)
 
 # %%
@@ -511,39 +509,15 @@ metricsA = metric_managerA.generate_metrics()
 metricsB = metric_managerB.generate_metrics()
 metricsC = metric_managerC.generate_metrics()
 
-# %%
-# OSPA metric
-# ^^^^^^^^^^^
-#
-# First we look at the OSPA metric. This is plotted over time for each sensor manager method.
-
-import matplotlib.pyplot as plt
-
-ospa_metricA = metricsA['OSPA distances']
-ospa_metricB = metricsB['OSPA distances']
-ospa_metricC = metricsC['OSPA distances']
-
-fig = plt.figure()
-ax = fig.add_subplot(1, 1, 1)
-ax.plot([i.timestamp for i in ospa_metricA.value],
-        [i.value for i in ospa_metricA.value],
-        label='BruteForceSensorManager')
-ax.plot([i.timestamp for i in ospa_metricB.value],
-        [i.value for i in ospa_metricB.value],
-        label='OptimizeBruteSensorManager')
-ax.plot([i.timestamp for i in ospa_metricC.value],
-        [i.value for i in ospa_metricC.value],
-        label='OptimizeBasinHoppingSensorManager')
-ax.set_ylabel("OSPA distance")
-ax.set_xlabel("Time")
-ax.legend()
 
 # %%
 # SIAP metrics
 # ^^^^^^^^^^^^
 #
-# Next we look at SIAP metrics. We are only interested in the positional accuracy (PA) and
+# First we look at SIAP metrics. We are only interested in the positional accuracy (PA) and
 # velocity accuracy (VA). These metrics can be plotted to show how they change over time.
+
+import matplotlib.pyplot as plt
 
 fig, axes = plt.subplots(2)
 
@@ -577,10 +551,14 @@ axes[1].plot(times, [metric.value for metric in va_metricC.value],
 axes[1].legend()
 
 # %%
+# Both graphs show that there is little performance difference between the different sensor managers.
+# Positional accuracy remains consistently good and velocity accuracy improves after overcoming
+# the initial differences in the priors.
+#
 # Uncertainty metric
 # ^^^^^^^^^^^^^^^^^^
 #
-# Finally we look at the uncertainty metric which computes the sum of covariance matrix norms of each state at each
+# Next we look at the uncertainty metric which computes the sum of covariance matrix norms of each state at each
 # time step. This is plotted over time for each sensor manager method.
 
 uncertainty_metricA = metricsA['Sum of Covariance Norms Metric']
@@ -603,12 +581,22 @@ ax.set_xlabel("Time")
 ax.legend()
 
 # %%
-# Each of these metrics also show a very similar performance for each sensor management algorithm.
+# The uncertainty metric shows some variation between the sensor management methods,
+# with a little more variation in the basin hopping method than the brute force methods.
+# Overall they have a similar performance, improving after overcoming the initial
+# differences in the priors.
 #
 # Cell runtime
 # ^^^^^^^^^^^^
 #
 # Now let us compare the calculated runtime of the tracking loop for each of the sensor managers.
+
+fig = plt.figure()
+ax = fig.add_subplot(1, 1, 1)
+ax.set_ylabel('Cell run time (s)')
+ax.bar(['Brute Force', 'Optimised Brute Force', 'Optimised Basin Hopping'],
+       [cell_run_time1, cell_run_time2, cell_run_time3],
+       color=['tab:blue', 'tab:orange', 'tab:green'])
 
 print(f'Brute Force: {cell_run_time1} s')
 print(f'Optimised Brute Force: {cell_run_time2} s')
@@ -617,15 +605,13 @@ print(f'Optimised Basin Hopping: {cell_run_time3} s')
 # %%
 # These run times show that each of the optimised methods are significantly quicker than the brute force method
 # whilst maintaining a similar tracking performance. This difference becomes more clear when the complexity of
-# the situation increases - including additional sensors for example.
+# the situation increases - by including additional sensors for example.
 
 # %%
 # References
 # ----------
 #
-# .. [#] *D. Schuhmacher, B. Vo and B. Vo*, **A Consistent Metric for Performance Evaluation of
-#    Multi-Object Filters**, IEEE Trans. Signal Processing 2008
 # .. [#] *Votruba, Paul & Nisley, Rich & Rothrock, Ron and Zombro, Brett.*, **Single Integrated Air
 #    Picture (SIAP) Metrics Implementation**, 2001
 
-# sphinx_gallery_thumbnail_number = 7
+# sphinx_gallery_thumbnail_number = 6
