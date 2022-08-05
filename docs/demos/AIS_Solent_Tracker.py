@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 """
 Tracking AIS Reports Using Stone Soup
 =====================================

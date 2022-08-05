@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """
 Tracking Groundtruth ADS-B Data by Simulating Radar Detections

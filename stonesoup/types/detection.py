@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from typing import MutableMapping, Sequence
 
 from .groundtruth import GroundTruthPath

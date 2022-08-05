@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from scipy.stats import multinomial
 
 from ..base import Property

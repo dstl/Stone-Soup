@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os
 import datetime
 from distutils import dir_util

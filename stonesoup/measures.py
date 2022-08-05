@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from abc import abstractmethod
 
 import numpy as np

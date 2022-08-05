@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Contains deleters which use a composite of deleters to decide whether a track is to be deleted
 """
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from numbers import Real
 from numpy import float64
 from math import trunc, ceil, floor

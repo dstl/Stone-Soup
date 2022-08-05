@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import copy
 import operator
 from itertools import combinations

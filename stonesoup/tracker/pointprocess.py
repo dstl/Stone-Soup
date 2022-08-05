@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from .base import Tracker
 from ..base import Property
 from ..reader import DetectionReader

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from math import log, floor, ceil, trunc, sqrt
 
 import pytest

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Stone Soup documentation build configuration file, created by
 # sphinx-quickstart on Wed Nov 15 10:46:26 2017.

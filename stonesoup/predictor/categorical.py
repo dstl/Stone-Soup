@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from ..base import Property
 from ..models.transition.categorical import MarkovianTransitionModel
 from ..predictor import Predictor
