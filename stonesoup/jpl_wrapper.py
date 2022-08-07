@@ -81,7 +81,7 @@ def get_astro_radar(query: dict):
     #TODO Add cylindrical coordinates
     if query['coords'] == 'True' :
         coords = [[x["latitude"],x["longitude"]] for x in r["coords"]]
-        rdr_stns = [FixedPlatform(state=StateVector(geodetic_to_caresian(x)), position_mapping=(0,1,2) for x in coords]
+        rdr_stns = [FixedPlatform(state=StateVector(geodetic_to_caresian(x)), position_mapping=(0,1,2)) for x in coords]
         return rdr_stns
     else:
         raise RuntimeWarning("Please use the get_sb method. No coordinates were requested in query.")
