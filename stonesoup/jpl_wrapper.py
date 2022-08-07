@@ -7,7 +7,7 @@ into Python and the existing Stone Soup framework.
 from .types.orbitalstate import *
 import requests
 from platform.base import FixedPlatform
-from .astronomical_conversions import geoditic_to_cartesian
+from .astronomical_conversions import geodetic_to_cartesian
 
 
 def get_sb(query: dict):
