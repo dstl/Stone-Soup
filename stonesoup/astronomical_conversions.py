@@ -289,3 +289,85 @@ def direction_rate_cosine_unit_vector(ra, dec, radot, decdot):
     return np.array([[-radot * sra * cdec - decdot * cra * sdec],
                      [radot * cra * cdec - decdot * sra * sdec],
                      [decdot * cdec]])
+def ecliptical2equatorial(x_ec, y_ec, z_ec, eps):
+    """
+        Convert equatorial coordinates to ecliptical
+
+        Parameters
+        ----------
+        x_ec: X equatorial position
+        y_ec: Y equatorial position
+        z_ec: Z equatorial position
+        eps: Epsilon
+
+        Returns
+        -------
+        tuple
+            set of coordinates in eccliptical position
+
+    """
+    return np.matmul([[1,0,0],[0, np.cos(eps), -1 * np.sin(eps)], [0, np.sin(eps), np.cos(eps)]], [x_ec,y_ec, z_ec])
+
+
+def equatorial2ecliptical(x_eq, y_eq, z_eq, eps):
+    """
+        Convert equatorial coordinates to ecliptical
+
+        Parameters
+        ----------
+        x_eq: X equatorial position
+        y_eq: Y equatorial position
+        z_eq: Z equatorial position
+        eps: Epsilon
+
+        Returns
+        -------
+        tuple
+            set of coordinates in eccliptical position
+
+    """
+    return np.matmul([[1,0,0],[0, np.cos(eps), np.sin(eps)], [0, -1* np.sin(eps), np.cos(eps)]],[x_eq,y_eq, z_eq] )
+
+
+
+def geodetic_to_cartesian(lng, lat):
+    """
+        Geodetic coordinates into cartesian
+
+        Parameters
+        ----------
+        lat: X equatorial position
+        long: Y equatorial position
+
+
+        Returns
+        -------
+        tuple
+            set of coordinates in cartesian
+
+    """
+    R = 6371
+    return R * np.cos(lat) * np.cos(long), R * np.cos(lat) * np.sin(lng), R*np.sin(lng)
+
+
+
+def cartesian_to_geodetic(x,y,z):
+    """
+        Cartesian coordinates into geodetic
+
+        Parameters
+        ----------
+        x: x coordinate
+        y: y coordinate
+        z: z coordinate
+
+        Returns
+        -------
+        tuple
+            set of coordinates in geodetic
+
+    """
+    R = 6371
+    return np.arcsin(z/R), np.arctan(y,x)
+
+#TODO add cylindrical to geodetic and vice versa
