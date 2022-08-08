@@ -12,6 +12,7 @@ from .array import StateVector, CovarianceMatrix, PrecisionMatrix, StateVectors
 from .base import Type
 from .particle import Particle
 from .numeric import Probability
+from ._util import cached_property  # TODO: Change to functools once support for Python 3.7 dropped
 
 
 class State(Type):
@@ -433,7 +434,15 @@ class ParticleState(State):
     """Particle State type
 
     This is a particle state object which describes the state as a
-    distribution of particles"""
+    distribution of particles
+
+    Note
+    ----
+    Once either :attr:`mean` or :attr:`covar` are called, both :attr:`state_vector`
+    and :attr:`weight` NumPy arrays will no longer be writable due to caching. If
+    replacing :attr:`state_vector` or :attr:`covar` on the state, the cache will
+    be cleared.
+    """
 
     state_vector: StateVectors = Property(doc='State vectors.')
     weight: MutableSequence[Probability] = Property(default=None, doc='Weights of particles')
@@ -484,6 +493,33 @@ class ParticleState(State):
                             parent=p)
         return particle
 
+    def _clear_cache(self):
+        if 'mean' in self.__dict__:
+            del self.__dict__["mean"]
+        if 'covar' in self.__dict__:
+            del self.__dict__["covar"]
+
+    @state_vector.setter
+    def state_vector(self, value):
+        self._clear_cache()
+        if value is not None:
+            value = np.asanyarray(value)
+        setattr(self, type(self).state_vector._property_name, value)
+
+    @weight.setter
+    def weight(self, value):
+        self._clear_cache()
+        if value is not None:
+            value = np.asanyarray(value)
+        setattr(self, type(self).weight._property_name, value)
+
+    @fixed_covar.setter
+    def fixed_covar(self, value):
+        # Don't need to worry about mean
+        if 'covar' in self.__dict__:
+            del self.__dict__["covar"]
+        setattr(self, type(self).fixed_covar._property_name, value)
+
     @property
     def particles(self):
         return [particle for particle in self]
@@ -495,22 +531,20 @@ class ParticleState(State):
     def ndim(self):
         return self.state_vector.shape[0]
 
-    @property
+    @cached_property
     def mean(self):
         """The state mean, equivalent to state vector"""
-        result = np.average(self.state_vector,
-                            axis=1,
-                            weights=self.weight)
-        # Convert type as may have type of weights
-        return result
+        self.state_vector.flags.writeable = False
+        self.weight.flags.writeable = False
+        return np.average(self.state_vector, axis=1, weights=self.weight)
 
-    @property
+    @cached_property
     def covar(self):
         if self.fixed_covar is not None:
             return self.fixed_covar
-        cov = np.cov(self.state_vector, ddof=0, aweights=np.array(self.weight))
-        # Fix one dimensional covariances being returned with zero dimension
-        return cov
+        self.state_vector.flags.writeable = False
+        self.weight.flags.writeable = False
+        return np.cov(self.state_vector, ddof=0, aweights=self.weight)
 
 
 State.register(ParticleState)  # noqa: E305
