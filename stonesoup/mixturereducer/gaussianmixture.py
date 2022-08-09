@@ -8,7 +8,7 @@ from scipy.spatial import KDTree
 from ..base import Property
 from .base import MixtureReducer
 from ..types.state import TaggedWeightedGaussianState, WeightedGaussianState
-from ..measures import Mahalanobis
+from ..measures import SquaredMahalanobis
 from operator import attrgetter
 
 
@@ -184,7 +184,7 @@ class GaussianMixtureReducer(MixtureReducer):
 
         merged_components = []
         final_merged_components = []
-        measure = Mahalanobis()
+        measure = SquaredMahalanobis(state_covar_inv_cache_size=None)
         while remaining_components:
             # Get highest weighted component
             best_component = remaining_components.pop()
@@ -204,7 +204,7 @@ class GaussianMixtureReducer(MixtureReducer):
             # Check for similar components against threshold
             for component in matched_components:
                 # Calculate distance between component and best component
-                distance = (measure(state1=component, state2=best_component))**2
+                distance = measure(state1=component, state2=best_component)
                 # Merge if similar
                 if distance < self.merge_threshold:
                     remaining_components.remove(component)
