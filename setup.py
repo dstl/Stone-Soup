@@ -31,8 +31,8 @@ setup(name='stonesoup',
       ],
       extras_require={
           'dev': [
-              'pytest-flake8', 'pytest-cov', 'pytest-remotedata',
-              'Sphinx', 'sphinx_rtd_theme', 'sphinx-gallery>=0.8', 'pillow', 'folium',
+              'pytest-flake8', 'pytest-cov', 'pytest-remotedata', 'flake8<5',
+              'Sphinx', 'sphinx_rtd_theme', 'sphinx-gallery>=0.10.1', 'pillow', 'folium',
           ],
           'video': ['ffmpeg-python', 'moviepy', 'opencv-python'],
           'tensorflow': ['tensorflow>=2.2.0'],
