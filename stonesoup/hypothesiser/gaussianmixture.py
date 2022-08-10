@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from . import Hypothesiser
 from ..base import Property
 from ..dataassociator.tree import DetectionKDTreeMixIn

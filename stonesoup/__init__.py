@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Stone Soup framework: development and assessment of tracking algorithms."""
 
 from pkg_resources import get_distribution, DistributionNotFound

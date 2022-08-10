@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import math
 from typing import Sequence
 from functools import lru_cache

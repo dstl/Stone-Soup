@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Provides base for Stone Soup components.
 
 To aid creation of components in Stone Soup, a declarative approach is used to

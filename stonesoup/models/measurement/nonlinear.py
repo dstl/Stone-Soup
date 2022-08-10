@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from abc import ABC
 import copy
 from typing import Sequence, Tuple, Union

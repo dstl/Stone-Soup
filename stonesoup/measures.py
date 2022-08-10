@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from abc import abstractmethod
 from functools import lru_cache
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import datetime
 from collections import defaultdict
 from operator import attrgetter

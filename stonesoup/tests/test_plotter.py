@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 from stonesoup.plotter import Plotter, Dimension
 import pytest

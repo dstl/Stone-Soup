@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Test for updater.ensemble module"""
 import numpy as np
 import datetime

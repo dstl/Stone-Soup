@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from .base import MetricGenerator
 from ..types.metric import TimeRangeMetric
 from ..types.time import TimeRange

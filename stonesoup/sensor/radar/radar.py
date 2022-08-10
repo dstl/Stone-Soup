@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import copy
 from math import erfc
 from typing import Tuple, Set, Union

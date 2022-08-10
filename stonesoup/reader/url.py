@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Base classes for use with File based readers."""
 from urllib.parse import ParseResult, urlparse
 

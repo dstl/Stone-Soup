@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Mathematical functions used within Stone Soup"""
 import copy
 

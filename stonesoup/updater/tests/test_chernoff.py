@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Test for updater.chernoff module"""
 import pytest
 import numpy as np
