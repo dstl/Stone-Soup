@@ -360,6 +360,55 @@ class InformationState(State):
     """
     precision: PrecisionMatrix = Property(doc='precision matrix of state.')
 
+    @property
+    def gaussian_state(self):
+        """The Gaussian state."""
+
+        covar = self.covar
+        state_vector = covar @ self.state_vector
+
+        return GaussianState(state_vector,
+                             covar,
+                             self.timestamp)
+
+    @property
+    def covar(self):
+        return np.linalg.inv(self.precision)
+
+    @property
+    def mean(self):
+        return self.covar @ self.state_vector
+
+    @classmethod
+    def from_gaussian_state(cls, gaussian_state, *args, **kwargs):
+        r"""
+        Returns an InformationState instance based on the gaussian_state.
+
+        Parameters
+        ----------
+        gaussian_state : :class:`~.GaussianState`
+            The guassian_state used to create the new WeightedGaussianState.
+        \*args : See main :class:`~.InformationState`
+            args are passed to :class:`~.InformationState` __init__()
+        \*\*kwargs : See main :class:`~.InformationState`
+            kwargs are passed to :class:`~.InformationState` __init__()
+
+        Returns
+        -------
+        :class:`~.InformationState`
+            Instance of InformationState.
+        """
+        precision = np.linalg.inv(gaussian_state.covar)
+        state_vector = precision @ gaussian_state.state_vector
+        timestamp = gaussian_state.timestamp
+
+        return cls(
+            state_vector=state_vector,
+            precision=precision,
+            timestamp=timestamp,
+            *args, **kwargs
+        )
+
 
 class WeightedGaussianState(GaussianState):
     """Weighted Gaussian State Type

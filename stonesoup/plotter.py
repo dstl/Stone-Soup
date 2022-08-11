@@ -302,7 +302,7 @@ class Plotter:
                         max_ind = np.argmax(w)
                         min_ind = np.argmin(w)
                         orient = np.arctan2(v[1, max_ind], v[0, max_ind])
-                        ellipse = Ellipse(xy=state.state_vector[mapping[:2], 0],
+                        ellipse = Ellipse(xy=state.mean[mapping[:2], 0],
                                           width=2 * np.sqrt(w[max_ind]),
                                           height=2 * np.sqrt(w[min_ind]),
                                           angle=np.rad2deg(orient), alpha=0.2,
