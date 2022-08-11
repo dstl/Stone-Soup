@@ -51,7 +51,7 @@ def test_random_choose_actions():
                 assert isinstance(actions[0], ChangeDwellAction)
 
 
-def test_brute_force_choose_actions():
+def test_uncertainty_based_managers():
     time_start = datetime.now()
 
     tracks = [Track(states=[
@@ -114,18 +114,36 @@ def test_brute_force_choose_actions():
             max_range=np.inf,
         )}
 
-        for sensor_set in [sensorsA, sensorsB, sensorsC]:
+        sensorsD = {RadarRotatingBearingRange(
+            position_mapping=(0, 2),
+            noise_covar=np.array([[np.radians(0.5) ** 2, 0],
+                                  [0, 0.75 ** 2]]),
+            position=np.array([[0], [0]]),
+            ndim_state=4,
+            rpm=60,
+            fov_angle=np.radians(30),
+            dwell_centre=StateVector([0.0]),
+            max_range=np.inf,
+        )}
+
+        for sensor_set in [sensorsA, sensorsB, sensorsC, sensorsD]:
             for sensor in sensor_set:
                 sensor.timestamp = time_start
 
         sensor_managerA = BruteForceSensorManager(sensorsA, reward_function)
-        sensor_managerB = OptimizeBruteSensorManager(sensorsB, reward_function)
+        sensor_managerB = OptimizeBruteSensorManager(sensorsB, reward_function,
+                                                     full_output=True,
+                                                     finish=True)
         sensor_managerC = OptimizeBasinHoppingSensorManager(sensorsC,
                                                             reward_function)
+        sensor_managerD = OptimizeBruteSensorManager(sensorsD, reward_function,
+                                                     full_output=False,
+                                                     finish=False)
 
         sensor_managers = [sensor_managerA,
                            sensor_managerB,
-                           sensor_managerC]
+                           sensor_managerC,
+                           sensor_managerD]
 
         timesteps = []
         for t in range(3):
