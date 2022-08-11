@@ -4,10 +4,6 @@ img.logo {
 .anim-state label {
     display: inline-block;
 }
-.sphx-glr-thumbcontainer {
-    min-height: 320px !important;
-    margin: 20px !important;
-}
 .sphx-glr-thumbcontainer .figure {
     width: 250px !important;
 }
@@ -16,5 +12,8 @@ img.logo {
     max-width: 250px !important;
 }
 .sphx-glr-thumbcontainer a.internal {
-    padding: 270px 10px 0 !important;
+    padding: 70% 10px 0 !important;
+}
+.sphx-glr-thumbnails{
+    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
 }
