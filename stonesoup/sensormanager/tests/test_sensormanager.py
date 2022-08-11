@@ -131,14 +131,12 @@ def test_uncertainty_based_managers():
                 sensor.timestamp = time_start
 
         sensor_managerA = BruteForceSensorManager(sensorsA, reward_function)
-        sensor_managerB = OptimizeBruteSensorManager(sensorsB, reward_function,
-                                                     generate_full_output=True,
-                                                     finish=True)
+        sensor_managerB = OptimizeBruteSensorManager(sensorsB, reward_function)
         sensor_managerC = OptimizeBasinHoppingSensorManager(sensorsC,
                                                             reward_function)
         sensor_managerD = OptimizeBruteSensorManager(sensorsD, reward_function,
-                                                     generate_full_output=False,
-                                                     finish=False)
+                                                     generate_full_output=True,
+                                                     finish=True)
 
         sensor_managers = [sensor_managerA,
                            sensor_managerB,
@@ -177,3 +175,5 @@ def test_uncertainty_based_managers():
 
     assert all_dwell_centres[0][0] == all_dwell_centres[1][0] == all_dwell_centres[2][0]
     assert all_dwell_centres[0][1] == all_dwell_centres[1][1] == all_dwell_centres[2][1]
+
+    assert isinstance(sensor_managerD.get_full_output(), tuple)
