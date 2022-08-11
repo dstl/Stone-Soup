@@ -132,12 +132,12 @@ def test_uncertainty_based_managers():
 
         sensor_managerA = BruteForceSensorManager(sensorsA, reward_function)
         sensor_managerB = OptimizeBruteSensorManager(sensorsB, reward_function,
-                                                     full_output=True,
+                                                     generate_full_output=True,
                                                      finish=True)
         sensor_managerC = OptimizeBasinHoppingSensorManager(sensorsC,
                                                             reward_function)
         sensor_managerD = OptimizeBruteSensorManager(sensorsD, reward_function,
-                                                     full_output=False,
+                                                     generate_full_output=False,
                                                      finish=False)
 
         sensor_managers = [sensor_managerA,
