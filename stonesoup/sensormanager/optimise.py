@@ -99,6 +99,7 @@ class OptimizeBruteSensorManager(_OptimizeSensorManager):
                        disp=self.disp)
 
         if self.full_output:
+            print('Full output:', result)
             result = result[0]
 
         return np.atleast_1d(result)
