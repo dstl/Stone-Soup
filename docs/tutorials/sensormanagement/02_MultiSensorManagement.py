@@ -138,7 +138,7 @@ for n in range(0, total_no_sensors):
     sensor = RadarRotatingBearingRange(
         position_mapping=(0, 2),
         noise_covar=np.array([[np.radians(0.5) ** 2, 0],
-                              [0, 0.75 ** 2]]),
+                              [0, 1 ** 2]]),
         ndim_state=4,
         position=np.array([[10], [n * 50]]),
         rpm=60,
@@ -156,7 +156,7 @@ for n in range(0, total_no_sensors):
     sensor = RadarRotatingBearingRange(
         position_mapping=(0, 2),
         noise_covar=np.array([[np.radians(0.5) ** 2, 0],
-                              [0, 0.75 ** 2]]),
+                              [0, 1 ** 2]]),
         ndim_state=4,
         position=np.array([[10], [n * 50]]),
         rpm=60,
@@ -194,15 +194,16 @@ updater = ExtendedKalmanUpdater(measurement_model=None)
 from stonesoup.types.state import GaussianState
 
 priors = []
-xdirection = 1.5
-ydirection = 1.5
+xdirection = 1.2
+ydirection = 1.2
 for j in range(0, ntruths):
-    priors.append(GaussianState([[0], [xdirection], [yps[j]+0.5], [ydirection]],
-                                np.diag([1.5, 0.25, 1.5, 0.25]+np.random.normal(0,5e-4,4)),
+    priors.append(GaussianState([[0], [xdirection], [yps[j]+0.1], [ydirection]],
+                                np.diag([0.5, 0.5, 0.5, 0.5]+np.random.normal(0,5e-4,4)),
                                 timestamp=start_time))
     xdirection *= -1
     if j % 2 == 0:
         ydirection *= -1
+
 # %%
 # Initialise the tracks by creating an empty list and appending the priors generated. This needs to be done
 # separately for both sensor manager methods as they will generate different sets of tracks.
