@@ -99,7 +99,6 @@ class OptimizeBruteSensorManager(_OptimizeSensorManager):
                        disp=self.disp)
 
         if self.full_output:
-            print('Full output:', result)
             result = result[0]
 
         return np.atleast_1d(result)
@@ -137,7 +136,7 @@ class OptimizeBasinHoppingSensorManager(_OptimizeSensorManager):
                           doc='Set to True to print status messages.')
     niter_success: int = Property(default=None,
                                   doc='Stop the run if the global minimum candidate '
-                                      'remains the same'
+                                      'remains the same '
                                       'for this number of iterations.')
 
     def _optimiser(self, optimise_func, all_action_generators):
