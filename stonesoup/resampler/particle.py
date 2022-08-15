@@ -8,7 +8,7 @@ from ..types.state import ParticleState
 
 class SystematicResampler(Resampler):
 
-    def resample(self, particles):
+    def resample(self, particles, n_particles=None):
         """Resample the particles
 
         Parameters
@@ -24,7 +24,8 @@ class SystematicResampler(Resampler):
 
         if not isinstance(particles, ParticleState):
             particles = ParticleState(None, particle_list=particles)
-        n_particles = len(particles)
+        if n_particles is None:
+            n_particles = len(particles)
         weight = Probability(1 / n_particles)
 
         log_weights = np.asfarray(np.log(particles.weight))
