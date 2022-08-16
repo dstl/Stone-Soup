@@ -30,10 +30,11 @@ import utm
 
 truthslonlat = CSVGroundTruthReader(
     "OpenSky_Plane_States.csv",
-    state_vector_fields=("lon", "x_speed", "lat", "y_speed"),  # List of columns names to be used in state vector
-    path_id_field="icao24",                                    # Name of column to be used as path ID
-    time_field="time",                                         # Name of column to be used as time field
-    timestamp=True)                                            # Treat time field as a timestamp from epoch
+    state_vector_fields=("lon", "x_speed", "lat", "y_speed",
+                         "geoaltitude", "vertrate"),  # List of columns names to be used in state vector
+    path_id_field="icao24",                           # Name of column to be used as path ID
+    time_field="time",                                # Name of column to be used as time field
+    timestamp=True)                                   # Treat time field as a timestamp from epoch
 
 
 groundtruth = LongLatToUTMConverter(truthslonlat, zone_number=30,  mapping=[0, 2])
@@ -44,18 +45,14 @@ groundtruth = LongLatToUTMConverter(truthslonlat, zone_number=30,  mapping=[0, 2
 # Now we will assemble our sensors used in this demonstration. We’ll introduce 2 stationary radar
 # sensors, and also demonstrate Stone Soup’s ability to model moving sensors.
 #
-# We use :class:`~.RadarRotatingBearingRange` to establish our radar sensors. We set their FOV angle,
-# range and rpm. Because our timestamps in our data are in intervals of 10 seconds, it is a
-# reasonable assumption to have our FOV angle at 360 degrees.
+# We will use :class:`~.RadarElevationBearingRange` to establish our radar sensors.
+# :class:`~.RadarElevationBearingRange` allows us to generate measurements of targets by using
+# a :class:`~.CartesianToElevationBearingRange` model. We proceed to create a :class:`~.Platform`
+# for each stationary sensor, and append these to our list of all platforms.
 #
-# :class:`~.RadarRotatingBearingRange` allows us to generate measurements of targets by using
-# a :class:`~.CartesianToBearingRange` model. We proceed to create a :class:`~.Platform` for
-# each stationary sensor, and append these to our list of all platforms.
-#
-# Our moving sensor will be created the same way as in the stationary case, setting FOV angle,
-# range, rpm etc. We will also need to make a movement controller to
-# control the platform's movement, this is done by creating transition models, as well as
-# setting transition times.
+# Our moving sensor will be created similarly to the stationary case. We will need to
+# make a movement controller to control the platform's movement, this is done by creating
+# transition models, as well as setting transition times.
 #
 # :class:`~.PlatformDetectionSimulator` will then proceed to generate our detection data from
 # the groundtruth (calls each sensor in platforms).
@@ -64,7 +61,7 @@ import datetime
 import numpy as np
 
 from stonesoup.types.array import StateVector
-from stonesoup.sensor.radar import RadarRotatingBearingRange
+from stonesoup.sensor.radar import RadarElevationBearingRange
 from stonesoup.types.state import State
 from stonesoup.platform.base import FixedPlatform, MultiTransitionMovingPlatform
 from stonesoup.simulator.platform import PlatformDetectionSimulator
@@ -87,8 +84,6 @@ transition_modelStraight = CombinedLinearGaussianTransitionModel((ConstantVeloci
 transition_modelLeft = CombinedLinearGaussianTransitionModel((KnownTurnRate((0.01, 0.01),
                                                               np.radians(3)), ConstantVelocity(0.01)))
 
-transition_modelRight = CombinedLinearGaussianTransitionModel((KnownTurnRate((0.01,0.01),
-                                                               np.radians(-3)), ConstantVelocity(0.01)))
 
 # Create specific transition model for example moving platform
 transition_models = [transition_modelStraight,
@@ -97,37 +92,28 @@ transition_times = [datetime.timedelta(seconds=160),
                     datetime.timedelta(seconds=20)]
 
 
-# List sensors in stationary platforms (sensor orientations are overwritten)
+# List sensors in stationary platforms
 stationarySensors = [
-    RadarRotatingBearingRange(
+    RadarElevationBearingRange(
         ndim_state=6,
-        position_mapping=(0, 2),
-        noise_covar=np.diag([np.radians(1)**2, 7**2]),   # The sensor noise covariance matrix
-        dwell_centre=StateVector([[-np.pi]]),
-        rpm=12.5,
-        max_range=100000,
-        fov_angle=np.radians(360)),
+        position_mapping=(0, 2, 4),
+        noise_covar=np.diag([np.radians(1)**2, np.radians(1)**2, 7**2]),
+        max_range=100000),
 
-    RadarRotatingBearingRange(
+    RadarElevationBearingRange(
         ndim_state=6,
-        position_mapping=(0, 2),
-        noise_covar=np.diag([np.radians(1)**2, 7**2]),
-        dwell_centre=StateVector([[-np.pi]]),
-        rpm=12.5,
-        max_range=100000,
-        fov_angle=np.radians(360)),
+        position_mapping=(0, 2, 4),
+        noise_covar=np.diag([np.radians(1)**2, np.radians(1)**2, 7**2]),
+        max_range=100000)
     ]
 
-# List sensors in moving platform (sensor orientations are overwritten)
+# List sensors in moving platform
 movingPlatformSensors = [
-    RadarRotatingBearingRange(
+    RadarElevationBearingRange(
         ndim_state=6,
-        position_mapping=(0, 2),
-        noise_covar=np.diag([np.radians(1.2)**2, 8**2]),
-        dwell_centre=StateVector([0]),
-        rpm=20,
-        max_range=60000,
-        fov_angle=np.radians(360)),
+        position_mapping=(0, 2, 4),
+        noise_covar=np.diag([np.radians(1.2)**2, np.radians(1.2)**2, 8**2]),
+        max_range=60000)
     ]
 
 platforms = []
@@ -141,9 +127,9 @@ for sensor, platformLocation in zip(stationarySensors, (heathrow, manchester)):
 # Create moving platform
 movingPlatformInitialLocation = utm.from_latlon(52.25, -0.9, utm_zone)
 movingPlatformState = State([[movingPlatformInitialLocation[0]], [0],
-                             [movingPlatformInitialLocation[1]], [250], [0], [0]])
+                             [movingPlatformInitialLocation[1]], [250], [5000], [0]])
 movingPlatforms = [MultiTransitionMovingPlatform(movingPlatformState,
-                                                 position_mapping=(0, 2),
+                                                 position_mapping=(0, 2, 4),
                                                  transition_models=transition_models,
                                                  transition_times=transition_times,
                                                  sensors=movingPlatformSensors)]
@@ -159,20 +145,20 @@ detection_sim = PlatformDetectionSimulator(groundtruth, platforms)
 # ---------------------
 # Now it's time to set up our individual components needed to construct our initiator, and
 # ultimately our :class:`~.MultiTargetTracker`. We will be using the Extended Kalman Filter
-# since our sensor model, :class:`~.CartesianToBearingRange`, is not linear.
+# since our sensor model, :class:`~.CartesianToElevationBearingRange`, is not linear.
 #
 # To produce our linear transition model, we combine multiple one dimensional models into one
 # singular model. Notice how we specify a different transition model for our initiator. We then
 # pass these transition models to their respective predictors.
 # The update step calculates the posterior state estimate by using both our prediction and
 # sensor measurement. We don't need to define the measurement model here since the
-# model :class:`~.CartesianToBearingRange` is already provided in the measurements.
+# model :class:`~.CartesianToElevationBearingRange` is already provided in the measurements.
 #
 # The :class:`~.DistanceHypothesiser` generates track predictions at detection times, and
-# scores each hypothesised prediction-detection pair using our set measure of :class:`~.Mahalanobis` distance.
-# We allocate the detections to our predicted states by using the Global Nearest Neighbour method.
-# The :class:`~.UpdateTimeDeleter` will identify the tracks for deletion and delete them once
-# the time since last update has exceeded our specified time.
+# scores each hypothesised prediction-detection pair using our set measure of :class:`~.Mahalanobis`
+# distance. We allocate the detections to our predicted states by using the Global Nearest Neighbour
+# method. The :class:`~.UpdateTimeDeleter` will identify the tracks for deletion and delete them
+# once the time since last update has exceeded our specified time.
 # By having `delete_last_pred = True`, the state that caused a track to be deleted will be deleted
 # (if it is a prediction).
 
@@ -248,9 +234,9 @@ len(tracks)
 # %%
 # Plotting
 # ------------------
-# We will be using the Folium plotting library so we can visualize our tracks on a leaflet map.
-# These Folium markers will show where our stationary sensors are located. Since our FOV angles
-# are 360 degrees, we can easily use a fixed circle to display our radar's coverage.
+# We will be using the Folium plotting library so we can visualize our tracks on a two-dimensional
+# leaflet map. These Folium markers will show where our stationary sensors are located. Since our
+# FOV angles are 360 degrees, we can easily use a fixed circle to display our radar's coverage.
 
 import folium
 
