@@ -25,7 +25,7 @@ setup(name='stonesoup',
       setup_requires=['setuptools_scm', 'setuptools_scm_git_archive'],
       use_scm_version=True,
       install_requires=[
-          'ruamel.yaml>=0.15.45', 'numpy>=1.17', 'scipy', 'matplotlib', 'utm', 'pymap3d', 'ordered-set',
+          'ruamel.yaml>=0.16.5', 'numpy>=1.17', 'scipy', 'matplotlib', 'utm', 'pymap3d', 'ordered-set',
           'setuptools>=42', 'rtree',
       ],
       extras_require={
