@@ -62,6 +62,14 @@ following:
     cd Stone-Soup
     python -m pip install -e .[dev]
 
+If you are using ``zsh``:
+
+.. code::
+
+    git clone "https://github.com/dstl/Stone-Soup.git"
+    cd Stone-Soup
+    python -m pip install -e ".[dev]"
+
 Please also see our :ref:`contributing:Contributing` page.
 
 Contents
