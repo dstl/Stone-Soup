@@ -1,3 +1,4 @@
+import copy
 import datetime
 import uuid
 from collections import abc
@@ -172,6 +173,11 @@ class StateMutableSequence(Type, abc.MutableSequence):
     proxying state attributes to the last state in the sequence. This sequence
     can also be indexed/sliced by :class:`datetime.datetime` instances.
 
+    Notes
+    -----
+    If shallow copying, similar to a list, it is safe to add/remove states
+    without affecting the original sequence.
+
     Example
     -------
     >>> t0 = datetime.datetime(2018, 1, 1, 14, 00)
@@ -260,6 +266,13 @@ class StateMutableSequence(Type, abc.MutableSequence):
                     # If we get the error about 'State' not having the attribute, then we want to
                     # raise the original error instead
                     raise original_error
+
+    def __copy__(self):
+        inst = self.__class__.__new__(self.__class__)
+        inst.__dict__.update(self.__dict__)
+        property_name = self.__class__.states._property_name
+        inst.__dict__[property_name] = copy.copy(self.__dict__[property_name])
+        return inst
 
     def insert(self, index, value):
         return self.states.insert(index, value)
