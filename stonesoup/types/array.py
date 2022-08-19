@@ -194,7 +194,7 @@ class StateVectors(Matrix):
                     state_vector[dim, 0] = type_.average(row, weights=weights)
                 else:
                     # Else use numpy built in, converting to float array
-                    state_vector[dim, 0] = type_(np.average(row, weights=weights))
+                    state_vector[dim, 0] = type_(np.average(np.asfarray(row), weights=weights))
         else:
             return NotImplemented
 
