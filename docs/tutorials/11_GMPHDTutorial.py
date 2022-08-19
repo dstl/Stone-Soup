@@ -179,9 +179,10 @@ for k in range(number_steps):
 # %%
 # Plot the ground truth
 #
-from stonesoup.plotter import Plotter
-plotter = Plotter()
+from stonesoup.plotter import Plotterly
+plotter = Plotterly()
 plotter.plot_ground_truths(truths, [0, 2])
+plotter.fig
 
 
 # %%
@@ -246,7 +247,7 @@ for k in range(number_steps):
 
 
 # Plot true detections and clutter.
-plotter.plot_measurements(all_measurements, [0, 2], color='g')
+plotter.plot_measurements(all_measurements, [0, 2])
 plotter.fig
 
 # %%
@@ -484,12 +485,13 @@ for measurement_set in all_measurements:
 # This ellipse need not cover the entire state space, as long as the distribution does.
 
 # Plot the tracks
-plotter = Plotter()
+plotter = Plotterly()
 plotter.plot_ground_truths(truths, [0, 2])
-plotter.plot_measurements(all_measurements, [0, 2], color='g')
+plotter.plot_measurements(all_measurements, [0, 2])
 plotter.plot_tracks(tracks, [0, 2], uncertainty=True)
-plotter.ax.set_xlim(x_min-5, x_max+5)
-plotter.ax.set_ylim(y_min-5, y_max+5)
+plotter.fig.update_xaxes(range=[x_min-5, x_max+5])
+plotter.fig.update_yaxes(range=[y_min-5, y_max+5])
+plotter.fig
 
 
 # %%

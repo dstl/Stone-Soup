@@ -97,9 +97,10 @@ for k in range(1, 21):
 # %%
 # Set-up plot to render ground truth, as before.
 
-from stonesoup.plotter import Plotter
-plotter = Plotter()
+from stonesoup.plotter import Plotterly
+plotter = Plotterly()
 plotter.plot_ground_truths(truth, [0, 2])
+plotter.fig
 
 # %%
 # Simulate the measurement
@@ -168,7 +169,7 @@ for measurement in measurements:
 # %%
 # And plot
 
-plotter.plot_tracks(track, [0, 2], uncertainty=True, color='r')
+plotter.plot_tracks(track, [0, 2], uncertainty=True)
 plotter.fig
 
 # %%
@@ -266,6 +267,7 @@ ekf_pred_meas = extended_updater.predict_measurement(prediction)
 
 # Plot UKF's predicted measurement distribution
 from matplotlib.patches import Ellipse
+from stonesoup.plotter import Plotter
 w, v = np.linalg.eig(ukf_pred_meas.covar)
 max_ind = np.argmax(w)
 min_ind = np.argmin(w)
@@ -293,7 +295,7 @@ ax.add_artist(ekf_ellipse)
 # Add ellipses to legend
 label_list = ["UKF Prediction", "EKF Prediction"]
 color_list = ['r', 'g']
-plotter.ellipse_legend(ax, label_list, color_list)
+Plotter.ellipse_legend(ax, label_list, color_list)
 fig
 
 # %%

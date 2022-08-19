@@ -213,9 +213,10 @@ for time, ctracks in tracker:
     tracks.update(ctracks)
 
 # %%
-from stonesoup.plotter import Plotter
+from stonesoup.plotter import Plotterly
 
-plotter = Plotter()
+plotter = Plotterly()
 plotter.plot_ground_truths(groundtruth, mapping=[0, 2])
 plotter.plot_measurements(detections, mapping=[0, 2])
 plotter.plot_tracks(tracks, mapping=[0, 2])
+plotter.fig

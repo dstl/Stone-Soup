@@ -93,9 +93,10 @@ for k in range(1, 21):
 # %%
 # Plot this
 
-from stonesoup.plotter import Plotter
-plotter = Plotter()
+from stonesoup.plotter import Plotterly
+plotter = Plotterly()
 plotter.plot_ground_truths(truth, [0, 2])
+plotter.fig
 
 # %%
 # A bearing-range sensor
