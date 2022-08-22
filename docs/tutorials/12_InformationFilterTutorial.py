@@ -56,7 +56,7 @@ for k in range(1,21):
     timestamp=start_time + timedelta(seconds=k)))
     
 # %%
-# Importing the :class:`~.Plotter` class from Stone Soup, we can plot the results.
+# Importing the :class:`~.Plotterly` class from Stone Soup, we can plot the results.
 # Note that the mapping argument is [0, 2] because those are the :math:`x` and :math:`y` position
 # indices from our state vector.
 
@@ -65,9 +65,10 @@ for k in range(1,21):
 # Plotting Ground Truths:
 # ^^^^^^^^^^^^^^^^^^^^^^^
 
-from stonesoup.plotter import Plotter
-plotter = Plotter()
+from stonesoup.plotter import Plotterly
+plotter = Plotterly()
 plotter.plot_ground_truths(truth,[0,2])
+plotter.fig
 
 # %%
 # Taking Measurements:
@@ -102,7 +103,7 @@ for state in truth:
 
 
 # %%
-# We plot the measurements using the Plotter class in Stone Soup. Again specifying the :math:`x`, :math:`y` position
+# We plot the measurements using the Plotterly class in Stone Soup. Again specifying the :math:`x`, :math:`y` position
 # indicies from the state vector.
 
 

@@ -55,10 +55,10 @@ for k in range(20):
         current_truths.add(truth)
         truths.add(truth)
 
-from stonesoup.plotter import Plotter
-plotter = Plotter()
-plotter.ax.set_ylim(-5, 25)
+from stonesoup.plotter import Plotterly
+plotter = Plotterly()
 plotter.plot_ground_truths(truths, [0, 2])
+plotter.fig
 
 # %%
 # Generate Detections and Clutter
@@ -108,7 +108,7 @@ for k in range(20):
     all_measurements.append(measurement_set)
 
 # Plot true detections and clutter.
-plotter.plot_measurements(all_measurements, [0, 2], color='g')
+plotter.plot_measurements(all_measurements, [0, 2])
 plotter.fig
 
 # %%

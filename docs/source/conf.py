@@ -26,6 +26,8 @@ sys.path.insert(0, os.path.abspath('../../'))
 
 from doc_extensions import gallery_scraper, reset_numpy_random_seed
 from sphinx_gallery.sorting import FileNameSortKey
+import plotly.io as pio
+pio.renderers.default = 'sphinx_gallery'
 
 # -- General configuration ------------------------------------------------
 

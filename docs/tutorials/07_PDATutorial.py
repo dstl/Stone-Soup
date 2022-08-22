@@ -111,13 +111,13 @@ for state in truth:
 # %%
 # Plot the ground truth and measurements with clutter.
 
-from stonesoup.plotter import Plotter
-plotter = Plotter()
-plotter.ax.set_ylim(0, 25)
+from stonesoup.plotter import Plotterly
+plotter = Plotterly()
 plotter.plot_ground_truths(truth, [0, 2])
 
 # Plot true detections and clutter.
 plotter.plot_measurements(all_measurements, [0, 2])
+plotter.fig
 
 
 # %%

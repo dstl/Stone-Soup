@@ -120,7 +120,7 @@ def test_plot_sensors():
     )
     plotter3d.plot_sensors(sensor, marker='o', color='red')
     plt.close()
-    assert 'Sensor' in plotter3d.legend_dict
+    assert 'Sensors' in plotter3d.legend_dict
 
 
 def test_empty_tracks():

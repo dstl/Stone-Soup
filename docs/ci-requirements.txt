@@ -1,0 +1,3 @@
+# Additional requirement for CircleCI and Read The Docs
+# Needed to generate thumbnails in Sphinx-Gallery
+kaleido
