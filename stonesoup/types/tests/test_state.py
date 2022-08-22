@@ -1,3 +1,4 @@
+import copy
 import datetime
 
 import numpy as np
@@ -514,6 +515,23 @@ def test_state_mutable_sequence_error_message():
     test_obj.test_property = 5
     with pytest.raises(AttributeError, match="Custom error message"):
         _ = test_obj.complicated_attribute
+
+
+def test_state_mutable_sequence_copy():
+    state_vector = StateVector([[0]])
+    timestamp = datetime.datetime(2018, 1, 1, 14)
+    delta = datetime.timedelta(minutes=1)
+    sequence = StateMutableSequence(
+        [State(state_vector, timestamp=timestamp+delta*n)
+         for n in range(10)])
+
+    sequence2 = copy.copy(sequence)
+
+    assert sequence2.states is not sequence.states
+
+    assert sequence2[-1] is sequence[-1]
+    sequence2.remove(sequence[-1])
+    assert sequence2[-1] is not sequence[-1]
 
 
 def test_from_state():

@@ -95,8 +95,6 @@ class UncertaintyRewardFunction(RewardFunction):
         predicted_tracks = set()
         for track in tracks:
             predicted_track = copy.copy(track)
-            predicted_track.states = copy.copy(predicted_track.states)
-            predicted_track.metadatas = copy.copy(predicted_track.metadatas)
             predicted_track.append(self.predictor.predict(predicted_track, timestamp=metric_time))
             predicted_tracks.add(predicted_track)
 
