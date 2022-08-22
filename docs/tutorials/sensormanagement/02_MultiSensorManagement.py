@@ -102,16 +102,16 @@ for j in range(0, ntruths):
         ydirection *= -1
 
 # %%
-# Plot the ground truths. This is done using the :class:`~.Plotter` class from Stone Soup.
+# Plot the ground truths. This is done using the :class:`~.Plotterly` class from Stone Soup.
 
-from stonesoup.plotter import Plotter
+from stonesoup.plotter import Plotterly
 
 # Stonesoup plotter requires sets not lists
 truths_set = set(truths)
 
-plotter = Plotter()
-plotter.ax.axis('auto')
+plotter = Plotterly()
 plotter.plot_ground_truths(truths_set, [0, 2])
+plotter.fig
 
 # %%
 # Create sensors
@@ -350,10 +350,11 @@ for timestep in timesteps[1:]:
 # Plot ground truths, tracks and uncertainty ellipses for each target. The positions of the sensors are indicated
 # by black x markers.
 
-plotterA = Plotter()
+plotterA = Plotterly()
 plotterA.plot_sensors(sensor_setA)
 plotterA.plot_ground_truths(truths_set, [0, 2])
 plotterA.plot_tracks(set(tracksA), [0, 2], uncertainty=True)
+plotterA.fig
 
 # %%
 # In comparison to Tutorial 1 the performance of the :class:`~.RandomSensorManager` has improved. This is
@@ -419,10 +420,11 @@ for timestep in timesteps[1:]:
 # %%
 # Plot ground truths, tracks and uncertainty ellipses for each target.
 
-plotterB = Plotter()
+plotterB = Plotterly()
 plotterB.plot_sensors(sensor_setB)
 plotterB.plot_ground_truths(truths_set, [0, 2])
 plotterB.plot_tracks(set(tracksB), [0, 2], uncertainty=True)
+plotterB.fig
 
 # %%
 # The smaller uncertainty ellipses in this plot suggest that the :class:`~.BruteForceSensorManager` provides a much

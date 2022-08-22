@@ -95,16 +95,16 @@ for j in range(0, ntruths):
         ydirection *= -1
 
 # %%
-# Plot the ground truths. This is done using the :class:`~.Plotter` class from Stone Soup.
+# Plot the ground truths. This is done using the :class:`~.Plotterly` class from Stone Soup.
 
-from stonesoup.plotter import Plotter
+from stonesoup.plotter import Plotterly
 
 # Stonesoup plotter requires sets not lists
 truths_set = set(truths)
 
-plotter = Plotter()
-plotter.ax.axis('auto')
+plotter = Plotterly()
 plotter.plot_ground_truths(truths_set, [0, 2])
+plotter.fig
 
 # %%
 # Create sensors
@@ -359,10 +359,11 @@ cell_run_time1 = round(time.time() - cell_start_time1, 2)
 # Plot ground truths, tracks and uncertainty ellipses for each target. The positions of the sensors are indicated
 # by black x markers.
 
-plotterA = Plotter()
+plotterA = Plotterly()
 plotterA.plot_sensors(sensor_setA)
 plotterA.plot_ground_truths(truths_set, [0, 2])
 plotterA.plot_tracks(set(tracksA), [0, 2], uncertainty=True)
+plotterA.fig
 
 # %%
 # The resulting plot is exactly the same as Tutorial 2.
@@ -409,10 +410,11 @@ cell_run_time2 = round(time.time() - cell_start_time2, 2)
 # %%
 # Plot ground truths, tracks and uncertainty ellipses for each target.
 
-plotterB = Plotter()
+plotterB = Plotterly()
 plotterB.plot_sensors(sensor_setB)
 plotterB.plot_ground_truths(truths_set, [0, 2])
 plotterB.plot_tracks(set(tracksB), [0, 2], uncertainty=True)
+plotterB.fig
 
 # %%
 # Run optimised basin hopping sensor manager
@@ -456,10 +458,11 @@ cell_run_time3 = round(time.time() - cell_start_time3, 2)
 # %%
 # Plot ground truths, tracks and uncertainty ellipses for each target.
 
-plotterC = Plotter()
+plotterC = Plotterly()
 plotterC.plot_sensors(sensor_setC)
 plotterC.plot_ground_truths(truths_set, [0, 2])
 plotterC.plot_tracks(set(tracksC), [0, 2], uncertainty=True)
+plotterC.fig
 
 # %%
 # At first glance, the plots for each of the optimised sensor managers show a very
