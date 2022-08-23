@@ -163,9 +163,9 @@ class Plotter(_Plotter):
         Parameters
         ----------
         truths : Collection of :class:`~.GroundTruthPath`
-            Set of  ground truths which will be plotted. If not a set, and instead a single
-            :class:`~.GroundTruthPath` type, the argument is modified to be a set to allow for
-            iteration.
+            Collection of  ground truths which will be plotted. If not a collection and instead a
+            single :class:`~.GroundTruthPath` type, the argument is modified to be a set to allow
+            for iteration.
         mapping: list
             List of items specifying the mapping of the position components of the state space.
         \\*\\*kwargs: dict
@@ -174,7 +174,8 @@ class Plotter(_Plotter):
 
         truths_kwargs = dict(linestyle="--")
         truths_kwargs.update(kwargs)
-        if not isinstance(truths, Collection):
+        if not isinstance(truths, Collection) or isinstance(truths, StateMutableSequence):
+            print("this executes")
             truths = {truths}  # Make a set of length 1
 
         for truth in truths:
@@ -274,7 +275,7 @@ class Plotter(_Plotter):
         Parameters
         ----------
         tracks : Collection of :class:`~.Track`
-            Set of tracks which will be plotted. If not a set, and instead a single
+            Collection of tracks which will be plotted. If not a collection, and instead a single
             :class:`~.Track` type, the argument is modified to be a set to allow for iteration.
         mapping: list
             List of items specifying the mapping of the position
@@ -295,7 +296,7 @@ class Plotter(_Plotter):
 
         tracks_kwargs = dict(linestyle='-', marker=".", color=None)
         tracks_kwargs.update(kwargs)
-        if not isinstance(tracks, Collection):
+        if not isinstance(tracks, Collection) or isinstance(tracks, StateMutableSequence):
             tracks = {tracks}  # Make a set of length 1
 
         # Plot tracks
@@ -591,16 +592,16 @@ class Plotterly(_Plotter):
         Parameters
         ----------
         truths : Collection of :class:`~.GroundTruthPath`
-            Set of  ground truths which will be plotted. If not a set, and instead a single
-            :class:`~.GroundTruthPath` type, the argument is modified to be a set to allow for
-            iteration.
+            Collection of  ground truths which will be plotted. If not a collection,
+            and instead a single :class:`~.GroundTruthPath` type, the argument is modified to be a
+            set to allow for iteration.
         mapping: list
             List of items specifying the mapping of the position components of the state space.
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function. Default is
             ``line=dict(dash="dash")``.
         """
-        if not isinstance(truths, Collection):
+        if not isinstance(truths, Collection) or isinstance(truths, StateMutableSequence):
             truths = {truths}
 
         truths_kwargs = dict(
@@ -712,7 +713,7 @@ class Plotterly(_Plotter):
         Parameters
         ----------
         tracks : Collection of :class:`~.Track`
-            Set of tracks which will be plotted. If not a set, and instead a single
+            Collection of tracks which will be plotted. If not a collection, and instead a single
             :class:`~.Track` type, the argument is modified to be a set to allow for iteration.
         mapping: list
             List of items specifying the mapping of the position
@@ -726,7 +727,7 @@ class Plotterly(_Plotter):
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function.
         """
-        if not isinstance(tracks, Collection) and not isinstance(tracks, StateMutableSequence):
+        if not isinstance(tracks, Collection) or isinstance(tracks, StateMutableSequence):
             tracks = {tracks}  # Make a set of length 1
 
         # Plot tracks

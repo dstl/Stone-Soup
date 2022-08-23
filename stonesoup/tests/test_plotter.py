@@ -22,9 +22,10 @@ from stonesoup.hypothesiser.distance import DistanceHypothesiser
 from stonesoup.measures import Mahalanobis
 
 from stonesoup.dataassociator.neighbour import NearestNeighbour
-from stonesoup.types.state import GaussianState, State
+from stonesoup.types.state import GaussianState, State, StateMutableSequence
 
 from stonesoup.types.track import Track
+from typing import Collection
 
 start_time = datetime.now()
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),
@@ -168,5 +169,10 @@ def test_equal_3daxis_2d():
     plotter = Plotter(dimension=Dimension.TWO)
     truths = GroundTruthPath(states=[State(state_vector=[-1000, -20, -3]),
                                      State(state_vector=[1000, 20, 3])])
+    print(isinstance(truths, Collection))
+    print(isinstance(truths, StateMutableSequence))
+    print(type(truths))
+    for truth in truths:
+        print(type(truth))
     plotter.plot_ground_truths(truths, mapping=[0, 1])
     plotter.set_equal_3daxis()
