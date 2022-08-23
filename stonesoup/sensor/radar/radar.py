@@ -39,16 +39,16 @@ class RadarBearingRange(Sensor):
         doc="Number of state dimensions. This is utilised by (and follows in format) "
             "the underlying :class:`~.CartesianToBearingRange` model")
     position_mapping: Tuple[int, int] = Property(
-        doc="Mapping between the targets state space and the sensors "
+        doc="Mapping between the targets' state space and the sensor's "
             "measurement capability")
     noise_covar: CovarianceMatrix = Property(
         doc="The sensor noise covariance matrix. This is utilised by "
-            "(and follow in format) the underlying "
+            "(and follows in format) the underlying "
             ":class:`~.CartesianToBearingRange` model")
     clutter_model: ClutterModel = Property(
         default=None,
         doc="An optional clutter generator that adds a set of simulated "
-            ":class:`Clutter` ojects to the measurements at each time step. "
+            ":class:`Clutter` objects to the measurements at each time step. "
             "The clutter is simulated according to the provided distribution.")
     max_range: float = Property(
         default=np.inf,
