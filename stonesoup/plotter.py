@@ -175,7 +175,6 @@ class Plotter(_Plotter):
         truths_kwargs = dict(linestyle="--")
         truths_kwargs.update(kwargs)
         if not isinstance(truths, Collection) or isinstance(truths, StateMutableSequence):
-            print("this executes")
             truths = {truths}  # Make a set of length 1
 
         for truth in truths:
