@@ -39,7 +39,7 @@ class RadarBearingRange(Sensor):
         doc="Number of state dimensions. This is utilised by (and follows in format) "
             "the underlying :class:`~.CartesianToBearingRange` model")
     position_mapping: Tuple[int, int] = Property(
-        doc="Mapping between the targets' state space and the sensor's "
+        doc="Mapping between the target's state space and the sensor's "
             "measurement capability")
     noise_covar: CovarianceMatrix = Property(
         doc="The sensor noise covariance matrix. This is utilised by "
@@ -206,7 +206,7 @@ class RadarElevationBearingRange(RadarBearingRange):
             "the underlying :class:`~.CartesianToBearingRange` model")
     noise_covar: CovarianceMatrix = Property(
         doc="The sensor noise covariance matrix. This is utilised by "
-            "(and follow in format) the underlying "
+            "(and follows in format) the underlying "
             ":class:`~.CartesianToElevationBearingRange` model")
     max_range: float = Property(
         default=np.inf,
@@ -267,7 +267,7 @@ class RadarBearingRangeRate(RadarBearingRange):
 
     Note
     ----
-    This class implementation assuming at 3D cartesian space, it therefore\
+    This class implementation assumes a 3D cartesian space and therefore\
      expects a 6D state space.
 
     """
@@ -281,7 +281,7 @@ class RadarBearingRangeRate(RadarBearingRange):
             "the underlying :class:`~.CartesianToBearingRangeRate` model")
     noise_covar: CovarianceMatrix = Property(
         doc="The sensor noise covariance matrix. This is utilised by "
-            "(and follow in format) the underlying "
+            "(and follows in format) the underlying "
             ":class:`~.CartesianToBearingRangeRate` model")
 
     @property
@@ -332,7 +332,7 @@ class RadarElevationBearingRangeRate(RadarBearingRangeRate):
             "the underlying :class:`~.CartesianToElevationBearingRangeRate` model")
     noise_covar: CovarianceMatrix = Property(
         doc="The sensor noise covariance matrix. This is utilised by "
-            "(and follow in format) the underlying "
+            "(and follows in format) the underlying "
             ":class:`~.CartesianToElevationBearingRangeRate` model")
 
     @property
@@ -377,7 +377,7 @@ class RadarRasterScanBearingRange(RadarRotatingBearingRange):
 
     Note
     ----
-    This class implementation assuming at 3D cartesian space, it therefore\
+    This class implementation assumes a 3D cartesian space and therefore \
      expects a 6D state space.
 
     """
@@ -496,7 +496,7 @@ class AESARadar(Sensor):
         doc="Mapping between or positions and state "
             "dimensions. [x,y,z]")
     measurement_model: MeasurementModel = Property(
-        doc="The Measurement model used to generate "
+        doc="The measurement model used to generate "
             "measurements.")
     beam_shape: BeamShape = Property(
         doc="Object describing the shape of the beam.")
@@ -507,7 +507,7 @@ class AESARadar(Sensor):
     number_pulses: int = Property(
         default=1, doc="The number of pulses in the radar burst.")
     duty_cycle: float = Property(
-        doc="Duty cycle is the fraction of the time the radar it transmitting.")
+        doc="Duty cycle is the fraction of the time the radar is transmitting.")
     band_width: float = Property(
         doc="Bandwidth of the receiver in hertz.")
     receiver_noise: float = Property(
@@ -515,7 +515,7 @@ class AESARadar(Sensor):
     frequency: float = Property(
         doc="Transmitted frequency in hertz.")
     antenna_gain: float = Property(
-        doc="Total Antenna gain in decibels.")
+        doc="Total antenna gain in decibels.")
     beam_width: float = Property(
         doc="Radar beam width in radians.")
     loss: float = Property(
@@ -528,7 +528,7 @@ class AESARadar(Sensor):
             "distribution of the Swerling 1 case.")
     rcs: float = Property(
         default=None,
-        doc="The radar cross section of targets in meters squared. Used if rcs not present on "
+        doc="The radar cross section of targets in meters squared. Used if RCS not present on "
             "truth. Default `None`, where 'rcs' must be present on truth.")
     probability_false_alarm: Probability = Property(
         default=1e-6, doc="Probability of false alarm used in the North's approximation")
