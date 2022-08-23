@@ -247,7 +247,7 @@ ax.plot(data[:, 0].ravel()+noise[:, 0],
         marker=".",
         markersize=1.5,
         alpha=0.4,
-        label="Measurements")
+        label="Particles")
 ax.legend()
 
 # %%
