@@ -22,10 +22,9 @@ from stonesoup.hypothesiser.distance import DistanceHypothesiser
 from stonesoup.measures import Mahalanobis
 
 from stonesoup.dataassociator.neighbour import NearestNeighbour
-from stonesoup.types.state import GaussianState, State, StateMutableSequence
+from stonesoup.types.state import GaussianState, State
 
 from stonesoup.types.track import Track
-from typing import Collection
 
 start_time = datetime.now()
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),
