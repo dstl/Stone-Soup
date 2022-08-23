@@ -691,7 +691,7 @@ class Plotterly(_Plotter):
             )
 
     def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, track_label="Tracks",
-                    **kwargs):
+                    ellipse_points=30, **kwargs):
         """Plots track(s)
 
         Plots each track generated, generating a legend automatically. If ``uncertainty=True``
@@ -714,6 +714,8 @@ class Plotterly(_Plotter):
             If True, function plots particles.
         track_label: str
             Label to apply to all tracks for legend.
+        ellipse_points: int
+            Number of points for polygon approximating ellipse shape
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function.
         """
@@ -764,7 +766,7 @@ class Plotterly(_Plotter):
                     legendgroup=name, name=name,
                     legendrank=track_kwargs['legendrank'] + 10)
                 for state in track:
-                    points = self._generate_ellipse_points(state, mapping)
+                    points = self._generate_ellipse_points(state, mapping, ellipse_points)
                     if add_legend:
                         ellipse_kwargs['showlegend'] = True
                         add_legend = False
@@ -791,7 +793,7 @@ class Plotterly(_Plotter):
                     self.fig.add_scattergl(x=data[0], y=data[1], **particle_kwargs)
 
     @staticmethod
-    def _generate_ellipse_points(state, mapping):
+    def _generate_ellipse_points(state, mapping, n_points=30):
         """Generate error ellipse points for given state and mapping"""
         HH = np.eye(state.ndim)[mapping, :]  # Get position mapping matrix
         w, v = np.linalg.eig(HH @ state.covar @ HH.T)
@@ -811,7 +813,6 @@ class Plotterly(_Plotter):
         c = 4 * a * func2(np.pi / 2)
 
         points = []
-        n_points = 60
         for n in range(n_points):
             def func3(x):
                 return n/n_points*c - a*func2(x)
