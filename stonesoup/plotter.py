@@ -290,10 +290,10 @@ class Plotter(_Plotter):
             error bars are plotted at every track step.
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function. Defaults are ``linestyle="-"``,
-            ``marker='.'`` and ``color=None``.
+            ``marker='s'`` for :class:`~.Update` and ``marker='o'`` for other states.
         """
 
-        tracks_kwargs = dict(linestyle='-', marker=".", color=None)
+        tracks_kwargs = dict(linestyle='-', marker="s", color=None)
         tracks_kwargs.update(kwargs)
         if not isinstance(tracks, Collection) or isinstance(tracks, StateMutableSequence):
             tracks = {tracks}  # Make a set of length 1
@@ -301,26 +301,28 @@ class Plotter(_Plotter):
         # Plot tracks
         track_colors = {}
         for track in tracks:
-            try:
-                if self.dimension is Dimension.TWO:
-                    line = self.ax.plot([state.mean[mapping[0]] for state in track],
-                                        [state.mean[mapping[1]] for state in track],
-                                        **tracks_kwargs)
+            # Get indexes for Update and non-Update states for styling markers
+            update_indexes = []
+            not_update_indexes = []
+            for n, state in enumerate(track):
+                if isinstance(state, Update):
+                    update_indexes.append(n)
                 else:
-                    line = self.ax.plot([state.mean[mapping[0]] for state in track],
-                                        [state.mean[mapping[1]] for state in track],
-                                        [state.mean[mapping[2]] for state in track],
-                                        **tracks_kwargs)
-            except AttributeError:
-                if self.dimension is Dimension.TWO:
-                    line = self.ax.plot([state.state_vector[mapping[0]] for state in track],
-                                        [state.state_vector[mapping[1]] for state in track],
-                                        **tracks_kwargs)
-                else:
-                    line = self.ax.plot([state.state_vector[mapping[0]] for state in track],
-                                        [state.state_vector[mapping[1]] for state in track],
-                                        [state.state_vector[mapping[2]] for state in track],
-                                        **tracks_kwargs)
+                    not_update_indexes.append(n)
+
+            data = np.array(
+                [(getattr(state, 'mean', state.state_vector)[mapping, :])
+                 for state in track]).squeeze().T
+
+            line = self.ax.plot(
+                *data,
+                markevery=update_indexes,
+                **tracks_kwargs)
+            if not_update_indexes:
+                self.ax.plot(
+                    *data[:, not_update_indexes],
+                    marker="o" if "marker" not in kwargs else kwargs['marker'],
+                    color=plt.getp(line[0], 'color'))
             track_colors[track] = plt.getp(line[0], 'color')
 
         if tracks:  # If no tracks `line` won't be defined
