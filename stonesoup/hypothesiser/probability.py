@@ -7,6 +7,7 @@ import numpy as np
 
 from .base import Hypothesiser
 from ..base import Property
+from ..measures import SquaredMahalanobis
 from ..types.detection import MissedDetection
 from ..types.hypothesis import SingleProbabilityHypothesis
 from ..types.multihypothesis import MultipleHypothesis
@@ -123,6 +124,7 @@ class PDAHypothesiser(Hypothesiser):
 
         hypotheses = list()
         validated_measurements = 0
+        measure = SquaredMahalanobis(state_covar_inv_cache_size=None)
 
         # Common state & measurement prediction
         prediction = self.predictor.predict(track, timestamp=timestamp, **kwargs)
@@ -150,7 +152,8 @@ class PDAHypothesiser(Hypothesiser):
                 cov=measurement_prediction.covar)
             pdf = Probability(log_pdf, log_value=True)
 
-            if self._is_valid_measurement(measurement_prediction, detection):
+            if measure(measurement_prediction, detection) \
+                    <= self._gate_threshold(self.prob_gate, measurement_prediction.ndim):
                 validated_measurements += 1
                 valid_measurement = True
             else:
@@ -177,11 +180,6 @@ class PDAHypothesiser(Hypothesiser):
 
         return MultipleHypothesis(hypotheses, normalise=True, total_weight=1)
 
-    def _is_valid_measurement(self, meas_pred, det):
-        z = meas_pred.state_vector - det.state_vector
-        return \
-            z.T@self._inv_cov(meas_pred)@z <= self._gate_threshold(self.prob_gate, meas_pred.ndim)
-
     @classmethod
     @lru_cache()
     def _validation_region_volume(cls, prob_gate, meas_pred):
@@ -189,11 +187,6 @@ class PDAHypothesiser(Hypothesiser):
         gate_threshold = cls._gate_threshold(prob_gate, n)
         c_z = np.pi**(n/2) / gamma(n/2 + 1)
         return c_z * gate_threshold**(n/2) * np.sqrt(det(meas_pred.covar))
-
-    @staticmethod
-    @lru_cache()
-    def _inv_cov(meas_pred):
-        return np.linalg.inv(meas_pred.covar)
 
     @staticmethod
     @lru_cache()
