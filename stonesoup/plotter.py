@@ -726,7 +726,9 @@ class Plotterly(_Plotter):
         track_label: str
             Label to apply to all tracks for legend.
         \\*\\*kwargs: dict
-            Additional arguments to be passed to scatter function.
+            Additional arguments to be passed to scatter function. Defaults are
+            ``marker=dict(symbol='square')`` for :class:`~.Update` and
+            ``marker=dict(symbol='circle')`` for other states.
         """
         if not isinstance(tracks, Collection) or isinstance(tracks, StateMutableSequence):
             tracks = {tracks}  # Make a set of length 1
@@ -747,8 +749,9 @@ class Plotterly(_Plotter):
             else:
                 scatter_kwargs['showlegend'] = False
             scatter_kwargs['marker'] = scatter_kwargs.get('marker', {}).copy()
-            scatter_kwargs['marker']['symbol'] = [
-                'square' if isinstance(state, Update) else 'circle' for state in track]
+            if 'symbol' not in scatter_kwargs['marker']:
+                scatter_kwargs['marker']['symbol'] = [
+                    'square' if isinstance(state, Update) else 'circle' for state in track]
 
             self.fig.add_scatter(
                 x=[getattr(state, 'mean', state.state_vector)[mapping[0]] for state in track],
