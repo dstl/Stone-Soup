@@ -1,6 +1,7 @@
 import warnings
 from abc import ABC, abstractmethod
 from itertools import chain
+from typing import Collection
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -17,7 +18,7 @@ except ImportError:
 
 from .types import detection
 from .types.groundtruth import GroundTruthPath
-from .types.state import State
+from .types.state import State, StateMutableSequence
 from .types.update import Update
 
 from .models.base import LinearModel, Model
@@ -161,10 +162,10 @@ class Plotter(_Plotter):
 
         Parameters
         ----------
-        truths : set of :class:`~.GroundTruthPath`
-            Set of  ground truths which will be plotted. If not a set, and instead a single
-            :class:`~.GroundTruthPath` type, the argument is modified to be a set to allow for
-            iteration.
+        truths : Collection of :class:`~.GroundTruthPath`
+            Collection of  ground truths which will be plotted. If not a collection and instead a
+            single :class:`~.GroundTruthPath` type, the argument is modified to be a set to allow
+            for iteration.
         mapping: list
             List of items specifying the mapping of the position components of the state space.
         \\*\\*kwargs: dict
@@ -173,7 +174,7 @@ class Plotter(_Plotter):
 
         truths_kwargs = dict(linestyle="--")
         truths_kwargs.update(kwargs)
-        if not isinstance(truths, set):
+        if not isinstance(truths, Collection) or isinstance(truths, StateMutableSequence):
             truths = {truths}  # Make a set of length 1
 
         for truth in truths:
@@ -207,7 +208,7 @@ class Plotter(_Plotter):
 
         Parameters
         ----------
-        measurements : list of :class:`~.Detection`
+        measurements : Collection of :class:`~.Detection`
             Detections which will be plotted. If measurements is a set of lists it is flattened.
         mapping: list
             List of items specifying the mapping of the position components of the state space.
@@ -221,6 +222,9 @@ class Plotter(_Plotter):
 
         measurement_kwargs = dict(marker='o', color='b')
         measurement_kwargs.update(kwargs)
+
+        if not isinstance(measurements, Collection):
+            measurements = {measurements}  # Make a set of length 1
 
         if any(isinstance(item, set) for item in measurements):
             measurements_set = chain.from_iterable(measurements)  # Flatten into one set
@@ -269,8 +273,8 @@ class Plotter(_Plotter):
 
         Parameters
         ----------
-        tracks : set of :class:`~.Track`
-            Set of tracks which will be plotted. If not a set, and instead a single
+        tracks : Collection of :class:`~.Track`
+            Collection of tracks which will be plotted. If not a collection, and instead a single
             :class:`~.Track` type, the argument is modified to be a set to allow for iteration.
         mapping: list
             List of items specifying the mapping of the position
@@ -291,7 +295,7 @@ class Plotter(_Plotter):
 
         tracks_kwargs = dict(linestyle='-', marker=".", color=None)
         tracks_kwargs.update(kwargs)
-        if not isinstance(tracks, set):
+        if not isinstance(tracks, Collection) or isinstance(tracks, StateMutableSequence):
             tracks = {tracks}  # Make a set of length 1
 
         # Plot tracks
@@ -411,7 +415,7 @@ class Plotter(_Plotter):
 
         Parameters
         ----------
-        sensors : list of :class:`~.Sensor`
+        sensors : Collection of :class:`~.Sensor`
             Sensors to plot
         sensor_label: str
             Label to apply to all tracks for legend.
@@ -423,7 +427,7 @@ class Plotter(_Plotter):
         sensor_kwargs = dict(marker='x', color='black')
         sensor_kwargs.update(kwargs)
 
-        if not isinstance(sensors, set):
+        if not isinstance(sensors, Collection):
             sensors = {sensors}  # Make a set of length 1
 
         for sensor in sensors:
@@ -586,18 +590,18 @@ class Plotterly(_Plotter):
 
         Parameters
         ----------
-        truths : set of :class:`~.GroundTruthPath`
-            Set of  ground truths which will be plotted. If not a set, and instead a single
-            :class:`~.GroundTruthPath` type, the argument is modified to be a set to allow for
-            iteration.
+        truths : Collection of :class:`~.GroundTruthPath`
+            Collection of  ground truths which will be plotted. If not a collection,
+            and instead a single :class:`~.GroundTruthPath` type, the argument is modified to be a
+            set to allow for iteration.
         mapping: list
             List of items specifying the mapping of the position components of the state space.
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function. Default is
             ``line=dict(dash="dash")``.
         """
-        if not isinstance(truths, set):
-            truths = {truths}  # Make a set of length 1
+        if not isinstance(truths, Collection) or isinstance(truths, StateMutableSequence):
+            truths = {truths}
 
         truths_kwargs = dict(
             mode="lines", line=dict(dash="dash"), legendgroup=truths_label, legendrank=100,
@@ -631,22 +635,27 @@ class Plotterly(_Plotter):
 
         Parameters
         ----------
-        measurements : list of :class:`~.Detection`
+        measurements : Collection of :class:`~.Detection`
             Detections which will be plotted. If measurements is a set of lists it is flattened.
         mapping: list
             List of items specifying the mapping of the position components of the state space.
         measurement_model : :class:`~.Model`, optional
             User-defined measurement model to be used in finding measurement state inverses if
             they cannot be found from the measurements themselves.
+        measurements_label : str
+            Label for the measurements.  Default is "Measurements".
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function for detections. Defaults are
             ``marker=dict(color="#636EFA")``.
         """
 
+        if not isinstance(measurements, Collection):
+            measurements = {measurements}
+
         if any(isinstance(item, set) for item in measurements):
             measurements_set = chain.from_iterable(measurements)  # Flatten into one set
         else:
-            measurements_set = measurements
+            measurements_set = set(measurements)
 
         plot_detections, plot_clutter = self._conv_measurements(measurements_set,
                                                                 mapping,
@@ -702,8 +711,8 @@ class Plotterly(_Plotter):
 
         Parameters
         ----------
-        tracks : set of :class:`~.Track`
-            Set of tracks which will be plotted. If not a set, and instead a single
+        tracks : Collection of :class:`~.Track`
+            Collection of tracks which will be plotted. If not a collection, and instead a single
             :class:`~.Track` type, the argument is modified to be a set to allow for iteration.
         mapping: list
             List of items specifying the mapping of the position
@@ -717,7 +726,7 @@ class Plotterly(_Plotter):
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function.
         """
-        if not isinstance(tracks, set):
+        if not isinstance(tracks, Collection) or isinstance(tracks, StateMutableSequence):
             tracks = {tracks}  # Make a set of length 1
 
         # Plot tracks
@@ -833,7 +842,7 @@ class Plotterly(_Plotter):
 
         Parameters
         ----------
-        sensors : list of :class:`~.Sensor`
+        sensors : Collection of :class:`~.Sensor`
             Sensors to plot
         sensor_label: str
             Label to apply to all tracks for legend.
@@ -841,8 +850,9 @@ class Plotterly(_Plotter):
             Additional arguments to be passed to scatter function for detections. Defaults are
             ``marker=dict(symbol='x', color='black')``.
         """
-        if not isinstance(sensors, set):
-            sensors = {sensors}  # Make a set of length 1
+
+        if not isinstance(sensors, Collection):
+            sensors = {sensors}
 
         sensor_kwargs = dict(mode='markers', marker=dict(symbol='x', color='black'),
                              legendgroup=sensor_label, legendrank=50)

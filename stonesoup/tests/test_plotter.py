@@ -102,6 +102,11 @@ def test_measurement_clutter():  # no clutter should be plotted
     assert 'Clutter' not in plotter.legend_dict
 
 
+def test_single_measurement():  # A single measurement outside of a Collection should still run
+    plotter.plot_measurements(all_measurements[0], [0, 2])
+    plt.close()
+
+
 def test_particle_3d():  # warning should arise if particle is attempted in 3d mode
     plotter3 = Plotter(dimension=Dimension.THREE)
 
