@@ -137,7 +137,6 @@ class PDAHypothesiser(Hypothesiser):
 
         # True detection hypotheses
         for detection in detections:
-            valid_measurement = False
             # Re-evaluate prediction
             prediction = self.predictor.predict(
                 track, timestamp=detection.timestamp, **kwargs)
@@ -154,14 +153,13 @@ class PDAHypothesiser(Hypothesiser):
             if self._is_valid_measurement(measurement_prediction, detection):
                 validated_measurements += 1
                 valid_measurement = True
+            else:
+                # Will be gated out unless include_all is set
+                valid_measurement = False
 
             if self.include_all or valid_measurement:
                 probability = pdf * self.prob_detect
-                if self.clutter_spatial_density is None:
-                    # Note: will divide by validated measurements count later...
-                    probability *= self._validation_region_volume(
-                        self.prob_gate, measurement_prediction)
-                else:
+                if self.clutter_spatial_density is not None:
                     probability /= self.clutter_spatial_density
 
                 # True detection hypothesis
@@ -174,7 +172,8 @@ class PDAHypothesiser(Hypothesiser):
 
         if self.clutter_spatial_density is None:
             for hypothesis in hypotheses[1:]:  # Skip missed detection
-                hypothesis.probability /= validated_measurements
+                hypothesis.probability *= self._validation_region_volume(
+                    self.prob_gate, hypothesis.measurement_prediction) / validated_measurements
 
         return MultipleHypothesis(hypotheses, normalise=True, total_weight=1)
 
