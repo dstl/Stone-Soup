@@ -177,6 +177,8 @@ for measurement in measurements:
 # ^^^^^^^^^
 # Plotting the resulting track, including uncertainty ellipses.
 
+# sphinx_gallery_thumbnail_number = 3
+
 plotter.plot_tracks(track,[0,2],uncertainty=True)
 plotter.fig
 
