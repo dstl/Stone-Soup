@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """
-================================================================
-12 - Information filter tutorial
-================================================================
+===========================
+Information filter tutorial
+===========================
 """
 
 # %%
@@ -177,6 +176,8 @@ for measurement in measurements:
 # Plotting:
 # ^^^^^^^^^
 # Plotting the resulting track, including uncertainty ellipses.
+
+# sphinx_gallery_thumbnail_number = 3
 
 plotter.plot_tracks(track,[0,2],uncertainty=True)
 plotter.fig
