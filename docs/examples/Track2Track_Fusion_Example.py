@@ -461,7 +461,7 @@ hypothesiser = GaussianMixtureHypothesiser(base_hypothesiser, order_by_detection
 # The states tend to have low weights when they are first initialized using this method, so we will
 # keep the pruning threshold low.
 ch_reducer = GaussianMixtureReducer(
-    prune_threshold=1E-9,
+    prune_threshold=1E-10,
     pruning=True,
     merge_threshold=200,
     merging=True
