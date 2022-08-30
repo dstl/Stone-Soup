@@ -183,7 +183,7 @@ class CompoundTimeRange(Type):
         for component in self.time_ranges:
             key_times.add(component.start_timestamp)
             key_times.add(component.end_timestamp)
-        return sorted(list(key_times))
+        return sorted(key_times)
 
     def _remove_overlap(self):
         """Removes overlap between components of time_ranges"""

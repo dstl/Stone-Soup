@@ -24,23 +24,28 @@ def test_multi_deconfliction():
 
     assoc1 = TimeRangeAssociation({tracks[0], tracks[1]}, time_range=ranges[0])
     assoc2 = TimeRangeAssociation({tracks[2], tracks[3]}, time_range=ranges[0])
+    assoc3 = TimeRangeAssociation({tracks[0], tracks[3]},
+                                  time_range=CompoundTimeRange([ranges[0], ranges[4]]))
+    assoc4 = TimeRangeAssociation({tracks[0], tracks[1]},
+                                  time_range=CompoundTimeRange([ranges[1], ranges[4]]))
+    # Will fail as there is only one track, rather than two
     assoc_fail = TimeRangeAssociation({tracks[0]}, time_range=ranges[0])
     with pytest.raises(ValueError):
         multidimensional_deconfliction(AssociationSet({assoc_fail, assoc1, assoc2}))
 
-    # Objects do not conflict, so should do nothing
+    #  Objects do not conflict, so should do nothing
     test2 = AssociationSet({assoc1, assoc2})
     assert multidimensional_deconfliction(test2).associations == {assoc1, assoc2}
 
     # Objects do conflict, so remove the shorter one
-    assoc3 = TimeRangeAssociation({tracks[0], tracks[3]},
-                                  time_range=CompoundTimeRange([ranges[0], ranges[4]]))
     test3 = AssociationSet({assoc1, assoc3})
     # Should entirely remove assoc1
-    assert multidimensional_deconfliction(test3).associations == {assoc3}
+    tested3 = multidimensional_deconfliction(test3)
+    assert len(tested3) == 1
+    test_assoc3 = next(iter(tested3.associations))
+    for var in vars(test_assoc3):
+        assert getattr(test_assoc3, var) == getattr(assoc3, var)
 
-    assoc4 = TimeRangeAssociation({tracks[0], tracks[1]},
-                                  time_range=CompoundTimeRange([ranges[1], ranges[4]]))
     test4 = AssociationSet({assoc1, assoc2, assoc3, assoc4})
     # assoc1 and assoc4 should merge together, assoc3 should be removed, and assoc2 should remain
     tested4 = multidimensional_deconfliction(test4)

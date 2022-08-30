@@ -345,14 +345,10 @@ def multidimensional_deconfliction(association_set):
     : :class:`AssociationSet`
         The association set without contradictory associations
     """
-    # Check if there are any conflicts
-    no_conflicts = True
-    for assoc1 in association_set:
-        for assoc2 in association_set:
-            if conflicts(assoc1, assoc2):
-                no_conflicts = False
-    if no_conflicts:
+    # Check if there are any conflicts.  If none we can simply return the input
+    if check_if_no_conflicts(association_set):
         return association_set
+
     objects = list(association_set.object_set)
     length = len(objects)
     totals = numpy.zeros((length, length))  # Time objects i and j are associated for in total
@@ -360,58 +356,61 @@ def multidimensional_deconfliction(association_set):
     for association in association_set.associations:
         if len(association.objects) != 2:
             raise ValueError("Supplied set must only contain pairs of associated objects")
-        obj_indices = [objects.index(list(association.objects)[0]),
-                       objects.index(list(association.objects)[1])]
-        totals[obj_indices[0], obj_indices[1]] = association.time_range.duration.total_seconds()
-        make_symmetric(totals)
+        i, j = (objects.index(object_) for object_ in association.objects)
+        totals[i, j] = association.time_range.duration.total_seconds()
+    make_symmetric(totals)
 
     totals = numpy.rint(totals).astype(int)
     numpy.fill_diagonal(totals, 0)  # Don't want to count associations of an object with itself
 
     solved_2d = assign2D(totals, maximize=True)[1]
-    winning_indices = []  # Pairs that are chosen by assign2D
-    for i in range(length):
-        if i != solved_2d[i]:
-            winning_indices.append([i, solved_2d[i]])
     cleaned_set = AssociationSet()
-    if len(winning_indices) == 0:
-        raise ValueError("Problem unsolvable using this method")
-    for winner in winning_indices:
-        assoc = association_set.associations_including_objects({objects[winner[0]],
-                                                                objects[winner[1]]})
+    for i, j in enumerate(solved_2d):
+        if i == j:
+            # Can't associate with self
+            continue
+        assoc = association_set.associations_including_objects({objects[i], objects[j]})
         cleaned_set.add(assoc)
         association_set.remove(assoc)
+    if len(cleaned_set) == 0:
+        raise ValueError("Problem unsolvable using this method")
 
-    # Recursive step
-    runners_up = set()
-    for assoc1 in association_set.associations:
-        for assoc2 in association_set.associations:
-            if conflicts(assoc1, assoc2):
-                runners_up = multidimensional_deconfliction(association_set).associations
+    if check_if_no_conflicts(cleaned_set) and len(association_set) == 0:
+        # If no conflicts after this iteration and all objects return
+        return cleaned_set
+    else:
+        # Recursive step
+        runners_up = multidimensional_deconfliction(association_set).associations
 
     # At this point, none of association_set should conflict with one another
     for runner_up in runners_up:
+        runner_up_remaining_time = runner_up.time_range
         for winner in cleaned_set:
             if conflicts(runner_up, winner):
-                runner_up.time_range.minus(winner.time_range)
-        if runner_up.time_range is not None:
-            cleaned_set.add(runner_up)
-        else:
-            runners_up.remove(runner_up)
-
+                runner_up_remaining_time = runner_up_remaining_time.minus(winner.time_range)
+        if runner_up_remaining_time and runner_up_remaining_time.duration.total_seconds() > 0:
+            runner_up_copy = runner_up
+            runner_up_copy.time_range = runner_up_remaining_time
+            cleaned_set.add(runner_up_copy)
     return cleaned_set
 
 
 def conflicts(assoc1, assoc2):
-    if not hasattr(assoc1, 'time_range') or not hasattr(assoc2, 'time_range'):
-        raise TypeError("Associations must have a time_range property")
-    if assoc1.time_range is None or assoc2.time_range is None:
+    if getattr(assoc1, 'time_range', None) is None or getattr(assoc2, 'time_range', None) is None:
         return False
     if assoc1.time_range.overlap(assoc2.time_range) and assoc1 != assoc2 \
             and len(assoc1.objects.intersection(assoc2.objects)) > 0:
         return True
     else:
         return False
+
+
+def check_if_no_conflicts(association_set):
+    for assoc1 in association_set:
+        for assoc2 in association_set:
+            if conflicts(assoc1, assoc2):
+                return False
+    return True
 
 
 def make_symmetric(matrix):

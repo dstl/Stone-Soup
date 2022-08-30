@@ -101,12 +101,13 @@ class AssociationSet(Type):
             if assoc1.objects == assoc2.objects:
                 if isinstance(assoc1.time_range, CompoundTimeRange):
                     assoc1.time_range.add(assoc2.time_range)
+                    to_remove.append(assoc2)
                 elif isinstance(assoc2.time_range, CompoundTimeRange):
                     assoc2.time_range.add(assoc1.time_range)
-                    assoc1.time_range = assoc2.time_range
+                    to_remove.append(assoc1)
                 else:
                     assoc1.time_range = CompoundTimeRange([assoc1.time_range, assoc2.time_range])
-                to_remove.append(assoc2)
+                    to_remove.append(assoc2)
         for assoc in to_remove:
             self.remove(assoc)
 
@@ -130,8 +131,8 @@ class AssociationSet(Type):
         key_times = list(self.overall_time_range.key_times)
         for association in self.associations:
             if isinstance(association, SingleTimeAssociation):
-                key_times.add(association.timestamp)
-        return sorted(list(key_times))
+                key_times.append(association.timestamp)
+        return sorted(key_times)
 
     @property
     def overall_time_range(self):
