@@ -70,7 +70,9 @@ def test_siap(trial_manager, trial_truths, trial_tracks, trial_associations, mea
 
     # Test longest_track_time_on_truth
     assert siap_generator.longest_track_time_on_truth(trial_manager, trial_truths[0]) == 2
-    assert siap_generator.longest_track_time_on_truth(trial_manager, trial_truths[1]) == 1
+    # Associations 1 and 2 (starting from 0) will join together
+    # because of the AssociationSet._simplify method, so this will be 2
+    assert siap_generator.longest_track_time_on_truth(trial_manager, trial_truths[1]) == 2
     assert siap_generator.longest_track_time_on_truth(trial_manager, trial_truths[2]) == 1
 
     # Test compute_metric
