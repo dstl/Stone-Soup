@@ -1,5 +1,6 @@
 import datetime
 from itertools import combinations, permutations
+from typing import List
 
 from ..base import Property
 from .base import Type
@@ -151,7 +152,7 @@ class CompoundTimeRange(Type):
 
     A container class representing one or more :class:`TimeRange` objects together
     """
-    time_ranges: list[TimeRange] = Property(doc="List of TimeRange objects.  Can be empty",
+    time_ranges: List[TimeRange] = Property(doc="List of TimeRange objects.  Can be empty",
                                             default=None)
 
     def __init__(self, *args, **kwargs):
