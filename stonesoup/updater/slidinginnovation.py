@@ -34,10 +34,12 @@ class SlidingInnovationUpdater(KalmanUpdater):
         measurement_model = self._check_measurement_model(hypothesis.measurement.measurement_model)
         measurement_matrix = self._measurement_matrix(hypothesis.prediction, measurement_model)
 
+        layer_width = self.layer_width.reshape((-1, 1))  # Must be column vector
+
         innovation_vector = hypothesis.measurement.state_vector \
             - hypothesis.measurement_prediction.state_vector
         gain = np.linalg.pinv(measurement_matrix) \
-            @ np.diag(np.clip(np.abs(innovation_vector)/self.layer_width, -1, 1).ravel())
+            @ np.diag(np.clip(np.abs(innovation_vector)/layer_width, -1, 1).ravel())
 
         I_KH = np.identity(hypothesis.prediction.ndim) - gain@measurement_matrix
         posterior_covariance = \
