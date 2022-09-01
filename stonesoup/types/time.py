@@ -131,7 +131,7 @@ class TimeRange(Type):
         Returns
         -------
         TimeRange
-            The times contained by both this and time_range
+            The times contained by both this and `time_range`
         """
         if time_range is None:
             return None
@@ -150,7 +150,7 @@ class TimeRange(Type):
 class CompoundTimeRange(Type):
     """CompoundTimeRange type
 
-    A container class representing one or more :class:`TimeRange` objects together
+    A container class representing one or more :class:`~.TimeRange` objects together
     """
     time_ranges: List[TimeRange] = Property(doc="List of TimeRange objects.  Can be empty",
                                             default=None)
@@ -187,7 +187,7 @@ class CompoundTimeRange(Type):
         return sorted(key_times)
 
     def _remove_overlap(self):
-        """Removes overlap between components of time_ranges"""
+        """Removes overlap between components of `time_ranges`"""
         if len(self.time_ranges) in {0, 1}:
             return
         if all([component.overlap(component2) is None for (component, component2) in
@@ -210,7 +210,7 @@ class CompoundTimeRange(Type):
                 self._fuse_components()
 
     def add(self, time_range):
-        """Add a :class:`~.TimeRange` or :class:`~.CompoundTimeRange` object to `time_ranges`"""
+        """Add a :class:`~.TimeRange` or :class:`~.CompoundTimeRange` object to `time_ranges`."""
         if time_range is None:
             return
         if isinstance(time_range, CompoundTimeRange):
@@ -224,7 +224,7 @@ class CompoundTimeRange(Type):
         self._fuse_components()
 
     def remove(self, time_range):
-        """Remove a :class:`.~TimeRange` object from the time ranges.
+        """Removes a :class:`.~TimeRange` object from the time ranges.
         It must be a member of self.time_ranges"""
         if not isinstance(time_range, TimeRange):
             raise TypeError("Supplied parameter must be a TimeRange object")

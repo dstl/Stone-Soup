@@ -127,7 +127,7 @@ class AssociationSet(Type):
     @property
     def key_times(self):
         """Returns all timestamps at which a component starts or ends, or where there is a
-        :class:`.~SingleTimeAssociation`"""
+        :class:`.~SingleTimeAssociation`."""
         key_times = list(self.overall_time_range.key_times)
         for association in self.associations:
             if isinstance(association, SingleTimeAssociation):
@@ -136,10 +136,10 @@ class AssociationSet(Type):
 
     @property
     def overall_time_range(self):
-        """Return a :class:`~.CompoundTimeRange` of :class:`~.TimeRange`
-        objects in this instance.
+        """Returns a :class:`~.CompoundTimeRange` covering all times at which at least
+        one association is active.
 
-        :class:`SingleTimeAssociation`s are discarded
+        Note: :class:`SingleTimeAssociation`s are not counted
         """
         overall_range = CompoundTimeRange()
         for association in self.associations:
@@ -149,8 +149,7 @@ class AssociationSet(Type):
 
     @property
     def object_set(self):
-        """Return all objects in the set
-        Returned as a set
+        """Returns a set of all objects contained by this instance.
         """
         object_set = set()
         for assoc in self.associations:
