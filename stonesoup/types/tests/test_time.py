@@ -28,15 +28,15 @@ def test_timerange(times):
 
     # Without start time
     with pytest.raises(TypeError):
-        TimeRange(start_timestamp=times[1])
+        TimeRange(start=times[1])
 
     # Without end time
     with pytest.raises(TypeError):
-        TimeRange(end_timestamp=times[3])
+        TimeRange(end=times[3])
 
     # Test an error is caught when end is after start
     with pytest.raises(ValueError):
-        TimeRange(start_timestamp=times[3], end_timestamp=times[1])
+        TimeRange(start=times[3], end=times[1])
 
     # Test with wrong types for time_ranges
     with pytest.raises(TypeError):
@@ -44,7 +44,7 @@ def test_timerange(times):
     with pytest.raises(TypeError):
         CompoundTimeRange([times[1], times[3]])
 
-    test_range = TimeRange(start_timestamp=times[1], end_timestamp=times[3])
+    test_range = TimeRange(start=times[1], end=times[3])
 
     test_compound = CompoundTimeRange()
 
@@ -64,13 +64,13 @@ def test_duration(times):
     # Test that duration is calculated properly
 
     # TimeRange
-    test_range = TimeRange(start_timestamp=times[1], end_timestamp=times[3])
+    test_range = TimeRange(start=times[1], end=times[3])
 
     # CompoundTimeRange
 
     # times[2] is inside of [1] and [3], so should be equivalent to a TimeRange(times[1], times[4])
-    test_range2 = CompoundTimeRange([TimeRange(start_timestamp=times[1], end_timestamp=times[3]),
-                                    TimeRange(start_timestamp=times[2], end_timestamp=times[4])])
+    test_range2 = CompoundTimeRange([TimeRange(start=times[1], end=times[3]),
+                                     TimeRange(start=times[2], end=times[4])])
 
     assert test_range.duration == datetime.timedelta(seconds=3726)
     assert test_range2.duration == datetime.timedelta(seconds=31539726)
@@ -79,7 +79,7 @@ def test_duration(times):
 def test_contains(times):
     # Test that timestamps are correctly determined to be in the range
 
-    test_range = TimeRange(start_timestamp=times[1], end_timestamp=times[3])
+    test_range = TimeRange(start=times[1], end=times[3])
     test2 = TimeRange(times[1], times[2])
     test3 = TimeRange(times[1], times[4])
 

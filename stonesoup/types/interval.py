@@ -15,37 +15,45 @@ class Interval(Type):
     Represents a continuous, closed interval of real numbers.
     Represented by a lower and upper bound.
     """
-    left: Union[int, float] = Property(doc="Lower bound of interval")
-    right: Union[int, float] = Property(doc="Upper bound of interval")
+    start: Union[int, float] = Property(doc="Lower bound of interval")
+    end: Union[int, float] = Property(doc="Upper bound of interval")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.left >= self.right:
+        if self.start >= self.end:
             raise ValueError('Must have left < right')
 
     def __hash__(self):
-        return hash((self.left, self.right))
+        return hash((self.start, self.end))
+
+    @property
+    def left(self):
+        return self.start
+
+    @property
+    def right(self):
+        return self.end
 
     @property
     def length(self):
-        return self.right - self.left
+        return self.end - self.start
 
     def __contains__(self, item):
         if isinstance(item, Real):
-            return self.left <= item <= self.right
+            return self.start <= item <= self.end
         elif isinstance(item, Interval):
             return self & item == item
         else:
             return False
 
     def __str__(self):
-        return '[{left}, {right}]'.format(left=self.left, right=self.right)
+        return '[{left}, {right}]'.format(left=self.start, right=self.end)
 
-    def __repr__(self):
-        return 'Interval{interval}'.format(interval=str(self))
+    # def __repr__(self):
+    #     return 'Interval{interval}'.format(interval=str(self))
 
     def __eq__(self, other):
-        return isinstance(other, Interval) and (self.left, self.right) == (other.left, other.right)
+        return isinstance(other, Interval) and (self.start, self.end) == (other.start, other.end)
 
     def __and__(self, other):
         """Set-like intersection"""
@@ -54,11 +62,11 @@ class Interval(Type):
             raise ValueError("Can only intersect with Interval types")
 
         if not self.isdisjoint(other):
-            new_interval = (max(self.left, other.left), min(self.right, other.right))
+            new_interval = max(self.start, other.start), min(self.end, other.end)
             if new_interval[0] == new_interval[1]:
                 return None
             else:
-                return Interval(*new_interval)
+                return type(self)(new_interval[0], new_interval[1])
         else:
             return None
 
@@ -69,7 +77,7 @@ class Interval(Type):
             raise ValueError("Can only union with Interval types")
 
         if not self.isdisjoint(other):
-            return [Interval(min(self.left, other.left), max(self.right, other.right))]
+            return [type(self)(min(self.start, other.start), max(self.end, other.end))]
         else:
             return [copy.copy(self), copy.copy(other)]
 
@@ -82,14 +90,14 @@ class Interval(Type):
             raise ValueError("Can only subtract Interval types from Interval types")
         elif self.isdisjoint(other):
             return [copy.copy(self)]
-        elif other.left <= self.left and self.right <= other.right:
+        elif other.start <= self.start and self.end <= other.end:
             return [None]
-        elif other.left <= self.left:
-            return [Interval(other.right, self.right)]
-        elif self.right <= other.right:
-            return [Interval(self.left, other.left)]
+        elif other.start <= self.start:
+            return [Interval(other.end, self.end)]
+        elif self.end <= other.end:
+            return [Interval(self.start, other.start)]
         else:
-            return [Interval(self.left, other.left), Interval(other.right, self.right)]
+            return [Interval(self.start, other.start), Interval(other.end, self.end)]
 
     def __xor__(self, other):
         """Set-like symmetric difference"""
@@ -117,7 +125,7 @@ class Interval(Type):
         if not isinstance(other, Interval):
             raise ValueError("Can only compare Interval types to Interval types")
 
-        return other.left < self.left and self.right < other.right
+        return other.start < self.start and self.end < other.end
 
     def __ge__(self, other):
         """Superset check"""
@@ -144,12 +152,10 @@ class Interval(Type):
         if not isinstance(other, Interval):
             raise ValueError("Interval types can only overlap with Interval types")
 
-        lb = min(self.left, other.left)
-        ub = max(self.right, other.right)
+        max_start = max(self.start, other.start)
+        min_end = min(self.end, other.end)
 
-        return not ((ub - lb < self.length + other.length)
-                    or (self.right == other.left)
-                    or (other.right == self.left))
+        return max_start > min_end
 
 
 class Intervals(Type):
@@ -173,7 +179,7 @@ class Intervals(Type):
             if isinstance(self.intervals, (Interval, Tuple)):
                 self.intervals = [self.intervals]
             else:
-                raise ValueError("Must contain Interval types")
+                raise TypeError("Must contain Interval types")
         elif len(self.intervals) == 2 and all(isinstance(elem, Real) for elem in self.intervals):
             self.intervals = [self.intervals]
 
@@ -183,7 +189,7 @@ class Intervals(Type):
                 if isinstance(interval, Sequence) and len(interval) == 2:
                     self.intervals[i] = Interval(*interval)
                 else:
-                    raise ValueError("Individual intervals must be an Interval or Sequence type")
+                    raise TypeError("Individual intervals must be an Interval or Sequence type")
 
         self.intervals = self.get_merged_intervals(self.intervals)
 
@@ -209,7 +215,6 @@ class Intervals(Type):
 
         if not isinstance(other, Intervals):
             raise ValueError("Can only compare Intervals to Intervals")
-
         return all(interval.isdisjoint(other_int) for other_int in other for interval in self)
 
     @staticmethod
@@ -244,10 +249,10 @@ class Intervals(Type):
         return any(item in interval for interval in self)
 
     def __str__(self):
-        return str([[interval.left, interval.right] for interval in self])
+        return str([[interval.start, interval.end] for interval in self])
 
-    def __repr__(self):
-        return 'Intervals{intervals}'.format(intervals=str(self))
+    # def __repr__(self):
+    #     return 'Intervals{intervals}'.format(intervals=str(self))
 
     @property
     def length(self):
@@ -264,7 +269,8 @@ class Intervals(Type):
         return self._iter(reverse=True)
 
     def __eq__(self, other):
-
+        if len(self) == 0:
+            return True if len(other) == 0 else False
         if isinstance(other, Interval):
             other = Intervals(other)
 
@@ -274,6 +280,8 @@ class Intervals(Type):
     def __and__(self, other):
         """Set-like intersection"""
 
+        if other is None:
+            return False
         if not isinstance(other, (Interval, Intervals)):
             raise ValueError("Can only intersect with Intervals types")
 
@@ -287,12 +295,11 @@ class Intervals(Type):
                 if new_interval:
                     new_intervals.append(new_interval)
         new_intervals = self.get_merged_intervals(new_intervals)
-        new_intervals = Intervals(new_intervals)
+        new_intervals = type(self)(new_intervals)
         return new_intervals
 
     def __or__(self, other):
         """Set-like union"""
-
         if not isinstance(other, (Interval, Intervals)):
             raise ValueError('Can only union with Intervals types')
 
@@ -301,7 +308,7 @@ class Intervals(Type):
 
         new_intervals = self.intervals + other.intervals
         new_intervals = self.get_merged_intervals(new_intervals)
-        new_intervals = Intervals(new_intervals)
+        new_intervals = type(self)(new_intervals)
         return new_intervals
 
     def __sub__(self, other):
@@ -325,7 +332,7 @@ class Intervals(Type):
                 if diff[0] is not None:
                     temp_intervals.extend(diff)
             new_intervals = temp_intervals
-        new_intervals = Intervals(new_intervals)
+        new_intervals = type(self)(new_intervals)
         return new_intervals
 
     def __xor__(self, other):
@@ -335,7 +342,7 @@ class Intervals(Type):
             raise ValueError("Can only compare Intervals from Intervals")
 
         if isinstance(other, Interval):
-            other = Intervals(other)
+            other = type(self)(other)
 
         return (self | other) - (self & other)
 

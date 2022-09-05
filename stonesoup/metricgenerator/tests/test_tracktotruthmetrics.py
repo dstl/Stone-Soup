@@ -90,8 +90,8 @@ def test_siap(trial_manager, trial_truths, trial_tracks, trial_associations, mea
 
     for metric in metrics:
         assert isinstance(metric, TimeRangeMetric)
-        assert metric.time_range.start_timestamp == timestamps[0]
-        assert metric.time_range.end_timestamp == timestamps[3]
+        assert metric.time_range.start == timestamps[0]
+        assert metric.time_range.end == timestamps[3]
         assert metric.generator == siap_generator
 
         if metric.title.endswith(" at times"):
@@ -175,8 +175,8 @@ def test_id_siap(trial_manager, trial_truths, trial_tracks, trial_associations, 
 
     for metric in metrics:
         assert isinstance(metric, TimeRangeMetric)
-        assert metric.time_range.start_timestamp == timestamps[0]
-        assert metric.time_range.end_timestamp == timestamps[3]
+        assert metric.time_range.start == timestamps[0]
+        assert metric.time_range.end == timestamps[3]
         assert metric.generator == siap_generator
 
         if metric.title.endswith(" at times"):

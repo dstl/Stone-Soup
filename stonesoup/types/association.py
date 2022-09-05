@@ -139,7 +139,7 @@ class AssociationSet(Type):
         """Returns a :class:`~.CompoundTimeRange` covering all times at which at least
         one association is active.
 
-        Note: :class:`SingleTimeAssociation`s are not counted
+        Note: :class:`~.SingleTimeAssociation` are not counted
         """
         overall_range = CompoundTimeRange()
         for association in self.associations:

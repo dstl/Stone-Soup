@@ -67,7 +67,7 @@ def test_timerangeassociation():
                Detection(np.array([[5], [6]]))}
     timestamp1 = datetime.datetime(2018, 3, 1, 5, 3, 35)
     timestamp2 = datetime.datetime(2018, 3, 1, 5, 8, 35)
-    timerange = TimeRange(start_timestamp=timestamp1, end_timestamp=timestamp2)
+    timerange = TimeRange(start=timestamp1, end=timestamp2)
     ctimerange = CompoundTimeRange([timerange])
 
     assoc = TimeRangeAssociation(objects=objects, time_range=timerange)
@@ -84,7 +84,7 @@ def test_associationset():
     timestamp1 = datetime.datetime(2018, 3, 1, 5, 3, 35)
     timestamp2 = datetime.datetime(2018, 3, 1, 5, 8, 35)
     timestamp3 = datetime.datetime(2020, 3, 1, 1, 1, 1)
-    time_range = TimeRange(start_timestamp=timestamp1, end_timestamp=timestamp2)
+    time_range = TimeRange(start=timestamp1, end=timestamp2)
     time_range2 = TimeRange(timestamp2, timestamp3)
 
     objects_list = [Detection(np.array([[1], [2]])),
@@ -180,7 +180,7 @@ def test_association_set_properties():
     assert test2.object_set == set(objects)
     timestamp1 = datetime.datetime(2018, 3, 1, 5, 3, 35)
     timestamp2 = datetime.datetime(2018, 3, 1, 5, 8, 35)
-    time_range = TimeRange(start_timestamp=timestamp1, end_timestamp=timestamp2)
+    time_range = TimeRange(start=timestamp1, end=timestamp2)
     com_time_range = CompoundTimeRange([time_range])
     assoc2 = TimeRangeAssociation(objects=set(objects[1:]),
                                   time_range=com_time_range)

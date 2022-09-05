@@ -34,24 +34,24 @@ class BasicMetrics(MetricGenerator):
             title='Number of targets',
             value=len(manager.groundtruth_paths),
             time_range=TimeRange(
-                start_timestamp=min(timestamps),
-                end_timestamp=max(timestamps)),
+                start=min(timestamps),
+                end=max(timestamps)),
             generator=self))
 
         metrics.append(TimeRangeMetric(
             title='Number of tracks',
             value=len(manager.tracks),
             time_range=TimeRange(
-                start_timestamp=min(timestamps),
-                end_timestamp=max(timestamps)),
+                start=min(timestamps),
+                end=max(timestamps)),
             generator=self))
 
         metrics.append(TimeRangeMetric(
             title='Track-to-target ratio',
             value=len(manager.tracks) / len(manager.groundtruth_paths),
             time_range=TimeRange(
-                start_timestamp=min(timestamps),
-                end_timestamp=max(timestamps)),
+                start=min(timestamps),
+                end=max(timestamps)),
             generator=self))
 
         return metrics
