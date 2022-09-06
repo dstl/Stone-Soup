@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 
 
 def assign2D(C, maximize=False):
@@ -26,7 +26,7 @@ def assign2D(C, maximize=False):
     #
     # OUTPUTS:
     # gain  The sum of the values of the assigned elements in C. If the
-    #       problem is infeasible, this is -1.
+    #       problem is infeasible, this is `None`.
     # col4row       A length numRow numpy array where the entry in each
     #               element is an assignment of the element in that row to
     #               a column. 0 entries signify unassigned rows. If the
@@ -109,17 +109,12 @@ def assign2D(C, maximize=False):
     # This work was supported by the Office of Naval Research through the
     # Naval Research Laboratory 6.1 Base Program
 
-    numRow = C.shape[0]
-    numCol = C.shape[1]
-    totalNumElsInC = C.size
-
+    numRow, numCol = C.shape
     didFlip = False
 
     if numCol > numRow:
         C = C.T
-        temp = numRow
-        numRow = numCol
-        numCol = temp
+        numRow, numCol = numCol, numRow
         didFlip = True
 
     # The cost matrix must have all non-negative elements for the
@@ -127,139 +122,91 @@ def assign2D(C, maximize=False):
     # positive. The delta is added back in when computing the gain in the
     # end.
     if not maximize:
-        CDelta = numpy.inf
-        idxs = numpy.unravel_index([i for i in range(totalNumElsInC)], C.shape)
-        for i in range(0, totalNumElsInC):
-            idx = (idxs[0][i], idxs[1][i])
-            if C[idx] < CDelta:
-                CDelta = C[idx]
-
+        CDelta = np.min(C)
         # If C is all positive, do not shift.
         if CDelta > 0:
             CDelta = 0
-
-        for i in range(0, totalNumElsInC):
-            idx = (idxs[0][i], idxs[1][i])
-            C[idx] = C[idx] - CDelta
-
+        else:
+            C = C - CDelta
     else:
-        CDelta = -numpy.inf
-        idxs = numpy.unravel_index([i for i in range(totalNumElsInC)], C.shape)
-        for i in range(0, totalNumElsInC):
-            idx = (idxs[0][i], idxs[1][i])
-            if C[idx] > CDelta:
-                CDelta = C[idx]
-
+        CDelta = np.max(C)
         # If C is all negative, do not shift.
         if CDelta < 0:
             CDelta = 0
-
-        for i in range(0, totalNumElsInC):
-            idx = (idxs[0][i], idxs[1][i])
-            C[idx] = -C[idx] + CDelta
-
-    CDelta = CDelta * numCol
+        C = -C + CDelta
 
     gain, col4row, row4col = assign2DBasic(C)
 
-    if gain == -1:
+    if gain is None:
         # The problem is infeasible
-        emptyMat = numpy.empty(0)
-        return emptyMat, emptyMat, emptyMat
+        emptyMat = np.empty(0)
+        return gain, emptyMat, emptyMat
+
+    # The problem is feasible. Adjust for the shifting of the elements
+    # in C.
+    if not maximize:
+        gain = gain + CDelta*numCol
     else:
-        # The problem is feasible. Adjust for the shifting of the elements
-        # in C.
-        if not maximize:
-            gain = gain + CDelta
-        else:
-            gain = -gain + CDelta
+        gain = -gain + CDelta*numCol
 
     # If a transposed matrix was used
     if didFlip:
-        temp = col4row
-        col4row = row4col
-        row4col = temp
+        col4row, row4col = row4col, col4row
 
     return gain, col4row, row4col
 
 
 def assign2DBasic(C):
-    numRow = C.shape[0]
-    numCol = C.shape[1]
+    numRow, numCol = C.shape
 
-    col4row = numpy.full(numRow, -1, dtype=int)
-    row4col = numpy.full(numCol, -1, dtype=int)
-    u = numpy.zeros(numCol)
-    v = numpy.zeros(numRow)
+    col4row = np.full(numRow, -1, dtype=np.intp)
+    row4col = np.full(numCol, -1, dtype=np.intp)
+    u = np.zeros(numCol)
+    v = np.zeros(numRow)
 
-    ScannedColIdx = numpy.empty(numCol, dtype=int)
-    pred = numpy.empty(numRow, dtype=int)
-    Row2Scan = numpy.empty(numRow, dtype=int)
-    shortestPathCost = numpy.empty(numRow)
+    # pred will be used to keep track of the shortest path.
+    pred = np.empty(numRow, dtype=np.intp)
 
-    for curUnassignedCol in range(0, numCol):
+    for curUnassignedCol in range(numCol):
         # First, find the shortest augmenting path starting at
         # curUnassignedCol.
 
-        # Mark everything as not yet scanned. A 1 will be placed in each
-        # row entry as it is scanned.
-        numColsScanned = 0
-        scannedRows = numpy.zeros(numRow, dtype=bool)
-
-        for curRow in range(0, numRow):
-            Row2Scan[curRow] = curRow
-            # Initially, the cost of the shortest path to each row is not
-            # known and will be made infinite.
-            shortestPathCost[curRow] = numpy.inf
-
-        # All rows need to be scanned
-        numRow2Scan = numRow
-        # pred will be used to keep track of the shortest path.
+        # Mark everything as not yet scanned.
+        scannedCols = np.zeros(numCol, dtype=bool)
+        scannedRows = np.zeros(numRow, dtype=bool)
+        # Initially, the cost of the shortest path to each row is not
+        # known and will be made infinite.
+        shortestPathCost = np.full(numRow, np.inf)
 
         # sink will hold the final index of the shortest augmenting path.
         # If the problem is not feasible, then sink will remain -1.
         sink = -1
-        delta = 0
+        delta = 0.
         curCol = curUnassignedCol
 
         while sink == -1:
             # Mark the current column as having been visited.
-            ScannedColIdx[numColsScanned] = curCol
-            numColsScanned = numColsScanned + 1
+            scannedCols[curCol] = True
 
-            minVal = numpy.inf
-            for curRowScan in range(0, numRow2Scan):
-                curRow = Row2Scan[curRowScan]
+            reducedCosts = delta + C[~scannedRows, curCol] - u[curCol] - v[~scannedRows]
 
-                reducedCost = \
-                    delta + C[curRow, curCol] - u[curCol] - v[curRow]
-                if reducedCost < shortestPathCost[curRow]:
-                    pred[curRow] = curCol
-                    shortestPathCost[curRow] = reducedCost
+            idx = reducedCosts < shortestPathCost[~scannedRows]
+            idx_orig = np.flatnonzero(~scannedRows)[idx]
+            pred[idx_orig] = curCol
+            shortestPathCost[idx_orig] = reducedCosts[idx]
 
-                if shortestPathCost[curRow] < minVal:
-                    minVal = shortestPathCost[curRow]
-                    closestRowScan = curRowScan
+            argmin = np.argmin(shortestPathCost[~scannedRows])
+            closestRow = np.flatnonzero(~scannedRows)[argmin]
+            delta = shortestPathCost[closestRow]
 
-            if minVal == numpy.inf:
+            if delta == np.inf:
                 # If the minimum cost row is not finite, then the
                 # problem is not feasible.
-                return -1, col4row, row4col
+                return None, col4row, row4col
 
-            # Change the index from the relative row index to the
-            # absolute row index.
-            closestRow = Row2Scan[closestRowScan]
-
-            # Add the closest row to the list of scanned rows and
-            # delete it from the list of rows to scan by shifting all
-            # of the items after it over by one.
+            # Add the closest row to the list of scanned rows
             scannedRows[closestRow] = True
 
-            numRow2Scan = numRow2Scan - 1  # One fewer rows to scan.
-            for curRow in range(closestRowScan, numRow2Scan):
-                Row2Scan[curRow] = Row2Scan[curRow + 1]
-
-            delta = shortestPathCost[closestRow]
             # If we have reached an unassigned column
             if col4row[closestRow] == -1:
                 sink = closestRow
@@ -268,20 +215,15 @@ def assign2DBasic(C):
 
         # Next, update the dual variables.
         # Update the first column in the augmenting path.
-        u[curUnassignedCol] = u[curUnassignedCol] + delta
+        u[curUnassignedCol] += delta
 
         # Update the rest of the columns in the augmenting path.
-        # curCol starts from 1, not zero, so that it skips
-        # curUnassignedCol.
-        for curCol in range(1, numColsScanned):
-            curScannedIdx = ScannedColIdx[curCol]
-            u[curScannedIdx] = u[curScannedIdx] + delta \
-                               - shortestPathCost[row4col[curScannedIdx]]
+        # Skipping curUnassignedCol.
+        scannedCols[curUnassignedCol] = False
+        u[scannedCols] += delta - shortestPathCost[row4col[scannedCols]]
 
         # Update the rows in the augmenting path.
-        for curRow in range(0, numRow):
-            if scannedRows[curRow]:
-                v[curRow] = v[curRow] - delta + shortestPathCost[curRow]
+        v[scannedRows] += shortestPathCost[scannedRows] - delta
 
         # Remove the current node from those that must be assigned.
         curRow = sink
@@ -289,14 +231,10 @@ def assign2DBasic(C):
         while curCol != curUnassignedCol:
             curCol = pred[curRow]
             col4row[curRow] = curCol
-            h = row4col[curCol]
-            row4col[curCol] = curRow
-            curRow = h
+            row4col[curCol], curRow = curRow, row4col[curCol]
 
     # Determine the gain to return
-    gain = 0
-    for curCol in range(0, numCol):
-        gain = gain + C[row4col[curCol], curCol]
+    gain = sum(C[row4col[curCol], curCol] for curCol in range(numCol))
 
     return gain, col4row, row4col
 
