@@ -7,12 +7,11 @@ import typing
 
 import numpy as np
 
-from ..base import Property
+from ..base import Property, clearable_cached_property
 from .array import StateVector, CovarianceMatrix, PrecisionMatrix, StateVectors
 from .base import Type
 from .particle import Particle
 from .numeric import Probability
-from ._util import cached_property  # TODO: Change to functools once support for Python 3.7 dropped
 
 
 class State(Type):
@@ -554,36 +553,9 @@ class ParticleState(State):
                             parent=p)
         return particle
 
-    def _clear_cache(self):
-        if 'mean' in self.__dict__:
-            del self.__dict__["mean"]
-        if 'covar' in self.__dict__:
-            del self.__dict__["covar"]
-
-    @state_vector.setter
-    def state_vector(self, value):
-        self._clear_cache()
-        if value is not None:
-            value = np.asanyarray(value)
-        setattr(self, type(self).state_vector._property_name, value)
-
-    @weight.setter
-    def weight(self, value):
-        self._clear_cache()
-        if value is not None:
-            value = np.asanyarray(value)
-        setattr(self, type(self).weight._property_name, value)
-
-    @fixed_covar.setter
-    def fixed_covar(self, value):
-        # Don't need to worry about mean
-        if 'covar' in self.__dict__:
-            del self.__dict__["covar"]
-        setattr(self, type(self).fixed_covar._property_name, value)
-
-    @property
+    @clearable_cached_property('state_vector', 'weight')
     def particles(self):
-        return [particle for particle in self]
+        return tuple(particle for particle in self)
 
     def __len__(self):
         return self.state_vector.shape[1]
@@ -592,14 +564,14 @@ class ParticleState(State):
     def ndim(self):
         return self.state_vector.shape[0]
 
-    @cached_property
+    @clearable_cached_property('state_vector', 'weight')
     def mean(self):
         """The state mean, equivalent to state vector"""
         self.state_vector.flags.writeable = False
         self.weight.flags.writeable = False
         return np.average(self.state_vector, axis=1, weights=self.weight)
 
-    @cached_property
+    @clearable_cached_property('state_vector', 'weight', 'fixed_covar')
     def covar(self):
         if self.fixed_covar is not None:
             return self.fixed_covar

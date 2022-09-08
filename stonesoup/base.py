@@ -60,6 +60,8 @@ from collections import OrderedDict
 from copy import copy
 from types import MappingProxyType
 
+from ._util import cached_property
+
 
 class Property:
     """Property(cls, default=inspect.Parameter.empty)
@@ -123,6 +125,7 @@ class Property:
         self._getter = None
         self._deleter = None
         self.readonly = readonly
+        self._clear_cached = set()
 
     def __get__(self, instance, owner):
         if instance is None:
@@ -140,6 +143,10 @@ class Property:
                 # if the value has been set, raise an AttributeError
                 raise AttributeError(
                     '{} is readonly'.format(self._property_name))
+
+        for cached_value in self._clear_cached:
+            if cached_value in instance.__dict__:
+                del instance.__dict__[cached_value]
 
         if self._setter is None:
             setattr(instance, self._property_name, value)
@@ -174,6 +181,23 @@ class Property:
         new_property = copy(self)
         new_property._setter = method
         return new_property
+
+
+def clearable_cached_property(*property_names: str):
+    """cached property which is cleared on provided properties being modified
+
+    This decorator will use the standard library functools.cached_property
+    but will automatically clear this cache if the provided Stone Soup properties are
+    set to a different value.
+
+    Care should be made where a Stone Soup Property is a mutable type, that the cache
+    will not be clear as there is no way to track changes of mutable types.
+    """
+    def decorator(func):
+        cached_method = cached_property(func)
+        cached_method._property_names = property_names
+        return cached_method
+    return decorator
 
 
 class BaseRepr(Repr):
@@ -229,24 +253,14 @@ class BaseMeta(ABCMeta):
     _repr = BaseRepr()
 
     def __new__(mcls, name, bases, namespace):
-        if '__init__' not in namespace:
-            # Must replace init so we don't overwrite parent class's
-            # and blank line below so this doesn't become its docstring!
 
-            def __init__(self, *args, **kwargs):
-                super(cls, self).__init__(*args, **kwargs)
-            namespace['__init__'] = __init__
-        cls = super().__new__(mcls, name, bases, namespace)
-
-        cls._subclasses = set()
-        cls._properties = OrderedDict()
-        # Update subclass lists, and update properties from direct bases (in reverse order as
+        properties = OrderedDict()
+        # Update properties from direct bases (in reverse order as
         # first defined class must take precedence, and dictionary update overwrites)
-        for base_class in reversed(cls.mro()[1:]):
+        for base_class in reversed(bases):
             if type(base_class) is mcls:
-                base_class._subclasses.add(cls)
                 if base_class in bases:
-                    cls._properties.update(base_class._properties)
+                    properties.update(base_class._properties)
 
         for key, value in namespace.items():
             if isinstance(value, Property):
@@ -264,25 +278,51 @@ class BaseMeta(ABCMeta):
                     raise ValueError(f'Type was not specified '
                                      f'for property {key} of class {name}')
 
-                if isinstance(value.cls, str) and value.cls == name:
-                    value.cls = cls
-
                 if not (isinstance(value.cls, type)
-                        or getattr(value.cls, '__module__', "") == 'typing'):
+                        or getattr(value.cls, '__module__', "") == 'typing'
+                        or value.cls == name):
                     raise ValueError(f'Invalid type specification ({str(value.cls)}) '
-                                     f'for property {key} of class {cls.__name__}')
+                                     f'for property {key} of class {name}')
 
                 # Finally set property.
-                cls._properties[key] = value
+                properties[key] = value
 
-            elif key in cls._properties:
+            elif key in properties:
                 # New definition of "key" which isn't a Property any more.
-                del cls._properties[key]
+                del properties[key]
 
-        for prop_name in list(cls._properties):
+        for key, value in list(namespace.items()):
+            if isinstance(value, cached_property):
+                for prop_name in getattr(value, '_property_names', []):
+                    new_prop = copy(properties[prop_name])
+                    new_prop._clear_cached = new_prop._clear_cached | {key}
+                    properties[prop_name] = namespace[prop_name] = new_prop
+
+        for prop_name in list(properties):
             # Optional arguments must follow mandatory
-            if cls._properties[prop_name].default is not Property.empty:
-                cls._properties.move_to_end(prop_name)
+            if properties[prop_name].default is not Property.empty:
+                properties.move_to_end(prop_name)
+
+        if '__init__' not in namespace:
+            # Must replace init so we don't overwrite parent class's
+            # and blank line below so this doesn't become its docstring!
+
+            def __init__(self, *args, **kwargs):
+                super(cls, self).__init__(*args, **kwargs)
+            namespace['__init__'] = __init__
+
+        namespace['_properties'] = properties
+        namespace['_subclasses'] = set()
+
+        cls = super().__new__(mcls, name, bases, namespace)
+
+        for property_ in cls.properties.values():
+            if isinstance(property_.cls, str) and property_.cls == name:
+                property_.cls = cls
+
+        for base_class in cls.mro()[1:]:
+            if type(base_class) is mcls:
+                base_class._subclasses.add(cls)
 
         cls._validate_init()
         cls._generate_signature()
