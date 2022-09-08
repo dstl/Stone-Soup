@@ -238,7 +238,7 @@ class GNNWith2DAssignment(DataAssociator):
             distance_matrix, probability_flag)
 
         # Ensure the problem was feasible
-        if gain.size <= 0:
+        if gain is None:
             raise RuntimeError("Assignment was not feasible")
 
         # Generate dict of key/value pairs
