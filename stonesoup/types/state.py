@@ -346,17 +346,9 @@ class SqrtGaussianState(State):
         """The state mean, equivalent to state vector"""
         return self.state_vector
 
-    @property
+    @clearable_cached_property('sqrt_covar')
     def covar(self):
-        """The full covariance matrix.
-
-        Returns
-        -------
-        : :class:`~.CovarianceMatrix`
-            The covariance matrix calculated via :math:`W W^T`, where :math:`W` is a
-            :class:`~.SqrtCovarianceMatrix`
-
-        """
+        """The full covariance matrix."""
         return self.sqrt_covar @ self.sqrt_covar.T
 GaussianState.register(SqrtGaussianState)  # noqa: E305
 
@@ -372,23 +364,22 @@ class InformationState(State):
     """
     precision: PrecisionMatrix = Property(doc='precision matrix of state.')
 
-    @property
+    @clearable_cached_property('state_vector', 'precision')
     def gaussian_state(self):
         """The Gaussian state."""
 
-        covar = self.covar
-        state_vector = covar @ self.state_vector
-
-        return GaussianState(state_vector,
-                             covar,
+        return GaussianState(self.mean,
+                             self.covar,
                              self.timestamp)
 
-    @property
+    @clearable_cached_property('precision')
     def covar(self):
+        """Covariance matrix, inverse of :attr:`precision` matrix."""
         return np.linalg.inv(self.precision)
 
-    @property
+    @clearable_cached_property('state_vector', 'precision')
     def mean(self):
+        """Equivalent Gaussian mean"""
         return self.covar @ self.state_vector
 
     @classmethod
@@ -430,7 +421,7 @@ class WeightedGaussianState(GaussianState):
     """
     weight: Probability = Property(default=0, doc="Weight of the Gaussian State.")
 
-    @property
+    @clearable_cached_property('state_vector', 'covar')
     def gaussian_state(self):
         """The Gaussian state."""
         return GaussianState(self.state_vector,
@@ -495,13 +486,6 @@ class ParticleState(State):
 
     This is a particle state object which describes the state as a
     distribution of particles
-
-    Note
-    ----
-    Once either :attr:`mean` or :attr:`covar` are called, both :attr:`state_vector`
-    and :attr:`weight` NumPy arrays will no longer be writable due to caching. If
-    replacing :attr:`state_vector` or :attr:`covar` on the state, the cache will
-    be cleared.
     """
 
     state_vector: StateVectors = Property(doc='State vectors.')
@@ -555,6 +539,7 @@ class ParticleState(State):
 
     @clearable_cached_property('state_vector', 'weight')
     def particles(self):
+        """Sequence of individual :class:`~.Particle` objects."""
         return tuple(particle for particle in self)
 
     def __len__(self):
@@ -562,21 +547,19 @@ class ParticleState(State):
 
     @property
     def ndim(self):
+        """The number of dimensions represented by the state."""
         return self.state_vector.shape[0]
 
     @clearable_cached_property('state_vector', 'weight')
     def mean(self):
-        """The state mean, equivalent to state vector"""
-        self.state_vector.flags.writeable = False
-        self.weight.flags.writeable = False
+        """Sample mean for particles"""
         return np.average(self.state_vector, axis=1, weights=self.weight)
 
     @clearable_cached_property('state_vector', 'weight', 'fixed_covar')
     def covar(self):
+        """Sample covariance matrix for particles"""
         if self.fixed_covar is not None:
             return self.fixed_covar
-        self.state_vector.flags.writeable = False
-        self.weight.flags.writeable = False
         return np.cov(self.state_vector, ddof=0, aweights=self.weight)
 
 
@@ -605,7 +588,7 @@ class EnsembleState(Type):
         default=None, doc="Timestamp of the state. Default None.")
 
     @classmethod
-    def from_gaussian_state(self, gaussian_state, num_vectors):
+    def from_gaussian_state(cls, gaussian_state, num_vectors):
         """
         Returns an EnsembleState instance, from a given
         GaussianState object.
@@ -625,11 +608,11 @@ class EnsembleState(Type):
         covar = gaussian_state.covar
         timestamp = gaussian_state.timestamp
 
-        return EnsembleState(state_vector=self.generate_ensemble(mean, covar, num_vectors),
+        return EnsembleState(state_vector=cls.generate_ensemble(mean, covar, num_vectors),
                              timestamp=timestamp)
 
-    @classmethod
-    def generate_ensemble(self, mean, covar, num_vectors):
+    @staticmethod
+    def generate_ensemble(mean, covar, num_vectors):
         """
         Returns a StateVectors wrapped ensemble of state vectors, from a given
         mean and covariance matrix.
@@ -676,17 +659,17 @@ class EnsembleState(Type):
         """Number of columns in state ensemble"""
         return np.shape(self.state_vector)[1]
 
-    @property
+    @clearable_cached_property('state_vector')
     def mean(self):
         """The state mean, numerically equivalent to state vector"""
         return np.average(self.state_vector, axis=1)
 
-    @property
+    @clearable_cached_property('state_vector')
     def covar(self):
         """Sample covariance matrix for ensemble"""
         return np.cov(self.state_vector)
 
-    @property
+    @clearable_cached_property('state_vector')
     def sqrt_covar(self):
         """sqrt of sample covariance matrix for ensemble, useful for
         some EnKF algorithms"""
