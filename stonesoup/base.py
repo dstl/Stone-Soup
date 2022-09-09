@@ -54,6 +54,7 @@ This is equivalent to the following:
 
 """
 import inspect
+import textwrap
 from reprlib import Repr
 from abc import ABCMeta
 from collections import OrderedDict
@@ -183,6 +184,19 @@ class Property:
         return new_property
 
 
+def _format_note(property_names):
+    multiple = len(property_names) > 1
+    prop_str = [f":attr:`{prop_name}`" for prop_name in property_names]
+    return textwrap.dedent(f"""\
+
+
+        Note
+        ----
+        This will be cached until {", ".join(prop_str[:-1])}
+        {"or " if multiple else ""}{prop_str[-1]} {"are" if multiple else "is" } replaced.
+        """)
+
+
 def clearable_cached_property(*property_names: str):
     """cached property which is cleared on provided properties being modified
 
@@ -193,7 +207,11 @@ def clearable_cached_property(*property_names: str):
     Care should be made where a Stone Soup Property is a mutable type, that the cache
     will not be clear as there is no way to track changes of mutable types.
     """
+
     def decorator(func):
+        if func.__doc__ is None:
+            func.__doc__ = ""
+        func.__doc__ = func.__doc__ + _format_note(property_names)
         cached_method = cached_property(func)
         cached_method._property_names = property_names
         return cached_method
