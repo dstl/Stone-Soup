@@ -553,6 +553,8 @@ class ParticleState(State):
     @clearable_cached_property('state_vector', 'weight')
     def mean(self):
         """Sample mean for particles"""
+        if len(self) == 1:  # No need to calculate mean
+            return self.state_vector
         return np.average(self.state_vector, axis=1, weights=self.weight)
 
     @clearable_cached_property('state_vector', 'weight', 'fixed_covar')
