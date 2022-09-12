@@ -424,11 +424,26 @@ class Base(metaclass=BaseMeta):
     declared."""
 
     def __init__(self, *args, **kwargs):
-        init_signature = inspect.signature(self.__init__)
-        bound_arguments = init_signature.bind(*args, **kwargs)
-        bound_arguments.apply_defaults()
-        for name, value in bound_arguments.arguments.items():
+        cls = type(self)
+        prop_iter = iter(cls.properties.items())
+
+        for arg in args:
+            try:
+                name, _ = next(prop_iter)
+            except StopIteration:
+                raise TypeError('too many positional arguments') from None
+            if name in kwargs:
+                raise TypeError(f'multiple values for argument {name!r}')
+            setattr(self, name, arg)
+
+        for name, prop in prop_iter:
+            value = kwargs.pop(name, prop.default)
+            if value is Property.empty:
+                raise TypeError(f'missing a required argument: {name!r}')
             setattr(self, name, value)
+
+        if kwargs:
+            raise TypeError(f'got an unexpected keyword argument {next(iter(kwargs))!r}')
 
     def __repr__(self):
         whitespace = ' ' * 4  # Indents every line
