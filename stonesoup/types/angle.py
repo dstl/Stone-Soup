@@ -1,5 +1,4 @@
 from numbers import Real
-from numpy import float64
 from math import trunc, ceil, floor
 
 import numpy as np
@@ -15,28 +14,32 @@ class Angle(Real):
     """
     @staticmethod
     def mod_angle(value):
-        return value
+        return float(value)
 
     @property
     def degrees(self):
         return self.rad2deg()
 
     def __init__(self, value):
-        self._value = float64(self.mod_angle(value))
+        self._value = self.mod_angle(value)
 
     def __hash__(self):
         return hash(self._value)
 
     def __add__(self, other):
+        if isinstance(other, Angle):
+            other = other._value
         out = self._value + other
-        return self.__class__(self.mod_angle(out))
+        return self.__class__(out)
 
     def __radd__(self, other):
         return self.__class__.__add__(self, other)
 
     def __sub__(self, other):
+        if isinstance(other, Angle):
+            other = other._value
         out = self._value - other
-        return self.__class__(self.mod_angle(out))
+        return self.__class__(out)
 
     def __rsub__(self, other):
         return self.__class__.__add__(-self, other)
@@ -45,6 +48,8 @@ class Angle(Real):
         return float(self._value)
 
     def __mul__(self, other):
+        if isinstance(other, Angle):
+            other = other._value
         return self._value * other
 
     def __rmul__(self, other):
@@ -54,12 +59,14 @@ class Angle(Real):
         return str(self._value)
 
     def __repr__(self):
-        return "{0}({1!r})".format(self.__class__.__name__, float64(self))
+        return "{0}({1!r})".format(self.__class__.__name__, float(self))
 
     def __neg__(self):
         return self.__class__(-self._value)
 
     def __truediv__(self, other):
+        if isinstance(other, Angle):
+            other = other._value
         return self._value / other
 
     def __rtruediv__(self, other):
@@ -93,6 +100,8 @@ class Angle(Real):
         return ceil(self._value)
 
     def __floordiv__(self, other):
+        if isinstance(other, Angle):
+            other = other._value
         return self._value // other
 
     def __mod__(self, other):
@@ -111,7 +120,7 @@ class Angle(Real):
         return other % self._value
 
     def __round__(self, ndigits=None):
-        return float64(round(self._value, ndigits=ndigits))
+        return round(self._value, ndigits=ndigits)
 
     def __rpow__(self, base):
         return NotImplemented
