@@ -137,13 +137,9 @@ class Property:
             return self._getter(instance)
 
     def __set__(self, instance, value):
-        if self.readonly:
-            if not hasattr(instance, self._property_name):
-                setattr(instance, self._property_name, value)
-            else:
-                # if the value has been set, raise an AttributeError
-                raise AttributeError(
-                    '{} is readonly'.format(self._property_name))
+        if self.readonly and hasattr(instance, self._property_name):
+            # if the value has been set, raise an AttributeError
+            raise AttributeError('{} is readonly'.format(self._property_name))
 
         for cached_value in self._clear_cached:
             if cached_value in instance.__dict__:
