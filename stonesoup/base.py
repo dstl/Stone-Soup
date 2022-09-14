@@ -595,7 +595,7 @@ def freeze(self, **kwargs):
         An immutable copy of self
     """
     if isinstance(self, ImmutableMixIn):
-        return copy.copy(self)
+        return copy(self)
     cls = type(self)._immutable_version
     new_properties = self.property_dict
     new_properties.update(kwargs)
