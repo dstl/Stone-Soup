@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from .base import DataAssociator
-from ..base import Property
-from ..hypothesiser import Hypothesiser
-from ..types.multihypothesis import MultipleHypothesis
-from .mfa_init import init_hyp_info, Hyp
-from .mfa_step import MAX_ITERATION_COUNT, AlgorithmState, algorithm_step, prune_hypotheses
+from .. import DataAssociator
+from ...base import Property
+from ...hypothesiser import Hypothesiser
+from ...types.multihypothesis import MultipleHypothesis
+from ._init import init_hyp_info, Hyp
+from ._step import MAX_ITERATION_COUNT, AlgorithmState, algorithm_step, prune_hypotheses
 
 
 class MFADataAssociator(DataAssociator):

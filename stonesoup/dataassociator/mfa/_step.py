@@ -12,13 +12,13 @@ overall iteration.
 """
 
 from dataclasses import dataclass
-import math
 from typing import Dict, List
+
 import numpy as np
 from ortools.linear_solver import pywraplp
 from scipy.optimize import linear_sum_assignment
 
-from .mfa_init import Hyp, HypInfo, TimeStepIndices
+from ._init import Hyp, HypInfo, TimeStepIndices
 
 # Terminate if gap between primal and dual costs is less than this
 GAP_THRESHOLD = 0.02
@@ -32,8 +32,8 @@ def _get2dCostMatrix(c_hat, time_step_indices: TimeStepIndices, track_count, mea
     # Compute track-measurement cost for single scan problem from hypothesis
     # cost, including null assignment costs
     # Construct track to measurement assignment matrix at scan k
-    cost = np.full((track_count, measurement_count), math.inf)
-    nullCost = np.full((track_count,), math.inf)
+    cost = np.full((track_count, measurement_count), np.inf)
+    nullCost = np.full((track_count,), np.inf)
     # store index of the single target hypothesis with the minimum cost for
     # each track and measurement
     idxCost = np.full((track_count, measurement_count), -1, dtype=np.int32)
@@ -57,7 +57,7 @@ def _get2dCostMatrix(c_hat, time_step_indices: TimeStepIndices, track_count, mea
 
     # Create cost matrix for nulls with null costs on diagonal and inf
     # elsewhere (so we can have any number of null assignments)
-    nullCostMatrix = np.full((track_count, track_count), math.inf, dtype=np.float64)
+    nullCostMatrix = np.full((track_count, track_count), np.inf, dtype=np.float64)
     # Pick out diagonal entries (like np.diagonal, but this is a writable view)
     nullCostMatrix.ravel()[::track_count + 1] = nullCost
 
@@ -118,7 +118,7 @@ def _getPrimalSolution(u_hat_mean, Amatrix, hypothesisCosts):
     # the problem to be solved by integer linear programming
     for i, val in enumerate(idx_uncertainTracksMeas):
         if not val:
-            idx_unselectedHyps[Amatrix[i,:] == 1] = False
+            idx_unselectedHyps[Amatrix[i, :] == 1] = False
 
     # Solve remaining problem using OR tools solver to find a feasible solution
     A_uncertain = Amatrix[:, idx_unselectedHyps][idx_uncertainTracksMeas, :]
@@ -164,11 +164,11 @@ class AlgorithmState:
         """Initialises the algorithm state, for use before the algorithm runs"""
         return AlgorithmState(
             # Lagrange multiplier \delta is initialised with 0
-            delta = np.zeros((slide_window, hyp_count), dtype=np.float64),
+            delta=np.zeros((slide_window, hyp_count), dtype=np.float64),
             # subproblem solutions
-            u_hat = np.zeros((slide_window, hyp_count), dtype=np.bool_),
+            u_hat=np.zeros((slide_window, hyp_count), dtype=np.bool_),
             # store the best feasible primal cost obtained so far (upper bound)
-            bestPrimalCost=math.inf,
+            bestPrimalCost=np.inf,
             # the best primal solution (with cost=bestPrimalCost)
             uprimal=np.zeros((hyp_count,), dtype=np.bool_),
             # whether the main algorithm loop should now stop

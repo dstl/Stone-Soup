@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from itertools import groupby
 from operator import itemgetter
 from typing import List, Dict, Tuple, Sequence
+
 import numpy as np
 
 
@@ -58,7 +59,8 @@ def _add_dummy_tracks(hyps: List[Hyp], all_measurements: List[Tuple[int, int]], 
     the measurement hypotheses are used by the assignment.
     """
     zeros = np.zeros(slide_window, dtype=np.int32)
-    for trackID, (time_index, measurement) in enumerate(all_measurements, start=hyps[-1].trackID+1):
+    for trackID, (time_index, measurement) in enumerate(
+            all_measurements, start=hyps[-1].trackID+1):
         # Track without measurement assigned (allow measurement to be assigned to real track)
         hyps.append(Hyp(
             cost=0,
@@ -212,4 +214,3 @@ def init_hyp_info(hyps: List[Hyp], slide_window: int):
         constraint_matrix=_get_constraints_matrix(hyps, time_step_indices, track_to_hyp_map),
         all_costs=np.array([hyp.cost for hyp in hyps], dtype=np.float64),
     )
-
