@@ -476,8 +476,11 @@ class ImmutableMeta(BaseMeta):
         # cls._properties cannot be used as it only contains directly defined properties, not
         # inherited ones
         new_properties = OrderedDict()
-        properties = {key: getattr(cls, key) for key in dir(cls)
-                      if isinstance(getattr(cls, key), Property)}
+        properties = {}
+        for superclass in cls.mro():
+            if hasattr(superclass, '_properties'):
+                # noinspection PyProtectedMember
+                properties.update(superclass._properties)
         for name, prop in properties.items():
             # The Property objects must be copied to avoid changing the readonly status of the
             # properties owned by parent classes
