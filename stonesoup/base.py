@@ -53,6 +53,7 @@ This is equivalent to the following:
 
 
 """
+import functools
 import inspect
 import textwrap
 from reprlib import Repr
@@ -60,6 +61,7 @@ from abc import ABCMeta
 from collections import OrderedDict
 from copy import copy
 from types import MappingProxyType
+from typing import Callable, Sequence
 
 from ._util import cached_property
 
@@ -457,3 +459,95 @@ class Base(metaclass=BaseMeta):
         rep = Base._repr.whitespace_remove(max_len_whitespace, value)
         truncate = '\n...\n...  (truncated due to length)\n...'
         return ''.join([rep[:max_out], truncate]) if len(rep) > max_out else rep
+
+
+class MutableCacheableProperty:
+    """ A value of ``None`` cannot be cached.
+    Only works if all properties of the object are immutable
+    """
+    def __call__(self, cls):
+        cls._cached_properties = set()
+        cls.__setattr__ = MutableCacheableProperty._cache_set_attr(cls.__setattr__)
+        return cls
+
+    @staticmethod
+    def _cache_set_attr(orig_setattr):
+        def wrapper(self, name, value):
+            result = orig_setattr(self, name, value)
+            if not name.endswith('_cache'):
+                for cp in self._cached_properties:
+                    setattr(self, MutableCacheableProperty._get_cache_name(cp), None)
+            return result
+        return wrapper
+
+    @staticmethod
+    def cached_property(depends_on: Sequence = None) -> Callable:
+        if depends_on is None:
+            depends_on = []
+
+        def rcp_decorator(func: Callable) -> Callable:
+            @functools.wraps(func)
+            def rcp_wrapper(obj):
+                name = func.__name__
+                cache_name = MutableCacheableProperty._get_cache_name(name)
+                dependents = []
+                for d in depends_on:
+                    try:
+                        dependent = getattr(obj, d._property_name)
+                    except AttributeError:
+                        dependent = d.fget(obj)
+                    dependents.append(dependent)
+                MutableCacheableProperty._set_up_cache_variables(obj, name, dependents)
+                cache_value = MutableCacheableProperty._cache_value_with_dependent_check(
+                    obj, name, dependents)
+                if cache_value is None:
+                    result = func(obj)
+                    setattr(obj, cache_name, result)
+                    qualified_name = MutableCacheableProperty._get_qualified_name(obj, name)
+                    for dependent in dependents:
+                        setattr(dependent,
+                                MutableCacheableProperty._get_cache_name(qualified_name),
+                                True)
+                else:
+                    result = cache_value
+                return result
+            return rcp_wrapper
+        return rcp_decorator
+
+    @staticmethod
+    def _get_cache_name(name):
+        cache_name = '_{}_cache'.format(name)
+        return cache_name
+
+    @staticmethod
+    def _get_qualified_name(obj, name):
+        return '{}_{}'.format(obj.__class__.__name__, name)
+
+    @staticmethod
+    def _set_up_cache_variables(obj, name, dependents):
+        full_cache_name = MutableCacheableProperty._get_qualified_name(obj, name)
+        for dependent in dependents:
+            dependent._cached_properties.add(full_cache_name)
+        # noinspection PyProtectedMember
+        obj._cached_properties.add(name)
+
+    @staticmethod
+    def _cache_value_with_dependent_check(obj, name, dependents):
+        # first check for dependents having invalidated the cache
+        dependent_cache_name = MutableCacheableProperty._get_cache_name(
+            MutableCacheableProperty._get_qualified_name(obj, name))
+        for dependent in dependents:
+            try:
+                value = getattr(dependent, dependent_cache_name)
+                if value is None:
+                    return None
+            except AttributeError:
+                return None
+
+        # if still good, then check cache value
+        cache_name = MutableCacheableProperty._get_cache_name(name)
+        try:
+            cache_value = getattr(obj, cache_name)
+        except AttributeError:
+            cache_value = None
+        return cache_value
