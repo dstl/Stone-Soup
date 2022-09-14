@@ -466,3 +466,161 @@ class Base(metaclass=BaseMeta):
     if sys.version_info < (3, 11):
         def __getstate__(self):
             return self.__dict__
+
+
+class ImmutableMeta(BaseMeta):
+    """Metaclass for immutable Stone Soup objects. New classes using this metaclass have all
+    the same Properties as any parent class, but all these properties are set to read-only."""
+    def __new__(mcs, name, bases, namespace):
+        cls = BaseMeta.__new__(mcs, name, bases, namespace)
+        # cls._properties cannot be used as it only contains directly defined properties, not
+        # inherited ones
+        new_properties = OrderedDict()
+        properties = {key: getattr(cls, key) for key in dir(cls)
+                      if isinstance(getattr(cls, key), Property)}
+        for name, prop in properties.items():
+            # The Property objects must be copied to avoid changing the readonly status of the
+            # properties owned by parent classes
+            new_property = copy(prop)
+            new_property.readonly = True
+            new_properties[name] = new_property
+            setattr(cls, name, new_property)
+
+        for prop_name in list(new_properties):
+            # Optional arguments must follow mandatory
+            if new_properties[prop_name].default is not Property.empty:
+                new_properties.move_to_end(prop_name)
+
+        cls._properties = new_properties
+        cls._generate_signature()
+        return cls
+
+
+class ImmutableMixIn(metaclass=ImmutableMeta):
+    """This MixIn class, when included in a class's bases, forces all the Stone Soup Properties of
+    the class to be read only. It also provides an equality check by value, provided all the
+    values of all the properties of the class are hashable. If any of the value are not hashable,
+    then the equality check falls back to the default equality algorithm (by identity, rather
+    than value). If the equality check is by value, then this class also defines an appropriate
+    hash algorithm.
+
+    Immutability is inherited: that is, all subclasses of a class which inherits from this class
+    will have *all* their properties readonly, even ones defined by the subclass.
+    """
+    def __eq__(self, other):
+        if self._is_hashable:
+            return (type(self) is type(other)
+                    and all(getattr(self, name) == getattr(other, name)
+                            for name in type(self).properties))
+        else:
+            return self is other
+
+    def __hash__(self):
+        if self._is_hashable:
+            hash_val = self._tuple_hash()
+        else:
+            hash_val = object.__hash__(self)
+        return hash_val
+
+    def _tuple_hash(self):
+        return hash(tuple(getattr(self, name) for name in type(self).properties))
+
+    @cached_property
+    def _is_hashable(self):
+        try:
+            self._tuple_hash()
+            return True
+        except TypeError:
+            return False
+
+    def copy_with_updates(self, **kwargs):
+        """Returns a shallow copy of the (immutable) object with any properties specified by
+        keyword arguments overwritten with the specified value. The returned object is of the same
+        type as the original object, and any unspecified properties retain their values from the
+        original object.
+
+        Example
+        -------
+
+        >>> class Demo(ImmutableMixIn)
+        >>>     a: int = Property()
+        >>>     b: float = Property()
+        >>>
+        >>> obj1 = Demo(a=1, b=1.2)
+        >>> obj2 = obj1.copy_with_updates(b=2.1)
+
+        After the above code ``obj2`` would be an object of type ``Demo``, with ``obj2.a == 1`` and
+        ``obj2.b == 2.1``
+
+        Parameters
+        ----------
+        \\*\\*kwargs:
+            Property names and values to overwrite in the copied object.
+
+        Returns
+        -------
+        obj: The same type as copied object
+            Copy of the object, with any specified properties changed.
+        """
+        cls = type(self)
+        new_properties = self.property_dict
+        new_properties.update(kwargs)
+        return cls(**new_properties)
+
+    @property
+    def property_dict(self) -> dict:
+        """Returns a dict of the names and and values of all the :class:`~.Property` attributes
+        of the class."""
+        return {name: getattr(self, name) for name in self._properties.keys()}
+
+
+def freeze(self, **kwargs):
+    """This method returns a frozen copy of the object. If called on an object of type
+    ``Class(Base)`` it will return an object of type ``FrozenClass(Class, ImmutableMixIn)``, which
+    has all the same properties with the same values as the original object, but is immutable.
+    That is, all properties in the new object will be read only.
+
+    Note
+    ----
+    This method is automatically injected into any classes decorated with :func:`~.Freezable`
+
+    Parameters
+    ----------
+    \\*\\*kwargs:
+        Property names and values to overwrite in the copied object.
+
+    Returns
+    -------
+    frozen obj: :class:`Frozen[type(self)]`
+        An immutable copy of self
+    """
+    if isinstance(self, ImmutableMixIn):
+        return copy.copy(self)
+    cls = type(self)._immutable_version
+    new_properties = self.property_dict
+    new_properties.update(kwargs)
+    return cls(**new_properties)
+
+
+# noinspection PyPep8Naming
+def Freezable(cls: type):
+    """This function is designed a decorator to a class. If a class (``MyClass(Base)``) is
+    decorated :class:Freezable` two things happen to the class:
+
+    First, a new class is created
+    called ``FrozenMyClass`` which has all the same :class:`Property` fields as ``MyClass`` but
+    also inherits from :class:`~.ImmutableMixIn` such that all properties are read only.
+
+    Second, the :func:`~.freeze` method is injected into ``MyClass`` so that ``my_obj.freeze()``
+    returns a new ``FrozenMyClass`` object with all the same values as my_obj, the only difference
+    being that it is immutable.
+    """
+    old_name = cls.__name__
+    new_name = 'Frozen' + old_name
+
+    new_cls = type(new_name, (cls, ImmutableMixIn), {})
+    cls._immutable_version = new_cls
+    cls.freeze = freeze  # Copy freeze function into non-frozen class
+    cls.property_dict = ImmutableMixIn.property_dict
+    globals()[new_name] = new_cls
+    return cls
