@@ -1,14 +1,15 @@
-import numpy as np
-
+import copy
 from collections.abc import Sized, Iterable, Container
 from typing import MutableSequence
 
-from .base import Type
+import numpy as np
+
 from ..base import Property
-from .state import TaggedWeightedGaussianState, WeightedGaussianState
+from ..functions import gm_reduce_single
+from .base import Type
 from .array import StateVectors
 from .numeric import Probability
-from ..functions import gm_reduce_single
+from .state import GaussianState, TaggedWeightedGaussianState, WeightedGaussianState
 
 
 class GaussianMixture(Type, Sized, Iterable, Container):
@@ -55,6 +56,13 @@ class GaussianMixture(Type, Sized, Iterable, Container):
     def __len__(self):
         return len(self.components)
 
+    def __copy__(self):
+        inst = self.__class__.__new__(self.__class__)
+        inst.__dict__.update(self.__dict__)
+        property_name = self.__class__.components._property_name
+        inst.__dict__[property_name] = copy.copy(self.__dict__[property_name])
+        return inst
+
     def append(self, component):
         return self.components.append(component)
 
@@ -96,6 +104,11 @@ class GaussianMixture(Type, Sized, Iterable, Container):
         return covar
 
     @property
+    def timestamp(self):
+        """Timestamp"""
+        return next((component.timestamp for component in self.components), None)
+
+    @property
     def component_tags(self):
         component_tags = set()
         if all(isinstance(component, TaggedWeightedGaussianState)
@@ -106,3 +119,6 @@ class GaussianMixture(Type, Sized, Iterable, Container):
             raise ValueError("All components must be "
                              "TaggedWeightedGaussianState!")
         return component_tags
+
+
+GaussianState.register(GaussianMixture)
