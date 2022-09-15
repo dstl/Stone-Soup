@@ -7,20 +7,27 @@ from ..types.prediction import TaggedWeightedGaussianStatePrediction
 
 class MFAHypothesiser(Hypothesiser):
     """Multi-Frame Assignment Hypothesiser based on an underlying Hypothesiser
+
     Generates a list of SingleHypotheses pertaining to individual component-detection hypotheses
+
+    References
+    ----------
+    1. Xia, Y., Granström, K., Svensson, L., García-Fernández, Á.F., and Williams, J.L.,
+       2019. Multiscan Implementation of the Trajectory Poisson Multi-Bernoulli Mixture Filter.
+       J. Adv. Information Fusion, 14(2), pp. 213–235.
     """
 
     hypothesiser: Hypothesiser = Property(
         doc="Underlying hypothesiser used to generate detection-target pairs")
 
-    def hypothesise(self, track, detections, timestamp):
+    def hypothesise(self, track, detections, timestamp, **kwargs):
         """Form hypotheses for associations between Detections and a given track.
 
         Parameters
         ----------
         track: :class:`~.Track`
             The track object to hypothesise on
-        detections : list of :class:`Detection`
+        detections : set of :class:`Detection`
             Retrieved measurements
         timestamp : datetime
             Time of the detections/predicted states

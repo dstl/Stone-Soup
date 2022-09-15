@@ -9,7 +9,15 @@ from ._step import MAX_ITERATION_COUNT, AlgorithmState, algorithm_step, prune_hy
 
 
 class MFADataAssociator(DataAssociator):
-    """Data associator using multi-frame assignment algorithm over a sliding window."""
+    """Data associator using multi-frame assignment algorithm over a sliding window.
+
+    References
+    ----------
+    1. Xia, Y., Granström, K., Svensson, L., García-Fernández, Á.F., and Williams, J.L.,
+       2019. Multiscan Implementation of the Trajectory Poisson Multi-Bernoulli Mixture Filter.
+       J. Adv. Information Fusion, 14(2), pp. 213–235.
+
+    """
 
     hypothesiser: Hypothesiser = Property(
         doc='Generate a set of hypotheses for each prediction-detection pair')
