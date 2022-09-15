@@ -532,14 +532,21 @@ class ParticleState(State):
         else:
             p = None
 
+        if self.weight is not None:
+            weight = self.weight[item]
+        else:
+            weight = None
+
         particle = Particle(state_vector=self.state_vector[:, item],
-                            weight=self.weight[item],
+                            weight=weight,
                             parent=p)
         return particle
 
     @clearable_cached_property('state_vector', 'weight')
     def particles(self):
         """Sequence of individual :class:`~.Particle` objects."""
+        if self.particle_list is not None:
+            return self.particle_list
         return tuple(particle for particle in self)
 
     def __len__(self):
