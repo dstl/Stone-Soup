@@ -39,7 +39,7 @@ class MFADataAssociator(DataAssociator):
                 measHistory=individual_hypothesis.prediction.tag,  # list of measurement indices
                 slide_window=self.slide_window
             )
-            for trackID, (track, multihypothesis) in enumerate(zip(tracks, hypotheses))
+            for trackID, (track, multihypothesis) in enumerate(zip(tracks_list, hypotheses))
             for individual_hypothesis in multihypothesis
         ]
         hyp_info = init_hyp_info(hyps, self.slide_window)
