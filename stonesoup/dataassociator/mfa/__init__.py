@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import numpy as np
 
 from .. import DataAssociator
 from ...base import Property
@@ -39,7 +40,7 @@ class MFADataAssociator(DataAssociator):
             hyps.extend([
                 Hyp.create(
                     trackID=trackID,
-                    cost=-individual_hypothesis.prediction.weight.log_value,
+                    cost=-np.log(individual_hypothesis.prediction.weight),
                     measHistory=individual_hypothesis.prediction.tag,  # measurement indices
                     slide_window=self.slide_window
                 )
