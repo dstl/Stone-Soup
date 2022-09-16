@@ -9,6 +9,7 @@ from ..functions import gm_reduce_single
 from .base import Type
 from .array import StateVectors
 from .numeric import Probability
+from .prediction import Prediction, GaussianStatePrediction
 from .state import GaussianState, TaggedWeightedGaussianState, WeightedGaussianState
 
 
@@ -122,3 +123,4 @@ class GaussianMixture(Type, Sized, Iterable, Container):
 
 
 GaussianState.register(GaussianMixture)
+Prediction.class_mapping[Prediction][GaussianMixture] = GaussianStatePrediction
