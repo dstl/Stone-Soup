@@ -15,8 +15,14 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 import numpy as np
-from ortools.linear_solver import pywraplp
 from scipy.optimize import linear_sum_assignment
+try:
+    from ortools.linear_solver import pywraplp
+except ImportError as error:
+    raise ImportError(
+        "Usage of 'stonesoup.dataassociator.mfa' requires that the optional "
+        "package dependency 'ortools' is installed.") \
+        from error
 
 from ._init import Hyp, HypInfo, TimeStepIndices
 
