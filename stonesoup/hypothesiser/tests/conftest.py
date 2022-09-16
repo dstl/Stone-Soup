@@ -6,6 +6,7 @@ from ...predictor.categorical import HMMPredictor
 from ...types.prediction import (
     GaussianMeasurementPrediction, GaussianStatePrediction, CategoricalStatePrediction,
     CategoricalMeasurementPrediction)
+from ...types.update import Update
 from ...updater import Updater
 from ...updater.categorical import HMMUpdater
 
@@ -34,7 +35,7 @@ def updater():
                                                  state_prediction.timestamp)
 
         def update(self, hypothesis, **kwargs):
-            pass
+            return Update.from_state(hypothesis.prediction, hypothesis=hypothesis)
 
         @property
         def measurement_model(self):
