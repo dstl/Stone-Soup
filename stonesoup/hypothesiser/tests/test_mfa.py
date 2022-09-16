@@ -24,15 +24,15 @@ def test_mfa(hypothesiser, updater):
     hypothesiser = MFAHypothesiser(hypothesiser)
 
     timestamp = datetime.datetime.now()
-    track = Track(GaussianMixture(
+    track = Track([GaussianMixture(
         [TaggedWeightedGaussianState(
             state_vector=[[0]],
             covar=[[1]],
             weight=Probability(1),
             tag=[],
-            timestamp=timestamp)]))
-    detection1 = Detection(np.array([[2]]))
-    detection2 = Detection(np.array([[8]]))
+            timestamp=timestamp)])])
+    detection1 = Detection(np.array([[2]]), timestamp)
+    detection2 = Detection(np.array([[8]]), timestamp)
     detections = {detection1, detection2}
     detections_tuple = (detection1, detection2)
 

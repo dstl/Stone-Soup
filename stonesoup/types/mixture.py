@@ -1,5 +1,5 @@
 import copy
-from collections.abc import Sized, Iterable, Container
+from collections import abc
 from typing import MutableSequence
 
 import numpy as np
@@ -13,7 +13,7 @@ from .prediction import Prediction, GaussianStatePrediction
 from .state import GaussianState, TaggedWeightedGaussianState, WeightedGaussianState
 
 
-class GaussianMixture(Type, Sized, Iterable, Container):
+class GaussianMixture(Type, abc.MutableSequence):
     """
     Gaussian Mixture type
 
@@ -35,6 +35,8 @@ class GaussianMixture(Type, Sized, Iterable, Container):
                 for component in self.components):
             raise ValueError("Cannot form GaussianMixtureState out of "
                              "non-WeightedGaussianState inputs!")
+        if len({component.timestamp for component in self.components}) > 1:
+            raise ValueError("All components must have the same timestamp")
 
     def __contains__(self, index):
         # check if 'components' contains any WeightedGaussianState
@@ -44,15 +46,18 @@ class GaussianMixture(Type, Sized, Iterable, Container):
         else:
             raise ValueError("Index must be WeightedGaussianState")
 
-    def __iter__(self):
-        return iter(self.components)
-
     def __getitem__(self, index):
         # retrieve WeightedGaussianState by array index
         return self.components[index]
 
     def __setitem__(self, index, value):
+        if not isinstance(value, (WeightedGaussianState, TaggedWeightedGaussianState)):
+            raise ValueError("Cannot form GaussianMixtureState out of "
+                             "non-WeightedGaussianState inputs!")
         return self.components.__setitem__(index, value)
+
+    def __delitem__(self, value):
+        return self.components.__delitem__(value)
 
     def __len__(self):
         return len(self.components)
@@ -64,11 +69,11 @@ class GaussianMixture(Type, Sized, Iterable, Container):
         inst.__dict__[property_name] = copy.copy(self.__dict__[property_name])
         return inst
 
-    def append(self, component):
-        return self.components.append(component)
-
-    def extend(self, new_components):
-        return self.components.extend(new_components)
+    def insert(self, index, value):
+        if not isinstance(value, (WeightedGaussianState, TaggedWeightedGaussianState)):
+            raise ValueError("Cannot form GaussianMixtureState out of "
+                             "non-WeightedGaussianState inputs!")
+        return self.components.insert(index, value)
 
     @property
     def ndim(self):
