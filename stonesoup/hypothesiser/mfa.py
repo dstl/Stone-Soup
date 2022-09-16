@@ -10,6 +10,10 @@ class MFAHypothesiser(Hypothesiser):
 
     Generates a list of SingleHypotheses pertaining to individual component-detection hypotheses
 
+    Note
+    ----
+    This is to be used in conjunction with the :class:`~.MFADataAssociator`
+
     References
     ----------
     1. Xia, Y., Granström, K., Svensson, L., García-Fernández, Á.F., and Williams, J.L.,
@@ -20,7 +24,7 @@ class MFAHypothesiser(Hypothesiser):
     hypothesiser: Hypothesiser = Property(
         doc="Underlying hypothesiser used to generate detection-target pairs")
 
-    def hypothesise(self, track, detections, timestamp, **kwargs):
+    def hypothesise(self, track, detections, timestamp, detections_tuple, **kwargs):
         """Form hypotheses for associations between Detections and a given track.
 
         Parameters
@@ -31,6 +35,8 @@ class MFAHypothesiser(Hypothesiser):
             Retrieved measurements
         timestamp : datetime
             Time of the detections/predicted states
+        detections_tuple : tuple of :class:`~.Detection`
+            Original tuple of detections required for consistent indexing
         Returns
         -------
         : :class:`~.MultipleHypothesis`
@@ -44,17 +50,17 @@ class MFAHypothesiser(Hypothesiser):
             raise ValueError("All detections must have the same timestamp")
 
         hypotheses = list()
-        detections_list = list(detections)
         for component in track.state.components:
             # Get hypotheses for that component for all measurements
-            component_hypotheses = self.hypothesiser.hypothesise(component, detections, timestamp)
+            component_hypotheses = self.hypothesiser.hypothesise(
+                component, detections, timestamp, **kwargs)
             for hypothesis in component_hypotheses:
                 # Update component tag and weight
-                det_idx = detections_list.index(hypothesis.measurement) + 1 if hypothesis else 0
+                det_idx = detections_tuple.index(hypothesis.measurement) + 1 if hypothesis else 0
                 new_weight = component.weight * hypothesis.weight
                 hypothesis.prediction = \
                     TaggedWeightedGaussianStatePrediction(
-                        tag=[*component.tag, det_idx],
+                        tag=[*component.tag, det_idx],  # TODO: Avoid dependency on indexes
                         weight=new_weight,
                         state_vector=hypothesis.prediction.state_vector,
                         covar=hypothesis.prediction.covar,

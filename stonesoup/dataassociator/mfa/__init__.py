@@ -27,10 +27,13 @@ class MFADataAssociator(DataAssociator):
         # Generate a set of hypotheses for each track on each detection
         # and shuffle hypothesis data into format required by the MFA algorithm
         tracks_list = []
+        # TODO: Avoid dependency on indexes
+        detections_tuple = tuple(detections)
         hypotheses = []
         hyps = []
         for trackID, (track, multihypothesis) in enumerate(
-                self.generate_hypotheses(tracks, detections, timestamp, **kwargs).items()):
+                self.generate_hypotheses(tracks, detections, timestamp,
+                                         detections_tuple=detections_tuple, **kwargs).items()):
             tracks_list.append(track)
             hypotheses.append(multihypothesis)
             hyps.extend([
