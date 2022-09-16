@@ -25,23 +25,23 @@ class MFADataAssociator(DataAssociator):
 
     def associate(self, tracks, detections, timestamp, **kwargs):
         # Generate a set of hypotheses for each track on each detection
-        tracks_list = list(tracks)
-        hypotheses = [
-            self.hypothesiser.hypothesise(track, detections, timestamp)
-            for track in tracks_list
-        ]
-
-        # Shuffle hypothesis data into format required by the MFA algorithm
-        hyps = [
-            Hyp.create(
-                trackID=trackID,
-                cost=-individual_hypothesis.prediction.weight.log_value,
-                measHistory=individual_hypothesis.prediction.tag,  # list of measurement indices
-                slide_window=self.slide_window
-            )
-            for trackID, (track, multihypothesis) in enumerate(zip(tracks_list, hypotheses))
-            for individual_hypothesis in multihypothesis
-        ]
+        # and shuffle hypothesis data into format required by the MFA algorithm
+        tracks_list = []
+        hypotheses = []
+        hyps = []
+        for trackID, (track, multihypothesis) in enumerate(
+                self.generate_hypotheses(tracks, detections, timestamp, **kwargs).items()):
+            tracks_list.append(track)
+            hypotheses.append(multihypothesis)
+            hyps.extend([
+                Hyp.create(
+                    trackID=trackID,
+                    cost=-individual_hypothesis.prediction.weight.log_value,
+                    measHistory=individual_hypothesis.prediction.tag,  # measurement indices
+                    slide_window=self.slide_window
+                )
+                for individual_hypothesis in multihypothesis
+            ])
         hyp_info = init_hyp_info(hyps, self.slide_window)
 
         # Run the MFA algorithm
