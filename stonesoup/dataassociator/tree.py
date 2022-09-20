@@ -162,10 +162,10 @@ class TPRTreeMixIn(Base):
     def _track_tree_coordinates(self, track):
         state_vector = track.mean[self.pos_mapping, :]
         state_delta = 3 * np.sqrt(
-            np.diag(track.covar)[self.pos_mapping].reshape(-1, 1))
+            np.diag(track.covar)[self.pos_mapping, ].reshape(-1, 1))
         vel_vector = track.mean[self.vel_mapping, :]
         vel_delta = 3 * np.sqrt(
-            np.diag(track.covar)[self.vel_mapping].reshape(-1, 1))
+            np.diag(track.covar)[self.vel_mapping, ].reshape(-1, 1))
 
         min_pos = (state_vector - state_delta).ravel()
         max_pos = (state_vector + state_delta).ravel()
