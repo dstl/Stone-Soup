@@ -527,20 +527,28 @@ class ParticleState(State):
             self.weight = np.array(self.weight)
 
     def __getitem__(self, item):
-        if self.parent:
-            p = self.parent[item]
+        if self.parent is not None:
+            parent = self.parent[item]
         else:
-            p = None
+            parent = None
 
         if self.weight is not None:
             weight = self.weight[item]
         else:
             weight = None
 
-        particle = Particle(state_vector=self.state_vector[:, item],
-                            weight=weight,
-                            parent=p)
-        return particle
+        if isinstance(item, int):
+            result = Particle(state_vector=self.state_vector[:, item],
+                              weight=weight,
+                              parent=parent)
+        else:
+            # Allow for Prediction/Update sub-types
+            result = type(self).from_state(self,
+                                           state_vector=self.state_vector[:, item],
+                                           weight=weight,
+                                           parent=parent,
+                                           particle_list=None)
+        return result
 
     @clearable_cached_property('state_vector', 'weight')
     def particles(self):
