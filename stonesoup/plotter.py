@@ -310,9 +310,10 @@ class Plotter(_Plotter):
                 else:
                     not_update_indexes.append(n)
 
-            data = np.array(
+            data = np.concatenate(
                 [(getattr(state, 'mean', state.state_vector)[mapping, :])
-                 for state in track]).squeeze().T
+                 for state in track],
+                axis=1)
 
             line = self.ax.plot(
                 *data,
