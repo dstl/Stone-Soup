@@ -682,7 +682,7 @@ def test_target_rcs():
                                    position_mapping=[0, 2],
                                    noise_covar=np.array([[np.radians(0.5) ** 2, 0],
                                                          [0, 1 ** 2]]),
-                                   position=np.array([[10], [0]]),
+                                   position=np.array([[0], [1]]),
                                    rpm=60,
                                    fov_angle=np.radians(30),
                                    dwell_centre=StateVector([0.0]),
