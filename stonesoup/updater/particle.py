@@ -2,8 +2,7 @@ import copy
 from functools import lru_cache
 
 import numpy as np
-from scipy.linalg import inv, block_diag
-from scipy.stats import multivariate_normal
+from scipy.linalg import inv
 
 from .base import Updater
 from .kalman import KalmanUpdater, ExtendedKalmanUpdater
@@ -12,7 +11,6 @@ from ..functions import cholesky_eps, sde_euler_maruyama_integration
 from ..predictor.particle import MultiModelPredictor, RaoBlackwellisedMultiModelPredictor
 from ..resampler import Resampler
 from ..types.numeric import Probability
-from ..types.particle import RaoBlackwellisedParticle, MultiModelParticle
 from ..types.prediction import (
     Prediction, ParticleMeasurementPrediction, GaussianStatePrediction, MeasurementPrediction)
 from ..types.update import ParticleStateUpdate, Update
@@ -226,11 +224,11 @@ class GromovFlowKalmanParticleUpdater(GromovFlowParticleUpdater):
             timestamp=particle_prediction.timestamp)
 
 
-class MultiModelParticleUpdater(Updater):
+class MultiModelParticleUpdater(ParticleUpdater):
     """Particle Updater for the Multi Model system"""
 
-    resampler: Resampler = Property(doc='Resampler to prevent particle degeneracy')
-    predictor: MultiModelPredictor = Property()
+    predictor: MultiModelPredictor = Property(
+        doc="Predictor which hold holds transition matrix")
 
     def update(self, hypothesis, **kwargs):
         """Particle Filter update step
@@ -251,54 +249,34 @@ class MultiModelParticleUpdater(Updater):
         else:
             measurement_model = hypothesis.measurement.measurement_model
 
-        new_particles = [copy.copy(particle) for particle in hypothesis.prediction.particles]
+        update = Update.from_state(
+            hypothesis.prediction,
+            hypothesis=hypothesis,
+            timestamp=hypothesis.measurement.timestamp,
+            particle_list=None
+        )
 
-        for particle in new_particles:
-            particle.weight = particle.weight \
-                * measurement_model.pdf(hypothesis.measurement, particle, **kwargs) \
-                * self.predictor.transition_matrix[particle.parent.dynamic_model][particle.dynamic_model]  # noqa: E501
+        transition_matrix = np.asarray(self.predictor.transition_matrix)
+
+        update.weight = update.weight \
+            * measurement_model.pdf(hypothesis.measurement, update, **kwargs) \
+            * transition_matrix[update.parent.dynamic_model, update.dynamic_model]
 
         # Normalise the weights
-        sum_w = Probability.sum(i.weight for i in hypothesis.prediction.particles)
-        for particle in new_particles:
-            particle.weight /= sum_w
+        update.weight /= Probability.sum(update.weight)
 
-        new_particles = self.resampler.resample(new_particles)
-
-        return ParticleStateUpdate(None,
-                                   particle_list=new_particles,
-                                   hypothesis=hypothesis,
-                                   timestamp=hypothesis.measurement.timestamp)
-
-    @lru_cache()
-    def predict_measurement(self, state_prediction, measurement_model=None,
-                            **kwargs):
-
-        if measurement_model is None:
-            measurement_model = self.measurement_model
-
-        new_particles = []
-        for particle in state_prediction.particles:
-            new_state_vector = measurement_model.function(
-                particle.state_vector, noise=False, **kwargs)
-            new_particles.append(
-                MultiModelParticle(new_state_vector,
-                                   weight=particle.weight,
-                                   parent=particle.parent,
-                                   dynamic_model=particle.dynamicmodel))
-
-        return ParticleMeasurementPrediction(
-            None, particle_list=new_particles, timestamp=state_prediction.timestamp)
+        if self.resampler:
+            update = self.resampler.resample(update)
+        return update
 
 
-class RaoBlackwellisedParticleUpdater(Updater):
+class RaoBlackwellisedParticleUpdater(MultiModelParticleUpdater):
     """Particle Updater for the Raoblackwellised scheme"""
 
-    resampler: Resampler = Property(doc='Resampler to prevent particle degeneracy')
     predictor: RaoBlackwellisedMultiModelPredictor = Property(
         doc="Predictor which hold holds transition matrix, models and mappings")
 
-    def update(self, hypothesis, prior_timestamp, **kwargs):  # TODO: Handle prior timestamp
+    def update(self, hypothesis, **kwargs):
         """Particle Filter update step
 
         Parameters
@@ -317,114 +295,61 @@ class RaoBlackwellisedParticleUpdater(Updater):
             measurement_model = self.measurement_model
         else:
             measurement_model = hypothesis.measurement.measurement_model
-        time_interval = hypothesis.prediction.timestamp - prior_timestamp
 
-        for particle in hypothesis.prediction.particles:
+        update = Update.from_state(
+            hypothesis.prediction,
+            weight=copy.copy(hypothesis.prediction.weight),
+            hypothesis=hypothesis,
+            timestamp=hypothesis.measurement.timestamp,
+            particle_list=None
+        )
 
-            new_model_probabilities, prob_position_given_previous_position = \
-                self.calculate_model_probabilities(
-                    particle, measurement_model, self.predictor.position_mapping,
-                    self.transition_matrix, self.predictor.transition_models, time_interval)
+        update.model_probabilities = self.calculate_model_probabilities(
+            hypothesis.prediction, self.predictor)
 
-            particle.model_probabilities = new_model_probabilities
-
-            prob_y_given_x = measurement_model.pdf(
-                hypothesis.measurement, particle,
-                **kwargs)
-
-            particle.weight *= prob_y_given_x
+        update.weight = update.weight * measurement_model.pdf(hypothesis.measurement,
+                                                              update,
+                                                              **kwargs)
 
         # Normalise the weights
-        sum_w = Probability.sum(
-            i.weight for i in hypothesis.prediction.particles)
-        for particle in hypothesis.prediction.particles:
-            particle.weight /= sum_w
+        update.weight /= Probability.sum(update.weight)
 
-        new_particles = self.resampler.resample(
-            hypothesis.prediction.particles)
-
-        return ParticleStateUpdate(None,
-                                   particle_list=new_particles,
-                                   hypothesis=hypothesis,
-                                   timestamp=hypothesis.measurement.timestamp)
-
-    @lru_cache()
-    def predict_measurement(self, state_prediction, measurement_model=None,
-                            **kwargs):
-
-        if measurement_model is None:
-            measurement_model = self.measurement_model
-
-        new_particles = []
-        for particle in state_prediction.particles:
-            new_state_vector = measurement_model.function(
-                particle.state_vector, noise=False, **kwargs)
-            new_particles.append(
-                RaoBlackwellisedParticle(new_state_vector,
-                                         weight=particle.weight,
-                                         parent=particle.parent,
-                                         model_probabilities=particle.model_probabilities))
-
-        return ParticleMeasurementPrediction(
-            None, particle_list=new_particles, timestamp=state_prediction.timestamp)
+        if self.resampler:
+            update = self.resampler.resample(update)
+        return update
 
     @staticmethod
-    def calculate_model_probabilities(particle, measurement_model, position_mapping,
-                                      transition_matrix, transition_models, time_interval):
+    def calculate_model_probabilities(prediction, predictor):
         """Calculates the new model probabilities based
             on the ones calculated in the previous time step"""
 
-        previous_probabilities = particle.model_probabilities
-
         denominator_components = []
-        # Loop over the current models m_k
-        for l in range(len(previous_probabilities)):  # noqa: E741
-            selected_model_sum = 0
-            # Loop over the previous models m_k-1
-            for i, model in enumerate(transition_models):
-                # Looks up p(m_k|m_k-1)
-                # Note: if p(m_k|m_k-1) = 0 then p(m_k|x_1:k) = 0
-                transition_probability = transition_matrix[i][l]
-                if transition_probability == 0:
-                    break
-                # Getting required states to apply the model to that state vector
-                parent_required_state_space = copy.copy(particle.parent)
-                parent_required_state_space.state_vector = \
-                    particle.parent.state_vector[position_mapping[i], :]
+        # Loop over the previous models m_k-1
+        for model_index, transition_model in enumerate(predictor.transition_models):
+            required_space_prior = copy.copy(prediction.parent)
+            required_space_prior.state_vector = \
+                required_space_prior.state_vector[predictor.position_mappings[model_index], :]
+            required_space_pred = copy.copy(prediction)
+            required_space_pred.state_vector = \
+                required_space_pred.state_vector[predictor.position_mappings[model_index], :]
 
-                # The noiseless application of m_k onto x_k-1
-                mean = model.function(
-                    parent_required_state_space, time_interval=time_interval, noise=False)
+            prob_position_given_model_and_old_position = transition_model.pdf(
+                required_space_pred, required_space_prior,
+                time_interval=prediction.timestamp - prediction.parent.timestamp
+            )
 
-                # Input the indices that were removed previously
-                for j in range(len(particle.state_vector)):
-                    if j not in position_mapping[i]:
-                        mean = np.insert(mean, j, 0, axis=0)
+            # Looks up p(m_k|m_k-1)
+            prob_of_transition = np.asanyarray(predictor.transition_matrix)[model_index, :]
 
-                cov_matrices = [measurement_model.covar()
-                                for _ in range(len(model.model_list))]
+            product_of_probs = \
+                prob_position_given_model_and_old_position \
+                * prob_of_transition[:, np.newaxis] \
+                * prediction.model_probabilities  # p(m_k-1|x_1:k-1)
 
-                prob_position_given_model_and_old_position = multivariate_normal.pdf(
-                    particle.state_vector.ravel(),
-                    mean=mean.ravel(),
-                    cov=block_diag(*cov_matrices)
-                )
-                # p(m_k-1|x_1:k-1)
-                prob_previous_iteration_given_model = previous_probabilities[l]
-
-                product_of_probs = Probability(prob_position_given_model_and_old_position *
-                                               transition_probability *
-                                               prob_previous_iteration_given_model)
-                selected_model_sum = selected_model_sum + product_of_probs
-            denominator_components.append(selected_model_sum)
+            denominator_components.append(np.sum(product_of_probs, axis=0))
 
         # Calculate the denominator
-        denominator = sum(denominator_components)
+        new_probabilities = np.stack(denominator_components)
+        new_probabilities /= np.sum(new_probabilities, axis=0)
 
-        # Calculate the new probabilities
-        new_probabilities = []
-        for i in range(len(previous_probabilities)):
-            new_probabilities.append(
-                Probability(denominator_components[i] / denominator))
-
-        return [new_probabilities, denominator]
+        return new_probabilities

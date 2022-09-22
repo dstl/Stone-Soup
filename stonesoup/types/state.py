@@ -10,7 +10,7 @@ import numpy as np
 from ..base import Property, clearable_cached_property
 from .array import StateVector, CovarianceMatrix, PrecisionMatrix, StateVectors
 from .base import Type
-from .particle import Particle
+from .particle import Particle, MultiModelParticle, RaoBlackwellisedParticle
 from .numeric import Probability
 
 
@@ -581,6 +581,102 @@ class ParticleState(State):
 
 
 State.register(ParticleState)  # noqa: E305
+
+
+class MultiModelParticleState(ParticleState):
+    """Multi-Model Particle State type
+
+    This is a particle state object which describes the state as a
+    distribution of particles, where each particle has an associated
+    dynamics model
+    """
+
+    dynamic_model: np.ndarray = Property(
+        default=None,
+        doc="Array of indices that identify which model is associated with each particle.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.particle_list and isinstance(self.particle_list, list):
+            self.dynamic_model = \
+                np.array([particle.dynamic_model for particle in self.particle_list])
+
+    def __getitem__(self, item):
+        if self.parent is not None:
+            parent = self.parent[item]
+        else:
+            parent = None
+
+        if self.weight is not None:
+            weight = self.weight[item]
+        else:
+            weight = None
+
+        if self.dynamic_model is not None:
+            dynamic_model = self.dynamic_model[item]
+        else:
+            dynamic_model = None
+
+        if isinstance(item, int):
+            result = MultiModelParticle(state_vector=self.state_vector[:, item],
+                                        weight=weight,
+                                        parent=parent,
+                                        dynamic_model=dynamic_model)
+        else:
+            # Allow for Prediction/Update sub-types
+            result = type(self).from_state(self,
+                                           state_vector=self.state_vector[:, item],
+                                           weight=weight,
+                                           parent=parent,
+                                           particle_list=None,
+                                           dynamic_model=dynamic_model)
+        return result
+
+
+class RaoBlackwellisedParticleState(ParticleState):
+
+    model_probabilities: np.ndarray = Property(
+        default=None,
+        doc="2d NumPy array containing probability of particle belong to particular model. "
+            "Shape (n-models, m-particles)."
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.particle_list and isinstance(self.particle_list, list):
+            self.model_probabilities = \
+                np.column_stack([particle.model_probabilities for particle in self.particle_list])
+
+    def __getitem__(self, item):
+        if self.parent is not None:
+            parent = self.parent[item]
+        else:
+            parent = None
+
+        if self.weight is not None:
+            weight = self.weight[item]
+        else:
+            weight = None
+
+        if self.model_probabilities is not None:
+            model_probabilities = self.model_probabilities[:, item]
+        else:
+            model_probabilities = None
+
+        if isinstance(item, int):
+            result = RaoBlackwellisedParticle(state_vector=self.state_vector[:, item],
+                                              weight=weight,
+                                              parent=parent,
+                                              model_probabilities=model_probabilities)
+        else:
+            # Allow for Prediction/Update sub-types
+            result = type(self).from_state(self,
+                                           state_vector=self.state_vector[:, item],
+                                           weight=weight,
+                                           parent=parent,
+                                           particle_list=None,
+                                           model_probabilities=model_probabilities)
+        return result
 
 
 class EnsembleState(Type):

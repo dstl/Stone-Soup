@@ -10,7 +10,6 @@ from ..base import Property
 from ..models.transition import TransitionModel
 from ..types.prediction import Prediction
 from ..types.state import GaussianState
-from ..types.particle import MultiModelParticle, RaoBlackwellisedParticle
 
 
 class ParticlePredictor(Predictor):
@@ -113,7 +112,7 @@ class MultiModelPredictor(Predictor):
     transition_matrix: np.ndarray = Property(
         doc="n-model by n-model transition matrix."
     )
-    position_mapping: Sequence[Sequence[int]] = Property(
+    position_mappings: Sequence[Sequence[int]] = Property(
         doc="Sequence of position mappings associated with each transition model.")
 
     @property
@@ -121,16 +120,13 @@ class MultiModelPredictor(Predictor):
         return np.cumsum(self.transition_matrix, axis=1)
 
     @predict_lru_cache()
-    def predict(self, prior, control_input=None, timestamp=None, **kwargs):
+    def predict(self, prior, timestamp=None, **kwargs):
         """Particle Filter prediction step
 
         Parameters
         ----------
-        prior : :class:`~.ParticleState`
+        prior : :class:`~.MultiModelParticleState`
             A prior state object
-        control_input : :class:`~.State`, optional
-            The control input. It will only have an effect if
-            :attr:`control_model` is not `None` (the default is `None`)
         timestamp: :class:`datetime.datetime`, optional
             A timestamp signifying when the prediction is performed
             (the default is `None`)
@@ -140,51 +136,50 @@ class MultiModelPredictor(Predictor):
             The predicted state
         """
 
-        # Compute time_interval
-        try:
-            time_interval = timestamp - prior.timestamp
-        except TypeError:
-            # TypeError: (timestamp or prior.timestamp) is None
-            time_interval = None
-        new_particles = []
-        for particle in prior.particles:
-            for model_index in range(len(self.transition_matrix)):
-                if particle.dynamic_model == model_index:
+        new_particle_state = Prediction.from_state(
+            prior,
+            state_vector=copy.copy(prior.state_vector),
+            parent=prior,
+            particle_list=None,
+            dynamic_model=copy.copy(prior.dynamic_model),
+            timestamp=timestamp)
 
-                    # Change the value of the dynamic value randomly according to the defined
-                    # transition matrix
-                    new_dynamic_model = np.searchsorted(
-                        self.probabilities[model_index], np.random.random())
+        for model_index, transition_model in enumerate(self.transition_models):
+            # Change the value of the dynamic value randomly according to the defined
+            # transition matrix
+            current_model_indices = prior.dynamic_model == model_index
+            current_model_count = np.count_nonzero(current_model_indices)
+            if current_model_count == 0:
+                continue
+            new_dynamic_models = np.searchsorted(
+                self.probabilities[model_index],
+                np.random.random(size=current_model_count))
 
-                    transition_model = self.transition_models[particle.dynamic_model]
+            new_state_vector = self.apply_model(
+                prior[current_model_indices], transition_model, timestamp,
+                self.position_mappings[model_index], noise=True, **kwargs)
 
-                    # Based on given position mapping create a new state vector that contains only
-                    # the required states
-                    required_state_space = copy.copy(particle)
-                    required_state_space.state_vector = particle.state_vector[
-                        self.position_mapping[particle.dynamic_model]]
-                    new_state_vector = transition_model.function(
-                        required_state_space,
-                        noise=True,
-                        time_interval=time_interval,
-                        **kwargs)
+            new_particle_state.state_vector[:, current_model_indices] = new_state_vector
+            new_particle_state.dynamic_model[current_model_indices] = new_dynamic_models
 
-                    # Calculate the indices removed from the state vector to become compatible with
-                    # the dynamic model
-                    for j in range(len(particle.state_vector)):
-                        if j not in self.position_mapping[particle.dynamic_model]:
-                            new_state_vector = np.insert(new_state_vector, j, 0, axis=0)
+        return new_particle_state
 
-                    new_particles.append(MultiModelParticle(new_state_vector,
-                                                            weight=particle.weight,
-                                                            parent=particle,
-                                                            dynamic_model=new_dynamic_model))
+    @staticmethod
+    def apply_model(prior, transition_model, timestamp, position_mapping, **kwargs):
+        # Based on given position mapping create a new state vector that contains only the
+        # required states
+        orig_ndim = prior.ndim
+        prior.state_vector = prior.state_vector[position_mapping, :]
+        new_state_vector = transition_model.function(
+            prior, time_interval=timestamp - prior.timestamp, **kwargs)
 
-        return Prediction.from_state(prior,
-                                     state_vector=None,
-                                     weight=None,
-                                     particle_list=new_particles,
-                                     timestamp=timestamp)
+        # Calculate the indices removed from the state vector to become compatible with the
+        # dynamic model
+        for j in range(orig_ndim):
+            if j not in position_mapping:
+                new_state_vector = np.insert(new_state_vector, j, 0, axis=0)
+
+        return new_state_vector
 
 
 class RaoBlackwellisedMultiModelPredictor(MultiModelPredictor):
@@ -194,16 +189,13 @@ class RaoBlackwellisedMultiModelPredictor(MultiModelPredictor):
     """
 
     @predict_lru_cache()
-    def predict(self, prior, control_input=None, timestamp=None, **kwargs):
+    def predict(self, prior, timestamp=None, **kwargs):
         """Particle Filter prediction step
 
         Parameters
         ----------
-        prior : :class:`~.ParticleState`
+        prior : :class:`~.RaoBlackwellisedParticleState`
             A prior state object
-        control_input : :class:`~.State`, optional
-            The control input. It will only have an effect if
-            :attr:`control_model` is not `None` (the default is `None`)
         timestamp: :class:`datetime.datetime`, optional
             A timestamp signifying when the prediction is performed
             (the default is `None`)
@@ -213,49 +205,29 @@ class RaoBlackwellisedMultiModelPredictor(MultiModelPredictor):
             The predicted state
         """
 
-        # Compute time_interval
-        try:
-            time_interval = timestamp - prior.timestamp
-        except TypeError:
-            # TypeError: (timestamp or prior.timestamp) is None
-            time_interval = None
+        new_particle_state = Prediction.from_state(
+            prior,
+            state_vector=copy.copy(prior.state_vector),
+            parent=prior,
+            particle_list=None,
+            timestamp=timestamp)
 
-        new_particles = []
-        for particle in prior.particles:
+        # Change the value of the dynamic value randomly according to the
+        # matrix
+        new_dynamic_models = np.array([
+            np.random.choice(len(self.transition_models), p=model_probabiliy)
+            for model_probabiliy in prior.model_probabilities.T])
 
-            # Change the value of the dynamic value randomly according to the defined transition
-            # matrix
-            new_dynamic_model = np.random.choice(
-                list(range(len(particle.model_probabilities))),
-                p=particle.model_probabilities)
+        for model_index, transition_model in enumerate(self.transition_models):
 
-            # Based on given position mapping create a new state vector that contains only the
-            # required states
-            required_state_space = particle.state_vector[
-                np.array(self.position_mapping[new_dynamic_model])
-            ]
+            new_model_indices = new_dynamic_models == model_index
+            if np.count_nonzero(new_model_indices) == 0:
+                continue
 
-            new_state_vector = self.transition_models[new_dynamic_model].function(
-                required_state_space,
-                noise=True,
-                time_interval=time_interval,
-                **kwargs)
+            new_state_vector = self.apply_model(
+                prior[new_model_indices], transition_model, timestamp,
+                self.position_mappings[model_index], noise=True, **kwargs)
 
-            # Calculate the indices removed from the state vector to become compatible with the
-            # dynamic model
-            for j in range(len(particle.state_vector)):
-                if j not in self.position_mapping[new_dynamic_model]:
-                    new_state_vector = np.insert(new_state_vector, j, 0, axis=0)
+            new_particle_state.state_vector[:, new_model_indices] = new_state_vector
 
-            new_particles.append(
-                RaoBlackwellisedParticle(new_state_vector,
-                                         weight=particle.weight,
-                                         parent=particle,
-                                         model_probabilities=particle.model_probabilities)
-            )
-
-        return Prediction.from_state(prior,
-                                     state_vector=None,
-                                     weight=None,
-                                     particle_list=new_particles,
-                                     timestamp=timestamp)
+        return new_particle_state

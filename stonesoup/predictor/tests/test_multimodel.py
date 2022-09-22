@@ -6,7 +6,7 @@ from ...models.transition.linear import (
     ConstantVelocity, CombinedLinearGaussianTransitionModel, ConstantAcceleration)
 from ...predictor.particle import MultiModelPredictor
 from ...types.particle import MultiModelParticle
-from ...types.state import ParticleState
+from ...types.state import MultiModelParticleState
 
 
 def test_multi_model():
@@ -100,15 +100,15 @@ def test_multi_model():
                                                          ConstantVelocity(0.01))),
                   ]
     # Give the respective position mapping.
-    position_mapping = [
-                        [0, 1, 3, 4, 6, 7],
-                        [0, 1, 2, 3, 4, 5, 6, 7, 8],
-                        [0, 1, 3, 4, 6, 7],
-                        [0, 1, 2, 3, 4, 5, 6, 7, 8],
-                        [0, 1, 3, 4, 6, 7, 8],
-                        [0, 1, 2, 3, 4, 6, 7],
-                        [0, 1, 3, 4, 5, 6, 7],
-                        [0, 1, 2, 3, 4, 5, 6, 7],
+    position_mappings = [
+                         [0, 1, 3, 4, 6, 7],
+                         [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                         [0, 1, 3, 4, 6, 7],
+                         [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                         [0, 1, 3, 4, 6, 7, 8],
+                         [0, 1, 2, 3, 4, 6, 7],
+                         [0, 1, 3, 4, 5, 6, 7],
+                         [0, 1, 2, 3, 4, 5, 6, 7],
                       ]
 
     # Provide the required transition matrix.
@@ -123,9 +123,9 @@ def test_multi_model():
                   [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.65],
                  ]
 
-    prior = ParticleState(None, particle_list=prior_particles, timestamp=timestamp)
+    prior = MultiModelParticleState(None, particle_list=prior_particles, timestamp=timestamp)
 
-    predictor = MultiModelPredictor(position_mapping=position_mapping,
+    predictor = MultiModelPredictor(position_mappings=position_mappings,
                                     transition_matrix=transition,
                                     transition_models=model_list)
 

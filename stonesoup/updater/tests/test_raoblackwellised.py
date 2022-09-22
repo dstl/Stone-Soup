@@ -1,51 +1,76 @@
 """Test for updater.particle module"""
-import numpy as np
 import datetime
 
+import numpy as np
+
+from stonesoup.types.detection import Detection
 from ...models.measurement.linear import LinearGaussian
-
-from ...updater.particle import RaoBlackwellisedParticleUpdater
-from ...types.particle import RaoBlackwellisedParticle
-from ...models.transition.linear import ConstantVelocity, ConstantAcceleration
+from ...models.transition.linear import ConstantVelocity, ConstantAcceleration, KnownTurnRate
 from ...models.transition.linear import CombinedLinearGaussianTransitionModel
+from ...predictor.particle import RaoBlackwellisedMultiModelPredictor
+from ...updater.particle import RaoBlackwellisedParticleUpdater
+from ...types.hypothesis import SingleHypothesis
+from ...types.particle import RaoBlackwellisedParticle
+from ...types.prediction import RaoBlackwellisedParticleStatePrediction
+from ...types.state import RaoBlackwellisedParticleState
+from ...types.update import RaoBlackwellisedParticleStateUpdate
 
 
-def test_rao_blackwellised_updater():
+def test_rao_blackwellised():
     # Initialise two particles
     particle1 = RaoBlackwellisedParticle(
-        state_vector=[1, 1, 1, 1, 1, 1, 1, 1, 1],
-        weight=0.5,
-        model_probabilities=[0.5, 0.5])
+        state_vector=[1, 1, -0.5, 1, 1, -0.5],
+        weight=1/3000,
+        model_probabilities=[0.01, 0.98, 0.01])
     particle2 = RaoBlackwellisedParticle(
-        state_vector=[1, 1, 1, 1, 1, 1, 1, 1, 1],
-        weight=0.5,
-        model_probabilities=[0.5, 0.5])
-    particle1.parent = particle2
-    particle2.parent = particle1
+        state_vector=[1, 1, 0.5, 1, 1, 0.5],
+        weight=1/3000,
+        model_probabilities=[0.98, 0.01, 0.01])
+    particle3 = RaoBlackwellisedParticle(
+        state_vector=[1, 1, 0.5, 1, 1, 0.5],
+        weight=1/3000,
+        model_probabilities=[0.2, 0.2, 0.6])
 
-    particles = [particle1, particle2]
+    particles = [particle1, particle2, particle3] * 1000
+    timestamp = datetime.datetime.now()
+
+    particle_state = RaoBlackwellisedParticleState(
+        None, particle_list=particles, timestamp=timestamp)
 
     dynamic_model_list = [CombinedLinearGaussianTransitionModel((ConstantVelocity(0.01),
-                                                                 ConstantVelocity(0.01),
                                                                  ConstantVelocity(0.01))),
                           CombinedLinearGaussianTransitionModel((ConstantAcceleration(0.1),
-                                                                 ConstantAcceleration(0.1),
-                                                                 ConstantAcceleration(0.1)))]
+                                                                 ConstantAcceleration(0.1))),
+                          KnownTurnRate([0.1, 0.1], np.radians(20))]
 
-    transition = [[0.50, 0.50],
-                  [0.50, 0.50]]
+    transition_matrix = [[0.40, 0.40, 0.2],
+                         [0.40, 0.40, 0.2],
+                         [0.40, 0.40, 0.2]]
 
-    position_mapping = [[0, 1, 3, 4, 6, 7],
-                        [0, 1, 2, 3, 4, 5, 6, 7, 8]]
+    position_mappings = [[0, 1, 3, 4],
+                         [0, 1, 2, 3, 4, 5],
+                         [1, 2, 3, 4]]
 
-    measurement_model = LinearGaussian(
-        ndim_state=9,
-        mapping=(0, 3, 6),
-        noise_covar=np.diag([0.75, 0.75, 0.75]))
+    predictor = RaoBlackwellisedMultiModelPredictor(
+        dynamic_model_list, transition_matrix, position_mappings
+    )
 
-    for particle in particles:
-        rv = RaoBlackwellisedParticleUpdater.calculate_model_probabilities(
-            particle, measurement_model, position_mapping, transition, dynamic_model_list,
-            datetime.timedelta(seconds=1)
-        )
-        assert type(rv) == list
+    timestamp += datetime.timedelta(seconds=5)
+    prediction = predictor.predict(particle_state, timestamp)
+
+    assert isinstance(prediction, RaoBlackwellisedParticleStatePrediction)
+
+    measurement_model = LinearGaussian(6, [0, 3], np.diag([1, 1]))
+    updater = RaoBlackwellisedParticleUpdater(measurement_model, predictor)
+
+    # Detection close to where known turn rate model would place particles
+    detection = Detection([[0.5, 7.]], timestamp)
+
+    update = updater.update(hypothesis=SingleHypothesis(prediction, detection))
+
+    assert isinstance(update, RaoBlackwellisedParticleStateUpdate)
+
+    average_model_proabilities = np.average(
+        update.model_probabilities, weights=update.weight, axis=1)
+    assert len(average_model_proabilities) == update.model_probabilities.shape[0]
+    assert isinstance(dynamic_model_list[np.argmax(average_model_proabilities)], KnownTurnRate)
