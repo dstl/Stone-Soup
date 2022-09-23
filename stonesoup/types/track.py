@@ -137,14 +137,3 @@ class Track(StateMutableSequence):
                 hypothesis = state.hypothesis
                 if hypothesis and hypothesis.measurement.metadata is not None:
                     self.metadata.update(hypothesis.measurement.metadata)
-
-    def partial_deep_copy(self) -> "Track":
-        """
-        Returns a copy of self with the list of states and list of metadata copied.
-        Individual states and metadata are not copied so therefore refer to the same objects
-        """
-        new_track = Track(id=self.id,  # Copy not needed as a str is a literal value
-                          states=copy.copy(self.states),
-                          init_metadata=self.init_metadata)
-        new_track.metadatas = copy.copy(self.metadatas)
-        return new_track

@@ -1,13 +1,15 @@
+import copy
 import datetime
 
 import numpy as np
 import pytest
+
 from ..detection import Detection
 from ..hypothesis import SingleHypothesis
-from ..update import Update
 from ..numeric import Probability
 from ..state import State, GaussianState, ParticleState
 from ..track import Track
+from ..update import Update
 
 
 def test_track_empty():
@@ -179,7 +181,7 @@ def test_track_metadata():
            {'colour': 'green', 'side': 'enemy', 'speed': 'fast', 'size': 'small'}
 
 
-def test_partial_deep_copy():
+def test_copy():
     metadatas = [{'update_number': i} for i in range(3)]
 
     track = Track([State([0, 1]),
@@ -188,7 +190,7 @@ def test_partial_deep_copy():
                   init_metadata=metadatas[0])
     track.metadatas = metadatas
 
-    copied_track = track.partial_deep_copy()
+    copied_track = copy.copy(track)
 
     assert track is not copied_track
     assert track.states is not copied_track.states
