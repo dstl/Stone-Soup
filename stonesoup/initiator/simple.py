@@ -7,6 +7,7 @@ from ..dataassociator import DataAssociator
 from ..deleter import Deleter
 from ..models.base import LinearModel, ReversibleModel
 from ..models.measurement import MeasurementModel
+from ..types.array import StateVector, CovarianceMatrix
 from ..types.hypothesis import SingleHypothesis
 from ..types.numeric import Probability
 from ..types.particle import Particle
@@ -81,7 +82,7 @@ class SimpleMeasurementInitiator(GaussianInitiator):
     covariance matrix is positive definite, especially for subsequent Cholesky
     decompositions.
     """
-    prior_state: GaussianState = Property(doc="Prior state information")
+    prior_state: GaussianState = Property(default=None, doc="Prior state information")
     measurement_model: MeasurementModel = Property(
         default=None,
         doc="Measurement model. Can be left as None if all detections have a "
@@ -131,14 +132,18 @@ class SimpleMeasurementInitiator(GaussianInitiator):
                                     Must be instance of linear or reversible.")
 
             model_covar = measurement_model.covar()
-
-            prior_state_vector = self.prior_state.state_vector.copy()
-            prior_covar = self.prior_state.covar.copy()
-
             mapped_dimensions = measurement_model.mapping
 
-            prior_state_vector[mapped_dimensions, :] = 0
-            prior_covar[mapped_dimensions, :] = 0
+            if self.prior_state is None:
+                ndim, _ = state_vector.shape
+                prior_state_vector = StateVector(np.zeros((ndim, 1)))
+                prior_covar = CovarianceMatrix(np.zeros((ndim, ndim)))
+            else:
+                prior_state_vector = self.prior_state.state_vector.copy()
+                prior_covar = self.prior_state.covar.copy()
+                prior_state_vector[mapped_dimensions, :] = 0
+                prior_covar[mapped_dimensions, :] = 0
+
             C0 = inv_model_matrix @ model_covar @ inv_model_matrix.T
             C0 = C0 + prior_covar + np.diag(np.array([self.diag_load] * C0.shape[0]))
             tracks.add(Track([GaussianStateUpdate(
@@ -165,7 +170,7 @@ class MultiMeasurementInitiator(GaussianInitiator):
     initiated only to then be removed shortly after.
     Does cause slight delay in initiation to tracker."""
 
-    prior_state: GaussianState = Property(doc="Prior state information")
+    prior_state: GaussianState = Property(default=None, doc="Prior state information")
     deleter: Deleter = Property(doc="Deleter used to delete the track.")
     data_associator: DataAssociator = Property(
         doc="Association algorithm to pair predictions to detections.")
@@ -184,6 +189,7 @@ class MultiMeasurementInitiator(GaussianInitiator):
         doc="Initiator used to create tracks. If None, a :class:`SimpleMeasurementInitiator` will "
             "be created using :attr:`prior_state` and :attr:`measurement_model`. Otherwise, these "
             "attributes are ignored.")
+    skip_non_reversible: bool = Property(default=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -195,6 +201,10 @@ class MultiMeasurementInitiator(GaussianInitiator):
         sure_tracks = set()
 
         associated_detections = set()
+
+        if self.skip_non_reversible:
+            detections = {det for det in detections
+                          if isinstance(det.measurement_model, ReversibleModel)}
 
         if self.holding_tracks:
             associations = self.data_associator.associate(

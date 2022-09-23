@@ -293,8 +293,8 @@ def test_multi_measurement(updates_only):
     deleter = UpdateTimeDeleter(datetime.timedelta(seconds=59))
 
     measurement_initiator = MultiMeasurementInitiator(
-        GaussianState([[0], [0], [0], [0]], np.diag([0, 15, 0, 15])),
         deleter, data_associator, updater,
+        prior_state=GaussianState([[0], [0], [0], [0]], np.diag([0, 15, 0, 15])),
         measurement_model=measurement_model, updates_only=updates_only)
 
     timestamp = datetime.datetime.now()
