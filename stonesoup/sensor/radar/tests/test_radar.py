@@ -678,8 +678,18 @@ def test_target_rcs():
                                     position_mapping=[0, 2, 4],
                                     noise_covar=np.eye(3)),
             ((-50, 50), (-50, 50), (-50, 50))),
+        (RadarRotatingBearingRange(ndim_state=4,
+                                   position_mapping=[0, 2],
+                                   noise_covar=np.array([[np.radians(0.5) ** 2, 0],
+                                                         [0, 1 ** 2]]),
+                                   position=np.array([[0], [1]]),
+                                   rpm=60,
+                                   fov_angle=np.radians(30),
+                                   dwell_centre=StateVector([0.0]),
+                                   max_range=np.inf),
+         ((-50, 50), (-50, 50)))
     ],
-    ids=["RadarBearingRange", "RadarElevationBearingRange"]
+    ids=["RadarBearingRange", "RadarElevationBearingRange", "RadarRotatingBearingRange"]
 )
 def test_clutter_model(radar, clutter_params):
     # Test that the radar correctly adds clutter when it has a clutter

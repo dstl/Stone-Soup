@@ -196,6 +196,12 @@ class RadarRotatingBearingRange(RadarBearingRange):
                                       groundtruth_path=truth)
             detections.add(detection)
 
+        # Generate clutter at this time step
+        if self.clutter_model is not None:
+            self.clutter_model.measurement_model = measurement_model
+            clutter = self.clutter_model.function(ground_truths)
+            detections = set.union(detections, clutter)
+
         return detections
 
 
