@@ -47,6 +47,12 @@ class Matrix(np.ndarray):
         else:
             return self._cast(result)
 
+    def __hash__(self):
+        return hash(self.tobytes())
+
+    def __eq__(self, other):
+        return type(other) == type(self) and self.tobytes() == other.tobytes()
+
 
 class StateVector(Matrix):
     r"""State vector wrapper for :class:`numpy.ndarray`
