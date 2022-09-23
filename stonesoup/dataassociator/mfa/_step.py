@@ -18,7 +18,7 @@ import numpy as np
 from scipy.optimize import linear_sum_assignment
 try:
     from ortools.linear_solver import pywraplp
-except ImportError as error:
+except ImportError as error:  # pragma: no cover
     raise ImportError(
         "Usage of 'stonesoup.dataassociator.mfa' requires that the optional "
         "package dependency 'ortools' is installed.") \
@@ -142,7 +142,7 @@ def _getPrimalSolution(u_hat_mean, Amatrix, hypothesisCosts):
     # Run the solver
     solver.Minimize(solver.Sum([c * var for var, c in zip(vars, c_uncertain)]))
     status = solver.Solve()
-    if status not in (pywraplp.Solver.OPTIMAL, pywraplp.Solver.FEASIBLE):
+    if status not in (pywraplp.Solver.OPTIMAL, pywraplp.Solver.FEASIBLE):  # pragma: no cover
         raise RuntimeError("Infeasible primal problem")
 
     uprimal_uncertain = [bool(v.solution_value()) for v in vars]

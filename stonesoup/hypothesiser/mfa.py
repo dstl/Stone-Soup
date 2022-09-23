@@ -45,7 +45,7 @@ class MFAHypothesiser(Hypothesiser):
         """
 
         # Check to make sure all detections are obtained from the same time
-        timestamps = set([detection.timestamp for detection in detections])
+        timestamps = {detection.timestamp for detection in detections}
         if len(timestamps) > 1:
             raise ValueError("All detections must have the same timestamp")
 

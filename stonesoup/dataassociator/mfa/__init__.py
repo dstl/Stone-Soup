@@ -3,7 +3,7 @@ import numpy as np
 
 from .. import DataAssociator
 from ...base import Property
-from ...hypothesiser import Hypothesiser
+from ...hypothesiser.mfa import MFAHypothesiser
 from ...types.multihypothesis import MultipleHypothesis
 from ._init import init_hyp_info, Hyp
 from ._step import MAX_ITERATION_COUNT, AlgorithmState, algorithm_step, prune_hypotheses
@@ -20,7 +20,7 @@ class MFADataAssociator(DataAssociator):
 
     """
 
-    hypothesiser: Hypothesiser = Property(
+    hypothesiser: MFAHypothesiser = Property(
         doc='Generate a set of hypotheses for each prediction-detection pair')
     slide_window: int = Property(doc='Length of MFA slide window')
 

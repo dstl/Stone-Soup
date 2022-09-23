@@ -115,3 +115,15 @@ def test_mfa(hypothesiser, updater):
 
     for hypothesis in multi_hypothesis:
         assert hypothesis.prediction.tag in ([0, 0], [1, 0])
+
+
+def test_mfa_bad_timestamp(hypothesiser):
+    hypothesiser = MFAHypothesiser(hypothesiser)
+
+    timestamp = datetime.datetime.now()
+    detection1 = Detection(np.array([[2]]), timestamp)
+    detection2 = Detection(np.array([[8]]), timestamp - datetime.timedelta(seconds=1))
+    detections = {detection1, detection2}
+
+    with pytest.raises(ValueError, match="All detections must have the same timestamp"):
+        hypothesiser.hypothesise({}, detections, timestamp, tuple(detections))
