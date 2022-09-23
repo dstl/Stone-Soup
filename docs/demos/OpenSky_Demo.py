@@ -195,7 +195,7 @@ from stonesoup.initiator.simple import MultiMeasurementInitiator
 from stonesoup.types.state import GaussianState
 
 initiator = MultiMeasurementInitiator(
-    GaussianState(
+    prior_state=GaussianState(
         np.array([[0], [0], [0], [0], [0], [0]]),   # Prior State
         np.diag([15**2, 100**2, 15**2, 100**2, 15**2, 20**2])),
     measurement_model=None,
