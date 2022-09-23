@@ -69,8 +69,10 @@ class RadarBearingRange(Sensor):
         measurement_model = self.measurement_model
 
         if noise is True:
-            # Pre-fetch noise values
-            noise_vectors_iter = iter(measurement_model.rvs(len(ground_truths), **kwargs))
+            if len(ground_truths) > 1:
+                noise_vectors_iter = iter(measurement_model.rvs(len(ground_truths), **kwargs))
+            else:
+                noise_vectors_iter = iter([measurement_model.rvs(**kwargs)])
 
         detections = set()
         for truth in ground_truths:
@@ -163,8 +165,10 @@ class RadarRotatingBearingRange(RadarBearingRange):
         detections = set()
 
         if noise is True:
-            # Pre-fetch noise values
-            noise_vectors_iter = iter(measurement_model.rvs(len(ground_truths), **kwargs))
+            if len(ground_truths) > 1:
+                noise_vectors_iter = iter(measurement_model.rvs(len(ground_truths), **kwargs))
+            else:
+                noise_vectors_iter = iter([measurement_model.rvs(**kwargs)])
 
         for truth in ground_truths:
             # Transform state to measurement space and generate
@@ -242,8 +246,10 @@ class RadarElevationBearingRange(RadarBearingRange):
         measurement_model = self.measurement_model
 
         if noise is True:
-            # Pre-fetch noise values
-            noise_vectors_iter = iter(measurement_model.rvs(len(ground_truths), **kwargs))
+            if len(ground_truths) > 1:
+                noise_vectors_iter = iter(measurement_model.rvs(len(ground_truths), **kwargs))
+            else:
+                noise_vectors_iter = iter([measurement_model.rvs(**kwargs)])
 
         detections = set()
         for truth in ground_truths:
@@ -319,13 +325,13 @@ class RadarBearingRangeRate(RadarBearingRange):
 
         measurement_model = self.measurement_model
 
-        if noise is True:
+        if noise is True and len(ground_truths) > 1:
             # Pre-fetch noise values
             noise_vectors_iter = iter(measurement_model.rvs(len(ground_truths), **kwargs))
 
         detections = set()
         for truth in ground_truths:
-            if noise is True:
+            if noise is True and len(ground_truths) > 1:
                 noise_val = next(noise_vectors_iter)
             else:
                 noise_val = noise
@@ -378,13 +384,13 @@ class RadarElevationBearingRangeRate(RadarBearingRangeRate):
 
         measurement_model = self.measurement_model
 
-        if noise is True:
+        if noise is True and len(ground_truths) > 1:
             # Pre-fetch noise values
             noise_vectors_iter = iter(measurement_model.rvs(len(ground_truths), **kwargs))
 
         detections = set()
         for truth in ground_truths:
-            if noise is True:
+            if noise is True and len(ground_truths) > 1:
                 noise_val = next(noise_vectors_iter)
             else:
                 noise_val = noise

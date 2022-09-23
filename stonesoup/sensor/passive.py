@@ -46,13 +46,13 @@ class PassiveElevationBearing(Sensor):
 
         measurement_model = self.measurement_model
 
-        if noise is True:
-            # Pre-fetch noise values
+        if noise is True and len(ground_truths) > 1:
+            # Pre-fetch noise values when more than one target
             noise_vectors_iter = iter(measurement_model.rvs(len(ground_truths), **kwargs))
 
         detections = set()
         for truth in ground_truths:
-            if noise is True:
+            if noise is True and len(ground_truths) > 1:
                 noise_val = next(noise_vectors_iter)
             else:
                 noise_val = noise
