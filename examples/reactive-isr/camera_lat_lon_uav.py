@@ -4,9 +4,9 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.patches import Rectangle
 
-from stonesoup.custom.sensor import PanTiltCamera, ChangePanTiltAction, PanTiltCameraLatLong, \
-    PanTiltUAVCamera
-from stonesoup.functions import pol2cart
+from stonesoup.custom.functions import get_camera_footprint
+from stonesoup.custom.sensor.action.pan_tilt import ChangePanTiltAction
+from stonesoup.custom.sensor.pan_tilt import PanTiltUAVCamera
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
     ConstantVelocity
 from stonesoup.platform import FixedPlatform
@@ -15,14 +15,17 @@ from stonesoup.types.array import StateVector
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.types.state import State
 
+
+
 # Parameters
 # ==========
 start_time = datetime.now()         # Simulation start time
 num_iter = 100  # Number of simulation steps
-rotation_offset = StateVector([Angle(0), Angle(-np.pi/32), Angle(0)])  # Camera rotation offset
+rotation_offset = StateVector([Angle(0), Angle(-np.pi/2), Angle(0)])  # Camera rotation offset
+pan_tilt = StateVector([Angle(0), Angle(-np.pi/32)])  # Camera pan and tilt
 camera = PanTiltUAVCamera(ndim_state=6, mapping=[0, 2, 4], noise_covar=np.diag([0.001, 0.001, 0.001]),
-                          fov_angle=np.radians(10), rpm=np.array([10, 10]), rotation_offset=rotation_offset)
-platform = FixedPlatform(position_mapping=(0, 2, 4), orientation=StateVector([0, -np.pi/2, 0]),
+                          fov_angle=np.radians(10), rotation_offset=rotation_offset, pan_tilt=pan_tilt)
+platform = FixedPlatform(position_mapping=(0, 2, 4), orientation=StateVector([0, 0, 0]),
                          states=[State([10., 0., 10., 0., 100., 0], timestamp=start_time)],
                          sensors=[camera])
 
@@ -63,14 +66,9 @@ for k in range(1, num_iter + 1):
 # =====================
 scans = []
 
-generator = next(g for g in camera.actions(start_time + timedelta(seconds=10), start_timestamp=start_time))
-action = ChangePanTiltAction(rotation_end_time=start_time + timedelta(seconds=15),
-                             generator=generator,
-                             end_time=start_time + timedelta(seconds=15),
-                             target_value=StateVector([Angle(0),
-                                                       Angle(0),
-                                                       Angle(0)]),
-                             increasing_angle=[True, False])
+# Schedule an action to change the pan and tilt of the camera after 30 seconds
+generator = next(g for g in camera.actions(start_time + timedelta(seconds=30)))
+action = generator.action_from_value(StateVector([Angle(0), Angle(0)]))
 
 camera.add_actions([action])
 fig = plt.figure(figsize=(10, 6))
@@ -90,16 +88,9 @@ for k in range(num_iter):
     ax.set_aspect('equal')
 
     # Fov ranges (min, center, max)
-    fov_range_tilt = (camera.rotation_offset[1]-camera.fov_angle/2, camera.rotation_offset[1], camera.rotation_offset[1]+camera.fov_angle/2)
-    fov_range_pan = (camera.rotation_offset[2]-camera.fov_angle/2, camera.rotation_offset[2], camera.rotation_offset[2]+camera.fov_angle/2)
+    xmin, xmax, ymin, ymax = get_camera_footprint(camera)
 
-    altitude = camera.position[2]
-    x_min = altitude * np.tan(fov_range_tilt[0]) + camera.position[0]
-    x_max = altitude * np.tan(fov_range_tilt[2]) + camera.position[0]
-    y_min = altitude * np.tan(fov_range_pan[0]) + camera.position[1]
-    y_max = altitude * np.tan(fov_range_pan[2]) + camera.position[1]
-
-    ax.add_patch(Rectangle((x_min, y_min), x_max-x_min, y_max-y_min, facecolor='none', edgecolor='r'))
+    ax.add_patch(Rectangle((xmin, ymin), xmax-xmin, ymax-ymin, facecolor='none', edgecolor='r'))
     # x, y = pol2cart(100, camera.orientation[2] - camera.fov_angle / 2)
     # ax.plot([0, x], [0, y], 'r-', label="Camera FOV")
     # x, y = pol2cart(100, camera.orientation[2] + camera.fov_angle / 2)
@@ -113,7 +104,6 @@ for k in range(num_iter):
         # ax.plot([0, x], [0, y], 'b-')
         ax.plot(detection.state_vector[0], detection.state_vector[1], 'bx')
     plt.pause(0.1)
-    a=2
 
 # # Plot results
 # # ============
