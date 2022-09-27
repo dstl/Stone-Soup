@@ -1,9 +1,10 @@
 import warnings
 from abc import ABC, abstractmethod
 from itertools import chain
-from typing import Collection
+from typing import Collection, Iterable, Union
 
 import numpy as np
+from scipy.stats import kde
 from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.patches import Ellipse
@@ -482,6 +483,52 @@ class Plotter(_Plotter):
                            [state.state_vector[1] for state in ghosts],
                            [state.state_vector[2] for state in ghosts],
                            linestyle="")
+
+    def plot_density(self, state_sequences: Iterable[StateMutableSequence],
+                     index: Union[int, None] = -1,
+                     mapping=(0, 2), n_bins=300, **kwargs):
+        """
+
+        Parameters
+        ----------
+        state_sequences : an iterable of :class:`~.StateMutableSequence`
+            Set of tracks which will be plotted. If not a set, and instead a single
+            :class:`~.Track` type, the argument is modified to be a set to allow for iteration.
+        index: int
+            Which index of the StateMutableSequences should be plotted.
+            Default value is '-1' which is the last state in the sequences.
+            index can be set to None if all indices of the sequence should be included in the plot
+        mapping: list
+            List of 2 items specifying the mapping of the x and y components of the state space.
+        n_bins : int
+            Size of the bins used to group the data
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to pcolormesh function.
+        """
+        if len(state_sequences) == 0:
+            raise ValueError("Skipping plotting density due to state_sequences being empty.")
+        if index is None:  # Plot all states in the sequence
+            x = np.array([a_state.state_vector[mapping[0]]
+                          for a_state_sequence in state_sequences
+                          for a_state in a_state_sequence])
+            y = np.array([a_state.state_vector[mapping[1]]
+                          for a_state_sequence in state_sequences
+                          for a_state in a_state_sequence])
+        else:  # Only plot one state out of the sequences
+            x = np.array([a_state_sequence.states[index].state_vector[mapping[0]]
+                          for a_state_sequence in state_sequences])
+            y = np.array([a_state_sequence.states[index].state_vector[mapping[1]]
+                          for a_state_sequence in state_sequences])
+        if np.allclose(x, y, atol=1e-10):
+            raise ValueError("Skipping plotting density due to x and y values are the same. "
+                             "This leads to a singular matrix in the kde function.")
+        # Evaluate a gaussian kde on a regular grid of n_bins x n_bins over data extents
+        k = kde.gaussian_kde([x, y])
+        xi, yi = np.mgrid[x.min():x.max():n_bins * 1j, y.min():y.max():n_bins * 1j]
+        zi = k(np.vstack([xi.flatten(), yi.flatten()]))
+
+        # Make the plot
+        self.ax.pcolormesh(xi, yi, zi.reshape(xi.shape), shading='auto', **kwargs)
 
     # Ellipse legend patch (used in Tutorial 3)
     @staticmethod

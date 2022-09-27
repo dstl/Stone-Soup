@@ -175,3 +175,24 @@ def test_equal_3daxis_2d():
                                      State(state_vector=[1000, 20, 3])])
     plotter.plot_ground_truths(truths, mapping=[0, 1])
     plotter.set_equal_3daxis()
+
+
+def test_plot_density_empty_state_sequences():
+    plotter = Plotter()
+    with pytest.raises(ValueError):
+        plotter.plot_density([], index=None)
+
+
+def test_plot_density_equal_x_y():
+    plotter = Plotter()
+    start_time = datetime.now()
+    transition_model = CombinedLinearGaussianTransitionModel(
+        [ConstantVelocity(0), ConstantVelocity(0)])
+    truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], start_time)])
+    for k in range(20):
+        truth.append(GroundTruthState(
+            transition_model.function(truth[k], noise=True,
+                                      time_interval=timedelta(seconds=1)),
+            timestamp=start_time + timedelta(seconds=k + 1)))
+    with pytest.raises(ValueError):
+        plotter.plot_density({truth}, index=None)
