@@ -1,3 +1,5 @@
+from typing import Union
+
 import numpy as np
 from scipy.stats import multivariate_normal
 
@@ -82,7 +84,7 @@ class SimpleMeasurementInitiator(GaussianInitiator):
     covariance matrix is positive definite, especially for subsequent Cholesky
     decompositions.
     """
-    prior_state: GaussianState = Property(default=None, doc="Prior state information")
+    prior_state: GaussianState = Property(doc="Prior state information")
     measurement_model: MeasurementModel = Property(
         default=None,
         doc="Measurement model. Can be left as None if all detections have a "
@@ -132,18 +134,14 @@ class SimpleMeasurementInitiator(GaussianInitiator):
                                     Must be instance of linear or reversible.")
 
             model_covar = measurement_model.covar()
+
+            prior_state_vector = self.prior_state.state_vector.copy()
+            prior_covar = self.prior_state.covar.copy()
+
             mapped_dimensions = measurement_model.mapping
 
-            if self.prior_state is None:
-                ndim, _ = state_vector.shape
-                prior_state_vector = StateVector(np.zeros((ndim, 1)))
-                prior_covar = CovarianceMatrix(np.zeros((ndim, ndim)))
-            else:
-                prior_state_vector = self.prior_state.state_vector.copy()
-                prior_covar = self.prior_state.covar.copy()
-                prior_state_vector[mapped_dimensions, :] = 0
-                prior_covar[mapped_dimensions, :] = 0
-
+            prior_state_vector[mapped_dimensions, :] = 0
+            prior_covar[mapped_dimensions, :] = 0
             C0 = inv_model_matrix @ model_covar @ inv_model_matrix.T
             C0 = C0 + prior_covar + np.diag(np.array([self.diag_load] * C0.shape[0]))
             tracks.add(Track([GaussianStateUpdate(
@@ -153,6 +151,27 @@ class SimpleMeasurementInitiator(GaussianInitiator):
                 timestamp=detection.timestamp)
             ]))
         return tracks
+
+
+class SimpleMeasurementInitiatorWithCovar(SimpleMeasurementInitiator):
+    prior_state: GaussianState = Property(default=None, doc="Prior state information")
+    prior_covar: Union[CovarianceMatrix, list] = Property(
+        doc="The covariance for new states initiated from detections")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if not isinstance(self.prior_covar, CovarianceMatrix) and \
+                isinstance(self.prior_covar, (list, tuple)):
+            self.prior_covar = CovarianceMatrix(np.diag(self.prior_covar))
+
+        if self.prior_state is None:
+            ndim, ndim = self.prior_covar.shape
+            prior_state_vector = StateVector(np.zeros((ndim, 1)))
+            self.prior_state = GaussianState(
+                state_vector=prior_state_vector,
+                covar=self.prior_covar
+            )
 
 
 class MultiMeasurementInitiator(GaussianInitiator):
@@ -189,22 +208,22 @@ class MultiMeasurementInitiator(GaussianInitiator):
         doc="Initiator used to create tracks. If None, a :class:`SimpleMeasurementInitiator` will "
             "be created using :attr:`prior_state` and :attr:`measurement_model`. Otherwise, these "
             "attributes are ignored.")
-    skip_non_reversible: bool = Property(default=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.holding_tracks = set()
         if self.initiator is None:
-            self.initiator = SimpleMeasurementInitiator(self.prior_state, self.measurement_model)
+            if self.prior_state is not None:
+                self.initiator = SimpleMeasurementInitiator(self.prior_state,
+                                                            self.measurement_model)
+            else:
+                raise TypeError("Can not create SimpleMeasurementInitiator without prior_state "
+                                "being set.")
 
     def initiate(self, detections, timestamp, **kwargs):
         sure_tracks = set()
 
         associated_detections = set()
-
-        if self.skip_non_reversible:
-            detections = {det for det in detections
-                          if isinstance(det.measurement_model, ReversibleModel)}
 
         if self.holding_tracks:
             associations = self.data_associator.associate(

@@ -1,6 +1,10 @@
 import collections
+from abc import abstractmethod
+
 from .base import Initiator
 from ..base import Property
+from ..models.base import ReversibleModel
+from ..types.detection import Detection
 
 
 class StatesLengthLimiter(Initiator):
@@ -29,3 +33,27 @@ class StatesLengthLimiter(Initiator):
             track.states = collections.deque(track.states, self.max_length)
             track.metadatas = collections.deque(track.metadatas, self.max_length)
         return tracks
+
+
+class InitiatorWithFilteredDetections(Initiator):
+
+    """
+    This wrapper lets you filter the detections going into an initiator
+    """
+
+    initiator: Initiator = Property(doc="Stone Soup Initiator")
+
+    def initiate(self, detections, *args, **kwargs):
+        filtered_detections = {detection for detection in detections
+                               if self.filter_detection(detection)}
+        return self.initiator.initiate(filtered_detections, *args, **kwargs)
+
+    @abstractmethod
+    def filter_detection(self, detection: Detection) -> bool:
+        """This function determines if a detection is passed to an initiator"""
+        raise NotImplementedError
+
+
+class InitiatorWithOnlyReversibleDetections(InitiatorWithFilteredDetections):
+    def filter_detection(self, detection: Detection) -> bool:
+        return isinstance(detection.measurement_model, ReversibleModel)
