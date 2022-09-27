@@ -6,8 +6,7 @@ from itertools import product
 import numpy as np
 
 from stonesoup.base import Property
-from stonesoup.custom.sensor.action.pan_tilt import PanTiltActionsGenerator, \
-    PanTiltUAVActionsGenerator
+from stonesoup.custom.sensor.action.angle import PanUAVActionsGenerator, TiltUAVActionsGenerator
 from stonesoup.functions import cart2sphere
 from stonesoup.models.clutter import ClutterModel
 from stonesoup.models.measurement.linear import LinearGaussian
@@ -21,58 +20,6 @@ from stonesoup.types.detection import TrueDetection
 from stonesoup.types.groundtruth import GroundTruthState
 from stonesoup.functions import build_rotation_matrix
 
-
-class PanTiltCamera(PassiveElevationBearing):
-    """A camera that can pan and tilt."""
-
-    pan_tilt: StateVector = ActionableProperty(
-        doc="A StateVector containing the sensor pan and tilt angles. Defaults to a zero vector",
-        default=None,
-        generator_cls=PanTiltActionsGenerator)
-    fov_angle: float = Property(
-        doc="The field of view (FOV) angle (in radians).")
-    clutter_model: ClutterModel = Property(
-        default=None,
-        doc="An optional clutter generator that adds a set of simulated "
-            ":class:`Clutter` objects to the measurements at each time step. "
-            "The clutter is simulated according to the provided distribution.")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[TrueDetection]:
-        detections = set()
-        measurement_model = self.measurement_model
-
-        for truth in ground_truths:
-            # Transform state to measurement space and generate
-            # random noise
-            measurement_vector = measurement_model.function(truth, noise=noise, **kwargs)
-
-            # Check if state falls within sensor's FOV
-            fov_min = -self.fov_angle / 2
-            fov_max = +self.fov_angle / 2
-            bearing_t = measurement_vector[1, 0]
-            elevation_t = measurement_vector[0, 0]
-
-            # Do not measure if state not in FOV
-            if (not fov_min <= bearing_t <= fov_max) or (not fov_min <= elevation_t <= fov_max):
-                continue
-
-            detection = TrueDetection(measurement_vector,
-                                      measurement_model=measurement_model,
-                                      timestamp=truth.timestamp,
-                                      groundtruth_path=truth)
-            detections.add(detection)
-
-        # Generate clutter at this time step
-        if self.clutter_model is not None:
-            self.clutter_model.measurement_model = measurement_model
-            clutter = self.clutter_model.function(ground_truths)
-            detections |= clutter
-
-        return detections
 
 
 class PanTiltUAVCamera(Sensor):
@@ -92,10 +39,14 @@ class PanTiltUAVCamera(Sensor):
         doc="The field of view (FOV) angle (in radians). If provided in a list, the first element "
             "is the pan FOV angle and the second element is the tilt FOV angle. Else, the same "
             "FOV angle is used for both pan and tilt.")
-    pan_tilt: StateVector = ActionableProperty(
-        doc="A StateVector containing the sensor pan and tilt angles. Defaults to a zero vector",
-        default=None,
-        generator_cls=PanTiltUAVActionsGenerator)
+    pan: Angle = ActionableProperty(
+        doc="The sensor pan. Defaults to zero",
+        default=Angle(0),
+        generator_cls=PanUAVActionsGenerator)
+    tilt: Angle = ActionableProperty(
+        doc="The sensor tilt. Defaults to zero",
+        default=Angle(0),
+        generator_cls=TiltUAVActionsGenerator)
     clutter_model: ClutterModel = Property(
         default=None,
         doc="An optional clutter generator that adds a set of simulated "
@@ -106,8 +57,6 @@ class PanTiltUAVCamera(Sensor):
         super().__init__(*args, **kwargs)
         if isinstance(self.fov_angle, float):
             self.fov_angle = [self.fov_angle, self.fov_angle]
-        if self.pan_tilt is None:
-            self.pan_tilt = StateVector([Angle(0), Angle(0)])
 
     @property
     def measurement_model(self):
@@ -176,4 +125,4 @@ class PanTiltUAVCamera(Sensor):
         if self.movement_controller is None:
             return None
         return self.movement_controller.orientation + self.rotation_offset \
-               + StateVector([0, self.pan_tilt[1], self.pan_tilt[0]])
+               + StateVector([0, self.tilt, self.pan])

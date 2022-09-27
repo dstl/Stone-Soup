@@ -2,7 +2,10 @@ import numpy as np
 
 
 def get_camera_footprint(camera):
-    pan, tilt = camera.pan_tilt
+    try:
+        pan, tilt = camera.pan_tilt
+    except:
+        pan, tilt = camera.pan, camera.tilt
     altitude = camera.position[2]
 
     fov_range_pan = (pan-camera.fov_angle[0]/2, pan, pan+camera.fov_angle[0]/2)
