@@ -89,7 +89,9 @@ class PanTiltUAVCamera(Sensor):
                 (and follow in format) the underlying \
                 :class:`~.CartesianToElevationBearing` model")
     fov_angle: Union[float, List[float]] = Property(
-        doc="The field of view (FOV) angle (in radians).")
+        doc="The field of view (FOV) angle (in radians). If provided in a list, the first element "
+            "is the pan FOV angle and the second element is the tilt FOV angle. Else, the same "
+            "FOV angle is used for both pan and tilt.")
     pan_tilt: StateVector = ActionableProperty(
         doc="A StateVector containing the sensor pan and tilt angles. Defaults to a zero vector",
         default=None,
