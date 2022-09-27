@@ -49,7 +49,7 @@ class PanTiltActionsGenerator(RealNumberActionGenerator):
 
     owner: object = Property(doc="Object with `timestamp`, `rpm` (revolutions per minute) and "
                                  "dwell-centre attributes")
-    resolution: Angle = Property(default=np.radians(1), doc="Resolution of action space")
+    resolution: Angle = Property(default=np.radians(5), doc="Resolution of action space")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -110,6 +110,7 @@ class PanTiltActionsGenerator(RealNumberActionGenerator):
         """Returns all possible ChangePanTiltAction types"""
         possible_pan_angles = np.arange(self.min[0], self.max[0], self.resolution)
         possible_tilt_angles = np.arange(self.min[1], self.max[1], self.resolution)
+        yield self.default_action
         for (pan_angle, tilt_angle) in product(possible_pan_angles, possible_tilt_angles):
             increasing_p = self._get_direction(pan_angle, 0)
             increasing_t = self._get_direction(tilt_angle, 1)
