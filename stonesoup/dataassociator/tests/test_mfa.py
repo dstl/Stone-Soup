@@ -4,7 +4,6 @@ from itertools import product
 import numpy as np
 import pytest
 
-from ..mfa import MFADataAssociator
 from ...gater.distance import DistanceGater
 from ...hypothesiser.mfa import MFAHypothesiser
 from ...measures import Mahalanobis
@@ -14,6 +13,10 @@ from ...types.numeric import Probability
 from ...types.state import TaggedWeightedGaussianState
 from ...types.track import Track
 from ...types.update import GaussianMixtureUpdate
+try:
+    from ..mfa import MFADataAssociator
+except ImportError:
+    pytest.skip("ortools not available", allow_module_level=True)
 
 
 def update_tracks(associations, updater):
