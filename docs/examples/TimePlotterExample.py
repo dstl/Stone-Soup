@@ -14,7 +14,6 @@ This example shows how to animate several state sequences to be plotted in time 
 # simulators, including clutter. In this case a 2D constant velocity target, with 2D linear
 # measurements of position.
 import datetime
-import random
 
 import numpy as np
 import matplotlib.colors as colors
@@ -33,8 +32,7 @@ from stonesoup.tracker.simple import MultiTargetTracker
 from stonesoup.types.array import StateVector, CovarianceMatrix
 from stonesoup.types.state import GaussianState
 from stonesoup.updater.kalman import KalmanUpdater
-from stonesoup.plotter import TimeBasedPlotter
-from stonesoup.types.detection import Clutter, TrueDetection
+
 
 # Models
 transition_model = CombinedLinearGaussianTransitionModel(
@@ -118,38 +116,8 @@ plotter.plot_measurements(detections, mapping=[0, 2])
 plotter.plot_tracks(tracks, mapping=[0, 2])
 
 plotter.run(times_to_plot)
-plotter.save('example2.mp4')
+plotter.save('example2.gif')
 
 from matplotlib import pyplot as plt
 
 plt.show()
-
-"""
-for idx, ground_truth in enumerate(groundtruth):
-    all_plotting.append(TimeBasedPlotter(plotting_data=ground_truth.states,
-                                         legend_key='Ground Truth'+str(idx),
-                                         linestyle='--', marker='o', alpha=0.5,
-                                         color=random.choice(list(colours.values()))
-                                         ))
-
-for idx, track in enumerate(tracks):
-    all_plotting.append(TimeBasedPlotter(plotting_data=track.states, legend_key='Track'+str(idx),
-                                         linestyle='-', marker='x', alpha=0.5,
-                                         color=random.choice(list(colours.values()))
-                                         ))
-
-all_plotting.append(TimeBasedPlotter(
-    plotting_data=[detection for detection in detections if isinstance(detection, Clutter)],
-    legend_key='Clutter', linestyle='', marker='.', alpha=0.5, color='k'))
-
-all_plotting.append(TimeBasedPlotter(
-    plotting_data=[detection for detection in detections if isinstance(detection, TrueDetection)],
-    legend_key='True Detections', linestyle='', marker='.', alpha=0.5, color='r'))
-
-
-
-line_ani = TimeBasedPlotter.run_animation(times_to_plot, all_plotting,
-                                          plot_item_expiry=datetime.timedelta(seconds=60))
-
-line_ani.save('example.mp4')
-"""

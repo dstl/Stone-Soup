@@ -1,4 +1,3 @@
-import copy
 import warnings
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
@@ -1067,9 +1066,15 @@ class TBPlotter(_Plotter):
         data : Iterable[datetime]
             All the data that should be plotted
         plot_item_expiry: timedelta
-            How long a state should be displayed for
-        mapping : tuple
-            The indices of the state vector that should be plotted
+            How long a state should be displayed for. None means the
+        axis_padding: float
+            How much extra space should be given around the edge of the plot
+        figure_kwargs: dict
+            Keyword arguments for the pyplot figure function. See matplotlib.pyplot.figure for more
+            details
+        animation_input_kwargs: dict
+            Keyword arguments for FuncAnimation class. See matplotlib.animation.FuncAnimation for
+            more details. Default values are: blit=False, repeat=False, interval=50
 
         Returns
         -------
@@ -1077,9 +1082,10 @@ class TBPlotter(_Plotter):
             Animation object
         """
 
-        fig1 = plt.figure(**figure_kwargs)
+        animation_kwargs = dict(blit=False, repeat=False, interval=50)  # milliseconds
+        animation_kwargs.update(animation_input_kwargs)
 
-        #plt.style.use('seaborn-colorblind')
+        fig1 = plt.figure(**figure_kwargs)
 
         the_lines = []
         plotting_data = []
@@ -1098,33 +1104,23 @@ class TBPlotter(_Plotter):
 
                 legends_key.append(a_plot_object.plotting_label)
                 plotting_data.append(a_plot_object.plotting_data)
-            # else:
-            # Do nothing
 
-        """
-        x_limits = [min(state.state_vector[0] for line in data for state in line.plotting_data),
-                    max(state.state_vector[0] for line in data for state in line.plotting_data)]
+        if axis_padding:
+            [x_limits, y_limits] = [
+                [min(state.state_vector[idx] for line in data for state in line.plotting_data),
+                 max(state.state_vector[idx] for line in data for state in line.plotting_data)]
+                for idx in [0, 1]]
 
-        y_limits = [min(state.state_vector[1]
-                        for line in data for state in line.plotting_data),
-                    max(state.state_vector[1]
-                        for line in data for state in line.plotting_data)]
-        """
+            for axis_limits in [x_limits, y_limits]:
+                limit_padding = axis_padding * (axis_limits[1] - axis_limits[0])
+                axis_limits[0] -= limit_padding
+                axis_limits[1] += limit_padding
 
-        [x_limits, y_limits] = [
-            [min(state.state_vector[idx] for line in data for state in line.plotting_data),
-             max(state.state_vector[idx] for line in data for state in line.plotting_data)]
-            for idx in [0, 1]]
+            plt.xlim(x_limits)
+            plt.ylim(y_limits)
+        else:
+            plt.axis('equal')
 
-        for axis_limits in [x_limits, y_limits]:
-            limit_padding = axis_padding * (axis_limits[1] - axis_limits[0])
-            axis_limits[0] -= limit_padding
-            axis_limits[1] += limit_padding
-
-        plt.xlim(x_limits)
-        plt.ylim(y_limits)
-
-        # plt.axis('equal')
         plt.xlabel("$x$")
         plt.ylabel("$y$")
         plt.legend(legends_key)
@@ -1137,10 +1133,6 @@ class TBPlotter(_Plotter):
         else:
             min_plot_times = [time - plot_item_expiry for time in times_to_plot]
 
-        animation_kwargs = dict(blit=False, repeat=False,
-                                interval=50)  # milliseconds
-        animation_kwargs.update(animation_input_kwargs)
-
         line_ani = animation.FuncAnimation(fig1, cls.update_animation,
                                            frames=len(times_to_plot),
                                            fargs=(the_lines, plotting_data, min_plot_times,
@@ -1148,7 +1140,6 @@ class TBPlotter(_Plotter):
                                            **animation_kwargs)
 
         plt.draw()
-        #plt.show()
 
         return line_ani
 
@@ -1190,226 +1181,3 @@ class TBPlotter(_Plotter):
                     lines[i].set_data(the_data[:, 0],
                                       the_data[:, 1])
         return lines
-
-
-class TimeBasedPlotter(Base):
-
-    plotting_data = Property(Iterable[State])
-    legend_key = Property(str, default='Not specified', doc="Todo")
-    plotting_keyword_arguments = Property(dict, default=None, doc='Todo')
-
-    """
-    def plot_ground_truths(self, truths, mapping, truths_label="Ground Truth", **kwargs):
-        raise NotImplementedError
-
-    def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          measurements_label="Measurements", **kwargs):
-        raise NotImplementedError
-
-    def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False,
-                    track_label="Tracks",
-                    **kwargs):
-        raise NotImplementedError
-
-    def plot_sensors(self, sensors, sensor_label="Sensors", **kwargs):
-        raise NotImplementedError
-
-    def __init__(self, *args, **kwargs):
-        class_keywords, plotting_keywords = self.get_plotting_keywords(kwargs)
-        super().__init__(*args, **class_keywords)
-        self.plotting_data = copy.copy(self.prepare_data(self.plotting_data))
-        self.plotting_keyword_arguments = plotting_keywords
-    """
-
-    def get_plotting_keywords(self, kwargs):
-        """Splits keyword arguments needed for this class. Other keyword arguments are used in the
-        matplotlib.pyplot.plot function
-
-        Parameters
-        ----------
-        kwargs : dict
-            Keyword arguments for this class and additional arguments to be passed to plot function
-
-        Returns
-        -------
-        : :class:`dict`
-            keyword arguments to be used by the class
-        : :class:`dict`
-            keyword arguments to be the matplotlib.pyplot.plot function
-        """
-        plotting_keywords = {}
-        class_keywords = {}
-        for key, value in kwargs.items():
-            if key in self._properties.keys():
-                class_keywords[key] = value
-            else:
-                plotting_keywords[key] = value
-        return class_keywords, plotting_keywords
-
-    @staticmethod
-    def run_animation(times_to_plot: List[datetime],
-                      data: Iterable['TimeBasedPlotter'],
-                      plot_item_expiry: Optional[timedelta] = None,
-                      mapping=(0, 2)) -> animation.FuncAnimation:
-        """
-        Parameters
-        ----------
-        times_to_plot : Iterable[datetime]
-            All the times, that the plotter should plot
-        data : Iterable[datetime]
-            All the data that should be plotted
-        plot_item_expiry: timedelta
-            How long a state should be displayed for
-        mapping : tuple
-            The indices of the state vector that should be plotted
-
-        Returns
-        -------
-        : animation.FuncAnimation
-            Animation object
-        """
-
-        fig1 = plt.figure()
-
-        plt.rcParams['figure.figsize'] = (8, 8)
-        plt.style.use('seaborn-colorblind')
-
-        the_lines = []
-        plotting_data = []
-        legends_key = []
-
-        for a_plot_object in data:
-            if a_plot_object.plotting_data is not None:
-                the_data = np.array(
-                    [a_state.state_vector for a_state in a_plot_object.plotting_data])
-                if len(the_data) == 0:
-                    continue
-                the_lines.append(
-                    plt.plot(the_data[:1, mapping[0]],
-                             the_data[:1, mapping[1]],
-                             **a_plot_object.plotting_keyword_arguments)[0])
-
-                legends_key.append(a_plot_object.legend_key)
-                plotting_data.append(a_plot_object.plotting_data)
-            # else:
-            # Do nothing
-
-        x_limits = [min(state.state_vector[mapping[0]]
-                        for line in data for state in line.plotting_data),
-                    max(state.state_vector[mapping[0]]
-                        for line in data for state in line.plotting_data)]
-
-        y_limits = [min(state.state_vector[mapping[1]]
-                        for line in data for state in line.plotting_data),
-                    max(state.state_vector[mapping[1]]
-                        for line in data for state in line.plotting_data)]
-
-        padding = 0.1
-
-        for axis_limits in [x_limits, y_limits]:
-            limit_padding = padding*(axis_limits[1] - axis_limits[0])
-            axis_limits[0] -= limit_padding
-            axis_limits[1] += limit_padding
-
-        plt.xlim(x_limits)
-        plt.ylim(y_limits)
-
-        #plt.axis('equal')
-        plt.xlabel("$x$")
-        plt.ylabel("$y$")
-        plt.legend(legends_key)
-
-        interval_time = 50  # milliseconds
-
-        if plot_item_expiry is None:
-            min_plot_time = min(state.timestamp
-                                for line in data
-                                for state in line.plotting_data)
-            min_plot_times = [min_plot_time]*len(times_to_plot)
-        else:
-            min_plot_times = [time - plot_item_expiry for time in times_to_plot]
-
-        line_ani = animation.FuncAnimation(fig1, TimeBasedPlotter.update_animation,
-                                           frames=len(times_to_plot),
-                                           fargs=(the_lines, plotting_data, mapping, min_plot_times,
-                                                  times_to_plot),
-                                           interval=interval_time, blit=False,
-                                           repeat=False)
-
-        plt.draw()
-        plt.show()
-
-        return line_ani
-
-    @staticmethod
-    def update_animation(index: int, lines: List[Line2D], data_list: List[List[State]],
-                         mapping, start_times: List[datetime], end_times: List[datetime]):
-        """
-        Parameters
-        ----------
-        index : int
-            Which index of the start_times and end_times should be used
-        lines : List[Line2D]
-            The data that will be plotted, to be plotted.
-        data_list : List[List[State]]
-            All the data that should be plotted
-        mapping : tuple
-            The indices of the state vector that should be plotted
-        start_times : List[datetime]
-            lowest (earliest) time for an item to be plotted
-        end_times : List[datetime]
-            highest (latest) time for an item to be plotted
-
-        Returns
-        -------
-        : List[Line2D]
-            The data that will be plotted
-        """
-
-        min_time = start_times[index]
-        max_time = end_times[index]
-
-        plt.title(max_time)
-        for i, data_source in enumerate(data_list):
-
-            if data_source is not None:
-                the_data = np.array([a_state.state_vector for a_state in data_source
-                                     if min_time <= a_state.timestamp <= max_time])
-                if the_data.size > 0:
-                    lines[i].set_data(the_data[:, mapping[0]],
-                                      the_data[:, mapping[1]])
-        return lines
-
-    @staticmethod
-    def prepare_data(data_source: Iterable[State]) -> Iterable[State]:
-        """Ensures the data to plot is in the correct format. Detections are converted if they have
-        a inverse_function in their measurement model
-
-        Parameters
-        ----------
-        data_source : Iterable[State]
-            Keyword arguments for this class and additional arguments to be passed to plot function
-
-        Returns
-        -------
-        : Iterable[:class:`State`]
-            states in a suitable container to be processed
-        """
-
-        if not all(isinstance(list_item, State) for list_item in data_source):
-            raise NotImplementedError("Unknown type of data to process")
-
-        if all(isinstance(list_item, detection.Detection) for list_item in data_source):
-            output = []
-            for a_detection in data_source:
-                pass
-                """
-                converted_state_vector = convert_detection(a_detection)
-                if converted_state_vector is not None:
-                    output.append(State(convert_detection(a_detection),
-                                        timestamp=a_detection.timestamp))
-                """
-        else:
-            output = data_source
-
-        return output
