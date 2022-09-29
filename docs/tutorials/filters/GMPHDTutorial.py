@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """
-==================================
-11 - Gaussian mixture PHD tutorial
-==================================
+=============================
+Gaussian mixture PHD tutorial
+=============================
 """
 
 # %%
@@ -94,7 +93,7 @@
 # %%
 # A Ground-Based Multi-Target Simulation
 # --------------------------------------
-# This simulation will include several targets moving in different directions accross the 2D
+# This simulation will include several targets moving in different directions across the 2D
 # Cartesian plane. The start locations of each object are random. These start locations are
 # called priors and are known to the filter, via the density :math:`p_{0}(\cdot)` discussed above.
 #
@@ -180,17 +179,18 @@ for k in range(number_steps):
 # %%
 # Plot the ground truth
 #
-from stonesoup.plotter import Plotter
-plotter = Plotter()
+from stonesoup.plotter import Plotterly
+plotter = Plotterly()
 plotter.plot_ground_truths(truths, [0, 2])
+plotter.fig
 
 
 # %%
 # Generate detections with clutter
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Next, generate detections with clutter just as in the previous tutorial. The clutter is
-# assumed to be uniformly distributed accross the entire field of view, here assumed to
-# be the space where :math:`x \in [-100, 100]` and :math:`y \in [-100, 100]`.
+# assumed to be uniformly distributed across the entire field of view, here assumed to
+# be the space where :math:`x \in [-200, 200]` and :math:`y \in [-200, 200]`.
 
 # Make the measurement model
 from stonesoup.models.measurement.linear import LinearGaussian
@@ -237,8 +237,8 @@ for k in range(number_steps):
 
     # Generate clutter at this time-step
     for _ in range(np.random.poisson(clutter_rate)):
-        x = uniform.rvs(-100, 200)
-        y = uniform.rvs(-100, 200)
+        x = uniform.rvs(-200, 400)
+        y = uniform.rvs(-200, 400)
         measurement_set.add(Clutter(np.array([[x], [y]]), timestamp=timestamp,
                                     measurement_model=measurement_model))
 
@@ -247,11 +247,11 @@ for k in range(number_steps):
 
 
 # Plot true detections and clutter.
-plotter.plot_measurements(all_measurements, [0, 2], color='g')
+plotter.plot_measurements(all_measurements, [0, 2])
 plotter.fig
 
 # %%
-# Create the Predicter and Updater
+# Create the Predictor and Updater
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # The updater is a :class:`~.PHDUpdater`, and since it uses the mixed Gaussian paths, it is a
@@ -301,7 +301,12 @@ hypothesiser = GaussianMixtureHypothesiser(base_hypothesiser, order_by_detection
 # the Gaussian mixture. To ease the computational complexity, a :class:`~.GaussianMixtureReducer`
 # is used to merge and prune many of the states based on provided thresholds. States whose
 # distance is less than the merging threshold will be combined, and states whose weight
-# is less than the pruning threshold will be removed.
+# is less than the pruning threshold will be removed. Additionally, the
+# :class:`~.GaussianMixtureReducer` has an optional parameter for the maximum number of 
+# components that will be kept in the mixture, `max_number_components`. The reducer will keep
+# only the `max_number_components` components with the highest weights. This threshold can be
+# used when the approximate number of targets is known, or when there is high uncertainty and it
+# is hard to decide on a pruning threshold. It will not be used in this example.
 from stonesoup.mixturereducer.gaussianmixture import GaussianMixtureReducer
 # Initialise a Gaussian Mixture reducer
 merge_threshold = 5
@@ -332,12 +337,12 @@ for truth in start_truths:
             state_vector=truth.state_vector,
             covar=covar**2,
             weight=0.25,
-            tag='birth',
+            tag=TaggedWeightedGaussianState.BIRTH,
             timestamp=start_time)
     tracks.add(Track(new_track))
 
 # %%
-# The hypothesier takes the current Gaussian mixture as a parameter. Here we will 
+# The hypothesiser takes the current Gaussian mixture as a parameter. Here we will
 # initialize it to use later. 
 reduced_states = set([track[-1] for track in tracks])
 
@@ -348,7 +353,7 @@ reduced_states = set([track[-1] for track in tracks])
 # must be equal to the expected number of births per timestep. For more information about 
 # the birth component, see the algorithm provided in [#]_. If the state space is very 
 # large, it becomes inefficient to hold a component that covers it. Alternative 
-# implementations (as well as more dicussion about the birth component) are discussed in 
+# implementations (as well as more discussion about the birth component) are discussed in
 # [#]_.
 birth_covar = CovarianceMatrix(np.diag([1000, 2, 1000, 2]))
 birth_component = TaggedWeightedGaussianState(
@@ -476,16 +481,17 @@ for measurement_set in all_measurements:
 
 # %%
 # Now we can use the :class:`~.Plotter` class to draw the tracks. Note that if the birth
-# component it plotted you will see its uncertainty ellipse centered around :math:`(0, 0)`.
+# component it plotted you will see its uncertainty ellipse centred around :math:`(0, 0)`.
 # This ellipse need not cover the entire state space, as long as the distribution does.
 
 # Plot the tracks
-plotter = Plotter()
+plotter = Plotterly()
 plotter.plot_ground_truths(truths, [0, 2])
-plotter.plot_measurements(all_measurements, [0, 2], color='g')
+plotter.plot_measurements(all_measurements, [0, 2])
 plotter.plot_tracks(tracks, [0, 2], uncertainty=True)
-plotter.ax.set_xlim(x_min-5, x_max+5)
-plotter.ax.set_ylim(y_min-5, y_max+5)
+plotter.fig.update_xaxes(range=[x_min-5, x_max+5])
+plotter.fig.update_yaxes(range=[y_min-5, y_max+5])
+plotter.fig
 
 
 # %%
@@ -584,11 +590,11 @@ def animate(i, sf, truths, tracks, measurements, clutter):
     # Create a legend. The use of Line2D is purely for the visual in the legend
     data_types = [Line2D([0], [0], color='white', marker='o', markerfacecolor='blue', markersize=15,
                          label='Ground Truth'),
-                 Line2D([0], [0], color='white', marker='o', markerfacecolor='orange', markersize=15,
+                  Line2D([0], [0], color='white', marker='o', markerfacecolor='orange', markersize=15,
                          label='Clutter'),
-                 Line2D([0], [0], color='white', marker='o', markerfacecolor='green', markersize=15,
+                  Line2D([0], [0], color='white', marker='o', markerfacecolor='green', markersize=15,
                          label='Detection'),
-                 Line2D([0], [0], color='white', marker='o', markerfacecolor='red', markersize=15,
+                  Line2D([0], [0], color='white', marker='o', markerfacecolor='red', markersize=15,
                          label='Track')]
     axR.legend(handles=data_types, bbox_to_anchor=(1.0, 1), loc='upper left')
 

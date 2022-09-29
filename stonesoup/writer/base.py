@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from ..base import Base, Property
 from ..tracker import Tracker
 from ..metricgenerator import MetricGenerator

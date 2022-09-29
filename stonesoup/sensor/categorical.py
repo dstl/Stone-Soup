@@ -1,19 +1,22 @@
-# -*- coding: utf-8 -*-
-from typing import Set, Sequence
+from scipy.stats import multinomial
 
 from ..base import Property
-from ..models.measurement.categorical import CategoricalMeasurementModel
+from ..models.measurement.categorical import MarkovianMeasurementModel
 from ..sensor.sensor import Sensor
-from ..types.detection import TrueDetection, TrueCategoricalDetection
-from ..types.groundtruth import GroundTruthState, GroundTruthPath
-from ..types.state import CategoricalState
+from ..types.array import StateVector
+from ..types.detection import TrueCategoricalDetection
 
 
-class CategoricalSensor(Sensor):
-    measurement_model: CategoricalMeasurementModel = Property(
-        doc="Categorical measurement model used in generating measurements.")
-    category_names: Sequence[str] = Property(default=None,
-                                             doc="Measurement category names.")
+class HMMSensor(Sensor):
+    r"""Sensor model that observes a categorical state space and returns categorical measurements.
+
+    Measurements are categorical distributions over a finite set of categories
+    :math:`Z = \{\zeta^n|n\in \mathbf{N}, n\le N\}` (for some finite :math:`N`).
+    """
+
+    measurement_model: MarkovianMeasurementModel = Property(
+        doc="Measurement model to generate detection vectors from"
+    )
 
     @property
     def ndim_state(self):
@@ -23,20 +26,20 @@ class CategoricalSensor(Sensor):
     def ndim_meas(self):
         return self.measurement_model.ndim_meas
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if self.category_names and len(self.category_names) != self.ndim_meas:
-            raise ValueError(f"{len(self.category_names)} category names were given for a sensor "
-                             f"which returns vectors of length {self.ndim_meas}")
-
-    def measure(self, ground_truths: Set[GroundTruthState], **kwargs) -> Set[TrueDetection]:
-        """Generate a categorical measurement for a given categorical state.
+    def measure(self, ground_truths, noise: bool = True, **kwargs):
+        r"""Generate a categorical measurement for a given set of true categorical state.
 
         Parameters
         ----------
-        ground_truths : Set[:class:`~.CategoricalGroundTruthState`]
-            A set of :class:`~.CategoricalGroundTruthState`
+        ground_truths: Set[:class:`~.CategoricalGroundTruthState`]
+            A set of :class:`~.CategoricalGroundTruthState`.
+        noise: bool
+            Indicates whether measurement vectors are sampled from and the resultant measurement
+            categories returned instead. These are discrete categories instead of a distribution
+            over the measurement space. They are represented by N-tuples, with all components
+            equal to 0, except at an index corresponding to the relevant category.
+            For example :math:`e^k` indicates that the measurement category is :math:`\zeta^k`.
+            If `False`, the resultant distribution is returned.
 
         Returns
         -------
@@ -48,24 +51,23 @@ class CategoricalSensor(Sensor):
         """
 
         detections = set()
+
         for truth in ground_truths:
+            timestamp = truth.timestamp
+            detection_vector = self.measurement_model.function(truth, noise=noise, **kwargs)
 
-            wrong_type = False
-            if isinstance(truth, GroundTruthPath):
-                if not isinstance(truth[-1], CategoricalState):
-                    wrong_type = True
-            elif not isinstance(truth, CategoricalState):
-                wrong_type = True
+            if noise:
+                # Sample from resultant distribution
+                rv = multinomial(n=1, p=detection_vector.flatten())
+                detection_vector = StateVector(rv.rvs(size=1, random_state=None))
 
-            if wrong_type:
-                raise ValueError("Categorical sensor can only observe categorical states")
-
-            measurement_vector = self.measurement_model.function(truth, **kwargs)
-            detection = TrueCategoricalDetection(state_vector=measurement_vector,
-                                                 timestamp=truth.timestamp,
-                                                 measurement_model=self.measurement_model,
-                                                 groundtruth_path=truth,
-                                                 category_names=self.category_names)
+            detection = TrueCategoricalDetection(
+                state_vector=detection_vector,
+                timestamp=timestamp,
+                categories=self.measurement_model.measurement_categories,
+                measurement_model=self.measurement_model,
+                groundtruth_path=truth
+            )
             detections.add(detection)
 
         return detections

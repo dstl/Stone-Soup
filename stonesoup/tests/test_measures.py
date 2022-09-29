@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import datetime
 
 import numpy as np
@@ -18,11 +17,13 @@ u = StateVector([[10.], [1.], [10.], [1.]])
 ui = CovarianceMatrix(np.diag([100., 10., 100., 10.]))
 
 state_u = GaussianState(u, ui, timestamp=t)
+stateB_u = State(u, timestamp=t)
 
 v = StateVector([[11.], [10.], [100.], [2.]])
 vi = CovarianceMatrix(np.diag([20., 3., 7., 10.]))
 
 state_v = GaussianState(v, vi, timestamp=t)
+stateB_v = State(v, timestamp=t)
 
 
 def test_measure_raise_error():
@@ -41,6 +42,7 @@ def test_euclideanweighted():
     weight = np.array([1, 2, 3, 1])
     measure = measures.EuclideanWeighted(weight)
     assert measure(state_u, state_v) == distance.euclidean(u[:, 0], v[:, 0], weight)
+    assert measure(stateB_u, stateB_v) == distance.euclidean(u[:, 0], v[:, 0], weight)
 
 
 def test_mahalanobis():

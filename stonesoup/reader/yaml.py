@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from pathlib import Path
 
 from ..base import Property
@@ -74,16 +73,23 @@ class YAMLTrackReader(YAMLReader, Tracker):
     def data_gen(self):
         yield from super().data_gen()
 
-    @BufferedGenerator.generator_method
-    def tracks_gen(self):
-        tracks = dict()
-        for time, document in self.data_gen():
-            updated_tracks = set()
-            for track in document.get('tracks', set()):
-                if track.id in tracks:
-                    tracks[track.id].states = track.states
-                else:
-                    tracks[track.id] = track
-                updated_tracks.add(tracks[track.id])
+    def __iter__(self):
+        self.data_iter = iter(self.data_gen())
+        self._tracks = dict()
+        return super().__iter__()
 
-            yield time, updated_tracks
+    @property
+    def tracks(self):
+        return self._tracks
+
+    def __next__(self):
+        time, document = next(self.data_iter)
+        updated_tracks = set()
+        for track in document.get('tracks', set()):
+            if track.id in self.tracks:
+                self._tracks[track.id].states = track.states
+            else:
+                self._tracks[track.id] = track
+            updated_tracks.add(self.tracks[track.id])
+
+        return time, updated_tracks

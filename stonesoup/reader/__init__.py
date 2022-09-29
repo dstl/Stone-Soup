@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Reader classes are used for getting data into the framework."""
 from .base import Reader, DetectionReader, GroundTruthReader, SensorDataReader
 

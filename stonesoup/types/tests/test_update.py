@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 import datetime
 
 import numpy as np
 import pytest
 
+from ..array import StateVector
 from ..detection import Detection
 from ..hypothesis import SingleHypothesis
 from ..particle import Particle
@@ -110,30 +110,24 @@ def test_particlestateupdate():
                           1 / 9),
                  ]
     timestamp = datetime.datetime.now()
-    prediction = ParticleStatePrediction(particles=particles,
-                                         timestamp=timestamp)
-    meas_pred = ParticleMeasurementPrediction(
-        particles=particles,
-        timestamp=timestamp)
+    prediction = ParticleStatePrediction(None, particle_list=particles, timestamp=timestamp)
+    meas_pred = ParticleMeasurementPrediction(None, particle_list=particles, timestamp=timestamp)
     measurement = Detection(state_vector=np.array([[5], [7]]),
                             timestamp=timestamp)
-    state_update = ParticleStateUpdate(particles,
-                                       SingleHypothesis(
-                                           prediction=prediction,
-                                           measurement=measurement,
-                                           measurement_prediction=meas_pred),
-                                       timestamp=timestamp)
+    state_update = ParticleStateUpdate(None, SingleHypothesis(prediction=prediction,
+                                                              measurement=measurement,
+                                                              measurement_prediction=meas_pred),
+                                       particle_list=particles, timestamp=timestamp)
 
     eval_mean = np.mean(np.hstack([i.state_vector for i in particles]),
                         axis=1).reshape(2, 1)
     assert np.allclose(eval_mean, state_update.mean)
     assert np.all([particles[i].state_vector ==
-                   state_update.particles[i].state_vector for i in range(9)])
-    assert np.array_equal(prediction, state_update.hypothesis.prediction)
-    assert np.array_equal(meas_pred,
-                          state_update.hypothesis.measurement_prediction)
-    assert np.array_equal(measurement, state_update.hypothesis.measurement)
-    assert np.array_equal(timestamp, state_update.timestamp)
+                   StateVector(state_update.state_vector[:, i]) for i in range(9)])
+    assert prediction == state_update.hypothesis.prediction
+    assert meas_pred == state_update.hypothesis.measurement_prediction
+    assert measurement == state_update.hypothesis.measurement
+    assert timestamp == state_update.timestamp
 
 
 def test_from_state():
@@ -166,7 +160,8 @@ def test_from_state():
     assert update.covar[0] == 3
 
     state = ParticleState([Particle([[0]], weight=0.5)], timestamp=datetime.datetime.now())
-    update = Update.from_state(state, particles=[Particle([[1]], weight=0.8)], hypothesis=None)
+    update = Update.from_state(state, None, particle_list=[Particle([[1]], weight=0.5)],
+                               hypothesis=None)
     assert isinstance(update, ParticleStateUpdate)
     assert update.timestamp == state.timestamp
     assert update.state_vector[0] == 1

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from operator import attrgetter
 
 from .base import MetricGenerator
@@ -310,7 +309,7 @@ class SIAPMetrics(MetricGenerator):
         error_sum = 0
         for association in associations:
             truth, track = self.truth_track_from_association(association)
-            error_sum += measure(truth[timestamp], track[timestamp])
+            error_sum += measure(track[timestamp], truth[timestamp])
         return error_sum
 
     @staticmethod
@@ -572,7 +571,7 @@ class IDSIAPMetrics(SIAPMetrics):
             )
             id_correctness_at_times.append(
                 SingleTimeMetric(title="SIAP ID Correctness at timestamp",
-                                 value=JCt / JTt if JUt != 0 else 0,
+                                 value=JCt / JTt if JTt != 0 else 0,
                                  timestamp=timestamp,
                                  generator=self)
             )

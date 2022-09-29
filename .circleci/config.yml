@@ -17,18 +17,18 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
+          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "setup.cfg" }}
       - run:
           name: Install Dependencies
           command: |
             python -m venv venv
             . venv/bin/activate
             pip install --upgrade pip
-            pip install -e .[dev]
+            pip install -e .[dev] opencv-python-headless
       - save_cache:
           paths:
             - ./venv
-          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
+          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "setup.cfg" }}
       - run:
           name: Run Tests
           command: |
@@ -64,18 +64,19 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: dependencies-{{ .Environment.CACHE_VERSION }}-test-310-{{ checksum "setup.py" }}
+          key: dependencies-doc-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "setup.cfg" }}
       - run:
           name: Install Dependencies
           command: |
             python -m venv venv
             . venv/bin/activate
             pip install --upgrade pip
-            pip install -e .[dev]
+            pip install -r docs/ci-requirements.txt
+            pip install -e .[dev] opencv-python-headless
       - save_cache:
           paths:
             - ./venv
-          key: dependencies-{{ .Environment.CACHE_VERSION }}-test-310-{{ checksum "setup.py" }}
+          key: dependencies-doc-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "setup.cfg" }}
       - run:
           name: Build Docs
           command: |

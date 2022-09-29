@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from copy import deepcopy
 from datetime import timedelta
 from itertools import combinations
@@ -8,7 +7,7 @@ import numpy as np
 
 from ..base import Property
 from ..models.transition.base import TransitionModel
-from ..models.transition.linear import ConstantTurn, ConstantVelocity, \
+from ..models.transition.linear import KnownTurnRate, ConstantVelocity, \
     CombinedLinearGaussianTransitionModel
 from ..types.array import StateVector
 from ..types.state import State
@@ -38,8 +37,8 @@ def create_smooth_transition_models(initial_state, x_coords, y_coords, times, tu
     Returns
     -------
     transition_models:
-        A list of :class:`~.ConstantTurn` and :class:`~.Point2PointConstantAcceleration` transition
-        models.
+        A list of :class:`~.KnownTurnRate` and :class:`~.Point2PointConstantAcceleration`
+        transition models.
     transition_times:
         A list of :class:`~.datetime.timedelta` dictating the transition time for each
         corresponding transition model in transition_models.
@@ -117,7 +116,7 @@ def create_smooth_transition_models(initial_state, x_coords, y_coords, times, tu
 
         if t1 > 0:
             # make turn model and add to list
-            turn_model = ConstantTurn(turn_noise_diff_coeffs=(0, 0), turn_rate=w)
+            turn_model = KnownTurnRate(turn_noise_diff_coeffs=(0, 0), turn_rate=w)
             state.state_vector = turn_model.function(state=state, time_interval=timedelta(
                 seconds=t1))  # move platform through turn
             state.timestamp += timedelta(seconds=t1)

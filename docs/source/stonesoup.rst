@@ -29,6 +29,7 @@ Enabling Components
     stonesoup.platform
     stonesoup.reader
     stonesoup.sensor
+    stonesoup.sensormanager
     stonesoup.simulator
     stonesoup.tracker
     stonesoup.writer

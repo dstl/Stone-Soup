@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from ..base import Property
 from ..measures import Measure
 from ..types.multihypothesis import MultipleHypothesis

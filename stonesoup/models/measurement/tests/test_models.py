@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pytest
 from pytest import approx
@@ -16,8 +15,7 @@ from ....functions import pol2cart
 from ....functions import rotz, rotx, roty, cart2sphere
 from ....types.angle import Bearing, Elevation
 from ....types.array import StateVector, StateVectors
-from ....types.state import State, CovarianceMatrix
-from ....types.particle import Particles
+from ....types.state import State, CovarianceMatrix, ParticleState
 
 
 def h1d(state_vector, pos_map, translation_offset, rotation_offset):
@@ -717,7 +715,7 @@ def test_rangeratemodels_with_particles(h, modelclass, state_vec, ndim_state, po
                                     [state_vec[5, 0]]
                                     ])
 
-    state = Particles(state_vec, weight=[1/nparticles] * nparticles)
+    state = ParticleState(state_vec, weight=[1/nparticles] * nparticles)
 
     # Check default translation_offset, rotation_offset and velocity is applied
     model_test = modelclass(ndim_state=ndim_state,
@@ -1133,8 +1131,7 @@ def test_models_with_particles(h, ModelClass, state_vec, R,
                                         [state_vec[2, 0]]
                                         ])
 
-    state = Particles(state_vector=state_vec,
-                      weight=[1/nparticles] * nparticles)
+    state = ParticleState(state_vector=state_vec, weight=[1/nparticles] * nparticles)
 
     # Check default translation_offset, rotation_offset and velocity is applied
     model_test = ModelClass(ndim_state=ndim_state,

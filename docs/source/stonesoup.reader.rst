@@ -25,8 +25,13 @@ AISHub
 .. automodule:: stonesoup.reader.aishub
     :show-inheritance:
 
+Image
+-----
+.. automodule:: stonesoup.reader.image
+    :show-inheritance:
+
 Video
-------
+-----
 .. automodule:: stonesoup.reader.video
     :show-inheritance:
 

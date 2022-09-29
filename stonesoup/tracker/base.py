@@ -1,24 +1,24 @@
-# -*- coding: utf-8 -*-
 from abc import abstractmethod
 
 from ..base import Base
-from ..buffered_generator import BufferedGenerator
 
 
-class Tracker(Base, BufferedGenerator):
+class Tracker(Base):
     """Tracker base class"""
 
     @property
+    @abstractmethod
     def tracks(self):
-        return self.current[1]
+        raise NotImplementedError
+
+    def __iter__(self):
+        return self
 
     @abstractmethod
-    @BufferedGenerator.generator_method
-    def tracks_gen(self):
-        """Returns a generator of tracks for each time step.
-
-        Yields
-        ------
+    def __next__(self):
+        """
+        Returns
+        -------
         : :class:`datetime.datetime`
             Datetime of current time step
         : set of :class:`~.Track`

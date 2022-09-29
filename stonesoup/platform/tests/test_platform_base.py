@@ -1,4 +1,3 @@
-# coding: utf-8
 import datetime
 
 import numpy as np
@@ -6,7 +5,7 @@ import pytest
 
 from stonesoup.models.measurement.tests.test_models import position_measurement_sets
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
-    ConstantVelocity, ConstantTurn
+    ConstantVelocity, KnownTurnRate
 from stonesoup.movable import FixedMovable, MovingMovable
 from stonesoup.sensor.sensor import Sensor
 from stonesoup.types.array import StateVector
@@ -107,6 +106,10 @@ def test_base():
 
 
 class DummySensor(Sensor):
+    @property
+    def measurement_model(self):
+        raise NotImplementedError
+
     def measure(self, **kwargs):
         pass
 
@@ -522,7 +525,7 @@ def test_mapping_types(mapping_type):
 def test_multi_transition():
     transition_model1 = CombinedLinearGaussianTransitionModel(
         (ConstantVelocity(0), ConstantVelocity(0)))
-    transition_model2 = ConstantTurn((0, 0), np.radians(4.5))
+    transition_model2 = KnownTurnRate((0, 0), np.radians(4.5))
 
     transition_models = [transition_model1, transition_model2]
     transition_times = [datetime.timedelta(seconds=10), datetime.timedelta(seconds=20)]
@@ -597,7 +600,7 @@ def test_multi_transition():
     assert platform.transition_index == 1
 
     # Add new transition model (right-turn) to list
-    transition_model3 = ConstantTurn((0, 0), np.radians(-9))
+    transition_model3 = KnownTurnRate((0, 0), np.radians(-9))
     platform.transition_models.append(transition_model3)
     platform.transition_times.append(datetime.timedelta(seconds=10))
 

@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+import copy
 import datetime
 import uuid
 from collections import abc
@@ -7,11 +7,11 @@ import typing
 
 import numpy as np
 
-from .array import StateVector, CovarianceMatrix, PrecisionMatrix
+from ..base import Property, clearable_cached_property
+from .array import StateVector, CovarianceMatrix, PrecisionMatrix, StateVectors
 from .base import Type
+from .particle import Particle
 from .numeric import Probability
-from .particle import Particles
-from ..base import Property
 
 
 class State(Type):
@@ -25,7 +25,7 @@ class State(Type):
     def __init__(self, state_vector, *args, **kwargs):
         # Don't cast away subtype of state_vector if not necessary
         if state_vector is not None \
-                and not isinstance(state_vector, StateVector):
+                and not isinstance(state_vector, (StateVector, StateVectors)):
             state_vector = StateVector(state_vector)
         super().__init__(state_vector, *args, **kwargs)
 
@@ -172,6 +172,11 @@ class StateMutableSequence(Type, abc.MutableSequence):
     proxying state attributes to the last state in the sequence. This sequence
     can also be indexed/sliced by :class:`datetime.datetime` instances.
 
+    Notes
+    -----
+    If shallow copying, similar to a list, it is safe to add/remove states
+    without affecting the original sequence.
+
     Example
     -------
     >>> t0 = datetime.datetime(2018, 1, 1, 14, 00)
@@ -261,6 +266,13 @@ class StateMutableSequence(Type, abc.MutableSequence):
                     # raise the original error instead
                     raise original_error
 
+    def __copy__(self):
+        inst = self.__class__.__new__(self.__class__)
+        inst.__dict__.update(self.__dict__)
+        property_name = self.__class__.states._property_name
+        inst.__dict__[property_name] = copy.copy(self.__dict__[property_name])
+        return inst
+
     def insert(self, index, value):
         return self.states.insert(index, value)
 
@@ -334,17 +346,9 @@ class SqrtGaussianState(State):
         """The state mean, equivalent to state vector"""
         return self.state_vector
 
-    @property
+    @clearable_cached_property('sqrt_covar')
     def covar(self):
-        """The full covariance matrix.
-
-        Returns
-        -------
-        : :class:`~.CovarianceMatrix`
-            The covariance matrix calculated via :math:`W W^T`, where :math:`W` is a
-            :class:`~.SqrtCovarianceMatrix`
-
-        """
+        """The full covariance matrix."""
         return self.sqrt_covar @ self.sqrt_covar.T
 GaussianState.register(SqrtGaussianState)  # noqa: E305
 
@@ -360,6 +364,54 @@ class InformationState(State):
     """
     precision: PrecisionMatrix = Property(doc='precision matrix of state.')
 
+    @clearable_cached_property('state_vector', 'precision')
+    def gaussian_state(self):
+        """The Gaussian state."""
+
+        return GaussianState(self.mean,
+                             self.covar,
+                             self.timestamp)
+
+    @clearable_cached_property('precision')
+    def covar(self):
+        """Covariance matrix, inverse of :attr:`precision` matrix."""
+        return np.linalg.inv(self.precision)
+
+    @clearable_cached_property('state_vector', 'precision')
+    def mean(self):
+        """Equivalent Gaussian mean"""
+        return self.covar @ self.state_vector
+
+    @classmethod
+    def from_gaussian_state(cls, gaussian_state, *args, **kwargs):
+        r"""
+        Returns an InformationState instance based on the gaussian_state.
+
+        Parameters
+        ----------
+        gaussian_state : :class:`~.GaussianState`
+            The guassian_state used to create the new WeightedGaussianState.
+        \*args : See main :class:`~.InformationState`
+            args are passed to :class:`~.InformationState` __init__()
+        \*\*kwargs : See main :class:`~.InformationState`
+            kwargs are passed to :class:`~.InformationState` __init__()
+
+        Returns
+        -------
+        :class:`~.InformationState`
+            Instance of InformationState.
+        """
+        precision = np.linalg.inv(gaussian_state.covar)
+        state_vector = precision @ gaussian_state.state_vector
+        timestamp = gaussian_state.timestamp
+
+        return cls(
+            state_vector=state_vector,
+            precision=precision,
+            timestamp=timestamp,
+            *args, **kwargs
+        )
+
 
 class WeightedGaussianState(GaussianState):
     """Weighted Gaussian State Type
@@ -369,7 +421,7 @@ class WeightedGaussianState(GaussianState):
     """
     weight: Probability = Property(default=0, doc="Weight of the Gaussian State.")
 
-    @property
+    @clearable_cached_property('state_vector', 'covar')
     def gaussian_state(self):
         """The Gaussian state."""
         return GaussianState(self.state_vector,
@@ -420,99 +472,327 @@ class TaggedWeightedGaussianState(WeightedGaussianState):
     """
     tag: str = Property(default=None, doc="Unique tag of the Gaussian State.")
 
+    BIRTH = 'birth'
+    '''Tag value used to signify birth component'''
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.tag is None:
             self.tag = str(uuid.uuid4())
 
 
-class ParticleState(Type):
+class ParticleState(State):
     """Particle State type
 
     This is a particle state object which describes the state as a
-    distribution of particles"""
+    distribution of particles
+    """
 
-    particles: Particles = Property(doc='All particles.')
+    state_vector: StateVectors = Property(doc='State vectors.')
+    weight: MutableSequence[Probability] = Property(default=None, doc='Weights of particles')
+    parent: 'ParticleState' = Property(default=None, doc='Parent particles')
+    particle_list: MutableSequence[Particle] = Property(default=None,
+                                                        doc='List of Particle objects')
     fixed_covar: CovarianceMatrix = Property(default=None,
                                              doc='Fixed covariance value. Default `None`, where'
                                                  'weighted sample covariance is then used.')
-    timestamp: datetime.datetime = Property(default=None,
-                                            doc="Timestamp of the state. Default None.")
 
-    def __init__(self, particles, *args, **kwargs):
-        if particles is not None and not isinstance(particles, Particles):
-            particles = Particles(particle_list=particles)
-        super().__init__(particles, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if (self.particle_list is not None) and \
+                (self.state_vector is not None or self.weight is not None):
+            raise ValueError("Use either a list of Particle objects or StateVectors and weights,"
+                             " but not both.")
+
+        if self.particle_list and isinstance(self.particle_list, list):
+            self.state_vector = \
+                StateVectors([particle.state_vector for particle in self.particle_list])
+            self.weight = \
+                np.array([Probability(particle.weight) for particle in self.particle_list])
+            parent_list = [particle.parent for particle in self.particle_list]
+
+            if parent_list.count(None) == 0:
+                self.parent = ParticleState(None, particle_list=parent_list)
+            elif 0 < parent_list.count(None) < len(parent_list):
+                raise ValueError("Either all particles should have"
+                                 " parents or none of them should.")
+
+        if self.parent:
+            self.parent.parent = None  # Removed to avoid using significant memory
+
+        if self.state_vector is not None and not isinstance(self.state_vector, StateVectors):
+            self.state_vector = StateVectors(self.state_vector)
+        if self.weight is not None and not isinstance(self.weight, np.ndarray):
+            self.weight = np.array(self.weight)
+
+    def __getitem__(self, item):
+        if self.parent:
+            p = self.parent[item]
+        else:
+            p = None
+
+        particle = Particle(state_vector=self.state_vector[:, item],
+                            weight=self.weight[item],
+                            parent=p)
+        return particle
+
+    @clearable_cached_property('state_vector', 'weight')
+    def particles(self):
+        """Sequence of individual :class:`~.Particle` objects."""
+        return tuple(particle for particle in self)
+
+    def __len__(self):
+        return self.state_vector.shape[1]
 
     @property
     def ndim(self):
-        return self.particles.ndim
+        """The number of dimensions represented by the state."""
+        return self.state_vector.shape[0]
 
-    @property
+    @clearable_cached_property('state_vector', 'weight')
     def mean(self):
-        """The state mean, equivalent to state vector"""
-        result = np.average(self.particles.state_vector,
-                            axis=1,
-                            weights=self.particles.weight)
-        # Convert type as may have type of weights
-        return result
+        """Sample mean for particles"""
+        if len(self) == 1:  # No need to calculate mean
+            return self.state_vector
+        return np.average(self.state_vector, axis=1, weights=self.weight)
 
-    @property
-    def state_vector(self):
-        """The mean value of the particle states"""
-        return self.mean
-
-    @property
+    @clearable_cached_property('state_vector', 'weight', 'fixed_covar')
     def covar(self):
+        """Sample covariance matrix for particles"""
         if self.fixed_covar is not None:
             return self.fixed_covar
-        cov = np.cov(self.particles.state_vector, ddof=0, aweights=np.array(self.particles.weight))
-        # Fix one dimensional covariances being returned with zero dimension
-        return cov
+        return np.cov(self.state_vector, ddof=0, aweights=self.weight)
 
 
 State.register(ParticleState)  # noqa: E305
+
+
+class EnsembleState(Type):
+    r"""Ensemble State type
+
+    This is an Ensemble state object which describes the system state as a
+    ensemble of state vectors for use in Ensemble based filters.
+
+    This approach is functionally identical to the Particle state type except
+    it doesn't use any weighting for any of the "particles" or ensemble members.
+    All "particles" or state vectors in the ensemble are equally weighted.
+
+    .. math::
+
+        \mathbf{X} = [x_1, x_2, ..., x_M]
+
+    """
+
+    state_vector: StateVectors = Property(doc="An ensemble of state vectors which represent the "
+                                              "state")
+    timestamp: datetime.datetime = Property(
+        default=None, doc="Timestamp of the state. Default None.")
+
+    @classmethod
+    def from_gaussian_state(cls, gaussian_state, num_vectors):
+        """
+        Returns an EnsembleState instance, from a given
+        GaussianState object.
+
+        Parameters
+        ----------
+        gaussian_state : :class:`~.GaussianState`
+            The GaussianState used to create the new EnsembleState.
+        num_vectors : int
+            The number of desired column vectors present in the ensemble.
+        Returns
+        -------
+        :class:`~.EnsembleState`
+            Instance of EnsembleState.
+        """
+        mean = gaussian_state.state_vector.reshape((gaussian_state.ndim,))
+        covar = gaussian_state.covar
+        timestamp = gaussian_state.timestamp
+
+        return EnsembleState(state_vector=cls.generate_ensemble(mean, covar, num_vectors),
+                             timestamp=timestamp)
+
+    @staticmethod
+    def generate_ensemble(mean, covar, num_vectors):
+        """
+        Returns a StateVectors wrapped ensemble of state vectors, from a given
+        mean and covariance matrix.
+
+        Parameters
+        ----------
+        mean : :class:`~.numpy.ndarray`
+            The mean value of the distribution being sampled to generate
+            ensemble.
+        covar : :class:`~.numpy.ndarray`
+            The covariance matrix of the distribution being sampled to
+            generate ensemble.
+        num_vectors : int
+            The number of desired column vectors present in the ensemble,
+            or the number of "samples".
+        Returns
+        -------
+        :class:`~.EnsembleState`
+            Instance of EnsembleState.
+        """
+        # This check is necessary, because the StateVector wrapper does
+        # funny things with dimension.
+        rng = np.random.default_rng()
+        if mean.ndim != 1:
+            mean = mean.reshape(len(mean))
+        try:
+            ensemble = StateVectors(
+                                    [StateVector((rng.multivariate_normal(mean, covar)))
+                                     for n in range(num_vectors)])
+        # If covar is univariate, then use the univariate noise generation function.
+        except ValueError:
+            ensemble = StateVectors(
+                [StateVector((rng.normal(mean, covar))) for n in range(num_vectors)])
+
+        return ensemble
+
+    @property
+    def ndim(self):
+        """Number of dimensions in state vectors"""
+        return np.shape(self.state_vector)[0]
+
+    @property
+    def num_vectors(self):
+        """Number of columns in state ensemble"""
+        return np.shape(self.state_vector)[1]
+
+    @clearable_cached_property('state_vector')
+    def mean(self):
+        """The state mean, numerically equivalent to state vector"""
+        return np.average(self.state_vector, axis=1)
+
+    @clearable_cached_property('state_vector')
+    def covar(self):
+        """Sample covariance matrix for ensemble"""
+        return np.cov(self.state_vector)
+
+    @clearable_cached_property('state_vector')
+    def sqrt_covar(self):
+        """sqrt of sample covariance matrix for ensemble, useful for
+        some EnKF algorithms"""
+        return ((self.state_vector-np.tile(self.mean, self.num_vectors))
+                / np.sqrt(self.num_vectors - 1))
+
+
+State.register(EnsembleState)  # noqa: E305
 
 
 class CategoricalState(State):
     r"""CategoricalState type.
 
     State object representing an object in a categorical state space. A state vector
-    :math:`\mathbf{x}_i = P(\phi_i)` defines a categorical distribution over a finite set of
-    discrete categories :math:`\Phi = \{\phi_m|m\in Z_{\ge0}\}`."""
+    :math:`\mathbf{\alpha}_t^i = P(\phi_t^i)` defines a categorical distribution over a finite set
+    of discrete categories :math:`\Phi = \{\phi^m|m\in \mathbf{N}, m\le M\}` for some finite
+    :math:`M`."""
 
-    category_names: Sequence[str] = Property(
-        default=None,
-        doc="Sequence of category names corresponding to each state vector component. Defaults to "
-            "a list of integers."
-    )
+    categories: Sequence[float] = Property(doc="Category names. Defaults to a list of integers.",
+                                           default=None)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Check there is a category name for each state vector component
-        if self.category_names and len(self.category_names) != self.ndim:
-            raise ValueError(f"{len(self.category_names)} category names were given for a state "
-                             f"vector with {self.ndim} elements")
+        self.state_vector = self.state_vector / np.sum(self.state_vector)  # normalise state vector
 
-        # Build default list of integers if no category names given
-        if self.category_names is None:
-            self.category_names = list(range(self.ndim))
+        if self.categories is None:
+            self.categories = list(map(str, range(self.ndim)))
 
-        # Check all vector elements are valid probabilities
-        if any(p < 0 or p > 1 for p in self.state_vector):
-            raise ValueError("Category probabilities must lie in the closed interval [0, 1]")
-
-        # Check vector is normalised
-        if not np.isclose(np.sum(self.state_vector), 1):
-            raise ValueError("Category probabilities must sum to 1")
+        if len(self.categories) != self.ndim:
+            raise ValueError(
+                f"ndim of {self.ndim} does not match number of categories {len(self.categories)}"
+            )
 
     def __str__(self):
         strings = [f"P({category}) = {p}"
-                   for category, p in zip(self.category_names, self.state_vector)]
-        return f"({', '.join(strings)})"
+                   for category, p in zip(self.categories, self.state_vector)]
+        string = ',\n'.join(strings)
+        return string
 
     @property
     def category(self):
-        """Return the name of the most likely category"""
-        return self.category_names[np.argmax(self.state_vector)]
+        """Return the name of the most likely category."""
+        return self.categories[np.argmax(self.state_vector)]
+
+
+class CompositeState(Type):
+    """Composite state type.
+
+    A composition of ordered sub-states (:class:`State`) existing at the same timestamp,
+    representing an object with a state for (potentially) multiple, distinct state spaces.
+    """
+
+    sub_states: Sequence[State] = Property(
+        doc="Sequence of sub-states comprising the composite state. All sub-states must have "
+            "matching timestamp. Must not be empty.")
+    default_timestamp: datetime.datetime = Property(
+        default=None,
+        doc="Default timestamp if no sub-states exist to attain timestamp from. Defaults to "
+            "`None`, whereby sub-states will be required to have timestamps.")
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        if len(self.sub_states) == 0:
+            raise ValueError("Cannot create an empty composite state")
+
+        self._check_timestamp()  # validate timestamps of sub-states
+
+    @property
+    def timestamp(self):
+        return self.default_timestamp
+
+    def _check_timestamp(self):
+        """Check all timestamps are equal. Replace empty sub-state timestamps with validated
+        timestamp."""
+
+        self._timestamp = None
+
+        sub_timestamps = {sub_state.timestamp
+                          for sub_state in self.sub_states
+                          if sub_state.timestamp}
+
+        if len(sub_timestamps) > 1:
+            raise ValueError("All sub-states must share the same timestamp if defined")
+
+        if (sub_timestamps and self.default_timestamp
+                and not sub_timestamps == {self.default_timestamp}):
+            raise ValueError("Sub-state timestamps and default timestamp must be the same if "
+                             "defined")
+
+        if sub_timestamps:
+            self.default_timestamp = sub_timestamps.pop()
+
+        for sub_state in self.sub_states:
+            sub_state.timestamp = self.default_timestamp
+
+    @property
+    def state_vectors(self):
+        return [state.state_vector for state in self.sub_states]
+
+    @property
+    def state_vector(self):
+        """A combination of the component states' state vectors."""
+        return StateVector(np.concatenate(self.state_vectors))
+
+    def __contains__(self, item):
+
+        return self.sub_states.__contains__(item)
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            return self.__class__(self.sub_states.__getitem__(index))
+        return self.sub_states.__getitem__(index)
+
+    def __iter__(self):
+        return self.sub_states.__iter__()
+
+    def __len__(self):
+        return self.sub_states.__len__()
+
+
+State.register(CompositeState)  # noqa: E305

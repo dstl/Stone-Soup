@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Mathematical functions used within Stone Soup"""
 import copy
 
@@ -172,7 +171,7 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
 
     # Put these sigma points into s State object list
     sigma_points_states = []
-    for sigma_point in sigma_points.T:
+    for sigma_point in sigma_points:
         state_copy = copy.copy(state)
         state_copy.state_vector = StateVector(sigma_point)
         sigma_points_states.append(state_copy)

@@ -1,18 +1,19 @@
-# -*- coding: utf-8 -*-
+import copy
 import datetime
 
 import numpy as np
 import pytest
 import scipy.linalg
 
-from stonesoup.types.groundtruth import GroundTruthState
-from stonesoup.types.state import CreatableFromState
 from ..angle import Bearing
-from ..array import StateVector, CovarianceMatrix
+from ..array import StateVector, StateVectors, CovarianceMatrix
+from ..groundtruth import GroundTruthState
 from ..numeric import Probability
 from ..particle import Particle
-from ..state import State, GaussianState, ParticleState, \
-    StateMutableSequence, WeightedGaussianState, SqrtGaussianState, CategoricalState
+from ..state import CreatableFromState
+from ..state import State, GaussianState, ParticleState, EnsembleState, \
+    StateMutableSequence, WeightedGaussianState, SqrtGaussianState, CategoricalState, \
+    CompositeState, InformationState
 from ...base import Property
 
 
@@ -62,6 +63,46 @@ def test_gaussianstate():
     assert(np.array_equal(covar, state.covar))
     assert(state.ndim == mean.shape[0])
     assert(state.timestamp == timestamp)
+
+
+def test_informationstate():
+    """ InformationState Type test """
+
+    with pytest.raises(TypeError):
+        InformationState()
+
+    mean = StateVector([[-1.8513], [0.9994], [0], [0]]) * 1e4
+    covar = CovarianceMatrix([[2.2128, 0, 0, 0],
+                              [0.0002, 2.2130, 0, 0],
+                              [0.3897, -0.00004, 0.0128, 0],
+                              [0, 0.3897, 0.0013, 0.0135]]) * 1e3
+    timestamp = datetime.datetime.now()
+
+    information_matrix = np.linalg.inv(covar)
+    information_state = information_matrix @ mean
+
+    # Test state initiation without timestamp
+    # Test that the conversion back to gaussian equates to the above mean and covariance
+    state = InformationState(information_state, information_matrix)
+    assert(np.allclose(covar, state.covar))
+    assert(np.allclose(mean, state.mean))
+
+    # Test state initiation with timestamp
+    state = InformationState(information_state, information_matrix, timestamp)
+    assert (np.allclose(mean, state.mean))
+    assert (np.allclose(covar, state.covar))
+    assert (state.timestamp == timestamp)
+
+    # Testing from_gaussian state method
+    gs = GaussianState(mean, covar)
+    inf_state = InformationState.from_gaussian_state(gaussian_state=gs)
+    assert np.allclose(inf_state.mean, gs.state_vector)
+    assert np.allclose(inf_state.covar, gs.covar)
+
+    # Test gaussian_state property of InformationState
+    gs2 = inf_state.gaussian_state
+    assert np.allclose(gs.state_vector, gs2.state_vector)
+    assert np.allclose(gs.covar, gs2.covar)
 
 
 def test_gaussianstate_invalid_covar():
@@ -135,87 +176,207 @@ def test_particlestate():
     with pytest.raises(TypeError):
         ParticleState()
 
-    # 1D
+    # Create 10 1d particles: [[0,0,0,0,0,100,100,100,100,100]]
+    # with equal weight
     num_particles = 10
-    state_vector1 = StateVector([[0.]])
-    state_vector2 = StateVector([[100.]])
     weight = Probability(1/num_particles)
-    particles = []
-    particles.extend(Particle(
-        state_vector1, weight=weight) for _ in range(num_particles//2))
-    particles.extend(Particle(
-        state_vector2, weight=weight) for _ in range(num_particles//2))
+    particles = StateVectors(np.concatenate(
+        (np.tile([[0]], num_particles//2), np.tile([[100]], num_particles//2)), axis=1))
+    weights = np.tile(weight, num_particles)
 
     # Test state without timestamp
-    state = ParticleState(particles)
-    assert np.allclose(state.state_vector, StateVector([[50]]))
+    state = ParticleState(particles, weight=weights)
+    assert np.allclose(state.mean, StateVector([[50]]))
     assert np.allclose(state.covar, CovarianceMatrix([[2500]]))
 
     # Test state with timestamp
     timestamp = datetime.datetime.now()
-    state = ParticleState(particles, timestamp=timestamp)
-    assert np.allclose(state.state_vector, StateVector([[50]]))
+    state = ParticleState(particles, weight=weights, timestamp=timestamp)
+    assert np.allclose(state.mean, StateVector([[50]]))
     assert np.allclose(state.covar, CovarianceMatrix([[2500]]))
     assert state.timestamp == timestamp
 
-    # 2D
-    state_vector1 = StateVector([[0.], [0.]])
-    state_vector2 = StateVector([[100.], [200.]])
-    particles = []
-    particles.extend(Particle(
-        state_vector1, weight=weight) for _ in range(num_particles//2))
-    particles.extend(Particle(
-        state_vector2, weight=weight) for _ in range(num_particles//2))
+    # Now create 10 2d particles:
+    # [[0,0,0,0,0,100,100,100,100,100],
+    #  [0,0,0,0,0,200,200,200,200,200]]
+    # use same weights
+    particles = StateVectors(np.concatenate((np.tile([[0], [0]], num_particles//2),
+                                             np.tile([[100], [200]], num_particles//2)),
+                                            axis=1))
 
-    state = ParticleState(particles)
+    state = ParticleState(particles, weight=weights)
     assert isinstance(state, State)
     assert ParticleState in State.subclasses
-    assert np.allclose(state.state_vector, StateVector([[50], [100]]))
+    assert np.allclose(state.mean, StateVector([[50], [100]]))
     assert np.allclose(state.covar, CovarianceMatrix([[2500, 5000], [5000, 10000]]))
+    assert state.ndim == 2
+
+    # Create ParticleState from state vectors, weights and particle list
+    state_vector_array = np.concatenate((np.tile([[0], [0]], num_particles // 2),
+                                         np.tile([[100], [200]], num_particles // 2)),
+                                        axis=1)
+    state_vector_gen = ([state_vector_array[0][particle],
+                         state_vector_array[1][particle]] for particle in range(num_particles))
+    weight = Probability(1 / num_particles)
+    particle_list = [Particle(state_vector,
+                              weight=weight) for state_vector in state_vector_gen]
+    with pytest.raises(ValueError):
+        ParticleState(particles, particle_list=particle_list, weight=weight)
+
+    parent_list = particle_list
+    particle_list2 = [Particle([0, 0],
+                      weight=weight,
+                      parent=parent) for parent in parent_list]
+    state = ParticleState(None, particle_list=particle_list2,
+                          timestamp=timestamp, fixed_covar=[1, 1])
+    assert isinstance(state.parent, ParticleState)
+    assert state.covar == [1, 1]
+
+    particle_list3 = particle_list[1:]
+    particle_parent = Particle([0, 0], weight=weight)
+    particle = Particle([0, 0], weight=weight, parent=particle_parent)
+    particle_list3.append(particle)
+
+    with pytest.raises(ValueError):
+        ParticleState(None, particle_list=particle_list3, timestamp=timestamp)
 
 
 def test_particlestate_weighted():
     num_particles = 10
 
     # Half particles at high weight at 0
-    state_vector1 = StateVector([[0.]])
-    weight1 = Probability(0.75 / (num_particles / 2))
-
-    # Other half of particles low weight at 100
-    state_vector2 = StateVector([[100]])
-    weight2 = Probability(0.25 / (num_particles / 2))
-
-    particles = []
-    particles.extend(Particle(
-        state_vector1, weight=weight1) for _ in range(num_particles//2))
-    particles.extend(Particle(
-        state_vector2, weight=weight2) for _ in range(num_particles//2))
+    # Create 10 1d particles: [[0,0,0,0,0,100,100,100,100,100]]
+    # with different weights this time. First half have 0.75 and the second half 0.25.
+    particles = StateVectors([np.concatenate(
+        (np.tile(0, num_particles // 2), np.tile(100, num_particles // 2)))])
+    weights = np.concatenate(
+        (np.tile(Probability(0.75 / (num_particles / 2)), num_particles // 2),
+         np.tile(Probability(0.25 / (num_particles / 2)), num_particles // 2)))
 
     # Check particles sum to 1 still
-    assert pytest.approx(1) == sum(particle.weight for particle in particles)
+    assert pytest.approx(1) == sum(weight for weight in weights)
 
     # Test state vector is now weighted towards 0 from 50 (non-weighted mean)
-    state = ParticleState(particles)
-    assert np.allclose(state.state_vector, StateVector([[25]]))
+    state = ParticleState(particles, weight=weights)
+    assert np.allclose(state.mean, StateVector([[25]]))
     assert np.allclose(state.covar, CovarianceMatrix([[1875]]))
 
 
 def test_particlestate_angle():
     num_particles = 10
 
-    state_vector1 = StateVector([[Bearing(np.pi + 0.1)], [-10.]])
-    state_vector2 = StateVector([[Bearing(np.pi - 0.1)], [20.]])
+    # Create 10 2d particles of bearing type:
+    # [[pi+0.1,pi+0.1,pi+0.1,pi+0.1,pi+0.1,pi-0.1,pi-0.1,pi-0.1,pi-0.1,pi-0.1],
+    #  [   -10,   -10,   -10,   -10,   -10,    20,    20,    20,    20,    20]]
+    # use same weights
+    # Be extremely cautious with the use of integers in the statevectors here.
+    # There's interplay between the Bearing and Probability types and resulting
+    # rounding approximations can fail the test.
+    particles = StateVectors(
+        np.concatenate((np.tile([[Bearing(np.pi + 0.1)], [-10.0]], num_particles//2),
+                        np.tile([[Bearing(np.pi - 0.1)], [20.0]], num_particles//2)), axis=1))
+
     weight = Probability(1/num_particles)
-    particles = []
-    particles.extend(Particle(
-        state_vector1, weight=weight) for _ in range(num_particles//2))
-    particles.extend(Particle(
-        state_vector2, weight=weight) for _ in range(num_particles//2))
+    weights = np.tile(weight, num_particles)
 
     # Test state without timestamp
-    state = ParticleState(particles)
-    assert np.allclose(state.state_vector, StateVector([[np.pi], [5.]]))
+    state = ParticleState(particles, weight=weights)
+
+    assert np.allclose(state.mean, StateVector([[np.pi], [5.]]))
     assert np.allclose(state.covar, CovarianceMatrix([[0.01, -1.5], [-1.5, 225]]))
+
+
+def test_particlestate_cache():
+    num_particles = 10
+    weight = Probability(1/num_particles)
+    particles = StateVectors(np.concatenate(
+        (np.tile([[0]], num_particles//2), np.tile([[100]], num_particles//2)), axis=1))
+    weights = np.tile(weight, num_particles)
+
+    state = ParticleState(particles, weight=weights)
+    assert np.allclose(state.mean, StateVector([[50]]))
+    assert np.allclose(state.covar, CovarianceMatrix([[2500]]))
+
+    state.state_vector = particles + 50  # Cache cleared
+    state.weight = state.weight * 0.5
+    assert np.allclose(state.mean, StateVector([[100]]))
+    assert np.allclose(state.covar, CovarianceMatrix([[2500]]))
+
+    state = ParticleState(particles, weight=weights, fixed_covar=np.array([[1]]))
+    assert np.allclose(state.mean, StateVector([[50]]))
+    assert np.allclose(state.covar, CovarianceMatrix([[1]]))
+
+    state.fixed_covar = np.array([[2]])
+    assert np.allclose(state.mean, StateVector([[50]]))
+    assert np.allclose(state.covar, CovarianceMatrix([[2]]))
+
+
+def test_ensemblestate():
+
+    # 1D
+    state_vector1 = StateVector(np.array([1.5]))
+    state_vector2 = StateVector(np.array([0.5]))
+    list_of_state_vectors = [state_vector1, state_vector2]
+    ensemble = StateVectors(list_of_state_vectors)
+
+    # Test state without timestamp
+    state = EnsembleState(ensemble)
+    assert np.allclose(state.mean, StateVector([[1]]))
+    assert np.allclose(state.covar, CovarianceMatrix([[0.5]]))
+
+    # Test state with timestamp
+    timestamp = datetime.datetime(2021, 2, 25, 22, 29, 2)
+    state = EnsembleState(ensemble, timestamp=timestamp)
+    assert np.allclose(state.mean, StateVector([[1]]))
+    assert np.allclose(state.covar, CovarianceMatrix([[0.5]]))
+    assert state.timestamp == timestamp
+
+    # 2D
+    state_vector1 = StateVector(np.array([1.5, 0.75]))
+    state_vector2 = StateVector(np.array([0.5, 1.25]))
+    ensemble = StateVectors([state_vector1, state_vector2])
+
+    state = EnsembleState(ensemble)
+    assert np.allclose(state.mean, StateVector([[1], [1]]))
+    assert np.allclose(state.covar, CovarianceMatrix([[0.5, -0.25], [-0.25, 0.125]]))
+    assert np.allclose(state.sqrt_covar @ state.sqrt_covar.T, state.covar)
+
+    # Test generate_ensemble class method.
+    # 1 Dimensional
+    test_mean_1d = np.array([0])
+    test_covar_1d = np.array([1])
+    ensemble1d = state.generate_ensemble(mean=test_mean_1d,
+                                         covar=test_covar_1d, num_vectors=5)
+    assert np.shape(ensemble1d) == (1, 5)
+    assert isinstance(ensemble1d, StateVectors)
+
+    # 2 Dimensional
+    # Lets pass in a state vector mean(as opposed to an array) while we're at it
+    test_mean_2d = StateVector([1, 1])
+    test_covar_2d = CovarianceMatrix(np.eye(2))
+    ensemble2d = state.generate_ensemble(mean=test_mean_2d,
+                                         covar=test_covar_2d, num_vectors=5)
+    assert np.shape(ensemble2d) == (2, 5)
+    assert isinstance(ensemble2d, StateVectors)
+
+
+def test_ensemblestate_gaussian_init():
+    """Test initialising with an existing gaussian state object"""
+
+    # Initialize GaussianState
+    mean = StateVector([[25], [25], [25], [25]])
+    covar = CovarianceMatrix(np.eye(4))
+    timestamp = datetime.datetime(2021, 2, 26, 16, 35, 42)
+    gaussian_state = GaussianState(mean, covar, timestamp)
+    # Generate EnsembleState
+    num_vectors = 50
+    ensemble_state = EnsembleState.from_gaussian_state(gaussian_state, num_vectors)
+
+    assert isinstance(ensemble_state.mean, StateVector)
+    assert isinstance(ensemble_state.state_vector, StateVectors)
+    assert isinstance(ensemble_state.covar, CovarianceMatrix)
+    assert isinstance(ensemble_state.timestamp, datetime.datetime)
+    assert ensemble_state.timestamp == timestamp
 
 
 def test_state_mutable_sequence_state():
@@ -348,6 +509,23 @@ def test_state_mutable_sequence_error_message():
         _ = test_obj.complicated_attribute
 
 
+def test_state_mutable_sequence_copy():
+    state_vector = StateVector([[0]])
+    timestamp = datetime.datetime(2018, 1, 1, 14)
+    delta = datetime.timedelta(minutes=1)
+    sequence = StateMutableSequence(
+        [State(state_vector, timestamp=timestamp+delta*n)
+         for n in range(10)])
+
+    sequence2 = copy.copy(sequence)
+
+    assert sequence2.states is not sequence.states
+
+    assert sequence2[-1] is sequence[-1]
+    sequence2.remove(sequence[-1])
+    assert sequence2[-1] is not sequence[-1]
+
+
 def test_from_state():
     start = datetime.datetime.now()
     kwargs = {"state_vector": np.arange(4), "timestamp": start}
@@ -435,27 +613,78 @@ def test_creatable_from_state_multi_base_error():
 
 def test_categorical_state():
 
-    # Test instantiation errors
-    with pytest.raises(ValueError, match="2 category names were given for a state vector with 3 "
-                                         "elements"):
-        CategoricalState(state_vector=StateVector([0.1, 0.4, 0.5]), category_names=['1', '2'])
-    with pytest.raises(ValueError, match=r"Category probabilities must lie in the closed interval "
-                                         r"\[0, 1\]"):
-        CategoricalState(state_vector=StateVector([1.1, 0.4, 0.5]))
-    with pytest.raises(ValueError, match="Category probabilities must sum to 1"):
-        CategoricalState(state_vector=StateVector([0.6, 0.7, 0.7]))
-    with pytest.raises(ValueError, match="Category probabilities must sum to 1"):
-        CategoricalState(state_vector=StateVector([0.2, 0.2, 0.3]))
+    # Test mismatched number of category names
+    with pytest.raises(ValueError, match="ndim of 3 does not match number of categories 4"):
+        CategoricalState(state_vector=StateVector([50, 60, 90]),
+                         categories=['red', 'green', 'blue', 'yellow'])
 
-    # Test defaults
-    state = CategoricalState(state_vector=StateVector([0.1, 0.4, 0.5]))
-    assert state.category_names == [0, 1, 2]
+    state = CategoricalState(state_vector=StateVector([50, 60, 90]))
 
-    # Test str
-    state = CategoricalState(state_vector=StateVector([0.1, 0.4, 0.5]),
-                             timestamp=datetime.datetime.now(),
-                             category_names=['red', 'blue', 'yellow'])
-    assert str(state) == "(P(red) = 0.1, P(blue) = 0.4, P(yellow) = 0.5)"
+    # Test normalised
+    state.state_vector == [0.25, 0.3, 0.45]
+
+    # Test default category names
+    assert state.categories == ['0', '1', '2']
+
+    # Test string
+    assert str(state) == "P(0) = 0.25,\nP(1) = 0.3,\nP(2) = 0.45"
 
     # Test category
-    assert state.category == 'yellow'
+    assert state.category == '2'
+
+
+def test_composite_state_timestamp():
+    with pytest.raises(ValueError,
+                       match="All sub-states must share the same timestamp if defined"):
+        CompositeState([State([0], timestamp=1), State([0], timestamp=2)])
+    with pytest.raises(ValueError,
+                       match="Sub-state timestamps and default timestamp must be the same if "
+                             "defined"):
+        CompositeState([State([0], timestamp=1)], default_timestamp=2)
+    with pytest.raises(ValueError,
+                       match="Sub-state timestamps and default timestamp must be the same if "
+                             "defined"):
+        CompositeState([State([0], timestamp=1), State([0], timestamp=1)], default_timestamp=2)
+
+    for i in range(1, 4):
+        assert CompositeState(i * [State([0], timestamp=1)]).timestamp == 1
+        assert CompositeState(i * [State([0], timestamp=1)],
+                              default_timestamp=1).timestamp == 1
+        assert CompositeState(i * [State([0])]).timestamp is None
+
+
+def test_composite_state():
+    # Test error on empty composite
+    with pytest.raises(ValueError, match="Cannot create an empty composite state"):
+        CompositeState([])
+
+    a = State([0, 1], timestamp=1)
+    b = State([2], timestamp=1)
+    c = State([3, 4], timestamp=1)
+    sub_states = [a, b, c]
+    state = CompositeState(sub_states)
+
+    # Test state vectors
+    for actual, expected in zip(state.state_vectors,
+                                [StateVector([0, 1]), StateVector([2]), StateVector([3, 4])]):
+        assert (actual == expected).all()
+
+    # Test state vector
+    assert (state.state_vector == StateVector([0, 1, 2, 3, 4])).all()
+
+    # Test contains and getitem
+    for index, sub_state in enumerate(sub_states):
+        assert sub_state in state
+        assert state[index] is sub_state
+    assert State([5, 6], timestamp=1) not in state
+    assert "a" not in state
+    state_slice = state[1:]
+    assert isinstance(state_slice, CompositeState)
+    assert state_slice.sub_states == sub_states[1:]
+
+    # Test iter
+    for exp_sub_state, actual_sub_state in zip(sub_states, state):
+        assert exp_sub_state is actual_sub_state
+
+    # Test len
+    assert len(state) == 3

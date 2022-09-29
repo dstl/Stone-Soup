@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from .base import Hypothesiser
 from ..base import Property
 from ..measures import ObservationAccuracy
@@ -10,7 +9,7 @@ from ..types.numeric import Probability
 from ..updater.categorical import HMMUpdater
 
 
-class CategoricalHypothesiser(Hypothesiser):
+class HMMHypothesiser(Hypothesiser):
     r"""Hypothesiser based on categorical distribution accuracy.
 
     This hypothesiser generates track predictions at detection times and scores each hypothesised
@@ -20,12 +19,11 @@ class CategoricalHypothesiser(Hypothesiser):
 
     predictor: HMMPredictor = Property(doc="Predictor used to predict tracks to detection times")
     updater: HMMUpdater = Property(doc="Updater used to get measurement prediction")
-    prob_detect: Probability = Property(
-        default=Probability(0.85),
-        doc="Target Detection Probability")
-    prob_gate: Probability = Property(
-        default=Probability(0.95),
-        doc="Gate Probability - prob. gate contains true measurement if detected")
+    prob_detect: Probability = Property(default=Probability(0.99),
+                                        doc="Target Detection Probability")
+    prob_gate: Probability = Property(default=Probability(0.95),
+                                      doc="Gate Probability - prob. gate contains true "
+                                          "measurement if detected")
 
     def hypothesise(self, track, detections, timestamp):
         """ Evaluate and return all track association hypotheses.
@@ -56,7 +54,9 @@ class CategoricalHypothesiser(Hypothesiser):
         hypotheses = list()
 
         prediction = self.predictor.predict(track, timestamp=timestamp)
+
         probability = Probability(1 - self.prob_detect * self.prob_gate)
+
         hypotheses.append(
             SingleProbabilityHypothesis(
                 prediction,
@@ -65,11 +65,13 @@ class CategoricalHypothesiser(Hypothesiser):
             ))
 
         for detection in detections:
-            prediction = self.predictor.predict(
-                track, timestamp=detection.timestamp)
+            prediction = self.predictor.predict(track, timestamp=detection.timestamp)
 
             measurement_prediction = self.updater.predict_measurement(
-                prediction, detection.measurement_model, noise=False)
+                predicted_state=prediction,
+                measurement_model=detection.measurement_model,
+                noise=False
+            )
 
             probability = self.measure(measurement_prediction, detection)
             probability = probability * self.prob_detect
@@ -82,6 +84,7 @@ class CategoricalHypothesiser(Hypothesiser):
                     detection,
                     probability,
                     measurement_prediction))
+
         return MultipleHypothesis(hypotheses, normalise=False, total_weight=1)
 
     @property

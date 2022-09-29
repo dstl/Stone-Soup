@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from abc import ABC
 import copy
 from typing import Sequence, Tuple, Union
@@ -7,15 +6,15 @@ import numpy as np
 from scipy.linalg import inv, pinv, block_diag
 from scipy.stats import multivariate_normal
 
-from ...base import Property
+from ...base import Property, clearable_cached_property
 from ...types.numeric import Probability
 
 from ...functions import cart2pol, pol2cart, \
     cart2sphere, sphere2cart, cart2angles, \
-    rotx, roty, rotz
+    build_rotation_matrix
 from ...types.array import StateVector, CovarianceMatrix, StateVectors
 from ...types.angle import Bearing, Elevation
-from ..base import LinearModel, NonLinearModel, GaussianModel, ReversibleModel
+from ..base import LinearModel, GaussianModel, ReversibleModel
 from .base import MeasurementModel
 
 
@@ -95,7 +94,7 @@ class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel,
             return rvs_vectors.view(StateVectors)
 
 
-class NonLinearGaussianMeasurement(MeasurementModel, NonLinearModel, GaussianModel, ABC):
+class NonLinearGaussianMeasurement(MeasurementModel, GaussianModel, ABC):
     r"""This class combines the MeasurementModel, NonLinearModel and \
     GaussianModel classes. It is not meant to be instantiated directly \
     but subclasses should be derived from this class.
@@ -130,23 +129,10 @@ class NonLinearGaussianMeasurement(MeasurementModel, NonLinearModel, GaussianMod
 
         return self.noise_covar
 
-    @property
-    def _rotation_matrix(self) -> np.ndarray:
-        """_rotation_matrix getter method
-
-        Calculates and returns the (3D) axis rotation matrix.
-
-        Returns
-        -------
-        :class:`numpy.ndarray` of shape (3, 3)
-            The model (3D) rotation matrix.
-        """
-
-        theta_x = -self.rotation_offset[0, 0]
-        theta_y = self.rotation_offset[1, 0]
-        theta_z = -self.rotation_offset[2, 0]
-
-        return rotz(theta_z)@roty(theta_y)@rotx(theta_x)
+    @clearable_cached_property('rotation_offset')
+    def rotation_matrix(self) -> np.ndarray:
+        """3D axis rotation matrix"""
+        return build_rotation_matrix(self.rotation_offset)
 
 
 class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
@@ -199,7 +185,7 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
 
     The :py:attr:`mapping` property of the model is a 3 element vector, \
     whose first (i.e. :py:attr:`mapping[0]`), second (i.e. \
-    :py:attr:`mapping[1]`) and third (i.e. :py:attr:`mapping[2`) elements \
+    :py:attr:`mapping[1]`) and third (i.e. :py:attr:`mapping[2]`) elements \
     contain the state index of the :math:`x`, :math:`y` and :math:`z`  \
     coordinates, respectively.
 
@@ -255,7 +241,7 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
 
         if isinstance(noise, bool) or noise is None:
             if noise:
-                noise = self.rvs()
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
             else:
                 noise = 0
 
@@ -263,22 +249,21 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
         xyz = state.state_vector[self.mapping, :] - self.translation_offset
 
         # Rotate coordinates
-        xyz_rot = self._rotation_matrix @ xyz
+        xyz_rot = self.rotation_matrix @ xyz
 
         # Convert to Spherical
-        rho, phi, theta = cart2sphere(*xyz_rot)
-        elevations = [Elevation(i) for i in np.atleast_1d(theta)]
-        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
-        rhos = np.atleast_1d(rho)
+        rho, phi, theta = cart2sphere(xyz_rot[0, :], xyz_rot[1, :], xyz_rot[2, :])
+        elevations = [Elevation(i) for i in theta]
+        bearings = [Bearing(i) for i in phi]
 
-        return StateVectors([elevations, bearings, rhos]) + noise
+        return StateVectors([elevations, bearings, rho]) + noise
 
     def inverse_function(self, detection, **kwargs) -> StateVector:
 
         theta, phi, rho = detection.state_vector
         xyz = StateVector(sphere2cart(rho, phi, theta))
 
-        inv_rotation_matrix = inv(self._rotation_matrix)
+        inv_rotation_matrix = inv(self.rotation_matrix)
         xyz = inv_rotation_matrix @ xyz
 
         res = np.zeros((self.ndim_state, 1)).view(StateVector)
@@ -338,7 +323,7 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
 
     The :py:attr:`mapping` property of the model is a 2 element vector, \
     whose first (i.e. :py:attr:`mapping[0]`) and second (i.e. \
-    :py:attr:`mapping[0]`) elements contain the state index of the \
+    :py:attr:`mapping[1]`) elements contain the state index of the \
     :math:`x` and :math:`y` coordinates, respectively.
 
     Note
@@ -383,7 +368,7 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
         xy = StateVector(pol2cart(rho, phi))
 
         xyz = np.concatenate((xy, StateVector([0])), axis=0)
-        inv_rotation_matrix = inv(self._rotation_matrix)
+        inv_rotation_matrix = inv(self.rotation_matrix)
         xyz = inv_rotation_matrix @ xyz
         xy = xyz[0:2]
 
@@ -412,7 +397,7 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
 
         if isinstance(noise, bool) or noise is None:
             if noise:
-                noise = self.rvs()
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
             else:
                 noise = 0
 
@@ -423,7 +408,7 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
                         ])
 
         # Rotate coordinates
-        xyz_rot = self._rotation_matrix @ xyz
+        xyz_rot = self.rotation_matrix @ xyz
 
         # Covert to polar
         rho, phi = cart2pol(*xyz_rot[:2, :])
@@ -538,7 +523,7 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
 
         if isinstance(noise, bool) or noise is None:
             if noise:
-                noise = self.rvs()
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
             else:
                 noise = 0
 
@@ -546,13 +531,13 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
         xyz = state.state_vector[self.mapping, :] - self.translation_offset
 
         # Rotate coordinates
-        xyz_rot = self._rotation_matrix @ xyz
+        xyz_rot = self.rotation_matrix @ xyz
 
         # Convert to Angles
-        phi, theta = cart2angles(*xyz_rot)
+        phi, theta = cart2angles(xyz_rot[0, :], xyz_rot[1, :], xyz_rot[2, :])
 
-        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
-        elevations = [Elevation(i) for i in np.atleast_1d(theta)]
+        bearings = [Bearing(i) for i in phi]
+        elevations = [Elevation(i) for i in theta]
         return StateVectors([elevations, bearings]) + noise
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
@@ -633,7 +618,7 @@ class Cartesian2DToBearing(NonLinearGaussianMeasurement):
 
         if isinstance(noise, bool) or noise is None:
             if noise:
-                noise = self.rvs()
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
             else:
                 noise = 0
 
@@ -644,11 +629,11 @@ class Cartesian2DToBearing(NonLinearGaussianMeasurement):
                         ])
 
         # Rotate coordinates
-        xyz_rot = self._rotation_matrix @ xyz
+        xyz_rot = self.rotation_matrix @ xyz
 
         # Covert to polar
         _, phi = cart2pol(*xyz_rot[:2, :])
-        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
+        bearings = [Bearing(i) for i in phi]
 
         return StateVectors([bearings]) + noise
 
@@ -774,7 +759,7 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
 
         if isinstance(noise, bool) or noise is None:
             if noise:
-                noise = self.rvs()
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
             else:
                 noise = 0
 
@@ -782,10 +767,10 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
         xy_pos = state.state_vector[self.mapping, :] - self.translation_offset
 
         # Rotate coordinates based upon the sensor_velocity
-        xy_rot = self._rotation_matrix @ xy_pos
+        xy_rot = self.rotation_matrix @ xy_pos
 
         # Convert to Spherical
-        rho, phi, _ = cart2sphere(*xy_rot)
+        rho, phi, _ = cart2sphere(xy_rot[0, :], xy_rot[1, :], xy_rot[2, :])
 
         # Determine the net velocity component in the engagement
         xy_vel = state.state_vector[self.velocity_mapping, :] - self.velocity
@@ -794,9 +779,9 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
         rr = np.einsum('ij,ij->j', xy_pos, xy_vel) / np.linalg.norm(xy_pos, axis=0)
 
         # Convert to bearings
-        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
+        bearings = [Bearing(i) for i in phi]
 
-        return StateVectors([bearings, np.atleast_1d(rho), rr]) + noise
+        return StateVectors([bearings, rho, rr]) + noise
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
@@ -922,7 +907,7 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
 
         if isinstance(noise, bool) or noise is None:
             if noise:
-                noise = self.rvs()
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
             else:
                 noise = 0
 
@@ -930,10 +915,10 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
         xyz_pos = state.state_vector[self.mapping, :] - self.translation_offset
 
         # Rotate coordinates based upon the sensor_velocity
-        xyz_rot = self._rotation_matrix @ xyz_pos
+        xyz_rot = self.rotation_matrix @ xyz_pos
 
         # Convert to Spherical
-        rho, phi, theta = cart2sphere(*xyz_rot)
+        rho, phi, theta = cart2sphere(xyz_rot[0, :], xyz_rot[1, :], xyz_rot[2, :])
 
         # Determine the net velocity component in the engagement
         xyz_vel = state.state_vector[self.velocity_mapping, :] - self.velocity
@@ -941,11 +926,11 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
         # Use polar to calculate range rate
         rr = np.einsum('ij,ij->j', xyz_pos, xyz_vel) / np.linalg.norm(xyz_pos, axis=0)
 
-        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
-        elevations = [Elevation(i) for i in np.atleast_1d(theta)]
+        bearings = [Bearing(i) for i in phi]
+        elevations = [Elevation(i) for i in theta]
         return StateVectors([elevations,
                              bearings,
-                             np.atleast_1d(rho),
+                             rho,
                              rr]) + noise
 
     def inverse_function(self, detection, **kwargs) -> StateVector:
@@ -958,7 +943,7 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
         y_rate = np.cos(phi) * np.sin(theta) * rho_rate
         z_rate = np.sin(phi) * rho_rate
 
-        inv_rotation_matrix = inv(self._rotation_matrix)
+        inv_rotation_matrix = inv(self.rotation_matrix)
 
         out_vector = StateVector([[0.], [0.], [0.], [0.], [0.], [0.]])
         out_vector[self.mapping, 0] = x, y, z

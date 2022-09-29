@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """
 =======================================
@@ -54,7 +53,7 @@
 # %%
 # Set up a simulation
 # -------------------
-# As in previous tutorials, we start with a target moving linearly in the 2D cartesian plane.
+# As in previous tutorials, we start with a target moving linearly in the 2D Cartesian plane.
 import numpy as np
 from scipy.stats import uniform
 from datetime import datetime
@@ -126,19 +125,20 @@ for state in truth:
 # Plot the ground truth and measurements with clutter.
 
 # Plot ground truth.
-from stonesoup.plotter import Plotter
-plotter = Plotter()
-plotter.ax.set_ylim(0, 25)  # Can set additional axes properties e.g. limits
+from stonesoup.plotter import Plotterly
+plotter = Plotterly()
 plotter.plot_ground_truths(truth, [0, 2])
 
 # Plot true detections and clutter.
 plotter.plot_measurements(all_measurements, [0, 2])
 
+plotter.fig
+
 # %%
 # Distance Hypothesiser and Nearest Neighbour
 # -------------------------------------------
 #
-# Perhaps the simplest way to associate a detection with a predition is to measure a 'distance'
+# Perhaps the simplest way to associate a detection with a prediction is to measure a 'distance'
 # to each detection and hypothesise that the detection with the lowest distance
 # is correctly associated with that prediction.
 #

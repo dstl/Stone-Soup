@@ -16,7 +16,7 @@ from ...deleter.time import UpdateTimeDeleter
 from ...hypothesiser.distance import DistanceHypothesiser
 from ...dataassociator.neighbour import NearestNeighbour
 from ...measures import Mahalanobis
-from ...types.detection import Detection
+from ...types.detection import Detection, TrueDetection
 from ...types.hypothesis import SingleHypothesis
 from ...types.prediction import Prediction
 from ...types.state import GaussianState
@@ -164,18 +164,26 @@ def test_nonlinear_measurement(meas_model, skip_non_linear):
 
 
 def test_linear_measurement_non_direct():
-    class _LinearMeasurementModel:
+    class _LinearMeasurementModel(LinearModel):
         ndim_state = 2
         ndmim_meas = 2
         mapping = (0, 1)
 
-        @staticmethod
-        def matrix():
+        def matrix(self):
             return np.array([[0, 1], [2, 0]])
 
         @staticmethod
         def covar():
             return np.diag([10, 50])
+
+        def ndim(self):
+            pass
+
+        def pdf(self):
+            pass
+
+        def rvs(slef):
+            pass
 
     measurement_model = _LinearMeasurementModel()
     measurement_initiator = SimpleMeasurementInitiator(
@@ -211,19 +219,27 @@ def test_linear_measurement_non_direct():
 
 
 def test_linear_measurement_extra_state_dim():
-    class _LinearMeasurementModel:
+    class _LinearMeasurementModel(LinearModel):
         ndim_state = 3
         ndmim_meas = 2
 
         mapping = (0, 2)
 
-        @staticmethod
-        def matrix():
+        def matrix(self):
             return np.array([[1, 0, 0], [0, 0, 1]])
 
         @staticmethod
         def covar():
             return np.diag([10, 50])
+
+        def ndim(self):
+            pass
+
+        def pdf(self):
+            pass
+
+        def rvs(self):
+            pass
 
     measurement_model = _LinearMeasurementModel()
     measurement_initiator = SimpleMeasurementInitiator(
@@ -278,7 +294,8 @@ def test_multi_measurement(updates_only):
 
     measurement_initiator = MultiMeasurementInitiator(
         GaussianState([[0], [0], [0], [0]], np.diag([0, 15, 0, 15])),
-        measurement_model, deleter, data_associator, updater, updates_only=updates_only)
+        deleter, data_associator, updater,
+        measurement_model=measurement_model, updates_only=updates_only)
 
     timestamp = datetime.datetime.now()
     first_detections = {Detection(np.array([[5], [2]]), timestamp),
@@ -302,6 +319,25 @@ def test_multi_measurement(updates_only):
     assert len(measurement_initiator.holding_tracks) == 0
 
 
+@pytest.mark.parametrize("initiator", [
+    SinglePointInitiator(
+        GaussianState(np.array([[0]]), np.array([[100]]))
+    ),
+    SimpleMeasurementInitiator(
+        GaussianState(np.array([[0]]), np.array([[100]]))
+    ),
+], ids=['SinglePoint', 'LinearMeasurement'])
+def test_measurement_model(initiator):
+    timestamp = datetime.datetime.now()
+    dummy_detection = TrueDetection(np.array([0, 0]), timestamp)
+    # The SinglePointInitiator will raise an error when the ExtendedKalmanUpdater
+    # is called and neither the detection nor the initiator has a measurement
+    # model. The SimpleMeasurementInitiator will raise an error in the if/else
+    # blocks.
+    with pytest.raises(ValueError):
+        _ = initiator.initiate({dummy_detection}, timestamp)
+
+
 @pytest.mark.parametrize("gaussian_initiator", [
     SinglePointInitiator(
         GaussianState(np.array([[0]]), np.array([[100]])),
@@ -323,11 +359,12 @@ def test_gaussian_particle(gaussian_initiator):
 
     for track in tracks:
         assert isinstance(track.state, ParticleStateUpdate)
-        if track.state_vector > 0:
-            assert np.allclose(track.state_vector, np.array([[5]]), atol=0.4)
+
+        if track.state.mean > 0:
+            assert np.allclose(track.state.mean, np.array([[5]]), atol=0.4)
             assert track.state.hypothesis.measurement is detections[0]
         else:
-            assert np.allclose(track.state_vector, np.array([[-5]]), atol=0.4)
+            assert np.allclose(track.state.mean, np.array([[-5]]), atol=0.4)
             assert track.state.hypothesis.measurement is detections[1]
         assert track.timestamp == timestamp
 

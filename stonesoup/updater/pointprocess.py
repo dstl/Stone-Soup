@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
 from abc import abstractmethod
 
 from scipy.stats import multivariate_normal
+import numpy as np
 
 from ..base import Base, Property
 from .kalman import KalmanUpdater
@@ -110,6 +110,13 @@ class PointProcessUpdater(Base):
                     covar=missed_detected_hypotheses.prediction.covar,
                     timestamp=missed_detected_hypotheses.prediction.timestamp)
                 updated_components.append(component)
+
+        # Ensure that no component has a weight of 0. This avoids divide
+        # by 0 bugs in the GaussianMixtureReducer
+        for component in updated_components:
+            if component.weight == 0:
+                component.weight = np.finfo(float).eps
+
         # Return updated components
         return GaussianMixtureUpdate(hypothesis=hypotheses,
                                      components=updated_components)
@@ -130,6 +137,10 @@ class PHDUpdater(PointProcessUpdater):
     [1] B.-N. Vo and W.-K. Ma, “The Gaussian Mixture Probability Hypothesis
     Density Filter,” Signal Processing,IEEE Transactions on, vol. 54, no. 11,
     pp. 4091–4104, 2006. https://ieeexplore.ieee.org/document/1710358.
+
+    [2] D. E. Clark, K. Panta and B. Vo, "The GM-PHD Filter Multiple Target Tracker," 2006 9th
+    International Conference on Information Fusion, 2006, pp. 1-8, doi: 10.1109/ICIF.2006.301809.
+    https://ieeexplore.ieee.org/document/4086095.
     """
     @staticmethod
     def _calculate_update_terms(updated_sum_list, hypotheses):
@@ -195,7 +206,7 @@ class LCCUpdater(PointProcessUpdater):
         misdetected_c2 = (misdetected_weight_sum**2)*l2
         self.second_order_cumulant = misdetected_c2 - detected_c2
         # Return the l1 correction factor for miss detected weight update
-        return l1
+        return np.float64(l1)
 
     @property
     def second_order_false_alarm_cumulant(self):

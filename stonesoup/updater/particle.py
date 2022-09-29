@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import copy
 from functools import lru_cache
 
@@ -11,7 +10,6 @@ from ..base import Property
 from ..functions import cholesky_eps, sde_euler_maruyama_integration
 from ..resampler import Resampler
 from ..types.numeric import Probability
-from ..types.particle import Particle
 from ..types.prediction import (
     Prediction, ParticleMeasurementPrediction, GaussianStatePrediction, MeasurementPrediction)
 from ..types.update import ParticleStateUpdate, Update
@@ -44,29 +42,32 @@ class ParticleUpdater(Updater):
         : :class:`~.ParticleState`
             The state posterior
         """
-        particles = copy.copy(hypothesis.prediction.particles)
+        predicted_state = copy.copy(hypothesis.prediction)
 
         if hypothesis.measurement.measurement_model is None:
             measurement_model = self.measurement_model
         else:
             measurement_model = hypothesis.measurement.measurement_model
 
-        particles.weight = particles.weight * measurement_model.pdf(
-            hypothesis.measurement, particles, num_samples=len(particles),
-            **kwargs)
+        predicted_state.weight = predicted_state.weight * measurement_model.pdf(
+            hypothesis.measurement, predicted_state, **kwargs)
 
         # Normalise the weights
-        sum_w = np.array(Probability.sum(particles.weight))
-        particles.weight = particles.weight / sum_w
+        sum_w = np.array(Probability.sum(predicted_state.weight))
+        predicted_state.weight = predicted_state.weight / sum_w
 
         # Resample
         if self.resampler is not None:
-            particles = self.resampler.resample(particles)
+            predicted_state = self.resampler.resample(predicted_state)
 
         return Update.from_state(
-            hypothesis.prediction,
-            particles=particles, hypothesis=hypothesis,
-            timestamp=hypothesis.measurement.timestamp)
+            state=hypothesis.prediction,
+            state_vector=predicted_state.state_vector,
+            weight=predicted_state.weight,
+            hypothesis=hypothesis,
+            timestamp=hypothesis.measurement.timestamp,
+            particle_list=None
+            )
 
     @lru_cache()
     def predict_measurement(self, state_prediction, measurement_model=None,
@@ -75,16 +76,12 @@ class ParticleUpdater(Updater):
         if measurement_model is None:
             measurement_model = self.measurement_model
 
-        new_particles = []
-        for particle in state_prediction.particles:
-            new_state_vector = measurement_model.function(particle, **kwargs)
-            new_particles.append(
-                Particle(new_state_vector,
-                         weight=particle.weight,
-                         parent=particle.parent))
+        new_state_vector = measurement_model.function(state_prediction, **kwargs)
+        new_weight = state_prediction.weight
 
         return MeasurementPrediction.from_state(
-            state_prediction, particles=new_particles, timestamp=state_prediction.timestamp)
+            state_prediction, state_vector=new_state_vector, timestamp=state_prediction.timestamp,
+            particle_list=None, weight=new_weight)
 
 
 class GromovFlowParticleUpdater(Updater):
@@ -147,8 +144,9 @@ class GromovFlowParticleUpdater(Updater):
             particle.state_vector = sde_euler_maruyama_integration(function, time_steps, particle)
 
         return ParticleStateUpdate(
-            particles,
+            None,
             hypothesis,
+            particle_list=particles,
             timestamp=hypothesis.measurement.timestamp)
 
     predict_measurement = ParticleUpdater.predict_measurement
@@ -194,19 +192,20 @@ class GromovFlowKalmanParticleUpdater(GromovFlowParticleUpdater):
         kalman_hypothesis = copy.copy(hypothesis)
         # Convert to GaussianState
         kalman_hypothesis.prediction = GaussianStatePrediction(
-            particle_pred.state_vector, particle_pred.covar, particle_pred.timestamp)
+            particle_pred.mean, particle_pred.covar, particle_pred.timestamp)
         # Needed for cross covar
         kalman_hypothesis.measurement_prediction = None
         kalman_update = self.kalman_updater.update(kalman_hypothesis, **kwargs)
 
         return ParticleStateUpdate(
-            particle_update.particles,
+            particle_update.state_vector,
             hypothesis,
-            kalman_update.covar,
+            weight=particle_update.weight,
+            fixed_covar=kalman_update.covar,
+            particle_list=None,
             timestamp=particle_update.timestamp)
 
-    def predict_measurement(
-            self, state_prediction, *args, **kwargs):
+    def predict_measurement(self, state_prediction, *args, **kwargs):
         particle_prediction = super().predict_measurement(
             state_prediction, *args, **kwargs)
 
@@ -217,6 +216,8 @@ class GromovFlowKalmanParticleUpdater(GromovFlowParticleUpdater):
             *args, **kwargs)
 
         return ParticleMeasurementPrediction(
-            particle_prediction.particles,
-            kalman_prediction.covar,
+            state_vector=particle_prediction.state_vector,
+            weight=state_prediction.weight,
+            fixed_covar=kalman_prediction.covar,
+            particle_list=None,
             timestamp=particle_prediction.timestamp)

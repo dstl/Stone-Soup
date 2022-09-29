@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 
 from ...base import Property
@@ -75,7 +73,7 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
 
         if isinstance(noise, bool) or noise is None:
             if noise:
-                noise = self.rvs()
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
             else:
                 noise = 0
 

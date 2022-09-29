@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import datetime
 
 import pytest
@@ -52,18 +51,25 @@ def groundtruth_reader():
 @pytest.fixture()
 def tracker():
     class TestTracker(Tracker):
-        @BufferedGenerator.generator_method
-        def tracks_gen(self):
-            time = datetime.datetime(2018, 1, 1, 14)
+        @property
+        def tracks(self):
+            return self._tracks
+
+        def __iter__(self):
+            self.iter = iter(range(2))
+            self.time = datetime.datetime(2018, 1, 1, 13, 59)
+            return super().__iter__()
+
+        def __next__(self):
+            i = next(self.iter)
             state_vector = StateVector([[0]])
-            for i in range(2):
-                tracks = {
-                    Track(
-                        [State(
-                            state_vector + i + 10*j, timestamp=time)
-                            for j in range(i)],
-                        str(k))
-                    for k in range(i)}
-                yield time, tracks
-                time += datetime.timedelta(minutes=1)
+            self.time += datetime.timedelta(minutes=1)
+            self._tracks = {
+                Track(
+                    [State(
+                        state_vector + i + 10*j, timestamp=self.time)
+                        for j in range(i)],
+                    str(k))
+                for k in range(i)}
+            return self.time, self.tracks
     return TestTracker()

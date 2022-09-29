@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """
 9 - Initiators & Deleters
@@ -56,10 +55,10 @@ for k in range(20):
         current_truths.add(truth)
         truths.add(truth)
 
-from stonesoup.plotter import Plotter
-plotter = Plotter()
-plotter.ax.set_ylim(-5, 25)
+from stonesoup.plotter import Plotterly
+plotter = Plotterly()
 plotter.plot_ground_truths(truths, [0, 2])
+plotter.fig
 
 # %%
 # Generate Detections and Clutter
@@ -98,18 +97,18 @@ for k in range(20):
                                               timestamp=truth_state.timestamp,
                                               measurement_model=measurement_model))
 
-            # Generate clutter at this time-step
-            truth_x = truth_state.state_vector[0]
-            truth_y = truth_state.state_vector[2]
-            for _ in range(np.random.randint(2)):
-                x = uniform.rvs(truth_x - 10, 20)
-                y = uniform.rvs(truth_y - 10, 20)
-                measurement_set.add(Clutter(np.array([[x], [y]]), timestamp=timestamp,
-                                            measurement_model=measurement_model))
+        # Generate clutter at this time-step
+        truth_x = truth_state.state_vector[0]
+        truth_y = truth_state.state_vector[2]
+        for _ in range(np.random.randint(2)):
+            x = uniform.rvs(truth_x - 10, 20)
+            y = uniform.rvs(truth_y - 10, 20)
+            measurement_set.add(Clutter(np.array([[x], [y]]), timestamp=timestamp,
+                                        measurement_model=measurement_model))
     all_measurements.append(measurement_set)
 
 # Plot true detections and clutter.
-plotter.plot_measurements(all_measurements, [0, 2], color='g')
+plotter.plot_measurements(all_measurements, [0, 2])
 plotter.fig
 
 # %%

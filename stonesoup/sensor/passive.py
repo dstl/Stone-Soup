@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from typing import Set, Union
 
 import numpy as np
@@ -33,19 +32,33 @@ class PassiveElevationBearing(Sensor):
             (and follow in format) the underlying \
             :class:`~.CartesianToElevationBearing` model")
 
-    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[TrueDetection]:
-
-        measurement_model = CartesianToElevationBearing(
+    @property
+    def measurement_model(self):
+        return CartesianToElevationBearing(
             ndim_state=self.ndim_state,
             mapping=self.mapping,
             noise_covar=self.noise_covar,
             translation_offset=self.position,
             rotation_offset=self.orientation)
 
+    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
+                **kwargs) -> Set[TrueDetection]:
+
+        measurement_model = self.measurement_model
+
+        if noise is True:
+            # Pre-fetch noise values
+            noise_vectors_iter = iter(measurement_model.rvs(len(ground_truths), **kwargs))
+
         detections = set()
         for truth in ground_truths:
-            measurement_vector = measurement_model.function(truth, noise=noise, **kwargs)
+            if noise is True:
+                noise_val = next(noise_vectors_iter)
+            else:
+                noise_val = noise
+
+            measurement_vector = measurement_model.function(truth, noise=noise_val, **kwargs)
+
             detection = TrueDetection(measurement_vector,
                                       measurement_model=measurement_model,
                                       timestamp=truth.timestamp,

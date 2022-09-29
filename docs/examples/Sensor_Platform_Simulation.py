@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """
 Sensor Platform Simulation Example
@@ -161,7 +160,7 @@ radar = RadarElevationBearingRange(ndim_state=6,
 #  * defines the sensors orientation relative to that of the platform,
 #  * defaults to a zero orientation offset.
 #
-# The default assumption is that the sensor is located at the center point of the platform and orientated to align with
+# The default assumption is that the sensor is located at the centre point of the platform and orientated to align with
 # the platform body. In this example we are happy to use the default assumptions and therefore the sensor can be added.
 platform.add_sensor(radar)
 
@@ -346,7 +345,7 @@ kalman_tracks = {}  # Store for plotting later
 groundtruth_paths = {}  # Store for plotting later
 detections = []  # Store for plotting later
 
-for time, ctracks in kalman_tracker.tracks_gen():
+for time, ctracks in kalman_tracker:
     for track in ctracks:
         loc = (track.state_vector[0], track.state_vector[2])
         if track not in kalman_tracks:
@@ -433,7 +432,7 @@ ax.scatter(X, Y, color='k')  # Plot detections in black
 ax.scatter(0, 0, color='y')
 
 # %%
-# Finally we can plot the estimated tracks (blue) along side the ground truth paths (red). Because we used a noisy
+# Finally, we can plot the estimated tracks (blue) alongside the ground truth paths (red). Because we used a noisy
 # sensor this view makes it easier to quickly see the tracker performance. The platform location is
 # shown in yellow.
 fig = plt.figure(figsize=(10, 6))

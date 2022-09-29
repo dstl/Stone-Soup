@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Base classes for different Readers."""
 from abc import abstractmethod
 

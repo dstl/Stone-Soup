@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from stonesoup.models.transition.linear import ConstantVelocity, ConstantTurn, \
+from stonesoup.models.transition.linear import ConstantVelocity, KnownTurnRate, \
     CombinedLinearGaussianTransitionModel
 from stonesoup.movable import MovingMovable, FixedMovable, MultiTransitionMovable
 from stonesoup.types.array import StateVector
@@ -47,7 +47,7 @@ def test_empty_state_error():
 
 def test_multi_transition_movable_errors():
     # First check no error
-    models = [ConstantVelocity(0), ConstantTurn(0, np.pi / 2)]
+    models = [ConstantVelocity(0), KnownTurnRate(0, np.pi / 2)]
     now = datetime.now()
     times = [timedelta(seconds=10), timedelta(seconds=10)]
     _ = MultiTransitionMovable(states=State(StateVector([0, 0, 0, 0, 0, 0])),
@@ -80,7 +80,7 @@ def test_multi_transition_movable_move():
     input_state_vector = StateVector([0, 1, 2.2, 78.6])
     pre_state = State(input_state_vector, timestamp=None)
     models = [CombinedLinearGaussianTransitionModel((ConstantVelocity(0), ConstantVelocity(0))),
-              ConstantTurn([0, 0], turn_rate=np.pi / 2)]
+              KnownTurnRate([0, 0], turn_rate=np.pi / 2)]
     times = [timedelta(seconds=10), timedelta(seconds=10)]
 
     movable = MultiTransitionMovable(states=pre_state,

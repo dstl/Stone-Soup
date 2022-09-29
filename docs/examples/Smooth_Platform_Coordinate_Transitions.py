@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 """
 Creating Smooth Transitions Between Coordinates
 ===============================================
@@ -7,7 +6,7 @@ Creating Smooth Transitions Between Coordinates
 
 # %%
 # This is a demonstration of two methods for calculating transition models between given
-# coordinates in a cartesian state space.
+# coordinates in a Cartesian state space.
 # These methods are intended to be used in conjunction with
 # :class:`~.MultiTransitionMovingPlatform`, which can be passed a list of models and
 # model-durations, such that, for example, the platform could undergo constant velocity transition
@@ -18,12 +17,12 @@ Creating Smooth Transitions Between Coordinates
 # ^^^^^^^^^^^^^^^^^^^^^
 # The first method is :meth:`~simulator.transition.get_smooth_transition_models`.
 #
-# This method takes a series of 2D cartesian coordinates, and returns a chain (list) of
+# This method takes a series of 2D Cartesian coordinates, and returns a chain (list) of
 # :class:`~.ConstantTurn` transition models, alongside a list of transition times that each
 # respective model should be used for.
 #
 # Where required, the method also appends intermediate, custom, linear acceleration transition
-# models :class:`~.Point2PointConstantAcceleration` which accelerate (/decelerate) the platform
+# models :class:`~.Point2PointConstantAcceleration` which accelerates (/decelerates) the platform
 # to an appropriate speed whereby it arrives at the next destination coordinates on-time, or
 # allows it to arrive before-hand, whereby it stops at the destination until the designated time
 # (using the :class:`~.Point2PointStop` custom transition model).
@@ -105,11 +104,11 @@ transition_models, transition_times = create_smooth_transition_models(initial_st
 
 # %%
 # This gives the transition times/models:
-from stonesoup.models.transition.linear import ConstantTurn
+from stonesoup.models.transition.linear import KnownTurnRate
 for transition_time, transition_model in zip(transition_times, transition_models):
     print('Duration: ', transition_time.total_seconds(), 's ',
           'Model: ', type(transition_model), end=' ')
-    if isinstance(transition_model, ConstantTurn):
+    if isinstance(transition_model, KnownTurnRate):
         print('turn-rate: ', transition_model.turn_rate)
     else:
         print('x-acceleration: ', transition_model.ax, end=', ')
@@ -217,11 +216,11 @@ fig
 # ^^^^^^^^^^^^^
 # The next method is :meth:`~.simulator.transition.ConstantJerkSimulator.create_models`
 #
-# This method takes a series of states with cartesian kinematic state space elements and returns a
+# This method takes a series of states with Cartesian kinematic state space elements and returns a
 # chain (list) of :class:`~.ConstantJerkSimulator` transition models and transition times.
 #
 # The :class:`~.ConstantJerkSimulator` type of transition model is an implementation of a
-# noiseless, constant jerk transition in the kinematic, cartesian subspace of the state space.
+# noiseless, constant jerk transition in the kinematic, Cartesian subspace of the state space.
 #
 # The user will need to provide both initial and final position and velocities. This can be of any
 # dimension. For example, constant jerk in the space :math:`(x, \dot{x}, y, \dot{y})` and

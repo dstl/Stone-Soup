@@ -1,4 +1,3 @@
-# coding: utf-8
 import datetime
 
 from pytest import approx
@@ -6,7 +5,8 @@ import numpy as np
 import scipy as sp
 from scipy.stats import multivariate_normal
 
-from ..linear import Singer, CombinedLinearGaussianTransitionModel
+from ..linear import Singer
+from ..base import CombinedGaussianTransitionModel
 from ....types.state import State
 
 
@@ -42,7 +42,7 @@ def base(state, noise_diff_coeffs, damping_coeffs, timediff=1.0):
     state_vec = state.state_vector
 
     # Create a 1D Singer or an n-dimensional
-    # CombinedLinearGaussianTransitionModel object
+    # CombinedGaussianTransitionModel object
     dim = len(state_vec) // 3  # pos, vel, acc for each dimension
     if dim == 1:
         model_obj = Singer(noise_diff_coeff=noise_diff_coeffs[0],
@@ -51,7 +51,7 @@ def base(state, noise_diff_coeffs, damping_coeffs, timediff=1.0):
         model_list = [Singer(noise_diff_coeff=noise_diff_coeffs[i],
                              damping_coeff=damping_coeffs[i])
                       for i in range(0, dim)]
-        model_obj = CombinedLinearGaussianTransitionModel(model_list)
+        model_obj = CombinedGaussianTransitionModel(model_list)
 
     # State related variables
     state_vec = state_vec
@@ -112,8 +112,8 @@ def base(state, noise_diff_coeffs, damping_coeffs, timediff=1.0):
     Q = sp.linalg.block_diag(*covar_list)
 
     # Ensure ```model_obj.transfer_function(time_interval)``` returns F
-    assert np.allclose(F, model_obj.matrix(
-        timestamp=new_timestamp, time_interval=time_interval), rtol=1e-6)
+    assert np.allclose(F, model_obj.jacobian(
+        State(state_vec), time_interval=time_interval), rtol=1e-6)
 
     # Ensure ```model_obj.covar(time_interval)``` returns Q
     assert np.allclose(Q, model_obj.covar(

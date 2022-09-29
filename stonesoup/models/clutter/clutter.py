@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
-from typing import Set, Union, Callable, Tuple
+from scipy.stats import poisson
+from typing import Set, Union, Callable, Tuple, Optional
 from abc import ABC
 
 from ..base import Model
@@ -42,6 +41,21 @@ class ClutterModel(Model, ABC):
         "The default defines the space for a uniform distribution in 2D. The call "
         "`np.array([self.distribution(*arg) for arg in self.dist_params])` "
         "must return a numpy array of length equal to the number of dimensions.")
+    seed: Optional[Union[int, np.random.RandomState]] = Property(
+        default=None,
+        doc="Seed or state for random number generation. If defined as an integer, "
+        "it will be used to create a numpy RandomState. Or it can be defined directly "
+        "as a RandomState (useful if you want to pass one of the random state's "
+        "functions as the :attr:`distribution`).")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if isinstance(self.seed, int):
+            self.random_state = np.random.RandomState(self.seed)
+        elif isinstance(self.seed, np.random.RandomState):
+            self.random_state = self.seed
+        else:
+            self.random_state = None
 
     def function(self, ground_truths: Set[GroundTruthState], **kwargs) -> Set[Clutter]:
         """
@@ -68,7 +82,7 @@ class ClutterModel(Model, ABC):
 
         # Generate the clutter for this time step
         clutter = set()
-        for _ in range(np.random.poisson(self.clutter_rate)):
+        for _ in range(poisson.rvs(self.clutter_rate, random_state=self.random_state)):
             # Call the distribution function to generate a random vector in the space
             random_vector = np.array([self.distribution(*arg) for arg in self.dist_params])
 

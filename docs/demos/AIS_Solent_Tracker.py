@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 """
 Tracking AIS Reports Using Stone Soup
 =====================================
@@ -161,7 +160,7 @@ tracker = MultiTargetTracker(
 # :class:`set` we can simply update this with `current_tracks` at each timestep, not worrying about
 # duplicates.
 tracks = set()
-for step, (time, current_tracks) in enumerate(tracker.tracks_gen(), 1):
+for step, (time, current_tracks) in enumerate(tracker, 1):
     tracks.update(current_tracks)
     if not step % 10:
         print("Step: {} Time: {}".format(step, time))
