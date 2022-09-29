@@ -1,5 +1,5 @@
 from copy import copy
-from typing import List, Any
+from typing import List, Any, Union, Callable
 
 import numpy as np
 from scipy.stats import multivariate_normal
@@ -34,7 +34,9 @@ class SMCPHDFilter(Base):
 
     transition_model: TransitionModel = Property(doc='The transition model')
     measurement_model: MeasurementModel = Property(doc='The measurement model')
-    prob_detect: Probability = Property(doc='The probability of detection')
+    prob_detect: Union[Probability, Callable[[State], Probability]] = Property(
+        default=Probability(0.85),
+        doc="Target Detection Probability")
     prob_death: Probability = Property(doc='The probability of death')
     prob_birth: Probability = Property(doc='The probability of birth')
     birth_rate: float = Property(doc='The birth rate (i.e. number of new/born targets at each iteration(')
@@ -47,6 +49,12 @@ class SMCPHDFilter(Base):
             'Default is "expansion"',
         default='expansion'
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not callable(self.prob_detect):
+            prob_detect = copy(self.prob_detect)
+            self.prob_detect = lambda state: prob_detect
 
     def predict(self, state, timestamp):
         """
@@ -213,8 +221,10 @@ class SMCPHDFilter(Base):
         # Compute g(z|x) matrix as in [1]
         g = self.get_measurement_likelihoods(prediction, detections, meas_weights)
 
+        prob_detect = self.prob_detect(prediction)
+
         # Calculate w^{n,i} Eq. (20) of [2]
-        Ck = meas_weights * self.prob_detect * g * prediction.weight[:, np.newaxis]
+        Ck = meas_weights * prob_detect * g * prediction.weight[:, np.newaxis]
         C = np.sum(Ck, axis=0)
         k = np.array([detection.metadata['clutter_density']
                       if 'clutter_density' in detection.metadata else self.clutter_intensity
@@ -222,7 +232,7 @@ class SMCPHDFilter(Base):
         C_plus = C + k
 
         weights_per_hyp = np.zeros((num_samples, len(detections) + 1), dtype=Probability)
-        weights_per_hyp[:, 0] = (1 - self.prob_detect) * prediction.weight
+        weights_per_hyp[:, 0] = (1 - prob_detect) * prediction.weight
         if len(detections):
             weights_per_hyp[:, 1:] = Ck / C_plus
 

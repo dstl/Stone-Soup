@@ -246,4 +246,3 @@ class IPDAHypothesiser(PDAHypothesiser):
                     measurement_prediction))
 
         return MultipleHypothesis(hypotheses, normalise=True, total_weight=1)
-

@@ -1,3 +1,4 @@
+from copy import copy
 from datetime import datetime
 
 import numpy as np
@@ -8,7 +9,7 @@ from stonesoup.custom.jipda import JIPDAWithEHM2
 from stonesoup.custom.smcphd import SMCPHDFilter, SMCPHDInitiator
 from stonesoup.functions import gm_reduce_single
 from stonesoup.gater.distance import DistanceGater
-from stonesoup.hypothesiser.probability import IPDAHypothesiser
+from stonesoup.custom.hypothesiser.probability import IPDAHypothesiser
 from stonesoup.measures import Mahalanobis
 from stonesoup.models.measurement import MeasurementModel
 from stonesoup.models.transition import TransitionModel
@@ -26,7 +27,7 @@ from stonesoup.updater.kalman import KalmanUpdater
 class SMCPHD_JIPDA(Base):
     transition_model: TransitionModel = Property(doc='The transition model')
     measurement_model: MeasurementModel = Property(doc='The measurement model')
-    prob_detect: Probability = Property(doc='The probability of detection')
+    prob_detection: Probability = Property(doc='The probability of detection')
     prob_death: Probability = Property(doc='The probability of death')
     prob_birth: Probability = Property(doc='The probability of birth')
     birth_rate: float = Property(
@@ -44,6 +45,8 @@ class SMCPHD_JIPDA(Base):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.prob_detect = self.prob_detection
 
         if self.start_time is None:
             self.start_time = datetime.now()
@@ -79,9 +82,24 @@ class SMCPHD_JIPDA(Base):
 
         self._initiator = SMCPHDInitiator(filter=phd_filter, prior=state)
 
+
     @property
     def tracks(self):
         return self._tracks
+
+    @property
+    def prob_detect(self):
+        return self._prob_detect
+
+    @prob_detect.setter
+    def prob_detect(self, prob_detect):
+        if not callable(prob_detect):
+            prob_detect = copy(prob_detect)
+            self._prob_detect = lambda state: prob_detect
+            if hasattr(self, '_hypothesiser'):
+                self._hypothesiser.prob_detect = prob_detect
+            if hasattr(self, '_initiator'):
+                self._initiator.filter.prob_detect = self._prob_detect
 
     def track(self, detections, timestamp):
 
@@ -89,6 +107,9 @@ class SMCPHD_JIPDA(Base):
         detections = list(detections)
         num_tracks = len(tracks)
         num_detections = len(detections)
+
+        if not len(detections):
+            return self.tracks
 
         # Perform data association
         associations = self._associator.associate(tracks, detections, timestamp)
