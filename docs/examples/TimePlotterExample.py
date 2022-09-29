@@ -52,7 +52,7 @@ groundtruth_sim = MultiTargetGroundTruthSimulator(
         CovarianceMatrix(np.diag([1000, 10, 1000, 10])),
         timestamp=start_time),
     timestep=datetime.timedelta(seconds=5),
-    number_steps=200,
+    number_steps=50,
     birth_rate=0.05,
     death_probability=0.05
 )
@@ -107,6 +107,24 @@ for time, ctracks in tracker:
 all_plotting = []
 colours = colors.cnames
 
+times_to_plot = [start_time + x * groundtruth_sim.timestep
+                 for x in range(groundtruth_sim.number_steps)]
+
+from stonesoup.plotter import TBPlotter
+
+plotter = TBPlotter()
+plotter.plot_ground_truths(groundtruth, mapping=[0, 2])
+plotter.plot_measurements(detections, mapping=[0, 2])
+plotter.plot_tracks(tracks, mapping=[0, 2])
+
+plotter.run(times_to_plot)
+plotter.save('example2.mp4')
+
+from matplotlib import pyplot as plt
+
+plt.show()
+
+"""
 for idx, ground_truth in enumerate(groundtruth):
     all_plotting.append(TimeBasedPlotter(plotting_data=ground_truth.states,
                                          legend_key='Ground Truth'+str(idx),
@@ -128,10 +146,10 @@ all_plotting.append(TimeBasedPlotter(
     plotting_data=[detection for detection in detections if isinstance(detection, TrueDetection)],
     legend_key='True Detections', linestyle='', marker='.', alpha=0.5, color='r'))
 
-times_to_plot = [start_time + x * groundtruth_sim.timestep
-                 for x in range(groundtruth_sim.number_steps)]
+
 
 line_ani = TimeBasedPlotter.run_animation(times_to_plot, all_plotting,
                                           plot_item_expiry=datetime.timedelta(seconds=60))
 
 line_ani.save('example.mp4')
+"""

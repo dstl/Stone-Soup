@@ -1,37 +1,19 @@
 import copy
 import warnings
-from itertools import chain
-from typing import Iterable, List, Optional
-from datetime import datetime, timedelta
-
-
-import numpy as np
-from matplotlib import pyplot as plt, animation as animation
-from matplotlib.lines import Line2D
-from matplotlib.patches import Ellipse
-from matplotlib.legend_handler import HandlerPatch
-
-from stonesoup.base import Base, Property
-from stonesoup.types.detection import Detection
-from stonesoup.types.state import State, StateVector
-
-from .types import detection
-from .models.base import LinearModel
-from .models.measurement.base import MeasurementModel
-
-import warnings
 from abc import ABC, abstractmethod
+from datetime import datetime, timedelta
 from itertools import chain
-from typing import Collection, Iterable, Union
+from typing import Collection, Iterable, Union, List, Optional, Tuple, Dict
 
 import numpy as np
-from scipy.stats import kde
+from matplotlib import animation as animation
 from matplotlib import pyplot as plt
+from matplotlib.legend_handler import HandlerPatch
 from matplotlib.lines import Line2D
 from matplotlib.patches import Ellipse
-from matplotlib.legend_handler import HandlerPatch
 from scipy.integrate import quad
 from scipy.optimize import brentq
+from scipy.stats import kde
 
 try:
     import plotly.graph_objects as go
@@ -42,6 +24,8 @@ from .types import detection
 from .types.groundtruth import GroundTruthPath
 from .types.state import State, StateMutableSequence
 from .types.update import Update
+
+from .base import Base, Property
 
 from .models.base import LinearModel, Model
 
@@ -83,7 +67,8 @@ class _Plotter(ABC):
     def plot_sensors(self, sensors, sensor_label="Sensors", **kwargs):
         raise NotImplementedError
 
-    def _conv_measurements(self, measurements, mapping, measurement_model=None):
+    def _conv_measurements(self, measurements, mapping, measurement_model=None) -> \
+            Tuple[Dict[detection.Detection, State], Dict[detection.Clutter, State]]:
         conv_detections = {}
         conv_clutter = {}
         for state in measurements:
@@ -943,17 +928,298 @@ class Plotterly(_Plotter):
         sensor_xy = np.array([sensor.position[[0, 1], 0] for sensor in sensors])
         self.fig.add_scatter(x=sensor_xy[:, 0], y=sensor_xy[:, 1], **sensor_kwargs)
 
+
+class _TBPlotterDataClass(Base):
+    plotting_data = Property(Iterable[State])
+    plotting_label: str = Property()
+    plotting_keyword_arguments: dict = Property()
+
+
+class TBPlotter(_Plotter):
+
+    def __init__(self, dimension=Dimension.TWO, **kwargs):
+        self.figure_kwargs = {"figsize": (10, 6)}
+        self.figure_kwargs.update(kwargs)
+        if dimension != Dimension.TWO:
+            raise NotImplementedError
+
+        self.plotting_data: List[_TBPlotterDataClass] = []
+
+        self.animation_output: animation.FuncAnimation = None
+
+    def run(self, times_to_plot=List[datetime], plot_item_expiry: Optional[timedelta] = None,
+            **kwargs):
+
+        self.animation_output = self.run_animation(
+            times_to_plot=times_to_plot,
+            data=self.plotting_data,
+            plot_item_expiry=plot_item_expiry,
+            figure_kwargs=self.figure_kwargs,
+            **kwargs
+        )
+
+    def save(self, filename='example.mp4', **kwargs):
+        if self.animation_output is None:
+            raise ValueError("Animation hasn't been ran yet")
+
+        self.animation_output.save(filename, **kwargs)
+
+    def plot_ground_truths(self, truths, mapping, truths_label="Ground Truth", **kwargs):
+        truths_kwargs = dict(linestyle="--")
+        truths_kwargs.update(kwargs)
+        self.plot_state_mutable_sequence(truths, mapping, truths_label, **truths_kwargs)
+
+        """
+        self.plotting_data.append(_TBPlotterDataClass(
+            times=np.array([np.datetime64(state.timestamp) for state in truth]),
+            state_vectors=np.array([[state.state_vector[mapping[0]],
+                                     state.state_vector[mapping[1]]]
+                                    for state in truth]),
+            label=truths_label,
+            plotting_kwargs=truths_kwargs
+        ))
+        """
+
+    def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False,
+                    track_label="Tracks",
+                    **kwargs):
+
+        if uncertainty or particle:
+            raise NotImplementedError
+
+        tracks_kwargs = dict(linestyle='-', marker="s", color=None)
+        tracks_kwargs.update(kwargs)
+        self.plot_state_mutable_sequence(tracks, mapping, track_label, **tracks_kwargs)
+
+    def plot_state_mutable_sequence(self, state_mutable_sequences, mapping, label,
+                                    **plotting_kwargs):
+
+        if not isinstance(state_mutable_sequences, Collection) or \
+                isinstance(state_mutable_sequences, StateMutableSequence):
+            state_mutable_sequences = {state_mutable_sequences}  # Make a set of length 1
+
+        for state_mutable_sequence in state_mutable_sequences:
+            self.plotting_data.append(_TBPlotterDataClass(
+                plotting_data=[State(state_vector=[state.state_vector[mapping[0]],
+                                                   state.state_vector[mapping[1]]],
+                                     timestamp=state.timestamp)
+                               for state in state_mutable_sequence],
+                plotting_label=label,
+                plotting_keyword_arguments=plotting_kwargs
+            ))
+
+    def plot_measurements(self, measurements, mapping, measurement_model=None,
+                          measurements_label="", **kwargs):
+        measurement_kwargs = dict(marker='o', color='b')
+        measurement_kwargs.update(kwargs)
+
+        if not isinstance(measurements, Collection):
+            measurements = {measurements}  # Make a set of length 1
+
+        if any(isinstance(item, set) for item in measurements):
+            measurements_set = chain.from_iterable(measurements)  # Flatten into one set
+        else:
+            measurements_set = measurements
+
+        plot_detections, plot_clutter = self._conv_measurements(measurements_set,
+                                                                mapping,
+                                                                measurement_model)
+
+        if plot_detections:
+            detection_kwargs = dict(linestyle='', marker='o', color='b')
+            detection_kwargs.update(kwargs)
+            self.plotting_data.append(_TBPlotterDataClass(
+                plotting_data=[State(state_vector=plotting_state_vector,
+                                     timestamp=detection.timestamp)
+                               for detection, plotting_state_vector in plot_detections.items()],
+                plotting_label=measurements_label + " detections",
+                plotting_keyword_arguments=detection_kwargs
+            ))
+
+        if plot_clutter:
+            clutter_kwargs = dict(linestyle='', marker='2', color='y')
+            clutter_kwargs.update(kwargs)
+            self.plotting_data.append(_TBPlotterDataClass(
+                plotting_data=[State(state_vector=plotting_state_vector,
+                                     timestamp=detection.timestamp)
+                               for detection, plotting_state_vector in plot_clutter.items()],
+                plotting_label=measurements_label + " clutter",
+                plotting_keyword_arguments=clutter_kwargs
+            ))
+
+    def plot_sensors(self, sensors, sensor_label="Sensors", **kwargs):
+        raise NotImplementedError
+
+    @classmethod
+    def run_animation(cls,
+                      times_to_plot: List[datetime],
+                      data: Iterable[_TBPlotterDataClass],
+                      plot_item_expiry: Optional[timedelta] = None,
+                      axis_padding: float = 0.1,
+                      figure_kwargs: dict = {},
+                      animation_input_kwargs: dict = {}
+                      ) -> animation.FuncAnimation:
+        """
+        Parameters
+        ----------
+        times_to_plot : Iterable[datetime]
+            All the times, that the plotter should plot
+        data : Iterable[datetime]
+            All the data that should be plotted
+        plot_item_expiry: timedelta
+            How long a state should be displayed for
+        mapping : tuple
+            The indices of the state vector that should be plotted
+
+        Returns
+        -------
+        : animation.FuncAnimation
+            Animation object
+        """
+
+        fig1 = plt.figure(**figure_kwargs)
+
+        #plt.style.use('seaborn-colorblind')
+
+        the_lines = []
+        plotting_data = []
+        legends_key = []
+
+        for a_plot_object in data:
+            if a_plot_object.plotting_data is not None:
+                the_data = np.array(
+                    [a_state.state_vector for a_state in a_plot_object.plotting_data])
+                if len(the_data) == 0:
+                    continue
+                the_lines.append(
+                    plt.plot(the_data[:1, 0],
+                             the_data[:1, 1],
+                             **a_plot_object.plotting_keyword_arguments)[0])
+
+                legends_key.append(a_plot_object.plotting_label)
+                plotting_data.append(a_plot_object.plotting_data)
+            # else:
+            # Do nothing
+
+        """
+        x_limits = [min(state.state_vector[0] for line in data for state in line.plotting_data),
+                    max(state.state_vector[0] for line in data for state in line.plotting_data)]
+
+        y_limits = [min(state.state_vector[1]
+                        for line in data for state in line.plotting_data),
+                    max(state.state_vector[1]
+                        for line in data for state in line.plotting_data)]
+        """
+
+        [x_limits, y_limits] = [
+            [min(state.state_vector[idx] for line in data for state in line.plotting_data),
+             max(state.state_vector[idx] for line in data for state in line.plotting_data)]
+            for idx in [0, 1]]
+
+        for axis_limits in [x_limits, y_limits]:
+            limit_padding = axis_padding * (axis_limits[1] - axis_limits[0])
+            axis_limits[0] -= limit_padding
+            axis_limits[1] += limit_padding
+
+        plt.xlim(x_limits)
+        plt.ylim(y_limits)
+
+        # plt.axis('equal')
+        plt.xlabel("$x$")
+        plt.ylabel("$y$")
+        plt.legend(legends_key)
+
+        if plot_item_expiry is None:
+            min_plot_time = min(state.timestamp
+                                for line in data
+                                for state in line.plotting_data)
+            min_plot_times = [min_plot_time] * len(times_to_plot)
+        else:
+            min_plot_times = [time - plot_item_expiry for time in times_to_plot]
+
+        animation_kwargs = dict(blit=False, repeat=False,
+                                interval=50)  # milliseconds
+        animation_kwargs.update(animation_input_kwargs)
+
+        line_ani = animation.FuncAnimation(fig1, cls.update_animation,
+                                           frames=len(times_to_plot),
+                                           fargs=(the_lines, plotting_data, min_plot_times,
+                                                  times_to_plot),
+                                           **animation_kwargs)
+
+        plt.draw()
+        #plt.show()
+
+        return line_ani
+
+    @staticmethod
+    def update_animation(index: int, lines: List[Line2D], data_list: List[List[State]],
+                         start_times: List[datetime], end_times: List[datetime]):
+        """
+        Parameters
+        ----------
+        index : int
+            Which index of the start_times and end_times should be used
+        lines : List[Line2D]
+            The data that will be plotted, to be plotted.
+        data_list : List[List[State]]
+            All the data that should be plotted
+        mapping : tuple
+            The indices of the state vector that should be plotted
+        start_times : List[datetime]
+            lowest (earliest) time for an item to be plotted
+        end_times : List[datetime]
+            highest (latest) time for an item to be plotted
+
+        Returns
+        -------
+        : List[Line2D]
+            The data that will be plotted
+        """
+
+        min_time = start_times[index]
+        max_time = end_times[index]
+
+        plt.title(max_time)
+        for i, data_source in enumerate(data_list):
+
+            if data_source is not None:
+                the_data = np.array([a_state.state_vector for a_state in data_source
+                                     if min_time <= a_state.timestamp <= max_time])
+                if the_data.size > 0:
+                    lines[i].set_data(the_data[:, 0],
+                                      the_data[:, 1])
+        return lines
+
+
 class TimeBasedPlotter(Base):
 
     plotting_data = Property(Iterable[State])
     legend_key = Property(str, default='Not specified', doc="Todo")
     plotting_keyword_arguments = Property(dict, default=None, doc='Todo')
 
+    """
+    def plot_ground_truths(self, truths, mapping, truths_label="Ground Truth", **kwargs):
+        raise NotImplementedError
+
+    def plot_measurements(self, measurements, mapping, measurement_model=None,
+                          measurements_label="Measurements", **kwargs):
+        raise NotImplementedError
+
+    def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False,
+                    track_label="Tracks",
+                    **kwargs):
+        raise NotImplementedError
+
+    def plot_sensors(self, sensors, sensor_label="Sensors", **kwargs):
+        raise NotImplementedError
+
     def __init__(self, *args, **kwargs):
         class_keywords, plotting_keywords = self.get_plotting_keywords(kwargs)
         super().__init__(*args, **class_keywords)
         self.plotting_data = copy.copy(self.prepare_data(self.plotting_data))
         self.plotting_keyword_arguments = plotting_keywords
+    """
 
     def get_plotting_keywords(self, kwargs):
         """Splits keyword arguments needed for this class. Other keyword arguments are used in the
@@ -982,7 +1248,7 @@ class TimeBasedPlotter(Base):
 
     @staticmethod
     def run_animation(times_to_plot: List[datetime],
-                      data: Iterable[TimeBasedPlotter],
+                      data: Iterable['TimeBasedPlotter'],
                       plot_item_expiry: Optional[timedelta] = None,
                       mapping=(0, 2)) -> animation.FuncAnimation:
         """
@@ -1028,17 +1294,27 @@ class TimeBasedPlotter(Base):
             # else:
             # Do nothing
 
-        plt.xlim([min(state.state_vector[mapping[0]]
-                      for line in data for state in line.plotting_data),
-                  max(state.state_vector[mapping[0]]
-                      for line in data for state in line.plotting_data)])
+        x_limits = [min(state.state_vector[mapping[0]]
+                        for line in data for state in line.plotting_data),
+                    max(state.state_vector[mapping[0]]
+                        for line in data for state in line.plotting_data)]
 
-        plt.ylim([min(state.state_vector[mapping[1]]
-                      for line in data for state in line.plotting_data),
-                  max(state.state_vector[mapping[1]]
-                      for line in data for state in line.plotting_data)])
+        y_limits = [min(state.state_vector[mapping[1]]
+                        for line in data for state in line.plotting_data),
+                    max(state.state_vector[mapping[1]]
+                        for line in data for state in line.plotting_data)]
 
-        plt.axis('equal')
+        padding = 0.1
+
+        for axis_limits in [x_limits, y_limits]:
+            limit_padding = padding*(axis_limits[1] - axis_limits[0])
+            axis_limits[0] -= limit_padding
+            axis_limits[1] += limit_padding
+
+        plt.xlim(x_limits)
+        plt.ylim(y_limits)
+
+        #plt.axis('equal')
         plt.xlabel("$x$")
         plt.ylabel("$y$")
         plt.legend(legends_key)
@@ -1123,13 +1399,16 @@ class TimeBasedPlotter(Base):
         if not all(isinstance(list_item, State) for list_item in data_source):
             raise NotImplementedError("Unknown type of data to process")
 
-        if all(isinstance(list_item, Detection) for list_item in data_source):
+        if all(isinstance(list_item, detection.Detection) for list_item in data_source):
             output = []
             for a_detection in data_source:
+                pass
+                """
                 converted_state_vector = convert_detection(a_detection)
                 if converted_state_vector is not None:
                     output.append(State(convert_detection(a_detection),
                                         timestamp=a_detection.timestamp))
+                """
         else:
             output = data_source
 
