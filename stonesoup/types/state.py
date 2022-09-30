@@ -1,7 +1,7 @@
 import copy
 import datetime
 import uuid
-from collections import abc
+from collections import abc, OrderedDict
 from typing import MutableSequence, Any, Optional, Sequence
 import typing
 
@@ -163,6 +163,79 @@ class CreatableFromState:
             target_type = CreatableFromState.class_mapping[cls][state_type]
 
         return State.from_state(state, *args, **kwargs, target_type=target_type)
+
+
+class ASDState(Type):
+    """ASD State type
+
+    For the use of Accumulated State Densities.
+    """
+
+    multi_state_vector: StateVector = Property(
+        doc="State vector of all timestamps")
+    timestamps: Sequence[datetime.datetime] = Property(
+        doc="List of all timestamps which have a state in the ASDState")
+    max_nstep: int = Property(
+        doc="Decides when the state is pruned in a prediction step. If 0 then there is no pruning")
+
+    def __init__(self, multi_state_vector, timestamps,
+                 max_nstep=0, *args, **kwargs):
+        if multi_state_vector is not None and timestamps is not None:
+            multi_state_vector = StateVector(multi_state_vector)
+            if not isinstance(timestamps, Sequence):
+                timestamps = list([timestamps])
+            self.max_nstep = max_nstep
+        super().__init__(multi_state_vector, timestamps, max_nstep, *args, **kwargs)
+
+    @property
+    def state_vector(self):
+        """The State vector of the newest timestamp"""
+        return self.multi_state_vector[0:self.ndim]
+
+    @state_vector.setter
+    def state_vector(self, value):
+        """set the state vector. In this case the multi_state_vector
+        is overwritten.
+        """
+        self.multi_state_vector = StateVector(value)
+
+    @property
+    def timestamp(self):
+        """The newest timestamp"""
+        return self.timestamps[0]
+
+    @timestamp.setter
+    def timestamp(self, value):
+        """insert a new timestamp in the list of timestamps if it is not in
+        there already
+        """
+        if value not in self.timestamps:
+            self.timestamps.insert(0, value)
+
+    @property
+    def ndim(self):
+        """Dimension of one State"""
+        return int(self.multi_state_vector.shape[0] / len(self.timestamps))
+
+    @property
+    def nstep(self):
+        """Number of timesteps which are in the ASDState"""
+        return len(self.timestamps)
+
+    @property
+    def state_list(self):
+        """Generates a list of all States in the ASD State one for each
+            timestep
+        """
+        ndim = self.ndim
+        vectors = [StateVector(self.multi_state_vector[i:i + ndim]) for i in
+                   range(0, self.multi_state_vector.shape[0] - ndim, ndim)]
+        states = [State(state_vector=vector, timestamp=timestamp)
+                  for vector, timestamp in zip(vectors, self.timestamps)]
+        return states
+
+
+State.register(ASDState)
 
 
 class StateMutableSequence(Type, abc.MutableSequence):
@@ -413,6 +486,48 @@ class InformationState(State):
         )
 
 
+class ASDGaussianState(ASDState):
+    """ASDGaussian State type
+
+    This is a simple Accumulated State Density Gaussian state object, which as
+    the name suggests is described by a Gaussian state distribution.
+    """
+    multi_covar: CovarianceMatrix = Property(doc="Covariance of all timesteps")
+    correlation_matrices: OrderedDict = Property(
+        default=None,
+        doc="Dict of Correlation Matrices, consisting of P_{l|l}, P_{l|l+1} and F_{l+1|l} "
+            "built in the Kalman predictor and Kalman updater")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.correlation_matrices is None:
+            self.correlation_matrices = OrderedDict()
+
+    @property
+    def covar(self):
+        return self.multi_covar[0:self.ndim, 0:self.ndim]
+
+    @covar.setter
+    def covar(self, value):
+        self.mutli_covar = CovarianceMatrix(value)
+
+    @property
+    def mean(self):
+        """The state mean, equivalent to state vector"""
+        return self.state_vector
+
+    @property
+    def state_list(self):
+        ndim = self.ndim
+        states = super().state_list
+        covars = [CovarianceMatrix(self.multi_covar[i:i + ndim, i:i + ndim])
+                  for i in range(0, self.multi_covar.shape[0] - ndim, ndim)]
+        states = [GaussianState(state_vector=state.state_vector,
+                  timestamp=state.timestamp, covar=matrix) for
+                  state, matrix in zip(states, covars)]
+        return states
+
+
 class WeightedGaussianState(GaussianState):
     """Weighted Gaussian State Type
 
@@ -479,6 +594,15 @@ class TaggedWeightedGaussianState(WeightedGaussianState):
         super().__init__(*args, **kwargs)
         if self.tag is None:
             self.tag = str(uuid.uuid4())
+
+
+class ASDWeightedGaussianState(ASDGaussianState):
+    """ASD Weighted Gaussian State Type
+
+    ASD Gaussian State object with an associated weight.  Used as components
+    for a GaussianMixtureState.
+    """
+    weight: Probability = Property(default=0, doc="Weight of the Gaussian State.")
 
 
 class ParticleState(State):

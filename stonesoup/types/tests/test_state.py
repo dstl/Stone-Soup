@@ -13,7 +13,7 @@ from ..particle import Particle
 from ..state import CreatableFromState
 from ..state import State, GaussianState, ParticleState, EnsembleState, \
     StateMutableSequence, WeightedGaussianState, SqrtGaussianState, CategoricalState, \
-    CompositeState, InformationState
+    CompositeState, InformationState, ASDState, ASDGaussianState, ASDWeightedGaussianState
 from ...base import Property
 
 
@@ -688,3 +688,90 @@ def test_composite_state():
 
     # Test len
     assert len(state) == 3
+
+
+def test_asd_state():
+    with pytest.raises(TypeError):
+        ASDState()
+
+    # Test state initiation with timestamp
+    timestamp = datetime.datetime.now()
+    state_vector = np.array([[0], [1]])
+    state = ASDState(state_vector, timestamps=[timestamp])
+    assert state.timestamp == timestamp
+    assert np.array_equal(state.multi_state_vector, state_vector)
+    assert state.max_nstep == 0
+
+    # Test mutliple timesteps
+    timestamp1 = datetime.datetime.now()
+    timestamp2 = datetime.datetime.now()
+    state_vector = np.array([[0], [1], [2], [3]])
+    state = ASDState(state_vector,
+                     timestamps=[timestamp1, timestamp2], max_nstep=10)
+    assert state.timestamps == [timestamp1, timestamp2]
+    assert np.array_equal(state.multi_state_vector, state_vector)
+    assert np.array_equal(state.state_vector, state_vector[0:2])
+    assert state.ndim == 2
+    assert state.nstep == 2
+    assert state.max_nstep == 10
+
+
+def test_asd_gaussian_state():
+    """ GaussianState Type test """
+
+    with pytest.raises(TypeError):
+        ASDGaussianState()
+
+    mean = np.array([[-1.8513], [0.9994], [0], [0]]) * 1e4
+    covar = np.array([[2.2128, 0, 0, 0],
+                      [0.0002, 2.2130, 0, 0],
+                      [0.3897, -0.00004, 0.0128, 0],
+                      [0, 0.3897, 0.0013, 0.0135]]) * 1e3
+    timestamp = datetime.datetime.now()
+
+    # Test state initiation without timestamp
+    state = ASDGaussianState(mean, multi_covar=covar, timestamps=[timestamp])
+    assert(np.array_equal(mean, state.mean))
+    assert(np.array_equal(covar, state.covar))
+    assert(state.ndim == mean.shape[0])
+    assert(state.timestamp == timestamp)
+
+    # Test state initiation with timestamp
+    state = GaussianState(mean, covar, timestamp)
+
+    assert(state.timestamp == timestamp)
+
+    timestamp1 = datetime.datetime.now()
+    timestamp2 = datetime.datetime.now()
+    state_vector = np.array([[0], [1], [2], [3], [4], [5], [6], [7]])
+    covar = np.array([[2.2128, 0, 0, 0, 2.2128, 0, 0, 0],
+                      [0.0002, 2.2130, 0, 0, 0.0002, 2.2130, 0, 0],
+                      [0.3897, -0.00004, 0.0128, 0, 0.3897, -0.00004,
+                       0.0128, 0],
+                      [0, 0.3897, 0.0013, 0.0135, 0, 0.3897, 0.0013, 0.0135],
+                      [2.2128, 0, 0, 0, 2.2128, 0, 0, 0],
+                      [0.0002, 2.2130, 0, 0, 0.0002, 2.2130, 0, 0],
+                      [0.3897, -0.00004, 0.0128, 0,
+                       0.3897, -0.00004, 0.0128, 0],
+                      [0, 0.3897, 0.0013, 0.0135, 0, 0.3897, 0.0013, 0.0135]
+                      ]) * 1e3
+    state = ASDGaussianState(state_vector, multi_covar=covar,
+                             timestamps=[timestamp1, timestamp2], max_nstep=10)
+    assert state.timestamps == [timestamp1, timestamp2]
+    assert state.timestamp == timestamp1
+    assert(np.array_equal(state_vector[0:4], state.mean))
+    assert(np.array_equal(covar, state.multi_covar))
+    assert(state.ndim == state_vector.shape[0]/2)
+    assert state.nstep == 2
+    assert state.max_nstep == 10
+
+
+def test_asd_weighted_gaussian_state():
+    mean = np.array([[1], [2], [3], [4]])  # 4D
+    covar = np.diag([1, 2, 3])  # 3D
+    weight = 0.3
+    timestamp = datetime.datetime.now()
+
+    a = ASDWeightedGaussianState(
+        mean, multi_covar=covar, weight=weight, timestamps=[timestamp])
+    assert a.weight == weight
