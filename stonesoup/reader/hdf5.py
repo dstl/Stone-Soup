@@ -10,7 +10,7 @@ from typing import Collection, Sequence
 
 try:
     import h5py
-except ImportError as error:
+except ImportError as error:  # pragma: no cover
     raise ImportError(
         "HDF5 Readers require the dependency 'h5py' to be installed."
     ) from error
