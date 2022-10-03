@@ -5,7 +5,7 @@ Creating an Actionable Sensor Example
 =====================================
 This example demonstrates the process of creating an actionable sensor, i.e., a sensor that has an
 actionable property. This includes creation of :class:`~.Action` and :class:`~.ActionGenerator`
-that will handle how this property can evolves over time, and how to interface with the sensor via
+that will handle how this property evolves over time, and how to interface with the sensor via
 given actions.
 """
 
@@ -23,20 +23,23 @@ given actions.
 # Action
 # ------
 # The logic of this `direction` switching will be handled by our custom :class:`~.Action`.
-# The class' `act` method contains the calculations needed to take in the property's current value
-# and return its new value after a particular amount of time has elapsed.
+# The class' :meth:`~.Action.act` method contains the calculations needed to take in the
+# property's current value and return its new value after a particular amount of time has elapsed.
 #
 # This class inherits 3 important properties:
-# * `generator` details which :class:`~.ActionGenerator` the action was created by. This will be
-# discussed in detail later on.
-# * `end_time` specifies when the action should be completed by. For example, we might want the
-# sensor to switch from North to West in 5 seconds. So the end time would be 5 seconds from the
-# current time (the "current time" is a value stored by the sensor itself, and gets updated each
-# time it is called to action, which is a process discussed in detail later on). We will model the
-# action behaviour so that the direction does not change value until the end time is reached. I.E
-# we only switch to West exactly when 5 seconds have elapsed, and not before.
-# * `target_value` indicates what the new value of the property should be once the action is
-# complete (end time is reached).
+#
+# * :attr:`~.Action.generator` details which :class:`~.ActionGenerator` the action was created by.
+#   This will be discussed in detail later on.
+# * :attr:`~.Action.end_time` specifies when the action should be completed by. For example, we
+#   might want the sensor to switch from North to West in 5 seconds. So the end time would be 5
+#   seconds from the current time (the "current time" is a value stored by the sensor itself, and
+#   gets updated each time it is called to action, which is a process discussed in detail later
+#   on). We will model the action behaviour so that the direction does not change value until the
+#   end time is reached. I.E we only switch to West exactly when 5 seconds have elapsed, and not
+#   before.
+# * :attr:`~.Action.target_value` indicates what the new value of the property should be once the
+#   action is complete (end time is reached).
+#
 
 from stonesoup.sensor.action import Action
 
@@ -45,7 +48,7 @@ class ChangeDirectionAction(Action):
     """Simply changes the direction that the sensor is looking in when the action `end_time` is
     reached."""
     def act(self, current_time, timestamp, init_value):
-        """Only change to target direction once `end_time` is reached. Otherwise keep same value.
+        """Only change to target direction once `end_time` is reached. Otherwise, keep same value.
 
         Parameters
         ----------
@@ -69,16 +72,17 @@ class ChangeDirectionAction(Action):
 # %%
 # It is within the :class:`~.Action` where you can detail more complicated modifications to the
 # attribute. For example, the :class:`~.ChangeDwellAction` is an action for use with the
-# `dwell_centre` property of the :class:`~.RadarRotatingBearingRange` sensor (or any other model
-# with similar dwell dynamics). It contains the logic of calculating the angle turned by the dwell
-# centre in the given time delta, given a constant rpm.
+# :attr:`~.RadarRotatingBearingRange.dwell_centre` property of the
+# :class:`~.RadarRotatingBearingRange` sensor (or any other model with similar dwell dynamics). It
+# contains the logic of calculating the angle turned by the dwell centre in the given time delta,
+# given a constant rpm.
 
 
 # %%
 # Action Generator
 # ----------------
 # Now that we have the logic of how the `direction` can change over time, we need to detail what
-# the potential changes can be for a given time frame. A :class:`~.ActionGenerator` type handles
+# the potential changes can be for a given time frame. An :class:`~.ActionGenerator` type handles
 # the details of these potential property values.
 # In the more complicated dwell centre example above, this might be in determining what potential
 # new bearings are achievable in 5 seconds given a specific rpm.
@@ -87,28 +91,32 @@ class ChangeDirectionAction(Action):
 # for every direction.
 #
 # 5 important properties are inherited from this class:
-# * `owner` specifies the sensor (or other :class:`Actionable`) that the corresponding property
-# belongs to. I.E. which sensor we will be querying.
-# * `attribute` is the string-valued name of the property to be modified.
-# * `start_time` is the time at which the sensor is queried and `end_time` the time at which it is
-# queried to. E.g. "from now (9 o'clock), what can you do by 10 o'clock?"
-# * `current_value` details what the current value of the property is. In our case this would be
-# what the current direction the sensor is looking in is.
+#
+# * :attr:`~.ActionGenerator.owner` specifies the sensor (or other :class:`~.Actionable`) that the
+#   corresponding property belongs to. I.E. which sensor we will be querying.
+# * :attr:`~.ActionGenerator.attribute` is the string-valued name of the property to be modified.
+# * :attr:`~.ActionGenerator.start_time` is the time at which the sensor is queried and
+#   :attr:`~.ActionGenerator.end_time` the time at which it is queried to. E.g. "from now
+#   (9 o'clock), what can you do by 10 o'clock?"
+# * :attr:`~.ActionGenerator.current_value` details what the current value of the property is. In
+#   our case this would be what the current direction the sensor is looking in is.
 #
 # By inheriting this class, we are required to define several things:
-# * the `default_action` property determines what the behaviour of the property should be, given
-# no actions have been passed to it (or that it has no actions to perform at the given time). For
-# our `direction` example, we'll simply say that the direction won't change. So the default action
-# should be one of our `ChangeDirectionAction` types with a target value equal to the current value
-# of the direction. For the dwell centre example discussed above, this might be reverting to a
-# default, anti-clockwise rotation at the given rpm. The default action's end-time should last
-# until the end of the query (i.e. until `end_time`).
-# * the `__iter__` method defines how we calculate the potential actions for the sensor in the
-# given time frame. We should be able to loop through this generator object and get out a
-# `ChangeDirectionAction` for every potential new direction.
-# * we should also define the `__contains__` method for this generator. This way, for a given
-# `ChangeDirectionAction` or particular direction, we can say whether this is possible by simply
-# asking "is this IN my generator?"
+#
+# * the :attr:`~.ActionGenerator.default_action` property determines what the behaviour of the
+#   property should be, given no actions have been passed to it (or that it has no actions to
+#   perform at the given time). For our `direction` example, we'll simply say that the direction
+#   won't change. So the default action should be one of our :class:`ChangeDirectionAction`
+#   types with a target value equal to the current value of the direction. For the dwell centre
+#   example discussed above, this might be reverting to a default, anti-clockwise rotation at the
+#   given rpm. The default action's end-time should last until the end of the query (i.e. until
+#   :attr:`~.ActionGenerator.end_time`).
+# * the :meth:`__iter__` method defines how we calculate the potential actions for the sensor in
+#   the given time frame. We should be able to loop through this generator object and get out a
+#   :class:`ChangeDirectionAction` for every potential new direction.
+# * we should also define the :meth:`__contains__` method for this generator.
+#   This way, for a given :class:`ChangeDirectionAction` or particular direction, we can say
+#   whether this is possible by simply asking "is this IN my generator?"
 
 from stonesoup.sensor.action import ActionGenerator
 from stonesoup.base import Property
@@ -129,14 +137,14 @@ class DirectionActionsGenerator(ActionGenerator):
                                      target_value=self.current_value)
 
     def __contains__(self, item):
-        """Can switch to any direction in any time frame (as long as it is sensible. eg. we
+        """Can switch to any direction in any time frame (as long as it is sensible. e.g. we
         shouldn't expect to be able to look in the direction "up" or "weast")."""
         if isinstance(item, ChangeDirectionAction):
             item = item.target_value  # grab the target value of the action to check against
 
         potential_directions = self.owner.potential_directions
 
-        return item in potential_directions  # if its a potential direction, then it is possible
+        return item in potential_directions  # if it's a potential direction, then it is possible
 
     def __iter__(self):
         """
@@ -155,33 +163,36 @@ class DirectionActionsGenerator(ActionGenerator):
 # the logic needed for dealing with being actioned (i.e. receiving :class:`~.Action` sets in some
 # manner and applying them to their corresponding properties).
 # To flag a particular property as something which should be actioned, simply define it as an
-# :class`~.ActionableProperty` and provide a :class:`ActionGenerator` so that it is clear how it
+# :class:`~.ActionableProperty` and provide a :class:`~.ActionGenerator` so that it is clear how it
 # should be modified over time.
 #
 # An :class:`~.Actionable` keeps track of its "schedule" via a dictionary, keyed by the actionable
 # properties' names, where values are the most recent actions attributed to those properties. In
-# the instance where a key has corresponding value/action that has been completed, the `act` method
-# will handle the removal of this action from the schedule dictionary. An important point to take
-# here is that only a single action can be scheduled per property.
+# the instance where a key has corresponding value/action that has been completed, the
+# :meth:`~.Actionable.act` method will handle the removal of this action from the schedule
+# dictionary. An important point to take here is that only a single action can be scheduled per
+# property.
 #
 # There are 3 important methods inherited by :class:`~.Actionable`:
-# * `actions` will return a set of action generators (one for each actionable property of the
-# sensor). The method requires a timestamp to be passed in such that the generators have an end
-# time to calculate their possibilities for.
-# * `add_actions` takes a sequence of provided actions and adds them as values to their
-# corresponding actionable properties in the sensor's schedule dictionary. This will overwrite any
-# pre-existing actions for those properties.
-# * `act` handles the actual calling to each of the scheduled actions for every actionable
-# property. A timestamp is required so that the sensor knows what time to act until. For every
-# actionable property the sensor has, this method calls the property's corresponding scheduled
-# action, if it has one, up until the timestamp has been reached, and replaces the property's value
-# with the new calculated one. The method also handles situations where the given timestamp
-# overruns the end time of scheduled actions, whereby it will revert to calling the property's
-# corresponding generator's default action for the rest of the time needed to reach the timestamp.
 #
-# An :class:`~.Actionable` type requires a method to `validate_timestamp` in order to keep track
-# of what it should consider as "now". In the case of :class:`~.sensor` types, this is done by
-# taking the sensor's corresponding movement controller's timestamp.
+# * :meth:`~.Actionable.actions` will return a set of action generators (one for each actionable
+#   property of the sensor). The method requires a timestamp to be passed in such that the
+#   generators have an end time to calculate their possibilities for.
+# * :meth:`~.Actionable.add_actions` takes a sequence of provided actions and adds them as values
+#   to their corresponding actionable properties in the sensor's schedule dictionary. This will
+#   overwrite any pre-existing actions for those properties.
+# * :meth:`~.Actionable.act` handles the actual calling to each of the scheduled actions for every
+#   actionable property. A timestamp is required so that the sensor knows what time to act until.
+#   For every actionable property the sensor has, this method calls the property's corresponding
+#   scheduled action, if it has one, up until the timestamp has been reached, and replaces the
+#   property's value with the new calculated one. The method also handles situations where the
+#   given timestamp overruns the end time of scheduled actions, whereby it will revert to calling
+#   the property's corresponding generator's default action for the rest of the time needed to
+#   reach the timestamp.
+#
+# An :class:`~.Actionable` type requires a method to :meth:`~.Actionable.validate_timestamp` in
+# order to keep track of what it should consider as "now". In the case of :class:`~.Sensor` types,
+# this is done by taking the sensor's corresponding movement controller's timestamp.
 #
 # There will be some logic in calculating whether a target falls within the sensor's FoV at a given
 # time, but the important point to take from this model is the creation of
