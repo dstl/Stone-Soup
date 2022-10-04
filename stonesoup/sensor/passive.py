@@ -40,13 +40,4 @@ class PassiveElevationBearing(SimpleSensor):
             rotation_offset=self.orientation)
 
     def is_detectable(self, state: GroundTruthState) -> bool:
-        measurement_model = CartesianToElevationBearingRange(
-            ndim_state=self.ndim_state,
-            mapping=self.position_mapping,
-            noise_covar=self.noise_covar,
-            translation_offset=self.position,
-            rotation_offset=self.orientation)
-
-        measurement_vector = measurement_model.function(state, noise=False)
-        range_t = measurement_vector[2, 0]  # Elevation(0), Bearing(1), Range(2)
-        return range_t <= self.max_range
+        return True

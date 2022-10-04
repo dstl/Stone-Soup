@@ -107,6 +107,19 @@ class RadarRotatingBearingRange(RadarBearingRange):
             translation_offset=self.position,
             rotation_offset=rot_offset)
 
+    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
+                **kwargs) -> Set[TrueDetection]:
+
+        if self.timestamp is None:
+            # Read timestamp from ground truth
+            try:
+                self.timestamp = next(iter(ground_truths)).timestamp
+            except StopIteration:
+                # No ground truths to get timestamp from
+                return set()
+
+        return super().measure(ground_truths, noise, **kwargs)
+
     def is_detectable(self, state: GroundTruthState) -> bool:
         measurement_vector = self.measurement_model.function(state, noise=False)
 
