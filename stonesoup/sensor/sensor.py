@@ -92,7 +92,8 @@ class SimpleSensor(Sensor, ABC):
 
         if noise is True:
             if len(detectable_ground_truths) > 1:
-                noise_vectors_iter = iter(measurement_model.rvs(len(detectable_ground_truths), **kwargs))
+                noise_vectors_iter = iter(measurement_model.rvs(len(detectable_ground_truths),
+                                                                **kwargs))
             else:
                 noise_vectors_iter = iter([measurement_model.rvs(**kwargs)])
 
