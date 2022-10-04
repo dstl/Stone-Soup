@@ -674,3 +674,11 @@ def sde_euler_maruyama_integration(fun, t_values, state_x0):
         a, b = fun(state_x, t)
         state_x.state_vector = state_x.state_vector + a*delta_t + b@delta_w
     return state_x.state_vector
+
+
+def sigmoid_function(x: float):
+    return 1 / (1 + np.exp(-x))
+
+
+def reverse_sigmoid_function(x: float):
+    return -np.log(1 / x - 1)

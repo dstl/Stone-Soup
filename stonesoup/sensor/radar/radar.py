@@ -21,6 +21,7 @@ from ...types.detection import TrueDetection
 from ...types.groundtruth import GroundTruthState
 from ...types.numeric import Probability
 from ...types.state import StateVector
+from ...models.measurement.detectability import SigmoidDetectionModel
 
 
 class RadarBearingRange(SimpleSensor):
@@ -61,6 +62,36 @@ class RadarBearingRange(SimpleSensor):
         measurement_vector = self.measurement_model.function(state, noise=False)
         range_t = measurement_vector[1, 0]  # Bearing(0), Range(1)
         return range_t <= self.max_range
+
+
+class RadarBearingRangeStochasticDetectability(RadarBearingRange):
+    """A simple radar sensor that generates measurements of targets, using a
+    :class:`~.CartesianToBearingRange` model, relative to its position.
+
+    Note
+    ----
+    The current implementation of this class assumes a 3D Cartesian plane.
+
+    """
+    min_range: float = Property(
+        default=0,
+        doc="Below this range is more than 99% change of being detected (in meters)")
+
+    max_range: float = Property(
+        default=np.inf,
+        doc="Above this range is less than 1% change of being detected (in meters)")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.detectability_model = SigmoidDetectionModel(self.min_range,
+                                                         self.max_range,
+                                                         0.99,
+                                                         0.01)
+
+    def is_detectable(self, state: GroundTruthState) -> bool:
+        measurement_vector = self.measurement_model.function(state, noise=False)
+        range_t = measurement_vector[1, 0]  # Bearing(0), Range(1)
+        return self.detectability_model.is_detected(range_t)
 
 
 class RadarRotatingBearingRange(RadarBearingRange):
