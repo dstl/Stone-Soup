@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from typing import Set, Union, Sequence
 
 import numpy as np
@@ -6,6 +6,7 @@ import numpy as np
 from .actionable import Actionable
 from .base import PlatformMountable
 from ..base import Property
+from ..models.clutter.clutter import ClutterModel
 from ..types.detection import TrueDetection
 from ..types.groundtruth import GroundTruthState
 
@@ -70,6 +71,59 @@ class Sensor(PlatformMountable, Actionable):
     @abstractmethod
     def measurement_model(self):
         """Measurement model of the sensor, describing general sensor model properties"""
+        raise NotImplementedError
+
+
+class SimpleSensor(Sensor, ABC):
+
+    clutter_model: ClutterModel = Property(
+        default=None,
+        doc="An optional clutter generator that adds a set of simulated "
+            ":class:`Clutter` objects to the measurements at each time step. "
+            "The clutter is simulated according to the provided distribution.")
+
+    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
+                **kwargs) -> Set[TrueDetection]:
+
+        measurement_model = self.measurement_model
+
+        detectable_ground_truths = [truth for truth in ground_truths
+                                    if self.is_detectable(truth)]
+
+        if noise is True:
+            if len(detectable_ground_truths) > 1:
+                noise_vectors_iter = iter(measurement_model.rvs(len(detectable_ground_truths), **kwargs))
+            else:
+                noise_vectors_iter = iter([measurement_model.rvs(**kwargs)])
+
+        detections = set()
+        for truth in detectable_ground_truths:
+            measurement_vector = measurement_model.function(truth, noise=False, **kwargs)
+
+            if noise is True:
+                measurement_noise = next(noise_vectors_iter)
+            else:
+                measurement_noise = noise
+
+            # Add in measurement noise to the measurement vector
+            measurement_vector += measurement_noise
+
+            detection = TrueDetection(measurement_vector,
+                                      measurement_model=measurement_model,
+                                      timestamp=truth.timestamp,
+                                      groundtruth_path=truth)
+            detections.add(detection)
+
+        # Generate clutter at this time step
+        if self.clutter_model is not None:
+            self.clutter_model.measurement_model = measurement_model
+            clutter = self.clutter_model.function(ground_truths)
+            detections = set.union(detections, clutter)
+
+        return detections
+
+    @abstractmethod
+    def is_detectable(self, state: GroundTruthState) -> bool:
         raise NotImplementedError
 
 

@@ -1,9 +1,9 @@
 import copy
-from math import erfc
 from typing import Tuple, Set, Union
 
 import numpy as np
 import scipy.constants as const
+from math import erfc
 
 from .beam_pattern import BeamTransitionModel
 from .beam_shape import BeamShape
@@ -13,18 +13,17 @@ from ...models.measurement.base import MeasurementModel
 from ...models.measurement.nonlinear import \
     (CartesianToBearingRange, CartesianToElevationBearingRange,
      CartesianToBearingRangeRate, CartesianToElevationBearingRangeRate)
-from ...sensor.actionable import ActionableProperty
 from ...sensor.action.dwell_action import DwellActionsGenerator
-from ...sensor.sensor import Sensor
+from ...sensor.actionable import ActionableProperty
+from ...sensor.sensor import Sensor, SimpleSensor
 from ...types.array import CovarianceMatrix
 from ...types.detection import TrueDetection
 from ...types.groundtruth import GroundTruthState
 from ...types.numeric import Probability
 from ...types.state import StateVector
-from ...models.clutter.clutter import ClutterModel
 
 
-class RadarBearingRange(Sensor):
+class RadarBearingRange(SimpleSensor):
     """A simple radar sensor that generates measurements of targets, using a
     :class:`~.CartesianToBearingRange` model, relative to its position.
 
@@ -45,11 +44,6 @@ class RadarBearingRange(Sensor):
         doc="The sensor noise covariance matrix. This is utilised by "
             "(and follows in format) the underlying "
             ":class:`~.CartesianToBearingRange` model")
-    clutter_model: ClutterModel = Property(
-        default=None,
-        doc="An optional clutter generator that adds a set of simulated "
-            ":class:`Clutter` objects to the measurements at each time step. "
-            "The clutter is simulated according to the provided distribution.")
     max_range: float = Property(
         default=np.inf,
         doc="The maximum detection range of the radar (in meters)")
@@ -63,47 +57,10 @@ class RadarBearingRange(Sensor):
             translation_offset=self.position,
             rotation_offset=self.orientation)
 
-    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[TrueDetection]:
-
-        measurement_model = self.measurement_model
-
-        if noise is True:
-            if len(ground_truths) > 1:
-                noise_vectors_iter = iter(measurement_model.rvs(len(ground_truths), **kwargs))
-            else:
-                noise_vectors_iter = iter([measurement_model.rvs(**kwargs)])
-
-        detections = set()
-        for truth in ground_truths:
-            measurement_vector = measurement_model.function(truth, noise=False, **kwargs)
-
-            if noise is True:
-                measurement_noise = next(noise_vectors_iter)
-            else:
-                measurement_noise = noise
-
-            range_t = measurement_vector[1, 0]  # Bearing(0), Range(1)
-            # Do not measure if state is out of range
-            if range_t > self.max_range:
-                continue
-
-            # Add in measurement noise to the measurement vector
-            measurement_vector += measurement_noise
-
-            detection = TrueDetection(measurement_vector,
-                                      measurement_model=measurement_model,
-                                      timestamp=truth.timestamp,
-                                      groundtruth_path=truth)
-            detections.add(detection)
-
-        # Generate clutter at this time step
-        if self.clutter_model is not None:
-            self.clutter_model.measurement_model = measurement_model
-            clutter = self.clutter_model.function(ground_truths)
-            detections = set.union(detections, clutter)
-
-        return detections
+    def is_detectable(self, state: GroundTruthState) -> bool:
+        measurement_vector = self.measurement_model.function(state, noise=False)
+        range_t = measurement_vector[1, 0]  # Bearing(0), Range(1)
+        return range_t <= self.max_range
 
 
 class RadarRotatingBearingRange(RadarBearingRange):
@@ -150,63 +107,16 @@ class RadarRotatingBearingRange(RadarBearingRange):
             translation_offset=self.position,
             rotation_offset=rot_offset)
 
-    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[TrueDetection]:
+    def is_detectable(self, state: GroundTruthState) -> bool:
+        measurement_vector = self.measurement_model.function(state, noise=False)
 
-        if self.timestamp is None:
-            # Read timestamp from ground truth
-            try:
-                self.timestamp = next(iter(ground_truths)).timestamp
-            except StopIteration:
-                # No ground truths to get timestamp from
-                return set()
+        # Check if state falls within sensor's FOV
+        fov_min = -self.fov_angle / 2
+        fov_max = +self.fov_angle / 2
+        bearing_t = measurement_vector[0, 0]
+        range_t = measurement_vector[1, 0]
 
-        measurement_model = self.measurement_model
-        detections = set()
-
-        if noise is True:
-            if len(ground_truths) > 1:
-                noise_vectors_iter = iter(measurement_model.rvs(len(ground_truths), **kwargs))
-            else:
-                noise_vectors_iter = iter([measurement_model.rvs(**kwargs)])
-
-        for truth in ground_truths:
-            # Transform state to measurement space and generate
-            # random noise
-            measurement_vector = measurement_model.function(truth, noise=False, **kwargs)
-
-            if noise is True:
-                measurement_noise = next(noise_vectors_iter)
-            else:
-                measurement_noise = noise
-
-            # Check if state falls within sensor's FOV
-            fov_min = -self.fov_angle / 2
-            fov_max = +self.fov_angle / 2
-            bearing_t = measurement_vector[0, 0]
-            range_t = measurement_vector[1, 0]
-
-            # Do not measure if state not in FOV
-            if (bearing_t > fov_max or bearing_t < fov_min
-                    or range_t > self.max_range):
-                continue
-
-            # Else add measurement
-            measurement_vector += measurement_noise  # Add noise
-
-            detection = TrueDetection(measurement_vector,
-                                      measurement_model=measurement_model,
-                                      timestamp=truth.timestamp,
-                                      groundtruth_path=truth)
-            detections.add(detection)
-
-        # Generate clutter at this time step
-        if self.clutter_model is not None:
-            self.clutter_model.measurement_model = measurement_model
-            clutter = self.clutter_model.function(ground_truths)
-            detections = set.union(detections, clutter)
-
-        return detections
+        return fov_min <= bearing_t <= fov_max and range_t <= self.max_range
 
 
 class RadarElevationBearingRange(RadarBearingRange):
@@ -240,49 +150,10 @@ class RadarElevationBearingRange(RadarBearingRange):
             translation_offset=self.position,
             rotation_offset=self.orientation)
 
-    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[TrueDetection]:
-
-        measurement_model = self.measurement_model
-
-        if noise is True:
-            if len(ground_truths) > 1:
-                noise_vectors_iter = iter(measurement_model.rvs(len(ground_truths), **kwargs))
-            else:
-                noise_vectors_iter = iter([measurement_model.rvs(**kwargs)])
-
-        detections = set()
-        for truth in ground_truths:
-            # Initially no noise is added to the measurement vector
-            measurement_vector = measurement_model.function(truth, noise=False, **kwargs)
-
-            if noise is True:
-                measurement_noise = next(noise_vectors_iter)
-            else:
-                measurement_noise = noise
-
-            # Check if state falls within range of sensor
-            range_t = measurement_vector[2, 0]  # Elevation(0), Bearing(1), Range(2)
-            # Do not measure if state is out of range
-            if range_t > self.max_range:
-                continue
-
-            # Add in measurement noise to the measurement vector
-            measurement_vector += measurement_noise
-
-            detection = TrueDetection(measurement_vector,
-                                      measurement_model=measurement_model,
-                                      timestamp=truth.timestamp,
-                                      groundtruth_path=truth)
-            detections.add(detection)
-
-        # Generate clutter at this time step
-        if self.clutter_model is not None:
-            self.clutter_model.measurement_model = measurement_model
-            clutter = self.clutter_model.function(ground_truths)
-            detections = set.union(detections, clutter)
-
-        return detections
+    def is_detectable(self, state: GroundTruthState) -> bool:
+        measurement_vector = self.measurement_model.function(state, noise=False)
+        range_t = measurement_vector[2, 0]  # Elevation(0), Bearing(1), Range(2)
+        return range_t <= self.max_range
 
 
 class RadarBearingRangeRate(RadarBearingRange):
@@ -320,29 +191,18 @@ class RadarBearingRangeRate(RadarBearingRange):
             velocity=self.velocity,
             rotation_offset=self.orientation)
 
-    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[TrueDetection]:
+    def is_detectable(self, state: GroundTruthState) -> bool:
 
-        measurement_model = self.measurement_model
+        measurement_model = CartesianToElevationBearingRange(
+            ndim_state=self.ndim_state,
+            mapping=self.position_mapping,
+            noise_covar=self.noise_covar,
+            translation_offset=self.position,
+            rotation_offset=self.orientation)
 
-        if noise is True and len(ground_truths) > 1:
-            # Pre-fetch noise values
-            noise_vectors_iter = iter(measurement_model.rvs(len(ground_truths), **kwargs))
-
-        detections = set()
-        for truth in ground_truths:
-            if noise is True and len(ground_truths) > 1:
-                noise_val = next(noise_vectors_iter)
-            else:
-                noise_val = noise
-            measurement_vector = measurement_model.function(truth, noise=noise_val, **kwargs)
-            detection = TrueDetection(measurement_vector,
-                                      measurement_model=measurement_model,
-                                      timestamp=truth.timestamp,
-                                      groundtruth_path=truth)
-            detections.add(detection)
-
-        return detections
+        measurement_vector = measurement_model.function(state, noise=False)
+        range_t = measurement_vector[2, 0]  # Elevation(0), Bearing(1), Range(2)
+        return range_t <= self.max_range
 
 
 class RadarElevationBearingRangeRate(RadarBearingRangeRate):
@@ -379,29 +239,10 @@ class RadarElevationBearingRangeRate(RadarBearingRangeRate):
             velocity=self.velocity,
             rotation_offset=self.orientation)
 
-    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[TrueDetection]:
-
-        measurement_model = self.measurement_model
-
-        if noise is True and len(ground_truths) > 1:
-            # Pre-fetch noise values
-            noise_vectors_iter = iter(measurement_model.rvs(len(ground_truths), **kwargs))
-
-        detections = set()
-        for truth in ground_truths:
-            if noise is True and len(ground_truths) > 1:
-                noise_val = next(noise_vectors_iter)
-            else:
-                noise_val = noise
-            measurement_vector = measurement_model.function(truth, noise=noise_val, **kwargs)
-            detection = TrueDetection(measurement_vector,
-                                      measurement_model=measurement_model,
-                                      timestamp=truth.timestamp,
-                                      groundtruth_path=truth)
-            detections.add(detection)
-
-        return detections
+    def is_detectable(self, state: GroundTruthState) -> bool:
+        measurement_vector = self.measurement_model.function(state, noise=False)
+        range_t = measurement_vector[2, 0]  # Elevation(0), Bearing(1), Range(2), Range-Rate(3)
+        return range_t <= self.max_range
 
 
 class RadarRasterScanBearingRange(RadarRotatingBearingRange):
