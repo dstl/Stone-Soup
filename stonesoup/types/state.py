@@ -222,14 +222,19 @@ class ASDState(Type):
         """Number of timesteps which are in the ASDState"""
         return len(self.timestamps)
 
-    @property
-    def state_list(self):
+    @clearable_cached_property('multi_state_vector', 'timestamps')
+    def state(self):
+        """A :class:`~.State` object representing latest timestamp"""
+        return State(self.state_vector, self.timestamp)
+
+    @clearable_cached_property('multi_state_vector', 'timestamps')
+    def states(self):
         """Generates a list of all States in the ASD State one for each
-            timestep
+            timestep.
         """
         ndim = self.ndim
-        vectors = [StateVector(self.multi_state_vector[i:i + ndim]) for i in
-                   range(0, self.multi_state_vector.shape[0] - ndim, ndim)]
+        vectors = [StateVector(self.multi_state_vector[i:i + ndim])
+                   for i in range(0, self.multi_state_vector.shape[0] - ndim, ndim)]
         states = [State(state_vector=vector, timestamp=timestamp)
                   for vector, timestamp in zip(vectors, self.timestamps)]
         return states
@@ -516,15 +521,21 @@ class ASDGaussianState(ASDState):
         """The state mean, equivalent to state vector"""
         return self.state_vector
 
-    @property
-    def state_list(self):
+    @clearable_cached_property('multi_state_vector', 'multi_covar', 'timestamps')
+    def state(self):
+        """A :class:`~.GaussianState` object representing latest timestamp"""
+        return GaussianState(self.state_vector, self.covar, timestamp=self.timestamp)
+
+    @clearable_cached_property('multi_state_vector', 'multi_covar', 'timestamps')
+    def states(self):
         ndim = self.ndim
-        states = super().state_list
+        vectors = [StateVector(self.multi_state_vector[i:i + ndim])
+                   for i in range(0, self.multi_state_vector.shape[0] - ndim, ndim)]
         covars = [CovarianceMatrix(self.multi_covar[i:i + ndim, i:i + ndim])
                   for i in range(0, self.multi_covar.shape[0] - ndim, ndim)]
-        states = [GaussianState(state_vector=state.state_vector,
-                  timestamp=state.timestamp, covar=matrix) for
-                  state, matrix in zip(states, covars)]
+        states = [
+            GaussianState(state_vector=vector, covar=covar, timestamp=timestamp)
+            for vector, covar, timestamp in zip(vectors, covars, self.timestamps)]
         return states
 
 
