@@ -12,6 +12,7 @@ from stonesoup.plotter import Plotter
 from stonesoup.sensor.radar.radar import RadarElevationBearingRangeStochasticDetectability
 from stonesoup.types.array import StateVector
 from stonesoup.types.state import State
+from stonesoup.models.measurement.detectability import SigmoidDetectionModel
 
 start_time = datetime(2022, 1, 1, 0, 0, 0)
 
@@ -98,8 +99,27 @@ plotter.plot_ground_truths(target, mapping=[0, 2])
 plotter.plot_sensors(radar)
 plt.title("Example Detections from an Approaching Target")
 
+# Show Probability of Detection Curve for Different Maximum Ranges
 plt.figure()
-detectability_model.plot()
-plt.title("In-built Probability of Detection Plot")
+max_ranges = set(np.arange(10000, 20000, 2000))
+max_ranges.add(max_range)
+max_ranges = sorted(max_ranges)
 
+detectability_model.plot()
+for a_max_range in max_ranges:
+    new_detectability_model = SigmoidDetectionModel.create(min_range, a_max_range, 0.99)
+    new_detectability_model.plot()
+
+legend = []
+for a_max_range in max_ranges:
+    if a_max_range == max_range:
+        legend.append("Detectability at max_range=" + str(max_range) + " (Model used above)")
+    else:
+        legend.append("Detectability at max_range=" + str(a_max_range))
+plt.legend(legend)
+
+plt.title("Probability of Detection Curve for Different Maximum Ranges")
+plt.grid(which='both')
+plt.xlabel("Range (m)")
+plt.ylabel("Probability of Detection")
 plt.show()
