@@ -26,12 +26,9 @@ from datetime import timedelta
 from datetime import datetime
 import numpy as np
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
-from matplotlib import pyplot as plt
+from stonesoup.plotter import Plotterly
 
-fig = plt.figure(figsize=(10, 6))
-ax = fig.add_subplot(1, 1, 1)
-ax.set_xlabel("$x$")
-ax.set_ylabel("$y$")
+plotter = Plotterly()
 
 truth = GroundTruthPath()
 start_time = datetime.now()
@@ -44,9 +41,8 @@ for n in range(1, 202, 2):
                                   timestamp=start_time + timedelta(seconds=n)))
 
 # Plot the result
-_ = ax.plot([state.state_vector[0, 0] for state in truth],
-        [state.state_vector[1, 0] for state in truth],
-        linestyle="--")
+plotter.plot_ground_truths({truth}, [0, 1])
+plotter.fig
 
 # %%
 # Following we plot the measurements made of the ground truth. The measurements have
@@ -54,6 +50,7 @@ _ = ax.plot([state.state_vector[0, 0] for state in truth],
 
 from scipy.stats import multivariate_normal
 from stonesoup.types.detection import Detection
+from stonesoup.models.measurement.linear import LinearGaussian
 
 measurements = []
 for state in truth:
@@ -63,10 +60,8 @@ for state in truth:
         [x, y], timestamp=state.timestamp))
 
 # Plot the result
-ax.scatter([state.state_vector[0, 0] for state in measurements],
-           [state.state_vector[1, 0] for state in measurements],
-           color='b')
-fig
+plotter.plot_measurements(measurements, [0, 1], LinearGaussian(2, (0, 1), None))
+plotter.fig
 
 # %%
 # Now we have to setup a transition model for the prediction and the :class:`~.ASDPredictor`.
@@ -82,7 +77,6 @@ predictor = ASDKalmanPredictor(transition_model)
 # %%
 # We have to do the same for the measurement model and the :class:`~.ASDKalmanUpdater`.
 
-from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.updater.asd import ASDKalmanUpdater
 
 measurement_model = LinearGaussian(
@@ -118,7 +112,7 @@ from stonesoup.plotter import Plotter
 from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.types.track import Track
 
-plotter = Plotter()
+ani_plotter = Plotter()
 frames = []
 artists = []
 
@@ -143,9 +137,9 @@ for i in range(0, len(measurements)):
             track2.append(post.state)
             prior = track[-1]
 
-            artists.extend(plotter.plot_tracks(Track(track[-1].states), [0, 2], color='r'))
+            artists.extend(ani_plotter.plot_tracks(Track(track[-1].states), [0, 2], color='r'))
             artists.extend(
-                plotter.plot_measurements(processed_measurements, [0, 2], measurement_model))
+                ani_plotter.plot_measurements(processed_measurements, [0, 2], measurement_model))
             frames.append(artists); artists =[]
             for j in range(9, 0, -1):
                 # prediction and update for all OOS measurement. Beginning with the latest one.
@@ -158,9 +152,9 @@ for i in range(0, len(measurements)):
                 track.append(post)
                 prior = track[-1]
 
-                artists.extend(plotter.plot_tracks(Track(track[-1].states), [0, 2], color='r'))
-                artists.extend(
-                    plotter.plot_measurements(processed_measurements, [0, 2], measurement_model))
+                artists.extend(ani_plotter.plot_tracks(Track(track[-1].states), [0, 2], color='r'))
+                artists.extend(ani_plotter.plot_measurements(
+                    processed_measurements, [0, 2], measurement_model))
                 frames.append(artists); artists = []
     else:
         # the first 10 steps are for beginning of the ASD so that it is numerically stable
@@ -174,12 +168,12 @@ for i in range(0, len(measurements)):
         track2.append(post.state)
         prior = track[-1]
 
-        artists.extend(plotter.plot_tracks(Track(track[-1].states), [0, 2], color='r'))
+        artists.extend(ani_plotter.plot_tracks(Track(track[-1].states), [0, 2], color='r'))
         artists.extend(
-            plotter.plot_measurements(processed_measurements, [0, 2], measurement_model))
+            ani_plotter.plot_measurements(processed_measurements, [0, 2], measurement_model))
         frames.append(artists); artists = []
 
-animation.ArtistAnimation(plotter.fig, frames)
+animation.ArtistAnimation(ani_plotter.fig, frames)
 
 # %%
 # For comparision, the plot below shows a approximately equivalent track if
@@ -188,15 +182,17 @@ animation.ArtistAnimation(plotter.fig, frames)
 # sphinx_gallery_thumbnail_number = 4
 from operator import attrgetter
 
-plotter = Plotter()
 asd_states = []
 for state in reversed(list(track.last_timestamp_generator())):
     if state.timestamp not in (asd_state.timestamp for asd_state in asd_states):
         asd_states.extend(state.states)
 asd_states = sorted(asd_states, key=attrgetter('timestamp'))
 
-plotter.plot_tracks({track2}, [0, 2], uncertainty=True, track_label="Equivalent track without ASD")
-_ = plotter.plot_tracks({Track(asd_states)}, [0, 2], color='r', track_label="ASD Track")
+plotter.plot_tracks({track2}, [0, 2], uncertainty=True, line=dict(color='green'),
+                    track_label="Equivalent track without ASD")
+plotter.plot_tracks({Track(asd_states)}, [0, 2], line=dict(color='red'),
+                    track_label="ASD Track")
+plotter.fig
 
 # %%
 # References
