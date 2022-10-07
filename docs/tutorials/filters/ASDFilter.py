@@ -73,7 +73,7 @@ fig
 
 from stonesoup.models.transition.linear import \
     CombinedLinearGaussianTransitionModel, ConstantVelocity
-from stonesoup.predictor.kalman import ASDKalmanPredictor
+from stonesoup.predictor.asd import ASDKalmanPredictor
 
 transition_model = CombinedLinearGaussianTransitionModel(
     (ConstantVelocity(0.2), ConstantVelocity(0.2)))
@@ -83,7 +83,7 @@ predictor = ASDKalmanPredictor(transition_model)
 # We have to do the same for the measurement model and the :class:`~.ASDKalmanUpdater`.
 
 from stonesoup.models.measurement.linear import LinearGaussian
-from stonesoup.updater.kalman import ASDKalmanUpdater
+from stonesoup.updater.asd import ASDKalmanUpdater
 
 measurement_model = LinearGaussian(
     4,  # Number of state dimensions (position and velocity in 2D)
