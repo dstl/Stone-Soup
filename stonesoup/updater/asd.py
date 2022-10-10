@@ -5,7 +5,6 @@ import numpy as np
 
 from .kalman import KalmanUpdater
 from ..types.prediction import ASDGaussianMeasurementPrediction
-from ..types.state import State
 from ..types.update import ASDGaussianStateUpdate
 
 
@@ -48,20 +47,16 @@ class ASDKalmanUpdater(KalmanUpdater):
         measurement_model = self._check_measurement_model(measurement_model)
 
         t_index = predicted_state.timestamps.index(predicted_state.act_timestamp)
-        t2t_plus = slice(t_index * predicted_state.ndim, (t_index+1) * predicted_state.ndim)
+        state_at_t = predicted_state[t_index]
 
-        pred_meas = measurement_model.function(
-            State(predicted_state.multi_state_vector[t2t_plus]), **kwargs)
+        pred_meas = measurement_model.function(state_at_t, **kwargs)
 
         hh = self._measurement_matrix(predicted_state=predicted_state,
                                       measurement_model=measurement_model,
                                       **kwargs)
+        innov_cov = hh@state_at_t.covar@hh.T + measurement_model.covar()
 
-        innov_cov = (
-            hh
-            @ predicted_state.multi_covar[t2t_plus, t2t_plus]
-            @ hh.T + measurement_model.covar())
-
+        t2t_plus = slice(t_index * predicted_state.ndim, (t_index+1) * predicted_state.ndim)
         meas_cross_cov = predicted_state.multi_covar[:, t2t_plus] @ hh.T
 
         return ASDGaussianMeasurementPrediction(
