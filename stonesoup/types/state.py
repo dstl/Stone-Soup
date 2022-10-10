@@ -2,6 +2,7 @@ import copy
 import datetime
 import uuid
 from collections import abc, OrderedDict
+from numbers import Integral
 from typing import MutableSequence, Any, Optional, Sequence
 import typing
 
@@ -187,30 +188,25 @@ class ASDState(Type):
             self.max_nstep = max_nstep
         super().__init__(multi_state_vector, timestamps, max_nstep, *args, **kwargs)
 
+    def __getitem__(self, item):
+        if isinstance(item, Integral):
+            ndim = self.ndim
+            state_slice = slice(item * ndim, (item+1) * ndim)
+            state_vector = StateVector(self.multi_state_vector[state_slice])
+            timestamp = self.timestamps[item]
+            return State(state_vector=state_vector, timestamp=timestamp)
+        else:
+            raise TypeError(f'{type(self).__name__!r} only subscriptable by int')
+
     @property
     def state_vector(self):
         """The State vector of the newest timestamp"""
         return self.multi_state_vector[0:self.ndim]
 
-    @state_vector.setter
-    def state_vector(self, value):
-        """set the state vector. In this case the multi_state_vector
-        is overwritten.
-        """
-        self.multi_state_vector = StateVector(value)
-
     @property
     def timestamp(self):
         """The newest timestamp"""
         return self.timestamps[0]
-
-    @timestamp.setter
-    def timestamp(self, value):
-        """insert a new timestamp in the list of timestamps if it is not in
-        there already
-        """
-        if value not in self.timestamps:
-            self.timestamps.insert(0, value)
 
     @property
     def ndim(self):
@@ -225,19 +221,11 @@ class ASDState(Type):
     @clearable_cached_property('multi_state_vector', 'timestamps')
     def state(self):
         """A :class:`~.State` object representing latest timestamp"""
-        return State(self.state_vector, self.timestamp)
+        return self[0]
 
     @clearable_cached_property('multi_state_vector', 'timestamps')
     def states(self):
-        """Generates a list of all States in the ASD State one for each
-            timestep.
-        """
-        ndim = self.ndim
-        vectors = [StateVector(self.multi_state_vector[i:i + ndim])
-                   for i in range(0, self.multi_state_vector.shape[0] - ndim, ndim)]
-        states = [State(state_vector=vector, timestamp=timestamp)
-                  for vector, timestamp in zip(vectors, self.timestamps)]
-        return states
+        return [self[i] for i in range(self.nstep)]
 
 
 State.register(ASDState)
@@ -508,13 +496,20 @@ class ASDGaussianState(ASDState):
         if self.correlation_matrices is None:
             self.correlation_matrices = OrderedDict()
 
+    def __getitem__(self, item):
+        if isinstance(item, Integral):
+            ndim = self.ndim
+            state_slice = slice(item * ndim, (item+1) * ndim)
+            state_vector = StateVector(self.multi_state_vector[state_slice])
+            covar = CovarianceMatrix(self.multi_covar[state_slice, state_slice])
+            timestamp = self.timestamps[item]
+            return GaussianState(state_vector=state_vector, covar=covar, timestamp=timestamp)
+        else:
+            raise TypeError(f'{type(self).__name__!r} only subscriptable by int')
+
     @property
     def covar(self):
-        return self.multi_covar[0:self.ndim, 0:self.ndim]
-
-    @covar.setter
-    def covar(self, value):
-        self.mutli_covar = CovarianceMatrix(value)
+        return self.multi_covar[:self.ndim, :self.ndim]
 
     @property
     def mean(self):
@@ -524,19 +519,11 @@ class ASDGaussianState(ASDState):
     @clearable_cached_property('multi_state_vector', 'multi_covar', 'timestamps')
     def state(self):
         """A :class:`~.GaussianState` object representing latest timestamp"""
-        return GaussianState(self.state_vector, self.covar, timestamp=self.timestamp)
+        return super().state
 
     @clearable_cached_property('multi_state_vector', 'multi_covar', 'timestamps')
     def states(self):
-        ndim = self.ndim
-        vectors = [StateVector(self.multi_state_vector[i:i + ndim])
-                   for i in range(0, self.multi_state_vector.shape[0] - ndim, ndim)]
-        covars = [CovarianceMatrix(self.multi_covar[i:i + ndim, i:i + ndim])
-                  for i in range(0, self.multi_covar.shape[0] - ndim, ndim)]
-        states = [
-            GaussianState(state_vector=vector, covar=covar, timestamp=timestamp)
-            for vector, covar, timestamp in zip(vectors, covars, self.timestamps)]
-        return states
+        return super().states
 
 
 class WeightedGaussianState(GaussianState):

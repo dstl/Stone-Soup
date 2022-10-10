@@ -715,6 +715,16 @@ def test_asd_state():
     assert state.nstep == 2
     assert state.max_nstep == 10
 
+    assert np.array_equal(state[0].state_vector, np.array([[0], [1]]))
+    assert state[0].timestamp == timestamp1
+    assert np.array_equal(state[1].state_vector, np.array([[2], [3]]))
+    assert state[1].timestamp == timestamp2
+
+    assert len(state.states) == 2
+
+    with pytest.raises(TypeError, match="'ASDState' only subscriptable by int"):
+        state[5.4]
+
 
 def test_asd_gaussian_state():
     """ GaussianState Type test """
@@ -764,6 +774,18 @@ def test_asd_gaussian_state():
     assert(state.ndim == state_vector.shape[0]/2)
     assert state.nstep == 2
     assert state.max_nstep == 10
+
+    assert np.array_equal(state[0].state_vector, np.array([[0], [1], [2], [3]]))
+    assert np.array_equal(state[0].covar, covar[:4, :4])
+    assert state[0].timestamp == timestamp1
+    assert np.array_equal(state[1].state_vector, np.array([[4], [5], [6], [7]]))
+    assert np.array_equal(state[0].covar, covar[4:, 4:])
+    assert state[1].timestamp == timestamp2
+
+    assert len(state.states) == 2
+
+    with pytest.raises(TypeError, match="'ASDGaussianState' only subscriptable by int"):
+        state[5.4]
 
 
 def test_asd_weighted_gaussian_state():
