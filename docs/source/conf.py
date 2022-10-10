@@ -106,6 +106,7 @@ source_suffix = '.rst'
 
 # The master toctree document.
 master_doc = 'index'
+toc_object_entries = False
 
 # General information about the project.
 project = 'Stone Soup'
