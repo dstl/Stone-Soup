@@ -8,6 +8,7 @@ import numpy as np
 from ._utils import predict_lru_cache
 from .kalman import KalmanPredictor
 from ..types.prediction import ASDGaussianStatePrediction
+from ..types.state import GaussianState
 
 
 class ASDKalmanPredictor(KalmanPredictor):
@@ -51,38 +52,10 @@ class ASDKalmanPredictor(KalmanPredictor):
         if predict_over_interval.total_seconds() < 0:
             predict_over_interval, timestamp_from_which_is_predicted = min(
                 ((timestamp - t, t)
-                 for t in prior.timestamps if (timestamp - t).total_seconds() > 0),
+                 for t in prior.timestamps if (timestamp - t).total_seconds() >= 0),
                 key=itemgetter(0))
 
         return predict_over_interval, timestamp_from_which_is_predicted
-
-    def _transition_function(self, prior, timestamp_from_which_is_predicted,
-                             **kwargs):
-        r"""Applies the linear transition function to a single vector in the
-        absence of a control input, returns a single predicted state.
-
-        Parameters
-        ----------
-        prior : :class:`~.ASDState`
-            The prior state, :math:`\mathbf{x}_{k-1}`
-        timestamp_from_which_is_predicted : :class:`datetime.datetime
-            This is the timestamp from which is predicted
-
-        **kwargs : various, optional
-            These are passed to :meth:`~.LinearGaussianTransitionModel.matrix`
-
-        Returns
-        -------
-        : :class:`~.State`
-            The predicted state
-
-        """
-        t_index = prior.timestamps.index(timestamp_from_which_is_predicted)
-        t2t_plus = slice(t_index * prior.ndim, (t_index+1) * prior.ndim)
-        if t_index == 0:
-            return self.transition_model.matrix(**kwargs) @ prior.state_vector
-        else:
-            return self.transition_model.matrix(**kwargs) @ prior.multi_state_vector[t2t_plus]
 
     @predict_lru_cache()
     def predict(self, prior, timestamp, **kwargs):
@@ -121,28 +94,17 @@ class ASDKalmanPredictor(KalmanPredictor):
         # Consider, if the given timestep is an Out-Of-Sequence measurement
         t_index = prior.timestamps.index(timestamp_from_which_is_predicted)
 
-        def pred(transition_matrix, transition_covar, state_vector, covar):
-            ctrl_model = self.control_model
-            p = transition_matrix@covar@transition_matrix.T \
-                + transition_covar \
-                + ctrl_model.matrix()@ctrl_model.control_noise@ctrl_model.matrix().T
-            x = transition_matrix@state_vector + ctrl_model.control_input()
-            return x, p
-
         if t_index == 0:
             # case that it is a normal prediction
-            # As this is Kalman-like, the control model must be capable of
-            # returning a control matrix (B)
+
+            # Prediction of the mean and covariance
+            x_pred_m = self._transition_function(
+                prior, time_interval=predict_over_interval, **kwargs)
+            p_pred_m = self._predicted_covariance(
+                prior, predict_over_interval=predict_over_interval, **kwargs)
 
             transition_matrix = self._transition_matrix(
                 prior=prior, time_interval=predict_over_interval, **kwargs)
-            transition_covar = self.transition_model.covar(
-                time_interval=predict_over_interval, **kwargs)
-
-            # Prediction of the mean and covariance
-            x_pred_m, p_pred_m = pred(transition_matrix, transition_covar,
-                                      prior.state_vector, prior.covar)
-
             # Generation of the combined retrodiction matrices
             combined_retrodiction_matrices = self._generate_C_matrices(
                 correlation_matrices, prior.ndim)
@@ -168,37 +130,34 @@ class ASDKalmanPredictor(KalmanPredictor):
 
         else:
             # case of out of sequence prediction case
-            timestamp_m_plus_1 = prior.timestamps[prior.timestamps.index(
-                timestamp_from_which_is_predicted) - 1]
+            timestamp_m_plus_1 = prior.timestamps[t_index - 1]
             time_interval_m_to_m_plus_1 = timestamp_m_plus_1 - timestamp
             ndim = prior.ndim
 
+            # Normal Kalman-like prediction for the state m|m-1.
+            # prediction to the timestamp m|m-1
+            prior_at_t = prior[t_index]
+            x_pred_m = self._transition_function(
+                prior_at_t, time_interval=predict_over_interval, **kwargs)
+            p_pred_m = self._predicted_covariance(
+                prior_at_t, predict_over_interval=predict_over_interval, **kwargs)
+            state_pred_m = GaussianState(x_pred_m, p_pred_m, timestamp)
+
+            # prediction to the timestamp m + 1|m-1
+            x_pred_m_plus_1 = self._transition_function(
+                state_pred_m, time_interval=time_interval_m_to_m_plus_1, **kwargs)
+            p_pred_m_plus_1 = self._predicted_covariance(
+                state_pred_m, predict_over_interval=time_interval_m_to_m_plus_1, **kwargs)
+
             # transitions for timestamp m
             transition_matrix_m = self._transition_matrix(
-                prior=prior, time_interval=predict_over_interval, **kwargs)
-            transition_covar_m = self.transition_model.covar(
-                time_interval=predict_over_interval, **kwargs)
-
+                prior=prior_at_t, time_interval=predict_over_interval, **kwargs)
             # transitions for timestamp m+1
             transition_matrix_m_plus_1 = self._transition_matrix(
-                time_interval=time_interval_m_to_m_plus_1, **kwargs)
-            transition_covar_m_plus_1 = self.transition_model.covar(
-                time_interval=time_interval_m_to_m_plus_1, **kwargs)
+                prior=state_pred_m, time_interval=time_interval_m_to_m_plus_1,
+                **kwargs)
 
-            t2t_plus = slice(t_index * ndim, (t_index+1) * ndim)
             t_minus2t = slice((t_index-1) * ndim, t_index * ndim)
-            # Normal Kalman-like prediction for the state m|m-1.
-            x_m_minus_1_given_k = prior.multi_state_vector[t2t_plus]
-            p_m_minus_1_given_k = prior.multi_covar[t2t_plus, t2t_plus]
-
-            # prediction to the timestamp m|m-1
-            x_pred_m, p_pred_m = pred(transition_matrix_m, transition_covar_m,
-                                      x_m_minus_1_given_k, p_m_minus_1_given_k)
-            # prediction to the timestamp m + 1|m-1
-            x_pred_m_plus_1, p_pred_m_plus_1 = pred(transition_matrix_m_plus_1,
-                                                    transition_covar_m_plus_1,
-                                                    x_pred_m, p_pred_m)
-
             x_m_plus_1_given_k = prior.multi_state_vector[t_minus2t]
             x_diff = x_m_plus_1_given_k - x_pred_m_plus_1
 
