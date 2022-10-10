@@ -59,8 +59,8 @@ class RadarBearingRange(SimpleSensor):
 
     def is_detectable(self, state: GroundTruthState) -> bool:
         measurement_vector = self.measurement_model.function(state, noise=False)
-        range_t = measurement_vector[1, 0]  # Bearing(0), Range(1)
-        return range_t <= self.max_range
+        true_range = measurement_vector[1, 0]  # Bearing(0), Range(1)
+        return true_range <= self.max_range
 
 
 class RadarRotatingBearingRange(RadarBearingRange):
@@ -127,9 +127,9 @@ class RadarRotatingBearingRange(RadarBearingRange):
         fov_min = -self.fov_angle / 2
         fov_max = +self.fov_angle / 2
         bearing_t = measurement_vector[0, 0]
-        range_t = measurement_vector[1, 0]
+        true_range = measurement_vector[1, 0]
 
-        return fov_min <= bearing_t <= fov_max and range_t <= self.max_range
+        return fov_min <= bearing_t <= fov_max and true_range <= self.max_range
 
 
 class RadarElevationBearingRange(RadarBearingRange):
@@ -165,8 +165,8 @@ class RadarElevationBearingRange(RadarBearingRange):
 
     def is_detectable(self, state: GroundTruthState) -> bool:
         measurement_vector = self.measurement_model.function(state, noise=False)
-        range_t = measurement_vector[2, 0]  # Elevation(0), Bearing(1), Range(2)
-        return range_t <= self.max_range
+        true_range = measurement_vector[2, 0]  # Elevation(0), Bearing(1), Range(2)
+        return true_range <= self.max_range
 
 
 class RadarBearingRangeRate(RadarBearingRange):
@@ -205,17 +205,9 @@ class RadarBearingRangeRate(RadarBearingRange):
             rotation_offset=self.orientation)
 
     def is_detectable(self, state: GroundTruthState) -> bool:
-
-        measurement_model = CartesianToElevationBearingRange(
-            ndim_state=self.ndim_state,
-            mapping=self.position_mapping,
-            noise_covar=self.noise_covar,
-            translation_offset=self.position,
-            rotation_offset=self.orientation)
-
-        measurement_vector = measurement_model.function(state, noise=False)
-        range_t = measurement_vector[2, 0]  # Elevation(0), Bearing(1), Range(2)
-        return range_t <= self.max_range
+        measurement_vector = self.measurement_model.function(state, noise=False)
+        true_range = measurement_vector[1, 0]  # Bearing(0), Range(1), Range-Rate(2)
+        return true_range <= self.max_range
 
 
 class RadarElevationBearingRangeRate(RadarBearingRangeRate):
@@ -254,8 +246,8 @@ class RadarElevationBearingRangeRate(RadarBearingRangeRate):
 
     def is_detectable(self, state: GroundTruthState) -> bool:
         measurement_vector = self.measurement_model.function(state, noise=False)
-        range_t = measurement_vector[2, 0]  # Elevation(0), Bearing(1), Range(2), Range-Rate(3)
-        return range_t <= self.max_range
+        true_range = measurement_vector[2, 0]  # Elevation(0), Bearing(1), Range(2), Range-Rate(3)
+        return true_range <= self.max_range
 
 
 class RadarRasterScanBearingRange(RadarRotatingBearingRange):
