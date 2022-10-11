@@ -720,6 +720,8 @@ def test_asd_state():
     assert np.array_equal(state[1].state_vector, np.array([[2], [3]]))
     assert state[1].timestamp == timestamp2
 
+    assert np.array_equal(state[-1].state_vector, state[1].state_vector)
+
     assert len(state.states) == 2
 
     with pytest.raises(TypeError, match="'ASDState' only subscriptable by int"):
@@ -781,6 +783,9 @@ def test_asd_gaussian_state():
     assert np.array_equal(state[1].state_vector, np.array([[4], [5], [6], [7]]))
     assert np.array_equal(state[0].covar, covar[4:, 4:])
     assert state[1].timestamp == timestamp2
+
+    assert np.array_equal(state[-1].state_vector, state[1].state_vector)
+    assert np.array_equal(state[-1].covar, state[1].covar)
 
     assert len(state.states) == 2
 

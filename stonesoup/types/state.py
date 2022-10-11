@@ -191,7 +191,9 @@ class ASDState(Type):
     def __getitem__(self, item):
         if isinstance(item, Integral):
             ndim = self.ndim
-            state_slice = slice(item * ndim, (item+1) * ndim)
+            start = item * ndim
+            end = None if item == -1 else (item+1) * ndim
+            state_slice = slice(start, end)
             state_vector = StateVector(self.multi_state_vector[state_slice])
             timestamp = self.timestamps[item]
             return State(state_vector=state_vector, timestamp=timestamp)
@@ -499,7 +501,9 @@ class ASDGaussianState(ASDState):
     def __getitem__(self, item):
         if isinstance(item, Integral):
             ndim = self.ndim
-            state_slice = slice(item * ndim, (item+1) * ndim)
+            start = item * ndim
+            end = None if item == -1 else (item+1) * ndim
+            state_slice = slice(start, end)
             state_vector = StateVector(self.multi_state_vector[state_slice])
             covar = CovarianceMatrix(self.multi_covar[state_slice, state_slice])
             timestamp = self.timestamps[item]
