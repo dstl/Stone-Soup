@@ -3,7 +3,7 @@
 
 """
 TimeBasedPlotter Example
-===============
+========================
 This example shows how to animate several state sequences to be plotted in time order
 """
 
@@ -50,8 +50,8 @@ groundtruth_sim = MultiTargetGroundTruthSimulator(
         CovarianceMatrix(np.diag([1000, 10, 1000, 10])),
         timestamp=start_time),
     timestep=datetime.timedelta(seconds=5),
-    number_steps=50,
-    birth_rate=0.05,
+    number_steps=60,
+    birth_rate=0.2,
     death_probability=0.05
 )
 detection_sim = SimpleDetectionSimulator(
@@ -80,7 +80,7 @@ initiator = MultiMeasurementInitiator(
     deleter=deleter,
     data_associator=data_associator,
     updater=updater,
-    min_points=5,
+    min_points=2,
 )
 
 # Tracker
@@ -115,7 +115,7 @@ plotter.plot_ground_truths(groundtruth, mapping=[0, 2])
 plotter.plot_measurements(detections, mapping=[0, 2])
 plotter.plot_tracks(tracks, mapping=[0, 2])
 
-plotter.run(times_to_plot)
+plotter.run(times_to_plot, plot_item_expiry=datetime.timedelta(seconds=60))
 plotter.save('example2.gif')
 
 from matplotlib import pyplot as plt

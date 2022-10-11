@@ -954,7 +954,7 @@ class TBPlotter(_Plotter):
             data=self.plotting_data,
             plot_item_expiry=plot_item_expiry,
             figure_kwargs=self.figure_kwargs,
-            **kwargs
+            animation_input_kwargs=kwargs
         )
 
     def save(self, filename='example.mp4', **kwargs):
@@ -1098,8 +1098,8 @@ class TBPlotter(_Plotter):
                 if len(the_data) == 0:
                     continue
                 the_lines.append(
-                    plt.plot(the_data[:1, 0],
-                             the_data[:1, 1],
+                    plt.plot([],  # the_data[:1, 0],
+                             [],  # the_data[:1, 1],
                              **a_plot_object.plotting_keyword_arguments)[0])
 
                 legends_key.append(a_plot_object.plotting_label)
@@ -1113,8 +1113,9 @@ class TBPlotter(_Plotter):
 
             for axis_limits in [x_limits, y_limits]:
                 limit_padding = axis_padding * (axis_limits[1] - axis_limits[0])
-                axis_limits[0] -= limit_padding
-                axis_limits[1] += limit_padding
+                # The casting to float is the limits contain angle classes
+                axis_limits[0] = float(axis_limits[0] - limit_padding)
+                axis_limits[1] = float(axis_limits[1] - limit_padding)
 
             plt.xlim(x_limits)
             plt.ylim(y_limits)
@@ -1180,4 +1181,7 @@ class TBPlotter(_Plotter):
                 if the_data.size > 0:
                     lines[i].set_data(the_data[:, 0],
                                       the_data[:, 1])
+                else:
+                    lines[i].set_data([],
+                                      [])
         return lines
