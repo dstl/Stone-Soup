@@ -51,7 +51,7 @@ class ASDKalmanUpdater(KalmanUpdater):
 
         pred_meas = measurement_model.function(state_at_t, **kwargs)
 
-        hh = self._measurement_matrix(predicted_state=predicted_state,
+        hh = self._measurement_matrix(predicted_state=state_at_t,
                                       measurement_model=measurement_model,
                                       **kwargs)
         innov_cov = hh@state_at_t.covar@hh.T + measurement_model.covar()
