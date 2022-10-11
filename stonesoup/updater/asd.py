@@ -61,7 +61,7 @@ class ASDKalmanUpdater(KalmanUpdater):
 
         return ASDGaussianMeasurementPrediction(
             multi_state_vector=pred_meas, multi_covar=innov_cov,
-            timestamps=[predicted_state.timestamps[0]],
+            timestamps=[predicted_state.act_timestamp],
             cross_covar=meas_cross_cov)
 
     def update(self, hypothesis, force_symmetric_covariance=False, **kwargs):
