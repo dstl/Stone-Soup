@@ -399,7 +399,7 @@ plotterA.fig
 # Here the chosen action is selected based on the difference between the
 # covariance matrices of the
 # prediction and posterior, for targets which could be observed by the sensor taking that action
-# - i.e. pointing it's dwell centre in that given direction.
+# - i.e. pointing its dwell centre in that given direction.
 #
 # The :meth:`choose_actions` function from the :class:`~.BruteForceSensorManager` is called at each time step.
 # This means that at each time step, for each track:
