@@ -65,6 +65,7 @@
 
 from datetime import datetime
 from datetime import timedelta
+from ordered_set import OrderedSet
 import numpy as np
 from scipy.stats import uniform
 
@@ -77,7 +78,7 @@ from stonesoup.models.measurement.linear import LinearGaussian
 
 np.random.seed(1991)
 
-truths = set()
+truths = OrderedSet()
 
 start_time = datetime.now()
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),
