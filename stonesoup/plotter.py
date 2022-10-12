@@ -343,6 +343,10 @@ class Plotter(_Plotter):
                     HH = np.eye(track.ndim)[mapping, :]  # Get position mapping matrix
                     for state in track:
                         w, v = np.linalg.eig(HH @ state.covar @ HH.T)
+                        if np.iscomplexobj(w) or np.iscomplexobj(v):
+                            warnings.warn("Can not plot uncertainty for all states due to complex "
+                                          "eignevalues or eigenvectors", UserWarning)
+                            continue
                         max_ind = np.argmax(w)
                         min_ind = np.argmin(w)
                         orient = np.arctan2(v[1, max_ind], v[0, max_ind])
