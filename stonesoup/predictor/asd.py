@@ -80,7 +80,7 @@ class ASDKalmanPredictor(KalmanPredictor):
 
         """
 
-        correlation_matrices = copy.deepcopy(prior.correlation_matrices)
+        correlation_matrices = copy.copy(prior.correlation_matrices)
 
         # Get the prediction interval
         predict_over_interval, timestamp_from_which_is_predicted = \
@@ -120,7 +120,8 @@ class ASDKalmanPredictor(KalmanPredictor):
             p_pred = np.vstack((p_top, p_bottom))
 
             # add new correlation matrix with the present time step
-            time_corr_matrices = correlation_matrices[timestamp_from_which_is_predicted]
+            correlation_matrices[timestamp_from_which_is_predicted] = time_corr_matrices = \
+                correlation_matrices[timestamp_from_which_is_predicted].copy()
             time_corr_matrices['P_pred'] = p_pred_m
             time_corr_matrices['F'] = transition_matrix
             time_corr_matrices['PFP'] = \
@@ -176,7 +177,8 @@ class ASDKalmanPredictor(KalmanPredictor):
             P_right_lower = prior.multi_covar[t_index * ndim:, t_index * ndim:]
 
             # add new correlation matrix with the present time step
-            pred_from_corr_matrices = correlation_matrices[timestamp_from_which_is_predicted]
+            correlation_matrices[timestamp_from_which_is_predicted] = pred_from_corr_matrices = \
+                correlation_matrices[timestamp_from_which_is_predicted].copy()
             pred_from_corr_matrices['P_pred'] = p_pred_m
             pred_from_corr_matrices['F'] = transition_matrix_m
             pred_from_corr_matrices['PFP'] = (

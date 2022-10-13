@@ -92,6 +92,7 @@ class ASDKalmanUpdater(KalmanUpdater):
 
         # Get the predicted state out of the hypothesis
         predicted_state = hypothesis.prediction
+        correlation_matrices = predicted_state.correlation_matrices.copy()
 
         if hypothesis.measurement_prediction is None:
             # Get the measurement model out of the measurement if it's there.
@@ -123,8 +124,8 @@ class ASDKalmanUpdater(KalmanUpdater):
                 (posterior_covariance + posterior_covariance.T) / 2
 
         # save the new posterior, if it is no out of sequence measurement
-        pred_corr_matrices = predicted_state.correlation_matrices.setdefault(
-            predicted_state.act_timestamp, dict())
+        correlation_matrices[predicted_state.act_timestamp] = pred_corr_matrices = \
+            correlation_matrices.setdefault(predicted_state.act_timestamp, dict()).copy()
         t_index = predicted_state.timestamps.index(predicted_state.act_timestamp)
         t2t_plus = slice(t_index * predicted_state.ndim, (t_index+1) * predicted_state.ndim)
 
@@ -137,8 +138,7 @@ class ASDKalmanUpdater(KalmanUpdater):
                 @ np.linalg.inv(pred_corr_matrices['P_pred']))
         except KeyError:
             pass
-        correlation_matrices = OrderedDict(sorted(
-            predicted_state.correlation_matrices.items(), reverse=True))
+        correlation_matrices = OrderedDict(sorted(correlation_matrices.items(), reverse=True))
 
         return ASDGaussianStateUpdate(multi_state_vector=posterior_mean,
                                       multi_covar=posterior_covariance,
