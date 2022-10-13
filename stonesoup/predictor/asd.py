@@ -24,6 +24,9 @@ class ASDKalmanPredictor(KalmanPredictor):
           Out-of-Sequence Measurement Processing in IEEE Transactions on Aerospace and
           Electronic Systems,
           vol. 47, no. 4, pp. 2766-2778, OCTOBER 2011, doi: 10.1109/TAES.2011.6034663.
+      2.  F. Govaers and W. Koch, Generalized Solution to Smoothing and Out-of-Sequence
+          Processing in IEEE Transactions on Aerospace and Electronic Systems,
+          vol. 50, no. 3, pp. 1739-1748, JULY 2014, doi: 10.1109/TAES.2014.130009.
     """
     def _predict_over_interval(self, prior, timestamp):
         """Private function to get the prediction interval (or None)
@@ -129,6 +132,7 @@ class ASDKalmanPredictor(KalmanPredictor):
                 @ np.linalg.inv(time_corr_matrices['P_pred'])
 
         else:
+            # Below based on equations from 69 to 75 in reference 2.
             # case of out of sequence prediction case
             timestamp_m_plus_1 = prior.timestamps[t_index - 1]
             time_interval_m_to_m_plus_1 = timestamp_m_plus_1 - timestamp
@@ -165,12 +169,12 @@ class ASDKalmanPredictor(KalmanPredictor):
             p_diff = p_m_plus_1_given_k - p_pred_m_plus_1
 
             W = p_pred_m @ transition_matrix_m_plus_1.T @ np.linalg.inv(p_pred_m_plus_1)
-            x_pred_m = x_pred_m + W@x_diff
-            p_pred_m_cr = p_pred_m + W@p_diff@W.T
+            x_pred_m_given_k = x_pred_m + W@x_diff
+            p_pred_m_given_k = p_pred_m + W@p_diff@W.T
 
             # build full state
             x_pred = np.concatenate([prior.multi_state_vector[:t_index * ndim],
-                                     x_pred_m,
+                                     x_pred_m_given_k,
                                      prior.multi_state_vector[t_index * ndim:]])
 
             P_right_lower = prior.multi_covar[t_index * ndim:, t_index * ndim:]
@@ -186,9 +190,9 @@ class ASDKalmanPredictor(KalmanPredictor):
             correlation_matrices[timestamp] = {}
             correlation_matrices[timestamp]['F'] = transition_matrix_m_plus_1
             correlation_matrices[timestamp]['P_pred'] = p_pred_m_plus_1
-            correlation_matrices[timestamp]['P'] = p_pred_m_cr
+            correlation_matrices[timestamp]['P'] = p_pred_m
             correlation_matrices[timestamp]['PFP'] = \
-                p_pred_m_cr @ transition_matrix_m_plus_1.T @ np.linalg.inv(p_pred_m_plus_1)
+                p_pred_m @ transition_matrix_m_plus_1.T @ np.linalg.inv(p_pred_m_plus_1)
 
             # resort the dict
             correlation_matrices = OrderedDict(sorted(correlation_matrices.items(), reverse=True))
@@ -204,7 +208,7 @@ class ASDKalmanPredictor(KalmanPredictor):
             covars = \
                 [prior.multi_covar[i * ndim:(i+1) * ndim, i * ndim:(i+1) * ndim]
                  for i in range(t_index)]
-            covars.append(p_pred_m)
+            covars.append(p_pred_m_given_k)
 
             for i, ts in enumerate(timestamps_to_recalculate):
                 corrs = {k: v for k, v in correlation_matrices.items()
