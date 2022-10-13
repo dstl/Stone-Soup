@@ -110,9 +110,8 @@ class ASDKalmanPredictor(KalmanPredictor):
                 correlation_matrices, prior.ndim)
             # normal case
             x_pred = np.concatenate([x_pred_m, prior.multi_state_vector])
-            W_P_column = np.array([c @ prior.covar for c in combined_retrodiction_matrices])
-            correlated_column = np.reshape(W_P_column, (
-                prior.multi_covar.shape[0], prior.ndim)) @ transition_matrix.T
+            W_P_column = np.vstack([c @ prior.covar for c in combined_retrodiction_matrices])
+            correlated_column = W_P_column @ transition_matrix.T
             correlated_row = correlated_column.T
 
             p_top = np.hstack((p_pred_m, correlated_row))
@@ -200,8 +199,8 @@ class ASDKalmanPredictor(KalmanPredictor):
 
             # get all timestamps which has to be recalculated beginning
             # with the newest one
-            timestamps = sorted(prior.timestamps + [timestamp], reverse=True)
-            timestamps_to_recalculate = [ts for ts in timestamps if ts >= timestamp]
+            timestamps_to_recalculate = prior.timestamps[:t_index]
+            timestamps_to_recalculate.append(timestamp)
             covars = \
                 [prior.multi_covar[i * ndim:(i+1) * ndim, i * ndim:(i+1) * ndim]
                  for i in range(t_index)]
@@ -212,8 +211,7 @@ class ASDKalmanPredictor(KalmanPredictor):
                          if k <= ts}
                 combined_retrodiction_matrices = self._generate_C_matrices(corrs, ndim)
                 combined_retrodiction_matrices = combined_retrodiction_matrices[1:]
-                W_column = np.array([c @ covars[i] for c in combined_retrodiction_matrices])
-                W_column = np.reshape(W_column, (ndim * len(combined_retrodiction_matrices), ndim))
+                W_column = np.vstack([c @ covars[i] for c in combined_retrodiction_matrices])
                 W_row = W_column.T
 
                 i2i_plus = slice(i * ndim, (i + 1) * ndim)
