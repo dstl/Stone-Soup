@@ -196,3 +196,16 @@ def test_plot_density_equal_x_y():
             timestamp=start_time + timedelta(seconds=k + 1)))
     with pytest.raises(ValueError):
         plotter.plot_density({truth}, index=None)
+
+
+def test_plot_complex_uncertainty():
+    plotter = Plotter()
+    track = Track([
+        GaussianState(
+            state_vector=[0, 0],
+            covar=[[10, -1], [1, 10]])
+    ])
+    with pytest.warns(UserWarning, match="Can not plot uncertainty for all states due to complex "
+                                         "eignevalues or eigenvectors"):
+
+        plotter.plot_tracks(track, mapping=[0, 1], uncertainty=True)
