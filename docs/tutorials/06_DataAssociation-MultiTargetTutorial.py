@@ -73,10 +73,11 @@ from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 # %%
 # Generate ground truth
 # ^^^^^^^^^^^^^^^^^^^^^
+from ordered_set import OrderedSet
 
 np.random.seed(1991)
 
-truths = set()
+truths = OrderedSet()
 
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),
                                                           ConstantVelocity(0.005)])
@@ -93,7 +94,7 @@ for k in range(1, 21):
     truth.append(GroundTruthState(
         transition_model.function(truth[k-1], noise=True, time_interval=timedelta(seconds=1)),
         timestamp=start_time+timedelta(seconds=k)))
-truths.add(truth)
+_ = truths.add(truth)
 
 # %%
 # Plot the ground truth

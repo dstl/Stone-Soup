@@ -20,6 +20,7 @@ from datetime import datetime
 from datetime import timedelta
 
 import numpy as np
+from ordered_set import OrderedSet
 
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
                                                ConstantVelocity
@@ -28,7 +29,7 @@ from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 np.random.seed(1991)
 
 start_time = datetime.now()
-truths = set()  # Truths across all time
+truths = OrderedSet()  # Truths across all time
 current_truths = set()  # Truths alive at current time
 
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),

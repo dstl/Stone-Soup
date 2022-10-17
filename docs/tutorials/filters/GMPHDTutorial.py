@@ -110,6 +110,7 @@ plt.rcParams['figure.figsize'] = (14, 12)
 plt.style.use('seaborn-colorblind')
 # Other general imports
 import numpy as np
+from ordered_set import OrderedSet
 from datetime import datetime, timedelta
 start_time = datetime.now()
 
@@ -129,7 +130,7 @@ transition_model = CombinedLinearGaussianTransitionModel(
 
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 start_time = datetime.now()
-truths = set()  # Truths across all time
+truths = OrderedSet()  # Truths across all time
 current_truths = set()  # Truths alive at current time
 start_truths = set()
 number_steps = 20
