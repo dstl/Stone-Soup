@@ -615,23 +615,21 @@ def build_rotation_matrix(angle_vector: np.ndarray):
 
 
 def dotproduct(a, b):
-    r"""Returns the dot (or scalar) product of two StateVectors.
+    r"""Returns the dot (or scalar) product of two StateVectors or two sets of StateVectors.
 
     The result for vectors of length :math:`n` is
     :math:`\Sigma_i^n a_i b_i`.
 
-    Inputs are state vectors, i.e. the second dimension is 1
-
     Parameters
     ----------
-    a : StateVectors
+    a : StateVector, StateVectors
         A (set of) state vector(s)
-    b : StateVector
+    b : StateVector, StateVectors
         A state vector(s) object of equal dimension to :math:`a`
 
     Returns
     -------
-    : float
+    : float, list
         A (set of) scalar value(s) representing the dot product of the vectors.
     """
 
@@ -649,11 +647,11 @@ def dotproduct(a, b):
         return _dotproductvectors(a, b)
     elif type(a) is StateVectors and type(b) is StateVectors:
         out = []
-        for aa, bb in zip(a.T, b.T):
+        for aa, bb in zip(a, b):
             out.append(_dotproductvectors(aa, bb))
-        return out
+        return np.reshape(out, np.shape(np.atleast_2d(a[0, :])))
     else:
-        raise ValueError("Inputs must be of the same type")
+        raise ValueError("Inputs must be `StateVector` or `StateVectors` and of the same type")
 
 
 def sde_euler_maruyama_integration(fun, t_values, state_x0):

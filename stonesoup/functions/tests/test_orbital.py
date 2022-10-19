@@ -4,7 +4,7 @@ from datetime import timedelta
 
 from ..orbital import stumpff_c, stumpff_s, universal_anomaly_newton, \
     lagrange_coefficients_from_universal_anomaly
-from ...types.array import StateVector
+from ...types.array import StateVector, StateVectors
 
 
 @pytest.mark.parametrize(
@@ -13,12 +13,15 @@ from ...types.array import StateVector
         (0, 1/6, 1/2),
         (np.pi**2, 0.10132118364233778, 0.20264236728467555),
         (-(np.pi**2), 0.2711433813983066, 1.073189242960177),
+        (np.array([0, np.pi**2, -(np.pi**2)]),
+         np.array([1/6, 0.10132118364233778, 0.2711433813983066]),
+         np.array([1/2, 0.20264236728467555, 1.073189242960177]))
     ]
 )
 def test_stumpff(z, outs, outc):
     """Test the Stumpf functions"""
-    assert np.isclose(stumpff_s(z), outs, rtol=1e-10)
-    assert np.isclose(stumpff_c(z), outc, rtol=1e-10)
+    assert np.allclose(stumpff_s(z), outs, rtol=1e-10)
+    assert np.allclose(stumpff_c(z), outc, rtol=1e-10)
 
 
 def test_universal_anomaly_and_lagrange():
@@ -48,7 +51,13 @@ def test_universal_anomaly_and_lagrange():
 
     f, g, fdot, gdot = lagrange_coefficients_from_universal_anomaly(start_at, deltat,
                                                                     grav_parameter=bigg)
+
     assert np.isclose(f, f_is, rtol=1e-4)
     assert np.isclose(g, g_is, rtol=2e-3)  # Seems a bit loose - is the textbook wrong?
     assert np.isclose(fdot, fdot_is, rtol=1e-4)
     assert np.isclose(gdot, gdot_is, rtol=1e-4)
+
+    # Testing that no errors are thrown by statevectors
+    start_at2 = StateVectors([start_at, start_at])
+    f, g, fdot, gdot = lagrange_coefficients_from_universal_anomaly(start_at2, deltat,
+                                                                    grav_parameter=bigg)
