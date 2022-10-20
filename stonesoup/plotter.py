@@ -928,13 +928,13 @@ class Plotterly(_Plotter):
         self.fig.add_scatter(x=sensor_xy[:, 0], y=sensor_xy[:, 1], **sensor_kwargs)
 
 
-class _TBPlotterDataClass(Base):
+class _AnimationPlotterDataClass(Base):
     plotting_data = Property(Iterable[State])
     plotting_label: str = Property()
     plotting_keyword_arguments: dict = Property()
 
 
-class TBPlotter(_Plotter):
+class AnimationPlotter(_Plotter):
 
     def __init__(self, dimension=Dimension.TWO, **kwargs):
         self.figure_kwargs = {"figsize": (10, 6)}
@@ -942,47 +942,108 @@ class TBPlotter(_Plotter):
         if dimension != Dimension.TWO:
             raise NotImplementedError
 
-        self.plotting_data: List[_TBPlotterDataClass] = []
+        self.x_label: str = "$x$"
+        self.y_label: str = "$y$"
+
+        self.plotting_data: List[_AnimationPlotterDataClass] = []
 
         self.animation_output: animation.FuncAnimation = None
 
     def run(self, times_to_plot=List[datetime], plot_item_expiry: Optional[timedelta] = None,
             **kwargs):
+        """Run the animation
+
+        Parameters
+        ----------
+        times_to_plot : List of :class:`~.datetime`
+            List of datetime objects of when to refresh and draw the animation
+        plot_item_expiry: :class:`~.timedelta`, Optional
+            Describes how long states will remain present in the figure. Default value of None means
+            data is shown indefinitely
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to the animation.FuncAnimation function
+        """
 
         self.animation_output = self.run_animation(
             times_to_plot=times_to_plot,
             data=self.plotting_data,
             plot_item_expiry=plot_item_expiry,
+            x_label=self.x_label,
+            y_label=self.y_label,
             figure_kwargs=self.figure_kwargs,
             animation_input_kwargs=kwargs
         )
 
     def save(self, filename='example.mp4', **kwargs):
+        """Save the animation
+
+        Parameters
+        ----------
+        filename : str
+            filename of animation file
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to the animation.save function
+        """
         if self.animation_output is None:
-            raise ValueError("Animation hasn't been ran yet")
+            raise ValueError("Animation hasn't been ran yet. Therefore there is no animation to "
+                             "save")
 
         self.animation_output.save(filename, **kwargs)
 
-    def plot_ground_truths(self, truths, mapping, truths_label="Ground Truth", **kwargs):
+    def plot_ground_truths(self, truths, mapping: List[int], truths_label: str = "Ground Truth",
+                           **kwargs):
+        """Plots ground truth(s)
+
+        Plots each ground truth path passed in to :attr:`truths` and generates a legend
+        automatically. Ground truths are plotted as dashed lines with default colors.
+
+        Users can change linestyle, color and marker using keyword arguments. Any changes
+        will apply to all ground truths.
+
+        Parameters
+        ----------
+        truths : Collection of :class:`~.GroundTruthPath`
+            Collection of  ground truths which will be plotted. If not a collection and instead a
+            single :class:`~.GroundTruthPath` type, the argument is modified to be a set to allow
+            for iteration.
+        mapping: list
+            List of items specifying the mapping of the position components of the state space.
+        truths_label: str
+            Label for truth data
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to plot function. Default is ``linestyle="--"``.
+        """
+
         truths_kwargs = dict(linestyle="--")
         truths_kwargs.update(kwargs)
         self.plot_state_mutable_sequence(truths, mapping, truths_label, **truths_kwargs)
 
-        """
-        self.plotting_data.append(_TBPlotterDataClass(
-            times=np.array([np.datetime64(state.timestamp) for state in truth]),
-            state_vectors=np.array([[state.state_vector[mapping[0]],
-                                     state.state_vector[mapping[1]]]
-                                    for state in truth]),
-            label=truths_label,
-            plotting_kwargs=truths_kwargs
-        ))
-        """
+    def plot_tracks(self, tracks, mapping: List[int], uncertainty=False, particle=False,
+                    track_label="Tracks",  **kwargs):
+        """Plots track(s)
 
-    def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False,
-                    track_label="Tracks",
-                    **kwargs):
+        Plots each track generated, generating a legend automatically. Tracks are plotted as solid
+        lines with point markers and default colors. Users can change linestyle, color and marker
+        using keyword arguments.
 
+        Parameters
+        ----------
+        tracks : Collection of :class:`~.Track`
+            Collection of tracks which will be plotted. If not a collection, and instead a single
+            :class:`~.Track` type, the argument is modified to be a set to allow for iteration.
+        mapping: list
+            List of items specifying the mapping of the position
+            components of the state space.
+        uncertainty : bool
+            Currently not implemented. If True, an error is raised
+        particle : bool
+            Currently not implemented. If True, an error is raised
+        track_label: str
+            Label to apply to all tracks for legend.
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to plot function. Defaults are ``linestyle="-"``,
+            ``marker='s'`` for :class:`~.Update` and ``marker='o'`` for other states.
+        """
         if uncertainty or particle:
             raise NotImplementedError
 
@@ -990,15 +1051,29 @@ class TBPlotter(_Plotter):
         tracks_kwargs.update(kwargs)
         self.plot_state_mutable_sequence(tracks, mapping, track_label, **tracks_kwargs)
 
-    def plot_state_mutable_sequence(self, state_mutable_sequences, mapping, label,
+    def plot_state_mutable_sequence(self, state_mutable_sequences, mapping: List[int], label: str,
                                     **plotting_kwargs):
+        """Plots State Mutable Sequence
+
+        Parameters
+        ----------
+        state_mutable_sequences : Collection of :class:`~.StateMutableSequence`
+            Collection of states to be plotted
+        mapping: list
+            List of items specifying the mapping of the position components of the state space.
+        label : str
+            User-defined measurement model to be used in finding measurement state inverses if
+            they cannot be found from the measurements themselves.
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to plot function for states.
+        """
 
         if not isinstance(state_mutable_sequences, Collection) or \
                 isinstance(state_mutable_sequences, StateMutableSequence):
             state_mutable_sequences = {state_mutable_sequences}  # Make a set of length 1
 
         for state_mutable_sequence in state_mutable_sequences:
-            self.plotting_data.append(_TBPlotterDataClass(
+            self.plotting_data.append(_AnimationPlotterDataClass(
                 plotting_data=[State(state_vector=[state.state_vector[mapping[0]],
                                                    state.state_vector[mapping[1]]],
                                      timestamp=state.timestamp)
@@ -1009,6 +1084,31 @@ class TBPlotter(_Plotter):
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
                           measurements_label="", **kwargs):
+        """Plots measurements
+
+        Plots detections and clutter, generating a legend automatically. Detections are plotted as
+        blue circles by default unless the detection type is clutter.
+        If the detection type is :class:`~.Clutter` it is plotted as a yellow 'tri-up' marker.
+
+        Users can change the color and marker of detections using keyword arguments but not for
+        clutter detections.
+
+        Parameters
+        ----------
+        measurements : Collection of :class:`~.Detection`
+            Detections which will be plotted. If measurements is a set of lists it is flattened.
+        mapping: list
+            List of items specifying the mapping of the position components of the state space.
+        measurement_model : :class:`~.Model`, optional
+            User-defined measurement model to be used in finding measurement state inverses if
+            they cannot be found from the measurements themselves.
+        measurements_label: str
+            Label for measurements
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to plot function for detections. Defaults are
+            ``marker='o'`` and ``color='b'``.
+        """
+
         measurement_kwargs = dict(marker='o', color='b')
         measurement_kwargs.update(kwargs)
 
@@ -1027,7 +1127,7 @@ class TBPlotter(_Plotter):
         if plot_detections:
             detection_kwargs = dict(linestyle='', marker='o', color='b')
             detection_kwargs.update(kwargs)
-            self.plotting_data.append(_TBPlotterDataClass(
+            self.plotting_data.append(_AnimationPlotterDataClass(
                 plotting_data=[State(state_vector=plotting_state_vector,
                                      timestamp=detection.timestamp)
                                for detection, plotting_state_vector in plot_detections.items()],
@@ -1038,7 +1138,7 @@ class TBPlotter(_Plotter):
         if plot_clutter:
             clutter_kwargs = dict(linestyle='', marker='2', color='y')
             clutter_kwargs.update(kwargs)
-            self.plotting_data.append(_TBPlotterDataClass(
+            self.plotting_data.append(_AnimationPlotterDataClass(
                 plotting_data=[State(state_vector=plotting_state_vector,
                                      timestamp=detection.timestamp)
                                for detection, plotting_state_vector in plot_clutter.items()],
@@ -1052,11 +1152,13 @@ class TBPlotter(_Plotter):
     @classmethod
     def run_animation(cls,
                       times_to_plot: List[datetime],
-                      data: Iterable[_TBPlotterDataClass],
+                      data: Iterable[_AnimationPlotterDataClass],
                       plot_item_expiry: Optional[timedelta] = None,
                       axis_padding: float = 0.1,
                       figure_kwargs: dict = {},
-                      animation_input_kwargs: dict = {}
+                      animation_input_kwargs: dict = {},
+                      x_label: str = "$x$",
+                      y_label: str = "$y$"
                       ) -> animation.FuncAnimation:
         """
         Parameters
@@ -1075,6 +1177,10 @@ class TBPlotter(_Plotter):
         animation_input_kwargs: dict
             Keyword arguments for FuncAnimation class. See matplotlib.animation.FuncAnimation for
             more details. Default values are: blit=False, repeat=False, interval=50
+        x_label: str
+            Label for the x axis
+        y_label: str
+            Label for the y axis
 
         Returns
         -------
@@ -1113,17 +1219,17 @@ class TBPlotter(_Plotter):
 
             for axis_limits in [x_limits, y_limits]:
                 limit_padding = axis_padding * (axis_limits[1] - axis_limits[0])
-                # The casting to float is the limits contain angle classes
+                # The casting to float to ensure the limits contain do not contain angle classes
                 axis_limits[0] = float(axis_limits[0] - limit_padding)
-                axis_limits[1] = float(axis_limits[1] - limit_padding)
+                axis_limits[1] = float(axis_limits[1] + limit_padding)
 
             plt.xlim(x_limits)
             plt.ylim(y_limits)
         else:
             plt.axis('equal')
 
-        plt.xlabel("$x$")
-        plt.ylabel("$y$")
+        plt.xlabel(x_label)
+        plt.ylabel(y_label)
         plt.legend(legends_key)
 
         if plot_item_expiry is None:

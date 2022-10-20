@@ -4,7 +4,7 @@
 """
 TimeBasedPlotter Example
 ========================
-This example shows how to animate several state sequences to be plotted in time order
+This example shows how to animate several state sequences to be plotted in time order.
 """
 
 # %%
@@ -13,10 +13,12 @@ This example shows how to animate several state sequences to be plotted in time 
 # For simplicity, we are going to quickly build a basic Kalman Tracker, with simple Stone Soup
 # simulators, including clutter. In this case a 2D constant velocity target, with 2D linear
 # measurements of position.
+
+# %%
+# All non-generic imports will be given in order of usage.
 import datetime
 
 import numpy as np
-import matplotlib.colors as colors
 
 from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
 from stonesoup.deleter.error import CovarianceBasedDeleter
@@ -33,6 +35,8 @@ from stonesoup.types.array import StateVector, CovarianceMatrix
 from stonesoup.types.state import GaussianState
 from stonesoup.updater.kalman import KalmanUpdater
 
+# %%
+# Set up the platform and detection simulators
 
 # Models
 transition_model = CombinedLinearGaussianTransitionModel(
@@ -61,6 +65,9 @@ detection_sim = SimpleDetectionSimulator(
     detection_probability=0.9,
     clutter_rate=1,
 )
+
+# %%
+# Set up the tracker
 
 # Filter
 predictor = KalmanPredictor(transition_model)
@@ -92,32 +99,49 @@ tracker = MultiTargetTracker(
     updater=updater,
 )
 
+# %%
+# Run the simulation
+
 groundtruth = set()
 detections = set()
-tracks = set()
+all_tracks = set()
 
-for time, ctracks in tracker:
+for time, tracks in tracker:
     groundtruth.update(groundtruth_sim.groundtruth_paths)
     detections.update(detection_sim.detections)
-    tracks.update(ctracks)
+    all_tracks.update(tracks)
 
 
-all_plotting = []
-colours = colors.cnames
+# %%
+# Create the Animation
+# --------------------
+from stonesoup.plotter import AnimationPlotter
+from matplotlib import pyplot as plt
 
+
+# %%
+# Create the plotter object and use the plot_# functions to assign the data to plot
+plotter = AnimationPlotter()
+plotter.plot_ground_truths(groundtruth, mapping=[0, 2])
+plotter.plot_measurements(detections, mapping=[0, 2])
+plotter.plot_tracks(all_tracks, mapping=[0, 2])
+
+# %%
+# Run the Animation
+# -----------------
+# The times to refresh the animation are chosen to co-inside with the simulator times
+#
+# To avoid the figure becoming too cluttered with old information, states older than 60 seconds will
+# not be shown. The figure isn't animated inside a sphinx gallery but does work when ran from the
+# command line
 times_to_plot = [start_time + x * groundtruth_sim.timestep
                  for x in range(groundtruth_sim.number_steps)]
 
-from stonesoup.plotter import TBPlotter
-
-plotter = TBPlotter()
-plotter.plot_ground_truths(groundtruth, mapping=[0, 2])
-plotter.plot_measurements(detections, mapping=[0, 2])
-plotter.plot_tracks(tracks, mapping=[0, 2])
-
 plotter.run(times_to_plot, plot_item_expiry=datetime.timedelta(seconds=60))
-plotter.save('example2.gif')
-
-from matplotlib import pyplot as plt
-
 plt.show()
+
+# %%
+# Save the Animation
+# ------------------
+# Save the animation to a gif format. Other formats are available
+plotter.save('example_animation.gif')
