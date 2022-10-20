@@ -131,6 +131,9 @@ class ASDKalmanPredictor(KalmanPredictor):
                 @ time_corr_matrices['F'].T \
                 @ np.linalg.inv(time_corr_matrices['P_pred'])
 
+            correlation_matrices.setdefault(timestamp, dict())['P'] = p_pred_m
+            correlation_matrices = OrderedDict(sorted(correlation_matrices.items(), reverse=True))
+
         else:
             # Below based on equations from 69 to 75 in reference 2.
             # case of out of sequence prediction case
