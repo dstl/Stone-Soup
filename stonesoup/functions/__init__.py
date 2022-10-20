@@ -614,37 +614,43 @@ def build_rotation_matrix(angle_vector: np.ndarray):
 
 
 def dotproduct(a, b):
-    r"""Returns the dot (or scalar) product of two StateVectors.
+    r"""Returns the dot (or scalar) product of two StateVectors or two sets of StateVectors.
 
-    The result for vectors of length :math:`n` is
-    :math:`\Sigma_i^n a_i b_i`.
-
-    Inputs are state vectors, i.e. the second dimension is 1
+    The result for vectors of length :math:`n` is :math:`\Sigma_i^n a_i b_i`.
 
     Parameters
     ----------
-    a : StateVector
-        A state vector
-    b : StateVector
-        A state vector of equal length to :math:`a`
+    a : StateVector, StateVectors
+        A (set of) state vector(s)
+    b : StateVector, StateVectors
+        A state vector(s) object of equal dimension to :math:`a`
 
     Returns
     -------
-    : float
-        A scalar value representing the dot product of the vectors.
+    : float, numpy.array
+        A (set of) scalar value(s) representing the dot product of the vectors.
     """
-    if np.shape(a)[1] != 1 or np.shape(b)[1] != 1 or np.ndim(a) != 2 or \
-            np.ndim(b) != 2:
-        raise ValueError("Inputs must be column vectors")
 
-    if np.shape(a)[0] != np.shape(b)[0]:
-        raise ValueError("Input vectors must be the same length")
+    def _dotproductvectors(v1, v2):
+        # This operates on a StateVector
+        oout=0
+        for a_i, b_i in zip(v1, v2):
+            oout += a_i*b_i
+        return oout
 
-    out = 0
-    for a_i, b_i in zip(a, b):
-        out += a_i*b_i
+    if np.shape(a) != np.shape(b):
+        raise ValueError("Inputs must be (a collection of) column vectors of the same dimension")
 
-    return out
+    # Decide whether this is a StateVector or a StateVectors
+    if type(a) is StateVector and type(b) is StateVector:
+        return _dotproductvectors(a, b)
+    elif type(a) is StateVectors and type(b) is StateVectors:
+        out = []
+        for aa, bb in zip(a, b):
+            out.append(_dotproductvectors(aa, bb))
+        return np.reshape(out, np.shape(np.atleast_2d(a[0, :])))
+    else:
+        raise ValueError("Inputs must be `StateVector` or `StateVectors` and of the same type")
 
 
 def sde_euler_maruyama_integration(fun, t_values, state_x0):
