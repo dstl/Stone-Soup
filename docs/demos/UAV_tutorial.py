@@ -210,11 +210,11 @@ hypothesiser = DistanceHypothesiser(predictor, updater, meas)
 associator = NearestNeighbour(hypothesiser)
 
 
-tracker = SingleTargetTracker(initiator,
-                              deleter,
-                              detector,
-                              associator,
-                              updater)
+tracker = SingleTargetTracker(initiator=initiator,
+                              deleter=deleter,
+                              detector=detector,
+                              data_associator=associator,
+                              updater=updater)
 
 # %%
 # Run the Tracker

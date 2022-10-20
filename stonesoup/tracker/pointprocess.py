@@ -5,7 +5,6 @@ from .base import TrackerWithDetector
 from ..base import Property
 from ..hypothesiser.gaussianmixture import GaussianMixtureHypothesiser
 from ..mixturereducer.gaussianmixture import GaussianMixtureReducer
-from ..reader import DetectionReader
 from ..types.detection import Detection
 from ..types.mixture import GaussianMixture
 from ..types.numeric import Probability
@@ -19,8 +18,6 @@ class PointProcessMultiTargetTracker(TrackerWithDetector):
     Base class for Gaussian Mixture (GM) style implementations of
     point process derived filters
     """
-    detector: DetectionReader = Property(
-        doc="Detector used to generate detection objects.")
     updater: Updater = Property(
         doc="Updater used to update the objects to their new state.")
     hypothesiser: GaussianMixtureHypothesiser = Property(

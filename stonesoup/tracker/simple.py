@@ -9,7 +9,6 @@ from ..dataassociator import DataAssociator
 from ..deleter import Deleter
 from ..functions import gm_reduce_single
 from ..initiator import Initiator
-from ..reader import DetectionReader
 from ..types.array import StateVectors
 from ..types.detection import Detection
 from ..types.prediction import GaussianStatePrediction
@@ -41,7 +40,6 @@ class SingleTargetTracker(TrackerWithDetector):
     """
     initiator: Initiator = Property(doc="Initiator used to initialise the track.")
     deleter: Deleter = Property(doc="Deleter used to delete the track")
-    detector: DetectionReader = Property(doc="Detector used to generate detection objects.")
     data_associator: DataAssociator = Property(
         doc="Association algorithm to pair predictions to detections")
     updater: Updater = Property(doc="Updater used to update the track object to the new state.")
@@ -93,7 +91,6 @@ class MultiTargetTracker(TrackerWithDetector):
     """
     initiator: Initiator = Property(doc="Initiator used to initialise the track.")
     deleter: Deleter = Property(doc="Initiator used to initialise the track.")
-    detector: DetectionReader = Property(doc="Detector used to generate detection objects.")
     data_associator: DataAssociator = Property(
         doc="Association algorithm to pair predictions to detections")
     updater: Updater = Property(doc="Updater used to update the track object to the new state.")
@@ -145,7 +142,6 @@ class MultiTargetMixtureTracker(TrackerWithDetector):
     """
     initiator: Initiator = Property(doc="Initiator used to initialise the track.")
     deleter: Deleter = Property(doc="Initiator used to initialise the track.")
-    detector: DetectionReader = Property(doc="Detector used to generate detection objects.")
     data_associator: DataAssociator = Property(
         doc="Association algorithm to pair predictions to detections")
     updater: Updater = Property(doc="Updater used to update the track object to the new state.")
