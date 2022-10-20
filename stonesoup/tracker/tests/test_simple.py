@@ -5,8 +5,9 @@ from ..simple import SingleTargetTracker, MultiTargetTracker, \
 
 def test_single_target_tracker(
         initiator, deleter, detector, data_associator, updater):
-    tracker = SingleTargetTracker(
-        initiator, deleter, detector, data_associator, updater)
+
+    tracker = SingleTargetTracker(initiator=initiator, deleter=deleter, detector=detector,
+                                  data_associator=data_associator, updater=updater)
 
     previous_time = datetime.datetime(2018, 1, 1, 13, 59)
     total_tracks = set()
@@ -24,8 +25,9 @@ def test_single_target_tracker(
 
 def test_multi_target_tracker(
         initiator, deleter, detector, data_associator, updater):
-    tracker = MultiTargetTracker(
-        initiator, deleter, detector, data_associator, updater)
+
+    tracker = MultiTargetTracker(initiator=initiator, deleter=deleter, detector=detector,
+                                 data_associator=data_associator, updater=updater)
 
     previous_time = datetime.datetime(2018, 1, 1, 13, 59)
     max_tracks = 0
@@ -51,8 +53,9 @@ def test_multi_target_tracker(
 
 def test_multi_target_mixture_tracker(
         initiator, deleter, detector, data_mixture_associator, updater):
-    tracker = MultiTargetMixtureTracker(
-        initiator, deleter, detector, data_mixture_associator, updater)
+
+    tracker = MultiTargetMixtureTracker(initiator=initiator, deleter=deleter, detector=detector,
+                                        data_associator=data_mixture_associator, updater=updater)
 
     previous_time = datetime.datetime(2018, 1, 1, 13, 59)
     max_tracks = 0
