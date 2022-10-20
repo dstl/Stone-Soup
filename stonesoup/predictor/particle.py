@@ -102,18 +102,22 @@ class ParticleFlowKalmanPredictor(ParticlePredictor):
 class MultiModelPredictor(Predictor):
     """MultiModelPredictor class
 
-    An implementation of a Particle Filter predictor.
+    An implementation of a Particle Filter predictor utilising multiple models.
     """
     transition_model = None
     transition_models: Sequence[TransitionModel] = Property(
         doc="Transition models used to for particle transition, selected by model index on "
-            "particle."
+            "particle. Models dimensions can be subset of the overall state space, by "
+            "using :attr:`model_mappings`."
     )
     transition_matrix: np.ndarray = Property(
         doc="n-model by n-model transition matrix."
     )
-    position_mappings: Sequence[Sequence[int]] = Property(
-        doc="Sequence of position mappings associated with each transition model.")
+    model_mappings: Sequence[Sequence[int]] = Property(
+        doc="Sequence of mappings associated with each transition model. This enables mapping "
+            "between model and state space, enabling use of models that may have different "
+            "dimensions (e.g. velocity or acceleration). Parts of the state that aren't mapped "
+            "are set to zero.")
 
     @property
     def probabilities(self):
@@ -157,7 +161,7 @@ class MultiModelPredictor(Predictor):
 
             new_state_vector = self.apply_model(
                 prior[current_model_indices], transition_model, timestamp,
-                self.position_mappings[model_index], noise=True, **kwargs)
+                self.model_mappings[model_index], noise=True, **kwargs)
 
             new_particle_state.state_vector[:, current_model_indices] = new_state_vector
             new_particle_state.dynamic_model[current_model_indices] = new_dynamic_models
@@ -165,27 +169,28 @@ class MultiModelPredictor(Predictor):
         return new_particle_state
 
     @staticmethod
-    def apply_model(prior, transition_model, timestamp, position_mapping, **kwargs):
+    def apply_model(prior, transition_model, timestamp, model_mapping, **kwargs):
         # Based on given position mapping create a new state vector that contains only the
         # required states
         orig_ndim = prior.ndim
-        prior.state_vector = prior.state_vector[position_mapping, :]
+        prior.state_vector = prior.state_vector[model_mapping, :]
         new_state_vector = transition_model.function(
             prior, time_interval=timestamp - prior.timestamp, **kwargs)
 
         # Calculate the indices removed from the state vector to become compatible with the
         # dynamic model
         for j in range(orig_ndim):
-            if j not in position_mapping:
+            if j not in model_mapping:
                 new_state_vector = np.insert(new_state_vector, j, 0, axis=0)
 
         return new_state_vector
 
 
 class RaoBlackwellisedMultiModelPredictor(MultiModelPredictor):
-    """ParticlePredictor class
+    """Rao-Blackwellised Multi Model Predictor class
 
-    An implementation of a Particle Filter predictor.
+    An implementation of a Particle Filter predictor utilising multiple models, with per
+    particle model probabilities.
     """
 
     @predict_lru_cache()
@@ -226,7 +231,7 @@ class RaoBlackwellisedMultiModelPredictor(MultiModelPredictor):
 
             new_state_vector = self.apply_model(
                 prior[new_model_indices], transition_model, timestamp,
-                self.position_mappings[model_index], noise=True, **kwargs)
+                self.model_mappings[model_index], noise=True, **kwargs)
 
             new_particle_state.state_vector[:, new_model_indices] = new_state_vector
 

@@ -328,10 +328,10 @@ class RaoBlackwellisedParticleUpdater(MultiModelParticleUpdater):
         for model_index, transition_model in enumerate(predictor.transition_models):
             required_space_prior = copy.copy(prediction.parent)
             required_space_prior.state_vector = \
-                required_space_prior.state_vector[predictor.position_mappings[model_index], :]
+                required_space_prior.state_vector[predictor.model_mappings[model_index], :]
             required_space_pred = copy.copy(prediction)
             required_space_pred.state_vector = \
-                required_space_pred.state_vector[predictor.position_mappings[model_index], :]
+                required_space_pred.state_vector[predictor.model_mappings[model_index], :]
 
             prob_position_given_model_and_old_position = transition_model.pdf(
                 required_space_pred, required_space_prior,
