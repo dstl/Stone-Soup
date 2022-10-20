@@ -214,9 +214,9 @@ class RaoBlackwellisedMultiModelPredictor(MultiModelPredictor):
 
         # Change the value of the dynamic value randomly according to the
         # matrix
-        new_dynamic_models = np.array([
-            np.random.choice(len(self.transition_models), p=model_probabiliy)
-            for model_probabiliy in prior.model_probabilities.T])
+        new_dynamic_models = np.argmax(
+            prior.model_probabilities.astype(float).cumsum(0) > np.random.rand(len(prior)),
+            axis=0)
 
         for model_index, transition_model in enumerate(self.transition_models):
 
