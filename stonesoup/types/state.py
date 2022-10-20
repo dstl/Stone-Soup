@@ -1,9 +1,9 @@
 import copy
 import datetime
 import uuid
-from collections import abc, OrderedDict
+from collections import abc
 from numbers import Integral
-from typing import MutableSequence, Any, Optional, Sequence
+from typing import MutableSequence, Any, Optional, Sequence, MutableMapping
 import typing
 
 import numpy as np
@@ -488,15 +488,16 @@ class ASDGaussianState(ASDState):
     the name suggests is described by a Gaussian state distribution.
     """
     multi_covar: CovarianceMatrix = Property(doc="Covariance of all timesteps")
-    correlation_matrices: OrderedDict = Property(
+    correlation_matrices: MutableSequence[MutableMapping[str, np.ndarray]] = Property(
         default=None,
-        doc="Dict of Correlation Matrices, consisting of P_{l|l}, P_{l|l+1} and F_{l+1|l} "
-            "built in the Kalman predictor and Kalman updater")
+        doc="Sequence of Correlation Matrices, consisting of :math:`P_{l|l}`, :math:`P_{l|l+1}` "
+            "and :math:`F_{l+1|l}` built in the Kalman predictor and Kalman updater, aligned to "
+            ":attr:`timestamps`")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.correlation_matrices is None:
-            self.correlation_matrices = OrderedDict()
+            self.correlation_matrices = []
 
     def __getitem__(self, item):
         if isinstance(item, Integral):

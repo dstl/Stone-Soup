@@ -18,7 +18,7 @@ def test_asdkalman():
         np.array([[-6.45], [0.7]]),
         multi_covar=np.array([[4.1123, 0.0013], [0.0013, 0.0365]]),
         timestamps=[timestamp],
-        correlation_matrices={timestamp: {'P': np.eye(2)}},
+        correlation_matrices=[{'P': np.eye(2)}],
         act_timestamp=timestamp)
     measurement = Detection(np.array([[-6.23]]), timestamp=timestamp)
 

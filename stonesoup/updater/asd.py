@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from functools import lru_cache
 
 import numpy as np
@@ -123,11 +122,10 @@ class ASDKalmanUpdater(KalmanUpdater):
             posterior_covariance = \
                 (posterior_covariance + posterior_covariance.T) / 2
 
-        # save the new posterior, if it is no out of sequence measurement
-        correlation_matrices[predicted_state.act_timestamp] = pred_corr_matrices = \
-            correlation_matrices.setdefault(predicted_state.act_timestamp, dict()).copy()
         t_index = predicted_state.timestamps.index(predicted_state.act_timestamp)
         t2t_plus = slice(t_index * predicted_state.ndim, (t_index+1) * predicted_state.ndim)
+        # save the new posterior, if it is no out of sequence measurement
+        correlation_matrices[t_index] = pred_corr_matrices = correlation_matrices[t_index].copy()
 
         # update covariance after calculating
         pred_corr_matrices['P'] = posterior_covariance[t2t_plus, t2t_plus]
@@ -138,7 +136,6 @@ class ASDKalmanUpdater(KalmanUpdater):
                 @ np.linalg.inv(pred_corr_matrices['P_pred']))
         except KeyError:
             pass
-        correlation_matrices = OrderedDict(sorted(correlation_matrices.items(), reverse=True))
 
         return ASDGaussianStateUpdate(multi_state_vector=posterior_mean,
                                       multi_covar=posterior_covariance,

@@ -1,5 +1,4 @@
 import copy
-from collections import OrderedDict
 from itertools import islice
 from operator import itemgetter
 
@@ -92,7 +91,7 @@ class ASDKalmanPredictor(KalmanPredictor):
         # Build the first correlation matrix just after starting the
         # predictor the first time.
         if not correlation_matrices:
-            correlation_matrices.setdefault(prior.timestamp, dict())['P'] = prior.covar
+            correlation_matrices.append({'P': prior.covar})
 
         # Consider, if the given timestep is an Out-Of-Sequence measurement
         t_index = prior.timestamps.index(timestamp_from_which_is_predicted)
@@ -122,8 +121,8 @@ class ASDKalmanPredictor(KalmanPredictor):
             p_pred = np.vstack((p_top, p_bottom))
 
             # add new correlation matrix with the present time step
-            correlation_matrices[timestamp_from_which_is_predicted] = time_corr_matrices = \
-                correlation_matrices[timestamp_from_which_is_predicted].copy()
+            correlation_matrices[t_index] = time_corr_matrices = \
+                correlation_matrices[t_index].copy()
             time_corr_matrices['P_pred'] = p_pred_m
             time_corr_matrices['F'] = transition_matrix
             time_corr_matrices['PFP'] = \
@@ -131,8 +130,7 @@ class ASDKalmanPredictor(KalmanPredictor):
                 @ time_corr_matrices['F'].T \
                 @ np.linalg.inv(time_corr_matrices['P_pred'])
 
-            correlation_matrices.setdefault(timestamp, dict())['P'] = p_pred_m
-            correlation_matrices = OrderedDict(sorted(correlation_matrices.items(), reverse=True))
+            correlation_matrices.insert(t_index, {'P': p_pred_m})
 
         else:
             # Below based on equations from 69 to 75 in reference 2.
@@ -183,22 +181,19 @@ class ASDKalmanPredictor(KalmanPredictor):
             P_right_lower = prior.multi_covar[t_index * ndim:, t_index * ndim:]
 
             # add new correlation matrix with the present time step
-            correlation_matrices[timestamp_from_which_is_predicted] = pred_from_corr_matrices = \
-                correlation_matrices[timestamp_from_which_is_predicted].copy()
+            correlation_matrices[t_index] = pred_from_corr_matrices = \
+                correlation_matrices[t_index].copy()
             pred_from_corr_matrices['P_pred'] = p_pred_m
             pred_from_corr_matrices['F'] = transition_matrix_m
             pred_from_corr_matrices['PFP'] = (
                     pred_from_corr_matrices['P'] @ transition_matrix_m.T @ np.linalg.inv(p_pred_m))
 
-            correlation_matrices[timestamp] = {}
-            correlation_matrices[timestamp]['F'] = transition_matrix_m_plus_1
-            correlation_matrices[timestamp]['P_pred'] = p_pred_m_plus_1
-            correlation_matrices[timestamp]['P'] = p_pred_m
-            correlation_matrices[timestamp]['PFP'] = \
+            correlation_matrices.insert(t_index, {})
+            correlation_matrices[t_index]['F'] = transition_matrix_m_plus_1
+            correlation_matrices[t_index]['P_pred'] = p_pred_m_plus_1
+            correlation_matrices[t_index]['P'] = p_pred_m
+            correlation_matrices[t_index]['PFP'] = \
                 p_pred_m @ transition_matrix_m_plus_1.T @ np.linalg.inv(p_pred_m_plus_1)
-
-            # resort the dict
-            correlation_matrices = OrderedDict(sorted(correlation_matrices.items(), reverse=True))
 
             # generate prediction matrix
             p_pred = np.zeros((ndim * (prior.nstep+1), ndim * (prior.nstep+1)))
@@ -214,8 +209,7 @@ class ASDKalmanPredictor(KalmanPredictor):
             covars.append(p_pred_m_given_k)
 
             for i, ts in enumerate(timestamps_to_recalculate):
-                corrs = {k: v for k, v in correlation_matrices.items()
-                         if k <= ts}
+                corrs = correlation_matrices[i:]
                 combined_retrodiction_matrices = self._generate_C_matrices(corrs, ndim)
                 combined_retrodiction_matrices = combined_retrodiction_matrices[1:]
                 W_column = np.vstack([c @ covars[i] for c in combined_retrodiction_matrices])
@@ -244,7 +238,7 @@ class ASDKalmanPredictor(KalmanPredictor):
 
     def _generate_C_matrices(self, correlation_matrices, ndim):
         combined_retrodiction_matrices = [np.eye(ndim)]
-        for item in islice(correlation_matrices.values(), 1, None):
+        for item in islice(correlation_matrices, 1, None):
             combined_retrodiction_matrices.append(
                 combined_retrodiction_matrices[-1] @ item['PFP'])
         return combined_retrodiction_matrices
@@ -271,12 +265,10 @@ class ASDKalmanPredictor(KalmanPredictor):
                 predicted_state.multi_state_vector[:index]
             predicted_state.multi_covar = \
                 predicted_state.multi_covar[:index, :index]
-            deleted_timestamps = \
-                predicted_state.timestamps[predicted_state.max_nstep:]
             predicted_state.timestamps = \
                 predicted_state.timestamps[:predicted_state.max_nstep]
-            _ = [predicted_state.correlation_matrices.pop(el)
-                 for el in deleted_timestamps]
+            predicted_state.correlation_matrices = \
+                predicted_state.correlation_matrices[:predicted_state.max_nstep]
             return predicted_state
         else:
             return predicted_state
