@@ -958,8 +958,8 @@ class AnimationPlotter(_Plotter):
         times_to_plot : List of :class:`~.datetime`
             List of datetime objects of when to refresh and draw the animation
         plot_item_expiry: :class:`~.timedelta`, Optional
-            Describes how long states will remain present in the figure. Default value of None means
-            data is shown indefinitely
+            Describes how long states will remain present in the figure. Default value of None
+            means data is shown indefinitely
         \\*\\*kwargs: dict
             Additional arguments to be passed to the animation.FuncAnimation function
         """
