@@ -255,7 +255,7 @@ def test_dotproduct(state_vector1, state_vector2):
         with pytest.raises(ValueError):
             dotproduct(state_vector1, state_vector2)
     elif type(state_vector1) != StateVectors and type(state_vector2) != StateVectors and \
-        type(state_vector2) != StateVector and type(state_vector1) != StateVector:
+            type(state_vector2) != StateVector and type(state_vector1) != StateVector:
         with pytest.raises(ValueError):
             dotproduct(state_vector1, state_vector2)
     else:

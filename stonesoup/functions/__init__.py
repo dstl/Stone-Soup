@@ -633,7 +633,7 @@ def dotproduct(a, b):
 
     def _dotproductvectors(v1, v2):
         # This operates on a StateVector
-        oout=0
+        oout = 0
         for a_i, b_i in zip(v1, v2):
             oout += a_i*b_i
         return oout
