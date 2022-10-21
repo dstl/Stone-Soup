@@ -3,6 +3,7 @@ from functools import lru_cache
 
 import numpy as np
 from scipy.linalg import inv
+from scipy.special import logsumexp
 
 from .base import Updater
 from .kalman import KalmanUpdater, ExtendedKalmanUpdater
@@ -339,17 +340,18 @@ class RaoBlackwellisedParticleUpdater(MultiModelParticleUpdater):
             )
 
             # Looks up p(m_k|m_k-1)
-            prob_of_transition = np.asanyarray(predictor.transition_matrix)[model_index, :]
+            log_prob_of_transition = np.log(
+                np.asfarray(predictor.transition_matrix)[model_index, :])
 
-            product_of_probs = \
-                prob_position_given_model_and_old_position \
-                * prob_of_transition[:, np.newaxis] \
-                * prediction.model_probabilities  # p(m_k-1|x_1:k-1)
+            log_product_of_probs = \
+                np.asfarray(np.log(prob_position_given_model_and_old_position)) \
+                + log_prob_of_transition[:, np.newaxis] \
+                + np.asfarray(np.log(prediction.model_probabilities))  # p(m_k-1|x_1:k-1)
 
-            denominator_components.append(np.sum(product_of_probs, axis=0))
+            denominator_components.append(logsumexp(log_product_of_probs, axis=0))
 
         # Calculate the denominator
-        new_probabilities = np.stack(denominator_components)
-        new_probabilities /= np.sum(new_probabilities, axis=0)
+        new_log_probabilities = np.stack(denominator_components)
+        new_log_probabilities -= logsumexp(new_log_probabilities, axis=0)
 
-        return new_probabilities
+        return np.exp(new_log_probabilities)
