@@ -631,24 +631,14 @@ def dotproduct(a, b):
         A (set of) scalar value(s) representing the dot product of the vectors.
     """
 
-    def _dotproductvectors(v1, v2):
-        # This operates on a StateVector
-        oout = 0
-        for a_i, b_i in zip(v1, v2):
-            oout += a_i*b_i
-        return oout
-
     if np.shape(a) != np.shape(b):
         raise ValueError("Inputs must be (a collection of) column vectors of the same dimension")
 
     # Decide whether this is a StateVector or a StateVectors
     if type(a) is StateVector and type(b) is StateVector:
-        return _dotproductvectors(a, b)
+        return np.sum(a*b)
     elif type(a) is StateVectors and type(b) is StateVectors:
-        out = []
-        for aa, bb in zip(a, b):
-            out.append(_dotproductvectors(aa, bb))
-        return np.reshape(out, np.shape(np.atleast_2d(a[0, :])))
+        return np.asarray(np.sum(a*b, axis=0))
     else:
         raise ValueError("Inputs must be `StateVector` or `StateVectors` and of the same type")
 
