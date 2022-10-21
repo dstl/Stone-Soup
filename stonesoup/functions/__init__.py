@@ -638,7 +638,7 @@ def dotproduct(a, b):
     if type(a) is StateVector and type(b) is StateVector:
         return np.sum(a*b)
     elif type(a) is StateVectors and type(b) is StateVectors:
-        return np.asarray(np.sum(a*b, axis=0))
+        return np.atleast_2d(np.asarray(np.sum(a*b, axis=0)))
     else:
         raise ValueError("Inputs must be `StateVector` or `StateVectors` and of the same type")
 
