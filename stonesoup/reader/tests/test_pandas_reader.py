@@ -14,14 +14,14 @@ except ImportError as error:
 
 
 # generate dummy pandas dataframe for ground-truth testing purposes
-gt_test_df =  pd.read_table(
+gt_test_df = pd.read_table(
                     StringIO("""x,y,z,identifier,t
                     10,20,30,22018332,2018-01-01T14:00:00Z
                     11,21,31,22018332,2018-01-01T14:01:00Z
                     12,22,32,22018332,2018-01-01T14:02:00Z
                     13,23,33,32018332,2018-01-01T14:03:00Z
                     14,24,34,32018332,2018-01-01T14:04:00Z
-                    """), 
+                    """),
                     sep=',', parse_dates=['t'])
 
 
@@ -68,7 +68,7 @@ def test_gt_df_3d_time():
     assert len(final_gt_paths) == 2
 
     ground_truth_states = [gt_state for gt_path in final_gt_paths
-                            for gt_state in gt_path]
+                           for gt_state in gt_path]
 
     for n, gt_state in enumerate(
             sorted(ground_truth_states, key=attrgetter('timestamp'))):
@@ -81,7 +81,7 @@ def test_gt_df_3d_time():
 
 def test_gt_df_multi_per_timestep():
     # test case with multiple entries per timestep
-    det_test_df =  pd.read_table(
+    det_test_df = pd.read_table(
                 StringIO("""x,y,z,identifier,t
                 10,20,30,22018332,2018-01-01T14:00:00Z
                 11,21,31,22018332,2018-01-01T14:01:00Z
@@ -89,7 +89,7 @@ def test_gt_df_multi_per_timestep():
                 13,23,33,32018332,2018-01-01T14:02:00Z
                 14,24,34,32018332,2018-01-01T14:03:00Z
                 """),
-                    sep=',', parse_dates=['t'])
+                sep=',', parse_dates=['t'])
 
     df_reader = DataFrameGroundTruthReader(
                             dataframe=det_test_df,
@@ -107,7 +107,7 @@ def test_gt_df_multi_per_timestep():
 
 def test_detections_df():
     # test dataframe detection reader with dummy dataframe
-    det_test_df =  pd.read_table(
+    det_test_df = pd.read_table(
                 StringIO("""x,y,z,identifier,t
                 10,20,30,22018332,2018-01-01T14:00:00Z
                 11,21,31,22018332,2018-01-01T14:01:00Z
@@ -117,10 +117,10 @@ def test_detections_df():
 
     df_reader = DataFrameDetectionReader(
         dataframe=det_test_df,
-        state_vector_fields=["x", "y"], 
+        state_vector_fields=["x", "y"],
         time_field="t")
 
-    detections = [detection for _, detections in df_reader 
+    detections = [detection for _, detections in df_reader
                   for detection in detections]
 
     for n, detection in enumerate(detections):
@@ -139,20 +139,20 @@ def test_detections_df():
 
 def test_detections_df_multi_per_timestep():
     # create test df example with multi-detections per timestep
-    det_test_df =  pd.read_table(
+    det_test_df = pd.read_table(
                     StringIO("""x,y,z,identifier,t
                     10,20,30,22018332,2018-01-01T14:00:00Z
                     11,21,31,22018332,2018-01-01T14:01:00Z
                     12,22,32,22018332,2018-01-01T14:02:00Z
                     13,23,33,32018332,2018-01-01T14:02:00Z
                     14,24,34,32018332,2018-01-01T14:03:00Z
-                    """), 
+                    """),
                     sep=',', parse_dates=['t'])
 
     # test detections with multiple entries per timestep
     df_reader = DataFrameDetectionReader(
         dataframe=det_test_df,
-        state_vector_fields=["x", "y"], 
+        state_vector_fields=["x", "y"],
         time_field="t")
 
     for time, detections in df_reader:
