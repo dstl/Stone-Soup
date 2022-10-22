@@ -16,6 +16,7 @@ except ImportError as error:
 from ..base import Property
 from ..buffered_generator import BufferedGenerator
 from ..reader.base import GroundTruthReader, DetectionReader, Reader
+from ..types.detection import Detection
 from ..types.groundtruth import GroundTruthPath, GroundTruthState
 
 
