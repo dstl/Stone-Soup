@@ -215,6 +215,13 @@ ground_truth_reader = DataFrameGroundTruthReader(
 
 
 # %%
+# Let's demonstrate the ground truth reader generating output for one iteration:
+
+next(iter(ground_truth_reader))
+
+
+
+# %%
 # Another benefit of this ground truth reader is that we now have convenient access to the original
 # dataframe, using the .dataframe attribute, like so:
 
