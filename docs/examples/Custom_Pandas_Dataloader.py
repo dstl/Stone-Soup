@@ -86,7 +86,11 @@ class _DataFrameReader(Reader):
             time_field_value = datetime.utcfromtimestamp(int(timestamp))
             time_field_value += timedelta(microseconds=fractional * 1E6)
         else:
-            time_field_value = parse(row[self.time_field], ignoretz=True)
+            time_field_value = row[self.time_field]
+            
+            if not isinstance(time_field_value, datetime):
+                time_field_value = parse(time_field_value, ignoretz=True)
+            
         return time_field_value
 
 
