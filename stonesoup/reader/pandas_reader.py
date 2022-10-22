@@ -54,7 +54,7 @@ class _DataFrameReader(Reader):
             
             if not isinstance(time_field_value, datetime):
                 time_field_value = parse(time_field_value, ignoretz=True)
-            
+
         return time_field_value
 
 
@@ -114,13 +114,13 @@ class DataFrameDetectionReader(DetectionReader, _DataFrameReader):
     ----------
     """
     dataframe: pd.DataFrame = Property(doc="DataFrame containing the ground truth data.")
-    
+
     @BufferedGenerator.generator_method
     def detections_gen(self):
         detections = set()
         previous_time = None
         for row in self.dataframe.to_dict(orient="records"):
-            
+  
             time = self._get_time(row)
             if previous_time is not None and previous_time != time:
                 yield previous_time, detections
