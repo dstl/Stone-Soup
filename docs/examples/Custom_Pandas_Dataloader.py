@@ -247,7 +247,7 @@ class DataFrameDetectionReader(DetectionReader, _DataFrameReader):
     Parameters
     ----------
     """
-    dataframe: pd.DataFrame = Property(doc="DataFrame containing the ground truth data.")
+    dataframe: pd.DataFrame = Property(doc="DataFrame containing the detection data.")
     
     @BufferedGenerator.generator_method
     def detections_gen(self):
