@@ -1,12 +1,9 @@
 import datetime
 import numpy as np
-import pytest 
+import pytest
 
-from dateutil.parser import parse
 from io import StringIO
-from math import modf
 from operator import attrgetter
-from typing import Sequence, Collection
 
 from ..pandas_reader import DataFrameGroundTruthReader, DataFrameDetectionReader
 
@@ -15,12 +12,6 @@ try:
 except ImportError as error:
     raise ImportError(
         "Usage of Pandas Readers readers requires the dependency 'pandas' being installed. ") from error
-
-from ...base import Property
-from ...buffered_generator import BufferedGenerator
-from ...reader.base import GroundTruthReader, DetectionReader, Reader
-from ...types.detection import Detection
-from ...types.groundtruth import GroundTruthPath, GroundTruthState
 
 
 # generate dummy pandas dataframe for testing purposes
@@ -35,15 +26,17 @@ test_dataframe =  pd.read_table(
                     sep=',', parse_dates=['t'])
 
 
-def test_csv_gt_2d():
+@pytest.mark.parametrize(
+    'reader_type',
+    (DataFrameGroundTruthReader, DataFrameDetectionReader))
+def test_csv_gt_2d(reader_type):
     # run test with:
     #   - 2d co-ordinates
     #   - default time field format
-    #   - no special options
-    df_reader = DataFrameGroundTruthReader(dataframe=test_dataframe,
-                                           state_vector_fields=["x", "y"],
-                                           time_field="t",
-                                           path_id_field="identifier")
+    df_reader = reader_type(dataframe=test_dataframe,
+                            state_vector_fields=["x", "y"],
+                            time_field="t",
+                            path_id_field="identifier")
 
     final_gt_paths = set()
     for _, gt_paths_at_timestep in df_reader:
@@ -64,11 +57,13 @@ def test_csv_gt_2d():
         assert gt_state.timestamp.date() == datetime.date(2018, 1, 1)
 
 
-def test_csv_gt_3d_time():
+@pytest.mark.parametrize(
+    'reader_type',
+    (DataFrameGroundTruthReader, DataFrameDetectionReader))
+def test_csv_gt_3d_time(reader_type):
     # run test with:
     #   - 3d co-ordinates
-    #   - time field format specified
-    df_reader = DataFrameGroundTruthReader(
+    df_reader = reader_type(
                     dataframe=test_dataframe,
                     state_vector_fields=["x", "y", "z"],
                     time_field="t",
@@ -93,7 +88,10 @@ def test_csv_gt_3d_time():
         assert gt_state.timestamp.date() == datetime.date(2018, 1, 1)
 
 
-def test_csv_gt_multi_per_timestep():
+@pytest.mark.parametrize(
+    'reader_type',
+    (DataFrameGroundTruthReader, DataFrameDetectionReader))
+def test_csv_gt_multi_per_timestep(reader_type):
     # test case with multiple entries per timestep
     test_df =  pd.read_table(
                 StringIO("""x,y,z,identifier,t
@@ -105,11 +103,11 @@ def test_csv_gt_multi_per_timestep():
                 """), 
                     sep=',', parse_dates=['t'])
 
-    df_reader = DataFrameGroundTruthReader(
-                            dataframe=test_df,
-                            state_vector_fields=["x", "y"],
-                            time_field="t",
-                            path_id_field="identifier")
+    df_reader = reader_type(
+                        dataframe=test_df,
+                        state_vector_fields=["x", "y"],
+                        time_field="t",
+                        path_id_field="identifier")
 
     for time, ground_truth_paths in df_reader:
         # remove timestamp from pd timestamp before comparing
