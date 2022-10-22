@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import numpy as np
-import os
 
 from datetime import datetime, timedelta
 from dateutil.parser import parse
@@ -11,7 +10,7 @@ try:
     import pandas as pd
 except ImportError as error:
     raise ImportError(
-        "Usage of Pandas Readers readers requires the dependency 'pandas' being installed. ") from error
+        "Pandas Readers require dependency 'pandas' being installed. ") from error
 
 from ..base import Property
 from ..buffered_generator import BufferedGenerator
@@ -89,10 +88,10 @@ class DataFrameGroundTruthReader(GroundTruthReader, _DataFrameReader):
             previous_time = time
 
             state = GroundTruthState(
-                np.array([[row[col_name]] for col_name in self.state_vector_fields],
+                    np.array([[row[col_name]] for col_name in self.state_vector_fields],
                         dtype=np.float_),
-                timestamp=time,
-                metadata=self._get_metadata(row))
+                        timestamp=time,
+                        metadata=self._get_metadata(row))
 
             id_ = row[self.path_id_field]
             if id_ not in groundtruth_dict:
@@ -131,9 +130,9 @@ class DataFrameDetectionReader(DetectionReader, _DataFrameReader):
 
             detections.add(Detection(
                 np.array([[row[col_name]] for col_name in self.state_vector_fields],
-                        dtype=np.float_),
-                timestamp=time,
-                metadata=self._get_metadata(row)))
+                            dtype=np.float_),
+                            timestamp=time,
+                            metadata=self._get_metadata(row)))
 
         # Yield remaining
         yield previous_time, detections
