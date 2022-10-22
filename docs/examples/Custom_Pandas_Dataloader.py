@@ -35,6 +35,8 @@ import numpy as np
 import os
 import pandas as pd
 
+from math import modf
+
 from stonesoup.base import Property
 from stonesoup.buffered_generator import BufferedGenerator
 from stonesoup.reader.base import GroundTruthReader, DetectionReader, Reader
@@ -87,10 +89,10 @@ class _DataFrameReader(Reader):
             time_field_value += timedelta(microseconds=fractional * 1E6)
         else:
             time_field_value = row[self.time_field]
-            
+
             if not isinstance(time_field_value, datetime):
                 time_field_value = parse(time_field_value, ignoretz=True)
-            
+
         return time_field_value
 
 
@@ -172,15 +174,15 @@ vel_x, vel_y, vel_z = [], [], []
 
 num_steps = 25
 for k in range(1, num_steps + 1):
-    
+
     time = start_time+timedelta(seconds=k)
-    
+
     next_state = GroundTruthState(
         transition_model.function(truth[k-1], noise=True, 
                                   time_interval=timedelta(seconds=1)),
         timestamp=time)
     truth.append(next_state)
-    
+
     times.append(time)
     x.append(next_state.state_vector[0])
     vel_x.append(next_state.state_vector[1])
@@ -252,13 +254,13 @@ class DataFrameDetectionReader(DetectionReader, _DataFrameReader):
     ----------
     """
     dataframe: pd.DataFrame = Property(doc="DataFrame containing the detection data.")
-    
+
     @BufferedGenerator.generator_method
     def detections_gen(self):
         detections = set()
         previous_time = None
         for row in self.dataframe.to_dict(orient="records"):
-            
+
             time = self._get_time(row)
             if previous_time is not None and previous_time != time:
                 yield previous_time, detections

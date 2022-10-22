@@ -4,6 +4,7 @@ import os
 
 from datetime import datetime, timedelta
 from dateutil.parser import parse
+from math import modf
 from typing import Sequence, Collection
 
 try:
