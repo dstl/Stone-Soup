@@ -1,8 +1,8 @@
 import itertools
 
 import numpy as np
+from scipy.optimize import linear_sum_assignment
 
-from ._assignment import assign2D
 from .base import DataAssociator
 from ..base import Property
 from ..hypothesiser import Hypothesiser
@@ -234,11 +234,9 @@ class GNNWith2DAssignment(DataAssociator):
         # to assign tracks to nearest detection
         # Maximise flag = true for probability instance
         # (converts minimisation problem to maximisation problem)
-        gain, col4row, row4col = assign2D(
-            distance_matrix, probability_flag)
-
-        # Ensure the problem was feasible
-        if gain.size <= 0:
+        try:
+            row4col, col4row = linear_sum_assignment(distance_matrix, probability_flag)
+        except ValueError:
             raise RuntimeError("Assignment was not feasible")
 
         # Generate dict of key/value pairs

@@ -51,6 +51,7 @@
 
 import numpy as np
 import random
+from ordered_set import OrderedSet
 from datetime import datetime, timedelta
 
 start_time = datetime.now()
@@ -79,7 +80,7 @@ transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005
                                                           ConstantVelocity(0.005)])
 
 yps = range(0, 100, 10)  # y value for prior state
-truths = []
+truths = OrderedSet()
 ntruths = 3  # number of ground truths in simulation
 time_max = 50  # timestamps the simulation is observed over
 
@@ -95,7 +96,7 @@ for j in range(0, ntruths):
         truth.append(
             GroundTruthState(transition_model.function(truth[k - 1], noise=True, time_interval=timedelta(seconds=1)),
                              timestamp=start_time + timedelta(seconds=k)))
-    truths.append(truth)
+    truths.add(truth)
 
     xdirection *= -1
     if j % 2 == 0:
@@ -107,10 +108,9 @@ for j in range(0, ntruths):
 from stonesoup.plotter import Plotterly
 
 # Stonesoup plotter requires sets not lists
-truths_set = set(truths)
 
 plotter = Plotterly()
-plotter.plot_ground_truths(truths_set, [0, 2])
+plotter.plot_ground_truths(truths, [0, 2])
 plotter.fig
 
 # %%
@@ -211,14 +211,10 @@ for j in range(0, ntruths):
 from stonesoup.types.track import Track
 
 # Initialise tracks from the RandomSensorManager
-tracksA = []
-for j, prior in enumerate(priors):
-    tracksA.append(Track([prior]))
+tracksA = {Track([prior]) for prior in priors}
 
 # Initialise tracks from the BruteForceSensorManager
-tracksB = []
-for j, prior in enumerate(priors):
-    tracksB.append(Track([prior]))
+tracksB = {Track([prior]) for prior in priors}
 
 # %%
 # Create sensor managers
@@ -322,7 +318,7 @@ for timestep in timesteps[1:]:
     chosen_actions = randomsensormanager.choose_actions(tracksA, timestep)
 
     # Create empty dictionary for measurements
-    measurementsA = []
+    measurementsA = set()
 
     for chosen_action in chosen_actions:
         for sensor, actions in chosen_action.items():
@@ -332,8 +328,7 @@ for timestep in timesteps[1:]:
         sensor.act(timestep)
 
         # Observe this ground truth
-        measurements = sensor.measure(OrderedSet(truth[timestep] for truth in truths), noise=True)
-        measurementsA.extend(measurements)
+        measurementsA |= sensor.measure(OrderedSet(truth[timestep] for truth in truths), noise=True)
 
     hypotheses = data_associator.associate(tracksA,
                                            measurementsA,
@@ -352,8 +347,8 @@ for timestep in timesteps[1:]:
 
 plotterA = Plotterly()
 plotterA.plot_sensors(sensor_setA)
-plotterA.plot_ground_truths(truths_set, [0, 2])
-plotterA.plot_tracks(set(tracksA), [0, 2], uncertainty=True)
+plotterA.plot_ground_truths(truths, [0, 2])
+plotterA.plot_tracks(tracksA, [0, 2], uncertainty=True)
 plotterA.fig
 
 # %%
@@ -393,7 +388,7 @@ for timestep in timesteps[1:]:
     chosen_actions = bruteforcesensormanager.choose_actions(tracksB, timestep)
 
     # Create empty dictionary for measurements
-    measurementsB = []
+    measurementsB = set()
 
     for chosen_action in chosen_actions:
         for sensor, actions in chosen_action.items():
@@ -403,8 +398,7 @@ for timestep in timesteps[1:]:
         sensor.act(timestep)
 
         # Observe this ground truth
-        measurements = sensor.measure(OrderedSet(truth[timestep] for truth in truths), noise=True)
-        measurementsB.extend(measurements)
+        measurementsB |= sensor.measure(OrderedSet(truth[timestep] for truth in truths), noise=True)
 
     hypotheses = data_associator.associate(tracksB,
                                            measurementsB,
@@ -422,8 +416,8 @@ for timestep in timesteps[1:]:
 
 plotterB = Plotterly()
 plotterB.plot_sensors(sensor_setB)
-plotterB.plot_ground_truths(truths_set, [0, 2])
-plotterB.plot_tracks(set(tracksB), [0, 2], uncertainty=True)
+plotterB.plot_ground_truths(truths, [0, 2])
+plotterB.plot_tracks(tracksB, [0, 2], uncertainty=True)
 plotterB.fig
 
 # %%

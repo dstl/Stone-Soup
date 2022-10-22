@@ -6,12 +6,12 @@ import numpy as np
 from scipy.linalg import inv, pinv, block_diag
 from scipy.stats import multivariate_normal
 
-from ...base import Property
+from ...base import Property, clearable_cached_property
 from ...types.numeric import Probability
 
 from ...functions import cart2pol, pol2cart, \
     cart2sphere, sphere2cart, cart2angles, \
-    rotx, roty, rotz
+    build_rotation_matrix
 from ...types.array import StateVector, CovarianceMatrix, StateVectors
 from ...types.angle import Bearing, Elevation
 from ..base import LinearModel, GaussianModel, ReversibleModel
@@ -129,23 +129,10 @@ class NonLinearGaussianMeasurement(MeasurementModel, GaussianModel, ABC):
 
         return self.noise_covar
 
-    @property
-    def _rotation_matrix(self) -> np.ndarray:
-        """_rotation_matrix getter method
-
-        Calculates and returns the (3D) axis rotation matrix.
-
-        Returns
-        -------
-        :class:`numpy.ndarray` of shape (3, 3)
-            The model (3D) rotation matrix.
-        """
-
-        theta_x = -self.rotation_offset[0, 0]
-        theta_y = self.rotation_offset[1, 0]
-        theta_z = -self.rotation_offset[2, 0]
-
-        return rotz(theta_z)@roty(theta_y)@rotx(theta_x)
+    @clearable_cached_property('rotation_offset')
+    def rotation_matrix(self) -> np.ndarray:
+        """3D axis rotation matrix"""
+        return build_rotation_matrix(self.rotation_offset)
 
 
 class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
@@ -262,7 +249,7 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
         xyz = state.state_vector[self.mapping, :] - self.translation_offset
 
         # Rotate coordinates
-        xyz_rot = self._rotation_matrix @ xyz
+        xyz_rot = self.rotation_matrix @ xyz
 
         # Convert to Spherical
         rho, phi, theta = cart2sphere(xyz_rot[0, :], xyz_rot[1, :], xyz_rot[2, :])
@@ -276,7 +263,7 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
         theta, phi, rho = detection.state_vector
         xyz = StateVector(sphere2cart(rho, phi, theta))
 
-        inv_rotation_matrix = inv(self._rotation_matrix)
+        inv_rotation_matrix = inv(self.rotation_matrix)
         xyz = inv_rotation_matrix @ xyz
 
         res = np.zeros((self.ndim_state, 1)).view(StateVector)
@@ -381,7 +368,7 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
         xy = StateVector(pol2cart(rho, phi))
 
         xyz = np.concatenate((xy, StateVector([0])), axis=0)
-        inv_rotation_matrix = inv(self._rotation_matrix)
+        inv_rotation_matrix = inv(self.rotation_matrix)
         xyz = inv_rotation_matrix @ xyz
         xy = xyz[0:2]
 
@@ -421,7 +408,7 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
                         ])
 
         # Rotate coordinates
-        xyz_rot = self._rotation_matrix @ xyz
+        xyz_rot = self.rotation_matrix @ xyz
 
         # Covert to polar
         rho, phi = cart2pol(*xyz_rot[:2, :])
@@ -544,7 +531,7 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
         xyz = state.state_vector[self.mapping, :] - self.translation_offset
 
         # Rotate coordinates
-        xyz_rot = self._rotation_matrix @ xyz
+        xyz_rot = self.rotation_matrix @ xyz
 
         # Convert to Angles
         phi, theta = cart2angles(xyz_rot[0, :], xyz_rot[1, :], xyz_rot[2, :])
@@ -642,7 +629,7 @@ class Cartesian2DToBearing(NonLinearGaussianMeasurement):
                         ])
 
         # Rotate coordinates
-        xyz_rot = self._rotation_matrix @ xyz
+        xyz_rot = self.rotation_matrix @ xyz
 
         # Covert to polar
         _, phi = cart2pol(*xyz_rot[:2, :])
@@ -780,7 +767,7 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
         xy_pos = state.state_vector[self.mapping, :] - self.translation_offset
 
         # Rotate coordinates based upon the sensor_velocity
-        xy_rot = self._rotation_matrix @ xy_pos
+        xy_rot = self.rotation_matrix @ xy_pos
 
         # Convert to Spherical
         rho, phi, _ = cart2sphere(xy_rot[0, :], xy_rot[1, :], xy_rot[2, :])
@@ -928,7 +915,7 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
         xyz_pos = state.state_vector[self.mapping, :] - self.translation_offset
 
         # Rotate coordinates based upon the sensor_velocity
-        xyz_rot = self._rotation_matrix @ xyz_pos
+        xyz_rot = self.rotation_matrix @ xyz_pos
 
         # Convert to Spherical
         rho, phi, theta = cart2sphere(xyz_rot[0, :], xyz_rot[1, :], xyz_rot[2, :])
@@ -956,7 +943,7 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
         y_rate = np.cos(phi) * np.sin(theta) * rho_rate
         z_rate = np.sin(phi) * rho_rate
 
-        inv_rotation_matrix = inv(self._rotation_matrix)
+        inv_rotation_matrix = inv(self.rotation_matrix)
 
         out_vector = StateVector([[0.], [0.], [0.], [0.], [0.], [0.]])
         out_vector[self.mapping, 0] = x, y, z

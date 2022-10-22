@@ -1,13 +1,15 @@
+import copy
 import datetime
 
 import numpy as np
 import pytest
+
 from ..detection import Detection
 from ..hypothesis import SingleHypothesis
-from ..update import Update
 from ..numeric import Probability
 from ..state import State, GaussianState, ParticleState
 from ..track import Track
+from ..update import Update
 
 
 def test_track_empty():
@@ -177,3 +179,36 @@ def test_track_metadata():
            {'colour': 'white', 'side': 'enemy', 'speed': 'fast', 'size': 'small'}
     assert track.metadatas[6] == \
            {'colour': 'green', 'side': 'enemy', 'speed': 'fast', 'size': 'small'}
+
+
+def test_copy():
+    metadatas = [{'update_number': i} for i in range(3)]
+
+    track = Track([State([0, 1]),
+                   State([1, 2]),
+                   State([3, 4])],
+                  init_metadata=metadatas[0])
+    track.metadatas = metadatas
+
+    copied_track = copy.copy(track)
+
+    assert track is not copied_track
+    assert track.states is not copied_track.states
+    assert track.init_metadata is copied_track.init_metadata
+    assert track.metadatas is not copied_track.metadatas
+
+    for original_state, copied_state in zip(track.states, copied_track.states):
+        assert original_state is copied_state
+
+    for original_metadata, copied_metadata in zip(track.metadatas, copied_track.metadatas):
+        assert original_metadata is copied_metadata
+
+    assert len(track) == 3
+    assert len(copied_track) == 3
+    copied_track.append(State([4, 5]))
+
+    assert len(track) == 3
+    assert len(copied_track) == 4
+
+    assert len(track.metadatas) == 3
+    assert len(copied_track.metadatas) == 4

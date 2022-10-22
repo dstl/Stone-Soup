@@ -5,6 +5,7 @@ from typing import Mapping, Sequence, Set
 
 import numpy as np
 
+from ..types.detection import TrueDetection
 from ..base import Base, Property
 from ..predictor.kalman import KalmanPredictor
 from ..updater.kalman import ExtendedKalmanUpdater
@@ -102,7 +103,8 @@ class UncertaintyRewardFunction(RewardFunction):
 
             # Assumes one detection per track
             detections = {detection.groundtruth_path: detection
-                          for detection in sensor.measure(predicted_tracks, noise=False)}
+                          for detection in sensor.measure(predicted_tracks, noise=False)
+                          if isinstance(detection, TrueDetection)}
 
             for predicted_track, detection in detections.items():
                 # Generate hypothesis based on prediction/previous update and detection

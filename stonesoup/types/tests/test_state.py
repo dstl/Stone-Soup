@@ -297,15 +297,7 @@ def test_particlestate_cache():
     assert np.allclose(state.mean, StateVector([[50]]))
     assert np.allclose(state.covar, CovarianceMatrix([[2500]]))
 
-    with pytest.raises(ValueError, match="read-only"):
-        state.state_vector += 10
-
-    with pytest.raises(ValueError, match="read-only"):
-        state.weight *= 0.5
-
     state.state_vector = particles + 50  # Cache cleared
-    with pytest.raises(ValueError, match="read-only"):
-        state.weight *= 0.5  # But still not writable
     state.weight = state.weight * 0.5
     assert np.allclose(state.mean, StateVector([[100]]))
     assert np.allclose(state.covar, CovarianceMatrix([[2500]]))
