@@ -122,7 +122,7 @@ class DataFrameDetectionReader(DetectionReader, _DataFrameReader):
         detections = set()
         previous_time = None
         for row in self.dataframe.to_dict(orient="records"):
-  
+
             time = self._get_time(row)
             if previous_time is not None and previous_time != time:
                 yield previous_time, detections
