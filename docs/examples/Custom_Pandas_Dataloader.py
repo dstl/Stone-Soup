@@ -40,6 +40,7 @@ from math import modf
 from stonesoup.base import Property
 from stonesoup.buffered_generator import BufferedGenerator
 from stonesoup.reader.base import GroundTruthReader, DetectionReader, Reader
+from stonesoup.types.detection import Detection
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 
 from typing import Sequence, Collection
