@@ -7,7 +7,7 @@ from dateutil.parser import parse
 from typing import Sequence, Collection
 
 try:
-    import pandas
+    import pandas as pd
 except ImportError as error:
     raise ImportError(
         "Usage of Pandas Readers readers requires the dependency 'pandas' being installed. ") from error
