@@ -13,7 +13,7 @@ capabilities of pandas to read from many different data source types
 as needed, including .csv, JSON, XML, Parquet, HDF5, .txt, .zip and more. 
 The resulting DataFrame can then simply be fed into the defined 
 `DataFrameGroundTruthReader` or `DataFrameDetectionReader` for further processing
-in Stonesoup as required. 
+in Stone Soup as required. 
 """
 
 # %%
@@ -48,7 +48,7 @@ from dateutil.parser import parse
 # %%
 # Data Frame Reader
 # ^^^^^^^^^^^^^^^^^
-# Similarly to Stonesoups :class:`~._CSVFrameReader`, we'll define a `_DataFrameReader`
+# Similarly to Stone Soup's :class:`~._CSVFrameReader`, we'll define a `_DataFrameReader`
 # class that inherits from the base :class:`~.Reader` class to read a DataFrame containing
 # state vector fields, a time field, and additional metadata fields (all other columns
 # by default). The only difference between this class and the :class:`~._CSVFrameReader` 
@@ -81,7 +81,7 @@ class _DataFrameReader(Reader):
     def _get_time(self, row):
         if self.time_field_format is not None:
             time_field_value = datetime.strptime(row[self.time_field], self.time_field_format)
-        elif self.timestamp is True:
+        elif self.timestamp:
             fractional, timestamp = modf(float(row[self.time_field]))
             time_field_value = datetime.utcfromtimestamp(int(timestamp))
             time_field_value += timedelta(microseconds=fractional * 1E6)
@@ -224,9 +224,9 @@ ground_truth_reader.dataframe.head(3)
 # DataFrame Detection Reader
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Similarly to our `DataFrameGroundTruthReader`, we can develop a custom `DataFrameDetectionReader`
-# that can read in DataFrames containing detections through subclassing from Stonesoups
+# that can read in DataFrames containing detections through subclassing from Stone Soup's
 # `DetectionReader` class, along with our custom `_DataFrameReader` class above.
-# Again, this closely resembles the existing `CSVDetectionReader` class within the stonesoup
+# Again, this closely resembles the existing `CSVDetectionReader` class within the Stone Soup
 # library, except we include a instance attribute 'dataframe', and modify our detections_gen
 # function to work with dataframes rather than .csv files. This can be seen below:
 
@@ -274,7 +274,7 @@ detection_reader = DataFrameDetectionReader(
 
 # %%
 # Following this, we can now perform any desired follow-up task such as simulation or tracking
-# as covered in the other Stonesoup examples, tutorials and demonstrations. As discussed previously,
+# as covered in the other Stone Soup examples, tutorials and demonstrations. As discussed previously,
 # the huge benefits of using a custom DataFrame reader like this is that we can read any type of data
 # supported by the pandas library, which gives us a huge range of options. This strategy also saves
-# us the overhead of manually specifying custom Stonesoup Reader classes for each format of data.
+# us the overhead of manually specifying custom Stone Soup Reader classes for each format of data.
