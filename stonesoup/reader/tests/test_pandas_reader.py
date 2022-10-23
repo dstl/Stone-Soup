@@ -161,26 +161,26 @@ def test_gt_df_3d_timestamp():
 
 
 def test_gt_df_multi_per_timestep():
-    # test case with multiple entries per timestep
-    det_test_df = pd.read_table(
+    # Run test with:
+    #    - Multiple entries per timestep
+    #    - Datetime column formatted as str (pandas object)
+    test_df = pd.read_table(
                 StringIO("""x,y,z,identifier,t
                 10,20,30,22018332,2018-01-01T14:00:00Z
                 11,21,31,22018332,2018-01-01T14:01:00Z
                 12,22,32,22018332,2018-01-01T14:02:00Z
                 13,23,33,32018332,2018-01-01T14:02:00Z
                 14,24,34,32018332,2018-01-01T14:03:00Z
-                """),
-                sep=',', parse_dates=['t'])
+                """), sep=',')
 
     df_reader = DataFrameGroundTruthReader(
-                            dataframe=det_test_df,
+                            dataframe=test_df,
                             state_vector_fields=["x", "y"],
                             time_field="t",
                             path_id_field="identifier")
 
     for time, ground_truth_paths in df_reader:
-        # remove timestamp from pd timestamp before comparing
-        if time.tz_convert(None) == datetime.datetime(2018, 1, 1, 14, 2):
+        if time == datetime.datetime(2018, 1, 1, 14, 2):
             assert len(ground_truth_paths) == 2
         else:
             assert len(ground_truth_paths) == 1

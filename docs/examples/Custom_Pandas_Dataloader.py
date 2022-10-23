@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 Use of Custom Readers that support Pandas DataFrames
 ====================================================
