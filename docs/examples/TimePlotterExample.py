@@ -142,5 +142,9 @@ plt.show()
 # %%
 # Save the Animation
 # ------------------
-# Save the animation to a gif format. Other formats are available
+# Save the animation to a gif format. Other formats are available. Uncomment the last line to reload the gif in a Jupyter notebook version.
+
+from IPython.display import Image
+
 plotter.save('example_animation.gif')
+Image('example_animation.gif')
