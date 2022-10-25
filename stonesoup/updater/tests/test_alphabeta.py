@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Test for updater.alphabeta module"""
 import pytest
 from datetime import timedelta

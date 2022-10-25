@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import datetime
 from abc import abstractmethod, ABC
 from functools import lru_cache

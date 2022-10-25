@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from .base import Hypothesiser
 from ..base import Property
 from ..measures import Measure

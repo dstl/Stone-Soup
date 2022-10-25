@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import warnings
 from abc import abstractmethod
 from typing import Tuple

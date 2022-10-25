@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from math import log, log1p, exp, trunc, ceil, floor
 from numbers import Real, Integral
 

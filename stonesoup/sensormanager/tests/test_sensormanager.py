@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 from datetime import datetime, timedelta
 
@@ -53,7 +51,7 @@ def test_random_choose_actions():
                 assert isinstance(actions[0], ChangeDwellAction)
 
 
-def test_brute_force_choose_actions():
+def test_uncertainty_based_managers():
     time_start = datetime.now()
 
     tracks = [Track(states=[
@@ -116,7 +114,19 @@ def test_brute_force_choose_actions():
             max_range=np.inf,
         )}
 
-        for sensor_set in [sensorsA, sensorsB, sensorsC]:
+        sensorsD = {RadarRotatingBearingRange(
+            position_mapping=(0, 2),
+            noise_covar=np.array([[np.radians(0.5) ** 2, 0],
+                                  [0, 0.75 ** 2]]),
+            position=np.array([[0], [0]]),
+            ndim_state=4,
+            rpm=60,
+            fov_angle=np.radians(30),
+            dwell_centre=StateVector([0.0]),
+            max_range=np.inf,
+        )}
+
+        for sensor_set in [sensorsA, sensorsB, sensorsC, sensorsD]:
             for sensor in sensor_set:
                 sensor.timestamp = time_start
 
@@ -124,10 +134,14 @@ def test_brute_force_choose_actions():
         sensor_managerB = OptimizeBruteSensorManager(sensorsB, reward_function)
         sensor_managerC = OptimizeBasinHoppingSensorManager(sensorsC,
                                                             reward_function)
+        sensor_managerD = OptimizeBruteSensorManager(sensorsD, reward_function,
+                                                     generate_full_output=True,
+                                                     finish=True)
 
         sensor_managers = [sensor_managerA,
                            sensor_managerB,
-                           sensor_managerC]
+                           sensor_managerC,
+                           sensor_managerD]
 
         timesteps = []
         for t in range(3):
@@ -161,3 +175,5 @@ def test_brute_force_choose_actions():
 
     assert all_dwell_centres[0][0] == all_dwell_centres[1][0] == all_dwell_centres[2][0]
     assert all_dwell_centres[0][1] == all_dwell_centres[1][1] == all_dwell_centres[2][1]
+
+    assert isinstance(sensor_managerD.get_full_output(), tuple)

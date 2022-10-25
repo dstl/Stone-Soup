@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from .base import Predictor
 from ._utils import predict_lru_cache
 from .kalman import KalmanPredictor, ExtendedKalmanPredictor

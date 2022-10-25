@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """
 Multi-Target Tracking in 3D Using Platform Simulation

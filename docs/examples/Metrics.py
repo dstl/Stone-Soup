@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """
 Metrics Example
@@ -99,7 +98,7 @@ from stonesoup.metricgenerator.basicmetrics import BasicMetrics
 basic_generator = BasicMetrics()
 
 # %%
-# Next we'll create the Optimal SubPattern Assignment (OPSA) metric generator. This metric is
+# Next we'll create the Optimal SubPattern Assignment (OSPA) metric generator. This metric is
 # calculated at each time step, giving an overall multi-track to multi-groundtruth missed distance.
 # This has two properties: :math:`p \in [1,\infty]` for outlier sensitivity and :math:`c > 1` for
 # cardinality penalty. [#]_

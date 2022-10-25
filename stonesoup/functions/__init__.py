@@ -172,7 +172,7 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
 
     # Put these sigma points into s State object list
     sigma_points_states = []
-    for sigma_point in sigma_points.T:
+    for sigma_point in sigma_points:
         state_copy = copy.copy(state)
         state_copy.state_vector = StateVector(sigma_point)
         sigma_points_states.append(state_copy)
@@ -617,8 +617,7 @@ def build_rotation_matrix(angle_vector: np.ndarray):
 def dotproduct(a, b):
     r"""Returns the dot (or scalar) product of two StateVectors or two sets of StateVectors.
 
-    The result for vectors of length :math:`n` is
-    :math:`\Sigma_i^n a_i b_i`.
+    The result for vectors of length :math:`n` is :math:`\Sigma_i^n a_i b_i`.
 
     Parameters
     ----------
@@ -629,27 +628,18 @@ def dotproduct(a, b):
 
     Returns
     -------
-    : float, list
+    : float, numpy.array
         A (set of) scalar value(s) representing the dot product of the vectors.
     """
-
-    def _dotproductvectors(aa, bb):
-        oout=0
-        for a_i, b_i in zip(aa, bb):
-            oout += a_i*b_i
-        return oout
 
     if np.shape(a) != np.shape(b):
         raise ValueError("Inputs must be (a collection of) column vectors of the same dimension")
 
     # Decide whether this is a StateVector or a StateVectors
     if type(a) is StateVector and type(b) is StateVector:
-        return _dotproductvectors(a, b)
+        return np.sum(a*b)
     elif type(a) is StateVectors and type(b) is StateVectors:
-        out = []
-        for aa, bb in zip(a, b):
-            out.append(_dotproductvectors(aa, bb))
-        return np.reshape(out, np.shape(np.atleast_2d(a[0, :])))
+        return np.atleast_2d(np.asarray(np.sum(a*b, axis=0)))
     else:
         raise ValueError("Inputs must be `StateVector` or `StateVectors` and of the same type")
 

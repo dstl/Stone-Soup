@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Generic readers for Stone Soup.
 
 This is a collection of generic readers for Stone Soup, allowing quick reading

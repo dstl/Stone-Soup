@@ -64,6 +64,7 @@ class ActionGenerator(Base):
 
     @property
     def current_value(self):
+        """Return the current value of the owner's attribute."""
         return getattr(self.owner, self.attribute)
 
     @property

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from abc import abstractmethod
 from collections import UserDict
 from typing import Sequence

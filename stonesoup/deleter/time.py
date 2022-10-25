@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Contains collection of time based deleters"""
 from datetime import timedelta
 

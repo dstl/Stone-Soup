@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from abc import abstractmethod
 import copy
 from typing import Sequence

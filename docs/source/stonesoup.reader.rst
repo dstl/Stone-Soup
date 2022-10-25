@@ -20,6 +20,11 @@ YAML
 .. automodule:: stonesoup.reader.yaml
     :show-inheritance:
 
+HDF5
+----
+.. automodule:: stonesoup.reader.hdf5
+    :show-inheritance:
+
 AISHub
 ------
 .. automodule:: stonesoup.reader.aishub

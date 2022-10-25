@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """
 =================================================
@@ -66,6 +65,7 @@
 
 from datetime import datetime
 from datetime import timedelta
+from ordered_set import OrderedSet
 import numpy as np
 from scipy.stats import uniform
 
@@ -78,7 +78,7 @@ from stonesoup.models.measurement.linear import LinearGaussian
 
 np.random.seed(1991)
 
-truths = set()
+truths = OrderedSet()
 
 start_time = datetime.now()
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),
@@ -99,9 +99,8 @@ for k in range(1, 21):
 truths.add(truth)
 
 # Plot ground truth.
-from stonesoup.plotter import Plotter
-plotter = Plotter()
-plotter.ax.set_ylim(0, 25)
+from stonesoup.plotter import Plotterly
+plotter = Plotterly()
 plotter.plot_ground_truths(truths, [0, 2])
 
 # Generate measurements.
@@ -139,7 +138,8 @@ for k in range(20):
     all_measurements.append(measurement_set)
 
 # Plot true detections and clutter.
-plotter.plot_measurements(all_measurements, [0, 2], color='g')
+plotter.plot_measurements(all_measurements, [0, 2])
+plotter.fig
 
 # %%
 from stonesoup.predictor.kalman import KalmanPredictor

@@ -251,11 +251,7 @@ def test_cart_sphere_inversions(x, y, z):
 def test_dotproduct(state_vector1, state_vector2):
 
     # Test that they raise the right error if not 1d, i.e. vectors
-    if type(state_vector1) != type(state_vector2):
-        with pytest.raises(ValueError):
-            dotproduct(state_vector1, state_vector2)
-    elif type(state_vector1) != StateVectors and type(state_vector2) != StateVectors and \
-        type(state_vector2) != StateVector and type(state_vector1) != StateVector:
+    if np.shape(state_vector1)[1] != 1 | np.shape(state_vector2)[1] != 1:
         with pytest.raises(ValueError):
             dotproduct(state_vector1, state_vector2)
     else:

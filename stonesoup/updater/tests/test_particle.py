@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Test for updater.particle module"""
 import datetime
 from functools import partial

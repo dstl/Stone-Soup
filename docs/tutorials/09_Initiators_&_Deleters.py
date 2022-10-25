@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """
 9 - Initiators & Deleters
@@ -21,6 +20,7 @@ from datetime import datetime
 from datetime import timedelta
 
 import numpy as np
+from ordered_set import OrderedSet
 
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
                                                ConstantVelocity
@@ -29,7 +29,7 @@ from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 np.random.seed(1991)
 
 start_time = datetime.now()
-truths = set()  # Truths across all time
+truths = OrderedSet()  # Truths across all time
 current_truths = set()  # Truths alive at current time
 
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),
@@ -56,10 +56,10 @@ for k in range(20):
         current_truths.add(truth)
         truths.add(truth)
 
-from stonesoup.plotter import Plotter
-plotter = Plotter()
-plotter.ax.set_ylim(-5, 25)
+from stonesoup.plotter import Plotterly
+plotter = Plotterly()
 plotter.plot_ground_truths(truths, [0, 2])
+plotter.fig
 
 # %%
 # Generate Detections and Clutter
@@ -109,7 +109,7 @@ for k in range(20):
     all_measurements.append(measurement_set)
 
 # Plot true detections and clutter.
-plotter.plot_measurements(all_measurements, [0, 2], color='g')
+plotter.plot_measurements(all_measurements, [0, 2])
 plotter.fig
 
 # %%

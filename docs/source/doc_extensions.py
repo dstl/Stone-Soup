@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import re
 from collections.abc import Sequence
 
@@ -80,6 +79,14 @@ from sphinx_gallery.scrapers import (
     figure_rst, _anim_rst, _matplotlib_fig_titles, HLIST_HEADER,
     HLIST_IMAGE_MATPLOTLIB)
 
+import plotly.graph_objects as go
+try:
+    import kaleido
+except ImportError:
+    write_plotly_image = None
+else:
+    from plotly.io import write_image as write_plotly_image
+
 
 class gallery_scraper():
     def __init__(self):
@@ -142,6 +149,13 @@ class gallery_scraper():
         else:
             if isinstance(output, Figure):
                 new_figures.add(output.number)
+            elif isinstance(output, go.Figure):
+                if write_plotly_image is not None:
+                    image_path = next(image_path_iterator)
+                    if 'format' in kwargs:
+                        image_path = '%s.%s' % (os.path.splitext(image_path)[0],
+                                                kwargs['format'])
+                    write_plotly_image(output, image_path, kwargs.get('format'))
 
         for fig_num, image_path in zip(new_figures, image_path_iterator):
             if 'format' in kwargs:
@@ -187,3 +201,17 @@ class gallery_scraper():
                           for image in image_rsts]
             rst = HLIST_HEADER + ''.join(image_rsts)
         return rst
+
+
+class reset_numpy_random_seed:
+
+    def __init__(self):
+        self.state = None
+
+    def __call__(self, gallery_conf, fname, when):
+        import numpy as np
+        if when == 'before':
+            self.state = np.random.get_state()
+        elif when == 'after':
+            # Set state attribute back to `None`
+            self.state = np.random.set_state(self.state)

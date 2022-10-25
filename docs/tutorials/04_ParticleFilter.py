@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """
 =====================================
@@ -98,9 +97,10 @@ for k in range(1, 21):
 # %%
 # Plot the ground truth.
 
-from stonesoup.plotter import Plotter
-plotter = Plotter()
+from stonesoup.plotter import Plotterly
+plotter = Plotterly()
 plotter.plot_ground_truths(truth, [0, 2])
+plotter.fig
 
 
 # %%

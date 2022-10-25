@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 
 from ..groundtruth import GroundTruthState, GroundTruthPath, CategoricalGroundTruthState, \

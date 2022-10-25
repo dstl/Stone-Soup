@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Feeder classes are for manipulating data going into the tracker.
 
 A feeder's primary role is to take detection data from inputs into the
