@@ -973,6 +973,7 @@ class AnimationPlotter(_Plotter):
             figure_kwargs=self.figure_kwargs,
             animation_input_kwargs=kwargs
         )
+        return self.animation_output
 
     def save(self, filename='example.mp4', **kwargs):
         """Save the animation

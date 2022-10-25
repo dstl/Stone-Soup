@@ -132,12 +132,11 @@ plotter.plot_tracks(all_tracks, mapping=[0, 2])
 # The times to refresh the animation are chosen to co-inside with the simulator times
 #
 # To avoid the figure becoming too cluttered with old information, states older than 60 seconds will
-# not be shown. The figure isn't animated inside a sphinx gallery but does work when ran from the
-# command line
+# not be shown.
 times_to_plot = [start_time + x * groundtruth_sim.timestep
                  for x in range(groundtruth_sim.number_steps)]
 
-plotter.run(times_to_plot, plot_item_expiry=datetime.timedelta(seconds=60))
+ani = plotter.run(times_to_plot, plot_item_expiry=datetime.timedelta(seconds=60))
 plt.show()
 
 # %%
