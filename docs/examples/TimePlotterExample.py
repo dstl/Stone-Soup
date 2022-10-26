@@ -138,7 +138,7 @@ from matplotlib import pyplot as plt
 
 # %%
 # Create the plotter object and use the plot_# functions to assign the data to plot
-plotter = AnimationPlotter()
+plotter = AnimationPlotter(legend_kwargs=dict(loc='upper left'))
 plotter.plot_ground_truths(groundtruth, mapping=[0, 2])
 plotter.plot_measurements(detections, mapping=[0, 2])
 plotter.plot_tracks(all_tracks, mapping=[0, 2])
