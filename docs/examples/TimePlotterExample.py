@@ -167,6 +167,7 @@ plotter.save('example_animation.gif')
 # -------------------------------------------
 # The following section displays the animation when using a Jupyter notebook. This option is
 # commented out for the sphinx documentation to build properly. Uncomment `HTML(ani.to_jshtml())`
-# to view the animation in a jupyter notebook
-from IPython.display import HTML
+# and `from IPython.display import HTML` to view the animation in a jupyter notebook
+
+# from IPython.display import HTML
 # HTML(ani.to_jshtml())
