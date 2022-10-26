@@ -37,7 +37,7 @@ class IPDAHypothesiser(PDAHypothesiser):
         prob_survive = np.exp(-(1-self.prob_survive)*time_interval.total_seconds())
         track.exist_prob = prob_survive * track.exist_prob
         # Missed detection hypothesis
-        prob_detect = self.prob_detect(prediction.state_vector)
+        prob_detect = self.prob_detect(prediction)
         probability = Probability(1 - prob_detect * self.prob_gate * track.exist_prob)
         w = (1 - track.exist_prob) / ((1 - prob_detect * self.prob_gate) * track.exist_prob)
         hypotheses.append(
@@ -56,7 +56,7 @@ class IPDAHypothesiser(PDAHypothesiser):
             # Compute measurement prediction and probability measure
             measurement_prediction = self.updater.predict_measurement(
                 prediction, detection.measurement_model, **kwargs)
-            prob_detect = self.prob_detect(prediction.state_vector)
+            prob_detect = self.prob_detect(prediction)
             # Calculate difference before to handle custom types (mean defaults to zero)
             # This is required as log pdf coverts arrays to floats
             log_pdf = mn.logpdf(

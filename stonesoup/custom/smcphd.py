@@ -224,7 +224,7 @@ class SMCPHDFilter(Base):
         prob_detect = self.prob_detect(prediction)
 
         # Calculate w^{n,i} Eq. (20) of [2]
-        Ck = meas_weights * prob_detect * g * prediction.weight[:, np.newaxis]
+        Ck = meas_weights * prob_detect[:, np.newaxis] * g * prediction.weight[:, np.newaxis]
         C = np.sum(Ck, axis=0)
         k = np.array([detection.metadata['clutter_density']
                       if 'clutter_density' in detection.metadata else self.clutter_intensity

@@ -96,10 +96,15 @@ class SMCPHD_JIPDA(Base):
         if not callable(prob_detect):
             prob_detect = copy(prob_detect)
             self._prob_detect = lambda state: prob_detect
-            if hasattr(self, '_hypothesiser'):
-                self._hypothesiser.prob_detect = prob_detect
-            if hasattr(self, '_initiator'):
-                self._initiator.filter.prob_detect = self._prob_detect
+        else:
+            self._prob_detect = copy(prob_detect)
+        if hasattr(self, '_hypothesiser'):
+            if hasattr(self._hypothesiser, 'hypothesiser'):
+                self._hypothesiser.hypothesiser.prob_detect = self._prob_detect
+            else:
+                self._hypothesiser.prob_detect = self._prob_detect
+        if hasattr(self, '_initiator'):
+            self._initiator.filter.prob_detect = self._prob_detect
 
     def track(self, detections, timestamp):
 
