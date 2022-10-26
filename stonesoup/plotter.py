@@ -1073,13 +1073,18 @@ class AnimationPlotter(_Plotter):
                 isinstance(state_mutable_sequences, StateMutableSequence):
             state_mutable_sequences = {state_mutable_sequences}  # Make a set of length 1
 
-        for state_mutable_sequence in state_mutable_sequences:
+        for idx, state_mutable_sequence in enumerate(state_mutable_sequences):
+            if idx == 0:
+                this_plotting_label = label
+            else:
+                this_plotting_label = None
+
             self.plotting_data.append(_AnimationPlotterDataClass(
                 plotting_data=[State(state_vector=[state.state_vector[mapping[0]],
                                                    state.state_vector[mapping[1]]],
                                      timestamp=state.timestamp)
                                for state in state_mutable_sequence],
-                plotting_label=label,
+                plotting_label=this_plotting_label,
                 plotting_keyword_arguments=plotting_kwargs
             ))
 
@@ -1231,7 +1236,10 @@ class AnimationPlotter(_Plotter):
 
         plt.xlabel(x_label)
         plt.ylabel(y_label)
-        plt.legend(legends_key)
+
+        lines_with_legend = [line for line, label in zip(the_lines, legends_key)
+                             if label is not None]
+        plt.legend(lines_with_legend, [label for label in legends_key if label is not None])
 
         if plot_item_expiry is None:
             min_plot_time = min(state.timestamp

@@ -80,9 +80,9 @@ data_associator = GNNWith2DAssignment(hypothesiser)
 # Initiator & Deleter
 deleter = CovarianceBasedDeleter(covar_trace_thresh=1E3)
 initiator = MultiMeasurementInitiator(
-    GaussianState(np.array([[0], [0], [0], [0]]),
-                  np.diag([0, 100, 0, 1000]),
-                  timestamp=start_time),
+    prior_state=GaussianState(np.array([[0], [0], [0], [0]]),
+                              np.diag([0, 100, 0, 1000]),
+                              timestamp=start_time),
     measurement_model=measurement_model,
     deleter=deleter,
     data_associator=data_associator,
