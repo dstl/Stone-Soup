@@ -15,7 +15,7 @@ class ASDKalmanPredictor(KalmanPredictor):
 
       A linear predictor for accumulated state densities, for processing out of
       sequence measurements. This requires the state is represented in
-      :class:`ASDGaussianState` multi-state.
+      :class:`~.ASDGaussianState` multi-state.
 
       References
       ----------

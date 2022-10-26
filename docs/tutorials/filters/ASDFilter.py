@@ -64,7 +64,7 @@ plotter.plot_measurements(measurements, [0, 1], LinearGaussian(2, (0, 1), None))
 plotter.fig
 
 # %%
-# Now we have to setup a transition model for the prediction and the :class:`~.ASDPredictor`.
+# Now we have to setup a transition model for the prediction and the :class:`~.ASDKalmanPredictor`.
 
 from stonesoup.models.transition.linear import \
     CombinedLinearGaussianTransitionModel, ConstantVelocity
