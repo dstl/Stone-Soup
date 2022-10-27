@@ -7,6 +7,7 @@ workflows:
       - test-38
       - test-39
       - test-310
+      - test-311
   docs:
     jobs:
       - docs
@@ -58,9 +59,13 @@ jobs:
     <<: *test-template
     docker:
       - image: cimg/python:3.10
+  test-311:
+    <<: *test-template
+    docker:
+      - image: cimg/python:3.11
   docs:
     docker:
-      - image: cimg/python:3.10
+      - image: cimg/python:3.11
     steps:
       - checkout
       - restore_cache:
