@@ -10,6 +10,13 @@ class Probability(Real):
     Similar to a float, but value stored as natural log value internally.
     All operations are attempted with log values where possible, and failing
     that a float will be returned instead.
+
+    Parameters
+    ----------
+    value : float
+        Value for probability.
+    log_value : bool
+        Set to `True` if :attr:`value` already a log value. Default `False`.
     """
 
     def __init__(self, value, *, log_value=False):
@@ -212,7 +219,7 @@ class Probability(Real):
         if value == 0 and self.log_value != float("-inf"):  # Too close to zero
             return "Probability({!r}, log_value=True)".format(self.log_value)
         else:
-            return "Probability({!r})".format(float(self))
+            return "Probability({!r})".format(value)
 
     def __str__(self):
         value = float(self)
@@ -244,3 +251,21 @@ class Probability(Real):
         value_sum = np.sum(np.exp(log_values - max_log_value))
 
         return Probability(cls._log(value_sum) + max_log_value, log_value=True)
+
+    @classmethod
+    def from_log(cls, value):
+        """Create Probability type from a log value; same as Probability(value, log_value=True)
+
+        Parameters
+        ----------
+        value : float
+            Value for probability.
+
+        Returns
+        -------
+        Probability
+        """
+        return cls(value, log_value=True)
+
+
+Probability.from_log_ufunc = np.frompyfunc(Probability.from_log, 1, 1)
