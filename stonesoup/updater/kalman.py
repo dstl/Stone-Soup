@@ -1,4 +1,5 @@
 import warnings
+
 import numpy as np
 import scipy.linalg as la
 from functools import lru_cache

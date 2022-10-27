@@ -31,6 +31,12 @@ Information
 .. automodule:: stonesoup.updater.information
     :show-inheritance:
 
+Accumulated State Densities
+---------------------------
+
+.. automodule:: stonesoup.updater.asd
+    :show-inheritance:
+
 Point Process
 -------------
 
