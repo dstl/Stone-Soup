@@ -21,6 +21,7 @@ except ImportError:
 
 from .types import detection
 from .types.groundtruth import GroundTruthPath
+from .types.array import StateVector
 from .types.state import State, StateMutableSequence
 from .types.update import Update
 
@@ -67,7 +68,7 @@ class _Plotter(ABC):
         raise NotImplementedError
 
     def _conv_measurements(self, measurements, mapping, measurement_model=None) -> \
-            Tuple[Dict[detection.Detection, State], Dict[detection.Clutter, State]]:
+            Tuple[Dict[detection.Detection, StateVector], Dict[detection.Clutter, StateVector]]:
         conv_detections = {}
         conv_clutter = {}
         for state in measurements:
