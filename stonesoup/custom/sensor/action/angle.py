@@ -63,10 +63,10 @@ class AngleUAVActionsGenerator(RealNumberActionGenerator):
 
     @property
     def default_action(self):
-        return ChangeAngleAction(generator=self,
-                                 end_time=self.end_time,
-                                 target_value=self.current_value,
-                                 increasing_angle=None)
+        return self._action_cls(generator=self,
+                                end_time=self.end_time,
+                                target_value=self.current_value,
+                                increasing_angle=None)
 
     def __call__(self, resolution=None, epsilon=None):
         """
