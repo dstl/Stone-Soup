@@ -54,7 +54,7 @@ class AngleUAVActionsGenerator(RealNumberActionGenerator):
 
     owner: object = Property(doc="Object with `timestamp`, `rpm` (revolutions per minute) and "
                                  "dwell-centre attributes")
-    resolution: Angle = Property(default=np.radians(5), doc="Resolution of action space")
+    resolution: Angle = Property(default=np.radians(10), doc="Resolution of action space")
 
     _action_cls = ChangeAngleAction
 
