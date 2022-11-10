@@ -333,13 +333,14 @@ def perifocal_position(eccentricity, semimajor_axis, true_anomaly):
     c_tran = np.cos(true_anomaly)
     s_tran = np.sin(true_anomaly)
 
-    return semimajor_axis * (1 - eccentricity ** 2) / \
-           (1 + eccentricity * c_tran) * np.array([[c_tran], [s_tran],
-                                                   [0]])
+    # Copes with floats and (row) arrays
+    rot_v = np.reshape(np.array([c_tran, s_tran, np.zeros(np.shape(c_tran))]),
+                       (3, np.shape(np.atleast_2d(true_anomaly))[1]))
+
+    return semimajor_axis * (1 - eccentricity ** 2) / (1 + eccentricity * c_tran) * rot_v
 
 
-def perifocal_velocity(eccentricity, semimajor_axis, true_anomaly,
-                       grav_parameter=3.986004418e14):
+def perifocal_velocity(eccentricity, semimajor_axis, true_anomaly, grav_parameter=3.986004418e14):
     r"""The velocity vector in perifocal coordinates calculated from the Keplerian elements
 
     Parameters
@@ -365,8 +366,11 @@ def perifocal_velocity(eccentricity, semimajor_axis, true_anomaly,
     c_tran = np.cos(true_anomaly)
     s_tran = np.sin(true_anomaly)
 
-    return np.sqrt(grav_parameter / (semimajor_axis * (1 - eccentricity ** 2))) \
-           * np.array([[-s_tran], [eccentricity + c_tran], [0]])
+    # Copes with floats and (row) arrays
+    rot_v = np.reshape(np.array([-s_tran, eccentricity + c_tran, np.zeros(np.shape(c_tran))]),
+                       (3, np.shape(np.atleast_2d(true_anomaly))[1]))
+
+    return np.sqrt(grav_parameter / (semimajor_axis * (1 - eccentricity ** 2))) * rot_v
 
 
 def perifocal_to_geocentric_matrix(inclination, raan, argp):
@@ -435,7 +439,7 @@ def keplerian_to_rv(state_vector, grav_parameter=3.986004418e14):
 
     Returns
     -------
-    : :class:`~.StateVector`
+    : :class:`~.StateVectors`
         Orbital state vector as :math:`[r_x, r_y, r_z, \dot{r}_x, \dot{r}_y, \dot{r}_z]`
 
     Warning
@@ -458,7 +462,7 @@ def keplerian_to_rv(state_vector, grav_parameter=3.986004418e14):
     v = perifocal_to_geocentric_matrix(state_vector[2], state_vector[3], state_vector[4]) @ vx
 
     # And put them into the state vector
-    return StateVector(np.concatenate((r, v), axis=0))
+    return StateVectors(np.concatenate((r, v), axis=0))
 
 
 def mod_inclination(x):
