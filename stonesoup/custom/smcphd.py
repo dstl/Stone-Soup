@@ -2,6 +2,7 @@ from copy import copy
 from typing import List, Any, Union, Callable
 
 import numpy as np
+from scipy.special import logsumexp
 from scipy.stats import multivariate_normal
 
 from stonesoup.base import Base, Property
@@ -39,8 +40,10 @@ class SMCPHDFilter(Base):
         doc="Target Detection Probability")
     prob_death: Probability = Property(doc='The probability of death')
     prob_birth: Probability = Property(doc='The probability of birth')
-    birth_rate: float = Property(doc='The birth rate (i.e. number of new/born targets at each iteration(')
-    birth_density: State = Property(doc='The birth density (i.e. density from which we sample birth particles)')
+    birth_rate: float = Property(
+        doc='The birth rate (i.e. number of new/born targets at each iteration(')
+    birth_density: State = Property(
+        doc='The birth density (i.e. density from which we sample birth particles)')
     clutter_intensity: float = Property(doc='The clutter intensity per unit volume')
     resampler: Resampler = Property(default=None, doc='Resampler to prevent particle degeneracy')
     num_samples: int = Property(doc='The number of samples. Default is 1024', default=1024)
@@ -84,16 +87,16 @@ class SMCPHDFilter(Base):
         if self.birth_scheme == 'expansion':
             # Expansion birth scheme, as described in [1]
             # Compute number of birth particles (J_k) as a fraction of the number of particles
-            num_birth = round(float(self.prob_birth * self.num_samples))
+            num_birth = round(float(self.prob_birth) * self.num_samples)
 
             # Sample birth particles
             birth_particles = multivariate_normal.rvs(self.birth_density.mean.ravel(),
                                                       self.birth_density.covar,
                                                       num_birth)
-            birth_weights = np.ones((num_birth,)) * Probability(self.birth_rate / num_birth)
+            birth_weights = np.full((num_birth,), Probability(self.birth_rate / num_birth))
 
             # Surviving particle weights
-            prob_survive = np.exp(-self.prob_death*time_interval.total_seconds())
+            prob_survive = np.exp(-float(self.prob_death)*time_interval.total_seconds())
             pred_weights = prob_survive * prior_weights
 
             # Append birth particles to predicted ones
@@ -161,15 +164,18 @@ class SMCPHDFilter(Base):
 
         # Update weights Eq. (8) of [1]
         # w_k^i = \sum_{z \in Z_k}{w^{n,i}}, where i is the index of z in Z_k
-        post_weights = np.sum(weights_per_hyp, axis=1)
+        log_post_weights = logsumexp(np.log(weights_per_hyp).astype(float), axis=1)
 
         # Resample
-        num_targets = np.sum(post_weights)  # N_{k|k}
+        log_num_targets = logsumexp(log_post_weights)  # N_{k|k}
         update = copy(prediction)
-        update.weight = post_weights / num_targets  # Normalize weights
+        # Normalize weights
+        update.weight = Probability.from_log_ufunc(log_post_weights - log_num_targets)
         if self.resampler is not None:
             update = self.resampler.resample(update, self.num_samples)  # Resample
-        update.weight = np.array(update.weight) * num_targets  # De-normalize
+        # De-normalize
+        update.weight = Probability.from_log_ufunc(np.log(update.weight).astype(float)
+                                                   + log_num_targets)
 
         return Update.from_state(
             state=prediction,
@@ -201,16 +207,16 @@ class SMCPHDFilter(Base):
         update = self.update(prediction, detections, timestamp)
         return update
 
-    def get_measurement_likelihoods(self, prediction, detections, meas_weights):
+    def get_measurement_loglikelihoods(self, prediction, detections, meas_weights):
         num_samples = prediction.state_vector.shape[1]
         # Compute g(z|x) matrix as in [1]
         g = np.zeros((num_samples, len(detections)), dtype=Probability)
         for i, detection in enumerate(detections):
             if not meas_weights[i]:
-                g[:, i] = Probability(0)
+                g[:, i] = -np.inf
                 continue
-            g[:, i] = detection.measurement_model.pdf(detection, prediction,
-                                                      noise=True)
+            g[:, i] = detection.measurement_model.logpdf(detection, prediction,
+                                                         noise=True)
         return g
 
     def get_weights_per_hypothesis(self, prediction, detections, meas_weights):
@@ -219,24 +225,29 @@ class SMCPHDFilter(Base):
             meas_weights = np.array([Probability(1) for _ in range(len(detections))])
 
         # Compute g(z|x) matrix as in [1]
-        g = self.get_measurement_likelihoods(prediction, detections, meas_weights)
+        g = self.get_measurement_loglikelihoods(prediction, detections, meas_weights)
 
-        prob_detect = self.prob_detect(prediction)
+        # Get probability of detection
+        prob_detect = np.asfarray(self.prob_detect(prediction))
 
         # Calculate w^{n,i} Eq. (20) of [2]
-        Ck = meas_weights * prob_detect[:, np.newaxis] * g * prediction.weight[:, np.newaxis]
-        C = np.sum(Ck, axis=0)
-        k = np.array([detection.metadata['clutter_density']
-                      if 'clutter_density' in detection.metadata else self.clutter_intensity
-                      for detection in detections])
-        C_plus = C + k
-
-        weights_per_hyp = np.zeros((num_samples, len(detections) + 1), dtype=Probability)
-        weights_per_hyp[:, 0] = (1 - prob_detect) * prediction.weight
+        try:
+            Ck = np.log(meas_weights) + np.log(prob_detect[:, np.newaxis]) + g \
+                 + np.log(prediction.weight[:, np.newaxis])
+        except IndexError:
+            Ck = np.log(meas_weights) + np.log(prob_detect) + g \
+                 + np.log(prediction.weight[:, np.newaxis])
+        C = logsumexp(np.asfarray(Ck), axis=0)
+        k = np.log([detection.metadata['clutter_density']
+                    if 'clutter_density' in detection.metadata else self.clutter_intensity
+                    for detection in detections])
+        C_plus = np.logaddexp(C, k)
+        weights_per_hyp = np.full((num_samples, len(detections) + 1), -np.inf)
+        weights_per_hyp[:, 0] = np.log(1 - prob_detect) + np.log(prediction.weight)
         if len(detections):
-            weights_per_hyp[:, 1:] = Ck / C_plus
+            weights_per_hyp[:, 1:] = Ck - C_plus
 
-        return weights_per_hyp
+        return Probability.from_log_ufunc(weights_per_hyp)
 
 
 class SMCPHDInitiator(Initiator):
@@ -255,21 +266,26 @@ class SMCPHDInitiator(Initiator):
         # Predict forward
         prediction = self.filter.predict(self._state, timestamp)
 
+        # Calculate weights per hypothesis
         weights_per_hyp = self.filter.get_weights_per_hypothesis(prediction, detections, weights)
+        log_weights_per_hyp = np.log(weights_per_hyp).astype(float)
 
-        intensity_per_hyp = np.sum(weights_per_hyp, axis=0)
-        valid_inds = np.flatnonzero(intensity_per_hyp > self.threshold)
+        # Calculate intensity per hypothesis
+        log_intensity_per_hyp = logsumexp(log_weights_per_hyp, axis=0)
+
+        # Find detections with intensity above threshold and initiate
+        valid_inds = np.flatnonzero(np.exp(log_intensity_per_hyp) > self.threshold)
         for idx in valid_inds:
             if not idx:
                 continue
 
             particles_sv = copy(prediction.state_vector)
-            weight = weights_per_hyp[:, idx] / intensity_per_hyp[idx]
+            weight = np.exp(log_weights_per_hyp[:, idx] - log_intensity_per_hyp[idx])
 
             mu = np.average(particles_sv,
                             axis=1,
                             weights=weight)
-            cov = np.cov(particles_sv, ddof=0, aweights=np.array(weight))
+            cov = np.cov(particles_sv, ddof=0, aweights=weight)
 
             hypothesis = SingleProbabilityHypothesis(prediction,
                                                      measurement=detections[idx-1],
@@ -281,10 +297,12 @@ class SMCPHDInitiator(Initiator):
             # if np.trace(track_state.covar) < 10:
             weights_per_hyp[:, idx] = Probability(0)
             track = Track([track_state])
-            track.exist_prob = intensity_per_hyp[idx]
+            track.exist_prob = Probability(log_intensity_per_hyp[idx], log_value=True)
             tracks.add(track)
 
             weights[idx-1] = 0
 
+        # Update filter
         self._state = self.filter.update(prediction, detections, timestamp, weights)
+
         return tracks
