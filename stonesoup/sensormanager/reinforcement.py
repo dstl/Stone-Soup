@@ -9,23 +9,31 @@ from .base import SensorManager
 from ..base import Base, Property
 from ..sensor.sensor import Sensor
 
-import tensorflow as tf
-import reverb
-from tf_agents.environments import py_environment
-from tf_agents.environments import utils
-from tf_agents.specs import array_spec
-from tf_agents.trajectories import time_step as ts
-from tf_agents.agents.dqn import dqn_agent
-from tf_agents.drivers import py_driver
-from tf_agents.environments import tf_py_environment
-from tf_agents.networks import sequential
-from tf_agents.policies import py_tf_eager_policy
-from tf_agents.policies import random_tf_policy
-from tf_agents.policies import greedy_policy
-from tf_agents.replay_buffers import reverb_replay_buffer
-from tf_agents.replay_buffers import reverb_utils
-from tf_agents.specs import tensor_spec
-from tf_agents.utils import common
+try:
+    import tensorflow as tf
+    import reverb
+    from tf_agents.environments import py_environment
+    from tf_agents.environments import utils
+    from tf_agents.specs import array_spec
+    from tf_agents.trajectories import time_step as ts
+    from tf_agents.agents.dqn import dqn_agent
+    from tf_agents.drivers import py_driver
+    from tf_agents.environments import tf_py_environment
+    from tf_agents.networks import sequential
+    from tf_agents.policies import py_tf_eager_policy
+    from tf_agents.policies import random_tf_policy
+    from tf_agents.policies import greedy_policy
+    from tf_agents.replay_buffers import reverb_replay_buffer
+    from tf_agents.replay_buffers import reverb_utils
+    from tf_agents.specs import tensor_spec
+    from tf_agents.utils import common
+except ImportError as error:
+    raise ImportError(
+        "Usage of reinforcement learning classes requires that the optional"
+        "package dependency tf-agents[reverb] is installed. "
+        "This can be achieved by running "
+        "'python -m pip install stonesoup[reinforcement]'") \
+        from error
 
 
 class PyEnvironment(object):
