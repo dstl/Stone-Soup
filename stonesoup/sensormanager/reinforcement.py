@@ -77,15 +77,15 @@ class PyEnvironment(object):
 
 
 class BaseEnvironment(py_environment.PyEnvironment):
-    def __init__(self):
-        super().__init__()
-        self._action_spec = array_spec.BoundedArraySpec(
-            shape=(), dtype=np.int32, minimum=0, maximum=self.num_actions, name='action')
-        self._observation_spec = array_spec.BoundedArraySpec(
-            shape=(self.observation_size,), dtype=np.float32, minimum=0, name='observation')  # distance
-        self._episode_ended = False
-        self._current_episode = 0
-        self._max_episode_length = self.episode_length
+    # def __init__(self):
+    #     super().__init__()
+    #     self._action_spec = array_spec.BoundedArraySpec(
+    #         shape=(), dtype=np.int32, minimum=0, maximum=1, name='action')
+    #     self._observation_spec = array_spec.BoundedArraySpec(
+    #         shape=(self.observation_size,), dtype=np.float32, minimum=0, name='observation')  # distance
+    #     self._episode_ended = False
+    #     self._current_episode = 0
+    #     self._max_episode_length = self.episode_length
 
     def action_spec(self):
         return self._action_spec
@@ -93,29 +93,29 @@ class BaseEnvironment(py_environment.PyEnvironment):
     def observation_spec(self):
         return self._observation_spec
 
-    def _reset(self):
-        # global satAERMesT, satECIMesT
-        self._episode_ended = False
-        self._current_episode = 0
-        return ts.restart(np.zeros(self.observation_size), dtype=np.float32)
-
-    def _step(self, action):
-
-        reward = 0
-        if self._episode_ended:
-            # The last action ended the episode. Ignore the current action and start
-            # a new episode.
-            return self.reset()
-
-        self._current_episode += 1
-        observation = list(self.observation_size)
-
-        if self._current_episode >= self._max_episode_length:
-            self._episode_ended = True
-            return ts.termination(observation, reward)
-        else:
-            # print('here1')
-            return ts.transition(observation, reward=reward, discount=1.0)
+    # def _reset(self):
+    #     # global satAERMesT, satECIMesT
+    #     self._episode_ended = False
+    #     self._current_episode = 0
+    #     return ts.restart(np.zeros(self.observation_size, dtype=np.float32))
+    #
+    # def _step(self, action):
+    #
+    #     reward = 0
+    #     if self._episode_ended:
+    #         # The last action ended the episode. Ignore the current action and start
+    #         # a new episode.
+    #         return self.reset()
+    #
+    #     self._current_episode += 1
+    #     observation = list(self.observation_size)
+    #
+    #     if self._current_episode >= self._max_episode_length:
+    #         self._episode_ended = True
+    #         return ts.termination(observation, reward)
+    #     else:
+    #         # print('here1')
+    #         return ts.transition(observation, reward=reward, discount=1.0)
 
 
 class ReinforcementLearningSensorManager(SensorManager):
