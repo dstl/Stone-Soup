@@ -83,30 +83,6 @@ class BaseEnvironment(py_environment.PyEnvironment, ABC):
     def observation_spec(self):
         return self._observation_spec
 
-    # def _reset(self):
-    #     # global satAERMesT, satECIMesT
-    #     self._episode_ended = False
-    #     self._current_episode = 0
-    #     return ts.restart(np.zeros(self.observation_size, dtype=np.float32))
-    #
-    # def _step(self, action):
-    #
-    #     reward = 0
-    #     if self._episode_ended:
-    #         # The last action ended the episode. Ignore the current action and start
-    #         # a new episode.
-    #         return self.reset()
-    #
-    #     self._current_episode += 1
-    #     observation = list(self.observation_size)
-    #
-    #     if self._current_episode >= self._max_episode_length:
-    #         self._episode_ended = True
-    #         return ts.termination(observation, reward)
-    #     else:
-    #         # print('here1')
-    #         return ts.transition(observation, reward=reward, discount=1.0)
-
 
 class ReinforcementLearningSensorManager(SensorManager):
     """A sensor manager that employs reinforcement learning algorithms from tensorflow-agents
@@ -121,9 +97,6 @@ class ReinforcementLearningSensorManager(SensorManager):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # self.agent = None
-        # self.eval_env = None
-        # self.train_env = None
 
     @staticmethod
     def compute_avg_return(environment, policy, num_episodes=10):
@@ -202,11 +175,8 @@ class ReinforcementLearningSensorManager(SensorManager):
 
             self.agent.initialize()
 
-            eval_policy = self.agent.policy
-            collect_policy = self.agent.collect_policy
             random_policy = random_tf_policy.RandomTFPolicy(self.train_env.time_step_spec(), self.train_env.action_spec())
 
-            # @test {"skip": true}
             # See also the metrics module for standard implementations of different metrics.
             # https://github.com/tensorflow/agents/tree/master/tf_agents/metrics
 
@@ -239,10 +209,6 @@ class ReinforcementLearningSensorManager(SensorManager):
                 table_name,
                 sequence_length=2)
 
-            # agent.collect_data_spec
-            # agent.collect_data_spec._fields
-
-            # @test {"skip": true}
             py_driver.PyDriver(
                 self.env,
                 py_tf_eager_policy.PyTFEagerPolicy(
@@ -281,13 +247,11 @@ class ReinforcementLearningSensorManager(SensorManager):
                 max_steps=hyper_parameters['collect_steps_per_iteration'])
 
             for _ in range(hyper_parameters['num_iterations']):
-                # print('Iteration: {i}'.format(i=_))
                 # Collect a few steps and save to the replay buffer.
                 time_step, _ = collect_driver.run(time_step)
 
                 # Sample a batch of data from the buffer and update the agent's network.
                 experience, unused_info = next(iterator)
-                # import pdb; pdb.set_trace()
                 train_loss = self.agent.train(experience).loss
 
                 step = self.agent.train_step_counter.numpy()
@@ -315,7 +279,7 @@ class ReinforcementLearningSensorManager(SensorManager):
         tracks: set of :class:`~Track`
             Set of tracks at given time. Used in reward function.
         timestamp: :class:`tf_agents.trajectories.TimeSpec`
-            Time at which the actions are carried out until
+            Timestep of environment at current time
         nchoose : int
             Number of actions from the set to choose (default is 1)
 
@@ -324,13 +288,6 @@ class ReinforcementLearningSensorManager(SensorManager):
         : dict
             The pairs of :class:`~.Sensor`: [:class:`~.Action`] selected
         """
-
-        # Need to convert timestamp -> time_step somehow?
-        # Maybe by comparing to start timestamp?
-        # time_step is observation at timestamp?
-        # This is a bit different as we need to use policy to select actions.
-        # Want to select actions from possible actions
-        # action_spec = self.agent.policy.action(timestamp)
 
         configs = [dict() for _ in range(nchoose)]
         for sensor_action_assignment in configs:
