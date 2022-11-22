@@ -26,7 +26,7 @@ def h1d(state_vector, pos_map, translation_offset, rotation_offset):
     # Get rotation matrix
     theta_x, theta_y, theta_z = - rotation_offset[:, 0]
 
-    rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
+    rotation_matrix = rotx(theta_x) @ roty(theta_y) @ rotz(theta_z)
     xyz_rot = rotation_matrix @ xyz
 
     _, phi, _ = cart2sphere(*xyz_rot)
@@ -43,7 +43,7 @@ def h2d(state_vector, pos_map, translation_offset, rotation_offset):
     # Get rotation matrix
     theta_x, theta_y, theta_z = - rotation_offset[:, 0]
 
-    rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
+    rotation_matrix = rotx(theta_x) @ roty(theta_y) @ rotz(theta_z)
     xyz_rot = rotation_matrix @ xyz
 
     rho, phi, _ = cart2sphere(*xyz_rot)
@@ -58,7 +58,7 @@ def h3d(state_vector, pos_map,  translation_offset, rotation_offset):
     theta_x, theta_y, theta_z = - rotation_offset[:, 0]
     theta_y = - theta_y
 
-    rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
+    rotation_matrix = rotx(theta_x) @ roty(theta_y) @ rotz(theta_z)
     xyz_rot = rotation_matrix @ xyz
 
     rho, phi, theta = cart2sphere(*xyz_rot)
@@ -72,7 +72,7 @@ def hbearing(state_vector, pos_map, translation_offset, rotation_offset):
     # Get rotation matrix
     theta_x, theta_y, theta_z = - rotation_offset[:, 0]
 
-    rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
+    rotation_matrix = rotx(theta_x) @ roty(theta_y) @ rotz(theta_z)
     xyz_rot = rotation_matrix @ xyz
 
     _, phi, theta = cart2sphere(*xyz_rot)
@@ -228,6 +228,8 @@ def test_models(h, ModelClass, state_vec, R,
     # (without noise)
     meas_pred_wo_noise = model.function(state)
     eval_m = h(state_vec, mapping, model.translation_offset, model.rotation_offset)
+    if not np.array_equal(meas_pred_wo_noise, eval_m):
+        pause=0
     assert np.array_equal(meas_pred_wo_noise, eval_m)
 
     # Ensure ```lg.transfer_function()``` returns H
@@ -338,7 +340,77 @@ position_measurement_sets = [((0, 1, 0, 0, 0, 0), (1, 0, 0, 0, 0, 0),
                              ((0, 1, 0, 0, 0, 0), (10, 0, 0, 0, -10, 0),
                               (-np.pi / 4, 0, np.sqrt(200), -1 / np.sqrt(2))),
                              ((0, 0, 0, 0, 0, 1), (0, 0, 0, 0, 10, 0),
-                              (0, 0, 10, -1)),
+                              (0, 0, 10, -1)),    # original tests up to here
+                             ((0, 2, 0, 0, 0, 1),(1, 2, 0, 0, 1, 1),
+                              (np.pi/4-np.arctan(0.5), 0, np.sqrt(2), 0)),
+                             ((0, 2, 0, 0, 0, -1),(1, 2, 0, 0, 1, -1),
+                              (np.pi/4+np.arctan(0.5), 0, np.sqrt(2), 0)),
+                             ((0, -2, 0, 0, 0, 1), (1, -2, 0, 0, 1, 1),
+                              (np.pi/4+np.arctan(0.5), np.pi, np.sqrt(2), 0)),
+                             ((0, -2, 0, 0, 0, -1), (1, -2, 0, 0, 1, -1),
+                              (np.pi/4-np.arctan(0.5), np.pi, np.sqrt(2), 0)),
+                             ((0, 2, 0, 0, 0, 1), (1, 2, 0, 0, -1, 1),
+                              (-np.pi/4-np.arctan(0.5), 0, np.sqrt(2), 0)),
+                             ((0, 2, 0, 0, 0, -1), (1, 2, 0, 0, -1, -1),
+                              (-np.pi/4+np.arctan(0.5), 0, np.sqrt(2), 0)),
+                             ((0, -2, 0, 0, 0, 1), (1, -2, 0, 0, -1, 1),
+                              (-np.pi/4+np.arctan(0.5), np.pi, np.sqrt(2), 0)),
+                             ((0, -2, 0, 0, 0, -1), (1, -2, 0, 0, -1, -1),
+                              (-np.pi/4-np.arctan(0.5), np.pi, np.sqrt(2), 0)),
+                             ((0, 2, 0, 0, 0, 1), (-1, 2, 0, 0, 1, 1),
+                              (np.pi/4+np.arctan(0.5), np.pi, np.sqrt(2), 0)),
+                             ((0, 2, 0, 0, 0, -1), (-1, 2, 0, 0, 1, -1),
+                              (np.pi/4-np.arctan(0.5), np.pi, np.sqrt(2), 0)),
+                             ((0, -2, 0, 0, 0, 1), (-1, -2, 0, 0, 1, 1),
+                              (np.pi/4-np.arctan(0.5), 0, np.sqrt(2), 0)),
+                             ((0, -2, 0, 0, 0, -1), (-1, -2, 0, 0, 1, -1),
+                              (np.pi/4+np.arctan(0.5), 0, np.sqrt(2), 0)),
+                             ((0, 2, 0, 0, 0, 1), (-1, 2, 0, 0, -1, 1),
+                              (-np.pi/4+np.arctan(0.5), np.pi, np.sqrt(2), 0)),
+                             ((0, 2, 0, 0, 0, -1), (-1, 2, 0, 0, -1, -1),
+                              (-np.pi/4-np.arctan(0.5), np.pi, np.sqrt(2), 0)),
+                             ((0, -2, 0, 0, 0, 1), (-1, -2, 0, 0, -1, 1),
+                              (-np.pi/4-np.arctan(0.5), 0, np.sqrt(2), 0)),
+                             ((0, -2, 0, 0, 0, -1), (-1, -2, 0, 0, -1, -1),
+                              (-np.pi/4+np.arctan(0.5), 0, np.sqrt(2), 0)),
+                             ((0, 2, 0, 1, 0, 0), (1, 2, 1, 1, 0, 0),
+                              (0, np.pi / 4 - np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, 2, 0, -1, 0, 0), (1, 2, 1, -1, 0, 0),
+                              (0, np.pi / 4 + np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, -2, 0, 1, 0, 0), (1, -2, 1, 1, 0, 0),
+                              (0, -np.pi*3/4 + np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, -2, 0, -1, 0, 0), (1, -2, 1, -1, 0, 0),
+                              (0, -np.pi*3/4-np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, 2, 0, 1, 0, 0), (1, 2, -1, 1, 0, 0),
+                              (0, -np.pi/4-np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, 2, 0, -1, 0, 0), (1, 2, -1, -1, 0, 0),
+                              (0, -np.pi/4+np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, -2, 0, 1, 0, 0), (1, -2, -1, 1, 0, 0),
+                              (0, np.pi*3/4+np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, -2, 0, -1, 0, 0), (1, -2, -1, -1, 0, 0),
+                              (0, np.pi*3/4-np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, 2, 0, 1, 0, 0), (-1, 2, 1, 1, 0, 0),
+                              (0, np.pi*3/4-np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, 2, 0, -1, 0, 0), (-1, 2, 1, -1, 0, 0),
+                              (0, np.pi*3/4+np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, -2, 0, 1, 0, 0), (-1, -2, 1, 1, 0, 0),
+                              (0, -np.pi/4+np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, -2, 0, -1, 0, 0), (-1, -2, 1, -1, 0, 0),
+                              (0, -np.pi/4-np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, 2, 0, 1, 0, 0), (-1, 2, -1, 1, 0, 0),
+                              (0, -np.pi*3/4-np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, 2, 0, -1, 0, 0), (-1, 2, -1, -1, 0, 0),
+                              (0, -np.pi*3/4+np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, -2, 0, 1, 0, 0), (-1, -2, -1, 1, 0, 0),
+                              (0, np.pi/4+np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, -2, 0, -1, 0, 0), (-1, -2, -1, -1, 0, 0),
+                              (0, np.pi/4-np.arctan(0.5), np.sqrt(2), 0)),
+                             ((1, -1, 0, 1, 0, 1),(0, -1, 0, 1, 0, 1),
+                              (-np.arccos((np.sqrt((np.cos(np.arctan(1/np.sqrt(2)))**2)+1))/np.sqrt(2)), np.pi/2-np.arctan(np.cos(np.arctan(1/np.sqrt(2)))), 1, 0)),
+                             ((0, 1, 0, 1, 0, 1),(1, 1, 0, 1, 0, 1),
+                              (-np.arccos((np.sqrt((np.cos(np.arctan(1/np.sqrt(2)))**2)+1))/np.sqrt(2)), -(np.pi/2-np.arctan(np.cos(np.arctan(1/np.sqrt(2))))), 1, 0)),
+                             ((0, 1, 0, 0 ,0 ,0),(1, 1, 1, 0, 1, 0),
+                              (np.arctan(1/np.sqrt(2)), np.pi/4, np.sqrt(3), 0))
                              ]
 
 
@@ -369,7 +441,12 @@ def test_model_predictions(sensor_state, target_state, expected_measurement, mod
     if use_velocity:
         model.velocity = sensor_velocity
     actual_measurement = model.function(target_state, noise=False)
-    assert np.allclose(actual_measurement, expected_measurement[measure_mapping])
+    expected_values = expected_measurement[measure_mapping]
+    for i, v in enumerate(expected_values):
+        if isinstance(v, Bearing):
+            expected_values[i] = v._value
+    #assert np.allclose(actual_measurement, expected_measurement[measure_mapping])
+    assert np.allclose(actual_measurement, expected_values)
 
 
 def test_angle_pdf():
@@ -969,7 +1046,11 @@ def test_noiseless_binning_predictions(sensor_state, target_state, expected_meas
         velocity=sensor_velocity)
     actual_measurement = model.function(target_state, noise=False)
     measure_mapping = [0, 1, 2, 3]
-    assert np.allclose(actual_measurement, expected_measurement[measure_mapping])
+    expected_values = expected_measurement[measure_mapping]
+    for i, v in enumerate(expected_values):
+        if isinstance(v, Bearing):
+            expected_values[i] = v._value
+    assert np.allclose(actual_measurement, expected_values)
 
 
 def test_compare_rrrb_to_ctebrr():
