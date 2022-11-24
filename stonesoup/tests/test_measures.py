@@ -257,16 +257,20 @@ def test_euclideanweighted_partial_mapping(mapping_type):
     'measure,result',
     [
         (measures.Mahalanobis(), distance.mahalanobis(u[:, 0], v[:, 0], np.linalg.inv(ui))),
-        (measures.SquaredMahalanobis(), distance.mahalanobis(u[:, 0], v[:, 0],
-                                                             np.linalg.inv(ui))**2),
+        (measures.Mahalanobis(state_covar_inv_cache_size=0),
+         distance.mahalanobis(u[:, 0], v[:, 0], np.linalg.inv(ui))),
+        (measures.SquaredMahalanobis(),
+         distance.mahalanobis(u[:, 0], v[:, 0], np.linalg.inv(ui))**2),
     ],
-    ids=['Mahalanobis', 'SquaredMahalanobis'],
+    ids=['Mahalanobis', 'Mahalanobis-no-cache', 'SquaredMahalanobis'],
 )
 def test_mahalanobis_pickle(measure, result):
     assert measure(state_u, state_v) == pytest.approx(result)
-    assert measure._inv_cov.cache_info().currsize == 1
+    if measure.state_covar_inv_cache_size > 0:
+        assert measure._inv_cov.cache_info().currsize == 1
 
     measure = pickle.loads(pickle.dumps(measure))
     assert measure(state_u, state_v) == pytest.approx(result)
-    assert measure._inv_cov.cache_info().hits == 0  # Cache not pickled currently
-    assert measure._inv_cov.cache_info().currsize == 1
+    if measure.state_covar_inv_cache_size > 0:
+        assert measure._inv_cov.cache_info().hits == 0  # Cache not pickled currently
+        assert measure._inv_cov.cache_info().currsize == 1
