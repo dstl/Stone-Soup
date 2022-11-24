@@ -1,4 +1,5 @@
 import datetime
+import pickle
 
 import numpy as np
 import pytest
@@ -250,3 +251,22 @@ def test_euclideanweighted_partial_mapping(mapping_type):
     measure = measures.EuclideanWeighted(weight, mapping=mapping, mapping2=mapping2)
     assert measure(state_u, state_v) == \
         distance.euclidean([10, 1], [11, 2], weight)
+
+
+@pytest.mark.parametrize(
+    'measure,result',
+    [
+        (measures.Mahalanobis(), distance.mahalanobis(u[:, 0], v[:, 0], np.linalg.inv(ui))),
+        (measures.SquaredMahalanobis(), distance.mahalanobis(u[:, 0], v[:, 0],
+                                                             np.linalg.inv(ui))**2),
+    ],
+    ids=['Mahalanobis', 'SquaredMahalanobis'],
+)
+def test_mahalanobis_pickle(measure, result):
+    assert measure(state_u, state_v) == pytest.approx(result)
+    assert measure._inv_cov.cache_info().currsize == 1
+
+    measure = pickle.loads(pickle.dumps(measure))
+    assert measure(state_u, state_v) == pytest.approx(result)
+    assert measure._inv_cov.cache_info().hits == 0  # Cache not pickled currently
+    assert measure._inv_cov.cache_info().currsize == 1
