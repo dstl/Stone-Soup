@@ -67,14 +67,12 @@ class AssociationSet(Type):
         super().__init__(associations, *args, **kwargs)
         if self.associations is None:
             self.associations = set()
-        if not isinstance(self.associations, Set):
-            raise TypeError("Supplied parameter must be a set")
-        if not all([isinstance(member, Association) for member in self.associations]):
+        if not all(isinstance(member, Association) for member in self.associations):
             raise TypeError("Association set must contain only Association instances")
         self._simplify()
 
     def __eq__(self, other):
-        return True if self.associations == other.associations else False
+        return self.associations == other.associations
 
     def add(self, association):
         if association is None:
@@ -92,7 +90,7 @@ class AssociationSet(Type):
         """Where multiple associations describe the same pair of objects, combine them into one.
         Note this is only implemented for pairs with a time_range attribute- others will be skipped
         """
-        to_remove = []
+        to_remove = set()
         for (assoc1, assoc2) in combinations(self.associations, 2):
             if not (len(assoc1.objects) == 2 and len(assoc2.objects) == 2):
                 continue
@@ -101,13 +99,13 @@ class AssociationSet(Type):
             if assoc1.objects == assoc2.objects:
                 if isinstance(assoc1.time_range, CompoundTimeRange):
                     assoc1.time_range.add(assoc2.time_range)
-                    to_remove.append(assoc2)
+                    to_remove.add(assoc2)
                 elif isinstance(assoc2.time_range, CompoundTimeRange):
                     assoc2.time_range.add(assoc1.time_range)
-                    to_remove.append(assoc1)
+                    to_remove.add(assoc1)
                 else:
                     assoc1.time_range = CompoundTimeRange([assoc1.time_range, assoc2.time_range])
-                    to_remove.append(assoc2)
+                    to_remove.add(assoc2)
         for assoc in to_remove:
             self.remove(assoc)
 
@@ -207,8 +205,8 @@ class AssociationSet(Type):
 
         return AssociationSet({association
                               for association in self.associations
-                              if all([object_ in association.objects
-                                      for object_ in objects])})
+                              if all(object_ in association.objects
+                                     for object_ in objects)})
 
     def __contains__(self, item):
         return item in self.associations

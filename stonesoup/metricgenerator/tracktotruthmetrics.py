@@ -358,9 +358,9 @@ class SIAPMetrics(MetricGenerator):
             time_range = TimeRange(current_time, next_time)
             for assoc in assocs:
                 # If there is some overlap between time ranges, add this to total_time
-                if time_range.overlap(assoc.time_range):
-                    total_time += time_range.overlap(assoc.time_range).duration.total_seconds()
-                    time_range = time_range.minus(time_range.overlap(assoc.time_range))
+                if time_range & assoc.time_range:
+                    total_time += (time_range & assoc.time_range).duration.total_seconds()
+                    time_range = time_range - (time_range & assoc.time_range)
                     if not time_range:
                         break
         return total_time

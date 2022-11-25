@@ -112,8 +112,6 @@ def test_contains(times):
     assert test_range2 not in compound_test
     assert test_range2 not in compound_test2
     assert test_range3 not in compound_test
-    print("         \n       range3", test_range3, "test2", compound_test2)
-    print(compound_test2.overlap(test_range3))
     assert test_range3 in compound_test2
 
 
@@ -152,29 +150,29 @@ def test_minus(times):
     test4 = TimeRange(times[4], times[5])
 
     with pytest.raises(TypeError):
-        test1.minus(15)
+        test1 - 15
 
-    assert test1.minus(test2) == test3
-    assert test1.minus(None) == test1
-    assert test2.minus(test1) is None
+    assert test1 - test2 == test3
+    assert test1 == test1 - None
+    assert test2 - test1 is None
 
     ctest1 = CompoundTimeRange([test2, test4])
     ctest2 = CompoundTimeRange([test1, test2])
     ctest3 = CompoundTimeRange([test4])
 
     with pytest.raises(TypeError):
-        ctest1.minus(15)
+        ctest1 - 15
 
-    assert ctest1.minus(ctest2) == ctest3
-    assert ctest1.minus(ctest1) == CompoundTimeRange()
-    assert ctest3.minus(ctest1) == CompoundTimeRange()
+    assert ctest1 - ctest2 == ctest3
+    assert ctest1 - ctest1 == CompoundTimeRange()
+    assert ctest3 - ctest1 == CompoundTimeRange()
 
-    assert test1.minus(ctest1) == TimeRange(times[2], times[3])
-    assert test4.minus(ctest2) == test4
-    assert ctest1.minus(test2) == ctest3
+    assert test1 - ctest1 == TimeRange(times[2], times[3])
+    assert test4 - ctest2 == test4
+    assert ctest1 - test2 == ctest3
 
 
-def test_overlap(times):
+def test_and(times):
     test1 = TimeRange(times[1], times[3])
     test2 = TimeRange(times[1], times[2])
     test3 = TimeRange(times[4], times[5])
@@ -182,16 +180,16 @@ def test_overlap(times):
     ctest1 = CompoundTimeRange([test2, test3])
     ctest2 = CompoundTimeRange([test1, test2])
 
-    assert test2.overlap(ctest1) == ctest1.overlap(test2)
+    assert test2 & ctest1 == ctest1 & test2
 
-    assert test1.overlap(test1) == test1
-    assert test1.overlap(None) is None
-    assert test1.overlap(test2) == test2
-    assert test2.overlap(test1) == test2
-    assert ctest1.overlap(None) is None
-    assert ctest1.overlap(test2) == CompoundTimeRange([test2])
-    assert ctest1.overlap(ctest2) == CompoundTimeRange([test2])
-    assert ctest1.overlap(ctest2) == ctest2.overlap(ctest1)
+    assert test1 & test1 == test1
+    assert test1 & None is None
+    assert test1 & test2 == test2
+    assert test2 & test1 == test2
+    assert ctest1 & None is None
+    assert ctest1 & test2 == CompoundTimeRange([test2])
+    assert ctest1 & ctest2 == CompoundTimeRange([test2])
+    assert ctest1 & ctest2 == ctest2 & ctest1
 
 
 def test_key_times(times):

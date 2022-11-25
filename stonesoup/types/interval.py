@@ -251,9 +251,6 @@ class Intervals(Type):
     def __str__(self):
         return str([[interval.start, interval.end] for interval in self])
 
-    # def __repr__(self):
-    #     return 'Intervals{intervals}'.format(intervals=str(self))
-
     @property
     def length(self):
         return sum(interval.length for interval in self)

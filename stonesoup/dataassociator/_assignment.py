@@ -1,4 +1,5 @@
 import numpy
+import copy
 from ..types.association import AssociationSet
 
 
@@ -365,13 +366,14 @@ def multidimensional_deconfliction(association_set):
 
     solved_2d = assign2D(totals, maximize=True)[1]
     cleaned_set = AssociationSet()
+    association_set_reduced = copy.copy(association_set)
     for i, j in enumerate(solved_2d):
         if i == j:
             # Can't associate with self
             continue
         assoc = association_set.associations_including_objects({objects[i], objects[j]})
         cleaned_set.add(assoc)
-        association_set.remove(assoc)
+        association_set_reduced.remove(assoc)
     if len(cleaned_set) == 0:
         raise ValueError("Problem unsolvable using this method")
 
@@ -380,14 +382,13 @@ def multidimensional_deconfliction(association_set):
         return cleaned_set
     else:
         # Recursive step
-        runners_up = multidimensional_deconfliction(association_set).associations
+        runners_up = multidimensional_deconfliction(association_set_reduced).associations
 
-    # At this point, none of association_set should conflict with one another
     for runner_up in runners_up:
         runner_up_remaining_time = runner_up.time_range
         for winner in cleaned_set:
             if conflicts(runner_up, winner):
-                runner_up_remaining_time = runner_up_remaining_time.minus(winner.time_range)
+                runner_up_remaining_time = runner_up_remaining_time - winner.time_range
         if runner_up_remaining_time and runner_up_remaining_time.duration.total_seconds() > 0:
             runner_up_copy = runner_up
             runner_up_copy.time_range = runner_up_remaining_time
@@ -398,7 +399,7 @@ def multidimensional_deconfliction(association_set):
 def conflicts(assoc1, assoc2):
     if getattr(assoc1, 'time_range', None) is None or getattr(assoc2, 'time_range', None) is None:
         return False
-    if assoc1.time_range.overlap(assoc2.time_range) and assoc1 != assoc2 \
+    if assoc1.time_range & assoc2.time_range and assoc1 != assoc2 \
             and len(assoc1.objects.intersection(assoc2.objects)) > 0:
         return True
     else:

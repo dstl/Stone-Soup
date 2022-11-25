@@ -1,4 +1,5 @@
 import datetime
+import copy
 from itertools import combinations, permutations
 
 from ..base import Property
@@ -66,7 +67,7 @@ class TimeRange(Interval):
     def __eq__(self, other):
         return isinstance(other, TimeRange) and super().__eq__(other)
 
-    def minus(self, time_range):
+    def __sub__(self, time_range):
         """Removes the overlap between this instance and another :class:`~.TimeRange`, or
         :class:`~.CompoundTimeRange`.
 
@@ -80,18 +81,18 @@ class TimeRange(Interval):
             This instance less the overlap
         """
         if time_range is None:
-            return self
+            return copy.copy(self)
         if not isinstance(time_range, TimeRange) and not isinstance(time_range, CompoundTimeRange):
             raise TypeError("Supplied parameter must be a TimeRange or CompoundTimeRange object")
         if isinstance(time_range, CompoundTimeRange):
             ans = self
             for t_range in time_range.time_ranges:
-                ans = ans.minus(t_range)
+                ans = ans - t_range
                 if not ans:
                     return None
             return ans
         else:
-            overlap = self.overlap(time_range)
+            overlap = self & time_range
             if overlap is None:
                 return self
             if self == overlap:
@@ -111,7 +112,7 @@ class TimeRange(Interval):
             else:
                 return TimeRange(start, end)
 
-    def overlap(self, time_range):
+    def __and__(self, time_range):
         """Finds the intersection between this instance and another :class:`~.TimeRange` or
         :class:`.~CompoundTimeRange`
 
@@ -127,7 +128,7 @@ class TimeRange(Interval):
         if time_range is None:
             return None
         if isinstance(time_range, CompoundTimeRange):
-            return time_range.overlap(self)
+            return time_range & self
         if not isinstance(time_range, TimeRange):
             raise TypeError("Supplied parameter must be a TimeRange object")
         return super().__and__(time_range)
@@ -179,12 +180,12 @@ class CompoundTimeRange(Intervals):
         """Removes overlap between components of `time_ranges`"""
         if len(self.time_ranges) in {0, 1}:
             return
-        if all([component.overlap(component2) is None for (component, component2) in
+        if all([component & component2 is None for (component, component2) in
                 combinations(self.time_ranges, 2)]):
             return
         overlap_check = CompoundTimeRange()
         for time_range in self.time_ranges:
-            overlap_check.add(time_range.minus(overlap_check.overlap(time_range)))
+            overlap_check.add(time_range - overlap_check & time_range)
         self.time_ranges = overlap_check.time_ranges
 
     def _fuse_components(self):
@@ -222,7 +223,7 @@ class CompoundTimeRange(Intervals):
         elif time_range in self:
             for component in self.time_ranges:
                 if time_range in component:
-                    new = component.minus(time_range)
+                    new = component - time_range
                     self.time_ranges.remove(component)
                     self.add(new)
         else:
@@ -256,7 +257,7 @@ class CompoundTimeRange(Intervals):
     def __eq__(self, other):
         return isinstance(other, CompoundTimeRange) and super().__eq__(other)
 
-    def minus(self, time_range):
+    def __sub__(self, time_range):
         """Removes any overlap between this and another :class:`~.TimeRange` or
         :class:`.~CompoundTimeRange` from this instance
 
@@ -270,13 +271,13 @@ class CompoundTimeRange(Intervals):
             The times contained by this but not time_range.  May be empty.
         """
         if time_range is None:
-            return self
+            return copy.copy(self)
         ans = CompoundTimeRange()
         for component in self.time_ranges:
-            ans.add(component.minus(time_range))
+            ans.add(component - time_range)
         return ans
 
-    def overlap(self, time_range):
+    def __and__(self, time_range):
         """Finds the intersection between this instance and another time range
 
         In the case of an input :class:`~.CompoundTimeRange` this  is done recursively.
