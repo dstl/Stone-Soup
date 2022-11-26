@@ -93,7 +93,8 @@ class Orbital(Type):
 
         This can also be constructed by passing `state_vector=None` and using the metadata. In this
         instance the metadata must conform to the TLE standard format [2]_ and be included in the
-        metadata dictionary as 'line_1' and 'line_2'.
+        metadata dictionary as 'line_1' and 'line_2'. In this latter instance any timestamp passed
+        as an argument will be overwritten by the epoch of the TLE.
 
         Coordinates = "Equinoctial" (equinoctial elements [2]_),
 
@@ -219,18 +220,26 @@ class Orbital(Type):
 
             # Convert Keplerian elements to Cartesian
 
-            # First enforce the correct type
-            self.state_vector[2] = Inclination(self.state_vector[2])
-            self.state_vector[3] = EclipticLongitude(self.state_vector[3])
-            self.state_vector[4] = EclipticLongitude(self.state_vector[4])
-            self.state_vector[5] = EclipticLongitude(self.state_vector[5])
+            # First enforce the correct type (should be a way to unify this)
+            if type(self.state_vector) is StateVector:
+                self.state_vector[2] = Inclination(self.state_vector[2])
+                self.state_vector[3] = EclipticLongitude(self.state_vector[3])
+                self.state_vector[4] = EclipticLongitude(self.state_vector[4])
+                self.state_vector[5] = EclipticLongitude(self.state_vector[5])
+            elif type(self.state_vector) is StateVectors:
+                self.state_vector[2] = self.state_vector[2].astype(Inclination)
+                self.state_vector[3] = self.state_vector[3].astype(EclipticLongitude)
+                self.state_vector[4] = self.state_vector[4].astype(EclipticLongitude)
+                self.state_vector[5] = self.state_vector[5].astype(EclipticLongitude)
+            else:
+                raise TypeError("Input should be `StateVector` or `StateVectors`")
 
             self.state_vector = keplerian_to_rv(self.state_vector,
                                                 grav_parameter=self.grav_parameter)
 
         elif coordinates.name == 'TLE':
 
-            if np.less(self.state_vector[2], 0.0) | np.greater(self.state_vector[2], 1.0):
+            if np.any(self.state_vector[2] < 0.0) | np.any(self.state_vector[2] > 1.0):
                 raise ValueError("Eccentricity should be between 0 and 1: got {}"
                                  .format(self.state_vector[0]))
 
@@ -240,6 +249,8 @@ class Orbital(Type):
                 tle = TLEDictReader({'line_1': kwargs['metadata']['line_1'],
                                      'line_2': kwargs['metadata']['line_2']})
 
+                # Note that this overwrites any timestamp you give pass as an argument
+                self.timestamp = tle.epoch
                 self.catalogue_number = tle.catalogue_number
                 self.classification = tle.classification
                 self.international_designator = tle.international_designator
@@ -251,52 +262,88 @@ class Orbital(Type):
                 self.revolution_number = tle.revolution_number
 
             # First enforce the correct type
-            self.state_vector[0] = Inclination(self.state_vector[0])
-            self.state_vector[1] = EclipticLongitude(self.state_vector[1])
-            self.state_vector[3] = EclipticLongitude(self.state_vector[3])
-            self.state_vector[4] = EclipticLongitude(self.state_vector[4])
+            if type(self.state_vector) is StateVector:
+                self.state_vector[0] = Inclination(self.state_vector[0])
+                self.state_vector[1] = EclipticLongitude(self.state_vector[1])
+                self.state_vector[3] = EclipticLongitude(self.state_vector[3])
+                self.state_vector[4] = EclipticLongitude(self.state_vector[4])
+                mean_motion = self.state_vector[5]
+                # True anomaly from mean anomaly
+                tru_anom = tru_anom_from_mean_anom(self.state_vector[4], self.state_vector[2])
+
+            elif type(self.state_vector) is StateVectors:
+                self.state_vector[0] = self.state_vector[0].astype(Inclination)
+                self.state_vector[1] = self.state_vector[1].astype(EclipticLongitude)
+                self.state_vector[3] = self.state_vector[3].astype(EclipticLongitude)
+                self.state_vector[4] = self.state_vector[4].astype(EclipticLongitude)
+                mean_motion = self.state_vector[5].astype(float)
+
+                tru_anom = np.zeros(np.shape(mean_motion))
+                for i, (mean_anom, ecc) in \
+                        enumerate(zip(self.state_vector[4], self.state_vector[2])):
+                    tru_anom[i] = tru_anom_from_mean_anom(mean_anom, ecc)
+            else:
+                raise TypeError("Input should be `StateVector` or `StateVectors`")
 
             # Get the semi-major axis from the mean motion
-            semimajor_axis = np.cbrt(self.grav_parameter / self.state_vector[5] ** 2)
 
-            # True anomaly from mean anomaly
-            tru_anom = tru_anom_from_mean_anom(self.state_vector[4], self.state_vector[2])
+            semimajor_axis = np.cbrt(self.grav_parameter / mean_motion ** 2)
 
-            # Use given and derived quantities to convert from Keplarian to
-            # Cartesian
-            self.state_vector = keplerian_to_rv(StateVectors([[self.state_vector[2], semimajor_axis,
-                                                             self.state_vector[0],
-                                                             self.state_vector[1],
-                                                             self.state_vector[3], tru_anom]]),
-                                                grav_parameter=self.grav_parameter)
+            # Use given and derived quantities to convert from Keplarian to Cartesian
+            self.state_vector = keplerian_to_rv(
+                StateVectors([np.array(self.state_vector[2]).flatten(),
+                              np.array(semimajor_axis).flatten(),
+                              np.array(self.state_vector[0]).flatten(),
+                              np.array(self.state_vector[1]).flatten(),
+                              np.array(self.state_vector[3]).flatten(),
+                              np.array(tru_anom).flatten()]), grav_parameter=self.grav_parameter)
 
         elif coordinates.name == 'EQUINOCTIAL':
 
-            if np.less(self.state_vector[1], -1.0) | np.greater(self.state_vector[1], 1.0):
+            if np.any(self.state_vector[1] < -1.0) | np.any(self.state_vector[1] > 1.0):
                 raise ValueError("Horizontal Eccentricity should be between -1 "
                                  "and 1: got {}".format(self.state_vector[1]))
-            if np.less(self.state_vector[2], -1.0) | np.greater(self.state_vector[2], 1.0):
+            if np.any(self.state_vector[2] < -1.0) | np.any(self.state_vector[2] > 1.0):
                 raise ValueError("Vertical Eccentricity should be between -1 and "
                                  "1: got {}".format(self.state_vector[2]))
 
-            # First enforce the correct type for mean longitude
-            self.state_vector[5] = EclipticLongitude(self.state_vector[5])
+            # First enforce the correct type for mean longitude, then compute intermediate
+            # quantities
+            if type(self.state_vector) is StateVector:
+                self.state_vector[5] = EclipticLongitude(self.state_vector[5])
+                raan = np.arctan2(self.state_vector[3], self.state_vector[4])
+                inclination = 2 * np.arctan(self.state_vector[3] / np.sin(raan))
+                arg_per = np.arctan2(self.state_vector[1], self.state_vector[2]) - raan
+            elif type(self.state_vector) is StateVectors:
+                self.state_vector[5] = self.state_vector[5].astype(EclipticLongitude)
+                raan = np.arctan2(self.state_vector[3].astype(float),
+                                  self.state_vector[4].astype(float))
+                inclination = 2 * np.arctan(self.state_vector[3].astype(float) / np.sin(raan))
+                arg_per = np.arctan2(self.state_vector[1].astype(float),
+                                     self.state_vector[2].astype(float)) - raan
+            else:
+                raise TypeError("Input should be `StateVector` or `StateVectors`")
 
             # Calculate the Keplarian element quantities
             semimajor_axis = self.state_vector[0]
-            raan = np.arctan2(self.state_vector[3], self.state_vector[4])
-            inclination = 2 * np.arctan(self.state_vector[3] / np.sin(raan))
-            arg_per = np.arctan2(self.state_vector[1], self.state_vector[2]) - raan
             mean_anomaly = self.state_vector[5] - arg_per - raan
             eccentricity = self.state_vector[1] / (np.sin(arg_per + raan))
 
             # True anomaly from mean anomaly
-            tru_anom = tru_anom_from_mean_anom(mean_anomaly, eccentricity)
+            if type(self.state_vector) is StateVector:
+                tru_anom = tru_anom_from_mean_anom(mean_anomaly, eccentricity)
+            else:
+                tru_anom = np.zeros(np.shape(eccentricity))
+                for i, (mean_anom, ecc) in enumerate(zip(mean_anomaly, eccentricity)):
+                    tru_anom[i] = tru_anom_from_mean_anom(mean_anom, ecc)
 
             # Convert from Keplarian to Cartesian
-            self.state_vector = keplerian_to_rv(StateVectors([eccentricity, semimajor_axis,
-                                                             inclination, raan, arg_per,
-                                                             tru_anom]),
+            self.state_vector = keplerian_to_rv(StateVectors([np.array(eccentricity).flatten(),
+                                                              np.array(semimajor_axis).flatten(),
+                                                              np.array(inclination).flatten(),
+                                                              np.array(raan).flatten(),
+                                                              np.array(arg_per).flatten(),
+                                                              np.array(tru_anom).flatten()]),
                                                 grav_parameter=self.grav_parameter)
 
     # Some vector quantities

@@ -308,6 +308,7 @@ def tru_anom_from_mean_anom(mean_anomaly, eccentricity, precision=1e-8, max_iter
                                    sin_ecc_anom,
                                    cos_ecc_anom - eccentricity), 2 * np.pi)
 
+    return semimajor_axis * (1 - eccentricity ** 2) / (1 + eccentricity * c_tran) * rot_v
 
 def perifocal_position(eccentricity, semimajor_axis, true_anomaly):
     r"""The position vector in perifocal coordinates calculated from the Keplerian elements
@@ -369,7 +370,9 @@ def perifocal_velocity(eccentricity, semimajor_axis, true_anomaly, grav_paramete
     rot_v = np.reshape(np.array([-s_tran, eccentricity + c_tran, np.zeros(np.shape(c_tran))]),
                        (3, np.shape(np.atleast_2d(true_anomaly))[1]))
 
-    return np.sqrt(grav_parameter / (semimajor_axis * (1 - eccentricity ** 2))) * rot_v
+    a_1_e_2 = np.array(semimajor_axis).astype(float) * (1 - np.array(eccentricity).astype(float) ** 2)
+
+    return np.sqrt(grav_parameter / a_1_e_2) * rot_v
 
 
 def perifocal_to_geocentric_matrix(inclination, raan, argp):
@@ -438,7 +441,7 @@ def keplerian_to_rv(state_vector, grav_parameter=3.986004418e14):
 
     Returns
     -------
-    : :class:`~.StateVectors`
+    : :class:`~.StateVector`, :class:`~.StateVectors`
         Orbital state vector as :math:`[r_x, r_y, r_z, \dot{r}_x, \dot{r}_y, \dot{r}_z]`
 
     Warning
@@ -447,21 +450,35 @@ def keplerian_to_rv(state_vector, grav_parameter=3.986004418e14):
 
     """
 
-    # Calculate the position vector in perifocal coordinates
-    rx = perifocal_position(state_vector[0], state_vector[1], state_vector[5])
+    # The (hidden) function which does this on a single StateVector
+    def _kep_to_rv_statevector(statevector):
 
-    # Calculate the velocity vector in perifocal coordinates
-    vx = perifocal_velocity(state_vector[0], state_vector[1], state_vector[5],
-                            grav_parameter=grav_parameter)
+        # Calculate the position vector in perifocal coordinates
+        rx = perifocal_position(statevector[0], statevector[1], statevector[5])
 
-    # Transform position (perifocal) and velocity (perifocal)
-    # into geocentric
-    r = perifocal_to_geocentric_matrix(state_vector[2], state_vector[3], state_vector[4]) @ rx
+        # Calculate the velocity vector in perifocal coordinates
+        vx = perifocal_velocity(statevector[0], statevector[1], statevector[5],
+                                grav_parameter=grav_parameter)
 
-    v = perifocal_to_geocentric_matrix(state_vector[2], state_vector[3], state_vector[4]) @ vx
+        # Transform position (perifocal) and velocity (perifocal) into geocentric
+        r = perifocal_to_geocentric_matrix(statevector[2], statevector[3], statevector[4]) @ rx
 
-    # And put them into the state vector
-    return StateVectors(np.concatenate((r, v), axis=0))
+        v = perifocal_to_geocentric_matrix(statevector[2], statevector[3], statevector[4]) @ vx
+
+        return StateVector(np.concatenate((r, v), axis=0))
+
+    # Do this a statevector at a time to avoid having to do tensor multiplication
+    if type(state_vector) is StateVector:
+        return _kep_to_rv_statevector(state_vector)
+    elif type(state_vector) is StateVectors:
+
+        outrv = np.zeros(np.shape(state_vector))
+        for i, sv in enumerate(state_vector):
+            outrv[:, slice(i, i+1)] = _kep_to_rv_statevector(sv)
+
+        return StateVectors(outrv)
+    else:
+        raise TypeError(r"Input must be :class:`~.StateVector` or :class:`~.StateVectors`")
 
 
 def mod_inclination(x):
