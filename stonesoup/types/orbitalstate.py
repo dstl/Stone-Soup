@@ -192,8 +192,8 @@ class Orbital(Type):
                 # instances will have to work out how to sample from a mean TLE. So this is just
                 # a StateVector
                 self.state_vector = StateVector([tle.inclination, tle.longitude_of_ascending_node,
-                                                 tle.eccentricity, tle.arg_periapsis, tle.mean_anomaly,
-                                                 tle.mean_motion])
+                                                 tle.eccentricity, tle.arg_periapsis,
+                                                 tle.mean_anomaly, tle.mean_motion])
                 kwargs['timestamp'] = tle.epoch
 
                 # super().__init__(state_vector, *args, **kwargs)
@@ -571,7 +571,8 @@ class Orbital(Type):
             mean anomaly from true anomaly and eccentricity.
 
         """
-        return self.eccentric_anomaly - self.eccentricity * np.sin(self.eccentric_anomaly)  # Kepler's equation
+        # Kepler's equation
+        return self.eccentric_anomaly - self.eccentricity * np.sin(self.eccentric_anomaly)
 
     @property
     def period(self):
