@@ -149,6 +149,7 @@ def test_tle_cart():
     # Test that the TLE initialisation delivers the correct elements
     tle_sn = OrbitalState(cartesian_s.two_line_element, coordinates='TLE',
                           grav_parameter=cartesian_s.grav_parameter)
+
     # Note that we need to convert to floats to do the comparison because np.allclose invokes the
     # np.isfinite() function which throws an error on Angle types
     assert(np.allclose(np.float64(cartesian_s.two_line_element),
@@ -183,6 +184,9 @@ def test_cart_kep():
     # Check Keplerian elements come out right
     assert(np.allclose(np.float64(cartesian_s.keplerian_elements), out_kep, rtol=1e-3))
 
+    # This isn't tested elsewhere so do it here
+    assert cartesian_s.specific_orbital_energy == cartesian_ss.specific_orbital_energy[0, 0]
+
 
 # The test TLE output
 def test_cart_tle():
@@ -205,3 +209,7 @@ def test_tle_via_metadata():
     tle_state = OrbitalState(None, coordinates='TwoLineElement', metadata=tle_metadata)
 
     assert (np.allclose(tle_state.state_vector, outstate, rtol=1e-4))
+
+    # Check the dictionary contains items
+    tle_dictionary = tle_state.tle_dict
+    assert bool(tle_dictionary)
