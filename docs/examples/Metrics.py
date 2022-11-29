@@ -213,5 +213,5 @@ for siap, axis in zip(t_siaps, axes):
 #
 # .. [#] *D. Schuhmacher, B. Vo and B. Vo*, **A Consistent Metric for Performance Evaluation of
 #    Multi-Object Filters**, IEEE Trans. Signal Processing 2008
-# .. [#] *Votruba, Paul & Nisley, Rich & Rothrock, Ron and Zombro, Brett.*, **Single Integrated Air
-#    Picture (SIAP) Metrics Implementation**, 2001
+# .. [#] *Karoly S., Wilson J., Dutchyshyn H., Maluda J.*, **Single Integrated Air Picture (SIAP)
+#    Attributes Version 2.0**, DTIC Technical Report 2003
