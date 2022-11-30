@@ -97,6 +97,7 @@ class ReinforcementLearningSensorManager(SensorManager):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.tf_env = tf_py_environment.TFPyEnvironment(self.env)
 
     @staticmethod
     def compute_avg_return(environment, policy, num_episodes=10):
@@ -110,11 +111,11 @@ class ReinforcementLearningSensorManager(SensorManager):
             time_step = environment.reset()
             episode_return = 0.0
 
-        while not time_step.is_last():
-            action_step = policy.action(time_step)
-            time_step = environment.step(action_step.action)
-            episode_return += time_step.reward
-        total_return += episode_return
+            while not time_step.is_last():
+                action_step = policy.action(time_step)
+                time_step = environment.step(action_step.action)
+                episode_return += time_step.reward
+            total_return += episode_return
 
         avg_return = total_return / num_episodes
         return avg_return.numpy()[0]
@@ -271,8 +272,8 @@ class ReinforcementLearningSensorManager(SensorManager):
 
     def choose_actions(self, tracks, timestamp, nchoose=1, **kwargs):
         """Returns a chosen [list of] action(s) from the action set for each sensor.
-        Chosen action(s) is selected by finding the configuration of sensors: actions which returns
-        the maximum reward, as calculated by a reward function.
+        Chosen action(s) is selected by exploiting the reinforcement learning agent's
+        policy that was found during training.
 
         Parameters
         ----------
@@ -294,6 +295,7 @@ class ReinforcementLearningSensorManager(SensorManager):
             for sensor in self.sensors:
                 chosen_actions = []
                 action_step = self.agent.policy.action(timestamp)
+                self.tf_env.step(action_step.action)
                 action = action_step.action
                 stonesoup_action = self.env.generate_action(action)
                 chosen_actions.append(stonesoup_action)
