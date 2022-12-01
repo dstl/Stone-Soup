@@ -1,12 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Astronomical readers for Stone Soup.
+"""Providing some basic astronomical readers for Stone Soup, allowing import of data that is in
+common astronomical formats.
 
-This is a collection of readers for Stone Soup, allowing quick reading
-of data that is in common astronomical formats.
-
-Readers include:
-    FITS
-    TLE
 """
 from datetime import datetime
 import numpy as np
