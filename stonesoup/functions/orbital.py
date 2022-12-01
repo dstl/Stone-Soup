@@ -65,13 +65,13 @@ def stumpff_c(z):
 
     Parameters
     ----------
-    z : float
+    z : float, array-like
         input parameter, :math:`z`
 
     Returns
     -------
-    : float
-        Output value, :math:`C(z)`
+    : float, array-like
+        Output value, :math:`C(z)` in same format and size as input
 
     """
     gti = z > 0
@@ -118,7 +118,7 @@ def universal_anomaly_newton(o_state_vector, delta_t,
 
     Returns
     -------
-    : float
+    : numpy.ndarray
         The universal anomaly, :math:`\chi`
 
     References
@@ -126,9 +126,6 @@ def universal_anomaly_newton(o_state_vector, delta_t,
     .. [1] Curtis H.D. 2010, Orbital Mechanics for Engineering Students, 3rd Ed., Elsevier
 
     """
-
-    # For loop across StateVectors
-    # out = Matrix(np.zeros((1, np.shape(o_state_vector)[1])))
 
     # This should really have the calculation abstracted out and then do
     # if statevector do code, else do iteration over code
@@ -173,7 +170,7 @@ def lagrange_coefficients_from_universal_anomaly(o_state_vector, delta_t,
 
     Parameters
     ----------
-    o_state_vector : StateVector
+    o_state_vector : :class:`~.StateVector`, :class:`~.StateVectors`
         The (Cartesian) orbital state vector,
         :math:`[r_x, r_y, r_z, \dot{r}_x, \dot{r}_y, \dot{r}_z]^T`
     delta_t : timedelta
@@ -190,7 +187,7 @@ def lagrange_coefficients_from_universal_anomaly(o_state_vector, delta_t,
 
     Returns
     -------
-    : float, float, float, float
+    : tuple(numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray)
         The Lagrange coefficients, :math:`f, g, \dot{f}, \dot{g}`, in that order.
 
     References
