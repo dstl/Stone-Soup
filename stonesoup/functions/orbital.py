@@ -101,7 +101,7 @@ def universal_anomaly_newton(o_state_vector, delta_t,
 
     Parameters
     ----------
-    o_state_vector : :class:`~StateVector, ~StateVectors`
+    o_state_vector : :class:`~.StateVector`, :class:`~.StateVectors`
         The orbital state vector formed as
         :math:`[r_x, r_y, r_z, \dot{r}_x, \dot{r}_y, \dot{r}_z]^T`
     delta_t : timedelta
