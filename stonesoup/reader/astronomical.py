@@ -13,13 +13,11 @@ from .file import FileReader, TextFileReader
 
 
 class FITSReader(FileReader):
-    """A simple reader for FITS files. Returns a list of
-    Header Data Units (HDUs) contained within the file
+    """A simple reader for FITS files. Returns a list of Header Data Units (HDUs) contained within
+    the file.
 
     FITS file must be valid i.e. have at least one Header Data Unit (HDU)
 
-    Parameters
-    ----------
     """
 
     def __init__(self, *args, **kwargs):
@@ -45,15 +43,16 @@ class FITSReader(FileReader):
 class TLEDictReader(Reader):
     """A reader designed to accept Two-Line Element (TLE) inputs as a dictionary. These contain
     a single TLE without a Line 0 which should conform strictly to the TLE format. The key for
-    Line 1 is "line_1" and that for Line 2 is "line_2". See the references _[1], _[2] for a full
+    Line 1 is "line_1" and that for Line 2 is "line_2". See the references [1]_, [2]_ for a full
     explanation of TLEs.
 
     References
     ----------
     .. [1] Kelso, T.S. 2019, CelesTrak: NORAD Two-Line Element Set Format,
-    https://www.celestrak.com/NORAD/documentation/tle-fmt.php
+       [CelesTrak](https://www.celestrak.com/NORAD/documentation/tle-fmt.php)
+
     .. [2] Kelso, T.S. 2019, Frequently Asked Questions: Two-Line Element Set Format,
-    https://celestrak.com/columns/v04n03/
+       [CelesTrak](https://celestrak.com/columns/v04n03/)
 
     """
     tle: dict = Property(doc="")
