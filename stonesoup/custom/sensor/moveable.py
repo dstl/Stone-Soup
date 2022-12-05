@@ -15,7 +15,7 @@ from stonesoup.types.detection import TrueDetection
 from stonesoup.types.groundtruth import GroundTruthState
 
 
-class MoveableUAVCamera(Sensor):
+class MovableUAVCamera(Sensor):
     """A camera that can pan and tilt."""
     ndim_state: int = Property(
         doc="Number of state dimensions. This is utilised by (and follows in\
