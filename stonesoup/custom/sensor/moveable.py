@@ -47,10 +47,11 @@ class MovableUAVCamera(Sensor):
         default=0,
         generator_cls=LocationActionGenerator
     )
-    minmax: StateVector = Property(
+    limits: dict = Property(
         doc="The sensor min max location",
-        default=StateVector([-100, 100])
+        default=None
     )
+
 
     @location_x.setter
     def location_x(self, value):
@@ -116,18 +117,31 @@ class MovableUAVCamera(Sensor):
         (assumes the property is an :class:`~.ActionableProperty`."""
 
         if self.resolutions and name in self.resolutions.keys():
-            generator = property_.generator_cls(owner=self,
-                                                attribute=name,
-                                                start_time=self.timestamp,
-                                                end_time=timestamp,
-                                                resolution=self.resolutions[name],
-                                                minmax=self.minmax)
+            if self.limits and name in self.limits.keys():
+                generator = property_.generator_cls(owner=self,
+                                                    attribute=name,
+                                                    start_time=self.timestamp,
+                                                    end_time=timestamp,
+                                                    resolution=self.resolutions[name],
+                                                    limits=self.limits[name])
+            else:
+                generator = property_.generator_cls(owner=self,
+                                                    attribute=name,
+                                                    start_time=self.timestamp,
+                                                    end_time=timestamp,
+                                                    resolution=self.resolutions[name])
         else:
-            generator = property_.generator_cls(owner=self,
-                                                attribute=name,
-                                                start_time=self.timestamp,
-                                                end_time=timestamp,
-                                                minmax=self.minmax)
+            if self.limits and name in self.limits.keys():
+                generator = property_.generator_cls(owner=self,
+                                                    attribute=name,
+                                                    start_time=self.timestamp,
+                                                    end_time=timestamp,
+                                                    limits=self.limits)
+            else:
+                generator = property_.generator_cls(owner=self,
+                                                    attribute=name,
+                                                    start_time=self.timestamp,
+                                                    end_time=timestamp)
         return generator.default_action
 
     def actions(self, timestamp: datetime.datetime, start_timestamp: datetime.datetime = None
@@ -158,16 +172,29 @@ class MovableUAVCamera(Sensor):
         generators = set()
         for name, property_ in self._actionable_properties.items():
             if self.resolutions and name in self.resolutions.keys():
-                generators.add(property_.generator_cls(owner=self,
-                                                       attribute=name,
-                                                       start_time=start_timestamp,
-                                                       end_time=timestamp,
-                                                       resolution=self.resolutions[name],
-                                                       minmax=self.minmax))
+                if self.limits and name in self.limits.keys():
+                    generators.add(property_.generator_cls(owner=self,
+                                                           attribute=name,
+                                                           start_time=start_timestamp,
+                                                           end_time=timestamp,
+                                                           resolution=self.resolutions[name],
+                                                           limits=self.limits[name]))
+                else:
+                    generators.add(property_.generator_cls(owner=self,
+                                                           attribute=name,
+                                                           start_time=start_timestamp,
+                                                           end_time=timestamp,
+                                                           resolution=self.resolutions[name]))
             else:
-                generators.add(property_.generator_cls(owner=self,
-                                                       attribute=name,
-                                                       start_time=start_timestamp,
-                                                       end_time=timestamp,
-                                                       minmax=self.minmax))
+                if self.limits and name in self.limits.keys():
+                    generators.add(property_.generator_cls(owner=self,
+                                                           attribute=name,
+                                                           start_time=start_timestamp,
+                                                           end_time=timestamp,
+                                                           limits=self.limits[name]))
+                else:
+                    generators.add(property_.generator_cls(owner=self,
+                                                           attribute=name,
+                                                           start_time=start_timestamp,
+                                                           end_time=timestamp))
         return generators

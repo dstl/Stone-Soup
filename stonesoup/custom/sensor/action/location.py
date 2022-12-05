@@ -42,7 +42,7 @@ class LocationActionGenerator(RealNumberActionGenerator):
     owner: object = Property(doc="Object with `timestamp`, `rpm` (revolutions per minute) and "
                                  "dwell-centre attributes")
     resolution: float = Property(default=10, doc="Resolution of action space")
-    minmax: StateVector = Property(doc="Min and max values of the action space",
+    limits: StateVector = Property(doc="Min and max values of the action space",
                                    default=StateVector([-100, 100]))
 
     _action_cls = ChangeLocationAction
@@ -82,12 +82,12 @@ class LocationActionGenerator(RealNumberActionGenerator):
     @property
     def min(self):
         # Pan can rotate freely, while tilt is limited to +/- 90 degrees
-        return self.minmax[0]
+        return self.limits[0]
 
     @property
     def max(self):
         # Pan can rotate freely, while tilt is limited to +/- 90 degrees
-        return self.minmax[1]
+        return self.limits[1]
 
     def __contains__(self, item):
 

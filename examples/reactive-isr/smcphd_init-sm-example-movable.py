@@ -149,20 +149,21 @@ for k in range(1, num_iter + 1):
 # Create sensors
 # ==============
 sensors = set()
-for i in range(1, total_no_sensors+1):
+for i in range(0, total_no_sensors):
     rotation_offset = StateVector(
         [Angle(0), Angle(-np.pi / 2), Angle(0)])  # Camera rotation offset
     pan_tilt = StateVector([Angle(0), Angle(-np.pi / 32)])  # Camera pan and tilt
 
-    position = StateVector([i * 10., i * 10., 100.])
-    resolutions = {'location_x': 10., 'location_y': 10.}
+    position = StateVector([i * 10., 10., 100.])
+    resolutions = {'location_x': 5., 'location_y': 5.}
+    limits = {'location_x': surveillance_region[0], 'location_y': surveillance_region[1]}
     sensor = MovableUAVCamera(ndim_state=6, mapping=[0, 2, 4],
                               noise_covar=np.diag([0.05, 0.05, 0.05]),
                               location_x=position[0], location_y=position[1],
                               resolutions=resolutions,
                               position=position,
                               radius=10,
-                              minmax=StateVector([-100, 100]))
+                              limits=limits)
     sensors.add(sensor)
 for sensor in sensors:
     sensor.timestamp = start_time
