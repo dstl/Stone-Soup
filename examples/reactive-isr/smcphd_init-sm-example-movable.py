@@ -162,7 +162,7 @@ for i in range(0, total_no_sensors):
                               location_x=position[0], location_y=position[1],
                               resolutions=resolutions,
                               position=position,
-                              radius=10,
+                              fov_radius=10,
                               limits=limits)
     sensors.add(sensor)
 for sensor in sensors:
@@ -248,7 +248,7 @@ for k, timestamp in enumerate(timestamps):
     for sensor in sensors:
         sensor.act(timestamp)
         center = (sensor.position[0], sensor.position[1])
-        radius = sensor.radius
+        radius = sensor.fov_radius
         p = Point(center).buffer(radius)
         fovs.append(p)
 
@@ -275,7 +275,7 @@ for k, timestamp in enumerate(timestamps):
         if PLOT:
             ax1.cla()
 
-            circle = plt.Circle((sensor.position[0], sensor.position[1]), radius=sensor.radius,
+            circle = plt.Circle((sensor.position[0], sensor.position[1]), radius=sensor.fov_radius,
                                 color='r',
                                 fill=False)
             ax1.add_artist(circle)

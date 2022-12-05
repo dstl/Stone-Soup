@@ -28,10 +28,8 @@ class MovableUAVCamera(Sensor):
         doc="The sensor noise covariance matrix. This is utilised by\
                     (and follow in format) the underlying \
                     :class:`~.CartesianToElevationBearing` model")
-    radius: Union[float, List[float]] = Property(
-        doc="The field of view (FOV) angle (in radians). If provided in a list, the first element "
-            "is the pan FOV angle and the second element is the tilt FOV angle. Else, the same "
-            "FOV angle is used for both pan and tilt.")
+    fov_radius: Union[float, List[float]] = Property(
+        doc="The detection field of view radius of the sensor")
     clutter_model: ClutterModel = Property(
         default=None,
         doc="An optional clutter generator that adds a set of simulated "
@@ -51,7 +49,6 @@ class MovableUAVCamera(Sensor):
         doc="The sensor min max location",
         default=None
     )
-
 
     @location_x.setter
     def location_x(self, value):
@@ -95,7 +92,7 @@ class MovableUAVCamera(Sensor):
             distance = np.linalg.norm(norm_measurement_vector[0:2])
 
             # Do not measure if state not in FOV
-            if distance > self.radius:
+            if distance > self.fov_radius:
                 continue
 
             detection = TrueDetection(measurement_vector,
