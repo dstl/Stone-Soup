@@ -10,7 +10,7 @@ from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.sensor.action import ActionGenerator
 from stonesoup.sensor.actionable import ActionableProperty
 from stonesoup.sensor.sensor import Sensor
-from stonesoup.types.array import CovarianceMatrix, StateVector
+from stonesoup.types.array import CovarianceMatrix
 from stonesoup.types.detection import TrueDetection
 from stonesoup.types.groundtruth import GroundTruthState
 
@@ -111,34 +111,8 @@ class MovableUAVCamera(Sensor):
 
     def _default_action(self, name, property_, timestamp):
         """Returns the default action of the action generator associated with the property
-        (assumes the property is an :class:`~.ActionableProperty`."""
-
-        if self.resolutions and name in self.resolutions.keys():
-            if self.limits and name in self.limits.keys():
-                generator = property_.generator_cls(owner=self,
-                                                    attribute=name,
-                                                    start_time=self.timestamp,
-                                                    end_time=timestamp,
-                                                    resolution=self.resolutions[name],
-                                                    limits=self.limits[name])
-            else:
-                generator = property_.generator_cls(owner=self,
-                                                    attribute=name,
-                                                    start_time=self.timestamp,
-                                                    end_time=timestamp,
-                                                    resolution=self.resolutions[name])
-        else:
-            if self.limits and name in self.limits.keys():
-                generator = property_.generator_cls(owner=self,
-                                                    attribute=name,
-                                                    start_time=self.timestamp,
-                                                    end_time=timestamp,
-                                                    limits=self.limits)
-            else:
-                generator = property_.generator_cls(owner=self,
-                                                    attribute=name,
-                                                    start_time=self.timestamp,
-                                                    end_time=timestamp)
+        (assumes the property is an :class:`~.ActionableProperty`)."""
+        generator = self._get_generator(name, property_, timestamp, self.timestamp)
         return generator.default_action
 
     def actions(self, timestamp: datetime.datetime, start_timestamp: datetime.datetime = None
@@ -166,32 +140,18 @@ class MovableUAVCamera(Sensor):
         if start_timestamp is None:
             start_timestamp = self.timestamp
 
-        generators = set()
-        for name, property_ in self._actionable_properties.items():
-            if self.resolutions and name in self.resolutions.keys():
-                if self.limits and name in self.limits.keys():
-                    generators.add(property_.generator_cls(owner=self,
-                                                           attribute=name,
-                                                           start_time=start_timestamp,
-                                                           end_time=timestamp,
-                                                           resolution=self.resolutions[name],
-                                                           limits=self.limits[name]))
-                else:
-                    generators.add(property_.generator_cls(owner=self,
-                                                           attribute=name,
-                                                           start_time=start_timestamp,
-                                                           end_time=timestamp,
-                                                           resolution=self.resolutions[name]))
-            else:
-                if self.limits and name in self.limits.keys():
-                    generators.add(property_.generator_cls(owner=self,
-                                                           attribute=name,
-                                                           start_time=start_timestamp,
-                                                           end_time=timestamp,
-                                                           limits=self.limits[name]))
-                else:
-                    generators.add(property_.generator_cls(owner=self,
-                                                           attribute=name,
-                                                           start_time=start_timestamp,
-                                                           end_time=timestamp))
+        generators = {self._get_generator(name, property_, timestamp, start_timestamp)
+                      for name, property_ in self._actionable_properties.items()}
+
         return generators
+
+    def _get_generator(self, name, prop, timestamp, start_timestamp):
+        """Returns the action generator associated with the """
+        kwargs = {'owner': self, 'attribute': name, 'start_time': start_timestamp,
+                  'end_time': timestamp}
+        if self.resolutions and name in self.resolutions.keys():
+            kwargs['resolution'] = self.resolutions[name]
+        if self.limits and name in self.limits.keys():
+            kwargs['limits'] = self.limits[name]
+        generator = prop.generator_cls(**kwargs)
+        return generator

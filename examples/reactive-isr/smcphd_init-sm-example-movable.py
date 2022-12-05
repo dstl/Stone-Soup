@@ -5,7 +5,7 @@ from ordered_set import OrderedSet
 from shapely.geometry import Point
 from shapely.ops import unary_union
 
-from stonesoup.custom.sensor.moveable import MovableUAVCamera
+from stonesoup.custom.sensor.movable import MovableUAVCamera
 from stonesoup.sensormanager import BruteForceSensorManager
 from stonesoup.sensormanager.reward import UncertaintyRewardFunction
 from stonesoup.types.angle import Angle
