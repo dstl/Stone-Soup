@@ -90,7 +90,7 @@ class UncertaintyRewardFunction(RewardFunction):
             predicted_sensor.add_actions(actions)
             predicted_sensor.act(metric_time)
             if isinstance(sensor, Sensor):
-                predicted_sensors.append(predicted_sensor)  # checks if its a sensor
+                predicted_sensors.append(predicted_sensor)  # checks if it's a sensor
 
         # Create dictionary of predictions for the tracks in the configuration
         predicted_tracks = set()
