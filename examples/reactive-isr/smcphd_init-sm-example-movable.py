@@ -7,7 +7,8 @@ from shapely.ops import unary_union
 
 from stonesoup.custom.sensor.movable import MovableUAVCamera
 from stonesoup.sensormanager import BruteForceSensorManager
-from stonesoup.sensormanager.reward import UncertaintyRewardFunction
+from stonesoup.sensormanager.reward import UncertaintyRewardFunction, \
+    RolloutUncertaintyRewardFunction
 from stonesoup.types.angle import Angle
 from stonesoup.types.array import StateVector
 from stonesoup.types.numeric import Probability
@@ -93,6 +94,7 @@ def _prob_detect_func(fovs):
 
     return prob_detect_func
 
+# if __name__ == '__main__':
 # Parameters
 # ==========
 start_time = datetime.now()         # Simulation start time
@@ -215,7 +217,9 @@ tracker = SMCPHD_JIPDA(birth_density=birth_density, transition_model=transition_
 
 # Initialise sensor manager
 # =========================
-reward_function = UncertaintyRewardFunction(tracker._predictor, tracker._updater)
+# reward_function = UncertaintyRewardFunction(tracker._predictor, tracker._updater)
+reward_function = RolloutUncertaintyRewardFunction(tracker._predictor, tracker._updater, 2,
+                                                   num_samples=10, interval=timedelta(seconds=5))
 sensor_manager = BruteForceSensorManager(sensors, reward_function)
 
 # Estimate
@@ -295,4 +299,4 @@ for k, timestamp in enumerate(timestamps):
                                  edgecolor='r', facecolor='none', ax=ax1)
             plt.axis([*surveillance_region[0], *surveillance_region[1]])
             plt.legend(loc='upper right')
-            plt.pause(0.01)
+            plt.pause(0.1)

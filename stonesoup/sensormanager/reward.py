@@ -1,9 +1,12 @@
 from abc import ABC
 import copy
 import datetime
-from typing import Mapping, Sequence, Set
+from random import random
+from typing import Mapping, Sequence, Set, List
+import itertools as it
 
 import numpy as np
+from tqdm import tqdm
 
 from ..types.detection import TrueDetection
 from ..base import Base, Property
@@ -13,6 +16,19 @@ from ..types.track import Track
 from ..types.hypothesis import SingleHypothesis
 from ..sensor.sensor import Sensor
 from ..sensor.action import Action
+
+
+import multiprocessing as mpp
+
+
+def imap_tqdm(pool, f, inputs, chunksize=None, **tqdm_kwargs):
+    # Calculation of chunksize taken from pool._map_async
+    if not chunksize:
+        chunksize, extra = divmod(len(inputs), len(pool._pool) * 4)
+        if extra:
+            chunksize += 1
+    results = list(tqdm(pool.imap_unordered(f, inputs, chunksize=chunksize), total=len(inputs), **tqdm_kwargs))
+    return results
 
 
 class RewardFunction(Base, ABC):
@@ -125,4 +141,144 @@ class UncertaintyRewardFunction(RewardFunction):
                 config_metric += metric
 
         # Return value of configuration metric
+        return config_metric
+
+
+class RolloutUncertaintyRewardFunction(RewardFunction):
+    """A reward function which calculates the potential reduction in the uncertainty of track estimates
+    if a particular action is taken by a sensor or group of sensors.
+
+    Given a configuration of sensors and actions, a metric is calculated for the potential
+    reduction in the uncertainty of the tracks that would occur if the sensing configuration
+    were used to make an observation. A larger value indicates a greater reduction in
+    uncertainty.
+    """
+
+    predictor: KalmanPredictor = Property(doc="Predictor used to predict the track to a new state")
+    updater: ExtendedKalmanUpdater = Property(doc="Updater used to update "
+                                                  "the track to the new state.")
+    timesteps: int = Property(doc="Number of timesteps to rollout")
+    num_samples: int = Property(doc="Number of samples to take for each timestep", default=30)
+    interval: datetime.timedelta = Property(doc="Interval between timesteps",
+                                            default=datetime.timedelta(seconds=1))
+
+    def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: Set[Track],
+                 metric_time: datetime.datetime, *args, **kwargs):
+        """
+        For a given configuration of sensors and actions this reward function calculates the
+        potential uncertainty reduction of each track by
+        computing the difference between the covariance matrix norms of the prediction
+        and the posterior assuming a predicted measurement corresponding to that prediction.
+
+        This requires a mapping of sensors to action(s)
+        to be evaluated by reward function, a set of tracks at given time and the time at which
+        the actions would be carried out until.
+
+        The metric returned is the total potential reduction in uncertainty across all tracks.
+
+        Returns
+        -------
+        : float
+            Metric of uncertainty for given configuration
+
+        """
+
+        # Reward value
+        end_time = metric_time + datetime.timedelta(seconds=self.timesteps)
+        config_metric = self._rollout(config, tracks, metric_time, end_time)
+
+        # Return value of configuration metric
+        return config_metric
+
+    def _rollout(self, config: Mapping[Sensor, Sequence[Action]], tracks: Set[Track],
+                 timestamp: datetime.datetime, end_time: datetime.datetime):
+        """
+        For a given configuration of sensors and actions this reward function calculates the
+        potential uncertainty reduction of each track by
+        computing the difference between the covariance matrix norms of the prediction
+        and the posterior assuming a predicted measurement corresponding to that prediction.
+
+        This requires a mapping of sensors to action(s)
+        to be evaluated by reward function, a set of tracks at given time and the time at which
+        the actions would be carried out until.
+
+        The metric returned is the total potential reduction in uncertainty across all tracks.
+
+        Returns
+        -------
+        : float
+            Metric of uncertainty for given configuration
+
+        """
+
+        # Reward value
+        config_metric = 0
+
+        predicted_sensors = list()
+        memo = {}
+
+        # For each sensor in the configuration
+        for sensor, actions in config.items():
+            predicted_sensor = copy.deepcopy(sensor, memo)
+            predicted_sensor.add_actions(actions)
+            predicted_sensor.act(timestamp)
+            if isinstance(sensor, Sensor):
+                predicted_sensors.append(predicted_sensor)  # checks if its a sensor
+
+        # Create dictionary of predictions for the tracks in the configuration
+        predicted_tracks = set()
+        for track in tracks:
+            predicted_track = copy.copy(track)
+            predicted_track.append(self.predictor.predict(predicted_track, timestamp=timestamp))
+            predicted_tracks.add(predicted_track)
+
+        for sensor in predicted_sensors:
+
+            # Assumes one detection per track
+            detections = {detection.groundtruth_path: detection
+                          for detection in sensor.measure(predicted_tracks, noise=False)
+                          if isinstance(detection, TrueDetection)}
+
+            for predicted_track, detection in detections.items():
+                # Generate hypothesis based on prediction/previous update and detection
+                hypothesis = SingleHypothesis(predicted_track.state, detection)
+
+                # Do the update based on this hypothesis and store covariance matrix
+                update = self.updater.update(hypothesis)
+
+                previous_cov_norm = np.linalg.norm(predicted_track.covar)
+                update_cov_norm = np.linalg.norm(update.covar)
+
+                # Replace prediction with update
+                predicted_track.append(update)
+
+                # Calculate metric for the track observation and add to the metric
+                # for the configuration
+                metric = previous_cov_norm - update_cov_norm
+                config_metric += metric
+
+        if timestamp == end_time:
+            return config_metric
+
+        timestamp = timestamp + datetime.timedelta(seconds=1)
+
+        all_action_choices = dict()
+        for sensor in predicted_sensors:
+            # get action 'generator(s)'
+            action_generators = sensor.actions(timestamp)
+            # list possible action combinations for the sensor
+            action_choices = list(it.product(*action_generators))
+            # dictionary of sensors: list(action combinations)
+            all_action_choices[sensor] = action_choices
+
+        configs = list({sensor: action
+                        for sensor, action in zip(all_action_choices.keys(), actionconfig)}
+                       for actionconfig in it.product(*all_action_choices.values()))
+
+        idx = np.random.choice(len(configs), self.num_samples)
+        configs = [configs[i] for i in idx]
+
+        rewards = [self._rollout(config, tracks, timestamp, end_time) for config in configs]
+        config_metric += np.max(rewards)
+
         return config_metric
