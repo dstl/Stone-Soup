@@ -25,51 +25,10 @@ except ImportError as error:
         "Usage of reinforcement learning classes requires that the optional"
         "package dependency tf-agents[reverb] is installed. "
         "This can be achieved by running "
-        "'python -m pip install stonesoup[reinforcement]'") \
+        "'python -m pip install stonesoup[reinforcement]'."
+        "PLEASE NOTE: This RL implementation will only work on"
+        "Linux based OSes.") \
         from error
-
-
-class PyEnvironment(object):
-    """The Base PyEnvironment class for generating tf-agent environments.
-
-    """
-
-    def __init__(self):
-        self._current_time_step = None
-
-    def reset(self):
-        """Return initial_time_step."""
-        self._current_time_step = self._reset()
-        return self._current_time_step
-
-    def step(self, a):
-        """Apply action and return new time_step."""
-        if self._current_time_step is None:
-            return self.reset()
-        self._current_time_step = self._step(a)
-        return self._current_time_step
-
-    def current_time_step(self):
-        return self._current_time_step
-
-    def time_step_spec(self):
-        """Return time_step_spec."""
-
-    @abstractmethod
-    def observation_spec(self):
-        """Return observation_spec."""
-
-    @abstractmethod
-    def action_spec(self):
-        """Return action_spec."""
-
-    @abstractmethod
-    def _reset(self):
-        """Return initial_time_step."""
-
-    @abstractmethod
-    def _step(self, a):
-        """Apply action and return new time_step."""
 
 
 class BaseEnvironment(py_environment.PyEnvironment, ABC):
@@ -268,7 +227,7 @@ class ReinforcementLearningSensorManager(SensorManager):
                     print('step = {0}: Average Return = {1}'.format(step, avg_return))
 
                 if step == hyper_parameters['num_iterations']:
-                    print('\n~~~~~\nTraining complete\n~~~~~')
+                    print('\n-----\nTraining complete\n-----')
 
     def choose_actions(self, tracks, timestamp, nchoose=1, **kwargs):
         """Returns a chosen [list of] action(s) from the action set for each sensor.
