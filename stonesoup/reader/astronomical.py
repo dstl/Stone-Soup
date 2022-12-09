@@ -101,7 +101,7 @@ class TLEDictReader(Reader):
     @property
     def international_designator(self):
         """International designator incorporates the year of launch, launch number that year and
-        place of launch. How to interpret this string can be found at _[2]"""
+        place of launch. How to interpret this string can be found at [2]_"""
         return self.line1[9:17]
 
     @property
