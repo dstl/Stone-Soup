@@ -19,7 +19,6 @@ class FITSReader(FileReader):
     FITS file must be valid i.e. have at least one Header Data Unit (HDU)
 
     """
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         with fits.open(self.path) as hdu_list:
@@ -241,7 +240,7 @@ class TLEDictReader(Reader):
 
     @property
     def checksum_calculated(self):
-        "Return the TLE checksum calculated from the lines supplied"
+        """Return the TLE checksum calculated from the lines supplied"""
 
         return self.checksum(self.line1), self.checksum(self.line2)
 
