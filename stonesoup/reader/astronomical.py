@@ -23,8 +23,6 @@ class FITSReader(FileReader):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         with fits.open(self.path) as hdu_list:
-            # self._hdu_list = hdu_list
-            # self._hdu_list = hdu_list.copy()
             self._data = []
             self._header = []
             for index, hdu in enumerate(hdu_list):
