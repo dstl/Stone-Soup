@@ -6,18 +6,12 @@ try:
     import tensorflow as tf
     import reverb
     from tf_agents.environments import py_environment
-    from tf_agents.environments import utils
-    from tf_agents.specs import array_spec
-    from tf_agents.trajectories import time_step as ts
     from tf_agents.agents.dqn import dqn_agent
     from tf_agents.drivers import py_driver
     from tf_agents.environments import tf_py_environment
     from tf_agents.networks import sequential
-    from tf_agents.policies import py_tf_eager_policy
-    from tf_agents.policies import random_tf_policy
-    from tf_agents.policies import greedy_policy
-    from tf_agents.replay_buffers import reverb_replay_buffer
-    from tf_agents.replay_buffers import reverb_utils
+    from tf_agents.policies import py_tf_eager_policy, random_tf_policy
+    from tf_agents.replay_buffers import reverb_replay_buffer, reverb_utils
     from tf_agents.specs import tensor_spec
     from tf_agents.utils import common
 except ImportError as error:
@@ -46,7 +40,8 @@ class BaseEnvironment(py_environment.PyEnvironment, ABC):
 
 class ReinforcementSensorManager(SensorManager):
     """A sensor manager that employs reinforcement learning algorithms from tensorflow-agents.
-    The sensor manager trains on an environment to find an optimal policy, which is then exploited to choose actions.
+    The sensor manager trains on an environment to find an optimal policy, which is then exploited
+    to choose actions.
     """
     env: BaseEnvironment = Property(doc="The environment which the agent learns the policy with.")
 
@@ -97,7 +92,8 @@ class ReinforcementSensorManager(SensorManager):
                 scale=2.0, mode='fan_in', distribution='truncated_normal'))
 
     def train(self, hyper_parameters):
-        """Trains a DQN agent on the specified environment to learn a policy that is later used to select actions.
+        """Trains a DQN agent on the specified environment to learn a policy that is later
+        used to select actions.
         Parameters
         ----------
         hyper_parameters: dict
@@ -149,7 +145,8 @@ class ReinforcementSensorManager(SensorManager):
             # See also the metrics module for standard implementations of different metrics.
             # https://github.com/tensorflow/agents/tree/master/tf_agents/metrics
 
-            self.compute_avg_return(self.eval_env, random_policy, hyper_parameters['num_eval_episodes'])
+            self.compute_avg_return(self.eval_env, random_policy,
+                                    hyper_parameters['num_eval_episodes'])
 
             table_name = 'uniform_table'
             replay_buffer_signature = tensor_spec.from_spec(
@@ -234,7 +231,8 @@ class ReinforcementSensorManager(SensorManager):
                                                          hyper_parameters['num_eval_episodes'])
                     returns.append(avg_return)
                     print('step = {0}: Average Return = {1}'.format(step, avg_return))
-                    if ('max_train_reward' in hyper_parameters) and (avg_return > hyper_parameters['max_train_reward']):
+                    if ('max_train_reward' in hyper_parameters) and\
+                            (avg_return > hyper_parameters['max_train_reward']):
                         break
 
             print('\n-----\nTraining complete\n-----')
