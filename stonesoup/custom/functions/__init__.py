@@ -1,11 +1,16 @@
 import math
-import numpy as np
+from typing import Set
 
-# pip install vector3d
+import numpy as np
+from matplotlib.path import Path
+from scipy.special import logsumexp
+from scipy.stats import multivariate_normal
+from shapely.geometry.base import BaseGeometry
 from vector3d.vector import Vector
 
-from stonesoup.functions import cart2sphere, sphere2cart
 from stonesoup.types.angle import Angle
+from stonesoup.types.state import ParticleState
+from stonesoup.types.track import Track
 
 
 class CameraCalculator:
@@ -384,3 +389,41 @@ def rigid_transform_3D(A, B):
         R = Vt.T @ U.T
     t = -R @ centroid_A + centroid_B
     return R, t
+
+
+def calculate_num_targets_dist(tracks: Set[Track], geom: BaseGeometry,
+                               phd_state: ParticleState = None):
+    num_samples = 100
+    mu_overall = 0
+    var_overall = np.inf if len(tracks) == 0 else 0
+    path_p = Path(geom.boundary)
+
+    # Calculate PHD density inside polygon
+    if phd_state is not None:
+        points = phd_state.state_vector[[0, 2], :].T
+        inside_points = path_p.contains_points(points)
+        if np.sum(inside_points) > 0:
+            # The mean of the PHD density inside the polygon is the sum of the weights of the
+            # particles inside the polygon
+            mu_overall = np.exp(logsumexp(np.log(phd_state.weight[inside_points].astype(float))))
+            # The variance of a Poisson distribution is equal to the mean
+            var_overall = mu_overall
+
+    # Calculate number of tracks inside polygon
+    for track in tracks:
+        # Sample points from the track state
+        points = multivariate_normal.rvs(mean=track.state_vector[[0, 2]].ravel(),
+                                         cov=track.covar[0:2, 0:2],
+                                         size=num_samples)
+        # Check which points are inside the polygon
+        inside_points = path_p.contains_points(points)
+        # Probability of existence inside the polygon is the fraction of points inside the polygon
+        # times the probability of existence
+        p_success = float(track.exist_prob) * (np.sum(inside_points) / num_samples)
+        # Mean of a Bernoulli distribution is equal to the probability of success
+        mu_overall += p_success
+        # Variance of a Bernoulli distribution is equal to the probability of success,
+        # times the probability of failure
+        var_overall += p_success * (1 - p_success)
+
+    return mu_overall, var_overall
