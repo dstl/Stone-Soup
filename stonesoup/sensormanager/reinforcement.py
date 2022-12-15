@@ -1,4 +1,4 @@
-from abc import abstractmethod, ABC
+from abc import ABC
 from .base import SensorManager
 from ..base import Property
 
@@ -32,7 +32,8 @@ except ImportError as error:
 
 
 class BaseEnvironment(py_environment.PyEnvironment, ABC):
-    """Base Stone Soup class for implementing tf-agents environments.
+    """Base class for implementing tf-agents environments.
+    Environments must contain
 
     """
 
@@ -43,8 +44,9 @@ class BaseEnvironment(py_environment.PyEnvironment, ABC):
         return self._observation_spec
 
 
-class ReinforcementLearningSensorManager(SensorManager):
-    """A sensor manager that employs reinforcement learning algorithms from tensorflow-agents
+class ReinforcementSensorManager(SensorManager):
+    """A sensor manager that employs reinforcement learning algorithms from tensorflow-agents.
+    The sensor manager trains on an environment to find an optimal policy, which is then exploited to choose actions.
     """
     env: BaseEnvironment = Property(doc="The environment which the agent learns the policy with.")
 
@@ -96,6 +98,10 @@ class ReinforcementLearningSensorManager(SensorManager):
 
     def train(self, hyper_parameters):
         """Trains a DQN agent on the specified environment to learn a policy that is later used to select actions.
+        Parameters
+        ----------
+        hyper_parameters: dict
+            Dictionary containing hyperparameters used in training.
 
         """
         if self.env is not None:
@@ -228,9 +234,10 @@ class ReinforcementLearningSensorManager(SensorManager):
                                                          hyper_parameters['num_eval_episodes'])
                     returns.append(avg_return)
                     print('step = {0}: Average Return = {1}'.format(step, avg_return))
+                    if ('max_train_reward' in hyper_parameters) and (avg_return > hyper_parameters['max_train_reward']):
+                        break
 
-                if step == hyper_parameters['num_iterations']:
-                    print('\n-----\nTraining complete\n-----')
+            print('\n-----\nTraining complete\n-----')
 
     def choose_actions(self, tracks, timestamp, nchoose=1, **kwargs):
         """Returns a chosen [list of] action(s) from the action set for each sensor.
@@ -257,7 +264,6 @@ class ReinforcementLearningSensorManager(SensorManager):
             for sensor in self.sensors:
                 chosen_actions = []
                 action_step = self.agent.policy.action(timestamp)
-                # self.tf_env.step(action_step.action)
                 action = action_step.action
                 stonesoup_action = self.env.generate_action(action)
                 chosen_actions.append(stonesoup_action)
