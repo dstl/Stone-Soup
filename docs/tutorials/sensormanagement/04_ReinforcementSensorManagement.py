@@ -223,7 +223,7 @@ from ordered_set import OrderedSet
 # Design Environment
 # ^^^^^^^^^^^^^^^^^^
 #
-# An environment is needed for the RL agent to learn in. There are resources online for how to design these [#].
+# An environment is needed for the RL agent to learn in. There are resources online for how to design these [#]_.
 #
 # For this tutorial, a pre-designed environment has been created for you to go through.
 # In this example, the action space is equal to the number of targets in the simulation, so at each time step, the
