@@ -57,6 +57,8 @@ class ReinforcementLearningSensorManager(SensorManager):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.tf_env = tf_py_environment.TFPyEnvironment(self.env)
+        self.test_env = tf_py_environment.TFPyEnvironment(self.env)
+        self.agent = None
 
     @staticmethod
     def compute_avg_return(environment, policy, num_episodes=10):
@@ -104,7 +106,7 @@ class ReinforcementLearningSensorManager(SensorManager):
             self.train_env = tf_py_environment.TFPyEnvironment(train_py_env)
             self.eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)
 
-            fc_layer_params = (100, 50)
+            fc_layer_params = hyper_parameters['fc_layer_params']
             action_tensor_spec = tensor_spec.from_spec(self.env.action_spec())
             num_actions = action_tensor_spec.maximum - action_tensor_spec.minimum + 1
 
@@ -135,7 +137,8 @@ class ReinforcementLearningSensorManager(SensorManager):
 
             self.agent.initialize()
 
-            random_policy = random_tf_policy.RandomTFPolicy(self.train_env.time_step_spec(), self.train_env.action_spec())
+            random_policy = random_tf_policy.RandomTFPolicy(self.train_env.time_step_spec(),
+                                                            self.train_env.action_spec())
 
             # See also the metrics module for standard implementations of different metrics.
             # https://github.com/tensorflow/agents/tree/master/tf_agents/metrics
@@ -254,7 +257,7 @@ class ReinforcementLearningSensorManager(SensorManager):
             for sensor in self.sensors:
                 chosen_actions = []
                 action_step = self.agent.policy.action(timestamp)
-                self.tf_env.step(action_step.action)
+                # self.tf_env.step(action_step.action)
                 action = action_step.action
                 stonesoup_action = self.env.generate_action(action)
                 chosen_actions.append(stonesoup_action)
