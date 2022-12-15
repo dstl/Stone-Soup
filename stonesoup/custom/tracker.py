@@ -58,7 +58,7 @@ class SMCPHD_JIPDA(Base):
                                               self.clutter_intensity,
                                               prob_detect=self.prob_detect,
                                               prob_survive=1-self.prob_death)
-        self._hypothesiser = DistanceGater(self._hypothesiser, Mahalanobis(), 10)
+        self._hypothesiser = DistanceGater(self._hypothesiser, Mahalanobis(), 20)
         self._associator = JIPDAWithEHM2(self._hypothesiser)
 
         resampler = SystematicResampler()
@@ -131,10 +131,11 @@ class SMCPHD_JIPDA(Base):
 
         rho = np.zeros((len(detections)))
         for j, detection in enumerate(detections):
-            rho_tmp = 1
-            if len(assoc_prob_matrix):
-                for i, track in enumerate(tracks):
-                    rho_tmp *= 1 - assoc_prob_matrix[i, j + 1]
+            rho_tmp = 0 if len(assoc_prob_matrix) and np.sum(assoc_prob_matrix[:, j + 1]) > 0 else 1
+            # rho_tmp = 1
+            # if len(assoc_prob_matrix):
+            #     for i, track in enumerate(tracks):
+            #         rho_tmp *= 1 - assoc_prob_matrix[i, j + 1]
             rho[j] = rho_tmp
 
         for track, multihypothesis in associations.items():
