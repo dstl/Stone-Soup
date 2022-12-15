@@ -113,8 +113,8 @@ class SMCPHD_JIPDA(Base):
         num_tracks = len(tracks)
         num_detections = len(detections)
 
-        if not len(detections):
-            return self.tracks
+        # if not len(detections):
+        #     return self.tracks
 
         # Perform data association
         associations = self._associator.associate(tracks, detections, timestamp)
