@@ -413,7 +413,7 @@ def calculate_num_targets_dist(tracks: Set[Track], geom: BaseGeometry,
     for track in tracks:
         # Sample points from the track state
         points = multivariate_normal.rvs(mean=track.state_vector[[0, 2]].ravel(),
-                                         cov=track.covar[0:2, 0:2],
+                                         cov=track.covar[[0, 2], :][:, [0, 2]],
                                          size=num_samples)
         # Check which points are inside the polygon
         inside_points = path_p.contains_points(points)
