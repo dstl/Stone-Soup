@@ -1,4 +1,5 @@
 from abc import abstractmethod, ABC
+from multiprocessing import Pool, cpu_count
 from typing import Callable, Set
 import random
 import numpy as np
@@ -129,18 +130,57 @@ class BruteForceSensorManager(SensorManager):
             all_action_choices[sensor] = action_choices
 
         # get tuple of dictionaries of sensors: actions
-        configs = ({sensor: action
+        configs = list({sensor: action
                     for sensor, action in zip(all_action_choices.keys(), actionconfig)}
                    for actionconfig in it.product(*all_action_choices.values()))
 
         best_rewards = np.zeros(nchoose) - np.inf
         selected_configs = [None] * nchoose
-        for config in configs:
+        rewards = []
+        vars = []
+        for i, config in enumerate(configs):
             # calculate reward for dictionary of sensors: actions
-            reward = self.reward_function(config, tracks, timestamp)
+            # actions_sets = list(config.values())
+            # flag = True
+            # for actions in actions_sets:
+            #     action_x = next(
+            #         action for action in actions if action.generator.attribute == 'location_x')
+            #     action_y = next(
+            #         action for action in actions if action.generator.attribute == 'location_y')
+            #     if action_x.target_value != -4.5 or action_y.target_value != 51.5:
+            #         flag = False
+            #         break
+            # if flag:
+            #     a = 2
+            reward, var = self.reward_function(config, tracks, timestamp)
+            rewards.append(reward)
+            vars.append(var)
             if reward > min(best_rewards):
                 selected_configs[np.argmin(best_rewards)] = config
                 best_rewards[np.argmin(best_rewards)] = reward
 
+        # inputs = [(config, tracks, timestamp) for config in configs]
+        # with Pool(cpu_count()) as pool:
+        #     rewards = pool.starmap(self.reward_function, inputs)
+
+        # rewards = [self.reward_function(config, tracks, timestamp) for config in configs]
+        # selected_configs = [configs[i] for i in np.argsort(rewards)[-nchoose:]]
+
         # Return mapping of sensors and chosen actions for sensors
         return selected_configs
+
+
+def is_valid_config(config, **kwargs):
+    num_sensors = int(len(kwargs)/2)
+    actions_sets = list(config.values())
+    for i in range(num_sensors):
+        x = kwargs[f'x{i+1}']
+        y = kwargs[f'y{i+1}']
+        actions = actions_sets[i]
+        action_x = next(
+            action for action in actions if action.generator.attribute == 'location_x')
+        action_y = next(
+            action for action in actions if action.generator.attribute == 'location_y')
+        if action_x.target_value != x or action_y.target_value != y:
+            return False
+    return True

@@ -16,7 +16,8 @@ from stonesoup.types.groundtruth import GroundTruthState
 
 
 class MovableUAVCamera(Sensor):
-    """A camera that can pan and tilt."""
+    """A movable UAV camera sensor."""
+
     ndim_state: int = Property(
         doc="Number of state dimensions. This is utilised by (and follows in\
                     format) the underlying :class:`~.CartesianToElevationBearing`\

@@ -14,15 +14,18 @@ from stonesoup.types.state import State
 
 
 class IPDAHypothesiser(PDAHypothesiser):
+
     """ Integrated PDA Hypothesiser """
+
     prob_detect: Union[Probability, Callable[[State], Probability]] = Property(
         default=Probability(0.85),
         doc="Target Detection Probability")
     prob_survive: Probability = Property(doc="Probability of survival", default=Probability(0.99))
+    predict: bool = Property(default=True, doc="Perform prediction step")
+    per_measurement: bool = Property(default=False, doc="Generate per measurement predictions")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        a = 2
 
     def hypothesise(self, track, detections, timestamp, **kwargs):
         r"""Evaluate and return all track association hypotheses.
@@ -30,12 +33,15 @@ class IPDAHypothesiser(PDAHypothesiser):
 
         hypotheses = list()
 
-        # Common state & measurement prediction
-        prediction = self.predictor.predict(track, timestamp=timestamp, **kwargs)
-        # Compute predicted existence
-        time_interval = timestamp - track.timestamp
-        prob_survive = np.exp(-(1-self.prob_survive)*time_interval.total_seconds())
-        track.exist_prob = prob_survive * track.exist_prob
+        if self.predict:
+            # Common state & measurement prediction
+            prediction = self.predictor.predict(track, timestamp=timestamp, **kwargs)
+            # Compute predicted existence
+            time_interval = timestamp - track.timestamp
+            prob_survive = np.exp(-(1-self.prob_survive)*time_interval.total_seconds())
+            track.exist_prob = prob_survive * track.exist_prob
+        else:
+            prediction = track.state
         # Missed detection hypothesis
         prob_detect = self.prob_detect(prediction)
         probability = Probability(1 - prob_detect * self.prob_gate * track.exist_prob)
@@ -50,13 +56,14 @@ class IPDAHypothesiser(PDAHypothesiser):
 
         # True detection hypotheses
         for detection in detections:
-            # Re-evaluate prediction
-            prediction = self.predictor.predict(
-                track.state, timestamp=detection.timestamp)
+            if self.predict and self.per_measurement:
+                # Re-evaluate prediction
+                prediction = self.predictor.predict(
+                    track.state, timestamp=detection.timestamp)
+                prob_detect = self.prob_detect(prediction)
             # Compute measurement prediction and probability measure
             measurement_prediction = self.updater.predict_measurement(
                 prediction, detection.measurement_model, **kwargs)
-            prob_detect = self.prob_detect(prediction)
             # Calculate difference before to handle custom types (mean defaults to zero)
             # This is required as log pdf coverts arrays to floats
             log_pdf = mn.logpdf(

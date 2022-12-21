@@ -98,10 +98,12 @@ class LocationActionGenerator(RealNumberActionGenerator):
 
     def __iter__(self) -> Iterator[ChangeLocationAction]:
         """Returns all possible ChangePanTiltAction types"""
-        possible_values = np.arange(self.min, self.max, self.resolution, dtype=float)
+        possible_values = np.arange(self.min, self.max + self.resolution, self.resolution, dtype=float)
 
         yield self.default_action
         for angle in possible_values:
+            if angle == self.current_value:
+                continue
             yield self._action_cls(generator=self,
                                    end_time=self.end_time,
                                    target_value=angle)

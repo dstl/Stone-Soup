@@ -5,18 +5,18 @@ import numpy as np
 from scipy.stats import multivariate_normal
 
 from stonesoup.base import Property, Base
-from stonesoup.custom.jipda import JIPDAWithEHM2
-from stonesoup.custom.smcphd import SMCPHDFilter, SMCPHDInitiator
+from stonesoup.custom.dataassociator.jipda import JIPDAWithEHM2
+from stonesoup.custom.initiator.smcphd import SMCPHDFilter, SMCPHDInitiator
+from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
 from stonesoup.functions import gm_reduce_single
 from stonesoup.gater.distance import DistanceGater
 from stonesoup.custom.hypothesiser.probability import IPDAHypothesiser
+from stonesoup.hypothesiser.distance import DistanceHypothesiser
 from stonesoup.measures import Mahalanobis
 from stonesoup.models.measurement import MeasurementModel
 from stonesoup.models.transition import TransitionModel
 from stonesoup.predictor.kalman import KalmanPredictor
-from stonesoup.resampler import Resampler
 from stonesoup.resampler.particle import SystematicResampler
-from stonesoup.tracker import Tracker
 from stonesoup.types.array import StateVectors
 from stonesoup.types.numeric import Probability
 from stonesoup.types.state import State, ParticleState
@@ -25,6 +25,8 @@ from stonesoup.updater.kalman import KalmanUpdater
 
 
 class SMCPHD_JIPDA(Base):
+    """A JIPDA tracker using an SMC-PHD filter as the track initiator."""
+
     transition_model: TransitionModel = Property(doc='The transition model')
     measurement_model: MeasurementModel = Property(doc='The measurement model')
     prob_detection: Probability = Property(doc='The probability of detection')
@@ -58,8 +60,165 @@ class SMCPHD_JIPDA(Base):
                                               self.clutter_intensity,
                                               prob_detect=self.prob_detect,
                                               prob_survive=1-self.prob_death)
-        self._hypothesiser = DistanceGater(self._hypothesiser, Mahalanobis(), 20)
+        self._hypothesiser = DistanceGater(self._hypothesiser, Mahalanobis(), 10)
         self._associator = JIPDAWithEHM2(self._hypothesiser)
+
+        resampler = SystematicResampler()
+        phd_filter = SMCPHDFilter(birth_density=self.birth_density,
+                                  transition_model=self.transition_model,
+                                  measurement_model=self.measurement_model,
+                                  prob_detect=self.prob_detect,
+                                  prob_death=self.prob_death,
+                                  prob_birth=self.prob_birth,
+                                  birth_rate=self.birth_rate,
+                                  clutter_intensity=self.clutter_intensity,
+                                  num_samples=self.num_samples,
+                                  resampler=resampler,
+                                  birth_scheme=self.birth_scheme)
+        # Sample prior state from birth density
+        state_vector = StateVectors(multivariate_normal.rvs(self.birth_density.state_vector.ravel(),
+                                                            self.birth_density.covar,
+                                                            size=self.num_samples).T)
+        weight = np.full((self.num_samples,), Probability(1 / self.num_samples))
+        state = ParticleState(state_vector=state_vector, weight=weight, timestamp=self.start_time)
+
+        self._initiator = SMCPHDInitiator(filter=phd_filter, prior=state)
+
+
+    @property
+    def tracks(self):
+        return self._tracks
+
+    @property
+    def prob_detect(self):
+        return self._prob_detect
+
+    @prob_detect.setter
+    def prob_detect(self, prob_detect):
+        if not callable(prob_detect):
+            prob_detect = copy(prob_detect)
+            self._prob_detect = lambda state: prob_detect
+        else:
+            self._prob_detect = copy(prob_detect)
+        if hasattr(self, '_hypothesiser'):
+            if hasattr(self._hypothesiser, 'hypothesiser'):
+                self._hypothesiser.hypothesiser.prob_detect = self._prob_detect
+            else:
+                self._hypothesiser.prob_detect = self._prob_detect
+        if hasattr(self, '_initiator'):
+            self._initiator.filter.prob_detect = self._prob_detect
+
+    def track(self, detections, timestamp):
+        tracks = list(self.tracks)
+        detections = list(detections)
+        num_tracks = len(tracks)
+        num_detections = len(detections)
+
+        # Perform data association
+        associations = self._associator.associate(tracks, detections, timestamp)
+
+        # Compute measurement weights
+        assoc_prob_matrix = np.zeros((num_tracks, num_detections + 1))
+        rho = np.zeros((len(detections)))
+        for i, track in enumerate(tracks):
+            for hyp in associations[track]:
+                if not hyp:
+                    assoc_prob_matrix[i, 0] = hyp.weight
+                else:
+                    j = next(d_i for d_i, detection in enumerate(detections)
+                             if hyp.measurement == detection)
+                    assoc_prob_matrix[i, j + 1] = hyp.weight
+        for j, detection in enumerate(detections):
+            rho_tmp = 0 if len(assoc_prob_matrix) and np.sum(assoc_prob_matrix[:, j + 1]) > 0 else 1
+            # rho_tmp = 1
+            # if len(assoc_prob_matrix):
+            #     for i, track in enumerate(tracks):
+            #         rho_tmp *= 1 - assoc_prob_matrix[i, j + 1]
+            rho[j] = rho_tmp
+
+        # Update tracks
+        for track, multihypothesis in associations.items():
+
+            # calculate each Track's state as a Gaussian Mixture of
+            # its possible associations with each detection, then
+            # reduce the Mixture to a single Gaussian State
+            posterior_states = []
+            posterior_state_weights = []
+            for hypothesis in multihypothesis:
+                posterior_state_weights.append(hypothesis.probability)
+                if hypothesis:
+                    posterior_states.append(self._updater.update(hypothesis))
+                else:
+                    posterior_states.append(hypothesis.prediction)
+
+            # Merge/Collapse to single Gaussian
+            means = StateVectors([state.state_vector for state in posterior_states])
+            covars = np.stack([state.covar for state in posterior_states], axis=2)
+            weights = np.asarray(posterior_state_weights)
+
+            post_mean, post_covar = gm_reduce_single(means, covars, weights)
+
+            track.append(GaussianStateUpdate(
+                np.array(post_mean), np.array(post_covar),
+                multihypothesis,
+                multihypothesis[0].prediction.timestamp))
+
+        # Initiate new tracks
+        tracks = set(tracks)
+        new_tracks = self._initiator.initiate(detections, timestamp, weights=rho)
+        tracks |= new_tracks
+
+        # Delete tracks that have not been updated for a while
+        del_tracks = set()
+        for track in tracks:
+            if track.exist_prob < 0.01:
+                del_tracks.add(track)
+        tracks -= del_tracks
+
+        self._tracks = set(tracks)
+        return self._tracks
+
+
+class SMCPHD_IGNN(Base):
+    """ A IGNN tracker using an SMC-PHD filter as the track initiator. """
+
+    transition_model: TransitionModel = Property(doc='The transition model')
+    measurement_model: MeasurementModel = Property(doc='The measurement model')
+    prob_detection: Probability = Property(doc='The probability of detection')
+    prob_death: Probability = Property(doc='The probability of death')
+    prob_birth: Probability = Property(doc='The probability of birth')
+    birth_rate: float = Property(
+        doc='The birth rate (i.e. number of new/born targets at each iteration(')
+    birth_density: State = Property(
+        doc='The birth density (i.e. density from which we sample birth particles)')
+    clutter_intensity: float = Property(doc='The clutter intensity per unit volume')
+    num_samples: int = Property(doc='The number of samples. Default is 1024', default=1024)
+    birth_scheme: str = Property(
+        doc='The scheme for birth particles. Options are "expansion" | "mixture". '
+            'Default is "expansion"',
+        default='expansion'
+    )
+    start_time: datetime = Property(doc='Start time of the tracker', default=None)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.prob_detect = self.prob_detection
+
+        if self.start_time is None:
+            self.start_time = datetime.now()
+
+        self._tracks = set()
+        self._predictor = KalmanPredictor(self.transition_model)
+        self._updater = KalmanUpdater(self.measurement_model)
+        self._hypothesiser = IPDAHypothesiser(self._predictor, self._updater,
+                                              self.clutter_intensity,
+                                              prob_detect=self.prob_detect,
+                                              prob_survive=1-self.prob_death,
+                                              predict=False)
+        self._hypothesiser = DistanceHypothesiser(self._predictor, self._updater,
+                                                  Mahalanobis(), 10)
+        self._associator = GNNWith2DAssignment(self._hypothesiser)
 
         resampler = SystematicResampler()
         phd_filter = SMCPHDFilter(birth_density=self.birth_density,
@@ -110,60 +269,35 @@ class SMCPHD_JIPDA(Base):
 
         tracks = list(self.tracks)
         detections = list(detections)
-        num_tracks = len(tracks)
-        num_detections = len(detections)
-
-        # if not len(detections):
-        #     return self.tracks
 
         # Perform data association
         associations = self._associator.associate(tracks, detections, timestamp)
 
-        assoc_prob_matrix = np.zeros((num_tracks, num_detections + 1))
+        # Compute measurement weights
+        rho = np.ones((len(detections)))
         for i, track in enumerate(tracks):
             for hyp in associations[track]:
-                if not hyp:
-                    assoc_prob_matrix[i, 0] = hyp.weight
-                else:
+                if hyp:
                     j = next(d_i for d_i, detection in enumerate(detections)
                              if hyp.measurement == detection)
-                    assoc_prob_matrix[i, j + 1] = hyp.weight
+                    rho[j] = 0
 
-        rho = np.zeros((len(detections)))
-        for j, detection in enumerate(detections):
-            rho_tmp = 0 if len(assoc_prob_matrix) and np.sum(assoc_prob_matrix[:, j + 1]) > 0 else 1
-            # rho_tmp = 1
-            # if len(assoc_prob_matrix):
-            #     for i, track in enumerate(tracks):
-            #         rho_tmp *= 1 - assoc_prob_matrix[i, j + 1]
-            rho[j] = rho_tmp
+        # Update tracks
+        for track, hypothesis in associations.items():
+            if hypothesis:
+                # Update track
+                state_post = self._updater.update(hypothesis)
+                track.append(state_post)
+                track.exist_prob = Probability(1.)
+            else:
+                time_interval = timestamp - track.timestamp
+                track.append(hypothesis.prediction)
+                non_exist_weight = 1 - track.exist_prob
+                prob_survive = np.exp(-self.prob_death * time_interval.total_seconds())
+                non_det_weight = prob_survive * track.exist_prob
+                track.exist_prob = non_det_weight / (non_exist_weight + non_det_weight)
 
-        for track, multihypothesis in associations.items():
-
-            # calculate each Track's state as a Gaussian Mixture of
-            # its possible associations with each detection, then
-            # reduce the Mixture to a single Gaussian State
-            posterior_states = []
-            posterior_state_weights = []
-            for hypothesis in multihypothesis:
-                posterior_state_weights.append(hypothesis.probability)
-                if hypothesis:
-                    posterior_states.append(self._updater.update(hypothesis))
-                else:
-                    posterior_states.append(hypothesis.prediction)
-
-            # Merge/Collapse to single Gaussian
-            means = StateVectors([state.state_vector for state in posterior_states])
-            covars = np.stack([state.covar for state in posterior_states], axis=2)
-            weights = np.asarray(posterior_state_weights)
-
-            post_mean, post_covar = gm_reduce_single(means, covars, weights)
-
-            track.append(GaussianStateUpdate(
-                np.array(post_mean), np.array(post_covar),
-                multihypothesis,
-                multihypothesis[0].prediction.timestamp))
-
+        # Initiate new tracks
         tracks = set(tracks)
         new_tracks = self._initiator.initiate(detections, timestamp, weights=rho)
         tracks |= new_tracks
@@ -171,7 +305,7 @@ class SMCPHD_JIPDA(Base):
         # Delete tracks that have not been updated for a while
         del_tracks = set()
         for track in tracks:
-            if track.exist_prob < 0.1:
+            if track.exist_prob < 0.01:
                 del_tracks.add(track)
         tracks -= del_tracks
 
