@@ -3,6 +3,7 @@ from functools import lru_cache
 
 import numpy as np
 from scipy.linalg import inv
+from scipy.special import logsumexp
 
 from .base import Updater
 from .kalman import KalmanUpdater, ExtendedKalmanUpdater
@@ -49,12 +50,13 @@ class ParticleUpdater(Updater):
         else:
             measurement_model = hypothesis.measurement.measurement_model
 
-        predicted_state.weight = predicted_state.weight * measurement_model.pdf(
+        new_weight = np.asfarray(np.log(predicted_state.weight)) + measurement_model.logpdf(
             hypothesis.measurement, predicted_state, **kwargs)
 
         # Normalise the weights
-        sum_w = np.array(Probability.sum(predicted_state.weight))
-        predicted_state.weight = predicted_state.weight / sum_w
+        new_weight -= logsumexp(new_weight)
+
+        predicted_state.weight = Probability.from_log_ufunc(new_weight)
 
         # Resample
         if self.resampler is not None:

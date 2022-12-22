@@ -1,3 +1,4 @@
+import copy
 from abc import abstractmethod
 from functools import lru_cache
 
@@ -168,6 +169,18 @@ class SquaredMahalanobis(Measure):
         super().__init__(*args, **kwargs)
         if self.state_covar_inv_cache_size is None or self.state_covar_inv_cache_size > 0:
             self._inv_cov = lru_cache(maxsize=self.state_covar_inv_cache_size)(self._inv_cov)
+
+    def __getstate__(self):
+        result = copy.copy(self.__dict__)
+        result["_inv_cov"] = None
+        return result
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+        if self.state_covar_inv_cache_size is None or self.state_covar_inv_cache_size > 0:
+            self._inv_cov = lru_cache(maxsize=self.state_covar_inv_cache_size)(type(self)._inv_cov)
+        else:
+            self._inv_cov = type(self)._inv_cov
 
     def __call__(self, state1, state2):
         r"""Calculate the Squared Mahalanobis distance between a pair of state objects

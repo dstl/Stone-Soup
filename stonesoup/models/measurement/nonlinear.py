@@ -1152,3 +1152,7 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
             return Probability(range_pdf * velocity_pdf * az_el_pdf)
         else:
             return Probability(0)
+
+    def logpdf(self, *args, **kwargs):
+        # As pdf replaced, need to go to first non GaussianModel parent
+        return super(ReversibleModel, self).logpdf(*args, **kwargs)

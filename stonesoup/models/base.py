@@ -102,6 +102,24 @@ class Model(Base):
         """
         raise NotImplementedError
 
+    def logpdf(self, state1: State, state2: State, **kwargs) -> Union[float, np.ndarray]:
+        r"""Model log pdf/likelihood evaluation function
+
+        Evaluates the pdf/likelihood of ``state1``, given the state
+        ``state2`` which is passed to :meth:`function()`.
+
+        Parameters
+        ----------
+        state1 : State
+        state2 : State
+
+        Returns
+        -------
+        :  float or :class:`~.numpy.ndarray`
+            The log likelihood of ``state1``, given ``state2``
+        """
+        return np.log(self.pdf(state1, state2, **kwargs))
+
 
 class LinearModel(Model):
     """LinearModel class
@@ -277,7 +295,33 @@ class GaussianModel(Model):
         : :class:`~.Probability` or :class:`~.numpy.ndarray` of :class:`~.Probability`
             The likelihood of ``state1``, given ``state2``
         """
+        return Probability.from_log_ufunc(self.logpdf(state1, state2, **kwargs))
 
+    def logpdf(self, state1: State, state2: State, **kwargs) -> Union[float, np.ndarray]:
+        r"""Model log pdf/likelihood evaluation function
+
+        Evaluates the pdf/likelihood of ``state1``, given the state
+        ``state2`` which is passed to :meth:`function()`.
+
+        In mathematical terms, this can be written as:
+
+        .. math::
+
+            p = p(y_t | x_t) = \mathcal{N}(y_t; x_t, Q)
+
+        where :math:`y_t` = ``state_vector1``, :math:`x_t` = ``state_vector2``
+        and :math:`Q` = :attr:`covar`.
+
+        Parameters
+        ----------
+        state1 : State
+        state2 : State
+
+        Returns
+        -------
+        :  float or :class:`~.numpy.ndarray`
+            The log likelihood of ``state1``, given ``state2``
+        """
         covar = self.covar(**kwargs)
 
         # If model has None-type covariance or contains None, it does not represent a Gaussian
@@ -286,10 +330,9 @@ class GaussianModel(Model):
 
         # Calculate difference before to handle custom types (mean defaults to zero)
         # This is required as log pdf coverts arrays to floats
-        likelihood = np.array([Probability(value, log_value=True)
-                               for value in np.atleast_1d(multivariate_normal.logpdf(
-                                  (state1.state_vector - self.function(state2, **kwargs)).T,
-                                  cov=covar))])
+        likelihood = np.atleast_1d(
+            multivariate_normal.logpdf((state1.state_vector - self.function(state2, **kwargs)).T,
+                                       cov=covar))
 
         if len(likelihood) == 1:
             likelihood = likelihood[0]

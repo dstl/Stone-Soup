@@ -1,6 +1,7 @@
+from functools import partial
+
 import numpy as np
 import scipy.linalg as la
-from functools import partial
 
 from .base import Predictor
 from ._utils import predict_lru_cache

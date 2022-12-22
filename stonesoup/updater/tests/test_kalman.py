@@ -1,4 +1,5 @@
 """Test for updater.kalman module"""
+
 import pytest
 import numpy as np
 

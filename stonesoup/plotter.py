@@ -1,16 +1,18 @@
 import warnings
 from abc import ABC, abstractmethod
+from datetime import datetime, timedelta
 from itertools import chain
-from typing import Collection, Iterable, Union
+from typing import Collection, Iterable, Union, List, Optional, Tuple, Dict
 
 import numpy as np
-from scipy.stats import kde
+from matplotlib import animation as animation
 from matplotlib import pyplot as plt
+from matplotlib.legend_handler import HandlerPatch
 from matplotlib.lines import Line2D
 from matplotlib.patches import Ellipse
-from matplotlib.legend_handler import HandlerPatch
 from scipy.integrate import quad
 from scipy.optimize import brentq
+from scipy.stats import kde
 
 try:
     import plotly.graph_objects as go
@@ -19,8 +21,11 @@ except ImportError:
 
 from .types import detection
 from .types.groundtruth import GroundTruthPath
+from .types.array import StateVector
 from .types.state import State, StateMutableSequence
 from .types.update import Update
+
+from .base import Base, Property
 
 from .models.base import LinearModel, Model
 
@@ -62,7 +67,8 @@ class _Plotter(ABC):
     def plot_sensors(self, sensors, sensor_label="Sensors", **kwargs):
         raise NotImplementedError
 
-    def _conv_measurements(self, measurements, mapping, measurement_model=None):
+    def _conv_measurements(self, measurements, mapping, measurement_model=None) -> \
+            Tuple[Dict[detection.Detection, StateVector], Dict[detection.Clutter, StateVector]]:
         conv_detections = {}
         conv_clutter = {}
         for state in measurements:
@@ -171,30 +177,39 @@ class Plotter(_Plotter):
             List of items specifying the mapping of the position components of the state space.
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function. Default is ``linestyle="--"``.
-        """
 
+        Returns
+        -------
+        : list of :class:`matplotlib.artist.Artist`
+            List of artists that have been added to the axis.
+        """
         truths_kwargs = dict(linestyle="--")
         truths_kwargs.update(kwargs)
         if not isinstance(truths, Collection) or isinstance(truths, StateMutableSequence):
             truths = {truths}  # Make a set of length 1
 
+        artists = []
         for truth in truths:
             if self.dimension is Dimension.TWO:  # plots the ground truths in xy
-                self.ax.plot([state.state_vector[mapping[0]] for state in truth],
-                             [state.state_vector[mapping[1]] for state in truth],
-                             **truths_kwargs)
+                artists.extend(
+                    self.ax.plot([state.state_vector[mapping[0]] for state in truth],
+                                 [state.state_vector[mapping[1]] for state in truth],
+                                 **truths_kwargs))
             elif self.dimension is Dimension.THREE:  # plots the ground truths in xyz
-                self.ax.plot3D([state.state_vector[mapping[0]] for state in truth],
-                               [state.state_vector[mapping[1]] for state in truth],
-                               [state.state_vector[mapping[2]] for state in truth],
-                               **truths_kwargs)
+                artists.extend(
+                    self.ax.plot3D([state.state_vector[mapping[0]] for state in truth],
+                                   [state.state_vector[mapping[1]] for state in truth],
+                                   [state.state_vector[mapping[2]] for state in truth],
+                                   **truths_kwargs))
             else:
                 raise NotImplementedError('Unsupported dimension type for truth plotting')
         # Generate legend items
         truths_handle = Line2D([], [], linestyle=truths_kwargs['linestyle'], color='black')
         self.legend_dict[truths_label] = truths_handle
         # Generate legend
-        self.ax.legend(handles=self.legend_dict.values(), labels=self.legend_dict.keys())
+        artists.append(self.ax.legend(handles=self.legend_dict.values(),
+                                      labels=self.legend_dict.keys()))
+        return artists
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
                           measurements_label="Measurements", **kwargs):
@@ -219,6 +234,11 @@ class Plotter(_Plotter):
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function for detections. Defaults are
             ``marker='o'`` and ``color='b'``.
+
+        Returns
+        -------
+        : list of :class:`matplotlib.artist.Artist`
+            List of artists that have been added to the axis.
         """
 
         measurement_kwargs = dict(marker='o', color='b')
@@ -236,11 +256,12 @@ class Plotter(_Plotter):
                                                                 mapping,
                                                                 measurement_model)
 
+        artists = []
         if plot_detections:
             detection_array = np.array(list(plot_detections.values()))
             # *detection_array.T unpacks detection_array by columns
             # (same as passing in detection_array[:,0], detection_array[:,1], etc...)
-            self.ax.scatter(*detection_array.T, **measurement_kwargs)
+            artists.append(self.ax.scatter(*detection_array.T, **measurement_kwargs))
             measurements_handle = Line2D([], [], linestyle='', **measurement_kwargs)
 
             # Generate legend items for measurements
@@ -248,7 +269,7 @@ class Plotter(_Plotter):
 
         if plot_clutter:
             clutter_array = np.array(list(plot_clutter.values()))
-            self.ax.scatter(*clutter_array.T, color='y', marker='2')
+            artists.append(self.ax.scatter(*clutter_array.T, color='y', marker='2'))
             clutter_handle = Line2D([], [], linestyle='', marker='2', color='y')
             clutter_label = "Clutter"
 
@@ -256,7 +277,9 @@ class Plotter(_Plotter):
             self.legend_dict[clutter_label] = clutter_handle
 
         # Generate legend
-        self.ax.legend(handles=self.legend_dict.values(), labels=self.legend_dict.keys())
+        artists.append(self.ax.legend(handles=self.legend_dict.values(),
+                                      labels=self.legend_dict.keys()))
+        return artists
 
     def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, track_label="Tracks",
                     err_freq=1, **kwargs):
@@ -292,6 +315,11 @@ class Plotter(_Plotter):
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function. Defaults are ``linestyle="-"``,
             ``marker='s'`` for :class:`~.Update` and ``marker='o'`` for other states.
+
+        Returns
+        -------
+        : list of :class:`matplotlib.artist.Artist`
+            List of artists that have been added to the axis.
         """
 
         tracks_kwargs = dict(linestyle='-', marker="s", color=None)
@@ -300,6 +328,7 @@ class Plotter(_Plotter):
             tracks = {tracks}  # Make a set of length 1
 
         # Plot tracks
+        artists = []
         track_colors = {}
         for track in tracks:
             # Get indexes for Update and non-Update states for styling markers
@@ -320,11 +349,12 @@ class Plotter(_Plotter):
                 *data,
                 markevery=update_indexes,
                 **tracks_kwargs)
+            artists.extend(line)
             if not_update_indexes:
-                self.ax.plot(
+                artists.extend(self.ax.plot(
                     *data[:, not_update_indexes],
                     marker="o" if "marker" not in kwargs else kwargs['marker'],
-                    color=plt.getp(line[0], 'color'))
+                    color=plt.getp(line[0], 'color')))
             track_colors[track] = plt.getp(line[0], 'color')
 
         if tracks:  # If no tracks `line` won't be defined
@@ -356,6 +386,7 @@ class Plotter(_Plotter):
                                           angle=np.rad2deg(orient), alpha=0.2,
                                           color=track_colors[track])
                         self.ax.add_artist(ellipse)
+                        artists.append(ellipse)
 
                 # Generate legend items for uncertainty ellipses
                 ellipse_handle = Ellipse((0.5, 0.5), 0.5, 0.5, alpha=0.2,
@@ -363,9 +394,9 @@ class Plotter(_Plotter):
                 ellipse_label = "Uncertainty"
                 self.legend_dict[ellipse_label] = ellipse_handle
                 # Generate legend
-                self.ax.legend(handles=self.legend_dict.values(),
-                               labels=self.legend_dict.keys(),
-                               handler_map={Ellipse: _HandlerEllipse()})
+                artists.append(self.ax.legend(handles=self.legend_dict.values(),
+                                              labels=self.legend_dict.keys(),
+                                              handler_map={Ellipse: _HandlerEllipse()}))
             else:
                 # Plot 3D error bars on tracks
                 for track in tracks:
@@ -383,12 +414,15 @@ class Plotter(_Plotter):
                             y_err = w[1]
                             z_err = w[2]
 
-                            self.ax.plot3D([xl+x_err, xl-x_err], [yl, yl], [zl, zl],
-                                           marker="_", color=tracks_kwargs['color'])
-                            self.ax.plot3D([xl, xl], [yl+y_err, yl-y_err], [zl, zl],
-                                           marker="_", color=tracks_kwargs['color'])
-                            self.ax.plot3D([xl, xl], [yl, yl], [zl+z_err, zl-z_err],
-                                           marker="_", color=tracks_kwargs['color'])
+                            artists.extend(
+                                self.ax.plot3D([xl+x_err, xl-x_err], [yl, yl], [zl, zl],
+                                               marker="_", color=tracks_kwargs['color']))
+                            artists.extend(
+                                self.ax.plot3D([xl, xl], [yl+y_err, yl-y_err], [zl, zl],
+                                               marker="_", color=tracks_kwargs['color']))
+                            artists.extend(
+                                self.ax.plot3D([xl, xl], [yl, yl], [zl+z_err, zl-z_err],
+                                               marker="_", color=tracks_kwargs['color']))
                         check += 1
 
         if particle:
@@ -397,8 +431,8 @@ class Plotter(_Plotter):
                 for track in tracks:
                     for state in track:
                         data = state.state_vector[mapping[:2], :]
-                        self.ax.plot(data[0], data[1], linestyle='', marker=".",
-                                     markersize=1, alpha=0.5)
+                        artists.extend(self.ax.plot(data[0], data[1], linestyle='', marker=".",
+                                                    markersize=1, alpha=0.5))
 
                 # Generate legend items for particles
                 particle_handle = Line2D([], [], linestyle='', color="black", marker='.',
@@ -406,14 +440,17 @@ class Plotter(_Plotter):
                 particle_label = "Particles"
                 self.legend_dict[particle_label] = particle_handle
                 # Generate legend
-                self.ax.legend(handles=self.legend_dict.values(),
-                               labels=self.legend_dict.keys())  # particle error legend
+                artists.append(self.ax.legend(handles=self.legend_dict.values(),
+                                              labels=self.legend_dict.keys()))
             else:
                 raise NotImplementedError("""Particle plotting is not currently supported for
                                           3D visualization""")
 
         else:
-            self.ax.legend(handles=self.legend_dict.values(), labels=self.legend_dict.keys())
+            artists.append(self.ax.legend(handles=self.legend_dict.values(),
+                                          labels=self.legend_dict.keys()))
+
+        return artists
 
     def plot_sensors(self, sensors, sensor_label="Sensors", **kwargs):
         """Plots sensor(s)
@@ -430,6 +467,11 @@ class Plotter(_Plotter):
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function for detections. Defaults are
             ``marker='x'`` and ``color='black'``.
+
+        Returns
+        -------
+        : list of :class:`matplotlib.artist.Artist`
+            List of artists that have been added to the axis.
         """
 
         sensor_kwargs = dict(marker='x', color='black')
@@ -438,20 +480,23 @@ class Plotter(_Plotter):
         if not isinstance(sensors, Collection):
             sensors = {sensors}  # Make a set of length 1
 
+        artists = []
         for sensor in sensors:
             if self.dimension is Dimension.TWO:  # plots the sensors in xy
-                self.ax.scatter(sensor.position[0],
-                                sensor.position[1],
-                                **sensor_kwargs)
+                artists.append(self.ax.scatter(sensor.position[0],
+                                               sensor.position[1],
+                                               **sensor_kwargs))
             elif self.dimension is Dimension.THREE:  # plots the sensors in xyz
-                self.ax.plot3D(sensor.position[0],
-                               sensor.position[1],
-                               sensor.position[2],
-                               **sensor_kwargs)
+                artists.extend(self.ax.plot3D(sensor.position[0],
+                                              sensor.position[1],
+                                              sensor.position[2],
+                                              **sensor_kwargs))
             else:
                 raise NotImplementedError('Unsupported dimension type for sensor plotting')
         self.legend_dict[sensor_label] = Line2D([], [], linestyle='', **sensor_kwargs)
-        self.ax.legend(handles=self.legend_dict.values(), labels=self.legend_dict.keys())
+        artists.append(self.ax.legend(handles=self.legend_dict.values(),
+                                      labels=self.legend_dict.keys()))
+        return artists
 
     def set_equal_3daxis(self, axes=None):
         """Plots minimum/maximum points with no linestyle to increase the plotting region to
@@ -925,3 +970,391 @@ class Plotterly(_Plotter):
 
         sensor_xy = np.array([sensor.position[[0, 1], 0] for sensor in sensors])
         self.fig.add_scatter(x=sensor_xy[:, 0], y=sensor_xy[:, 1], **sensor_kwargs)
+
+
+class _AnimationPlotterDataClass(Base):
+    plotting_data = Property(Iterable[State])
+    plotting_label: str = Property()
+    plotting_keyword_arguments: dict = Property()
+
+
+class AnimationPlotter(_Plotter):
+
+    def __init__(self, dimension=Dimension.TWO, x_label: str = "$x$", y_label: str = "$y$",
+                 legend_kwargs: dict = {}, **kwargs):
+
+        self.figure_kwargs = {"figsize": (10, 6)}
+        self.figure_kwargs.update(kwargs)
+        if dimension != Dimension.TWO:
+            raise NotImplementedError
+
+        self.legend_kwargs = dict()
+        self.legend_kwargs.update(legend_kwargs)
+
+        self.x_label: str = x_label
+        self.y_label: str = y_label
+
+        self.plotting_data: List[_AnimationPlotterDataClass] = []
+
+        self.animation_output: animation.FuncAnimation = None
+
+    def run(self, times_to_plot=List[datetime], plot_item_expiry: Optional[timedelta] = None,
+            **kwargs):
+        """Run the animation
+
+        Parameters
+        ----------
+        times_to_plot : List of :class:`~.datetime`
+            List of datetime objects of when to refresh and draw the animation
+        plot_item_expiry: :class:`~.timedelta`, Optional
+            Describes how long states will remain present in the figure. Default value of None
+            means data is shown indefinitely
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to the animation.FuncAnimation function
+        """
+
+        self.animation_output = self.run_animation(
+            times_to_plot=times_to_plot,
+            data=self.plotting_data,
+            plot_item_expiry=plot_item_expiry,
+            x_label=self.x_label,
+            y_label=self.y_label,
+            figure_kwargs=self.figure_kwargs,
+            legend_kwargs=self.legend_kwargs,
+            animation_input_kwargs=kwargs
+        )
+        return self.animation_output
+
+    def save(self, filename='example.mp4', **kwargs):
+        """Save the animation
+
+        Parameters
+        ----------
+        filename : str
+            filename of animation file
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to the animation.save function
+        """
+        if self.animation_output is None:
+            raise ValueError("Animation hasn't been ran yet. Therefore there is no animation to "
+                             "save")
+
+        self.animation_output.save(filename, **kwargs)
+
+    def plot_ground_truths(self, truths, mapping: List[int], truths_label: str = "Ground Truth",
+                           **kwargs):
+        """Plots ground truth(s)
+
+        Plots each ground truth path passed in to :attr:`truths` and generates a legend
+        automatically. Ground truths are plotted as dashed lines with default colors.
+
+        Users can change linestyle, color and marker using keyword arguments. Any changes
+        will apply to all ground truths.
+
+        Parameters
+        ----------
+        truths : Collection of :class:`~.GroundTruthPath`
+            Collection of  ground truths which will be plotted. If not a collection and instead a
+            single :class:`~.GroundTruthPath` type, the argument is modified to be a set to allow
+            for iteration.
+        mapping: list
+            List of items specifying the mapping of the position components of the state space.
+        truths_label: str
+            Label for truth data
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to plot function. Default is ``linestyle="--"``.
+        """
+
+        truths_kwargs = dict(linestyle="--")
+        truths_kwargs.update(kwargs)
+        self.plot_state_mutable_sequence(truths, mapping, truths_label, **truths_kwargs)
+
+    def plot_tracks(self, tracks, mapping: List[int], uncertainty=False, particle=False,
+                    track_label="Tracks",  **kwargs):
+        """Plots track(s)
+
+        Plots each track generated, generating a legend automatically. Tracks are plotted as solid
+        lines with point markers and default colors. Users can change linestyle, color and marker
+        using keyword arguments.
+
+        Parameters
+        ----------
+        tracks : Collection of :class:`~.Track`
+            Collection of tracks which will be plotted. If not a collection, and instead a single
+            :class:`~.Track` type, the argument is modified to be a set to allow for iteration.
+        mapping: list
+            List of items specifying the mapping of the position
+            components of the state space.
+        uncertainty : bool
+            Currently not implemented. If True, an error is raised
+        particle : bool
+            Currently not implemented. If True, an error is raised
+        track_label: str
+            Label to apply to all tracks for legend.
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to plot function. Defaults are ``linestyle="-"``,
+            ``marker='s'`` for :class:`~.Update` and ``marker='o'`` for other states.
+        """
+        if uncertainty or particle:
+            raise NotImplementedError
+
+        tracks_kwargs = dict(linestyle='-', marker="s", color=None)
+        tracks_kwargs.update(kwargs)
+        self.plot_state_mutable_sequence(tracks, mapping, track_label, **tracks_kwargs)
+
+    def plot_state_mutable_sequence(self, state_mutable_sequences, mapping: List[int], label: str,
+                                    **plotting_kwargs):
+        """Plots State Mutable Sequence
+
+        Parameters
+        ----------
+        state_mutable_sequences : Collection of :class:`~.StateMutableSequence`
+            Collection of states to be plotted
+        mapping: list
+            List of items specifying the mapping of the position components of the state space.
+        label : str
+            User-defined measurement model to be used in finding measurement state inverses if
+            they cannot be found from the measurements themselves.
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to plot function for states.
+        """
+
+        if not isinstance(state_mutable_sequences, Collection) or \
+                isinstance(state_mutable_sequences, StateMutableSequence):
+            state_mutable_sequences = {state_mutable_sequences}  # Make a set of length 1
+
+        for idx, state_mutable_sequence in enumerate(state_mutable_sequences):
+            if idx == 0:
+                this_plotting_label = label
+            else:
+                this_plotting_label = None
+
+            self.plotting_data.append(_AnimationPlotterDataClass(
+                plotting_data=[State(state_vector=[state.state_vector[mapping[0]],
+                                                   state.state_vector[mapping[1]]],
+                                     timestamp=state.timestamp)
+                               for state in state_mutable_sequence],
+                plotting_label=this_plotting_label,
+                plotting_keyword_arguments=plotting_kwargs
+            ))
+
+    def plot_measurements(self, measurements, mapping, measurement_model=None,
+                          measurements_label="", **kwargs):
+        """Plots measurements
+
+        Plots detections and clutter, generating a legend automatically. Detections are plotted as
+        blue circles by default unless the detection type is clutter.
+        If the detection type is :class:`~.Clutter` it is plotted as a yellow 'tri-up' marker.
+
+        Users can change the color and marker of detections using keyword arguments but not for
+        clutter detections.
+
+        Parameters
+        ----------
+        measurements : Collection of :class:`~.Detection`
+            Detections which will be plotted. If measurements is a set of lists it is flattened.
+        mapping: list
+            List of items specifying the mapping of the position components of the state space.
+        measurement_model : :class:`~.Model`, optional
+            User-defined measurement model to be used in finding measurement state inverses if
+            they cannot be found from the measurements themselves.
+        measurements_label: str
+            Label for measurements
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to plot function for detections. Defaults are
+            ``marker='o'`` and ``color='b'``.
+        """
+
+        measurement_kwargs = dict(marker='o', color='b')
+        measurement_kwargs.update(kwargs)
+
+        if not isinstance(measurements, Collection):
+            measurements = {measurements}  # Make a set of length 1
+
+        if any(isinstance(item, set) for item in measurements):
+            measurements_set = chain.from_iterable(measurements)  # Flatten into one set
+        else:
+            measurements_set = measurements
+
+        plot_detections, plot_clutter = self._conv_measurements(measurements_set,
+                                                                mapping,
+                                                                measurement_model)
+
+        if measurements_label != "":
+            measurements_label = measurements_label + " "
+
+        if plot_detections:
+            detection_kwargs = dict(linestyle='', marker='o', color='b')
+            detection_kwargs.update(kwargs)
+            self.plotting_data.append(_AnimationPlotterDataClass(
+                plotting_data=[State(state_vector=plotting_state_vector,
+                                     timestamp=detection.timestamp)
+                               for detection, plotting_state_vector in plot_detections.items()],
+                plotting_label=measurements_label + "Detections",
+                plotting_keyword_arguments=detection_kwargs
+            ))
+
+        if plot_clutter:
+            clutter_kwargs = dict(linestyle='', marker='2', color='y')
+            clutter_kwargs.update(kwargs)
+            self.plotting_data.append(_AnimationPlotterDataClass(
+                plotting_data=[State(state_vector=plotting_state_vector,
+                                     timestamp=detection.timestamp)
+                               for detection, plotting_state_vector in plot_clutter.items()],
+                plotting_label=measurements_label + "Clutter",
+                plotting_keyword_arguments=clutter_kwargs
+            ))
+
+    def plot_sensors(self, sensors, sensor_label="Sensors", **kwargs):
+        raise NotImplementedError
+
+    @classmethod
+    def run_animation(cls,
+                      times_to_plot: List[datetime],
+                      data: Iterable[_AnimationPlotterDataClass],
+                      plot_item_expiry: Optional[timedelta] = None,
+                      axis_padding: float = 0.1,
+                      figure_kwargs: dict = {},
+                      animation_input_kwargs: dict = {},
+                      legend_kwargs: dict = {},
+                      x_label: str = "$x$",
+                      y_label: str = "$y$"
+                      ) -> animation.FuncAnimation:
+        """
+        Parameters
+        ----------
+        times_to_plot : Iterable[datetime]
+            All the times, that the plotter should plot
+        data : Iterable[datetime]
+            All the data that should be plotted
+        plot_item_expiry: timedelta
+            How long a state should be displayed for. None means the
+        axis_padding: float
+            How much extra space should be given around the edge of the plot
+        figure_kwargs: dict
+            Keyword arguments for the pyplot figure function. See matplotlib.pyplot.figure for more
+            details
+        animation_input_kwargs: dict
+            Keyword arguments for FuncAnimation class. See matplotlib.animation.FuncAnimation for
+            more details. Default values are: blit=False, repeat=False, interval=50
+        legend_kwargs: dict
+            Keyword arguments for the pyplot legend function. See matplotlib.pyplot.legend for more
+            details
+        x_label: str
+            Label for the x axis
+        y_label: str
+            Label for the y axis
+
+        Returns
+        -------
+        : animation.FuncAnimation
+            Animation object
+        """
+
+        animation_kwargs = dict(blit=False, repeat=False, interval=50)  # milliseconds
+        animation_kwargs.update(animation_input_kwargs)
+
+        fig1 = plt.figure(**figure_kwargs)
+
+        the_lines = []
+        plotting_data = []
+        legends_key = []
+
+        for a_plot_object in data:
+            if a_plot_object.plotting_data is not None:
+                the_data = np.array(
+                    [a_state.state_vector for a_state in a_plot_object.plotting_data])
+                if len(the_data) == 0:
+                    continue
+                the_lines.append(
+                    plt.plot([],  # the_data[:1, 0],
+                             [],  # the_data[:1, 1],
+                             **a_plot_object.plotting_keyword_arguments)[0])
+
+                legends_key.append(a_plot_object.plotting_label)
+                plotting_data.append(a_plot_object.plotting_data)
+
+        if axis_padding:
+            [x_limits, y_limits] = [
+                [min(state.state_vector[idx] for line in data for state in line.plotting_data),
+                 max(state.state_vector[idx] for line in data for state in line.plotting_data)]
+                for idx in [0, 1]]
+
+            for axis_limits in [x_limits, y_limits]:
+                limit_padding = axis_padding * (axis_limits[1] - axis_limits[0])
+                # The casting to float to ensure the limits contain do not contain angle classes
+                axis_limits[0] = float(axis_limits[0] - limit_padding)
+                axis_limits[1] = float(axis_limits[1] + limit_padding)
+
+            plt.xlim(x_limits)
+            plt.ylim(y_limits)
+        else:
+            plt.axis('equal')
+
+        plt.xlabel(x_label)
+        plt.ylabel(y_label)
+
+        lines_with_legend = [line for line, label in zip(the_lines, legends_key)
+                             if label is not None]
+        plt.legend(lines_with_legend, [label for label in legends_key if label is not None],
+                   **legend_kwargs)
+
+        if plot_item_expiry is None:
+            min_plot_time = min(state.timestamp
+                                for line in data
+                                for state in line.plotting_data)
+            min_plot_times = [min_plot_time] * len(times_to_plot)
+        else:
+            min_plot_times = [time - plot_item_expiry for time in times_to_plot]
+
+        line_ani = animation.FuncAnimation(fig1, cls.update_animation,
+                                           frames=len(times_to_plot),
+                                           fargs=(the_lines, plotting_data, min_plot_times,
+                                                  times_to_plot),
+                                           **animation_kwargs)
+
+        plt.draw()
+
+        return line_ani
+
+    @staticmethod
+    def update_animation(index: int, lines: List[Line2D], data_list: List[List[State]],
+                         start_times: List[datetime], end_times: List[datetime]):
+        """
+        Parameters
+        ----------
+        index : int
+            Which index of the start_times and end_times should be used
+        lines : List[Line2D]
+            The data that will be plotted, to be plotted.
+        data_list : List[List[State]]
+            All the data that should be plotted
+        mapping : tuple
+            The indices of the state vector that should be plotted
+        start_times : List[datetime]
+            lowest (earliest) time for an item to be plotted
+        end_times : List[datetime]
+            highest (latest) time for an item to be plotted
+
+        Returns
+        -------
+        : List[Line2D]
+            The data that will be plotted
+        """
+
+        min_time = start_times[index]
+        max_time = end_times[index]
+
+        plt.title(max_time)
+        for i, data_source in enumerate(data_list):
+
+            if data_source is not None:
+                the_data = np.array([a_state.state_vector for a_state in data_source
+                                     if min_time <= a_state.timestamp <= max_time])
+                if the_data.size > 0:
+                    lines[i].set_data(the_data[:, 0],
+                                      the_data[:, 1])
+                else:
+                    lines[i].set_data([],
+                                      [])
+        return lines
