@@ -1,12 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Astronomical readers for Stone Soup.
+"""Providing some basic astronomical readers for Stone Soup, allowing import of data that is in
+common astronomical formats.
 
-This is a collection of readers for Stone Soup, allowing quick reading
-of data that is in common astronomical formats.
-
-Readers include:
-    FITS
-    TLE
 """
 from datetime import datetime
 import numpy as np
@@ -18,20 +13,15 @@ from .file import FileReader, TextFileReader
 
 
 class FITSReader(FileReader):
-    """A simple reader for FITS files. Returns a list of
-    Header Data Units (HDUs) contained within the file
+    """A simple reader for FITS files. Returns a list of Header Data Units (HDUs) contained within
+    the file.
 
     FITS file must be valid i.e. have at least one Header Data Unit (HDU)
 
-    Parameters
-    ----------
     """
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         with fits.open(self.path) as hdu_list:
-            # self._hdu_list = hdu_list
-            # self._hdu_list = hdu_list.copy()
             self._data = []
             self._header = []
             for index, hdu in enumerate(hdu_list):
@@ -50,15 +40,16 @@ class FITSReader(FileReader):
 class TLEDictReader(Reader):
     """A reader designed to accept Two-Line Element (TLE) inputs as a dictionary. These contain
     a single TLE without a Line 0 which should conform strictly to the TLE format. The key for
-    Line 1 is "line_1" and that for Line 2 is "line_2". See the references _[1], _[2] for a full
+    Line 1 is "line_1" and that for Line 2 is "line_2". See the references [1]_, [2]_ for a full
     explanation of TLEs.
 
     References
     ----------
     .. [1] Kelso, T.S. 2019, CelesTrak: NORAD Two-Line Element Set Format,
-    https://www.celestrak.com/NORAD/documentation/tle-fmt.php
+       [CelesTrak](https://www.celestrak.com/NORAD/documentation/tle-fmt.php)
+
     .. [2] Kelso, T.S. 2019, Frequently Asked Questions: Two-Line Element Set Format,
-    https://celestrak.com/columns/v04n03/
+       [CelesTrak](https://celestrak.com/columns/v04n03/)
 
     """
     tle: dict = Property(doc="")
@@ -109,7 +100,7 @@ class TLEDictReader(Reader):
     @property
     def international_designator(self):
         """International designator incorporates the year of launch, launch number that year and
-        place of launch. How to interpret this string can be found at _[2]"""
+        place of launch. How to interpret this string can be found at [2]_"""
         return self.line1[9:17]
 
     @property
@@ -249,7 +240,7 @@ class TLEDictReader(Reader):
 
     @property
     def checksum_calculated(self):
-        "Return the TLE checksum calculated from the lines supplied"
+        """Return the TLE checksum calculated from the lines supplied"""
 
         return self.checksum(self.line1), self.checksum(self.line2)
 
