@@ -13,11 +13,11 @@ from ..types.metric import SingleTimeMetric, TimeRangeMetric
 
 class GOSPAMetric(MetricGenerator):
     """
-    Computes the Generalized Optimal SubPattern Assignment (GOPSA) metric
+    Computes the Generalized Optimal SubPattern Assignment (GOSPA) metric
     for two sets of :class:`~.Track` objects. This implementation of GOSPA
     is based on the auction algorithm.
 
-    The GOPSA metric is calculated at each time step in which a
+    The GOSPA metric is calculated at each time step in which a
     :class:`~.Track` object is present
 
     Reference:
@@ -361,11 +361,11 @@ class GOSPAMetric(MetricGenerator):
 
 class OSPAMetric(GOSPAMetric):
     """
-    Computes the Optimal SubPattern Assignment (OPSA) distance [1] for two sets
+    Computes the Optimal SubPattern Assignment (OSPA) distance [1] for two sets
     of :class:`~.Track` objects. The OSPA distance is measured between two
     point patterns.
 
-    The OPSA metric is calculated at each time step in which a :class:`~.Track`
+    The OSPA metric is calculated at each time step in which a :class:`~.Track`
     object is present
 
     Reference:
@@ -425,7 +425,7 @@ class OSPAMetric(GOSPAMetric):
 
     def compute_OSPA_distance(self, track_states, truth_states):
         r"""
-        Computes the Optimal SubPattern Assignment (OPSA) metric for a single
+        Computes the Optimal SubPattern Assignment (OSPA) metric for a single
         time step between two point patterns. Each point pattern consisting of
         a list of :class:`~.State` objects.
 

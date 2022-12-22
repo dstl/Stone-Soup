@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from ..base import Property
 from .array import StateVector
 from .base import Type

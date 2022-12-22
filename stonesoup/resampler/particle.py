@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 
 from .base import Resampler
@@ -28,7 +27,7 @@ class SystematicResampler(Resampler):
         n_particles = len(particles)
         weight = Probability(1 / n_particles)
 
-        log_weights = np.array([weight.log_value for weight in particles.weight])
+        log_weights = np.asfarray(np.log(particles.weight))
         weight_order = np.argsort(log_weights, kind='stable')
         max_log_value = log_weights[weight_order[-1]]
         with np.errstate(divide='ignore'):

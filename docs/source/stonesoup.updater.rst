@@ -31,6 +31,12 @@ Information
 .. automodule:: stonesoup.updater.information
     :show-inheritance:
 
+Accumulated State Densities
+---------------------------
+
+.. automodule:: stonesoup.updater.asd
+    :show-inheritance:
+
 Point Process
 -------------
 
@@ -43,6 +49,12 @@ AlphaBeta
 .. automodule:: stonesoup.updater.alphabeta
     :show-inheritance:
 
+Sliding Innovation Filter
+-------------------------
+
+.. automodule:: stonesoup.updater.slidinginnovation
+    :show-inheritance:
+
 Categorical
 -----------
 
@@ -53,4 +65,10 @@ Composite
 -----------
 
 .. automodule:: stonesoup.updater.composite
+    :show-inheritance:
+
+Chernoff
+--------
+
+.. automodule:: stonesoup.updater.chernoff
     :show-inheritance:

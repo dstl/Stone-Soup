@@ -243,13 +243,19 @@ def test_cart_sphere_inversions(x, y, z):
         (StateVector([-1, 1, -4]), StateVector([-2, 1, 1])),
         (StateVector([-2, 0, 3, -1]), StateVector([1, 0, -1, 4])),
         (StateVector([-1, 0]), StateVector([1, -2, 3])),
-        (Matrix([[1, 0], [0, 1]]), Matrix([[3, 1], [1, -3]]))
+        (Matrix([[1, 0], [0, 1]]), Matrix([[3, 1], [1, -3]])),
+        (StateVectors([[1, 0], [0, 1]]), StateVectors([[3, 1], [1, -3]])),
+        (StateVectors([[1, 0], [0, 1]]), StateVector([3, 1]))
      ]
 )
 def test_dotproduct(state_vector1, state_vector2):
 
     # Test that they raise the right error if not 1d, i.e. vectors
-    if np.shape(state_vector1)[1] != 1 | np.shape(state_vector2)[1] != 1:
+    if type(state_vector1) != type(state_vector2):
+        with pytest.raises(ValueError):
+            dotproduct(state_vector1, state_vector2)
+    elif type(state_vector1) != StateVectors and type(state_vector2) != StateVectors and \
+            type(state_vector2) != StateVector and type(state_vector1) != StateVector:
         with pytest.raises(ValueError):
             dotproduct(state_vector1, state_vector2)
     else:
@@ -263,4 +269,5 @@ def test_dotproduct(state_vector1, state_vector2):
             for a_i, b_i in zip(state_vector1, state_vector2):
                 out += a_i * b_i
 
-            assert dotproduct(state_vector1, state_vector2) == out
+            assert np.allclose(dotproduct(state_vector1, state_vector2),
+                               np.reshape(out, np.shape(dotproduct(state_vector1, state_vector2))))

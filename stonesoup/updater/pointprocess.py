@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from abc import abstractmethod
 
 from scipy.stats import multivariate_normal
@@ -138,6 +137,10 @@ class PHDUpdater(PointProcessUpdater):
     [1] B.-N. Vo and W.-K. Ma, “The Gaussian Mixture Probability Hypothesis
     Density Filter,” Signal Processing,IEEE Transactions on, vol. 54, no. 11,
     pp. 4091–4104, 2006. https://ieeexplore.ieee.org/document/1710358.
+
+    [2] D. E. Clark, K. Panta and B. Vo, "The GM-PHD Filter Multiple Target Tracker," 2006 9th
+    International Conference on Information Fusion, 2006, pp. 1-8, doi: 10.1109/ICIF.2006.301809.
+    https://ieeexplore.ieee.org/document/4086095.
     """
     @staticmethod
     def _calculate_update_terms(updated_sum_list, hypotheses):

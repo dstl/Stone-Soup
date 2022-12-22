@@ -1,10 +1,13 @@
-# -*- coding: utf-8 -*-
-from scipy.spatial import distance as dist
 import uuid
+
+import numpy as np
+from ordered_set import OrderedSet
+from scipy.spatial import KDTree
 
 from ..base import Property
 from .base import MixtureReducer
 from ..types.state import TaggedWeightedGaussianState, WeightedGaussianState
+from ..measures import SquaredMahalanobis
 from operator import attrgetter
 
 
@@ -14,11 +17,14 @@ class GaussianMixtureReducer(MixtureReducer):
 
     Reduces the number of components in a Gaussian mixture to increase
     computational efficiency. See [1] for details.
-    Achieved in two ways: pruning and merging.
+    Achieved in three ways: pruning, merging, and truncating.
     Pruning is the act of removing low weight components from the mixture
     that fall below a pruning threshold.
     Merging is the act of combining similar components in the mixture
     that fall with a distance threshold into a single component.
+    Truncating is the act of removing low weight components from the
+    mixture so that the number of components in the mixture stays below a
+    given threshold. Truncating is performed after the pruning and merging.
 
     References
     ----------
@@ -27,15 +33,29 @@ class GaussianMixtureReducer(MixtureReducer):
     pp. 4091–4104, 2006..
     """
 
-    prune_threshold: float = Property(default=1e-9, doc="Threshold for pruning.")
+    prune_threshold: float = Property(default=1e-9, doc='Threshold for pruning')
     merge_threshold: float = Property(default=16, doc='Threshold for merging')
+    max_number_components: int = Property(default=np.iinfo(np.int64).max,
+                                          doc='Maximum number of components to keep '
+                                              'in the Gaussian mixture')
     merging: bool = Property(default=True, doc='Flag for merging')
-    pruning: bool = Property(default=True, doc='Flag for pruning')
+    pruning: bool = Property(default=True,
+                             doc='Flag for pruning components whose weight is below '
+                                 ':attr:`prune_threshold`')
+    truncating: bool = Property(default=True,
+                                doc='Flag for truncating components, keeping a maximum '
+                                    'of :attr:`max_number_components` components')
+    kdtree_max_distance: float = Property(
+        default=None,
+        doc="This defines the max Euclidean search distance for a kd-tree, "
+            "used as part of the merge process as a coarse gate. Default "
+            "`None` where tree isn't used and all components are checked "
+            "against the merge threshold.")
 
     def reduce(self, components_list):
         """
         Reduce the components of Gaussian Mixture :class:`list`
-        through pruning and merging
+        through pruning, merging, and truncating
 
         Parameters
         ----------
@@ -53,6 +73,8 @@ class GaussianMixtureReducer(MixtureReducer):
                 components_list = self.prune(components_list)
             if len(components_list) > 1 and self.merging:
                 components_list = self.merge(components_list)
+            if len(components_list) > self.max_number_components and self.truncating:
+                components_list = self.truncate(components_list)
         return components_list
 
     def prune(self, components_list):
@@ -148,21 +170,40 @@ class GaussianMixtureReducer(MixtureReducer):
             Merged components
 
         """
+        if self.kdtree_max_distance is not None:
+            tree = KDTree(
+                np.vstack([component.state_vector[:, 0]
+                           for component in components_list]))
+        else:
+            tree = None
+
         # Sort components by weight
-        remaining_components = sorted(
-            components_list, key=attrgetter('weight'))
+        remaining_components = OrderedSet(sorted(
+            components_list, key=attrgetter('weight')))
 
         merged_components = []
         final_merged_components = []
+        measure = SquaredMahalanobis(state_covar_inv_cache_size=None)
         while remaining_components:
             # Get highest weighted component
             best_component = remaining_components.pop()
-            # Check for similar components
-            # (modifying list in loop, so copy used)
-            for component in remaining_components.copy():
+
+            # If kdtree_max_distance set, use this as gate
+            if tree:
+                indexes = tree.query_ball_point(
+                    best_component.state_vector.ravel(),
+                    r=self.kdtree_max_distance)
+                matched_components = {components_list[i]
+                                      for i in indexes
+                                      if components_list[i] in remaining_components}
+            else:
+                # Modifying list in loop, so copy used
+                matched_components = remaining_components.copy()
+
+            # Check for similar components against threshold
+            for component in matched_components:
                 # Calculate distance between component and best component
-                distance = dist.mahalanobis(
-                    best_component.mean[:, 0], component.mean[:, 0], best_component.covar)
+                distance = measure(state1=component, state2=best_component)
                 # Merge if similar
                 if distance < self.merge_threshold:
                     remaining_components.remove(component)
@@ -197,3 +238,39 @@ class GaussianMixtureReducer(MixtureReducer):
             final_merged_components.extend(merged_components)
         # Assign merged components to the mixture
         return final_merged_components
+
+    def truncate(self, components_list):
+        """
+        Truncating is the act of removing low-weight components from the mixture
+        so that the size of the mixture (number of components) stays within the given
+        threshold :attr:`max_number_components`.
+
+        Parameters
+        ----------
+        components_list : :class:`~.list`
+            Components of the Gaussian Mixture to be truncated
+
+        Returns
+        -------
+        :class:`~.list`
+            The :attr:`max_number_components` components with the highest weights
+
+        """
+
+        # Sort components by weight from highest to lowest
+        all_components = sorted(
+            components_list, key=attrgetter('weight'), reverse=True)
+
+        # Make list of truncated components. This function is called only when
+        # len(components_list) > self.max_number_components, so the next line
+        # will never give an index error
+        truncated_components = all_components[self.max_number_components:]
+        truncated_weight_sum = sum([component.weight for component in truncated_components])
+
+        # Distribute truncated weights across remaining components
+        remaining_components = all_components[:self.max_number_components]
+        for component in remaining_components:
+            component.weight += \
+                truncated_weight_sum / self.max_number_components
+
+        return remaining_components

@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
 import datetime
 import inspect
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Set, Sequence
 
 from .action import Action, ActionGenerator
@@ -186,3 +185,15 @@ class Actionable(Base, ABC):
                     setattr(self, name, action.act(self.timestamp, timestamp, value))
 
         self.timestamp = timestamp
+
+    @abstractmethod
+    def validate_timestamp(self) -> bool:
+        """Method to validate the timestamp of the actionable.
+
+        Returns
+        -------
+        bool
+            True if timestamp is valid, False otherwise.
+        """
+
+        raise NotImplementedError

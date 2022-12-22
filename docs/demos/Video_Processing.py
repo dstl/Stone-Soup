@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 """
 Video processing, Object detection & Tracking
 ==============================================

@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
 """Test for updater.kalman module"""
+
 import pytest
 import numpy as np
 

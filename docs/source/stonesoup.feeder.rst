@@ -37,3 +37,8 @@ Image
 .. automodule:: stonesoup.feeder.image
     :show-inheritance:
 
+Track
+-----
+
+.. automodule:: stonesoup.feeder.track
+    :show-inheritance:

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from math import trunc, ceil, floor
 
 from pytest import approx, xfail

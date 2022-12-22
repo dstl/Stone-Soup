@@ -1,5 +1,6 @@
-# -*- coding: utf-8 -*-
+import copy
 from abc import abstractmethod
+from functools import lru_cache
 
 import numpy as np
 from scipy.spatial import distance
@@ -82,14 +83,8 @@ class Euclidean(Measure):
 
         """
         # Calculate Euclidean distance between two state
-        if hasattr(state1, 'mean'):
-            state_vector1 = state1.mean
-        else:
-            state_vector1 = state1.state_vector
-        if hasattr(state2, 'mean'):
-            state_vector2 = state2.mean
-        else:
-            state_vector2 = state2.state_vector
+        state_vector1 = getattr(state1, 'mean', state1.state_vector)
+        state_vector2 = getattr(state2, 'mean', state2.state_vector)
 
         if self.mapping is not None:
             return distance.euclidean(state_vector1[self.mapping, 0],
@@ -136,14 +131,8 @@ class EuclideanWeighted(Measure):
             :class:`~.State` objects
 
         """
-        if hasattr(state1, 'mean'):
-            state_vector1 = state1.mean
-        else:
-            state_vector1 = state1.state_vector
-        if hasattr(state2, 'mean'):
-            state_vector2 = state2.mean
-        else:
-            state_vector2 = state2.state_vector
+        state_vector1 = getattr(state1, 'mean', state1.state_vector)
+        state_vector2 = getattr(state2, 'mean', state2.state_vector)
 
         if self.mapping is not None:
             return distance.euclidean(state_vector1[self.mapping, 0],
@@ -155,7 +144,89 @@ class EuclideanWeighted(Measure):
                                       self.weighting)
 
 
-class Mahalanobis(Measure):
+class SquaredMahalanobis(Measure):
+    r"""Squared Mahalanobis distance measure
+
+    This measure returns the Squared Mahalanobis distance between a pair of
+    :class:`~.State` objects taking into account the distribution (i.e.
+    the :class:`~.CovarianceMatrix`) of the first :class:`.State` object
+
+    The Squared Mahalanobis distance between a distribution with mean :math:`\mu`
+    and Covariance matrix :math:`\Sigma` and a point :math:`x` is defined as:
+
+    .. math::
+            ( {\mu - x})  \Sigma^{-1}  ({\mu - x}^T )
+
+
+    """
+    state_covar_inv_cache_size: int = Property(
+        default=128,
+        doc="Number of covariance matrix inversions to cache. Setting to `0` will disable the "
+            "cache, whilst setting to `None` will not limit the size of the cache. Default is "
+            "128.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.state_covar_inv_cache_size is None or self.state_covar_inv_cache_size > 0:
+            self._inv_cov = lru_cache(maxsize=self.state_covar_inv_cache_size)(self._inv_cov)
+
+    def __getstate__(self):
+        result = copy.copy(self.__dict__)
+        result["_inv_cov"] = None
+        return result
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+        if self.state_covar_inv_cache_size is None or self.state_covar_inv_cache_size > 0:
+            self._inv_cov = lru_cache(maxsize=self.state_covar_inv_cache_size)(type(self)._inv_cov)
+        else:
+            self._inv_cov = type(self)._inv_cov
+
+    def __call__(self, state1, state2):
+        r"""Calculate the Squared Mahalanobis distance between a pair of state objects
+
+        Parameters
+        ----------
+        state1 : :class:`~.State`
+        state2 : :class:`~.State`
+
+        Returns
+        -------
+        float
+            Squared Mahalanobis distance between a pair of input :class:`~.State`
+            objects
+
+        """
+        state_vector1 = getattr(state1, 'mean', state1.state_vector)
+        state_vector2 = getattr(state2, 'mean', state2.state_vector)
+
+        if self.mapping is not None:
+            u = state_vector1[self.mapping, 0]
+            v = state_vector2[self.mapping2, 0]
+            # extract the mapped covariance data
+            vi = self._inv_cov(state1, tuple(self.mapping))
+        else:
+            u = state_vector1[:, 0]
+            v = state_vector2[:, 0]
+            vi = self._inv_cov(state1)
+
+        delta = u - v
+
+        return np.dot(np.dot(delta, vi), delta)
+
+    @staticmethod
+    def _inv_cov(state, mapping=None):
+        if mapping:
+            rows = np.array(mapping, dtype=np.intp)
+            columns = np.array(mapping, dtype=np.intp)
+            covar = state.covar[rows[:, np.newaxis], columns]
+        else:
+            covar = state.covar
+
+        return np.linalg.inv(covar)
+
+
+class Mahalanobis(SquaredMahalanobis):
     r"""Mahalanobis distance measure
 
     This measure returns the Mahalanobis distance between a pair of
@@ -185,30 +256,7 @@ class Mahalanobis(Measure):
             objects
 
         """
-        if hasattr(state1, 'mean'):
-            state_vector1 = state1.mean
-        else:
-            state_vector1 = state1.state_vector
-        if hasattr(state2, 'mean'):
-            state_vector2 = state2.mean
-        else:
-            state_vector2 = state2.state_vector
-
-        if self.mapping is not None:
-            u = state_vector1[self.mapping, 0]
-            v = state_vector2[self.mapping2, 0]
-            # extract the mapped covariance data
-            rows = np.array(self.mapping, dtype=np.intp)
-            columns = np.array(self.mapping, dtype=np.intp)
-            cov = state1.covar[rows[:, np.newaxis], columns]
-        else:
-            u = state_vector1[:, 0]
-            v = state_vector2[:, 0]
-            cov = state1.covar
-
-        vi = np.linalg.inv(cov)
-
-        return distance.mahalanobis(u, v, vi)
+        return np.sqrt(super().__call__(state1, state2))
 
 
 class SquaredGaussianHellinger(Measure):
@@ -253,9 +301,19 @@ class SquaredGaussianHellinger(Measure):
 
 
         """
+        if hasattr(state1, 'mean'):
+            state_vector1 = state1.mean
+        else:
+            state_vector1 = state1.state_vector
+
+        if hasattr(state2, 'mean'):
+            state_vector2 = state2.mean
+        else:
+            state_vector2 = state2.state_vector
+
         if self.mapping is not None:
-            mu1 = state1.state_vector[self.mapping, :]
-            mu2 = state2.state_vector[self.mapping2, :]
+            mu1 = state_vector1[self.mapping, :]
+            mu2 = state_vector2[self.mapping2, :]
 
             # extract the mapped covariance data
             rows = np.array(self.mapping, dtype=np.intp)
@@ -263,8 +321,8 @@ class SquaredGaussianHellinger(Measure):
             sigma1 = state1.covar[rows[:, np.newaxis], columns]
             sigma2 = state2.covar[rows[:, np.newaxis], columns]
         else:
-            mu1 = state1.state_vector
-            mu2 = state2.state_vector
+            mu1 = state_vector1
+            mu2 = state_vector2
             sigma1 = state1.covar
             sigma2 = state2.covar
 
@@ -276,6 +334,12 @@ class SquaredGaussianHellinger(Measure):
         denominator = np.linalg.det(sigma1_plus_sigma2/2)
         squared_hellinger = 1 - np.sqrt(numerator/denominator)*np.exp(epsilon)
         squared_hellinger = squared_hellinger.item()
+
+        if -1e-10 < squared_hellinger < 0.0:
+            squared_hellinger = 0.0
+        elif squared_hellinger < 0.0:  # pragma: no cover
+            raise ValueError("Measure shouldn't be less than 0")  # this should be impossible
+
         return squared_hellinger
 
 

@@ -60,7 +60,7 @@ following:
 
     git clone "https://github.com/dstl/Stone-Soup.git"
     cd Stone-Soup
-    python -m pip install -e .[dev]
+    python -m pip install -e ".[dev]"
 
 Please also see our :ref:`contributing:Contributing` page.
 

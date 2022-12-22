@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from .base import Predictor
 from ._utils import predict_lru_cache
 from .kalman import KalmanPredictor, ExtendedKalmanPredictor
@@ -42,7 +40,6 @@ class ParticlePredictor(Predictor):
             prior,
             noise=True,
             time_interval=time_interval,
-            num_samples=len(prior),
             **kwargs)
 
         return Prediction.from_state(prior, state_vector=new_state_vector, weight=prior.weight,

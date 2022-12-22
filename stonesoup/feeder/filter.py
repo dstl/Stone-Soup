@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from operator import attrgetter
 from types import FunctionType
 from typing import Sequence, Tuple

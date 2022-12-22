@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import datetime
 
 import numpy as np
@@ -11,12 +10,14 @@ from ..particle import Particle
 from ..prediction import (
     GaussianStatePrediction, GaussianMeasurementPrediction,
     StatePrediction, StateMeasurementPrediction,
-    ParticleStatePrediction, ParticleMeasurementPrediction)
+    ParticleStatePrediction, ParticleMeasurementPrediction,
+    ASDGaussianStatePrediction, ASDGaussianMeasurementPrediction)
 from ..state import (
     State, GaussianState, SqrtGaussianState, TaggedWeightedGaussianState, ParticleState)
 from ..track import Track
 from ..update import (
-    Update, StateUpdate, GaussianStateUpdate, SqrtGaussianStateUpdate, ParticleStateUpdate)
+    Update, StateUpdate, GaussianStateUpdate, SqrtGaussianStateUpdate, ParticleStateUpdate,
+    ASDGaussianStateUpdate)
 
 
 def test_stateupdate():
@@ -78,6 +79,43 @@ def test_gaussianstateupdate():
                                            measurement=measurement,
                                            measurement_prediction=meas_pred),
                                        timestamp=timestamp)
+
+    assert np.array_equal(state_vector, state_update.state_vector)
+    assert np.array_equal(covar, state_update.covar)
+    assert np.array_equal(prediction, state_update.hypothesis.prediction)
+    assert np.array_equal(meas_pred,
+                          state_update.hypothesis.measurement_prediction)
+    assert np.array_equal(measurement, state_update.hypothesis.measurement)
+    assert np.array_equal(timestamp, state_update.timestamp)
+
+
+def test_asdgaussianstateupdate():
+    """GaussianStateUpdate test"""
+
+    with pytest.raises(TypeError):
+        ASDGaussianStateUpdate()
+
+    state_vector = np.array([[-1.8513], [0.9994], [0], [0]]) * 1e4
+    covar = np.ones([4, 4])
+    timestamp = datetime.datetime.now()
+
+    prediction = ASDGaussianStatePrediction(multi_state_vector=state_vector,
+                                            multi_covar=covar,
+                                            timestamps=[timestamp],
+                                            act_timestamp=timestamp)
+    meas_pred = ASDGaussianMeasurementPrediction(
+        multi_state_vector=np.array([[2], [2], [1.5], [1.5]]),
+        multi_covar=np.ones([4, 4]) * 2,
+        timestamps=[timestamp])
+    measurement = Detection(state_vector=np.array([[5], [7]]),
+                            timestamp=timestamp)
+    state_update = ASDGaussianStateUpdate(multi_state_vector=state_vector,
+                                          multi_covar=covar,
+                                          hypothesis=SingleHypothesis(
+                                           prediction=prediction,
+                                           measurement=measurement,
+                                           measurement_prediction=meas_pred),
+                                          timestamps=[timestamp])
 
     assert np.array_equal(state_vector, state_update.state_vector)
     assert np.array_equal(covar, state_update.covar)

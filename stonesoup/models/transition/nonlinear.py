@@ -114,7 +114,7 @@ class ConstantTurn(GaussianTransitionModel, TimeVariantModel):
              turn_rate])
         if isinstance(noise, bool) or noise is None:
             if noise:
-                noise = self.rvs(**kwargs)
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
             else:
                 noise = 0
         return sv2 + noise
@@ -186,7 +186,7 @@ class ConstantTurnSandwich(ConstantTurn):
         sv_out = StateVectors(np.concatenate(sv_list))
         if isinstance(noise, bool) or noise is None:
             if noise:
-                noise = self.rvs(**kwargs)
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
             else:
                 noise = 0
         return sv_out + noise

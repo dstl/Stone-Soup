@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """
-==================================
-11 - Gaussian mixture PHD tutorial
-==================================
+=============================
+Gaussian mixture PHD tutorial
+=============================
 """
 
 # %%
@@ -111,6 +110,7 @@ plt.rcParams['figure.figsize'] = (14, 12)
 plt.style.use('seaborn-colorblind')
 # Other general imports
 import numpy as np
+from ordered_set import OrderedSet
 from datetime import datetime, timedelta
 start_time = datetime.now()
 
@@ -130,7 +130,7 @@ transition_model = CombinedLinearGaussianTransitionModel(
 
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 start_time = datetime.now()
-truths = set()  # Truths across all time
+truths = OrderedSet()  # Truths across all time
 current_truths = set()  # Truths alive at current time
 start_truths = set()
 number_steps = 20
@@ -180,9 +180,10 @@ for k in range(number_steps):
 # %%
 # Plot the ground truth
 #
-from stonesoup.plotter import Plotter
-plotter = Plotter()
+from stonesoup.plotter import Plotterly
+plotter = Plotterly()
 plotter.plot_ground_truths(truths, [0, 2])
+plotter.fig
 
 
 # %%
@@ -247,7 +248,7 @@ for k in range(number_steps):
 
 
 # Plot true detections and clutter.
-plotter.plot_measurements(all_measurements, [0, 2], color='g')
+plotter.plot_measurements(all_measurements, [0, 2])
 plotter.fig
 
 # %%
@@ -301,7 +302,12 @@ hypothesiser = GaussianMixtureHypothesiser(base_hypothesiser, order_by_detection
 # the Gaussian mixture. To ease the computational complexity, a :class:`~.GaussianMixtureReducer`
 # is used to merge and prune many of the states based on provided thresholds. States whose
 # distance is less than the merging threshold will be combined, and states whose weight
-# is less than the pruning threshold will be removed.
+# is less than the pruning threshold will be removed. Additionally, the
+# :class:`~.GaussianMixtureReducer` has an optional parameter for the maximum number of 
+# components that will be kept in the mixture, `max_number_components`. The reducer will keep
+# only the `max_number_components` components with the highest weights. This threshold can be
+# used when the approximate number of targets is known, or when there is high uncertainty and it
+# is hard to decide on a pruning threshold. It will not be used in this example.
 from stonesoup.mixturereducer.gaussianmixture import GaussianMixtureReducer
 # Initialise a Gaussian Mixture reducer
 merge_threshold = 5
@@ -480,12 +486,13 @@ for measurement_set in all_measurements:
 # This ellipse need not cover the entire state space, as long as the distribution does.
 
 # Plot the tracks
-plotter = Plotter()
+plotter = Plotterly()
 plotter.plot_ground_truths(truths, [0, 2])
-plotter.plot_measurements(all_measurements, [0, 2], color='g')
+plotter.plot_measurements(all_measurements, [0, 2])
 plotter.plot_tracks(tracks, [0, 2], uncertainty=True)
-plotter.ax.set_xlim(x_min-5, x_max+5)
-plotter.ax.set_ylim(y_min-5, y_max+5)
+plotter.fig.update_xaxes(range=[x_min-5, x_max+5])
+plotter.fig.update_yaxes(range=[y_min-5, y_max+5])
+plotter.fig
 
 
 # %%

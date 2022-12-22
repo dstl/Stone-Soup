@@ -1,18 +1,18 @@
-# -*- coding: utf-8 -*-
-
-from copy import deepcopy
-import numpy as np
-import datetime
-
 from abc import ABC
+import copy
+import datetime
 from typing import Mapping, Sequence, Set
-from stonesoup.base import Base, Property
-from stonesoup.predictor.kalman import KalmanPredictor
-from stonesoup.updater.kalman import ExtendedKalmanUpdater
-from stonesoup.types.track import Track
-from stonesoup.types.hypothesis import SingleHypothesis
-from stonesoup.sensor.sensor import Sensor
-from stonesoup.sensor.action import Action
+
+import numpy as np
+
+from ..types.detection import TrueDetection
+from ..base import Base, Property
+from ..predictor.kalman import KalmanPredictor
+from ..updater.kalman import ExtendedKalmanUpdater
+from ..types.track import Track
+from ..types.hypothesis import SingleHypothesis
+from ..sensor.sensor import Sensor
+from ..sensor.action import Action
 
 
 class RewardFunction(Base, ABC):
@@ -82,57 +82,42 @@ class UncertaintyRewardFunction(RewardFunction):
         # Reward value
         config_metric = 0
 
-        # Create dictionary of predictions for the tracks in the configuration
-        predictions = {track: self.predictor.predict(track[-1],
-                                                     timestamp=metric_time)
-                       for track in tracks}
-        # Running updates
-        r_updates = dict()
-
         predicted_sensors = list()
-
         memo = {}
         # For each sensor in the configuration
         for sensor, actions in config.items():
-            predicted_sensor = deepcopy(sensor, memo)
+            predicted_sensor = copy.deepcopy(sensor, memo)
             predicted_sensor.add_actions(actions)
             predicted_sensor.act(metric_time)
             if isinstance(sensor, Sensor):
                 predicted_sensors.append(predicted_sensor)  # checks if its a sensor
 
+        # Create dictionary of predictions for the tracks in the configuration
+        predicted_tracks = set()
+        for track in tracks:
+            predicted_track = copy.copy(track)
+            predicted_track.append(self.predictor.predict(predicted_track, timestamp=metric_time))
+            predicted_tracks.add(predicted_track)
+
         for sensor in predicted_sensors:
-            # some logic needed here to check if sensor is platform...
 
-            for track in tracks:
+            # Assumes one detection per track
+            detections = {detection.groundtruth_path: detection
+                          for detection in sensor.measure(predicted_tracks, noise=False)
+                          if isinstance(detection, TrueDetection)}
 
-                # If the track is selected by a sensor for the first time -
-                # 'previous' is the prediction
-                # If the track has already been selected by a sensor -
-                # 'previous' is the most recent update
-                if track not in r_updates:
-                    previous = predictions[track]
-                else:
-                    previous = r_updates[track]
-
-                previous_cov_norm = np.linalg.norm(previous.covar)
-
-                predicted_track = Track(previous, init_metadata=dict(Length=3, Width=1))
-
-                detections = sensor.measure([predicted_track], noise=False)
-                if not detections:
-                    continue
-
-                detection = detections.pop()  # assumes one detection
-
+            for predicted_track, detection in detections.items():
                 # Generate hypothesis based on prediction/previous update and detection
-                hypothesis = SingleHypothesis(previous, detection)
+                hypothesis = SingleHypothesis(predicted_track.state, detection)
 
                 # Do the update based on this hypothesis and store covariance matrix
                 update = self.updater.update(hypothesis)
+
+                previous_cov_norm = np.linalg.norm(predicted_track.covar)
                 update_cov_norm = np.linalg.norm(update.covar)
 
-                # Replace prediction in dictionary with update
-                r_updates[track] = update
+                # Replace prediction with update
+                predicted_track.append(update)
 
                 # Calculate metric for the track observation and add to the metric
                 # for the configuration

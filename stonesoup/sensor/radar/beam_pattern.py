@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import datetime
 from abc import abstractmethod
 from typing import Sequence, Tuple

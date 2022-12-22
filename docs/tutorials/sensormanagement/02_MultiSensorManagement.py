@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """
 ==========================================================
@@ -52,6 +51,7 @@
 
 import numpy as np
 import random
+from ordered_set import OrderedSet
 from datetime import datetime, timedelta
 
 start_time = datetime.now()
@@ -80,7 +80,7 @@ transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005
                                                           ConstantVelocity(0.005)])
 
 yps = range(0, 100, 10)  # y value for prior state
-truths = []
+truths = OrderedSet()
 ntruths = 3  # number of ground truths in simulation
 time_max = 50  # timestamps the simulation is observed over
 
@@ -96,23 +96,22 @@ for j in range(0, ntruths):
         truth.append(
             GroundTruthState(transition_model.function(truth[k - 1], noise=True, time_interval=timedelta(seconds=1)),
                              timestamp=start_time + timedelta(seconds=k)))
-    truths.append(truth)
+    truths.add(truth)
 
     xdirection *= -1
     if j % 2 == 0:
         ydirection *= -1
 
 # %%
-# Plot the ground truths. This is done using the :class:`~.Plotter` class from Stone Soup.
+# Plot the ground truths. This is done using the :class:`~.Plotterly` class from Stone Soup.
 
-from stonesoup.plotter import Plotter
+from stonesoup.plotter import Plotterly
 
 # Stonesoup plotter requires sets not lists
-truths_set = set(truths)
 
-plotter = Plotter()
-plotter.ax.axis('auto')
-plotter.plot_ground_truths(truths_set, [0, 2])
+plotter = Plotterly()
+plotter.plot_ground_truths(truths, [0, 2])
+plotter.fig
 
 # %%
 # Create sensors
@@ -139,7 +138,7 @@ for n in range(0, total_no_sensors):
     sensor = RadarRotatingBearingRange(
         position_mapping=(0, 2),
         noise_covar=np.array([[np.radians(0.5) ** 2, 0],
-                              [0, 0.75 ** 2]]),
+                              [0, 1 ** 2]]),
         ndim_state=4,
         position=np.array([[10], [n * 50]]),
         rpm=60,
@@ -157,7 +156,7 @@ for n in range(0, total_no_sensors):
     sensor = RadarRotatingBearingRange(
         position_mapping=(0, 2),
         noise_covar=np.array([[np.radians(0.5) ** 2, 0],
-                              [0, 0.75 ** 2]]),
+                              [0, 1 ** 2]]),
         ndim_state=4,
         position=np.array([[10], [n * 50]]),
         rpm=60,
@@ -195,15 +194,16 @@ updater = ExtendedKalmanUpdater(measurement_model=None)
 from stonesoup.types.state import GaussianState
 
 priors = []
-xdirection = 1.5
-ydirection = 1.5
+xdirection = 1.2
+ydirection = 1.2
 for j in range(0, ntruths):
-    priors.append(GaussianState([[0], [xdirection], [yps[j]+0.5], [ydirection]],
-                                np.diag([1.5, 0.25, 1.5, 0.25]+np.random.normal(0,5e-4,4)),
+    priors.append(GaussianState([[0], [xdirection], [yps[j]+0.1], [ydirection]],
+                                np.diag([0.5, 0.5, 0.5, 0.5]+np.random.normal(0,5e-4,4)),
                                 timestamp=start_time))
     xdirection *= -1
     if j % 2 == 0:
         ydirection *= -1
+
 # %%
 # Initialise the tracks by creating an empty list and appending the priors generated. This needs to be done
 # separately for both sensor manager methods as they will generate different sets of tracks.
@@ -211,14 +211,10 @@ for j in range(0, ntruths):
 from stonesoup.types.track import Track
 
 # Initialise tracks from the RandomSensorManager
-tracksA = []
-for j, prior in enumerate(priors):
-    tracksA.append(Track([prior]))
+tracksA = {Track([prior]) for prior in priors}
 
 # Initialise tracks from the BruteForceSensorManager
-tracksB = []
-for j, prior in enumerate(priors):
-    tracksB.append(Track([prior]))
+tracksB = {Track([prior]) for prior in priors}
 
 # %%
 # Create sensor managers
@@ -322,7 +318,7 @@ for timestep in timesteps[1:]:
     chosen_actions = randomsensormanager.choose_actions(tracksA, timestep)
 
     # Create empty dictionary for measurements
-    measurementsA = []
+    measurementsA = set()
 
     for chosen_action in chosen_actions:
         for sensor, actions in chosen_action.items():
@@ -332,8 +328,7 @@ for timestep in timesteps[1:]:
         sensor.act(timestep)
 
         # Observe this ground truth
-        measurements = sensor.measure(OrderedSet(truth[timestep] for truth in truths), noise=True)
-        measurementsA.extend(measurements)
+        measurementsA |= sensor.measure(OrderedSet(truth[timestep] for truth in truths), noise=True)
 
     hypotheses = data_associator.associate(tracksA,
                                            measurementsA,
@@ -350,10 +345,11 @@ for timestep in timesteps[1:]:
 # Plot ground truths, tracks and uncertainty ellipses for each target. The positions of the sensors are indicated
 # by black x markers.
 
-plotterA = Plotter()
+plotterA = Plotterly()
 plotterA.plot_sensors(sensor_setA)
-plotterA.plot_ground_truths(truths_set, [0, 2])
-plotterA.plot_tracks(set(tracksA), [0, 2], uncertainty=True)
+plotterA.plot_ground_truths(truths, [0, 2])
+plotterA.plot_tracks(tracksA, [0, 2], uncertainty=True)
+plotterA.fig
 
 # %%
 # In comparison to Tutorial 1 the performance of the :class:`~.RandomSensorManager` has improved. This is
@@ -392,7 +388,7 @@ for timestep in timesteps[1:]:
     chosen_actions = bruteforcesensormanager.choose_actions(tracksB, timestep)
 
     # Create empty dictionary for measurements
-    measurementsB = []
+    measurementsB = set()
 
     for chosen_action in chosen_actions:
         for sensor, actions in chosen_action.items():
@@ -402,8 +398,7 @@ for timestep in timesteps[1:]:
         sensor.act(timestep)
 
         # Observe this ground truth
-        measurements = sensor.measure(OrderedSet(truth[timestep] for truth in truths), noise=True)
-        measurementsB.extend(measurements)
+        measurementsB |= sensor.measure(OrderedSet(truth[timestep] for truth in truths), noise=True)
 
     hypotheses = data_associator.associate(tracksB,
                                            measurementsB,
@@ -419,10 +414,11 @@ for timestep in timesteps[1:]:
 # %%
 # Plot ground truths, tracks and uncertainty ellipses for each target.
 
-plotterB = Plotter()
+plotterB = Plotterly()
 plotterB.plot_sensors(sensor_setB)
-plotterB.plot_ground_truths(truths_set, [0, 2])
-plotterB.plot_tracks(set(tracksB), [0, 2], uncertainty=True)
+plotterB.plot_ground_truths(truths, [0, 2])
+plotterB.plot_tracks(tracksB, [0, 2], uncertainty=True)
+plotterB.fig
 
 # %%
 # The smaller uncertainty ellipses in this plot suggest that the :class:`~.BruteForceSensorManager` provides a much

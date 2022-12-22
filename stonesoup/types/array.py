@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from collections.abc import Sequence
 
 import numpy as np
@@ -137,10 +136,18 @@ class StateVectors(Matrix):
             return array.view(StateVector)
         return array.view(cls)
 
+    def __iter__(self):
+        statev_gen = super(StateVectors, self.T).__iter__()
+        for statevector in statev_gen:
+            yield StateVector(statevector)
+
+    def __getitem__(self, item):
+        return self._cast(super().__getitem__(item))
+
     @classmethod
     def _cast(cls, val):
         out = super()._cast(val)
-        if type(out) == Matrix:
+        if type(out) == Matrix and out.ndim == 2:
             # Assume still set of State Vectors
             return out.view(StateVectors)
         else:
@@ -180,7 +187,7 @@ class StateVectors(Matrix):
         elif axis == 1:  # Need to handle special cases of averaging potentially
             state_vector = StateVector(
                 np.empty((state_vectors.shape[0], 1), dtype=state_vectors.dtype))
-            for dim, row in enumerate(state_vectors):
+            for dim, row in enumerate(np.asarray(state_vectors)):
                 type_ = type(row[0])  # Assume all the same type
                 if hasattr(type_, 'average'):
                     # Check if type has custom average method

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import datetime
 import heapq
 from warnings import warn

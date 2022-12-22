@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from typing import Sequence
 
 from .base import Type
@@ -6,7 +5,7 @@ from .hypothesis import Hypothesis, CompositeHypothesis
 from .mixture import GaussianMixture
 from .state import CreatableFromState, CompositeState
 from .state import State, GaussianState, ParticleState, EnsembleState, \
-    SqrtGaussianState, InformationState, CategoricalState
+    SqrtGaussianState, InformationState, CategoricalState, ASDGaussianState
 from ..base import Property
 
 
@@ -50,6 +49,14 @@ class GaussianMixtureUpdate(Update, GaussianMixture):
 
     This is a Gaussian mixture update object, which, as the name
     suggests, is described by a Gaussian mixture.
+    """
+
+
+class ASDGaussianStateUpdate(Update, ASDGaussianState):
+    """ ASDGaussianStateUpdate type
+
+    This is a simple ASD Gaussian state update object, which, as the name
+    suggests, is described by a Gaussian distribution.
     """
 
 

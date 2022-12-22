@@ -25,6 +25,18 @@ Ensemble
 .. automodule:: stonesoup.predictor.ensemble
     :show-inheritance:
 
+Information
+-----------
+
+.. automodule:: stonesoup.predictor.information
+    :show-inheritance:
+
+Accumulated State Densities
+---------------------------
+
+.. automodule:: stonesoup.predictor.asd
+    :show-inheritance:
+
 Categorical
 -----------
 
@@ -35,10 +47,4 @@ Composite
 ---------
 
 .. automodule:: stonesoup.predictor.composite
-    :show-inheritance:
-
-Information
------------
-
-.. automodule:: stonesoup.predictor.information
     :show-inheritance:

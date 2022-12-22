@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pytest
 from pytest import approx
@@ -911,7 +910,9 @@ def test_binning_pdf():
 
     measured = measurement_model.function(real_state, noise=True)
     pdf = measurement_model.pdf(State(measured), real_state)
+    logpdf = measurement_model.logpdf(State(measured), real_state)
     assert pdf != 0
+    assert np.log(pdf) == pytest.approx(logpdf)
     not_measured = measured.copy()
     not_measured[2, 0] = not_measured[2, 0] + 0.5*measurement_model.range_res
     pdf = measurement_model.pdf(State(not_measured), real_state)

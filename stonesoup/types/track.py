@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+import copy
 import uuid
 from typing import MutableSequence, MutableMapping
 
@@ -47,6 +47,11 @@ class Track(StateMutableSequence):
         if index < 0:
             index = len(self.states) + index
         self._update_metadatas(index)
+
+    def __copy__(self):
+        inst = super().__copy__()
+        inst.__dict__['metadatas'] = copy.copy(self.__dict__['metadatas'])
+        return inst
 
     def insert(self, index, value):
         """Insert value at index of :attr:`states`.

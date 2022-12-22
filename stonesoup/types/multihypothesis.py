@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from collections.abc import Sized, Iterable, Container
 from typing import Sequence
 

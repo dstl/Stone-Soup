@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """
 ==========================================================
@@ -175,13 +174,14 @@ for k in range(1, num_steps + 1):
 #
 # Stone Soup has an in-built plotting class which can be used to plot
 # ground truths, measurements and tracks in a consistent format. It can be accessed by importing
-# the class :class:`Plotter` from Stone Soup as below.
+# the class :class:`Plotterly` from Stone Soup as below.
 #
 # Note that the mapping argument is [0, 2] because those are the x and y position indices from our state vector.
 
-from stonesoup.plotter import Plotter
-plotter = Plotter()
+from stonesoup.plotter import Plotterly
+plotter = Plotterly()
 plotter.plot_ground_truths(truth, [0, 2])
+plotter.fig
 
 
 # %%

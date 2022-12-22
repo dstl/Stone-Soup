@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from abc import abstractmethod, ABC
 from typing import Callable, Set
 import random

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Provides an ability to generate and load configuration from YAML.
 
 Stone Soup utilises YAML_ for configuration files. The :doc:`stonesoup.base`

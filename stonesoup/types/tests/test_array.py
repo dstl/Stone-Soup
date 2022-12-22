@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pytest
 
@@ -35,6 +34,9 @@ def test_statevectors():
     assert np.array_equal(svs1, vecs1)
     assert np.array_equal(svs2, vecs1)
     assert svs3.shape != vecs1.shape
+
+    for sv in svs2:
+        assert isinstance(sv, StateVector)
 
 
 def test_standard_statevector_indexing():
