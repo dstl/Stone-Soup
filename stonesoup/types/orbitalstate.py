@@ -1,9 +1,7 @@
-import datetime
 from enum import Enum
 from typing import Mapping, Any
 
 import numpy as np
-
 
 from ..base import Property
 from ..functions import dotproduct
@@ -194,11 +192,11 @@ class Orbital(Type):
                 # instances will have to work out how to sample from a mean TLE. So this is just
                 # a StateVector
                 self.state_vector = StateVector([tle.inclination, tle.longitude_of_ascending_node,
-                                                 tle.eccentricity, tle.arg_periapsis, tle.mean_anomaly,
-                                                 tle.mean_motion])
+                                                 tle.eccentricity, tle.arg_periapsis,
+                                                 tle.mean_anomaly, tle.mean_motion])
                 kwargs['timestamp'] = tle.epoch
 
-                #super().__init__(state_vector, *args, **kwargs)
+                # super().__init__(state_vector, *args, **kwargs)
 
             else:
                 raise TypeError("State vector and metadata cannot both be empty")
@@ -219,20 +217,17 @@ class Orbital(Type):
                                  .format(self.state_vector[0]))
 
             # Convert Keplerian elements to Cartesian
-
             # First enforce the correct type (should be a way to unify this)
-            if type(self.state_vector) is StateVector:
-                self.state_vector[2] = Inclination(self.state_vector[2])
-                self.state_vector[3] = EclipticLongitude(self.state_vector[3])
-                self.state_vector[4] = EclipticLongitude(self.state_vector[4])
-                self.state_vector[5] = EclipticLongitude(self.state_vector[5])
-            elif type(self.state_vector) is StateVectors:
+            if type(self.state_vector) is StateVectors:  # StateVectors
                 self.state_vector[2] = self.state_vector[2].astype(Inclination)
                 self.state_vector[3] = self.state_vector[3].astype(EclipticLongitude)
                 self.state_vector[4] = self.state_vector[4].astype(EclipticLongitude)
                 self.state_vector[5] = self.state_vector[5].astype(EclipticLongitude)
-            else:
-                raise TypeError("Input should be `StateVector` or `StateVectors`")
+            else:  # StateVector (given initialisation, if not StateVectors, must be StateVector)
+                self.state_vector[2] = Inclination(self.state_vector[2])
+                self.state_vector[3] = EclipticLongitude(self.state_vector[3])
+                self.state_vector[4] = EclipticLongitude(self.state_vector[4])
+                self.state_vector[5] = EclipticLongitude(self.state_vector[5])
 
             self.state_vector = keplerian_to_rv(self.state_vector,
                                                 grav_parameter=self.grav_parameter)
@@ -243,13 +238,11 @@ class Orbital(Type):
                 raise ValueError("Eccentricity should be between 0 and 1: got {}"
                                  .format(self.state_vector[0]))
 
-            #super().__init__(state_vector, *args, **kwargs)
-
             if 'metadata' in kwargs and kwargs['metadata']:
                 tle = TLEDictReader({'line_1': kwargs['metadata']['line_1'],
                                      'line_2': kwargs['metadata']['line_2']})
 
-                # Note that this overwrites any timestamp you give pass as an argument
+                # Note that this overwrites any timestamp you pass as an argument
                 self.timestamp = tle.epoch
                 self.catalogue_number = tle.catalogue_number
                 self.classification = tle.classification
@@ -262,7 +255,18 @@ class Orbital(Type):
                 self.revolution_number = tle.revolution_number
 
             # First enforce the correct type
-            if type(self.state_vector) is StateVector:
+            if type(self.state_vector) is StateVectors:
+                self.state_vector[0] = self.state_vector[0].astype(Inclination)
+                self.state_vector[1] = self.state_vector[1].astype(EclipticLongitude)
+                self.state_vector[3] = self.state_vector[3].astype(EclipticLongitude)
+                self.state_vector[4] = self.state_vector[4].astype(EclipticLongitude)
+                mean_motion = self.state_vector[5].astype(float)
+                # True anomaly from mean anomaly
+                tru_anom = np.zeros(np.shape(mean_motion))
+                for i, (mean_anom, ecc) in \
+                        enumerate(zip(self.state_vector[4], self.state_vector[2])):
+                    tru_anom[i] = tru_anom_from_mean_anom(mean_anom, ecc)
+            else:  # StateVector
                 self.state_vector[0] = Inclination(self.state_vector[0])
                 self.state_vector[1] = EclipticLongitude(self.state_vector[1])
                 self.state_vector[3] = EclipticLongitude(self.state_vector[3])
@@ -271,22 +275,7 @@ class Orbital(Type):
                 # True anomaly from mean anomaly
                 tru_anom = tru_anom_from_mean_anom(self.state_vector[4], self.state_vector[2])
 
-            elif type(self.state_vector) is StateVectors:
-                self.state_vector[0] = self.state_vector[0].astype(Inclination)
-                self.state_vector[1] = self.state_vector[1].astype(EclipticLongitude)
-                self.state_vector[3] = self.state_vector[3].astype(EclipticLongitude)
-                self.state_vector[4] = self.state_vector[4].astype(EclipticLongitude)
-                mean_motion = self.state_vector[5].astype(float)
-
-                tru_anom = np.zeros(np.shape(mean_motion))
-                for i, (mean_anom, ecc) in \
-                        enumerate(zip(self.state_vector[4], self.state_vector[2])):
-                    tru_anom[i] = tru_anom_from_mean_anom(mean_anom, ecc)
-            else:
-                raise TypeError("Input should be `StateVector` or `StateVectors`")
-
             # Get the semi-major axis from the mean motion
-
             semimajor_axis = np.cbrt(self.grav_parameter / mean_motion ** 2)
 
             # Use given and derived quantities to convert from Keplarian to Cartesian
@@ -309,20 +298,18 @@ class Orbital(Type):
 
             # First enforce the correct type for mean longitude, then compute intermediate
             # quantities
-            if type(self.state_vector) is StateVector:
-                self.state_vector[5] = EclipticLongitude(self.state_vector[5])
-                raan = np.arctan2(self.state_vector[3], self.state_vector[4])
-                inclination = 2 * np.arctan(self.state_vector[3] / np.sin(raan))
-                arg_per = np.arctan2(self.state_vector[1], self.state_vector[2]) - raan
-            elif type(self.state_vector) is StateVectors:
+            if type(self.state_vector) is StateVectors:
                 self.state_vector[5] = self.state_vector[5].astype(EclipticLongitude)
                 raan = np.arctan2(self.state_vector[3].astype(float),
                                   self.state_vector[4].astype(float))
                 inclination = 2 * np.arctan(self.state_vector[3].astype(float) / np.sin(raan))
                 arg_per = np.arctan2(self.state_vector[1].astype(float),
                                      self.state_vector[2].astype(float)) - raan
-            else:
-                raise TypeError("Input should be `StateVector` or `StateVectors`")
+            else:  # StateVector
+                self.state_vector[5] = EclipticLongitude(self.state_vector[5])
+                raan = np.arctan2(self.state_vector[3], self.state_vector[4])
+                inclination = 2 * np.arctan(self.state_vector[3] / np.sin(raan))
+                arg_per = np.arctan2(self.state_vector[1], self.state_vector[2]) - raan
 
             # Calculate the Keplarian element quantities
             semimajor_axis = self.state_vector[0]
@@ -330,12 +317,12 @@ class Orbital(Type):
             eccentricity = self.state_vector[1] / (np.sin(arg_per + raan))
 
             # True anomaly from mean anomaly
-            if type(self.state_vector) is StateVector:
-                tru_anom = tru_anom_from_mean_anom(mean_anomaly, eccentricity)
-            else:
+            if type(self.state_vector) is StateVectors:
                 tru_anom = np.zeros(np.shape(eccentricity))
                 for i, (mean_anom, ecc) in enumerate(zip(mean_anomaly, eccentricity)):
                     tru_anom[i] = tru_anom_from_mean_anom(mean_anom, ecc)
+            else:
+                tru_anom = tru_anom_from_mean_anom(mean_anomaly, eccentricity)
 
             # Convert from Keplarian to Cartesian
             self.state_vector = keplerian_to_rv(StateVectors([np.array(eccentricity).flatten(),
@@ -453,8 +440,6 @@ class Orbital(Type):
             return out
         else:  # StateVector
             return Inclination(inclination)
-
-
 
     @property
     def longitude_ascending_node(self):
@@ -575,7 +560,8 @@ class Orbital(Type):
             mean anomaly from true anomaly and eccentricity.
 
         """
-        return self.eccentric_anomaly - self.eccentricity * np.sin(self.eccentric_anomaly)  # Kepler's equation
+        # Kepler's equation
+        return self.eccentric_anomaly - self.eccentricity * np.sin(self.eccentric_anomaly)
 
     @property
     def period(self):

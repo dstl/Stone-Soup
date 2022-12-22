@@ -44,3 +44,9 @@ OpenSky Network
 ---------------
 .. automodule:: stonesoup.reader.opensky
     :show-inheritance:
+
+Astronomical
+------------
+.. automodule:: stonesoup.reader.astronomical
+    :show-inheritance:
+
