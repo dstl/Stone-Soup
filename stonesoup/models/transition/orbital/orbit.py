@@ -9,7 +9,7 @@ from sgp4.api import jday, Satrec
 
 from ....base import Property
 from ....types.state import State
-from ....types.array import StateVector, Matrix, CovarianceMatrix
+from ....types.array import StateVector, StateVectors, Matrix, CovarianceMatrix
 from ....types.angle import Inclination, EclipticLongitude
 from .base import OrbitalGaussianTransitionModel
 from ...base import LinearModel
@@ -107,7 +107,7 @@ class CartesianKeplerianTransitionModel(OrbitalGaussianTransitionModel):
         bold_v = f_dot * bold_r_0 + g_dot * bold_v_0
 
         # And put them together
-        return StateVector(np.concatenate((bold_r, bold_v), axis=0)) + noise
+        return StateVectors(np.concatenate((bold_r, bold_v), axis=0)) + noise
 
 
 class TLEKeplerianTransitionModel(OrbitalGaussianTransitionModel, LinearModel):
