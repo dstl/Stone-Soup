@@ -396,7 +396,7 @@ def calculate_num_targets_dist(tracks: Set[Track], geom: BaseGeometry,
     num_samples = 100
     mu_overall = 0
     var_overall = np.inf if len(tracks) == 0 else 0
-    path_p = Path(geom.boundary)
+    path_p = Path(geom.boundary.coords)
 
     # Calculate PHD density inside polygon
     if phd_state is not None:

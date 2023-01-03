@@ -583,7 +583,7 @@ def _prob_detect_func(fovs):
     else:
         fovs = [fovs_union]
 
-    paths = [Path(poly.boundary) for poly in fovs]
+    paths = [Path(poly.boundary.coords) for poly in fovs]
 
     # Probability of detection nested function
     def prob_detect_func(state):
