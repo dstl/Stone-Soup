@@ -94,6 +94,7 @@ class ReinforcementSensorManager(SensorManager):
     def train(self, hyper_parameters):
         """Trains a DQN agent on the specified environment to learn a policy that is later
         used to select actions.
+
         Parameters
         ----------
         hyper_parameters: dict
