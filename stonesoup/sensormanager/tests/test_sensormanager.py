@@ -75,13 +75,13 @@ def test_uncertainty_based_managers():
         GaussianState([[2], [1.5], [2], [1.5]],
                       np.diag([3, 0.5, 3, 0.5] + np.random.normal(0, 5e-4, 4)),
                       timestamp=time_start + timedelta(seconds=1))]),
-        Track(states=[
-            GaussianState([[-1], [1], [-1], [1]],
-                          np.diag([3, 0.5, 3, 0.5] + np.random.normal(0, 5e-4, 4)),
-                          timestamp=time_start),
-            GaussianState([[2], [1.5], [2], [1.5]],
-                          np.diag([1.5, 0.25, 1.5, 0.25] + np.random.normal(0, 5e-4, 4)),
-                          timestamp=time_start + timedelta(seconds=1))])]
+              Track(states=[
+                    GaussianState([[-1], [1], [-1], [1]],
+                                  np.diag([3, 0.5, 3, 0.5] + np.random.normal(0, 5e-4, 4)),
+                                  timestamp=time_start),
+                    GaussianState([[2], [1.5], [2], [1.5]],
+                                  np.diag([1.5, 0.25, 1.5, 0.25] + np.random.normal(0, 5e-4, 4)),
+                                  timestamp=time_start + timedelta(seconds=1))])]
 
     transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),
                                                               ConstantVelocity(0.005)])
@@ -373,7 +373,7 @@ def test_reinforcement_manager():
                                                       attribute='dwell_centre',
                                                       start_time=sensorA.timestamp,
                                                       end_time=sensorA.timestamp +
-                                                               timedelta(seconds=1))
+                                                      timedelta(seconds=1))
 
             current_action = [action_generators.action_from_value(action_bearing)]
             return current_action
@@ -431,15 +431,15 @@ def test_reinforcement_manager():
         observation = []
         uncertainty = []
         for target in tracksA:
-            x_target = target.state.state_vector[0] - sensorA.position[0]
-            y_target = target.state.state_vector[2] - sensorA.position[1]
+            # x_target = target.state.state_vector[0] - sensorA.position[0]
+            # y_target = target.state.state_vector[2] - sensorA.position[1]
             # bearing_target = mod_bearing(np.arctan2(y_target, x_target))
             uncertainty.append(np.trace(target.covar))
 
             # observation.append(np.degrees(bearing_target))
             observation.append(np.trace(target.covar))
 
-        observation = np.array(uncertainty, dtype=np.float32)
+        # observation = np.array(uncertainty, dtype=np.float32)
         # observation = np.array(observation, dtype=np.float32)
 
         chosen_actions = reinforcementsensormanager.choose_actions(tracksA, tf_timestep)
