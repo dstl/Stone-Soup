@@ -27,7 +27,7 @@ from ...sensormanager.reinforcement import ReinforcementSensorManager, BaseEnvir
 from ...predictor.kalman import KalmanPredictor
 from ...updater.kalman import ExtendedKalmanUpdater
 from ...models.transition.linear import CombinedLinearGaussianTransitionModel, \
-                                    ConstantVelocity
+    ConstantVelocity
 
 
 def test_random_choose_actions():
@@ -75,13 +75,13 @@ def test_uncertainty_based_managers():
         GaussianState([[2], [1.5], [2], [1.5]],
                       np.diag([3, 0.5, 3, 0.5] + np.random.normal(0, 5e-4, 4)),
                       timestamp=time_start + timedelta(seconds=1))]),
-              Track(states=[
-                  GaussianState([[-1], [1], [-1], [1]],
-                                np.diag([3, 0.5, 3, 0.5] + np.random.normal(0, 5e-4, 4)),
-                                timestamp=time_start),
-                  GaussianState([[2], [1.5], [2], [1.5]],
-                                np.diag([1.5, 0.25, 1.5, 0.25] + np.random.normal(0, 5e-4, 4)),
-                                timestamp=time_start + timedelta(seconds=1))])]
+        Track(states=[
+            GaussianState([[-1], [1], [-1], [1]],
+                          np.diag([3, 0.5, 3, 0.5] + np.random.normal(0, 5e-4, 4)),
+                          timestamp=time_start),
+            GaussianState([[2], [1.5], [2], [1.5]],
+                          np.diag([1.5, 0.25, 1.5, 0.25] + np.random.normal(0, 5e-4, 4)),
+                          timestamp=time_start + timedelta(seconds=1))])]
 
     transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),
                                                               ConstantVelocity(0.005)])
@@ -212,13 +212,15 @@ def test_reinforcement_manager():
 
     # Generate ground truths
     for j in range(0, ntruths):
-        truth = GroundTruthPath([GroundTruthState([0, xdirection, yps[j], ydirection], timestamp=start_time)],
+        truth = GroundTruthPath([GroundTruthState([0, xdirection, yps[j], ydirection],
+                                                  timestamp=start_time)],
                                 id=f"id{j}")
 
         for k in range(1, time_max):
             truth.append(
                 GroundTruthState(
-                    transition_model.function(truth[k - 1], noise=True, time_interval=timedelta(seconds=1)),
+                    transition_model.function(truth[k - 1], noise=True,
+                                              time_interval=timedelta(seconds=1)),
                     timestamp=start_time + timedelta(seconds=k)))
         truths.append(truth)
 
@@ -230,7 +232,8 @@ def test_reinforcement_manager():
     predictor = KalmanPredictor(transition_model)
     updater = ExtendedKalmanUpdater(measurement_model=None)
     reward_function = UncertaintyRewardFunction(predictor=predictor, updater=updater)
-    hypothesiser = DistanceHypothesiser(predictor, updater, measure=Mahalanobis(), missed_distance=5)
+    hypothesiser = DistanceHypothesiser(predictor, updater, measure=Mahalanobis(),
+                                        missed_distance=5)
     data_associator = GNNWith2DAssignment(hypothesiser)
 
     sensorA = RadarRotatingBearingRange(
@@ -331,7 +334,9 @@ def test_reinforcement_manager():
 
             # Calculate a measurement from the sensor
             measurement = set()
-            measurement |= self.sensor.measure(OrderedSet(truth[current_timestep] for truth in truths), noise=True)
+            measurement |= self.sensor.measure(OrderedSet(truth[current_timestep]
+                                                          for truth in truths),
+                                               noise=True)
             hypotheses = data_associator.associate(self.tracks,
                                                    measurement,
                                                    current_timestep)
@@ -341,7 +346,7 @@ def test_reinforcement_manager():
                 if hypothesis.measurement:
                     post = updater.update(hypothesis)
                     track.append(post)
-                else:  # When data associator says no detections are good enough, we'll keep the prediction
+                else:
                     track.append(hypothesis.prediction)
 
             # Set the observation as the prior uncertainty of each target
@@ -367,7 +372,8 @@ def test_reinforcement_manager():
             action_generators = DwellActionsGenerator(sensorA,
                                                       attribute='dwell_centre',
                                                       start_time=sensorA.timestamp,
-                                                      end_time=sensorA.timestamp + timedelta(seconds=1))
+                                                      end_time=sensorA.timestamp +
+                                                               timedelta(seconds=1))
 
             current_action = [action_generators.action_from_value(action_bearing)]
             return current_action
@@ -427,7 +433,7 @@ def test_reinforcement_manager():
         for target in tracksA:
             x_target = target.state.state_vector[0] - sensorA.position[0]
             y_target = target.state.state_vector[2] - sensorA.position[1]
-            bearing_target = mod_bearing(np.arctan2(y_target, x_target))
+            # bearing_target = mod_bearing(np.arctan2(y_target, x_target))
             uncertainty.append(np.trace(target.covar))
 
             # observation.append(np.degrees(bearing_target))
@@ -461,7 +467,7 @@ def test_reinforcement_manager():
             if hypothesis.measurement:
                 post = updater.update(hypothesis)
                 track.append(post)
-            else:  # When data associator says no detections are good enough, we'll keep the prediction
+            else:
                 track.append(hypothesis.prediction)
 
         # Propagate environment
