@@ -238,7 +238,7 @@ class ReinforcementSensorManager(SensorManager):
 
             print('\n-----\nTraining complete\n-----')
 
-    def choose_actions(self, tracks, timestamp, nchoose=1, **kwargs):
+    def choose_actions(self, tracks, sensor, timestamp, nchoose=1, **kwargs):
         """Returns a chosen [list of] action(s) from the action set for each sensor.
         Chosen action(s) is selected by exploiting the reinforcement learning agent's
         policy that was found during training.
@@ -247,6 +247,8 @@ class ReinforcementSensorManager(SensorManager):
         ----------
         tracks: set of :class:`~Track`
             Set of tracks at given time. Used in reward function.
+        sensor: :class:`~Sensor`
+            Sensor used for observation
         timestamp: :class:`tf_agents.trajectories.TimeSpec`
             Timestep of environment at current time
         nchoose : int
@@ -264,7 +266,7 @@ class ReinforcementSensorManager(SensorManager):
                 chosen_actions = []
                 action_step = self.agent.policy.action(timestamp)
                 action = action_step.action
-                stonesoup_action = self.env.generate_action(action)
+                stonesoup_action = self.env.generate_action(action, tracks, sensor)
                 chosen_actions.append(stonesoup_action)
                 sensor_action_assignment[sensor] = chosen_actions
 
