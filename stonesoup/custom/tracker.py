@@ -60,7 +60,7 @@ class SMCPHD_JIPDA(Base):
                                               self.clutter_intensity,
                                               prob_detect=self.prob_detect,
                                               prob_survive=1-self.prob_death)
-        self._hypothesiser = DistanceGater(self._hypothesiser, Mahalanobis(), 10)
+        self._hypothesiser = DistanceGater(self._hypothesiser, Mahalanobis(), 5)
         self._associator = JIPDAWithEHM2(self._hypothesiser)
 
         resampler = SystematicResampler()
