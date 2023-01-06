@@ -94,7 +94,10 @@ class LocationActionGenerator(RealNumberActionGenerator):
         if isinstance(item, self._action_cls):
             item = item.target_value
 
-        return self.min <= item <= self.max
+        possible_values = np.arange(self.min, self.max + self.resolution, self.resolution,
+                                    dtype=float)
+
+        return possible_values[0] <= item <= possible_values[-1]
 
     def __iter__(self) -> Iterator[ChangeLocationAction]:
         """Returns all possible ChangePanTiltAction types"""
@@ -111,7 +114,7 @@ class LocationActionGenerator(RealNumberActionGenerator):
     def action_from_value(self, value):
         if value not in self:
             return None
-        possible_values = np.arange(self.min, self.max, self.resolution, dtype=float)
+        possible_values = np.arange(self.min, self.max + self.resolution, self.resolution, dtype=float)
         angle = get_nearest(possible_values, value)
         return self._action_cls(generator=self,
                                 end_time=self.end_time,
