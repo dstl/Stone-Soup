@@ -83,7 +83,7 @@ class OptimizeBruteSensorManager(_OptimizeSensorManager):
 
     def _optimiser(self, optimise_func, all_action_generators):
         ranges = [
-            (gen.min, gen.max)
+            (float(gen.min), float(gen.max))
             for gens in all_action_generators.values()
             for gen in gens]
 
