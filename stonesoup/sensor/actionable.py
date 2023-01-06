@@ -83,8 +83,8 @@ class Actionable(Base, ABC):
             Set of action generators, that describe the bounds of each action space.
         """
 
-        if not self.validate_timestamp():
-            self.timestamp = timestamp
+        # if not self.validate_timestamp():
+        #     self.timestamp = timestamp
 
         if start_timestamp is None:
             start_timestamp = self.timestamp
@@ -128,8 +128,8 @@ class Actionable(Base, ABC):
         Base class returns True
         """
 
-        if not self.validate_timestamp():
-            return
+        # if not self.validate_timestamp():
+        #     return
 
         if any(action.end_time < self.timestamp for action in actions):
             raise ValueError("Cannot schedule an action that ends before the current time.")
@@ -153,9 +153,9 @@ class Actionable(Base, ABC):
             Carry out actions up to this timestamp.
         """
 
-        if not self.validate_timestamp():
-            self.timestamp = timestamp
-            return
+        # if not self.validate_timestamp():
+        #     self.timestamp = timestamp
+        #     return
 
         for name, property_ in self._actionable_properties.items():
             value = getattr(self, name)
@@ -186,14 +186,14 @@ class Actionable(Base, ABC):
 
         self.timestamp = timestamp
 
-    @abstractmethod
-    def validate_timestamp(self) -> bool:
-        """Method to validate the timestamp of the actionable.
-
-        Returns
-        -------
-        bool
-            True if timestamp is valid, False otherwise.
-        """
-
-        raise NotImplementedError
+    # @abstractmethod
+    # def validate_timestamp(self) -> bool:
+    #     """Method to validate the timestamp of the actionable.
+    #
+    #     Returns
+    #     -------
+    #     bool
+    #         True if timestamp is valid, False otherwise.
+    #     """
+    #
+    #     raise NotImplementedError

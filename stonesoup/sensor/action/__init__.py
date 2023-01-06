@@ -15,7 +15,7 @@ class Action(Base):
     end_time: datetime.datetime = Property(readonly=True,
                                            doc="Time at which modification of the "
                                                "attribute ends.")
-    target_value: Any = Property(doc="Target value.")
+    target_value: Any = Property(default=None, doc="Target value.")
 
     def act(self, current_time, timestamp, init_value):
         """Return the attribute modified.

@@ -13,6 +13,7 @@ from ..types.track import Track
 from ..types.hypothesis import SingleHypothesis
 from ..sensor.sensor import Sensor
 from ..sensor.action import Action
+from ..platform import Platform
 
 
 class RewardFunction(Base, ABC):
@@ -59,7 +60,8 @@ class UncertaintyRewardFunction(RewardFunction):
                                                   "the track to the new state.")
 
     def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: Set[Track],
-                 metric_time: datetime.datetime, *args, **kwargs):
+                 metric_time: datetime.datetime, non_actionables: Set[Platform or Sensor],
+                 *args, **kwargs):
         """
         For a given configuration of sensors and actions this reward function calculates the
         potential uncertainty reduction of each track by
@@ -83,14 +85,26 @@ class UncertaintyRewardFunction(RewardFunction):
         config_metric = 0
 
         predicted_sensors = list()
+        predicted_platforms = list()
+
         memo = {}
+
+        # If platforms have been passed to SM which aren't actionable, predict them forward
+        for item in non_actionables:
+            if isinstance(item, Platform):
+                copied_platform = copy.deepcopy(item, memo)
+                copied_platform.move(metric_time)
+                # TODO: add something for non actionable sensors?
+
         # For each sensor in the configuration
-        for sensor, actions in config.items():
-            predicted_sensor = copy.deepcopy(sensor, memo)
-            predicted_sensor.add_actions(actions)
-            predicted_sensor.act(metric_time)
-            if isinstance(sensor, Sensor):
-                predicted_sensors.append(predicted_sensor)  # checks if its a sensor
+        for actionable, actions in config.items():  # TODO: check works for actionable platforms
+            predicted_actionable = copy.deepcopy(actionable, memo)
+            predicted_actionable.add_actions(actions)
+            predicted_actionable.act(metric_time)
+            if isinstance(actionable, Sensor):
+                predicted_sensors.append(predicted_actionable)
+            if isinstance(actionable, Platform):
+                predicted_platforms.append(predicted_actionable)
 
         # Create dictionary of predictions for the tracks in the configuration
         predicted_tracks = set()

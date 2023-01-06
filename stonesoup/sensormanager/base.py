@@ -3,9 +3,12 @@ from typing import Callable, Set
 import random
 import numpy as np
 import itertools as it
+from copy import deepcopy
 
 from ..base import Base, Property
 from ..sensor.sensor import Sensor
+from ..platform.base import Platform
+from ..sensor.actionable import Actionable
 
 
 class SensorManager(Base, ABC):
@@ -23,8 +26,13 @@ class SensorManager(Base, ABC):
     which communicate with other sensor managers in a networked fashion.
 
     """
-    sensors: Set[Sensor] = Property(doc="The sensor(s) which the sensor manager is managing. "
+    sensors: Set[Sensor] = Property(default=None,
+                                    doc="The sensor(s) which the sensor manager is managing. "
                                         "These must be capable of returning available actions.")
+
+    platforms: Set[Platform] = Property(default=None,
+                                        doc="Platforms which the sensor manager is managing."
+                                            "These may also have sensors attached.")
 
     reward_function: Callable = Property(
         default=None, doc="A function or class designed to work out the reward associated with an "
@@ -118,26 +126,47 @@ class BruteForceSensorManager(SensorManager):
             The pairs of :class:`~.Sensor`: [:class:`~.Action`] selected
         """
 
+        actionables = set()
+        non_actionables = set()
+        # memo = {}
+
+        if self.platforms:
+            for platform in self.platforms:
+                if isinstance(platform.movement_controller, Actionable):
+                    actionables.add(platform)
+                else:
+                    non_actionables.add(platform)
+                for sensor in platform.sensors:
+                    if isinstance(sensor, Actionable):
+                        actionables.add(sensor)
+                        # We currently don't consider non-actionable sensors in the reward function
+
+        if self.sensors:
+            for sensor in self.sensors:
+                if isinstance(sensor, Actionable):
+                    actionables.add(sensor)
+
         all_action_choices = dict()
 
-        for sensor in self.sensors:
+        for actionable in actionables:
             # get action 'generator(s)'
-            action_generators = sensor.actions(timestamp)
+            action_generators = actionable.actions(timestamp)  # TODO: check this works for platforms?
             # list possible action combinations for the sensor
             action_choices = list(it.product(*action_generators))
             # dictionary of sensors: list(action combinations)
-            all_action_choices[sensor] = action_choices
+            all_action_choices[actionable] = action_choices
 
         # get tuple of dictionaries of sensors: actions
-        configs = ({sensor: action
-                    for sensor, action in zip(all_action_choices.keys(), actionconfig)}
+        configs = ({actionable: action
+                    for actionable, action in zip(all_action_choices.keys(), actionconfig)}
                    for actionconfig in it.product(*all_action_choices.values()))
 
         best_rewards = np.zeros(nchoose) - np.inf
         selected_configs = [None] * nchoose
         for config in configs:
             # calculate reward for dictionary of sensors: actions
-            reward = self.reward_function(config, tracks, timestamp)
+            reward = self.reward_function(config, tracks, timestamp,
+                                          non_actionables=non_actionables)
             if reward > min(best_rewards):
                 selected_configs[np.argmin(best_rewards)] = config
                 best_rewards[np.argmin(best_rewards)] = reward
