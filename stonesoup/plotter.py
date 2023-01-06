@@ -998,20 +998,29 @@ class AnimationPlotter(_Plotter):
 
         self.animation_output: animation.FuncAnimation = None
 
-    def run(self, times_to_plot=List[datetime], plot_item_expiry: Optional[timedelta] = None,
+    def run(self,
+            times_to_plot: List[datetime] = None,
+            plot_item_expiry: Optional[timedelta] = None,
             **kwargs):
         """Run the animation
 
         Parameters
         ----------
         times_to_plot : List of :class:`~.datetime`
-            List of datetime objects of when to refresh and draw the animation
+            List of datetime objects of when to refresh and draw the animation. Default `None`,
+            where unique timestamps of data will be used.
         plot_item_expiry: :class:`~.timedelta`, Optional
             Describes how long states will remain present in the figure. Default value of None
             means data is shown indefinitely
         \\*\\*kwargs: dict
             Additional arguments to be passed to the animation.FuncAnimation function
         """
+
+        if times_to_plot is None:
+            times_to_plot = sorted({
+                state.timestamp
+                for plotting_data in self.plotting_data
+                for state in plotting_data.plotting_data})
 
         self.animation_output = self.run_animation(
             times_to_plot=times_to_plot,
