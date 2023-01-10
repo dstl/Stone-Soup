@@ -35,7 +35,16 @@ class Architecture(Type):
             self.edge_list = list(self.edge_list)
 
     def plot(self):
+
         return
+
+    @property
+    def density(self):
+        num_nodes = len(self.node_set)
+        num_edges = len(self.edge_list)
+        architecture_density = num_edges/((num_nodes*(num_nodes-1))/2)
+        return architecture_density
+
 
 
 class InformationArchitecture(Architecture):
