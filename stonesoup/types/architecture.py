@@ -2,9 +2,19 @@ from ..base import Property
 from .base import Type
 from ..sensor.sensor import Sensor
 
-from typing import Set, List, Collection, Union
+from typing import Set, List, Collection
 import networkx as nx
 import plotly.graph_objects as go
+
+
+class Node(Type):
+    """Base node class"""
+
+
+class SensorNode(Node):
+    """A node corresponding to a Sensor. Fresh data is created here,
+    and possibly processed as well"""
+    sensor: Sensor = Property(doc="Sensor corresponding to this node")
 
 
 class ProcessingNode(Type):
@@ -18,21 +28,40 @@ class RepeaterNode(Type):
 
 
 class Architecture(Type):
-    node_set: Set[Union[Sensor, ProcessingNode, RepeaterNode]] = Property(
-        default=None,
-        doc="A Set of all nodes involved, each of which may be a sensor, processing node, "
-            "or repeater node. ")
     edge_list: Collection = Property(
         default=None,
         doc="A Collection of edges between nodes. For A to be connected to B we would have (A, B)"
-            "be a member of this list. ")
+            "be a member of this list. Default is None")
+    node_set: Set[Node] = Property(
+        default=None,
+        doc="A Set of all nodes involved, each of which may be a sensor, processing node, "
+            "or repeater node. If provided, used to check all Nodes given are included "
+            "in edges of the graph. Default is None")
+    force_connected: bool = Property(
+        default=True,
+        doc="If True, the undirected version of the graph must be connected, ie. all nodes should "
+            "be connected via some path. Set this to False to allow an unconnected architecture. "
+            "Default is True"
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not self.node_set:
-            self.node_set = set()
         if isinstance(self.edge_list, Collection) and not isinstance(self.edge_list, List):
             self.edge_list = list(self.edge_list)
+        if self.edge_list and len(self.edge_list) > 0:
+            self.di_graph = nx.to_networkx_graph(self.edge_list, create_using=nx.DiGraph)
+            if self.force_connected and not self.is_connected:
+                raise ValueError("The graph is not connected. Use force_connected=False, "
+                                 "if you wish to override this requirement")
+        else:
+            if self.node_set:
+                raise TypeError("Edge list must be provided, if a node set is. ")
+            self.di_graph = nx.DiGraph()
+        if self.node_set:
+            if not set(self.di_graph.nodes) == self.node_set:
+                raise ValueError("Provided node set does not match nodes on graph")
+        else:
+            self.node_set = set(self.di_graph.nodes)
 
     def plot(self):
 
@@ -40,11 +69,31 @@ class Architecture(Type):
 
     @property
     def density(self):
+        """Returns the density of the graph, ie. the proportion of possible edges between nodes
+        that exist in the graph"""
         num_nodes = len(self.node_set)
         num_edges = len(self.edge_list)
         architecture_density = num_edges/((num_nodes*(num_nodes-1))/2)
         return architecture_density
 
+    @property
+    def is_hierarchical(self):
+        """Returns `True` if the :class:`Architecture` is hierarchical, otherwise `False`"""
+        if len(list(nx.simple_cycles(self.di_graph))) > 0 or not self.is_connected:
+            return False
+        else:
+            return True
+
+    @property
+    def is_connected(self):
+        return nx.is_connected(self.to_undirected)
+
+    @property
+    def to_undirected(self):
+        return self.di_graph.to_undirected()
+
+    def __len__(self):
+        return len(self.di_graph)
 
 
 class InformationArchitecture(Architecture):
