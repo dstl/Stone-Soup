@@ -77,6 +77,8 @@ class SMCPHDFilter(Base):
         """
 
         prior_weights = state.weight
+        print(f"Timestamp: {timestamp}")
+        print(f"State timestamp: {state.timestamp}")
         time_interval = timestamp - state.timestamp
 
         # Predict particles forward
