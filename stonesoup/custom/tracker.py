@@ -1,5 +1,5 @@
 from copy import copy
-from datetime import datetime
+from datetime import datetime, timezone
 
 import numpy as np
 from scipy.stats import multivariate_normal
@@ -49,9 +49,6 @@ class SMCPHD_JIPDA(Base):
         super().__init__(*args, **kwargs)
 
         self.prob_detect = self.prob_detection
-
-        if self.start_time is None:
-            self.start_time = datetime.now()
 
         self._tracks = set()
         self._predictor = KalmanPredictor(self.transition_model)
@@ -129,11 +126,11 @@ class SMCPHD_JIPDA(Base):
                              if hyp.measurement == detection)
                     assoc_prob_matrix[i, j + 1] = hyp.weight
         for j, detection in enumerate(detections):
-            rho_tmp = 0 if len(assoc_prob_matrix) and np.sum(assoc_prob_matrix[:, j + 1]) > 0 else 1
-            # rho_tmp = 1
-            # if len(assoc_prob_matrix):
-            #     for i, track in enumerate(tracks):
-            #         rho_tmp *= 1 - assoc_prob_matrix[i, j + 1]
+            # rho_tmp = 0 if len(assoc_prob_matrix) and np.sum(assoc_prob_matrix[:, j + 1]) > 0 else 1
+            rho_tmp = 1
+            if len(assoc_prob_matrix):
+                for i, track in enumerate(tracks):
+                    rho_tmp *= 1 - assoc_prob_matrix[i, j + 1]
             rho[j] = rho_tmp
 
         # Update tracks

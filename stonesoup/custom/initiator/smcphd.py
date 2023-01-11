@@ -263,6 +263,8 @@ class SMCPHDInitiator(Initiator):
     def initiate(self, detections, timestamp, weights=None, **kwargs):
         tracks = set()
 
+        if self._state.timestamp is None:
+            self._state.timestamp = timestamp
         # Predict forward
         prediction = self.filter.predict(self._state, timestamp)
 
