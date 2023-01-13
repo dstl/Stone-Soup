@@ -179,9 +179,6 @@ class KalmanPredictor(Predictor):
 
         """
 
-        print(f"Timestamp: {timestamp}")
-        print(f"State timestamp: {prior.timestamp}")
-
         # Get the prediction interval
         predict_over_interval = self._predict_over_interval(prior, timestamp)
 
