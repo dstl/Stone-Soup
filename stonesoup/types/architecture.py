@@ -2,13 +2,25 @@ from ..base import Property
 from .base import Type
 from ..sensor.sensor import Sensor
 
-from typing import Set, List, Collection
+from typing import Set, List, Collection, Tuple
 import networkx as nx
 import plotly.graph_objects as go
 
 
 class Node(Type):
     """Base node class"""
+    position: Tuple[float] = Property(
+        default=None,
+        doc="Cartesian coordinates for node")
+    label: str = Property(
+        default=None,
+        doc="Label to be displayed on graph")
+    colour: str = Property(
+        default=None,
+        doc = 'Colour to be displayed on graph')
+    shape: str = Property(
+        default=None,
+        doc='Shape used to display nodes')
 
 
 class SensorNode(Node):
@@ -16,16 +28,34 @@ class SensorNode(Node):
     and possibly processed as well"""
     sensor: Sensor = Property(doc="Sensor corresponding to this node")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.colour:
+            self.colour = '#1f77b4'
+        if not self.shape:
+            self.shape = 'square'
+
 
 class ProcessingNode(Type):
     """A node that does not measure new data, but does process data it receives"""
     # Latency property could go here
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.colour:
+            self.colour = '#1f77b4'
+        if not self.shape:
+            self.shape = 'square'
 
 
 class RepeaterNode(Type):
     """A node which simply passes data along to others, without manipulating the data itself. """
     # Latency property could go here
-
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.colour:
+            self.colour = '#ff7f0e'
+        if not self.shape:
+            self.shape = 'circle'
 
 class Architecture(Type):
     edge_list: Collection = Property(
@@ -63,9 +93,78 @@ class Architecture(Type):
         else:
             self.node_set = set(self.di_graph.nodes)
 
-    def plot(self):
+    def plot(self, use_positions=True, label_nodes=False):
+        """Creates a plot of the directed graph"""
+        edge_x = []
+        edge_y = []
+        for edge in self.edge_list:
+            if use_positions:
+                x0, y0 = edge[0].position
+                x1, y1 = edge[1].position
+            else:
+                x0, y0 = edge[0].position
+                x1, y1 = edge[1].position # Add if statement to display as hierarchical if hierarchical
+            edge_x.append(x0)
+            edge_x.append(x1)
+            edge_x.append(None)
+            edge_y.append(y0)
+            edge_y.append(y1)
+            edge_y.append(None)
 
-        return
+        edge_trace = go.Scatter(
+            x=edge_x, y=edge_y,
+            line=dict(width=0.5, color='#888'),
+            hoverinfo='none',
+            mode='lines')
+
+        node_x = []
+        node_y = []
+        for node in self.node_set:
+            node_x.append(node.position[0])
+            node_y.append(node.position[1])
+
+        mode = 'markers+text' if label_nodes else 'markers'
+        marker_shape = self.
+        node_trace = go.Scatter(
+            x=node_x, y=node_y,
+            mode= mode,
+            hoverinfo='text',
+            marker=dict(
+                showscale=True,
+                # colorscale options
+                # 'Greys' | 'YlGnBu' | 'Greens' | 'YlOrRd' | 'Bluered' | 'RdBu' |
+                # 'Reds' | 'Blues' | 'Picnic' | 'Rainbow' | 'Portland' | 'Jet' |
+                # 'Hot' | 'Blackbody' | 'Earth' | 'Electric' | 'Viridis' |
+                colorscale='YlGnBu',
+                reversescale=True,
+                color=[],
+                size=50,
+                colorbar=dict(
+                    thickness=15,
+                    title='Node Connections',
+                    xanchor='left',
+                    titleside='right'
+                ),
+                line_width=2))
+
+        node_trace.marker.color =
+        node_trace.text = node_text
+        fig = go.Figure(data=[edge_trace, node_trace],
+                        layout=go.Layout(
+                            title='<br>Network graph made with Python',
+                            titlefont_size=16,
+                            showlegend=False,
+                            hovermode='closest',
+                            margin=dict(b=20, l=5, r=5, t=40),
+                            annotations=[dict(
+                                text="Python code: <a href='https://plotly.com/ipython-notebooks/network-graphs/'> https://plotly.com/ipython-notebooks/network-graphs/</a>",
+                                showarrow=False,
+                                xref="paper", yref="paper",
+                                x=0.005, y=-0.002)],
+                            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
+                        )
+        fig.show()
 
     @property
     def density(self):
