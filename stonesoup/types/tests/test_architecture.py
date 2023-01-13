@@ -40,3 +40,5 @@ def test_density():
     a, b, c, d = RepeaterNode(), RepeaterNode(), RepeaterNode(), RepeaterNode()
     edge_list = [(a, b), (c, d), (d, a)]
     assert Architecture(edge_list=edge_list, node_set={a, b, c, d}).density == 1/2
+
+
