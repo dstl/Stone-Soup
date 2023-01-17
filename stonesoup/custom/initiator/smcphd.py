@@ -232,10 +232,10 @@ class SMCPHDFilter(Base):
 
         # Calculate w^{n,i} Eq. (20) of [2]
         try:
-            Ck = np.log(meas_weights) + np.log(prob_detect[:, np.newaxis]) + g \
+            Ck = np.log(prob_detect[:, np.newaxis]) + g \
                  + np.log(prediction.weight[:, np.newaxis])
         except IndexError:
-            Ck = np.log(meas_weights) + np.log(prob_detect) + g \
+            Ck = np.log(prob_detect) + g \
                  + np.log(prediction.weight[:, np.newaxis])
         C = logsumexp(np.asfarray(Ck), axis=0)
         k = np.log([detection.metadata['clutter_density']
@@ -245,7 +245,7 @@ class SMCPHDFilter(Base):
         weights_per_hyp = np.full((num_samples, len(detections) + 1), -np.inf)
         weights_per_hyp[:, 0] = np.log(1 - prob_detect) + np.log(prediction.weight)
         if len(detections):
-            weights_per_hyp[:, 1:] = Ck - C_plus
+            weights_per_hyp[:, 1:] = np.log(meas_weights) + Ck - C_plus
 
         return Probability.from_log_ufunc(weights_per_hyp)
 
