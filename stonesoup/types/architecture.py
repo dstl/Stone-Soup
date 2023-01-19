@@ -4,20 +4,19 @@ from ..sensor.sensor import Sensor
 
 from typing import Set, List, Collection, Tuple
 import networkx as nx
-import plotly.graph_objects as go
+import graphviz
 
 
 class Node(Type):
     """Base node class"""
+    label: str = Property(
+        doc="Label to be displayed on graph")
     position: Tuple[float] = Property(
         default=None,
         doc="Cartesian coordinates for node")
-    label: str = Property(
-        default=None,
-        doc="Label to be displayed on graph")
     colour: str = Property(
         default=None,
-        doc = 'Colour to be displayed on graph')
+        doc='Colour to be displayed on graph')
     shape: str = Property(
         default=None,
         doc='Shape used to display nodes')
@@ -36,7 +35,7 @@ class SensorNode(Node):
             self.shape = 'square'
 
 
-class ProcessingNode(Type):
+class ProcessingNode(Node):
     """A node that does not measure new data, but does process data it receives"""
     # Latency property could go here
     def __init__(self, *args, **kwargs):
@@ -47,7 +46,7 @@ class ProcessingNode(Type):
             self.shape = 'square'
 
 
-class RepeaterNode(Type):
+class RepeaterNode(Node):
     """A node which simply passes data along to others, without manipulating the data itself. """
     # Latency property could go here
     def __init__(self, *args, **kwargs):
@@ -57,114 +56,67 @@ class RepeaterNode(Type):
         if not self.shape:
             self.shape = 'circle'
 
+
 class Architecture(Type):
     edge_list: Collection = Property(
         default=None,
         doc="A Collection of edges between nodes. For A to be connected to B we would have (A, B)"
             "be a member of this list. Default is None")
-    node_set: Set[Node] = Property(
-        default=None,
-        doc="A Set of all nodes involved, each of which may be a sensor, processing node, "
-            "or repeater node. If provided, used to check all Nodes given are included "
-            "in edges of the graph. Default is None")
+    name: str = Property(
+        default=f"Architecture",
+        doc="A name for the architecture, to be used to name files and/or title plots. Default is "
+            "\"Architecture\"")
     force_connected: bool = Property(
         default=True,
         doc="If True, the undirected version of the graph must be connected, ie. all nodes should "
             "be connected via some path. Set this to False to allow an unconnected architecture. "
-            "Default is True"
-    )
+            "Default is True")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if isinstance(self.edge_list, Collection) and not isinstance(self.edge_list, List):
             self.edge_list = list(self.edge_list)
-        if self.edge_list and len(self.edge_list) > 0:
-            self.di_graph = nx.to_networkx_graph(self.edge_list, create_using=nx.DiGraph)
-            if self.force_connected and not self.is_connected:
-                raise ValueError("The graph is not connected. Use force_connected=False, "
-                                 "if you wish to override this requirement")
-        else:
-            if self.node_set:
-                raise TypeError("Edge list must be provided, if a node set is. ")
-            self.di_graph = nx.DiGraph()
-        if self.node_set:
-            if not set(self.di_graph.nodes) == self.node_set:
-                raise ValueError("Provided node set does not match nodes on graph")
-        else:
-            self.node_set = set(self.di_graph.nodes)
+        if not self.edge_list:
+            self.edge_list = []
 
-    def plot(self, use_positions=True, label_nodes=False):
-        """Creates a plot of the directed graph"""
-        edge_x = []
-        edge_y = []
-        for edge in self.edge_list:
-            if use_positions:
-                x0, y0 = edge[0].position
-                x1, y1 = edge[1].position
-            else:
-                x0, y0 = edge[0].position
-                x1, y1 = edge[1].position # Add if statement to display as hierarchical if hierarchical
-            edge_x.append(x0)
-            edge_x.append(x1)
-            edge_x.append(None)
-            edge_y.append(y0)
-            edge_y.append(y1)
-            edge_y.append(None)
+        self.di_graph = nx.to_networkx_graph(self.edge_list, create_using=nx.DiGraph)
 
-        edge_trace = go.Scatter(
-            x=edge_x, y=edge_y,
-            line=dict(width=0.5, color='#888'),
-            hoverinfo='none',
-            mode='lines')
+        if self.force_connected and not self.is_connected and len(self) > 0:
+            raise ValueError("The graph is not connected. Use force_connected=False, "
+                             "if you wish to override this requirement")
 
-        node_x = []
-        node_y = []
-        for node in self.node_set:
-            node_x.append(node.position[0])
-            node_y.append(node.position[1])
+        # Set attributes such as label, colour, shape, etc for each node
+        for node in self.di_graph.nodes:
+            attr = {"label": f"{node.label}", "color": f"{node.colour}"}  # add more here
+            self.di_graph.nodes[node].update(attr)
 
-        mode = 'markers+text' if label_nodes else 'markers'
-        marker_shape = self.
-        node_trace = go.Scatter(
-            x=node_x, y=node_y,
-            mode= mode,
-            hoverinfo='text',
-            marker=dict(
-                showscale=True,
-                # colorscale options
-                # 'Greys' | 'YlGnBu' | 'Greens' | 'YlOrRd' | 'Bluered' | 'RdBu' |
-                # 'Reds' | 'Blues' | 'Picnic' | 'Rainbow' | 'Portland' | 'Jet' |
-                # 'Hot' | 'Blackbody' | 'Earth' | 'Electric' | 'Viridis' |
-                colorscale='YlGnBu',
-                reversescale=True,
-                color=[],
-                size=50,
-                colorbar=dict(
-                    thickness=15,
-                    title='Node Connections',
-                    xanchor='left',
-                    titleside='right'
-                ),
-                line_width=2))
+    @property
+    def node_set(self):
+        return set(self.di_graph.nodes)
 
-        node_trace.marker.color =
-        node_trace.text = node_text
-        fig = go.Figure(data=[edge_trace, node_trace],
-                        layout=go.Layout(
-                            title='<br>Network graph made with Python',
-                            titlefont_size=16,
-                            showlegend=False,
-                            hovermode='closest',
-                            margin=dict(b=20, l=5, r=5, t=40),
-                            annotations=[dict(
-                                text="Python code: <a href='https://plotly.com/ipython-notebooks/network-graphs/'> https://plotly.com/ipython-notebooks/network-graphs/</a>",
-                                showarrow=False,
-                                xref="paper", yref="paper",
-                                x=0.005, y=-0.002)],
-                            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
-                        )
-        fig.show()
+    def plot(self, dir_path, filename=None, use_positions=True, plot_title=False):
+        """Creates a pdf plot of the directed graph and displays it
+
+        :param dir_path: The path to save the pdf and .gv files to
+        :param filename: Name to call the associated files
+        :param use_positions:
+        :param plot_title: If a string is supplied, makes this the title of the plot. If True, uses
+        the name attribute of the graph to title the plot. If False, no title is used.
+        Default is False
+        :return:
+        """
+        dot = nx.drawing.nx_pydot.to_pydot(self.di_graph).to_string()
+        if plot_title:
+            if plot_title is True:
+                title = self.name
+            elif not isinstance(plot_title, str):
+                raise ValueError("Plot title must be a string, or True")
+            dot = dot[:-2] + "labelloc=\"t\";\n" + f"label=\"{title}\";" + "}"
+        #  print(dot)
+        if not filename:
+            filename = self.name
+        viz_graph = graphviz.Source(dot, filename=filename, directory=dir_path)
+        viz_graph.view()
 
     @property
     def density(self):
@@ -218,5 +170,4 @@ class CombinedArchitecture(Type):
         doc="The information architecture for how information is shared. ")
     network_architecture: NetworkArchitecture = Property(
         doc="The architecture for how data is propagated through the network. Node A is connected "
-            "to Node B if and only if A sends its data through B. "
-    )
+            "to Node B if and only if A sends its data through B. ")
