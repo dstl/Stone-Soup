@@ -649,6 +649,7 @@ def test_range_and_angles_to_other(first_state, second_state, expected_measureme
                                transition_model=None)
 
     range_, azimuth, elevation = platform1.range_and_angles_to_other(platform2)
+    # Allow azimuth of -pi to equal pi, to avoid unnecessary assert failures
     if azimuth == -np.pi:
         azimuth = np.pi
     if expected_measurement[1] == -np.pi:

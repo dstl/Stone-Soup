@@ -228,8 +228,6 @@ def test_models(h, ModelClass, state_vec, R,
     # (without noise)
     meas_pred_wo_noise = model.function(state)
     eval_m = h(state_vec, mapping, model.translation_offset, model.rotation_offset)
-    if not np.array_equal(meas_pred_wo_noise, eval_m):
-        pause=0
     assert np.array_equal(meas_pred_wo_noise, eval_m)
 
     # Ensure ```lg.transfer_function()``` returns H
@@ -441,12 +439,7 @@ def test_model_predictions(sensor_state, target_state, expected_measurement, mod
     if use_velocity:
         model.velocity = sensor_velocity
     actual_measurement = model.function(target_state, noise=False)
-    expected_values = expected_measurement[measure_mapping]
-    for i, v in enumerate(expected_values):
-        if isinstance(v, Bearing):
-            expected_values[i] = v._value
-    #assert np.allclose(actual_measurement, expected_measurement[measure_mapping])
-    assert np.allclose(actual_measurement, expected_values)
+    assert np.allclose(actual_measurement, expected_measurement[measure_mapping])
 
 
 def test_angle_pdf():
@@ -1046,11 +1039,7 @@ def test_noiseless_binning_predictions(sensor_state, target_state, expected_meas
         velocity=sensor_velocity)
     actual_measurement = model.function(target_state, noise=False)
     measure_mapping = [0, 1, 2, 3]
-    expected_values = expected_measurement[measure_mapping]
-    for i, v in enumerate(expected_values):
-        if isinstance(v, Bearing):
-            expected_values[i] = v._value
-    assert np.allclose(actual_measurement, expected_values)
+    assert np.allclose(actual_measurement, expected_measurement[measure_mapping])
 
 
 def test_compare_rrrb_to_ctebrr():
