@@ -79,7 +79,24 @@ class Angle(Real):
         return self._value != other
 
     def __abs__(self):
-        return self.__class__(abs(self._value))
+        abs_val = self.__class__(abs(self._value))
+        if abs_val._value < 0:
+            # This condition is hit in the edge case where an angle is exactly pi (or the upper
+            # edge of the Angle's range). The current mod_[class] implementation returns the bottom
+            # end of the range.
+            # That is, the modulo operation is closed at the bottom and open at the top: for a
+            # Bearing the value is in the range [-pi, pi)
+            # As the new object is created *after* the abs operation, the line above is equivalent
+            # to Bearing(pi) which returns a Bearing with _value -3.14....
+            # Below we force that to be the positive value, such that abs(some_angle)._value is
+            # always positive.
+            #
+            # Note that this assures abs(my_angle) > 0 and abs(my_angle) == abs(-my_angle) for all
+            # angles including edge cases.
+            # There is still the oddity that abs(Bearing(-pi)) != Bearing(+pi)) or equivalently
+            # that abs(Bearing(-pi)) != Bearing(abs(-pi)))
+            abs_val._value = abs(abs_val._value)
+        return abs_val
 
     def __le__(self, other):
         return self._value <= other
