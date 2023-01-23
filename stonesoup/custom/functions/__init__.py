@@ -1,5 +1,5 @@
 import math
-from typing import Set
+from typing import Set, List
 
 import numpy as np
 from matplotlib.path import Path
@@ -392,7 +392,7 @@ def rigid_transform_3D(A, B):
 
 
 def calculate_num_targets_dist(tracks: Set[Track], geom: BaseGeometry,
-                               phd_state: ParticleState = None):
+                               phd_state: ParticleState = None, target_types: List[str] = None):
     num_samples = 100
     mu_overall = 0
     var_overall = np.inf if len(tracks) == 0 else 0
@@ -411,6 +411,12 @@ def calculate_num_targets_dist(tracks: Set[Track], geom: BaseGeometry,
 
     # Calculate number of tracks inside polygon
     for track in tracks:
+
+        if target_types \
+                and not any(item in track.metadata['target_type_confidences']
+                            for item in target_types):
+            continue
+
         # Sample points from the track state
         points = multivariate_normal.rvs(mean=track.state_vector[[0, 2]].ravel(),
                                          cov=track.covar[[0, 2], :][:, [0, 2]],
@@ -425,5 +431,8 @@ def calculate_num_targets_dist(tracks: Set[Track], geom: BaseGeometry,
         # Variance of a Bernoulli distribution is equal to the probability of success,
         # times the probability of failure
         var_overall += p_success * (1 - p_success)
+
+    if var_overall == 0:
+        var_overall = np.inf
 
     return mu_overall, var_overall
