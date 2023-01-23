@@ -339,9 +339,9 @@ position_measurement_sets = [((0, 1, 0, 0, 0, 0), (1, 0, 0, 0, 0, 0),
                               (-np.pi / 4, 0, np.sqrt(200), -1 / np.sqrt(2))),
                              ((0, 0, 0, 0, 0, 1), (0, 0, 0, 0, 10, 0),
                               (0, 0, 10, -1)),    # original tests up to here
-                             ((0, 2, 0, 0, 0, 1),(1, 2, 0, 0, 1, 1),
+                             ((0, 2, 0, 0, 0, 1), (1, 2, 0, 0, 1, 1),
                               (np.pi/4-np.arctan(0.5), 0, np.sqrt(2), 0)),
-                             ((0, 2, 0, 0, 0, -1),(1, 2, 0, 0, 1, -1),
+                             ((0, 2, 0, 0, 0, -1), (1, 2, 0, 0, 1, -1),
                               (np.pi/4+np.arctan(0.5), 0, np.sqrt(2), 0)),
                              ((0, -2, 0, 0, 0, 1), (1, -2, 0, 0, 1, 1),
                               (np.pi/4+np.arctan(0.5), np.pi, np.sqrt(2), 0)),
@@ -403,11 +403,15 @@ position_measurement_sets = [((0, 1, 0, 0, 0, 0), (1, 0, 0, 0, 0, 0),
                               (0, np.pi/4+np.arctan(0.5), np.sqrt(2), 0)),
                              ((0, -2, 0, -1, 0, 0), (-1, -2, -1, -1, 0, 0),
                               (0, np.pi/4-np.arctan(0.5), np.sqrt(2), 0)),
-                             ((1, -1, 0, 1, 0, 1),(0, -1, 0, 1, 0, 1),
-                              (-np.arccos((np.sqrt((np.cos(np.arctan(1/np.sqrt(2)))**2)+1))/np.sqrt(2)), np.pi/2-np.arctan(np.cos(np.arctan(1/np.sqrt(2)))), 1, 0)),
-                             ((0, 1, 0, 1, 0, 1),(1, 1, 0, 1, 0, 1),
-                              (-np.arccos((np.sqrt((np.cos(np.arctan(1/np.sqrt(2)))**2)+1))/np.sqrt(2)), -(np.pi/2-np.arctan(np.cos(np.arctan(1/np.sqrt(2))))), 1, 0)),
-                             ((0, 1, 0, 0 ,0 ,0),(1, 1, 1, 0, 1, 0),
+                             ((1, -1, 0, 1, 0, 1), (0, -1, 0, 1, 0, 1),
+                              (-np.arccos((np.sqrt((np.cos(np.arctan(1/np.sqrt(2)))**2)+1)) /
+                                          np.sqrt(2)),
+                               np.pi/2-np.arctan(np.cos(np.arctan(1/np.sqrt(2)))), 1, 0)),
+                             ((0, 1, 0, 1, 0, 1), (1, 1, 0, 1, 0, 1),
+                              (-np.arccos((np.sqrt((np.cos(np.arctan(1/np.sqrt(2)))**2)+1)) /
+                                          np.sqrt(2)),
+                               -(np.pi/2-np.arctan(np.cos(np.arctan(1/np.sqrt(2))))), 1, 0)),
+                             ((0, 1, 0, 0, 0, 0), (1, 1, 1, 0, 1, 0),
                               (np.arctan(1/np.sqrt(2)), np.pi/4, np.sqrt(3), 0))
                              ]
 
