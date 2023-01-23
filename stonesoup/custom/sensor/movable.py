@@ -2,6 +2,8 @@ import datetime
 from typing import Union, List, Set
 
 import numpy as np
+import geopandas as gpd
+from shapely.geometry import Point
 
 from stonesoup.base import Property
 from stonesoup.custom.sensor.action.location import LocationActionGenerator
@@ -50,6 +52,9 @@ class MovableUAVCamera(Sensor):
         doc="The sensor min max location",
         default=None
     )
+    fov_in_km: bool = Property(
+        doc="Whether the FOV radius is in kilo-meters or degrees",
+        default=False)
 
     @location_x.setter
     def location_x(self, value):
@@ -91,6 +96,11 @@ class MovableUAVCamera(Sensor):
                 float)
 
             distance = np.linalg.norm(norm_measurement_vector[0:2])
+
+            if self.fov_in_km:
+                # Note: this is a very approximate conversion, and does not take into account the
+                # curvature of the earth. Should be replaced with a more accurate check.
+                distance *= 110.574
 
             # Do not measure if state not in FOV
             if distance > self.fov_radius:
