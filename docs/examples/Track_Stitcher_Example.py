@@ -56,7 +56,7 @@ import numpy as np
 
 from stonesoup.types.track import Track
 from stonesoup.types.state import GaussianState
-from stonesoup.plotter import Plotter, Dimension, Plotterly
+from stonesoup.plotter import Plotter, Dimension
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, ConstantVelocity,OrnsteinUhlenbeck
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.updater.kalman import KalmanUpdater
@@ -263,10 +263,9 @@ print(len(all_tracks), " tracklets have been produced.")
 dimensions_list = list(range(0, 2 * n_spacial_dimensions, 2))
 dim_pairs = [(a, b) for idx, a in enumerate(dimensions_list) for b in dimensions_list[idx + 1:]]
 for pair in dim_pairs:
-    plotter = Plotterly();
+    plotter = Plotter();
     plotter.plot_ground_truths(truths, pair);
     plotter.plot_tracks(all_tracks, pair);
-    plotter.fig.show()
 
 # %%
 
