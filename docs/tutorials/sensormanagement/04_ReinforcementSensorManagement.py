@@ -16,8 +16,9 @@
 # This example is similar to previous examples, simulating 3 targets and a :class:`~.RadarRotatingBearingRange` sensor,
 # which can be actioned to point in different directions.
 #
-# tensorflow-agents is used as the reinforcement learning framework. This currently only works on Linux based OSes, but
-# a multi-platform solution may be investigated in the future.
+# tensorflow-agents is used as the reinforcement learning framework. This currently only works on Linux based OSes, or
+# via Windows Subsystem for Linux (WSL). See Tensorflow instructions for creating environments (with GPU support if
+# applicable) [#]_.
 
 # %%
 # Sensor Management example
@@ -25,7 +26,7 @@
 # Setup
 # ^^^^^
 #
-# First a simulation must be set up using components from Stone Soup. For this the following imports are required.#
+# First a simulation must be set up using components from Stone Soup. For this the following imports are required.
 
 # %%
 
@@ -331,18 +332,18 @@ class StoneSoupEnv(BaseEnvironment):
             return ts.transition(observation, reward=reward, discount=1.0)
 
     @staticmethod
-    def generate_action(action):
+    def generate_action(action, tracks, sensor):
         """This method is used to convert a tf-agents action into a Stone Soup action"""
-        for i, target in enumerate(tracksA):
+        for i, target in enumerate(tracks):
             if i == action:
-                x_target = target.state.state_vector[0]-sensorA.position[0]
-                y_target = target.state.state_vector[2]-sensorA.position[1]
+                x_target = target.state.state_vector[0]-sensor.position[0]
+                y_target = target.state.state_vector[2]-sensor.position[1]
                 action_bearing = mod_bearing(np.arctan2(y_target, x_target))
 
-        action_generators = DwellActionsGenerator(sensorA,
+        action_generators = DwellActionsGenerator(sensor,
                                                   attribute='dwell_centre',
-                                                  start_time=sensorA.timestamp,
-                                                  end_time=sensorA.timestamp+timedelta(seconds=1))
+                                                  start_time=sensor.timestamp,
+                                                  end_time=sensor.timestamp+timedelta(seconds=1))
 
         current_action = [action_generators.action_from_value(action_bearing)]
         return current_action
@@ -440,7 +441,7 @@ for timestep in timesteps[1:]:
     observation = np.array(uncertainty, dtype=np.float32)
     # observation = np.array(observation, dtype=np.float32)
 
-    chosen_actions = reinforcementsensormanager.choose_actions(tracksA, tf_timestep)
+    chosen_actions = reinforcementsensormanager.choose_actions(tracksA, sensorA, tf_timestep)
 
     # Create empty dictionary for measurements
     measurementsA = []
@@ -694,6 +695,7 @@ ax.legend()
 # References
 # ^^^^^^^^^^
 #
+# .. [#] *https://www.tensorflow.org/install/pip#windows-wsl2*
 # .. [#] *https://github.com/tensorflow/agents/blob/master/docs/tutorials/2_environments_tutorial.ipynb*
 
 # sphinx_gallery_thumbnail_number = 2

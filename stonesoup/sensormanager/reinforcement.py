@@ -21,7 +21,8 @@ except ImportError as error:
         "This can be achieved by running "
         "'python -m pip install stonesoup[reinforcement]'."
         "PLEASE NOTE: This RL implementation will only work on"
-        "Linux based OSes.") \
+        "Linux based OSes, or via Windows Subsystem for Linux (WSL) (See"
+        "Tensorflow for how to set up environments on WSL).") \
         from error
 
 
