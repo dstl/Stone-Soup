@@ -48,7 +48,6 @@ class CameraCalculator:
 
     @staticmethod
     def getFovRPH(intersections, altitude):
-
         # Calculate unit vectors to the ground, assuming camera is at the origin
         rotVecs = [Vector(i.x, i.y, -altitude).normalize() for i in intersections]
 
@@ -57,13 +56,13 @@ class CameraCalculator:
         rot1 = rotation_matrix_from_vectors(Vector(z=-1), centroidVec).T
 
         # Get vectors after first rotation
-        rotVecs1 = [Vector(*(rot1@np.array([[r.x], [r.y], [r.z]])).flatten()) for r in rotVecs]
+        rotVecs1 = [Vector(*(rot1 @ np.array([[r.x], [r.y], [r.z]])).flatten()) for r in rotVecs]
 
         # Second rotation alligns the centroid of the polygon with the negative y axis
-        rot2 = rotation_matrix_from_vectors(Vector(y=1), (rotVecs1[0]-rotVecs1[1]).normalize()).T
+        rot2 = rotation_matrix_from_vectors(Vector(y=1), (rotVecs1[0] - rotVecs1[1]).normalize()).T
 
         # Get final rotation matrix
-        R = rot2@rot1
+        R = rot2 @ rot1
 
         # Calculate roll, pitch and heading
         roll, pitch, heading = roll_pitch_yaw_from_matrix(R.T)
@@ -247,7 +246,6 @@ class CameraCalculator:
 
 
 def get_camera_footprint(camera):
-
     # altitude = camera.position[2]
     # try:
     #     pan, tilt = camera.pan_tilt
@@ -264,7 +262,7 @@ def get_camera_footprint(camera):
     # Once the camera is rotated, the z axis becomes the x axis, and the x axis becomes the z axis
     # TODO: More testing is needed to make sure this is correct
     roll, pitch, heading = (camera.orientation[2],
-                            camera.orientation[1] + np.pi/2,
+                            camera.orientation[1] + np.pi / 2,
                             camera.orientation[0])
 
     xmin, xmax, ymin, ymax = get_camera_footprint_low(camera.position, roll, pitch, heading,
@@ -377,7 +375,7 @@ def rigid_transform_3D(A, B):
     Bm = B - centroid_B
     H = Am @ np.transpose(Bm)
     # sanity check
-    #if linalg.matrix_rank(H) < 3:
+    # if linalg.matrix_rank(H) < 3:
     #    raise ValueError("rank of H = {}, expecting 3".format(linalg.matrix_rank(H)))
     # find rotation
     U, S, Vt = np.linalg.svd(H)
@@ -385,7 +383,7 @@ def rigid_transform_3D(A, B):
     # special reflection case
     if np.linalg.det(R) < 0:
         print("det(R) < R, reflection detected!, correcting for it ...")
-        Vt[2,:] *= -1
+        Vt[2, :] *= -1
         R = Vt.T @ U.T
     t = -R @ centroid_A + centroid_B
     return R, t
@@ -394,8 +392,12 @@ def rigid_transform_3D(A, B):
 def calculate_num_targets_dist(tracks: Set[Track], geom: BaseGeometry,
                                phd_state: ParticleState = None, target_types: List[str] = None):
     num_samples = 100
+    valid_tracks = [track for track in tracks
+                    if not (target_types)
+                    or (target_types and any(item in track.metadata['target_type_confidences']
+                                             for item in target_types))]
     mu_overall = 0
-    var_overall = np.inf if len(tracks) == 0 else 0
+    var_overall = np.inf if len(valid_tracks) == 0 else 0
     path_p = Path(geom.boundary.coords)
 
     # Calculate PHD density inside polygon
@@ -410,13 +412,7 @@ def calculate_num_targets_dist(tracks: Set[Track], geom: BaseGeometry,
             var_overall = mu_overall
 
     # Calculate number of tracks inside polygon
-    for track in tracks:
-
-        if target_types \
-                and not any(item in track.metadata['target_type_confidences']
-                            for item in target_types):
-            continue
-
+    for track in valid_tracks:
         # Sample points from the track state
         points = multivariate_normal.rvs(mean=track.state_vector[[0, 2]].ravel(),
                                          cov=track.covar[[0, 2], :][:, [0, 2]],
@@ -431,8 +427,5 @@ def calculate_num_targets_dist(tracks: Set[Track], geom: BaseGeometry,
         # Variance of a Bernoulli distribution is equal to the probability of success,
         # times the probability of failure
         var_overall += p_success * (1 - p_success)
-
-    if var_overall == 0:
-        var_overall = np.inf
 
     return mu_overall, var_overall
