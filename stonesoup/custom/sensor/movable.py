@@ -2,8 +2,6 @@ import datetime
 from typing import Union, List, Set
 
 import numpy as np
-import geopandas as gpd
-from shapely.geometry import Point
 
 from stonesoup.base import Property
 from stonesoup.custom.sensor.action.location import LocationActionGenerator
