@@ -35,8 +35,6 @@ def stumpff_s(z):
     lti = z < 0
     eqi = z == 0
 
-    out = np.zeros(np.shape(z)).view(type(z))
-
     if not np.shape(z):
         if gti:
             sqz = np.sqrt(z)
@@ -47,6 +45,7 @@ def stumpff_s(z):
         else:
             out = 1 / 6
     else:
+        out = np.zeros(np.shape(z)).view(type(z))
         out[gti] = (np.sqrt(z[gti]) - np.sin(np.sqrt(z[gti]))) / np.sqrt(z[gti]) ** 3
         out[lti] = (np.sinh(np.sqrt(-z[lti])) - np.sqrt(-z[lti])) / np.sqrt(-z[lti]) ** 3
         out[eqi] = 1 / 6
@@ -78,8 +77,6 @@ def stumpff_c(z):
     lti = z < 0
     eqi = z == 0
 
-    out = np.zeros(np.shape(z)).view(type(z))
-
     if not np.shape(z):
         if gti:
             out = (1 - np.cos(np.sqrt(z))) / np.sqrt(z) ** 2
@@ -88,6 +85,7 @@ def stumpff_c(z):
         else:
             out = 1 / 2
     else:
+        out = np.zeros(np.shape(z)).view(type(z))
         out[gti] = (1 - np.cos(np.sqrt(z[gti]))) / np.sqrt(z[gti]) ** 2
         out[lti] = (np.cosh(np.sqrt(-z[lti])) - 1) / np.sqrt(-z[lti]) ** 2
         out[eqi] = 1 / 2
