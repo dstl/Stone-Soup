@@ -610,7 +610,7 @@ def build_rotation_matrix(angle_vector: np.ndarray):
     theta_x = -angle_vector[0, 0]  # roll
     theta_y = angle_vector[1, 0]  # pitch#elevation
     theta_z = -angle_vector[2, 0]  # yaw#azimuth
-    return rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
+    return rotx(theta_x) @ roty(theta_y) @ rotz(theta_z)
 
 
 def dotproduct(a, b):
