@@ -5,12 +5,13 @@ from ..sensor.sensor import Sensor
 from typing import Set, List, Collection, Tuple
 import networkx as nx
 import graphviz
-
+from string import ascii_uppercase as auc
 
 class Node(Type):
     """Base node class"""
     label: str = Property(
-        doc="Label to be displayed on graph")
+        doc="Label to be displayed on graph",
+        default="")
     position: Tuple[float] = Property(
         default=None,
         doc="Cartesian coordinates for node")
@@ -20,6 +21,9 @@ class Node(Type):
     shape: str = Property(
         default=None,
         doc='Shape used to display nodes')
+    fontsize: int = Property(
+        default=8,
+        doc='Fontsize for node labels')
 
 
 class SensorNode(Node):
@@ -33,6 +37,8 @@ class SensorNode(Node):
             self.colour = '#1f77b4'
         if not self.shape:
             self.shape = 'square'
+        if not self.fontsize:
+            self.fontsize = 8
 
 
 class ProcessingNode(Node):
@@ -44,6 +50,8 @@ class ProcessingNode(Node):
             self.colour = '#006400'
         if not self.shape:
             self.shape = 'triangle'
+        if not self.fontsize:
+            self.fontsize = 8
 
 
 class RepeaterNode(Node):
@@ -55,6 +63,8 @@ class RepeaterNode(Node):
             self.colour = '#ff7f0e'
         if not self.shape:
             self.shape = 'circle'
+        if not self.fontsize:
+            self.fontsize = 8
 
 
 class Architecture(Type):
@@ -86,9 +96,27 @@ class Architecture(Type):
                              "if you wish to override this requirement")
 
         # Set attributes such as label, colour, shape, etc for each node
+        last_letters = {'SensorNode': 'A', 'ProcessingNode': 'A', 'RepeaterNode': 'A'}
         for node in self.di_graph.nodes:
-            attr = {"label": f"{node.label}", "color": f"{node.colour}", "shape": f"{node.shape}"}  # add more here
+            if node.label:
+                label = node.label
+            else:
+                label, last_letters = self._default_name(node, last_letters)
+
+            label = node.label if node.label else self._default_name(node, last_letters)
+            attr = {"label": f"{label}", "color": f"{node.colour}", "shape": f"{node.shape}", "fontsize": f"{node.fontsize}"}  # add more here
             self.di_graph.nodes[node].update(attr)
+
+    def __len__(self):
+        return len(self.di_graph)
+
+    def _default_name(self, node, last_letters):
+        node_type = str(type(node)).split('.')[-1][:-2]
+        last_letter = last_letters[node_type]
+        current_letter = auc[auc.index(last_letter) + 1]
+        last_letters[node_type] = current_letter
+        return node_type + ' ' + current_letter, last_letters
+
 
     @property
     def node_set(self):
