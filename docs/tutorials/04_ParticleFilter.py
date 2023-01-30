@@ -148,7 +148,7 @@ plotter.fig
 # %%
 # Use of Effective Sample Size resampler (ESS)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Resampling removes particles with a low weight and multiplies particles with a high weight.
+# Resampling removes particles with a low weight and duplicates particles with a high weight.
 # A side-effect of this is that additional variance is added. Use of `~.SystematicResampler`
 # at each time-step means that additional variance is being introduced when it may not necessarily
 # be required. To reduce the additional variance, it may be optimal to resample less frequently.
