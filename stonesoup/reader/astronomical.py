@@ -133,7 +133,7 @@ class TLEDictReader(Reader):
     def ballistic_coefficient(self):
         r"""Represents the first derivative of the mean motion , otherwise known as the ballistic
         coefficient. This is encoded in the TLE divided by two and in units of revolutions per
-        day:math:`^2`. Here it is returned in units of :math:`mathrm{rad s}^{-2}`. It is unused in
+        day :math:`^2`. Here it is returned in units of :math:`mathrm{rad s}^{-2}`. It is unused in
         SGP4.
         """
 
@@ -145,8 +145,8 @@ class TLEDictReader(Reader):
     @property
     def second_derivative_mean_motion(self):
         """This is the second derivative of the mean motion. Again, it's not used by SGP4. In TLEs
-        it's divided by six and given in units of revolutions per day:math:`^3`. Here it's returned
-        as :math:`mathrm{rad s}^{-3}`"""
+        it's divided by six and given in units of revolutions per day :math:`^3`. Here it's
+        returned as :math:`mathrm{rad s}^{-3}`"""
 
         mantissa = 0 - float(self.line1[45:50]) / 1e5 if self.line1[44] == '-' \
             else float(self.line1[45:50]) / 1e5
@@ -170,7 +170,7 @@ class TLEDictReader(Reader):
 
             B* = \frac{B \rho_0}{2}.
 
-        In TLEs, :math:`B*` has units of (earth radii):math:^{-1}. This function returns
+        In TLEs, :math:`B*` has units of (earth radii) :math:^{-1}. This function returns
         :math:`\mathrm{m}^{-1}`
         """
 
