@@ -13,6 +13,7 @@ from stonesoup.resampler import Resampler
 from stonesoup.types.array import StateVectors
 from stonesoup.types.detection import Detection, MissedDetection
 from stonesoup.types.hypothesis import SingleProbabilityHypothesis
+from stonesoup.types.mixture import GaussianMixture
 from stonesoup.types.multihypothesis import MultipleHypothesis
 from stonesoup.types.numeric import Probability
 from stonesoup.types.prediction import Prediction
@@ -90,13 +91,25 @@ class SMCPHDFilter(Base):
             num_birth = round(float(self.prob_birth) * self.num_samples)
 
             # Sample birth particles
-            birth_particles = multivariate_normal.rvs(self.birth_density.mean.ravel(),
-                                                      self.birth_density.covar,
-                                                      num_birth)
+            birth_particles = np.zeros((pred_particles_sv.shape[0], 0))
+            if isinstance(self.birth_density, GaussianMixture):
+                particles_per_component = num_birth // len(self.birth_density)
+                for i, component in enumerate(self.birth_density):
+                    if i == len(self.birth_density) - 1:
+                        particles_per_component += num_birth % len(self.birth_density)
+                    birth_particles_component = multivariate_normal.rvs(
+                        component.mean.ravel(),
+                        component.covar,
+                        particles_per_component).T
+                    birth_particles = np.hstack((birth_particles, birth_particles_component))
+            else:
+                birth_particles = multivariate_normal.rvs(self.birth_density.mean.ravel(),
+                                                          self.birth_density.covar,
+                                                          num_birth)
             birth_weights = np.full((num_birth,), Probability(self.birth_rate / num_birth))
 
             # Surviving particle weights
-            prob_survive = np.exp(-float(self.prob_death)*time_interval.total_seconds())
+            prob_survive = np.exp(-float(self.prob_death) * time_interval.total_seconds())
             pred_weights = prob_survive * prior_weights
 
             # Append birth particles to predicted ones
@@ -111,13 +124,27 @@ class SMCPHDFilter(Base):
             birth_inds = np.flatnonzero(np.random.binomial(1, self.prob_birth, self.num_samples))
 
             # Sample birth particles and replace in original state vector matrix
-            birth_particles = multivariate_normal.rvs(self.birth_density.mean.ravel(),
-                                                      self.birth_density.covar,
-                                                      len(birth_inds))
-            pred_particles_sv[:, birth_inds] = birth_particles.T
+            num_birth = len(birth_inds)
+            birth_particles = np.zeros((pred_particles_sv.shape[0], 0))
+            if isinstance(self.birth_density, GaussianMixture):
+                particles_per_component = num_birth // len(self.birth_density)
+                for i, component in enumerate(self.birth_density):
+                    if i == len(self.birth_density) - 1:
+                        particles_per_component += num_birth % len(self.birth_density)
+                    birth_particles_component = multivariate_normal.rvs(
+                        component.mean.ravel(),
+                        component.covar,
+                        particles_per_component).T
+                    birth_particles = np.hstack((birth_particles, birth_particles_component))
+            else:
+                birth_particles = multivariate_normal.rvs(self.birth_density.mean.ravel(),
+                                                          self.birth_density.covar,
+                                                          len(birth_inds)).T
+            pred_particles_sv[:, birth_inds] = birth_particles
 
             # Process weights
-            pred_weights = ((1 - self.prob_death) + Probability(self.birth_rate / total_samples)) * prior_weights
+            pred_weights = ((1 - self.prob_death) + Probability(
+                self.birth_rate / total_samples)) * prior_weights
 
         prediction = Prediction.from_state(state, state_vector=pred_particles_sv,
                                            weight=pred_weights,
@@ -210,7 +237,7 @@ class SMCPHDFilter(Base):
     def get_measurement_loglikelihoods(self, prediction, detections, meas_weights):
         num_samples = prediction.state_vector.shape[1]
         # Compute g(z|x) matrix as in [1]
-        g = np.zeros((num_samples, len(detections)), dtype=Probability)
+        g = np.zeros((num_samples, len(detections)))
         for i, detection in enumerate(detections):
             if not meas_weights[i]:
                 g[:, i] = -np.inf
@@ -219,7 +246,7 @@ class SMCPHDFilter(Base):
                                                          noise=True)
         return g
 
-    def get_weights_per_hypothesis(self, prediction, detections, meas_weights):
+    def get_weights_per_hypothesis(self, prediction, detections, meas_weights, *args, **kwargs):
         num_samples = prediction.state_vector.shape[1]
         if meas_weights is None:
             meas_weights = np.array([Probability(1) for _ in range(len(detections))])
@@ -233,19 +260,19 @@ class SMCPHDFilter(Base):
         # Calculate w^{n,i} Eq. (20) of [2]
         try:
             Ck = np.log(prob_detect[:, np.newaxis]) + g \
-                 + np.log(prediction.weight[:, np.newaxis])
+                 + np.log(prediction.weight[:, np.newaxis].astype(float))
         except IndexError:
             Ck = np.log(prob_detect) + g \
-                 + np.log(prediction.weight[:, np.newaxis])
-        C = logsumexp(np.asfarray(Ck), axis=0)
+                 + np.log(prediction.weight[:, np.newaxis].astype(float))
+        C = logsumexp(Ck, axis=0)
         k = np.log([detection.metadata['clutter_density']
                     if 'clutter_density' in detection.metadata else self.clutter_intensity
                     for detection in detections])
         C_plus = np.logaddexp(C, k)
         weights_per_hyp = np.full((num_samples, len(detections) + 1), -np.inf)
-        weights_per_hyp[:, 0] = np.log(1 - prob_detect) + np.log(prediction.weight)
+        weights_per_hyp[:, 0] = np.log(1 - prob_detect) + np.log(np.asfarray(prediction.weight))
         if len(detections):
-            weights_per_hyp[:, 1:] = np.log(meas_weights) + Ck - C_plus
+            weights_per_hyp[:, 1:] = np.log(np.asfarray(meas_weights)) + Ck - C_plus
 
         return Probability.from_log_ufunc(weights_per_hyp)
 
