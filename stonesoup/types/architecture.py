@@ -41,9 +41,9 @@ class ProcessingNode(Node):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not self.colour:
-            self.colour = '#1f77b4'
+            self.colour = '#006400'
         if not self.shape:
-            self.shape = 'square'
+            self.shape = 'triangle'
 
 
 class RepeaterNode(Node):
@@ -87,7 +87,7 @@ class Architecture(Type):
 
         # Set attributes such as label, colour, shape, etc for each node
         for node in self.di_graph.nodes:
-            attr = {"label": f"{node.label}", "color": f"{node.colour}"}  # add more here
+            attr = {"label": f"{node.label}", "color": f"{node.colour}", "shape": f"{node.shape}"}  # add more here
             self.di_graph.nodes[node].update(attr)
 
     @property
