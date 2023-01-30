@@ -2,16 +2,17 @@ from ..base import Property
 from .base import Type
 from ..sensor.sensor import Sensor
 
-from typing import Set, List, Collection, Tuple
+from typing import List, Collection, Tuple
 import networkx as nx
 import graphviz
 from string import ascii_uppercase as auc
+
 
 class Node(Type):
     """Base node class"""
     label: str = Property(
         doc="Label to be displayed on graph",
-        default="")
+        default=None)
     position: Tuple[float] = Property(
         default=None,
         doc="Cartesian coordinates for node")
@@ -21,9 +22,6 @@ class Node(Type):
     shape: str = Property(
         default=None,
         doc='Shape used to display nodes')
-    fontsize: int = Property(
-        default=8,
-        doc='Fontsize for node labels')
 
 
 class SensorNode(Node):
@@ -37,8 +35,8 @@ class SensorNode(Node):
             self.colour = '#1f77b4'
         if not self.shape:
             self.shape = 'square'
-        if not self.fontsize:
-            self.fontsize = 8
+        # We'd only need to set font_size to something here
+        # if we wanted a different default for each class
 
 
 class ProcessingNode(Node):
@@ -50,8 +48,6 @@ class ProcessingNode(Node):
             self.colour = '#006400'
         if not self.shape:
             self.shape = 'triangle'
-        if not self.fontsize:
-            self.fontsize = 8
 
 
 class RepeaterNode(Node):
@@ -63,8 +59,6 @@ class RepeaterNode(Node):
             self.colour = '#ff7f0e'
         if not self.shape:
             self.shape = 'circle'
-        if not self.fontsize:
-            self.fontsize = 8
 
 
 class Architecture(Type):
@@ -73,14 +67,17 @@ class Architecture(Type):
         doc="A Collection of edges between nodes. For A to be connected to B we would have (A, B)"
             "be a member of this list. Default is None")
     name: str = Property(
-        default=f"Architecture",
+        default=None,
         doc="A name for the architecture, to be used to name files and/or title plots. Default is "
-            "\"Architecture\"")
+            "the class name")
     force_connected: bool = Property(
         default=True,
         doc="If True, the undirected version of the graph must be connected, ie. all nodes should "
             "be connected via some path. Set this to False to allow an unconnected architecture. "
             "Default is True")
+    font_size: int = Property(
+        default=8,
+        doc='Font size for node labels')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -88,6 +85,8 @@ class Architecture(Type):
             self.edge_list = list(self.edge_list)
         if not self.edge_list:
             self.edge_list = []
+        if not self.name:
+            self.name = type(self).__name__
 
         self.di_graph = nx.to_networkx_graph(self.edge_list, create_using=nx.DiGraph)
 
@@ -101,28 +100,17 @@ class Architecture(Type):
             if node.label:
                 label = node.label
             else:
-                label, last_letters = self._default_name(node, last_letters)
-
-            label = node.label if node.label else self._default_name(node, last_letters)
-            attr = {"label": f"{label}", "color": f"{node.colour}", "shape": f"{node.shape}", "fontsize": f"{node.fontsize}"}  # add more here
+                label, last_letters = _default_label(node, last_letters)
+            attr = {"label": f"{label}", "color": f"{node.colour}", "shape": f"{node.shape}",
+                    "fontsize": f"{self.font_size}"}
             self.di_graph.nodes[node].update(attr)
-
-    def __len__(self):
-        return len(self.di_graph)
-
-    def _default_name(self, node, last_letters):
-        node_type = str(type(node)).split('.')[-1][:-2]
-        last_letter = last_letters[node_type]
-        current_letter = auc[auc.index(last_letter) + 1]
-        last_letters[node_type] = current_letter
-        return node_type + ' ' + current_letter, last_letters
-
 
     @property
     def node_set(self):
         return set(self.di_graph.nodes)
 
-    def plot(self, dir_path, filename=None, use_positions=True, plot_title=False):
+    def plot(self, dir_path, filename=None, use_positions=True, plot_title=False,
+             bgcolour="lightgray", node_style="filled"):
         """Creates a pdf plot of the directed graph and displays it
 
         :param dir_path: The path to save the pdf and .gv files to
@@ -131,19 +119,37 @@ class Architecture(Type):
         :param plot_title: If a string is supplied, makes this the title of the plot. If True, uses
         the name attribute of the graph to title the plot. If False, no title is used.
         Default is False
+        :param bgcolour: String containing the background colour for the plot.
+        Default is "lightgray". See graphviz attributes for more information.
+        One alternative is "white"
+        :param node_style: String containing the node style for the plot.
+        Default is "filled". See graphviz attributes for more information.
+        One alternative is "solid"
         :return:
         """
+        if use_positions:
+            for node in self.di_graph.nodes:
+                if not isinstance(node.position, Tuple):
+                    raise TypeError("If use_positions is set to True, every node must have a "
+                                    "position, given as a Tuple of length 2")
+                attr = {"pos": f"{node.position[0]},{node.position[1]}!"}
+                self.di_graph.nodes[node].update(attr)
         dot = nx.drawing.nx_pydot.to_pydot(self.di_graph).to_string()
+        dot_split = dot.split('\n')
+        dot_split.insert(1, f"graph [bgcolor={bgcolour}]")
+        dot_split.insert(1, f"node [style={node_style}]")
+        dot = "\n".join(dot_split)
+        print(dot)
         if plot_title:
             if plot_title is True:
-                title = self.name
+                plot_title = self.name
             elif not isinstance(plot_title, str):
                 raise ValueError("Plot title must be a string, or True")
-            dot = dot[:-2] + "labelloc=\"t\";\n" + f"label=\"{title}\";" + "}"
+            dot = dot[:-2] + "labelloc=\"t\";\n" + f"label=\"{plot_title}\";" + "}"
         #  print(dot)
         if not filename:
             filename = self.name
-        viz_graph = graphviz.Source(dot, filename=filename, directory=dir_path)
+        viz_graph = graphviz.Source(dot, filename=filename, directory=dir_path, engine='neato')
         viz_graph.view()
 
     @property
@@ -199,3 +205,28 @@ class CombinedArchitecture(Type):
     network_architecture: NetworkArchitecture = Property(
         doc="The architecture for how data is propagated through the network. Node A is connected "
             "to Node B if and only if A sends its data through B. ")
+
+
+def _default_label(node, last_letters):  # Moved as we don't use "self", so no need to be a class method
+    """Utility function to generate default labels for nodes, where none are given
+    Takes a node, and a dictionary with the letters last used for each class,
+    ie `last_letters['Node']` might return 'AA', meaning the last Node was labelled 'Node AA'"""
+    node_type = type(node).__name__  # Neater way than all that splitting and indexing
+    type_letters = last_letters[node_type]  # eg 'A', or 'AA', or 'ABZ'
+    new_letters = _default_letters(type_letters)
+    last_letters[node_type] = new_letters
+    return node_type + ' ' + new_letters, last_letters
+
+
+def _default_letters(type_letters):
+    last_letter = type_letters[-1]
+    if last_letter == 'Z':
+        # do something recursive
+        new_letters = 'A' # replace me
+    else:
+        # the easier case
+        current_letter = auc[auc.index(last_letter) + 1]
+        # Not quite done...
+        new_letters = 'A'  # replace me
+    return new_letters  # A string like 'A', or 'AAB'
+

@@ -1,12 +1,14 @@
 from ..architecture import Architecture, NetworkArchitecture, InformationArchitecture, \
-    CombinedArchitecture, ProcessingNode, RepeaterNode
+    CombinedArchitecture, ProcessingNode, RepeaterNode, SensorNode
+from ...sensor.base import PlatformMountable
+
 
 import pytest
 
 
 def test_architecture():
-    a, b, c, d, e = RepeaterNode("a"), RepeaterNode("b"), RepeaterNode("c"), RepeaterNode("d"), \
-                    RepeaterNode("e")
+    a, b, c, d, e = RepeaterNode(), RepeaterNode(), RepeaterNode(), RepeaterNode(), \
+                    RepeaterNode()
 
     edge_list_unconnected = [(a, b), (c, d)]
     with pytest.raises(ValueError):
@@ -22,7 +24,16 @@ def test_architecture():
     assert a_test_hier.is_hierarchical
     assert not a_test_loop.is_hierarchical
 
-    a_test_hier.plot(dir_path='U:\\My Documents\\temp')
+    with pytest.raises(TypeError):
+        a_test_hier.plot(dir_path='U:\\My Documents\\temp', plot_title=True, use_positions=True)
+
+    a_pos, b_pos, c_pos = RepeaterNode(label="Alpha", position=(1, 2)), \
+                          SensorNode(sensor=PlatformMountable(), position=(1, 1)), \
+                          RepeaterNode(position=(2, 1))
+    edge_list_pos = [(a_pos, b_pos), (b_pos, c_pos), (c_pos, a_pos)]
+    pos_test = NetworkArchitecture(edge_list_pos)
+    pos_test.plot(dir_path='C:\\Users\\orosoman\\Desktop\\arch_plots', plot_title=True,
+                  use_positions=True)
 
 
 def test_information_architecture():
