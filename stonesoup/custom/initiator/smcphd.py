@@ -277,6 +277,195 @@ class SMCPHDFilter(Base):
         return Probability.from_log_ufunc(weights_per_hyp)
 
 
+class ISMCPHDFilter(SMCPHDFilter):
+    def predict(self, state, timestamp):
+        """
+        Predict the next state of the target density
+
+        Parameters
+        ----------
+        state: :class:`~.State`
+            The current state of the target
+        timestamp: :class:`datetime.datetime`
+            The time at which the state is valid
+
+        Returns
+        -------
+        : :class:`~.State`
+            The predicted next state of the target
+        """
+
+        prior_weights = state.weight
+        time_interval = timestamp - state.timestamp
+
+        # Predict particles forward
+        pred_particles_sv = self.transition_model.function(state,
+                                                           time_interval=time_interval,
+                                                           noise=True)
+
+        # Surviving particle weights
+        prob_survive = np.exp(-float(self.prob_death) * time_interval.total_seconds())
+        pred_weights = prob_survive * prior_weights
+
+        prediction = Prediction.from_state(state, state_vector=pred_particles_sv,
+                                           weight=pred_weights,
+                                           timestamp=timestamp, particle_list=None,
+                                           transition_model=self.transition_model)
+        prediction.birth_idx = state.birth_idx if hasattr(state, 'birth_idx') else []
+        return prediction
+
+    def update(self, prediction, detections, timestamp, meas_weights=None):
+        """
+        Update the predicted state of the target density with the given detections
+
+        Parameters
+        ----------
+        prediction: :class:`~.State`
+            The predicted state of the target
+        detections: :class:`~.Detection`
+            The detections at the current time step
+        timestamp: :class:`datetime.datetime`
+            The time at which the update is valid
+        meas_weights: :class:`np.ndarray`
+            The weights of the measurements
+
+        Returns
+        -------
+        : :class:`~.State`
+            The updated state of the target
+        """
+        num_persistent = prediction.state_vector.shape[1]
+        birth_state = self.get_birth_state(prediction, detections, timestamp)
+
+        weights_per_hyp = self.get_weights_per_hypothesis(prediction, detections, meas_weights,
+                                                          birth_state)
+
+        # Construct hypothesis objects (StoneSoup specific)
+        single_hypotheses = [
+            SingleProbabilityHypothesis(prediction,
+                                        measurement=MissedDetection(timestamp=timestamp),
+                                        probability=weights_per_hyp[:num_persistent, 0])]
+        for i, detection in enumerate(detections):
+            single_hypotheses.append(
+                SingleProbabilityHypothesis(prediction,
+                                            measurement=detection,
+                                            probability=weights_per_hyp[:num_persistent,
+                                                        i + 1])
+            )
+        hypothesis = MultipleHypothesis(single_hypotheses, normalise=False)
+
+        # Update weights Eq. (8) of [1]
+        # w_k^i = \sum_{z \in Z_k}{w^{n,i}}, where i is the index of z in Z_k
+        log_post_weights = logsumexp(np.log(weights_per_hyp).astype(float), axis=1)
+        log_post_weights_pers = log_post_weights[:num_persistent]
+        log_post_weights_birth = log_post_weights[num_persistent:]
+
+        # Resample persistent
+        log_num_targets_pers = logsumexp(log_post_weights_pers)  # N_{k|k}
+        update = copy(prediction)
+        # Normalize weights
+        update.weight = Probability.from_log_ufunc(log_post_weights_pers - log_num_targets_pers)
+        if self.resampler is not None:
+            update = self.resampler.resample(update, self.num_samples)  # Resample
+        # De-normalize
+        update.weight = Probability.from_log_ufunc(np.log(update.weight).astype(float)
+                                                   + log_num_targets_pers)
+
+        if len(detections):
+            # Resample birth
+            log_num_targets_birth = logsumexp(log_post_weights_birth)  # N_{k|k}
+            update2 = copy(birth_state)
+            # Normalize weights
+            update2.weight = Probability.from_log_ufunc(log_post_weights_birth - log_num_targets_birth)
+            if self.resampler is not None:
+                update2 = self.resampler.resample(update2, update2.state_vector.shape[1])  # Resample
+            # De-normalize
+            update2.weight = Probability.from_log_ufunc(np.log(update2.weight).astype(float)
+                                                        + log_num_targets_birth)
+
+            full_update = Update.from_state(
+                state=prediction,
+                state_vector=StateVectors(np.hstack((update.state_vector, update2.state_vector))),
+                weight=np.hstack((update.weight, update2.weight)),
+                particle_list=None,
+                hypothesis=hypothesis,
+                timestamp=timestamp)
+        else:
+            full_update = Update.from_state(
+                state=prediction,
+                state_vector=update.state_vector,
+                weight=update.weight,
+                particle_list=None,
+                hypothesis=hypothesis,
+                timestamp=timestamp)
+        full_update.birth_idx = [i for i in range(len(update.weight), len(full_update.weight))]
+        return full_update
+
+    def get_birth_state(self, prediction, detections, timestamp):
+        # Sample birth particles
+        num_birth = round(float(self.prob_birth) * self.num_samples)
+        birth_particles = np.zeros((prediction.state_vector.shape[0], 0))
+        if len(detections):
+            num_birth_per_detection = num_birth // len(detections)
+            for i, detection in enumerate(detections):
+                if i == len(detections) - 1:
+                    num_birth_per_detection += num_birth % len(detections)
+                mu = self.birth_density.mean
+                mu[0::2] = detection.state_vector
+                cov = self.birth_density.covar
+                cov[0::2, 0::2] = detection.measurement_model.covar()
+                birth_particles_i = multivariate_normal.rvs(mu.ravel(),
+                                                            cov,
+                                                            num_birth_per_detection).T
+                birth_particles = np.hstack((birth_particles, birth_particles_i))
+        birth_weights = np.full((num_birth,), Probability(self.birth_rate / num_birth))
+        birth_particles = StateVectors(birth_particles)
+        birth_state = Prediction.from_state(prediction,
+                                            state_vector=birth_particles,
+                                            weight=birth_weights,
+                                            timestamp=timestamp, particle_list=None,
+                                            transition_model=self.transition_model)
+        return birth_state
+
+    def get_weights_per_hypothesis(self, prediction, detections, meas_weights, birth_state,
+                                   *args, **kwargs):
+        num_samples = prediction.state_vector.shape[1]
+        if meas_weights is None:
+            meas_weights = np.array([Probability(1) for _ in range(len(detections))])
+
+        # Compute g(z|x) matrix as in [1]
+        g = self.get_measurement_loglikelihoods(prediction, detections, meas_weights)
+
+        # Get probability of detection
+        prob_detect = np.asfarray(self.prob_detect(prediction))
+
+        # Calculate w^{n,i} Eq. (20) of [2]
+        try:
+            Ck = np.log(prob_detect[:, np.newaxis]) + g \
+                 + np.log(prediction.weight[:, np.newaxis].astype(float))
+        except IndexError:
+            Ck = np.log(prob_detect) + g \
+                 + np.log(prediction.weight[:, np.newaxis].astype(float))
+        C = logsumexp(Ck, axis=0)
+        Ck_birth = np.tile(np.log(np.asfarray(birth_state.weight)[:, np.newaxis]), len(detections))
+        C_birth = logsumexp(Ck_birth, axis=0)
+
+        k = np.log([detection.metadata['clutter_density']
+                    if 'clutter_density' in detection.metadata else self.clutter_intensity
+                    for detection in detections])
+        C_plus = np.logaddexp(C, k)
+        L = np.logaddexp(C_plus, C_birth)
+
+        weights_per_hyp = np.full((num_samples + birth_state.state_vector.shape[1],
+                                   len(detections) + 1), -np.inf)
+        weights_per_hyp[:num_samples, 0] = np.log(1 - prob_detect) + np.log(
+            np.asfarray(prediction.weight))
+        if len(detections):
+            weights_per_hyp[:num_samples, 1:] = np.log(np.asfarray(meas_weights)) + Ck - L
+            weights_per_hyp[num_samples:, 1:] = np.log(np.asfarray(meas_weights)) + Ck_birth - L
+        return Probability.from_log_ufunc(weights_per_hyp)
+
+
 class SMCPHDInitiator(Initiator):
     filter: SMCPHDFilter = Property(doc='The phd filter')
     prior: Any = Property(doc='The prior state')
@@ -330,6 +519,64 @@ class SMCPHDInitiator(Initiator):
             tracks.add(track)
 
             weights[idx-1] = 0
+
+        # Update filter
+        self._state = self.filter.update(prediction, detections, timestamp, weights)
+
+        return tracks
+
+
+class ISMCPHDInitiator(SMCPHDInitiator):
+    filter: ISMCPHDFilter = Property(doc='The phd filter')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._state = self.prior
+
+    def initiate(self, detections, timestamp, weights=None, **kwargs):
+        tracks = set()
+
+        if self._state.timestamp is None:
+            self._state.timestamp = timestamp
+        # Predict forward
+        prediction = self.filter.predict(self._state, timestamp)
+
+        # Calculate weights per hypothesis
+        birth_state = self.filter.get_birth_state(prediction, detections, timestamp)
+        weights_per_hyp = self.filter.get_weights_per_hypothesis(prediction, detections, weights, birth_state)
+        log_weights_per_hyp = np.log(weights_per_hyp[:self.filter.num_samples, :]).astype(float)
+
+        # Calculate intensity per hypothesis
+        log_intensity_per_hyp = logsumexp(log_weights_per_hyp, axis=0)
+
+        # Find detections with intensity above threshold and initiate
+        valid_inds = np.flatnonzero(np.exp(log_intensity_per_hyp) > self.threshold)
+        for idx in valid_inds:
+            if not idx:
+                continue
+
+            particles_sv = copy(prediction.state_vector[:, :len(prediction)-len(prediction.birth_idx)])
+            weight = np.exp(log_weights_per_hyp[:self.filter.num_samples, idx] - log_intensity_per_hyp[idx])
+
+            mu = np.average(particles_sv,
+                            axis=1,
+                            weights=weight)
+            cov = np.cov(particles_sv, ddof=0, aweights=weight)
+
+            hypothesis = SingleProbabilityHypothesis(prediction,
+                                                     measurement=detections[idx - 1],
+                                                     probability=weights_per_hyp[:self.filter.num_samples, idx])
+
+            track_state = GaussianStateUpdate(mu, cov, hypothesis=hypothesis,
+                                              timestamp=timestamp)
+
+            # if np.trace(track_state.covar) < 10:
+            weights_per_hyp[:, idx] = Probability(0)
+            track = Track([track_state])
+            track.exist_prob = Probability(log_intensity_per_hyp[idx], log_value=True)
+            tracks.add(track)
+
+            weights[idx - 1] = 0
 
         # Update filter
         self._state = self.filter.update(prediction, detections, timestamp, weights)
