@@ -145,7 +145,6 @@ class InputManager(RunManager):
             Probability: probability value
         """
         return Probability(input_probability)
-        # raise NotImplementedError
 
     def generate_parameters_combinations(self, parameters):
         """Generates all the possible combination values from a list

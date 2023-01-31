@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from stonesoup.runmanager.runmanagercore import RunManagerCore, info_logger
 import argparse
 

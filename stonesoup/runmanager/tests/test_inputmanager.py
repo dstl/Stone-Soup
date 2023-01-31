@@ -109,8 +109,11 @@ def test_set_coordinate_system():
 
 
 def test_set_probability():
-    # TODO
-    pass
+    test_input_prob1 = IManager.set_probability(0.1)
+    test_input_prob2 = IManager.set_probability(Probability(0.2))
+
+    assert type(test_input_prob1) is Probability
+    assert type(test_input_prob2) is Probability
 
 
 def test_generate_parameters_combinations():

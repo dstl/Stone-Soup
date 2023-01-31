@@ -108,7 +108,8 @@ class RunManagerCore(RunManager):
         info_logger.info(f'RunManagerCore started. {datetime.now()}')
         info_logger.info(f'RunManager Output located in: {self.output_dir}')
 
-    def read_json(self, json_input):
+    @staticmethod
+    def read_json(json_input):
         """Opens and reads a json file from a given path.
 
         Parameters
@@ -607,7 +608,8 @@ class RunManagerCore(RunManager):
                 self.GROUNDTRUTH: groundtruth,
                 self.METRIC_MANAGER: metric_manager}
 
-    def read_config_dir(self, config_dir):
+    @staticmethod
+    def read_config_dir(config_dir):
         """Reads a directory and returns a list of all of the file paths
 
         Parameters
