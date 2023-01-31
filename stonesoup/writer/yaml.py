@@ -1,5 +1,10 @@
 from pathlib import Path
+from typing import Union, Set
 
+from stonesoup.metricgenerator.base import MetricManager
+from stonesoup.simulator import GroundTruthSimulator, DetectionSimulator
+from stonesoup.types.detection import Detection
+from stonesoup.types.groundtruth import GroundTruthPath
 from ..base import Property
 from ..serialise import YAML
 from ..reader import DetectionReader, GroundTruthReader, SensorDataReader
@@ -67,37 +72,48 @@ class YAMLWriter(Writer):
         self.__exit__()
 
 
-def write_config_to_yaml(path, tracker=None, groundtruth=None, detections=None, metricmanager=None,
-                         **kwargs):
-    """
-    YAML Writer for generating Run Manager Config files.
-    Parameters
-    ----------
-    path: The name/path to the location of the config file to be generated.
-    tracker: The stone soup Tracker object.
-    groundtruth: The stone soup ground truth object
-    detections: the stone soup detections object
-    metricmanager: the stone soup metric manager
+class YAMLConfigWriter(Writer):
+    """Run Manager YAML Configuration Writer
 
-    Returns
-    -------
-    FILE.YAML A file containing the configuration settings of the input items.
+    YAML Writer for generating Run Manager Configuration files from Tracker and Simulator
+    components
     """
-    if tracker is None and groundtruth is None and detections is None and metricmanager is None:
-        raise ValueError("Need at least one object to write to YAML file")
-    if path is None:
-        raise ValueError("File name and path required to write to file.")
-    data = dict()
-    if tracker is not None:
-        data["tracker"] = tracker
-    if groundtruth is not None:
-        data["groundtruth"] = groundtruth
-    if detections is not None:
-        data["detections"] = detections
-    if metricmanager is not None:
-        data["metric_manager"] = metricmanager
-    if kwargs:
-        for k in kwargs.keys():
-            data[k] = kwargs[k]
-    with open(path, "w") as _file:
-        YAML(typ="SAFE").dump(data, _file)
+    path: Path = Property(doc="File to save data to. Str will be converted to Path")
+    tracker: Tracker = Property(
+        doc="The tracker used in the run manager.")
+    groundtruths: Union[Set[GroundTruthPath], GroundTruthSimulator] = Property(
+        doc="The ground truth paths required by the run manager.",
+        default=None)
+    detections: Union[Set[Detection], DetectionSimulator] = Property(
+        doc="The detections for use with the run manager",
+        default=None)
+    metricmanager: MetricManager = Property(
+        doc="Metric manager containing metrics to be processed using the run manager.",
+        default=None)
+
+    def __init__(self, path, *args, **kwargs):
+        if not isinstance(path, Path):
+            path = Path(path)  # Ensure Path
+        super().__init__(path, *args, **kwargs)
+        if not any((self.tracker, self.groundtruths,
+                   self.detections, self.metricmanager)):
+            raise ValueError("At least one object required to write to YAML file.")
+        self.kwargs = kwargs
+        self._file = self.path.open('w')
+
+        self.data = dict()
+        self._yaml = YAML(typ="SAFE")
+
+    def write(self):
+        if self.tracker is not None:
+            self.data["tracker"] = self.tracker
+        if self.groundtruths is not None:
+            self.data["groundtruth"] = self.groundtruths
+        if self.detections is not None:
+            self.data["detections"] = self.detections
+        if self.metricmanager is not None:
+            self.data["metric_manager"] = self.metricmanager
+        if self.kwargs:
+            for k in self.kwargs.keys():
+                self.data[k] = self.kwargs[k]
+        self._yaml.dump(self.data, self._file)
