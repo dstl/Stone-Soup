@@ -47,7 +47,7 @@ class ProcessingNode(Node):
         if not self.colour:
             self.colour = '#006400'
         if not self.shape:
-            self.shape = 'triangle'
+            self.shape = 'hexagon'
 
 
 class RepeaterNode(Node):
@@ -65,7 +65,7 @@ class Architecture(Type):
     edge_list: Collection = Property(
         default=None,
         doc="A Collection of edges between nodes. For A to be connected to B we would have (A, B)"
-            "be a member of this list. Default is None")
+            "be a member of this list. Default is an empty list")
     name: str = Property(
         default=None,
         doc="A name for the architecture, to be used to name files and/or title plots. Default is "
@@ -78,6 +78,9 @@ class Architecture(Type):
     font_size: int = Property(
         default=8,
         doc='Font size for node labels')
+    node_dim: tuple = Property(
+        default=(0.5, 0.5),
+        doc='Height and width of nodes for graph icons, default is (1, 1)')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -95,21 +98,23 @@ class Architecture(Type):
                              "if you wish to override this requirement")
 
         # Set attributes such as label, colour, shape, etc for each node
-        last_letters = {'SensorNode': 'A', 'ProcessingNode': 'A', 'RepeaterNode': 'A'}
+        last_letters = {'SensorNode': '', 'ProcessingNode': '', 'RepeaterNode': ''}
         for node in self.di_graph.nodes:
             if node.label:
                 label = node.label
             else:
                 label, last_letters = _default_label(node, last_letters)
+                node.label = label
             attr = {"label": f"{label}", "color": f"{node.colour}", "shape": f"{node.shape}",
-                    "fontsize": f"{self.font_size}"}
+                    "fontsize": f"{self.font_size}", "width": f"{self.node_dim[0]}", "height": f"{self.node_dim[1]}",
+                    "fixedsize": True}
             self.di_graph.nodes[node].update(attr)
 
     @property
     def node_set(self):
         return set(self.di_graph.nodes)
 
-    def plot(self, dir_path, filename=None, use_positions=True, plot_title=False,
+    def plot(self, dir_path, filename=None, use_positions=False, plot_title=False,
              bgcolour="lightgray", node_style="filled"):
         """Creates a pdf plot of the directed graph and displays it
 
@@ -219,14 +224,19 @@ def _default_label(node, last_letters):  # Moved as we don't use "self", so no n
 
 
 def _default_letters(type_letters):
-    last_letter = type_letters[-1]
-    if last_letter == 'Z':
-        # do something recursive
-        new_letters = 'A' # replace me
-    else:
-        # the easier case
-        current_letter = auc[auc.index(last_letter) + 1]
-        # Not quite done...
-        new_letters = 'A'  # replace me
+    if type_letters == '':
+        return'A'
+    count = 0
+    letters_list = [*type_letters]
+    # Move through string from right to left and shift any Z's up to A's
+    while letters_list[-1 - count] == 'Z':
+        letters_list[-1 - count] = 'A'
+        count += 1
+        if count == len(letters_list):
+            return 'A' * (count + 1)
+    # Shift current letter up by one
+    current_letter = letters_list[-1-count]
+    letters_list[-1-count] = auc[auc.index(current_letter)+1]
+    new_letters = ''.join(letters_list)
     return new_letters  # A string like 'A', or 'AAB'
 
