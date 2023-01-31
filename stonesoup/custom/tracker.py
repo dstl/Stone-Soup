@@ -6,7 +6,8 @@ from scipy.stats import multivariate_normal
 
 from stonesoup.base import Property, Base
 from stonesoup.custom.dataassociator.jipda import JIPDAWithEHM2
-from stonesoup.custom.initiator.smcphd import SMCPHDFilter, SMCPHDInitiator
+from stonesoup.custom.initiator.smcphd import SMCPHDFilter, SMCPHDInitiator, ISMCPHDFilter, \
+    ISMCPHDInitiator
 from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
 from stonesoup.functions import gm_reduce_single
 from stonesoup.gater.distance import DistanceGater
@@ -18,6 +19,7 @@ from stonesoup.models.transition import TransitionModel
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.resampler.particle import SystematicResampler
 from stonesoup.types.array import StateVectors
+from stonesoup.types.mixture import GaussianMixture
 from stonesoup.types.numeric import Probability
 from stonesoup.types.state import State, ParticleState
 from stonesoup.types.update import GaussianStateUpdate
@@ -61,7 +63,7 @@ class SMCPHD_JIPDA(Base):
         self._associator = JIPDAWithEHM2(self._hypothesiser)
 
         resampler = SystematicResampler()
-        phd_filter = SMCPHDFilter(birth_density=self.birth_density,
+        phd_filter = ISMCPHDFilter(birth_density=self.birth_density,
                                   transition_model=self.transition_model,
                                   measurement_model=self.measurement_model,
                                   prob_detect=self.prob_detect,
@@ -73,13 +75,26 @@ class SMCPHD_JIPDA(Base):
                                   resampler=resampler,
                                   birth_scheme=self.birth_scheme)
         # Sample prior state from birth density
-        state_vector = StateVectors(multivariate_normal.rvs(self.birth_density.state_vector.ravel(),
-                                                            self.birth_density.covar,
-                                                            size=self.num_samples).T)
-        weight = np.full((self.num_samples,), Probability(1 / self.num_samples))
+        if isinstance(self.birth_density, GaussianMixture):
+            state_vector = np.zeros((self.transition_model.ndim_state, 0))
+            particles_per_component = self.num_samples // len(self.birth_density)
+            for i, component in enumerate(self.birth_density):
+                if i == len(self.birth_density) - 1:
+                    particles_per_component += self.num_samples % len(self.birth_density)
+                particles_component = multivariate_normal.rvs(
+                    component.mean.ravel(),
+                    component.covar,
+                    particles_per_component).T
+                state_vector = np.hstack((state_vector, particles_component))
+            state_vector = StateVectors(state_vector)
+        else:
+            state_vector = StateVectors(multivariate_normal.rvs(self.birth_density.state_vector.ravel(),
+                                                                self.birth_density.covar,
+                                                                size=self.num_samples).T)
+        weight = np.full((self.num_samples,), Probability(1 / self.num_samples))*self.birth_rate
         state = ParticleState(state_vector=state_vector, weight=weight, timestamp=self.start_time)
 
-        self._initiator = SMCPHDInitiator(filter=phd_filter, prior=state)
+        self._initiator = ISMCPHDInitiator(filter=phd_filter, prior=state)
 
 
     @property
