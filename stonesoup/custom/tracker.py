@@ -11,7 +11,7 @@ from stonesoup.custom.initiator.smcphd import SMCPHDFilter, SMCPHDInitiator, ISM
 from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
 from stonesoup.functions import gm_reduce_single
 from stonesoup.gater.distance import DistanceGater
-from stonesoup.custom.hypothesiser.probability import IPDAHypothesiser
+from stonesoup.custom.hypothesiser.probability import PDAHypothesiser, IPDAHypothesiser
 from stonesoup.hypothesiser.distance import DistanceHypothesiser
 from stonesoup.measures import Mahalanobis
 from stonesoup.models.measurement import MeasurementModel
@@ -58,22 +58,22 @@ class SMCPHD_JIPDA(Base):
         self._hypothesiser = IPDAHypothesiser(self._predictor, self._updater,
                                               self.clutter_intensity,
                                               prob_detect=self.prob_detect,
-                                              prob_survive=1-self.prob_death)
+                                              prob_survive=1 - self.prob_death)
         self._hypothesiser = DistanceGater(self._hypothesiser, Mahalanobis(), 10)
         self._associator = JIPDAWithEHM2(self._hypothesiser)
 
         resampler = SystematicResampler()
         phd_filter = ISMCPHDFilter(birth_density=self.birth_density,
-                                  transition_model=self.transition_model,
-                                  measurement_model=self.measurement_model,
-                                  prob_detect=self.prob_detect,
-                                  prob_death=self.prob_death,
-                                  prob_birth=self.prob_birth,
-                                  birth_rate=self.birth_rate,
-                                  clutter_intensity=self.clutter_intensity,
-                                  num_samples=self.num_samples,
-                                  resampler=resampler,
-                                  birth_scheme=self.birth_scheme)
+                                   transition_model=self.transition_model,
+                                   measurement_model=self.measurement_model,
+                                   prob_detect=self.prob_detect,
+                                   prob_death=self.prob_death,
+                                   prob_birth=self.prob_birth,
+                                   birth_rate=self.birth_rate,
+                                   clutter_intensity=self.clutter_intensity,
+                                   num_samples=self.num_samples,
+                                   resampler=resampler,
+                                   birth_scheme=self.birth_scheme)
         # Sample prior state from birth density
         if isinstance(self.birth_density, GaussianMixture):
             state_vector = np.zeros((self.transition_model.ndim_state, 0))
@@ -88,14 +88,14 @@ class SMCPHD_JIPDA(Base):
                 state_vector = np.hstack((state_vector, particles_component))
             state_vector = StateVectors(state_vector)
         else:
-            state_vector = StateVectors(multivariate_normal.rvs(self.birth_density.state_vector.ravel(),
-                                                                self.birth_density.covar,
-                                                                size=self.num_samples).T)
-        weight = np.full((self.num_samples,), Probability(1 / self.num_samples))*self.birth_rate
+            state_vector = StateVectors(
+                multivariate_normal.rvs(self.birth_density.state_vector.ravel(),
+                                        self.birth_density.covar,
+                                        size=self.num_samples).T)
+        weight = np.full((self.num_samples,), Probability(1 / self.num_samples)) * self.birth_rate
         state = ParticleState(state_vector=state_vector, weight=weight, timestamp=self.start_time)
 
         self._initiator = ISMCPHDInitiator(filter=phd_filter, prior=state)
-
 
     @property
     def tracks(self):
@@ -217,42 +217,38 @@ class SMCPHD_IGNN(Base):
 
         self.prob_detect = self.prob_detection
 
-        if self.start_time is None:
-            self.start_time = datetime.now()
-
         self._tracks = set()
         self._predictor = KalmanPredictor(self.transition_model)
         self._updater = KalmanUpdater(self.measurement_model)
-        self._hypothesiser = IPDAHypothesiser(self._predictor, self._updater,
-                                              self.clutter_intensity,
-                                              prob_detect=self.prob_detect,
-                                              prob_survive=1-self.prob_death,
-                                              predict=False)
+        self._hypothesiser = PDAHypothesiser(self._predictor, self._updater,
+                                             self.clutter_intensity,
+                                             prob_detect=self.prob_detect)
         self._hypothesiser = DistanceHypothesiser(self._predictor, self._updater,
                                                   Mahalanobis(), 10)
         self._associator = GNNWith2DAssignment(self._hypothesiser)
 
         resampler = SystematicResampler()
-        phd_filter = SMCPHDFilter(birth_density=self.birth_density,
-                                  transition_model=self.transition_model,
-                                  measurement_model=self.measurement_model,
-                                  prob_detect=self.prob_detect,
-                                  prob_death=self.prob_death,
-                                  prob_birth=self.prob_birth,
-                                  birth_rate=self.birth_rate,
-                                  clutter_intensity=self.clutter_intensity,
-                                  num_samples=self.num_samples,
-                                  resampler=resampler,
-                                  birth_scheme=self.birth_scheme)
+        phd_filter = ISMCPHDFilter(birth_density=self.birth_density,
+                                   transition_model=self.transition_model,
+                                   measurement_model=self.measurement_model,
+                                   prob_detect=self.prob_detect,
+                                   prob_death=self.prob_death,
+                                   prob_birth=self.prob_birth,
+                                   birth_rate=self.birth_rate,
+                                   clutter_intensity=self.clutter_intensity,
+                                   num_samples=self.num_samples,
+                                   resampler=resampler,
+                                   birth_scheme=self.birth_scheme)
+
         # Sample prior state from birth density
-        state_vector = StateVectors(multivariate_normal.rvs(self.birth_density.state_vector.ravel(),
-                                                            self.birth_density.covar,
-                                                            size=self.num_samples).T)
+        state_vector = StateVectors(
+            multivariate_normal.rvs(self.birth_density.state_vector.ravel(),
+                                    self.birth_density.covar,
+                                    size=self.num_samples).T)
         weight = np.full((self.num_samples,), Probability(1 / self.num_samples))
         state = ParticleState(state_vector=state_vector, weight=weight, timestamp=self.start_time)
 
-        self._initiator = SMCPHDInitiator(filter=phd_filter, prior=state)
-
+        self._initiator = ISMCPHDInitiator(filter=phd_filter, prior=state)
 
     @property
     def tracks(self):
@@ -288,11 +284,11 @@ class SMCPHD_IGNN(Base):
         # Compute measurement weights
         rho = np.ones((len(detections)))
         for i, track in enumerate(tracks):
-            for hyp in associations[track]:
-                if hyp:
-                    j = next(d_i for d_i, detection in enumerate(detections)
-                             if hyp.measurement == detection)
-                    rho[j] = 0
+            hyp = associations[track]
+            if hyp:
+                j = next(d_i for d_i, detection in enumerate(detections)
+                         if hyp.measurement == detection)
+                rho[j] = 0
 
         # Update tracks
         for track, hypothesis in associations.items():
@@ -304,9 +300,10 @@ class SMCPHD_IGNN(Base):
             else:
                 time_interval = timestamp - track.timestamp
                 track.append(hypothesis.prediction)
-                non_exist_weight = 1 - track.exist_prob
                 prob_survive = np.exp(-self.prob_death * time_interval.total_seconds())
-                non_det_weight = prob_survive * track.exist_prob
+                track.exist_prob *= prob_survive
+                non_exist_weight = 1 - track.exist_prob
+                non_det_weight = (1-self.prob_detect(hypothesis.prediction.state_vector)) * track.exist_prob
                 track.exist_prob = non_det_weight / (non_exist_weight + non_det_weight)
 
         # Initiate new tracks
