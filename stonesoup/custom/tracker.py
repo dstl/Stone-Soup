@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from copy import copy
 from datetime import datetime, timezone
 
@@ -26,9 +27,7 @@ from stonesoup.types.update import GaussianStateUpdate
 from stonesoup.updater.kalman import KalmanUpdater
 
 
-class SMCPHD_JIPDA(Base):
-    """A JIPDA tracker using an SMC-PHD filter as the track initiator."""
-
+class _BaseTracker(Base):
     transition_model: TransitionModel = Property(doc='The transition model')
     measurement_model: MeasurementModel = Property(doc='The measurement model')
     prob_detection: Probability = Property(doc='The probability of detection')
@@ -49,10 +48,42 @@ class SMCPHD_JIPDA(Base):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
         self.prob_detect = self.prob_detection
-
         self._tracks = set()
+
+    @property
+    def tracks(self):
+        return self._tracks
+
+    @property
+    def prob_detect(self):
+        return self._prob_detect
+
+    @prob_detect.setter
+    def prob_detect(self, prob_detect):
+        if not callable(prob_detect):
+            prob_detect = copy(prob_detect)
+            self._prob_detect = lambda state: prob_detect
+        else:
+            self._prob_detect = copy(prob_detect)
+        if hasattr(self, '_hypothesiser'):
+            if hasattr(self._hypothesiser, 'hypothesiser'):
+                self._hypothesiser.hypothesiser.prob_detect = self._prob_detect
+            else:
+                self._hypothesiser.prob_detect = self._prob_detect
+        if hasattr(self, '_initiator'):
+            self._initiator.filter.prob_detect = self._prob_detect
+
+    @abstractmethod
+    def track(self, detections, timestamp, *args, **kwargs):
+        raise NotImplementedError
+
+
+class SMCPHD_JIPDA(_BaseTracker):
+    """A JIPDA tracker using an SMC-PHD filter as the track initiator."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._predictor = KalmanPredictor(self.transition_model)
         self._updater = KalmanUpdater(self.measurement_model)
         self._hypothesiser = IPDAHypothesiser(self._predictor, self._updater,
@@ -97,30 +128,7 @@ class SMCPHD_JIPDA(Base):
 
         self._initiator = ISMCPHDInitiator(filter=phd_filter, prior=state)
 
-    @property
-    def tracks(self):
-        return self._tracks
-
-    @property
-    def prob_detect(self):
-        return self._prob_detect
-
-    @prob_detect.setter
-    def prob_detect(self, prob_detect):
-        if not callable(prob_detect):
-            prob_detect = copy(prob_detect)
-            self._prob_detect = lambda state: prob_detect
-        else:
-            self._prob_detect = copy(prob_detect)
-        if hasattr(self, '_hypothesiser'):
-            if hasattr(self._hypothesiser, 'hypothesiser'):
-                self._hypothesiser.hypothesiser.prob_detect = self._prob_detect
-            else:
-                self._hypothesiser.prob_detect = self._prob_detect
-        if hasattr(self, '_initiator'):
-            self._initiator.filter.prob_detect = self._prob_detect
-
-    def track(self, detections, timestamp):
+    def track(self, detections, timestamp, *args, **kwargs):
         tracks = list(self.tracks)
         detections = list(detections)
         num_tracks = len(tracks)
@@ -191,33 +199,11 @@ class SMCPHD_JIPDA(Base):
         return self._tracks
 
 
-class SMCPHD_IGNN(Base):
+class SMCPHD_IGNN(_BaseTracker):
     """ A IGNN tracker using an SMC-PHD filter as the track initiator. """
-
-    transition_model: TransitionModel = Property(doc='The transition model')
-    measurement_model: MeasurementModel = Property(doc='The measurement model')
-    prob_detection: Probability = Property(doc='The probability of detection')
-    prob_death: Probability = Property(doc='The probability of death')
-    prob_birth: Probability = Property(doc='The probability of birth')
-    birth_rate: float = Property(
-        doc='The birth rate (i.e. number of new/born targets at each iteration(')
-    birth_density: State = Property(
-        doc='The birth density (i.e. density from which we sample birth particles)')
-    clutter_intensity: float = Property(doc='The clutter intensity per unit volume')
-    num_samples: int = Property(doc='The number of samples. Default is 1024', default=1024)
-    birth_scheme: str = Property(
-        doc='The scheme for birth particles. Options are "expansion" | "mixture". '
-            'Default is "expansion"',
-        default='expansion'
-    )
-    start_time: datetime = Property(doc='Start time of the tracker', default=None)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        self.prob_detect = self.prob_detection
-
-        self._tracks = set()
         self._predictor = KalmanPredictor(self.transition_model)
         self._updater = KalmanUpdater(self.measurement_model)
         self._hypothesiser = PDAHypothesiser(self._predictor, self._updater,
@@ -250,30 +236,7 @@ class SMCPHD_IGNN(Base):
 
         self._initiator = ISMCPHDInitiator(filter=phd_filter, prior=state)
 
-    @property
-    def tracks(self):
-        return self._tracks
-
-    @property
-    def prob_detect(self):
-        return self._prob_detect
-
-    @prob_detect.setter
-    def prob_detect(self, prob_detect):
-        if not callable(prob_detect):
-            prob_detect = copy(prob_detect)
-            self._prob_detect = lambda state: prob_detect
-        else:
-            self._prob_detect = copy(prob_detect)
-        if hasattr(self, '_hypothesiser'):
-            if hasattr(self._hypothesiser, 'hypothesiser'):
-                self._hypothesiser.hypothesiser.prob_detect = self._prob_detect
-            else:
-                self._hypothesiser.prob_detect = self._prob_detect
-        if hasattr(self, '_initiator'):
-            self._initiator.filter.prob_detect = self._prob_detect
-
-    def track(self, detections, timestamp):
+    def track(self, detections, timestamp, *args, **kwargs):
 
         tracks = list(self.tracks)
         detections = list(detections)
