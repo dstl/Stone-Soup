@@ -62,8 +62,8 @@ class _BaseTracker(Base):
     @prob_detect.setter
     def prob_detect(self, prob_detect):
         if not callable(prob_detect):
-            prob_detect = copy(prob_detect)
-            self._prob_detect = lambda state: prob_detect
+            self.prob_detection = prob_detect
+            self._prob_detect = self._prob_detect_simple
         else:
             self._prob_detect = copy(prob_detect)
         if hasattr(self, '_hypothesiser'):
@@ -78,6 +78,9 @@ class _BaseTracker(Base):
     def track(self, detections, timestamp, *args, **kwargs):
         raise NotImplementedError
 
+    def _prob_detect_simple(self, state_vector):
+        """A simple probability of detection function."""
+        return self.prob_detection
 
 class SMCPHD_JIPDA(_BaseTracker):
     """A JIPDA tracker using an SMC-PHD filter as the track initiator."""
