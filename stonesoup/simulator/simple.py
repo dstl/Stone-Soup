@@ -110,10 +110,12 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
             self.random_state = np.random.mtrand._rand
 
     def _new_target(self, time, random_state, state_vector=None):
-        vector = state_vector or \
-            self.initial_state.state_vector + \
-            self.initial_state.covar @ \
-            random_state.randn(self.initial_state.ndim, 1)
+        if state_vector is not None:
+            vector = state_vector
+        else:
+            vector = self.initial_state.state_vector + \
+                self.initial_state.covar @ \
+                random_state.randn(self.initial_state.ndim, 1)
 
         gttrack = GroundTruthPath()
         gttrack.append(GroundTruthState(

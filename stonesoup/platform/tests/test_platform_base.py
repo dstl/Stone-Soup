@@ -8,6 +8,7 @@ from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionM
     ConstantVelocity, KnownTurnRate
 from stonesoup.movable import FixedMovable, MovingMovable
 from stonesoup.sensor.sensor import Sensor
+from stonesoup.types.angle import Bearing
 from stonesoup.types.array import StateVector
 from stonesoup.platform import MovingPlatform, FixedPlatform, MultiTransitionMovingPlatform
 from ...types.state import State
@@ -649,7 +650,9 @@ def test_range_and_angles_to_other(first_state, second_state, expected_measureme
                                transition_model=None)
 
     range_, azimuth, elevation = platform1.range_and_angles_to_other(platform2)
-    assert np.allclose((elevation, azimuth, range_), expected_measurement[0:3])
+    # Assert difference close to zero, to handle angle wrapping (-pi == pi)
+    delta = np.array([elevation, Bearing(azimuth), range_]) - expected_measurement[0:3]
+    assert np.allclose(np.asfarray(delta), 0.0)
 
 
 # @pytest.mark.parametrize('platform_class', [FixedPlatform, MovingPlatform])

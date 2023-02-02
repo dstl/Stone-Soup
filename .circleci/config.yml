@@ -7,6 +7,7 @@ workflows:
       - test-38
       - test-39
       - test-310
+      - test-311
   docs:
     jobs:
       - docs
@@ -25,6 +26,7 @@ jobs:
             . venv/bin/activate
             pip install --upgrade pip
             pip install -e .[dev,reinforcement] opencv-python-headless
+
       - save_cache:
           paths:
             - ./venv
@@ -58,9 +60,13 @@ jobs:
     <<: *test-template
     docker:
       - image: cimg/python:3.10
+  test-311:
+    <<: *test-template
+    docker:
+      - image: cimg/python:3.11
   docs:
     docker:
-      - image: cimg/python:3.10
+      - image: cimg/python:3.11
     steps:
       - checkout
       - restore_cache:
@@ -73,6 +79,7 @@ jobs:
             pip install --upgrade pip
             pip install -r docs/ci-requirements.txt
             pip install -e .[dev,reinforcement] opencv-python-headless
+
       - save_cache:
           paths:
             - ./venv

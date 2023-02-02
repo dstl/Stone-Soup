@@ -133,8 +133,6 @@ print("The simulation produced:\n",
 # Create the Animation
 # --------------------
 from stonesoup.plotter import AnimationPlotter
-from matplotlib import pyplot as plt
-
 
 # %%
 # Create the plotter object and use the plot_# functions to assign the data to plot
@@ -146,15 +144,15 @@ plotter.plot_tracks(all_tracks, mapping=[0, 2])
 # %%
 # Run the Animation
 # -----------------
-# The times to refresh the animation are chosen to co-inside with the simulator times
-#
+# The following is needed to ensure that the animation is made playable via interactive
+# player in Jupyter Notebooks.
+import matplotlib
+matplotlib.rcParams['animation.html'] = 'jshtml'
+
+# %%
 # To avoid the figure becoming too cluttered with old information, states older than 60 seconds will
 # not be shown.
-times_to_plot = [start_time + x * groundtruth_sim.timestep
-                 for x in range(groundtruth_sim.number_steps)]
-
-ani = plotter.run(times_to_plot, plot_item_expiry=datetime.timedelta(seconds=60))
-plt.show()
+plotter.run(plot_item_expiry=datetime.timedelta(seconds=60))
 
 # %%
 # Save the Animation
@@ -162,12 +160,3 @@ plt.show()
 # Save the animation to a gif format. Other formats are available.
 plotter.save('example_animation.gif')
 
-# %%
-# Viewing the Animation in a Jupyter notebook
-# -------------------------------------------
-# The following section displays the animation when using a Jupyter notebook. This option is
-# commented out for the sphinx documentation to build properly. Uncomment `HTML(ani.to_jshtml())`
-# and `from IPython.display import HTML` to view the animation in a jupyter notebook
-
-# from IPython.display import HTML
-# HTML(ani.to_jshtml())
