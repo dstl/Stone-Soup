@@ -269,7 +269,7 @@ class SMCPHD_IGNN(_BaseTracker):
                 prob_survive = np.exp(-self.prob_death * time_interval.total_seconds())
                 track.exist_prob *= prob_survive
                 non_exist_weight = 1 - track.exist_prob
-                non_det_weight = (1-self.prob_detect(hypothesis.prediction.state_vector)) * track.exist_prob
+                non_det_weight = (1-self.prob_detect(hypothesis.prediction)) * track.exist_prob
                 track.exist_prob = non_det_weight / (non_exist_weight + non_det_weight)
 
         # Initiate new tracks
