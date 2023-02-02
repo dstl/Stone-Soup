@@ -114,6 +114,15 @@ class Architecture(Type):
     def node_set(self):
         return set(self.di_graph.nodes)
 
+    @property
+    def sensor_suite(self):
+        sensor_list = []
+        attr_set = set()  # Attributes for sensor management, I believe. To worry about later - OR
+        for node in self.node_set:
+            if isinstance(node, SensorNode):
+                sensor_list.append(node.sensor)
+        return SensorSuite(sensor_list, attr_set)
+
     def plot(self, dir_path, filename=None, use_positions=False, plot_title=False,
              bgcolour="lightgray", node_style="filled"):
         """Creates a pdf plot of the directed graph and displays it
