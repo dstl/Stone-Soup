@@ -16,25 +16,27 @@ try:
     from tf_agents.utils import common
 except ImportError as error:
     raise ImportError(
-        "Usage of reinforcement learning classes requires that the optional"
+        "Usage of reinforcement learning classes requires that the optional "
         "package dependency tf-agents[reverb] is installed. "
         "This can be achieved by running "
-        "'python -m pip install stonesoup[reinforcement]'."
-        "PLEASE NOTE: This RL implementation will only work on"
-        "Linux based OSes.") \
+        "'python -m pip install stonesoup[reinforcement]'. "
+        "PLEASE NOTE: This RL implementation will only work on "
+        "Linux based OSes, or via Windows Subsystem for Linux (WSL) (See "
+        "Tensorflow for how to set up environments on WSL).") \
         from error
 
 
 class BaseEnvironment(py_environment.PyEnvironment, ABC):
     """Base class for implementing tf-agents environments.
-    Environments must contain
-
+    Environments must contain __init__, _step, _reset, and generate_action methods.
     """
 
     def action_spec(self):
+        """Return action_spec."""
         return self._action_spec
 
     def observation_spec(self):
+        """Return observation_spec."""
         return self._observation_spec
 
 
@@ -45,12 +47,6 @@ class ReinforcementSensorManager(SensorManager):
     """
     env: BaseEnvironment = Property(doc="The environment which the agent learns the policy with.")
 
-    """
-    Things I need:
-        Work out reward functions in env
-        what to do for multiple sensors? MARL?
-    """
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.tf_env = tf_py_environment.TFPyEnvironment(self.env)
@@ -60,6 +56,22 @@ class ReinforcementSensorManager(SensorManager):
     @staticmethod
     def compute_avg_return(environment, policy, num_episodes=10):
         """Used to calculate the average reward over a set of episodes.
+
+        Parameters
+        ----------
+        environment:
+            tf-agents environment for evaluating policy on
+
+        policy:
+            tf-agents policy for choosing actions in environment
+
+        num_episodes: int
+            Number of episodes to sample over
+
+        Returns
+        -------
+        : int
+            average reward calculated over num_episodes
 
         """
         time_step = None
@@ -81,6 +93,15 @@ class ReinforcementSensorManager(SensorManager):
     @staticmethod
     def dense_layer(num_units):
         """Method for generating fully connected layers for use in the neural network.
+
+        Parameters
+        ----------
+        num_units: int
+            Number of nodes in dense layer
+
+        Returns
+        -------
+        : tensorflow dense layer
 
         """
         # Define a helper function to create Dense layers configured with the right

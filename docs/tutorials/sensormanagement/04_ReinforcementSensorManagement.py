@@ -50,8 +50,8 @@ from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 # The number of targets in this simulation is defined by `ntruths` - here there are 3 targets travelling in different
 # directions. The time the simulation is observed for is defined by `time_max`.
 #
-# We can fix our random number generator in order to probe a particular example repeatedly. This can be undone by
-# commenting out the first two lines in the next cell.
+# We can fix our random number generator in order to probe a particular example repeatedly. To produce random examples,
+# comment out the next two lines.
 
 np.random.seed(1990)
 random.seed(1990)
@@ -216,8 +216,6 @@ data_associator = GNNWith2DAssignment(hypothesiser)
 from stonesoup.sensormanager.reward import UncertaintyRewardFunction
 reward_function = UncertaintyRewardFunction(predictor=predictor, updater=updater)
 
-from ordered_set import OrderedSet
-
 
 # %%
 # Design Environment
@@ -242,6 +240,9 @@ import copy
 
 
 class StoneSoupEnv(BaseEnvironment):
+    """Example reinforcement learning environment. Environments must contain __init__, _reset,
+    _step, and generate_action methods
+    """
 
     def __init__(self):
         super().__init__()
@@ -262,6 +263,9 @@ class StoneSoupEnv(BaseEnvironment):
         self.tracks = copy.deepcopy(tracksA)
 
     def _reset(self):
+        """Restarts the environment from the first step, resets the initial state
+        and observation values, and returns an initial observation
+        """
         self._episode_ended = False
         self.current_step = 0
         self.sensor = copy.deepcopy(sensorA)
@@ -270,6 +274,8 @@ class StoneSoupEnv(BaseEnvironment):
         return ts.restart(np.zeros((self.obs_size,), dtype=np.float32))
 
     def _step(self, action):
+        """Apply action and take one step through environment, and return new time_step.
+        """
 
         reward = 0
         if self._episode_ended:
@@ -413,6 +419,7 @@ reinforcementsensormanager.train(hyper_parameters)
 # 'timesteps'.
 # These are distinct from the timesteps in Stonesoup, and is of the form time_step_spec from tf-agents.
 
+from ordered_set import OrderedSet
 from itertools import chain
 
 timesteps = []
