@@ -135,5 +135,22 @@ stitched_tracks = stitcher.stitch(all_tracks, start_time)
 
 
 def test_correct_no_stitched_tracks():
+    stitcher = TrackStitcher(forward_hypothesiser=hypothesiser)
+    stitched_tracks = stitcher.stitch(all_tracks, start_time)
     no_stitched_tracks = len(stitched_tracks)
+    assert no_stitched_tracks == 2
+
+
+def test_correct_no_stitched_tracks1():
+    stitcher1 = TrackStitcher(backward_hypothesiser=hypothesiser)
+    stitched_tracks1 = stitcher1.stitch(all_tracks, start_time)
+    no_stitched_tracks = len(stitched_tracks1)
+    assert no_stitched_tracks == 2
+
+
+def test_correct_no_stitched_tracks2():
+    stitcher2 = TrackStitcher(forward_hypothesiser=hypothesiser,
+                              backward_hypothesiser=hypothesiser)
+    stitched_tracks2 = stitcher2.stitch(all_tracks, start_time)
+    no_stitched_tracks = len(stitched_tracks2)
     assert no_stitched_tracks == 2
