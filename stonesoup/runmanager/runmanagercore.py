@@ -15,7 +15,6 @@ from datetime import datetime
 from stonesoup.serialise import YAML
 from .inputmanager import InputManager
 from .runmanagermetrics import RunmanagerMetrics
-from .runmanagerscheduler import RunManagerScheduler
 from .base import RunManager
 
 
@@ -41,8 +40,6 @@ class RunManagerCore(RunManager):
         "montecarlo": False,
         "nruns": None,
         "processes": None,
-        "slurm": None,
-        "output_dir": None,
         "node": ""
     }):
         """The init function for RunManagerCore, initiating the key settings to allow
@@ -78,14 +75,9 @@ class RunManagerCore(RunManager):
         self.dir = rm_args["dir"]
         self.nruns = rm_args["nruns"]
         self.nprocesses = rm_args["processes"]
-        self.slurm = rm_args["slurm"]
-        self.output_dir = rm_args["output_dir"]
-        self.node = rm_args["node"]
 
         if self.output_dir is None:
             self.output_dir = ""
-        if self.node is None:
-            self.node = ""
 
         self.total_trackers = 0
         self.current_run = 0
@@ -93,15 +85,6 @@ class RunManagerCore(RunManager):
 
         self.input_manager = InputManager()
         self.run_manager_metrics = RunmanagerMetrics()
-        # If using slurm hpc, setup scheduler here
-        if self.slurm:
-            info_logger.info("Slurm scheduler enabled.")
-            rm_args['slurm'] = None
-            if self.parameters_path:
-                rm_args['nruns'] = self.set_runs_number(self.nruns,
-                                                        self.read_json(self.parameters_path))
-            self.run_manager_scheduler = RunManagerScheduler(rm_args, info_logger)
-
         # logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
         # self.info_logger = self.setup_logger('self.info_logger', 'simulation_info.log')
         # self.info_logger.info(f'RunManagerCore started. {datetime.now()}')
@@ -233,51 +216,6 @@ class RunManagerCore(RunManager):
             # info_logger.error(f"{datetime.now()} {e}")
             print(f"{datetime.now()} No metrics exist for simulations. "
                   f"Failed to average simulations.")
-
-    def schedule_simulations(self, combo_dict, nprocesses):
-        """NOT YET USED. For when using slurm and there are multiple simulations in a single run,
-        the run manager will split the simulations into batches to be run as separate slurm jobs
-        in different nodes.
-
-        Parameters
-        ----------
-        combo_dict : list
-            The list of simulations to be split into batches
-        nprocesses: int
-            The number of processes to be used on each HPC compute node.
-        """
-        # Split generated parameter combinations into n_node batches
-        combo_dict_split = np.array_split(combo_dict, self.run_manager_scheduler.n_nodes)
-        combo_batch_i = 0
-        # For each node, run monte carlo simulations on a batch
-        for combo_dict_batch in combo_dict_split:
-            info_logger.info(f"Running parameter batch: {combo_batch_i+1}")
-            # Pickle this RunManager so it is the same instance
-            # for each batch/node and can pass same parameters
-            pickle_batch_params = pickle.dumps([self, combo_dict_batch, self.nruns,
-                                                nprocesses, self.config_path])
-            subprocess.run(
-                f'sbatch "#!/usr/bin/python3\
-                 from stonesoup.runmanager.runmanagercore import RunManagerCore as rmc;\
-                      rmc.load_batch_params(rmc, {pickle_batch_params})"', shell=True)
-            combo_batch_i += 1
-
-    @staticmethod
-    def load_batch_params(rmc, params):
-        """NOT YET USED. For when using slurm scheduling simulations, loads the batch parameters
-        with the same RunManager instance and prepares that batch for preparing monte-carlo
-        simulations.
-
-        Parameters
-        ----------
-        rmc : RunManagerCore
-            The instance of RunManagerCore to run the simulations with
-        params: list
-            The list of batch parameters to run for monte carlo simulations
-        """
-        params_list = pickle.loads(params)
-        rmc.prepare_monte_carlo_simulation(params_list[0], params_list[1], params_list[2],
-                                           params_list[3], params_list[4])
 
     def set_runs_number(self, nruns, json_data):
         """Sets the number of runs.

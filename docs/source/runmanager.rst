@@ -39,12 +39,6 @@ The following arguments are accepted.
   in the parameter JSON file. (*Default 1 run*)
 - ``-pc`` or ``--processes``: Number of CPU processing cores to use. This feature supersedes if
   ``num*proc`` is also set in the parameter JSON file. (*Default 1 core*)
-- ``--slurm`` or ``-s``: Slurm setting, set `True` if using a HPC and need to schedule RunManager
-  executions/jobs using slurm. (*Default is False*)
-- ``--slurm_dir`` or ``-sd``: Only used with slurm scheduler. Directory name to store all
-  RunManager output files and directories.
-- ``--node`` or ``-nd``: Optional. The name of the node/pc the RunManager is running on. Is
-  automatically set when slurm scheduling is used.
 
 The runmanager will work with 3 different options:
 
@@ -155,92 +149,6 @@ Log file
 
 The run manager will produce a ``simulation.log`` file at your root directory.
 This logs any errors which may occur in the runmanager.
-
-HPC/AWS functionality
----------------------
-
-The following sections provide an introduction to using the RunManager with Slurm.
-
-**1. Running the RunManager locally**
-
-Example command:
-  .. code::
-
-      python runmanager.py -c config.yaml -p param.json -g True -n 8 -pc 4
-
-You may want to run the RunManager locally first with less runs or not computationally intensive
-parameters to test your simulations first, in which case make sure to omit the ``-s`` flag or set
-it to False when running your command, as this flag expects slurm scheduling to be used when it
-is set to True. In the case where this has been left in and slurm is not install on your local
-machine, the simulation will fail and will output an error similar to
-  .. code::
-
-      `sbatch` is not recognized as an internal or external command, operable program or batch file.
-
-In another case where slurm is installed on your local machine and this flag is left as `True`,
-the simulation can still run without error and the RunManager will execute on the available
-nodes only, which will just be the local machine.
-
-**2. Running the RunManager on a compute cluster with Slurm scheduling:**
-
-Example command:
-  .. code::
-
-      python runmanager.py -c config.yaml -p param.json -g True -n 8 -pc 4 -s True
-
-When the ``-s`` flag is set to `True`, the RunManager will assume the user wishes to execute the
-command across a number of jobs on compute nodes that are scheduled and managed by Slurm.
-
-When the command is run with this flag set to `True`, the RunManager will prompt the user to
-input how many compute nodes they would like to use for the simulations.
-The RunManager will then only use this number of nodes during execution, even if there are
-other nodes available. If the user inputs too many nodes than there are available, the
-RunManager will only use the available nodes and Slurm will automatically schedule the
-remaining jobs until more nodes are free.
-The total number of runs will then be evenly divided across the number of
-compute nodes intended to be used. For example, if the user wants to execute 80 runs across
-4 nodes, each node will execute 20 runs. In cases where there is not an even division,
-some nodes may do 1 more run than others nodes.
-
-Here, the ``-n`` or ``--nruns`` flag substitutes the need for a user to set a job-array slurm
-command that would define how many times the command will be run.
-It is important to remember ``-n`` is the TOTAL number of runs you wish to do, not runs per node.
-
-The `RunManagerScheduler` will then create `n_node` number of new `RunManager` instances to run
-on each node.
-
-In order to organise the outputs of the slurm jobs, a new directory with the name pattern:
-``runmanager-slurm_YYYY_MM_DD_hh_mm_ss``
-which will contain the regular RunManager output directories for each node containing each
-simulation output for each run, as well as the slurm.out output files where the RunManager
-command line logs are written.
-
-All of the logs for the simulations on all nodes can be found in the ``simulation_info.log`` file
-the same way as local RunManager executions.
-
--- Example RunManager with Slurm workflow:
-- Setup
-1. Run run manager on a small set of runs locally to test the success of the simulations.
-2. Once the execution has been run locally and the user is happy with the simulation runs, login to HPC/AWS:
-   - e.g using ssh
-3. Make sure Stonesoup is installed with HPC ready version of Run Manager
-4. Make sure all configuration/parameter/csv files needed for the RunManager are on the HPC storage
-5. May want to check everything is okay by running the same local RunManager command on HPC/AWS (Optional)
-
-- Execution
-1. Run ``sinfo`` command to see information of available nodes and their types on the HPC
-2. Run the Run Manager from the top of the Stone-Soup directory with ``-s`` / ``--slurm`` flag set to True and ``-n`` / ``--nruns`` flag
-   set to the TOTAL number of runs you wish the Run Manager to execute. These runs will be split across the number of nodes
-   you wish to use.
-   - e.g  .. code::
-
-   python stonesoup/runmanager/runmanager.py -c config.yaml -p param.json -n 500 -s True
-
-3. The Run Manager will then ask the user for the number of nodes they wish to split the runs over. User must input a number.
-4. The Run Manager will then run the 'sbatch' command n_node number of times to create a new instance for each node and run
-   the split simulations in each node.
-5. All of the output for the executions across the nodes will be stored in a directory with the following pattern: ``runmanager-slurm_YYYY_MM_DD_hh_mm_ss``,
-   including the node.out files, simulation and run output files and metrics, tracking information and averages across runs for each node.
 
 Known Issues
 ------------
