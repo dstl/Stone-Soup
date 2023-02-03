@@ -1,7 +1,11 @@
+from functools import partial
 import math
 from typing import Set, List
 
 import numpy as np
+import pyproj
+from shapely.geometry import Point
+from shapely.ops import transform
 from matplotlib.path import Path
 from scipy.special import logsumexp
 from scipy.stats import multivariate_normal
@@ -429,3 +433,15 @@ def calculate_num_targets_dist(tracks: Set[Track], geom: BaseGeometry,
         var_overall += p_success * (1 - p_success)
 
     return mu_overall, var_overall
+
+
+def geodesic_point_buffer(lat, lon, km):
+    # Azimuthal equidistant projection
+    proj_wgs84 = pyproj.Proj('+proj=longlat +datum=WGS84')
+    aeqd_proj = '+proj=aeqd +lat_0={lat} +lon_0={lon} +x_0=0 +y_0=0'
+    project = partial(
+        pyproj.transform,
+        pyproj.Proj(aeqd_proj.format(lat=lat, lon=lon)),
+        proj_wgs84)
+    buf = Point(0, 0).buffer(km * 1000)  # distance in metres
+    return transform(project, buf)

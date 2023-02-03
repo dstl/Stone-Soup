@@ -10,7 +10,7 @@ from shapely.ops import unary_union
 
 from reactive_isr_core.data import TaskType
 from stonesoup.base import Property
-from stonesoup.custom.functions import calculate_num_targets_dist
+from stonesoup.custom.functions import calculate_num_targets_dist, geodesic_point_buffer
 from stonesoup.custom.tracker import SMCPHD_JIPDA
 from stonesoup.functions import gm_reduce_single
 from stonesoup.predictor.kalman import KalmanPredictor
@@ -279,9 +279,9 @@ class RolloutPriorityRewardFunction(RewardFunction):
                           for detection in sensor.measure(predicted_tracks, noise=False)
                           if isinstance(detection, TrueDetection)}
 
-            center = (sensor.position[0], sensor.position[1])
+            center = (sensor.position[1], sensor.position[0])
             radius = sensor.fov_radius
-            p = Point(center).buffer(radius)
+            p = geodesic_point_buffer(*center, radius)
             self.tracker.prob_detect = _prob_detect_func([p])
 
             associations = self.tracker._associator.associate(tracks_copy, detections, timestamp)
@@ -527,9 +527,9 @@ class RolloutPriorityRewardFunction2(RewardFunction):
                           for detection in sensor.measure(predicted_tracks, noise=False)
                           if isinstance(detection, TrueDetection)}
 
-            center = (sensor.position[0], sensor.position[1])
+            center = (sensor.position[1], sensor.position[0])
             radius = sensor.fov_radius
-            p = Point(center).buffer(radius)
+            p = geodesic_point_buffer(*center, radius)
             self.tracker.prob_detect = _prob_detect_func([p])
 
             associations = self.tracker._associator.associate(tracks_copy, detections, timestamp)
@@ -584,6 +584,7 @@ class RolloutPriorityRewardFunction2(RewardFunction):
             if rfi.task_type == TaskType.COUNT:
                 target_types = [t.target_type.value for t in rfi.targets]
                 _, var = calculate_num_targets_dist(tracks_copy, geom, target_types=target_types)
+
                 if var < rfi.threshold_over_time.threshold[0]:
                     # TODO: Need to select the priority
                     config_metric += rfi.priority_over_time.priority[0]
@@ -855,7 +856,7 @@ class RolloutPriorityRewardFunction3(RewardFunction):
         config_metric += np.max(rewards)
 
         return config_metric, var
-    
+
 
 def _prob_detect_func(fovs):
     """Closure to return the probability of detection function for a given environment scan"""

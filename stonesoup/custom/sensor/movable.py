@@ -91,7 +91,8 @@ class MovableUAVCamera(Sensor):
             measurement_vector = measurement_model.function(truth, noise=noise, **kwargs)
 
             if self.fov_in_km:
-                distance = geopy.distance.distance(self.position[0:2], measurement_vector[0:2]).km
+                distance = geopy.distance.distance(np.flip(self.position[0:2]),
+                                                   np.flip(measurement_vector[0:2])).km
             else:
                 # Normalise measurement vector relative to sensor position
                 norm_measurement_vector = measurement_vector.astype(float) - self.position.astype(
