@@ -52,7 +52,7 @@ class MovableUAVCamera(Sensor):
     )
     fov_in_km: bool = Property(
         doc="Whether the FOV radius is in kilo-meters or degrees",
-        default=False)
+        default=True)
 
     @location_x.setter
     def location_x(self, value):
