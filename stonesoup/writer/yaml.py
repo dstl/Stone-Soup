@@ -107,13 +107,23 @@ class YAMLConfigWriter(Writer):
     def write(self):
         if self.tracker is not None:
             self.data["tracker"] = self.tracker
+        else:
+            raise ValueError(
+                "Tracker object must be provided for the Run manager configuration file.")
         if self.groundtruths is not None:
             self.data["groundtruth"] = self.groundtruths
-        if self.detections is not None:
-            self.data["detections"] = self.detections
+        # if self.detections is not None:
+        #     self.data["detections"] = self.detections
         if self.metricmanager is not None:
             self.data["metric_manager"] = self.metricmanager
-        if self.kwargs:
-            for k in self.kwargs.keys():
-                self.data[k] = self.kwargs[k]
         self._yaml.dump(self.data, self._file)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        if getattr(self, '_file', None):
+            self._file.close()
+
+    def __del__(self):
+        self.__exit__()
