@@ -2,6 +2,7 @@ import datetime
 from typing import Union, List, Set
 
 import numpy as np
+import geopy.distance
 
 from stonesoup.base import Property
 from stonesoup.custom.sensor.action.location import LocationActionGenerator
@@ -89,16 +90,13 @@ class MovableUAVCamera(Sensor):
             # Transform state to measurement space and generate random noise
             measurement_vector = measurement_model.function(truth, noise=noise, **kwargs)
 
-            # Normalise measurement vector relative to sensor position
-            norm_measurement_vector = measurement_vector.astype(float) - self.position.astype(
-                float)
-
-            distance = np.linalg.norm(norm_measurement_vector[0:2])
-
             if self.fov_in_km:
-                # Note: this is a very approximate conversion, and does not take into account the
-                # curvature of the earth. Should be replaced with a more accurate check.
-                distance *= 110.574
+                distance = geopy.distance.distance(self.position[0:2], measurement_vector[0:2]).km
+            else:
+                # Normalise measurement vector relative to sensor position
+                norm_measurement_vector = measurement_vector.astype(float) - self.position.astype(
+                    float)
+                distance = np.linalg.norm(norm_measurement_vector[0:2])
 
             # Do not measure if state not in FOV
             if distance > self.fov_radius:
