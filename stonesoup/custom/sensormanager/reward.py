@@ -10,7 +10,7 @@ from shapely.ops import unary_union
 
 from reactive_isr_core.data import TaskType
 from stonesoup.base import Property
-from stonesoup.custom.functions import calculate_num_targets_dist, geodesic_point_buffer
+from stonesoup.custom.functions import calculate_num_targets_dist, geodesic_point_buffer, eval_rfi
 from stonesoup.custom.tracker import SMCPHD_JIPDA
 from stonesoup.functions import gm_reduce_single
 from stonesoup.predictor.kalman import KalmanPredictor
@@ -441,7 +441,7 @@ class RolloutPriorityRewardFunction2(RewardFunction):
             return 0
 
         # Reward value
-        end_time = metric_time + datetime.timedelta(seconds=self.timesteps)
+        end_time = metric_time + self.timesteps * self.interval
 
         # Reward value
         config_metric, updated_tracks, predicted_sensors = self._compute_metric(config, tracks,
@@ -450,7 +450,7 @@ class RolloutPriorityRewardFunction2(RewardFunction):
         if metric_time == end_time:
             return config_metric
 
-        timestamp = metric_time + datetime.timedelta(seconds=1)
+        timestamp = metric_time + self.interval
 
         all_action_choices = dict()
         for sensor in predicted_sensors:
@@ -568,36 +568,16 @@ class RolloutPriorityRewardFunction2(RewardFunction):
                     else:
                         time_interval = timestamp - track.timestamp
                         track.append(multihypothesis.prediction)
+                        prob_survive = np.exp(-self.tracker.prob_death * time_interval.total_seconds())
+                        track.exist_prob *= prob_survive
                         non_exist_weight = 1 - track.exist_prob
-                        prob_survive = np.exp(
-                            -self.tracker.prob_death * time_interval.total_seconds())
-                        non_det_weight = prob_survive * track.exist_prob
+                        non_det_weight = (1 - self.tracker.prob_detect(
+                            multihypothesis.prediction)) * track.exist_prob
                         track.exist_prob = non_det_weight / (non_exist_weight + non_det_weight)
-        var = np.inf
+
         for rfi in self.rfis:
-            xmin, ymin = rfi.region_of_interest.corners[0].longitude, \
-            rfi.region_of_interest.corners[0].latitude
-            xmax, ymax = rfi.region_of_interest.corners[1].longitude, \
-            rfi.region_of_interest.corners[1].latitude
-            geom = Polygon([(xmin, ymin), (xmax, ymin), (xmax, ymax), (xmin, ymax)])
-
-            if rfi.task_type == TaskType.COUNT:
-                target_types = [t.target_type.value for t in rfi.targets]
-                _, var = calculate_num_targets_dist(tracks_copy, geom, target_types=target_types)
-
-                if var < rfi.threshold_over_time.threshold[0]:
-                    # TODO: Need to select the priority
-                    config_metric += rfi.priority_over_time.priority[0]
-                    if self.use_variance:
-                        config_metric += 1 / var
-            elif rfi.task_type == TaskType.FOLLOW:
-                for target in rfi.targets:
-                    track = next((track for track in tracks_copy
-                                  if track.id == str(target.target_UUID)), None)
-                    if track is not None:
-                        var = track.covar[0, 0] + track.covar[2, 2]
-                        if var < rfi.threshold_over_time.threshold[0]:
-                            config_metric += rfi.priority_over_time.priority[0]
+            config_metric += eval_rfi(rfi, tracks_copy, predicted_sensors,
+                                      use_variance=self.use_variance)
 
         return config_metric, tracks_copy, predicted_sensors
 
@@ -632,7 +612,7 @@ class RolloutPriorityRewardFunction2(RewardFunction):
         if timestamp == end_time:
             return config_metric
 
-        timestamp = timestamp + datetime.timedelta(seconds=1)
+        timestamp += self.interval
 
         all_action_choices = dict()
         for sensor in predicted_sensors:
