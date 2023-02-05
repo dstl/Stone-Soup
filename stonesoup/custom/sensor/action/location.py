@@ -96,7 +96,8 @@ class LocationActionGenerator(RealNumberActionGenerator):
 
         possible_values = np.arange(self.min, self.max + self.resolution, self.resolution,
                                     dtype=float)
-
+        possible_values = np.append(possible_values, self.current_value)
+        possible_values.sort()
         return possible_values[0] <= item <= possible_values[-1]
 
     def __iter__(self) -> Iterator[ChangeLocationAction]:
@@ -115,6 +116,7 @@ class LocationActionGenerator(RealNumberActionGenerator):
         if value not in self:
             return None
         possible_values = np.arange(self.min, self.max + self.resolution, self.resolution, dtype=float)
+        possible_values = np.append(possible_values, self.current_value)
         angle = get_nearest(possible_values, value)
         return self._action_cls(generator=self,
                                 end_time=self.end_time,
