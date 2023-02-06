@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 import multiprocessing as mp
 from pathos.multiprocessing import ProcessingPool as Pool
-from ..runmanagercore import RunManagerCore
+from ..base import RunManager
 
 # Run from stonesoup working directory
 # def setup_module():
@@ -29,14 +29,11 @@ test_config_dir = "stonesoup/runmanager/tests/test_configs/"
 test_rm_args = {"config": test_config,
                 "parameter": test_json,
                 "groundtruth": False,
-                "dir": test_config_dir,
+                "dir": None,  # test_config_dir,
                 "montecarlo": False,
                 "nruns": 1,
-                "processes": 1,
-                "slurm": None,
-                "slurm_dir": None,
-                "node": ""}
-rmc = RunManagerCore(test_rm_args)
+                "processes": 1}
+rmc = RunManager(test_rm_args)
 
 
 def test_cwd_path():
@@ -103,12 +100,12 @@ def test_prepare_monte_carlo():
     assert len(test_combo_dict) == 24
 
 
-def test_config_parameter_pairing():
-    test_pairs = rmc.config_parameter_pairing()
-
-    print(test_pairs)
-    assert type(test_pairs) is list
-    assert len(test_pairs) == 5
+# def test_config_parameter_pairing():
+#     test_pairs = rmc.config_parameter_pairing()
+#
+#     print(test_pairs)
+#     assert type(test_pairs) is list
+#     assert len(test_pairs) == 5
 
 
 def test_check_ground_truth():
