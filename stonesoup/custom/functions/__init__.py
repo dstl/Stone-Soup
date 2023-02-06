@@ -495,11 +495,12 @@ def eval_rfi(rfi: RFI, tracks: Sequence[Track], sensors: Sequence[Sensor],
         elif mu_overall == 0 and var_overall == 0:
             aoi = 0
             for sensor in sensors:
-                center = (sensor.position[1], sensor.position[0])
-                radius = sensor.fov_radius
-                p = geodesic_point_buffer(*center, radius)
+                # center = (sensor.position[1], sensor.position[0])
+                # radius = sensor.fov_radius
+                # p = geodesic_point_buffer(*center, radius)
+                p = sensor.footprint
                 aoi = max([geom.intersection(p).area / geom.area, aoi])
-            config_metric += aoi
+            config_metric += aoi*rfi.priority_over_time.priority[0]
     elif rfi.task_type == TaskType.FOLLOW:
         for target in rfi.targets:
             track = next((track for track in tracks if track.id == str(target.target_UUID)), None)
@@ -510,9 +511,12 @@ def eval_rfi(rfi: RFI, tracks: Sequence[Track], sensors: Sequence[Sensor],
 
     return config_metric
 
+
+proj_wgs84 = pyproj.Proj('+proj=longlat +datum=WGS84')
+
+
 def geodesic_point_buffer(lat, lon, km):
     # Azimuthal equidistant projection
-    proj_wgs84 = pyproj.Proj('+proj=longlat +datum=WGS84')
     aeqd_proj = '+proj=aeqd +lat_0={lat} +lon_0={lon} +x_0=0 +y_0=0'
     project = partial(
         pyproj.transform,

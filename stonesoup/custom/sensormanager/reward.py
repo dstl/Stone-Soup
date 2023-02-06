@@ -524,9 +524,10 @@ class RolloutPriorityRewardFunction2(RewardFunction):
                           for detection in sensor.measure(predicted_tracks, noise=False)
                           if isinstance(detection, TrueDetection)}
 
-            center = (sensor.position[1], sensor.position[0])
-            radius = sensor.fov_radius
-            p = geodesic_point_buffer(*center, radius)
+            # center = (sensor.position[1], sensor.position[0])
+            # radius = sensor.fov_radius
+            # p = geodesic_point_buffer(*center, radius)
+            p = sensor.footprint
             self.tracker.prob_detect = _prob_detect_func([p])
 
             associations = self.tracker._associator.associate(tracks_copy, detections, timestamp)

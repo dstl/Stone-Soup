@@ -3,8 +3,10 @@ from typing import Union, List, Set
 
 import numpy as np
 import geopy.distance
+from shapely import Point
 
 from stonesoup.base import Property
+from stonesoup.custom.functions import geodesic_point_buffer
 from stonesoup.custom.sensor.action.location import LocationActionGenerator
 from stonesoup.models.clutter import ClutterModel
 from stonesoup.models.measurement.linear import LinearGaussian
@@ -55,6 +57,10 @@ class MovableUAVCamera(Sensor):
         doc="Whether the FOV radius is in kilo-meters or degrees",
         default=True)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._footprint = None
+
     @location_x.setter
     def location_x(self, value):
         self._property_location_x = value
@@ -80,6 +86,16 @@ class MovableUAVCamera(Sensor):
             mapping=self.mapping,
             noise_covar=self.noise_covar)
 
+    @property
+    def footprint(self):
+        if self._footprint is None:
+            self._footprint = geodesic_point_buffer(*np.flip(self.position[0:2]), self.fov_radius)
+        return self._footprint
+
+    def act(self, timestamp: datetime.datetime):
+        super().act(timestamp)
+        self._footprint = geodesic_point_buffer(*np.flip(self.position[0:2]), self.fov_radius)
+
     def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
                 **kwargs) -> Set[TrueDetection]:
 
@@ -91,17 +107,19 @@ class MovableUAVCamera(Sensor):
             measurement_vector = measurement_model.function(truth, noise=noise, **kwargs)
 
             if self.fov_in_km:
-                distance = geopy.distance.distance(np.flip(self.position[0:2]),
-                                                   np.flip(measurement_vector[0:2])).km
+                # distance = geopy.distance.distance(np.flip(self.position[0:2]),
+                #                                    np.flip(measurement_vector[0:2])).km
+                if not self._footprint.contains(Point(measurement_vector[0:2])):
+                    continue
             else:
                 # Normalise measurement vector relative to sensor position
                 norm_measurement_vector = measurement_vector.astype(float) - self.position.astype(
                     float)
                 distance = np.linalg.norm(norm_measurement_vector[0:2])
 
-            # Do not measure if state not in FOV
-            if distance > self.fov_radius:
-                continue
+                # Do not measure if state not in FOV
+                if distance > self.fov_radius:
+                    continue
 
             detection = TrueDetection(measurement_vector,
                                       measurement_model=measurement_model,
