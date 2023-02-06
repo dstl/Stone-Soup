@@ -1,5 +1,4 @@
 
-from .base import RunManager
 import numpy as np
 import itertools
 from stonesoup.types.array import StateVector, CovarianceMatrix
@@ -7,7 +6,7 @@ from stonesoup.types.numeric import Probability
 from datetime import datetime, timedelta
 
 
-class InputManager(RunManager):
+class InputManager:
     """
     The Input Manager is a component of the Run Manager that handles
     the inputs of parameters by setting the inputs to their correct
@@ -16,8 +15,7 @@ class InputManager(RunManager):
 
     Parameters
     ----------
-    Runmanager : Class
-        Run manager base class
+
     """
 
     @staticmethod
@@ -105,7 +103,10 @@ class InputManager(RunManager):
         Returns:
             bool: bool value
         """
-        raise NotImplementedError
+        if input_bool in [0, 1, True, False]:
+            return bool(input_bool)
+        else:
+            raise ValueError("input_bool must be of boolean type.")
 
     @staticmethod
     def set_ndArray(input_ndarray):

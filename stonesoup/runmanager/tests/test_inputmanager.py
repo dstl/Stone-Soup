@@ -1,3 +1,5 @@
+import pytest
+
 from stonesoup.types.numeric import Probability
 
 from stonesoup.types import array
@@ -87,8 +89,17 @@ def test_set_tuple():
 
 
 def test_set_bool():
-    # TODO
-    pass
+    test_input_bool1 = IManager.set_bool(True)
+    test_input_bool2 = IManager.set_bool(1)
+    test_input_bool3 = IManager.set_bool(False)
+    test_input_bool4 = IManager.set_bool(0)
+
+    assert type(test_input_bool1) is bool
+    assert type(test_input_bool2) is bool
+    assert type(test_input_bool3) is bool
+    assert type(test_input_bool4) is bool
+    with pytest.raises(ValueError, match="input_bool must be of boolean type."):
+        IManager.set_bool(0.5)
 
 
 def test_set_ndArray():
