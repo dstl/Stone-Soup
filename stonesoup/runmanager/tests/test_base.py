@@ -1,39 +1,43 @@
 import os
 from datetime import datetime
 import multiprocessing as mp
-from pathos.multiprocessing import ProcessingPool as Pool
+import pathos.multiprocessing
 from ..base import RunManager
-
-# Run from stonesoup working directory
-# def setup_module():
-#     while os.getcwd().split('\\')[-1] != 'stonesoup':
-#         os.chdir(os.path.dirname(os.getcwd()))
-
-# test_config = "stonesoup\\runmanager\\tests\\test_configs\\test_config_all.yaml"
-# test_config_nomm = "stonesoup\\runmanager\\tests\\test_configs\\test_config_nomm.yaml"
-# test_config_nogt = "stonesoup\\runmanager\\tests\\test_configs\\test_config_nogt.yaml"
-# test_config_trackeronly =
-# "stonesoup\\runmanager\\tests\\test_configs\\test_config_trackeronly.yaml"
-# test_json = "stonesoup\\runmanager\\tests\\test_configs\\dummy_parameters.json"
 
 
 test_config = "stonesoup/runmanager/tests/test_configs/test_config_all.yaml"
 test_config_nomm = "stonesoup/runmanager/tests/test_configs/test_config_nomm.yaml"
-test_config_nogt = "stonesoup/runmanager/tests/test_configs/test_config_nogt.yaml"
 test_config_trackeronly = "stonesoup/runmanager/tests/test_configs/test_config_trackeronly.yaml"
 test_json = "stonesoup/runmanager/tests/test_configs/dummy_parameters.json"
 test_json_no_run = "stonesoup/runmanager/tests/test_configs/dummy_parameters_no_run.json"
 
 test_config_dir = "stonesoup/runmanager/tests/test_configs/"
 
-test_rm_args = {"config": test_config,
-                "parameter": test_json,
-                "groundtruth": False,
-                "dir": None,  # test_config_dir,
-                "montecarlo": False,
-                "nruns": 1,
-                "processes": 1}
-rmc = RunManager(test_rm_args)
+test_rm_args0 = {"config": test_config,
+                 "parameters": test_json,
+                 "nruns": 1,
+                 "processes": 1}
+rmc = RunManager(test_rm_args0)
+
+test_rm_args1 = {"config": test_config_nomm,
+                 "parameters": test_json,
+                 "nruns": 1,
+                 "processes": 1}
+rmc_nomm = RunManager(test_rm_args1)
+
+test_rm_args2 = {"config": None,
+                 "parameters": None,
+                 "config_dir": test_config_dir,
+                 "nruns": 1,
+                 "processes": 1}
+rmc_config_dir = RunManager(test_rm_args2)
+
+test_rm_args3 = {"config": None,
+                 "parameters": None,
+                 "config_dir": test_config_dir+"test_wrong_order_dir/",
+                 "nruns": 1,
+                 "processes": 1}
+rmc_config_dir_w = RunManager(test_rm_args3)
 
 
 def test_cwd_path():
@@ -46,76 +50,85 @@ def test_read_json():
     assert type(test_json_data) is dict
 
 
-def test_set_runs_number_none():
+def test_set_runs_number_none(tmpdir):
+    rmc.output_dir = tmpdir
     test_json_data = rmc.read_json(test_json)
     test_nruns = rmc.set_runs_number(None, test_json_data)
     assert test_nruns == 4  # nruns set as 4 in dummy_parameters.json
 
 
-def test_set_runs_number_none_none():
+def test_set_runs_number_none_none(tmpdir):
+    rmc.output_dir = tmpdir
     test_json_data = rmc.read_json(test_json_no_run)
     test_nruns = rmc.set_runs_number(None, test_json_data)
     assert test_nruns == 1
 
 
-def test_set_runs_number_one():
+def test_set_runs_number_one(tmpdir):
+    rmc.output_dir = tmpdir
     test_json_data = rmc.read_json(test_json)
     test_nruns = rmc.set_runs_number(1, test_json_data)
     assert test_nruns == 1
 
 
-def test_set_runs_number_multiple():
+def test_set_runs_number_multiple(tmpdir):
+    rmc.output_dir = tmpdir
     test_json_data = rmc.read_json(test_json)
     test_nruns = rmc.set_runs_number(2, test_json_data)
     assert test_nruns == 2
 
 
-def test_set_processes_number_none():
+def test_set_processes_number_none(tmpdir):
+    rmc.output_dir = tmpdir
     test_json_data = rmc.read_json(test_json)
     test_nruns = rmc.set_processes_number(None, test_json_data)
     assert test_nruns == 1  # nprocesses set as 1 in dummy_parameters.json
 
 
-def test_set_processes_number_none_none():
+def test_set_processes_number_none_none(tmpdir):
+    rmc.output_dir = tmpdir
     test_json_data = rmc.read_json(test_json_no_run)
     test_nprocess = rmc.set_processes_number(None, test_json_data)
     assert test_nprocess == 1
 
 
-def test_set_processes_number_one():
+def test_set_processes_number_one(tmpdir):
+    rmc.output_dir = tmpdir
     test_json_data = rmc.read_json(test_json)
     test_nruns = rmc.set_processes_number(1, test_json_data)
     assert test_nruns == 1
 
 
-def test_set_processes_number_multiple():
+def test_set_processes_number_multiple(tmpdir):
+    rmc.output_dir = tmpdir
     test_json_data = rmc.read_json(test_json)
     test_nruns = rmc.set_processes_number(2, test_json_data)
     assert test_nruns == 2
 
 
-def test_prepare_monte_carlo():
+def test_prepare_monte_carlo(tmpdir):
+    rmc.output_dir = tmpdir
     test_json_data = rmc.read_json(test_json)
     test_combo_dict = rmc.prepare_monte_carlo(test_json_data)
     assert len(test_combo_dict) == 24
 
 
-# def test_config_parameter_pairing():
-#     test_pairs = rmc.config_parameter_pairing()
-#
-#     print(test_pairs)
-#     assert type(test_pairs) is list
-#     assert len(test_pairs) == 5
+def test_config_parameter_pairing(tmpdir):
+    rmc.output_dir = tmpdir
+    test_pairs = rmc.config_parameter_pairing()
+    assert type(test_pairs) is list
+    assert len(test_pairs) == 1
 
 
-def test_check_ground_truth():
+def test_check_ground_truth(tmpdir):
+    rmc.output_dir = tmpdir
     test_gt_no_path = {}
     test_check_gt_no_path = rmc.check_ground_truth(test_gt_no_path)
     assert test_check_gt_no_path == test_gt_no_path
 
 
-def test_set_trackers():
-
+def test_set_trackers(tmpdir):
+    rmc.output_dir = tmpdir
     test_combo = [{'SingleTargetTracker.initiator.initiator.prior_state.num_particles': 500},
                   {'SingleTargetTracker.initiator.initiator.prior_state.num_particles': 540},
                   {'SingleTargetTracker.initiator.initiator.prior_state.num_particles': 580},
@@ -124,7 +137,7 @@ def test_set_trackers():
                   {'SingleTargetTracker.initiator.initiator.prior_state.num_particles': 700}]
 
     with open(test_config, 'r') as file:
-        config_data = rmc.read_config_file(file)
+        config_data = rmc.read_config_file()
     file.close()
 
     tracker = config_data[rmc.TRACKER]
@@ -143,13 +156,13 @@ def test_set_trackers():
     assert "metricgenerator" in str(type(metric_managers[0]))
 
 
-def test_set_trackers_edge_cases():
-
+def test_set_trackers_edge_cases(tmpdir):
+    rmc.output_dir = tmpdir
     empty_combo = []
     combo_no_path = [{'abc': 0}]
 
     with open(test_config, 'r') as file:
-        config_data = rmc.read_config_file(file)
+        config_data = rmc.read_config_file()
     file.close()
 
     tracker = config_data[rmc.TRACKER]
@@ -178,10 +191,9 @@ def test_set_trackers_edge_cases():
     assert len(metric_managers) == 1
 
 
-def test_set_param():
-
-    with open(test_config, 'r') as file:
-        config_data = rmc.read_config_file(file)
+def test_set_param(tmpdir):
+    rmc.output_dir = tmpdir
+    config_data = rmc.read_config_file()
 
     tracker = config_data[rmc.TRACKER]
 
@@ -196,13 +208,13 @@ def test_set_param():
     assert tracker.initiator.initiator.prior_state.num_particles is test_value
 
 
-def test_set_param_edge_cases():
+def test_set_param_edge_cases(tmpdir):
+    rmc.output_dir = tmpdir
     empty_path = []
     one_path = ['a']
     test_value = 0
 
-    with open(test_config, 'r') as file:
-        config_data = rmc.read_config_file(file)
+    config_data = rmc.read_config_file()
 
     tracker = config_data[rmc.TRACKER]
     # Empty path
@@ -217,11 +229,10 @@ def test_set_param_edge_cases():
     assert tracker.a is test_value
 
 
-def test_read_config_file():
-
-    # Config with all tracker, grountruth, metric manager
-    with open(test_config, 'r') as file:
-        config_data = rmc.read_config_file(file)
+def test_read_config_file(tmpdir):
+    rmc.output_dir = tmpdir
+    # Config with all tracker, groundtruth, metric manager
+    config_data = rmc.read_config_file()
 
     tracker = config_data[rmc.TRACKER]
     gt = config_data[rmc.GROUNDTRUTH]
@@ -230,78 +241,57 @@ def test_read_config_file():
     assert "tracker" in str(type(tracker))
     assert gt == tracker.detector.groundtruth
     assert "metricgenerator" in str(type(mm))
-    file.close()
 
 
-def test_read_config_file_nomm():
+def test_read_config_file_nomm(tmpdir):
+    rmc.output_dir = tmpdir
+    config_data = rmc_nomm.read_config_file()
 
-    # Config with tracker and groundtruth but no metric manager
-    with open(test_config_nomm, 'r') as file:
-        config_data = rmc.read_config_file(file)
-
-    tracker = config_data[rmc.TRACKER]
-    gt = config_data[rmc.GROUNDTRUTH]
-    mm = config_data[rmc.METRIC_MANAGER]
+    tracker = config_data.get(rmc_nomm.TRACKER)
+    gt = config_data.get(rmc_nomm.GROUNDTRUTH)
+    mm = config_data.get(rmc_nomm.METRIC_MANAGER)
     assert "tracker" in str(type(tracker))
     assert gt == tracker.detector.groundtruth
     assert mm is None
-    file.close()
 
 
-def test_read_config_dir():
+def test_read_config_dir(tmpdir):
+    rmc.output_dir = tmpdir
     result = rmc.read_config_dir(test_config_dir)
     assert type(result) is list
 
 
-def test_read_config_dir_empty():
+def test_read_config_dir_empty(tmpdir):
+    rmc.output_dir = tmpdir
     result = rmc.read_config_dir('')
     assert result is None
 
 
-def test_get_filepaths():
+def test_get_filepaths(tmpdir):
+    rmc.output_dir = tmpdir
     file_path = rmc.get_filepaths(test_config_dir)
     assert type(file_path) is list
 
 
-def test_get_filepaths_empty():
+def test_get_filepaths_empty(tmpdir):
+    rmc.output_dir = tmpdir
     file_path = rmc.get_filepaths('')
     assert len(file_path) == 0
 
 
-# TODO this test
-def test_order_pairs():
-    pass
-
-
-def test_get_config_and_param_lists():
-    files = rmc.get_filepaths(test_config_dir)
-    pairs = rmc.get_config_and_param_lists(files)
-    print(pairs)
+def test_get_config_and_param_lists(tmpdir):
+    rmc.output_dir = tmpdir
+    pairs = rmc_config_dir.get_config_and_param_lists()
     assert type(pairs) is list
-    assert len(pairs) == 5
+    assert len(pairs) == 2
     assert len(pairs[0]) == 2
     assert 'stonesoup/runmanager/tests/test_configs/dummy_parameters.json' == (pairs[0][1])
     assert 'stonesoup/runmanager/tests/test_configs/dummy.yaml' in (pairs[0][0])
 
 
-def test_get_config_and_param_lists_wrong_order():
-    files = rmc.get_filepaths('stonesoup/runmanager/tests/test_configs/test_wrong_order_dir/')
-    pairs = rmc.get_config_and_param_lists(files)
-    print(pairs)
-    assert type(pairs) is list
-    assert len(pairs) == 2
-    assert len(pairs[0]) == 1
-    assert len(pairs[1]) == 2
-    assert ('stonesoup/runmanager/tests/test_configs' +
-            '/test_wrong_order_dir/dummy.yaml') == (pairs[0][0])
-    assert ('stonesoup/runmanager/tests/test_configs' +
-            '/test_wrong_order_dir/dummy1_parameters.json') == (pairs[1][1])
-    assert ('stonesoup/runmanager/tests/test_configs' +
-            '/test_wrong_order_dir/dummy1.yaml') == (pairs[1][0])
-
-
-def test_set_components():
-    config_data = rmc.set_components(test_config)
+def test_set_components(tmpdir):
+    rmc.output_dir = tmpdir
+    config_data = rmc.read_config_file()
 
     tracker = config_data[rmc.TRACKER]
     ground_truth = config_data[rmc.GROUNDTRUTH]
@@ -312,12 +302,13 @@ def test_set_components():
     assert "metricgenerator" in str(type(metric_manager))
 
 
-def test_set_components_no_mm():
-    config_data = rmc.set_components(test_config_nomm)
+def test_set_components_no_mm(tmpdir):
+    rmc.output_dir = tmpdir
+    config_data = rmc_nomm.read_config_file()
 
-    tracker = config_data[rmc.TRACKER]
-    ground_truth = config_data[rmc.GROUNDTRUTH]
-    metric_manager = config_data[rmc.METRIC_MANAGER]
+    tracker = config_data.get(rmc_nomm.TRACKER)
+    ground_truth = config_data.get(rmc_nomm.GROUNDTRUTH)
+    metric_manager = config_data.get(rmc_nomm.METRIC_MANAGER)
 
     assert "tracker" in str(type(tracker))
     assert ground_truth == tracker.detector.groundtruth
@@ -351,14 +342,15 @@ def test_multiprocess():
 
 
 def test_multiprocess_pool():
-    test_pool = Pool(mp.cpu_count())
+    test_pool = pathos.multiprocessing.ProcessingPool(mp.cpu_count())
 
     test_mp_result = test_pool.map(my_testmp_func, [2, 2, 3], [2, 3, 2])
     assert test_mp_result == [4, 8, 9]
 
 
 # TODO resolve logging error at end of tests
-def test_single_run():
+def test_single_run(tmpdir):
+    rmc.output_dir = tmpdir
     rmc.config_path = "stonesoup/runmanager/tests/test_configs/dummy.yaml"
     rmc.parameters_path = None
     rmc.nruns = None
@@ -366,7 +358,8 @@ def test_single_run():
     rmc.run()
 
 
-def test_single_run_multiprocess():
+def test_single_run_multiprocess(tmpdir):
+    rmc.output_dir = tmpdir
     rmc.config_path = "stonesoup/runmanager/tests/test_configs/dummy.yaml"
     rmc.parameters_path = None
     rmc.nruns = 2
@@ -379,7 +372,8 @@ def test_single_run_multiprocess():
 
 
 # #### Makes tests go on for a while
-def test_montecarlo_run():
+def test_montecarlo_run(tmpdir):
+    rmc.output_dir = tmpdir
     rmc.config_path = "stonesoup/runmanager/tests/test_configs/dummy.yaml"
     rmc.parameters_path = "stonesoup/runmanager/tests/test_configs/dummy_parameters.json"
     rmc.nruns = None
@@ -387,7 +381,8 @@ def test_montecarlo_run():
     rmc.run()
 
 
-def test_montecarlo_run_multiprocess():
+def test_montecarlo_run_multiprocess(tmpdir):
+    rmc.output_dir = tmpdir
     rmc.config_path = "stonesoup/runmanager/tests/test_configs/dummy.yaml"
     rmc.parameters_path = "stonesoup/runmanager/tests/test_configs/dummy_parameters.json"
     rmc.nruns = 1
@@ -399,7 +394,8 @@ def test_montecarlo_run_multiprocess():
         print("Couldn't run with multiprocessing: ", e)
 
 
-def test__no_file_run():
+def test__no_file_run(tmpdir):
+    rmc.output_dir = tmpdir
     rmc.config_path = None
     rmc.parameters_path = None
     rmc.dir = None
@@ -408,7 +404,8 @@ def test__no_file_run():
     rmc.run()
 
 
-def test_logging_failed():
+def test_logging_failed(tmpdir):
+    rmc.output_dir = tmpdir
     rmc.logging_failed_simulation(datetime.now(), "test error message")
 
 

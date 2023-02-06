@@ -3,9 +3,6 @@ import json
 import logging
 import time
 import glob
-# import numpy as np
-# import subprocess
-# import pickle
 
 import os
 import multiprocessing
@@ -80,10 +77,7 @@ class RunManager:
 
         self.input_manager = InputManager()
         self.run_manager_metrics = RunmanagerMetrics()
-        # logging.basicConfig(filename='simulation.log', encoding='utf-8', level=logging.INFO)
-        # self.info_logger = self.setup_logger('self.info_logger', 'simulation_info.log')
-        # self.info_logger.info(f'RunManagerCore started. {datetime.now()}')
-        info_logger.info(f'RunManagerCore started. {datetime.now()}')
+        info_logger.info(f'RunManager started. {datetime.now()}')
         info_logger.info(f'RunManager Output located in: {self.output_dir}')
 
     @staticmethod
@@ -119,7 +113,6 @@ class RunManager:
         else:
             pairs = self.config_parameter_pairing()
             if not pairs and not self.config_path:
-                # print(f"{datetime.now()} No files in current directory: {self.config_dir}")
                 info_logger.info(f"{datetime.now()} No files in " +
                                  f"current directory: {self.config_dir}")
 
@@ -208,7 +201,6 @@ class RunManager:
         except Exception as f:
             info_logger.error(f"{datetime.now()} No metrics exist for simulations. "
                               f"Failed to average simulations. {f}")
-            # info_logger.error(f"{datetime.now()} {e}")
             print(f"{datetime.now()} No metrics exist for simulations. "
                   f"Failed to average simulations.")
 
@@ -300,8 +292,7 @@ class RunManager:
         """
         pairs = []
         if self.config_dir:
-            paths = self.get_filepaths(self.config_dir)
-            pairs = self.get_config_and_param_lists(paths)
+            pairs = self.get_config_and_param_lists()
             if self.config_path and self.parameters_path:
                 if [self.config_path, self.parameters_path] not in pairs:
                     pairs.append((self.config_path, self.parameters_path))
@@ -466,7 +457,7 @@ class RunManager:
             if len(split_path) > 0:
                 setattr(el, split_path[0], value)
 
-    def read_config_file(self, config_file):
+    def read_config_file(self):
         """
         Reads and loads configuration data from given config.yaml file.
         If user has added a groundtruth or metric manager in the config file,
@@ -479,26 +470,25 @@ class RunManager:
         -------
         object dictionary with the loaded tracker, groundtruth and metric_manager
         """
-        # tracker, groundtruth, metric_manager = None, None, None
-
         try:
-            config_data = YAML(typ='safe').load(config_file.read())
-        except Exception as f:
-            info_logger.error(f"{datetime.now()} Failed to load config data: {f}")
+            with open(self.config_path, 'r') as file:
+                config_data = YAML(typ='safe').load(file.read())
+            file.close()
+        except Exception as er:
+            info_logger.error(f"{datetime.now()} Failed to load config data: {er}")
             config_data = {"tracker": None, "groundtruth": None, "metricmanager": None}
             exit()
         tracker = config_data.get("tracker")
         groundtruth = config_data.get("groundtruth")
-        metric_manager = config_data.get("metric_manager")
+        metric_manager = config_data.get("metricmanager")
 
         # Try to find groundtruth in tracker if not set
         if groundtruth is None:
             try:
                 groundtruth = tracker.detector.groundtruth
             except Exception as err:
-                print("Ground truth not found, error: ", err)
-                print("Check groundtruth is stored in the tracker in config file.")
-                pass
+                info_logger.error(f"Ground truth not found, error: {err}")
+                info_logger.error("Check groundtruth is stored in the tracker in config file.")
 
         return {self.TRACKER: tracker,
                 self.GROUNDTRUTH: groundtruth,
@@ -550,14 +540,9 @@ class RunManager:
                         file_paths.append(filepath)
         return file_paths
 
-    def get_config_and_param_lists(self, files):
+    def get_config_and_param_lists(self):
         """Matches the config file and parameter file by name and pairs them together
         within a list
-
-        Parameters
-        ----------
-        files : list
-            List of file paths
 
         Returns
         -------
@@ -565,90 +550,23 @@ class RunManager:
             List of file paths pair together
         """
 
-        pairs = []
-        paired = []
-        for file in files:
-            if file not in paired:
-                pair = self.search_pair(file, files)
-                if len(pair) > 0:
-                    pairs.append(pair)
-                    paired += pairs
-        # for file in files:
-        #     if not pair:
-        #         pair.append(file)
-        #     elif file.startswith(pair[0].split('.', 1)[0]) and file.endswith('json'):
-        #         pair.append(file)
-        #         pairs.append(pair)
-        #         pair = []
-        #     else:
-        #         pair = []
+        pairs = set()
+        files = self.get_filepaths(self.config_dir)
+        for search_file in files:
+            split = search_file.split(".", 1)
+            for file in files:
+                if search_file is not file:
+                    if split[1] == "json":
+                        json_split = split[0].split("_parameters")[0]
+                        if file == json_split + ".yaml":
+                            pairs.add((file, search_file))
+                    elif split[1] == "yaml":
+                        if file == split[1] + ".json" or file == split[1] + "_parameters.json":
+                            pairs.add((search_file, file))
+                    else:
+                        print("Error: File is not a configuration or parameter file.")
 
-        for idx, path in enumerate(pairs):
-            path = self.order_pairs(path)
-            pairs[idx] = path
-
-        return pairs
-
-    @staticmethod
-    def search_pair(search_file, files):
-        """Searches for a parameters.json file pair of a given config file
-        in a directory.
-
-        Parameters
-        --------
-        search_file : str
-            The configuration file name to find a parameter pair of
-        files :
-            The filenames in a directory to find a pair for the config file
-
-        Returns
-        --------
-        pair : list
-            The found config and parameter file pair in a list
-        """
-        pair = []
-        split = search_file.split(".", 1)
-
-        for file in files:
-            if ".json" in split[1]:
-                json_split = split[0].split("_parameters")[0]
-                if file == json_split+".yaml":
-                    pair.append(file)
-                    pair.append(search_file)
-            else:
-                if file == split[0]+"_parameters.json":
-                    pair.append(search_file)
-                    pair.append(file)
-
-        if search_file.endswith(".yaml"):
-            pair.append(search_file)
-
-        return pair
-
-    @staticmethod
-    def order_pairs(path):
-        """Orders the config and parameter pairs so that the config is
-        always the first argument in the list and parameter the second.
-
-        Parameters
-        ---------
-        path : list
-            The pair path to order
-
-        Returns
-        ---------
-        The ordered pair
-        """
-        if len(path) <= 1:
-            return path
-        if path[0].endswith('yaml'):
-            config_path = path[0]
-            param_path = path[1]
-        else:
-            config_path = path[1]
-            param_path = path[0]
-
-        return [config_path, param_path]
+        return sorted(list(pairs))
 
     def prepare_single_simulation(self):
         """Prepares a single simulation run by setting tracker,
@@ -660,8 +578,7 @@ class RunManager:
             now = datetime.now()
             dt_string = now.strftime("%Y_%m_%d_%H_%M_%S")
             self.config_starttime = dt_string
-            # dt_string = dt_string + self.node
-            components = self.set_components(self.config_path)
+            components = self.read_config_file()
             tracker = components[self.TRACKER]
             ground_truth = components[self.GROUNDTRUTH]
             metric_manager = components[self.METRIC_MANAGER]
@@ -681,7 +598,7 @@ class RunManager:
                     self.run_single_simulation(tracker, ground_truth, metric_manager,
                                                runs, dt_string)
                     # Each tracker object needs to be reset
-                    components = self.set_components(self.config_path)
+                    components = self.read_config_file()
                     tracker = components[self.TRACKER]
                     ground_truth = components[self.GROUNDTRUTH]
                     metric_manager = components[self.METRIC_MANAGER]
@@ -712,7 +629,6 @@ class RunManager:
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
         self.current_run = runs_num
 
-        # ground_truth = self.check_ground_truth(ground_truth)
         simulation_parameters = dict(
             tracker=tracker,
             ground_truth=ground_truth,
@@ -744,7 +660,7 @@ class RunManager:
             configuration path
         """
         # Load the tracker from the config file
-        config_data = self.set_components(config_path)
+        config_data = self.read_config_file()
         tracker = config_data[self.TRACKER]
         ground_truth = config_data[self.GROUNDTRUTH]
         metric_manager = config_data[self.METRIC_MANAGER]
@@ -756,7 +672,6 @@ class RunManager:
             now = datetime.now()
             dt_string = now.strftime("%Y_%m_%d_%H_%M_%S")
             self.config_starttime = dt_string
-            # dt_string = dt_string + self.node
             if nprocesses > 1:
                 # Run with multiprocess
                 pool = Pool(nprocesses)
@@ -778,7 +693,7 @@ class RunManager:
                         self.run_monte_carlo_simulation(trackers[idx], ground_truths[idx],
                                                         metric_managers[idx], dt_string,
                                                         combo_dict, idx, runs)
-                        config_data = self.set_components(config_path)
+                        config_data = self.read_config_file()
                         tracker = config_data[self.TRACKER]
                         ground_truth = config_data[self.GROUNDTRUTH]
                         metric_manager = config_data[self.METRIC_MANAGER]
@@ -812,7 +727,6 @@ class RunManager:
         path, config = os.path.split(self.config_path)
         dir_name = f"{self.output_dir}{config}_{dt_string}/" + \
             f"simulation_{idx}/run_{runs_num + 1}"
-        # self.run_manager_metrics.parameters_to_csv(dir_name, combo_dict[idx])
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
         simulation_parameters = dict(
             tracker=tracker,
@@ -832,37 +746,6 @@ class RunManager:
         self.parameter_details_log["Fail Status"] = fail_status
         self.run_manager_metrics.create_summary_csv(f"{self.output_dir}{config}_{dt_string}",
                                                     self.parameter_details_log)
-
-    def set_components(self, config_path):
-        """Sets the tracker, ground truth and metric manager to the correct variables
-        from the configuration file.
-
-        Parameters
-        ----------
-        config_path : str
-            path to configuration
-        Returns
-        -------
-        Object:
-            TRACKER: tracker,
-            GROUNDTRUTH: ground_truth,
-            METRIC_MANAGER: metric_manager
-        """
-        tracker, ground_truth, metric_manager = None, None, None
-        try:
-            with open(config_path, 'r') as file:
-                config_data = self.read_config_file(file)
-
-            tracker = config_data[self.TRACKER]
-            ground_truth = config_data[self.GROUNDTRUTH]
-            metric_manager = config_data[self.METRIC_MANAGER]
-        except Exception as er:
-            info_logger.error(f'Could not read config file: {er}')
-            exit()
-
-        return {self.TRACKER: tracker,
-                self.GROUNDTRUTH: ground_truth,
-                self.METRIC_MANAGER: metric_manager}
 
     def logging_starting(self, log_time):
         """Handles logging and output for messages regarding the start
