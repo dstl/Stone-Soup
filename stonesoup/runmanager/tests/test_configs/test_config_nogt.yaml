@@ -1,4 +1,4 @@
-- !stonesoup.tracker.simple.MultiTargetTracker
+tracker: !stonesoup.tracker.simple.MultiTargetTracker
   - initiator: !stonesoup.initiator.simple.MultiMeasurementInitiator
     - prior_state: &id003 !stonesoup.types.state.GaussianState
       - state_vector: !stonesoup.types.array.StateVector
@@ -84,7 +84,7 @@
     - clutter_rate: 1
   - data_associator: *id006
   - updater: *id002
-- !stonesoup.metricgenerator.manager.SimpleManager
+metricmanager: !stonesoup.metricgenerator.manager.SimpleManager
   - generators:
       - !stonesoup.metricgenerator.ospametric.OSPAMetric
         - p: 1

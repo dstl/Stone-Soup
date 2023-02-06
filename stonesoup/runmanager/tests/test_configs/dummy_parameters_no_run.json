@@ -9,7 +9,7 @@
                 0,
                 0
             ],
-            "path": "list[0].initiator.initiator.prior_state.state_vector",
+            "path": "tracker.initiator.initiator.prior_state.state_vector",
             "type": "StateVector",
             "value_max": [
                 1000,

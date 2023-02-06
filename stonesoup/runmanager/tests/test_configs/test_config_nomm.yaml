@@ -1,4 +1,4 @@
-- !stonesoup.tracker.simple.MultiTargetTracker
+tracker: !stonesoup.tracker.simple.MultiTargetTracker
   - initiator: !stonesoup.initiator.simple.MultiMeasurementInitiator
       - prior_state: !stonesoup.types.state.GaussianState &id003
           - state_vector: !stonesoup.types.array.StateVector
