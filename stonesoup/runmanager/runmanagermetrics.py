@@ -6,18 +6,18 @@ import json
 from stonesoup.types.array import CovarianceMatrix, StateVector
 from datetime import timedelta
 from stonesoup.serialise import YAML
-from .base import RunManager
 from datetime import datetime
 import pandas as pd
 import glob
 
 
-class RunmanagerMetrics(RunManager):
+class RunmanagerMetrics:
     """Class for generating metrics and storing simulation results and output data
     into csv files.
 
     """
-    def tracks_to_csv(self, dir_name, tracks, overwrite=False):
+    @staticmethod
+    def tracks_to_csv(dir_name, tracks, overwrite=False):
         """Create a csv file for the tracks. It will contain the following columns:
             time  |  id  |  state  |  mean  |  covar
 
@@ -84,7 +84,8 @@ class RunmanagerMetrics(RunManager):
         except Exception as e:
             print(f'{datetime.now()}: Failed to write to {filename}, {e}')
 
-    def create_metric_dict(self, metrics):
+    @staticmethod
+    def create_metric_dict(metrics):
         """Creates a dictionary of the metric values
 
         Parameters
@@ -107,7 +108,8 @@ class RunmanagerMetrics(RunManager):
                     metricDictionary["timestamp"].append(metric_line.timestamp)
         return metricDictionary
 
-    def detection_to_csv(self, dir_name, detections, overwrite=False):
+    @staticmethod
+    def detection_to_csv(dir_name, detections, overwrite=False):
         """Create a CSV file for the detections. It will contain the following columns:
             time  |  x  |  y
 
@@ -141,7 +143,8 @@ class RunmanagerMetrics(RunManager):
         except Exception as e:
             print(f'{datetime.now()}: Failed to write to {filename}, {e}')
 
-    def groundtruth_to_csv(self, dir_name, groundtruths, overwrite=False):
+    @staticmethod
+    def groundtruth_to_csv(dir_name, groundtruths, overwrite=False):
         """Create a CSV file for the groundtruth. It will contain the following columns:
             time  |  id  |  state
 
@@ -170,20 +173,21 @@ class RunmanagerMetrics(RunManager):
                 for gt in groundtruths:
                     try:
                         state = gt.state
-                    except Exception:
+                    except Exception as e:
                         state = gt
+                        print(f"gt.state not found: {e}")
                     try:
-                        id = gt.id
-                    except Exception:
-                        id = ""
-                    writer.writerow([state.timestamp, id,
+                        id_ = gt.id
+                    except Exception as e:
+                        id_ = ""
+                        print(f"gt.id not found: {e}")
+                    writer.writerow([state.timestamp, id_,
                                     ' '.join([str(n) for n in state.state_vector])])
 
-        except Exception:
-            pass
-            # print(f'{datetime.now()}: Failed to write to {filename}, {e}')
+        except Exception as e:
+            print(f'{datetime.now()}: Failed to write to {filename}, {e}')
 
-    def parameters_to_csv(self, dir_name, parameters, overwrite=False):
+    def parameters_to_csv(self, dir_name, parameters):
         """Create a CSV file for the parameters. It will contain the parameter name for each
         simulation.
 
@@ -193,8 +197,6 @@ class RunmanagerMetrics(RunManager):
             name of the directory where to create the config file
         parameters : dict
             Dictionary of parameter details for the simulation run
-        overwrite : bool, optional
-            overwrite the file, by default False
         """
         filename = "parameters.json"
         try:
@@ -207,9 +209,9 @@ class RunmanagerMetrics(RunManager):
         except Exception as e:
             print(f'{datetime.now()}: Failed to write to {filename}, {e}')
 
-    def generate_config(self, dir_name, tracker=None,
-                        groundtruth=None, metrics=None,
-                        overwrite=False):
+    @staticmethod
+    def generate_config(dir_name, tracker=None,
+                        groundtruth=None, metrics=None):
         """Creates a config.yaml file using the parameters you specified in the model.
 
         Parameters
@@ -222,8 +224,6 @@ class RunmanagerMetrics(RunManager):
             Stonesoup tracker object, by default None
         metrics : Metrics, optional
             Stone soup metrics object, by default None
-        overwrite : bool, optional
-            overwrite the file, by default False
         """
 
         data = [tracker, groundtruth, metrics]
@@ -236,7 +236,8 @@ class RunmanagerMetrics(RunManager):
         yaml.dump(data, f)
         f.close()
 
-    def write_params(self, parameters):
+    @staticmethod
+    def write_params(parameters):
         """Finds the correct parameters to print out to file for quick access
         to which parameters have been changed in the config.
 
@@ -263,7 +264,8 @@ class RunmanagerMetrics(RunManager):
             print(f'{datetime.now()}: failed to write parameters correctly. {e}')
         return parameters
 
-    def create_summary_csv(self, dir_name, run_info):
+    @staticmethod
+    def create_summary_csv(dir_name, run_info):
         filename = "tracking_log.csv"
         try:
             if not os.path.exists(dir_name):
@@ -282,7 +284,8 @@ class RunmanagerMetrics(RunManager):
         except Exception as e:
             print(e)
 
-    def average_simulations(self, dataframes, length_files):
+    @staticmethod
+    def average_simulations(dataframes, length_files):
         """Takes list of dataframes and averages them on cell level
 
         Parameters
@@ -331,7 +334,8 @@ class RunmanagerMetrics(RunManager):
 
         return summed_dataframe, len(all_files)
 
-    def batch_list(self, lst, n):
+    @staticmethod
+    def batch_list(lst, n):
         """ Splits list into batches/chunks to be used when memory issues arise with
         averaging large datasets.
 
