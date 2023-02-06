@@ -479,68 +479,26 @@ class RunManager:
         -------
         object dictionary with the loaded tracker, groundtruth and metric_manager
         """
-        print("file", type(config_file), config_file)
-        config_string = config_file.read()
-        print("str", type(config_string), config_string)
         # tracker, groundtruth, metric_manager = None, None, None
 
         try:
-            config_data = YAML(typ='safe').load(config_file)
+            config_data = YAML(typ='safe').load(config_file.read())
         except Exception as f:
             info_logger.error(f"{datetime.now()} Failed to load config data: {f}")
             config_data = {"tracker": None, "groundtruth": None, "metricmanager": None}
             exit()
-        print(type(config_data), config_data)
         tracker = config_data.get("tracker")
-
-        # If config has more than just tracker (len > 1)
-        #   If user has set flag for gt to be in config
-        #     Set gt = config_data[1]
-        #   Else set metric manager = config_data[1]
-        # If groundtruth is None
-        #   throw exception groundtruth not found
-
         groundtruth = config_data.get("groundtruth")
         metric_manager = config_data.get("metric_manager")
-        # if len(config_data) > 1:
-        #     if self.groundtruth_setting is True:
-        #         groundtruth = config_data[1]
-        #     else:
-        #         metric_manager = config_data[1]
-        # if len(config_data) > 2:
-        #     groundtruth = config_data[1]
-        #     metric_manager = config_data[len(config_data)-1]
 
         # Try to find groundtruth in tracker if not set
         if groundtruth is None:
             try:
                 groundtruth = tracker.detector.groundtruth
-            except Exception as e:
-                print("Ground truth not found, error: ", e)
+            except Exception as err:
+                print("Ground truth not found, error: ", err)
                 print("Check groundtruth is stored in the tracker in config file.")
                 pass
-
-        # User has set a flag to use the groundtruth added in config file
-        # if len(config_data) > 1:
-        #     if self.groundtruth_setting is True:
-        #         groundtruth = config_data[1]
-        #     else:
-        #         # Try to find groundtruth and metric manager if user has not flagged
-        #         try:
-        #             if len(config_data) > 2:
-        #                 groundtruth = config_data[1]
-        #                 metric_manager = config_data[len(config_data)-1]
-        #             else:
-        #                 # groundtruth = tracker.detector.groundtruth
-        #                 metric_manager = config_data[1]
-        #         except Exception as e:
-        #             print("Could not find groundtruth, error: ", e)
-        #             print("Check -g command is set to True and Groundtruth is in config file")
-        #             pass
-
-        # print("TRACKER: ", tracker)
-        # print("GROUNDTRUTH: ", groundtruth)
-        # print("METRIC MANAGER: : ", metric_manager)
 
         return {self.TRACKER: tracker,
                 self.GROUNDTRUTH: groundtruth,
