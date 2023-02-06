@@ -204,14 +204,15 @@ class SMCPHD_JIPDA(_BaseTracker):
 
 class SMCPHD_IGNN(_BaseTracker):
     """ A IGNN tracker using an SMC-PHD filter as the track initiator. """
-
+    predict = Property(bool, default=True, doc="Whether to predict tracks")
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._predictor = KalmanPredictor(self.transition_model)
         self._updater = KalmanUpdater(self.measurement_model)
         self._hypothesiser = PDAHypothesiser(self._predictor, self._updater,
                                              self.clutter_intensity,
-                                             prob_detect=self.prob_detect)
+                                             prob_detect=self.prob_detect,
+                                             predict=self.predict)
         self._hypothesiser = DistanceHypothesiser(self._predictor, self._updater,
                                                   Mahalanobis(), 10)
         self._associator = GNNWith2DAssignment(self._hypothesiser)

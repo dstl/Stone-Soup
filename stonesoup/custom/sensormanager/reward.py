@@ -513,12 +513,9 @@ class RolloutPriorityRewardFunction2(RewardFunction):
             predicted_track = copy.copy(track)
             predicted_track.append(
                 self.tracker._predictor.predict(predicted_track, timestamp=timestamp))
-            time_interval = timestamp - predicted_track.timestamp
-            prob_survive = np.exp(-self.tracker.prob_death * time_interval.total_seconds())
-            track.exist_prob = prob_survive * track.exist_prob
             predicted_tracks.add(predicted_track)
 
-        tracks_copy = [copy.copy(track) for track in tracks]
+        tracks_copy = [copy.copy(track) for track in predicted_tracks]
 
         for sensor in predicted_sensors:
 
@@ -566,7 +563,8 @@ class RolloutPriorityRewardFunction2(RewardFunction):
                         track.append(state_post)
                         track.exist_prob = Probability(1.)
                     else:
-                        time_interval = timestamp - track.timestamp
+                        timestamp_m1 = track.timestamp if self.tracker.predict else track[-2].timestamp
+                        time_interval = timestamp - timestamp_m1
                         track.append(multihypothesis.prediction)
                         prob_survive = np.exp(-self.tracker.prob_death * time_interval.total_seconds())
                         track.exist_prob *= prob_survive
