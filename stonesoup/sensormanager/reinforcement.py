@@ -119,7 +119,8 @@ class ReinforcementSensorManager(SensorManager):
         Parameters
         ----------
         hyper_parameters: dict
-            Dictionary containing hyperparameters used in training.
+            Dictionary containing hyperparameters used in training. See tutorial for
+            necessary hyperparameters.
 
         """
         if self.env is not None:
