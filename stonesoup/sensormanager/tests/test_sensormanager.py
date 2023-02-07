@@ -1,5 +1,6 @@
 import numpy as np
 from datetime import datetime, timedelta
+import pytest
 
 from ...types.array import StateVector
 from ...types.state import GaussianState
@@ -51,7 +52,8 @@ def test_random_choose_actions():
                 assert isinstance(actions[0], ChangeDwellAction)
 
 
-def test_uncertainty_based_managers():
+@pytest.mark.paramtetrize("method_sum", [True, False])
+def test_uncertainty_based_managers(method_sum):
     time_start = datetime.now()
 
     tracks = [Track(states=[
@@ -73,7 +75,7 @@ def test_uncertainty_based_managers():
                                                               ConstantVelocity(0.005)])
     predictor = KalmanPredictor(transition_model)
     updater = ExtendedKalmanUpdater(measurement_model=None)
-    reward_function = UncertaintyRewardFunction(predictor, updater)
+    reward_function = UncertaintyRewardFunction(predictor, updater, method_sum)
 
     all_dwell_centres = []
 
