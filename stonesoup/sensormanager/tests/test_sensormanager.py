@@ -418,7 +418,7 @@ def test_reinforcement_manager():
         timesteps.append(state.timestamp)
 
     tf_timestep = reinforcementsensormanager.test_env.reset()
-    assert tf_timestep[3] == np.array([[0., 0., 0.]], dtype=np.float32)
+    assert np.all(tf_timestep[3] == 0.)
 
     from tf_agents.trajectories.time_step import TimeStep
 
