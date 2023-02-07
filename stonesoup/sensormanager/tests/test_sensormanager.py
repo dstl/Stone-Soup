@@ -361,18 +361,18 @@ def test_reinforcement_manager():
                 return ts.transition(observation, reward=reward, discount=1.0)
 
         @staticmethod
-        def generate_action(action):
+        def generate_action(action, tracks, sensor):
             """This method is used to convert a tf-agents action into a Stone Soup action"""
-            for i, target in enumerate(tracksA):
+            for i, target in enumerate(tracks):
                 if i == action:
-                    x_target = target.state.state_vector[0] - sensorA.position[0]
-                    y_target = target.state.state_vector[2] - sensorA.position[1]
+                    x_target = target.state.state_vector[0] - sensor.position[0]
+                    y_target = target.state.state_vector[2] - sensor.position[1]
                     action_bearing = mod_bearing(np.arctan2(y_target, x_target))
 
-            action_generators = DwellActionsGenerator(sensorA,
+            action_generators = DwellActionsGenerator(sensor,
                                                       attribute='dwell_centre',
-                                                      start_time=sensorA.timestamp,
-                                                      end_time=sensorA.timestamp +
+                                                      start_time=sensor.timestamp,
+                                                      end_time=sensor.timestamp +
                                                       timedelta(seconds=1))
 
             current_action = [action_generators.action_from_value(action_bearing)]
