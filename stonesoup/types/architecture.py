@@ -28,13 +28,14 @@ class Node(Type):
     shape: str = Property(
         default=None,
         doc='Shape used to display nodes')
-    data_held: Dict[datetime: Union[Detection, Hypothesis]] = Property(
+    data_held: Dict[datetime, Union[Detection, Hypothesis]] = Property(
         default=None,
         doc='Data or information held by this node')
 
-    def __init__(self):
+    def __init__(self,*args, **kwargs):
+        super().__init__(*args, **kwargs)
         if not self.data_held:
-            self.data_held = []
+            self.data_held = dict()
 
     def update(self, time, data):
         if not isinstance(data, Detection) and not isinstance(data, Hypothesis):
@@ -264,7 +265,7 @@ class InformationArchitecture(Architecture):
                 raise TypeError("Information architecture should not contain any repeater nodes")
 
     def measure(self, ground_truths: Set[GroundTruthState], noise: Union[bool, np.ndarray] = True,
-                **kwargs) -> Dict[SensorNode: Union[TrueDetection, Clutter]]:
+                **kwargs) -> Dict[SensorNode, Union[TrueDetection, Clutter]]:
         """ Similar to the method for :class:`~.SensorSuite`. Updates each node. """
         all_detections = dict()
 
