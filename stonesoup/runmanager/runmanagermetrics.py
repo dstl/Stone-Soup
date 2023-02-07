@@ -11,7 +11,7 @@ import pandas as pd
 import glob
 
 
-class RunmanagerMetrics:
+class RunManagerMetrics:
     """Class for generating metrics and storing simulation results and output data
     into csv files.
 
@@ -193,7 +193,7 @@ class RunmanagerMetrics:
 
         Parameters
         ----------
-        dir_name : str
+        dir_name : Union[str, Path]
             name of the directory where to create the config file
         parameters : dict
             Dictionary of parameter details for the simulation run
@@ -216,7 +216,7 @@ class RunmanagerMetrics:
 
         Parameters
         ----------
-        dir_name : str
+        dir_name : Union[str, Path]
             name of the directory where to create the config file
         tracker : Tracker, optional
             Stonesoup tracker object, by default None

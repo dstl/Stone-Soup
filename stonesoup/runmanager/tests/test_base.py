@@ -407,8 +407,3 @@ def test__no_file_run(tmpdir):
 def test_logging_failed(tmpdir):
     rmc.output_dir = tmpdir
     rmc.logging_failed_simulation(datetime.now(), "test error message")
-
-
-# TODO: this test
-def test_setup_logger():
-    pass

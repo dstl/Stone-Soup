@@ -11,7 +11,7 @@ from pathos.multiprocessing import ProcessPool as Pool
 from datetime import datetime
 from stonesoup.serialise import YAML
 from .inputmanager import InputManager
-from .runmanagermetrics import RunmanagerMetrics
+from .runmanagermetrics import RunManagerMetrics
 
 
 class RunManager:
@@ -27,10 +27,8 @@ class RunManager:
     TRACKER = "tracker"
     GROUNDTRUTH = "ground_truth"
     METRIC_MANAGER = "metric_manager"
-    args = dict(config=None, parameters=None, config_dir=None, nruns=None,
-                montecarlo=False, n_processes=None, output_dir=None)
 
-    def __init__(self, rm_args=args):
+    def __init__(self, rm_args):
         """The init function for RunManagerCore, initiating the key settings to allow
         the running of simulations.
 
@@ -60,7 +58,7 @@ class RunManager:
         self.parameters_path = rm_args.get("parameters")
         self.config_dir = rm_args.get("config_dir")
         self.nruns = rm_args.get("nruns")
-        self.montecarlo = rm_args.get("montecarlo")  # Not implemented yet
+        # self.montecarlo = rm_args.get("montecarlo")  # Not implemented yet
         self.nprocesses = rm_args.get("n_processes")
         self.output_dir = rm_args.get("output_dir")
 
@@ -76,7 +74,7 @@ class RunManager:
         self.parameter_details_log = dict()
 
         self.input_manager = InputManager()
-        self.run_manager_metrics = RunmanagerMetrics()
+        self.run_manager_metrics = RunManagerMetrics()
         info_logger.info(f'RunManager started. {datetime.now()}')
         info_logger.info(f'RunManager Output located in: {self.output_dir}')
 
@@ -131,7 +129,7 @@ class RunManager:
                     nprocesses = self.set_processes_number(self.nprocesses, json_data)
                     combo_dict = self.prepare_monte_carlo(json_data)
                     self.prepare_monte_carlo_simulation(combo_dict, self.nruns,
-                                                        nprocesses, self.config_path)
+                                                        nprocesses)
                 self.average_metrics()
                 self.total_trackers = 0
 
@@ -209,9 +207,9 @@ class RunManager:
 
         Parameters
         ----------
-        nruns : int
+        nruns : Optional[int]
             number of run from the terminal
-        json_data : object
+        json_data : Optional[dict]
             json parameter object
 
         Returns
@@ -238,9 +236,9 @@ class RunManager:
 
         Parameters
         ----------
-        nprocess : int
+        nprocess : Optional[int]
             number of process from the terminal
-        json_data : object
+        json_data : Optional[dict]
             json parameter object
 
         Returns
@@ -360,11 +358,11 @@ class RunManager:
                 else:
                     metric_status = "Not Applicable"
                     info_logger.error("No Metric Manager provided in Config file.")
-            except Exception as e:
+            except Exception as err:
                 os.rename(dir_name, dir_name + "_!FAILED")
-                fail_status = e
+                fail_status = err
                 metric_status = "Failed"
-                self.logging_failed_simulation(log_time, e)
+                self.logging_failed_simulation(log_time, err)
 
             self.logging_success(log_time)
             tracker_status = "Success"
@@ -443,11 +441,11 @@ class RunManager:
 
         Parameters
         ----------
-        split_path : str
+        split_path : Union[str, list]
             path to object attribute
         el : str
             tracker
-        value : str
+        value : Union[str, int]
             attribute value
         """
         if len(split_path) > 1:
@@ -603,9 +601,9 @@ class RunManager:
                     ground_truth = components[self.GROUNDTRUTH]
                     metric_manager = components[self.METRIC_MANAGER]
 
-        except Exception as e:
-            print(f'{datetime.now()} Preparing simulation error: {e}')
-            info_logger.error(f'Could not run simulation. error: {e}')
+        except Exception as err:
+            print(f'{datetime.now()} Preparing simulation error: {err}')
+            info_logger.error(f'Could not run simulation. error: {err}')
 
     def run_single_simulation(self, tracker, ground_truth, metric_manager, runs_num, dt_string):
         """Finalising setting current run parameters for a single simulation and then
@@ -644,7 +642,7 @@ class RunManager:
         self.run_manager_metrics.create_summary_csv(f"{self.output_dir}{config}_{dt_string}",
                                                     self.parameter_details_log)
 
-    def prepare_monte_carlo_simulation(self, combo_dict, nruns, nprocesses, config_path):
+    def prepare_monte_carlo_simulation(self, combo_dict, nruns, nprocesses):
         """Prepares multiple trackers for simulation run and run a multi-processor or a single
         processor simulation
 
@@ -656,8 +654,6 @@ class RunManager:
             Number of monte-carlo runs
         nprocesses : int
             Number of processor to be used
-        config_path : string
-            configuration path
         """
         # Load the tracker from the config file
         config_data = self.read_config_file()
@@ -694,12 +690,12 @@ class RunManager:
                                                         metric_managers[idx], dt_string,
                                                         combo_dict, idx, runs)
                         config_data = self.read_config_file()
-                        tracker = config_data[self.TRACKER]
-                        ground_truth = config_data[self.GROUNDTRUTH]
-                        metric_manager = config_data[self.METRIC_MANAGER]
+                        tracker = config_data.get(self.TRACKER)
+                        ground_truth = config_data.get(self.GROUNDTRUTH)
+                        metric_manager = config_data.get(self.METRIC_MANAGER)
 
-        except Exception as e:
-            info_logger.error(f'Could not run simulation. error: {e}')
+        except Exception as err:
+            info_logger.error(f'Could not run simulation. error: {err}')
 
     def run_monte_carlo_simulation(self, tracker, ground_truth, metric_manager,
                                    dt_string, combo_dict, idx, runs_num):
@@ -782,7 +778,7 @@ class RunManager:
             info_logger.info(f"Successfully ran monte-carlo {self.current_run + 1} /"
                              f" {self.nruns} in {datetime.now() - log_time}")
 
-    def logging_failed_simulation(self, log_time, e):
+    def logging_failed_simulation(self, log_time, error):
         """Handles logging and output for messages regarding failed simulation
         runs.
 
@@ -790,7 +786,7 @@ class RunManager:
         ----------
         log_time : datetime
             timestamp of log information
-        e : error
+        error : error
             error generated from exception
         """
         if self.total_trackers > 1:
@@ -798,20 +794,20 @@ class RunManager:
                              f" {self.total_trackers} and monte-carlo"
                              f" {self.current_run} / {self.nruns}"
                              f" in {datetime.now() - log_time}")
-            info_logger.exception(f"{e}")
+            info_logger.exception(f"{error}")
 
             print(f"Failed to run Simulation {self.current_trackers + 1} /"
                   f" {self.total_trackers} and monte-carlo"
                   f" {self.current_run} / {self.nruns}"
                   f" in {datetime.now() - log_time}")
-            print(f"{e}")
+            print(f"{error}")
 
         else:
             info_logger.error(f"Failed to run Monte-Carlo"
                               f" {self.current_run + 1} / {self.nruns}")
-            info_logger.exception(f"{e}")
+            info_logger.exception(f"{error}")
             print(f"{datetime.now()}: Failed to run Monte-Carlo"
-                  f" {self.current_run + 1} / {self.nruns}: {e}")
+                  f" {self.current_run + 1} / {self.nruns}: {error}")
 
     @staticmethod
     def logging_metric_manager_fail(error):
@@ -824,6 +820,8 @@ def setup_logger(name, log_file, level=logging.INFO):
 
     Parameters
     ----------
+    name : str
+        name of logger
     log_file : str
         file name
     level : logging, optional
