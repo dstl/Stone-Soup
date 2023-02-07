@@ -238,6 +238,7 @@ from tf_agents.environments import utils
 from stonesoup.sensor.action.dwell_action import DwellActionsGenerator
 from stonesoup.functions import mod_bearing
 import copy
+from ordered_set import OrderedSet
 
 
 class StoneSoupEnv(BaseEnvironment):
@@ -420,7 +421,6 @@ reinforcementsensormanager.train(hyper_parameters)
 # 'timesteps'.
 # These are distinct from the timesteps in Stonesoup, and is of the form time_step_spec from tf-agents.
 
-from ordered_set import OrderedSet
 from itertools import chain
 
 timesteps = []
