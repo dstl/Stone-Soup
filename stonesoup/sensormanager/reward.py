@@ -57,6 +57,9 @@ class UncertaintyRewardFunction(RewardFunction):
     predictor: KalmanPredictor = Property(doc="Predictor used to predict the track to a new state")
     updater: ExtendedKalmanUpdater = Property(doc="Updater used to update "
                                                   "the track to the new state.")
+    method_sum: bool = Property(default=True, doc="Determines method of calculating reward."
+                                                  "Default calculates sum across all targets."
+                                                  "Otherwise calculates mean of all targets.")
 
     def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: Set[Track],
                  metric_time: datetime.datetime, *args, **kwargs):
@@ -123,6 +126,10 @@ class UncertaintyRewardFunction(RewardFunction):
                 # for the configuration
                 metric = previous_cov_norm - update_cov_norm
                 config_metric += metric
+
+            if self.method_sum is False and len(detections) != 0:
+
+                config_metric /= len(detections)
 
         # Return value of configuration metric
         return config_metric
