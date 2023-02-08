@@ -1,5 +1,6 @@
-from stonesoup.runmanager.base import RunManager, info_logger
 import argparse
+
+from ..runmanager.base import RunManager, info_logger
 
 
 def manage_if(arg):

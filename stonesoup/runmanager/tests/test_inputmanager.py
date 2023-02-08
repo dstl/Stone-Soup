@@ -1,11 +1,9 @@
-import pytest
-
-from stonesoup.types.numeric import Probability
-
-from stonesoup.types import array
 import numpy as np
+import pytest
 from datetime import datetime, timedelta
 
+from ...types import array
+from ...types.numeric import Probability
 from ..inputmanager import InputManager
 
 IManager = InputManager()

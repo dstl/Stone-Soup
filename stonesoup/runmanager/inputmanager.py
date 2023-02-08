@@ -1,9 +1,8 @@
-
 import numpy as np
 import itertools
-from stonesoup.types.array import StateVector, CovarianceMatrix
-from stonesoup.types.numeric import Probability
-from datetime import datetime, timedelta
+
+from ..types.array import StateVector, CovarianceMatrix
+from ..types.numeric import Probability
 
 
 class InputManager:

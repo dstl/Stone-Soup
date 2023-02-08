@@ -1,5 +1,6 @@
-# import pandas as pd
 # import glob
+#
+# import pandas as pd
 #
 # """Python functions which will allow you to enter a directory of simulations and average the
 #  results. This is typically already done automatically with the run manager however, may be

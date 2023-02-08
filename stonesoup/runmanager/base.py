@@ -1,15 +1,15 @@
 import copy
+import glob
 import json
 import logging
-import time
-import glob
-
-import os
 import multiprocessing
+import os
+import time
+from datetime import datetime
 
 from pathos.multiprocessing import ProcessPool as Pool
-from datetime import datetime
-from stonesoup.serialise import YAML
+
+from ..serialise import YAML
 from .inputmanager import InputManager
 from .runmanagermetrics import RunManagerMetrics
 

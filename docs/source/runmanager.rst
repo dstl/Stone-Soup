@@ -13,8 +13,6 @@ configurations & parameters.
 
 Set Up
 ------
-**Requires pathos module to work. This is a dependency for the multiprocessing feature.
-(BSD LICENSE)**
 
 To use the runmanager you must make a copy of the runmanager.py folder in the directory you
 wish to run from i.e your root folder.

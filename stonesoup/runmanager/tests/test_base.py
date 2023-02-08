@@ -1,9 +1,10 @@
+import multiprocessing as mp
 import os
 from datetime import datetime
-import multiprocessing as mp
-import pathos.multiprocessing
-from ..base import RunManager
 
+import pathos.multiprocessing
+
+from ..base import RunManager
 
 test_config = "stonesoup/runmanager/tests/test_configs/test_config_all.yaml"
 test_config_nomm = "stonesoup/runmanager/tests/test_configs/test_config_nomm.yaml"

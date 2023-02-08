@@ -1,14 +1,14 @@
-
-import os
 import csv
-from itertools import chain
-import json
-from stonesoup.types.array import CovarianceMatrix, StateVector
-from datetime import timedelta
-from stonesoup.serialise import YAML
-from datetime import datetime
-import pandas as pd
 import glob
+import json
+import os
+from datetime import datetime, timedelta
+from itertools import chain
+
+import pandas as pd
+
+from ..serialise import YAML
+from ..types.array import CovarianceMatrix, StateVector
 
 
 class RunManagerMetrics:
