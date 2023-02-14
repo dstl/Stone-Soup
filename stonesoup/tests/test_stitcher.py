@@ -129,9 +129,6 @@ transition_model = CombinedLinearGaussianTransitionModel(
 
 predictor = KalmanPredictor(transition_model)
 hypothesiser = DistanceHypothesiser(predictor, updater, Mahalanobis(), missed_distance=300)
-stitcher = TrackStitcher(forward_hypothesiser=hypothesiser)
-
-stitched_tracks = stitcher.stitch(all_tracks, start_time)
 
 
 def test_correct_no_stitched_tracks():
