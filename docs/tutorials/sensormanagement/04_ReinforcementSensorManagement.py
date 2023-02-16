@@ -448,7 +448,7 @@ for timestep in timesteps[1:]:
     observation = np.array(uncertainty, dtype=np.float32)
     # observation = np.array(observation, dtype=np.float32)
 
-    chosen_actions = reinforcementsensormanager.choose_actions(tracksA, sensorA, tf_timestep)
+    chosen_actions = reinforcementsensormanager.choose_actions(tracksA, [sensorA], tf_timestep)
 
     # Create empty dictionary for measurements
     measurementsA = []
