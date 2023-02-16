@@ -18,6 +18,7 @@ class TrackStitcher(Base):
         doc="Forward predicting hypothesiser.", default=None)
     backward_hypothesiser: Hypothesiser = Property(
         doc="Backward predicting hypothesiser.", default=None)
+    search_window: timedelta = Property(default=timedelta(seconds=30))
 
     @staticmethod
     @lru_cache()
@@ -55,9 +56,9 @@ class TrackStitcher(Base):
             poss_detections = set()
             for track in tracks:
                 timestamp = start_time + timedelta(seconds=n)
-                if track[-1].timestamp < timestamp:
+                if (timestamp - self.search_window) <= track[-1].timestamp < timestamp:
                     poss_tracks.append(track)
-                if track[0].timestamp == timestamp:
+                if timestamp < track[0].timestamp <= (timestamp + timedelta(seconds=1)):
                     poss_detections.add(self._extract_detection(track))
             if not poss_detections:
                 continue
@@ -82,9 +83,9 @@ class TrackStitcher(Base):
             poss_detections = set()
             for track in tracks:
                 timestamp = start_time + timedelta(seconds=n)
-                if track[0].timestamp > timestamp:
+                if timestamp > track[0].timestamp >= (timestamp + self.search_window):
                     poss_tracks.append(track)
-                if track[-1].timestamp == timestamp:
+                if (timestamp - timedelta(seconds=1)) < track[-1].timestamp <= timestamp:
                     poss_detections.add(self._extract_detection(track, backward=True))
                 if not poss_detections:
                     continue
@@ -222,4 +223,4 @@ class TrackStitcher(Base):
                 tracks.remove(track)
             tracks.add(Track(x))
 
-        return tracks
+        return tracks, combo
