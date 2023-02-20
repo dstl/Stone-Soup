@@ -192,7 +192,7 @@ class MultiTargetTracker(Tracker):
     ----------
     """
     initiator: Initiator = Property(doc="Initiator used to initialise the track.")
-    deleter: Deleter = Property(doc="Initiator used to initialise the track.")
+    deleter: Deleter = Property(doc="Deleter used to delete tracks.")
     detector: DetectionReader = Property(doc="Detector used to generate detection objects.")
     data_associator: DataAssociator = Property(
         doc="Association algorithm to pair predictions to detections")
