@@ -215,12 +215,15 @@ class TrackStitcher(Base):
                 continue
 
         tracks = set(tracks)
+        stitched_track_map = dict()
         for ids in combo:
             x = []
             for a in ids:
                 track = self._get_track(a, tracks)
                 x = x + track.states
                 tracks.remove(track)
-            tracks.add(Track(x))
+            new_track = Track(x)
+            tracks.add(new_track)
+            stitched_track_map[new_track.id] = ids
 
-        return tracks, combo
+        return tracks, stitched_track_map
