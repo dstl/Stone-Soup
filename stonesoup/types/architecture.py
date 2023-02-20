@@ -1,17 +1,25 @@
 from abc import abstractmethod
-from ..base import Property
+from ..base import Property, Base
 from .base import Type
 from ..sensor.sensor import Sensor
 from ..types.groundtruth import GroundTruthState
 from ..types.detection import TrueDetection, Clutter, Detection
 from ..types.hypothesis import Hypothesis
+from ..types.track import Track
+from ..hypothesiser.base import Hypothesiser
+from ..hypothesiser.probability import PDAHypothesiser
+from ..predictor.base import Predictor
+from ..updater.base import Updater
+from ..dataassociator.base import DataAssociator
+from ..initiator.base import Initiator
+from ..deleter.base import Deleter
 
 from typing import List, Collection, Tuple, Set, Union, Dict
 import numpy as np
 import networkx as nx
 import graphviz
 from string import ascii_uppercase as auc
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 class Node(Type):
@@ -28,22 +36,27 @@ class Node(Type):
     shape: str = Property(
         default=None,
         doc='Shape used to display nodes')
-    data_held: Dict[datetime, Union[Detection, Hypothesis]] = Property(
+    data_held: Dict[datetime, Set[Detection]] = Property(
         default=None,
-        doc='Data or information held by this node')
+        doc='Raw sensor data (Detection objects) held by this node')
+    hypotheses_held: Dict[Track, Dict[datetime, Set[Hypothesis]]] = Property(
+        default=None,
+        doc='Processed information (Hypothesis objects) held by this node')
 
-    def __init__(self,*args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not self.data_held:
             self.data_held = dict()
 
     def update(self, time, data):
-        if not isinstance(data, Detection) and not isinstance(data, Hypothesis):
-            raise TypeError("Data must be a Detection or Hypothesis")
         if not isinstance(time, datetime):
             raise TypeError("Time must be a datetime object")
-        if data not in self.data_held:
-            self.data_held[time] = data
+        if not isinstance(data, Detection):
+            raise TypeError("Data provided without Track must be a Detection")
+        if time in self.data_held:
+            self.data_held[time].add(data)
+        else:
+            self.data_held[time] = {data}
 
 
 class SensorNode(Node):
@@ -60,13 +73,95 @@ class SensorNode(Node):
 
 class ProcessingNode(Node):
     """A node that does not measure new data, but does process data it receives"""
-    # Latency property could go here
+    predictor: Predictor = Property(
+        doc="The predictor used by this node. ")
+    updater: Updater = Property(
+        doc="The updater used by this node. ")
+    hypothesiser: Hypothesiser = Property(
+        doc="The hypothesiser used by this node. ")
+    data_associator: DataAssociator = Property(
+        doc="The data associator used by this node. ")
+    initiator: Initiator = Property(
+        doc="The initiator used by this node")
+    deleter: Deleter = Property(
+        doc="The deleter used by this node")
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not self.colour:
             self.colour = '#006400'
         if not self.shape:
             self.shape = 'hexagon'
+
+        self.processed_data = dict()  # Subset of data_held containing data that has been processed
+        self.unprocessed_data = dict()  # Data that has not been processed yet
+        self.processed_hypotheses = dict()  # Dict[track: Dict[datetime, Set[Hypothesis]]]
+        self.unprocessed_hypotheses = dict()  # Hypotheses which have not yet been used
+        self.tracks = {}  # Set of tracks this Node has recorded
+
+    def process(self):
+        for time in self.unprocessed_data:
+            detections = self.unprocessed_data[time]
+            detect_hypotheses = self.data_associator.associate(self.tracks, detections, time)
+
+            associated_detections = set()
+            for track in self.tracks:
+                detect_hypothesis = detect_hypotheses[track]
+                try:
+                    track_hypotheses = self.unprocessed_hypotheses[track][time]
+                    hypothesis = mean_combine({detect_hypothesis} + track_hypotheses, time)
+                except KeyError:  # If there aren't any, use the one we have from our detections
+                    hypothesis = detect_hypothesis
+
+                if hypothesis.measurement:
+                    post = self.updater.update(hypothesis)
+                    track.append(post)
+                    associated_detections.add(hypothesis.measurement)
+                else:  # Keep prediction
+                    track.append(hypothesis.prediction)
+
+                # Create or delete tracks
+                self.tracks -= self.deleter.delete_tracks(self.tracks)
+                self.tracks |= self.initiator.initiate(
+                    detections - associated_detections, time)
+
+        # Send the unprocessed data that was just processed to processed_data
+        for time in self.unprocessed_data:
+            for data in self.unprocessed_data[time]:
+                if time in self.processed_data:
+                    self.processed_data[time].add(data)
+                else:
+                    self.processed_data[time] = {data}
+        # And same for hypotheses. We must ensure that we create sets before adding to them
+        for track in self.unprocessed_hypotheses:
+            for time in self.unprocessed_hypotheses[track]:
+                for data in self.unprocessed_hypotheses[track][time]:
+                    if track in self.processed_hypotheses:
+                        if time in self.processed_hypotheses[track]:
+                            self.processed_hypotheses[track][time].add(data)
+                        else:
+                            self.hypotheses_held[track][time] = {data}
+                    else:
+                        self.hypotheses_held[track] = {time: data}
+        self.unprocessed_data = []
+        self.unprocessed_hypotheses = []
+        return
+
+    def update(self, time, data, track=None):
+        if not track:
+            super().update(time, data)
+        else:
+            if not isinstance(time, datetime):
+                raise TypeError("Time must be a datetime object")
+            if not isinstance(data, Hypothesis):
+                raise TypeError("Data provided with Track must be a Hypothesis")
+            if track in self.hypotheses_held:
+                if time in self.hypotheses_held[track]:
+                    self.hypotheses_held[track][time].add(data)
+                else:
+                    self.hypotheses_held[track][time] = {data}
+            else:
+                self.hypotheses_held[track] = {time: {data}}
 
 
 class SensorProcessingNode(SensorNode, ProcessingNode):
@@ -133,7 +228,8 @@ class Architecture(Type):
                              "if you wish to override this requirement")
 
         # Set attributes such as label, colour, shape, etc for each node
-        last_letters = {'SensorNode': '', 'ProcessingNode': '', 'RepeaterNode': ''}
+        last_letters = {'SensorNode': '', 'ProcessingNode': '', 'SensorProcessingNode': '',
+                        'RepeaterNode': ''}
         for node in self.di_graph.nodes:
             if node.label:
                 label = node.label
@@ -175,11 +271,19 @@ class Architecture(Type):
 
     @property
     def sensor_nodes(self):
-        sensors = set()
+        sensor_nodes = set()
         for node in self.all_nodes:
             if isinstance(node, SensorNode):
-                sensors.add(node.sensor)
-        return sensors
+                sensor_nodes.add(node)
+        return sensor_nodes
+
+    @property
+    def processing_nodes(self):
+        processing = set()
+        for node in self.all_nodes:
+            if isinstance(node, ProcessingNode):
+                processing.add(node)
+        return processing
 
     def plot(self, dir_path, filename=None, use_positions=False, plot_title=False,
              bgcolour="lightgray", node_style="filled"):
@@ -274,11 +378,15 @@ class InformationArchitecture(Architecture):
             all_detections[sensor_node] = sensor_node.sensor.measure(ground_truths, noise,
                                                                      **kwargs)
 
-            attributes_dict = {attribute_name: sensor_node.sensor.__getattribute__(attribute_name)
-                               for attribute_name in self.attributes_inform}
+            # Borrowed below from SensorSuite. I don't think it's necessary, but might be something
+            # we need. If so, will need to define self.attributes_inform
 
-            for detection in all_detections[sensor_node]:
-                detection.metadata.update(attributes_dict)
+            # attributes_dict = \
+            # {attribute_name: sensor_node.sensor.__getattribute__(attribute_name)
+            #                    for attribute_name in self.attributes_inform}
+            #
+            # for detection in all_detections[sensor_node]:
+            #     detection.metadata.update(attributes_dict)
 
             for data in all_detections[sensor_node]:
                 # The sensor acquires its own data instantly
@@ -286,17 +394,26 @@ class InformationArchitecture(Architecture):
 
         return all_detections
 
-    def propagate(self, time_increment: float, failed_edges: Collection = None):
+    def propagate(self, time_increment: float, failed_edges: Collection = []):
         """Performs a single step of the propagation of the measurements through the network"""
-        self.current_time += datetime.timedelta(seconds=time_increment)
+        self.current_time += timedelta(seconds=time_increment)
         for node in self.all_nodes:
             for descendant in self.descendants(node):
                 if (node, descendant) in failed_edges:
                     # The network architecture / some outside factor prevents information from node
                     # being transferred to other
                     continue
-                for data in node.data_held:
-                    descendant.update(self.current_time, data)
+                if node.data_held:
+                    for time in node.data_held:
+                        for data in node.data_held[time]:
+                            descendant.update(time, data)
+                if node.hypotheses_held:
+                    for track in node.hypotheses_held:
+                        for time in node.hypotheses_held[track]:
+                            for data in node.hypotheses_held[track][time]:
+                                descendant.update(time, data, track)
+        for node in self.processing_nodes:
+            node.process()
 
 
 class NetworkArchitecture(Architecture):
@@ -356,3 +473,28 @@ def _default_letters(type_letters) -> str:
     letters_list[-1 - count] = auc[auc.index(current_letter) + 1]
     new_letters = ''.join(letters_list)
     return new_letters
+
+
+def mean_combine(objects: List, current_time: datetime = None):
+    """Combine a list of objects of the same type by averaging all numbers"""
+    this_type = type(objects[0])
+    if any(type(obj) is not this_type for obj in objects):
+        raise TypeError("Objects must be of identical type")
+
+    new_values = dict()
+    for name in type(objects[0]).properties:
+        value = getattr(objects[0], name)
+        if isinstance(value, (int, float, complex)) and not isinstance(value, bool):
+            # average em all
+            new_values[name] = np.mean([getattr(obj, name) for obj in objects])
+        elif isinstance(value, datetime):
+            # Take the input time, as we likely want the current simulation time
+            new_values[name] = current_time
+        elif isinstance(value, Base):  # if it's a Stone Soup object
+            # recurse
+            new_values[name] = mean_combine([getattr(obj, name) for obj in objects])
+        else:
+            # just take 1st value
+            new_values[name] = getattr(objects[0], name)
+
+        return this_type.__init__(**new_values)
