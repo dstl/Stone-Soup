@@ -23,6 +23,13 @@ from ..types.update import Update
 from ..updater import Updater
 
 
+from .neighbour import NearestNeighbour
+from .neighbour import GlobalNearestNeighbour
+from .neighbour import GNNWith2DAssignment
+from .probability import PDA
+from .probability import JPDA
+
+
 class DetectionKDTreeMixIn(Base):
     """Detection kd-tree based mixin
 
@@ -235,3 +242,53 @@ class TPRTreeMixIn(Base):
         return {track: self.hypothesiser.hypothesise(
             track, track_detections[track], timestamp, **kwargs)
             for track in tracks}
+
+
+class DetectionKDTreeNN(DetectionKDTreeMixIn, NearestNeighbour):
+    '''DetectionKDTreeNN from NearestNeighbour and DetectionKDTreeMixIn'''
+    pass
+
+
+class DetectionKDTreeGNN(DetectionKDTreeMixIn, GlobalNearestNeighbour):
+    '''DetectionKDTreeGNN from GlobalNearestNeighbour and DetectionKDTreeMixIn'''
+    pass
+
+
+class DetectionKDTreeGNN2D(DetectionKDTreeMixIn, GNNWith2DAssignment):
+    '''DetectionKDTreeGNN2D from GNNWith2DAssignment and DetectionKDTreeMixIn'''
+    pass
+
+
+class TPRTreeNN(TPRTreeMixIn, NearestNeighbour):
+    '''TPRTreeNN from NearestNeighbour and TPRTreeMixIn'''
+    pass
+
+
+class TPRTreeGNN(TPRTreeMixIn, GlobalNearestNeighbour):
+    '''TPRTreeGNN from GlobalNearestNeighbour and TPRTreeMixIn'''
+    pass
+
+
+class TPRTreeGNN2D(TPRTreeMixIn, GNNWith2DAssignment):
+    '''TPRTreeGNN2D from GNNWith2DAssignment and TPRTreeMixIn'''
+    pass
+
+
+class KDTreePDA(DetectionKDTreeMixIn, PDA):
+    '''KDTreePDA from PDA and DetectionKDTreeMixin'''
+    pass
+
+
+class KDTreeJPDA(DetectionKDTreeMixIn, JPDA):
+    '''KDTreeJPDA from JPDA and DetectionKDTreeMixin'''
+    pass
+
+
+class TPRTreePDA(TPRTreeMixIn, PDA):
+    '''TPRTreePDA from PDA and TPRTreeMixIn'''
+    pass
+
+
+class TPRTreeJPDA(TPRTreeMixIn, JPDA):
+    '''TPRTreeJPDA from JPDA and TPRTreeMixIn'''
+    pass
