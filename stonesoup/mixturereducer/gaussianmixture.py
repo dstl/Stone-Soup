@@ -33,8 +33,10 @@ class GaussianMixtureReducer(MixtureReducer):
     pp. 4091–4104, 2006..
     """
 
-    prune_threshold: float = Property(default=1e-9, doc='Threshold for pruning')
-    merge_threshold: float = Property(default=16, doc='Threshold for merging')
+    prune_threshold: float = Property(default=1e-9, doc='Mixture component weight '
+                                      'threshold for pruning')
+    merge_threshold: float = Property(default=16, doc='Squared Mahalanobis distance '
+                                      'threshold for merging')
     max_number_components: int = Property(default=np.iinfo(np.int64).max,
                                           doc='Maximum number of components to keep '
                                               'in the Gaussian mixture')
