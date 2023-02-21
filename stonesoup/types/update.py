@@ -5,7 +5,8 @@ from .hypothesis import Hypothesis, CompositeHypothesis
 from .mixture import GaussianMixture
 from .state import CreatableFromState, CompositeState
 from .state import State, GaussianState, ParticleState, EnsembleState, \
-    SqrtGaussianState, InformationState, CategoricalState, ASDGaussianState
+    SqrtGaussianState, InformationState, CategoricalState, ASDGaussianState, \
+    MultiModelParticleState, RaoBlackwellisedParticleState
 from ..base import Property
 
 
@@ -64,6 +65,20 @@ class ParticleStateUpdate(Update, ParticleState):
     """ParticleStateUpdate type
 
     This is a simple Particle state update object.
+    """
+
+
+class MultiModelParticleStateUpdate(Update, MultiModelParticleState):
+    """MultiModelStateUpdate type
+
+    This is a simple Multi-Model Particle state update object.
+    """
+
+
+class RaoBlackwellisedParticleStateUpdate(Update, RaoBlackwellisedParticleState):
+    """RaoBlackwellisedStateUpdate type
+
+    This is a simple Rao Blackwellised Particle state update object.
     """
 
 

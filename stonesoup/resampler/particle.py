@@ -41,13 +41,9 @@ class SystematicResampler(Resampler):
         # that pushed the score over the current value
         u_j = u_i + (1 / n_particles) * np.arange(n_particles)
         index = weight_order[np.searchsorted(cdf, np.log(u_j))]
-        new_particles = ParticleState(state_vector=particles.state_vector[:, index],
-                                      weight=[weight]*n_particles,
-                                      parent=ParticleState(
-                                          state_vector=particles.state_vector[:, index],
-                                          weight=particles.weight[index],
-                                          timestamp=particles.timestamp),
-                                      timestamp=particles.timestamp)
+
+        new_particles = particles[index]
+        new_particles.weight = np.full((n_particles, ), weight)
         return new_particles
 
 
