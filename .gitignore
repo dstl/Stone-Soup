@@ -14,6 +14,3 @@ htmlcov/
 
 # pytest
 .pytest_cache/
-
-# development on MacOS
-.DS_Store
