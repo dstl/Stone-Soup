@@ -2,6 +2,7 @@ from abc import ABC
 import copy
 from typing import Sequence, Tuple, Union
 
+from math import sqrt
 import numpy as np
 from scipy.linalg import inv, pinv, block_diag
 from scipy.stats import multivariate_normal
@@ -961,6 +962,85 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
         out = super().rvs(num_samples, **kwargs)
         out = np.array([[Elevation(0)], [Bearing(0)], [0.], [0.]]) + out
         return out
+
+    def jacobian(self, state, **kwargs):
+        """Model jacobian matrix :math:`H_{jac}`
+
+        Parameters
+        ----------
+        state : :class:`~.State`
+            An input state
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape (:py:attr:`~ndim_meas`, \
+        :py:attr:`~ndim_state`)
+            The model jacobian matrix evaluated around the given state vector.
+        """
+        # Account for origin offset in position to enable range and angles to be determined
+        xyz_pos = state.state_vector[self.mapping, :] - self.translation_offset
+
+        # Determine the net velocity component in the engagement
+        xyz_vel = state.state_vector[self.velocity_mapping, :] - self.velocity
+
+        # Rotate into RADAR coordinate system
+        xyz_pos = self.rotation_matrix @ xyz_pos
+        xyz_vel = self.rotation_matrix @ xyz_vel
+
+        jac = np.zeros((4, 6), dtype=np.float_)
+
+        x, y, z = xyz_pos
+        vx, vy, vz = xyz_vel
+        x2 = x**2;    y2 = y**2;    z2 = z**2
+        x2y2 = x2 + y2
+        r2 = x2y2 + z2
+        r = sqrt(r2)
+        sqrt_x2_y2 = sqrt(x2y2)
+        r32 = r2*r
+
+        # Jacobian encodes partial derivatives of measurement vector components
+        # Y = <theta, phi, r, rdot> against state vector
+        # X = <x, vx, y, vy, z, vz>.
+
+        # dtheta/dx
+        sqrt_x2_y2r2 = sqrt_x2_y2*r2
+        jac[0, 0] = -(x*z)/(sqrt_x2_y2r2)
+
+        # dtheta/dy
+        jac[0, 2] = -(y*z)/(sqrt_x2_y2r2)
+
+        # dthtea/dz
+        jac[0, 4] = sqrt_x2_y2/r2
+
+        # dphi/dx
+        jac[1, 0] = - y/(x2y2)
+
+        # dphi/dy
+        jac[1, 2] = x/(x2y2)
+
+        # dphi/dz = 0
+
+        # dr/dx and drdot/dvx
+        jac[2, 0] = jac[3, 1] = x/r
+
+        # dr/dx and drdot/dvy
+        jac[2, 2] = jac[3, 3] = y/r
+
+        # dr/dx and drdot/dvz
+        jac[2, 4] = jac[3, 5] = z/r
+
+        vy_y = vy*y;    vx_x = vx*x;    vz_z = vz*z
+
+        # drdot/dx
+        jac[3, 0] = (-x*(vy_y + vz_z) + vx*(y2 + z2))/r32
+
+        # drdot/dy
+        jac[3, 2] = (vy*(x2 + z2) - y*(vx_x + vz_z))/r32
+
+        # drdot/dz
+        jac[3, 4] = (vz*(x2y2) - (vx_x + vy_y)*z)/r32
+
+        return jac
 
 
 class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):

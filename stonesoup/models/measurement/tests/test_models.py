@@ -16,6 +16,7 @@ from ....functions import rotz, rotx, roty, cart2sphere
 from ....types.angle import Bearing, Elevation
 from ....types.array import StateVector, StateVectors
 from ....types.state import State, CovarianceMatrix, ParticleState
+from ....functions import jacobian
 
 
 def h1d(state_vector, pos_map, translation_offset, rotation_offset):
@@ -925,6 +926,43 @@ def test_rangeratemodels_with_particles(h, modelclass, state_vec, ndim_state, po
                  model.rotation_offset, model.velocity)
              ).T,
             cov=noise_covar)
+
+def test_rangeratemodel_analytic_jacobian():
+    """Test the analytic Jacobian of CartesianToElevationBearingRangeRate.
+
+    """
+    noise_covar = np.zeros((4, 4))
+    mapping = np.array([0, 2, 4])
+    velocity_mapping = np.array([1, 3, 5])
+    measure_model1 = CartesianToElevationBearingRangeRate(
+        ndim_state=6, mapping=mapping, velocity_mapping=velocity_mapping,
+        noise_covar=noise_covar)
+
+    measure_model2 = CartesianToElevationBearingRangeRate(
+        ndim_state=6, mapping=mapping, velocity_mapping=velocity_mapping,
+        noise_covar=noise_covar,
+        translation_offset=[[-30], [50], [14]])
+
+    measure_model3 = CartesianToElevationBearingRangeRate(
+        ndim_state=6, mapping=mapping, velocity_mapping=velocity_mapping,
+        noise_covar=noise_covar,
+        translation_offset=[[-330], [-350], [-104]])
+
+    for state in [State(StateVectors([[1], [2], [3], [4], [5], [6]])),
+                  State(StateVectors([[-20], [2], [3.46], [4], [-28], [22]])),
+                  State(StateVectors([[100], [46], [-3.5], [-184], [45], [11]])),
+                  State(StateVectors([[31.02], [2.156], [-13], [4], [-5], [6]])),
+                  State(StateVectors([[142], [-23], [43], [-1.4], [33.5], [2.6]]))]:
+
+        for measure_model in [measure_model1, measure_model2, measure_model3]:
+            # Calculate numerically
+            jac0 = jacobian(measure_model.function, state)
+
+            # Calculate using the analytic expression
+            jac = measure_model.jacobian(state)
+
+            # Not going to be exact since jac0 is an approximation
+            assert np.allclose(jac, jac0, atol=1e-5, rtol=1e-5)
 
 
 def test_inverse_function():
