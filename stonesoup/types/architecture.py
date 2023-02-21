@@ -48,15 +48,17 @@ class Node(Type):
         if not self.data_held:
             self.data_held = dict()
 
-    def update(self, time, data):
+    def update(self, time, data, track=None):
         if not isinstance(time, datetime):
             raise TypeError("Time must be a datetime object")
-        if not isinstance(data, Detection):
-            raise TypeError("Data provided without Track must be a Detection")
-        if time in self.data_held:
-            self.data_held[time].add(data)
+        if not track:
+            if not isinstance(data, Detection):
+                raise TypeError("Data provided without Track must be a Detection")
+            _dict_set(self.data_held, data, time)
         else:
-            self.data_held[time] = {data}
+            if not isinstance(data, Hypothesis):
+                raise TypeError("Data provided with Track must be a Hypothesis")
+            _dict_set(self.hypotheses_held, data, track, time)
 
 
 class SensorNode(Node):
@@ -95,7 +97,7 @@ class ProcessingNode(Node):
 
         self.processed_data = dict()  # Subset of data_held containing data that has been processed
         self.unprocessed_data = dict()  # Data that has not been processed yet
-        self.processed_hypotheses = dict()  # Dict[track: Dict[datetime, Set[Hypothesis]]]
+        self.processed_hypotheses = dict()  # Dict[track, Dict[datetime, Set[Hypothesis]]]
         self.unprocessed_hypotheses = dict()  # Hypotheses which have not yet been used
         self.tracks = {}  # Set of tracks this Node has recorded
 
@@ -128,40 +130,23 @@ class ProcessingNode(Node):
         # Send the unprocessed data that was just processed to processed_data
         for time in self.unprocessed_data:
             for data in self.unprocessed_data[time]:
-                if time in self.processed_data:
-                    self.processed_data[time].add(data)
-                else:
-                    self.processed_data[time] = {data}
-        # And same for hypotheses. We must ensure that we create sets before adding to them
+                _dict_set(self.processed_data, data, time)
+        # And same for hypotheses
         for track in self.unprocessed_hypotheses:
             for time in self.unprocessed_hypotheses[track]:
                 for data in self.unprocessed_hypotheses[track][time]:
-                    if track in self.processed_hypotheses:
-                        if time in self.processed_hypotheses[track]:
-                            self.processed_hypotheses[track][time].add(data)
-                        else:
-                            self.hypotheses_held[track][time] = {data}
-                    else:
-                        self.hypotheses_held[track] = {time: data}
-        self.unprocessed_data = []
-        self.unprocessed_hypotheses = []
+                    _dict_set(self.processed_hypotheses, data, track, time)
+
+        self.unprocessed_data = dict()
+        self.unprocessed_hypotheses = dict()
         return
 
     def update(self, time, data, track=None):
+        super().update(time, data, track)
         if not track:
-            super().update(time, data)
+            _dict_set(self.unprocessed_data, data, time)
         else:
-            if not isinstance(time, datetime):
-                raise TypeError("Time must be a datetime object")
-            if not isinstance(data, Hypothesis):
-                raise TypeError("Data provided with Track must be a Hypothesis")
-            if track in self.hypotheses_held:
-                if time in self.hypotheses_held[track]:
-                    self.hypotheses_held[track][time].add(data)
-                else:
-                    self.hypotheses_held[track][time] = {data}
-            else:
-                self.hypotheses_held[track] = {time: {data}}
+            _dict_set(self.unprocessed_hypotheses, data, track, time)
 
 
 class SensorProcessingNode(SensorNode, ProcessingNode):
@@ -315,7 +300,7 @@ class Architecture(Type):
         dot_split.insert(1, f"graph [bgcolor={bgcolour}]")
         dot_split.insert(1, f"node [style={node_style}]")
         dot = "\n".join(dot_split)
-        print(dot)
+        #print(dot)
         if plot_title:
             if plot_title is True:
                 plot_title = self.name
@@ -498,3 +483,20 @@ def mean_combine(objects: List, current_time: datetime = None):
             new_values[name] = getattr(objects[0], name)
 
         return this_type.__init__(**new_values)
+
+
+def _dict_set(my_dict, value, key1, key2=None):
+    """Utility function to add value to my_dict at the specified key(s)"""
+    if key2:
+        if key1 in my_dict:
+            if key2 in my_dict:
+                my_dict[key1][key2].add(value)
+            else:
+                my_dict[key1][key2] = {value}
+        else:
+            my_dict[key1] = {key2: value}
+    else:
+        if key1 in my_dict:
+            my_dict[key1].add(value)
+        else:
+            my_dict[key1] = {value}

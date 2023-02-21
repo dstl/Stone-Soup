@@ -25,7 +25,7 @@ import pytest
 def test_information_architecture_using_hmm():
     """Heavily inspired by the example: "Classifying Using HMM"""
 
-    # Skip to line 88 for network architectures (rest is from hmm example)
+    # Skip to line 89 for network architectures (rest is from hmm example)
 
     transition_matrix = np.array([[0.8, 0.2],  # P(bike | bike), P(bike | car)
                                   [0.4, 0.6]])  # P(car | bike), P(car | car)
@@ -93,7 +93,7 @@ def test_information_architecture_using_hmm():
                                                         updater=updater, hypothesiser=hypothesiser,
                                                         data_associator=data_associator,
                                                         initiator=initiator, deleter=deleter)
-    network_architecture = InformationArchitecture(
+    info_architecture = InformationArchitecture(
         edge_list=[(hmm_sensor_node_A, hmm_sensor_processing_node_B)],
         current_time=start)
 
@@ -103,10 +103,10 @@ def test_information_architecture_using_hmm():
 
         # Gets all SensorNodes (as SensorProcessingNodes inherit from SensorNodes, this is
         # both the Nodes in this example) to measure
-        network_architecture.measure(ground_truths, noise=True)
-        # The data is propogated through the network, ie our SensorNode sends its measurements to
+        info_architecture.measure(ground_truths, noise=True)
+        # The data is propagated through the network, ie our SensorNode sends its measurements to
         # the SensorProcessingNode.
-        network_architecture.propagate(time_increment=1)
+        info_architecture.propagate(time_increment=1)
 
     # OK, so this runs up to here, but something has gone wrong
     tracks = hmm_sensor_processing_node_B.tracks
@@ -114,7 +114,6 @@ def test_information_architecture_using_hmm():
     print(hmm_sensor_processing_node_B.data_held)
 
     # There is data, but no tracks...
-
 
     def plot(path, style):
         times = list()
@@ -132,8 +131,7 @@ def test_information_architecture_using_hmm():
     for track in tracks:
         plot(track, '-')
 
-    plt.show;
-
+    plt.show; #
 
 
 
