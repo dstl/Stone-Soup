@@ -7,7 +7,6 @@ from ..types.detection import TrueDetection, Clutter, Detection
 from ..types.hypothesis import Hypothesis
 from ..types.track import Track
 from ..hypothesiser.base import Hypothesiser
-from ..hypothesiser.probability import PDAHypothesiser
 from ..predictor.base import Predictor
 from ..updater.base import Updater
 from ..dataassociator.base import DataAssociator
@@ -54,11 +53,13 @@ class Node(Type):
         if not track:
             if not isinstance(data, Detection):
                 raise TypeError("Data provided without Track must be a Detection")
-            _dict_set(self.data_held, data, time)
+            added, self.data_held = _dict_set(self.data_held, data, time)
         else:
             if not isinstance(data, Hypothesis):
                 raise TypeError("Data provided with Track must be a Hypothesis")
-            _dict_set(self.hypotheses_held, data, track, time)
+            added, self.hypotheses_held = _dict_set(self.hypotheses_held, data, track, time)
+
+        return added
 
 
 class SensorNode(Node):
@@ -99,54 +100,86 @@ class ProcessingNode(Node):
         self.unprocessed_data = dict()  # Data that has not been processed yet
         self.processed_hypotheses = dict()  # Dict[track, Dict[datetime, Set[Hypothesis]]]
         self.unprocessed_hypotheses = dict()  # Hypotheses which have not yet been used
-        self.tracks = {}  # Set of tracks this Node has recorded
+        self.tracks = set()  # Set of tracks this Node has recorded
 
     def process(self):
-        for time in self.unprocessed_data:
-            detections = self.unprocessed_data[time]
-            detect_hypotheses = self.data_associator.associate(self.tracks, detections, time)
+        unprocessed_times = {time for time in self.unprocessed_data} | \
+                {time for track in self.unprocessed_hypotheses
+                 for time in self.unprocessed_hypotheses[track]}
+        for time in unprocessed_times:
+            try:
+                detect_hypotheses = self.data_associator.associate(self.tracks,
+                                                                   self.unprocessed_data[time],
+                                                                   time)
+            except KeyError:
+                detect_hypotheses = False
 
             associated_detections = set()
             for track in self.tracks:
-                detect_hypothesis = detect_hypotheses[track]
+                detect_hypothesis = detect_hypotheses[track] if detect_hypotheses else False
                 try:
-                    track_hypotheses = self.unprocessed_hypotheses[track][time]
-                    hypothesis = mean_combine({detect_hypothesis} + track_hypotheses, time)
-                except KeyError:  # If there aren't any, use the one we have from our detections
+                    # We deliberately re-use old hypotheses. If we just used the unprocessed ones
+                    # then information would be lost
+                    print(self.hypotheses_held[track][time])
+                    track_hypotheses = list(self.hypotheses_held[track][time])
+                    if detect_hypothesis:
+                        hypothesis = mean_combine([detect_hypothesis] + track_hypotheses, time)
+                    else:
+                        hypothesis = mean_combine(track_hypotheses, time)
+                except TypeError:  # If there aren't any, use the one we have from our detections
                     hypothesis = detect_hypothesis
+
+                _, self.hypotheses_held = _dict_set(self.hypotheses_held, hypothesis, track, time)
+                _, self.processed_hypotheses = _dict_set(self.processed_hypotheses,
+                                                         hypothesis, track, time)
 
                 if hypothesis.measurement:
                     post = self.updater.update(hypothesis)
-                    track.append(post)
+                    _update_track(track, post, time)
                     associated_detections.add(hypothesis.measurement)
                 else:  # Keep prediction
-                    track.append(hypothesis.prediction)
+                    _update_track(track, hypothesis.prediction, time)
 
                 # Create or delete tracks
-                self.tracks -= self.deleter.delete_tracks(self.tracks)
-                self.tracks |= self.initiator.initiate(
-                    detections - associated_detections, time)
+            self.tracks -= self.deleter.delete_tracks(self.tracks)
+            if self.unprocessed_data[time]: # If we had any detections
+                self.tracks |= self.initiator.initiate(self.unprocessed_data[time] -
+                                                       associated_detections, time)
 
         # Send the unprocessed data that was just processed to processed_data
         for time in self.unprocessed_data:
             for data in self.unprocessed_data[time]:
-                _dict_set(self.processed_data, data, time)
+                _, self.processed_data = _dict_set(self.processed_data, data, time)
         # And same for hypotheses
         for track in self.unprocessed_hypotheses:
             for time in self.unprocessed_hypotheses[track]:
                 for data in self.unprocessed_hypotheses[track][time]:
-                    _dict_set(self.processed_hypotheses, data, track, time)
+                    _, self.processed_hypotheses = _dict_set(self.processed_hypotheses,
+                                                             data, track, time)
 
         self.unprocessed_data = dict()
         self.unprocessed_hypotheses = dict()
         return
 
     def update(self, time, data, track=None):
-        super().update(time, data, track)
+        print(track, type(data))
+        if not super().update(time, data, track):
+            # Data was not new -  do not add to unprocessed
+            return
         if not track:
-            _dict_set(self.unprocessed_data, data, time)
+            _, self.unprocessed_data = _dict_set(self.unprocessed_data, data, time)
         else:
-            _dict_set(self.unprocessed_hypotheses, data, track, time)
+            _, self.unprocessed_hypotheses = _dict_set(self.unprocessed_hypotheses,
+                                                       data, track, time)
+
+
+class NodeE(ProcessingNode):
+    def process(self):
+        super().process()
+        print(f"\n\n\n NEXT TIMESTEP \n\n\n")
+        print(f"{len(self.tracks)=}")
+        for track in self.tracks:
+            print(f"{len(track)=}")
 
 
 class SensorProcessingNode(SensorNode, ProcessingNode):
@@ -341,6 +374,41 @@ class Architecture(Type):
     def __len__(self):
         return len(self.di_graph)
 
+    @property
+    def fully_propagated(self):
+        """Checks if all data and hypotheses that each node has have been transferred
+        to its descendants.
+        With zero latency, this should be the case after running self.propagate"""
+        for node in self.all_nodes:
+            for descendant in self.descendants(node):
+                try:
+                    if node.data_held and node.hypotheses_held:
+                        if not (all(node.data_held[time] <= descendant.data_held[time]
+                                    for time in node.data_held) and
+                                all(node.hypotheses_held[track][time] <=
+                                    descendant.hypotheses_held[track][time]
+                                    for track in node.hypotheses_held
+                                    for time in node.hypotheses_held[track])):
+                            return False
+                    elif node.data_held:
+                        if not (all(node.data_held[time] <= descendant.data_held[time]
+                                    for time in node.data_held)):
+                            return False
+                    elif node.hypotheses_held:
+                        if not all(node.hypotheses_held[track][time] <=
+                                   descendant.hypotheses_held[track][time]
+                                   for track in node.hypotheses_held
+                                   for time in node.hypotheses_held[track]):
+                            return False
+
+                    else:
+                        # Node has no data, so has fully propagated
+                        continue
+                except TypeError:
+                    # descendant doesn't have all the keys node does
+                    print("TypeError")
+                    return False
+            return True
 
 class InformationArchitecture(Architecture):
     """The architecture for how information is shared through the network. Node A is "
@@ -375,13 +443,13 @@ class InformationArchitecture(Architecture):
 
             for data in all_detections[sensor_node]:
                 # The sensor acquires its own data instantly
+                print("data_type generated:\t", type(data))
                 sensor_node.update(self.current_time, data)
 
         return all_detections
 
     def propagate(self, time_increment: float, failed_edges: Collection = []):
-        """Performs a single step of the propagation of the measurements through the network"""
-        self.current_time += timedelta(seconds=time_increment)
+        """Performs the propagation of the measurements through the network"""
         for node in self.all_nodes:
             for descendant in self.descendants(node):
                 if (node, descendant) in failed_edges:
@@ -390,7 +458,10 @@ class InformationArchitecture(Architecture):
                     continue
                 if node.data_held:
                     for time in node.data_held:
+                        print([time for time in node.data_held])
+                        print(f"{node.data_held[time]=}")
                         for data in node.data_held[time]:
+                            print("2nd type data", type(data))
                             descendant.update(time, data)
                 if node.hypotheses_held:
                     for track in node.hypotheses_held:
@@ -399,6 +470,12 @@ class InformationArchitecture(Architecture):
                                 descendant.update(time, data, track)
         for node in self.processing_nodes:
             node.process()
+        if not self.fully_propagated:
+            print(f"nope @ {self.current_time}")
+            self.propagate(time_increment, failed_edges)
+            return
+        print("increase time")
+        self.current_time += timedelta(seconds=time_increment)
 
 
 class NetworkArchitecture(Architecture):
@@ -406,7 +483,7 @@ class NetworkArchitecture(Architecture):
             "to Node B if and only if A sends its data through B. """
     def propagate(self, time_increment: float):
         # Still have to deal with latency/bandwidth
-        self.current_time += datetime.timedelta(seconds=time_increment)
+        self.current_time += timedelta(seconds=time_increment)
         for node in self.all_nodes:
             for descendant in self.descendants(node):
                 for data in node.data_held:
@@ -428,7 +505,7 @@ class CombinedArchitecture(Type):
         # Was in the information architecture by at least one path.
         # Some magic here
         failed_edges = []  # return this from n_arch.propagate?
-        self.information_architecture(time_increment, failed_edges)
+        self.information_architecture.propagate(time_increment, failed_edges)
 
 
 def _default_label(node, last_letters):
@@ -470,7 +547,7 @@ def mean_combine(objects: List, current_time: datetime = None):
     for name in type(objects[0]).properties:
         value = getattr(objects[0], name)
         if isinstance(value, (int, float, complex)) and not isinstance(value, bool):
-            # average em all
+            # average them all
             new_values[name] = np.mean([getattr(obj, name) for obj in objects])
         elif isinstance(value, datetime):
             # Take the input time, as we likely want the current simulation time
@@ -486,17 +563,37 @@ def mean_combine(objects: List, current_time: datetime = None):
 
 
 def _dict_set(my_dict, value, key1, key2=None):
-    """Utility function to add value to my_dict at the specified key(s)"""
-    if key2:
+    """Utility function to add value to my_dict at the specified key(s)
+    Returns True iff the set increased in size, ie the value was new to its position"""
+    if not my_dict:
+        if key2:
+            my_dict = {key1: {key2: {value}}}
+        else:
+            my_dict = {key1: {value}}
+    elif key2:
         if key1 in my_dict:
             if key2 in my_dict:
+                old_len = len(my_dict)
                 my_dict[key1][key2].add(value)
+                return len(my_dict) == old_len + 1, my_dict
             else:
                 my_dict[key1][key2] = {value}
         else:
             my_dict[key1] = {key2: value}
     else:
         if key1 in my_dict:
+            old_len = len(my_dict)
             my_dict[key1].add(value)
+            return len(my_dict) == old_len + 1, my_dict
         else:
             my_dict[key1] = {value}
+    return True, my_dict
+
+def _update_track(track, state, time):
+    for state_num in range(len(track)):
+        if time == track[state_num].timestamp:
+            track[state_num] = state
+            return
+    track.append(state)
+
+
