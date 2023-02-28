@@ -57,7 +57,7 @@ measurement_model = RangeRangeRateBinning(
     ndim_state=6,
     mapping=[0, 2, 4],
     velocity_mapping=[1, 3, 5],
-    noise_covar=np.array([0., 0., 0., 0.]))
+    noise_covar=np.diag([0., 0., 0., 0.]))
 
 # %%
 # Create target
