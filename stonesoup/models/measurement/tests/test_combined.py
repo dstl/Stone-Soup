@@ -111,12 +111,9 @@ def test_mismatch_ndim_state():
 
 
 def test_none_covar():
-    new_model = CombinedReversibleGaussianMeasurementModel([
-        CartesianToBearingRange(4, [0, 1], None),
-        CartesianToBearingRange(4, [0, 1], np.diag([1, 10]))
-    ])
+    with pytest.raises(ValueError, match="Covariance should have ndim of 2: got 0"):
+        new_model = CombinedReversibleGaussianMeasurementModel([
+            CartesianToBearingRange(4, [0, 1], None),
+            CartesianToBearingRange(4, [0, 1], np.diag([1, 10]))
+        ])
 
-    with pytest.raises(ValueError, match="Cannot generate rvs from None-type covariance"):
-        new_model.rvs()
-    with pytest.raises(ValueError, match="Cannot generate pdf from None-type covariance"):
-        new_model.pdf(State([0, 0, 0, 0]), State([0, 0, 0, 0]))

@@ -91,7 +91,7 @@ def hbearing(state_vector, pos_map, translation_offset, rotation_offset):
      CartesianToElevationBearingRangeRate]
 )
 def test_none_covar(model_class):
-    with pytest.raises(ValueError):  # todo add match
+    with pytest.raises(ValueError, match="Covariance should have ndim of 2: got 0"):
         model_class(ndim_state=0, mapping=[0, 1, 2], noise_covar=None)
 
 
@@ -222,6 +222,14 @@ def test_models(h, ModelClass, state_vec, R,
                        noise_covar=R,
                        translation_offset=translation_offset,
                        rotation_offset=rotation_offset)
+
+    R_flat = R.flat  # Create flat 1-D array of R
+    with pytest.raises(ValueError, match="Covariance should have ndim of 2: got 1"):
+        ModelClass(ndim_state=ndim_state,
+                   mapping=mapping,
+                   noise_covar=R_flat,
+                   translation_offset=translation_offset,
+                   rotation_offset=rotation_offset)
 
     # Project a state through the model
     # (without noise)
