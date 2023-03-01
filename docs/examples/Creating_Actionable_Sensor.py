@@ -243,7 +243,7 @@ class DirectedSensor(Sensor):
 
             bearing_calculator = Cartesian2DToBearing(ndim_state=4,
                                                       mapping=(0, 2),
-                                                      noise_covar=None,
+                                                      noise_covar=np.diag([0, 0]),
                                                       translation_offset=self.position,
                                                       rotation_offset=self.direction_angle)
             bearing = bearing_calculator.function(truth, noise=False)

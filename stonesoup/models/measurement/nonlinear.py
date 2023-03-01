@@ -118,6 +118,9 @@ class NonLinearGaussianMeasurement(MeasurementModel, GaussianModel, ABC):
         if self.rotation_offset is None:
             self.rotation_offset = StateVector([[0], [0], [0]])
 
+        if not isinstance(self.noise_covar, CovarianceMatrix):
+            self.noise_covar = CovarianceMatrix(self.noise_covar)
+
     def covar(self, **kwargs) -> CovarianceMatrix:
         """Returns the measurement model noise covariance matrix.
 
@@ -1169,16 +1172,18 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
 
         return out
 
-    def _gaussian_integral(self, a, b, mean, cov):
+    @classmethod
+    def _gaussian_integral(cls, a, b, mean, cov):
         # this function is the cumulative probability ranging from a to b for a normal distribution
         return (multivariate_normal.cdf(a, mean=mean, cov=cov)
                 - multivariate_normal.cdf(b, mean=mean, cov=cov))
 
-    def _binned_pdf(self, measured_value, mean, bin_size, cov):
+    @classmethod
+    def _binned_pdf(cls, measured_value, mean, bin_size, cov):
         # this function finds the probability density of the bin the measured_value is in
         a = np.floor(measured_value / bin_size) * bin_size + bin_size
         b = np.floor(measured_value / bin_size) * bin_size
-        return self._gaussian_integral(a, b, mean, cov)/bin_size
+        return cls._gaussian_integral(a, b, mean, cov)/bin_size
 
     def pdf(self, state1, state2, **kwargs):
         r"""Model pdf/likelihood evaluation function
@@ -1224,19 +1229,19 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
             az_el_pdf = multivariate_normal.pdf(
                 state1.state_vector[:2, 0],
                 mean=mean_vector[:2, 0],
-                cov=self.covar()[:2])
+                cov=self.covar()[:2, :2])
 
             # pdf for the binned range and velocity
             range_pdf = self._binned_pdf(
                 state1.state_vector[2, 0],
                 mean_vector[2, 0],
                 self.range_res,
-                self.covar()[2])
+                self.covar()[2, 2])
             velocity_pdf = self._binned_pdf(
                 state1.state_vector[3, 0],
                 mean_vector[3, 0],
                 self.range_rate_res,
-                self.covar()[3])
+                self.covar()[3, 3])
             return Probability(range_pdf * velocity_pdf * az_el_pdf)
         else:
             return Probability(0)

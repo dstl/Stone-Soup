@@ -60,7 +60,7 @@ for state in truth:
         [x, y], timestamp=state.timestamp))
 
 # Plot the result
-plotter.plot_measurements(measurements, [0, 1], LinearGaussian(2, (0, 1), None))
+plotter.plot_measurements(measurements, [0, 1], LinearGaussian(2, (0, 1), np.diag([0, 0])))
 plotter.fig
 
 # %%

@@ -91,9 +91,8 @@ def hbearing(state_vector, pos_map, translation_offset, rotation_offset):
      CartesianToElevationBearingRangeRate]
 )
 def test_none_covar(model_class):
-    model = model_class(ndim_state=0, mapping=[0, 1, 2], noise_covar=None)
-    with pytest.raises(ValueError, match="Cannot generate pdf from None-type covariance"):
-        model.pdf(State([0]), State([0]))
+    with pytest.raises(ValueError, match="Covariance should have ndim of 2: got 0"):
+        model_class(ndim_state=0, mapping=[0, 1, 2], noise_covar=None)
 
 
 @pytest.mark.parametrize(
@@ -223,6 +222,14 @@ def test_models(h, ModelClass, state_vec, R,
                        noise_covar=R,
                        translation_offset=translation_offset,
                        rotation_offset=rotation_offset)
+
+    R_flat = R.flat  # Create flat 1-D array of R
+    with pytest.raises(ValueError, match="Covariance should have ndim of 2: got 1"):
+        ModelClass(ndim_state=ndim_state,
+                   mapping=mapping,
+                   noise_covar=R_flat,
+                   translation_offset=translation_offset,
+                   rotation_offset=rotation_offset)
 
     # Project a state through the model
     # (without noise)
@@ -997,10 +1004,10 @@ def test_binning():
                                               ndim_state=6,
                                               mapping=[0, 2, 4],
                                               velocity_mapping=[1, 3, 5],
-                                              noise_covar=np.array([np.pi/18,
-                                                                    np.pi/18,
-                                                                    100,
-                                                                    10]))
+                                              noise_covar=np.diag([np.pi/18,
+                                                                   np.pi/18,
+                                                                   100,
+                                                                   10]))
 
     measured = measurement_model.function(real_state, noise=True)
     assert ((measured[2, 0]-measurement_model.range_res/2) /
@@ -1017,10 +1024,10 @@ def test_binning_pdf():
                                               ndim_state=6,
                                               mapping=[0, 2, 4],
                                               velocity_mapping=[1, 3, 5],
-                                              noise_covar=np.array([np.pi/18,
-                                                                    np.pi/18,
-                                                                    100,
-                                                                    10]))
+                                              noise_covar=np.diag([np.pi/18,
+                                                                   np.pi/18,
+                                                                   100,
+                                                                   10]))
 
     measured = measurement_model.function(real_state, noise=True)
     pdf = measurement_model.pdf(State(measured), real_state)
@@ -1038,24 +1045,19 @@ def test_binning_pdf():
 
 
 def test_binning_integral():
-    measurement_model = RangeRangeRateBinning(range_res=None,
-                                              range_rate_res=None,
-                                              ndim_state=None,
-                                              mapping=[],
-                                              velocity_mapping=[],
-                                              noise_covar=None)
 
     mean = 33.33333
     a = 40
     b = 30
     cov = 10
     expected_integral = 0.8365720412132509
-    assert approx(measurement_model._gaussian_integral(a, b, mean, cov), 0.02) == expected_integral
+    assert approx(RangeRangeRateBinning._gaussian_integral(a, b, mean, cov), 0.02) == \
+           expected_integral
 
     bin_sizes = 10
     state_vector1 = 35
     expected_pdf = 0.08365720412132509
-    assert (approx(measurement_model._binned_pdf(state_vector1, mean, bin_sizes, cov)) ==
+    assert (approx(RangeRangeRateBinning._binned_pdf(state_vector1, mean, bin_sizes, cov)) ==
             expected_pdf)
 
 
@@ -1079,7 +1081,7 @@ def test_noiseless_binning_predictions(sensor_state, target_state, expected_meas
         ndim_state=6,
         mapping=pos_mapping,
         velocity_mapping=vel_mapping,
-        noise_covar=np.array([0., 0., 0., 0.]),
+        noise_covar=np.diag([0., 0., 0., 0.]),
         translation_offset=sensor_state[pos_mapping],
         rotation_offset=orientation,
         velocity=sensor_velocity)
@@ -1095,7 +1097,7 @@ def test_compare_rrrb_to_ctebrr():
         ndim_state=6,
         mapping=[0, 2, 4],
         velocity_mapping=[1, 3, 5],
-        noise_covar=np.array([1., 1., 1., 1.]))
+        noise_covar=np.diag([1., 1., 1., 1.]))
 
     state = State([50.000005, 50.000005,
                    0., 0.,
@@ -1123,10 +1125,7 @@ def test_calc_pdf():
                                               ndim_state=6,
                                               mapping=[0, 2, 4],
                                               velocity_mapping=[1, 3, 5],
-                                              noise_covar=np.array([1,
-                                                                    1,
-                                                                    10,
-                                                                    10]))
+                                              noise_covar=np.diag([1., 1., 10., 10.]))
 
     act_pdf = measurement_model.pdf(State([0., 0., 10035.0, 135.0]), real_state)
 
