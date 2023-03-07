@@ -116,17 +116,19 @@ class ProcessingNode(Node):
 
             associated_detections = set()
             for track in self.tracks:
+                if not detect_hypotheses and track not in self.unprocessed_hypotheses:
+                    # If this track has no new data
+                    continue
                 detect_hypothesis = detect_hypotheses[track] if detect_hypotheses else False
                 try:
                     # We deliberately re-use old hypotheses. If we just used the unprocessed ones
                     # then information would be lost
-                    print(self.hypotheses_held[track][time])
                     track_hypotheses = list(self.hypotheses_held[track][time])
                     if detect_hypothesis:
                         hypothesis = mean_combine([detect_hypothesis] + track_hypotheses, time)
                     else:
                         hypothesis = mean_combine(track_hypotheses, time)
-                except TypeError:  # If there aren't any, use the one we have from our detections
+                except (TypeError, KeyError):
                     hypothesis = detect_hypothesis
 
                 _, self.hypotheses_held = _dict_set(self.hypotheses_held, hypothesis, track, time)
@@ -142,7 +144,7 @@ class ProcessingNode(Node):
 
                 # Create or delete tracks
             self.tracks -= self.deleter.delete_tracks(self.tracks)
-            if self.unprocessed_data[time]: # If we had any detections
+            if time in self.unprocessed_data: # If we had any detections
                 self.tracks |= self.initiator.initiate(self.unprocessed_data[time] -
                                                        associated_detections, time)
 
@@ -162,7 +164,6 @@ class ProcessingNode(Node):
         return
 
     def update(self, time, data, track=None):
-        print(track, type(data))
         if not super().update(time, data, track):
             # Data was not new -  do not add to unprocessed
             return
@@ -171,15 +172,6 @@ class ProcessingNode(Node):
         else:
             _, self.unprocessed_hypotheses = _dict_set(self.unprocessed_hypotheses,
                                                        data, track, time)
-
-
-class NodeE(ProcessingNode):
-    def process(self):
-        super().process()
-        print(f"\n\n\n NEXT TIMESTEP \n\n\n")
-        print(f"{len(self.tracks)=}")
-        for track in self.tracks:
-            print(f"{len(track)=}")
 
 
 class SensorProcessingNode(SensorNode, ProcessingNode):
@@ -333,14 +325,12 @@ class Architecture(Type):
         dot_split.insert(1, f"graph [bgcolor={bgcolour}]")
         dot_split.insert(1, f"node [style={node_style}]")
         dot = "\n".join(dot_split)
-        #print(dot)
         if plot_title:
             if plot_title is True:
                 plot_title = self.name
             elif not isinstance(plot_title, str):
                 raise ValueError("Plot title must be a string, or True")
             dot = dot[:-2] + "labelloc=\"t\";\n" + f"label=\"{plot_title}\";" + "}"
-        #  print(dot)
         if not filename:
             filename = self.name
         viz_graph = graphviz.Source(dot, filename=filename, directory=dir_path, engine='neato')
@@ -404,9 +394,8 @@ class Architecture(Type):
                     else:
                         # Node has no data, so has fully propagated
                         continue
-                except TypeError:
+                except TypeError: # Should this be KeyError?
                     # descendant doesn't have all the keys node does
-                    print("TypeError")
                     return False
             return True
 
@@ -443,7 +432,6 @@ class InformationArchitecture(Architecture):
 
             for data in all_detections[sensor_node]:
                 # The sensor acquires its own data instantly
-                print("data_type generated:\t", type(data))
                 sensor_node.update(self.current_time, data)
 
         return all_detections
@@ -458,10 +446,7 @@ class InformationArchitecture(Architecture):
                     continue
                 if node.data_held:
                     for time in node.data_held:
-                        print([time for time in node.data_held])
-                        print(f"{node.data_held[time]=}")
                         for data in node.data_held[time]:
-                            print("2nd type data", type(data))
                             descendant.update(time, data)
                 if node.hypotheses_held:
                     for track in node.hypotheses_held:
@@ -471,10 +456,8 @@ class InformationArchitecture(Architecture):
         for node in self.processing_nodes:
             node.process()
         if not self.fully_propagated:
-            print(f"nope @ {self.current_time}")
             self.propagate(time_increment, failed_edges)
             return
-        print("increase time")
         self.current_time += timedelta(seconds=time_increment)
 
 
@@ -579,7 +562,7 @@ def _dict_set(my_dict, value, key1, key2=None):
             else:
                 my_dict[key1][key2] = {value}
         else:
-            my_dict[key1] = {key2: value}
+            my_dict[key1] = {key2: {value}}
     else:
         if key1 in my_dict:
             old_len = len(my_dict)
@@ -588,6 +571,7 @@ def _dict_set(my_dict, value, key1, key2=None):
         else:
             my_dict[key1] = {value}
     return True, my_dict
+
 
 def _update_track(track, state, time):
     for state_num in range(len(track)):
