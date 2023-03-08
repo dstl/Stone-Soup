@@ -26,8 +26,8 @@ def test_stateprediction():
     timestamp = datetime.datetime.now()
 
     state_prediction = StatePrediction(state_vector, timestamp)
-    assert np.array_equal(state_vector, state_prediction.state_vector)
-    assert timestamp == state_prediction.timestamp
+    assert(np.array_equal(state_vector, state_prediction.state_vector))
+    assert(timestamp == state_prediction.timestamp)
 
 
 def test_statemeasurementprediction():
@@ -41,8 +41,8 @@ def test_statemeasurementprediction():
 
     measurement_prediction = StateMeasurementPrediction(state_vector,
                                                         timestamp)
-    assert np.array_equal(state_vector, measurement_prediction.state_vector)
-    assert timestamp == measurement_prediction.timestamp
+    assert(np.array_equal(state_vector, measurement_prediction.state_vector))
+    assert(timestamp == measurement_prediction.timestamp)
 
 
 def test_gaussianstateprediction():
@@ -63,10 +63,10 @@ def test_gaussianstateprediction():
 
     # Test state prediction
     state_prediction = GaussianStatePrediction(mean, covar, timestamp)
-    assert np.array_equal(mean, state_prediction.mean)
-    assert np.array_equal(covar, state_prediction.covar)
-    assert state_prediction.ndim == mean.shape[0]
-    assert state_prediction.timestamp == timestamp
+    assert(np.array_equal(mean, state_prediction.mean))
+    assert(np.array_equal(covar, state_prediction.covar))
+    assert(state_prediction.ndim == mean.shape[0])
+    assert(state_prediction.timestamp == timestamp)
 
 
 def test_gaussianmeasurementprediction():
@@ -102,22 +102,22 @@ def test_gaussianmeasurementprediction():
     measurement_prediction = GaussianMeasurementPrediction(
         mean, covar,
         timestamp=timestamp)
-    assert np.array_equal(mean, measurement_prediction.mean)
-    assert np.array_equal(covar, measurement_prediction.covar)
-    assert measurement_prediction.ndim == mean.shape[0]
-    assert measurement_prediction.timestamp == timestamp
-    assert measurement_prediction.cross_covar is None
+    assert(np.array_equal(mean, measurement_prediction.mean))
+    assert(np.array_equal(covar, measurement_prediction.covar))
+    assert(measurement_prediction.ndim == mean.shape[0])
+    assert(measurement_prediction.timestamp == timestamp)
+    assert(measurement_prediction.cross_covar is None)
 
     # Test measurement prediction initiation with cross_covar
     measurement_prediction = GaussianMeasurementPrediction(
         mean, covar,
         cross_covar=cross_covar,
         timestamp=timestamp)
-    assert np.array_equal(mean, measurement_prediction.mean)
-    assert np.array_equal(covar, measurement_prediction.covar)
-    assert np.array_equal(cross_covar, measurement_prediction.cross_covar)
-    assert measurement_prediction.ndim == mean.shape[0]
-    assert measurement_prediction.timestamp == timestamp
+    assert(np.array_equal(mean, measurement_prediction.mean))
+    assert(np.array_equal(covar, measurement_prediction.covar))
+    assert(np.array_equal(cross_covar, measurement_prediction.cross_covar))
+    assert(measurement_prediction.ndim == mean.shape[0])
+    assert(measurement_prediction.timestamp == timestamp)
 
 
 @pytest.mark.parametrize('prediction_type', (Prediction, MeasurementPrediction))
@@ -212,10 +212,10 @@ def test_asdgaussianstateprediction():
     state_prediction = ASDGaussianStatePrediction(
         multi_state_vector=mean, multi_covar=covar,
         timestamps=[timestamp], act_timestamp=timestamp)
-    assert np.array_equal(mean, state_prediction.mean)
-    assert np.array_equal(covar, state_prediction.covar)
-    assert state_prediction.ndim == mean.shape[0]
-    assert state_prediction.timestamp == timestamp
+    assert(np.array_equal(mean, state_prediction.mean))
+    assert(np.array_equal(covar, state_prediction.covar))
+    assert(state_prediction.ndim == mean.shape[0])
+    assert(state_prediction.timestamp == timestamp)
 
 
 def test_asdgaussianmeasurementprediction():
@@ -243,8 +243,8 @@ def test_asdgaussianmeasurementprediction():
         mean, multi_covar=covar,
         cross_covar=cross_covar,
         timestamps=timestamp)
-    assert np.array_equal(mean, measurement_prediction.mean)
-    assert np.array_equal(covar, measurement_prediction.covar)
-    assert np.array_equal(cross_covar, measurement_prediction.cross_covar)
-    assert measurement_prediction.ndim == mean.shape[0]
-    assert measurement_prediction.timestamp == timestamp
+    assert(np.array_equal(mean, measurement_prediction.mean))
+    assert(np.array_equal(covar, measurement_prediction.covar))
+    assert(np.array_equal(cross_covar, measurement_prediction.cross_covar))
+    assert(measurement_prediction.ndim == mean.shape[0])
+    assert(measurement_prediction.timestamp == timestamp)

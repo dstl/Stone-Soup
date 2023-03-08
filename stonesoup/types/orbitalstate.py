@@ -571,8 +571,7 @@ class Orbital(Type):
 
     @property
     def mean_motion(self):
-        r"""The mean motion, :math:`\frac{2 \pi}{T}`, where :math:`T` is the period,
-        (rad / [time]).
+        r"""The mean motion, :math:`\frac{2 \pi}{T}`, where :math:`T` is the period, (rad / [time]).
         """
         return 2 * np.pi / self.period
 

@@ -53,17 +53,17 @@ def test_gaussianstate():
 
     # Test state initiation without timestamp
     state = GaussianState(mean, covar)
-    assert np.array_equal(mean, state.mean)
-    assert np.array_equal(covar, state.covar)
-    assert state.ndim == mean.shape[0]
-    assert state.timestamp is None
+    assert(np.array_equal(mean, state.mean))
+    assert(np.array_equal(covar, state.covar))
+    assert(state.ndim == mean.shape[0])
+    assert(state.timestamp is None)
 
     # Test state initiation with timestamp
     state = GaussianState(mean, covar, timestamp)
-    assert np.array_equal(mean, state.mean)
-    assert np.array_equal(covar, state.covar)
-    assert state.ndim == mean.shape[0]
-    assert state.timestamp == timestamp
+    assert(np.array_equal(mean, state.mean))
+    assert(np.array_equal(covar, state.covar))
+    assert(state.ndim == mean.shape[0])
+    assert(state.timestamp == timestamp)
 
 
 def test_informationstate():
@@ -85,8 +85,8 @@ def test_informationstate():
     # Test state initiation without timestamp
     # Test that the conversion back to gaussian equates to the above mean and covariance
     state = InformationState(information_state, information_matrix)
-    assert np.allclose(covar, state.covar)
-    assert np.allclose(mean, state.mean)
+    assert(np.allclose(covar, state.covar))
+    assert(np.allclose(mean, state.mean))
 
     # Test state initiation with timestamp
     state = InformationState(information_state, information_matrix, timestamp)
@@ -779,15 +779,15 @@ def test_asd_gaussian_state():
 
     # Test state initiation without timestamp
     state = ASDGaussianState(mean, multi_covar=covar, timestamps=[timestamp])
-    assert np.array_equal(mean, state.mean)
-    assert np.array_equal(covar, state.covar)
-    assert state.ndim == mean.shape[0]
-    assert state.timestamp == timestamp
+    assert(np.array_equal(mean, state.mean))
+    assert(np.array_equal(covar, state.covar))
+    assert(state.ndim == mean.shape[0])
+    assert(state.timestamp == timestamp)
 
     # Test state initiation with timestamp
     state = GaussianState(mean, covar, timestamp)
 
-    assert state.timestamp == timestamp
+    assert(state.timestamp == timestamp)
 
     timestamp1 = datetime.datetime.now()
     timestamp2 = datetime.datetime.now()
@@ -807,9 +807,9 @@ def test_asd_gaussian_state():
                              timestamps=[timestamp1, timestamp2], max_nstep=10)
     assert state.timestamps == [timestamp1, timestamp2]
     assert state.timestamp == timestamp1
-    assert np.array_equal(state_vector[0:4], state.mean)
-    assert np.array_equal(covar, state.multi_covar)
-    assert state.ndim == state_vector.shape[0]/2
+    assert(np.array_equal(state_vector[0:4], state.mean))
+    assert(np.array_equal(covar, state.multi_covar))
+    assert(state.ndim == state_vector.shape[0]/2)
     assert state.nstep == 2
     assert state.max_nstep == 10
 

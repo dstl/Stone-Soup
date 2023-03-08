@@ -48,21 +48,21 @@ def test_information(UpdaterClass, measurement_model, prediction, measurement):
 
     # Check to see if the information matrix is positive definite (i.e. are all the eigenvalues
     # positive?)
-    assert np.all(np.linalg.eigvals(posterior.precision) >= 0)
+    assert(np.all(np.linalg.eigvals(posterior.precision) >= 0))
 
     # Does the measurement prediction work?
-    assert np.allclose(kupdater.predict_measurement(prediction.state_vector,
+    assert(np.allclose(kupdater.predict_measurement(prediction).state_vector,
                        updater.predict_measurement(info_prediction).state_vector, 0, atol=1.e-14))
 
     # Do the
-    assert np.allclose(kposterior.state_vector,
+    assert(np.allclose(kposterior.state_vector,
                        np.linalg.inv(posterior.precision) @ posterior.state_vector, 0,
-                       atol=1.e-14)
-    assert np.allclose(kposterior.covar, np.linalg.inv(posterior.precision), 0, atol=1.e-14)
-    assert np.array_equal(posterior.hypothesis.prediction, info_prediction)
+                       atol=1.e-14))
+    assert(np.allclose(kposterior.covar, np.linalg.inv(posterior.precision), 0, atol=1.e-14))
+    assert(np.array_equal(posterior.hypothesis.prediction, info_prediction))
 
-    assert np.array_equal(posterior.hypothesis.measurement, measurement)
-    assert posterior.timestamp == prediction.timestamp
+    assert(np.array_equal(posterior.hypothesis.measurement, measurement))
+    assert(posterior.timestamp == prediction.timestamp)
 
     # test that we can get to the inverse matrix
     class LinearGaussianwithInverse(LinearGaussian):
@@ -78,7 +78,7 @@ def test_information(UpdaterClass, measurement_model, prediction, measurement):
     post_from_inv = updater_winv.update(SingleHypothesis(prediction=info_prediction,
                                                          measurement=measurement))
     # and check
-    assert np.allclose(posterior.state_vector, post_from_inv.state_vector, 0, atol=1.e-14)
+    assert(np.allclose(posterior.state_vector, post_from_inv.state_vector, 0, atol=1.e-14))
 
     # Can one force symmetric covariance?
     updater.force_symmetric_covariance = True
@@ -86,5 +86,5 @@ def test_information(UpdaterClass, measurement_model, prediction, measurement):
         prediction=info_prediction,
         measurement=measurement))
 
-    assert np.allclose(posterior.precision - posterior.precision.T,
-                       np.zeros(np.shape(posterior.precision)), 0, atol=1.e-14)
+    assert(np.allclose(posterior.precision - posterior.precision.T,
+                       np.zeros(np.shape(posterior.precision)), 0, atol=1.e-14))

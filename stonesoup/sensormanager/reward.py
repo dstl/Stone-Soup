@@ -45,8 +45,8 @@ class RewardFunction(Base, ABC):
 
 
 class UncertaintyRewardFunction(RewardFunction):
-    """A reward function which calculates the potential reduction in the uncertainty of track
-    estimates if a particular action is taken by a sensor or group of sensors.
+    """A reward function which calculates the potential reduction in the uncertainty of track estimates
+    if a particular action is taken by a sensor or group of sensors.
 
     Given a configuration of sensors and actions, a metric is calculated for the potential
     reduction in the uncertainty of the tracks that would occur if the sensing configuration
