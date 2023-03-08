@@ -20,6 +20,23 @@ import graphviz
 from string import ascii_uppercase as auc
 from datetime import datetime, timedelta
 
+class Message(Type):
+    """A message, containing a piece of information, that gets propagated through the network. Messages are opened by
+    nodes that are a descendant of the node that sent the message"""
+    info: Union[Track, Hypothesis, Detection] = Property(
+        doc="Info that the sent message contains",
+        default=None)
+    generator_node: str = Property(
+        doc="id of the node that generated the message",
+        default=None)
+    sender_node: str = Property(
+        doc="id of last node that received the message",
+        default=None)
+    previous_nodes: list = Property(
+        doc="List of nodes that the message has been passed through",
+        default=None)
+    latency: float
+
 
 class Node(Type):
     """Base node class"""
@@ -172,6 +189,9 @@ class ProcessingNode(Node):
         else:
             _, self.unprocessed_hypotheses = _dict_set(self.unprocessed_hypotheses,
                                                        data, track, time)
+
+    def send_message(self, time, info):
+        # function to send message to descendant
 
 
 class SensorProcessingNode(SensorNode, ProcessingNode):
@@ -448,11 +468,15 @@ class InformationArchitecture(Architecture):
                     for time in node.data_held:
                         for data in node.data_held[time]:
                             descendant.update(time, data)
+                            # Send message to descendant here?
+
                 if node.hypotheses_held:
                     for track in node.hypotheses_held:
                         for time in node.hypotheses_held[track]:
                             for data in node.hypotheses_held[track][time]:
                                 descendant.update(time, data, track)
+                                # And send here as well?
+                                #
         for node in self.processing_nodes:
             node.process()
         if not self.fully_propagated:
