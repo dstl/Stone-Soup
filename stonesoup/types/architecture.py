@@ -390,7 +390,6 @@ class Architecture(Type):
                                    for track in node.hypotheses_held
                                    for time in node.hypotheses_held[track]):
                             return False
-
                     else:
                         # Node has no data, so has fully propagated
                         continue
@@ -398,6 +397,7 @@ class Architecture(Type):
                     # descendant doesn't have all the keys node does
                     return False
             return True
+
 
 class InformationArchitecture(Architecture):
     """The architecture for how information is shared through the network. Node A is "
@@ -556,18 +556,18 @@ def _dict_set(my_dict, value, key1, key2=None):
     elif key2:
         if key1 in my_dict:
             if key2 in my_dict:
-                old_len = len(my_dict)
+                old_len = len(my_dict[key1][key2])
                 my_dict[key1][key2].add(value)
-                return len(my_dict) == old_len + 1, my_dict
+                return len(my_dict[key1][key2]) == old_len + 1, my_dict
             else:
                 my_dict[key1][key2] = {value}
         else:
             my_dict[key1] = {key2: {value}}
     else:
         if key1 in my_dict:
-            old_len = len(my_dict)
+            old_len = len(my_dict[key1])
             my_dict[key1].add(value)
-            return len(my_dict) == old_len + 1, my_dict
+            return len(my_dict[key1]) == old_len + 1, my_dict
         else:
             my_dict[key1] = {value}
     return True, my_dict
