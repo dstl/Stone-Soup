@@ -47,29 +47,7 @@ measurement_model = LinearGaussian(ndim_state=2*n_spacial_dimensions,
                                                       2)), noise_covar=measurement_cov_array)
 
 
-def tracker(all_measurements, initiator, deleter, data_associator,
-            hypothesiser, predictor, updater):
-    tracks = set()
-    historic_tracks = set()
-    for n, measurements in enumerate(all_measurements):
-        hypotheses = data_associator.associate(tracks, measurements,
-                                               start_time + timedelta(seconds=n))
-        associated_measurements = set()
-        for track in tracks:
-            hypothesis = hypotheses[track]
-            if hypothesis.measurement:
-                post = updater.update(hypothesis)
-                track.append(post)
-                associated_measurements.add(hypothesis.measurement)
-            else:
-                track.append(hypothesis.prediction)
-        del_tracks = deleter.delete_tracks(tracks)
-        tracks -= del_tracks
-        tracks |= initiator.initiate(measurements - associated_measurements,
-                                     start_time + timedelta(seconds=n))
-        historic_tracks |= del_tracks
-    historic_tracks |= tracks
-    return historic_tracks
+from stonesoup.stitcher import tracker
 
 
 predictor = KalmanPredictor(transition_model)
@@ -120,7 +98,7 @@ for n, truthlet in enumerate(truthlets):
         measurementlet.append({m0})
         all_measurements.append({m0})
     tracklet = tracker(measurementlet, initiator, deleter, data_associator,
-                       hypothesiser, predictor, updater)
+                       hypothesiser, predictor, updater, start_time)
     for t in tracklet:
         all_tracks.add(t)
 

@@ -14,6 +14,10 @@ from .types.track import Track
 
 
 class TrackStitcher(Base):
+    """
+    Class containing methods that enable track segments to be stitched together into tracks. Contains functions
+    for forward and backwards stitching, as well as the function to use both at the same time.
+    """
     forward_hypothesiser: Hypothesiser = Property(
         doc="Forward predicting hypothesiser.", default=None)
     backward_hypothesiser: Hypothesiser = Property(
@@ -47,6 +51,9 @@ class TrackStitcher(Base):
             return a
 
     def forward_predict(self, tracks, start_time):
+        """
+        Function to make predictions forward in time from the state at the endpoint of a track segment
+        """
         x_forward = defaultdict(dict)
         for n in range(int((min(track[0].timestamp for track in tracks) -
                             start_time).total_seconds()),
@@ -73,6 +80,9 @@ class TrackStitcher(Base):
         return x_forward
 
     def backward_predict(self, tracks, start_time):
+        """
+        Function to make predictions backward in time from the state at the endpoint of a track segment
+        """
         x_backward = defaultdict(dict)
         for n in range(int((max(track[-1].timestamp for track in tracks) -
                             start_time).total_seconds()),
@@ -135,6 +145,10 @@ class TrackStitcher(Base):
             return x
 
     def stitch(self, tracks, start_time):
+        """
+        Function to stitch track segments together according to predictions made by the the forward_predict and
+        backward_predict functions.
+        """
         forward, backward = False, False
         if self.forward_hypothesiser is not None:
             forward = True
@@ -227,3 +241,25 @@ class TrackStitcher(Base):
             stitched_track_map[new_track.id] = ids
 
         return tracks, stitched_track_map
+
+def tracker(all_measurements, initiator, deleter, data_associator, hypothesiser, predictor, updater, start_time):
+    tracks = set()
+    historic_tracks = set()
+    for n, measurements in enumerate(all_measurements):
+        hypotheses = data_associator.associate(tracks, measurements, start_time + timedelta(seconds=n))
+        associated_measurements = set()
+        for track in tracks:
+            hypothesis = hypotheses[track]
+            if hypothesis.measurement:
+                post = updater.update(hypothesis)
+                track.append(post)
+                associated_measurements.add(hypothesis.measurement)
+            else:
+                track.append(hypothesis.prediction)
+        del_tracks = deleter.delete_tracks(tracks)
+        tracks -= del_tracks
+        tracks |= initiator.initiate(measurements - associated_measurements, start_time + timedelta(seconds=n))
+        historic_tracks |= del_tracks
+    historic_tracks |= tracks
+
+    return historic_tracks
