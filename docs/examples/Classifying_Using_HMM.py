@@ -200,7 +200,8 @@ deleter = UpdateTimeStepsDeleter(2)
 # We can use a standard :class:`~.MultiTargetTracker`.
 from stonesoup.tracker.simple import MultiTargetTracker
 
-tracker = MultiTargetTracker(initiator, deleter, measurements, data_associator, updater)
+tracker = MultiTargetTracker(initiator=initiator, deleter=deleter, detector=measurements,
+                             data_associator=data_associator, updater=updater)
 
 # %%
 # Tracking

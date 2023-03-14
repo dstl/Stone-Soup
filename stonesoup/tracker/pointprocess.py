@@ -1,22 +1,23 @@
-from .base import Tracker
+import datetime
+from typing import Tuple, Set
+
+from .base import TrackerWithDetector
 from ..base import Property
-from ..reader import DetectionReader
-from ..types.state import TaggedWeightedGaussianState
-from ..types.mixture import GaussianMixture
-from ..types.numeric import Probability
-from ..types.track import Track
-from ..updater import Updater
 from ..hypothesiser.gaussianmixture import GaussianMixtureHypothesiser
 from ..mixturereducer.gaussianmixture import GaussianMixtureReducer
+from ..types.detection import Detection
+from ..types.mixture import GaussianMixture
+from ..types.numeric import Probability
+from ..types.state import TaggedWeightedGaussianState
+from ..types.track import Track
+from ..updater import Updater
 
 
-class PointProcessMultiTargetTracker(Tracker):
+class PointProcessMultiTargetTracker(TrackerWithDetector):
     """
     Base class for Gaussian Mixture (GM) style implementations of
     point process derived filters
     """
-    detector: DetectionReader = Property(
-        doc="Detector used to generate detection objects.")
     updater: Updater = Property(
         doc="Updater used to update the objects to their new state.")
     hypothesiser: GaussianMixtureHypothesiser = Property(
@@ -40,15 +41,11 @@ class PointProcessMultiTargetTracker(Tracker):
         self.gaussian_mixture = GaussianMixture()
 
     @property
-    def tracks(self):
+    def tracks(self) -> Set[Track]:
         tracks = set()
         for track in self.target_tracks.values():
             tracks.add(track)
         return tracks
-
-    def __iter__(self):
-        self.detector_iter = iter(self.detector)
-        return super().__iter__()
 
     def update_tracks(self):
         """
@@ -77,8 +74,8 @@ class PointProcessMultiTargetTracker(Tracker):
                             self.extraction_threshold:
                         self.target_tracks[tag] = Track([component], id=tag)
 
-    def __next__(self):
-        time, detections = next(self.detector_iter)
+    def update_tracker(self, time: datetime.datetime, detections: Set[Detection]) \
+            -> Tuple[datetime.datetime, Set[Track]]:
         # Add birth component
         self.birth_component.timestamp = time
         self.gaussian_mixture.append(self.birth_component)

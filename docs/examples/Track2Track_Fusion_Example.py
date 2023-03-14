@@ -550,7 +550,7 @@ class DummyDetector(DetectionReader):
 
 # %%
 
-sensor1_detections, sensor2_detections = [], []
+sensor1_all_detections, sensor2_all_detections = [], []
 jpda_tracks, gmlcc_tracks = set(), set()
 meas_fusion_tracks, track_fusion_tracks = set(), set()
 
@@ -559,40 +559,31 @@ sim_generator = radar_simulator.detections_gen()
 for t in range(num_steps):
 
     # Run JPDA tracker from sensor 1
-    s1d = next(sim_generator)
-    sensor1_detections.extend(s1d[1])  # hold in list for plotting
-    # Pass the detections into a DummyDetector and set it up as an iterable
-    jpda_tracker.detector = DummyDetector(current=s1d)
-    jpda_tracker.__iter__()
-    # Run the tracker and store the resulting tracks
-    _, sensor1_tracks = next(jpda_tracker)
+    time, sensor1_detections = next(sim_generator)
+    sensor1_all_detections.extend(sensor1_detections)  # hold in list for plotting
+    # Pass the detections into the tracker and store the resulting tracks
+    time, sensor1_tracks = jpda_tracker.update_tracker(time, sensor1_detections)
     jpda_tracks.update(sensor1_tracks)
 
     # Run GM-LCC tracker from sensor 2
-    s2d = next(sim_generator)
-    sensor2_detections.extend(s2d[1])  # hold in list for plotting
-    # Pass the detections into a DummyDetector and set it up as an iterable
-    gmlcc_tracker.detector = DummyDetector(current=s2d)
-    gmlcc_tracker.__iter__()
-    # Run the tracker and store results
-    time, sensor2_tracks = next(gmlcc_tracker)
+    time, sensor2_detections = next(sim_generator)
+    sensor2_all_detections.extend(sensor2_detections)  # hold in list for plotting
+    # Pass the detections into the tracker and store the resulting tracks
+    time, sensor2_tracks = gmlcc_tracker.update_tracker(time, sensor2_detections)
     gmlcc_tracks.update(sensor2_tracks)
 
     # Run the GM-PHD for measurement fusion. This one gets called twice, once for each set of
     # detections. This ensures there is only one detection per target.
-    for detections in [s1d, s2d]:
-        meas_fusion_tracker.detector = DummyDetector(current=detections)
-        meas_fusion_tracker.__iter__()
-        _, tracks = next(meas_fusion_tracker)
+    for detections in [sensor1_detections, sensor2_detections]:
+        time, tracks = meas_fusion_tracker.update_tracker(time, detections)
         meas_fusion_tracks.update(tracks)
 
     # Run the GM-PHD for track fusion. Similar to the measurement fusion, this tracker gets run
     # twice, once for each set of tracks.
-    for tracks_as_meas in [sensor1_tracks, sensor2_tracks]:
-        dummy_detector = DummyDetector(current=[time, tracks_as_meas])
-        track_fusion_tracker.detector = Tracks2GaussianDetectionFeeder(dummy_detector)
-        track_fusion_tracker.__iter__()
-        _, tracks = next(track_fusion_tracker)
+    for sensor_tracks in [sensor1_tracks, sensor2_tracks]:
+        time, tracks_as_detections = next(iter(
+            Tracks2GaussianDetectionFeeder([(time, sensor_tracks)])))
+        time, tracks = track_fusion_tracker.update_tracker(time, tracks_as_detections)
         track_fusion_tracks.update(tracks)
 
     # ----------------------------------------------------------------------
@@ -603,12 +594,12 @@ for t in range(num_steps):
         manager.add_data(groundtruth_paths=truths[1], overwrite=False)
 
     # Add measurements to metric managers
-    sensor1_mm.add_data(detections=s1d[1], overwrite=False)
-    sensor2_mm.add_data(detections=s2d[1], overwrite=False)
-    meas_fusion_mm.add_data(detections=s1d[1], overwrite=False)
-    meas_fusion_mm.add_data(detections=s2d[1], overwrite=False)
-    track_fusion_mm.add_data(detections=s1d[1], overwrite=False)
-    track_fusion_mm.add_data(detections=s2d[1], overwrite=False)
+    sensor1_mm.add_data(detections=sensor1_detections, overwrite=False)
+    sensor2_mm.add_data(detections=sensor2_detections, overwrite=False)
+    meas_fusion_mm.add_data(detections=sensor1_detections, overwrite=False)
+    meas_fusion_mm.add_data(detections=sensor2_detections, overwrite=False)
+    track_fusion_mm.add_data(detections=sensor1_detections, overwrite=False)
+    track_fusion_mm.add_data(detections=sensor2_detections, overwrite=False)
 
 
 # Ensure that all tracks have been extracted from the trackers
@@ -646,9 +637,9 @@ plotter1, plotter2 = Plotter(), Plotter()
 for plotter in [plotter1, plotter2]:
     plotter.plot_ground_truths(set(radar_simulator.groundtruth.groundtruth_paths), [0, 2],
                                color='black')
-    plotter.plot_measurements(sensor1_detections, [0, 2], color='orange', marker='*',
+    plotter.plot_measurements(sensor1_all_detections, [0, 2], color='orange', marker='*',
                               measurements_label='Measurements - Airborne Radar')
-    plotter.plot_measurements(sensor2_detections, [0, 2], color='blue', marker='*',
+    plotter.plot_measurements(sensor2_all_detections, [0, 2], color='blue', marker='*',
                               measurements_label='Measurements - Ground Radar')
     plotter.plot_tracks(jpda_tracks, [0, 2], color='red',
                         track_label='Tracks - Airborne Radar (JPDAF)')
@@ -782,3 +773,5 @@ ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
 # .. [#] Clark, D. and Hunter, E. and Balaji, B. and O'Rourke, S., “Centralized multi-sensor
 #        multi-target data fusion with tracks as measurements,” to be submitted to SPIE Defense and
 #        Security Symposium 2023.
+
+plt.show()
