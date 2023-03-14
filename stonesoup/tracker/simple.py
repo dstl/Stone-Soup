@@ -3,12 +3,13 @@ from typing import Tuple, Set
 
 import numpy as np
 
-from .base import TrackerWithDetector
+from .base import Tracker
 from ..base import Property
 from ..dataassociator import DataAssociator
 from ..deleter import Deleter
 from ..functions import gm_reduce_single
 from ..initiator import Initiator
+from ..reader import DetectionReader
 from ..types.array import StateVectors
 from ..types.detection import Detection
 from ..types.prediction import GaussianStatePrediction
@@ -17,7 +18,7 @@ from ..types.update import GaussianStateUpdate
 from ..updater import Updater
 
 
-class SingleTargetTracker(TrackerWithDetector):
+class SingleTargetTracker(Tracker):
     """A simple single target tracker.
 
     Track a single object using Stone Soup components. The tracker works by
@@ -75,7 +76,7 @@ class SingleTargetTracker(TrackerWithDetector):
         return time, self.tracks
 
 
-class MultiTargetTracker(TrackerWithDetector):
+class MultiTargetTracker(Tracker):
     """A simple multi target tracker.
 
     Track multiple objects using Stone Soup components. The tracker works by
@@ -124,7 +125,7 @@ class MultiTargetTracker(TrackerWithDetector):
         return time, self.tracks
 
 
-class MultiTargetMixtureTracker(TrackerWithDetector):
+class MultiTargetMixtureTracker(Tracker):
     """A simple multi target tracker that receives associations from a
     (Gaussian) Mixture associator.
 

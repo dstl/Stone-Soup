@@ -1,7 +1,7 @@
 import datetime
 from typing import Tuple, Set
 
-from .base import TrackerWithDetector
+from .base import Tracker
 from ..base import Property
 from ..hypothesiser.gaussianmixture import GaussianMixtureHypothesiser
 from ..mixturereducer.gaussianmixture import GaussianMixtureReducer
@@ -13,7 +13,7 @@ from ..types.track import Track
 from ..updater import Updater
 
 
-class PointProcessMultiTargetTracker(TrackerWithDetector):
+class PointProcessMultiTargetTracker(Tracker):
     """
     Base class for Gaussian Mixture (GM) style implementations of
     point process derived filters
