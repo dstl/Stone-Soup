@@ -20,25 +20,12 @@ import graphviz
 from string import ascii_uppercase as auc
 from datetime import datetime, timedelta
 
-class Message(Type):
-    """A message, containing a piece of information, that gets propagated through the network. Messages are opened by
-    nodes that are a descendant of the node that sent the message"""
-    info: Union[Track, Hypothesis, Detection] = Property(
-        doc="Info that the sent message contains",
-        default=None)
-    generator_node: Node = Property(
-        doc="Node that generated the message",
-        default=None)
-    recipient_node: Node = Property(
-        doc="Node that receives the message",
-        default=None)
-    time_sent: datetime = Property(
-        doc="Time in datetime form at which the message was sent",
-        default=None)
-
 
 class Node(Type):
     """Base node class"""
+    latency: float = Property(
+        doc="Contribution to edge latency stemming from this node",
+        default=0)
     label: str = Property(
         doc="Label to be displayed on graph",
         default=None)
@@ -91,19 +78,12 @@ class Node(Type):
             for message in self.received_messages['unopened'][time]:
                 if not isinstance(message.info, (Detection, Hypothesis, Track)):
                     raise TypeError("Message info must be one of the following types: Detection, Hypothesis or Track")
-        else:
-            if isinstance(data, Detection):
-                # Do something to put data in the right place
-            elif isinstance(data, Hypothesis):
-                # Do something to put data in the right place
-            elif isinstance(data, Track):
-                # Do something to put data in the right place
-            # Add message to opened messages
-            _dict_set(self.received_messages, message, 'opened', current_time)
-            # Remove message from unopened messages
-            self.received_messages['unopened'][time].remove(message)
-
-            self.update(message.time_sent+message.latency, message.info)
+                # Add message to opened messages
+                _dict_set(self.received_messages, message, 'opened', current_time)
+                # Remove message from unopened messages
+                self.received_messages['unopened'][time].remove(message)
+                # Update
+                self.update(message.time_sent+message.latency, message.info)
 
 
 class SensorNode(Node):
@@ -240,11 +220,82 @@ class RepeaterNode(Node):
             self.shape = 'circle'
 
 
+class Message(Type):
+    """A message, containing a piece of information, that gets propagated through the network. Messages are opened by
+    nodes that are a descendant of the node that sent the message"""
+    info: Union[Track, Hypothesis, Detection] = Property(
+        doc="Info that the sent message contains",
+        default=None)
+    generator_node: Node = Property(
+        doc="Node that generated the message",
+        default=None)
+    recipient_node: Node = Property(
+        doc="Node that receives the message",
+        default=None)
+    time_sent: datetime = Property(
+        doc="Time at which the message was sent",
+        default=None)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.status = "sending"
+
+
+class Edge(Type):
+    """Comprised of two connected Nodes"""
+    nodes: Tuple[Node, Node] = Property(doc="A pair of nodes in the form (ancestor, descendant")
+    edge_latency: float = Property(doc="The latency stemming from the edge itself, "
+                                       "and not either of the nodes",
+                                   default=0)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.messages_held = {"pending": set(), "received": set()} # this is how other xxxx_held should be made too, inside init
+
+    @property
+    def ancestor(self):
+        return self.nodes[0]
+
+    @property
+    def descendant(self):
+        return self.nodes[1]
+
+    @property
+    def ovr_latency(self):
+        """Overall latency including the two Nodes and the edge latency"""
+        return self.ancestor.latency + self.edge_latency + self.descendant.latency
+
+
+class Edges(Type):
+    """Container class for Edge"""
+    edges: List[Edge] = Property(doc="List of Edge objects", default=None)
+
+    def add(self, edge):
+        self.edges.append(edge)
+
+    def get(self, node_pair):
+        if not isinstance(node_pair, Tuple) and all(isinstance(node, Node) for node in node_pair):
+            raise TypeError("Must supply a tuple of nodes")
+        if not len(node_pair) == 2:
+            raise ValueError("Incorrect tuple length. Must be of length 2")
+        for edge in self.edges:
+            if edge.nodes == node_pair:
+                # Assume this is the only match?
+                return edge
+        return None
+
+    @property
+    def edge_list(self):
+        edge_list = []
+        for edge in self.edges:
+            edge_list.append(edge.nodes)
+        return edge_list
+
+
 class Architecture(Type):
-    edge_list: Collection = Property(
-        default=None,
-        doc="A Collection of edges between nodes. For A to be connected to B we would have (A, B)"
-            "be a member of this list. Default is an empty list")
+    edges: Edges = Property(
+        doc="An Edges object containing all edges. For A to be connected to B we would have an "
+            "Edge with edge_pair=(A, B) in this object.")
     current_time: datetime = Property(
         default=None,
         doc="The time which the instance is at for the purpose of simulation. "
@@ -267,16 +318,12 @@ class Architecture(Type):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if isinstance(self.edge_list, Collection) and not isinstance(self.edge_list, List):
-            self.edge_list = list(self.edge_list)
-        if not self.edge_list:
-            self.edge_list = []
         if not self.name:
             self.name = type(self).__name__
         if not self.current_time:
             self.current_time = datetime.now()
 
-        self.di_graph = nx.to_networkx_graph(self.edge_list, create_using=nx.DiGraph)
+        self.di_graph = nx.to_networkx_graph(self.edges.edge_list, create_using=nx.DiGraph)
 
         if self.force_connected and not self.is_connected and len(self) > 0:
             raise ValueError("The graph is not connected. Use force_connected=False, "
@@ -302,7 +349,7 @@ class Architecture(Type):
             raise ValueError("Node not in this architecture")
         descendants = set()
         for other in self.all_nodes:
-            if (node, other) in self.edge_list:
+            if (node, other) in self.edges.edge_list:
                 descendants.add(other)
         return descendants
 
@@ -312,7 +359,7 @@ class Architecture(Type):
             raise ValueError("Node not in this architecture")
         ancestors = set()
         for other in self.all_nodes:
-            if (other, node) in self.edge_list:
+            if (other, node) in self.edges.edge_list:
                 ancestors.add(other)
         return ancestors
 
