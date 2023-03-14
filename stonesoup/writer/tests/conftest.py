@@ -1,4 +1,5 @@
 import datetime
+from typing import Tuple, Set
 
 import pytest
 
@@ -56,20 +57,20 @@ def tracker():
             return self._tracks
 
         def __iter__(self):
-            self.iter = iter(range(2))
-            self.time = datetime.datetime(2018, 1, 1, 13, 59)
+            t0 = datetime.datetime(2018, 1, 1, 13, 59)
+            self.detector = [
+                (t0 + datetime.timedelta(minutes=(i+1)), i)
+                for i in range(2)]
             return super().__iter__()
 
-        def __next__(self):
-            i = next(self.iter)
+        def update_tracker(self, time, i) -> Tuple[datetime.datetime, Set[Track]]:
             state_vector = StateVector([[0]])
-            self.time += datetime.timedelta(minutes=1)
             self._tracks = {
                 Track(
                     [State(
-                        state_vector + i + 10*j, timestamp=self.time)
+                        state_vector + i + 10*j, timestamp=time)
                         for j in range(i)],
                     str(k))
                 for k in range(i)}
-            return self.time, self.tracks
+            return time, self.tracks
     return TestTracker()

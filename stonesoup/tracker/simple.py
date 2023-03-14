@@ -9,7 +9,6 @@ from ..dataassociator import DataAssociator
 from ..deleter import Deleter
 from ..functions import gm_reduce_single
 from ..initiator import Initiator
-from ..reader import DetectionReader
 from ..types.array import StateVectors
 from ..types.detection import Detection
 from ..types.prediction import GaussianStatePrediction

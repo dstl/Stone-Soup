@@ -67,7 +67,7 @@ class YAMLSensorDataReader(YAMLReader, SensorDataReader):
             yield time, document.get('sensor_data', set())
 
 
-class YAMLTrackReader(YAMLReader, Tracker):
+class YAMLTrackReader(YAMLReader):
     """YAML Track Reader"""
 
     def data_gen(self):
@@ -76,7 +76,7 @@ class YAMLTrackReader(YAMLReader, Tracker):
     def __iter__(self):
         self.data_iter = iter(self.data_gen())
         self._tracks = dict()
-        return super().__iter__()
+        return self
 
     @property
     def tracks(self):
