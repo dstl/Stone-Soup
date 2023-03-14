@@ -26,16 +26,15 @@ class Message(Type):
     info: Union[Track, Hypothesis, Detection] = Property(
         doc="Info that the sent message contains",
         default=None)
-    generator_node: str = Property(
-        doc="id of the node that generated the message",
+    generator_node: Node = Property(
+        doc="Node that generated the message",
         default=None)
-    sender_node: str = Property(
-        doc="id of last node that received the message",
+    recipient_node: Node = Property(
+        doc="Node that receives the message",
         default=None)
-    previous_nodes: list = Property(
-        doc="List of nodes that the message has been passed through",
+    time_sent: datetime = Property(
+        doc="Time in datetime form at which the message was sent",
         default=None)
-    latency: float
 
 
 class Node(Type):
@@ -52,17 +51,18 @@ class Node(Type):
     shape: str = Property(
         default=None,
         doc='Shape used to display nodes')
-    data_held: Dict[datetime, Set[Detection]] = Property(
+    data_held: Dict[str, Dict[datetime, Set[Union[Detection, Hypothesis, Track]]]] = Property(
         default=None,
         doc='Raw sensor data (Detection objects) held by this node')
-    hypotheses_held: Dict[Track, Dict[datetime, Set[Hypothesis]]] = Property(
+    messages_held: Dict[str, Dict[datetime, Set[Union[Detection, Hypothesis, Track]]]] = Property(
         default=None,
-        doc='Processed information (Hypothesis objects) held by this node')
+        doc='Dictionary containing two sub dictionaries, one of unopened messages and one of opened messages')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not self.data_held:
             self.data_held = dict()
+            self.received_messages = dict()
 
     def update(self, time, data, track=None):
         if not isinstance(time, datetime):
@@ -78,6 +78,33 @@ class Node(Type):
 
         return added
 
+    def send_message(self, time_sent, data, recipient):
+        if not isinstance(data, (Detection, Hypothesis, Track)):
+            raise TypeError("Message info must be one of the following types: Detection, Hypothesis or Track")
+        # Add message to 'Unopened messages' dict of descendant node
+        message = Message(data, self, recipient)
+        _dict_set(recipient.received_messages, message, 'unopened', time_sent) # 2nd key will be time_sent+latency in future
+
+    def open_messages(self, current_time):
+        # Check info type is what we expect
+        for time in self.received_messages['unopened']:
+            for message in self.received_messages['unopened'][time]:
+                if not isinstance(message.info, (Detection, Hypothesis, Track)):
+                    raise TypeError("Message info must be one of the following types: Detection, Hypothesis or Track")
+        else:
+            if isinstance(data, Detection):
+                # Do something to put data in the right place
+            elif isinstance(data, Hypothesis):
+                # Do something to put data in the right place
+            elif isinstance(data, Track):
+                # Do something to put data in the right place
+            # Add message to opened messages
+            _dict_set(self.received_messages, message, 'opened', current_time)
+            # Remove message from unopened messages
+            self.received_messages['unopened'][time].remove(message)
+
+            self.update(message.time_sent+message.latency, message.info)
+
 
 class SensorNode(Node):
     """A node corresponding to a Sensor. Fresh data is created here"""
@@ -91,7 +118,7 @@ class SensorNode(Node):
             self.shape = 'square'
 
 
-class ProcessingNode(Node):
+class FusionNode(Node):
     """A node that does not measure new data, but does process data it receives"""
     predictor: Predictor = Property(
         doc="The predictor used by this node. ")
@@ -190,18 +217,16 @@ class ProcessingNode(Node):
             _, self.unprocessed_hypotheses = _dict_set(self.unprocessed_hypotheses,
                                                        data, track, time)
 
-    def send_message(self, time, info):
-        # function to send message to descendant
 
 
-class SensorProcessingNode(SensorNode, ProcessingNode):
+class SensorFusionNode(SensorNode, FusionNode):
     """A node that is both a sensor and also processes data"""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not self.colour:
-            self.colour = 'something'  # attr dict in Architecture.__init__ also needs updating
+            self.colour = '#909090'  # attr dict in Architecture.__init__ also needs updating
         if not self.shape:
-            self.shape = 'something'
+            self.shape = 'octagon'
 
 
 class RepeaterNode(Node):
@@ -258,7 +283,7 @@ class Architecture(Type):
                              "if you wish to override this requirement")
 
         # Set attributes such as label, colour, shape, etc for each node
-        last_letters = {'SensorNode': '', 'ProcessingNode': '', 'SensorProcessingNode': '',
+        last_letters = {'SensorNode': '', 'FusionNode': '', 'SensorFusionNode': '',
                         'RepeaterNode': ''}
         for node in self.di_graph.nodes:
             if node.label:
@@ -311,7 +336,7 @@ class Architecture(Type):
     def processing_nodes(self):
         processing = set()
         for node in self.all_nodes:
-            if isinstance(node, ProcessingNode):
+            if isinstance(node, FusionNode):
                 processing.add(node)
         return processing
 
@@ -465,19 +490,13 @@ class InformationArchitecture(Architecture):
                     # being transferred to other
                     continue
                 if node.data_held:
-                    for time in node.data_held:
-                        for data in node.data_held[time]:
-                            descendant.update(time, data)
+                    for time in node.data_held['unsent']:
+                        for data in node.data_held['unsent'][time]:
                             # Send message to descendant here?
+                            descendant.send_message(time, data)
 
-                if node.hypotheses_held:
-                    for track in node.hypotheses_held:
-                        for time in node.hypotheses_held[track]:
-                            for data in node.hypotheses_held[track][time]:
-                                descendant.update(time, data, track)
-                                # And send here as well?
-                                #
         for node in self.processing_nodes:
+            node.open_messages()
             node.process()
         if not self.fully_propagated:
             self.propagate(time_increment, failed_edges)
