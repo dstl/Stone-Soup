@@ -4,7 +4,6 @@ from ..base import Property
 from ..buffered_generator import BufferedGenerator
 from ..serialise import YAML
 from .base import DetectionReader, GroundTruthReader, SensorDataReader
-from ..tracker import Tracker
 from .file import FileReader
 
 
