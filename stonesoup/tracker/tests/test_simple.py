@@ -1,6 +1,31 @@
+import pytest
 import datetime
 from ..simple import SingleTargetTracker, MultiTargetTracker, \
     MultiTargetMixtureTracker
+
+
+def test_single_target_manual_update(
+        initiator, deleter, detector, data_associator, updater):
+
+    tracker = SingleTargetTracker(initiator=initiator, deleter=deleter,
+                                  data_associator=data_associator, updater=updater)
+
+    with pytest.raises(ValueError):
+        for _ in tracker:
+            pass
+
+    previous_time = datetime.datetime(2018, 1, 1, 13, 59)
+    total_tracks = set()
+    for detection_time, detections in detector:
+        tracker_time, tracks = tracker.update_tracker(detection_time, detections)
+        assert detection_time == tracker_time == previous_time + datetime.timedelta(minutes=1)
+
+        assert len(tracks) <= 1  # Shouldn't have more than one track
+        total_tracks |= tracks
+
+        previous_time = tracker_time
+
+    assert len(total_tracks) >= 2  # Should of had at least 2 over all steps
 
 
 def test_single_target_tracker(
