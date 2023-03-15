@@ -65,25 +65,7 @@ class Node(Type):
 
         return added
 
-    def send_message(self, time_sent, data, recipient):
-        if not isinstance(data, (Detection, Hypothesis, Track)):
-            raise TypeError("Message info must be one of the following types: Detection, Hypothesis or Track")
-        # Add message to 'Unopened messages' dict of descendant node
-        message = Message(data, self, recipient)
-        _dict_set(recipient.received_messages, message, 'unopened', time_sent) # 2nd key will be time_sent+latency in future
 
-    def open_messages(self, current_time):
-        # Check info type is what we expect
-        for time in self.received_messages['unopened']:
-            for message in self.received_messages['unopened'][time]:
-                if not isinstance(message.info, (Detection, Hypothesis, Track)):
-                    raise TypeError("Message info must be one of the following types: Detection, Hypothesis or Track")
-                # Add message to opened messages
-                _dict_set(self.received_messages, message, 'opened', current_time)
-                # Remove message from unopened messages
-                self.received_messages['unopened'][time].remove(message)
-                # Update
-                self.update(message.time_sent+message.latency, message.info)
 
 
 class SensorNode(Node):
@@ -198,7 +180,6 @@ class FusionNode(Node):
                                                        data, track, time)
 
 
-
 class SensorFusionNode(SensorNode, FusionNode):
     """A node that is both a sensor and also processes data"""
     def __init__(self, *args, **kwargs):
@@ -251,6 +232,27 @@ class Edge(Type):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.messages_held = {"pending": set(), "received": set()} # this is how other xxxx_held should be made too, inside init
+
+    def send_message(self, time_sent, data):
+        if not isinstance(data, (Detection, Hypothesis, Track)):
+            raise TypeError("Message info must be one of the following types: Detection, Hypothesis or Track")
+        # Add message to 'pending' dict of edge
+        message = Message(data, self.descendant, self.ancestor)
+        _dict_set(self.messages_held, message, 'pending', time_sent) # 2nd key will be time_sent+latency in future
+
+    def update_messages(self, current_time):
+        # Check info type is what we expect
+        for time in self.messages_held['pending']:
+            for message in self.messages_held['pending'][time]:
+                if not isinstance(message.info, (Detection, Hypothesis, Track)):
+                    raise TypeError("Message info must be one of the following types: Detection, Hypothesis or Track")
+                # Add message to unopened messages of ancestor
+                _dict_set(self.ancestor.messages_held, message, 'unopened', current_time)
+                # Move message from pending to received messages in edge
+                self.messages_held['pending'][time].remove(message)
+                _dict_set(self.messages_held, message, 'received', current_time)
+                # Update
+                self.ancestor.update(message.time_sent+message.latency, message.info)
 
     @property
     def ancestor(self):
@@ -543,7 +545,7 @@ class InformationArchitecture(Architecture):
                             descendant.send_message(time, data)
 
         for node in self.processing_nodes:
-            node.open_messages()
+            node.update_messages()
             node.process()
         if not self.fully_propagated:
             self.propagate(time_increment, failed_edges)
