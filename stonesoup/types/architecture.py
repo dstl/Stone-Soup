@@ -12,6 +12,7 @@ from ..updater.base import Updater
 from ..dataassociator.base import DataAssociator
 from ..initiator.base import Initiator
 from ..deleter.base import Deleter
+from ..tracker.base import Tracker
 
 from typing import List, Collection, Tuple, Set, Union, Dict
 import numpy as np
@@ -38,18 +39,11 @@ class Node(Type):
     shape: str = Property(
         default=None,
         doc='Shape used to display nodes')
-    data_held: Dict[str, Dict[datetime, Set[Union[Detection, Hypothesis, Track]]]] = Property(
-        default=None,
-        doc='Raw sensor data (Detection objects) held by this node')
-    messages_held: Dict[str, Dict[datetime, Set[Union[Detection, Hypothesis, Track]]]] = Property(
-        default=None,
-        doc='Dictionary containing two sub dictionaries, one of unopened messages and one of opened messages')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not self.data_held:
-            self.data_held = dict()
-            self.received_messages = dict()
+        self.data_held = {"processed": set(), "unprocessed": set()}
+        # Node no longer handles messages. All done by Edge
 
     def update(self, time, data, track=None):
         if not isinstance(time, datetime):
@@ -61,11 +55,9 @@ class Node(Type):
         else:
             if not isinstance(data, Hypothesis):
                 raise TypeError("Data provided with Track must be a Hypothesis")
-            added, self.hypotheses_held = _dict_set(self.hypotheses_held, data, track, time)
+            added, self.data_held = _dict_set(self.data_held, (data, track), time)
 
         return added
-
-
 
 
 class SensorNode(Node):
@@ -94,6 +86,9 @@ class FusionNode(Node):
         doc="The initiator used by this node")
     deleter: Deleter = Property(
         doc="The deleter used by this node")
+    tracker: Tracker = Property(
+        doc="Tracker used by this node. Only trackers which can handle the types of data fused by "
+            "the node will work.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -101,11 +96,6 @@ class FusionNode(Node):
             self.colour = '#006400'
         if not self.shape:
             self.shape = 'hexagon'
-
-        self.processed_data = dict()  # Subset of data_held containing data that has been processed
-        self.unprocessed_data = dict()  # Data that has not been processed yet
-        self.processed_hypotheses = dict()  # Dict[track, Dict[datetime, Set[Hypothesis]]]
-        self.unprocessed_hypotheses = dict()  # Hypotheses which have not yet been used
         self.tracks = set()  # Set of tracks this Node has recorded
 
     def process(self):
@@ -155,29 +145,12 @@ class FusionNode(Node):
                                                        associated_detections, time)
 
         # Send the unprocessed data that was just processed to processed_data
-        for time in self.unprocessed_data:
-            for data in self.unprocessed_data[time]:
-                _, self.processed_data = _dict_set(self.processed_data, data, time)
-        # And same for hypotheses
-        for track in self.unprocessed_hypotheses:
-            for time in self.unprocessed_hypotheses[track]:
-                for data in self.unprocessed_hypotheses[track][time]:
-                    _, self.processed_hypotheses = _dict_set(self.processed_hypotheses,
-                                                             data, track, time)
+        for time in self.data_held['unprocessed']:
+            for data in self.data_held['unprocessed'][time]:
+                _, self.data_held['processed'] = _dict_set(self.data_held['processed'], data, time)
 
-        self.unprocessed_data = dict()
-        self.unprocessed_hypotheses = dict()
+        self.data_held['unprocessed'] = set()
         return
-
-    def update(self, time, data, track=None):
-        if not super().update(time, data, track):
-            # Data was not new -  do not add to unprocessed
-            return
-        if not track:
-            _, self.unprocessed_data = _dict_set(self.unprocessed_data, data, time)
-        else:
-            _, self.unprocessed_hypotheses = _dict_set(self.unprocessed_hypotheses,
-                                                       data, track, time)
 
 
 class SensorFusionNode(SensorNode, FusionNode):
@@ -201,27 +174,6 @@ class RepeaterNode(Node):
             self.shape = 'circle'
 
 
-class Message(Type):
-    """A message, containing a piece of information, that gets propagated through the network. Messages are opened by
-    nodes that are a descendant of the node that sent the message"""
-    info: Union[Track, Hypothesis, Detection] = Property(
-        doc="Info that the sent message contains",
-        default=None)
-    generator_node: Node = Property(
-        doc="Node that generated the message",
-        default=None)
-    recipient_node: Node = Property(
-        doc="Node that receives the message",
-        default=None)
-    time_sent: datetime = Property(
-        doc="Time at which the message was sent",
-        default=None)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.status = "sending"
-
-
 class Edge(Type):
     """Comprised of two connected Nodes"""
     nodes: Tuple[Node, Node] = Property(doc="A pair of nodes in the form (ancestor, descendant")
@@ -231,28 +183,32 @@ class Edge(Type):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.messages_held = {"pending": set(), "received": set()} # this is how other xxxx_held should be made too, inside init
+        self.messages_held = {"pending": set(), "received": set()}
 
     def send_message(self, time_sent, data):
         if not isinstance(data, (Detection, Hypothesis, Track)):
-            raise TypeError("Message info must be one of the following types: Detection, Hypothesis or Track")
+            raise TypeError("Message info must be one of the following types: "
+                            "Detection, Hypothesis or Track")
         # Add message to 'pending' dict of edge
         message = Message(data, self.descendant, self.ancestor)
-        _dict_set(self.messages_held, message, 'pending', time_sent) # 2nd key will be time_sent+latency in future
+        _, self.messages_held = _dict_set(self.messages_held, message, 'pending', time_sent)
 
     def update_messages(self, current_time):
         # Check info type is what we expect
         for time in self.messages_held['pending']:
             for message in self.messages_held['pending'][time]:
                 if not isinstance(message.info, (Detection, Hypothesis, Track)):
-                    raise TypeError("Message info must be one of the following types: Detection, Hypothesis or Track")
-                # Add message to unopened messages of ancestor
-                _dict_set(self.ancestor.messages_held, message, 'unopened', current_time)
-                # Move message from pending to received messages in edge
-                self.messages_held['pending'][time].remove(message)
-                _dict_set(self.messages_held, message, 'received', current_time)
-                # Update
-                self.ancestor.update(message.time_sent+message.latency, message.info)
+                    raise TypeError("Message info must be one of the following types: "
+                                    "Detection, Hypothesis or Track")
+                if message.time_sent + self.ovr_latency <= current_time:
+                    # Then the latency has passed and message has been received
+                    # No need for a Node to hold messages
+                    # Move message from pending to received messages in edge
+                    self.messages_held['pending'][time].remove(message)
+                    _, self.messages_held = _dict_set(self.messages_held, message,
+                                                      'received', current_time)
+                    # Update
+                    message.recipient_node.update(message.time_sent+message.latency, message.info)
 
     @property
     def ancestor(self):
@@ -292,6 +248,31 @@ class Edges(Type):
         for edge in self.edges:
             edge_list.append(edge.nodes)
         return edge_list
+
+
+class Message(Type):
+    """A message, containing a piece of information, that gets propagated between two Nodes.
+    Messages are opened by nodes that are a descendant of the node that sent the message"""
+    data: Union[Track, Hypothesis, Detection] = Property(
+        doc="Info that the sent message contains",
+        default=None)
+    edge: Edge = Property(
+        doc="The directed edge containing the sender and receiver of the message")
+    time_sent: datetime = Property(
+        doc="Time at which the message was sent",
+        default=None)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.status = "sending"
+
+    @property
+    def generator_node(self):
+        return self.edge.ancestor
+
+    @property
+    def recipient_node(self):
+        return self.edge.descendant
 
 
 class Architecture(Type):
