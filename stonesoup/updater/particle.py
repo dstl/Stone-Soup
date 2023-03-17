@@ -65,11 +65,9 @@ class ParticleUpdater(Updater):
         return Update.from_state(
             state=hypothesis.prediction,
             state_vector=predicted_state.state_vector,
-            weight=None,
             log_weight=predicted_state.log_weight,
             hypothesis=hypothesis,
             timestamp=hypothesis.measurement.timestamp,
-            particle_list=None
             )
 
     @lru_cache()
@@ -82,8 +80,7 @@ class ParticleUpdater(Updater):
         new_state_vector = measurement_model.function(state_prediction, **kwargs)
 
         return MeasurementPrediction.from_state(
-            state_prediction, state_vector=new_state_vector, timestamp=state_prediction.timestamp,
-            particle_list=None, weight=None)
+            state_prediction, state_vector=new_state_vector, timestamp=state_prediction.timestamp)
 
 
 class GromovFlowParticleUpdater(Updater):
@@ -204,7 +201,6 @@ class GromovFlowKalmanParticleUpdater(GromovFlowParticleUpdater):
             hypothesis,
             weight=particle_update.weight,
             fixed_covar=kalman_update.covar,
-            particle_list=None,
             timestamp=particle_update.timestamp)
 
     def predict_measurement(self, state_prediction, *args, **kwargs):
@@ -221,7 +217,6 @@ class GromovFlowKalmanParticleUpdater(GromovFlowParticleUpdater):
             state_vector=particle_prediction.state_vector,
             weight=state_prediction.weight,
             fixed_covar=kalman_prediction.covar,
-            particle_list=None,
             timestamp=particle_prediction.timestamp)
 
 
@@ -252,10 +247,8 @@ class MultiModelParticleUpdater(ParticleUpdater):
 
         update = Update.from_state(
             hypothesis.prediction,
-            weight=None,
             hypothesis=hypothesis,
             timestamp=hypothesis.measurement.timestamp,
-            particle_list=None
         )
 
         transition_matrix = np.asanyarray(self.predictor.transition_matrix)
@@ -300,11 +293,9 @@ class RaoBlackwellisedParticleUpdater(MultiModelParticleUpdater):
 
         update = Update.from_state(
             hypothesis.prediction,
-            weight=None,
             log_weight=copy.copy(hypothesis.prediction.log_weight),
             hypothesis=hypothesis,
             timestamp=hypothesis.measurement.timestamp,
-            particle_list=None
         )
 
         update.model_probabilities = self.calculate_model_probabilities(

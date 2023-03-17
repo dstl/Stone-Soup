@@ -163,7 +163,7 @@ class CreatableFromState:
         if target_type is None:
             target_type = CreatableFromState.class_mapping[cls][state_type]
 
-        return State.from_state(state, *args, **kwargs, target_type=target_type)
+        return target_type.from_state(state, *args, **kwargs, target_type=target_type)
 
 
 class ASDState(Type):
@@ -687,11 +687,31 @@ class ParticleState(State):
             # Allow for Prediction/Update sub-types
             result = type(self).from_state(self,
                                            state_vector=self.state_vector[:, item],
-                                           weight=None,
                                            log_weight=log_weight,
-                                           parent=parent,
-                                           particle_list=None)
+                                           parent=parent)
         return result
+
+    @classmethod
+    def from_state(cls, state: 'State', *args: Any, target_type: Optional[typing.Type] = None,
+                   **kwargs: Any) -> 'State':
+
+        # Handle default presence of both particle_list and weight once class has been created by
+        # ignoring particle_list and weight (setting to None) if not provided.
+        particle_list, particle_list_idx = next(
+            ((val, idx) for idx, (name, val) in enumerate(zip(cls.properties, args))
+             if name == 'particle_list'),
+            (kwargs.get('particle_list', None), None))
+        if particle_list_idx is None:
+            kwargs['particle_list'] = particle_list
+
+        weight, weight_idx = next(
+            ((val, idx) for idx, (name, val) in enumerate(zip(cls.properties, args))
+             if name == 'weight'),
+            (kwargs.get('weight', None), None))
+        if weight_idx is None:
+            kwargs['weight'] = weight
+
+        return super().from_state(state, *args, target_type=target_type, **kwargs)
 
     @clearable_cached_property('state_vector', 'log_weight')
     def particles(self):
@@ -786,10 +806,8 @@ class MultiModelParticleState(ParticleState):
             # Allow for Prediction/Update sub-types
             result = type(self).from_state(self,
                                            state_vector=self.state_vector[:, item],
-                                           weight=None,
                                            log_weight=log_weight,
                                            parent=parent,
-                                           particle_list=None,
                                            dynamic_model=dynamic_model)
         return result
 
@@ -834,15 +852,13 @@ class RaoBlackwellisedParticleState(ParticleState):
             # Allow for Prediction/Update sub-types
             result = type(self).from_state(self,
                                            state_vector=self.state_vector[:, item],
-                                           weight=None,
                                            log_weight=log_weight,
                                            parent=parent,
-                                           particle_list=None,
                                            model_probabilities=model_probabilities)
         return result
 
 
-class EnsembleState(Type):
+class EnsembleState(State):
     r"""Ensemble State type
 
     This is an Ensemble state object which describes the system state as a
@@ -926,11 +942,6 @@ class EnsembleState(Type):
         return ensemble
 
     @property
-    def ndim(self):
-        """Number of dimensions in state vectors"""
-        return np.shape(self.state_vector)[0]
-
-    @property
     def num_vectors(self):
         """Number of columns in state ensemble"""
         return np.shape(self.state_vector)[1]
@@ -951,9 +962,6 @@ class EnsembleState(Type):
         some EnKF algorithms"""
         return ((self.state_vector-np.tile(self.mean, self.num_vectors))
                 / np.sqrt(self.num_vectors - 1))
-
-
-State.register(EnsembleState)  # noqa: E305
 
 
 class CategoricalState(State):

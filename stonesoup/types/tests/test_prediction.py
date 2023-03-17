@@ -167,7 +167,7 @@ def test_from_state(prediction_type):
         assert prediction.tag == state.tag
 
     state = ParticleState(StateVectors([[1]]), weight=0.5, timestamp=datetime.datetime.now())
-    prediction = prediction_type.from_state(state, weight=None)
+    prediction = prediction_type.from_state(state)
     if prediction_type is Prediction:
         assert isinstance(prediction, ParticleStatePrediction)
     else:
