@@ -716,6 +716,8 @@ class CartesianToBearingRangeRate(_AngleNonLinearGaussianMeasurement):
 
         # Account for origin offset in position to enable range and angles to be determined
         xy_pos = state.state_vector[self.mapping, :] - self.translation_offset
+        if xy_pos.shape[0] == 2: # if position mapping is 2D - 
+            xy_pos = np.vstack((xy_pos, [0] * xy_pos.shape[1]))
 
         # Rotate coordinates based upon the sensor_velocity
         xy_rot = self.rotation_matrix @ xy_pos
@@ -725,6 +727,8 @@ class CartesianToBearingRangeRate(_AngleNonLinearGaussianMeasurement):
 
         # Determine the net velocity component in the engagement
         xy_vel = state.state_vector[self.velocity_mapping, :] - self.velocity
+        if xy_vel.shape[0] == 2:
+            xy_vel = np.vstack((xy_vel, [0] * xy_vel.shape[1]))
 
         # Use polar to calculate range rate
         rr = np.einsum('ij,ij->j', xy_pos, xy_vel) / np.linalg.norm(xy_pos, axis=0)
