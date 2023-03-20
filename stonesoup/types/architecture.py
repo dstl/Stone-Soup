@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 
 
 class Node(Type):
-    """Base node class"""
+    """Base node class. Should be abstract"""
     latency: float = Property(
         doc="Contribution to edge latency stemming from this node",
         default=0)
@@ -297,7 +297,7 @@ class Architecture(Type):
         doc='Font size for node labels')
     node_dim: tuple = Property(
         default=(0.5, 0.5),
-        doc='Height and width of nodes for graph icons, default is (1, 1)')
+        doc='Height and width of nodes for graph icons, default is (0.5, 0.5)')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
