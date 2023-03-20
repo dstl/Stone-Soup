@@ -19,7 +19,10 @@ class ConfigWrapper(NodeMixin):
 
 class BruteForceNonMyopicSensorManager(SensorManager):
     '''
-    Non-myopic Brute Force Sensor Manager - more detail coming!
+    Non-myopic Brute Force Sensor Manager
+    Looks multiple steps into the future to pick an optimal config,
+    then backtracks through the configs leading up to the final config
+    to produce an action sequence for the sensor.
     '''
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -79,7 +82,7 @@ class BruteForceNonMyopicSensorManager(SensorManager):
                 # here configs is the final set of configs returned at the final step we're looking at
                 # print(f'At terminating depth, evaluating reward function with {len(list(configs))} configs')
                 selected_configs, reward_value = evaluate_reward_function(self, configs, tracks, timestamps[depth-1], nchoose)
-                print(f'Selected config {selected_configs} with reward {reward_value}')
+                # print(f'Selected config {selected_configs} with reward {reward_value}')
                 return selected_configs
             else:
                 # act on previous actions, then generate new actions and recall function
@@ -102,7 +105,7 @@ class BruteForceNonMyopicSensorManager(SensorManager):
                     for conf in new_configs:
                         new_config = ConfigWrapper(conf, parent = config_wrapper)
                         total_configs.append(new_config) # make big list of all configs for next level
-                print(f'Increasing depth from {depth} to {depth + 1}')
+                # print(f'Increasing depth from {depth} to {depth + 1}')
                 depth += 1 # we now want to move down the tree so we increase depth 
                 
                 return calculate_path(self, total_configs, depth)
