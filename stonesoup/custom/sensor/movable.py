@@ -89,12 +89,19 @@ class MovableUAVCamera(Sensor):
     @property
     def footprint(self):
         if self._footprint is None:
-            self._footprint = geodesic_point_buffer(*np.flip(self.position[0:2]), self.fov_radius)
+            if self.fov_in_km:
+                self._footprint = geodesic_point_buffer(*np.flip(self.position[0:2]),
+                                                        self.fov_radius)
+            else:
+                self._footprint = Point(self.position[0:2]).buffer(self.fov_radius)
         return self._footprint
 
     def act(self, timestamp: datetime.datetime):
         super().act(timestamp)
-        self._footprint = geodesic_point_buffer(*np.flip(self.position[0:2]), self.fov_radius)
+        if self.fov_in_km:
+            self._footprint = geodesic_point_buffer(*np.flip(self.position[0:2]), self.fov_radius)
+        else:
+            self._footprint = Point(self.position[0:2]).buffer(self.fov_radius)
 
     def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
                 **kwargs) -> Set[TrueDetection]:
