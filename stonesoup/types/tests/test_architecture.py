@@ -1,5 +1,5 @@
 from ..architecture import Architecture, NetworkArchitecture, InformationArchitecture, \
-    CombinedArchitecture, ProcessingNode, RepeaterNode, SensorNode, SensorProcessingNode
+    CombinedArchitecture, FusionNode, RepeaterNode, SensorNode, Node, SensorFusionNode, Edge, Edges
 
 from ...sensor.base import PlatformMountable
 from stonesoup.models.measurement.categorical import MarkovianMeasurementModel
@@ -20,6 +20,34 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import pytest
+
+@pytest.fixture
+def params():
+    e = np.array([[0.8, 0.1],  # P(small | bike), P(small | car)
+                  [0.19, 0.3],  # P(medium | bike), P(medium | car)
+                  [0.01, 0.6]])  # P(large | bike), P(large | car)
+    model = MarkovianMeasurementModel(emission_matrix=e,
+                                      measurement_categories=['small', 'medium', 'large'])
+    hmm_sensor = HMMSensor(measurement_model=model)
+    nodes = SensorNode(sensor=hmm_sensor), SensorNode(sensor=hmm_sensor), SensorNode(hmm_sensor), \
+        SensorNode(hmm_sensor)
+
+    return {"small_nodes": nodes} # big nodes cna be added
+
+
+def test_info_architecure_propagation(params):
+    """Is information correctly propagated through the architecture?"""
+    nodes = params['small_nodes']
+    # A "Y" shape, with data travelling "up" the Y
+    # First, with no latency
+    edges = Edges([Edge((nodes[0], nodes[1])), Edge((nodes[1], nodes[2])),
+                   Edge((nodes[1], nodes[3]))])
+    architecture = InformationArchitecture(edges=edges)
+
+
+def test_info_architecture_fusion(params):
+    """Are Fusion/SensorFusionNodes correctly fusing information together.
+    (Currently they won't be)"""
 
 
 def test_information_architecture_using_hmm():
