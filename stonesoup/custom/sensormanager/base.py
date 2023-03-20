@@ -66,7 +66,7 @@ class UniqueBruteForceSensorManager(SensorManager):
         rewards = []
 
         for i, config in enumerate(configs):
-            reward, var = self.reward_function(config, tracks, timestamp)
+            reward = self.reward_function(config, tracks, timestamp)
             rewards.append(reward)
             # vars.append(var)
             if reward > min(best_rewards):
