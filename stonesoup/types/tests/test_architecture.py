@@ -1,5 +1,6 @@
 from ..architecture import Architecture, NetworkArchitecture, InformationArchitecture, \
-    CombinedArchitecture, FusionNode, RepeaterNode, SensorNode, Node, SensorFusionNode, Edge, Edges
+    CombinedArchitecture, FusionNode, RepeaterNode, SensorNode, Node, SensorFusionNode, Edge, \
+    Edges, Message, _dict_set
 
 from ...sensor.base import PlatformMountable
 from stonesoup.models.measurement.categorical import MarkovianMeasurementModel
@@ -14,6 +15,8 @@ from stonesoup.hypothesiser.categorical import HMMHypothesiser
 from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
 from stonesoup.initiator.categorical import SimpleCategoricalMeasurementInitiator
 from stonesoup.deleter.time import UpdateTimeStepsDeleter
+from stonesoup.tracker.simple import SingleTargetTracker
+from stonesoup.tracker.tests.conftest import detector # a useful fixture
 
 from datetime import datetime, timedelta
 import numpy as np
@@ -21,33 +24,156 @@ import matplotlib.pyplot as plt
 
 import pytest
 
+
 @pytest.fixture
 def params():
+    transition_matrix = np.array([[0.8, 0.2],  # P(bike | bike), P(bike | car)
+                                  [0.4, 0.6]])  # P(car | bike), P(car | car)
+    category_transition = MarkovianTransitionModel(transition_matrix=transition_matrix)
+    start = datetime.now()
+
+    hidden_classes = ['bike', 'car']
+    ground_truths = list()
+    for i in range(1, 4):  # 4 targets
+        state_vector = np.zeros(2)  # create a vector with 2 zeroes
+        state_vector[
+            np.random.choice(2, 1, p=[1 / 2, 1 / 2])] = 1  # pick a random class out of the 2
+        ground_truth_state = CategoricalGroundTruthState(state_vector,
+                                                         timestamp=start,
+                                                         categories=hidden_classes)
+
+        ground_truth = GroundTruthPath([ground_truth_state], id=f"GT{i}")
+
+        for _ in range(10):
+            new_vector = category_transition.function(ground_truth[-1],
+                                                      noise=True,
+                                                      time_interval=timedelta(seconds=1))
+            new_state = CategoricalGroundTruthState(
+                new_vector,
+                timestamp=ground_truth[-1].timestamp + timedelta(seconds=1),
+                categories=hidden_classes
+            )
+
+            ground_truth.append(new_state)
+        ground_truths.append(ground_truth)
+
     e = np.array([[0.8, 0.1],  # P(small | bike), P(small | car)
                   [0.19, 0.3],  # P(medium | bike), P(medium | car)
                   [0.01, 0.6]])  # P(large | bike), P(large | car)
     model = MarkovianMeasurementModel(emission_matrix=e,
                                       measurement_categories=['small', 'medium', 'large'])
     hmm_sensor = HMMSensor(measurement_model=model)
-    nodes = SensorNode(sensor=hmm_sensor), SensorNode(sensor=hmm_sensor), SensorNode(hmm_sensor), \
-        SensorNode(hmm_sensor)
+    predictor = HMMPredictor(category_transition)
+    updater = HMMUpdater()
+    hypothesiser = HMMHypothesiser(predictor=predictor, updater=updater)
+    data_associator = GNNWith2DAssignment(hypothesiser)
+    prior = CategoricalState([1 / 2, 1 / 2], categories=hidden_classes)
+    initiator = SimpleCategoricalMeasurementInitiator(prior_state=prior, updater=updater)
+    deleter = UpdateTimeStepsDeleter(2)
+    tracker = SingleTargetTracker(initiator, deleter, detector, data_associator, updater) # Needs to be filled in
 
-    return {"small_nodes": nodes} # big nodes cna be added
+    nodes = SensorNode(sensor=hmm_sensor), SensorNode(sensor=hmm_sensor), SensorNode(hmm_sensor),\
+            SensorNode(sensor=hmm_sensor), SensorNode(sensor=hmm_sensor)
+    lat_nodes = SensorNode(sensor=hmm_sensor, latency=0.3), SensorNode(sensor=hmm_sensor, latency=0.8975), SensorNode(hmm_sensor, latency=0.356),\
+            SensorNode(sensor=hmm_sensor, latency=0.7), SensorNode(sensor=hmm_sensor, latency=0.5)
+    big_nodes = SensorFusionNode(sensor=hmm_sensor,
+                                 predictor=predictor,
+                                 updater=updater,
+                                 hypothesiser=hypothesiser,
+                                 data_associator=data_associator,
+                                 initiator=initiator,
+                                 deleter=deleter,
+                                 tracker=tracker), \
+                FusionNode(predictor=predictor,
+                           updater=updater,
+                           hypothesiser=hypothesiser,
+                           data_associator=data_associator,
+                           initiator=initiator,
+                           deleter=deleter,
+                           tracker=tracker)
+    return {"small_nodes":nodes, "big_nodes": big_nodes, "ground_truths": ground_truths, "lat_nodes": lat_nodes}
 
 
-def test_info_architecure_propagation(params):
+def test_info_architecture_propagation(params):
     """Is information correctly propagated through the architecture?"""
     nodes = params['small_nodes']
+    ground_truths = params['ground_truths']
+    lat_nodes = params['lat_nodes']
+
     # A "Y" shape, with data travelling "up" the Y
     # First, with no latency
     edges = Edges([Edge((nodes[0], nodes[1])), Edge((nodes[1], nodes[2])),
                    Edge((nodes[1], nodes[3]))])
     architecture = InformationArchitecture(edges=edges)
 
+    for _ in range(10):
+        architecture.measure(ground_truths, noise=True)
+        architecture.propagate(time_increment=1, failed_edges=[])
+    # Check all nodes hold 10 times with data pertaining, all in "unprocessed"
+    assert len(nodes[0].data_held['unprocessed']) == 10
+    assert len(nodes[0].data_held['processed']) == 0
+    # Check each time has exactly 1 piece of data
+    #assert all\
+    print(len(nodes[0].data_held['unprocessed'][time]) == 1
+               for time in nodes[0].data_held['unprocessed'])
+    # Check node 1 holds 20 messages, and its descendants (2 and 3) hold 30 each
+    assert len(nodes[1].data_held['unprocessed']) == 10
+    assert len(nodes[2].data_held['unprocessed']) == 10
+    assert len(nodes[3].data_held['unprocessed']) == 10
+    #  Check that the data held by node 0 is a subset of that of node 1, and so on for node 1 with
+    #  its own descendants. Note this will only work with zero latency.
+    assert nodes[0].data_held['unprocessed'] <= nodes[1].data_held['unprocessed']
+    assert nodes[1].data_held['unprocessed'] <= nodes[2].data_held['unprocessed'] \
+        and nodes[1].data_held['unprocessed'] <= nodes[3].data_held['unprocessed']
+
+    # Architecture with latency (Same network as before)
+    edges_w_latency = Edges([Edge((lat_nodes[0], lat_nodes[1]), edge_latency=0.2), Edge((lat_nodes[1], lat_nodes[2]), edge_latency=0.5),
+                   Edge((lat_nodes[1], lat_nodes[3]), edge_latency=0.3465234565634)])
+    lat_architecture = InformationArchitecture(edges=edges_w_latency)
+    for _ in range(10):
+        lat_architecture.measure(ground_truths, noise=True)
+        lat_architecture.propagate(time_increment=1, failed_edges=[])
+    assert len(nodes[0].data_held) < len(nodes[1].data_held)
+    # Check node 1 holds fewer messages than both its ancestors
+    assert len(nodes[1].data_held) < (len(nodes[2].data_held) and len(nodes[3].data_held))
+
+    #Error Tests
+    #Test descendants()
+    with pytest.raises(ValueError):
+        architecture.descendants(nodes[4])
+
+    #Test send_message()
+    with pytest.raises(TypeError):
+        data = float(1.23456)
+        the_time_is = datetime.now()
+        Edge((nodes[0], nodes[4])).send_message(time_sent=the_time_is, data=data)
+
+    #Test update_message()
+    with pytest.raises(TypeError):
+        edge1 = Edge((nodes[0], nodes[4]))
+        data = float(1.23456)
+        the_time_is = datetime.now()
+        message = Message(data, nodes[0], nodes[4])
+        _, edge1.messages_held = _dict_set(edge1.messages_held, message, 'pending', the_time_is)
+        edge1.update_messages(the_time_is)
 
 def test_info_architecture_fusion(params):
     """Are Fusion/SensorFusionNodes correctly fusing information together.
     (Currently they won't be)"""
+    nodes = params['small_nodes']
+    big_nodes = params['big_nodes']
+    ground_truths = params['ground_truths']
+
+    # A "Y" shape, with data travelling "down" the Y from 2 sensor nodes into one fusion node, and onto a SensorFusion node
+    edges = Edges([Edge((nodes[0], big_nodes[1])), Edge((nodes[1], big_nodes[1])), Edge((big_nodes[1], big_nodes[0]))])
+    architecture = InformationArchitecture(edges=edges)
+
+    for _ in range(10):
+        architecture.measure(ground_truths, noise=True)
+        architecture.propagate(time_increment=1, failed_edges=[])
+
+    assert something #to check data has been fused correctly at big_node[1] and big_node[0]
+
 
 
 def test_information_architecture_using_hmm():
