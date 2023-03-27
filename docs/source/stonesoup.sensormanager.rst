@@ -12,7 +12,7 @@ Sensor Managers
     :inherited-members:
 
 .. automodule:: stonesoup.sensormanager.reinforcement
-    :show-inheritence:
+    :show-inheritance:
 
 
 Reward Functions
