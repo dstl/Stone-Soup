@@ -58,8 +58,7 @@ class UncertaintyRewardFunction(RewardFunction):
                                                   "the track to the new state.")
 
     def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: Set[Track],
-                 metric_time: datetime.datetime, non_actionables: Set[Platform or Sensor],
-                 *args, **kwargs):
+                 metric_time: datetime.datetime, *args, **kwargs):
         """
         For a given configuration of sensors and actions this reward function calculates the
         potential uncertainty reduction of each track by
@@ -94,20 +93,13 @@ class UncertaintyRewardFunction(RewardFunction):
 
         memo = {}
 
-        # If platforms have been passed to SM which aren't actionable, predict them forward
-        for item in non_actionables:
-            if isinstance(item, Platform):
-                copied_platform = deepcopy(item, memo)
-                copied_platform.move(metric_time)
-                # TODO: add something for non actionable sensors?
-
-        # For each sensor in the configuration
-        for actionable, actions in config.items():  # TODO: make sure works for actionable platforms
+        # For each sensor (or platform) in the configuration
+        for actionable, actions in config.items():
             predicted_actionable = deepcopy(actionable, memo)
             predicted_actionable.add_actions(actions)
             predicted_actionable.act(metric_time)
             if isinstance(actionable, Sensor):
-                predicted_sensors.append(predicted_actionable)  # checks if its a sensor
+                predicted_sensors.append(predicted_actionable)
             elif isinstance(actionable, Platform):
                 predicted_platforms.append(predicted_actionable)
 

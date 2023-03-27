@@ -3,7 +3,6 @@ from typing import Callable, Set
 import random
 import numpy as np
 import itertools as it
-from copy import deepcopy
 
 from ..base import Base, Property
 from ..sensor.sensor import Sensor
@@ -29,10 +28,6 @@ class SensorManager(Base, ABC):
     sensors: Set[Sensor] = Property(default=None,
                                     doc="The sensor(s) which the sensor manager is managing. "
                                         "These must be capable of returning available actions.")
-
-    platforms: Set[Platform] = Property(default=None,
-                                        doc="Platforms which the sensor manager is managing."
-                                            "These may also have sensors attached.")
 
     reward_function: Callable = Property(
         default=None, doc="A function or class designed to work out the reward associated with an "
@@ -100,7 +95,6 @@ class BruteForceSensorManager(SensorManager):
     """A sensor manager which returns a choice of action from those available. The sensor manager
     iterates through every possible configuration of sensors and actions and
     selects the configuration which returns the maximum reward as calculated by a reward function.
-
     """
 
     def __init__(self, *args, **kwargs):
@@ -110,6 +104,68 @@ class BruteForceSensorManager(SensorManager):
         """Returns a chosen [list of] action(s) from the action set for each sensor.
         Chosen action(s) is selected by finding the configuration of sensors: actions which returns
         the maximum reward, as calculated by a reward function.
+        Parameters
+        ----------
+        tracks: set of :class:`~Track`
+            Set of tracks at given time. Used in reward function.
+        timestamp: :class:`datetime.datetime`
+            Time at which the actions are carried out until
+        nchoose : int
+            Number of actions from the set to choose (default is 1)
+        Returns
+        -------
+        : dict
+            The pairs of :class:`~.Sensor`: [:class:`~.Action`] selected
+        """
+
+        all_action_choices = dict()
+
+        for sensor in self.sensors:
+            # get action 'generator(s)'
+            action_generators = sensor.actions(timestamp)
+            # list possible action combinations for the sensor
+            action_choices = list(it.product(*action_generators))
+            # dictionary of sensors: list(action combinations)
+            all_action_choices[sensor] = action_choices
+
+        # get tuple of dictionaries of sensors: actions
+        configs = ({sensor: action
+                    for sensor, action in zip(all_action_choices.keys(), actionconfig)}
+                   for actionconfig in it.product(*all_action_choices.values()))
+
+        best_rewards = np.zeros(nchoose) - np.inf
+        selected_configs = [None] * nchoose
+        for config in configs:
+            # calculate reward for dictionary of sensors: actions
+            reward = self.reward_function(config, tracks, timestamp)
+            if reward > min(best_rewards):
+                selected_configs[np.argmin(best_rewards)] = config
+                best_rewards[np.argmin(best_rewards)] = reward
+
+        # Return mapping of sensors and chosen actions for sensors
+        return selected_configs
+
+
+class BruteForcePlatformSensorManager(BruteForceSensorManager):
+    """A sensor manager which returns a choice of action from those available. The sensor manager
+    iterates through every possible configuration of actions for both platforms and sensors, and
+    selects the configuration which returns the maximum reward as calculated by a reward function.
+
+    """
+
+    platforms: Set[Platform] = Property(default=None,
+                                        doc="Platforms which the sensor manager is managing."
+                                            "These may also have sensors attached which will "
+                                            "be tasked if actionable.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def choose_actions(self, tracks, timestamp, nchoose=1, **kwargs):
+        """Returns a chosen [list of] action(s) from the action set for each actionable
+        sensor and platform. Chosen action(s) is selected by finding the configuration
+        of sensors: actions which returns the maximum reward, as calculated by a reward
+        function.
 
         Parameters
         ----------
@@ -127,19 +183,15 @@ class BruteForceSensorManager(SensorManager):
         """
 
         actionables = set()
-        non_actionables = set()
-        # memo = {}
 
         if self.platforms:
             for platform in self.platforms:
                 if isinstance(platform.movement_controller, Actionable):
                     actionables.add(platform)
-                else:
-                    non_actionables.add(platform)
                 for sensor in platform.sensors:
                     if isinstance(sensor, Actionable):
                         actionables.add(sensor)
-                        # We currently don't consider non-actionable sensors in the reward function
+                        # Currently doesn't consider non-actionable sensors in the reward function
 
         if self.sensors:
             for sensor in self.sensors:
@@ -150,7 +202,7 @@ class BruteForceSensorManager(SensorManager):
 
         for actionable in actionables:
             # get action 'generator(s)'
-            action_generators = actionable.actions(timestamp)  # TODO: how does this work for actionable platforms?
+            action_generators = actionable.actions(timestamp)
             # list possible action combinations for the sensor
             action_choices = list(it.product(*action_generators))
             # dictionary of sensors: list(action combinations)
@@ -165,8 +217,8 @@ class BruteForceSensorManager(SensorManager):
         selected_configs = [None] * nchoose
         for config in configs:
             # calculate reward for dictionary of sensors: actions
-            reward = self.reward_function(config, tracks, timestamp,
-                                          non_actionables=non_actionables)
+            reward = self.reward_function(config, tracks, timestamp)
+
             if reward > min(best_rewards):
                 selected_configs[np.argmin(best_rewards)] = config
                 best_rewards[np.argmin(best_rewards)] = reward
