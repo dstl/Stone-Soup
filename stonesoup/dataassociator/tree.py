@@ -158,6 +158,10 @@ class TPRTreeMixIn(Base):
         if self.vel_mapping is None:
             self.vel_mapping = [i + 1 for i in self.pos_mapping]
 
+        self._reset_tree()
+
+
+    def _reset_tree(self):
         # Create tree
         tree_property = rtree.index.Property(
             type=rtree.index.RT_TPRTree,
@@ -165,6 +169,7 @@ class TPRTreeMixIn(Base):
             dimension=len(self.pos_mapping))
         self._tree = rtree.index.RtreeContainer(properties=tree_property)
         self._coords = dict()
+
 
     def _track_tree_coordinates(self, track):
         state_vector = track.mean[self.pos_mapping, :]
@@ -236,8 +241,12 @@ class TPRTreeMixIn(Base):
                 (*state_meas.ravel(), *state_meas.ravel()),
                 (0, 0)*len(self.pos_mapping),
                 (det_time, det_time + 1e-3)))
-            for track in intersected_tracks:
-                track_detections[track].add(detection)
+            try:
+                for track in intersected_tracks:
+                    track_detections[track].add(detection)
+            except KeyError:
+                self._reset_tree()
+                return self.generate_hypotheses(tracks, detections, timestamp, **kwargs)
 
         return {track: self.hypothesiser.hypothesise(
             track, track_detections[track], timestamp, **kwargs)
