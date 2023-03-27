@@ -1,21 +1,22 @@
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import timedelta
 from copy import copy, deepcopy
 from scipy.optimize._shgo_lib import sobol_seq
 
 from ..base import Property
 from ...types.state import State
-from ...sensor.actionable import Actionable
-# from ...platform.action import PlatformAction, PlatformActionGenerator
 from ...sensor.action import Action, ActionGenerator
 from ...simulator.transition import ConstantJerkSimulator
 
 
 class ConstantJerkAction(Action):
-    destination: State = Property()
+    """The action of moving a platform to a destination using a
+    :class:`~.ConstantJerk` transition model."""
+
+    destination: State = Property(doc="Destination state of the platform.")
 
     def act(self, current_time, end_time, init_value, *args, **kwargs):
-        """Propagate the platform position using the :attr:`transition_model`.
+        """Propagates the platform position using the :attr:`transition_model`.
 
         Parameters
         ----------
@@ -24,7 +25,12 @@ class ConstantJerkAction(Action):
         end_time: :class:`datetime.datetime
             A timestamp signifying the end of the maneuver (the default is ``None``)
         init_value: Any
-            Current location  #TODO: Check, is it just location??
+            Current platform state
+
+        Returns
+        -------
+        Any
+            New platform state
 
         Notes
         -----
@@ -44,6 +50,7 @@ class ConstantJerkAction(Action):
         If the time delta is less than :attr:`current_interval` the :attr:`transition_model` is
         called for that duration and :attr:`current_interval` is reduced accordingly.
         """
+
         states = copy(init_value)
         # Time step is one increment in the simulation.
         # This function calculates the state of the platform for one time step
@@ -70,17 +77,14 @@ class ConstantJerkAction(Action):
 
 
 class JerkActionGenerator(ActionGenerator):
-
+    """Generates possible actions for moving a platform with a
+    :class:`~.ConstantJerk` transition model."""
 
     @property
     def default_action(self):
         """
-        Default is to stay in the same location unless attached to parent platform,
-        in which case it stays attached.
+        Default action is for platform to stay in the same location.
         """
-        # if self.owner.scheduled_actions and isinstance(self.owner.scheduled_actions['states'],
-        #                                                AttachAction):
-        #     return self.attach_action(self.mothership)
 
         state = deepcopy(self.owner.state)
         # Duration set to be how long it takes to decelerate to 0 velocity
@@ -99,15 +103,35 @@ class JerkActionGenerator(ActionGenerator):
             yield self.jerk_action_from_state(state)
 
     def __contains__(self, item):
-        point = item.state_vector[self.owner.position_mapping,]
+        point = item.state_vector[self.owner.position_mapping, ]
 
         return self.is_reachable(point)
 
     def _distance_travelled(self, v_init, v_max, a_max, duration=None):
+        """
+        Calculates distance travelled
+
+        Parameters
+        ----------
+        v_init: float
+            Initial velocity
+        v_max: float
+            Maximum velocity
+        a_max: float
+            Maximum acceleration
+        duration: timedelta
+            Duration of action
+
+        Returns
+        -------
+        float
+            Distance travelled given initial velocity and constraints on velocity and acceleration.
+        """
         if duration is None:
             duration = self.end_time - self.owner.state.timestamp
 
-        # 1d equation for distance travelled given initial velocity and constraints on velocity and acceleration
+        # 1d equation for distance travelled given initial velocity and constraints on
+        # velocity and acceleration
         t_vmax = float((v_max - v_init) / a_max)
         if isinstance(duration, timedelta):
             duration = duration.total_seconds()
@@ -118,24 +142,32 @@ class JerkActionGenerator(ActionGenerator):
 
     def define_movement_ellipse(self, duration=None):
         """
-        Returns the parameters defining an ellipse which represents where the platform can move within
-        the given time.
+        Returns the parameters defining an ellipse which represents where the platform
+        can move within the given time.
 
-        Input: duration: Time platform will be travelling for
+        Parameters
+        ----------
+        duration: timedelta
+            Time platform will be travelling for
 
-        Returns: center: tuple (x, y) giving center of ellipse
-                 a_max: Length of major axis of ellipse
-                 b_max: Length of minor axis of ellipse
-                 theta: Angle from x-axis to major axis of ellipse
+        Returns
+        -------
+        center: tuple (x, y)
+            Giving center of ellipse
+        a_max: float
+            Length of major axis of ellipse
+        b_max: float
+            Length of minor axis of ellipse
+        theta: :class:`~.Angle`
+            Angle from x-axis to major axis of ellipse
         """
+
         if duration is None:
             duration = self.end_time - self.owner.state.timestamp
 
         v_max, a_max = self.owner.constraints
-        v_xy = self.owner.state.state_vector[self.owner.velocity_mapping,]
+        v_xy = self.owner.state.state_vector[self.owner.velocity_mapping, ]
         speed = np.hypot(*v_xy)  # Velocity along direction of travel
-        # if v_max < speed:
-        #     raise ConstraintsBroken("Maximum velocity exceeded.")
         norm_v = v_xy / speed if speed > 0 else 0
 
         # Maximum distance travelled is distance travelled to t_vmax plus distance travelled at
@@ -158,7 +190,8 @@ class JerkActionGenerator(ActionGenerator):
         bmax = d3
 
         # Define ellipse center as half max diameter of ellipse in direction of travel
-        center = self.owner.state.state_vector[self.owner.position_mapping,] + (amax - d2) * norm_v
+        center = self.owner.state.state_vector[self.owner.position_mapping, ] \
+            + (amax - d2) * norm_v
 
         # angle to rotate to original frame
         theta = np.arctan2(v_xy[1], v_xy[0])
@@ -166,6 +199,22 @@ class JerkActionGenerator(ActionGenerator):
         return center, amax, bmax, theta
 
     def is_reachable(self, point, duration=None, tol=1.01):
+        """
+        Checks if a location is reachable within a given duration by actioning the platform.
+
+        Parameters
+        ----------
+        point: tuple
+            Target destination of platform (x, y)
+        duration: timedelta
+            Duration of action
+        tol: float
+            Tolerance
+
+        Returns
+        -------
+        bool
+        """
         if duration is None:
             duration = self.end_time - self.owner.state.timestamp
 
@@ -191,33 +240,19 @@ class JerkActionGenerator(ActionGenerator):
         # Distance to point
         distance = np.hypot(A - center[0], B - center[1])
 
-        return distance <= radius_at_t * tol \
-               and (not self.owner.position_filter or self.owner.position_filter([x, y]))
-
-    def concentric_movement_grid(self, duration=None, npoints=64):
-
-        if duration is None:
-            duration = self.end_time - self.owner.state.timestamp
-
-        # Get the parameters defining the ellipse where the platform can move
-        center, amax, bmax, theta = self.define_movement_ellipse(duration)
-
-        yield center
-
-        nellipse = 8
-        a_s = np.linspace(1, amax, nellipse, endpoint=True)
-        b_s = np.linspace(1, bmax, nellipse, endpoint=True)
-
-        offset = 0
-        for ellipse, a, b in zip(range(1, nellipse), a_s, b_s):
-            for t in np.linspace(-np.pi, np.pi, int(npoints)) + offset:
-                x = a * np.cos(theta) * np.cos(t) - b * np.sin(t) * np.sin(theta) + center[0]
-                y = a * np.sin(theta) * np.cos(t) + b * np.sin(t) * np.cos(theta) + center[1]
-
-                yield x, y
-            offset += 0.3
+        return distance <= radius_at_t * tol
 
     def movement_grid(self, duration=None, npoints=1064):
+        """
+        Defines the movement grid of points within the movement ellipse.
+
+        Parameters
+        ----------
+        duration: timedelta
+            Duration of action
+        npoints: int
+            Default is 1064
+        """
         # Get the parameters defining the ellipse where the platform can move
         if duration is None:
             duration = self.end_time - self.owner.state.timestamp
@@ -237,18 +272,41 @@ class JerkActionGenerator(ActionGenerator):
             x = (a * np.cos(theta) * np.cos(t) - b * np.sin(t) * np.sin(theta) + center[0])
             y = (a * np.sin(theta) * np.cos(t) + b * np.sin(t) * np.cos(theta) + center[1])
             # x, y is eastings, northings
-            if not self.owner.position_filter or self.owner.position_filter([x, y]):
-                yield x, y
+
+            yield x, y
 
     def action_from_value(self, x):
+        """
+        Generates a :class:`~.ConstantJerkAction` which would enable the platform to reach state x.
+
+        Parameters
+        ----------
+        x: array
+
+        Returns
+        -------
+        :class:`~.ConstantJerkAction`
+        """
         x = [x[0], 0, x[1], 0]
         return self.jerk_action_from_state(State(x, self.end_time))
 
     def jerk_action_from_state(self, state):
+        """
+        Generates a :class:`~.ConstantJerkAction` which would enable the platform to
+        reach the given state.
+
+        Parameters
+        ----------
+        state: :class:`~.State`
+
+        Returns
+        -------
+        :class:`~.ConstantJerkAction`
+        """
         end_time = state.timestamp
         init_state = deepcopy(self.owner.state)
         duration = end_time - init_state.timestamp
-        point = state.state_vector[self.owner.position_mapping,]
+        point = state.state_vector[self.owner.position_mapping, ]
 
         if not self.is_reachable(point, duration):
             raise PointUnreachableError(f"""Point {point[0], point[1]} not reachable from
@@ -260,41 +318,11 @@ class JerkActionGenerator(ActionGenerator):
                                   destination=state,
                                   generator=self)
 
-    def attach_action(self, mothership, end_time=None):
-        return AttachAction(end_time=end_time,
-                            mothership=mothership,
-                            generator=self)
-
-
-class AttachAction(Action):
-    mothership: Actionable = Property()
-    end_time: datetime = Property(readonly=False)
-
-    def act(self, current_time, timestamp, init_value):
-        if current_time > timestamp:
-            raise ValueError("Timestamp must be after current time")
-        if self.mothership.timestamp < current_time:
-            raise TaskContradictionError("Mothership timestamp must be ahead of child platform timestamp")
-        states = copy(init_value)
-
-        # Timestamp is when the platform should detach. It is None if this platform should stay attached indefinitely
-        if timestamp is None or current_time <= timestamp:
-            states.append(self.mothership.state)
-            return states
-
 
 class PointUnreachableError(Exception):
     """
     Raised when a platform is given a task to move to a point
     that it cannot reach in the given time
-    """
-    pass
-
-
-class TaskContradictionError(Exception):
-    """
-    Raised when a platform is given contradicting tasks.
-    e.g. A child platform is tasked while still on the mothership
     """
     pass
 

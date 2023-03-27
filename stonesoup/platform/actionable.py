@@ -1,6 +1,5 @@
-import datetime
 import numpy as np
-from typing import MutableSequence, Callable
+from typing import MutableSequence
 
 from ..base import Property
 from ..types.state import State, StateVector
@@ -11,9 +10,11 @@ from .action.jerk_action import JerkActionGenerator
 
 
 class ActionableMovementController(MovingMovable, Actionable):
+    """An actionable movement controller where the list of `states` is
+    an :class:`~.ActionableProperty`."""
+
     states: MutableSequence[State] = ActionableProperty(generator_cls=JerkActionGenerator)
-    constraints: tuple = Property()  # max speed and acc
-    position_filter: Callable = Property(default=None)
+    constraints: tuple = Property(doc="Max speed and acceleration.")
     position_mapping: tuple = Property()
     velocity_mapping: tuple = Property()
 
@@ -21,11 +22,13 @@ class ActionableMovementController(MovingMovable, Actionable):
         super().__init__(*args, **kwargs)
         if self.transition_model:
             self.transition_model = None
-        # try:
-        #     self.orientation
-        # except AttributeError:
-        #     pass
         self._cached_orientation = None
+
+    def validate_timestamp(self):
+        if self.timestamp:
+            return True
+        else:
+            return False
 
     @property
     def orientation(self) -> StateVector:
@@ -46,6 +49,7 @@ class ActionableMovementController(MovingMovable, Actionable):
         A non-moving platform (``self.is_moving == False``) does not have a defined orientation in
         this approximations and so raises an :class:`AttributeError`
         """
+
         if not self.is_moving:
             try:
                 return self._cached_orientation
@@ -60,7 +64,7 @@ class ActionableMovementController(MovingMovable, Actionable):
         elif self.ndim == 2:
             if len(self) >= 2 and np.all(self.velocity < 1e-6):
                 c_pos = self.position
-                p_pos = self[-2].state_vector[self.position_mapping,]
+                p_pos = self[-2].state_vector[self.position_mapping, ]
                 _, bearing = cart2pol(*(c_pos - p_pos))
             else:
                 _, bearing = cart2pol(*velocity.flat)
