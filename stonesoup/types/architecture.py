@@ -15,6 +15,7 @@ from ..deleter.base import Deleter
 from ..tracker.base import Tracker
 
 from typing import List, Collection, Tuple, Set, Union, Dict
+from itertools import product
 import numpy as np
 import networkx as nx
 import graphviz
@@ -42,20 +43,24 @@ class Node(Type):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.data_held = {"processed": set(), "unprocessed": set()}
+        self.data_held = {"processed": {}, "unprocessed": {}}
         # Node no longer handles messages. All done by Edge
 
-    def update(self, time, data, track=None):
-        if not isinstance(time, datetime):
-            raise TypeError("Time must be a datetime object")
+    def update(self, time_pertaining, time_arrived, data, track=None):
+        if not isinstance(time_pertaining, datetime) and isinstance(time_arrived, datetime):
+            raise TypeError("Times must be datetime objects")
         if not track:
-            if not isinstance(data, Detection):
-                raise TypeError("Data provided without Track must be a Detection")
-            added, self.data_held = _dict_set(self.data_held, data, time)
+            if not isinstance(data, Detection) and not isinstance(data, Track):
+                raise TypeError("Data provided without accompanying Track must be a Detection or "
+                                "a Track")
+            added, self.data_held['unprocessed'] = _dict_set(self.data_held['unprocessed'],
+                                                             (data, time_arrived), time_pertaining)
         else:
             if not isinstance(data, Hypothesis):
                 raise TypeError("Data provided with Track must be a Hypothesis")
-            added, self.data_held = _dict_set(self.data_held, (data, track), time)
+            added, self.data_held['unprocessed'] = _dict_set(self.data_held['unprocessed'],
+                                                             (data, time_arrived, track),
+                                                             time_pertaining)
 
         return added
 
@@ -99,6 +104,7 @@ class FusionNode(Node):
         self.tracks = set()  # Set of tracks this Node has recorded
 
     def process(self):
+        # deleting this soon
         unprocessed_times = {time for time in self.unprocessed_data} | \
                 {time for track in self.unprocessed_hypotheses
                  for time in self.unprocessed_hypotheses[track]}
@@ -183,32 +189,35 @@ class Edge(Type):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.messages_held = {"pending": set(), "received": set()}
+        self.messages_held = {"pending": {}, "received": {}}
 
-    def send_message(self, time_sent, data):
+    def send_message(self, data, time_pertaining, time_sent):
         if not isinstance(data, (Detection, Hypothesis, Track)):
             raise TypeError("Message info must be one of the following types: "
                             "Detection, Hypothesis or Track")
         # Add message to 'pending' dict of edge
-        message = Message(data, self.descendant, self.ancestor)
+        message = Message(self, time_pertaining, time_sent, data)
         _, self.messages_held = _dict_set(self.messages_held, message, 'pending', time_sent)
 
     def update_messages(self, current_time):
         # Check info type is what we expect
+        to_remove = set() # Needed as we can't change size of a set during iteration
         for time in self.messages_held['pending']:
             for message in self.messages_held['pending'][time]:
-                if not isinstance(message.info, (Detection, Hypothesis, Track)):
-                    raise TypeError("Message info must be one of the following types: "
-                                    "Detection, Hypothesis or Track")
-                if message.time_sent + self.ovr_latency <= current_time:
+                message.update(current_time)
+                if message.status == 'received':
                     # Then the latency has passed and message has been received
                     # No need for a Node to hold messages
                     # Move message from pending to received messages in edge
-                    self.messages_held['pending'][time].remove(message)
+                    to_remove.add((time, message))
                     _, self.messages_held = _dict_set(self.messages_held, message,
                                                       'received', current_time)
                     # Update
-                    message.recipient_node.update(message.time_sent+message.latency, message.info)
+                    message.recipient_node.update(message.time_pertaining, message.arrival_time,
+                                                  message.data)
+
+        for time, message in to_remove:
+            self.messages_held['pending'][time].remove(message)
 
     @property
     def ancestor(self):
@@ -220,8 +229,29 @@ class Edge(Type):
 
     @property
     def ovr_latency(self):
-        """Overall latency including the two Nodes and the edge latency"""
+        """Overall latency including the two Nodes and the edge latency."""
         return self.ancestor.latency + self.edge_latency + self.descendant.latency
+
+    @property
+    def unsent_data(self):
+        """Data held by the ancestor that has not been sent to the descendant.
+        Current implementation should work but gross"""
+        unsent = []
+        fudge = [] # this is a horrific way of doing it. To fix later
+        for comb in product(["unprocessed", "processed"], repeat=2):
+            for time_pertaining in self.ancestor.data_held[comb[0]]:
+                for data, _ in self.ancestor.data_held[comb[0]][time_pertaining]:
+                    if time_pertaining not in self.descendant.data_held[comb[1]]:
+                        if (data, time_pertaining) in fudge:
+                            unsent.append((data, time_pertaining))
+                        else:
+                            fudge.append((data, time_pertaining))
+                    elif data not in self.descendant.data_held[comb[1]][time_pertaining]:
+                        if (data, time_pertaining) in fudge:
+                            unsent.append((data, time_pertaining))
+                        else:
+                            fudge.append((data, time_pertaining))
+        return unsent
 
 
 class Edges(Type):
@@ -244,22 +274,31 @@ class Edges(Type):
 
     @property
     def edge_list(self):
+        """Returns a list of tuples in the form (ancestor, descendant)"""
         edge_list = []
         for edge in self.edges:
             edge_list.append(edge.nodes)
         return edge_list
 
+    def __len__(self):
+        return len(self.edges)
+
 
 class Message(Type):
     """A message, containing a piece of information, that gets propagated between two Nodes.
     Messages are opened by nodes that are a descendant of the node that sent the message"""
-    data: Union[Track, Hypothesis, Detection] = Property(
-        doc="Info that the sent message contains",
-        default=None)
     edge: Edge = Property(
         doc="The directed edge containing the sender and receiver of the message")
+    time_pertaining: datetime = Property(
+        doc="The latest time for which the data pertains. For a Detection, this would be the time "
+            "of the Detection, or for a Track this is the time of the last State in the Track. "
+            "Different from time_sent when data is passed on that was not generated by this "
+            "Node's ancestor")
     time_sent: datetime = Property(
         doc="Time at which the message was sent",
+        default=None)
+    data: Union[Track, Hypothesis, Detection] = Property(
+        doc="Info that the sent message contains",
         default=None)
 
     def __init__(self, *args, **kwargs):
@@ -273,6 +312,21 @@ class Message(Type):
     @property
     def recipient_node(self):
         return self.edge.descendant
+
+    @property
+    def arrival_time(self):
+        return self.time_sent + timedelta(seconds=self.edge.ovr_latency)
+
+    def update(self, current_time):
+        progress = (current_time - self.time_sent).total_seconds()
+        if progress < self.edge.ancestor.latency:
+            self.status = "sending"
+        elif progress < self.edge.ancestor.latency + self.edge.edge_latency:
+            self.status = "transferring"
+        elif progress < self.edge.ovr_latency:
+            self.status = "receiving"
+        else:
+            self.status = "received"
 
 
 class Architecture(Type):
@@ -416,7 +470,7 @@ class Architecture(Type):
         """Returns the density of the graph, ie. the proportion of possible edges between nodes
         that exist in the graph"""
         num_nodes = len(self.all_nodes)
-        num_edges = len(self.edge_list)
+        num_edges = len(self.edges)
         architecture_density = num_edges/((num_nodes*(num_nodes-1))/2)
         return architecture_density
 
@@ -441,34 +495,19 @@ class Architecture(Type):
 
     @property
     def fully_propagated(self):
-        """Checks if all data and hypotheses that each node has have been transferred
+        """Checks if all data for each node have been transferred
         to its descendants.
         With zero latency, this should be the case after running self.propagate"""
         for node in self.all_nodes:
             for descendant in self.descendants(node):
                 try:
-                    if node.data_held and node.hypotheses_held:
-                        if not (all(node.data_held[time] <= descendant.data_held[time]
-                                    for time in node.data_held) and
-                                all(node.hypotheses_held[track][time] <=
-                                    descendant.hypotheses_held[track][time]
-                                    for track in node.hypotheses_held
-                                    for time in node.hypotheses_held[track])):
-                            return False
-                    elif node.data_held:
-                        if not (all(node.data_held[time] <= descendant.data_held[time]
-                                    for time in node.data_held)):
-                            return False
-                    elif node.hypotheses_held:
-                        if not all(node.hypotheses_held[track][time] <=
-                                   descendant.hypotheses_held[track][time]
-                                   for track in node.hypotheses_held
-                                   for time in node.hypotheses_held[track]):
-                            return False
-                    else:
-                        # Node has no data, so has fully propagated
-                        continue
-                except TypeError: # Should this be KeyError?
+                    # 0 is for the actual data, not including arrival_time, which may be different
+                    if not (all(node.data_held[status][time][0] <=
+                                descendant.data_held[status][time][0]
+                                for time in node.data_held)
+                            for status in ["processed", "unprocessed"]):
+                        return False
+                except TypeError:  # Should this be KeyError?
                     # descendant doesn't have all the keys node does
                     return False
             return True
@@ -486,7 +525,7 @@ class InformationArchitecture(Architecture):
                 raise TypeError("Information architecture should not contain any repeater nodes")
 
     def measure(self, ground_truths: Set[GroundTruthState], noise: Union[bool, np.ndarray] = True,
-                **kwargs) -> Dict[SensorNode, Union[TrueDetection, Clutter]]:
+                **kwargs) -> Dict[SensorNode, Set[Union[TrueDetection, Clutter]]]:
         """ Similar to the method for :class:`~.SensorSuite`. Updates each node. """
         all_detections = dict()
 
@@ -507,27 +546,21 @@ class InformationArchitecture(Architecture):
 
             for data in all_detections[sensor_node]:
                 # The sensor acquires its own data instantly
-                sensor_node.update(self.current_time, data)
+                sensor_node.update(self.current_time, self.current_time, data)
 
         return all_detections
 
-    def propagate(self, time_increment: float, failed_edges: Collection = []):
+    def propagate(self, time_increment: float, failed_edges: Collection = None):
         """Performs the propagation of the measurements through the network"""
-        for node in self.all_nodes:
-            for descendant in self.descendants(node):
-                if (node, descendant) in failed_edges:
-                    # The network architecture / some outside factor prevents information from node
-                    # being transferred to other
-                    continue
-                if node.data_held:
-                    for time in node.data_held['unprocessed']:
-                        for data in node.data_held['unprocessed'][time]:
-                            # Send message to descendant here?
-                            descendant.send_message(time, data)
+        for edge in self.edges.edges:
+            if failed_edges and edge in failed_edges:
+                continue  # in future, make it possible to simulate temporarily failed edges?
+            edge.update_messages(self.current_time)
+            for data, time_pertaining in edge.unsent_data:
+                edge.send_message(data, time_pertaining, self.current_time)
 
-        for node in self.processing_nodes:
-            node.update_messages()
-            node.process()
+        # for node in self.processing_nodes:
+        #     node.process() # This should happen when a new message is received
         if not self.fully_propagated:
             self.propagate(time_increment, failed_edges)
             return
@@ -652,5 +685,4 @@ def _update_track(track, state, time):
             track[state_num] = state
             return
     track.append(state)
-
 
