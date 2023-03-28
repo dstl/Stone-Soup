@@ -91,7 +91,8 @@ def params():
                            initiator=initiator,
                            deleter=deleter,
                            tracker=tracker)
-    return {"small_nodes":nodes, "big_nodes": big_nodes, "ground_truths": ground_truths, "lat_nodes": lat_nodes}
+    return {"small_nodes": nodes, "big_nodes": big_nodes, "ground_truths": ground_truths, "lat_nodes": lat_nodes,
+            "start": start}
 
 
 def test_info_architecture_propagation(params):
@@ -99,25 +100,27 @@ def test_info_architecture_propagation(params):
     nodes = params['small_nodes']
     ground_truths = params['ground_truths']
     lat_nodes = params['lat_nodes']
+    start = params['start']
 
     # A "Y" shape, with data travelling "up" the Y
     # First, with no latency
     edges = Edges([Edge((nodes[0], nodes[1])), Edge((nodes[1], nodes[2])),
                    Edge((nodes[1], nodes[3]))])
-    architecture = InformationArchitecture(edges=edges)
+    architecture = InformationArchitecture(edges=edges, current_time=start)
 
-    for _ in range(10):
+    for _ in range(11):
         architecture.measure(ground_truths, noise=True)
-        architecture.propagate(time_increment=1, failed_edges=[])
+        architecture.propagate(time_increment=1.0, failed_edges=[])
+        #print(f"length of data_held: {len(nodes[0].data_held['unprocessed'][architecture.current_time])}")
     # Check all nodes hold 10 times with data pertaining, all in "unprocessed"
     #print(nodes[0].data_held['unprocessed'].keys())
-    #print(len(nodes[0].data_held['unprocessed'].keys()))
+    print(f"should be 11 keys in this: {len(nodes[0].data_held['unprocessed'].keys())}")
     assert len(nodes[0].data_held['unprocessed']) == 10
     assert len(nodes[0].data_held['processed']) == 0
     # Check each time has exactly 1 piece of data
     testin = list(nodes[0].data_held['unprocessed'].values())[0]
-    print(len(testin), "\n"*10)
-    print(testin)
+    #print(len(testin), "\n"*10)
+    #print(testin)
     assert all(len(nodes[0].data_held['unprocessed'][time]) == 1
                for time in nodes[0].data_held['unprocessed'])
     # Check node 1 holds 20 messages, and its descendants (2 and 3) hold 30 each

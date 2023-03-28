@@ -2,7 +2,7 @@ from abc import abstractmethod
 from ..base import Property, Base
 from .base import Type
 from ..sensor.sensor import Sensor
-from ..types.groundtruth import GroundTruthState
+from ..types.groundtruth import GroundTruthPath
 from ..types.detection import TrueDetection, Clutter, Detection
 from ..types.hypothesis import Hypothesis
 from ..types.track import Track
@@ -334,9 +334,9 @@ class Architecture(Type):
         doc="An Edges object containing all edges. For A to be connected to B we would have an "
             "Edge with edge_pair=(A, B) in this object.")
     current_time: datetime = Property(
-        default=None,
         doc="The time which the instance is at for the purpose of simulation. "
-            "This is increased by the propagate method, and defaults to the current system time")
+            "This is increased by the propagate method. This should be set to the earliest timestep "
+            "from the ground truth")
     name: str = Property(
         default=None,
         doc="A name for the architecture, to be used to name files and/or title plots. Default is "
@@ -524,15 +524,22 @@ class InformationArchitecture(Architecture):
             if isinstance(node, RepeaterNode):
                 raise TypeError("Information architecture should not contain any repeater nodes")
 
-    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[bool, np.ndarray] = True,
+    def measure(self, ground_truths: List[GroundTruthPath], noise: Union[bool, np.ndarray] = True,
                 **kwargs) -> Dict[SensorNode, Set[Union[TrueDetection, Clutter]]]:
         """ Similar to the method for :class:`~.SensorSuite`. Updates each node. """
         all_detections = dict()
 
-        for sensor_node in self.sensor_nodes:
+        # Get rid of ground truths that have not yet happened
+        # (ie GroundTruthState's with timestamp after self.current_time)
+        new_ground_truths = []
+        for ground_truth_path in ground_truths:
+            new_ground_truths.append(ground_truth_path.available_at_time(self.current_time))
 
-            all_detections[sensor_node] = sensor_node.sensor.measure(ground_truths, noise,
-                                                                     **kwargs)
+        for sensor_node in self.sensor_nodes:
+            all_detections[sensor_node] = set()
+            for states in np.vstack(new_ground_truths).T:
+                for detection in sensor_node.sensor.measure(states, noise, **kwargs):
+                    all_detections[sensor_node].add(detection)
 
             # Borrowed below from SensorSuite. I don't think it's necessary, but might be something
             # we need. If so, will need to define self.attributes_inform
@@ -545,8 +552,9 @@ class InformationArchitecture(Architecture):
             #     detection.metadata.update(attributes_dict)
 
             for data in all_detections[sensor_node]:
+                print(data.timestamp, self.current_time)
                 # The sensor acquires its own data instantly
-                sensor_node.update(self.current_time, self.current_time, data)
+                sensor_node.update(data.timestamp, data.timestamp, data)
 
         return all_detections
 
