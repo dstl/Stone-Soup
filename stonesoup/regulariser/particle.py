@@ -15,7 +15,7 @@ class MCMCRegulariser(Regulariser):
 
     This is a particlar implementation of a MCMC move step that uses the Metropolis-Hastings
     algorithm [1]_. After resampling, particles are moved a small amount, according do a Gaussian
-    kernal, to a new state only if the Metropolis-Hastings acceptance probability is met by a
+    kernel, to a new state only if the Metropolis-Hastings acceptance probability is met by a
     random number assigned to each particle from a uniform random distribution, otherwise they
     remain the same. Further details on the implementation are given in [2]_.
 
