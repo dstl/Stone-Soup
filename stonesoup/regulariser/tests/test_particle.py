@@ -32,7 +32,8 @@ def test_regulariser():
                                                                          1 / 9),
                                                                 ])
     timestamp = datetime.datetime.now()
-    prediction = ParticleStatePrediction(None, particle_list=particles, timestamp=timestamp)
+    prediction = ParticleStatePrediction(None, particle_list=particles.particle_list,
+                                         timestamp=timestamp)
     meas_pred = ParticleMeasurementPrediction(None, particle_list=particles, timestamp=timestamp)
     measurement_model = LinearGaussian(ndim_state=2, mapping=(0, 1), noise_covar=np.eye(2))
     measurement = [Detection(state_vector=np.array([[5], [7]]),
@@ -40,17 +41,25 @@ def test_regulariser():
     state_update = ParticleStateUpdate(None, SingleHypothesis(prediction=prediction,
                                                               measurement=measurement,
                                                               measurement_prediction=meas_pred),
-                                       particle_list=particles, timestamp=timestamp)
+                                       particle_list=particles.particle_list, timestamp=timestamp)
     regulariser = MCMCRegulariser()
 
+    # state check
     new_particles = regulariser.regularise(particles, state_update, measurement)
-
     # Check the shape of the new state vector
-    assert new_particles.state_vector.shape == state_update.particle_list.state_vector.shape
+    assert new_particles.state_vector.shape == state_update.state_vector.shape
     # Check weights are unchanged
-    assert any(new_particles.weight == state_update.particle_list.weight)
+    assert any(new_particles.weight == state_update.weight)
     # Check that the timestamp is the same
     assert new_particles.timestamp == state_update.timestamp
+
+    # list check
+    new_particles = regulariser.regularise(particles.particle_list, state_update.particle_list,
+                                           measurement)
+    # Check the shape of the new state vector
+    assert new_particles.state_vector.shape == state_update.state_vector.shape
+    # Check weights are unchanged
+    assert any(new_particles.weight == state_update.weight)
 
 
 def test_no_measurement():
@@ -74,19 +83,20 @@ def test_no_measurement():
                                                                          1 / 9),
                                                                 ])
     timestamp = datetime.datetime.now()
-    prediction = ParticleStatePrediction(None, particle_list=particles, timestamp=timestamp)
+    prediction = ParticleStatePrediction(None, particle_list=particles.particle_list,
+                                         timestamp=timestamp)
     meas_pred = ParticleMeasurementPrediction(None, particle_list=particles, timestamp=timestamp)
     state_update = ParticleStateUpdate(None, SingleHypothesis(prediction=prediction,
                                                               measurement=None,
                                                               measurement_prediction=meas_pred),
-                                       particle_list=particles, timestamp=timestamp)
+                                       particle_list=particles.particle_list, timestamp=timestamp)
     regulariser = MCMCRegulariser()
 
     new_particles = regulariser.regularise(particles, state_update, detections=None)
 
     # Check the shape of the new state vector
-    assert new_particles.state_vector.shape == state_update.particle_list.state_vector.shape
+    assert new_particles.state_vector.shape == state_update.state_vector.shape
     # Check weights are unchanged
-    assert any(new_particles.weight == state_update.particle_list.weight)
+    assert any(new_particles.weight == state_update.weight)
     # Check that the timestamp is the same
     assert new_particles.timestamp == state_update.timestamp

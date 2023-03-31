@@ -4,6 +4,7 @@ from scipy.stats import multivariate_normal, uniform
 
 from .base import Regulariser
 from ..functions import cholesky_eps
+from ..types.state import ParticleState
 
 
 class MCMCRegulariser(Regulariser):
@@ -31,9 +32,9 @@ class MCMCRegulariser(Regulariser):
 
         Parameters
         ----------
-        prior : :class:`~.ParticleState` type
+        prior : :class:`~.ParticleState` type or list of :class:`~.Particle`
             prior particle distribution
-        posterior : :class:`~.ParticleState` type
+        posterior : :class:`~.ParticleState` type or list of :class:`~.Particle`
             posterior particle distribution
         detections : set of :class:`~.Detection`
             set of detections containing clutter,
@@ -44,13 +45,14 @@ class MCMCRegulariser(Regulariser):
         particle state: :class:`~.ParticleState`
            The particle state after regularisation
         """
-        posterior = copy.copy(posterior)
-        timestamp = posterior.timestamp
-        if posterior.state_vector is None:
-            posterior = posterior.particle_list
-            posterior.timestamp = timestamp
-        if prior.state_vector is None:
-            prior = prior.particle_list
+
+        if not isinstance(posterior, ParticleState):
+            posterior = copy.copy(posterior)
+            posterior = ParticleState(None, particle_list=posterior)
+
+        if not isinstance(prior, ParticleState):
+            prior = copy.copy(prior)
+            prior = ParticleState(None, particle_list=prior)
 
         regularised_particles = copy.copy(posterior)
         moved_particles = copy.copy(posterior)
@@ -61,7 +63,7 @@ class MCMCRegulariser(Regulariser):
 
             measurement_model = next(iter(detections)).measurement_model
 
-            # calculate the optimal bandwidth for the Gaussian kernal
+            # calculate the optimal bandwidth for the Gaussian kernel
             hopt = (4/(ndim+2))**(1/(ndim+4))*nparticles**(-1/(ndim+4))
             covar_est = posterior.covar
 
