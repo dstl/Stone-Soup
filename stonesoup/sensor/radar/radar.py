@@ -18,7 +18,7 @@ from ...sensor.action.dwell_action import DwellActionsGenerator
 from ...sensor.actionable import ActionableProperty
 from ...sensor.sensor import Sensor, SimpleSensor
 from ...types.array import CovarianceMatrix
-from ...types.detection import TrueDetection
+from ...types.detection import TrueDetection, Detection
 from ...types.groundtruth import GroundTruthState
 from ...types.numeric import Probability
 from ...types.state import StateVector
@@ -168,9 +168,11 @@ class RadarRotatingBearingRange(RadarBearingRange):
 
         return super().measure(ground_truths, noise, **kwargs)
 
-    def is_detectable(self, state: GroundTruthState) -> bool:
-        measurement_vector = self.measurement_model.function(state, noise=False)
-
+    def is_detectable(self, state: Union[GroundTruthState, Detection]) -> bool:
+        if isinstance(state, GroundTruthState):
+            measurement_vector = self.measurement_model.function(state, noise=False)
+        else:
+            measurement_vector = state.state_vector
         # Check if state falls within sensor's FOV
         fov_min = -self.fov_angle / 2
         fov_max = +self.fov_angle / 2

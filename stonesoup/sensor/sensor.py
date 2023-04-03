@@ -7,7 +7,7 @@ from .actionable import Actionable
 from .base import PlatformMountable
 from ..base import Property
 from ..models.clutter.clutter import ClutterModel
-from ..types.detection import TrueDetection
+from ..types.detection import TrueDetection, Detection
 from ..types.groundtruth import GroundTruthState
 
 
@@ -119,12 +119,14 @@ class SimpleSensor(Sensor, ABC):
         if self.clutter_model is not None:
             self.clutter_model.measurement_model = measurement_model
             clutter = self.clutter_model.function(ground_truths)
-            detections = set.union(detections, clutter)
+            detectable_clutter = [cltr for cltr in clutter
+                                  if self.is_detectable(cltr)]
+            detections = set.union(detections, detectable_clutter)
 
         return detections
 
     @abstractmethod
-    def is_detectable(self, state: GroundTruthState) -> bool:
+    def is_detectable(self, state: Union[GroundTruthState, Detection]) -> bool:
         raise NotImplementedError
 
 
