@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import numpy as np
+import pytest
 
 from stonesoup.types.state import GaussianState
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
@@ -111,7 +112,7 @@ def params():
     return {"hypothesiser": hypothesiser, "start": start_time, "all_tracks": all_tracks}
 
 
-def test_correct_no_stitched_tracks():
+def test_correct_no_stitched_tracks(params):
     hypothesiser = params["hypothesiser"]
     all_tracks = params["all_tracks"]
     start_time = params["start"]
@@ -121,7 +122,8 @@ def test_correct_no_stitched_tracks():
     assert no_stitched_tracks == 2
 
 
-def test_correct_no_stitched_tracks1():
+def test_correct_no_stitched_tracks1(params):
+    print(type(params))
     hypothesiser = params["hypothesiser"]
     all_tracks = params["all_tracks"]
     start_time = params["start"]
@@ -131,7 +133,7 @@ def test_correct_no_stitched_tracks1():
     assert no_stitched_tracks == 2
 
 
-def test_correct_no_stitched_tracks2():
+def test_correct_no_stitched_tracks2(params):
     hypothesiser = params["hypothesiser"]
     all_tracks = params["all_tracks"]
     start_time = params["start"]
