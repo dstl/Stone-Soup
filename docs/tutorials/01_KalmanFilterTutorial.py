@@ -111,7 +111,7 @@ from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionM
                                                ConstantVelocity
 
 # And the clock starts
-start_time = datetime.now()
+start_time = datetime.now().replace(microsecond=0)
 
 # %%
 # We note that it can sometimes be useful to fix our random number generator in order to probe a
@@ -160,26 +160,31 @@ transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(q_x),
                                                           ConstantVelocity(q_y)])
 
 # %%
-# A 'truth path' is created starting at (0,0) moving to the NE at one distance unit per (time) step in each dimension.
-truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=start_time)])
+# A 'truth path' is created starting at (0,0) moving to the NE at one distance unit per (time)
+# step in each dimension.
+timesteps = [start_time]
+truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=timesteps[0])])
 
 num_steps = 20
 for k in range(1, num_steps + 1):
+
+    timesteps.append(start_time+timedelta(seconds=k))  # add next timestep to list of timesteps
     truth.append(GroundTruthState(
         transition_model.function(truth[k-1], noise=True, time_interval=timedelta(seconds=1)),
-        timestamp=start_time+timedelta(seconds=k)))
+        timestamp=timesteps[k]))
 
 # %%
 # Thus the ground truth is generated and we can plot the result.
 #
 # Stone Soup has an in-built plotting class which can be used to plot
 # ground truths, measurements and tracks in a consistent format. It can be accessed by importing
-# the class :class:`Plotterly` from Stone Soup as below.
+# the class :class:`AnimatedPlotterly` from Stone Soup as below.
 #
-# Note that the mapping argument is [0, 2] because those are the x and y position indices from our state vector.
+# Note that the mapping argument is [0, 2] because those are the x and y position indices from
+# our state vector.
 
-from stonesoup.plotter import Plotterly
-plotter = Plotterly()
+from stonesoup.plotter import AnimatedPlotterly
+plotter = AnimatedPlotterly(timesteps, tail_length=0.3)
 plotter.plot_ground_truths(truth, [0, 2])
 plotter.fig
 

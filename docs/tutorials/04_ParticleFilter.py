@@ -71,7 +71,7 @@ import numpy as np
 
 from datetime import datetime
 from datetime import timedelta
-start_time = datetime.now()
+start_time = datetime.now().replace(microsecond=0)
 
 # %%
 
@@ -85,20 +85,22 @@ from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05),
                                                           ConstantVelocity(0.05)])
+timesteps = [start_time]
 truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=start_time)])
 
 # %%
 # Create the truth path
 for k in range(1, 21):
+    timesteps.append(start_time+timedelta(seconds=k))
     truth.append(GroundTruthState(
         transition_model.function(truth[k-1], noise=True, time_interval=timedelta(seconds=1)),
-        timestamp=start_time+timedelta(seconds=k)))
+        timestamp=timesteps[k]))
 
 # %%
 # Plot the ground truth.
 
-from stonesoup.plotter import Plotterly
-plotter = Plotterly()
+from stonesoup.plotter import AnimatedPlotterly
+plotter = AnimatedPlotterly(timesteps, tail_length=0.3)
 plotter.plot_ground_truths(truth, [0, 2])
 plotter.fig
 
@@ -209,9 +211,10 @@ for measurement in measurements:
     prior = track[-1]
 
 # %%
-# Plot the resulting track with the sample points at each iteration.
+# Plot the resulting track with the sample points at each iteration. Can also change 'plot_history'
+# to True if wanted.
 
-plotter.plot_tracks(track, [0, 2], particle=True)
+plotter.plot_tracks(track, [0, 2], particle=True, plot_history=False)
 plotter.fig
 
 # %%

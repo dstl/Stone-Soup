@@ -1,5 +1,5 @@
 import numpy as np
-from stonesoup.plotter import Plotter, Dimension
+from stonesoup.plotter import Plotter, Dimension, AnimatedPlotterly
 import pytest
 import matplotlib.pyplot as plt
 
@@ -197,7 +197,6 @@ def test_plot_density_equal_x_y():
     with pytest.raises(ValueError):
         plotter.plot_density({truth}, index=None)
 
-
 def test_plot_complex_uncertainty():
     plotter = Plotter()
     track = Track([
@@ -209,3 +208,12 @@ def test_plot_complex_uncertainty():
                                          "eignevalues or eigenvectors"):
 
         plotter.plot_tracks(track, mapping=[0, 1], uncertainty=True)
+
+
+def test_animated_plotterly_empty_inputs():
+    start_time = datetime.now()
+    timesteps = [start_time, start_time + timedelta(seconds=1)]
+    plotter = AnimatedPlotterly(timesteps)
+    plotter.plot_ground_truths({}, [0, 2], resize=False)
+    plotter.plot_measurements({}, [0, 2], resize=False)
+    plotter.plot_tracks({}, [0, 2], resize=False)

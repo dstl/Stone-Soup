@@ -75,12 +75,10 @@ class _Plotter(ABC):
             meas_model = state.measurement_model  # measurement_model from detections
             if meas_model is None:
                 meas_model = measurement_model  # measurement_model from input
-
             if isinstance(meas_model, LinearModel):
                 model_matrix = meas_model.matrix()
                 inv_model_matrix = np.linalg.pinv(model_matrix)
                 state_vec = (inv_model_matrix @ state.state_vector)[mapping, :]
-
             elif isinstance(meas_model, Model):
                 try:
                     state_vec = meas_model.inverse_function(state)[mapping, :]
@@ -102,7 +100,6 @@ class _Plotter(ABC):
             else:
                 warnings.warn(f'Unknown type {type(state)}')
                 continue
-
         return conv_detections, conv_clutter
 
 
@@ -1368,3 +1365,769 @@ class AnimationPlotter(_Plotter):
                     lines[i].set_data([],
                                       [])
         return lines
+
+
+class AnimatedPlotterly(_Plotter):
+    """
+    Class for a 2D animated plotter that uses Plotly graph objects rather than matplotlib.
+    This gives the user the ability to see how tracking works through time, while being
+    able to interact with tracks, truths, etc, in the same way that is enabled by
+    Plotly static plots.
+
+    Simplifies the process of plotting ground truths, measurements, clutter, and tracks.
+    Tracks can be plotted with uncertainty ellipses or particles if required. Legends
+    are automatically generated with each plot.
+
+    Parameters
+    ----------
+    timesteps: Collection
+        Collection of equally-spaced timesteps. Each animation frame is a timestep.
+    tail_length: float
+        Percentage of sim time for which previous values will still be displayed for.
+        Value can be between 0 and 1. Default is 0.3.
+    equal_size: bool
+        Makes x and y axes equal when figure is resized. Default is False.
+    sim_duration: int
+        Time taken to run animation (s). Default is 6
+    \\*\\*kwargs
+        Additional arguments to be passed in the initialisation.
+
+    Attributes
+    ----------
+
+    """
+
+    def __init__(self, timesteps, tail_length=0.3, equal_size=False,
+                 sim_duration=6, **kwargs):
+        """
+        Initialise the figure and checks that inputs are correctly formatted.
+        Creates an empty frame for each timestep, and configures
+        the buttons and slider.
+
+
+        """
+        super().__init__(**kwargs)
+
+        self.equal_size = equal_size
+
+        # checking that there are multiple timesteps
+        if len(timesteps) < 2:
+            raise ValueError("Must be at least 2 timesteps for animation.")
+
+        # checking that timesteps are evenly spaced
+        time_spaces = np.unique(np.diff(timesteps))
+
+        # gives the unique values of time gaps between timesteps. If this contains more than
+        # one value, then timesteps are not all evenly spaced which is an issue.
+        if len(time_spaces) != 1:
+            raise ValueError("Ensure timesteps are equally spaced.")
+        self.timesteps = timesteps
+
+        # checking input to tail_length
+        if tail_length > 1 or tail_length < 0:
+            raise ValueError("Tail length should be between 0 and 1")
+        self.tail_length = tail_length
+
+        # checking sim_duration
+        if sim_duration <= 0:
+            raise ValueError("Simulation duration must be positive")
+
+        # time window is calculated as sim_length * tail_length. This is
+        # the window of time for which past plots are still visible
+        self.time_window = (timesteps[-1] - timesteps[0]) * tail_length
+
+        from plotly import colors
+        self.colorway = colors.qualitative.Plotly[1:]  # plotting colours
+
+        self.all_masks = dict()  # dictionary to be filled up later
+
+        self.fig = go.Figure()
+
+        layout_kwargs = dict(
+            xaxis=dict(title=dict(text="<i>x</i>")),
+            yaxis=dict(title=dict(text="<i>y</i>")),
+            colorway=self.colorway,  # Needed to match colours later.
+            autosize=True
+        )
+        # layout_kwargs.update(kwargs)
+        self.fig.update_layout(layout_kwargs)
+
+        # initialise frames according to simulation timesteps
+        self.fig.frames = [dict(
+            name=str(time),
+            data=[],
+            traces=[]
+        ) for time in timesteps]
+
+        self.fig.update_xaxes(range=[0, 10])
+        self.fig.update_yaxes(range=[0, 10])
+
+        frame_duration = (sim_duration * 1000) / len(self.fig.frames)
+
+        # if the gap between timesteps is greater than a day, it isn't necessary
+        # to display hour and minute information, so remove this to give a cleaner display.
+        # a and b are used in the slider steps label later
+        if time_spaces[0] >= timedelta(days=1):
+            a = None
+            b = 10
+
+        # if the simulation is over a day long, display all information which
+        # looks clunky but is necessary
+        elif timesteps[-1] - timesteps[0] > timedelta(days=1):
+            a = None
+            b = None
+
+        # otherwise, remove day information and just show
+        # hours, mins, etc. which is cleaner to look at
+        else:
+            a = 11
+            b = None
+
+        # create button and slider
+        updatemenus = [dict(type='buttons',
+                            buttons=[{
+                                "args": [None,
+                                         {"frame": {"duration": frame_duration, "redraw": True},
+                                          "fromcurrent": True, "transition": {"duration": 0}}],
+                                "label": "Play",
+                                "method": "animate"
+                            }, {
+                                "args": [[None], {"frame": {"duration": 0, "redraw": True},
+                                                  "mode": "immediate",
+                                                  "transition": {"duration": 0}}],
+                                "label": "Stop",
+                                "method": "animate"
+                            }],
+                            direction='left',
+                            pad=dict(r=10, t=75),
+                            showactive=True, x=0.1, y=0, xanchor='right', yanchor='top')
+                       ]
+        sliders = [{'yanchor': 'top',
+                    'xanchor': 'left',
+                    'currentvalue': {'font': {'size': 16}, 'prefix': 'Time: ', 'visible': True,
+                                     'xanchor': 'right'},
+                    'transition': {'duration': frame_duration, 'easing': 'linear'},
+                    'pad': {'b': 10, 't': 50},
+                    'len': 0.9, 'x': 0.1, 'y': 0,
+                    'steps': [{'args': [[frame.name], {
+                        'frame': {'duration': 1.0, 'easing': 'linear', 'redraw': True},
+                        'transition': {'duration': 0, 'easing': 'linear'}}],
+                               'label': frame.name[a:b], 'method': 'animate'} for frame in
+                              self.fig.frames
+                              ]}]
+        self.fig.update_layout(updatemenus=updatemenus, sliders=sliders)
+        self.fig.update_layout(kwargs)
+
+    def show(self):
+        """
+        Display the animation.
+        """
+        return self.fig
+
+    def _resize(self, data):
+        """
+        Reshape figure so that everything is in view.
+
+        Parameters
+        ----------
+
+        data:
+            Collection of values that are being added to the figure.
+            Will be a list if coming from plot_ground_Truths or
+            plot_tracks, but will be a dictionary if coming from plot_measurements.
+        """
+
+        all_x = []
+        all_y = []
+
+        if isinstance(data, dict):  # is from plot_measurements
+
+            for key, item in data.items():
+                all_x.extend(data[key]["x"])
+                all_y.extend(data[key]["y"])
+
+        else:  # is from plot_ground_truths, plot_tracks, or plot_sensor
+
+            try: # plot_ground_truths or plot_tracks
+                for n, _ in enumerate(data):
+                    all_x.extend(data[n]["x"])
+                    all_y.extend(data[n]["y"])
+
+            except IndexError:  # plot_sensor
+                all_x.extend(data[:, 0])
+                all_y.extend(data[:, 1])
+
+        xmax = max(max(all_x), self.fig.layout.xaxis.range[1])
+        ymax = max(max(all_y), self.fig.layout.yaxis.range[1])
+        xmin = min(min(all_x), self.fig.layout.xaxis.range[0])
+        ymin = min(min(all_y), self.fig.layout.yaxis.range[0])
+
+        if self.equal_size:
+            xmax = max(xmax, ymax)
+            ymax = xmax
+            xmin = min(xmin, ymin)
+            ymin = xmin
+
+        xrange = xmax - xmin
+        yrange = ymax - ymin
+
+        # update figure
+        self.fig.update_xaxes(range=[xmin - xrange / 20,
+                                     xmax + xrange / 20])
+        self.fig.update_yaxes(range=[ymin - yrange / 20,
+                                     ymax + yrange / 20])
+
+    def plot_ground_truths(self, truths, mapping, truths_label="Ground Truth",
+                           resize=True, **kwargs):
+
+        """Plots ground truth(s)
+
+        Plots each ground truth path passed in to :attr:`truths` and generates a legend
+        automatically. Ground truths are plotted as dashed lines with default colors.
+
+        Users can change linestyle, color and marker using keyword arguments. Any changes
+        will apply to all ground truths.
+
+        Parameters
+        ----------
+        truths : Collection of :class:`~.GroundTruthPath`
+            Collection of  ground truths which will be plotted. If not a collection and instead a
+            single :class:`~.GroundTruthPath` type, the argument is modified to be a set to allow
+            for iteration.
+        mapping: list
+            List of items specifying the mapping of the position components of the state space.
+        truths_label: str
+            Name of ground truths in legend/plot
+        resize: bool
+            if True, will resize figure to ensure that ground truths are in view
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to plot function. Default is ``linestyle="--"``.
+
+        """
+
+        if not isinstance(truths, Collection) or isinstance(truths, StateMutableSequence):
+            truths = {truths}  # Make a set of length 1
+
+        data = [dict() for _ in truths]  # put all data into one place for later plotting
+        for n, truth in enumerate(truths):
+
+            # initialise arrays that go inside the dictionary
+            data[n].update(x=np.zeros(len(truth)),
+                           y=np.zeros(len(truth)),
+                           time=np.array([0 for _ in range(len(truth))], dtype=object),
+                           time_str=np.array([0 for _ in range(len(truth))], dtype=object),
+                           type=np.array([0 for _ in range(len(truth))], dtype=object))
+
+            for k, state in enumerate(truth):
+                # fill the arrays here
+                data[n]["x"][k] = state.state_vector[mapping[0]]
+                data[n]["y"][k] = state.state_vector[mapping[1]]
+                data[n]["time"][k] = state.timestamp
+                data[n]["time_str"][k] = str(state.timestamp)
+                data[n]["type"][k] = type(state).__name__
+
+        trace_base = len(self.fig.data)  # number of traces currently in the animation
+
+        # add a trace that keeps the legend up for the entire simulation (will remain
+        # even if no truths are present), then add a trace for each truth in the simulation.
+        # initialise keyword arguments, then add them to the traces
+        truth_kwargs = dict(x=[], y=[], mode="lines", hoverinfo='none', legendgroup=truths_label,
+                            line=dict(dash="dash", color=self.colorway[0]), legendrank=100,
+                            name=truths_label, showlegend=True)
+        truth_kwargs.update(kwargs)
+        # legend dummy trace
+        self.fig.add_trace(go.Scatter(truth_kwargs))
+
+        # we don't want the legend for any of the actual traces
+        truth_kwargs.update({"showlegend": False})
+
+        for n, _ in enumerate(truths):
+            # change the colour of each truth and include n in its name
+            truth_kwargs.update({
+                "line": dict(dash="dash", color=self.colorway[n % len(self.colorway)])})
+            truth_kwargs.update(kwargs)
+            self.fig.add_trace(go.Scatter(truth_kwargs))  # add to traces
+
+        for frame in self.fig.frames:
+
+            # get current fig data and traces
+            data_ = list(frame.data)
+            traces_ = list(frame.traces)
+
+            # convert string to datetime object
+            frame_time = datetime.fromisoformat(frame.name)
+            cutoff_time = (frame_time - self.time_window)
+
+            # for the legend
+            data_.append(go.Scatter(x=[0, 0], y=[0, 0]))
+            traces_.append(trace_base)
+
+            for n, truth in enumerate(truths):
+                # all truth points that come at or before the frame time
+                t_upper = [data[n]["time"] <= frame_time]
+
+                # only select detections that come after the time cut-off
+                t_lower = [data[n]["time"] >= cutoff_time]
+
+                # put together
+                mask = np.logical_and(t_upper, t_lower)
+
+                # find x, y, time, and type
+                truth_x = data[n]["x"][tuple(mask)]
+                truth_y = data[n]["y"][tuple(mask)]
+                times = data[n]["time_str"][tuple(mask)]
+
+                data_.append(go.Scatter(x=truth_x,
+                                        y=truth_y,
+                                        meta=times,
+                                        hovertemplate='GroundTruthState' +
+                                                      '<br>(%{x}, %{y})' +
+                                                      '<br>Time: %{meta}'))
+
+                traces_.append(trace_base + n + 1)  # append data to correct trace
+
+                frame.data = data_
+                frame.traces = traces_
+
+        if resize:
+            if data:
+                self._resize(data)
+            else:
+                raise RuntimeError("Cannot resize with no ground truth given.")
+
+    def plot_measurements(self, measurements, mapping, measurement_model=None,
+                          resize=True, measurements_label="Measurements", **kwargs):
+        """Plots measurements
+
+        Plots detections and clutter, generating a legend automatically. Detections are plotted as
+        blue circles by default unless the detection type is clutter.
+        If the detection type is :class:`~.Clutter` it is plotted as a yellow 'tri-up' marker.
+
+        Users can change the color and marker of detections using keyword arguments but not for
+        clutter detections.
+
+        Parameters
+        ----------
+        measurements : Collection of :class:`~.Detection`
+            Detections which will be plotted. If measurements is a set of lists it is flattened.
+        mapping: list
+            List of items specifying the mapping of the position components of the state space.
+        measurement_model : :class:`~.Model`, optional
+            User-defined measurement model to be used in finding measurement state inverses if
+            they cannot be found from the measurements themselves.
+        resize: bool
+            If True, will resize figure to ensure measurements are in view
+        measurements_label : str
+            Label for the measurements.  Default is "Measurements".
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to scatter function for detections. Defaults are
+            ``marker=dict(color="#636EFA")``.
+        """
+
+        if not isinstance(measurements, Collection):
+            measurements = {measurements}  # Make a set of length 1
+
+        if any(isinstance(item, set) for item in measurements):
+            measurements_set = chain.from_iterable(measurements)  # Flatten into one set
+        else:
+            measurements_set = measurements
+        plot_detections, plot_clutter = self._conv_measurements(measurements_set,
+                                                                mapping,
+                                                                measurement_model)
+
+        plot_combined = {'Detection': plot_detections,
+                         'Clutter': plot_clutter}  # for later reference
+
+        # this dictionary will store all the plotting data that we need
+        # from the detections and clutter into numpy arrays that we can easily
+        # access to plot
+        combined_data = dict(Detection=dict(), Clutter=dict())
+
+        # initialise combined_data
+        for key in combined_data.keys():
+            length = len(plot_combined[key])
+            combined_data[key].update({
+                "x": np.zeros(length),
+                "y": np.zeros(length),
+                "time": np.array([0 for _ in range(length)], dtype=object),
+                "time_str": np.array([0 for _ in range(length)], dtype=object),
+                "type": np.array([0 for _ in range(length)], dtype=object)})
+
+        # and now fill in the data
+
+        for key in combined_data.keys():
+            for n, det in enumerate(plot_combined[key]):
+                x, y = list(plot_combined[key].values())[n]
+                combined_data[key]["x"][n] = x
+                combined_data[key]["y"][n] = y
+                combined_data[key]["time"][n] = det.timestamp
+                combined_data[key]["time_str"][n] = str(det.timestamp)
+                combined_data[key]["type"][n] = type(det).__name__
+
+        # get number of traces currently in fig
+        trace_base = len(self.fig.data)
+
+        # initialise detections
+        name = measurements_label + "<br>(Detections)"
+        measurement_kwargs = dict(x=[], y=[], mode='markers',
+                                  name=name,
+                                  legendgroup='Detections (Measurements)',
+                                  legendrank=200, showlegend=True,
+                                  marker=dict(color="#636EFA"), hoverinfo='none')
+        measurement_kwargs.update(kwargs)
+
+        self.fig.add_trace(go.Scatter(measurement_kwargs))  # trace for legend
+
+        measurement_kwargs.update({"showlegend": False})
+        self.fig.add_trace(go.Scatter(measurement_kwargs))  # trace for plotting
+
+        # change necessary kwargs to initialise clutter trace
+        name = measurements_label + "<br>(Clutter)"
+        measurement_kwargs.update({"legendgroup": 'Clutter', "legendrank": 300,
+                                   "marker": dict(symbol="star-triangle-up", color='#FECB52'),
+                                   "name": name, 'showlegend': True})
+
+        self.fig.add_trace(go.Scatter(measurement_kwargs))  # trace for plotting clutter
+
+        # add data to frames
+        for frame in self.fig.frames:
+
+            data_ = list(frame.data)
+            traces_ = list(frame.traces)
+
+            # add blank data to ensure detection legend stays in place
+            data_.append(go.Scatter(x=[-np.inf, np.inf], y=[-np.inf, np.inf]))
+            traces_.append(trace_base)  # ensure data is added to correct trace
+
+            frame_time = datetime.fromisoformat(frame.name)  # convert string to datetime object
+
+            # time at which dets will disappear from the fig
+            cutoff_time = (frame_time - self.time_window)
+
+            for j, key in enumerate(combined_data.keys()):
+                # only select measurements that arrive by the time of the current frame
+                t_upper = [combined_data[key]["time"] <= frame_time]
+
+                # only select detections that come after the time cut-off
+                t_lower = [combined_data[key]["time"] >= cutoff_time]
+
+                # put them together to create the final mask
+                mask = np.logical_and(t_upper, t_lower)
+
+                # find x and y points for true detections and clutter
+                det_x = combined_data[key]["x"][tuple(mask)]
+                det_y = combined_data[key]["y"][tuple(mask)]
+                det_times = combined_data[key]["time_str"][tuple(mask)]
+
+                data_.append(go.Scatter(x=det_x,
+                                        y=det_y,
+                                        meta=det_times,
+                                        hovertemplate=f'{key}' +
+                                                      '<br>(%{x}, %{y},)' +
+                                                      '<br>Time: %{meta}'))
+                traces_.append(trace_base + j + 1)
+
+            frame.data = data_  # update the figure
+            frame.traces = traces_
+
+        if resize:
+            # only resize if there is data available
+            if len(combined_data["Detection"]["x"]) or len(combined_data["Clutter"]["x"]):
+                self._resize(combined_data)  # ensure the figure display is big enough
+
+            else:
+                raise RuntimeError("Cannot resize as no measurements provided.")
+
+    def plot_tracks(self, tracks, mapping, uncertainty=False, resize=True,
+                    particle=False, plot_history=False, ellipse_points=30,
+                    track_label="Tracks", **kwargs):
+        """
+        Plots each track generated, generating a legend automatically. If 'uncertainty=True',
+        error ellipses are plotted. Tracks are plotted as solid lines with point markers
+        and default colours.
+
+        Users can change linestyle, color, and marker using keyword arguments. Uncertainty metrics
+        will also be plotted with the user defined colour and any changes will apply to all tracks.
+
+        Parameters
+        ----------
+        tracks: Collection of :class '~Track'
+            Collection of tracks which will be plotted. If not a collection, and instead a single
+            :class:'~Track' type, the argument is modified to be a set to allow for iteration
+
+        mapping: list
+            List of items specifying the mapping of the position
+            components of the state space
+        uncertainty: bool
+            If True, function plots uncertainty ellipses
+        resize: bool
+            If True, plotter will change bounds so that tracks are in view
+        particle: bool
+            If True, function plots particles
+        plot_history: bool
+            If true, plots all particles and uncertainty ellipses up to current time step
+        ellipse_points: int
+            Number of points for polygon approximating ellipse shape
+        track_label: str
+            Label to apply to all tracks for legend
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to plot function. Defaults are ``linestyle="-"``,
+            ``marker='s'`` for :class:`~.Update` and ``marker='o'`` for other states.
+
+        Returns
+        -------
+        """
+
+        if not isinstance(tracks, Collection) or isinstance(tracks, StateMutableSequence):
+            tracks = {tracks}  # Make a set of length 1
+
+        # So that we can plot tracks for both the current time and for some previous times,
+        # we put plotting data for each track into a dictionary so that it can be easily
+        # accessed later.
+        data = [dict() for _ in tracks]
+
+        for n, track in enumerate(tracks):  # sum up means - accounts for particle filter
+
+            xydata = np.concatenate(
+                [(getattr(state, 'mean', state.state_vector)[mapping, :])
+                 for state in track],
+                axis=1)
+
+            # initialise arrays that go inside the dictionary
+            data[n].update(x=xydata[0],
+                           y=xydata[1],
+                           time=np.array([0 for _ in range(len(track))], dtype=object),
+                           time_str=np.array([0 for _ in range(len(track))], dtype=object),
+                           type=np.array([0 for _ in range(len(track))], dtype=object))
+
+            for k, state in enumerate(track):
+                # fill the arrays here
+                data[n]["time"][k] = state.timestamp
+                data[n]["time_str"][k] = str(state.timestamp)
+                data[n]["type"][k] = type(state).__name__
+
+        trace_base = len(self.fig.data)  # number of traces
+
+        # add dummy trace for legend for track
+
+        track_kwargs = dict(x=[], y=[], mode="markers+lines", line=dict(color=self.colorway[2]),
+                            legendgroup=track_label, legendrank=400, name=track_label,
+                            showlegend=True)
+        track_kwargs.update(kwargs)
+        self.fig.add_trace(go.Scatter(track_kwargs))
+
+        # and initialise traces for every track. Need to change a few kwargs:
+        track_kwargs.update({'showlegend': False})
+
+        for k, _ in enumerate(tracks):
+            # update track colours
+            track_kwargs.update({'line': dict(color=self.colorway[k + 2 % len(self.colorway)])})
+            track_kwargs.update(kwargs)
+            self.fig.add_trace(go.Scatter(track_kwargs))
+
+        for frame in self.fig.frames:
+            # get current fig data and traces
+            data_ = list(frame.data)
+            traces_ = list(frame.traces)
+
+            # convert string to datetime object
+            frame_time = datetime.fromisoformat(frame.name)
+
+            self.all_masks[frame_time] = dict()  # save mask for later use
+            cutoff_time = (frame_time - self.time_window)
+            # add blank data to ensure legend stays in place
+            data_.append(go.Scatter(x=[-np.inf, np.inf], y=[-np.inf, np.inf]))
+            traces_.append(trace_base)  # ensure data is added to correct trace
+
+            for n, track in enumerate(tracks):
+
+                # all track points that come at or before the frame time
+                t_upper = [data[n]["time"] <= frame_time]
+                # only select detections that come after the time cut-off
+                t_lower = [data[n]["time"] >= cutoff_time]
+
+                # put together
+                mask = np.logical_and(t_upper, t_lower)
+
+                # put into dictionary for later use
+                if plot_history:
+                    self.all_masks[frame_time][n] = np.logical_and(t_upper, t_lower)
+                else:
+                    self.all_masks[frame_time][n] = [data[n]["time"] == frame_time]
+
+                # find x, y, time, and type
+                track_x = data[n]["x"][tuple(mask)]
+                track_y = data[n]["y"][tuple(mask)]
+                track_type = data[n]["type"][tuple(mask)]
+                # times = data[n]["time_str"][tuple(mask)]  # can have this as metadata if wanted
+
+                data_.append(go.Scatter(x=track_x,  # plot track
+                                        y=track_y,
+                                        meta=track_type,
+                                        hovertemplate='%{meta}' +
+                                                      '<br>(%{x}, %{y})'))
+
+                traces_.append(trace_base + n + 1)  # add to correct trace
+
+                frame.data = data_
+                frame.traces = traces_
+
+        if resize:
+            if data:
+                self._resize(data)
+            else:
+                raise RuntimeError("Cannot resize - no tracks given.")
+
+        if uncertainty:  # plot ellipses
+
+            uncertainty_kwargs = dict(x=[], y=[], legendgroup='Uncertainty', fill='toself',
+                                      fillcolor=self.colorway[2],
+                                      opacity=0.2, legendrank=500, name='Track<br>Uncertainty',
+                                      hoverinfo='skip',
+                                      mode='none', showlegend=True)
+
+            # dummy trace for legend for uncertainty
+            self.fig.add_trace(go.Scatter(uncertainty_kwargs))
+
+            # and an uncertainty ellipse trace for each track
+            uncertainty_kwargs.update({'showlegend': False})
+            for k, _ in enumerate(tracks):
+                uncertainty_kwargs.update({'fillcolor': self.colorway[k + 2 % len(self.colorway)]})
+                self.fig.add_trace(go.Scatter(uncertainty_kwargs))
+
+            # following function finds uncertainty data points and plots them
+            self._plot_particles_and_ellipses(tracks, mapping, method="uncertainty")
+
+        if particle:  # plot particles
+
+            # initialise traces. One for legend and one per track
+
+            particle_kwargs = dict(mode='markers', marker=dict(size=2, color=self.colorway[2]),
+                                   opacity=0.4,
+                                   hoverinfo='skip', legendgroup='particles', name='particles',
+                                   legendrank=520, showlegend=True)
+
+            self.fig.add_trace(go.Scatter(particle_kwargs))  # legend trace
+
+            particle_kwargs.update({"showlegend": False})
+
+            for k, track in enumerate(tracks):  # trace for each track
+
+                particle_kwargs.update(
+                    {'marker': dict(size=2, color=self.colorway[k + 2 % len(self.colorway)])})
+                self.fig.add_trace(go.Scatter(particle_kwargs))
+
+            self._plot_particles_and_ellipses(tracks, mapping, method="particles")
+
+    def _plot_particles_and_ellipses(self, tracks, mapping, method="uncertainty"):
+
+        """
+        The logic for plotting uncertainty ellipses and particles is nearly identical,
+        so it is put into one function.
+
+        Parameters
+        ----------
+        tracks: Collection of :class '~Track'
+            Collection of tracks which will be plotted. If not a collection, and instead a single
+            :class:'~Track' type, the argument is modified to be a set to allow for iteration
+        mapping: list
+            List of items specifying the mapping of the position components of the state space.
+        method: str
+            Can either be "uncertainty" or "particles". Depends on what the function is plotting.
+        """
+
+        data = [dict() for _ in tracks]
+        trace_base = len(self.fig.data)
+        for n, track in enumerate(tracks):
+
+            # initialise arrays that store particle/ellipse for later plotting
+            data[n].update(x=np.array([0 for _ in range(len(track))], dtype=object),
+                           y=np.array([0 for _ in range(len(track))], dtype=object))
+
+            for k, state in enumerate(track):
+
+                # find data points
+                if method == "uncertainty":
+
+                    data_x, data_y = Plotterly._generate_ellipse_points(state, mapping)
+                    data_x = list(data_x)
+                    data_y = list(data_y)
+                    data_x.append(None)  # necessary to draw multiple ellipses at once
+                    data_y.append(None)
+                    data[n]["x"][k] = data_x
+                    data[n]["y"][k] = data_y
+
+                elif method == "particles":
+
+                    data_xy = state.state_vector[mapping[:2], :]
+                    data[n]["x"][k] = data_xy[0]
+                    data[n]["y"][k] = data_xy[1]
+
+                else:
+                    raise ValueError("Should be 'uncertainty' or 'particles'")
+
+        for frame in self.fig.frames:
+
+            frame_time = datetime.fromisoformat(frame.name)
+
+            data_ = list(frame.data)  # current data in frame
+            traces_ = list(frame.traces)  # current traces in frame
+
+            data_.append(go.Scatter(x=[-np.inf], y=[np.inf]))  # add empty data for legend trace
+            traces_.append(trace_base - len(tracks) - 1)  # ensure correct trace
+
+            for n, track in enumerate(tracks):
+                # now plot the data
+                _x = list(chain(*data[n]["x"][tuple(self.all_masks[frame_time][n])]))
+                _y = list(chain(*data[n]["y"][tuple(self.all_masks[frame_time][n])]))
+
+                data_.append(go.Scatter(x=_x, y=_y))
+                traces_.append(trace_base - len(tracks) + n)
+
+            frame.data = data_
+            frame.traces = traces_
+
+    def plot_sensors(self, sensors, sensor_label="Sensors", resize=True, **kwargs):
+        """Plots sensor(s)
+
+        Plots sensors.  Users can change the color and marker of detections using keyword
+        arguments. Default is a black 'x' marker. Currently only works for stationary
+        sensors.
+
+        Parameters
+        ----------
+        sensors : Collection of :class:`~.Sensor`
+            Sensors to plot
+        sensor_label: str
+            Label to apply to all tracks for legend.
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to scatter function for detections. Defaults are
+            ``marker=dict(symbol='x', color='black')``.
+        """
+        if not isinstance(sensors, Collection):
+            sensors = {sensors}
+
+        trace_base = len(self.fig.data)  # number of traces currently in figure
+        sensor_kwargs = dict(mode='markers', marker=dict(symbol='x', color='black'),
+                             legendgroup=sensor_label, legendrank=50,
+                             name=sensor_label, showlegend=True)
+        sensor_kwargs.update(kwargs)
+
+        self.fig.add_trace(go.Scatter(sensor_kwargs))  # initialises trace
+
+        sensor_xy = np.array([sensor.position[[0, 1], 0] for sensor in sensors])
+
+        if resize:
+            self._resize(sensor_xy)
+
+
+        for frame in self.fig.frames:
+            traces_ = list(frame.traces)
+            data_ = list(frame.data)
+
+            data_.append(go.Scatter(x=sensor_xy[:, 0], y=sensor_xy[:, 1]))
+            traces_.append(trace_base)
+
+            frame.traces = traces_
+            frame.data = data_
+

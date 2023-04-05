@@ -28,14 +28,15 @@ from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 
 np.random.seed(1991)
 
-start_time = datetime.now()
+start_time = datetime.now().replace(microsecond=0)
 truths = OrderedSet()  # Truths across all time
 current_truths = set()  # Truths alive at current time
 
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),
                                                           ConstantVelocity(0.005)])
-
+timesteps = []
 for k in range(20):
+    timesteps.append(start_time + timedelta(seconds=k))
     # Death
     for truth in current_truths.copy():
         if np.random.rand() <= 0.05:  # Death probability
@@ -44,20 +45,20 @@ for k in range(20):
     for truth in current_truths:
         truth.append(GroundTruthState(
             transition_model.function(truth[-1], noise=True, time_interval=timedelta(seconds=1)),
-            timestamp=start_time + timedelta(seconds=k)))
+            timestamp=timesteps[k]))
     # Birth
     for _ in range(np.random.poisson(0.6)):  # Birth probability
         x, y = initial_position = np.random.rand(2) * [20, 20]  # Range [0, 20] for x and y
         x_vel, y_vel = (np.random.rand(2))*2 - 1  # Range [-1, 1] for x and y velocity
-        state = GroundTruthState([x, x_vel, y, y_vel], timestamp=start_time + timedelta(seconds=k))
+        state = GroundTruthState([x, x_vel, y, y_vel], timestamp=timesteps[k])
 
         # Add to truth set for current and for all timestamps
         truth = GroundTruthPath([state])
         current_truths.add(truth)
         truths.add(truth)
 
-from stonesoup.plotter import Plotterly
-plotter = Plotterly()
+from stonesoup.plotter import AnimatedPlotterly
+plotter = AnimatedPlotterly(timesteps, tail_length=0.3)
 plotter.plot_ground_truths(truths, [0, 2])
 plotter.fig
 
