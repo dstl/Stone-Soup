@@ -496,8 +496,7 @@ class Architecture(Type):
     @property
     def fully_propagated(self):
         """Checks if all data for each node have been transferred
-        to its descendants.
-        With zero latency, this should be the case after running self.propagate"""
+        to its descendants. With zero latency, this should be the case after running propagate"""
         for node in self.all_nodes:
             for descendant in self.descendants(node):
                 try:
@@ -531,14 +530,16 @@ class InformationArchitecture(Architecture):
 
         # Get rid of ground truths that have not yet happened
         # (ie GroundTruthState's with timestamp after self.current_time)
-        new_ground_truths = []
+        new_ground_truths = set()
         for ground_truth_path in ground_truths:
-            new_ground_truths.append(ground_truth_path.available_at_time(self.current_time))
+            # need an if len(states) == 0 continue condition here?
+            new_ground_truths.add(ground_truth_path.available_at_time(self.current_time))
+
+        print("NEW GROUND TRUTHS LEN", len(new_ground_truths))
 
         for sensor_node in self.sensor_nodes:
             all_detections[sensor_node] = set()
-            for states in np.vstack(new_ground_truths).T:
-                for detection in sensor_node.sensor.measure(states, noise, **kwargs):
+            for detection in sensor_node.sensor.measure(new_ground_truths, noise, **kwargs):
                     all_detections[sensor_node].add(detection)
 
             # Borrowed below from SensorSuite. I don't think it's necessary, but might be something
@@ -552,7 +553,7 @@ class InformationArchitecture(Architecture):
             #     detection.metadata.update(attributes_dict)
 
             for data in all_detections[sensor_node]:
-                print(data.timestamp, self.current_time)
+                #print(data.timestamp, self.current_time)
                 # The sensor acquires its own data instantly
                 sensor_node.update(data.timestamp, data.timestamp, data)
 
@@ -569,9 +570,13 @@ class InformationArchitecture(Architecture):
 
         # for node in self.processing_nodes:
         #     node.process() # This should happen when a new message is received
+        count = 0
         if not self.fully_propagated:
+            count += 1
+            print(count)
             self.propagate(time_increment, failed_edges)
             return
+        print(f"\n\n done \n\n")
         self.current_time += timedelta(seconds=time_increment)
 
 
