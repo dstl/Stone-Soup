@@ -39,6 +39,14 @@ def test_statevectors():
         assert isinstance(sv, StateVector)
 
 
+def test_statevectors_mean():
+    svs = StateVectors([[1., 2., 3.], [4., 5., 6.]])
+    mean = StateVector([[2., 5.]])
+
+    assert np.allclose(np.average(svs, axis=1), mean)
+    assert np.allclose(np.mean(svs, axis=1, keepdims=True), mean)
+
+
 def test_standard_statevector_indexing():
     state_vector_array = np.array([[1], [2], [3], [4]])
     state_vector = StateVector(state_vector_array)
