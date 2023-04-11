@@ -56,6 +56,17 @@ def test_systematic_downsample():
     assert len(new_particles) == 20
 
 
+def test_systematic_upsample():
+    particles = [Particle(np.array([[i]]), weight=1/20) for i in range(20)]
+
+    resampler = SystematicResampler()
+
+    new_particles = resampler.resample(particles, 40)
+
+    # Check that the resampler upsamples the particles correctly
+    assert len(new_particles) == 40
+
+
 def test_ess_zero():
     particles = [Particle(np.array([[i]]), weight=(i+1) / 55)
                  for i in range(10)]
