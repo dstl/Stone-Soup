@@ -744,7 +744,11 @@ class ParticleState(State):
 
     @weight.setter
     def weight(self, value):
-        self.log_weight = np.log(np.asfarray(value))
+        if value is None:
+            self.log_weight = None
+        else:
+            self.log_weight = np.log(np.asfarray(value))
+            self.__dict__['weight'] = np.asanyarray(value)
 
     @weight.getter
     def weight(self):
