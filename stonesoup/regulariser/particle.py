@@ -70,15 +70,13 @@ class MCMCRegulariser(Regulariser):
                 hopt * cholesky_eps(covar_est) @ np.random.randn(ndim, nparticles)
 
             # Evaluate likelihoods
-            part_diff = np.array(moved_particles.state_vector - prior.state_vector).T
-            part_diff_mean = np.mean(part_diff, axis=0)
-            move_likelihood = multivariate_normal.pdf(part_diff,
-                                                      mean=part_diff_mean,
-                                                      cov=np.array(covar_est))
-            post_part_diff = np.array(posterior.state_vector - prior.state_vector).T
-            post_part_diff_mean = np.mean(post_part_diff, axis=0)
-            post_likelihood = multivariate_normal.pdf(post_part_diff,
-                                                      mean=post_part_diff_mean,
+            part_diff = moved_particles.state_vector - prior.state_vector
+            part_diff_mean = np.average(part_diff, axis=1)
+            move_likelihood = multivariate_normal.pdf((part_diff - part_diff_mean).T,
+                                                      cov=covar_est)
+            post_part_diff = posterior.state_vector - prior.state_vector
+            post_part_diff_mean = np.average(post_part_diff, axis=1)
+            post_likelihood = multivariate_normal.pdf((post_part_diff - post_part_diff_mean).T,
                                                       cov=covar_est)
 
             # Evaluate measurement likelihoods
