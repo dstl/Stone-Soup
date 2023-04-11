@@ -47,11 +47,9 @@ class MCMCRegulariser(Regulariser):
         """
 
         if not isinstance(posterior, ParticleState):
-            posterior = copy.copy(posterior)
             posterior = ParticleState(None, particle_list=posterior)
 
         if not isinstance(prior, ParticleState):
-            prior = copy.copy(prior)
             prior = ParticleState(None, particle_list=prior)
 
         regularised_particles = copy.copy(posterior)
