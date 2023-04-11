@@ -8,13 +8,15 @@ from ..types.state import ParticleState
 
 class SystematicResampler(Resampler):
 
-    def resample(self, particles):
+    def resample(self, particles, nparts=None):
         """Resample the particles
 
         Parameters
         ----------
         particles : :class:`~.ParticleState` or list of :class:`~.Particle`
             The particles or particle state to be resampled according to their weights
+        nparts : int
+            The number of particles to be returned from resampling
 
         Returns
         -------
@@ -24,8 +26,10 @@ class SystematicResampler(Resampler):
 
         if not isinstance(particles, ParticleState):
             particles = ParticleState(None, particle_list=particles)
-        n_particles = len(particles)
-        weight = Probability(1 / n_particles)
+        if nparts is None:
+            nparts = len(particles)
+
+        weight = Probability(1 / nparts)
 
         log_weights = np.asfarray(np.log(particles.weight))
         weight_order = np.argsort(log_weights, kind='stable')
@@ -35,15 +39,16 @@ class SystematicResampler(Resampler):
         cdf += max_log_value
 
         # Pick random starting point
-        u_i = np.random.uniform(0, 1 / n_particles)
+        u_i = np.random.uniform(0, 1 / nparts)
 
         # Cycle through the cumulative distribution and copy the particle
         # that pushed the score over the current value
-        u_j = u_i + (1 / n_particles) * np.arange(n_particles)
+        u_j = u_i + (1 / nparts) * np.arange(nparts)
         index = weight_order[np.searchsorted(cdf, np.log(u_j))]
 
         new_particles = particles[index]
-        new_particles.weight = np.full((n_particles, ), weight)
+        new_particles.weight = np.full((nparts, ), weight)
+
         return new_particles
 
 
