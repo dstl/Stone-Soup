@@ -46,7 +46,7 @@ class SystematicResampler(Resampler):
         u_j = u_i + (1 / nparts) * np.arange(nparts)
         index = weight_order[np.searchsorted(cdf, np.log(u_j))]
 
-        new_particles = particles[np.array(index)]
+        new_particles = particles[index]
         new_particles.weight = np.full((nparts, ), weight)
 
         return new_particles
