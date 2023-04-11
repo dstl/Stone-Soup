@@ -72,27 +72,27 @@ class MCMCRegulariser(Regulariser):
             # Evaluate likelihoods
             part_diff = moved_particles.state_vector - prior.state_vector
             part_diff_mean = np.average(part_diff, axis=1)
-            move_likelihood = multivariate_normal.pdf((part_diff - part_diff_mean).T,
-                                                      cov=covar_est)
+            move_likelihood = multivariate_normal.logpdf((part_diff - part_diff_mean).T,
+                                                         cov=covar_est)
             post_part_diff = posterior.state_vector - prior.state_vector
             post_part_diff_mean = np.average(post_part_diff, axis=1)
-            post_likelihood = multivariate_normal.pdf((post_part_diff - post_part_diff_mean).T,
-                                                      cov=covar_est)
+            post_likelihood = multivariate_normal.logpdf((post_part_diff - post_part_diff_mean).T,
+                                                         cov=covar_est)
 
             # Evaluate measurement likelihoods
             move_meas_likelihood = []
             post_meas_likelihood = []
             for detection in detections:
                 move_meas_likelihood.append(measurement_model.logpdf(detection, moved_particles))
-                post_meas_likelihood.append(measurement_model.logpdf(detection, moved_particles))
+                post_meas_likelihood.append(measurement_model.logpdf(detection, posterior))
 
             # In the case that there are multiple measurements,
             # we select the highest overall likelihood.
             max_likelihood_idx = np.argmax(np.sum(move_meas_likelihood, axis=1))
 
             # Calculate acceptance probability (alpha)
-            alpha = (move_meas_likelihood[max_likelihood_idx]*move_likelihood) / \
-                    (post_meas_likelihood[max_likelihood_idx]*post_likelihood)
+            alpha = np.exp((move_meas_likelihood[max_likelihood_idx] + move_likelihood) -
+                           (post_meas_likelihood[max_likelihood_idx] + post_likelihood))
 
             # All 'jittered' particles that are above the alpha threshold are kept, the rest are
             # rejected and the original posterior used
