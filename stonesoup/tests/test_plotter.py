@@ -197,6 +197,7 @@ def test_plot_density_equal_x_y():
     with pytest.raises(ValueError):
         plotter.plot_density({truth}, index=None)
 
+
 def test_plot_complex_uncertainty():
     plotter = Plotter()
     track = Track([

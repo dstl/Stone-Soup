@@ -1548,7 +1548,7 @@ class AnimatedPlotterly(_Plotter):
 
         else:  # is from plot_ground_truths, plot_tracks, or plot_sensor
 
-            try: # plot_ground_truths or plot_tracks
+            try:  # plot_ground_truths or plot_tracks
                 for n, _ in enumerate(data):
                     all_x.extend(data[n]["x"])
                     all_y.extend(data[n]["y"])
@@ -2120,7 +2120,6 @@ class AnimatedPlotterly(_Plotter):
         if resize:
             self._resize(sensor_xy)
 
-
         for frame in self.fig.frames:
             traces_ = list(frame.traces)
             data_ = list(frame.data)
@@ -2130,4 +2129,3 @@ class AnimatedPlotterly(_Plotter):
 
             frame.traces = traces_
             frame.data = data_
-
