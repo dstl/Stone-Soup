@@ -48,8 +48,9 @@ class ParticlePredictor(Predictor):
             time_interval=time_interval,
             **kwargs)
 
-        return Prediction.from_state(prior, state_vector=new_state_vector, weight=prior.weight,
-                                     timestamp=timestamp, particle_list=None,
+        return Prediction.from_state(prior,
+                                     state_vector=new_state_vector,
+                                     timestamp=timestamp,
                                      transition_model=self.transition_model)
 
 
@@ -92,10 +93,11 @@ class ParticleFlowKalmanPredictor(ParticlePredictor):
             GaussianState(prior.state_vector, prior.covar, prior.timestamp),
             *args, **kwargs)
 
-        return Prediction.from_state(prior, state_vector=particle_prediction.state_vector,
-                                     weight=particle_prediction.weight,
+        return Prediction.from_state(prior,
+                                     state_vector=particle_prediction.state_vector,
+                                     log_weight=particle_prediction.log_weight,
                                      timestamp=particle_prediction.timestamp,
-                                     fixed_covar=kalman_prediction.covar, particle_list=None,
+                                     fixed_covar=kalman_prediction.covar,
                                      transition_model=self.transition_model)
 
 
@@ -144,7 +146,6 @@ class MultiModelPredictor(Predictor):
             prior,
             state_vector=copy.copy(prior.state_vector),
             parent=prior,
-            particle_list=None,
             dynamic_model=copy.copy(prior.dynamic_model),
             timestamp=timestamp)
 
@@ -214,7 +215,6 @@ class RaoBlackwellisedMultiModelPredictor(MultiModelPredictor):
             prior,
             state_vector=copy.copy(prior.state_vector),
             parent=prior,
-            particle_list=None,
             timestamp=timestamp)
 
         # Change the value of the dynamic value randomly according to the
