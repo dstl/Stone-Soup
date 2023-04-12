@@ -48,7 +48,7 @@ initial_state = GaussianState(initial_state_mean, initial_state_covariance)
 # %%
 # Next, we initialise the transition models used to generate the ground truth. Here, we say that
 # the targets will mostly go straight ahead with a constant velocity, but will sometimes turn
-# left or right. This is implemented using the "SwitchMultiTargetGroundTruthSimulator".
+# left or right. This is implemented using the :class:`~.SwitchMultiTargetGroundTruthSimulator'.
 from stonesoup.models.transition.linear import (
     CombinedLinearGaussianTransitionModel, ConstantVelocity, KnownTurnRate)
 
@@ -96,13 +96,13 @@ ground_truth_gen = SwitchMultiTargetGroundTruthSimulator(
 )
 
 # %%
-# This has created ground truth that has some twists and turns in, which we will use to
+# This has created ground truth that has some twists and turns in it, which we will use to
 # generate detections.
 
 # %%
 # 2) Generate detections using a bearing-range sensor
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
+#
 # The next step is to create a sensor and use it to generate detections from the targets.
 # The sensor we use in this example is a radar with imperfect measurements in bearing-range space.
 # 
@@ -132,7 +132,7 @@ from stonesoup.simulator.platform import PlatformDetectionSimulator
 
 detector = PlatformDetectionSimulator(ground_truth_gen, platforms=[platform])
 detector, *detectors = tee(detector, 6)
-# Enables multiple trackers to run on the same measurements
+# Enables multiple trackers to run on the same detections
 
 # %%
 # We put the detections and ground truths into sets so that we can plot them:
@@ -155,7 +155,7 @@ plotter.plot_sensors(sensor)
 plotter.fig
 
 # %%
-# 3) Initialise and Run each tracker on the detections
+# 3) Initialise and run each tracker on the detections
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # With the detections now generated, our focus turns to creating and running the trackers.
 # This section of the notebook is quite long because each tracker requires an initiator, deleter,
@@ -165,18 +165,21 @@ plotter.fig
 # Firstly, we approximate the transition model of the target. Here we assume a constant
 # velocity model,
 # which will be wrong due to the fact that we designed the targets to sometimes turn left or right.
+# We do this to test how effectively each tracking algorithm can perform against
+# target behaviour that doesn't move exactly as predicted.
 
 transition_model_estimate = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.5),
                                                                    ConstantVelocity(0.5)])
-# Tracking algorithm estimates the type of path the truth takes (it's wrong)
+# Tracking algorithm incorrectly estimates the type of path the truth takes
 
 # %%
 # Next, we initialise the predictors, updaters, hypothesisers, data associators, and deleter.
 # The particle filter requires a resampler as part of its updater.
 # Note that the ESIF is a slight extension of the EKF and uses an EKF predictor.
+
 from stonesoup.predictor.kalman import ExtendedKalmanPredictor, UnscentedKalmanPredictor
 from stonesoup.predictor.particle import ParticlePredictor
-
+# introduce the predictors
 predictor_EKF = ExtendedKalmanPredictor(transition_model_estimate)
 predictor_UKF = UnscentedKalmanPredictor(transition_model_estimate)
 predictor_P = ParticlePredictor(transition_model_estimate)
@@ -191,6 +194,7 @@ resampler = ESSResampler()
 from stonesoup.updater.kalman import ExtendedKalmanUpdater, UnscentedKalmanUpdater
 from stonesoup.updater.slidinginnovation import ExtendedSlidingInnovationUpdater
 from stonesoup.updater.particle import ParticleUpdater
+# introduce the updaters
 
 updater_EKF = ExtendedKalmanUpdater(sensor)
 updater_UKF = UnscentedKalmanUpdater(sensor)
@@ -202,18 +206,21 @@ updater_P = ParticleUpdater(measurement_model=None, resampler=resampler)
 
 from stonesoup.hypothesiser.distance import DistanceHypothesiser
 from stonesoup.measures import Mahalanobis
+# introduce the hypothesisers
+
 hypothesiser_EKF = DistanceHypothesiser(predictor_EKF, updater_EKF,
-                                        measure=Mahalanobis(), missed_distance=3)
+                                        measure=Mahalanobis(), missed_distance=4)
 hypothesiser_UKF = DistanceHypothesiser(predictor_UKF, updater_UKF,
-                                        measure=Mahalanobis(), missed_distance=3)
+                                        measure=Mahalanobis(), missed_distance=4)
 hypothesiser_ESIF = DistanceHypothesiser(predictor_EKF, updater_ESIF,
-                                         measure=Mahalanobis(), missed_distance=3)
+                                         measure=Mahalanobis(), missed_distance=4)
 hypothesiser_P = DistanceHypothesiser(predictor_P, updater_P,
                                       measure=Mahalanobis(), missed_distance=4)
 
 # ######################################################################
 
 from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
+# introduce the data associators
 
 data_associator_EKF = GNNWith2DAssignment(hypothesiser_EKF)
 data_associator_UKF = GNNWith2DAssignment(hypothesiser_UKF)
@@ -223,6 +230,7 @@ data_associator_P = GNNWith2DAssignment(hypothesiser_P)
 # ######################################################################
 
 from stonesoup.deleter.time import UpdateTimeDeleter
+# create a deleter
 deleter = UpdateTimeDeleter(datetime.timedelta(seconds=5), delete_last_pred=True)
 
 # %%
@@ -448,23 +456,23 @@ fig.add_scatter(
     x=[i.timestamp for i in ospa_metric_ESIF.value],
     y=[i.value for i in ospa_metric_ESIF.value],
     name='ESIF',
-    legendgroup="orange",
-    yaxis='y',
-    row=1,
-    col=1,
-    showlegend=True,
-    line_color='orange',
-)
-fig.add_scatter(
-    x=[i.timestamp for i in ospa_metric_ESIF.value],
-    y=[i.value for i in ospa_metric_EKF.value],
-    name='EKF',
     legendgroup="green",
     yaxis='y',
     row=1,
     col=1,
     showlegend=True,
     line_color='green',
+)
+fig.add_scatter(
+    x=[i.timestamp for i in ospa_metric_ESIF.value],
+    y=[i.value for i in ospa_metric_EKF.value],
+    name='EKF',
+    legendgroup="orange",
+    yaxis='y',
+    row=1,
+    col=1,
+    showlegend=True,
+    line_color='orange',
 )
 fig.add_scatter(
     x=[i.timestamp for i in ospa_metric_ESIF.value],
@@ -489,26 +497,19 @@ fig.add_scatter(
     line_color='red',
 )
 # %%
-# It can be seen that the EKF, UKF, and Particle FIlter all behave very similarly,
-# whereas the ESIF has very poor relative performance. Caution should be taken when using the
-# ESIF in practice. A singular performance metric is calculated from this by summing the
-# OSPA value over all timesteps:
+# It can be seen that the EKF, UKF, and Particle Filter all behave very similarly,
+# whereas the ESIF has very poor relative performance. A singular performance metric is calculated
+# from this by summing the OSPA value over all timesteps:
 
 # sum up distance error from ground truth over all timestamps
-ospa_EKF_total = 0
-ospa_UKF_total = 0
-ospa_P_total = 0
-ospa_ESIF_total = 0
-for i in range(0, len(ospa_metric_EKF.value)):
-    ospa_EKF_total += ospa_metric_EKF.value[i].value
-    ospa_UKF_total += ospa_metric_UKF.value[i].value
-    # Same length as EKF so can do calculation in the same loop
-
-for i in range(0, len(ospa_metric_P.value)):
-    ospa_P_total += ospa_metric_P.value[i].value
-
-for i in range(0, len(ospa_metric_ESIF.value)):
-    ospa_ESIF_total += ospa_metric_ESIF.value[i].value
+ospa_EKF_total = sum([ospa_metric_EKF.value[i].value for i in range(0,
+                                                                    len(ospa_metric_EKF.value))])
+ospa_UKF_total = sum([ospa_metric_UKF.value[i].value for i in range(0,
+                                                                    len(ospa_metric_UKF.value))])
+ospa_P_total = sum([ospa_metric_P.value[i].value for i in range(0,
+                                                                len(ospa_metric_P.value))])
+ospa_ESIF_total = sum([ospa_metric_ESIF.value[i].value for i in range(0,
+                                                                      len(ospa_metric_ESIF.value))])
 
 print("OSPA total value for EKF is ", f'{ospa_EKF_total:.3f}')
 print("OSPA total value for UKF is ", f'{ospa_UKF_total:.3f}')
@@ -516,8 +517,9 @@ print("OSPA total value for particle filter is ", f'{ospa_P_total:.3f}')
 print("OSPA total value for ESIF is ", f'{ospa_ESIF_total:.3f}')
 
 # %%
-# Finally, we calculate the SIAP metrics for the different trackers. Here we only display
-# the metrics for the EKF, but the user can uncomment the other sections of code for full metrics:
+# Finally, we calculate the SIAP metrics for the EKF. The same metrics can be calculated for the
+# other trackers if desired. The user can copy this section of code and replace the relevant
+# variable names to get the full metrics for the UKF, ESIF, and Particle Filter.
 from stonesoup.metricgenerator.metrictables import SIAPTableGenerator
 
 # generate metrics for EKF
@@ -525,34 +527,6 @@ siap_averages_EKF = {metrics_EKF.get(metric) for metric in metrics_EKF
                      if metric.startswith("SIAP") and not metric.endswith(" at times")}
 siap_time_based_EKF = {metrics_EKF.get(metric) for metric in metrics_EKF if metric.endswith(' at times')}
 
-# generate metrics for UKF
-siap_averages_UKF = {metrics_UKF.get(metric) for metric in metrics_UKF
-                     if metric.startswith("SIAP") and not metric.endswith(" at times")}
-siap_time_based_UKF = {metrics_UKF.get(metric) for metric in metrics_UKF if metric.endswith(' at times')}
-
-# generate metrics for particle filter
-siap_averages_P = {metrics_P.get(metric) for metric in metrics_P
-                   if metric.startswith("SIAP") and not metric.endswith(" at times")}
-siap_time_based_P = {metrics_P.get(metric) for metric in metrics_P if metric.endswith(' at times')}
-
-# generate metrics for ESIF
-siap_averages_ESIF = {metrics_ESIF.get(metric) for metric in metrics_ESIF
-                      if metric.startswith("SIAP") and not metric.endswith(" at times")}
-siap_time_based_ESIF = {metrics_ESIF.get(metric) for metric in metrics_ESIF if metric.endswith(' at times')}
-
-# %%
 _ = SIAPTableGenerator(siap_averages_EKF).compute_metric()
 print("\n\nSIAP metrics for EKF:")
 
-# %%
-# _ = SIAPTableGenerator(siap_averages_UKF).compute_metric()
-# print("\n\nSIAP metrics for UKF:")
-
-# %%
-# _ = SIAPTableGenerator(siap_averages_P).compute_metric()
-# print("\n\nSIAP metrics for particle filter:")
-
-
-# %%
-# _ = SIAPTableGenerator(siap_averages_ESIF).compute_metric()
-# print("\n\nSIAP metrics for ESIF:")
