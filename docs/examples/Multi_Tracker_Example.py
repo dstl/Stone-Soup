@@ -529,4 +529,3 @@ siap_time_based_EKF = {metrics_EKF.get(metric) for metric in metrics_EKF if metr
 
 _ = SIAPTableGenerator(siap_averages_EKF).compute_metric()
 print("\n\nSIAP metrics for EKF:")
-
