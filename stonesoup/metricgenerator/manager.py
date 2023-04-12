@@ -61,7 +61,6 @@ class SimpleManager(MetricManager):
 
         The resultant :class:`~.AssociationSet` internally.
         """
-
         self.association_set = self.associator.associate_tracks(
             self.tracks, self.groundtruth_paths)
 
@@ -95,9 +94,9 @@ class SimpleManager(MetricManager):
         : list of :class:`datetime.datetime`
             unique timestamps present in the internal tracks and truths.
         """
-
         # Make a list of all the unique timestamps used
         timestamps = {state.timestamp
                       for sequence in chain(self.tracks, self.groundtruth_paths)
                       for state in sequence}
+
         return sorted(timestamps)

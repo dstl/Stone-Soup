@@ -6,7 +6,7 @@ from ..base import Base
 class MetricGenerator(Base):
     """Metric Generator base class
 
-    Generates :class:`~.Metric` objects used to asses the performance of a
+    Generates :class:`~.Metric` objects used to assess the performance of a
     tracker using data held in a :class:`~.MetricManager` object
     """
 
