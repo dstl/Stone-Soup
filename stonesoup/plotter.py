@@ -1921,7 +1921,7 @@ class AnimatedPlotterly(_Plotter):
 
         for k, _ in enumerate(tracks):
             # update track colours
-            track_kwargs.update({'line': dict(color=self.colorway[k + 2 % len(self.colorway)])})
+            track_kwargs.update({'line': dict(color=self.colorway[(k + 2) % len(self.colorway)])})
             track_kwargs.update(kwargs)
             self.fig.add_trace(go.Scatter(track_kwargs))
 
@@ -2014,7 +2014,7 @@ class AnimatedPlotterly(_Plotter):
             for k, track in enumerate(tracks):  # trace for each track
 
                 particle_kwargs.update(
-                    {'marker': dict(size=2, color=self.colorway[k + 2 % len(self.colorway)])})
+                    {'marker': dict(size=2, color=self.colorway[(k + 2) % len(self.colorway)])})
                 self.fig.add_trace(go.Scatter(particle_kwargs))
 
             self._plot_particles_and_ellipses(tracks, mapping, method="particles")
