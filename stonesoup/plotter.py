@@ -1406,7 +1406,6 @@ class AnimatedPlotterly(_Plotter):
 
 
         """
-        super().__init__(**kwargs)
 
         self.equal_size = equal_size
 
@@ -1447,6 +1446,7 @@ class AnimatedPlotterly(_Plotter):
             xaxis=dict(title=dict(text="<i>x</i>")),
             yaxis=dict(title=dict(text="<i>y</i>")),
             colorway=self.colorway,  # Needed to match colours later.
+            height=600,
             autosize=True
         )
         # layout_kwargs.update(kwargs)
