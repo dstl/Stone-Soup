@@ -48,7 +48,7 @@ initial_state = GaussianState(initial_state_mean, initial_state_covariance)
 # %%
 # Next, we initialise the transition models used to generate the ground truth. Here, we say that
 # the targets will mostly go straight ahead with a constant velocity, but will sometimes turn
-# left or right. This is implemented using the :class:`~.SwitchMultiTargetGroundTruthSimulator'.
+# left or right. This is implemented using the :class:`~.SwitchMultiTargetGroundTruthSimulator`.
 from stonesoup.models.transition.linear import (
     CombinedLinearGaussianTransitionModel, ConstantVelocity, KnownTurnRate)
 
