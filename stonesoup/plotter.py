@@ -1446,7 +1446,7 @@ class AnimatedPlotterly(_Plotter):
             xaxis=dict(title=dict(text="<i>x</i>")),
             yaxis=dict(title=dict(text="<i>y</i>")),
             colorway=self.colorway,  # Needed to match colours later.
-            height=600,
+            height=550,
             autosize=True
         )
         # layout_kwargs.update(kwargs)
@@ -1823,7 +1823,7 @@ class AnimatedPlotterly(_Plotter):
                                         y=det_y,
                                         meta=det_times,
                                         hovertemplate=f'{key}' +
-                                                      '<br>(%{x}, %{y},)' +
+                                                      '<br>(%{x}, %{y})' +
                                                       '<br>Time: %{meta}'))
                 traces_.append(trace_base + j + 1)
 
@@ -1959,13 +1959,15 @@ class AnimatedPlotterly(_Plotter):
                 track_x = data[n]["x"][tuple(mask)]
                 track_y = data[n]["y"][tuple(mask)]
                 track_type = data[n]["type"][tuple(mask)]
-                # times = data[n]["time_str"][tuple(mask)]  # can have this as metadata if wanted
+                times = data[n]["time_str"][tuple(mask)]
 
                 data_.append(go.Scatter(x=track_x,  # plot track
                                         y=track_y,
                                         meta=track_type,
+                                        customdata=times,
                                         hovertemplate='%{meta}' +
-                                                      '<br>(%{x}, %{y})'))
+                                                      '<br>(%{x}, %{y})' +
+                                                      '<br>Time: %{customdata}'))
 
                 traces_.append(trace_base + n + 1)  # add to correct trace
 
