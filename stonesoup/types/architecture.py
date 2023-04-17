@@ -45,20 +45,23 @@ class Node(Type):
         self.data_held = {"processed": {}, "unprocessed": {}}
         # Node no longer handles messages. All done by Edge
 
-    def update(self, time_pertaining, time_arrived, data, track=None):
+    def update(self, time_pertaining, time_arrived, data_piece, track=None):
         if not isinstance(time_pertaining, datetime) and isinstance(time_arrived, datetime):
             raise TypeError("Times must be datetime objects")
         if not track:
-            if not isinstance(data, Detection) and not isinstance(data, Track):
-                raise TypeError("Data provided without accompanying Track must be a Detection or "
-                                "a Track")
+            if not isinstance(data_piece.data, Detection) and not isinstance(data_piece.data, Track):
+                raise TypeError(f"Data provided without accompanying Track must be a Detection or a Track, not a "
+                                f"{type(data_piece.data).__name__}")
             added, self.data_held['unprocessed'] = _dict_set(self.data_held['unprocessed'],
-                                                             DataPiece(data, time_arrived, False), time_pertaining)
+                                                             DataPiece(self, data_piece.originator, data_piece.data,
+                                                                       time_arrived),
+                                                             time_pertaining)
         else:
-            if not isinstance(data, Hypothesis):
+            if not isinstance(data_piece.data, Hypothesis):
                 raise TypeError("Data provided with Track must be a Hypothesis")
             added, self.data_held['unprocessed'] = _dict_set(self.data_held['unprocessed'],
-                                                             DataPiece(data, time_arrived, False, track),
+                                                             DataPiece(self, data_piece.originator, data_piece.data,
+                                                                       time_arrived, track),
                                                              time_pertaining)
 
         return added
@@ -162,9 +165,9 @@ class SensorFusionNode(SensorNode, FusionNode):
     """A node that is both a sensor and also processes data"""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not self.colour:
-            self.colour = '#909090'  # attr dict in Architecture.__init__ also needs updating
-        if not self.shape:
+        if self.colour in ['#006400', '#1f77b4']:
+            self.colour = '#909090' # attr dict in Architecture.__init__ also needs updating
+        if self.shape in ['square', 'hexagon']:
             self.shape = 'octagon'
 
 
@@ -182,7 +185,10 @@ class RepeaterNode(Node):
 class DataPiece(Type):
     """A piece of data for use in an architecture. Sent via Messages, and stored in a Node's data_held"""
     node: Node = Property(
-        doc="The Node this datapiece belongs to")
+        doc="The Node this data piece belongs to")
+    originator: Node = Property(
+        doc="The node which first created this data, ie by sensing or fusing information together. "
+            "If the data is simply passed along the chain, the originator remains unchanged. ")
     data: Union[Detection, Track, Hypothesis] = Property(
         doc="A Detection, Track, or Hypothesis")
     time_arrived: datetime = Property(
@@ -214,12 +220,12 @@ class Edge(Type):
         # Add message to 'pending' dict of edge
         message = Message(self, time_pertaining, time_sent, data_piece)
         _, self.messages_held = _dict_set(self.messages_held, message, 'pending', time_sent)
-        # change sent to True
+        # ensure message not re-sent
         data_piece.sent_to.add(self.nodes[1])
 
     def update_messages(self, current_time):
         # Check info type is what we expect
-        to_remove = set() # Needed as we can't change size of a set during iteration
+        to_remove = set()  # Needed as we can't change size of a set during iteration
         for time in self.messages_held['pending']:
             for message in self.messages_held['pending'][time]:
                 message.update(current_time)
@@ -232,7 +238,7 @@ class Edge(Type):
                                                       'received', current_time)
                     # Update
                     message.recipient_node.update(message.time_pertaining, message.arrival_time,
-                                                  message.data)
+                                                  message.data_piece)
 
         for time, message in to_remove:
             self.messages_held['pending'][time].remove(message)
@@ -506,19 +512,11 @@ class Architecture(Type):
     def fully_propagated(self):
         """Checks if all data for each node have been transferred
         to its descendants. With zero latency, this should be the case after running propagate"""
-        for node in self.all_nodes:
-            for descendant in self.descendants(node):
-                try:
-                    # 0 is for the actual data, not including arrival_time, which may be different
-                    if not (all(node.data_held[status][time][0] <=
-                                descendant.data_held[status][time][0]
-                                for time in node.data_held)
-                            for status in ["processed", "unprocessed"]):
-                        return False
-                except TypeError:  # Should this be KeyError?
-                    # descendant doesn't have all the keys node does
-                    return False
-            return True
+        for edge in self.edges.edges:
+            if len(edge.unsent_data) != 0:
+                return False
+
+        return True
 
 
 class InformationArchitecture(Architecture):
@@ -544,8 +542,6 @@ class InformationArchitecture(Architecture):
             # need an if len(states) == 0 continue condition here?
             new_ground_truths.add(ground_truth_path.available_at_time(self.current_time))
 
-        print("NEW GROUND TRUTHS LEN", len(new_ground_truths))
-
         for sensor_node in self.sensor_nodes:
             all_detections[sensor_node] = set()
             for detection in sensor_node.sensor.measure(new_ground_truths, noise, **kwargs):
@@ -564,7 +560,8 @@ class InformationArchitecture(Architecture):
             for data in all_detections[sensor_node]:
                 #print(data.timestamp, self.current_time)
                 # The sensor acquires its own data instantly
-                sensor_node.update(data.timestamp, data.timestamp, data)
+                sensor_node.update(data.timestamp, data.timestamp, DataPiece(sensor_node, sensor_node, data,
+                                                                             data.timestamp))
 
         return all_detections
 
@@ -574,18 +571,16 @@ class InformationArchitecture(Architecture):
             if failed_edges and edge in failed_edges:
                 continue  # in future, make it possible to simulate temporarily failed edges?
             edge.update_messages(self.current_time)
-            for data, time_pertaining in edge.unsent_data:
-                edge.send_message(data, time_pertaining, self.current_time)
+            for data_piece, time_pertaining in edge.unsent_data:
+                edge.send_message(data_piece, time_pertaining, self.current_time)
 
         # for node in self.processing_nodes:
         #     node.process() # This should happen when a new message is received
         count = 0
         if not self.fully_propagated:
             count += 1
-            print(count)
             self.propagate(time_increment, failed_edges)
             return
-        print(f"\n\n done \n\n")
         self.current_time += timedelta(seconds=time_increment)
 
 
@@ -683,7 +678,7 @@ def _dict_set(my_dict, value, key1, key2=None):
             my_dict = {key1: {value}}
     elif key2:
         if key1 in my_dict:
-            if key2 in my_dict:
+            if key2 in my_dict[key1]:
                 old_len = len(my_dict[key1][key2])
                 my_dict[key1][key2].add(value)
                 return len(my_dict[key1][key2]) == old_len + 1, my_dict

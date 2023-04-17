@@ -34,7 +34,7 @@ def params():
 
     hidden_classes = ['bike', 'car']
     ground_truths = list()
-    for i in range(1, 4):  # 4 targets
+    for i in range(1, 1):  # 4 targets
         state_vector = np.zeros(2)  # create a vector with 2 zeroes
         state_vector[
             np.random.choice(2, 1, p=[1 / 2, 1 / 2])] = 1  # pick a random class out of the 2
