@@ -15,7 +15,6 @@ from ..deleter.base import Deleter
 from ..tracker.base import Tracker
 
 from typing import List, Collection, Tuple, Set, Union, Dict
-from itertools import product
 import numpy as np
 import networkx as nx
 import graphviz
@@ -54,12 +53,12 @@ class Node(Type):
                 raise TypeError("Data provided without accompanying Track must be a Detection or "
                                 "a Track")
             added, self.data_held['unprocessed'] = _dict_set(self.data_held['unprocessed'],
-                                                             (data, time_arrived), time_pertaining)
+                                                             DataPiece(data, time_arrived, False), time_pertaining)
         else:
             if not isinstance(data, Hypothesis):
                 raise TypeError("Data provided with Track must be a Hypothesis")
             added, self.data_held['unprocessed'] = _dict_set(self.data_held['unprocessed'],
-                                                             (data, time_arrived, track),
+                                                             DataPiece(data, time_arrived, False, track),
                                                              time_pertaining)
 
         return added
@@ -180,6 +179,23 @@ class RepeaterNode(Node):
             self.shape = 'circle'
 
 
+class DataPiece(Type):
+    """A piece of data for use in an architecture. Sent via Messages, and stored in a Node's data_held"""
+    node: Node = Property(
+        doc="The Node this datapiece belongs to")
+    data: Union[Detection, Track, Hypothesis] = Property(
+        doc="A Detection, Track, or Hypothesis")
+    time_arrived: datetime = Property(
+        doc="The time at which this piece of data was received by the Node, either by Message or by sensing.")
+    track: Track = Property(
+        doc="The Track in the event of data being a Hypothesis",
+        default=None)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.sent_to = set() # all Nodes the data_piece has been sent to, to avoid duplicates
+
+
 class Edge(Type):
     """Comprised of two connected Nodes"""
     nodes: Tuple[Node, Node] = Property(doc="A pair of nodes in the form (ancestor, descendant")
@@ -191,13 +207,15 @@ class Edge(Type):
         super().__init__(*args, **kwargs)
         self.messages_held = {"pending": {}, "received": {}}
 
-    def send_message(self, data, time_pertaining, time_sent):
-        if not isinstance(data, (Detection, Hypothesis, Track)):
+    def send_message(self, data_piece, time_pertaining, time_sent):
+        if not isinstance(data_piece, DataPiece):
             raise TypeError("Message info must be one of the following types: "
                             "Detection, Hypothesis or Track")
         # Add message to 'pending' dict of edge
-        message = Message(self, time_pertaining, time_sent, data)
+        message = Message(self, time_pertaining, time_sent, data_piece)
         _, self.messages_held = _dict_set(self.messages_held, message, 'pending', time_sent)
+        # change sent to True
+        data_piece.sent_to.add(self.nodes[1])
 
     def update_messages(self, current_time):
         # Check info type is what we expect
@@ -237,20 +255,11 @@ class Edge(Type):
         """Data held by the ancestor that has not been sent to the descendant.
         Current implementation should work but gross"""
         unsent = []
-        fudge = [] # this is a horrific way of doing it. To fix later
-        for comb in product(["unprocessed", "processed"], repeat=2):
-            for time_pertaining in self.ancestor.data_held[comb[0]]:
-                for data, _ in self.ancestor.data_held[comb[0]][time_pertaining]:
-                    if time_pertaining not in self.descendant.data_held[comb[1]]:
-                        if (data, time_pertaining) in fudge:
-                            unsent.append((data, time_pertaining))
-                        else:
-                            fudge.append((data, time_pertaining))
-                    elif data not in self.descendant.data_held[comb[1]][time_pertaining]:
-                        if (data, time_pertaining) in fudge:
-                            unsent.append((data, time_pertaining))
-                        else:
-                            fudge.append((data, time_pertaining))
+        for status in ["unprocessed", "processed"]:
+            for time_pertaining in self.ancestor.data_held[status]:
+                for data_piece in self.ancestor.data_held[status][time_pertaining]:
+                    if self.descendant not in data_piece.sent_to:
+                        unsent.append((data_piece, time_pertaining))
         return unsent
 
 
@@ -297,7 +306,7 @@ class Message(Type):
     time_sent: datetime = Property(
         doc="Time at which the message was sent",
         default=None)
-    data: Union[Track, Hypothesis, Detection] = Property(
+    data_piece: DataPiece = Property(
         doc="Info that the sent message contains",
         default=None)
 

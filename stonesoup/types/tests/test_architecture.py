@@ -111,31 +111,64 @@ def test_info_architecture_propagation(params):
     for _ in range(11):
         architecture.measure(ground_truths, noise=True)
         architecture.propagate(time_increment=1.0, failed_edges=[])
-        #print(f"length of data_held: {len(nodes[0].data_held['unprocessed'][architecture.current_time])}")
+    architecture.propagate(time_increment=5.0, failed_edges=[])
+    architecture.propagate(time_increment=5.0, failed_edges=[])
+    architecture.propagate(time_increment=5.0, failed_edges=[])
+    # print(f"length of data_held: {len(nodes[0].data_held['unprocessed'][architecture.current_time])}")
     # Check all nodes hold 10 times with data pertaining, all in "unprocessed"
-    #print(nodes[0].data_held['unprocessed'].keys())
+    # print(nodes[0].data_held['unprocessed'].keys())
     print(f"should be 11 keys in this: {len(nodes[0].data_held['unprocessed'].keys())}")
-    assert len(nodes[0].data_held['unprocessed']) == 10
+    assert len(nodes[0].data_held['unprocessed']) == 11
     assert len(nodes[0].data_held['processed']) == 0
-    # Check each time has exactly 1 piece of data
-    testin = list(nodes[0].data_held['unprocessed'].values())[0]
-    #print(len(testin), "\n"*10)
-    #print(testin)
+    # Check each time has exactly 3 pieces of data, one for each target
+    #    print(f"Is this a set? {type(list(nodes[0].data_held['unprocessed'].values())[0])}")
+    #    testin = list(list(nodes[0].data_held['unprocessed'].values())[0])
+    # print(len(testin), "\n"*10)
+    #     bleh = testin[0]
+    #     blah = testin[1]
+    #     print(f"Are they the same? {bleh == blah}")
+    #     print(f"Same timestamp? {bleh[1] == blah[1]} and {bleh[0].timestamp == blah[0].timestamp}")
+    #     print(f"Same detection? {bleh[0] == blah[0]}")
+    #     print(bleh)
+    #     print("\n\n\n and \n\n\n")
+    #     print(blah)
+    #     print("\n\n\n")
+    #     blih = set()
+    #     blih.add(bleh)
+    #     blih.add(blah)
+    #     bleeh = {bleh, blah}
+    #    print(f"The length of the set of two equal things is {len(bleeh)}")
+    for time in nodes[1].data_held['unprocessed']:
+        print("\n\n\n\n ENTRY \n\n\n\n")
+        print(len(nodes[1].data_held['unprocessed'][time]))
+    # print(nodes[0].data_held['unprocessed'])
     assert all(len(nodes[0].data_held['unprocessed'][time]) == 1
                for time in nodes[0].data_held['unprocessed'])
     # Check node 1 holds 20 messages, and its descendants (2 and 3) hold 30 each
-    assert len(nodes[1].data_held['unprocessed']) == 10
-    assert len(nodes[2].data_held['unprocessed']) == 10
-    assert len(nodes[3].data_held['unprocessed']) == 10
+    assert len(nodes[1].data_held['unprocessed']) == 11
+    assert len(nodes[2].data_held['unprocessed']) == 11
+    assert len(nodes[3].data_held['unprocessed']) == 11
     #  Check that the data held by node 0 is a subset of that of node 1, and so on for node 1 with
     #  its own descendants. Note this will only work with zero latency.
     assert nodes[0].data_held['unprocessed'].keys() <= nodes[1].data_held['unprocessed'].keys()
     assert nodes[1].data_held['unprocessed'].keys() <= nodes[2].data_held['unprocessed'].keys() \
-        and nodes[1].data_held['unprocessed'].keys() <= nodes[3].data_held['unprocessed'].keys()
+           and nodes[1].data_held['unprocessed'].keys() <= nodes[3].data_held['unprocessed'].keys()
+
+    duplicates = nodes[1].data_held['unprocessed'][list(nodes[1].data_held['unprocessed'].keys())[-1]]
+    for det in duplicates:
+        print(hash(det))
+    # print(nodes[1].data_held['unprocessed'][list(nodes[1].data_held['unprocessed'].keys())[-1]])
+    assert all(len(nodes[1].data_held['unprocessed'][time]) == 2
+               for time in nodes[1].data_held['unprocessed'])
+    for time in nodes[2].data_held['unprocessed']:
+        print(len(nodes[2].data_held['unprocessed'][time]))
+    assert all(len(nodes[2].data_held['unprocessed'][time]) == 3
+               for time in nodes[2].data_held['unprocessed'])
 
     # Architecture with latency (Same network as before)
-    edges_w_latency = Edges([Edge((lat_nodes[0], lat_nodes[1]), edge_latency=0.2), Edge((lat_nodes[1], lat_nodes[2]), edge_latency=0.5),
-                   Edge((lat_nodes[1], lat_nodes[3]), edge_latency=0.3465234565634)])
+    edges_w_latency = Edges(
+        [Edge((lat_nodes[0], lat_nodes[1]), edge_latency=0.2), Edge((lat_nodes[1], lat_nodes[2]), edge_latency=0.5),
+         Edge((lat_nodes[1], lat_nodes[3]), edge_latency=0.3465234565634)])
     lat_architecture = InformationArchitecture(edges=edges_w_latency)
     for _ in range(10):
         lat_architecture.measure(ground_truths, noise=True)
@@ -144,18 +177,18 @@ def test_info_architecture_propagation(params):
     # Check node 1 holds fewer messages than both its ancestors
     assert len(nodes[1].data_held) < (len(nodes[2].data_held) and len(nodes[3].data_held))
 
-    #Error Tests
-    #Test descendants()
+    # Error Tests
+    # Test descendants()
     with pytest.raises(ValueError):
         architecture.descendants(nodes[4])
 
-    #Test send_message()
+    # Test send_message()
     with pytest.raises(TypeError):
         data = float(1.23456)
         the_time_is = datetime.now()
         Edge((nodes[0], nodes[4])).send_message(time_sent=the_time_is, data=data)
 
-    #Test update_message()
+    # Test update_message()
     with pytest.raises(TypeError):
         edge1 = Edge((nodes[0], nodes[4]))
         data = float(1.23456)
