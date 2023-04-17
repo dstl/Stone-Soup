@@ -6,7 +6,7 @@ from functools import lru_cache
 
 from ..base import Property
 from .base import Updater
-from ..types.array import CovarianceMatrix
+from ..types.array import CovarianceMatrix, StateVector
 from ..types.prediction import MeasurementPrediction
 from ..types.update import Update
 from ..models.base import LinearModel
@@ -18,7 +18,7 @@ from ..measures import Measure, Euclidean
 
 class KalmanUpdater(Updater):
     r"""A class which embodies Kalman-type updaters; also a class which
-    performs measurement update step as in the standard Kalman Filter.
+    performs measurement update step as in the standard Kalman filter.
 
     The Kalman updaters assume :math:`h(\mathbf{x}) = H \mathbf{x}` with
     additive noise :math:`\sigma = \mathcal{N}(0,R)`. Daughter classes can
@@ -124,8 +124,8 @@ class KalmanUpdater(Updater):
             The measurement cross covariance matrix
         meas_mat : numpy.ndarray
             Measurement matrix
-        meas_cov : :class:~.CovarianceMatrix`
-            Measurement covariance matrix
+        meas_mod : :class:~.MeasurementModel`
+            Measurement model
 
         Returns
         -------
@@ -134,6 +134,31 @@ class KalmanUpdater(Updater):
 
         """
         return meas_mat @ m_cross_cov + meas_mod.covar()
+
+    def _posterior_mean(self, predicted_state_vector, kalman_gain, measurement,
+                        measurement_prediction):
+        """Compute the posterior mean, :math:`x_{k|k} = x_{k|k-1} + K_k y_k`, where the innovation
+        :math:`y_k = z - h(x)`. 
+
+        Parameters
+        ----------
+        predicted_state_vector : :class:`StateVector`
+            The predicted state
+        kalman_gain : numpy.ndarray
+            Kalman gain
+        measurement : :class:`Detection`
+            The measurement
+        measurement_prediction : :class:`MeasurementPrediction`
+            Predicted measurement
+
+        Returns
+        -------
+        : :class:`StateVector`
+            The posterior mean estimate
+        """
+        post_mean = predicted_state_vector + kalman_gain @ (measurement.state_vector -
+                                                            measurement_prediction.state_vector)
+        return post_mean.view(StateVector)
 
     def _posterior_covariance(self, hypothesis):
         """
@@ -163,7 +188,6 @@ class KalmanUpdater(Updater):
 
         return post_cov.view(CovarianceMatrix), kalman_gain
 
-    @lru_cache()
     def predict_measurement(self, predicted_state, measurement_model=None,
                             **kwargs):
         r"""Predict the measurement implied by the predicted state mean
@@ -244,9 +268,9 @@ class KalmanUpdater(Updater):
         posterior_covariance, kalman_gain = self._posterior_covariance(hypothesis)
 
         # Posterior mean
-        posterior_mean = predicted_state.state_vector + \
-            kalman_gain@(hypothesis.measurement.state_vector -
-                         hypothesis.measurement_prediction.state_vector)
+        posterior_mean = self._posterior_mean(predicted_state.state_vector, kalman_gain,
+                                              hypothesis.measurement,
+                                              hypothesis.measurement_prediction)
 
         if self.force_symmetric_covariance:
             posterior_covariance = \
@@ -628,3 +652,142 @@ class IteratedKalmanUpdater(ExtendedKalmanUpdater):
             iterations += 1
 
         return post_state
+
+
+class SchmidtKalmanUpdater(ExtendedKalmanUpdater):
+    r"""A class which extends the standard Kalman filter to employ the Schmidt-Kalman version of
+    the update. The key thing here is that the state vector is split into parameters to be
+    estimated, and those which are merely 'considered'. The consider parameters are not updated,
+    though their relative covariances are maintained through the process. The state vector,
+    covariance and measurement matrix are defined as,
+
+    .. math ::
+
+        x^T &= [s^T \ p^T]
+
+        H &= [H_s \ H_p]
+
+    .. math ::
+
+        P &= \begin{bmatrix}
+        P_{ss} & P_{sp} \\
+        P_{ps} & P_{pp}
+        \end{bmatrix}
+
+
+    where the consider parameters are denoted :math:`p` and those to be estimated :math:`s`. Note
+    that though they are separated in the definition above, they may be interleaved in practice.
+    The update proceeds as:
+
+    .. math ::
+
+       K_s &= (P_{ss,k|k-1} H_s^T + P_{sp,k|k-1} H_p^T) S^{-1},
+
+       s_{k|k} &= s_{k|k-1} + K_s (z - H_s s_{k|k-1} - H_p p_{k|k-1}),
+
+       p_{k|k} &= p_{k|k-1},
+
+    .. math ::
+
+       P_{k|k} &= \begin{bmatrix}
+        P_{ss,k|k-1} - K_s S K_s^T &
+        P_{sp,k|k-1} - K_s H \begin{bmatrix} P_{sp,k|k-1} \\ P_{pp,k|k-1} \end{bmatrix} \\
+        P_{ps,k|k-1} - \begin{bmatrix} P_{sp,k|k-1} \\ P_{pp,k|k-1} \end{bmatrix}^T H^T K_s^T &
+        P_{pp,k|k-1}
+        \end{bmatrix}
+
+
+    References
+    ----------
+    [1] S. F. Schmidt, “Application of State-Space Methods to Navigation Problems,” Advances in
+    Control Systems, Vol. 3, 1966, pp. 293–340
+
+    [2] Zanetti, R. & D’Souza, C. (2013). Recursive Implementations of the Schmidt-Kalman
+    ‘Consider’   Filter. The Journal of the Astronautical Sciences. 60. 672-685.
+    10.1007/s40295-015-0068-7.
+
+    """
+
+    # TODO: Inherit from ExtendedKalmanUpdater to allow one to use non-linear measurement functions?
+
+    consider: np.ndarray = Property(default=None,
+                                    doc="The boolean vector of 'consider' parameters. True "
+                                        "indicates considered, False are state parameters to be "
+                                        "estimated.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.consider is None:
+            self.consider = np.zeros(self.measurement_model.ndim_state, dtype=bool)
+
+    def _posterior_mean(self, predicted_state_vector, kalman_gain, measurement,
+                        measurement_prediction):
+        """Compute the posterior mean, :math:`s_{k|k} = s_{k|k-1} + K_s (z - H_s s_{k|k-1} -
+        H_p p_{k|k-1})`, :math:`p_{k|k} = p_{k|k-1}.
+
+        Parameters
+        ----------
+        predicted_state_vector : :class:`StateVector`
+            The predicted state
+        kalman_gain : numpy.ndarray
+            The reduced form of the Kalman gain, :math:`K_s`
+         measurement : :class:`Detection`
+            The measurement
+        measurement_prediction : :class:`MeasurementPrediction`
+            Predicted measurement
+
+        Returns
+        -------
+        : :class:`StateVector`
+            The posterior mean estimate
+        """
+        # Measurement matrix
+        hh = self._check_measurement_model(measurement.measurement_model).matrix()
+
+        post_mean = predicted_state_vector.copy()
+        post_mean[np.ix_(~self.consider)] += kalman_gain @ \
+            (measurement.state_vector - hh[:, ~self.consider] @
+             predicted_state_vector[~self.consider] - hh[:, self.consider] @
+             predicted_state_vector[self.consider])
+        return post_mean.view(StateVector)
+
+    def _posterior_covariance(self, hypothesis):
+        """
+        Return the posterior covariance for a given hypothesis
+
+        Parameters
+        ----------
+        hypothesis: :class:`~.Hypothesis`
+            A hypothesised association between state prediction and measurement. It returns the
+            measurement prediction which in turn contains the measurement cross covariance,
+            :math:`P_{k|k-1} H_k^T and the innovation covariance,
+            :math:`S = H_k P_{k|k-1} H_k^T + R`
+
+        Returns
+        -------
+        : :class:`~.CovarianceMatrix`
+            The posterior covariance matrix rendered via the Schmidt-Kalman update process.
+        : numpy.ndarray
+            The reduced form of the Kalman gain,
+            :math:`K_s = (P_{ss,k|k-1} H_{s,k}^T + P_{sp,k|k-1} H_{p,k}^T) S^{-1}`
+
+        """
+        # Intermediate matrices P_p and H.
+        pp = hypothesis.prediction.covar[np.ix_(range(0, len(self.consider)), self.consider)]
+        hh = self._check_measurement_model(hypothesis.measurement.measurement_model).matrix()
+
+        # First get the Kalman gain
+        mcc = hypothesis.measurement_prediction.cross_covar
+        kalman_gain = mcc[np.ix_(~self.consider)] @ \
+                      np.linalg.inv(hypothesis.measurement_prediction.covar)
+
+        # Then assemble the quadrants of the posterior covariance (easier to think of them as
+        # quadrants even though they're actually submatrices who may appear in somewhat different
+        # places.)
+        post_cov = hypothesis.prediction.covar.copy()
+        post_cov[np.ix_(~self.consider, ~self.consider)] -= \
+            kalman_gain @ hypothesis.measurement_prediction.covar @ kalman_gain.T
+        post_cov[np.ix_(~self.consider, self.consider)] -= kalman_gain @ hh @ pp
+        post_cov[np.ix_(self.consider, ~self.consider)] -= pp.T @ hh.T @ kalman_gain.T
+
+        return post_cov.view(CovarianceMatrix), kalman_gain

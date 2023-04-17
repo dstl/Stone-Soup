@@ -13,7 +13,8 @@ from stonesoup.updater.kalman import (KalmanUpdater,
                                       ExtendedKalmanUpdater,
                                       UnscentedKalmanUpdater,
                                       SqrtKalmanUpdater,
-                                      IteratedKalmanUpdater)
+                                      IteratedKalmanUpdater,
+                                      SchmidtKalmanUpdater)
 
 
 @pytest.mark.parametrize(
@@ -55,8 +56,17 @@ from stonesoup.updater.kalman import (KalmanUpdater,
                                               [0.0013, 0.0365]])),
             Detection(np.array([[-6.23]]))
         ),
+        (   # Schmidt Kalman
+            SchmidtKalmanUpdater,
+            LinearGaussian(ndim_state=2, mapping=[0],
+                           noise_covar=np.array([[0.04]])),
+            GaussianStatePrediction(np.array([[-6.45], [0.7]]),
+                                    np.array([[4.1123, 0.0013],
+                                              [0.0013, 0.0365]])),
+            Detection(np.array([[-6.23]]))
+        ),
     ],
-    ids=["standard", "extended", "unscented", "iterated"]
+    ids=["standard", "extended", "unscented", "iterated", "schmidtkalman"]
 )
 def test_kalman(UpdaterClass, measurement_model, prediction, measurement):
 
@@ -205,3 +215,38 @@ def test_sqrt_kalman():
                        eval_posterior.covar, rtol=5.e-3)
     assert np.allclose(posterior_q.sqrt_covar@posterior_s.sqrt_covar.T,
                        eval_posterior.covar, rtol=5.e-3)
+
+
+def test_schmidtkalman():
+    """Ensure that the SKF returns the same as the KF for a sensible set of consider parameters."""
+
+    nelements = 100
+    # Create a state vector with a bunch of consider variables
+    consider = np.ones(nelements, dtype=bool)
+    consider[0] = False
+    consider[2] = False
+
+    state_vector = np.ones(nelements) * 10
+    state_vector[0] = -6.45
+    state_vector[2] = 0.7
+
+    covariance = np.diag(np.ones(nelements))
+    covariance_con = np.diag(np.ones(nelements-2))
+    covariance_noncon = np.array([[4.1123, 0.0013], [0.0013, 0.0365]])
+    covariance[np.ix_(~consider, ~consider)] = covariance_noncon
+    covariance[np.ix_(consider, consider)] = covariance_con
+
+    prediction = GaussianStatePrediction(state_vector, covariance)
+    measurement_model = LinearGaussian(ndim_state=nelements, mapping=[0],
+                                       noise_covar=np.array([[0.04]]))
+    measurement = Detection(np.array([[-6.23]]))
+
+    hypothesis = SingleHypothesis(prediction, measurement)
+
+    updater = KalmanUpdater(measurement_model)
+    sk_updater = SchmidtKalmanUpdater(measurement_model, consider=consider)
+    update = updater.update(hypothesis)
+    sk_update = sk_updater.update(hypothesis)
+
+    assert np.allclose(update.mean, sk_update.mean)
+    assert np.allclose(update.covar, sk_update.covar)
