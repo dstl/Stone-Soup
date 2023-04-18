@@ -863,7 +863,7 @@ class CartesianToBearingRangeRate2D(NonLinearGaussianMeasurement, ReversibleMode
         xy_pos = state.state_vector[self.mapping, :] - self.translation_offset
 
         # Rotate coordinates based upon the sensor_velocity
-        xy_rot = self.rotation_matrix @ xy_pos
+        xy_rot = self.rotation_matrix[:len(self.mapping), :len(self.mapping)] @ xy_pos
 
         # Convert to Polar
         rho, phi= cart2pol(xy_rot[0, :], xy_rot[1, :])
