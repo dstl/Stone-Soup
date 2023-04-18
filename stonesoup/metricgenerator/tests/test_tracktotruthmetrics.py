@@ -1,17 +1,17 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
+import pytest
 
 from ..tracktotruthmetrics import SIAPMetrics, IDSIAPMetrics
-from ...measures import Euclidean
+from ...measures import Euclidean, Mahalanobis
 from ...types.groundtruth import GroundTruthPath
 from ...types.metric import SingleTimeMetric, TimeRangeMetric
 from ...types.track import Track
 
 
-def test_siap(trial_manager, trial_truths, trial_tracks, trial_associations):
-    position_measure = Euclidean((0, 2))
-    velocity_measure = Euclidean((1, 3))
+@pytest.mark.parametrize('measure_class', [Euclidean, Mahalanobis])
+def test_siap(trial_manager, trial_truths, trial_tracks, trial_associations, measure_class):
+    position_measure = measure_class((0, 2))
+    velocity_measure = measure_class((1, 3))
     siap_generator = SIAPMetrics(position_measure=position_measure,
                                  velocity_measure=velocity_measure)
 
@@ -104,9 +104,10 @@ def test_siap(trial_manager, trial_truths, trial_tracks, trial_associations):
             assert isinstance(metric.value, (float, int))
 
 
-def test_id_siap(trial_manager, trial_truths, trial_tracks, trial_associations):
-    position_measure = Euclidean((0, 2))
-    velocity_measure = Euclidean((1, 3))
+@pytest.mark.parametrize('measure_class', [Euclidean, Mahalanobis])
+def test_id_siap(trial_manager, trial_truths, trial_tracks, trial_associations, measure_class):
+    position_measure = measure_class((0, 2))
+    velocity_measure = measure_class((1, 3))
     truth_id = track_id = "colour"
     siap_generator = IDSIAPMetrics(position_measure=position_measure,
                                    velocity_measure=velocity_measure,

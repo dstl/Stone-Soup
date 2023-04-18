@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import math
 from typing import Sequence
 from functools import lru_cache
@@ -148,7 +147,7 @@ class ConstantNthDerivative(LinearGaussianTransitionModel, TimeVariantModel):
             covar = np.zeros((N + 1, N + 1))
             for l in range(0, N + 1):  # noqa: E741
                 for k in range(0, N + 1):
-                    covar[l, k] = (igrand[l, k]*dt / (1 + N**2 - l - k))
+                    covar[l, k] = (igrand[l, k]*dt / (1 + N*2 - l - k))
         covar *= self.noise_diff_coeff
         return CovarianceMatrix(covar)
 

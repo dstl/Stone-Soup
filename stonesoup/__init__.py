@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Stone Soup framework: development and assessment of tracking algorithms."""
 
 from pkg_resources import get_distribution, DistributionNotFound
@@ -10,8 +9,10 @@ except DistributionNotFound:
     pass
 
 __copyright__ = '''\
-© Crown Copyright 2017-2022 Defence Science and Technology Laboratory UK
-© Crown Copyright 2018-2022 Defence Research and Development Canada / Recherche et développement pour la défense Canada
-© Copyright 2018-2022 University of Liverpool UK
+© Crown Copyright 2017-2023 Defence Science and Technology Laboratory UK
+© Crown Copyright 2018-2023 Defence Research and Development Canada / Recherche et développement pour la défense Canada
+© Copyright 2018-2023 University of Liverpool UK
+© Copyright 2020-2023 Fraunhofer FKIE
+© Copyright 2020-2023 John Hiles
 '''  # noqa: E501
 __license__ = 'MIT'

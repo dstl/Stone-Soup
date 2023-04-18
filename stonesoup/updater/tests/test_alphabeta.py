@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Test for updater.alphabeta module"""
 import pytest
 from datetime import timedelta
@@ -17,7 +16,7 @@ from stonesoup.types.hypothesis import SingleHypothesis
     "measurement_model, prediction, measurement, alpha, beta",
     [
         (   # Standard Alpha-Beta
-            LinearGaussian(ndim_state=4, mapping=[0, 2], noise_covar=0),
+            LinearGaussian(ndim_state=4, mapping=[0, 2], noise_covar=np.diag([0, 0])),
             StatePrediction(StateVector([-6.45, 0.7, -6.45, 0.7])),
             Detection(StateVector([-6.23, -6.23])),
             0.9,

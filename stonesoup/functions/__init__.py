@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Mathematical functions used within Stone Soup"""
 import copy
 
@@ -172,7 +171,7 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
 
     # Put these sigma points into s State object list
     sigma_points_states = []
-    for sigma_point in sigma_points.T:
+    for sigma_point in sigma_points:
         state_copy = copy.copy(state)
         state_copy.state_vector = StateVector(sigma_point)
         sigma_points_states.append(state_copy)
@@ -611,41 +610,37 @@ def build_rotation_matrix(angle_vector: np.ndarray):
     theta_x = -angle_vector[0, 0]  # roll
     theta_y = angle_vector[1, 0]  # pitch#elevation
     theta_z = -angle_vector[2, 0]  # yaw#azimuth
-    return rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
+    return rotx(theta_x) @ roty(theta_y) @ rotz(theta_z)
 
 
 def dotproduct(a, b):
-    r"""Returns the dot (or scalar) product of two StateVectors.
+    r"""Returns the dot (or scalar) product of two StateVectors or two sets of StateVectors.
 
-    The result for vectors of length :math:`n` is
-    :math:`\Sigma_i^n a_i b_i`.
-
-    Inputs are state vectors, i.e. the second dimension is 1
+    The result for vectors of length :math:`n` is :math:`\Sigma_i^n a_i b_i`.
 
     Parameters
     ----------
-    a : StateVector
-        A state vector
-    b : StateVector
-        A state vector of equal length to :math:`a`
+    a : StateVector, StateVectors
+        A (set of) state vector(s)
+    b : StateVector, StateVectors
+        A state vector(s) object of equal dimension to :math:`a`
 
     Returns
     -------
-    : float
-        A scalar value representing the dot product of the vectors.
+    : float, numpy.array
+        A (set of) scalar value(s) representing the dot product of the vectors.
     """
-    if np.shape(a)[1] != 1 or np.shape(b)[1] != 1 or np.ndim(a) != 2 or \
-            np.ndim(b) != 2:
-        raise ValueError("Inputs must be column vectors")
 
-    if np.shape(a)[0] != np.shape(b)[0]:
-        raise ValueError("Input vectors must be the same length")
+    if np.shape(a) != np.shape(b):
+        raise ValueError("Inputs must be (a collection of) column vectors of the same dimension")
 
-    out = 0
-    for a_i, b_i in zip(a, b):
-        out += a_i*b_i
-
-    return out
+    # Decide whether this is a StateVector or a StateVectors
+    if type(a) is StateVector and type(b) is StateVector:
+        return np.sum(a*b)
+    elif type(a) is StateVectors and type(b) is StateVectors:
+        return np.atleast_2d(np.asarray(np.sum(a*b, axis=0)))
+    else:
+        raise ValueError("Inputs must be `StateVector` or `StateVectors` and of the same type")
 
 
 def sde_euler_maruyama_integration(fun, t_values, state_x0):

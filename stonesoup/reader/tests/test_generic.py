@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import datetime
 from operator import attrgetter
 from textwrap import dedent

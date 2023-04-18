@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Contains collection of error based deleters"""
 from typing import Sequence
 

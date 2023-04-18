@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from .base import Initiator
 from ..base import Property
 from ..types.hypothesis import SingleHypothesis

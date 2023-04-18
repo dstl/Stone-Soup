@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Base classes for Stone Soup feeder"""
 from abc import abstractmethod
 

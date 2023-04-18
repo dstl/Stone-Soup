@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from typing import Sequence
 
 import numpy as np

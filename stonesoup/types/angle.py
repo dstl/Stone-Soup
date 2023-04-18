@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
 from numbers import Real
-from numpy import float64
 from math import trunc, ceil, floor
 
 import numpy as np
@@ -16,25 +14,32 @@ class Angle(Real):
     """
     @staticmethod
     def mod_angle(value):
-        return value
+        return float(value)
 
     @property
     def degrees(self):
         return self.rad2deg()
 
     def __init__(self, value):
-        self._value = float64(self.mod_angle(value))
+        self._value = self.mod_angle(value)
+
+    def __hash__(self):
+        return hash(self._value)
 
     def __add__(self, other):
+        if isinstance(other, Angle):
+            other = other._value
         out = self._value + other
-        return self.__class__(self.mod_angle(out))
+        return self.__class__(out)
 
     def __radd__(self, other):
         return self.__class__.__add__(self, other)
 
     def __sub__(self, other):
+        if isinstance(other, Angle):
+            other = other._value
         out = self._value - other
-        return self.__class__(self.mod_angle(out))
+        return self.__class__(out)
 
     def __rsub__(self, other):
         return self.__class__.__add__(-self, other)
@@ -43,6 +48,8 @@ class Angle(Real):
         return float(self._value)
 
     def __mul__(self, other):
+        if isinstance(other, Angle):
+            other = other._value
         return self._value * other
 
     def __rmul__(self, other):
@@ -52,12 +59,14 @@ class Angle(Real):
         return str(self._value)
 
     def __repr__(self):
-        return "{0}({1!r})".format(self.__class__.__name__, float64(self))
+        return "{0}({1!r})".format(self.__class__.__name__, float(self))
 
     def __neg__(self):
         return self.__class__(-self._value)
 
     def __truediv__(self, other):
+        if isinstance(other, Angle):
+            other = other._value
         return self._value / other
 
     def __rtruediv__(self, other):
@@ -70,7 +79,24 @@ class Angle(Real):
         return self._value != other
 
     def __abs__(self):
-        return self.__class__(abs(self._value))
+        abs_val = self.__class__(abs(self._value))
+        if abs_val._value < 0:
+            # This condition is hit in the edge case where an angle is exactly pi (or the upper
+            # edge of the Angle's range). The current mod_[class] implementation returns the bottom
+            # end of the range.
+            # That is, the modulo operation is closed at the bottom and open at the top: for a
+            # Bearing the value is in the range [-pi, pi)
+            # As the new object is created *after* the abs operation, the line above is equivalent
+            # to Bearing(pi) which returns a Bearing with _value -3.14....
+            # Below we force that to be the positive value, such that abs(some_angle)._value is
+            # always positive.
+            #
+            # Note that this assures abs(my_angle) > 0 and abs(my_angle) == abs(-my_angle) for all
+            # angles including edge cases.
+            # There is still the oddity that abs(Bearing(-pi)) != Bearing(+pi)) or equivalently
+            # that abs(Bearing(-pi)) != Bearing(abs(-pi)))
+            abs_val._value = abs(abs_val._value)
+        return abs_val
 
     def __le__(self, other):
         return self._value <= other
@@ -91,6 +117,8 @@ class Angle(Real):
         return ceil(self._value)
 
     def __floordiv__(self, other):
+        if isinstance(other, Angle):
+            other = other._value
         return self._value // other
 
     def __mod__(self, other):
@@ -109,7 +137,7 @@ class Angle(Real):
         return other % self._value
 
     def __round__(self, ndigits=None):
-        return float64(round(self._value, ndigits=ndigits))
+        return round(self._value, ndigits=ndigits)
 
     def __rpow__(self, base):
         return NotImplemented

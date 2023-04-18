@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 from scipy.stats import poisson
 from typing import Set, Union, Callable, Tuple, Optional

@@ -287,8 +287,9 @@ class GaussianParticleInitiator(ParticleInitiator):
                 Particle(sample.reshape(-1, 1), weight=self.weight)
                 for sample in samples]
             track[-1] = ParticleStateUpdate(
-                particles,
+                None,
                 track.hypothesis,
+                particle_list=particles,
                 fixed_covar=track.covar if self.use_fixed_covar else None,
                 timestamp=track.timestamp)
 

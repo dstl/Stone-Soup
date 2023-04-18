@@ -1,10 +1,10 @@
-# -*- coding: utf-8 -*-
 from math import trunc, ceil, floor
 
 from pytest import approx, xfail
 from numpy import deg2rad
 import numpy as np
 
+from stonesoup.types.array import StateVector
 from ..angle import Bearing, Elevation, Latitude, Longitude
 from ...functions import (mod_elevation, mod_bearing)
 
@@ -128,3 +128,29 @@ class TestAngle:
             assert class_.average([b1, b2]) == approx(val)
         else:
             raise xfail("Can't handle average when wrapping over ±pi")
+
+    def test_wrapping_equality_and_abs(self, class_, func):
+        val = class_(np.pi)
+        if class_ in (Bearing, Longitude):
+            wrapped_val = -np.pi
+        elif class_ in (Elevation, Latitude):
+            wrapped_val = 0
+        else:
+            raise NotImplementedError
+        assert val == class_(np.pi)
+        assert abs(val) >= 0
+        assert abs(val) == abs(class_(np.pi))
+        assert val == class_(wrapped_val)
+        assert abs(val) == abs(class_(wrapped_val))
+
+        # Must use a bearing in a StateVector below: the StateVector class overrides ufuncs,
+        # such that isclose works. Raw Angle classes don't (and can't sensibly) override that
+        # behaviour. isclose fails if abs does not return positive values, which is why the test is
+        # here
+        sv = StateVector([val])
+        wrapped_sv = StateVector([wrapped_val])
+        assert np.isclose(sv, sv)
+        assert np.isclose(sv, wrapped_sv)
+
+        assert np.isclose(abs(sv), abs(sv))
+        assert np.isclose(abs(sv), abs(wrapped_sv))

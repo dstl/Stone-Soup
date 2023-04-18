@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """
 Metrics Example
@@ -99,7 +98,7 @@ from stonesoup.metricgenerator.basicmetrics import BasicMetrics
 basic_generator = BasicMetrics()
 
 # %%
-# Next we'll create the Optimal SubPattern Assignment (OPSA) metric generator. This metric is
+# Next we'll create the Optimal SubPattern Assignment (OSPA) metric generator. This metric is
 # calculated at each time step, giving an overall multi-track to multi-groundtruth missed distance.
 # This has two properties: :math:`p \in [1,\infty]` for outlier sensitivity and :math:`c > 1` for
 # cardinality penalty. [#]_
@@ -214,5 +213,5 @@ for siap, axis in zip(t_siaps, axes):
 #
 # .. [#] *D. Schuhmacher, B. Vo and B. Vo*, **A Consistent Metric for Performance Evaluation of
 #    Multi-Object Filters**, IEEE Trans. Signal Processing 2008
-# .. [#] *Votruba, Paul & Nisley, Rich & Rothrock, Ron and Zombro, Brett.*, **Single Integrated Air
-#    Picture (SIAP) Metrics Implementation**, 2001
+# .. [#] *Karoly S., Wilson J., Dutchyshyn H., Maluda J.*, **Single Integrated Air Picture (SIAP)
+#    Attributes Version 2.0**, DTIC Technical Report 2003

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 from stonesoup.plotter import Plotter, Dimension
 import pytest
@@ -10,6 +9,7 @@ from datetime import timedelta
 
 from stonesoup.types.detection import TrueDetection
 from stonesoup.models.measurement.linear import LinearGaussian
+from stonesoup.sensor.radar.radar import RadarElevationBearingRange
 
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
                                                ConstantVelocity
@@ -22,7 +22,7 @@ from stonesoup.hypothesiser.distance import DistanceHypothesiser
 from stonesoup.measures import Mahalanobis
 
 from stonesoup.dataassociator.neighbour import NearestNeighbour
-from stonesoup.types.state import GaussianState
+from stonesoup.types.state import GaussianState, State
 
 from stonesoup.types.track import Track
 
@@ -102,7 +102,110 @@ def test_measurement_clutter():  # no clutter should be plotted
     assert 'Clutter' not in plotter.legend_dict
 
 
+def test_single_measurement():  # A single measurement outside of a Collection should still run
+    plotter.plot_measurements(all_measurements[0], [0, 2])
+    plt.close()
+
+
 def test_particle_3d():  # warning should arise if particle is attempted in 3d mode
     plotter3 = Plotter(dimension=Dimension.THREE)
+
     with pytest.raises(NotImplementedError):
         plotter3.plot_tracks(track, [0, 1, 2], particle=True, uncertainty=False)
+
+
+def test_plot_sensors():
+    plotter3d = Plotter(Dimension.THREE)
+    sensor = RadarElevationBearingRange(
+        position_mapping=(0, 2, 4),
+        noise_covar=np.array([[0, 0, 0],
+                              [0, 0, 0]]),
+        ndim_state=6,
+        position=np.array([[10], [50], [0]])
+    )
+    plotter3d.plot_sensors(sensor, marker='o', color='red')
+    plt.close()
+    assert 'Sensors' in plotter3d.legend_dict
+
+
+def test_empty_tracks():
+    plotter.plot_tracks(set(), [0, 2])
+    plt.close()
+
+
+def test_figsize():
+    plotter_figsize_default = Plotter()
+    plotter_figsize_different = Plotter(figsize=(20, 15))
+    assert plotter_figsize_default.fig.get_figwidth() == 10
+    assert plotter_figsize_default.fig.get_figheight() == 6
+    assert plotter_figsize_different.fig.get_figwidth() == 20
+    assert plotter_figsize_different.fig.get_figheight() == 15
+
+
+def test_equal_3daxis():
+    plotter_default = Plotter(dimension=Dimension.THREE)
+    plotter_xy_default = Plotter(dimension=Dimension.THREE)
+    plotter_xy = Plotter(dimension=Dimension.THREE)
+    plotter_xyz = Plotter(dimension=Dimension.THREE)
+    truths = GroundTruthPath(states=[State(state_vector=[-1000, -20, -3]),
+                                     State(state_vector=[1000, 20, 3])])
+    plotter_default.plot_ground_truths(truths, mapping=[0, 1, 2])
+    plotter_xy_default.plot_ground_truths(truths, mapping=[0, 1, 2])
+    plotter_xy.plot_ground_truths(truths, mapping=[1, 1, 2])
+    plotter_xyz.plot_ground_truths(truths, mapping=[0, 1, 2])
+    plotter_xy_default.set_equal_3daxis()
+    plotter_xy.set_equal_3daxis([0, 1])
+    plotter_xyz.set_equal_3daxis([0, 1, 2])
+    plotters = [plotter_default, plotter_xy_default, plotter_xy, plotter_xyz]
+    lengths = [3, 2, 2, 1]
+    for plotter, l in zip(plotters, lengths):
+        min_xyz = [0, 0, 0]
+        max_xyz = [0, 0, 0]
+        for i in range(3):
+            for line in plotter.ax.lines:
+                min_xyz[i] = np.min([min_xyz[i], *line.get_data_3d()[i]])
+                max_xyz[i] = np.max([max_xyz[i], *line.get_data_3d()[i]])
+        assert len(set(min_xyz)) == l
+        assert len(set(max_xyz)) == l
+
+
+def test_equal_3daxis_2d():
+    plotter = Plotter(dimension=Dimension.TWO)
+    truths = GroundTruthPath(states=[State(state_vector=[-1000, -20, -3]),
+                                     State(state_vector=[1000, 20, 3])])
+    plotter.plot_ground_truths(truths, mapping=[0, 1])
+    plotter.set_equal_3daxis()
+
+
+def test_plot_density_empty_state_sequences():
+    plotter = Plotter()
+    with pytest.raises(ValueError):
+        plotter.plot_density([], index=None)
+
+
+def test_plot_density_equal_x_y():
+    plotter = Plotter()
+    start_time = datetime.now()
+    transition_model = CombinedLinearGaussianTransitionModel(
+        [ConstantVelocity(0), ConstantVelocity(0)])
+    truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], start_time)])
+    for k in range(20):
+        truth.append(GroundTruthState(
+            transition_model.function(truth[k], noise=True,
+                                      time_interval=timedelta(seconds=1)),
+            timestamp=start_time + timedelta(seconds=k + 1)))
+    with pytest.raises(ValueError):
+        plotter.plot_density({truth}, index=None)
+
+
+def test_plot_complex_uncertainty():
+    plotter = Plotter()
+    track = Track([
+        GaussianState(
+            state_vector=[0, 0],
+            covar=[[10, -1], [1, 10]])
+    ])
+    with pytest.warns(UserWarning, match="Can not plot uncertainty for all states due to complex "
+                                         "eignevalues or eigenvectors"):
+
+        plotter.plot_tracks(track, mapping=[0, 1], uncertainty=True)

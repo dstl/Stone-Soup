@@ -1,18 +1,18 @@
-# -*- coding: utf-8 -*-
 from abc import ABC
 import copy
 from typing import Sequence, Tuple, Union
 
+from math import sqrt
 import numpy as np
 from scipy.linalg import inv, pinv, block_diag
 from scipy.stats import multivariate_normal
 
-from ...base import Property
+from ...base import Property, clearable_cached_property
 from ...types.numeric import Probability
 
 from ...functions import cart2pol, pol2cart, \
     cart2sphere, sphere2cart, cart2angles, \
-    rotx, roty, rotz
+    build_rotation_matrix
 from ...types.array import StateVector, CovarianceMatrix, StateVectors
 from ...types.angle import Bearing, Elevation
 from ..base import LinearModel, GaussianModel, ReversibleModel
@@ -118,6 +118,9 @@ class NonLinearGaussianMeasurement(MeasurementModel, GaussianModel, ABC):
         if self.rotation_offset is None:
             self.rotation_offset = StateVector([[0], [0], [0]])
 
+        if not isinstance(self.noise_covar, CovarianceMatrix):
+            self.noise_covar = CovarianceMatrix(self.noise_covar)
+
     def covar(self, **kwargs) -> CovarianceMatrix:
         """Returns the measurement model noise covariance matrix.
 
@@ -130,23 +133,10 @@ class NonLinearGaussianMeasurement(MeasurementModel, GaussianModel, ABC):
 
         return self.noise_covar
 
-    @property
-    def _rotation_matrix(self) -> np.ndarray:
-        """_rotation_matrix getter method
-
-        Calculates and returns the (3D) axis rotation matrix.
-
-        Returns
-        -------
-        :class:`numpy.ndarray` of shape (3, 3)
-            The model (3D) rotation matrix.
-        """
-
-        theta_x = -self.rotation_offset[0, 0]
-        theta_y = self.rotation_offset[1, 0]
-        theta_z = -self.rotation_offset[2, 0]
-
-        return rotz(theta_z)@roty(theta_y)@rotx(theta_x)
+    @clearable_cached_property('rotation_offset')
+    def rotation_matrix(self) -> np.ndarray:
+        """3D axis rotation matrix"""
+        return build_rotation_matrix(self.rotation_offset)
 
 
 class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
@@ -255,7 +245,7 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
 
         if isinstance(noise, bool) or noise is None:
             if noise:
-                noise = self.rvs()
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
             else:
                 noise = 0
 
@@ -263,22 +253,21 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
         xyz = state.state_vector[self.mapping, :] - self.translation_offset
 
         # Rotate coordinates
-        xyz_rot = self._rotation_matrix @ xyz
+        xyz_rot = self.rotation_matrix @ xyz
 
         # Convert to Spherical
-        rho, phi, theta = cart2sphere(*xyz_rot)
-        elevations = [Elevation(i) for i in np.atleast_1d(theta)]
-        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
-        rhos = np.atleast_1d(rho)
+        rho, phi, theta = cart2sphere(xyz_rot[0, :], xyz_rot[1, :], xyz_rot[2, :])
+        elevations = [Elevation(i) for i in theta]
+        bearings = [Bearing(i) for i in phi]
 
-        return StateVectors([elevations, bearings, rhos]) + noise
+        return StateVectors([elevations, bearings, rho]) + noise
 
     def inverse_function(self, detection, **kwargs) -> StateVector:
 
         theta, phi, rho = detection.state_vector
         xyz = StateVector(sphere2cart(rho, phi, theta))
 
-        inv_rotation_matrix = inv(self._rotation_matrix)
+        inv_rotation_matrix = inv(self.rotation_matrix)
         xyz = inv_rotation_matrix @ xyz
 
         res = np.zeros((self.ndim_state, 1)).view(StateVector)
@@ -383,7 +372,7 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
         xy = StateVector(pol2cart(rho, phi))
 
         xyz = np.concatenate((xy, StateVector([0])), axis=0)
-        inv_rotation_matrix = inv(self._rotation_matrix)
+        inv_rotation_matrix = inv(self.rotation_matrix)
         xyz = inv_rotation_matrix @ xyz
         xy = xyz[0:2]
 
@@ -412,7 +401,7 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
 
         if isinstance(noise, bool) or noise is None:
             if noise:
-                noise = self.rvs()
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
             else:
                 noise = 0
 
@@ -423,7 +412,7 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
                         ])
 
         # Rotate coordinates
-        xyz_rot = self._rotation_matrix @ xyz
+        xyz_rot = self.rotation_matrix @ xyz
 
         # Covert to polar
         rho, phi = cart2pol(*xyz_rot[:2, :])
@@ -538,7 +527,7 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
 
         if isinstance(noise, bool) or noise is None:
             if noise:
-                noise = self.rvs()
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
             else:
                 noise = 0
 
@@ -546,13 +535,13 @@ class CartesianToElevationBearing(NonLinearGaussianMeasurement):
         xyz = state.state_vector[self.mapping, :] - self.translation_offset
 
         # Rotate coordinates
-        xyz_rot = self._rotation_matrix @ xyz
+        xyz_rot = self.rotation_matrix @ xyz
 
         # Convert to Angles
-        phi, theta = cart2angles(*xyz_rot)
+        phi, theta = cart2angles(xyz_rot[0, :], xyz_rot[1, :], xyz_rot[2, :])
 
-        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
-        elevations = [Elevation(i) for i in np.atleast_1d(theta)]
+        bearings = [Bearing(i) for i in phi]
+        elevations = [Elevation(i) for i in theta]
         return StateVectors([elevations, bearings]) + noise
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
@@ -633,7 +622,7 @@ class Cartesian2DToBearing(NonLinearGaussianMeasurement):
 
         if isinstance(noise, bool) or noise is None:
             if noise:
-                noise = self.rvs()
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
             else:
                 noise = 0
 
@@ -644,11 +633,11 @@ class Cartesian2DToBearing(NonLinearGaussianMeasurement):
                         ])
 
         # Rotate coordinates
-        xyz_rot = self._rotation_matrix @ xyz
+        xyz_rot = self.rotation_matrix @ xyz
 
         # Covert to polar
         _, phi = cart2pol(*xyz_rot[:2, :])
-        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
+        bearings = [Bearing(i) for i in phi]
 
         return StateVectors([bearings]) + noise
 
@@ -774,7 +763,7 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
 
         if isinstance(noise, bool) or noise is None:
             if noise:
-                noise = self.rvs()
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
             else:
                 noise = 0
 
@@ -782,10 +771,10 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
         xy_pos = state.state_vector[self.mapping, :] - self.translation_offset
 
         # Rotate coordinates based upon the sensor_velocity
-        xy_rot = self._rotation_matrix @ xy_pos
+        xy_rot = self.rotation_matrix @ xy_pos
 
         # Convert to Spherical
-        rho, phi, _ = cart2sphere(*xy_rot)
+        rho, phi, _ = cart2sphere(xy_rot[0, :], xy_rot[1, :], xy_rot[2, :])
 
         # Determine the net velocity component in the engagement
         xy_vel = state.state_vector[self.velocity_mapping, :] - self.velocity
@@ -794,9 +783,9 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
         rr = np.einsum('ij,ij->j', xy_pos, xy_vel) / np.linalg.norm(xy_pos, axis=0)
 
         # Convert to bearings
-        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
+        bearings = [Bearing(i) for i in phi]
 
-        return StateVectors([bearings, np.atleast_1d(rho), rr]) + noise
+        return StateVectors([bearings, rho, rr]) + noise
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
@@ -922,7 +911,7 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
 
         if isinstance(noise, bool) or noise is None:
             if noise:
-                noise = self.rvs()
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
             else:
                 noise = 0
 
@@ -930,10 +919,10 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
         xyz_pos = state.state_vector[self.mapping, :] - self.translation_offset
 
         # Rotate coordinates based upon the sensor_velocity
-        xyz_rot = self._rotation_matrix @ xyz_pos
+        xyz_rot = self.rotation_matrix @ xyz_pos
 
         # Convert to Spherical
-        rho, phi, theta = cart2sphere(*xyz_rot)
+        rho, phi, theta = cart2sphere(xyz_rot[0, :], xyz_rot[1, :], xyz_rot[2, :])
 
         # Determine the net velocity component in the engagement
         xyz_vel = state.state_vector[self.velocity_mapping, :] - self.velocity
@@ -941,11 +930,11 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
         # Use polar to calculate range rate
         rr = np.einsum('ij,ij->j', xyz_pos, xyz_vel) / np.linalg.norm(xyz_pos, axis=0)
 
-        bearings = [Bearing(i) for i in np.atleast_1d(phi)]
-        elevations = [Elevation(i) for i in np.atleast_1d(theta)]
+        bearings = [Bearing(i) for i in phi]
+        elevations = [Elevation(i) for i in theta]
         return StateVectors([elevations,
                              bearings,
-                             np.atleast_1d(rho),
+                             rho,
                              rr]) + noise
 
     def inverse_function(self, detection, **kwargs) -> StateVector:
@@ -958,7 +947,7 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
         y_rate = np.cos(phi) * np.sin(theta) * rho_rate
         z_rate = np.sin(phi) * rho_rate
 
-        inv_rotation_matrix = inv(self._rotation_matrix)
+        inv_rotation_matrix = inv(self.rotation_matrix)
 
         out_vector = StateVector([[0.], [0.], [0.], [0.], [0.], [0.]])
         out_vector[self.mapping, 0] = x, y, z
@@ -976,6 +965,93 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
         out = super().rvs(num_samples, **kwargs)
         out = np.array([[Elevation(0)], [Bearing(0)], [0.], [0.]]) + out
         return out
+
+    def jacobian(self, state, **kwargs):
+        """Model jacobian matrix :math:`H_{jac}`
+
+        Parameters
+        ----------
+        state : :class:`~.State`
+            An input state
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape (:py:attr:`~ndim_meas`, \
+        :py:attr:`~ndim_state`)
+            The model jacobian matrix evaluated around the given state vector.
+        """
+        # Account for origin offset in position to enable range and angles to be determined
+        xyz_pos = state.state_vector[self.mapping, :] - self.translation_offset
+
+        # Determine the net velocity component in the engagement
+        xyz_vel = state.state_vector[self.velocity_mapping, :] - self.velocity
+
+        # Rotate into RADAR coordinate system to linearize around the correct
+        # state
+        xyz_pos = self.rotation_matrix @ xyz_pos
+        xyz_vel = self.rotation_matrix @ xyz_vel
+
+        jac = np.zeros((4, 6), dtype=np.float_)
+
+        x, y, z = xyz_pos
+        vx, vy, vz = xyz_vel
+        x2, y2, z2 = x**2, y**2, z**2
+        x2y2 = x2 + y2
+        r2 = x2y2 + z2
+        r = sqrt(r2)
+        sqrt_x2_y2 = sqrt(x2y2)
+        r32 = r2*r
+
+        # Jacobian encodes partial derivatives of measurement vector components
+        # Y = <theta, phi, r, rdot> against state vector
+        # X = <x, vx, y, vy, z, vz>.
+
+        # dtheta/dx
+        sqrt_x2_y2r2 = sqrt_x2_y2*r2
+        jac[0, 0] = -(x*z)/(sqrt_x2_y2r2)
+
+        # dtheta/dy
+        jac[0, 2] = -(y*z)/(sqrt_x2_y2r2)
+
+        # dthtea/dz
+        jac[0, 4] = sqrt_x2_y2/r2
+
+        # dphi/dx
+        jac[1, 0] = - y/(x2y2)
+
+        # dphi/dy
+        jac[1, 2] = x/(x2y2)
+
+        # dphi/dz = 0
+
+        # dr/dx and drdot/dvx
+        jac[2, 0] = jac[3, 1] = x/r
+
+        # dr/dx and drdot/dvy
+        jac[2, 2] = jac[3, 3] = y/r
+
+        # dr/dx and drdot/dvz
+        jac[2, 4] = jac[3, 5] = z/r
+
+        vx_x, vy_y, vz_z = vx*x, vy*y, vz*z
+
+        # drdot/dx
+        jac[3, 0] = (-x*(vy_y + vz_z) + vx*(y2 + z2))/r32
+
+        # drdot/dy
+        jac[3, 2] = (vy*(x2 + z2) - y*(vx_x + vz_z))/r32
+
+        # drdot/dz
+        jac[3, 4] = (vz*(x2y2) - (vx_x + vy_y)*z)/r32
+
+        # Up to this point, the Jacobian has been with respect to the state
+        # vector after rotating into the RADAR coordinate system. However, we
+        # want the Jacobian with respect to world state vector, so we must post
+        # multiply Jacobian by the RADAR rotation matrix.
+        jac[:, self.mapping] = jac[:, self.mapping] @ self.rotation_matrix
+        jac[:, self.velocity_mapping] = jac[:, self.velocity_mapping] @ self.rotation_matrix
+
+        return jac
 
 
 class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
@@ -1096,16 +1172,18 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
 
         return out
 
-    def _gaussian_integral(self, a, b, mean, cov):
+    @classmethod
+    def _gaussian_integral(cls, a, b, mean, cov):
         # this function is the cumulative probability ranging from a to b for a normal distribution
         return (multivariate_normal.cdf(a, mean=mean, cov=cov)
                 - multivariate_normal.cdf(b, mean=mean, cov=cov))
 
-    def _binned_pdf(self, measured_value, mean, bin_size, cov):
+    @classmethod
+    def _binned_pdf(cls, measured_value, mean, bin_size, cov):
         # this function finds the probability density of the bin the measured_value is in
         a = np.floor(measured_value / bin_size) * bin_size + bin_size
         b = np.floor(measured_value / bin_size) * bin_size
-        return self._gaussian_integral(a, b, mean, cov)/bin_size
+        return cls._gaussian_integral(a, b, mean, cov)/bin_size
 
     def pdf(self, state1, state2, **kwargs):
         r"""Model pdf/likelihood evaluation function
@@ -1151,19 +1229,23 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
             az_el_pdf = multivariate_normal.pdf(
                 state1.state_vector[:2, 0],
                 mean=mean_vector[:2, 0],
-                cov=self.covar()[:2])
+                cov=self.covar()[:2, :2])
 
             # pdf for the binned range and velocity
             range_pdf = self._binned_pdf(
                 state1.state_vector[2, 0],
                 mean_vector[2, 0],
                 self.range_res,
-                self.covar()[2])
+                self.covar()[2, 2])
             velocity_pdf = self._binned_pdf(
                 state1.state_vector[3, 0],
                 mean_vector[3, 0],
                 self.range_rate_res,
-                self.covar()[3])
+                self.covar()[3, 3])
             return Probability(range_pdf * velocity_pdf * az_el_pdf)
         else:
             return Probability(0)
+
+    def logpdf(self, *args, **kwargs):
+        # As pdf replaced, need to go to first non GaussianModel parent
+        return super(ReversibleModel, self).logpdf(*args, **kwargs)

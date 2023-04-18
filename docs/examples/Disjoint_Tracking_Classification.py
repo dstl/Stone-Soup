@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """
 Disjoint Tracking and Classification
@@ -223,6 +222,10 @@ class CompositeSensor(Sensor):
 
         return detections
 
+    @property
+    def measurement_model(self):
+        raise NotImplementedError
+
 
 # %%
 # Kinematic Measurement
@@ -239,7 +242,7 @@ radar = RadarBearingRange(ndim_state=4,
 # %%
 # Categorical Measurement
 # -----------------------
-# Using the hidden markov model, it is assumed the hidden class of the target cannot be directly
+# Using the hidden Markov model, it is assumed the hidden class of the target cannot be directly
 # observed, and instead indirect observations are taken. In this instance, observations of the
 # target's size are taken ('small' or 'large'), which have direct implications as to the target's
 # hidden class, and this relationship is modelled by the `emission matrix` of the

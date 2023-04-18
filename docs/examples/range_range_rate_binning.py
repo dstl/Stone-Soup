@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 r"""
 RangeRangeRateBinning measurement model example
 ===============================================
 :class:`~.RangeRangeRateBinning` is a Cartesian to spherical measurement model. It takes a 6D
-state of position and velocity in 3D cartesian space and produces a 4D state of elevation
+state of position and velocity in 3D Cartesian space and produces a 4D state of elevation
 (:math:`\theta`),  bearing (:math:`\phi`), range (:math:`r`) and range-rate (:math:`\dot{r}`),
 
 .. math::
@@ -58,7 +57,7 @@ measurement_model = RangeRangeRateBinning(
     ndim_state=6,
     mapping=[0, 2, 4],
     velocity_mapping=[1, 3, 5],
-    noise_covar=np.array([0., 0., 0., 0.]))
+    noise_covar=np.diag([0., 0., 0., 0.]))
 
 # %%
 # Create target

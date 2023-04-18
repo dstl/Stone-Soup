@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 
 from ...base import Property
@@ -25,6 +23,11 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
     """
 
     noise_covar: CovarianceMatrix = Property(doc="Noise covariance")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not isinstance(self.noise_covar, CovarianceMatrix):
+            self.noise_covar = CovarianceMatrix(self.noise_covar)
 
     @property
     def ndim_meas(self):
@@ -75,7 +78,7 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
 
         if isinstance(noise, bool) or noise is None:
             if noise:
-                noise = self.rvs()
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
             else:
                 noise = 0
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # Stone Soup documentation build configuration file, created by
 # sphinx-quickstart on Wed Nov 15 10:46:26 2017.
@@ -25,8 +24,10 @@ import re
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../../'))
 
-from doc_extensions import gallery_scraper
+from doc_extensions import gallery_scraper, reset_numpy_random_seed
 from sphinx_gallery.sorting import FileNameSortKey
+import plotly.io as pio
+pio.renderers.default = 'sphinx_gallery'
 
 # -- General configuration ------------------------------------------------
 
@@ -53,7 +54,7 @@ autodoc_default_options = {
     'member-order': 'bysource',
 }
 autodoc_mock_imports = [
-    'ffmpeg', 'moviepy', 'tensorflow', 'object_detection', 'tensornets']
+    'ffmpeg', 'moviepy', 'tensorflow', 'object_detection', 'tensornets', 'cv2']
 
 autosectionlabel_prefix_document = True
 
@@ -66,6 +67,8 @@ sphinx_gallery_conf = {
     'gallery_dirs': ['auto_tutorials', 'auto_examples', 'auto_demos'],
     'filename_pattern': re.escape(os.sep),
     'image_scrapers': (gallery_scraper(),),
+    'reset_modules': ('matplotlib', 'seaborn', reset_numpy_random_seed()),
+    'reset_modules_order': 'both',
     'abort_on_example_error': False,
     'reference_url': {'stonesoup': None},
     'remove_config_comments': True,
@@ -103,10 +106,11 @@ source_suffix = '.rst'
 
 # The master toctree document.
 master_doc = 'index'
+toc_object_entries = False
 
 # General information about the project.
 project = 'Stone Soup'
-copyright = '2017-2022 Stone Soup contributors'
+copyright = '2017-2023 Stone Soup contributors'
 author = 'Dstl'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -122,7 +126,7 @@ version = release = get_distribution('stonesoup').version
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:

@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 
-from ...types.particle import Particle, \
-    Particles
+from ...types.particle import Particle
+from ...types.state import ParticleState
 from ..particle import SystematicResampler
 from ..particle import ESSResampler
 
@@ -46,10 +45,32 @@ def test_systematic_even():
                for i, new_particle in enumerate(new_particles))
 
 
+def test_systematic_downsample():
+    particles = [Particle(np.array([[i]]), weight=1/40) for i in range(40)]
+
+    resampler = SystematicResampler()
+
+    new_particles = resampler.resample(particles, 20)
+
+    # Check that the resampler downsamples the particles correctly
+    assert len(new_particles) == 20
+
+
+def test_systematic_upsample():
+    particles = [Particle(np.array([[i]]), weight=1/20) for i in range(20)]
+
+    resampler = SystematicResampler()
+
+    new_particles = resampler.resample(particles, 40)
+
+    # Check that the resampler upsamples the particles correctly
+    assert len(new_particles) == 40
+
+
 def test_ess_zero():
     particles = [Particle(np.array([[i]]), weight=(i+1) / 55)
                  for i in range(10)]
-    particles = Particles(particle_list=particles)  # Needed for assert line
+    particles = ParticleState(None, particle_list=particles)  # Needed for assert line
 
     resampler = ESSResampler(0)  # Should never resample
 
@@ -72,9 +93,9 @@ def test_ess_n():
 def test_ess_inequality():
     particles = [Particle(np.array([[i]]), weight=(i + 1) / 55)
                  for i in range(10)]
-    particles = Particles(particle_list=particles)
+    particles = ParticleState(None, particle_list=particles)
 
-    resampler1 = ESSResampler(3025/385)  # This resampler should not resample
+    resampler1 = ESSResampler()  # This resampler should not resample
     resampler2 = ESSResampler(3025/385 + 0.01)  # This resampler should resample
 
     new_particles1 = resampler1.resample(particles)

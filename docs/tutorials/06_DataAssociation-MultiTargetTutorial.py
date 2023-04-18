@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """
 =====================================================
@@ -12,7 +11,7 @@
 # -----------------------------------------
 #
 # As we've seen, more often than not, the difficult part of state estimation concerns the ambiguous
-# association of predicted states with measurements. This happens whenever there is more that one
+# association of predicted states with measurements. This happens whenever there is more than one
 # target under consideration, there are false alarms or clutter, targets can appear and disappear.
 # That is to say it happens everywhere.
 #
@@ -74,10 +73,11 @@ from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 # %%
 # Generate ground truth
 # ^^^^^^^^^^^^^^^^^^^^^
+from ordered_set import OrderedSet
 
 np.random.seed(1991)
 
-truths = set()
+truths = OrderedSet()
 
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),
                                                           ConstantVelocity(0.005)])
@@ -94,15 +94,15 @@ for k in range(1, 21):
     truth.append(GroundTruthState(
         transition_model.function(truth[k-1], noise=True, time_interval=timedelta(seconds=1)),
         timestamp=start_time+timedelta(seconds=k)))
-truths.add(truth)
+_ = truths.add(truth)
 
 # %%
 # Plot the ground truth
 
-from stonesoup.plotter import Plotter
-plotter = Plotter()
-plotter.ax.set_ylim(0, 25)
+from stonesoup.plotter import Plotterly
+plotter = Plotterly()
 plotter.plot_ground_truths(truths, [0, 2])
+plotter.fig
 
 # %%
 # Generate detections with clutter
@@ -146,7 +146,7 @@ for k in range(20):
     all_measurements.append(measurement_set)
 
 # Plot true detections and clutter.
-plotter.plot_measurements(all_measurements, [0, 2], color='g')
+plotter.plot_measurements(all_measurements, [0, 2])
 plotter.fig
 
 # %%

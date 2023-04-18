@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import datetime
 from collections import defaultdict
 from operator import attrgetter
@@ -9,14 +8,14 @@ import scipy as sp
 from scipy.spatial import KDTree
 try:
     import rtree
-except (ImportError, AttributeError, OSError) as err:
+except (ImportError, AttributeError, OSError) as err:  # pragma: no cover
     # AttributeError or OSError raised when libspatialindex missing or unable to load.
     import warnings
     warnings.warn(f"Failed to import 'rtree': {err!r}")
     rtree = None
 
-from .base import DataAssociator
-from ..base import Property
+from ..base import Base, Property
+from ..hypothesiser import Hypothesiser
 from ..models.base import LinearModel
 from ..models.measurement import MeasurementModel
 from ..predictor import Predictor
@@ -24,7 +23,7 @@ from ..types.update import Update
 from ..updater import Updater
 
 
-class DetectionKDTreeMixIn(DataAssociator):
+class DetectionKDTreeMixIn(Base):
     """Detection kd-tree based mixin
 
     Construct a kd-tree from detections and then use a :class:`~.Predictor` and
@@ -35,8 +34,10 @@ class DetectionKDTreeMixIn(DataAssociator):
     Notes
     -----
     This is only suitable where measurements are in same space as each other
-    and at the same timestamp.
+    (i.e. have the same measurement model) and at the same timestamp.
     """
+    hypothesiser: Hypothesiser = Property(
+        doc="Underlying hypothesiser used to generate detection-target pairs")
     predictor: Predictor = Property(
         doc="Predict tracks to detection times")
     updater: Updater = Property(
@@ -48,6 +49,13 @@ class DetectionKDTreeMixIn(DataAssociator):
     max_distance: float = Property(
         default=np.inf,
         doc="Max distance to return points. Default `inf`")
+    max_distance_covariance_multiplier: float = Property(
+        default=None,
+        doc="If set, the max distance will be limited to maximum of covariance "
+            "diagonal of the track state, multiplied by this attribute, or "
+            ":attr:`max_distance`, whichever is smallest. Default `None` where "
+            "only :attr:`max_distance` is used."
+    )
 
     def generate_hypotheses(self, tracks, detections, timestamp, **kwargs):
         # No need for tree here.
@@ -58,6 +66,13 @@ class DetectionKDTreeMixIn(DataAssociator):
                 track, detections, timestamp, **kwargs)
                 for track in tracks}
 
+        measurement_models = {detection.measurement_model for detection in detections}
+        if len(measurement_models) > 1:
+            raise RuntimeError("KDTree requires all detections have same measurement model")
+        else:
+            # Must be single model (or all None)
+            measurement_model = measurement_models.pop()
+
         detections_list = list(detections)
         tree = KDTree(
             np.vstack([detection.state_vector[:, 0]
@@ -65,18 +80,29 @@ class DetectionKDTreeMixIn(DataAssociator):
 
         track_detections = defaultdict(set)
         for track in tracks:
-            prediction = self.predictor.predict(track.state, timestamp)
-            meas_pred = self.updater.predict_measurement(prediction)
+            prediction = self.predictor.predict(track, timestamp, **kwargs)
+            meas_pred = self.updater.predict_measurement(prediction, measurement_model, **kwargs)
+            if self.max_distance_covariance_multiplier is None:
+                max_distance = self.max_distance
+            else:
+                max_distance = min(
+                    self.max_distance,
+                    np.max(np.diag(meas_pred.covar)) * self.max_distance_covariance_multiplier)
+
+            try:
+                meas_pred_state_vector = meas_pred.mean
+            except AttributeError:
+                meas_pred_state_vector = meas_pred.state_vector
 
             if self.number_of_neighbours is None:
                 indexes = tree.query_ball_point(
-                    meas_pred.state_vector.ravel(),
-                    r=self.max_distance)
+                    meas_pred_state_vector.ravel(),
+                    r=max_distance)
             else:
                 _, indexes = tree.query(
-                    meas_pred.state_vector.ravel(),
+                    meas_pred_state_vector.ravel(),
                     k=self.number_of_neighbours,
-                    distance_upper_bound=self.max_distance)
+                    distance_upper_bound=max_distance)
 
             for index in np.atleast_1d(indexes):
                 # Index is equal to length of detections when no neighbours found
@@ -88,11 +114,20 @@ class DetectionKDTreeMixIn(DataAssociator):
             for track in tracks}
 
 
-class TPRTreeMixIn(DataAssociator):
+class TPRTreeMixIn(Base):
     """Detection TPR tree based mixin
 
-    Construct a TPR-tree.
+    Construct a TPR-tree to filter detections for generating hypotheses. This assumes
+    tracks move in constant velocity like model, using the mean and covariance to define
+    region to look for detections.
+
+    Notes
+    -----
+    This requires that track state has a mean (position and velocity) and covariance, which
+    is then approximated to a TPR node (position, velocity and time bounding box).
     """
+    hypothesiser: Hypothesiser = Property(
+        doc="Underlying hypothesiser used to generate detection-target pairs")
     measurement_model: MeasurementModel = Property(
         doc="Measurement model used within the TPR tree")
     horizon_time: datetime.timedelta = Property(
@@ -125,12 +160,12 @@ class TPRTreeMixIn(DataAssociator):
         self._coords = dict()
 
     def _track_tree_coordinates(self, track):
-        state_vector = track.state_vector[self.pos_mapping, :]
+        state_vector = track.mean[self.pos_mapping, :]
         state_delta = 3 * np.sqrt(
-            np.diag(track.covar)[self.pos_mapping].reshape(-1, 1))
-        vel_vector = track.state_vector[self.vel_mapping, :]
+            np.diag(track.covar)[self.pos_mapping, ].reshape(-1, 1))
+        vel_vector = track.mean[self.vel_mapping, :]
         vel_delta = 3 * np.sqrt(
-            np.diag(track.covar)[self.vel_mapping].reshape(-1, 1))
+            np.diag(track.covar)[self.vel_mapping, ].reshape(-1, 1))
 
         min_pos = (state_vector - state_delta).ravel()
         max_pos = (state_vector + state_delta).ravel()
