@@ -63,6 +63,10 @@ class RadarBearingRange(SimpleSensor):
         true_range = measurement_vector[1, 0]  # Bearing(0), Range(1)
         return true_range <= self.max_range
 
+    def is_clutter_detectable(self, state: Detection) -> bool:
+        measurement_range = state.state_vector[1]
+        return measurement_range <= self.max_range
+
 
 class RadarBearing(SimpleSensor):
     """A simple radar sensor that generates measurements of targets, using a
@@ -109,6 +113,10 @@ class RadarBearing(SimpleSensor):
         measurement_vector = tmp_meas_model.function(state, noise=False)
         true_range = measurement_vector[1, 0]  # Bearing(0), Range(1)
         return true_range <= self.max_range
+
+    def is_clutter_detectable(self, state: Detection) -> bool:
+        measurement_range = state.state_vector[1]
+        return measurement_range <= self.max_range
 
 
 class RadarRotatingBearingRange(RadarBearingRange):

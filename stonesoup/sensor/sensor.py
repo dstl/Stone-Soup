@@ -120,13 +120,17 @@ class SimpleSensor(Sensor, ABC):
             self.clutter_model.measurement_model = measurement_model
             clutter = self.clutter_model.function(ground_truths)
             detectable_clutter = [cltr for cltr in clutter
-                                  if self.is_detectable(cltr)]
+                                  if self.is_clutter_detectable(cltr)]
             detections = set.union(detections, detectable_clutter)
 
         return detections
 
     @abstractmethod
-    def is_detectable(self, state: Union[GroundTruthState, Detection]) -> bool:
+    def is_detectable(self, state: GroundTruthState) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def is_clutter_detectable(self, state: Detection) -> bool:
         raise NotImplementedError
 
 
