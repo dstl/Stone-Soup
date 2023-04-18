@@ -31,7 +31,7 @@ colours = ["darkgreen", "firebrick", "gold", "mediumvioletred", "dodgerblue", "b
 
 
 # %%
-# Create Scenario
+# Create States
 # ^^^^^^^^^^^^^^^^
 
 # %%
@@ -85,8 +85,8 @@ associations, unassociated_states_a, unassociated_states_b = \
 
 
 # %%
-# Results of Association
-# ^^^^^^^^^^^^^^^^^^^^^^^
+# Results of State Association
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # The results will be visualised and printed
 
 colours_iter = iter(colours)
@@ -147,7 +147,7 @@ plotter.fig
 # tracks together.
 
 # %%
-# Create Scenario
+# Create Tracks
 # ^^^^^^^^^^^^^^^^
 # Six tracks are created and are plotted
 
@@ -216,7 +216,7 @@ plotter.fig
 # periods for association.
 
 # %%
-# Create Associator & Associate States
+# Create Associator & Associate Tracks
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # %%
@@ -240,8 +240,8 @@ associator = OneToOneTrackAssociator(measure=track_measure,
 associations, unassociated_a, unassociated_b = associator.associate(tracks_a, tracks_b)
 
 # %%
-# Results of Association
-# ^^^^^^^^^^^^^^^^^^^^^^^
+# Results of Track Association
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # The results will be visualised and printed
 plotter = Plotterly()
 colours_iter = iter(colours)

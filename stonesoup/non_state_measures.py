@@ -18,8 +18,8 @@ class MultipleMeasure(GenericMeasure):
 
 class TrackMeasure(GenericMeasure):
     """Track Measure base type
-    A measure provides a means to assess the separation between two track objects track1 and track2.
-    It should return the float of the distance measure between the two tracks
+    A measure provides a means to assess the separation between two track objects track1 and
+    track2. It should return the float of the distance measure between the two tracks
     """
 
     @abstractmethod

@@ -20,8 +20,8 @@ class OneToOneAssociator(Associator):
     measure: GenericMeasure = Property()
     association_threshold: float = Property(
         default=None, doc="The maximum (minimum if `maximise_measure` is true) value from the "
-                          "`measure` needed to associate two objects. If the default value of None "
-                          "is used then the association threshold is set to plus/minus an "
+                          "`measure` needed to associate two objects. If the default value of None"
+                          " is used then the association threshold is set to plus/minus an "
                           "arbitrarily large number that shouldn't cut off ")
 
     maximise_measure: bool = Property(
@@ -107,8 +107,8 @@ class OneToOneAssociator(Associator):
     def fail_value(self):
         """
         For an association to be valid is must be over (or under if maximise_measure is True)
-        (non-inclusive). Therefore setting the value to the association threshold will result in the
-        association not taking place
+        (non-inclusive). Therefore setting the value to the association threshold will result in
+        the association not taking place
         """
         return self.association_threshold
 
