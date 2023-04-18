@@ -38,8 +38,8 @@ class GenericMeasure(Base):
 class TrackMeasure(GenericMeasure):
     """Measure base type
 
-    A measure provides a means to assess the seperation between two
-     objects item1 and item2.
+    A measure provides a means to assess the separation between two
+    objects item1 and item2.
     """
 
     @abstractmethod
