@@ -138,7 +138,7 @@ class KalmanUpdater(Updater):
     def _posterior_mean(self, predicted_state_vector, kalman_gain, measurement,
                         measurement_prediction):
         """Compute the posterior mean, :math:`x_{k|k} = x_{k|k-1} + K_k y_k`, where the innovation
-        :math:`y_k = z - h(x)`. 
+        :math:`y_k = z - h(x)`.
 
         Parameters
         ----------
@@ -707,8 +707,8 @@ class SchmidtKalmanUpdater(ExtendedKalmanUpdater):
     10.1007/s40295-015-0068-7.
 
     """
-
-    # TODO: Inherit from ExtendedKalmanUpdater to allow one to use non-linear measurement functions?
+    # TODO: Inherit from ExtendedKalmanUpdater to allow one to use non-linear measurement
+    # TODO: functions?
 
     consider: np.ndarray = Property(default=None,
                                     doc="The boolean vector of 'consider' parameters. True "
@@ -779,7 +779,7 @@ class SchmidtKalmanUpdater(ExtendedKalmanUpdater):
         # First get the Kalman gain
         mcc = hypothesis.measurement_prediction.cross_covar
         kalman_gain = mcc[np.ix_(~self.consider)] @ \
-                      np.linalg.inv(hypothesis.measurement_prediction.covar)
+            np.linalg.inv(hypothesis.measurement_prediction.covar)
 
         # Then assemble the quadrants of the posterior covariance (easier to think of them as
         # quadrants even though they're actually submatrices who may appear in somewhat different
