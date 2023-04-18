@@ -79,6 +79,7 @@ class TrackStitcher(Base):
                         x_forward[track.id][hypothesis.measurement.metadata] = hypothesis.distance
                     else:
                         x_forward[track.id][None] = hypothesis.distance
+        print(x_forward.keys())
         return x_forward
 
     def backward_predict(self, tracks, start_time):
@@ -112,6 +113,7 @@ class TrackStitcher(Base):
                                 hypothesis.distance
                             # TODO: Not ideal. Is there a better way?
                             x_backward[hypothesis.measurement.metadata][None] = missed_hyp.distance
+        print(x_backward.keys())
         return x_backward
 
     @staticmethod
@@ -257,6 +259,7 @@ class TrackStitcher(Base):
             stitched_track_map[new_track.id] = ids
 
         return tracks, stitched_track_map
+
 
 def tracker(all_measurements, initiator, deleter, data_associator, hypothesiser,
             predictor, updater, start_time):
