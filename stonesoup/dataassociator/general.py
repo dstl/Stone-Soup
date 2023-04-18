@@ -1,109 +1,52 @@
-from abc import abstractmethod
-from operator import attrgetter
-from datetime import datetime
-from statistics import mean
+from typing import Tuple, Collection
 
-from stonesoup.dataassociator.base import Associator
-from stonesoup.types.association import AssociationSet
-from typing import Set, List, Union, Tuple, Dict, Optional
 import numpy as np
-from stonesoup.base import Property, Base
-from stonesoup.measures import GenericMeasure, Measure
-from stonesoup.dataassociator._assignment import assign2D
-from stonesoup.types.association import Association
-from stonesoup.types.track import Track
-from stonesoup.types.state import State
+from scipy.optimize import linear_sum_assignment
+
+from ..base import Property
+from ..dataassociator.base import Associator
+from ..measures import GenericMeasure
+from ..types.association import Association, AssociationSet
 
 
-class GeneralAssociationGate(Base):
-
-    @abstractmethod
-    def __call__(self, item1, item2) -> bool:
-        raise NotImplementedError
-
-
-class MeasureThresholdGate(GeneralAssociationGate):
-
-    minimise_measure: bool = Property(default=True)
-    association_threshold: float = Property()
-    measure: GenericMeasure = Property()
-
-    def __call__(self, item1, item2) -> bool:
-        distance_measure = self.measure(item1, item2)
-        if self.minimise_measure:
-            return distance_measure <= self.association_threshold
-        else:  # maximise measure
-            return self.association_threshold <= distance_measure
-
-
-class RecentTrackMeasure(GenericMeasure):
-    state_measure: Measure = Property()
-    n_states_to_compare: int = Property(default=10)
-
-    def __call__(self, track1: Track, track2: Track) -> Optional[float]:
-
-        track_1_dict: Dict[datetime, State] = \
-            {state.timestamp: state for i, state in enumerate(reversed(track1.states))
-             if i < self.n_states_to_compare}
-
-        track_2_dict = {state.timestamp: state for i, state in enumerate(reversed(track2.states)) if
-                        i < self.n_states_to_compare}
-
-        all_times = set(track_1_dict.keys()) | set(track_2_dict.keys())
-
-        measures = []
-        for time in all_times:
-            state1 = track_1_dict.get(time)
-            state2 = track_2_dict.get(time)
-
-            if state1 is not None and state2 is not None:
-                measures.append(self.state_measure(state1, state2))
-
-        if len(measures) != 0:
-            return mean(measures)
-        else:
-            return None
-
-
-class OneToOneAssociatorWithGates(Associator):
-
-    gates: List[GeneralAssociationGate] = Property(default=None)
-
-    fail_gate_value: Union[int, float, complex, np.number] = Property(default=None)
+class OneToOneAssociator(Associator):
+    """
+    This a general one to one associator. It can be used to associate objects/values that have a
+    `GenericMeasure` to compare them.
+    Uses scipy.optimize.linear_sum_assignment to find the minimum (or maximum) measure by
+    combination objects from two sources.
+    """
 
     measure: GenericMeasure = Property()
-    association_threshold: float = Property(default=None)
+    association_threshold: float = Property(
+        default=None, doc="The maximum (minimum if `maximise_measure` is true) value from the "
+                          "`measure` needed to associate two objects. If the default value of None "
+                          "is used then the association threshold is set to plus/minus an "
+                          "arbitrarily large number that shouldn't cut off ")
 
-    maximise_measure: bool = Property(default=False)
+    maximise_measure: bool = Property(
+        default=False, doc="Should the association algorithm attempt to maximise or minimise the "
+                           "output of the measure")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if self.gates is None:
-            self.gates = []
-
-        if self.fail_gate_value is None:
-            if self.maximise_measure:
-                self.fail_gate_value = 0
-            else:
-                self.fail_gate_value = 1e6
-
+        # As default the association threshold is set to +- a large number (1e10 was chosen
+        # arbitrarily). Infinity can't be used, as it breaks the association algorithm
         if self.association_threshold is None:
             if self.maximise_measure:
-                self.association_threshold = 0
+                self.association_threshold = -1e10
             else:
-                self.association_threshold = 1e6
+                self.association_threshold = 1e10
 
-    def associate(self, objects_a: Set, objects_b: Set) \
-            -> Tuple[AssociationSet, Set, Set]:
-        """Associate two sets of tracks together.
+    def associate(self, objects_a: Collection, objects_b: Collection) \
+            -> Tuple[AssociationSet, Collection, Collection]:
+        """Associate two collections of objects together.
 
         Parameters
         ----------
-        objects_a : set of :class:`~.Track` objects
-            Tracks to associate to track set 2
-        objects_b : set of :class:`~.Track` objects
-            Tracks to associate to track set 1
+        objects_a : collection of objects to associate to the objects in `objects_b`
+        objects_b : collection of objects to associate to the objects in `objects_a`
 
         Returns
         -------
@@ -111,6 +54,10 @@ class OneToOneAssociatorWithGates(Associator):
             Contains a set of :class:`~.Association` objects
 
         """
+
+        if len(objects_a) == 0 or len(objects_b) == 0:
+            return AssociationSet(), objects_a, objects_b
+
         distance_matrix = np.empty((len(objects_a), len(objects_b)))
 
         list_of_as = list(objects_a)
@@ -120,60 +67,96 @@ class OneToOneAssociatorWithGates(Associator):
             for j, b in enumerate(list_of_bs):
                 distance_matrix[i, j] = self.individual_weighting(a, b)
 
-        distance_matrix2 = np.copy(distance_matrix)
-
         # Use "shortest path" assignment algorithm on distance matrix
         # to assign tracks to nearest detection
         # Maximise flag = true for probability instance
         # (converts minimisation problem to maximisation problem)
-        gain, col4row, row4col = assign2D(
-            distance_matrix2, self.maximise_measure)
-
-        # Ensure the problem was feasible
-        if gain.size <= 0:
-            raise RuntimeError("Assignment was not feasible")
+        row_ind, col_ind = linear_sum_assignment(
+            distance_matrix, self.maximise_measure)
 
         # Create dictionary for associations
         associations = AssociationSet()
 
         # Generate dict of key/value pairs
-        for i, object_a in enumerate(list_of_as):
-            index_of_objects_b = col4row[i]
-            if index_of_objects_b == -1:
-                continue
-            value = distance_matrix[i, index_of_objects_b]
+        for i, j in zip(row_ind, col_ind):
+            object_a = list_of_as[i]
+            object_b = list_of_bs[j]
 
+            value = distance_matrix[i, j]
+
+            # Check association meets threshold
             if self.maximise_measure:
-                if value < self.association_threshold:
-                    continue
-            else:  # Minimise measure
                 if value > self.association_threshold:
-                    continue
+                    # Meets threshold
+                    associations.associations.add(Association({object_a, object_b}))
+            else:  # Minimise measure
+                if value < self.association_threshold:
+                    # Meets threshold
+                    associations.associations.add(Association({object_a, object_b}))
 
-            associations.associations.add(Association({object_a, list_of_bs[index_of_objects_b]}))
+        associated_objects = {obj
+                              for assoc in associations.associations
+                              for obj in assoc.objects}
 
-        associated_all = {thing for assoc in associations.associations for thing in assoc.objects}
-
-        unassociated_a = set(objects_a) - associated_all
-        unassociated_b = set(objects_b) - associated_all
+        unassociated_a = set(objects_a) - associated_objects
+        unassociated_b = set(objects_b) - associated_objects
 
         return associations, unassociated_a, unassociated_b
 
+    @property
+    def fail_value(self):
+        """
+        For an association to be valid is must be over (or under if maximise_measure is True)
+        (non-inclusive). Therefore setting the value to the association threshold will result in the
+        association not taking place
+        """
+        return self.association_threshold
+
     def individual_weighting(self, a, b):
-
-        for gate in self.gates:
-            if not gate(a, b):
-                return self.fail_gate_value
-
+        """ This wrapper around the measure function allows for filtering/error checking of the
+        measure function. It can gives an easy access point for sub-classes that want to apply
+        additional filtering or gating"""
         measure_output = self.measure(a, b)
         if measure_output is None:
-            return self.fail_gate_value
+            return self.fail_value
         else:
-            return measure_output
+            if self.maximise_measure:
+                return max(measure_output, self.fail_value)
+            else:
+                return min(measure_output, self.fail_value)
 
+    def association_dict(self, objects_a: Collection, objects_b: Collection) -> dict:
+        """
+        This is a wrapper function around the `associate` function. The two collections of objects
+        are associated to each other. The objects are entered into a dictionary:
+            The dictionary key is an object from either collection.
+            The value is the object it is associated to. If the key object isn't associated to an
+            object then the value
+        is None.
 
+        As the objects are used as dictionary keys, they must be hashable or a `TypeError` will be
+        raised
 
+        Parameters
+        ----------
+        objects_a : collection of hashable objects to associate to the objects in `objects_b`
+        objects_b : collection of hashable objects to associate to the objects in `objects_a`
 
+        Returns
+        -------
+        AssociationSet
+            Contains a set of :class:`~.Association` objects
 
+        """
+        output_dict = {}
+        associations, unassociated_a, unassociated_b = self.associate(objects_a, objects_b)
 
+        for assoc in associations.associations:
+            object_1, object_2 = assoc.objects
+            output_dict[object_1] = object_2
+            output_dict[object_2] = object_1
 
+        for obj in [*unassociated_a, *unassociated_b]:
+            output_dict[obj] = None
+
+        return output_dict
