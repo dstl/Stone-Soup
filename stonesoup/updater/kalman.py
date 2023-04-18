@@ -31,11 +31,11 @@ class KalmanUpdater(Updater):
 
     .. math::
 
-        \mathbf{z}_{k|k-1} = H_k \mathbf{x}_{k|k-1}
+        \mathbf{z}_{k|k-1} &= H_k \mathbf{x}_{k|k-1}
 
-        S_k = H_k P_{k|k-1} H_k^T + R_k
+        S_k &= H_k P_{k|k-1} H_k^T + R_k
 
-        \Upsilon_k = P_{k|k-1} H_k^T
+        \Upsilon_k &= P_{k|k-1} H_k^T
 
     where :math:`P_{k|k-1}` is the predicted state covariance.
     :meth:`predict_measurement` returns a
@@ -50,10 +50,10 @@ class KalmanUpdater(Updater):
 
     .. math::
 
-        \mathbf{x}_{k|k} = \mathbf{x}_{k|k-1} + K_k (\mathbf{z}_k - H_k
+        \mathbf{x}_{k|k} &= \mathbf{x}_{k|k-1} + K_k (\mathbf{z}_k - H_k
         \mathbf{x}_{k|k-1})
 
-        P_{k|k} = P_{k|k-1} - K_k S_k K_k^T
+        P_{k|k} &= P_{k|k-1} - K_k S_k K_k^T
 
     These are returned as a :class:`~.GaussianStateUpdate` object.
     """
@@ -137,8 +137,9 @@ class KalmanUpdater(Updater):
 
     def _posterior_mean(self, predicted_state_vector, kalman_gain, measurement,
                         measurement_prediction):
-        """Compute the posterior mean, :math:`x_{k|k} = x_{k|k-1} + K_k y_k`, where the innovation
-        :math:`y_k = z - h(x)`.
+        r"""Compute the posterior mean, :math:`\mathbf{x}_{k|k} = \mathbf{x}_{k|k-1} + K_k
+        \mathbf{y}_k`, where the innovation :math:`\mathbf{y}_k = \mathbf{z}_k -
+        h(\mathbf{x}_{k|k-1}).
 
         Parameters
         ----------
@@ -428,7 +429,7 @@ class SqrtKalmanUpdater(KalmanUpdater):
 
     def _measurement_cross_covariance(self, predicted_state, measurement_matrix):
         """
-        Return the measurement cross covariance matrix, :math:`P_{k~k-1} H_k^T`. This differs
+        Return the measurement cross covariance matrix, :math:`P_{k|k-1} H_k^T`. This differs
         slightly from its parent in that it the predicted state covariance (now a square root
         matrix) is transposed.
 
@@ -556,7 +557,8 @@ class IteratedKalmanUpdater(ExtendedKalmanUpdater):
 
     .. math::
 
-        x_{k,i+1} &= x_{k|k-1} + K_i [z - h(x_{k,i}) - H_i (x_{k|k-1} - x_{k,i}) ]
+        \mathbf{x}_{k,i+1} &= \mathbf{x}_{k|k-1} + K_i [\mathbf{z} - h(\mathbf{x}_{k,i}) -
+        H_i (\mathbf{x}_{k|k-1} - \mathbf{x}_{k,i}) ]
 
         P_{k,i+1} &= (I - K_i H_i) P_{k|k-1}
 
@@ -564,7 +566,7 @@ class IteratedKalmanUpdater(ExtendedKalmanUpdater):
 
     .. math::
 
-        H_i &= h^{\prime}(x_{k,i}),
+        H_i &= h^{\prime}(\mathbf{x}_{k,i}),
 
         K_i &= P_{k|k-1} H_i^T (H_i P_{k|k-1} H_i^T + R)^{-1}
 
@@ -572,7 +574,7 @@ class IteratedKalmanUpdater(ExtendedKalmanUpdater):
 
     .. math::
 
-        x_{k,0} &= x_{k|k-1}
+        \mathbf{x}_{k,0} &= \mathbf{x}_{k|k-1}
 
         P_{k,0} &= P_{k|k-1}
 
@@ -663,7 +665,7 @@ class SchmidtKalmanUpdater(ExtendedKalmanUpdater):
 
     .. math ::
 
-        x^T &= [s^T \ p^T]
+        \mathbf{x}^T &= [\mathbf{s}^T \ \mathbf{p}^T]
 
         H &= [H_s \ H_p]
 
@@ -683,9 +685,10 @@ class SchmidtKalmanUpdater(ExtendedKalmanUpdater):
 
        K_s &= (P_{ss,k|k-1} H_s^T + P_{sp,k|k-1} H_p^T) S^{-1},
 
-       s_{k|k} &= s_{k|k-1} + K_s (z - H_s s_{k|k-1} - H_p p_{k|k-1}),
+       \mathbf{s}_{k|k} &= \mathbf{s}_{k|k-1} + K_s (\mathbf{z} - H_s \mathbf{s}_{k|k-1} - H_p
+       \mathbf{p}_{k|k-1}),
 
-       p_{k|k} &= p_{k|k-1},
+       \mathbf{p}_{k|k} &= \mathbf{p}_{k|k-1},
 
     .. math ::
 
