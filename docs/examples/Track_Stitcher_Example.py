@@ -286,7 +286,7 @@ predictor = KalmanPredictor(transition_model)
 hypothesiser = DistanceHypothesiser(predictor, updater, Mahalanobis(), missed_distance=300)
 stitcher = TrackStitcher(forward_hypothesiser=hypothesiser)
 
-stitched_tracks = stitcher.stitch(all_tracks, start_time)
+stitched_tracks, _ = stitcher.stitch(all_tracks, start_time)
 
 for pair in dim_pairs:
     plotter = Plotter();
