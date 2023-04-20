@@ -368,15 +368,14 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
                 "Measurement model assumes 2D space. \
                 Rotation in 3D space is unsupported at this time.")
 
-        phi, rho = detection.state_vector[:]
-        xy = StateVector(pol2cart(rho, phi))
+        x, y = pol2cart(detection.state_vector[1, :], detection.state_vector[0, :])
 
-        xyz = np.concatenate((xy, StateVector([0])), axis=0)
+        xyz = np.array([x, y, np.zeros(detection.state_vector.shape[1])])
         inv_rotation_matrix = inv(self.rotation_matrix)
         xyz = inv_rotation_matrix @ xyz
         xy = xyz[0:2]
 
-        res = np.zeros((self.ndim_state, 1)).view(StateVector)
+        res = np.zeros((self.ndim_state, detection.state_vector.shape[1])).view(StateVector)
         res[self.mapping[:2], :] = xy + self.translation_offset[:2, :]
 
         return res
