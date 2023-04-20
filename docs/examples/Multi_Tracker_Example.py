@@ -9,10 +9,10 @@ Comparing Trackers On Non-Linear Groundtruth
 # set of detections.
 
 # %%
-# This notebook creates groundtruth with non-linear motion, generates detections using a sensor,
+# This notebook creates groundtruth with manoeuvring motion, generates detections using a sensor,
 # and attempts to track the groundtruth using the
 # Extended Kalman Filter (EKF), Unscented Kalman Filter (UKF),
-# the Particle Filter, and the Extended Sliding Innovation Filter (ESIF).
+# the Particle Filter (PF), and the Extended Sliding Innovation Filter (ESIF).
 # Each of these trackers assumes a constant velocity transition model. The trackers are compared
 # against each other using distance-error metrics, with the capability of displaying other metrics
 # for the user to explore. The aim of this example is to display the effectiveness of
@@ -23,14 +23,14 @@ Comparing Trackers On Non-Linear Groundtruth
 # ^^^^^^
 # The layout of this example is as follows:
 # 
-# 1) The non-linear ground truth is created using multiple transition models
-# 2) Detections are generated once per time step using a bearing-range sensor
+# 1) The ground truth is created using multiple transition models
+# 2) The non-linear detections are generated once per time step using a bearing-range sensor
 # 3) Each tracker is initialised and run on the detections
 # 4) The results are plotted, and tracking metrics displayed for the user to explore
 
 # %%
-# 1) Create Non-Linear Groundtruth
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# 1) Create Groundtruth
+# ^^^^^^^^^^^^^^^^^^^^^
 # Firstly, we initialise the ground truth states:
 import numpy as np
 import datetime
@@ -182,7 +182,7 @@ from stonesoup.predictor.particle import ParticlePredictor
 # introduce the predictors
 predictor_EKF = ExtendedKalmanPredictor(transition_model_estimate)
 predictor_UKF = UnscentedKalmanPredictor(transition_model_estimate)
-predictor_P = ParticlePredictor(transition_model_estimate)
+predictor_PF = ParticlePredictor(transition_model_estimate)
 
 # ######################################################################
 
@@ -200,7 +200,7 @@ updater_EKF = ExtendedKalmanUpdater(sensor)
 updater_UKF = UnscentedKalmanUpdater(sensor)
 updater_ESIF = ExtendedSlidingInnovationUpdater(measurement_model=None,
                                                 layer_width=10 * np.diag(sensor.noise_covar))
-updater_P = ParticleUpdater(measurement_model=None, resampler=resampler)
+updater_PF = ParticleUpdater(measurement_model=None, resampler=resampler)
 
 # ######################################################################
 
@@ -214,7 +214,7 @@ hypothesiser_UKF = DistanceHypothesiser(predictor_UKF, updater_UKF,
                                         measure=Mahalanobis(), missed_distance=4)
 hypothesiser_ESIF = DistanceHypothesiser(predictor_EKF, updater_ESIF,
                                          measure=Mahalanobis(), missed_distance=4)
-hypothesiser_P = DistanceHypothesiser(predictor_P, updater_P,
+hypothesiser_PF = DistanceHypothesiser(predictor_PF, updater_PF,
                                       measure=Mahalanobis(), missed_distance=4)
 
 # ######################################################################
@@ -225,7 +225,7 @@ from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
 data_associator_EKF = GNNWith2DAssignment(hypothesiser_EKF)
 data_associator_UKF = GNNWith2DAssignment(hypothesiser_UKF)
 data_associator_ESIF = GNNWith2DAssignment(hypothesiser_ESIF)
-data_associator_P = GNNWith2DAssignment(hypothesiser_P)
+data_associator_PF = GNNWith2DAssignment(hypothesiser_PF)
 
 # ######################################################################
 
@@ -240,7 +240,7 @@ init_transition_model = CombinedLinearGaussianTransitionModel(
     (ConstantVelocity(1), ConstantVelocity(1)))
 init_predictor_EKF = ExtendedKalmanPredictor(init_transition_model)
 init_predictor_UKF = UnscentedKalmanPredictor(init_transition_model)
-init_predictor_P = ParticlePredictor(init_transition_model)
+init_predictor_PF = ParticlePredictor(init_transition_model)
 
 # %%
 # The final step before running the trackers is to create the initiators:
@@ -298,7 +298,7 @@ prior_state = GaussianState(
 
 initiator_Part = SimpleMeasurementInitiator(prior_state, measurement_model=None,
                                             skip_non_reversible=True)
-initiator_P = GaussianParticleInitiator(number_particles=2000,
+initiator_PF = GaussianParticleInitiator(number_particles=2000,
                                         initiator=initiator_Part,
                                         use_fixed_covar=False)
 
@@ -350,17 +350,17 @@ for step, (time, current_tracks) in enumerate(kalman_tracker_ESIF, 1):
 
 # ##########################################################################
 
-tracker_P = MultiTargetTracker(
-    initiator=initiator_P,
+tracker_PF = MultiTargetTracker(
+    initiator=initiator_PF,
     deleter=deleter,
     detector=detectors[3],
-    data_associator=data_associator_P,
-    updater=updater_P,
+    data_associator=data_associator_PF,
+    updater=updater_PF,
 )
 
-tracks_P = set()
-for step, (time, current_tracks) in enumerate(tracker_P, 1):
-    tracks_P.update(current_tracks)
+tracks_PF = set()
+for step, (time, current_tracks) in enumerate(tracker_PF, 1):
+    tracks_PF.update(current_tracks)
 
 # %%
 # Finally, we plot the results:
@@ -368,7 +368,7 @@ plotter.plot_tracks(tracks_EKF, [0, 2], track_label="EKF", line=dict(color="oran
                     uncertainty=False)
 plotter.plot_tracks(tracks_UKF, [0, 2], track_label="UKF", line=dict(color="blue"),
                     uncertainty=False)
-plotter.plot_tracks(tracks_P, [0, 2], track_label="Particle Filter", line=dict(color="brown"),
+plotter.plot_tracks(tracks_PF, [0, 2], track_label="PF", line=dict(color="brown"),
                     uncertainty=False)
 plotter.plot_tracks(tracks_ESIF, [0, 2], track_label="ESIF", line=dict(color="green"),
                     uncertainty=False)
@@ -425,10 +425,10 @@ metrics_UKF = metric_manager_UKF.generate_metrics()
 
 # ##################################################
 
-metric_manager_P = SimpleManager([ospa_generator, siap_generator, uncertainty_generator],
-                                 associator=associator)
-metric_manager_P.add_data(ground_truth, tracks_P)
-metrics_P = metric_manager_P.generate_metrics()
+metric_manager_PF = SimpleManager([ospa_generator, siap_generator, uncertainty_generator],
+                                  associator=associator)
+metric_manager_PF.add_data(ground_truth, tracks_PF)
+metrics_PF = metric_manager_PF.generate_metrics()
 
 # ##################################################
 
@@ -445,7 +445,7 @@ from plotly.subplots import make_subplots
 ospa_metric_EKF = metrics_EKF['OSPA distances']
 ospa_metric_UKF = metrics_UKF['OSPA distances']
 ospa_metric_ESIF = metrics_ESIF['OSPA distances']
-ospa_metric_P = metrics_P['OSPA distances']
+ospa_metric_PF = metrics_PF['OSPA distances']
 
 fig = make_subplots(
     rows=1, cols=1,
@@ -464,7 +464,7 @@ fig.add_scatter(
     line_color='green',
 )
 fig.add_scatter(
-    x=[i.timestamp for i in ospa_metric_ESIF.value],
+    x=[i.timestamp for i in ospa_metric_EKF.value],
     y=[i.value for i in ospa_metric_EKF.value],
     name='EKF',
     legendgroup="orange",
@@ -475,7 +475,7 @@ fig.add_scatter(
     line_color='orange',
 )
 fig.add_scatter(
-    x=[i.timestamp for i in ospa_metric_ESIF.value],
+    x=[i.timestamp for i in ospa_metric_UKF.value],
     y=[i.value for i in ospa_metric_UKF.value],
     name='UKF',
     legendgroup="blue",
@@ -486,8 +486,8 @@ fig.add_scatter(
     line_color='blue',
 )
 fig.add_scatter(
-    x=[i.timestamp for i in ospa_metric_ESIF.value],
-    y=[i.value for i in ospa_metric_P.value],
+    x=[i.timestamp for i in ospa_metric_PF.value],
+    y=[i.value for i in ospa_metric_PF.value],
     name='Particle',
     legendgroup="red",
     yaxis='y',
@@ -506,14 +506,14 @@ ospa_EKF_total = sum([ospa_metric_EKF.value[i].value for i in range(0,
                                                                     len(ospa_metric_EKF.value))])
 ospa_UKF_total = sum([ospa_metric_UKF.value[i].value for i in range(0,
                                                                     len(ospa_metric_UKF.value))])
-ospa_P_total = sum([ospa_metric_P.value[i].value for i in range(0,
-                                                                len(ospa_metric_P.value))])
+ospa_PF_total = sum([ospa_metric_PF.value[i].value for i in range(0,
+                                                                len(ospa_metric_PF.value))])
 ospa_ESIF_total = sum([ospa_metric_ESIF.value[i].value for i in range(0,
                                                                       len(ospa_metric_ESIF.value))])
 
 print("OSPA total value for EKF is ", f'{ospa_EKF_total:.3f}')
 print("OSPA total value for UKF is ", f'{ospa_UKF_total:.3f}')
-print("OSPA total value for particle filter is ", f'{ospa_P_total:.3f}')
+print("OSPA total value for PF is ", f'{ospa_PF_total:.3f}')
 print("OSPA total value for ESIF is ", f'{ospa_ESIF_total:.3f}')
 
 # %%
