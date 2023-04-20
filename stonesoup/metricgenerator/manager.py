@@ -116,9 +116,9 @@ class MultiManager(MetricManager):
     # RG must be able to take multiple sets of groundtruth/ detections/ association set
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.tracks = set()
-        self.groundtruth_paths = set()
-        self.detections = set()
+        self.tracks = dict()
+        self.groundtruth_paths = dict()
+        self.detections = dict()
         self.association_set = None
 
     # RG generator will take mapping keys as input: e.g. generator([tracksmapping1, tracksmapping2])

@@ -9,6 +9,7 @@ from ..measures import Measure, Euclidean
 from ..types.state import State, StateMutableSequence
 from ..types.time import TimeRange
 from ..types.metric import SingleTimeMetric, TimeRangeMetric
+from manager import SimpleManager, MultiManager
 
 
 class GOSPAMetric(MetricGenerator):
@@ -52,8 +53,14 @@ class GOSPAMetric(MetricGenerator):
         """
 
         # RG must be able to extract states from 2 tracks or track & truth
-        return self.compute_over_time(
-            self.extract_states(manager.tracks), self.extract_states(manager.groundtruth_paths))
+        if isinstance(manager, SimpleManager):
+            return self.compute_over_time(
+                self.extract_states(manager.tracks), self.extract_states(manager.groundtruth_paths))
+        elif isinstance(manager, MultiManager):
+            return self.compute_over_time(
+                self.extract_states(manager.data_sets[self.keys[0]]),
+                self.extract_states(manager.data_sets[self.keys[1]])
+            )
 
     @staticmethod
     def extract_states(object_with_states):
