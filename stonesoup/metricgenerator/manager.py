@@ -102,7 +102,6 @@ class SimpleManager(MetricManager):
         return sorted(timestamps)
 
 
-
 class MultiManager(SimpleManager):
     """MultiManager class for metric management
 
