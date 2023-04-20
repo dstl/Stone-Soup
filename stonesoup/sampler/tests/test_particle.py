@@ -3,7 +3,11 @@ from scipy.stats import multivariate_normal, uniform
 import pytest
 import datetime
 
-from ..particle import ParticleSampler
+from ..particle import ParticleSampler, GaussianDetectionParticleSampler
+from ...types.detection import Detection
+from ...types.state import State
+from ...models.measurement.nonlinear import CartesianToBearingRange
+from ...models.measurement.linear import LinearGaussian
 
 
 @pytest.mark.parametrize(
@@ -159,3 +163,50 @@ def test_sampler(distribution_func, params, dist_override, params_override, ndim
         assert np.shape(new_particles.state_vector) == (ndim_state, params_override['size'])
         # check timestamp
         assert new_particles.timestamp == timestamp
+
+
+@pytest.mark.parametrize(
+    "measurement_model, states, nsamples",
+    [
+        (
+            LinearGaussian(ndim_state=2,
+                           mapping=(0, 1),
+                           noise_covar=np.eye(2)),  # measurement_model
+            [np.array([10, 10]), np.array([20, 20]), np.array([30, 30])],  # states
+            20  # nsamples
+        ), (
+            LinearGaussian(ndim_state=2,
+                           mapping=(0, 1),
+                           noise_covar=np.eye(2)),  # measurement_model
+            [np.array([10, 10]), np.array([20, 20]), np.array([30, 30])],  # states
+            20  # nsamples
+        ), (
+            CartesianToBearingRange(ndim_state=4,
+                                    mapping=(0, 2),
+                                    noise_covar=np.diag([0.01, 1])),  # measurement_model
+            [np.array([10, 0, 10, 0]),
+             np.array([20, 0, 20, 0]),
+             np.array([30, 0, 30, 0])],  # states
+            20  # nsamples
+        )
+    ],
+    ids=["linear_1_detection", "linear_3_detections", "nonlinear_3_detections"]
+)
+def test_gaussian_detection_sampler(measurement_model, states, nsamples):
+
+    timestamp_now = datetime.datetime.now()
+    detections = set()
+    for ii in range(3):
+        detections |= {Detection(measurement_model.function(State(states[ii])),
+                                 measurement_model=measurement_model,
+                                 timestamp=timestamp_now)}
+
+    sampler = GaussianDetectionParticleSampler(nsamples=nsamples)
+
+    particles = sampler.sample(detections)
+    # check number of particles
+    assert len(particles) == nsamples
+    # check state vector dimensions
+    assert particles.state_vector.shape[0] == states[0].shape[0]
+    # check timestamp
+    assert particles.timestamp == timestamp_now
