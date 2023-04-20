@@ -1,5 +1,5 @@
 from itertools import chain
-from typing import Sequence, Iterable, Union
+from typing import Sequence, Iterable, Union, Dict
 
 from .base import MetricManager, MetricGenerator
 from ..base import Property
@@ -103,7 +103,7 @@ class SimpleManager(MetricManager):
 
 
 
-class MultiManager(MetricManager):
+class MultiManager(SimpleManager):
     """MultiManager class for metric management
 
     :class:`~.MetricManager` for the generation of metrics on multiple
@@ -116,6 +116,7 @@ class MultiManager(MetricManager):
     # RG must be able to take multiple sets of groundtruth/ detections/ association set
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.states_sets = dict()
         self.tracks = dict()
         self.groundtruth_paths = dict()
         self.detections = dict()
@@ -124,35 +125,27 @@ class MultiManager(MetricManager):
     # RG generator will take mapping keys as input: e.g. generator([tracksmapping1, tracksmapping2])
     # must take mapping from generator as input (e.g. tracksmapping1 = TrackSet1, tracksmapping2 = TrackSet2) for
     # each type of ground truth/ detection / track
-    def add_data(self, groundtruth_paths: Iterable[Union[GroundTruthPath, Platform]] = None,
-                 tracks: Iterable[Track] = None, detections: Iterable[Detection] = None,
-                 overwrite=True):
+    def add_data(self, groundtruth_paths: Dict[str, Iterable[Union[GroundTruthPath, Platform]]] = None,
+                 tracks: Dict[str, Iterable[Track]] = None, detections: Dict[str, Iterable[Detection]] = None):
         """Adds data to the metric generator
 
         Parameters
         ----------
-        groundtruth_paths : list or set of :class:`~.GroundTruthPath`
+        groundtruth_paths : dictionary of lists or sets of :class:`~.GroundTruthPath`
             Ground truth paths to be added to the manager.
-        tracks : list or set of :class:`~.Track`
+        tracks : dictionary of lists or sets of :class:`~.Track`
             Tracks objects to be added to the manager.
-        detections : list or set of :class:`~.Detection`
+        detections : dictionary of lists or sets of :class:`~.Detection`
             Detections to be added to the manager.
-        overwrite: bool
-            declaring whether pre-existing data will be overwritten. Note that
-            overwriting one field (e.g. tracks) does not affect the others
         """
 
         # RG must be able to add variable number of sets of groundtruth/ tracks/ detections
-        self._add(overwrite, groundtruth_paths=groundtruth_paths,
-                  tracks=tracks, detections=detections)
+        self._add(groundtruth_paths=groundtruth_paths, tracks=tracks, detections=detections)
 
-    def _add(self, overwrite, **kwargs):
+    def _add(self, **kwargs):
         for key, value in kwargs.items():
             if value is not None:
-                if overwrite:
-                    setattr(self, key, set(value))
-                else:
-                    getattr(self, key).update(value)
+                self.states_sets |= value  # merge all dicts together
 
     def associate_tracks(self):
         """Associate tracks to truth using the associator
