@@ -51,6 +51,7 @@ class GOSPAMetric(MetricGenerator):
 
         """
 
+        # RG must be able to extract states from 2 tracks or track & truth
         return self.compute_over_time(
             self.extract_states(manager.tracks), self.extract_states(manager.groundtruth_paths))
 
@@ -374,9 +375,12 @@ class OSPAMetric(GOSPAMetric):
         2008
     """
 
+    # RG must take set mapping as an input to indicate which keys should be used in the simplemanager.add_data() method
     c: float = Property(doc='Maximum distance for possible association')
     p: float = Property(doc='norm associated to distance')
+    keys: list = Property(doc='', default=None)
 
+    # RG update documentation to clarify that compute_over_time can take 2 tracks or track and truth
     def compute_over_time(self, measured_states, truth_states):
         """Compute the OSPA metric at every timestep from a list of measured
         states and truth states
