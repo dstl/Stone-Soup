@@ -2,6 +2,7 @@
 import copy
 
 import numpy as np
+from numpy.random import multinomial, multivariate_normal
 
 from ..types.numeric import Probability
 from ..types.array import StateVector, StateVectors, CovarianceMatrix
@@ -507,6 +508,46 @@ def rotz(theta):
     return np.array([[c, -s, zero],
                      [s, c, zero],
                      [zero, zero, one]])
+
+
+def gm_sample(means, covars, size, weights=None):
+    """Sample from a mixture of multi-variate Gaussians
+
+    Parameters
+    ----------
+    means : :class:`~.StateVectors` or np.array of shape (num_components, num_dims)
+        The means of GM components
+    covars : np.array of shape (num_dims, num_dims, num_components) or list of np.array of
+    shape (num_dims, num_dims)
+        Covariance matrices of the GM components
+    size : int
+        Number of samples to return.
+    weights : np.array of shape (num_components,), optional
+        The weights of the GM components. If not defined, assumed equal.
+
+    Returns
+    -------
+    : :class:`numpy.ndarray` of shape (:attr:`size`, num_dims)"""
+
+    if isinstance(means, np.ndarray):
+        if len(means.shape) == 1:
+            means = StateVectors(np.array([means]).T)
+        else:
+            means = StateVectors(means)
+
+    if isinstance(means, StateVector):
+        means = means.view(StateVectors)
+
+    if isinstance(means, StateVectors) and weights is None:
+        weights = np.array([1/means.shape[1]]*means.shape[1])
+    elif weights is None:
+        weights = np.array([1/len(means)]*len(means))
+
+    n_samples = multinomial(size, weights)
+    samples = np.vstack([multivariate_normal(mean.ravel(), covar, sample)
+                         for (mean, covar, sample) in zip(means, covars, n_samples)]).T
+
+    return samples
 
 
 def gm_reduce_single(means, covars, weights):
