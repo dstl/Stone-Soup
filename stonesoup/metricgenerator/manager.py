@@ -120,10 +120,6 @@ class MultiManager(SimpleManager):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.states_sets = dict()
-        # self.tracks = dict()
-        # self.groundtruth_paths = dict()
-        # self.detections = dict()
-        self.association_set = None
 
     # RG generator will take mapping keys as input: e.g. generator([tracksmapping1, tracksmapping2])
     # must take mapping from generator as input (e.g. tracksmapping1 = TrackSet1, tracksmapping2 = TrackSet2) for
@@ -149,49 +145,3 @@ class MultiManager(SimpleManager):
         for key, value in kwargs.items():
             if value is not None:
                 self.states_sets |= value  # merge all dicts together
-
-    # def associate_tracks(self):
-    #     """Associate tracks to truth using the associator
-    #
-    #     The resultant :class:`~.AssociationSet` internally.
-    #     """
-    #     self.association_set = self.associator.associate_tracks(
-    #         self.tracks, self.groundtruth_paths)
-
-    def generate_metrics(self):
-        """Generate metrics using the generators and data that has been added
-
-        Returns
-        ----------
-        : set of :class:`~.Metric`
-            Metrics generated
-        """
-
-        if self.associator is not None and self.association_set is None:
-            self.associate_tracks()
-
-        # RG must generate a list of metrics for each pair of tracks or track-truth in each generator
-        metrics = {}
-        for generator in self.generators:
-            metric_list = generator.compute_metric(self)
-            # If not already a list, force it to be one below
-            if not isinstance(metric_list, list):
-                metric_list = [metric_list]
-            for metric in metric_list:
-                    metrics[metric.title] = metric
-        return metrics
-
-    # def list_timestamps(self):
-    #     """List all the timestamps used in the tracks and truth, in order
-    #
-    #     Returns
-    #     ----------
-    #     : list of :class:`datetime.datetime`
-    #         unique timestamps present in the internal tracks and truths.
-    #     """
-    #     # Make a list of all the unique timestamps used
-    #     timestamps = {state.timestamp
-    #                   for sequence in chain(self.tracks, self.groundtruth_paths)
-    #                   for state in sequence}
-    #
-    #     return sorted(timestamps)
