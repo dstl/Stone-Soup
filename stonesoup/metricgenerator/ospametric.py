@@ -387,7 +387,10 @@ class OSPAMetric(GOSPAMetric):
     # RG must take set mapping as an input to indicate which keys should be used in the simplemanager.add_data() method
     c: float = Property(doc='Maximum distance for possible association')
     p: float = Property(doc='Norm associated to distance')
-    keys: list = Property(doc='Pair of keys to access desired sets of states added to MultiManager', default=None)
+    keys: list = Property(doc='Pair of strings of keys to access desired sets of states added to MultiManager',
+                          default=None)
+    generator_name: str = Property(doc='Name given to generator to use when accessing metrics from MultiManager',
+                                   default=None)
 
     # RG update documentation to clarify that compute_over_time can take 2 tracks or track and truth
     def compute_over_time(self, measured_states, truth_states):
