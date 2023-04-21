@@ -82,8 +82,12 @@ class SimpleManager(MetricManager):
             # If not already a list, force it to be one below
             if not isinstance(metric_list, list):
                 metric_list = [metric_list]
-            for metric in metric_list:
-                metrics[metric.title] = metric
+            if isinstance(self, MultiManager):
+                for metric in metric_list:
+                    metrics[generator.generator_name] = metric
+            else:
+                for metric in metric_list:
+                    metrics[metric.title] = metric
         return metrics
 
     def list_timestamps(self):
@@ -116,9 +120,9 @@ class MultiManager(SimpleManager):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.states_sets = dict()
-        self.tracks = dict()
-        self.groundtruth_paths = dict()
-        self.detections = dict()
+        # self.tracks = dict()
+        # self.groundtruth_paths = dict()
+        # self.detections = dict()
         self.association_set = None
 
     # RG generator will take mapping keys as input: e.g. generator([tracksmapping1, tracksmapping2])
@@ -146,13 +150,13 @@ class MultiManager(SimpleManager):
             if value is not None:
                 self.states_sets |= value  # merge all dicts together
 
-    def associate_tracks(self):
-        """Associate tracks to truth using the associator
-
-        The resultant :class:`~.AssociationSet` internally.
-        """
-        self.association_set = self.associator.associate_tracks(
-            self.tracks, self.groundtruth_paths)
+    # def associate_tracks(self):
+    #     """Associate tracks to truth using the associator
+    #
+    #     The resultant :class:`~.AssociationSet` internally.
+    #     """
+    #     self.association_set = self.associator.associate_tracks(
+    #         self.tracks, self.groundtruth_paths)
 
     def generate_metrics(self):
         """Generate metrics using the generators and data that has been added
@@ -174,20 +178,20 @@ class MultiManager(SimpleManager):
             if not isinstance(metric_list, list):
                 metric_list = [metric_list]
             for metric in metric_list:
-                metrics[metric.title] = metric
+                    metrics[metric.title] = metric
         return metrics
 
-    def list_timestamps(self):
-        """List all the timestamps used in the tracks and truth, in order
-
-        Returns
-        ----------
-        : list of :class:`datetime.datetime`
-            unique timestamps present in the internal tracks and truths.
-        """
-        # Make a list of all the unique timestamps used
-        timestamps = {state.timestamp
-                      for sequence in chain(self.tracks, self.groundtruth_paths)
-                      for state in sequence}
-
-        return sorted(timestamps)
+    # def list_timestamps(self):
+    #     """List all the timestamps used in the tracks and truth, in order
+    #
+    #     Returns
+    #     ----------
+    #     : list of :class:`datetime.datetime`
+    #         unique timestamps present in the internal tracks and truths.
+    #     """
+    #     # Make a list of all the unique timestamps used
+    #     timestamps = {state.timestamp
+    #                   for sequence in chain(self.tracks, self.groundtruth_paths)
+    #                   for state in sequence}
+    #
+    #     return sorted(timestamps)
