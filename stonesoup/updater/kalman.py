@@ -1,5 +1,6 @@
 import warnings
 
+import numpy
 import numpy as np
 import scipy.linalg as la
 from functools import lru_cache
@@ -135,15 +136,14 @@ class KalmanUpdater(Updater):
         """
         return meas_mat @ m_cross_cov + meas_mod.covar()
 
-    def _posterior_mean(self, predicted_state_vector, kalman_gain, measurement,
-                        measurement_prediction):
+    def _posterior_mean(self, predicted_state, kalman_gain, measurement, measurement_prediction):
         r"""Compute the posterior mean, :math:`\mathbf{x}_{k|k} = \mathbf{x}_{k|k-1} + K_k
         \mathbf{y}_k`, where the innovation :math:`\mathbf{y}_k = \mathbf{z}_k -
         h(\mathbf{x}_{k|k-1}).
 
         Parameters
         ----------
-        predicted_state_vector : :class:`StateVector`
+        predicted_state : :class:`State`, :class:`Prediction`
             The predicted state
         kalman_gain : numpy.ndarray
             Kalman gain
@@ -157,8 +157,8 @@ class KalmanUpdater(Updater):
         : :class:`StateVector`
             The posterior mean estimate
         """
-        post_mean = predicted_state_vector + kalman_gain @ (measurement.state_vector -
-                                                            measurement_prediction.state_vector)
+        post_mean = predicted_state.state_vector + \
+            kalman_gain @ (measurement.state_vector - measurement_prediction.state_vector)
         return post_mean.view(StateVector)
 
     def _posterior_covariance(self, hypothesis):
@@ -269,7 +269,7 @@ class KalmanUpdater(Updater):
         posterior_covariance, kalman_gain = self._posterior_covariance(hypothesis)
 
         # Posterior mean
-        posterior_mean = self._posterior_mean(predicted_state.state_vector, kalman_gain,
+        posterior_mean = self._posterior_mean(predicted_state, kalman_gain,
                                               hypothesis.measurement,
                                               hypothesis.measurement_prediction)
 
@@ -665,7 +665,7 @@ class SchmidtKalmanUpdater(ExtendedKalmanUpdater):
 
     .. math ::
 
-        \mathbf{x}^T &= [\mathbf{s}^T \ \mathbf{p}^T]
+        \mathbf{x}^T &\triangleq [\mathbf{s}^T \ \mathbf{p}^T]
 
         H &= [H_s \ H_p]
 
@@ -710,27 +710,24 @@ class SchmidtKalmanUpdater(ExtendedKalmanUpdater):
     10.1007/s40295-015-0068-7.
 
     """
-    # TODO: Inherit from ExtendedKalmanUpdater to allow one to use non-linear measurement
-    # TODO: functions?
-
     consider: np.ndarray = Property(default=None,
                                     doc="The boolean vector of 'consider' parameters. True "
                                         "indicates considered, False are state parameters to be "
-                                        "estimated.")
+                                        "estimated. If undefined these default to all False, i.e."
+                                        "the standard Kalman filter.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.consider is None:
             self.consider = np.zeros(self.measurement_model.ndim_state, dtype=bool)
 
-    def _posterior_mean(self, predicted_state_vector, kalman_gain, measurement,
-                        measurement_prediction):
+    def _posterior_mean(self, predicted_state, kalman_gain, measurement, measurement_prediction):
         """Compute the posterior mean, :math:`s_{k|k} = s_{k|k-1} + K_s (z - H_s s_{k|k-1} -
         H_p p_{k|k-1})`, :math:`p_{k|k} = p_{k|k-1}.
 
         Parameters
         ----------
-        predicted_state_vector : :class:`StateVector`
+        predicted_state : :class:`State`, :class:`Prediction`
             The predicted state
         kalman_gain : numpy.ndarray
             The reduced form of the Kalman gain, :math:`K_s`
@@ -744,14 +741,9 @@ class SchmidtKalmanUpdater(ExtendedKalmanUpdater):
         : :class:`StateVector`
             The posterior mean estimate
         """
-        # Measurement matrix
-        hh = self._check_measurement_model(measurement.measurement_model).matrix()
-
-        post_mean = predicted_state_vector.copy()
-        post_mean[np.ix_(~self.consider)] += kalman_gain @ \
-            (measurement.state_vector - hh[:, ~self.consider] @
-             predicted_state_vector[~self.consider] - hh[:, self.consider] @
-             predicted_state_vector[self.consider])
+        post_mean = predicted_state.state_vector.copy()
+        post_mean[np.ix_(~self.consider)] += \
+            kalman_gain @ (measurement.state_vector - measurement_prediction.state_vector)
         return post_mean.view(StateVector)
 
     def _posterior_covariance(self, hypothesis):
@@ -777,7 +769,7 @@ class SchmidtKalmanUpdater(ExtendedKalmanUpdater):
         """
         # Intermediate matrices P_p and H.
         pp = hypothesis.prediction.covar[np.ix_(range(0, len(self.consider)), self.consider)]
-        hh = self._check_measurement_model(hypothesis.measurement.measurement_model).matrix()
+        hh = self._measurement_matrix(predicted_state=hypothesis.prediction)
 
         # First get the Kalman gain
         mcc = hypothesis.measurement_prediction.cross_covar
