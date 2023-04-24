@@ -9,7 +9,7 @@
 # %%
 # :math:`k`-d trees and TPR-trees are both data structures which can be used to index objects in multi-dimensional
 # space.
-# 
+#
 # - A :math:`k`-d tree is an indexing tree structure that operates in :math:`k` dimensions. Each node represents a
 #   :math:`k`-dimensional point, where :math:`k` represents any number of dimensions. A :math:`k`-d tree is useful for
 #   indexing the positions of **static** objects.
@@ -25,25 +25,28 @@
 #   velocity or direction of an object would require more frequent updates to the tree to maintain higher accuracy.
 #
 # NB: a :math:`k`-d tree can also be used to index the positions of moving objects, but it will only show a snapshot of
-# positions at a given timestep. Unlike the TPR-tree, the :math:`k`-d tree must be reconstructed at each time step.
+# positions at a given time step. Unlike the TPR-tree, the :math:`k`-d tree must be reconstructed at each time step.
 
 
 # %%
 # Using :math:`k`-d trees for target tracking
 # -------------------------------------------
-# So far across the other tutorials, we have seen linear Nearest Neighbour and Probabilistic Data Association
+# So far across the other tutorials, we have seen linear Nearest Neighbour (NN) and Probabilistic Data Association (PDA)
 # algorithms applied to target tracking to identify which detections should be associated with our target track(s).
-# 
-# During training of a basic Nearest Neighbour algorithm with a given training set of detections from a sensor, the
-# algorithm simply stores the detection vectors. When the algorithm is called to identify the nearest neighbours of a
-# vector of interest (i.e. a track prediction), which we will refer to here as the **query vector**, the algorithm
-# computes the distance between *every* detection in the training set and the query vector. It identifies the detection
-# with the lowest distance from the query vector as the Nearest Neighbour.
-# 
-# This can be a suitable method to use for small datasets, however, as the number of detections and/or targets
-# increases, linear algorithms quickly become inefficient. Both :math:`k`-d trees and TPR trees offer a more efficient
-# alternative to linear searches because they can help to quickly eliminate large sets of detections from the
-# search rather than comparing every detection to the query vector.
+# NN algorithms associate predictions with detections based on distance, and PDA algorithms associate them based on
+# probability (see tutorials 5-8 for more details). Using a tree can make the Data Association process much faster.
+#
+# During Data Association without a tree, distance/probability of association between a track prediction and *every*
+# detection must be calculated in order to select the best detection for association.
+#
+# This can be a suitable method to use for small sets of detections and small numbers of tracks. However, as the number
+# of detections and/or targets increases, these linear searches quickly become inefficient. Both :math:`k`-d trees and
+# TPR trees offer a more efficient alternative because they can quickly eliminate large sets of detections. Unlike
+# linear searches, which must compare every detection vector in the set to the prediction vector, trees can be used to
+# implicitly eliminate points from the search that cannot be closer in distance than the current best. :math:`k`-d trees
+# have an average O(:math:`log(n)`) search time with a worst case of O(:math:`n`) given a set of :math:`n` detections.
+#
+# NN or PDA algorithms can still be used in combination with trees to conduct data association.
 #
 # We will look into detail at how :math:`k`-d trees are constructed and queried below.
 
@@ -51,30 +54,21 @@
 # %%
 # Constructing a :math:`k`-d tree
 # -------------------------------
-# During training of an algorithm that uses a :math:`k`-d tree, the tree itself will be constructed. Trees are
-# constructed by splitting a set of detections from a sensor evenly into two groups, and then further splitting those
-# two groups into two groups each, and continuing this process recursively down until each leaf node contains a
-# determined number of detections (it can be 1 or more). These splits alternate in each dimension of
-# the detection vectors in turn, then circle back to the first dimension to continue the splitting.
-# 
+# :math:`k`-d trees are constructed by splitting a set of detections down the middle into two even groups, and then
+# further splitting those two groups into two groups each, and continuing this process recursively down until each leaf
+# node contains a determined number of detections (it can be 1 or more). These splits alternate in each dimension of
+# the detection vectors in turn (Fig. 1).
+#
 # For example, with a set of 2-dimensional detection vectors of :math:`\begin{bmatrix} x \\ y \\\end{bmatrix}` we start
-# constructing the tree from the root node by identifying the median value of the :math:`x^{th}`
-# dimension of all detections. All detections with :math:`x` coordinate :math:`\leq` median are placed in the left
-# branch from the root node, and all detections with :math:`x` coordinate :math:`>` median are placed in the right
-# branch from the root node. The left and right child branches are then split into two further branches in the same way,
-# except this time using the values in the :math:`y^{th}` dimension in place of the :math:`x^{th}`.
-# The third split is done in the :math:`x^{th}` dimension again and so on until you achieve a determined number
-# of points in each leaf node. Using a split at the median is just one common way to construct it.
+# constructing the tree from the root node by identifying the median value of the :math:`x^{th}` dimension of all
+# detections. All detections with :math:`x` coordinate :math:`\leq` the median are placed in the left subtree from the
+# root node, and all detections with :math:`x` coordinate :math:`>` median are placed in the right subtree from the root
+# node. The left and right subtrees are then split into two further subtrees in the same way, except this time using the
+# values in the :math:`y^{th}` dimension in place of the :math:`x^{th}`. The third split is done in the :math:`x^{th}`
+# dimension again and so on until you achieve a determined number of points in each leaf node. Using a split at the
+# median is just one common way to construct it.
 #
 # Generation of a :math:`k`-d tree has O(:math:`nlog^2n`) time.
-#
-# In terms of real data, the data that are being organised into a :math:`k`-d tree structure (i.e. the 'training set')
-# are detections from a sensor, and the query vector is a track prediction.
-#
-# In comparison, entries in TPR tree leaf nodes are pairs of a moving object's position and an ID for the object. The
-# internal nodes of the tree are bounding rectangles which bound the positions of all moving objects (or other bounding
-# rectangles) in that subtree. The bounding rectangles' coordinates are also functions of time so they are capable of
-# following the enclosed data points as they move.
 #
 # .. image:: ../../_static/kd_tree_fig_1.png
 #   :width: 1100
@@ -83,50 +77,64 @@
 #
 # Fig. 1a offers a graphical representation of the :math:`k`-d tree shown in 1b. :math:`d` represents the depth of
 # the tree. The :math:`k`-d tree is constructed from a series of detections, which in this case are 2-dimensional
-# vectors, with splits alternating in each dimension: at :math:`d=0` the split occurs in the :math:`x`-axis, at
-# :math:`d=1` the split occurs in the :math:`y`-axis etc. Colours of the splitting lines in 1a correspond with the
+# vectors, with splits alternating in each dimension. At :math:`d=0` the split occurs in the :math:`x`-axis, at
+# :math:`d=1` the split occurs in the :math:`y`-axis etc. Colours of the splitting planes in 1a correspond with the
 # splits at each depth shown in 1b.
+#
+# In comparison, entries in TPR tree leaf nodes are pairs of a moving object's position and an ID for the object. The
+# internal nodes of the tree are bounding rectangles which bound the positions of all moving objects (or other bounding
+# rectangles) in that subtree. The bounding rectangles' coordinates are functions of time so they are capable of
+# following the enclosed data points as they move.
 
 
 # %%
 # Searching a :math:`k`-d tree with Nearest Neighbour
 # ---------------------------------------------------
-# Once the :math:`k`-d tree has been constructed from the detection set, it can then be used to search for the Nearest
-# Neighbour of a given track prediction (which is the query vector).
-# 
+# Once the :math:`k`-d tree has been constructed from the detection set, it can then be used for data association. In
+# this example we will search for the Nearest Neighbour of a given prediction.
+#
 # The method for searching the tree is similar to the method for building the tree: starting at the root node, the
-# :math:`x^{th}` dimension of the query vector is compared with the :math:`x^{th}` dimension of the root
-# node vector, if the value of the query vector is less than or equal to the root node detection vector, the search
-# moves down the left subtree, and down the right subtree if the value is greater. This process is repeated recursively
-# at each internal node, again alternating through the vector dimensions, until a leaf node is reached. At each node,
-# the distance between the query vector and the node vector is measured, and if the distance is less than the current
-# best, the node vector becomes the new current best nearest neighbour.
-# 
-# Once the search reaches a leaf node, the search continues back up through the tree to ensure the best nearest
-# neighbour has been identified. From the leaf node, it will traverse back up to the parent node. If the distance from
-# the query vector and the split plane (shown by the blue lines in Fig. 2a) of the parent node is less than the current
-# best, the search will proceed down the sibling subtree as above. If the distance is greater than the current best, the
-# search will proceed up to the next parent node. The search continues this way recursively up the tree until we return
-# to the root node.
+# :math:`x^{th}` dimension of the query vector is compared with the :math:`x^{th}` dimension of the root node vector, if
+# the value of the query vector is less than or equal to the root node detection vector, the search moves down the left
+# subtree, and down the right subtree if the value is greater. This process is repeated recursively at each internal
+# node, again alternating through the vector dimensions, until a leaf node is reached. Because we are conducting a
+# Nearest Neighbour search, at each node the Euclidean distance between the prediction and the detection at that node is
+# measured. If the distance is less than the current best distance, the node vector becomes the new current best nearest
+# neighbour.
+#
+# Once we reach a leaf node, the search must continue back up through the tree to ensure we haven't skipped a potential
+# nearest neighbour that lies in an over-looked sub-space and ensure that the true nearest neighbour has been
+# identified. As we move back up the tree, we should at each level consider if we should go down the sibling subtree.
 #
 # .. image:: ../../_static/kd_tree_fig_2.png
 #   :width: 1200
 #   :height: 250
 #   :alt: Image showing diagrammatical representation of kd-tree in 2 dimensions, described further in figure 2 caption.
 #
-# Fig. 2a offers a graphical representation of the :math:`k`-d tree shown in 2b. 2a shows the query vector,
+# Fig. 2a offers a graphical representation of the :math:`k`-d tree shown in 2b. 2a shows the prediction vector,
 # :math:`[8,2]`, in blue. 2b shows the first part of the search taking place down the :math:`k`-d tree, with the text
 # on the right indicating the direction of the search at each depth. Current best indicates the current best distance of
-# any detection vector in the tree from the query vector. Once reaching the leaf node, the search continues back up the
-# tree. In this case, there are no sibling subtrees with a distance from the query vector less than the current best.
-# The detection at :math:`[9,1]` is selected as the nearest neighbour.
+# any detection vector in the tree from the prediction. Once reaching the leaf node, the search continues back up the
+# tree. In this case, there are no sibling subtrees with a distance from the prediction vector less than the current
+# best so the detection at :math:`[9,1]` is identified as the nearest neighbour.
 
 
 # %%
-# A Nearest Neighbour algorithm using a :math:`k`-d tree can be faster than linear Nearest Neighbour searches because it
-# does not compare every detection vector in the set to the query vector, but implicitly eliminates points that cannot
-# be closer in distance than the current best. It has an average O(:math:`log(n)`) search time with a worst case of
-# O(:math:`n`) given a set of :math:`n` detections.
+# To decide whether to explore the sibling subtree of a subtree that has already been searched, we consider the closest
+# possible detection to our prediction that could theoretically lie in that unexplored subtree. Looking at Figure 3 for
+# example, after traversing completely down the tree, our current best distance is 2.24 units from :math:`[7,5]`. The
+# shortest distance between the prediction (blue) and the split plane on :math:`[7,5]` (where :math:`y=5`) is 1 unit
+# (Fig. 3, red arrow). This means that an unexplored point that lies just beyond the plane could have a distance between
+# 1 and 2.24 units, i.e. less than our current best. For this reason, we determine that we must continue the search down
+# the left subtree from :math:`[7,5]`. Indeed, there is a detection at :math:`[9,4]` in this subtree which has a
+# distance from our prediction of 2 units which becomes the new current best distance. We then traverse back up the tree
+# again. As there are no other splits which can possibly beat the current best distance, the detection at :math:`[9,4]`
+# is selected as the nearest neighbour.
+#
+# As a general rule for traversing back up the tree, if the shortest distance between the prediction and the split plane
+# of the parent node is less than the current best, the search will proceed down the sibling subtree. If the distance is
+# greater than the current best, the search will continue up to the next node. The search continues this way recursively
+# up the tree until we return to the root node.
 #
 # .. image:: ../../_static/kd_tree_fig_3.png
 #   :width: 1200
@@ -134,12 +142,7 @@
 #   :alt: Image showing diagrammatical representation of kd-tree in 2 dimensions, described further in figure 3 caption.
 #
 # Fig. 3 demonstrates a situation where it is useful to traverse back up the tree to complete the search for the
-# nearest neighbour. Here, our query vector is :math:`[9,6]`. If we stop the search at the first leaf node we reach,
-# which is the detection at :math:`[8,8]` with a distance of 3, we miss the true nearest neighbour to our query
-# vector, which is :math:`[9,4]` with a distance of 2. The red arrow indicates the minimum distance from the split
-# plane of the parent node of the detection at :math:`[8,8]`. The minimum distance is 1. This is less than our current
-# best (3), which indicates that the search should continue down the sister sub-tree, thus leading us to the detection
-# at :math:`[9,4]`.
+# nearest neighbour.
 
 
 # %%
@@ -159,7 +162,7 @@
 # Simulate ground truth
 # ^^^^^^^^^^^^^^^^^^^^^
 # We will simulate a large number of targets moving in the :math:`x`, :math:`y` Cartesian plane. We will then add truth
-# detections with a high clutter rate at each time-step.
+# detections with a high clutter rate at each time step.
 
 import numpy as np
 import datetime
@@ -486,8 +489,8 @@ from statistics import median
 print(f'Median run time of k-d tree search: {round(median(run_times_KDTree), 4)} seconds')
 print(f'Median run time of TPR tree search: {round(median(run_times_TPRTree), 4)} seconds')
 print(f'Median run time of linear search: {round(median(run_times_GNN), 4)} seconds')
-print(f'\nThe GNN search runs {round(median(run_times_GNN)/median(run_times_KDTree), 2)} faster on average with kd-tree '
-      f'than with linear search')
+print(f'\nThe GNN search runs {round(median(run_times_GNN)/median(run_times_KDTree), 2)} times faster on average with '
+      f'kd-tree than with linear search')
 
 # %%
 # In the tracking situation chosen for this example, where we have 200 targets and relatively high probability of
