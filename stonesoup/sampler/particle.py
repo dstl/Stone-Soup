@@ -12,15 +12,12 @@ from ..functions import jacobian, gm_sample
 class ParticleSampler(Sampler):
 
     distribution_func: Callable = Property(
-        default=None,
         doc="Callable function that returns samples from the desired distribution.")
 
     params: dict = Property(
-        default=None,
         doc="Dictionary containing the keyword arguments for :attr:`distribution_func`.")
 
     ndim_state: int = Property(
-        default=None,
         doc="Number of dimensions in each sample.")
 
     def sample(self, distribution_func=None, params=None, ndim_state=None, timestamp=None):
@@ -82,6 +79,10 @@ class ParticleSampler(Sampler):
 
 
 class GaussianDetectionParticleSampler(ParticleSampler):
+
+    distribution_func = None
+    params = None
+    ndim_state = None
 
     nsamples: int = Property(
         default=1,
