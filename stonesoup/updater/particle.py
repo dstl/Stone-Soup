@@ -11,7 +11,6 @@ from ..base import Property
 from ..functions import cholesky_eps, sde_euler_maruyama_integration
 from ..predictor.particle import MultiModelPredictor, RaoBlackwellisedMultiModelPredictor
 from ..resampler import Resampler
-from ..types.numeric import Probability
 from ..types.prediction import (
     Prediction, ParticleMeasurementPrediction, GaussianStatePrediction, MeasurementPrediction)
 from ..types.update import ParticleStateUpdate, Update
@@ -51,13 +50,13 @@ class ParticleUpdater(Updater):
         else:
             measurement_model = hypothesis.measurement.measurement_model
 
-        new_weight = np.asfarray(np.log(predicted_state.weight)) + measurement_model.logpdf(
+        new_weight = predicted_state.log_weight + measurement_model.logpdf(
             hypothesis.measurement, predicted_state, **kwargs)
 
         # Normalise the weights
         new_weight -= logsumexp(new_weight)
 
-        predicted_state.weight = Probability.from_log_ufunc(new_weight)
+        predicted_state.log_weight = new_weight
 
         # Resample
         if self.resampler is not None:
@@ -66,10 +65,9 @@ class ParticleUpdater(Updater):
         return Update.from_state(
             state=hypothesis.prediction,
             state_vector=predicted_state.state_vector,
-            weight=predicted_state.weight,
+            log_weight=predicted_state.log_weight,
             hypothesis=hypothesis,
             timestamp=hypothesis.measurement.timestamp,
-            particle_list=None
             )
 
     @lru_cache()
@@ -80,11 +78,9 @@ class ParticleUpdater(Updater):
             measurement_model = self.measurement_model
 
         new_state_vector = measurement_model.function(state_prediction, **kwargs)
-        new_weight = state_prediction.weight
 
         return MeasurementPrediction.from_state(
-            state_prediction, state_vector=new_state_vector, timestamp=state_prediction.timestamp,
-            particle_list=None, weight=new_weight)
+            state_prediction, state_vector=new_state_vector, timestamp=state_prediction.timestamp)
 
 
 class GromovFlowParticleUpdater(Updater):
@@ -205,7 +201,6 @@ class GromovFlowKalmanParticleUpdater(GromovFlowParticleUpdater):
             hypothesis,
             weight=particle_update.weight,
             fixed_covar=kalman_update.covar,
-            particle_list=None,
             timestamp=particle_update.timestamp)
 
     def predict_measurement(self, state_prediction, *args, **kwargs):
@@ -222,7 +217,6 @@ class GromovFlowKalmanParticleUpdater(GromovFlowParticleUpdater):
             state_vector=particle_prediction.state_vector,
             weight=state_prediction.weight,
             fixed_covar=kalman_prediction.covar,
-            particle_list=None,
             timestamp=particle_prediction.timestamp)
 
 
@@ -255,17 +249,16 @@ class MultiModelParticleUpdater(ParticleUpdater):
             hypothesis.prediction,
             hypothesis=hypothesis,
             timestamp=hypothesis.measurement.timestamp,
-            particle_list=None
         )
 
         transition_matrix = np.asanyarray(self.predictor.transition_matrix)
 
-        update.weight = update.weight \
-            * measurement_model.pdf(hypothesis.measurement, update, **kwargs) \
-            * transition_matrix[update.parent.dynamic_model, update.dynamic_model]
+        update.log_weight = update.log_weight \
+            + measurement_model.logpdf(hypothesis.measurement, update, **kwargs) \
+            + np.log(transition_matrix[update.parent.dynamic_model, update.dynamic_model])
 
         # Normalise the weights
-        update.weight /= Probability.sum(update.weight)
+        update.log_weight -= logsumexp(update.log_weight)
 
         if self.resampler:
             update = self.resampler.resample(update)
@@ -300,21 +293,20 @@ class RaoBlackwellisedParticleUpdater(MultiModelParticleUpdater):
 
         update = Update.from_state(
             hypothesis.prediction,
-            weight=copy.copy(hypothesis.prediction.weight),
+            log_weight=copy.copy(hypothesis.prediction.log_weight),
             hypothesis=hypothesis,
             timestamp=hypothesis.measurement.timestamp,
-            particle_list=None
         )
 
         update.model_probabilities = self.calculate_model_probabilities(
             hypothesis.prediction, self.predictor)
 
-        update.weight = update.weight * measurement_model.pdf(hypothesis.measurement,
-                                                              update,
-                                                              **kwargs)
+        update.log_weight = update.log_weight + measurement_model.logpdf(hypothesis.measurement,
+                                                                         update,
+                                                                         **kwargs)
 
         # Normalise the weights
-        update.weight /= Probability.sum(update.weight)
+        update.log_weight -= logsumexp(update.log_weight)
 
         if self.resampler:
             update = self.resampler.resample(update)

@@ -2,7 +2,6 @@ import numpy as np
 
 from .base import Resampler
 from ..base import Property
-from ..types.numeric import Probability
 from ..types.state import ParticleState
 
 
@@ -29,9 +28,7 @@ class SystematicResampler(Resampler):
         if nparts is None:
             nparts = len(particles)
 
-        weight = Probability(1 / nparts)
-
-        log_weights = np.asfarray(np.log(particles.weight))
+        log_weights = particles.log_weight
         weight_order = np.argsort(log_weights, kind='stable')
         max_log_value = log_weights[weight_order[-1]]
         with np.errstate(divide='ignore'):
@@ -47,8 +44,7 @@ class SystematicResampler(Resampler):
         index = weight_order[np.searchsorted(cdf, np.log(u_j))]
 
         new_particles = particles[index]
-        new_particles.weight = np.full((nparts, ), weight)
-
+        new_particles.log_weight = np.full((nparts, ), np.log(1/nparts))
         return new_particles
 
 
@@ -89,7 +85,8 @@ class ESSResampler(Resampler):
             particles = ParticleState(None, particle_list=particles)
         if self.threshold is None:
             self.threshold = len(particles) / 2
-        if 1 / np.sum(np.square(particles.weight)) < self.threshold:  # If ESS too small, resample
+        # If ESS too small, resample
+        if 1 / np.sum(np.exp(2*particles.log_weight)) < self.threshold:
             return self.resampler.resample(self.resampler, particles)
         else:
             return particles
