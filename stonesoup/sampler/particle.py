@@ -17,7 +17,7 @@ class ParticleSampler(Sampler):
 
     params: dict = Property(
         default=None,
-        doc="Dictionary containing the keyword arguments for `distribution_func`.")
+        doc="Dictionary containing the keyword arguments for :attr:`distribution_func`.")
 
     ndim_state: int = Property(
         default=None,
@@ -116,7 +116,7 @@ class GaussianDetectionParticleSampler(ParticleSampler):
 
         weights = self.get_weight(num_det)
 
-        ndim_state = len(dist_mean[0])
+        ndim_state = detection.measurement_model.ndim_state
         params = {'means': dist_mean,
                   'covars': dist_covar,
                   'weights': weights,
