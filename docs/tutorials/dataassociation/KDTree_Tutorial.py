@@ -15,8 +15,8 @@
 #   indexing the positions of **static** objects.
 # - A TPR-tree (a time parameterised range tree) is an indexing tree structure that can be used to store and query
 #   information about **moving** objects. The tree stores functions of time that can be used to return the current or
-#   predicted future positions of an object. The parameters of these functions are the position and velocity vector at a
-#   given time point.
+#   predicted future positions of an object. The parameters of these functions are the position and velocity vector of
+#   the object at a given time point.
 #
 #   The TPR-tree does not need to be updated at every time step as it contains the information to predict future
 #   positions of an object. This saves computing power. To maintain accuracy, however, the TPR-tree should be updated
@@ -24,29 +24,29 @@
 #   on the desired accuracy and the movement exhibited by object(s) stored in the tree. E.g. frequent changes in the
 #   velocity or direction of an object would require more frequent updates to the tree to maintain higher accuracy.
 #
-# NB: a :math:`k`-d tree can also be used to index the positions of moving objects, but it will only show a snapshot of
+# A :math:`k`-d tree can also be used to index the positions of moving objects, but it will only show a snapshot of
 # positions at a given time step. Unlike the TPR-tree, the :math:`k`-d tree must be reconstructed at each time step.
 
 
 # %%
-# Using :math:`k`-d trees for target tracking
-# -------------------------------------------
-# So far across the other tutorials, we have seen linear Nearest Neighbour (NN) and Probabilistic Data Association (PDA)
-# algorithms applied to target tracking to identify which detections should be associated with our target track(s).
-# NN algorithms associate predictions with detections based on distance, and PDA algorithms associate them based on
-# probability (see tutorials 5-8 for more details). Using a tree can make the Data Association process much faster.
+# Using :math:`k`-d trees or TPR trees for target tracking
+# --------------------------------------------------------
+# So far across the other tutorials, we have seen Nearest Neighbour (NN) and Probabilistic Data Association (PDA)
+# algorithms applied linearly to target tracking to identify which detections should be associated with our target
+# track(s). NN algorithms associate predictions with detections based on distance, and PDA algorithms associate them
+# based on probability (see tutorials 5-8 for more details). Using a tree in combination with one of these algorithms
+# can make the Data Association process much faster.
 #
-# During Data Association without a tree, distance/probability of association between a track prediction and *every*
-# detection must be calculated in order to select the best detection for association.
+# During Data Association without a tree, distance or probability of association must be calculated between the
+# prediction and *every* detection in order to select the best detection for association. These linear searches can be a
+# suitable method to use for small sets of detections and small numbers of tracks but become inefficient as the number
+# of detections and/or targets increases substantially.
 #
-# This can be a suitable method to use for small sets of detections and small numbers of tracks. However, as the number
-# of detections and/or targets increases, these linear searches quickly become inefficient. Both :math:`k`-d trees and
-# TPR trees offer a more efficient alternative because they can quickly eliminate large sets of detections. Unlike
-# linear searches, which must compare every detection vector in the set to the prediction vector, trees can be used to
-# implicitly eliminate points from the search that cannot be closer in distance than the current best. :math:`k`-d trees
-# have an average O(:math:`log(n)`) search time with a worst case of O(:math:`n`) given a set of :math:`n` detections.
-#
-# NN or PDA algorithms can still be used in combination with trees to conduct data association.
+# NN or PDA algorithms can be used in combination with trees to perform data association. Unlike linear searches,
+# searches with :math:`k`-d trees or TPR trees do not have to compare every detection vector in the set to the
+# prediction vector, and instead can quickly eliminate large sets of detections implicitly that cannot be better than
+# the current best association. :math:`k`-d trees have an average O(:math:`log(n)`) search time with a worst case of
+# O(:math:`n`) given a set of :math:`n` detections.
 #
 # We will look into detail at how :math:`k`-d trees are constructed and queried below.
 
@@ -54,9 +54,9 @@
 # %%
 # Constructing a :math:`k`-d tree
 # -------------------------------
-# :math:`k`-d trees are constructed by splitting a set of detections down the middle into two even groups, and then
-# further splitting those two groups into two groups each, and continuing this process recursively down until each leaf
-# node contains a determined number of detections (it can be 1 or more). These splits alternate in each dimension of
+# :math:`k`-d trees are constructed by splitting a set of detections into two even groups, and then
+# further splitting those two groups into two groups each, continuing this process recursively down until each leaf
+# node contains the desired number of detections (it can be 1 or more). These splits alternate in each dimension of
 # the detection vectors in turn (Fig. 1).
 #
 # For example, with a set of 2-dimensional detection vectors of :math:`\begin{bmatrix} x \\ y \\\end{bmatrix}` we start
@@ -83,28 +83,28 @@
 #
 # In comparison, entries in TPR tree leaf nodes are pairs of a moving object's position and an ID for the object. The
 # internal nodes of the tree are bounding rectangles which bound the positions of all moving objects (or other bounding
-# rectangles) in that subtree. The bounding rectangles' coordinates are functions of time so they are capable of
-# following the enclosed data points as they move.
+# rectangles) in that subtree. The bounding rectangles' coordinates are functions of time, so they are capable of
+# following the enclosed data points as they move over time.
 
 
 # %%
 # Searching a :math:`k`-d tree with Nearest Neighbour
 # ---------------------------------------------------
 # Once the :math:`k`-d tree has been constructed from the detection set, it can then be used for data association. In
-# this example we will search for the Nearest Neighbour of a given prediction.
+# this example we will search for the detection that is the nearest neighbour of a given prediction.
 #
 # The method for searching the tree is similar to the method for building the tree: starting at the root node, the
-# :math:`x^{th}` dimension of the query vector is compared with the :math:`x^{th}` dimension of the root node vector, if
-# the value of the query vector is less than or equal to the root node detection vector, the search moves down the left
-# subtree, and down the right subtree if the value is greater. This process is repeated recursively at each internal
-# node, again alternating through the vector dimensions, until a leaf node is reached. Because we are conducting a
-# Nearest Neighbour search, at each node the Euclidean distance between the prediction and the detection at that node is
-# measured. If the distance is less than the current best distance, the node vector becomes the new current best nearest
-# neighbour.
+# :math:`x^{th}` dimension of the prediction is compared with the :math:`x^{th}` dimension of the root node detection.
+# If the value of the prediction's :math:`x` dimension is less than or equal to that of the root node detection, the
+# search moves down the left subtree, and down the right subtree if the value is greater. This process is repeated
+# recursively at each internal node, again alternating through the vector dimensions, until a leaf node is reached.
+# Because we are conducting a Nearest Neighbour search, at each node the Euclidean distance between the prediction and
+# the detection at that node is measured. If the distance is less than the current best distance, the detection at that
+# node becomes the new current best nearest neighbour.
 #
-# Once we reach a leaf node, the search must continue back up through the tree to ensure we haven't skipped a potential
-# nearest neighbour that lies in an over-looked sub-space and ensure that the true nearest neighbour has been
-# identified. As we move back up the tree, we should at each level consider if we should go down the sibling subtree.
+# To ensure that the true nearest neighbour has been identified, once we reach a leaf node the search must continue back
+# up through the tree to ensure we haven't skipped a potential nearest neighbour that lies in an over-looked sub-space.
+# As the search moves back up the tree, we should at each level consider if we should go down the sibling subtree.
 #
 # .. image:: ../../_static/kd_tree_fig_2.png
 #   :width: 1200
@@ -122,19 +122,17 @@
 # %%
 # To decide whether to explore the sibling subtree of a subtree that has already been searched, we consider the closest
 # possible detection to our prediction that could theoretically lie in that unexplored subtree. Looking at Figure 3 for
-# example, after traversing completely down the tree, our current best distance is 2.24 units from :math:`[7,5]`. The
-# shortest distance between the prediction (blue) and the split plane on :math:`[7,5]` (where :math:`y=5`) is 1 unit
-# (Fig. 3, red arrow). This means that an unexplored point that lies just beyond the plane could have a distance between
-# 1 and 2.24 units, i.e. less than our current best. For this reason, we determine that we must continue the search down
-# the left subtree from :math:`[7,5]`. Indeed, there is a detection at :math:`[9,4]` in this subtree which has a
-# distance from our prediction of 2 units which becomes the new current best distance. We then traverse back up the tree
-# again. As there are no other splits which can possibly beat the current best distance, the detection at :math:`[9,4]`
-# is selected as the nearest neighbour.
+# example, after traversing completely down the tree, our current best distance is 2.24 units for detection
+# :math:`[7,5]`. The shortest distance between the prediction (blue) and the splitting plane on :math:`[7,5]` (where
+# :math:`y=5`) is 1 unit, as shown by the red arrow in Figure 3.
 #
-# As a general rule for traversing back up the tree, if the shortest distance between the prediction and the split plane
-# of the parent node is less than the current best, the search will proceed down the sibling subtree. If the distance is
-# greater than the current best, the search will continue up to the next node. The search continues this way recursively
-# up the tree until we return to the root node.
+# This means that an unexplored point that lies just beyond the splitting plane could have a distance from the
+# prediction ofbetween 1 and 2.24 units, i.e. less than our current best of 2.24. For this reason, we determine that we
+# must continue the search down the left subtree from detection :math:`[7,5]`. Indeed, there is a detection at
+# :math:`[9,4]` in this subtree which has a distance from our prediction vector of 2 units, which is less than our
+# current best distance so becomes the new current best. We then traverse back up the tree again. As there are no other
+# subtrees which can possibly contain detections that beat the current best distance, the detection at :math:`[9,4]`
+# is selected as the nearest neighbour and the search is complete.
 #
 # .. image:: ../../_static/kd_tree_fig_3.png
 #   :width: 1200
@@ -146,6 +144,11 @@
 
 
 # %%
+# As a general rule for traversing back up the tree, if the shortest distance between the prediction and the splitting
+# plane of the parent node is less than the current best, the search will proceed down the sibling subtree. If the
+# distance is greater than the current best, the search will continue up to the next node. The search continues this way
+# recursively up the tree until we return to the root node and have considered whether to search every subtree.
+#
 # :math:`k`-d and TPR-trees can both be searched with either Nearest Neighbour or Probabilistic Data Association
 # algorithms. Using the tree will increase the efficiency of searches where there are more targets and/or detections.
 
