@@ -112,11 +112,14 @@
 #   :alt: Image showing diagrammatical representation of kd-tree in 2 dimensions, described further in figure 2 caption.
 #
 # Fig. 2a offers a graphical representation of the :math:`k`-d tree shown in 2b. 2a shows the prediction vector,
-# :math:`[8,2]`, in blue. 2b shows the first part of the search taking place down the :math:`k`-d tree, with the text
-# on the right indicating the direction of the search at each depth. Current best indicates the current best distance of
-# any detection vector in the tree from the prediction. Once reaching the leaf node, the search continues back up the
-# tree. In this case, there are no sibling subtrees with a distance from the prediction vector less than the current
-# best so the detection at :math:`[9,1]` is identified as the nearest neighbour.
+# :math:`[8,2]`, in blue. 2b shows the first part of the search taking place down the :math:`k`-d tree. Current best
+# indicates the current best distance of any detection vector in the tree from the prediction. At the root node, which
+# has a distance of 7.62, we look at the :math:`x{th}` dimension of the prediction :math:`[8,2]` and detection
+# :math:`[5,9]` vectors. 8 > 5 so we move right down the tree to detection :math:`[8,5]`, which has a distance of 3.
+# Next we look at the :math:`y{th}` dimension: 2 < 5 so we move left to :math:`[9,2]` which has a distance of 1. Once we
+# reach this leaf node, the search continues back up the tree. In this case, there are no sibling subtrees with a
+# distance from the prediction vector less than 1 so the detection at :math:`[9,2]` is identified as the
+# nearest neighbour.
 
 
 # %%
