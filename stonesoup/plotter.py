@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from itertools import chain
 from typing import Collection, Iterable, Union, List, Optional, Tuple, Dict
-
 import numpy as np
 from matplotlib import animation as animation
 from matplotlib import pyplot as plt
@@ -13,7 +12,10 @@ from matplotlib.patches import Ellipse
 from scipy.integrate import quad
 from scipy.optimize import brentq
 from scipy.stats import kde
-
+try:
+    from plotly import colors
+except ImportError:
+    colors=None
 try:
     import plotly.graph_objects as go
 except ImportError:
@@ -1406,6 +1408,8 @@ class AnimatedPlotterly(_Plotter):
 
 
         """
+        if go is None or colors is None:
+            raise RuntimeError("Usage of Plotterly plotter requires installation of `plotly`")
 
         self.equal_size = equal_size
 
@@ -1435,7 +1439,6 @@ class AnimatedPlotterly(_Plotter):
         # the window of time for which past plots are still visible
         self.time_window = (timesteps[-1] - timesteps[0]) * tail_length
 
-        from plotly import colors
         self.colorway = colors.qualitative.Plotly[1:]  # plotting colours
 
         self.all_masks = dict()  # dictionary to be filled up later
@@ -1468,20 +1471,20 @@ class AnimatedPlotterly(_Plotter):
         # to display hour and minute information, so remove this to give a cleaner display.
         # a and b are used in the slider steps label later
         if time_spaces[0] >= timedelta(days=1):
-            a = None
-            b = 10
+            start_cut_off = None
+            end_cut_off = 10
 
         # if the simulation is over a day long, display all information which
         # looks clunky but is necessary
         elif timesteps[-1] - timesteps[0] > timedelta(days=1):
-            a = None
-            b = None
+            start_cut_off = None
+            end_cut_off = None
 
         # otherwise, remove day information and just show
         # hours, mins, etc. which is cleaner to look at
         else:
-            a = 11
-            b = None
+            start_cut_off = 11
+            end_cut_off = None
 
         # create button and slider
         updatemenus = [dict(type='buttons',
@@ -1512,7 +1515,8 @@ class AnimatedPlotterly(_Plotter):
                     'steps': [{'args': [[frame.name], {
                         'frame': {'duration': 1.0, 'easing': 'linear', 'redraw': True},
                         'transition': {'duration': 0, 'easing': 'linear'}}],
-                               'label': frame.name[a:b], 'method': 'animate'} for frame in
+                               'label': frame.name[start_cut_off: end_cut_off],
+                               'method': 'animate'} for frame in
                               self.fig.frames
                               ]}]
         self.fig.update_layout(updatemenus=updatemenus, sliders=sliders)
@@ -1524,7 +1528,7 @@ class AnimatedPlotterly(_Plotter):
         """
         return self.fig
 
-    def _resize(self, data):
+    def _resize(self, data, type="track"):
         """
         Reshape figure so that everything is in view.
 
@@ -1539,28 +1543,36 @@ class AnimatedPlotterly(_Plotter):
 
         all_x = []
         all_y = []
-
-        if isinstance(data, dict):  # is from plot_measurements
+        if type == "measurements":
 
             for key, item in data.items():
                 all_x.extend(data[key]["x"])
                 all_y.extend(data[key]["y"])
 
-        else:  # is from plot_ground_truths, plot_tracks, or plot_sensor
+        elif type == "ground_truth" or type == "tracks":
 
-            try:  # plot_ground_truths or plot_tracks
-                for n, _ in enumerate(data):
-                    all_x.extend(data[n]["x"])
-                    all_y.extend(data[n]["y"])
+            for n, _ in enumerate(data):
+                all_x.extend(data[n]["x"])
+                all_y.extend(data[n]["y"])
 
-            except IndexError:  # plot_sensor
-                all_x.extend(data[:, 0])
-                all_y.extend(data[:, 1])
+        elif type == "sensor":
+            all_x.extend(data[:, 0])
+            all_y.extend(data[:, 1])
 
-        xmax = max(max(all_x), self.fig.layout.xaxis.range[1])
-        ymax = max(max(all_y), self.fig.layout.yaxis.range[1])
-        xmin = min(min(all_x), self.fig.layout.xaxis.range[0])
-        ymin = min(min(all_y), self.fig.layout.yaxis.range[0])
+        elif type == "particle_or_uncertainty":
+            # data comes in format of list of dictionaries. Each dictionary contains 'x' and 'y',
+            # which are a list of lists.
+            for dictionary in data:
+                for x_values in dictionary["x"]:
+                    all_x.extend([np.nanmax(x_values), np.nanmin(x_values)])
+                for y_values in dictionary["y"]:
+                    all_y.extend([np.nanmax(y_values), np.nanmin(y_values)])
+
+        # self.fig.layout.xaxis.range[0]) self.fig.layout.xaxis.range[1])
+        xmax = max(all_x)
+        ymax = max(all_y)
+        xmin = min(all_x)
+        ymin = min(all_y)
 
         if self.equal_size:
             xmax = max(xmax, ymax)
@@ -1568,14 +1580,23 @@ class AnimatedPlotterly(_Plotter):
             xmin = min(xmin, ymin)
             ymin = xmin
 
-        xrange = xmax - xmin
-        yrange = ymax - ymin
+        # need to check if it's actually necessary to resize or not
+        if xmax > self.fig.layout.xaxis.range[1] or xmin < self.fig.layout.xaxis.range[0]:
 
-        # update figure
-        self.fig.update_xaxes(range=[xmin - xrange / 20,
-                                     xmax + xrange / 20])
-        self.fig.update_yaxes(range=[ymin - yrange / 20,
-                                     ymax + yrange / 20])
+            xmax = max(xmax, self.fig.layout.xaxis.range[1])
+            xmin = min(xmin, self.fig.layout.xaxis.range[0])
+            xrange = xmax - xmin
+
+            # update figure while adding a small buffer to the mins and maxes
+            self.fig.update_xaxes(range=[xmin - xrange / 20, xmax + xrange / 20])
+
+        if ymax > self.fig.layout.yaxis.range[1] or ymin < self.fig.layout.yaxis.range[0]:
+
+            ymax = max(ymax, self.fig.layout.yaxis.range[1])
+            ymin = min(ymin, self.fig.layout.yaxis.range[0])
+            yrange = ymax - ymin
+
+            self.fig.update_yaxes(range=[ymin - yrange / 20, ymax + yrange / 20])
 
     def plot_ground_truths(self, truths, mapping, truths_label="Ground Truth",
                            resize=True, **kwargs):
@@ -1674,7 +1695,10 @@ class AnimatedPlotterly(_Plotter):
 
                 # find x, y, time, and type
                 truth_x = data[n]["x"][tuple(mask)]
+                # add in np.inf to ensure traces are present for every timestep
+                truth_x = np.append(truth_x, [np.inf])
                 truth_y = data[n]["y"][tuple(mask)]
+                truth_y = np.append(truth_y, [np.inf])
                 times = data[n]["time_str"][tuple(mask)]
 
                 data_.append(go.Scatter(x=truth_x,
@@ -1691,7 +1715,7 @@ class AnimatedPlotterly(_Plotter):
 
         if resize:
             if data:
-                self._resize(data)
+                self._resize(data, type="ground_truth")
             else:
                 raise RuntimeError("Cannot resize with no ground truth given.")
 
@@ -1734,14 +1758,19 @@ class AnimatedPlotterly(_Plotter):
         plot_detections, plot_clutter = self._conv_measurements(measurements_set,
                                                                 mapping,
                                                                 measurement_model)
-
         plot_combined = {'Detection': plot_detections,
                          'Clutter': plot_clutter}  # for later reference
 
         # this dictionary will store all the plotting data that we need
         # from the detections and clutter into numpy arrays that we can easily
         # access to plot
-        combined_data = dict(Detection=dict(), Clutter=dict())
+        combined_data = dict()
+
+        # only add clutter or detections to plot if necessary
+        if plot_detections:
+            combined_data.update(dict(Detection=dict()))
+        if plot_clutter:
+            combined_data.update(dict(Clutter=dict()))
 
         # initialise combined_data
         for key in combined_data.keys():
@@ -1816,7 +1845,9 @@ class AnimatedPlotterly(_Plotter):
 
                 # find x and y points for true detections and clutter
                 det_x = combined_data[key]["x"][tuple(mask)]
+                det_x = np.append(det_x, [np.inf])
                 det_y = combined_data[key]["y"][tuple(mask)]
+                det_y = np.append(det_y, [np.inf])
                 det_times = combined_data[key]["time_str"][tuple(mask)]
 
                 data_.append(go.Scatter(x=det_x,
@@ -1831,9 +1862,12 @@ class AnimatedPlotterly(_Plotter):
             frame.traces = traces_
 
         if resize:
+
             # only resize if there is data available
             if len(combined_data["Detection"]["x"]) or len(combined_data["Clutter"]["x"]):
-                self._resize(combined_data)  # ensure the figure display is big enough
+
+                # ensure the figure display is big enough
+                self._resize(combined_data, "measurements")
 
             else:
                 raise RuntimeError("Cannot resize as no measurements provided.")
@@ -1957,7 +1991,12 @@ class AnimatedPlotterly(_Plotter):
 
                 # find x, y, time, and type
                 track_x = data[n]["x"][tuple(mask)]
+                # add np.inf to plot so that the traces are present for entire simulation
+                track_x = np.append(track_x, [np.inf])
+
+                # repeat for y
                 track_y = data[n]["y"][tuple(mask)]
+                track_y = np.append(track_y, [np.inf])
                 track_type = data[n]["type"][tuple(mask)]
                 times = data[n]["time_str"][tuple(mask)]
 
@@ -1976,7 +2015,7 @@ class AnimatedPlotterly(_Plotter):
 
         if resize:
             if data:
-                self._resize(data)
+                self._resize(data, "tracks")
             else:
                 raise RuntimeError("Cannot resize - no tracks given.")
 
@@ -1987,6 +2026,7 @@ class AnimatedPlotterly(_Plotter):
                                       opacity=0.2, legendrank=500, name='Track<br>Uncertainty',
                                       hoverinfo='skip',
                                       mode='none', showlegend=True)
+            uncertainty_kwargs.update(kwargs)
 
             # dummy trace for legend for uncertainty
             self.fig.add_trace(go.Scatter(uncertainty_kwargs))
@@ -1994,11 +2034,12 @@ class AnimatedPlotterly(_Plotter):
             # and an uncertainty ellipse trace for each track
             uncertainty_kwargs.update({'showlegend': False})
             for k, _ in enumerate(tracks):
-                uncertainty_kwargs.update({'fillcolor': self.colorway[k + 2 % len(self.colorway)]})
+                uncertainty_kwargs.update({'fillcolor': self.colorway[(k + 2) % len(self.colorway)]})
+                uncertainty_kwargs.update(kwargs)
                 self.fig.add_trace(go.Scatter(uncertainty_kwargs))
 
             # following function finds uncertainty data points and plots them
-            self._plot_particles_and_ellipses(tracks, mapping, method="uncertainty")
+            self._plot_particles_and_ellipses(tracks, mapping, resize, method="uncertainty")
 
         if particle:  # plot particles
 
@@ -2008,7 +2049,8 @@ class AnimatedPlotterly(_Plotter):
                                    opacity=0.4,
                                    hoverinfo='skip', legendgroup='particles', name='particles',
                                    legendrank=520, showlegend=True)
-
+            # apply any keyword arguments
+            particle_kwargs.update(kwargs)
             self.fig.add_trace(go.Scatter(particle_kwargs))  # legend trace
 
             particle_kwargs.update({"showlegend": False})
@@ -2017,11 +2059,12 @@ class AnimatedPlotterly(_Plotter):
 
                 particle_kwargs.update(
                     {'marker': dict(size=2, color=self.colorway[(k + 2) % len(self.colorway)])})
+                particle_kwargs.update(kwargs)
                 self.fig.add_trace(go.Scatter(particle_kwargs))
 
-            self._plot_particles_and_ellipses(tracks, mapping, method="particles")
+            self._plot_particles_and_ellipses(tracks, mapping, resize, method="particles")
 
-    def _plot_particles_and_ellipses(self, tracks, mapping, method="uncertainty"):
+    def _plot_particles_and_ellipses(self, tracks, mapping, resize, method="uncertainty"):
 
         """
         The logic for plotting uncertainty ellipses and particles is nearly identical,
@@ -2054,8 +2097,8 @@ class AnimatedPlotterly(_Plotter):
                     data_x, data_y = Plotterly._generate_ellipse_points(state, mapping)
                     data_x = list(data_x)
                     data_y = list(data_y)
-                    data_x.append(None)  # necessary to draw multiple ellipses at once
-                    data_y.append(None)
+                    data_x.append(np.nan)  # necessary to draw multiple ellipses at once
+                    data_y.append(np.nan)
                     data[n]["x"][k] = data_x
                     data[n]["y"][k] = data_y
 
@@ -2082,12 +2125,16 @@ class AnimatedPlotterly(_Plotter):
                 # now plot the data
                 _x = list(chain(*data[n]["x"][tuple(self.all_masks[frame_time][n])]))
                 _y = list(chain(*data[n]["y"][tuple(self.all_masks[frame_time][n])]))
-
+                _x.append(np.inf)
+                _y.append(np.inf)
                 data_.append(go.Scatter(x=_x, y=_y))
                 traces_.append(trace_base - len(tracks) + n)
 
             frame.data = data_
             frame.traces = traces_
+
+        if resize:
+            self._resize(data, type="particle_or_uncertainty")
 
     def plot_sensors(self, sensors, sensor_label="Sensors", resize=True, **kwargs):
         """Plots sensor(s)
@@ -2117,12 +2164,12 @@ class AnimatedPlotterly(_Plotter):
 
         self.fig.add_trace(go.Scatter(sensor_kwargs))  # initialises trace
 
-        sensor_xy = np.array([sensor.position[[0, 1], 0] for sensor in sensors])
+        sensor_xy = np.array([sensor.position[[0, 1], 0] for sensor in sensors])  # sensor position
 
         if resize:
-            self._resize(sensor_xy)
+            self._resize(sensor_xy, "sensor")
 
-        for frame in self.fig.frames:
+        for frame in self.fig.frames:  # the plotting bit
             traces_ = list(frame.traces)
             data_ = list(frame.data)
 
