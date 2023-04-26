@@ -377,7 +377,7 @@ plotter.fig
 # %%
 # 4) Calculate and display metrics to show effectiveness of different tracking algorithms
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
+#
 # The final part of this example is to calculate metrics that can determine how well each tracking
 # followed the target. None will be perfect due to the sensor measurement noise and error
 # in data association where multiple tracks meet, but some will perform better than others.
