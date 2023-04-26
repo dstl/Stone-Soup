@@ -15,7 +15,7 @@ from scipy.stats import kde
 try:
     from plotly import colors
 except ImportError:
-    colors=None
+    colors = None
 try:
     import plotly.graph_objects as go
 except ImportError:
@@ -2034,7 +2034,8 @@ class AnimatedPlotterly(_Plotter):
             # and an uncertainty ellipse trace for each track
             uncertainty_kwargs.update({'showlegend': False})
             for k, _ in enumerate(tracks):
-                uncertainty_kwargs.update({'fillcolor': self.colorway[(k + 2) % len(self.colorway)]})
+                uncertainty_kwargs.update(
+                    {'fillcolor': self.colorway[(k + 2) % len(self.colorway)]})
                 uncertainty_kwargs.update(kwargs)
                 self.fig.add_trace(go.Scatter(uncertainty_kwargs))
 
