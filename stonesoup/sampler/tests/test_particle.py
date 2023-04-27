@@ -181,6 +181,14 @@ def test_sampler(distribution_func, params, dist_override, params_override, ndim
             [np.array([10, 10]), np.array([20, 20]), np.array([30, 30])],  # states
             20  # nsamples
         ), (
+            LinearGaussian(ndim_state=4,
+                           mapping=(0, 3),
+                           noise_covar=np.eye(2)),  # measurement_model
+            [np.array([10, 0, 10, 0]),
+             np.array([20, 0, 20, 0]),
+             np.array([30, 0, 30, 0])],  # states
+            20  # nsamples
+        ), (
             CartesianToBearingRange(ndim_state=4,
                                     mapping=(0, 2),
                                     noise_covar=np.diag([0.01, 1])),  # measurement_model
@@ -190,7 +198,8 @@ def test_sampler(distribution_func, params, dist_override, params_override, ndim
             20  # nsamples
         )
     ],
-    ids=["linear_1_detection", "linear_3_detections", "nonlinear_3_detections"]
+    ids=["linear_1_detection", "linear_3_detections", "linear_3_partial_state_detections",
+         "nonlinear_3_detections"]
 )
 def test_gaussian_detection_sampler(measurement_model, states, nsamples):
 

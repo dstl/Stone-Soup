@@ -105,9 +105,22 @@ class GaussianDetectionParticleSampler(ParticleSampler):
         num_det = len(detections)
         timestamp = next(iter(detections)).timestamp
         for detection in detections:
+            ndim_state = detection.measurement_model.ndim_state
+            ndim_meas = detection.measurement_model.ndim
             if isinstance(detection.measurement_model, LinearModel):
-                dist_mean.append(detection.state_vector)
-                dist_covar.append(detection.measurement_model.noise_covar)
+                if ndim_state > ndim_meas:
+                    mapping = detection.measurement_model.mapping
+                    mapping_matrix = np.zeros((ndim_state, ndim_meas))
+                    mapping_index = np.linspace(0, len(mapping)-1, ndim_meas, dtype=int)
+                    mapping_matrix[mapping, mapping_index] \
+                        = 1
+                    dist_mean.append(mapping_matrix @ detection.state_vector)
+                    dist_covar.append(mapping_matrix @
+                                      detection.measurement_model.noise_covar @
+                                      mapping_matrix.T)
+                else:
+                    dist_mean.append(detection.state_vector)
+                    dist_covar.append(detection.measurement_model.noise_covar)
             else:
                 tmp_mean = detection.measurement_model.inverse_function(detection)
                 jac = jacobian(detection.measurement_model.inverse_function, detection)
@@ -117,7 +130,6 @@ class GaussianDetectionParticleSampler(ParticleSampler):
 
         weights = self.get_weight(num_det)
 
-        ndim_state = detection.measurement_model.ndim_state
         params = {'means': dist_mean,
                   'covars': dist_covar,
                   'weights': weights,
