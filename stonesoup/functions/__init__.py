@@ -527,7 +527,7 @@ def gm_sample(means, covars, size, weights=None):
 
     Returns
     -------
-    : :class:`np.ndarray` of shape (:attr:`size`, num_dims)"""
+    : :class:`~.StateVectors` of shape (num_dims, :attr:`size`)"""
 
     if isinstance(means, np.ndarray):
         if len(means.shape) == 1:
@@ -547,7 +547,7 @@ def gm_sample(means, covars, size, weights=None):
     samples = np.vstack([np.random.multivariate_normal(mean.ravel(), covar, sample)
                          for (mean, covar, sample) in zip(means, covars, n_samples)]).T
 
-    return samples
+    return StateVectors(samples)
 
 
 def gm_reduce_single(means, covars, weights):

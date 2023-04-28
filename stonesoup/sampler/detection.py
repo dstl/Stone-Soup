@@ -3,6 +3,13 @@ from ..base import Property
 
 
 class DetectionSampler(Sampler):
+    """Detection sampler class.
+
+    Detection sampler accepts two :class:`~.Sampler` objects, one intended for use when
+    detections are available and one to fall back on when detections are not available. The
+    samples returned depend on which samplers have been specified. Both samplers must have a
+    :meth:`sample` method.
+    """
 
     detection_sampler: Sampler = Property(
         doc="Sampler for generating samples from detections")
@@ -16,14 +23,14 @@ class DetectionSampler(Sampler):
         Parameters
         ----------
         detections : :class:`~.Detection` or set of :class:`~.Detection`
-            detections used for generating samples. Assumed to follow a gaussian distribution.
+            Detections used for generating samples.
         timestamp : datetime.datetime, optional
             timestamp for when the sample is made.
 
         Returns
         -------
         : :class:`~.State`
-            The state object returned by either of the defined samplers.
+            The state object returned by either of the specified samplers.
         """
 
         if detections:

@@ -10,6 +10,11 @@ from ..functions import jacobian, gm_sample
 
 
 class ParticleSampler(Sampler):
+    """Particle sampler.
+
+     A generic :class:`~.Sampler` which wraps around most distribution sampling functions from
+     :class:`numpy` and :class:`scipy`, that returns a :class:`~.ParticleState`
+     """
 
     distribution_func: Callable = Property(
         doc="Callable function that returns samples from the desired distribution.")
@@ -43,7 +48,8 @@ class ParticleSampler(Sampler):
         Returns
         -------
         particle state : :class:`~.ParticleState`
-            The particle state containing the samples of the distribution"""
+            The particle state containing the samples of the distribution
+            """
 
         if distribution_func is None and params is not None:
             distribution_func = self.distribution_func
@@ -79,6 +85,12 @@ class ParticleSampler(Sampler):
 
 
 class GaussianDetectionParticleSampler(ParticleSampler):
+    """Particle sampler using Guassian detections to initialise the distribution.
+
+    Particle sampler that is preloaded with the :func:`~.functions.gm_sample` method for sampling
+    from Gaussian mixture distributions. This class can handle one or more linear and non-linear
+    Gaussian detections and will either return samples from a single or mixture of Guassians
+    depending on which is provided."""
 
     distribution_func = None
     params = None
@@ -94,7 +106,8 @@ class GaussianDetectionParticleSampler(ParticleSampler):
         Parameters
         ----------
         detections : :class:`~.Detection` or set of :class:`~.Detection`
-            Detections forming the distribution to sample from.
+            Detections forming the distribution to sample from. Equal component weighting is
+            assumed.
         Returns
         -------
         : :class:`~.ParticleState`
