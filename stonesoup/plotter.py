@@ -473,7 +473,7 @@ class Plotter(_Plotter):
     def plot_sensors(self, sensors, sensor_label="Sensors", **kwargs):
         """Plots sensor(s)
 
-        Plots sensors.  Users can change the color and marker of detections using keyword
+        Plots sensors.  Users can change the color and marker of sensors using keyword
         arguments. Default is a black 'x' marker.
 
         Parameters
@@ -481,9 +481,9 @@ class Plotter(_Plotter):
         sensors : Collection of :class:`~.Sensor`
             Sensors to plot
         sensor_label: str
-            Label to apply to all tracks for legend.
+            Label to apply to all sensors for legend.
         \\*\\*kwargs: dict
-            Additional arguments to be passed to plot function for detections. Defaults are
+            Additional arguments to be passed to plot function for sensors. Defaults are
             ``marker='x'`` and ``color='black'``.
 
         Returns
@@ -994,7 +994,7 @@ class Plotterly(_Plotter):
     def plot_sensors(self, sensors, sensor_label="Sensors", **kwargs):
         """Plots sensor(s)
 
-        Plots sensors.  Users can change the color and marker of detections using keyword
+        Plots sensors. Users can change the color and marker of sensors using keyword
         arguments. Default is a black 'x' marker.
 
         Parameters
@@ -1002,9 +1002,9 @@ class Plotterly(_Plotter):
         sensors : Collection of :class:`~.Sensor`
             Sensors to plot
         sensor_label: str
-            Label to apply to all tracks for legend.
+            Label to apply to all sensors for legend.
         \\*\\*kwargs: dict
-            Additional arguments to be passed to scatter function for detections. Defaults are
+            Additional arguments to be passed to scatter function for sensors. Defaults are
             ``marker=dict(symbol='x', color='black')``.
         """
 
@@ -1099,7 +1099,7 @@ class AnimationPlotter(_Plotter):
             Additional arguments to be passed to the animation.save function
         """
         if self.animation_output is None:
-            raise ValueError("Animation hasn't been ran yet. Therefore there is no animation to "
+            raise ValueError("Animation hasn't been run yet. Therefore there is no animation to "
                              "save")
 
         self.animation_output.save(filename, **kwargs)
@@ -1291,11 +1291,12 @@ class AnimationPlotter(_Plotter):
         Parameters
         ----------
         times_to_plot : Iterable[datetime]
-            All the times, that the plotter should plot
+            All the times that the plotter should plot
         data : Iterable[datetime]
             All the data that should be plotted
         plot_item_expiry: timedelta
-            How long a state should be displayed for. None means the
+            How long a state should be displayed for. Default value of None
+            means data is shown indefinitely
         axis_padding: float
             How much extra space should be given around the edge of the plot
         figure_kwargs: dict
