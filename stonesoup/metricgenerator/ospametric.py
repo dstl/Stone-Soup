@@ -383,8 +383,6 @@ class OSPAMetric(GOSPAMetric):
         Filters, D. Schuhmacher, B. Vo and B. Vo, IEEE Trans. Signal Processing
         2008
     """
-
-    # RG must take set mapping as an input to indicate which keys should be used in the simplemanager.add_data() method
     c: float = Property(doc='Maximum distance for possible association')
     p: float = Property(doc='Norm associated to distance')
     keys: list = Property(doc='Pair of strings of keys to access desired sets of states added to MultiManager',
