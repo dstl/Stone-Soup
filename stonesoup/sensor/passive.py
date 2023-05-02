@@ -1,6 +1,5 @@
 import numpy as np
 
-from stonesoup.types.detection import Detection
 from ..base import Property
 from ..models.measurement.nonlinear import CartesianToElevationBearing
 from ..sensor.sensor import SimpleSensor
