@@ -43,24 +43,24 @@ class Node(Type):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.data_held = {"processed": {}, "unprocessed": {}}
+        self.data_held = {"fused": {}, "created": {}, "unfused": {}}
         # Node no longer handles messages. All done by Edge
 
-    def update(self, time_pertaining, time_arrived, data_piece, track=None):
+    def update(self, time_pertaining, time_arrived, data_piece, category, track=None):
         if not isinstance(time_pertaining, datetime) and isinstance(time_arrived, datetime):
             raise TypeError("Times must be datetime objects")
         if not track:
             if not isinstance(data_piece.data, Detection) and not isinstance(data_piece.data, Track):
                 raise TypeError(f"Data provided without accompanying Track must be a Detection or a Track, not a "
                                 f"{type(data_piece.data).__name__}")
-            added, self.data_held['unprocessed'] = _dict_set(self.data_held['unprocessed'],
+            added, self.data_held[category] = _dict_set(self.data_held[category],
                                                              DataPiece(self, data_piece.originator, data_piece.data,
                                                                        time_arrived),
                                                              time_pertaining)
         else:
             if not isinstance(data_piece.data, Hypothesis):
                 raise TypeError("Data provided with Track must be a Hypothesis")
-            added, self.data_held['unprocessed'] = _dict_set(self.data_held['unprocessed'],
+            added, self.data_held[category] = _dict_set(self.data_held[category],
                                                              DataPiece(self, data_piece.originator, data_piece.data,
                                                                        time_arrived, track),
                                                              time_pertaining)
@@ -240,7 +240,7 @@ class Edge(Type):
                                                       'received', message.arrival_time)
                     # Update
                     message.recipient_node.update(message.time_pertaining, message.arrival_time,
-                                                  message.data_piece)
+                                                  message.data_piece, "unfused")
 
         for time, message in to_remove:
             self.messages_held['pending'][time].remove(message)
@@ -267,7 +267,7 @@ class Edge(Type):
     def unsent_data(self):
         """Data held by the ancestor that has not been sent to the descendant."""
         unsent = []
-        for status in ["unprocessed", "processed"]:
+        for status in ["fused", "created"]:
             for time_pertaining in self.ancestor.data_held[status]:
                 for data_piece in self.ancestor.data_held[status][time_pertaining]:
                     if self.descendant not in data_piece.sent_to:
@@ -567,7 +567,7 @@ class InformationArchitecture(Architecture):
             for data in all_detections[sensor_node]:
                 # The sensor acquires its own data instantly
                 sensor_node.update(data.timestamp, data.timestamp, DataPiece(sensor_node, sensor_node, data,
-                                                                             data.timestamp))
+                                                                             data.timestamp), "created")
 
         return all_detections
 
