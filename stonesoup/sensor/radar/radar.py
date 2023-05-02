@@ -64,8 +64,7 @@ class RadarBearingRange(SimpleSensor):
         return true_range <= self.max_range
 
     def is_clutter_detectable(self, state: Detection) -> bool:
-        measurement_range = state.state_vector[1]
-        return measurement_range <= self.max_range
+        return state.state_vector[1, 0] <= self.max_range
 
 
 class RadarBearing(SimpleSensor):
@@ -115,8 +114,7 @@ class RadarBearing(SimpleSensor):
         return true_range <= self.max_range
 
     def is_clutter_detectable(self, state: Detection) -> bool:
-        measurement_range = state.state_vector[1]
-        return measurement_range <= self.max_range
+        return True
 
 
 class RadarRotatingBearingRange(RadarBearingRange):
@@ -176,11 +174,20 @@ class RadarRotatingBearingRange(RadarBearingRange):
 
         return super().measure(ground_truths, noise, **kwargs)
 
-    def is_detectable(self, state: Union[GroundTruthState, Detection]) -> bool:
-        if isinstance(state, GroundTruthState):
-            measurement_vector = self.measurement_model.function(state, noise=False)
-        else:
-            measurement_vector = state.state_vector
+    def is_detectable(self, state: GroundTruthState) -> bool:
+        measurement_vector = self.measurement_model.function(state, noise=False)
+
+        # Check if state falls within sensor's FOV
+        fov_min = -self.fov_angle / 2
+        fov_max = +self.fov_angle / 2
+        bearing_t = measurement_vector[0, 0]
+        true_range = measurement_vector[1, 0]
+
+        return fov_min <= bearing_t <= fov_max and true_range <= self.max_range
+
+    def is_clutter_detectable(self, state: Detection) -> bool:
+        measurement_vector = state.state_vector
+
         # Check if state falls within sensor's FOV
         fov_min = -self.fov_angle / 2
         fov_max = +self.fov_angle / 2
