@@ -1,3 +1,5 @@
+import itertools
+
 import datetime
 import copy
 
@@ -6,11 +8,13 @@ import pytest
 
 from ...models.transition.linear import ConstantVelocity
 from ...predictor.particle import (
-    ParticlePredictor, ParticleFlowKalmanPredictor, BernoulliParticlePredictor)
+    ParticlePredictor, ParticleFlowKalmanPredictor, BernoulliParticlePredictor, SMCPHDPredictor)
+from ...types.array import StateVector
+from ...types.numeric import Probability
 from ...types.particle import Particle
 from ...types.prediction import ParticleStatePrediction, BernoulliParticleStatePrediction
 from ...types.update import BernoulliParticleStateUpdate
-from ...types.state import ParticleState, BernoulliParticleState
+from ...types.state import ParticleState, BernoulliParticleState, GaussianState
 from ...models.measurement.linear import LinearGaussian
 from ...types.detection import Detection
 from ...sampler.particle import ParticleSampler
@@ -271,3 +275,76 @@ def test_bernoulli_particle_detection():
     assert np.allclose(eval_weight, prediction.weight.astype(np.float64))
     # check that the weights are normalised
     assert np.around(float(np.sum(prediction.weight)), decimals=1) == 1
+
+
+@pytest.mark.parametrize(
+    "birth_scheme",
+    ('mixture', 'expansion', 'some_other_scheme'))
+def test_smcphd(birth_scheme):
+
+    # Initialise a transition model
+    cv = ConstantVelocity(noise_diff_coeff=0)
+
+    # Define time related variables
+    timestamp = datetime.datetime.now()
+    timediff = 2  # 2sec
+    new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
+    time_interval = new_timestamp - timestamp
+
+    # Parameters for SMC-PHD
+    prob_death = Probability(0.01)  # Probability of death
+    prob_birth = Probability(0.1)  # Probability of birth
+    birth_rate = 0.05  # Birth-rate (Mean number of new targets per scan)
+    birth_density = GaussianState(StateVector(np.array([20., 0.0])),
+                                  np.diag([10. ** 2, 1. ** 2]))  # Birth density
+    num_particles = 9  # Number of particles
+
+    # Define prior state
+    prior_particles = [Particle(np.array([[i], [j]]), 1/num_particles)
+                       for i, j in itertools.product([10, 20, 30], [10, 20, 30])]
+    prior = ParticleState(None, particle_list=prior_particles, timestamp=timestamp)
+
+    if birth_scheme == 'some_other_scheme':
+        with pytest.raises(ValueError):
+            SMCPHDPredictor(transition_model=cv, birth_density=birth_density,
+                            prob_death=prob_death, prob_birth=prob_birth,
+                            birth_rate=birth_rate, birth_scheme=birth_scheme)
+        return
+
+    predictor = SMCPHDPredictor(transition_model=cv, birth_density=birth_density,
+                                prob_death=prob_death, prob_birth=prob_birth,
+                                birth_rate=birth_rate, birth_scheme=birth_scheme)
+
+    # Ensure same random numbers are generated
+    np.random.seed(16549)
+
+    prediction = predictor.predict(prior, timestamp=new_timestamp)
+
+    prob_survive = np.exp(-float(prob_death) * time_interval.total_seconds())
+    eval_particles = [Particle(cv.matrix(timestamp=new_timestamp,
+                                         time_interval=time_interval)
+                               @ particle.state_vector,
+                               prob_survive * particle.weight)
+                      for particle in prior_particles]
+    if birth_scheme == 'mixture':
+        birth_weight = birth_rate / num_particles
+        new_weight = (prob_survive + birth_weight) * 1 / num_particles
+        eval_particles[0].state_vector = StateVector([[11.31091636],
+                                                      [-1.39374536]])
+        for particle in eval_particles:
+            particle.weight = new_weight
+
+    else:
+        num_birth = round(float(prob_birth) * num_particles)
+        birth_weight = birth_rate / num_birth
+        eval_particles.append(Particle(state_vector=StateVector([[18.3918058],
+                                                                 [0.31072265]]),
+                                       weight=birth_weight,
+                                       parent=None))
+
+    eval_prediction = ParticleStatePrediction(None, new_timestamp, particle_list=eval_particles)
+
+    assert np.allclose(prediction.mean, eval_prediction.mean)
+    assert prediction.timestamp == new_timestamp
+    assert np.allclose(eval_prediction.state_vector, prediction.state_vector)
+    assert np.allclose(prediction.log_weight, eval_prediction.log_weight)

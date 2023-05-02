@@ -1,5 +1,6 @@
 import copy
-from typing import Sequence
+from scipy.stats import multivariate_normal
+from typing import Sequence, Union, Literal
 
 import numpy as np
 from scipy.special import logsumexp
@@ -10,6 +11,8 @@ from ._utils import predict_lru_cache
 from .kalman import KalmanPredictor, ExtendedKalmanPredictor
 from ..base import Property
 from ..models.transition import TransitionModel
+from ..types.mixture import GaussianMixture
+from ..types.numeric import Probability
 from ..types.prediction import Prediction
 from ..types.state import GaussianState
 from ..sampler import Sampler
@@ -383,3 +386,122 @@ class BernoulliParticlePredictor(ParticlePredictor):
                     detections |= {hypothesis.measurement}
 
         return detections
+
+
+class SMCPHDPredictor(Predictor):
+    """SMC-PHD Predictor class
+
+    Sequential Monte-Carlo (SMC) PHD predictor implementation, based on [1]_.
+
+    Notes
+    -----
+    - It is assumed that the proposal distribution is the same as the dynamics
+    - Target "spawing" is not implemented
+
+     .. [1] Ba-Ngu Vo, S. Singh and A. Doucet, "Sequential Monte Carlo Implementation of the
+            PHD Filter for Multi-target Tracking," Sixth International Conference of Information
+            Fusion, 2003. Proceedings of the, 2003, pp. 792-799, doi: 10.1109/ICIF.2003.177320.
+    """
+    prob_death: Probability = Property(
+        doc="The probability of death")
+    prob_birth: Probability = Property(
+        doc="The probability of birth")
+    birth_rate: float = Property(
+        doc="The birth rate (i.e. number of new/born targets at each iteration)")
+    birth_density: Union[GaussianState, GaussianMixture] = Property(
+        doc="The birth density (i.e. density from which to sample birth particles)")
+    birth_scheme: Literal["expansion", "mixture"] = Property(
+        default="expansion",
+        doc="The scheme for birth particles. Options are 'expansion' | 'mixture'. "
+            "Default is 'expansion'"
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.birth_scheme not in ["expansion", "mixture"]:
+            raise ValueError("Invalid birth scheme. Options are 'expansion' | 'mixture'")
+
+    @predict_lru_cache()
+    def predict(self, prior, timestamp=None, **kwargs):
+        """ SMC-PHD prediction step
+
+        Parameters
+        ----------
+        prior: :class:`~.ParticleState`
+            The prior state
+        timestamp: :class:`datetime.datetime`
+            The time at which to predict the next state
+
+        Returns
+        -------
+        : :class:`~.ParticleStatePrediction`
+            The predicted state
+
+        """
+        num_samples = len(prior)
+        log_prior_weights = prior.log_weight
+        time_interval = timestamp - prior.timestamp
+
+        # Predict surviving particles forward
+        pred_particles_sv = self.transition_model.function(prior,
+                                                           time_interval=time_interval,
+                                                           noise=True)
+
+        # Perform birth and update weights
+        num_state_dim = pred_particles_sv.shape[0]
+        if self.birth_scheme == "expansion":
+            # Expansion birth scheme, as described in [1]
+            # Compute number of birth particles (J_k) as a fraction of the number of particles
+            num_birth = round(float(self.prob_birth) * num_samples)
+
+            # Sample birth particles
+            birth_particles_sv = self._sample_birth_particles(num_state_dim, num_birth)
+            log_birth_weights = np.full((num_birth,), np.log(self.birth_rate / num_birth))
+
+            # Surviving particle weights
+            log_prob_survive = -float(self.prob_death) * time_interval.total_seconds()
+            log_pred_weights = log_prob_survive + log_prior_weights
+
+            # Append birth particles to predicted ones
+            pred_particles_sv = StateVectors(
+                np.concatenate((pred_particles_sv, birth_particles_sv), axis=1))
+            log_pred_weights = np.concatenate((log_pred_weights, log_birth_weights))
+        else:
+            # Flip a coin for each particle to decide if it gets replaced by a birth particle
+            birth_inds = np.flatnonzero(np.random.binomial(1, float(self.prob_birth), num_samples))
+
+            # Sample birth particles and replace in original state vector matrix
+            num_birth = len(birth_inds)
+            birth_particles_sv = self._sample_birth_particles(num_state_dim, num_birth)
+            pred_particles_sv[:, birth_inds] = birth_particles_sv
+
+            # Process weights
+            prob_survive = np.exp(-float(self.prob_death) * time_interval.total_seconds())
+            birth_weight = self.birth_rate / num_samples
+            log_pred_weights = np.log(prob_survive + birth_weight) + log_prior_weights
+
+        prediction = Prediction.from_state(prior, state_vector=pred_particles_sv,
+                                           log_weight=log_pred_weights,
+                                           timestamp=timestamp, particle_list=None,
+                                           transition_model=self.transition_model)
+
+        return prediction
+
+    def _sample_birth_particles(self, num_state_dim: int, num_birth: int):
+        birth_particles = np.zeros((num_state_dim, 0))
+        if isinstance(self.birth_density, GaussianMixture):
+            n_parts_per_component = num_birth // len(self.birth_density)
+            for i, component in enumerate(self.birth_density):
+                if i == len(self.birth_density) - 1:
+                    n_parts_per_component += num_birth % len(self.birth_density)
+                birth_particles_component = multivariate_normal.rvs(
+                    component.mean.ravel(),
+                    component.covar,
+                    n_parts_per_component).T
+                birth_particles = np.hstack((birth_particles, birth_particles_component))
+        else:
+            birth_particles = np.atleast_2d(multivariate_normal.rvs(
+                self.birth_density.mean.ravel(),
+                self.birth_density.covar,
+                num_birth)).T
+        return birth_particles
