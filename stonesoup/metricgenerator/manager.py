@@ -116,29 +116,23 @@ class MultiManager(SimpleManager):
     generators: Sequence[MetricGenerator] = Property(doc='List of generators to use', default=None)
     associator: Associator = Property(doc="Associator to combine tracks and truth", default=None)
 
-    # RG must be able to take multiple sets of groundtruth/ detections/ association set
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.states_sets = dict()
 
-    # RG generator will take mapping keys as input: e.g. generator([tracksmapping1, tracksmapping2])
-    # must take mapping from generator as input (e.g. tracksmapping1 = TrackSet1, tracksmapping2 = TrackSet2) for
-    # each type of ground truth/ detection / track
     def add_data(self, groundtruth_paths: Dict[str, Iterable[Union[GroundTruthPath, Platform]]] = None,
                  tracks: Dict[str, Iterable[Track]] = None, detections: Dict[str, Iterable[Detection]] = None):
         """Adds data to the metric generator
 
         Parameters
         ----------
-        groundtruth_paths : dictionary of lists or sets of :class:`~.GroundTruthPath`
+        groundtruth_paths : dictionary of lists or dictionary of sets of :class:`~.GroundTruthPath`
             Ground truth paths to be added to the manager.
-        tracks : dictionary of lists or sets of :class:`~.Track`
+        tracks : dictionary of lists or dictionary of sets of :class:`~.Track`
             Tracks objects to be added to the manager.
-        detections : dictionary of lists or sets of :class:`~.Detection`
+        detections : dictionary of lists or dictionary of sets of :class:`~.Detection`
             Detections to be added to the manager.
         """
-
-        # RG must be able to add variable number of sets of groundtruth/ tracks/ detections
         self._add(groundtruth_paths=groundtruth_paths, tracks=tracks, detections=detections)
 
     def _add(self, **kwargs):
