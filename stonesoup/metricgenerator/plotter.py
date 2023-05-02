@@ -9,7 +9,7 @@ from ..plotter import Plotter
 
 
 class TwoDPlotter(PlotGenerator):
-    """:class:`~.MetricManager` for the plotting data
+    """:class:`~.MetricGenerator` for the plotting data
 
     Plots of :class:`~.Track`, :class:`~.Detection` and
     :class:`~.GroundTruthPath` objects in two dimensions.
