@@ -13,6 +13,7 @@ from ..dataassociator.base import DataAssociator
 from ..initiator.base import Initiator
 from ..deleter.base import Deleter
 from ..tracker.base import Tracker
+from ..types.time import TimeRange
 
 from typing import List, Collection, Tuple, Set, Union, Dict
 import numpy as np
@@ -211,7 +212,9 @@ class Edge(Type):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.messages_held = {"pending": {}, "received": {}}
+        self.messages_held = {"pending": {},  # For pending, messages indexed by time sent.
+                              "received": {}}  # For received, by time received
+        self.time_ranges_failed = [] # List of time ranges during which this edge was failed
 
     def send_message(self, data_piece, time_pertaining, time_sent):
         if not isinstance(data_piece, DataPiece):
@@ -231,17 +234,21 @@ class Edge(Type):
                 message.update(current_time)
                 if message.status == 'received':
                     # Then the latency has passed and message has been received
-                    # No need for a Node to hold messages
                     # Move message from pending to received messages in edge
                     to_remove.add((time, message))
                     _, self.messages_held = _dict_set(self.messages_held, message,
-                                                      'received', current_time)
+                                                      'received', message.arrival_time)
                     # Update
                     message.recipient_node.update(message.time_pertaining, message.arrival_time,
                                                   message.data_piece)
 
         for time, message in to_remove:
             self.messages_held['pending'][time].remove(message)
+
+    def _failed(self, current_time, duration):
+        """Keeps track of when this edge was failed using the time_ranges_failed property. """
+        end_time = current_time + timedelta(duration)
+        self.time_ranges_failed.append(TimeRange(current_time, end_time))
 
     @property
     def ancestor(self):
@@ -258,8 +265,7 @@ class Edge(Type):
 
     @property
     def unsent_data(self):
-        """Data held by the ancestor that has not been sent to the descendant.
-        Current implementation should work but gross"""
+        """Data held by the ancestor that has not been sent to the descendant."""
         unsent = []
         for status in ["unprocessed", "processed"]:
             for time_pertaining in self.ancestor.data_held[status]:
@@ -330,6 +336,7 @@ class Message(Type):
 
     @property
     def arrival_time(self):
+        # TODO: incorporate failed time ranges here. Not essential for a first PR. Could do with merging of PR #664
         return self.time_sent + timedelta(seconds=self.edge.ovr_latency)
 
     def update(self, current_time):
@@ -545,7 +552,7 @@ class InformationArchitecture(Architecture):
         for sensor_node in self.sensor_nodes:
             all_detections[sensor_node] = set()
             for detection in sensor_node.sensor.measure(new_ground_truths, noise, **kwargs):
-                    all_detections[sensor_node].add(detection)
+                all_detections[sensor_node].add(detection)
 
             # Borrowed below from SensorSuite. I don't think it's necessary, but might be something
             # we need. If so, will need to define self.attributes_inform
@@ -558,7 +565,6 @@ class InformationArchitecture(Architecture):
             #     detection.metadata.update(attributes_dict)
 
             for data in all_detections[sensor_node]:
-                #print(data.timestamp, self.current_time)
                 # The sensor acquires its own data instantly
                 sensor_node.update(data.timestamp, data.timestamp, DataPiece(sensor_node, sensor_node, data,
                                                                              data.timestamp))
@@ -569,10 +575,11 @@ class InformationArchitecture(Architecture):
         """Performs the propagation of the measurements through the network"""
         for edge in self.edges.edges:
             if failed_edges and edge in failed_edges:
-                continue  # in future, make it possible to simulate temporarily failed edges?
+                edge._failed(self.current_time, time_increment)
+                continue  # No data passed along these edges
             edge.update_messages(self.current_time)
             for data_piece, time_pertaining in edge.unsent_data:
-                edge.send_message(data_piece, time_pertaining, self.current_time)
+                edge.send_message(data_piece, time_pertaining, data_piece.time_arrived)
 
         # for node in self.processing_nodes:
         #     node.process() # This should happen when a new message is received
