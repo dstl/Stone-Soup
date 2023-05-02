@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 """
-Comparing Trackers On Non-Linear Groundtruth
-=====================================================
+Comparing Multiple Trackers On Manoeuvring Targets
+==================================================
 """
 # %%
 # This example shows how multiple trackers can be compared against each other using the same
@@ -16,7 +16,7 @@ Comparing Trackers On Non-Linear Groundtruth
 # Each of these trackers assumes a constant velocity transition model. The trackers are compared
 # against each other using distance-error metrics, with the capability of displaying other metrics
 # for the user to explore. The aim of this example is to display the effectiveness of
-# different trackers when tasked with following non-linear motion.
+# different trackers when tasked with following a manoeuvring target with non-linear detections.
 
 # %%
 # Layout
@@ -379,7 +379,7 @@ plotter.fig
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # The final part of this example is to calculate metrics that can determine how well each tracking
-# followed the target. None will be perfect due to the sensor measurement noise and error
+# algorithm followed the target. None will be perfect due to the sensor measurement noise and error
 # in data association where multiple tracks meet, but some will perform better than others.
 # 
 # This section of the example follows code from the metrics example, which is also used in
