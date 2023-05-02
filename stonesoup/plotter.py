@@ -121,6 +121,8 @@ class Plotter(_Plotter):
     ----------
     dimension: enum \'Dimension\'
         Optional parameter to specify 2D or 3D plotting. Default is 2D plotting.
+    plot_timeseries: bool
+        Specify whether data to be plotted is time series data. Default False
     \\*\\*kwargs: dict
         Additional arguments to be passed to plot function. For example, figsize (Default is
         (10, 6)).
@@ -136,7 +138,7 @@ class Plotter(_Plotter):
         and labels as str
     """
 
-    def __init__(self, dimension=Dimension.TWO, **kwargs):
+    def __init__(self, dimension=Dimension.TWO, plot_timeseries=False, **kwargs):
         figure_kwargs = {"figsize": (10, 6)}
         figure_kwargs.update(kwargs)
         if isinstance(dimension, type(Dimension.TWO)):
@@ -150,7 +152,9 @@ class Plotter(_Plotter):
         self.fig = plt.figure(**figure_kwargs)
         if self.dimension is Dimension.TWO:  # 2D axes
             self.ax = self.fig.add_subplot(1, 1, 1)
-            self.ax.axis('equal')
+            self.plot_timeseries = plot_timeseries
+            if not self.plot_timeseries:
+                self.ax.axis('equal')  # set axis to 'equal' only if not plotting time series data
         else:  # 3D axes
             self.ax = self.fig.add_subplot(111, projection='3d')
             self.ax.axis('auto')
@@ -162,6 +166,59 @@ class Plotter(_Plotter):
         # prevent multiple entries with the same label from displaying on legend
         # This is new compared to plotter.py
         self.legend_dict = {}  # create an empty dictionary to hold legend entries
+
+    def plot_metrics(self, metrics, metric_keys=None, **kwargs):
+        """Plots metrics
+
+        Plots each metric passed in to :attr:`metrics` and generates a legend
+        automatically. Metrics are plotted as lines with default colors.
+
+        Users can change linestyle, color and marker using keyword arguments. Any changes
+        will apply to all metrics.
+
+        Parameters
+        ----------
+        metrics : dict of :class:`~.Metric`
+            Dictionary of metrics to be plotted.
+        metric_keys: list
+            Metric keys to extract metrics from dictionary of :class:`~.Metric` for plotting.
+            Default None to take all metrics from the dictionary.
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to plot function. Default is ``linestyle="-"``.
+
+        Returns
+        -------
+        : list of :class:`matplotlib.artist.Artist`
+            List of artists that have been added to the axes.
+        """
+        metrics_kwargs = dict(linestyle="-")
+        metrics_kwargs.update(kwargs)
+
+        artists = []
+        if self.dimension is not Dimension.TWO:
+            raise NotImplementedError('Metrics can only be plotted in two dimensions')
+        if metric_keys is None:
+            metric_keys = list(metrics.keys())
+
+        # generate colour map for lines to be plotted
+        colour_map = iter(plt.cm.rainbow(np.linspace(0, 1, len(metric_keys))))
+
+        for key in metric_keys:
+            colour = next(colour_map)
+            metric_values = metrics[key].value
+            artists.extend(self.ax.plot([_.timestamp for _ in metric_values],
+                                        [_.value for _ in metric_values],
+                                        color=colour,
+                                        **metrics_kwargs))
+
+            metric_handle = Line2D([], [], linestyle=metrics_kwargs['linestyle'], color=colour)
+            self.legend_dict[key] = metric_handle
+
+        # Generate legend
+        artists.append(self.ax.legend(handles=self.legend_dict.values(),
+                                      labels=self.legend_dict.keys()))
+
+        return artists
 
     def plot_ground_truths(self, truths, mapping, truths_label="Ground Truth", **kwargs):
         """Plots ground truth(s)
