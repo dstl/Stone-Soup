@@ -391,16 +391,22 @@ class BernoulliParticlePredictor(ParticlePredictor):
 class SMCPHDPredictor(Predictor):
     """SMC-PHD Predictor class
 
-    Sequential Monte-Carlo (SMC) PHD predictor implementation, based on [1]_.
+    Sequential Monte Carlo (SMC) PHD predictor implementation, based on [#]_.
 
-    Notes
-    -----
-    - It is assumed that the proposal distribution is the same as the dynamics
-    - Target "spawing" is not implemented
+    .. note::
 
-     .. [1] Ba-Ngu Vo, S. Singh and A. Doucet, "Sequential Monte Carlo Implementation of the
+        - It is assumed that the proposal distribution is the same as the dynamics
+        - Target "spawing" is not implemented
+
+    Parameters
+    ----------
+
+    References
+    ----------
+     .. [#] Ba-Ngu Vo, S. Singh and A. Doucet, "Sequential Monte Carlo Implementation of the
             PHD Filter for Multi-target Tracking," Sixth International Conference of Information
             Fusion, 2003. Proceedings of the, 2003, pp. 792-799, doi: 10.1109/ICIF.2003.177320.
+
     """
     prob_death: Probability = Property(
         doc="The probability of death")
@@ -436,7 +442,6 @@ class SMCPHDPredictor(Predictor):
         -------
         : :class:`~.ParticleStatePrediction`
             The predicted state
-
         """
         num_samples = len(prior)
         log_prior_weights = prior.log_weight

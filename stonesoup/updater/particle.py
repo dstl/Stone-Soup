@@ -525,19 +525,24 @@ class BernoulliParticleUpdater(ParticleUpdater):
 class SMCPHDUpdater(ParticleUpdater):
     """ SMC-PHD updater class
 
-    Sequential Monte-Carlo (SMC) PHD updater implementation, based on [1]_ .
+    Sequential Monte Carlo (SMC) PHD updater implementation, based on [#]_ and [#]_.
 
-    Notes
-    -----
-    - It is assumed that the proposal distribution is the same as the dynamics
-    - Target "spawing" is not implemented
+    .. note::
 
-    .. [1] Ba-Ngu Vo, S. Singh and A. Doucet, "Sequential Monte Carlo Implementation of the
-            PHD Filter for Multi-target Tracking," Sixth International Conference of Information
-            Fusion, 2003. Proceedings of the, 2003, pp. 792-799, doi: 10.1109/ICIF.2003.177320.
-    .. [2]  P. Horridge and S. Maskell,  “Using a probabilistic hypothesis density filter to
-            confirm tracks in a multi-target environment,” in 2011 Jahrestagung der Gesellschaft
-            fr Informatik, October 2011.
+        - It is assumed that the proposal distribution is the same as the dynamics
+        - Target "spawing" is not implemented
+
+    Parameters
+    ----------
+
+    References
+    ----------
+    .. [#] Ba-Ngu Vo, S. Singh and A. Doucet, "Sequential Monte Carlo Implementation of the
+           PHD Filter for Multi-target Tracking," Sixth International Conference of Information
+           Fusion, 2003. Proceedings of the, 2003, pp. 792-799, doi: 10.1109/ICIF.2003.177320.
+    .. [#] P. Horridge and S. Maskell,  “Using a probabilistic hypothesis density filter to
+           confirm tracks in a multi-target environment,” in 2011 Jahrestagung der Gesellschaft
+           fr Informatik, October 2011.
     """
     prob_detect: Probability = Property(
         default=Probability(0.85),
