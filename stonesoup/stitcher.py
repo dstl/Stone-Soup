@@ -26,7 +26,8 @@ class TrackStitcher(Base):
         doc="Backward predicting hypothesiser.",
         default=None)
     search_window: timedelta = Property(
-        doc="Time window from current time to search in for track endpoints that could be associated to",
+        doc="Time window from current time to search in for track endpoints that "
+            "could be associated to",
         default=timedelta(seconds=30))
 
     @staticmethod

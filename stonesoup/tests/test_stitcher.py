@@ -23,7 +23,7 @@ from stonesoup.stitcher import TrackStitcher
 @pytest.fixture
 def params():
     start_time = datetime(2023, 4, 6, 16, 17)
-    np.random.seed(100) # Set seed for numpy random arrays
+    np.random.seed(100)  # Set seed for numpy random arrays
 
     number_of_targets = 3
     range_value = 10000
