@@ -145,7 +145,7 @@ def test_correct_no_stitched_tracks2(params):
     stitched_tracks2, _ = stitcher2.stitch(all_tracks, start_time)
     # merge_forward_and_backward() has a bug. It is not returning x.
     no_stitched_tracks = len(stitched_tracks2)
-    assert no_stitched_tracks == 9
+    assert no_stitched_tracks == 3
 
 
 def test__merge():
@@ -159,11 +159,15 @@ def test__merge_forward_and_backward():
     x_backward = {'d': 1, 'e': 2, 'f': 3}
     x = TrackStitcher._merge_forward_and_backward(x_forward, x_backward)
     assert type(x) == collections.defaultdict
-    x_forward = {'a': {'aa': None}}
-    x_backward = {'a': {'bb': 'None'}}
+    x_forward = {'a': {'f_id': 'f_val'}}
+    x_backward = {'a': {None: 'b_val'}}
     with pytest.raises(RuntimeError):
         TrackStitcher._merge_forward_and_backward(x_forward, x_backward)
-    x_forward = {'a': {'aa': 'None'}}
-    x_backward = {'a': {'bb': None}}
+    x_forward = {'a': {None: 'f_val'}}
+    x_backward = {'a': {'b_id': 'b_val'}}
+    with pytest.raises(RuntimeError):
+        TrackStitcher._merge_forward_and_backward(x_forward, x_backward)
+    x_forward = {'a': {'f_id': 'f_val'}}
+    x_backward = {'a': {'b_id': 'b_val'}}
     with pytest.raises(RuntimeError):
         TrackStitcher._merge_forward_and_backward(x_forward, x_backward)

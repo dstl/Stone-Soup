@@ -150,7 +150,7 @@ class TrackStitcher(Base):
                             raise RuntimeError("Missing distance for forward during merge")
                         arr[b_id] = b_val + missed_f_val
                 x[key] = arr
-            return x
+        return x
 
     def stitch(self, tracks, start_time):
         """
