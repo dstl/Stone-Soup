@@ -103,8 +103,11 @@ class KafkaDetectionReader(DetectionReader, _KafkaReader):
 
     It is assumed that each message contains a single detection. The value of each message is a
     JSON object containing the detection data. The JSON object must contain a field for each
-    element of the state vector and a timestamp. The JSON object may contain fields
+    element of the state vector and a timestamp. The JSON object may also contain fields
     for the detection metadata.
+
+    Parameters
+    ----------
     """
 
     @BufferedGenerator.generator_method
@@ -149,8 +152,11 @@ class KafkaGroundTruthReader(GroundTruthReader, _KafkaReader):
 
     It is assumed that each message contains a single ground truth state. The value of each message
     is a JSON object containing the ground truth data. The JSON object must contain a field for
-    each element of the state vector a timestamp. The JSON object must also contain a field for
-    the path ID. The JSON object may contain fields for the ground truth metadata.
+    each element of the state vector, a timestamp, and the ground truth path ID. The JSON object
+    may also contain fields for the ground truth metadata.
+
+    Parameters
+    ----------
     """
     path_id_field: str = Property(doc="Name of column to be used as path ID.")
 

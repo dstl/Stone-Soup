@@ -7,10 +7,15 @@ from stonesoup.writer import Writer
 
 
 class KafkaWriter(Writer):
-    """Write data to a Kafka topic"""
+    """A simple Kafka writer that writes data to a Kafka topic.
+
+    Parameters
+    ----------
+    """
     kafka_config: Dict[str, str] = Property(
-        default={}, doc="Keyword arguments for the underlying kafka producer"
-    )
+        doc="Configuration properties for the underlying kafka consumer. See the "
+            "`confluent-kafka documentation <https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#kafka-client-configuration>`_ " # noqa
+            "for more details.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
