@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import numpy as np
 import pytest
+import collections
 
 from stonesoup.types.state import GaussianState
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
@@ -145,3 +146,24 @@ def test_correct_no_stitched_tracks2(params):
     # merge_forward_and_backward() has a bug. It is not returning x.
     no_stitched_tracks = len(stitched_tracks2)
     assert no_stitched_tracks == 9
+
+
+def test__merge():
+    a = [1, 2, 3, 4]
+    b = [4, 5, 6, 7]
+    assert TrackStitcher._merge(a, b) == [1, 2, 3, 4, 5, 6, 7]
+
+
+def test__merge_forward_and_backward():
+    x_forward = {'a': 1, 'b': 2, 'c': 4}
+    x_backward = {'d': 1, 'e': 2, 'f': 3}
+    x = TrackStitcher._merge_forward_and_backward(x_forward, x_backward)
+    assert type(x) == collections.defaultdict
+    x_forward = {'a': {'aa': None}}
+    x_backward = {'a': {'bb': 'None'}}
+    with pytest.raises(RuntimeError):
+        TrackStitcher._merge_forward_and_backward(x_forward, x_backward)
+    x_forward = {'a': {'aa': 'None'}}
+    x_backward = {'a': {'bb': None}}
+    with pytest.raises(RuntimeError):
+        TrackStitcher._merge_forward_and_backward(x_forward, x_backward)

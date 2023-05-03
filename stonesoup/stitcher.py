@@ -84,7 +84,6 @@ class TrackStitcher(Base):
                         x_forward[track.id][hypothesis.measurement.metadata] = hypothesis.distance
                     else:
                         x_forward[track.id][None] = hypothesis.distance
-        print(x_forward.keys())
         return x_forward
 
     def backward_predict(self, tracks, start_time):
@@ -118,19 +117,15 @@ class TrackStitcher(Base):
                             hypothesis.distance
                         # TODO: Not ideal. Is there a better way?
                         x_backward[hypothesis.measurement.metadata][None] = missed_hyp.distance
-        print(x_backward.keys())
         return x_backward
 
     @staticmethod
     def _merge_forward_and_backward(x_forward, x_backward):
         x = defaultdict(dict)
-        print('for keys = ', x_forward.keys())
-        print('back keys = ', x_backward.keys())
         for key in x_forward.keys() | x_backward.keys():
-            print('key = ', key)
             if key not in x_forward and key in x_backward:
                 x[key] = x_backward[key]
-            elif key in x_forward[key] and key not in x_backward:
+            elif key in x_forward and key not in x_backward:
                 x[key] = x_forward[key]
             else:
                 arr = dict()
@@ -155,7 +150,6 @@ class TrackStitcher(Base):
                             raise RuntimeError("Missing distance for forward during merge")
                         arr[b_id] = b_val + missed_f_val
                 x[key] = arr
-            print("x = ", x)
             return x
 
     def stitch(self, tracks, start_time):
@@ -163,7 +157,6 @@ class TrackStitcher(Base):
         Function to stitch track segments together according to predictions made
         by the forward_predict and backward_predict functions.
         """
-        print("Stitch used now")
         forward, backward = False, False
         if self.forward_hypothesiser is not None:
             forward = True
@@ -176,20 +169,12 @@ class TrackStitcher(Base):
             x_backward = self.backward_predict(tracks, start_time)
 
         if forward and not backward:
-            print('x = ', x_forward)
             x = x_forward
-            print('x.keys', set(x.keys()))
         elif not forward and backward:
-            print('x = ', x_backward)
             x = x_backward
-            print('x.keys', set(x.keys()))
         else:
-            print('x_forward = ', x_forward)
-            print('x_backward = ', x_backward)
             x = self._merge_forward_and_backward(x_forward, x_backward)
-            print('merged x = ', x)
 
-        print(set(x.keys()))
         i_track_ids = set(x.keys())
         j_track_ids = {id_ for combo in x.values() for id_ in combo if id_ is not None}
         j_track_ids |= i_track_ids  # Space for missed hypotheses
