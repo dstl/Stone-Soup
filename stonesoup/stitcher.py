@@ -20,10 +20,14 @@ class TrackStitcher(Base):
     function to use both at the same time.
     """
     forward_hypothesiser: Hypothesiser = Property(
-        doc="Forward predicting hypothesiser.", default=None)
+        doc="Forward predicting hypothesiser.",
+        default=None)
     backward_hypothesiser: Hypothesiser = Property(
-        doc="Backward predicting hypothesiser.", default=None)
-    search_window: timedelta = Property(default=timedelta(seconds=30))
+        doc="Backward predicting hypothesiser.",
+        default=None)
+    search_window: timedelta = Property(
+        doc="Time window from current time to search in for track endpoints that could be associated to",
+        default=timedelta(seconds=30))
 
     @staticmethod
     @lru_cache()
@@ -97,22 +101,22 @@ class TrackStitcher(Base):
             poss_detections = set()
             for track in tracks:
                 timestamp = start_time + timedelta(seconds=n)
-                if timestamp > track[0].timestamp >= (timestamp + self.search_window):
+                if timestamp < track[0].timestamp <= (timestamp + self.search_window):
                     poss_tracks.append(track)
                 if (timestamp - timedelta(seconds=1)) < track[-1].timestamp <= timestamp:
                     poss_detections.add(self._extract_detection(track, backward=True))
                 if not poss_detections:
                     continue
-                for track in poss_tracks:
-                    hypotheses = self.backward_hypothesiser.hypothesise(
-                        track, poss_detections, start_time + timedelta(seconds=n))
-                    missed_hyp = next(hypothesis for hypothesis in hypotheses if not hypothesis)
-                    for hypothesis in hypotheses:
-                        if hypothesis:
-                            x_backward[hypothesis.measurement.metadata][track.id] =\
-                                hypothesis.distance
-                            # TODO: Not ideal. Is there a better way?
-                            x_backward[hypothesis.measurement.metadata][None] = missed_hyp.distance
+            for track in poss_tracks:
+                hypotheses = self.backward_hypothesiser.hypothesise(
+                    track, poss_detections, start_time + timedelta(seconds=n))
+                missed_hyp = next(hypothesis for hypothesis in hypotheses if not hypothesis)
+                for hypothesis in hypotheses:
+                    if hypothesis:
+                        x_backward[hypothesis.measurement.metadata][track.id] =\
+                            hypothesis.distance
+                        # TODO: Not ideal. Is there a better way?
+                        x_backward[hypothesis.measurement.metadata][None] = missed_hyp.distance
         print(x_backward.keys())
         return x_backward
 

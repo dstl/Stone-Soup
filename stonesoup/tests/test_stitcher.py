@@ -23,15 +23,15 @@ from stonesoup.stitcher import TrackStitcher
 @pytest.fixture
 def params():
     start_time = datetime(2023, 4, 6, 16, 17)
-    np.random.seed(100)
+    np.random.seed(100) # Set seed for numpy random arrays
 
-    number_of_targets = 2
+    number_of_targets = 3
     range_value = 10000
-    max_segments = 5
+    max_segments = 10
     max_segment_length = 125
     min_segment_length = 120
-    max_disjoint_length = 125
-    min_disjoint_length = 120
+    max_disjoint_length = 2
+    min_disjoint_length = 1
     max_track_start = 125
     n_spacial_dimensions = 3
     measurement_noise = 1000
@@ -54,7 +54,7 @@ def params():
 
     predictor = KalmanPredictor(transition_model)
     updater = KalmanUpdater(measurement_model)
-    hypothesiser = DistanceHypothesiser(predictor, updater, Mahalanobis(), missed_distance=30)
+    hypothesiser = DistanceHypothesiser(predictor, updater, Mahalanobis(), missed_distance=300)
     data_associator = GNNWith2DAssignment(hypothesiser)
     deleter = CompositeDeleter([UpdateTimeStepsDeleter(50), CovarianceBasedDeleter(5000)])
     initiator = MultiMeasurementInitiator(prior_state=GaussianState(
@@ -109,7 +109,7 @@ def params():
         [OrnsteinUhlenbeck(0.001, 2e-2)]*n_spacial_dimensions, seed=435)
 
     predictor = KalmanPredictor(transition_model)
-    hypothesiser = DistanceHypothesiser(predictor, updater, Mahalanobis(), missed_distance=500)
+    hypothesiser = DistanceHypothesiser(predictor, updater, Mahalanobis(), missed_distance=300)
 
     return {"hypothesiser": hypothesiser, "start": start_time, "all_tracks": all_tracks}
 
@@ -121,7 +121,7 @@ def test_correct_no_stitched_tracks(params):
     stitcher = TrackStitcher(forward_hypothesiser=hypothesiser)
     stitched_tracks, _ = stitcher.stitch(all_tracks, start_time)
     no_stitched_tracks = len(stitched_tracks)
-    assert no_stitched_tracks == 5
+    assert no_stitched_tracks == 3
 
 
 def test_correct_no_stitched_tracks1(params):
@@ -132,16 +132,16 @@ def test_correct_no_stitched_tracks1(params):
     stitcher1 = TrackStitcher(backward_hypothesiser=hypothesiser)
     stitched_tracks1, _ = stitcher1.stitch(all_tracks, start_time)
     no_stitched_tracks = len(stitched_tracks1)
-    assert no_stitched_tracks == 5
+    assert no_stitched_tracks == 3
 
 
-# def test_correct_no_stitched_tracks2(params):
-#     hypothesiser = params["hypothesiser"]
-#     all_tracks = params["all_tracks"]
-#     start_time = params["start"]
-#     stitcher2 = TrackStitcher(forward_hypothesiser=hypothesiser,
-#                               backward_hypothesiser=hypothesiser)
-#     stitched_tracks2, _ = stitcher2.stitch(all_tracks, start_time)
-#     # merge_forward_and_backward() has a bug. It is not returning x.
-#     no_stitched_tracks = len(stitched_tracks2)
-#     assert no_stitched_tracks == 5
+def test_correct_no_stitched_tracks2(params):
+    hypothesiser = params["hypothesiser"]
+    all_tracks = params["all_tracks"]
+    start_time = params["start"]
+    stitcher2 = TrackStitcher(forward_hypothesiser=hypothesiser,
+                              backward_hypothesiser=hypothesiser)
+    stitched_tracks2, _ = stitcher2.stitch(all_tracks, start_time)
+    # merge_forward_and_backward() has a bug. It is not returning x.
+    no_stitched_tracks = len(stitched_tracks2)
+    assert no_stitched_tracks == 9
