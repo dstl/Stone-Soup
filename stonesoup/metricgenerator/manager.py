@@ -109,9 +109,9 @@ class SimpleManager(MetricManager):
 class MultiManager(SimpleManager):
     """MultiManager class for metric management
 
-    :class:`~.MetricManager` for the generation of metrics on multiple
+    :class:`~.MetricManager` for the generation of metrics on multiple sets of
     :class:`~.Track`, :class:`~.Detection` and :class:`~.GroundTruthPath`
-    objects.
+    objects passed in as dictionaries.
     """
     generators: Sequence[MetricGenerator] = Property(doc='List of generators to use', default=None)
     associator: Associator = Property(doc="Associator to combine tracks and truth", default=None)
@@ -119,6 +119,10 @@ class MultiManager(SimpleManager):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.states_sets = dict()
+        for generator in self.generators:
+            if generator.generator_name is None:  # currently only OSPA metric has generator_name attribute
+                raise NotImplementedError("""generator_name argument required for all MetricGenerators passed to """
+                                          """generators parameter""")
 
     def add_data(self, groundtruth_paths: Dict[str, Iterable[Union[GroundTruthPath, Platform]]] = None,
                  tracks: Dict[str, Iterable[Track]] = None, detections: Dict[str, Iterable[Detection]] = None):
@@ -126,11 +130,11 @@ class MultiManager(SimpleManager):
 
         Parameters
         ----------
-        groundtruth_paths : dictionary of lists or dictionary of sets of :class:`~.GroundTruthPath`
+        groundtruth_paths : dict of lists or dict of sets of :class:`~.GroundTruthPath`
             Ground truth paths to be added to the manager.
-        tracks : dictionary of lists or dictionary of sets of :class:`~.Track`
-            Tracks objects to be added to the manager.
-        detections : dictionary of lists or dictionary of sets of :class:`~.Detection`
+        tracks : dict of lists or dict of sets of :class:`~.Track`
+            Tracks to be added to the manager.
+        detections : dict of lists or dict of sets of :class:`~.Detection`
             Detections to be added to the manager.
         """
         self._add(groundtruth_paths=groundtruth_paths, tracks=tracks, detections=detections)
