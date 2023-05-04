@@ -122,7 +122,7 @@ class MultiManager(SimpleManager):
         for generator in self.generators:
             if generator.generator_name is None:  # currently only OSPA metric has generator_name attribute
                 raise NotImplementedError("""generator_name argument required for all MetricGenerators passed to """
-                                          """generators parameter""")
+                                          """generators argument""")
 
     def add_data(self, groundtruth_paths: Dict[str, Iterable[Union[GroundTruthPath, Platform]]] = None,
                  tracks: Dict[str, Iterable[Track]] = None, detections: Dict[str, Iterable[Detection]] = None):
