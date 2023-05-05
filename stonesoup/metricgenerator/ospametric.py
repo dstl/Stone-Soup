@@ -1,4 +1,5 @@
 from itertools import chain, zip_longest
+from typing import Iterable, Union
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -10,6 +11,11 @@ from ..types.state import State, StateMutableSequence
 from ..types.time import TimeRange
 from ..types.metric import SingleTimeMetric, TimeRangeMetric
 from .manager import SimpleManager, MultiManager
+
+from ..platform import Platform
+from ..types.detection import Detection
+from ..types.groundtruth import GroundTruthPath
+from ..types.track import Track
 
 
 class GOSPAMetric(MetricGenerator):
@@ -55,10 +61,17 @@ class GOSPAMetric(MetricGenerator):
         # RG must be able to extract states from 2 tracks or track & truth
 
         if isinstance(manager, MultiManager):
-            return self.compute_over_time(
-                self.extract_states(manager.states_sets[self.keys[0]]),
-                self.extract_states(manager.states_sets[self.keys[1]])
-            )
+            if self.groundtruth is not None:
+                return self.compute_over_time(
+                    self.extract_states(manager.states_sets[self.tracks]),
+                    self.extract_states(manager.states_sets[self.groundtruth])
+                )
+            else:
+                return self.compute_over_time(
+                    self.extract_states(manager.states_sets[self.tracks[0]]),
+                    self.extract_states(manager.states_sets[self.tracks[1]])
+                )
+
         elif isinstance(manager, SimpleManager):
             return self.compute_over_time(
                 self.extract_states(manager.tracks), self.extract_states(manager.groundtruth_paths))
@@ -385,8 +398,11 @@ class OSPAMetric(GOSPAMetric):
     """
     c: float = Property(doc='Maximum distance for possible association')
     p: float = Property(doc='Norm associated to distance')
-    keys: list = Property(doc='Keys to access desired sets of states added to MultiManager. Should be pair of strings',
-                          default=None)
+    groundtruth: str = Property(doc='Key to access set of groundtruths added to MultiManager',
+                                             default=None)
+    tracks: str or list[str] = Property(doc='Key or pair of keys to access tracks added to MultiManager', default=None)
+    # keys: list[str] = Property(doc='Keys to access desired sets of states added to MultiManager. Should be pair of '
+    #                                'strings', default=None)
     generator_name: str = Property(doc='Name given to generator to use when accessing generated metrics from '
                                        'MultiManager',
                                    default=None)
