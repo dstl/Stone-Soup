@@ -63,13 +63,13 @@ class GOSPAMetric(MetricGenerator):
         if isinstance(manager, MultiManager):
             if self.groundtruth is not None:
                 return self.compute_over_time(
-                    self.extract_states(manager.states_sets[self.tracks]),
-                    self.extract_states(manager.states_sets[self.groundtruth])
+                    self.extract_states(manager.states_sets[self.tracks_keys]),
+                    self.extract_states(manager.states_sets[self.groundtruth_key])
                 )
             else:
                 return self.compute_over_time(
-                    self.extract_states(manager.states_sets[self.tracks[0]]),
-                    self.extract_states(manager.states_sets[self.tracks[1]])
+                    self.extract_states(manager.states_sets[self.tracks_keys[0]]),
+                    self.extract_states(manager.states_sets[self.tracks_keys[1]])
                 )
 
         elif isinstance(manager, SimpleManager):
@@ -398,11 +398,9 @@ class OSPAMetric(GOSPAMetric):
     """
     c: float = Property(doc='Maximum distance for possible association')
     p: float = Property(doc='Norm associated to distance')
-    groundtruth: str = Property(doc='Key to access set of groundtruths added to MultiManager',
+    tracks_keys: str or list[str] = Property(doc='Key or pair of keys to access tracks added to MultiManager')
+    groundtruth_key: str = Property(doc='Key to access set of groundtruths added to MultiManager',
                                              default=None)
-    tracks: str or list[str] = Property(doc='Key or pair of keys to access tracks added to MultiManager', default=None)
-    # keys: list[str] = Property(doc='Keys to access desired sets of states added to MultiManager. Should be pair of '
-    #                                'strings', default=None)
     generator_name: str = Property(doc='Name given to generator to use when accessing generated metrics from '
                                        'MultiManager',
                                    default=None)
