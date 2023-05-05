@@ -82,12 +82,8 @@ class SimpleManager(MetricManager):
             # If not already a list, force it to be one below
             if not isinstance(metric_list, list):
                 metric_list = [metric_list]
-            if isinstance(self, MultiManager):
-                for metric in metric_list:
-                    metrics[generator.generator_name] = metric
-            else:
-                for metric in metric_list:
-                    metrics[metric.title] = metric
+            for metric in metric_list:
+                metrics[metric.title] = metric
         return metrics
 
     def list_timestamps(self):
@@ -106,7 +102,7 @@ class SimpleManager(MetricManager):
         return sorted(timestamps)
 
 
-class MultiManager(SimpleManager):
+class MultiManager(MetricManager):
     """MultiManager class for metric management
 
     :class:`~.MetricManager` for the generation of metrics on multiple sets of
@@ -124,22 +120,72 @@ class MultiManager(SimpleManager):
                 raise NotImplementedError("""generator_name argument required for all MetricGenerators passed to """
                                           """generators argument""")
 
-    def add_data(self, groundtruth_paths: Dict[str, Iterable[Union[GroundTruthPath, Platform]]] = None,
-                 tracks: Dict[str, Iterable[Track]] = None, detections: Dict[str, Iterable[Detection]] = None):
+    def add_data(self, metric_data: Dict = None, overwrite=True):
         """Adds data to the metric generator
 
         Parameters
         ----------
-        groundtruth_paths : dict of lists or dict of sets of :class:`~.GroundTruthPath`
-            Ground truth paths to be added to the manager.
-        tracks : dict of lists or dict of sets of :class:`~.Track`
-            Tracks to be added to the manager.
-        detections : dict of lists or dict of sets of :class:`~.Detection`
-            Detections to be added to the manager.
+        metric_data : dict of lists or dict of sets of :class:`~.GroundTruthPath`, :class:`~.Track`, and/or
+        :class:`~.Detection`
+            Ground truth paths, Tracks, and/or detections to be added to the manager.
+        overwrite: bool
+            declaring whether pre-existing data will be overwritten. Note that
+            overwriting one field (e.g. tracks) does not affect the others
         """
-        self._add(groundtruth_paths=groundtruth_paths, tracks=tracks, detections=detections)
+        self._add(overwrite, metric_data=metric_data)
 
-    def _add(self, **kwargs):
-        for key, value in kwargs.items():
-            if value is not None:
-                self.states_sets |= value  # merge all dicts together
+    def _add(self, overwrite, metric_data):
+        if overwrite:
+            self.states_sets = metric_data
+        else:
+            for key, value in metric_data.items():
+                if key not in self.states_sets.keys():
+                    self.states_sets[key] = value
+                else:
+                    self.states_sets[key].update(value)
+
+    def associate_tracks(self):
+        """Associate tracks to truth using the associator
+
+        The resultant :class:`~.AssociationSet` internally.
+        """
+        self.association_set = self.associator.associate_tracks(
+            self.tracks, self.groundtruth_paths)
+
+    def generate_metrics(self):
+        """Generate metrics using the generators and data that has been added
+
+        Returns
+        ----------
+        : set of :class:`~.Metric`
+            Metrics generated
+        """
+
+        if self.associator is not None and self.association_set is None:
+            self.associate_tracks()
+
+        metrics = {}
+        for generator in self.generators:
+            metric_list = generator.compute_metric(self)
+            # If not already a list, force it to be one below
+            if not isinstance(metric_list, list):
+                metric_list = [metric_list]
+            for metric in metric_list:
+                metrics[generator.generator_name] = metric
+
+        return metrics
+
+    def list_timestamps(self):
+        """List all the timestamps used in the tracks and truth, in order
+
+        Returns
+        ----------
+        : list of :class:`datetime.datetime`
+            unique timestamps present in the internal tracks and truths.
+        """
+        # Make a list of all the unique timestamps used
+        timestamps = {state.timestamp
+                      for sequence in chain(self.tracks, self.groundtruth_paths)
+                      for state in sequence}
+
+        return sorted(timestamps)
