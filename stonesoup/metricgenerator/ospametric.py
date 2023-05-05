@@ -61,7 +61,7 @@ class GOSPAMetric(MetricGenerator):
         # RG must be able to extract states from 2 tracks or track & truth
 
         if isinstance(manager, MultiManager):
-            if self.groundtruth is not None:
+            if self.groundtruth_key is not None:
                 return self.compute_over_time(
                     self.extract_states(manager.states_sets[self.tracks_keys]),
                     self.extract_states(manager.states_sets[self.groundtruth_key])
@@ -398,7 +398,8 @@ class OSPAMetric(GOSPAMetric):
     """
     c: float = Property(doc='Maximum distance for possible association')
     p: float = Property(doc='Norm associated to distance')
-    tracks_keys: str or list[str] = Property(doc='Key or pair of keys to access tracks added to MultiManager')
+    tracks_keys: str or list[str] = Property(doc='Key or pair of keys to access tracks added to MultiManager',
+                                             default=None)
     groundtruth_key: str = Property(doc='Key to access set of groundtruths added to MultiManager',
                                              default=None)
     generator_name: str = Property(doc='Name given to generator to use when accessing generated metrics from '
