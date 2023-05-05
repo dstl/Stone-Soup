@@ -8,6 +8,7 @@ from ..platform import Platform
 from ..types.detection import Detection
 from ..types.groundtruth import GroundTruthPath
 from ..types.track import Track
+from .basicmetrics import BasicMetrics
 
 
 class SimpleManager(MetricManager):
@@ -116,7 +117,8 @@ class MultiManager(MetricManager):
         super().__init__(*args, **kwargs)
         self.states_sets = dict()
         for generator in self.generators:
-            if generator.generator_name is None:  # currently only OSPA metric has generator_name attribute
+            if generator.generator_name is None:  # currently only basic metrics and OSPA metric has generator_name
+                # attribute
                 raise NotImplementedError("""generator_name argument required for all MetricGenerators passed to """
                                           """generators argument""")
 
@@ -140,7 +142,7 @@ class MultiManager(MetricManager):
         else:
             for key, value in metric_data.items():
                 if key not in self.states_sets.keys():
-                    self.states_sets[key] = value
+                    self.states_sets[key] = set(value)
                 else:
                     self.states_sets[key].update(value)
 
@@ -170,8 +172,12 @@ class MultiManager(MetricManager):
             # If not already a list, force it to be one below
             if not isinstance(metric_list, list):
                 metric_list = [metric_list]
-            for metric in metric_list:
-                metrics[generator.generator_name] = metric
+            if isinstance(generator, BasicMetrics):
+                for metric in metric_list:
+                    metrics[metric.title] = metric
+            else:
+                for metric in metric_list:
+                    metrics[generator.generator_name] = metric
 
         return metrics
 
