@@ -12,11 +12,6 @@ from ..types.time import TimeRange
 from ..types.metric import SingleTimeMetric, TimeRangeMetric
 from .manager import SimpleManager, MultiManager
 
-from ..platform import Platform
-from ..types.detection import Detection
-from ..types.groundtruth import GroundTruthPath
-from ..types.track import Track
-
 
 class GOSPAMetric(MetricGenerator):
     """
@@ -37,6 +32,12 @@ class GOSPAMetric(MetricGenerator):
     measure: Measure = Property(
         default=Euclidean(),
         doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
+    tracks_keys: str or list[str] = Property(doc='Key or pair of keys to access tracks added to MultiManager',
+                                             default=None)
+    groundtruths_key: str = Property(doc='Key to access set of groundtruths added to MultiManager',
+                                             default=None)
+    generator_name: str = Property(doc='Name given to generator to use when accessing generated metrics from '
+                                       'MultiManager', default=None)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -398,13 +399,6 @@ class OSPAMetric(GOSPAMetric):
     """
     c: float = Property(doc='Maximum distance for possible association')
     p: float = Property(doc='Norm associated to distance')
-    tracks_keys: str or list[str] = Property(doc='Key or pair of keys to access tracks added to MultiManager',
-                                             default=None)
-    groundtruths_key: str = Property(doc='Key to access set of groundtruths added to MultiManager',
-                                             default=None)
-    generator_name: str = Property(doc='Name given to generator to use when accessing generated metrics from '
-                                       'MultiManager',
-                                   default=None)
 
     # RG update documentation to clarify that compute_over_time can take 2 tracks or track and truth
     def compute_over_time(self, measured_states, truth_states):
