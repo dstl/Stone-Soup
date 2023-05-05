@@ -6,7 +6,8 @@ from .base import Type
 from .state import (State, GaussianState, EnsembleState,
                     ParticleState, MultiModelParticleState, RaoBlackwellisedParticleState,
                     SqrtGaussianState, InformationState, TaggedWeightedGaussianState,
-                    WeightedGaussianState, CategoricalState, ASDGaussianState)
+                    WeightedGaussianState, CategoricalState, ASDGaussianState,
+                    BernoulliParticleState)
 from ..base import Property
 from ..models.transition.base import TransitionModel
 from ..types.state import CreatableFromState, CompositeState
@@ -148,6 +149,12 @@ class RaoBlackwellisedParticleStatePrediction(Prediction, RaoBlackwellisedPartic
 
     This is a simple Rao Blackwellised Particle state prediction object.
     """
+
+
+class BernoulliParticleStatePrediction(Prediction, BernoulliParticleState):
+    """BernoulliParticleStatePrediction type
+
+    This is a simple Bernoulli Particle state prediction object"""
 
 
 class EnsembleStatePrediction(Prediction, EnsembleState):

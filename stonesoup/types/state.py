@@ -862,6 +862,59 @@ class RaoBlackwellisedParticleState(ParticleState):
         return result
 
 
+class BernoulliParticleState(ParticleState):
+    """Bernoulli Particle State type
+
+    This is a particle state object that describes the target as a distribution of particles and an
+    estimated existence probability according to the Bernoulli Particle Filter [1]_.
+
+    References
+    ----------
+    .. [1] Ristic, Branko & Vo, Ba-Toung & Vo, Ba-Ngu & Farina, Alfonso, A
+    tutorial on Bernoulli filters: theory, implementation and applications,
+    2013, IEEE Transactions on Signal Processing, 61(13), 3406-3430.
+
+    """
+
+    existence_probability: Probability = Property(
+        default=None,
+        doc="Target existence probability estimate"
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __getitem__(self, item):
+        if self.parent is not None:
+            parent = self.parent[item]
+        else:
+            parent = None
+
+        if self.weight is not None:
+            weight = self.weight[item]
+        else:
+            weight = None
+
+        if self.existence_probability is not None:
+            existence_probability = self.existence_probability
+        else:
+            existence_probability = None
+
+        if isinstance(item, int):
+            result = Particle(state_vector=self.state_vector[:, item],
+                              weight=weight,
+                              parent=parent)
+        else:
+            # Allow for Prediction/Update sub-types
+            result = type(self).from_state(
+                self,
+                state_vector=self.state_vector[:, item],
+                parent=parent,
+                particle_list=None,
+                existence_probability=existence_probability)
+        return result
+
+
 class EnsembleState(State):
     r"""Ensemble State type
 

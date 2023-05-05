@@ -2,6 +2,7 @@ import copy
 from typing import Sequence
 
 import numpy as np
+from ordered_set import OrderedSet
 
 from .base import Predictor
 from ._utils import predict_lru_cache
@@ -10,6 +11,10 @@ from ..base import Property
 from ..models.transition import TransitionModel
 from ..types.prediction import Prediction
 from ..types.state import GaussianState
+from ..sampler import Sampler
+
+from ..types.array import StateVectors
+from ..types.numeric import Probability
 
 
 class ParticlePredictor(Predictor):
@@ -236,3 +241,144 @@ class RaoBlackwellisedMultiModelPredictor(MultiModelPredictor):
             new_particle_state.state_vector[:, new_model_indices] = new_state_vector
 
         return new_particle_state
+
+
+class BernoulliParticlePredictor(ParticlePredictor):
+    """Bernoulli Particle Filter Predictor class
+
+    An implementation of a particle filter predictor utilising the Bernoulli
+    filter formulation that estimates the spatial distribution of a target and
+    estimates its existence, as described in [1]_.
+
+    This should be used in conjunction with the
+    :class:`~.BernoulliParticleUpdater`.
+
+    References
+    ----------
+    .. [1] Ristic, Branko & Vo, Ba-Toung & Vo, Ba-Ngu & Farina, Alfonso, A
+    Tutorial on Bernoulli Filters: Theory, Implementation and Applications,
+    2013, IEEE Transactions on Signal Processing, 61(13), 3406-3430."""
+
+    birth_probability: float = Property(
+        default=0.01,
+        doc="Probability of target birth.")
+    survival_probability: float = Property(
+        default=0.98,
+        doc="Probability of target survival")
+    birth_sampler: Sampler = Property(
+        default=None,
+        doc="Sampler object used for sampling birth particles. "
+            "Currently implementation assumes the :class:`~.DetectionSampler` is used")
+
+    def predict(self, prior, timestamp=None, **kwargs):
+        """Bernoulli Particle Filter prediction step
+
+        Parameters
+        ----------
+        prior : :class:`~.BernoulliParticleState`
+            A prior state object
+        timestamp : :class:`~.datetime.datetime`
+            A timestamp signifying when the prediction is performed
+            (the default is `None`)
+        Returns
+        -------
+        : :class:`~.ParticleStatePrediction`
+            The predicted state and existence"""
+
+        new_particle_state = copy.copy(prior)
+
+        nsurv_particles = new_particle_state.state_vector.shape[1]
+
+        # Calculate time interval
+        try:
+            time_interval = timestamp - new_particle_state.timestamp
+        except TypeError:
+            # TypeError: (timestamp or prior.timestamp) is None
+            time_interval = None
+
+        # Sample from birth distribution
+        detections = self.get_detections(prior)
+        birth_state = self.birth_sampler.sample(detections)
+
+        birth_part = birth_state.state_vector
+        nbirth_particles = len(birth_state)
+
+        # Unite the surviving and birth particle sets in the prior
+        new_particle_state.state_vector = StateVectors(np.concatenate(
+            (new_particle_state.state_vector, birth_part), axis=1))
+        # Extend weights to match length of state_vector
+        new_weight_vector = np.concatenate(
+            (new_particle_state.weight, np.array([Probability(1/nbirth_particles)]
+                                                 * nbirth_particles)))
+        new_particle_state.weight = new_weight_vector/sum(new_weight_vector)
+
+        untransitioned_state = Prediction.from_state(
+            new_particle_state,
+            state_vector=new_particle_state.state_vector,
+            existence_probability=new_particle_state.existence_probability,
+            parent=prior,
+            particle_list=None,
+            timestamp=new_particle_state.timestamp,
+        )
+
+        # Predict particles using the transition model
+        new_state_vector = self.transition_model.function(
+            new_particle_state,
+            noise=True,
+            time_interval=time_interval,
+            **kwargs)
+
+        # Estimate existence
+        predicted_existence = self.estimate_existence(
+            new_particle_state.existence_probability)
+
+        predicted_weights = self.predict_weights(new_particle_state.existence_probability,
+                                                 predicted_existence, nsurv_particles,
+                                                 new_particle_state.weight, nbirth_particles)
+        new_particle_state.weight = predicted_weights
+
+        # Create the prediction output
+        new_particle_state = Prediction.from_state(
+            new_particle_state,
+            state_vector=new_state_vector,
+            existence_probability=predicted_existence,
+            parent=untransitioned_state,
+            particle_list=None,
+            timestamp=timestamp,
+        )
+        return new_particle_state
+
+    def estimate_existence(self, existence_prior):
+        existence_estimate = self.birth_probability * (1 - existence_prior) \
+                             + self.survival_probability * existence_prior
+        return existence_estimate
+
+    def predict_weights(self, prior_existence, predicted_existence, surv_part_size, prior_weights,
+                        nbirth_particles):
+
+        # Weight prediction function currently assumes that the chosen importance density is the
+        # transition density. This will need to change if implementing a different importance
+        # density or incorporating visibility information
+
+        surv_weights = (self.survival_probability*prior_existence)/predicted_existence \
+            * prior_weights[:surv_part_size]
+
+        birth_weights = (self.birth_probability*(1-prior_existence))/predicted_existence \
+            * prior_weights[nbirth_particles:]
+        predicted_weights = np.concatenate((surv_weights, birth_weights))
+
+        # Normalise weights
+        predicted_weights = predicted_weights / np.sum(predicted_weights)
+
+        return predicted_weights
+
+    @staticmethod
+    def get_detections(prior):
+
+        detections = OrderedSet()
+        if hasattr(prior, 'hypothesis'):
+            if prior.hypothesis is not None:
+                for hypothesis in prior.hypothesis:
+                    detections |= {hypothesis.measurement}
+
+        return detections

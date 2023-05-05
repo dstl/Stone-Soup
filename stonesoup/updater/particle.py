@@ -11,6 +11,7 @@ from ..base import Property
 from ..functions import cholesky_eps, sde_euler_maruyama_integration
 from ..predictor.particle import MultiModelPredictor, RaoBlackwellisedMultiModelPredictor
 from ..resampler import Resampler
+from ..regulariser import Regulariser
 from ..types.prediction import (
     Prediction, ParticleMeasurementPrediction, GaussianStatePrediction, MeasurementPrediction)
 from ..types.update import ParticleStateUpdate, Update
@@ -28,6 +29,8 @@ class ParticleUpdater(Updater):
     """
 
     resampler: Resampler = Property(default=None, doc='Resampler to prevent particle degeneracy')
+    regulariser: Regulariser = Property(default=None, doc="Regulariser to prevent particle "
+                                                          "impoverishment")
 
     def update(self, hypothesis, **kwargs):
         """Particle Filter update step
@@ -348,3 +351,118 @@ class RaoBlackwellisedParticleUpdater(MultiModelParticleUpdater):
         new_log_probabilities -= logsumexp(new_log_probabilities, axis=0)
 
         return np.exp(new_log_probabilities)
+
+
+class BernoulliParticleUpdater(ParticleUpdater):
+    """Particle updater for the Bernoulli Particle Filter. Both
+    target state and probability of existence are updated based
+    on measurements. Due to the nature of the Bernoulli Particle
+    Filter prediction process, resampling is required at every
+    time step to reduce the number of particles back down to the
+    desired size.
+    """
+
+    birth_probability: float = Property(
+        default=0.01,
+        doc="Probability of target birth.")
+
+    survival_probability: float = Property(
+        default=0.98,
+        doc="Probability of target survival")
+
+    clutter_rate: int = Property(
+        default=1,
+        doc="Average number of clutter measurements per time step. Implementation assumes number "
+            "of clutter measurements follows a Poisson distribution")
+
+    clutter_distribution: float = Property(
+        default=None,
+        doc="Distribution used to describe clutter measurements. This is usually assumed uniform "
+            "in the measurement space.")
+    detection_probability: float = Property(
+        default=None,
+        doc="Probability of detection assigned to the generated samples of the birth distribution."
+            " If None, it will inherit from the input.")
+    nsurv_particles: float = Property(
+        default=None,
+        doc="Number of particles describing the surviving distribution, which will be output from "
+            "the update algorithm.")
+
+    def update(self, hypotheses, **kwargs):
+        """Bernoulli Particle Filter update step
+
+        Parameters
+        ----------
+        hypotheses : :class:`~.MultipleHypothesis`
+            Hypotheses containing the sequence of single hypotheses
+            that contain the prediction and unassociated measurements.
+        Returns
+        -------
+        : :class:`~.BernoulliParticleStateUpdate`
+            The state posterior.
+        """
+        # copy prediction
+        prediction = hypotheses.single_hypotheses[0].prediction
+
+        updated_state = copy.copy(prediction)
+
+        if any(hypotheses):
+            detections = [single_hypothesis.measurement
+                          for single_hypothesis in hypotheses.single_hypotheses]
+
+            if self.measurement_model is None:
+                self.measurement_model = next(iter(detections)).measurement_model
+
+            # Evaluate measurement likelihood and approximate integrals
+            meas_likelihood = []
+            delta_part2 = []
+            detection_probability = np.array([self.detection_probability]*len(prediction))
+
+            for detection in detections:
+                meas_likelihood.append(
+                    np.exp(
+                        self.measurement_model.logpdf(
+                            detection, updated_state)))
+                delta_part2.append(detection_probability @
+                                   ((meas_likelihood[-1] /
+                                     (self.clutter_rate * self.clutter_distribution))
+                                    * updated_state.weight))
+
+            meas_likelihood = np.vstack(meas_likelihood)
+            delta = detection_probability @ updated_state.weight \
+                - np.sum(delta_part2)
+
+            updated_state.existence_probability = (1 - delta) / \
+                (1 - updated_state.existence_probability*delta) \
+                * updated_state.existence_probability
+
+            updated_state.weight = (1 - detection_probability +
+                                    (detection_probability *
+                                     (np.sum(meas_likelihood, axis=0) /
+                                      (self.clutter_rate * self.clutter_distribution))))\
+                * updated_state.weight
+
+            # Normalise weights
+            updated_state.weight = updated_state.weight / np.sum(updated_state.weight)
+
+        # Resampling
+        if self.resampler is not None:
+            updated_state = self.resampler.resample(updated_state,
+                                                    self.nsurv_particles)
+
+        if any(hypotheses):
+            # Regularisation
+            if self.regulariser is not None:
+                regularised_parts = self.regulariser.regularise(updated_state.parent,
+                                                                updated_state,
+                                                                detections)
+                updated_state.state_vector = regularised_parts.state_vector
+
+        return Update.from_state(
+            updated_state,
+            state_vector=updated_state.state_vector,
+            existence_probability=updated_state.existence_probability,
+            timestamp=updated_state.timestamp,
+            hypothesis=hypotheses,
+            particle_list=None,
+        )
