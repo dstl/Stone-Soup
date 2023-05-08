@@ -6,10 +6,14 @@ from .base import MetricGenerator
 from ..types.state import State, StateMutableSequence
 from ..types.metric import SingleTimeMetric, TimeRangeMetric
 from ..types.time import TimeRange
+from ..base import Property
 
 
 class _CovarianceNormsMetric(MetricGenerator):
     _type = None
+    tracks_key: str = Property(doc="Key to access desired set of tracks added to MultiManager")
+    generator_name: str = Property(doc="Name given to generator to use when accessing generated metrics from "
+                                       "MultiManager")
 
     def compute_metric(self, manager, **kwargs):
         """Computes the metric using the data in the metric manager
@@ -27,7 +31,7 @@ class _CovarianceNormsMetric(MetricGenerator):
 
         """
 
-        return self.compute_over_time(self.extract_states(manager.tracks))
+        return self.compute_over_time(self.extract_states(manager.states_sets[self.tracks_key]))
 
     @staticmethod
     def extract_states(object_with_states):
