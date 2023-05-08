@@ -146,13 +146,13 @@ class MultiManager(MetricManager):
                 else:
                     self.states_sets[key].update(value)
 
-    def associate_tracks(self):
+    def associate_tracks(self, generator):
         """Associate tracks to truth using the associator
 
         The resultant :class:`~.AssociationSet` internally.
         """
         self.association_set = self.associator.associate_tracks(
-            self.tracks, self.groundtruth_paths)
+            self.states_sets[generator.tracks_key], self.states_sets[generator.truths_key])
 
     def generate_metrics(self):
         """Generate metrics using the generators and data that has been added
@@ -163,11 +163,10 @@ class MultiManager(MetricManager):
             Metrics generated
         """
 
-        if self.associator is not None and self.association_set is None:
-            self.associate_tracks()
-
         metrics = {}
         for generator in self.generators:
+            if self.associator is not None and self.association_set is None:
+                self.associate_tracks(generator)
             metric_list = generator.compute_metric(self)
             # If not already a list, force it to be one below
             if not isinstance(metric_list, list):
@@ -181,7 +180,7 @@ class MultiManager(MetricManager):
 
         return metrics
 
-    def list_timestamps(self):
+    def list_timestamps(self, generator):
         """List all the timestamps used in the tracks and truth, in order
 
         Returns
@@ -191,7 +190,8 @@ class MultiManager(MetricManager):
         """
         # Make a list of all the unique timestamps used
         timestamps = {state.timestamp
-                      for sequence in chain(self.tracks, self.groundtruth_paths)
+                      for sequence in chain(self.states_sets[generator.tracks_key],
+                                            self.states_sets[generator.truths_key])
                       for state in sequence}
 
         return sorted(timestamps)
