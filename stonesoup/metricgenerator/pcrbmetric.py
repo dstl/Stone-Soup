@@ -44,15 +44,26 @@ class PCRBMetric(MetricGenerator):
         doc="Mapping for velocity coordinates. Default `None`, in which case velocity RMSE is not "
             "computed")
     irf: float = Property(doc="Information reduction factor. Default is 1", default=1.)
+    tracks_key: str = Property(doc="Key to access desired set of tracks added to MultiManager")
+    truths_key: str = Property(doc="Key to access desired set of groundtruths added to MultiManager")
+    generator_name: str = Property(doc="Name given to generator to use when accessing generated metrics from "
+                                       "MultiManager")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.position_mapping is None:
             self.position_mapping = self.measurement_model.mapping
 
+    def get_ground_truths(self, manager):
+        return manager.states_sets[self.truths_key]
+
+    def get_tracks(self, manager):
+        return manager.states_sets[self.tracks_key]
+
     def compute_metric(self, manager, **kwargs):
+        groundtruth_paths = self.get_ground_truths(manager)
         pcrb_metrics = []
-        for gnd_path in manager.groundtruth_paths:
+        for gnd_path in groundtruth_paths:
             pcrb_metric = self._compute_pcrb_single(self.prior, self.transition_model,
                                                     self.measurement_model, gnd_path,
                                                     self.sensor_locations, self.irf,
