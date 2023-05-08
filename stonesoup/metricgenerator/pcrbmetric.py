@@ -53,11 +53,8 @@ class PCRBMetric(MetricGenerator):
         if self.position_mapping is None:
             self.position_mapping = self.measurement_model.mapping
 
-    def get_ground_truths(self, manager):
-        return manager.states_sets[self.truths_key]
-
     def compute_metric(self, manager, **kwargs):
-        groundtruth_paths = self.get_ground_truths(manager)
+        groundtruth_paths = self._get_data(manager, self.truths_key)
         pcrb_metrics = []
         for gnd_path in groundtruth_paths:
             pcrb_metric = self._compute_pcrb_single(self.prior, self.transition_model,

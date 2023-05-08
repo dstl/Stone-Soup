@@ -10,6 +10,10 @@ class MetricGenerator(Base):
     tracker using data held in a :class:`~.MetricManager` object
     """
 
+    @staticmethod
+    def _get_data(manager, key):
+        return manager.states_sets[key]
+
     @abstractmethod
     def compute_metric(self, manager, **kwargs):
         """Compute metric

@@ -24,6 +24,11 @@ class TwoDPlotter(PlotGenerator):
                                  doc='If True the plot includes uncertainty ellipses')
     particle: bool = Property(default=False,
                               doc='If True the plot includes particles')
+    tracks_key: str = Property(doc="Key to access desired set of tracks added to MultiManager")
+    truths_key: str = Property(doc="Key to access desired set of groundtruths added to MultiManager")
+    detections_key: str = Property(doc="Key to access desired set of detections added to MultiManager")
+    generator_name: str = Property(doc="Name given to generator to use when accessing generated metrics from "
+                                       "MultiManager")
 
     def compute_metric(self, manager, *args, **kwargs):
         """Compute the metric using the data in the metric manager
@@ -39,9 +44,13 @@ class TwoDPlotter(PlotGenerator):
             Contains a matplotlib figure
         """
 
-        metric = self.plot_tracks_truth_detections(manager.tracks,
-                                                   manager.groundtruth_paths,
-                                                   manager.detections,
+        groundtruth_paths = self.get_data(manager, self.truths_key)
+        tracks = self.get_data(manager, self.tracks_key)
+        detections = self.get_data(manager, self.detections_key)
+
+        metric = self.plot_tracks_truth_detections(tracks,
+                                                   groundtruth_paths,
+                                                   detections,
                                                    self.uncertainty,
                                                    self.particle)
         return metric

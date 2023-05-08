@@ -13,12 +13,6 @@ class BasicMetrics(MetricGenerator):
     generator_name: str = Property(doc="Name given to generator to use when accessing generated metrics from "
                                        "MultiManager")
 
-    def get_ground_truths(self, manager):
-        return manager.states_sets[self.truths_key]
-
-    def get_tracks(self, manager):
-        return manager.states_sets[self.tracks_key]
-
     def compute_metric(self, manager, *args, **kwargs):
         """Compute the metric using the data in the metric manager
 
@@ -32,8 +26,8 @@ class BasicMetrics(MetricGenerator):
         : list of :class:`~.Metric`
             Contains the metric information
         """
-        groundtruth_paths = self.get_ground_truths(manager)
-        tracks = self.get_tracks(manager)
+        groundtruth_paths = self._get_data(manager, self.truths_key)
+        tracks = self._get_data(manager, self.tracks_key)
         metrics = []
 
         # Make a list of all the unique timestamps used

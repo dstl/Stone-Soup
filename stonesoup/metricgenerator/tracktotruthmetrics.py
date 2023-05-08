@@ -54,12 +54,6 @@ class SIAPMetrics(MetricGenerator):
     generator_name: str = Property(doc='Name given to generator to use when accessing generated metrics from '
                                        'MultiManager', default=None)
 
-    def get_ground_truths(self, manager):
-        return manager.states_sets[self.truths_key]
-
-    def get_tracks(self, manager):
-        return manager.states_sets[self.tracks_key]
-
     def compute_metric(self, manager, **kwargs):
         r"""Compute metrics:
 
@@ -101,8 +95,8 @@ class SIAPMetrics(MetricGenerator):
         position_accuracy_at_times = list()
         velocity_accuracy_at_times = list()
 
-        groundtruth_paths = self.get_ground_truths(manager)
-        tracks = self.get_tracks(manager)
+        groundtruth_paths = self._get_data(manager, self.truths_key)
+        tracks = self._get_data(manager, self.tracks_key)
 
         J_sum = JT_sum = NA_sum = N_sum = PA_sum = VA_sum = 0
 
@@ -569,7 +563,7 @@ class IDSIAPMetrics(SIAPMetrics):
 
         timestamps = manager.list_timestamps(generator=self)
 
-        groundtruth_paths = self.get_ground_truths(manager)
+        groundtruth_paths = self._get_data(manager, self.truths_key)
 
         id_completeness_at_times = list()
         id_correctness_at_times = list()
