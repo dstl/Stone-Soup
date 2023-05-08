@@ -44,9 +44,9 @@ class TwoDPlotter(PlotGenerator):
             Contains a matplotlib figure
         """
 
-        groundtruth_paths = self.get_data(manager, self.truths_key)
-        tracks = self.get_data(manager, self.tracks_key)
-        detections = self.get_data(manager, self.detections_key)
+        groundtruth_paths = self._get_data(manager, self.truths_key)
+        tracks = self._get_data(manager, self.tracks_key)
+        detections = self._get_data(manager, self.detections_key)
 
         metric = self.plot_tracks_truth_detections(tracks,
                                                    groundtruth_paths,
