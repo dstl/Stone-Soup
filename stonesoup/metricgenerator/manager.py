@@ -8,7 +8,6 @@ from ..platform import Platform
 from ..types.detection import Detection
 from ..types.groundtruth import GroundTruthPath
 from ..types.track import Track
-from .basicmetrics import BasicMetrics
 
 
 class SimpleManager(MetricManager):
@@ -121,6 +120,7 @@ class MultiManager(MetricManager):
                 # attribute
                 raise NotImplementedError("""generator_name argument required for all MetricGenerators passed to """
                                           """generators argument""")
+        self.association_set = None
 
     def add_data(self, metric_data: Dict = None, overwrite=True):
         """Adds data to the metric generator
@@ -171,12 +171,11 @@ class MultiManager(MetricManager):
             # If not already a list, force it to be one below
             if not isinstance(metric_list, list):
                 metric_list = [metric_list]
-            if isinstance(generator, BasicMetrics):
-                for metric in metric_list:
-                    metrics[metric.title] = metric
-            else:
-                for metric in metric_list:
-                    metrics[generator.generator_name] = metric
+            for metric in metric_list:
+                if generator.generator_name not in metrics.keys():
+                    metrics[generator.generator_name] = {metric.title: metric}
+                else:
+                    metrics[generator.generator_name][metric.title] = metric
 
         return metrics
 
