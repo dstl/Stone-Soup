@@ -56,9 +56,6 @@ class PCRBMetric(MetricGenerator):
     def get_ground_truths(self, manager):
         return manager.states_sets[self.truths_key]
 
-    def get_tracks(self, manager):
-        return manager.states_sets[self.tracks_key]
-
     def compute_metric(self, manager, **kwargs):
         groundtruth_paths = self.get_ground_truths(manager)
         pcrb_metrics = []
