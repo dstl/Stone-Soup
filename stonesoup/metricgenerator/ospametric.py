@@ -34,7 +34,7 @@ class GOSPAMetric(MetricGenerator):
         doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
     tracks_keys: str or list[str] = Property(doc='Key or pair of keys to access tracks added to MultiManager',
                                              default=None)
-    groundtruths_key: str = Property(doc='Key to access set of groundtruths added to MultiManager',
+    truths_key: str = Property(doc='Key to access set of groundtruths added to MultiManager',
                                              default=None)
     generator_name: str = Property(doc='Name given to generator to use when accessing generated metrics from '
                                        'MultiManager', default=None)
@@ -62,10 +62,10 @@ class GOSPAMetric(MetricGenerator):
         # RG must be able to extract states from 2 tracks or track & truth
 
         if isinstance(manager, MultiManager):
-            if self.groundtruths_key is not None:
+            if self.truths_key is not None:
                 return self.compute_over_time(
                     self.extract_states(manager.states_sets[self.tracks_keys]),
-                    self.extract_states(manager.states_sets[self.groundtruths_key])
+                    self.extract_states(manager.states_sets[self.truths_key])
                 )
             else:
                 return self.compute_over_time(

@@ -9,12 +9,12 @@ class BasicMetrics(MetricGenerator):
     """Calculates simple metrics like number of tracks, truth and
     ratio of track-to-truth"""
     tracks_key: str = Property(doc="Key to access desired set of tracks added to MultiManager")
-    groundtruths_key: str = Property(doc="Key to access desired set of groundtruths added to MultiManager")
+    truths_key: str = Property(doc="Key to access desired set of groundtruths added to MultiManager")
     generator_name: str = Property(doc="Name given to generator to use when accessing generated metrics from "
                                        "MultiManager")
 
     def get_ground_truths(self, manager):
-        return manager.states_sets[self.groundtruths_key]
+        return manager.states_sets[self.truths_key]
 
     def get_tracks(self, manager):
         return manager.states_sets[self.tracks_key]
