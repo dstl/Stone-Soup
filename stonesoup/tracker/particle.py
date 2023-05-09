@@ -14,7 +14,7 @@ from stonesoup.updater.particle import ParticleUpdater
 
 
 class SingleTargetExpectedLikelihoodParticleFilter(Tracker):
-    """An expected likelihood particle filter (ELPF) for tracking a single target.
+    """An expected likelihood particle filter (ELPF) [#]_ for tracking a single target.
 
     Track a single object using Stone Soup components. The tracker works by
     first calling the :attr:`data_associator` with the active track, and then
@@ -33,6 +33,12 @@ class SingleTargetExpectedLikelihoodParticleFilter(Tracker):
     track : :class:`~.Track`
         Current track being maintained. Also accessible as the sole item in
         :attr:`tracks`
+
+    References
+    ----------
+    .. [#] Marrs, A., Maskell, S., and Bar-Shalom, Y., “Expected likelihood for tracking in clutter
+       with particle filters”, in Signal and Data Processing of Small Targets 2002, 2002,
+       vol. 4728, pp. 230–239. doi:10.1117/12.478507.
     """
     initiator: Initiator = Property(doc="Initiator used to initialise the track.")
     deleter: Deleter = Property(doc="Deleter used to delete the track")
@@ -119,7 +125,7 @@ class SingleTargetExpectedLikelihoodParticleFilter(Tracker):
 
 
 class MultiTargetExpectedLikelihoodParticleFilter(Tracker):
-    """An expected likelihood particle filter (ELPF) for tracking multiple targets.
+    """An expected likelihood particle filter (ELPF) [#]_ for tracking multiple targets.
 
     Track multiple objects using Stone Soup components. The tracker works by
     first calling the :attr:`data_associator` with the active tracks, and then
@@ -132,6 +138,12 @@ class MultiTargetExpectedLikelihoodParticleFilter(Tracker):
 
     Parameters
     ----------
+
+    References
+    ----------
+    .. [#] Marrs, A., Maskell, S., and Bar-Shalom, Y., “Expected likelihood for tracking in clutter
+       with particle filters”, in Signal and Data Processing of Small Targets 2002, 2002,
+       vol. 4728, pp. 230–239. doi:10.1117/12.478507.
     """
     initiator: Initiator = Property(doc="Initiator used to initialise the track.")
     deleter: Deleter = Property(doc="Initiator used to initialise the track.")
