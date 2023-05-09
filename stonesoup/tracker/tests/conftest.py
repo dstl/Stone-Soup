@@ -2,8 +2,10 @@ import datetime
 
 import numpy as np
 import pytest
+from scipy.stats import multivariate_normal
 
 from ...buffered_generator import BufferedGenerator
+from ...initiator.simple import GaussianParticleInitiator
 from ...reader import DetectionReader
 from ...types.array import StateVector
 from ...types.detection import MissedDetection, GaussianDetection
@@ -11,9 +13,11 @@ from ...types.hypothesis import SingleDistanceHypothesis, \
     SingleProbabilityHypothesis
 from ...types.multihypothesis import MultipleHypothesis
 from ...types.prediction import StateMeasurementPrediction, \
-    GaussianStatePrediction, GaussianMeasurementPrediction
+    GaussianStatePrediction, GaussianMeasurementPrediction, ParticleStatePrediction, \
+    ParticleMeasurementPrediction
+from ...types.state import ParticleState
 from ...types.track import Track
-from ...types.update import GaussianStateUpdate
+from ...types.update import GaussianStateUpdate, ParticleStateUpdate
 
 
 @pytest.fixture()
@@ -23,6 +27,22 @@ def initiator():
             return {Track([detection])
                     for detection in detections}
     return TestInitiator()
+
+
+@pytest.fixture()
+def particle_initiator(initiator):
+    class TestParticleInitiator:
+        def initiate(self, detections, timestamp):
+            tracks = set()
+            for detection in detections:
+                samples = multivariate_normal.rvs(detection.state_vector.ravel(),
+                                                  np.eye(detection.state_vector.shape[0])*0.01,
+                                                  size=100)
+                state = ParticleState(samples, weight=np.ones(100)/100,
+                                      timestamp=detection.timestamp)
+                tracks.add(Track([state]))
+            return tracks
+    return TestParticleInitiator()
 
 
 @pytest.fixture()
@@ -118,6 +138,47 @@ def data_mixture_associator():
 
 
 @pytest.fixture()
+def data_particle_associator():
+    class TestDataParticleAssociator:
+        def associate(self, tracks, detections, timestamp):
+            associations = {}
+            for track in tracks:
+                prediction = ParticleStatePrediction(track.state_vector + 1,
+                                                     weight=track.weight,
+                                                     timestamp=timestamp)
+                measurement_prediction = StateMeasurementPrediction(
+                    prediction.mean)
+                multihypothesis = []
+                for detection in detections:
+                    if np.allclose(measurement_prediction.state_vector,
+                                   detection.state_vector):
+                        multihypothesis.append(
+                            SingleProbabilityHypothesis(
+                                prediction, detection,
+                                measurement_prediction=measurement_prediction,
+                                probability=0.9
+                            ))
+                        multihypothesis.append(
+                            SingleProbabilityHypothesis(
+                                prediction, MissedDetection(timestamp=timestamp),
+                                measurement_prediction=measurement_prediction,
+                                probability=0.1
+                            ))
+                        break
+                else:
+                    multihypothesis.append(
+                        SingleProbabilityHypothesis(
+                            prediction, MissedDetection(timestamp=timestamp),
+                            measurement_prediction=measurement_prediction,
+                            probability=0.1
+                        ))
+                associations[track] = MultipleHypothesis(multihypothesis)
+
+            return associations
+    return TestDataParticleAssociator()
+
+
+@pytest.fixture()
 def updater():
     class TestUpdater:
         def update(self, hypothesis):
@@ -135,6 +196,24 @@ def updater():
 
     return TestUpdater()
 
+
+@pytest.fixture()
+def particle_updater():
+    class TestParticleUpdater:
+        def update(self, hypothesis):
+            return ParticleStateUpdate(hypothesis.measurement.state_vector,
+                                       weight=hypothesis.prediction.weight,
+                                       hypothesis=hypothesis,
+                                       timestamp=hypothesis.measurement.timestamp)
+
+        def predict_measurement(self, state_prediction,
+                                measurement_model=None, **kwargs):
+            return ParticleMeasurementPrediction(
+                    state_prediction.state_vector,
+                    state_prediction.weight,
+                    state_prediction.timestamp)
+
+    return TestParticleUpdater()
 
 @pytest.fixture()
 def predictor():
