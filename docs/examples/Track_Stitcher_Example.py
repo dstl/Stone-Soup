@@ -59,12 +59,6 @@ from datetime import datetime, timedelta
 import numpy as np
 
 
-
-
-
-
-
-
 # %%
 # Scenario Generation
 # -------------------
@@ -298,6 +292,11 @@ from stonesoup.stitcher import TrackStitcher
 # Now that we have a set of tracklets, we can apply the Track Stitching method to stitch tracklets
 # together into tracks. The code in the following cell applies this process using the class
 # `TrackStitcher` and plots the stitched tracks.
+# `TrackStitcher` has a property search_window that enables you to reduce compute time by filtering
+# out track segments that are not within a reasonable time window. When forward stitching, the
+# associator will consider any track that has a start point that falls within the time window
+# :math:`(t, t + search_window)`. When backward stitching, the associator will consider tracks that
+# have an endpoint within the time window :math:`(t - search_window, t)`.
 
 transition_model = CombinedLinearGaussianTransitionModel([OrnsteinUhlenbeck(0.001, 2e-2)] *
                                                          n_spacial_dimensions, seed=12)
