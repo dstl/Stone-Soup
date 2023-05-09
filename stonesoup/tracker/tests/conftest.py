@@ -5,7 +5,6 @@ import pytest
 from scipy.stats import multivariate_normal
 
 from ...buffered_generator import BufferedGenerator
-from ...initiator.simple import GaussianParticleInitiator
 from ...reader import DetectionReader
 from ...types.array import StateVector
 from ...types.detection import MissedDetection, GaussianDetection
@@ -214,6 +213,7 @@ def particle_updater():
                     state_prediction.timestamp)
 
     return TestParticleUpdater()
+
 
 @pytest.fixture()
 def predictor():
