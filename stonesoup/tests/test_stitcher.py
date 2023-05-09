@@ -19,6 +19,7 @@ from stonesoup.deleter.time import UpdateTimeStepsDeleter
 from stonesoup.initiator.simple import MultiMeasurementInitiator
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.stitcher import TrackStitcher
+from stonesoup.tracker.simple import MultiTargetTracker
 
 
 @pytest.fixture
@@ -39,7 +40,6 @@ def params():
 
     truths = set()
     truthlets = set()
-    all_measurements = []
     all_tracks = set()
 
     transition_model = CombinedLinearGaussianTransitionModel(
@@ -50,8 +50,6 @@ def params():
                                        mapping=list(range(0, 2*n_spacial_dimensions,
                                                           2)),
                                        noise_covar=measurement_cov_array, seed=435)
-
-    from stonesoup.stitcher import tracker
 
     predictor = KalmanPredictor(transition_model)
     updater = KalmanUpdater(measurement_model)
@@ -99,12 +97,13 @@ def params():
                                timestamp=state.timestamp,
                                measurement_model=measurement_model,
                                groundtruth_path=truthlet)
-            measurementlet.append({m0})
-            all_measurements.append({m0})
-        tracklet = tracker(measurementlet, initiator, deleter, data_associator,
-                           hypothesiser, predictor, updater, start_time)
-        for t in tracklet:
-            all_tracks.add(t)
+            measurementlet.append((state.timestamp, {m0}))
+
+        tracklet = MultiTargetTracker(initiator=initiator, deleter=deleter,
+                                      detector=measurementlet, data_associator=data_associator,
+                                      updater=updater)
+        for _, t in tracklet:
+            all_tracks |= t
 
     transition_model = CombinedLinearGaussianTransitionModel(
         [OrnsteinUhlenbeck(0.001, 2e-2)]*n_spacial_dimensions, seed=435)
@@ -126,7 +125,6 @@ def test_correct_no_stitched_tracks(params):
 
 
 def test_correct_no_stitched_tracks1(params):
-    print(type(params))
     hypothesiser = params["hypothesiser"]
     all_tracks = params["all_tracks"]
     start_time = params["start"]
@@ -143,7 +141,6 @@ def test_correct_no_stitched_tracks2(params):
     stitcher2 = TrackStitcher(forward_hypothesiser=hypothesiser,
                               backward_hypothesiser=hypothesiser)
     stitched_tracks2, _ = stitcher2.stitch(all_tracks, start_time)
-    # merge_forward_and_backward() has a bug. It is not returning x.
     no_stitched_tracks = len(stitched_tracks2)
     assert no_stitched_tracks == 3
 

@@ -26,8 +26,8 @@ class TrackStitcher(Base):
         doc="Backward predicting hypothesiser.",
         default=None)
     search_window: timedelta = Property(
-        doc="Time window from current time to search in for track endpoints that "
-            "could be associated to",
+        doc="Time window from current time to search in for potential track endpoints for "
+            "association",
         default=timedelta(seconds=30))
 
     @staticmethod
@@ -152,11 +152,7 @@ class TrackStitcher(Base):
                 x[key] = arr
         return x
 
-    def stitch(self, tracks, start_time):
-        """
-        Function to stitch track segments together according to predictions made
-        by the forward_predict and backward_predict functions.
-        """
+    def _make_prediction(self, tracks, start_time):
         forward, backward = False, False
         if self.forward_hypothesiser is not None:
             forward = True
@@ -174,7 +170,14 @@ class TrackStitcher(Base):
             x = x_backward
         else:
             x = self._merge_forward_and_backward(x_forward, x_backward)
+        return x
 
+    def stitch(self, tracks, start_time):
+        """
+        Function to stitch track segments together according to predictions made
+        by the forward_predict and backward_predict functions.
+        """
+        x = self._make_prediction(tracks, start_time)
         i_track_ids = set(x.keys())
         j_track_ids = {id_ for combo in x.values() for id_ in combo if id_ is not None}
         j_track_ids |= i_track_ids  # Space for missed hypotheses
@@ -249,29 +252,3 @@ class TrackStitcher(Base):
             stitched_track_map[new_track.id] = ids
 
         return tracks, stitched_track_map
-
-
-def tracker(all_measurements, initiator, deleter, data_associator, hypothesiser,
-            predictor, updater, start_time):
-    tracks = set()
-    historic_tracks = set()
-    for n, measurements in enumerate(all_measurements):
-        hypotheses = data_associator.associate(tracks, measurements, start_time +
-                                               timedelta(seconds=n))
-        associated_measurements = set()
-        for track in tracks:
-            hypothesis = hypotheses[track]
-            if hypothesis.measurement:
-                post = updater.update(hypothesis)
-                track.append(post)
-                associated_measurements.add(hypothesis.measurement)
-            else:
-                track.append(hypothesis.prediction)
-        del_tracks = deleter.delete_tracks(tracks)
-        tracks -= del_tracks
-        tracks |= initiator.initiate(measurements - associated_measurements, start_time +
-                                     timedelta(seconds=n))
-        historic_tracks |= del_tracks
-    historic_tracks |= tracks
-
-    return historic_tracks
