@@ -85,11 +85,11 @@ class ParticleSampler(Sampler):
 
 
 class GaussianDetectionParticleSampler(ParticleSampler):
-    """Particle sampler using Guassian detections to initialise the distribution.
+    """Particle sampler using Gaussian detections to initialise the distribution.
 
     Particle sampler that is preloaded with the :func:`~.functions.gm_sample` method for sampling
     from Gaussian mixture distributions. This class can handle one or more linear and non-linear
-    Gaussian detections and will either return samples from a single or mixture of Guassians
+    Gaussian detections and will either return samples from a single or mixture of Gaussians
     depending on which is provided."""
 
     distribution_func = None
@@ -101,7 +101,7 @@ class GaussianDetectionParticleSampler(ParticleSampler):
         doc="Number of samples to return")
 
     def sample(self, detections):
-        """Samples from a gaussian mixture around detections
+        """Samples from a Gaussian mixture around detections
 
         Parameters
         ----------
