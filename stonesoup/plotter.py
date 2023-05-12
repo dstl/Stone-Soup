@@ -1443,6 +1443,9 @@ class AnimatedPlotterly(_Plotter):
 
         self.all_masks = dict()  # dictionary to be filled up later
 
+        self.plotting_function_called = False  # keeps track if anything has been plotted or not
+        # so that only the first data plotted will override the default axis max and mins.
+
         self.fig = go.Figure()
 
         layout_kwargs = dict(
@@ -1541,8 +1544,16 @@ class AnimatedPlotterly(_Plotter):
             plot_tracks, but will be a dictionary if coming from plot_measurements.
         """
 
-        all_x = list(self.fig.layout.xaxis.range)
-        all_y = list(self.fig.layout.xaxis.range)
+        # fill in all data. If there is no data, fill all_x, all_y with current axis limits
+        print(data)
+        if not data:
+            all_x = list(self.fig.layout.xaxis.range)
+            all_y = list(self.fig.layout.xaxis.range)
+        else:
+            all_x = list()
+            all_y = list()
+
+        # fill in data
         if type == "measurements":
 
             for key, item in data.items():
@@ -1556,8 +1567,9 @@ class AnimatedPlotterly(_Plotter):
                 all_y.extend(data[n]["y"])
 
         elif type == "sensor":
-            all_x.extend(data[:, 0])
-            all_y.extend(data[:, 1])
+            sensor_xy = np.array([sensor.position[[0, 1], 0] for sensor in data])
+            all_x.extend(sensor_xy[:, 0])
+            all_y.extend(sensor_xy[:, 1])
 
         elif type == "particle_or_uncertainty":
             # data comes in format of list of dictionaries. Each dictionary contains 'x' and 'y',
@@ -1568,7 +1580,6 @@ class AnimatedPlotterly(_Plotter):
                 for y_values in dictionary["y"]:
                     all_y.extend([np.nanmax(y_values), np.nanmin(y_values)])
 
-        # self.fig.layout.xaxis.range[0]) self.fig.layout.xaxis.range[1])
         xmax = max(all_x)
         ymax = max(all_y)
         xmin = min(all_x)
@@ -1578,8 +1589,18 @@ class AnimatedPlotterly(_Plotter):
             xmax = ymax = max(xmax, ymax)
             xmin = ymin = min(xmin, ymin)
 
+        # if it's first time plotting data, want to ensure plotter is bound to that data
+        # and not the default values. Issues arise if the initial plotted data is much
+        # smaller than the default 0 to 10 values.
+        if not self.plotting_function_called:
+
+            print(xmin, xmax)
+            self.fig.update_xaxes(range=[xmin, xmax])
+            self.fig.update_yaxes(range=[ymin, ymax])
+            print(self.fig.layout.xaxis)
+
         # need to check if it's actually necessary to resize or not
-        if xmax > self.fig.layout.xaxis.range[1] or xmin < self.fig.layout.xaxis.range[0]:
+        if xmax >= self.fig.layout.xaxis.range[1] or xmin <= self.fig.layout.xaxis.range[0]:
 
             xmax = max(xmax, self.fig.layout.xaxis.range[1])
             xmin = min(xmin, self.fig.layout.xaxis.range[0])
@@ -1588,7 +1609,7 @@ class AnimatedPlotterly(_Plotter):
             # update figure while adding a small buffer to the mins and maxes
             self.fig.update_xaxes(range=[xmin - xrange / 20, xmax + xrange / 20])
 
-        if ymax > self.fig.layout.yaxis.range[1] or ymin < self.fig.layout.yaxis.range[0]:
+        if ymax >= self.fig.layout.yaxis.range[1] or ymin <= self.fig.layout.yaxis.range[0]:
 
             ymax = max(ymax, self.fig.layout.yaxis.range[1])
             ymin = min(ymin, self.fig.layout.yaxis.range[0])
@@ -1713,6 +1734,9 @@ class AnimatedPlotterly(_Plotter):
 
         if resize:
             self._resize(data, type="ground_truth")
+
+        # we have called a plotting function so update flag (gets used in _resize)
+        self.plotting_function_called = True
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
                           resize=True, measurements_label="Measurements", **kwargs):
@@ -1858,6 +1882,9 @@ class AnimatedPlotterly(_Plotter):
 
         if resize:
             self._resize(combined_data, "measurements")
+
+        # we have called a plotting function so update flag (gets used in resize)
+        self.plotting_function_called = True
 
     def plot_tracks(self, tracks, mapping, uncertainty=False, resize=True,
                     particle=False, plot_history=False, ellipse_points=30,
@@ -2049,6 +2076,9 @@ class AnimatedPlotterly(_Plotter):
 
             self._plot_particles_and_ellipses(tracks, mapping, resize, method="particles")
 
+        # we have called a plotting function so update flag
+        self.plotting_function_called = True
+
     def _plot_particles_and_ellipses(self, tracks, mapping, resize, method="uncertainty"):
 
         """
@@ -2141,25 +2171,30 @@ class AnimatedPlotterly(_Plotter):
         if not isinstance(sensors, Collection):
             sensors = {sensors}
 
-        trace_base = len(self.fig.data)  # number of traces currently in figure
-        sensor_kwargs = dict(mode='markers', marker=dict(symbol='x', color='black'),
-                             legendgroup=sensor_label, legendrank=50,
-                             name=sensor_label, showlegend=True)
-        sensor_kwargs.update(kwargs)
+        # don't run any of this if there is no data input
+        if sensors:
+            trace_base = len(self.fig.data)  # number of traces currently in figure
+            sensor_kwargs = dict(mode='markers', marker=dict(symbol='x', color='black'),
+                                 legendgroup=sensor_label, legendrank=50,
+                                 name=sensor_label, showlegend=True)
+            sensor_kwargs.update(kwargs)
 
-        self.fig.add_trace(go.Scatter(sensor_kwargs))  # initialises trace
+            self.fig.add_trace(go.Scatter(sensor_kwargs))  # initialises trace
 
-        sensor_xy = np.array([sensor.position[[0, 1], 0] for sensor in sensors])  # sensor position
+            # sensor position
+            sensor_xy = np.array([sensor.position[[0, 1], 0] for sensor in sensors])
+            if resize:
+                self._resize(sensors, "sensor")
 
-        if resize:
-            self._resize(sensor_xy, "sensor")
+            for frame in self.fig.frames:  # the plotting bit
+                traces_ = list(frame.traces)
+                data_ = list(frame.data)
 
-        for frame in self.fig.frames:  # the plotting bit
-            traces_ = list(frame.traces)
-            data_ = list(frame.data)
+                data_.append(go.Scatter(x=sensor_xy[:, 0], y=sensor_xy[:, 1]))
+                traces_.append(trace_base)
 
-            data_.append(go.Scatter(x=sensor_xy[:, 0], y=sensor_xy[:, 1]))
-            traces_.append(trace_base)
+                frame.traces = traces_
+                frame.data = data_
 
-            frame.traces = traces_
-            frame.data = data_
+        # we have called a plotting function so update flag (used in _resize)
+        self.plotting_function_called = True

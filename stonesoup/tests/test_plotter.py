@@ -34,7 +34,7 @@ for k in range(1, 21):
     truth.append(GroundTruthState(
         transition_model.function(truth[k-1], noise=True, time_interval=timedelta(seconds=1)),
         timestamp=start_time+timedelta(seconds=k)))
-
+timesteps = [start_time + timedelta(seconds=k) for k in range(1, 21)]
 prob_det = 0.5
 
 measurement_model = LinearGaussian(
@@ -211,10 +211,27 @@ def test_plot_complex_uncertainty():
         plotter.plot_tracks(track, mapping=[0, 1], uncertainty=True)
 
 
-def test_animated_plotterly_empty_inputs():
-    start_time = datetime.now()
-    timesteps = [start_time, start_time + timedelta(seconds=1)]
+def test_animated_plotterly():
     plotter = AnimatedPlotterly(timesteps)
-    plotter.plot_ground_truths({}, [0, 2], resize=False)
-    plotter.plot_measurements({}, [0, 2], resize=False)
-    plotter.plot_tracks({}, [0, 2], resize=False)
+    plotter.plot_ground_truths(truth, [0, 2])
+    plotter.plot_measurements(all_measurements, [0, 2])
+    plotter.plot_tracks(track, [0, 2], uncertainty=True, plot_history=True)
+
+
+def test_animated_plotterly_empty():
+    plotter = AnimatedPlotterly(timesteps)
+    plotter.plot_ground_truths({}, [0, 2])
+    plotter.plot_measurements({}, [0, 2])
+    plotter.plot_tracks({}, [0, 2])
+    plotter.plot_sensors({})
+
+
+def test_animated_plotterly_sensor_plot():
+    plotter = AnimatedPlotterly([start_time, start_time+timedelta(seconds=1)])
+    sensor = RadarElevationBearingRange(
+        position_mapping=(0, 2),
+        noise_covar=np.array([[0, 0],
+                              [0, 0]]),
+        ndim_state=4,
+        position=np.array([[10], [50]]))
+    plotter.plot_sensors(sensor)
