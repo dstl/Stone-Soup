@@ -176,12 +176,15 @@ for k in range(1, num_steps + 1):
 # %%
 # Thus the ground truth is generated and we can plot the result.
 #
-# Stone Soup has an in-built plotting class which can be used to plot
-# ground truths, measurements and tracks in a consistent format. It can be accessed by importing
-# the class :class:`AnimatedPlotterly` from Stone Soup as below.
+# Stone Soup has a few in-built plotting classes which can be used to plot
+# ground truths, measurements and tracks in a consistent format. An animated plotter that uses
+# Plotly graph objects can be accessed via the class :class:`AnimatedPlotterly` from Stone Soup
+# as below.
 #
-# Note that the mapping argument is [0, 2] because those are the x and y position indices from
-# our state vector.
+# Note that the animated plotter requires a list of timesteps as an input, and that 'tail_length'
+# is set to 0.3. This means that each data point will be on display for 30% of the total
+# simulation time. Also note that the mapping argument is [0, 2] because those are the x and
+# y position indices from our state vector.
 
 from stonesoup.plotter import AnimatedPlotterly
 plotter = AnimatedPlotterly(timesteps, tail_length=0.3)
