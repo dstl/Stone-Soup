@@ -1545,7 +1545,6 @@ class AnimatedPlotterly(_Plotter):
         """
 
         # fill in all data. If there is no data, fill all_x, all_y with current axis limits
-        print(data)
         if not data:
             all_x = list(self.fig.layout.xaxis.range)
             all_y = list(self.fig.layout.xaxis.range)
@@ -1594,10 +1593,8 @@ class AnimatedPlotterly(_Plotter):
         # smaller than the default 0 to 10 values.
         if not self.plotting_function_called:
 
-            print(xmin, xmax)
             self.fig.update_xaxes(range=[xmin, xmax])
             self.fig.update_yaxes(range=[ymin, ymax])
-            print(self.fig.layout.xaxis)
 
         # need to check if it's actually necessary to resize or not
         if xmax >= self.fig.layout.xaxis.range[1] or xmin <= self.fig.layout.xaxis.range[0]:
