@@ -13,7 +13,7 @@ Track Stitching Example
 # Track Stitching considers a set of broken fragments of track (which we call tracklets), and aims
 # to identify which fragments should be stitched (joined) together to form one track. This is done
 # by considering the state of a tracked object and predicting its state at a future (or past) time.
-# This example generates a set of `tracklets` , before applying track stitching. The figure below
+# This example generates a set of `tracklets`, before applying track stitching. The figure below
 # visualizes the aim of track stitching: taking a set of tracklets (left, black) and producing a set
 # of tracks (right, blue/red).
 
@@ -28,7 +28,7 @@ Track Stitching Example
 # Consider the following scenario: We have a bunch of sections of track that are all disconnected
 # from each other. We aim to stitch the track sections together into full tracks. We can use the
 # known states of tracklets at known times to predict where the tracked object would be at a
-# different time. We can use this information to associate trackletswith each other. Methods of
+# different time. We can use this information to associate tracklets with each other. Methods of
 # associating tracklets are explained below.
 #
 # Predicting forward
@@ -134,7 +134,7 @@ elif TM == "KTR":
               "dimensions to 2D.".format(n_spacial_dimensions))
         n_spacial_dimensions = 2
 else:
-    raise TypeError("Must assign TM to 'CV' or 'KTR'")
+    raise TypeError("Must assign 'CV' or 'KTR' to TM")
 
 # Variable calculations for measurement model
 measurement_cov_array = np.zeros((n_spacial_dimensions, n_spacial_dimensions), int)
@@ -293,7 +293,7 @@ from stonesoup.stitcher import TrackStitcher
 # together into tracks. The code in the following cell applies this process using the class
 # `TrackStitcher` and plots the stitched tracks.
 # `TrackStitcher` has a property search_window that enables you to reduce compute time by filtering
-# out track segments that are not within a reasonable time window. When forward stitching, the
+# out track segments that are not within a determined time window. When forward stitching, the
 # associator will consider any track that has a start point that falls within the time window
 # :math:`(t, t + search_window)`. When backward stitching, the associator will consider tracks that
 # have an endpoint within the time window :math:`(t - search_window, t)`.

@@ -33,7 +33,7 @@ class TrackStitcher(Base):
     @staticmethod
     @lru_cache()
     def _extract_detection(track, backward=False):
-        state = track[0] if not backward else track[-1]
+        state = track[-1] if backward else track[0]
         return Detection(state_vector=state.state_vector,
                          timestamp=state.timestamp,
                          measurement_model=LinearGaussian(
