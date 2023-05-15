@@ -27,6 +27,12 @@ class Node(Base):
     shape: str = Property(
         default=None,
         doc='Shape used to display nodes')
+    font_size: int = Property(
+        default=None,
+        doc='Font size for node labels')
+    node_dim: tuple = Property(
+        default=None,
+        doc='Width and height of nodes for graph icons, default is (0.5, 0.5)')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -61,7 +67,11 @@ class SensorNode(Node):
         if not self.colour:
             self.colour = '#1f77b4'
         if not self.shape:
-            self.shape = 'square'
+            self.shape = 'oval'
+        if not self.font_size:
+            self.font_size = 5
+        if not self.node_dim:
+            self.node_dim = (0.5, 0.3)
 
 
 class FusionNode(Node):
@@ -77,6 +87,10 @@ class FusionNode(Node):
             self.colour = '#006400'
         if not self.shape:
             self.shape = 'hexagon'
+        if not self.font_size:
+            self.font_size = 5
+        if not self.node_dim:
+            self.node_dim = (0.6, 0.3)
         self.tracks = set()  # Set of tracks this Node has recorded
 
     def fuse(self):
@@ -96,9 +110,13 @@ class SensorFusionNode(SensorNode, FusionNode):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.colour in ['#006400', '#1f77b4']:
-            self.colour = '#909090' # attr dict in Architecture.__init__ also needs updating
-        if self.shape in ['square', 'hexagon']:
-            self.shape = 'octagon'
+            self.colour = '#909090'  # attr dict in Architecture.__init__ also needs updating
+        if self.shape in ['oval', 'hexagon']:
+            self.shape = 'rectangle'
+        if not self.font_size:
+            self.font_size = 5
+        if not self.node_dim:
+            self.node_dim = (0.1, 0.3)
 
 
 class RepeaterNode(Node):
@@ -110,6 +128,10 @@ class RepeaterNode(Node):
             self.colour = '#ff7f0e'
         if not self.shape:
             self.shape = 'circle'
+        if not self.font_size:
+            self.font_size = 5
+        if not self.node_dim:
+            self.node_dim = (0.5, 0.3)
 
 
 def _dict_set(my_dict, value, key1, key2=None):
