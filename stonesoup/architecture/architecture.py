@@ -30,12 +30,14 @@ class Architecture(Base):
         doc="If True, the undirected version of the graph must be connected, ie. all nodes should "
             "be connected via some path. Set this to False to allow an unconnected architecture. "
             "Default is True")
-    font_size: int = Property(
-        default=8,
-        doc='Font size for node labels')
-    node_dim: tuple = Property(
-        default=(0.5, 0.5),
-        doc='Height and width of nodes for graph icons, default is (0.5, 0.5)')
+    # Below is no longer required with changes to plot - didn't delete in case we want to revert
+    # to previous method
+    # font_size: int = Property(
+    #     default=8,
+    #     doc='Font size for node labels')
+    # node_dim: tuple = Property(
+    #     default=(0.5, 0.5),
+    #     doc='Height and width of nodes for graph icons, default is (0.5, 0.5)')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -60,8 +62,8 @@ class Architecture(Base):
                 label, last_letters = _default_label(node, last_letters)
                 node.label = label
             attr = {"label": f"{label}", "color": f"{node.colour}", "shape": f"{node.shape}",
-                    "fontsize": f"{self.font_size}", "width": f"{self.node_dim[0]}",
-                    "height": f"{self.node_dim[1]}", "fixedsize": True}
+                    "fontsize": f"{node.font_size}", "width": f"{node.node_dim[0]}",
+                    "height": f"{node.node_dim[1]}", "fixedsize": True}
             self.di_graph.nodes[node].update(attr)
 
     def descendants(self, node: Node):
