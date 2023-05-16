@@ -241,7 +241,8 @@ class Plotter(_Plotter):
         measurements_label : str
             Label for the measurements.  Default is "Measurements".
         convert_measurements : bool
-            Should the measurements be converted before being plotted. Default is True
+            Should the measurements be converted from measurement space to state space before
+            being plotted. Default is True
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function for detections. Defaults are
             ``marker='o'`` and ``color='b'``.
@@ -294,7 +295,7 @@ class Plotter(_Plotter):
         return artists
 
     def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, track_label="Tracks",
-                    err_freq=1, same_colour=False, **kwargs):
+                    err_freq=1, same_color=False, **kwargs):
         """Plots track(s)
 
         Plots each track generated, generating a legend automatically. If ``uncertainty=True``
@@ -324,8 +325,8 @@ class Plotter(_Plotter):
         err_freq: int
             Frequency of error bar plotting on tracks. Default value is 1, meaning
             error bars are plotted at every track step.
-        same_colour: bool
-            Should all the tracks have the same colour
+        same_color: bool
+            Should all the tracks have the same color. Default False
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function. Defaults are ``linestyle="-"``,
             ``marker='s'`` for :class:`~.Update` and ``marker='o'`` for other states.
@@ -371,7 +372,7 @@ class Plotter(_Plotter):
                     linestyle='',
                     color=plt.getp(line[0], 'color')))
             track_colors[track] = plt.getp(line[0], 'color')
-            if same_colour:
+            if same_color:
                 tracks_kwargs['color'] = plt.getp(line[0], 'color')
 
         if tracks:  # If no tracks `line` won't be defined
@@ -765,7 +766,8 @@ class Plotterly(_Plotter):
         measurements_label : str
             Label for the measurements.  Default is "Measurements".
         convert_measurements: bool
-            Should the measurements be converted before being plotted. Default is True
+            Should the measurements be converted from measurement space to state space before
+            being plotted. Default is True
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function for detections. Defaults are
             ``marker=dict(color="#636EFA")``.
@@ -823,11 +825,26 @@ class Plotterly(_Plotter):
             )
 
     def get_next_color(self):
-        # This approach to getting colour isn't ideal, but should work in most cases...
-        index = len(self.fig.data) - 1
+        """
+        Find the colour of the next plot. This approach to getting colour isn't ideal, but should
+        work in most cases...
+        Returns
+        -------
+        dist : str
+            Hex string for a colour
+        """
+        # Find how many sequences have been plotted so far. The current plot has already been added
+        # to fig.data, so -1 is needed
+        figure_index = len(self.fig.data) - 1
+
+        # Get the list of colours used for plotting
         colorway = self.fig.layout.colorway
         max_index = len(colorway)
-        return colorway[index % max_index]
+
+        # Use the modulo operator to limit the colour index to limits of the colorway.
+        # If figure_index > max_index then colours will be reused
+        color_index = figure_index % max_index
+        return colorway[color_index]
 
     def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, track_label="Tracks",
                     ellipse_points=30, same_color=False, **kwargs):
@@ -856,7 +873,7 @@ class Plotterly(_Plotter):
         ellipse_points: int
             Number of points for polygon approximating ellipse shape
         same_color: bool
-            Should all the tracks have the same colour
+            Should all the tracks have the same colour. Default False
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function. Defaults are
             ``marker=dict(symbol='square')`` for :class:`~.Update` and
@@ -875,12 +892,10 @@ class Plotterly(_Plotter):
             color = track_kwargs.get('marker', {}).get('color') or \
                     track_kwargs.get('line', {}).get('color')
 
+            # Set the colour if it hasn't already been set
             if color is None:
                 track_kwargs['marker'] = track_kwargs.get('marker', {})
                 track_kwargs['marker']['color'] = self.get_next_color()
-            else:
-                # colour has already been set. No need to change anything
-                pass
 
         for track in tracks:
             scatter_kwargs = track_kwargs.copy()
@@ -1209,7 +1224,8 @@ class AnimationPlotter(_Plotter):
         measurements_label: str
             Label for measurements. Default will be "Detections" or "Clutter"
         convert_measurements: bool
-            Should the measurements be converted before being plotted. Default is True
+            Should the measurements be converted from measurement space to state space before
+            being plotted. Default is True
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function for detections. Defaults are
             ``marker='o'`` and ``color='b'``.
