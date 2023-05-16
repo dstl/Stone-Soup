@@ -118,7 +118,7 @@ class MultiManager(MetricManager):
         for generator in self.generators:
             if generator.generator_name is None:  # currently only basic metrics and OSPA metric has generator_name
                 # attribute
-                raise NotImplementedError("""generator_name argument required for all MetricGenerators passed to """
+                raise ValueError("""generator_name argument required for all MetricGenerators passed to """
                                           """generators argument""")
         self.association_set = None
 
