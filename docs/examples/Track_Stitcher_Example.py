@@ -163,7 +163,7 @@ from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
 from stonesoup.deleter.error import CovarianceBasedDeleter
 from stonesoup.deleter.multi import CompositeDeleter
 from stonesoup.deleter.time import UpdateTimeStepsDeleter
-from stonesoup.initiator.simple import MultiMeasurementInitiator
+from stonesoup.initiator.simple import SimpleMeasurementInitiator
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.types.state import GaussianState
 
@@ -173,11 +173,10 @@ updater = KalmanUpdater(measurement_model)
 hypothesiser = DistanceHypothesiser(predictor, updater, Mahalanobis(), missed_distance=30)
 data_associator = GNNWith2DAssignment(hypothesiser)
 deleter = CompositeDeleter([UpdateTimeStepsDeleter(50), CovarianceBasedDeleter(5000)])
-initiator = MultiMeasurementInitiator(
+initiator = SimpleMeasurementInitiator(
     prior_state=GaussianState(np.zeros((2 * n_spacial_dimensions, 1), int),
                               np.diag([1, 0] * n_spacial_dimensions)),
-    measurement_model=measurement_model, deleter=deleter, data_associator=data_associator,
-    updater=updater, min_points=2)
+    measurement_model=measurement_model)
 state_vector = [np.random.uniform(-range_value, range_value, 1),
                 np.random.uniform(-2, 2, 1)] * n_spacial_dimensions
 
