@@ -210,5 +210,4 @@ plotter.fig
 # 1. Bar-Shalom Y, Daum F, Huang F 2009, The Probabilistic Data Association Filter, IEEE Control
 # Systems Magazine
 
-# sphinx_gallery_thumbnail_number = 2
 # sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/Tutorial_7.PNG'

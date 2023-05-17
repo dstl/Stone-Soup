@@ -377,5 +377,4 @@ plotter.fig
 # .. [#] Anderson & Moore 1979, Optimal filtering,
 #        (http://users.cecs.anu.edu.au/~john/papers/BOOK/B02.PDF)
 
-# sphinx_gallery_thumbnail_number = 3
 # sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/Tutorial_1.PNG'

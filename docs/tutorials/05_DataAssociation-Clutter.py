@@ -234,5 +234,4 @@ plotter.fig
 # seduction*, and is a common feature of 'greedy' methods of association such as the nearest
 # neighbour algorithm.
 
-# sphinx_gallery_thumbnail_number = 2
 # sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/Tutorial_5.PNG'

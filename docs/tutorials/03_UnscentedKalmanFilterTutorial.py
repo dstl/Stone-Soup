@@ -322,5 +322,4 @@ fig
 #        Control Conference (IEEE Cat. No.CH37301), Anchorage, AK, USA, 2002, pp. 4555-4559 vol.6,
 #        doi: 10.1109/ACC.2002.1025369.
 
-# sphinx_gallery_thumbnail_number = 5
 # sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/Tutorial_3.PNG'
