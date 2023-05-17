@@ -152,9 +152,9 @@ class BruteForceSensorManager(SensorManager):
             #         break
             # if flag:
             #     a = 2
-            reward, var = self.reward_function(config, tracks, timestamp)
+            reward= self.reward_function(config, tracks, timestamp)
             rewards.append(reward)
-            vars.append(var)
+            # vars.append(var)
             if reward > min(best_rewards):
                 selected_configs[np.argmin(best_rewards)] = config
                 best_rewards[np.argmin(best_rewards)] = reward

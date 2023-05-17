@@ -127,7 +127,10 @@ class PDAHypothesiser(Hypothesiser):
         else:
             prediction = track.state
         # Missed detection hypothesis
-        prob_detect = self.prob_detect(prediction)
+        try:
+            prob_detect = self.prob_detect(prediction)
+        except TypeError:
+            prob_detect = self.prob_detect
         # Missed detection hypothesis
         probability = Probability(1 - prob_detect*self.prob_gate)
         hypotheses.append(
@@ -144,7 +147,10 @@ class PDAHypothesiser(Hypothesiser):
                 # Re-evaluate prediction
                 prediction = self.predictor.predict(
                     track.state, timestamp=detection.timestamp)
-                prob_detect = self.prob_detect(prediction)
+                try:
+                    prob_detect = self.prob_detect(prediction)
+                except TypeError:
+                    prob_detect = self.prob_detect
 
             if self.per_measurement or measurement_prediction is None:
                 # Compute measurement prediction and probability measure

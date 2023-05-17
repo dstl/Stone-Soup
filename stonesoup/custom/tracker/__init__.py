@@ -82,9 +82,11 @@ class _BaseTracker(Base):
         """A simple probability of detection function."""
         return self.prob_detection
 
+
 class SMCPHD_JIPDA(_BaseTracker):
     """A JIPDA tracker using an SMC-PHD filter as the track initiator."""
 
+    detector: Base = Property(doc='The detector used to generate detections', default=None)
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._predictor = KalmanPredictor(self.transition_model)
@@ -130,6 +132,14 @@ class SMCPHD_JIPDA(_BaseTracker):
         state = ParticleState(state_vector=state_vector, weight=weight, timestamp=self.start_time)
 
         self._initiator = ISMCPHDInitiator(filter=phd_filter, prior=state)
+
+    def __iter__(self):
+        self.detector_iter = iter(self.detector)
+        return self
+
+    def __next__(self):
+        timestamp, detections = next(self.detector_iter)
+        return timestamp, self.track(detections, timestamp)
 
     def track(self, detections, timestamp, *args, **kwargs):
         tracks = list(self.tracks)

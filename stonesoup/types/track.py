@@ -6,6 +6,7 @@ from .multihypothesis import MultipleHypothesis
 from .state import State, StateMutableSequence
 from .update import Update
 from ..base import Property
+from ..custom.types.hypothesis import MultiHypothesis
 
 
 class Track(StateMutableSequence):
@@ -133,6 +134,10 @@ class Track(StateMutableSequence):
                     if hypothesis \
                             and hypothesis.measurement.metadata is not None:
                         self.metadata.update(hypothesis.measurement.metadata)
+            elif isinstance(state.hypothesis, MultiHypothesis):
+                hypothesis = state.hypothesis
+                for measurement in hypothesis.measurements:
+                    self.metadata.update(measurement.metadata)
             else:
                 hypothesis = state.hypothesis
                 if hypothesis and hypothesis.measurement.metadata is not None:

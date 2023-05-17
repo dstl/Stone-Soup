@@ -1,0 +1,97 @@
+from stonesoup.base import Property
+from stonesoup.models.base import LinearModel, GaussianModel
+from stonesoup.models.measurement import MeasurementModel
+from stonesoup.types.array import Matrix, CovarianceMatrix
+
+
+class LinearGaussianPredefinedH(MeasurementModel, LinearModel, GaussianModel):
+    r"""This is a class implementation of a time-invariant 1D
+    Linear-Gaussian Measurement Model.
+
+    The model is described by the following equations:
+
+    .. math::
+
+      y_t = H_k*x_t + v_k,\ \ \ \   v(k)\sim \mathcal{N}(0,R)
+
+    where ``H_k`` is a (:py:attr:`~ndim_meas`, :py:attr:`~ndim_state`) \
+    matrix and ``v_k`` is Gaussian distributed.
+
+    """
+
+    h_matrix: Matrix = Property(doc="The model matrix")
+    noise_covar: CovarianceMatrix = Property(doc="Noise covariance")
+
+    @property
+    def ndim_state(self):
+        """ndim_meas getter method
+
+        Returns
+        -------
+        :class:`int`
+            The number of measurement dimensions
+        """
+
+        return self.h_matrix.shape[1]
+
+    @property
+    def ndim_meas(self):
+        """ndim_meas getter method
+
+        Returns
+        -------
+        :class:`int`
+            The number of measurement dimensions
+        """
+
+        return len(self.mapping)
+
+    def matrix(self, **kwargs):
+        """Model matrix :math:`H(t)`
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape \
+        (:py:attr:`~ndim_meas`, :py:attr:`~ndim_state`)
+            The model matrix evaluated given the provided time interval.
+        """
+
+        return self.h_matrix
+
+    def function(self, state, noise=False, **kwargs):
+        """Model function :math:`h(t,x(t),w(t))`
+
+        Parameters
+        ----------
+        state: :class:`~.State`
+            An input state
+        noise: :class:`numpy.ndarray` or bool
+            An externally generated random process noise sample (the default is
+            `False`, in which case no noise will be added
+            if 'True', the output of :meth:`~.Model.rvs` is added)
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape (:py:attr:`~ndim_meas`, 1)
+            The model function evaluated given the provided time interval.
+        """
+
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                noise = self.rvs()
+            else:
+                noise = 0
+
+        return self.matrix(**kwargs)@state.state_vector + noise
+
+    def covar(self, **kwargs):
+        """Returns the measurement model noise covariance matrix.
+
+        Returns
+        -------
+        :class:`~.CovarianceMatrix` of shape\
+        (:py:attr:`~ndim_meas`, :py:attr:`~ndim_meas`)
+            The measurement noise covariance.
+        """
+
+        return self.noise_covar
