@@ -7,8 +7,7 @@ from scipy.optimize import linear_sum_assignment
 from .base import DataAssociator
 from ..base import Property
 from ..hypothesiser import Hypothesiser
-from ..types.hypothesis import SingleHypothesis, JointHypothesis, \
-    ProbabilityHypothesis
+from ..types.hypothesis import SingleHypothesis, JointHypothesis, ProbabilityHypothesis
 
 
 class NearestNeighbour(DataAssociator):
@@ -235,12 +234,12 @@ class GNNWith2DAssignment(DataAssociator):
         # to assign tracks to nearest detection
         # Maximise flag = true for probability instance
         # (converts minimisation problem to maximisation problem)
-      
+
         try:
             if not probability_flag:
-                row4col, col4row = linear_sum_assignment(distance_matrix) #Scipy no longer takes a maximization flag
+                row4col, col4row = linear_sum_assignment(distance_matrix)
             else:
-                negated_dist_matrix = -distance_matrix # 
+                negated_dist_matrix = -distance_matrix
                 row4col, col4row = linear_sum_assignment(negated_dist_matrix)
         except ValueError:
             raise RuntimeError("Assignment was not feasible")
@@ -250,5 +249,3 @@ class GNNWith2DAssignment(DataAssociator):
             associations[track] = hypothesis_matrix[j][col4row[j]]
 
         return associations
-
-
