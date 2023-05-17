@@ -10,7 +10,6 @@ from ...models.transition.linear import ConstantVelocity, CombinedLinearGaussian
 from ...predictor.kalman import KalmanPredictor
 from ...updater.kalman import ExtendedKalmanUpdater
 
-
 @pytest.fixture()
 def measurement_model():
     return LinearGaussian(ndim_state=4, mapping=[0, 2],

@@ -3,8 +3,7 @@ import datetime
 import pytest
 import numpy as np
 
-from ..neighbour import (
-    NearestNeighbour, GlobalNearestNeighbour, GNNWith2DAssignment)
+from ..neighbour import (NearestNeighbour, GlobalNearestNeighbour, GNNWith2DAssignment)
 from ...types.detection import Detection
 from ...types.state import GaussianState
 from ...types.track import Track

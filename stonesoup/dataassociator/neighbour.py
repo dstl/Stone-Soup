@@ -1,4 +1,5 @@
 import itertools
+import sys 
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -220,8 +221,8 @@ class GNNWith2DAssignment(DataAssociator):
         for x in range(hypothesis_matrix.shape[0]):
             for y in range(hypothesis_matrix.shape[1]):
                 if hypothesis_matrix[x][y] is None:
-                    distance_matrix[x][y] = -np.inf if probability_flag \
-                        else np.inf
+                    distance_matrix[x][y] = -sys.maxsize-1 if probability_flag \
+                        else sys.maxsize
                 else:
                     if probability_flag:
                         distance_matrix[x][y] = \
@@ -234,8 +235,14 @@ class GNNWith2DAssignment(DataAssociator):
         # to assign tracks to nearest detection
         # Maximise flag = true for probability instance
         # (converts minimisation problem to maximisation problem)
+        print(f"true= max, false=min\nTYPE:{probability_flag}")
+        print(distance_matrix)
         try:
-            row4col, col4row = linear_sum_assignment(distance_matrix, probability_flag)
+            if not probability_flag:
+                row4col, col4row = linear_sum_assignment(distance_matrix) #Scipy no longer takes a maximization flag
+            else:
+                negated_dist_matrix = -distance_matrix # 
+                row4col, col4row = linear_sum_assignment(negated_dist_matrix)
         except ValueError:
             raise RuntimeError("Assignment was not feasible")
 
@@ -244,3 +251,5 @@ class GNNWith2DAssignment(DataAssociator):
             associations[track] = hypothesis_matrix[j][col4row[j]]
 
         return associations
+
+
