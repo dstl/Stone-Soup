@@ -31,7 +31,7 @@ class MFAHypothesiser(Hypothesiser):
         ----------
         track: :class:`~.Track`
             The track object to hypothesise on
-        detections : set of :class:`Detection`
+        detections : set of :class:`~.Detection`
             Retrieved measurements
         timestamp : datetime
             Time of the detections/predicted states
@@ -40,7 +40,7 @@ class MFAHypothesiser(Hypothesiser):
         Returns
         -------
         : :class:`~.MultipleHypothesis`
-            A container of :class:`~SingleProbabilityHypothesis` objects, pertaining to individual
+            A container of :class:`~.SingleProbabilityHypothesis` objects, pertaining to individual
             component-detection hypotheses
         """
 
