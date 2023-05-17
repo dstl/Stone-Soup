@@ -36,3 +36,9 @@ Composite
 
 .. automodule:: stonesoup.hypothesiser.composite
     :show-inheritance:
+
+Multi-Frame Assignment
+----------------------
+
+.. automodule:: stonesoup.hypothesiser.mfa
+    :show-inheritance:
