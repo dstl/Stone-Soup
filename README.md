@@ -15,8 +15,6 @@ estimation algorithms.
 
 An article is [available](https://www.gov.uk/government/news/dstl-shares-new-open-source-framework-initiative) that details the background to the project, and contains links to sample data.
 
-Stone Soup is currently in *beta*.
-
 Please see the
 [Stone Soup documentation](https://stonesoup.readthedocs.org/) for more
 information.
