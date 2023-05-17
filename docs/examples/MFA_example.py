@@ -197,6 +197,9 @@ tracks = OrderedSet((Track([prior1]), Track([prior2])))
 # within slide window at each frame/timestep.
 from matplotlib import animation
 from matplotlib.patches import Ellipse
+import matplotlib
+
+matplotlib.rcParams['animation.html'] = 'jshtml'
 
 from stonesoup.plotter import Plotter
 from stonesoup.types.update import GaussianMixtureUpdate
