@@ -237,3 +237,4 @@ plotter.fig
 #        problems, IEE Proc., Radar Sonar Navigation, 146:2–7
 
 # sphinx_gallery_thumbnail_number = 3
+# sphinx_gallery_thumbnail_path = '_images/tutorial_thumbnails/Tutorial_4.PNG'

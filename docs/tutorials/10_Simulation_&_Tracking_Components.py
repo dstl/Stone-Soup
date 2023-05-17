@@ -214,11 +214,13 @@ for time, ctracks in tracker:
     tracks.update(ctracks)
 
 # %%
+# sphinx_gallery_thumbnail_path = '_images/tutorial_thumbnails/Tutorial_10.PNG'
+
 from stonesoup.plotter import AnimatedPlotterly
 
 timesteps = [start_time + timestep_size*k for k in range(number_of_steps)]
 
-plotter = AnimatedPlotterly(timesteps)
+plotter = AnimatedPlotterly(timesteps, tail_length=1)
 plotter.plot_ground_truths(groundtruth, mapping=[0, 2])
 plotter.plot_measurements(detections, mapping=[0, 2])
 plotter.plot_tracks(tracks, mapping=[0, 2])
