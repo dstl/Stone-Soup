@@ -126,7 +126,7 @@
 #   :alt: Figure showing a search of a different k-d tree
 #
 # Fig. 3 shows a situation where it is useful to traverse back up the tree to complete the search for the nearest
-# neighbour.
+# neighbour. The detection :math:`[9,4]` is the true nearest neighbour.
 
 
 # %%
