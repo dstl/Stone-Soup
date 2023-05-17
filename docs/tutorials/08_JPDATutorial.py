@@ -230,4 +230,4 @@ plotter.fig
 # Systems Magazine
 
 # sphinx_gallery_thumbnail_number = 2
-# sphinx_gallery_thumbnail_path = '_images/tutorial_thumbnails/Tutorial_8.PNG'
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/Tutorial_8.PNG'

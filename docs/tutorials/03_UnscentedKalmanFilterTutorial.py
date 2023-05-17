@@ -323,4 +323,4 @@ fig
 #        doi: 10.1109/ACC.2002.1025369.
 
 # sphinx_gallery_thumbnail_number = 5
-# sphinx_gallery_thumbnail_path = '_images/tutorial_thumbnails/Tutorial_3.PNG'
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/Tutorial_3.PNG'

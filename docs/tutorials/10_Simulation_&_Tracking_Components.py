@@ -214,7 +214,7 @@ for time, ctracks in tracker:
     tracks.update(ctracks)
 
 # %%
-# sphinx_gallery_thumbnail_path = '_images/tutorial_thumbnails/Tutorial_10.PNG'
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/Tutorial_10.PNG'
 
 from stonesoup.plotter import AnimatedPlotterly
 

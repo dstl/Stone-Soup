@@ -201,7 +201,7 @@ for n, measurements in enumerate(all_measurements):
 # Plot the resulting tracks
 
 # sphinx_gallery_thumbnail_number = 3
-# sphinx_gallery_thumbnail_path = '_images/tutorial_thumbnails/Tutorial_6.PNG'
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/Tutorial_6.PNG'
 
 plotter.plot_tracks(tracks, [0, 2], uncertainty=True)
 plotter.fig
