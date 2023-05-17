@@ -235,8 +235,7 @@ class GNNWith2DAssignment(DataAssociator):
         # to assign tracks to nearest detection
         # Maximise flag = true for probability instance
         # (converts minimisation problem to maximisation problem)
-        print(f"true= max, false=min\nTYPE:{probability_flag}")
-        print(distance_matrix)
+      
         try:
             if not probability_flag:
                 row4col, col4row = linear_sum_assignment(distance_matrix) #Scipy no longer takes a maximization flag
