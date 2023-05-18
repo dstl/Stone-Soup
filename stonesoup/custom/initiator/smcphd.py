@@ -405,6 +405,7 @@ class ISMCPHDFilter(SMCPHDFilter):
         # Sample birth particles
         num_birth = round(float(self.prob_birth) * self.num_samples)
         birth_particles = np.zeros((prediction.state_vector.shape[0], 0))
+        birth_weights= np.zeros((0, ))
         if len(detections):
             num_birth_per_detection = num_birth // len(detections)
             for i, detection in enumerate(detections):
@@ -417,8 +418,13 @@ class ISMCPHDFilter(SMCPHDFilter):
                 birth_particles_i = multivariate_normal.rvs(mu.ravel(),
                                                             cov,
                                                             num_birth_per_detection).T
+                birth_weights_i = multivariate_normal.pdf(birth_particles_i.T,
+                                                          mu.ravel(),
+                                                          cov,
+                                                          allow_singular=True) * Probability(self.birth_rate / num_birth)
                 birth_particles = np.hstack((birth_particles, birth_particles_i))
-        birth_weights = np.full((num_birth,), Probability(self.birth_rate / num_birth))
+                birth_weights = np.hstack((birth_weights, birth_weights_i))
+        # birth_weights = np.full((num_birth,), Probability(self.birth_rate / num_birth))
         birth_particles = StateVectors(birth_particles)
         birth_state = Prediction.from_state(prediction,
                                             state_vector=birth_particles,
@@ -548,7 +554,7 @@ class ISMCPHDInitiator(SMCPHDInitiator):
 
         # Calculate intensity per hypothesis
         log_intensity_per_hyp = logsumexp(log_weights_per_hyp, axis=0)
-
+        # print(np.exp(log_intensity_per_hyp))
         # Find detections with intensity above threshold and initiate
         valid_inds = np.flatnonzero(np.exp(log_intensity_per_hyp) > self.threshold)
         for idx in valid_inds:

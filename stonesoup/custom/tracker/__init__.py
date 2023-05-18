@@ -87,6 +87,7 @@ class SMCPHD_JIPDA(_BaseTracker):
     """A JIPDA tracker using an SMC-PHD filter as the track initiator."""
 
     detector: Base = Property(doc='The detector used to generate detections', default=None)
+    use_ismcphd: bool = Property(doc='Use ISMC-PHD filter for track initiation', default=True)
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._predictor = KalmanPredictor(self.transition_model)
@@ -99,17 +100,30 @@ class SMCPHD_JIPDA(_BaseTracker):
         self._associator = JIPDAWithEHM2(self._hypothesiser)
 
         resampler = SystematicResampler()
-        phd_filter = ISMCPHDFilter(birth_density=self.birth_density,
-                                   transition_model=self.transition_model,
-                                   measurement_model=self.measurement_model,
-                                   prob_detect=self.prob_detect,
-                                   prob_death=self.prob_death,
-                                   prob_birth=self.prob_birth,
-                                   birth_rate=self.birth_rate,
-                                   clutter_intensity=self.clutter_intensity,
-                                   num_samples=self.num_samples,
-                                   resampler=resampler,
-                                   birth_scheme=self.birth_scheme)
+        if self.use_ismcphd:
+            phd_filter = ISMCPHDFilter(birth_density=self.birth_density,
+                                       transition_model=self.transition_model,
+                                       measurement_model=self.measurement_model,
+                                       prob_detect=self.prob_detect,
+                                       prob_death=self.prob_death,
+                                       prob_birth=self.prob_birth,
+                                       birth_rate=self.birth_rate,
+                                       clutter_intensity=self.clutter_intensity,
+                                       num_samples=self.num_samples,
+                                       resampler=resampler,
+                                       birth_scheme=self.birth_scheme)
+        else:
+            phd_filter = SMCPHDFilter(birth_density=self.birth_density,
+                                      transition_model=self.transition_model,
+                                      measurement_model=self.measurement_model,
+                                      prob_detect=self.prob_detect,
+                                      prob_death=self.prob_death,
+                                      prob_birth=self.prob_birth,
+                                      birth_rate=self.birth_rate,
+                                      clutter_intensity=self.clutter_intensity,
+                                      num_samples=self.num_samples,
+                                      resampler=resampler,
+                                      birth_scheme=self.birth_scheme)
         # Sample prior state from birth density
         if isinstance(self.birth_density, GaussianMixture):
             state_vector = np.zeros((self.transition_model.ndim_state, 0))
@@ -131,7 +145,10 @@ class SMCPHD_JIPDA(_BaseTracker):
         weight = np.full((self.num_samples,), Probability(1 / self.num_samples)) * self.birth_rate
         state = ParticleState(state_vector=state_vector, weight=weight, timestamp=self.start_time)
 
-        self._initiator = ISMCPHDInitiator(filter=phd_filter, prior=state)
+        if self.use_ismcphd:
+            self._initiator = ISMCPHDInitiator(filter=phd_filter, prior=state)
+        else:
+            self._initiator = SMCPHDInitiator(filter=phd_filter, prior=state)
 
     def __iter__(self):
         self.detector_iter = iter(self.detector)
