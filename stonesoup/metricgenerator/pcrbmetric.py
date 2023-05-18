@@ -45,7 +45,7 @@ class PCRBMetric(MetricGenerator):
             "computed")
     irf: float = Property(doc="Information reduction factor. Default is 1", default=1.)
     truths_key: str = Property(doc="Key to access desired set of groundtruths added to MultiManager")
-    generator_name: str = Property(doc="Name given to generator to use when accessing generated metrics from "
+    generator_name: str = Property(doc="Unique identifier to use when accessing generated metrics from "
                                        "MultiManager")
 
     def __init__(self, *args, **kwargs):

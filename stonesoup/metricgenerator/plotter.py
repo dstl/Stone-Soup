@@ -27,7 +27,7 @@ class TwoDPlotter(PlotGenerator):
     tracks_key: str = Property(doc="Key to access desired set of tracks added to MultiManager")
     truths_key: str = Property(doc="Key to access desired set of groundtruths added to MultiManager")
     detections_key: str = Property(doc="Key to access desired set of detections added to MultiManager")
-    generator_name: str = Property(doc="Name given to generator to use when accessing generated metrics from "
+    generator_name: str = Property(doc="Unique identifier to use when accessing generated metrics from "
                                        "MultiManager")
 
     def compute_metric(self, manager, *args, **kwargs):

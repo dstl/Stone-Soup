@@ -30,12 +30,13 @@ class GOSPAMetric(MetricGenerator):
     measure: Measure = Property(
         default=Euclidean(),
         doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
+    generator_name: str = Property(doc="Unique identifier to use when accessing generated metrics from "
+                                       "MultiManager")
     tracks_keys: str or list[str] = Property(doc='Key or pair of keys to access tracks added to MultiManager',
                                              default=None)
     truths_key: str = Property(doc='Key to access set of groundtruths added to MultiManager',
                                              default=None)
-    generator_name: str = Property(doc="Unique identifier to use when accessing generated metrics from "
-                                       "MultiManager")
+
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

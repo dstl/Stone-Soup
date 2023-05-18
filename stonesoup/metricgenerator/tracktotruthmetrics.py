@@ -47,12 +47,13 @@ class SIAPMetrics(MetricGenerator):
         doc="Distance measure used in calculating position accuracy scores.")
     velocity_measure: Measure = Property(
         doc="Distance measure used in calculating velocity accuracy scores.")
+    generator_name: str = Property(doc='Name given to generator to use when accessing generated metrics from '
+                                       'MultiManager')
     tracks_key: str or list[str] = Property(doc='Key or pair of keys to access tracks added to MultiManager',
                                              default=None)
     truths_key: str = Property(doc='Key to access set of groundtruths added to MultiManager',
                                      default=None)
-    generator_name: str = Property(doc='Name given to generator to use when accessing generated metrics from '
-                                       'MultiManager', default=None)
+
 
     def compute_metric(self, manager, **kwargs):
         r"""Compute metrics:
