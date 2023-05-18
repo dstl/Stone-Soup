@@ -71,7 +71,7 @@
 import numpy as np
 
 from datetime import datetime, timedelta
-start_time = datetime.now()
+start_time = datetime.now().replace(microsecond=0)
 
 # %%
 
@@ -87,18 +87,20 @@ from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionM
 
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05),
                                                           ConstantVelocity(0.05)])
-truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=start_time)])
+timesteps = [start_time]
+truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=timesteps[0])])
 
 for k in range(1, 21):
+    timesteps.append(start_time+timedelta(seconds=k))
     truth.append(GroundTruthState(
         transition_model.function(truth[k-1], noise=True, time_interval=timedelta(seconds=1)),
-        timestamp=start_time+timedelta(seconds=k)))
+        timestamp=timesteps[k]))
 
 # %%
 # Set-up plot to render ground truth, as before.
 
-from stonesoup.plotter import Plotterly
-plotter = Plotterly()
+from stonesoup.plotter import AnimatedPlotterly
+plotter = AnimatedPlotterly(timesteps, tail_length=0.3)
 plotter.plot_ground_truths(truth, [0, 2])
 plotter.fig
 
@@ -320,4 +322,4 @@ fig
 #        Control Conference (IEEE Cat. No.CH37301), Anchorage, AK, USA, 2002, pp. 4555-4559 vol.6,
 #        doi: 10.1109/ACC.2002.1025369.
 
-# sphinx_gallery_thumbnail_number = 5
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/Tutorial_3.PNG'
