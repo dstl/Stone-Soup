@@ -49,11 +49,10 @@ class SIAPMetrics(MetricGenerator):
         doc="Distance measure used in calculating velocity accuracy scores.")
     generator_name: str = Property(doc='Name given to generator to use when accessing generated metrics from '
                                        'MultiManager')
-    tracks_key: str or list[str] = Property(doc='Key or pair of keys to access tracks added to MultiManager',
+    tracks_keys: str or list[str] = Property(doc='Key or pair of keys to access tracks added to MultiManager',
                                              default=None)
     truths_key: str = Property(doc='Key to access set of groundtruths added to MultiManager',
                                      default=None)
-
 
     def compute_metric(self, manager, **kwargs):
         r"""Compute metrics:
@@ -96,15 +95,20 @@ class SIAPMetrics(MetricGenerator):
         position_accuracy_at_times = list()
         velocity_accuracy_at_times = list()
 
-        groundtruth_paths = self._get_data(manager, self.truths_key)
-        tracks = self._get_data(manager, self.tracks_key)
+        # track_or_truth = self._get_data(manager, self.truths_key)
+        # tracks = self._get_data(manager, self.tracks_key)
+        if isinstance(self.tracks_keys, str):
+            tracks = self._get_data(manager, self.tracks_keys)
+            track_or_truth = self._get_data(manager, self.truths_key)
+        elif isinstance(self.tracks_keys, list) and len(self.tracks_keys) == 2:
+            tracks, track_or_truth = [self._get_data(manager, key) for key in self.tracks_keys]
 
         J_sum = JT_sum = NA_sum = N_sum = PA_sum = VA_sum = 0
 
         for timestamp in timestamps:
-            Jt = self.num_truths_at_time(groundtruth_paths, timestamp)
+            Jt = self.num_truths_at_time(track_or_truth, timestamp)
             J_sum += Jt
-            JTt = self.num_associated_truths_at_time(manager, groundtruth_paths, timestamp)
+            JTt = self.num_associated_truths_at_time(manager, track_or_truth, timestamp)
             JT_sum += JTt
             NAt = self.num_associated_tracks_at_time(manager, tracks, timestamp)
             NA_sum += NAt
@@ -168,14 +172,14 @@ class SIAPMetrics(MetricGenerator):
                                             value=VA_sum / NA_sum if NA_sum != 0 else 0,
                                             time_range=time_range,
                                             generator=self)
-        R = self.rate_of_track_number_changes(manager, groundtruth_paths)
+        R = self.rate_of_track_number_changes(manager, track_or_truth)
         rate_track_num = TimeRangeMetric(title="SIAP Rate of Track Number Change",
                                          value=R,
                                          time_range=time_range,
                                          generator=self)
         TL_sum = sum(self.longest_track_time_on_truth(manager, truth)
-                     for truth in groundtruth_paths)
-        T_sum = sum(self.truth_lifetime(truth) for truth in groundtruth_paths)
+                     for truth in track_or_truth)
+        T_sum = sum(self.truth_lifetime(truth) for truth in track_or_truth)
         longest_track_seg = TimeRangeMetric(title="SIAP Longest Track Segment",
                                             value=TL_sum / T_sum if T_sum != 0 else 0,
                                             time_range=time_range,
@@ -207,13 +211,13 @@ class SIAPMetrics(MetricGenerator):
                 spuriousness_at_times, position_accuracy_at_times, velocity_accuracy_at_times]
 
     @staticmethod
-    def num_truths_at_time(groundtruth_paths, timestamp):
+    def num_truths_at_time(track_or_truth, timestamp):
         """:math:`J(t)`. Calculate the number of true objects held by `manager` at `timestamp`.
 
         Parameters
         ----------
-        groundtruth_paths: set or list of :class:`~.GroundTruthPath`
-            Containing the ground truth data to be used
+        track_or_truth: set or list of :class:`~.GroundTruthPath` or :class:`~.Track` objects
+            Containing the ground truth or track data to be used
         timestamp: datetime.datetime
             Timestamp at which to compute the value
 
@@ -224,11 +228,11 @@ class SIAPMetrics(MetricGenerator):
         """
         return sum(
             1
-            for path in groundtruth_paths
+            for path in track_or_truth
             if timestamp in (state.timestamp for state in path))
 
     @staticmethod
-    def num_associated_truths_at_time(manager, groundtruth_paths, timestamp):
+    def num_associated_truths_at_time(manager, track_or_truth, timestamp):
         """:math:`JT(t)`. Calculate the number of associated true objects held by `manager` at
         `timestamp`.
 
@@ -236,8 +240,8 @@ class SIAPMetrics(MetricGenerator):
         ----------
         manager: MetricManager
             Containing the data to be used
-        groundtruth_paths: set or list of :class:`~.GroundTruthPath`
-            Containing the groundtruth data to be used
+        track_or_truth: set or list of :class:`~.GroundTruthPath` or :class:`~.Track objects
+            Containing the groundtruth or track data to be used
         timestamp: datetime.datetime
             Timestamp at which to compute the value
 
@@ -249,7 +253,7 @@ class SIAPMetrics(MetricGenerator):
         associations = manager.association_set.associations_at_timestamp(timestamp)
         association_objects = {thing for assoc in associations for thing in assoc.objects}
 
-        return sum(1 for truth in groundtruth_paths if truth in association_objects)
+        return sum(1 for truth in track_or_truth if truth in association_objects)
 
     @staticmethod
     def num_tracks_at_time(tracks, timestamp):
@@ -427,7 +431,7 @@ class SIAPMetrics(MetricGenerator):
                     break
         return num_tracks_needed
 
-    def rate_of_track_number_changes(self, manager, groundtruth_paths):
+    def rate_of_track_number_changes(self, manager, track_or_truth):
         """:math:`R`. Calculate the average rate of track number changes for true objects held by
         `manager`.
 
@@ -435,8 +439,8 @@ class SIAPMetrics(MetricGenerator):
         ----------
         manager: MetricManager
             Containing the data to be used
-        groundtruth_paths: set or list of :class:`~.GroundTruthPath`
-            Containing the groundtruth data to be used
+        track_or_truth: set or list of :class:`~.GroundTruthPath` or :class:`~.Track` objects
+            Containing the ground truth or track data to be used
 
 
         Returns
@@ -445,9 +449,9 @@ class SIAPMetrics(MetricGenerator):
             Average rate of track number changes
         """
         numerator = sum(self.min_num_tracks_needed_to_track(manager, truth) - 1
-                        for truth in groundtruth_paths)
+                        for truth in track_or_truth)
         denominator = sum(self.total_time_tracked(manager, truth)
-                          for truth in groundtruth_paths)
+                          for truth in track_or_truth)
 
         return numerator / denominator if denominator != 0 else 0
 
@@ -564,7 +568,7 @@ class IDSIAPMetrics(SIAPMetrics):
 
         timestamps = manager.list_timestamps(generator=self)
 
-        groundtruth_paths = self._get_data(manager, self.truths_key)
+        track_or_truth = self._get_data(manager, self.truths_key)
 
         id_completeness_at_times = list()
         id_correctness_at_times = list()
@@ -573,9 +577,9 @@ class IDSIAPMetrics(SIAPMetrics):
         JT_sum = JU_sum = JC_sum = JI_sum = JA_sum = 0
 
         for timestamp in timestamps:
-            JTt = self.num_associated_truths_at_time(manager, groundtruth_paths, timestamp)
+            JTt = self.num_associated_truths_at_time(manager, track_or_truth, timestamp)
             JT_sum += JTt
-            JUt, JCt, JIt = self.num_id_truths_at_time(manager, groundtruth_paths, timestamp)
+            JUt, JCt, JIt = self.num_id_truths_at_time(manager, track_or_truth, timestamp)
             JU_sum += JUt
             JC_sum += JCt
             JI_sum += JIt
@@ -653,7 +657,7 @@ class IDSIAPMetrics(SIAPMetrics):
         metadata = track.metadatas[index]
         return metadata.get(self.track_id)
 
-    def num_id_truths_at_time(self, manager, groundtruth_paths, timestamp):
+    def num_id_truths_at_time(self, manager, track_or_truth, timestamp):
         """:math:`JU`, :math:`JC`, :math:`JI`. Calculate the number of true objects that are:
          Un-identified, correctly identified, incorrectly identified at `timestamp` according to
          associations held by `manager`.
@@ -662,8 +666,8 @@ class IDSIAPMetrics(SIAPMetrics):
         ----------
         manager: MetricManager
             Containing the data to be used
-        groundtruth_paths: set or list of :class:`~.GroundTruthPath`
-            Containing the ground truth data to be used
+        track_or_truth: set or list of :class:`~.GroundTruthPath` or :class:`~.Track` objects
+            Containing the ground truth or track data to be used
         timestamp: datetime.datetime
             Timestamp at which to consider associations
 
@@ -690,7 +694,7 @@ class IDSIAPMetrics(SIAPMetrics):
         incorrect_count = 0
 
         assocs = manager.association_set.associations_at_timestamp(timestamp)
-        for truth in groundtruth_paths:
+        for truth in track_or_truth:
             truth_id = truth.metadata.get(self.truth_id)
             track_ids = list()
 
