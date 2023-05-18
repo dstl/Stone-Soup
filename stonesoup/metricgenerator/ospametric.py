@@ -1,5 +1,4 @@
 from itertools import chain, zip_longest
-from typing import Iterable, Union
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -10,7 +9,6 @@ from ..measures import Measure, Euclidean
 from ..types.state import State, StateMutableSequence
 from ..types.time import TimeRange
 from ..types.metric import SingleTimeMetric, TimeRangeMetric
-from .manager import SimpleManager, MultiManager
 
 
 class GOSPAMetric(MetricGenerator):
@@ -36,8 +34,8 @@ class GOSPAMetric(MetricGenerator):
                                              default=None)
     truths_key: str = Property(doc='Key to access set of groundtruths added to MultiManager',
                                              default=None)
-    generator_name: str = Property(doc='Name given to generator to use when accessing generated metrics from '
-                                       'MultiManager', default=None)
+    generator_name: str = Property(doc="Unique identifier to use when accessing generated metrics from "
+                                       "MultiManager")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -59,23 +57,16 @@ class GOSPAMetric(MetricGenerator):
 
         """
 
-        # RG must be able to extract states from 2 tracks or track & truth
-
-        if isinstance(manager, MultiManager):
-            if self.truths_key is not None:
-                return self.compute_over_time(
-                    self.extract_states(manager.states_sets[self.tracks_keys]),
-                    self.extract_states(manager.states_sets[self.truths_key])
-                )
-            else:
-                return self.compute_over_time(
-                    self.extract_states(manager.states_sets[self.tracks_keys[0]]),
-                    self.extract_states(manager.states_sets[self.tracks_keys[1]])
-                )
-
-        elif isinstance(manager, SimpleManager):
+        if self.truths_key is not None:
             return self.compute_over_time(
-                self.extract_states(manager.tracks), self.extract_states(manager.groundtruth_paths))
+                self.extract_states(manager.states_sets[self.tracks_keys]),
+                self.extract_states(manager.states_sets[self.truths_key])
+            )
+        else:
+            return self.compute_over_time(
+                self.extract_states(manager.states_sets[self.tracks_keys[0]]),
+                self.extract_states(manager.states_sets[self.tracks_keys[1]])
+            )
 
 
     @staticmethod
