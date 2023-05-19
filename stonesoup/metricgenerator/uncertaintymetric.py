@@ -11,9 +11,8 @@ from ..base import Property
 
 class _CovarianceNormsMetric(MetricGenerator):
     _type = None
-    tracks_key: str = Property(doc="Key to access desired set of tracks added to MultiManager")
-    generator_name: str = Property(doc="Unique identifier to use when accessing generated metrics from "
-                                       "MultiManager")
+    tracks_key: str = Property(doc='Key to access set of tracks added to MultiManager')
+    generator_name: str = Property(doc="Unique identifier to use when accessing generated metrics from MultiManager")
 
     def compute_metric(self, manager, **kwargs):
         """Computes the metric using the data in the metric manager

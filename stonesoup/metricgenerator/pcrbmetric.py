@@ -44,9 +44,8 @@ class PCRBMetric(MetricGenerator):
         doc="Mapping for velocity coordinates. Default `None`, in which case velocity RMSE is not "
             "computed")
     irf: float = Property(doc="Information reduction factor. Default is 1", default=1.)
-    truths_key: str = Property(doc="Key to access desired set of groundtruths added to MultiManager")
-    generator_name: str = Property(doc="Unique identifier to use when accessing generated metrics from "
-                                       "MultiManager")
+    truths_key: str = Property(doc="Key to access set of ground truths added to MultiManager")
+    generator_name: str = Property(doc="Unique identifier to use when accessing generated metrics from MultiManager")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

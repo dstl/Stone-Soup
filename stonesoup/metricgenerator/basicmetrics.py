@@ -8,11 +8,10 @@ from ..base import Property
 class BasicMetrics(MetricGenerator):
     """Calculates simple metrics like number of tracks, truth and
     ratio of track-to-truth"""
-    generator_name: str = Property(doc="Unique identifier to use when accessing generated metrics from "
-                                       "MultiManager")
-    tracks_keys: str or list[str] = Property(doc="Key or pair of keys to access desired set(s) of tracks added to "
-                                                 "MultiManager")
-    truths_key: str = Property(doc="Key to access desired set of groundtruths added to MultiManager", default=None)
+    generator_name: str = Property(doc="Unique identifier to use when accessing generated metrics from MultiManager")
+    tracks_key: str = Property(doc='Key to access set of tracks added to MultiManager')
+    truths_key: str = Property(doc="Key to access set of ground truths added to MultiManager. Or key to access a second"
+                                   " set of tracks for track-to-track metric generation")
 
     def compute_metric(self, manager, *args, **kwargs):
         """Compute the metric using the data in the metric manager
@@ -27,11 +26,8 @@ class BasicMetrics(MetricGenerator):
         : list of :class:`~.Metric`
             Contains the metric information
         """
-        if isinstance(self.tracks_keys, str):
-            tracks = self._get_data(manager, self.tracks_keys)
-            track_or_truth = self._get_data(manager, self.truths_key)
-        elif isinstance(self.tracks_keys, list) and len(self.tracks_keys) == 2:
-            tracks, track_or_truth = [self._get_data(manager, key) for key in self.tracks_keys]
+        tracks = self._get_data(manager, self.tracks_key)
+        track_or_truth = self._get_data(manager, self.truths_key)
 
         metrics = []
 

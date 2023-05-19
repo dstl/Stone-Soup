@@ -30,13 +30,10 @@ class GOSPAMetric(MetricGenerator):
     measure: Measure = Property(
         default=Euclidean(),
         doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
-    generator_name: str = Property(doc="Unique identifier to use when accessing generated metrics from "
-                                       "MultiManager")
-    tracks_keys: str or list[str] = Property(doc='Key or pair of keys to access tracks added to MultiManager',
-                                             default=None)
-    truths_key: str = Property(doc='Key to access set of groundtruths added to MultiManager',
-                                             default=None)
-
+    generator_name: str = Property(doc="Unique identifier to use when accessing generated metrics from MultiManager")
+    tracks_key: str = Property(doc='Key to access set of tracks added to MultiManager')
+    truths_key: str = Property(doc="Key to access set of ground truths added to MultiManager. Or key to access a second"
+                                   " set of tracks for track-to-track metric generation")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -57,18 +54,10 @@ class GOSPAMetric(MetricGenerator):
             list of metrics at each timestamp
 
         """
-
-        if self.truths_key is not None:
-            return self.compute_over_time(
-                self.extract_states(manager.states_sets[self.tracks_keys]),
-                self.extract_states(manager.states_sets[self.truths_key])
-            )
-        else:
-            return self.compute_over_time(
-                self.extract_states(manager.states_sets[self.tracks_keys[0]]),
-                self.extract_states(manager.states_sets[self.tracks_keys[1]])
-            )
-
+        return self.compute_over_time(
+            self.extract_states(manager.states_sets[self.tracks_key]),
+            self.extract_states(manager.states_sets[self.truths_key])
+        )
 
     @staticmethod
     def extract_states(object_with_states):

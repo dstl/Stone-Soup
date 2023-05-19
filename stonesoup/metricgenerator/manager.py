@@ -8,6 +8,7 @@ from ..platform import Platform
 from ..types.detection import Detection
 from ..types.groundtruth import GroundTruthPath
 from ..types.track import Track
+from .tracktotruthmetrics import SIAPMetrics
 
 
 class SimpleManager(MetricManager):
@@ -116,10 +117,10 @@ class MultiManager(MetricManager):
         super().__init__(*args, **kwargs)
         self.states_sets = dict()
         for generator in self.generators:
-            if generator.generator_name is None:  # currently only basic metrics and OSPA metric has generator_name
+            if generator.generator_name is None:
                 # attribute
                 raise ValueError("""generator_name argument required for all MetricGenerators passed to """
-                                          """generators argument""")
+                                 """generators argument""")
         self.association_set = None
 
     def add_data(self, metric_data: Dict = None, overwrite=True):
@@ -165,8 +166,9 @@ class MultiManager(MetricManager):
 
         metrics = {}
         for generator in self.generators:
-            if self.associator is not None and self.association_set is None:
-                self.associate_tracks(generator)
+            if isinstance(generator, SIAPMetrics):
+                if self.associator is not None and self.association_set is None:
+                    self.associate_tracks(generator)
             metric_list = generator.compute_metric(self)
             # If not already a list, force it to be one below
             if not isinstance(metric_list, list):
