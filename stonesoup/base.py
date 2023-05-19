@@ -61,6 +61,7 @@ from collections import OrderedDict
 from copy import copy
 from functools import cached_property
 from types import MappingProxyType
+from typing import TYPE_CHECKING
 
 
 class Property:
