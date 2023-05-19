@@ -160,7 +160,6 @@ class TPRTreeMixIn(Base):
 
         self._reset_tree()
 
-
     def _reset_tree(self):
         # Create tree
         tree_property = rtree.index.Property(
@@ -169,7 +168,6 @@ class TPRTreeMixIn(Base):
             dimension=len(self.pos_mapping))
         self._tree = rtree.index.RtreeContainer(properties=tree_property)
         self._coords = dict()
-
 
     def _track_tree_coordinates(self, track):
         state_vector = track.mean[self.pos_mapping, :]
