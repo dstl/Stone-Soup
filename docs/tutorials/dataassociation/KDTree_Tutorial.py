@@ -31,12 +31,12 @@
 # During Nearest Neighbour or Probabilistic Data Association without a tree, distance or probability of association must
 # be calculated between the prediction and *every* detection in order to select the best detection for association.
 # These linear searches can be a suitable method to use for small numbers of detections and/or targets but become
-# inefficient as the numbers increase substantially.
+# inefficient if the numbers increase substantially.
 #
 # Using a tree in combination with a data association algorithm can make the search much faster. Instead of comparing
 # every detection in the set to the prediction vector, :math:`k`-d trees or TPR trees can be used to quickly
-# eliminate large sets of detections implicitly. :math:`k`-d trees have an average O(:math:`log(n)`) search time with a
-# worst case of O(:math:`n`) given a set of :math:`n` detections.
+# eliminate large sets of detections implicitly. Given a set of :math:`n` detections, :math:`k`-d trees have an average
+# search time of O(:math:`log(n)`) and a worst case of O(:math:`n`).
 #
 # We will look at how :math:`k`-d trees are constructed and queried below.
 
@@ -45,9 +45,10 @@
 # Constructing a :math:`k`-d tree
 # -------------------------------
 # :math:`k`-d trees are constructed by splitting a set of detections into two even groups, and then further splitting
-# those two groups into two groups each, continuing this process recursively down until each leaf node contains the
-# desired number of detections (it can be 1 or more). These splits alternate in each dimension of the detection vectors
-# in turn (Fig. 1).
+# each of those two groups in half again, continuing this process recursively downwards until each leaf node contains
+# the desired number of detections (it can be 1 or more). These splits alternate in each dimension of the detection
+# vectors in turn until they reach the :math:`k^{th}` dimension, at which point the splitting continues from the first
+# dimension again (Fig. 1).
 #
 # For example, with a set of 2-dimensional detection vectors of :math:`\small\begin{bmatrix} x \\ y \\\end{bmatrix}` we
 # start constructing the tree from the root node by identifying the median value of the :math:`x^{th}` dimension of all
