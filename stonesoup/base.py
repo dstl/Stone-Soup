@@ -60,6 +60,7 @@ from abc import ABCMeta
 from collections import OrderedDict
 from copy import copy
 from types import MappingProxyType
+from typing import TYPE_CHECKING
 
 from ._util import cached_property
 
@@ -294,7 +295,8 @@ class BaseMeta(ABCMeta):
 
                 if not (isinstance(value.cls, type)
                         or getattr(value.cls, '__module__', "") == 'typing'
-                        or value.cls == name):
+                        or value.cls == name
+                        or isinstance(value.cls, str)): # forward declaration for type hinting
                     raise ValueError(f'Invalid type specification ({str(value.cls)}) '
                                      f'for property {key} of class {name}')
 
