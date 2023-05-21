@@ -767,7 +767,8 @@ class SchmidtKalmanUpdater(ExtendedKalmanUpdater):
 
         """
         # Intermediate matrices P_p and H.
-        pp = hypothesis.prediction.covar[np.ix_(range(0, len(self.consider)), self.consider)]
+        pp = hypothesis.prediction.covar[np.tile(self.consider, (len(self.consider), 1))]
+        pp = pp.reshape((len(self.consider), np.sum(self.consider)))
         hh = self._measurement_matrix(predicted_state=hypothesis.prediction)
 
         # First get the Kalman gain
