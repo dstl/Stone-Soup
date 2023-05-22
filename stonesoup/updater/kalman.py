@@ -782,7 +782,8 @@ class SchmidtKalmanUpdater(ExtendedKalmanUpdater):
         post_cov = hypothesis.prediction.covar.copy()
         post_cov[np.ix_(~self.consider, ~self.consider)] -= \
             kalman_gain @ hypothesis.measurement_prediction.covar @ kalman_gain.T
-        post_cov[np.ix_(~self.consider, self.consider)] -= kalman_gain @ hh @ pp
-        post_cov[np.ix_(self.consider, ~self.consider)] -= pp.T @ hh.T @ kalman_gain.T
+        khp = kalman_gain @ hh @ pp
+        post_cov[np.ix_(~self.consider, self.consider)] -= khp
+        post_cov[np.ix_(self.consider, ~self.consider)] -= khp.T
 
         return post_cov.view(CovarianceMatrix), kalman_gain
