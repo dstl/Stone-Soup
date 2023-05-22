@@ -688,7 +688,7 @@ class MetricPlotter(ABC):
     #     # This is new compared to plotter.py
     #     self.legend_dict = {}  # create an empty dictionary to hold legend entries
 
-    def plot_metrics(self, metrics, generator_names=None, same_metrics_together=True, **kwargs):
+    def plot_metrics(self, metrics, generator_names=None, combine_plots=True, **kwargs):
         """Plots metrics
 
         Plots each plottable metric passed in to :attr:`metrics` and generates a legend
@@ -704,8 +704,8 @@ class MetricPlotter(ABC):
         generator_names: list or str
             Generator(s) to extract metrics from dictionary of :class:`~.Metric` for plotting.
             Default None to take all metrics from the dictionary.
-        same_metrics_together: bool
-            Plot same metric types on the same subplot. Default True.
+        combine_plots: bool
+            Plot metrics of same type on the same subplot. Default True.
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function. Default is ``linestyle="-"``.
 
@@ -723,10 +723,10 @@ class MetricPlotter(ABC):
 
         metrics_to_plot = self.extract_plottable_metrics(metrics, generator_names)
 
-        if same_metrics_together:
-            self.plot_same_metrics_together(metrics_to_plot, metrics_kwargs)
+        if combine_plots:
+            self.combine_plots(metrics_to_plot, metrics_kwargs)
         else:
-            self.plot_all_individually(metrics_to_plot, metrics_kwargs)
+            self.plot_separately(metrics_to_plot, metrics_kwargs)
 
     @staticmethod
     def extract_plottable_metrics(metrics, generator_names):
@@ -755,8 +755,8 @@ class MetricPlotter(ABC):
 
         return metrics_dict
 
-    def count_subplots(self, metrics_to_plot, same_metrics_together):
-        if same_metrics_together:
+    def count_subplots(self, metrics_to_plot, combine_plots):
+        if combine_plots:
             metric_types = self.extract_metric_types(metrics_to_plot)
             number_of_subplots = len(metric_types)
 
@@ -779,7 +779,7 @@ class MetricPlotter(ABC):
 
         return metric_types
 
-    def plot_same_metrics_together(self, metrics_to_plot, metrics_kwargs):
+    def combine_plots(self, metrics_to_plot, metrics_kwargs):
         # determine how many plots required - equal to number of metric types
         number_of_subplots = self.count_subplots(metrics_to_plot, True)
 
@@ -817,9 +817,9 @@ class MetricPlotter(ABC):
                                        labels=legend_dict.keys()))
 
             y_label = metric_type.split(' at times')[0]
-            artists.extend(axis.set(ylabel=y_label))
+            artists.extend(axis.set(title=metric_type.split(' at times')[0], xlabel="Time", ylabel=y_label))
 
-    def plot_all_individually(self, metrics_to_plot, metrics_kwargs):
+    def plot_separately(self, metrics_to_plot, metrics_kwargs):
         # determine how many plots required - equal to number of metrics within the generators
         number_of_subplots = self.count_subplots(metrics_to_plot, False)
 
