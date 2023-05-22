@@ -137,7 +137,7 @@
 
 # %%
 # Example of Global Nearest Neighbour search using :math:`k`-d tree and TPR tree
-# -----------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # In this example, we will be calculating the average run time of the Global Nearest Neighbour (GNN) data association
 # algorithm with a :math:`k`-d tree and with a TPR tree and comparing the results with a linear GNN search.
 # First, we will run the search with a :math:`k`-d tree.
@@ -306,8 +306,8 @@ for _ in range(0, 3):
     run_times_KDTree.append(run_time)
 
 # %%
-# Plot the resulting tracks:
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Plot the resulting tracks from :math:`k`-d tree
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 from stonesoup.plotter import Plotterly
 
@@ -385,7 +385,8 @@ for _ in range(0, 3):
     run_times_TPRTree.append(run_time)
 
 # %%
-# Plot the resulting tracks:
+# Plot the resulting tracks from TPR Tree
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 from stonesoup.plotter import Plotterly
 
@@ -456,8 +457,8 @@ for _ in range(0, 3):
     run_times_GNN.append(run_time)
 
 # %%
-# Plot the resulting tracks:
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Plot the resulting tracks from GNN
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 from stonesoup.plotter import Plotterly
 
