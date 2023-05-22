@@ -667,20 +667,25 @@ class MetricPlotter(ABC):
         Dictionary of legend handles as :class:`matplotlib.legend_handler.HandlerBase`
         and labels as str
     """
-
-    def __init__(self, **kwargs):
-        figure_kwargs = {"figsize": (10, 6)}
-        figure_kwargs.update(kwargs)
-        # Generate plot axes
-        self.fig = plt.figure(**figure_kwargs)
-        self.ax = self.fig.add_subplot(1, 1, 1)
-        self.ax.set_xlabel("timestamp")
-        self.ax.set_ylabel("metric value")
-
+    def __init__(self):
         # Create empty dictionary for legend handles and labels - dict used to
         # prevent multiple entries with the same label from displaying on legend
         # This is new compared to plotter.py
         self.legend_dict = {}  # create an empty dictionary to hold legend entries
+
+    # def __init__(self, **kwargs):  # original init method
+    #     figure_kwargs = {"figsize": (10, 6)}
+    #     figure_kwargs.update(kwargs)
+    #     # Generate plot axes
+    #     self.fig = plt.figure(**figure_kwargs)
+    #     self.ax = self.fig.add_subplot(1, 1, 1)
+    #     self.ax.set_xlabel("timestamp")
+    #     self.ax.set_ylabel("metric value")
+    #
+    #     # Create empty dictionary for legend handles and labels - dict used to
+    #     # prevent multiple entries with the same label from displaying on legend
+    #     # This is new compared to plotter.py
+    #     self.legend_dict = {}  # create an empty dictionary to hold legend entries
 
     def plot_metrics(self, metrics, generator_names=None, same_metrics_together=True, **kwargs):
         """Plots metrics
@@ -721,8 +726,6 @@ class MetricPlotter(ABC):
         # add argument that allows user to specify whether similar metrics should be plotted on the same plot or not
         # default same plot display
 
-        artists = []
-
         if generator_names is None:
             generator_names = list(metrics.keys())
 
@@ -731,35 +734,9 @@ class MetricPlotter(ABC):
         metrics_to_plot = self.extract_plottable_metrics(metrics, generator_names)
 
         if same_metrics_together:
-            self.plot_same_metrics_together(metrics_to_plot)
+            self.plot_same_metrics_together(metrics_to_plot, metrics_kwargs)
         else:
-            self.plot_all_individually(metrics_to_plot)
-
-        # generate colour map for lines to be plotted
-        colour_map = iter(plt.cm.rainbow(np.linspace(0, 1, len(generator_names))))
-
-        # create lines
-        for generator_name in generator_names:
-            for key in list(generator_name.keys()):
-                if self.check_if_plottable_metric(key):
-                    # if the metric generator contains any plottable metrics they will be plotted
-                    colour = next(colour_map)
-                    metric_values = metrics[key].value
-                    artists.extend(self.ax.plot([_.timestamp for _ in metric_values],
-                                                [_.value for _ in metric_values],
-                                                color=colour,
-                                                **metrics_kwargs))
-
-                    metric_handle = Line2D([], [], linestyle=metrics_kwargs['linestyle'], color=colour)
-                    self.legend_dict[key] = metric_handle
-                else:
-                    print(f"{key} from {generator_name} is not plotted because {key} is not a plottable metric")
-
-        # Generate legend
-        artists.append(self.ax.legend(handles=self.legend_dict.values(),
-                                      labels=self.legend_dict.keys()))
-
-        return fig.show()
+            self.plot_all_individually(metrics_to_plot, metrics_kwargs)
 
     @staticmethod
     def extract_plottable_metrics(metrics, generator_names):
@@ -768,182 +745,170 @@ class MetricPlotter(ABC):
                              "SIAP Completeness at times",
                              "SIAP Ambiguity at times",
                              "SIAP Spuriousness at times",
-                             "SIAP Position at times",
-                             "SIAP Velocity at times",
+                             "SIAP Position Accuracy at times",
+                             "SIAP Velocity Accuracy at times",
                              "SIAP ID Completeness at times",
+                             "SIAP ID Correctness at times",
                              "SIAP ID Ambiguity at times",
-                             "SIAP ID Spuriousness at times",
-                             "SIAP ID Position at times",
-                             "SIAP ID Velocity at times",
                              "PCRB Metrics"
                              ]
 
         metrics_dict = dict()
 
         for generator_name in generator_names:
-            for metric_key in list(generator_name.keys()):
+            for metric_key in list(metrics[generator_name].keys()):
                 if metric_key in plottable_metrics:
                     if generator_name not in metrics_dict.keys():
-                        metrics[generator_name] = {metric_key: metrics[generator_name][metric_key]}
+                        metrics_dict[generator_name] = {metric_key: metrics[generator_name][metric_key]}
                     else:
-                        metrics[generator_name][metric_key] = metrics[generator_name][metric_key]
+                        metrics_dict[generator_name][metric_key] = metrics[generator_name][metric_key]
                 else:
-                    print(f"{key} from {generator_name} is not plotted because {key} is not a plottable metric")
+                    print(f"{metric_key} from {generator_name} is not plotted because {metric_key} is not a plottable "
+                          f"metric")
 
         return metrics_dict
 
-    def count_subplots(self, metrics, generator_names, same_metrics_together):
+    def count_subplots(self, metrics_to_plot, same_metrics_together):
         if same_metrics_together:
-            metric_types = set()
-            for generator_name in generator_names:
-                for metric_key in metrics[generator_name].keys():
-                    metric_types.add(metric_key)
-
+            metric_types = self.extract_metric_types(metrics_to_plot)
             number_of_subplots = len(metric_types)
 
         else:
             number_of_subplots = 0
-            for generator_name in generator_names:
-                number_of_subplots += len(metrics[generator_name])
+            for generator in metrics_to_plot.keys():
+                number_of_subplots += len(metrics_to_plot[generator])
 
         return number_of_subplots
 
-    def plot_all_individually(self, metrics, generator_names):
-        # determine how many plots required - equal to number of metrics within the generators
-        number_of_subplots = self.count_subplots(metrics, generator_names, False)
-
-        # initialise each plot
-        fig, axes = plt.subplots(number_of_subplots)
-        fig.subplots_adjust(hspace=1)
-
-        # extract data for each plot and plot it
-        for generator_name in generator_names:
-            for metric, axis in zip(list(generator_name.keys()), axes):
-                x = [_.timestamp for _ in metrics[generator_name][key]]
-                y = [_.timestamp for _ in metrics[generator_name][key]]
-                axis.set(title=metric.title, xlabel='Time')  # good to add ylabel
-                axis.plot(x, y)
-
-    def plot_same_metrics_together(self, metrics, generator_names):
-        # determine how many plots required - equal to number of metric types
-        number_of_subplots = self.count_subplots(metrics, generator_names, True)
-
-        # initialise each plot
-        fig, axes = plt.subplots(number_of_subplots)
-        fig.subplots_adjust(hspace=1)
-
-        # extract data for each plot and plot it
+    @staticmethod
+    def extract_metric_types(metrics_to_plot):
         metric_types = set()
-        for generator_name in generator_names:
-            for metric_key in metrics[generator_name].keys():
+        for generator in metrics_to_plot.keys():
+            for metric_key in metrics_to_plot[generator].keys():
                 metric_types.add(metric_key)
+
+        return metric_types
+
+    def plot_same_metrics_together(self, metrics_to_plot, metrics_kwargs):
+        # determine how many plots required - equal to number of metric types
+        number_of_subplots = self.count_subplots(metrics_to_plot, True)
+
+        # initialise each plot
+        fig, axes = plt.subplots(number_of_subplots, figsize=(10, 6*number_of_subplots))
+        fig.subplots_adjust(hspace=0.3)
+
+        # extract data for each plot and plot it
+        metric_types = self.extract_metric_types(metrics_to_plot)
+
+        print(metric_types)
 
         for metric_type, axis in zip(list(metric_types), axes):
             artists = []
 
             # generate colour map for lines to be plotted
-            colour_map = iter(plt.cm.rainbow(np.linspace(0, 1, len(generator_names))))
+            colour_map = iter(plt.cm.rainbow(np.linspace(0, 1, len(metrics_to_plot.keys()))))
 
-            for generator_name in generator_names:
-                for metric_key in metrics[generator_name].keys():
-                    if metric_key == metric_type:
+            for generator in metrics_to_plot.keys():
+                for metric in metrics_to_plot[generator].keys():  # can change to a try except block with key error
+                    if metric == metric_type:
                         colour = next(colour_map)
-                        metric_values = metrics[generator_name][metric_key].value
-                        artists.extend(self.ax.plot([_.timestamp for _ in metric_values],
-                                                    [_.value for _ in metric_values],
-                                                    color=colour,
-                                                    **metrics_kwargs))
+                        metric_values = metrics_to_plot[generator][metric].value
+                        artists.extend(axis.plot([_.timestamp for _ in metric_values],
+                                                 [_.value for _ in metric_values],
+                                                 color=colour,
+                                                 **metrics_kwargs))
 
                         metric_handle = Line2D([], [], linestyle=metrics_kwargs['linestyle'], color=colour)
-                        self.legend_dict[generator_name] = metric_handle
+                        self.legend_dict[generator] = metric_handle
 
             # Generate legend
-            artists.append(self.ax.legend(handles=self.legend_dict.values(),
-                                          labels=self.legend_dict.keys()))
+            artists.append(axis.legend(handles=self.legend_dict.values(),
+                                       labels=self.legend_dict.keys()))
 
-        return artists
+    def plot_all_individually(self, metrics_to_plot, metrics_kwargs):
+        # determine how many plots required - equal to number of metrics within the generators
+        number_of_subplots = self.count_subplots(metrics_to_plot, False)
 
-    def __init__(self, **kwargs):
-        figure_kwargs = dict()
-        figure_kwargs.update(kwargs)
-        # Generate plot axes
-        # self.fig = plt.figure(**figure_kwargs)
-        # self.ax = self.fig.add_subplot(1, 1, 1)
-        # self.ax.set_xlabel("timestamp")
-        # self.ax.set_ylabel("metric value")
+        # initialise each plot
+        fig, axes = plt.subplots(number_of_subplots, figsize=(10, 6*number_of_subplots))
+        fig.subplots_adjust(hspace=0.3)
 
-        # Create empty dictionary for legend handles and labels - dict used to
-        # prevent multiple entries with the same label from displaying on legend
-        # This is new compared to plotter.py
-        self.legend_dict = {}  # create an empty dictionary to hold legend entries
+        # extract data for each plot and plot it
+        for generator in metrics_to_plot.keys():
+            for metric, axis in zip(list(generator.keys()), axes):
+                x = [_.timestamp for _ in metrics_to_plot[generator][metric]]
+                y = [_.timestamp for _ in metrics_to_plot[generator][metric]]
+                axis.set(title=metric.title, xlabel='Time', **metrics_kwargs)  # would be good to add ylabel
+                axis.plot(x, y)
 
-    def plot_metrics(self, metrics, generator_names=None, **kwargs):
-        """Plots metrics
+    # def plot_metrics(self, metrics, generator_names=None, **kwargs):
+    #     """Plots metrics
+    #
+    #     Plots each metric passed in to :attr:`metrics` and generates a legend
+    #     automatically. Metrics are plotted as lines with default colors.
+    #
+    #     Users can change linestyle, color and marker using keyword arguments. Any changes
+    #     will apply to all metrics.
+    #
+    #     Parameters
+    #     ----------
+    #     metrics : dict of :class:`~.Metric`
+    #         Dictionary of metrics to be plotted.
+    #     generator_names: list or str
+    #         Generator(s) to extract metrics from dictionary of :class:`~.Metric` for plotting.
+    #         Default None to take all metrics from the dictionary.
+    #     \\*\\*kwargs: dict
+    #         Additional arguments to be passed to plot function. Default is ``linestyle="-"``.
+    #
+    #     Returns
+    #     -------
+    #     : list of :class:`matplotlib.artist.Artist`
+    #         List of artists that have been added to the axes.
+    #     """
+    #     metrics_kwargs = dict(linestyle="-")
+    #     metrics_kwargs.update(kwargs)
+    #
+    #     # if metric keys is empty, check if the following metrics are in the manager:
+    #     # ospa, siaps, pcrb
+    #     # skip over basic, uncertainty, plotter, gospa
+    #     # for each metric that is present, generate a separate plot
+    #
+    #     # if metric keys is not empty, only check for the keys in the manager and plot them
+    #
+    #     # add argument that allows user to specify whether similar metrics should be plotted on the same plot or not
+    #     # default same plot display
+    #
+    #     artists = []
+    #
+    #     if generator_names is None:
+    #         generator_names = list(metrics.keys())
+    #
+    #     # generate colour map for lines to be plotted
+    #     colour_map = iter(plt.cm.rainbow(np.linspace(0, 1, len(generator_names))))
+    #
+    #     # create lines
+    #     for generator_name in list(generator_names):
+    #         for key in list(generator_name.keys):
+    #             if self.check_if_plottable_metric(key):
+    #                 # if the metric generator contains any plottable metrics they will be plotted
+    #                 colour = next(colour_map)
+    #                 metric_values = metrics[key].value
+    #                 artists.extend(self.ax.plot([_.timestamp for _ in metric_values],
+    #                                             [_.value for _ in metric_values],
+    #                                             color=colour,
+    #                                             **metrics_kwargs))
+    #
+    #                 metric_handle = Line2D([], [], linestyle=metrics_kwargs['linestyle'], color=colour)
+    #                 self.legend_dict[key] = metric_handle
+    #             else:
+    #                 print(f"{key} from {generator_name} is not plotted because {key} is not a plottable metric")
+    #
+    #     # Generate legend
+    #     artists.append(self.ax.legend(handles=self.legend_dict.values(),
+    #                                   labels=self.legend_dict.keys()))
+    #
+    #     return artists
 
-        Plots each metric passed in to :attr:`metrics` and generates a legend
-        automatically. Metrics are plotted as lines with default colors.
-
-        Users can change linestyle, color and marker using keyword arguments. Any changes
-        will apply to all metrics.
-
-        Parameters
-        ----------
-        metrics : dict of :class:`~.Metric`
-            Dictionary of metrics to be plotted.
-        generator_names: list or str
-            Generator(s) to extract metrics from dictionary of :class:`~.Metric` for plotting.
-            Default None to take all metrics from the dictionary.
-        \\*\\*kwargs: dict
-            Additional arguments to be passed to plot function. Default is ``linestyle="-"``.
-
-        Returns
-        -------
-        : list of :class:`matplotlib.artist.Artist`
-            List of artists that have been added to the axes.
-        """
-        metrics_kwargs = dict(linestyle="-")
-        metrics_kwargs.update(kwargs)
-
-        # if metric keys is empty, check if the following metrics are in the manager:
-        # ospa, siaps, pcrb
-        # skip over basic, uncertainty, plotter, gospa
-        # for each metric that is present, generate a separate plot
-
-        # if metric keys is not empty, only check for the keys in the manager and plot them
-
-        # add argument that allows user to specify whether similar metrics should be plotted on the same plot or not
-        # default same plot display
-
-        artists = []
-
-        if generator_names is None:
-            generator_names = list(metrics.keys())
-
-        # generate colour map for lines to be plotted
-        colour_map = iter(plt.cm.rainbow(np.linspace(0, 1, len(generator_names))))
-
-        # create lines
-        for generator_name in list(generator_names):
-            for key in list(generator_name.keys):
-                if self.check_if_plottable_metric(key):
-                    # if the metric generator contains any plottable metrics they will be plotted
-                    colour = next(colour_map)
-                    metric_values = metrics[key].value
-                    artists.extend(self.ax.plot([_.timestamp for _ in metric_values],
-                                                [_.value for _ in metric_values],
-                                                color=colour,
-                                                **metrics_kwargs))
-
-                    metric_handle = Line2D([], [], linestyle=metrics_kwargs['linestyle'], color=colour)
-                    self.legend_dict[key] = metric_handle
-                else:
-                    print(f"{key} from {generator_name} is not plotted because {key} is not a plottable metric")
-
-        # Generate legend
-        artists.append(self.ax.legend(handles=self.legend_dict.values(),
-                                      labels=self.legend_dict.keys()))
-
-        return artists
 
 class Plotterly(_Plotter):
     """Plotting class for building graphs of Stone Soup simulations using plotly
