@@ -698,6 +698,14 @@ class SchmidtKalmanUpdater(ExtendedKalmanUpdater):
         P_{pp,k|k-1}
         \end{bmatrix}
 
+    Note
+    ----
+    Due to the excellent efficiency of NumPy's matrix algebra tools, the savings gained by
+    extracting a sub-matrix over performing the calculation on full matrices, are relatively
+    minor. This class therefore functions most effectively as a tutorial example of the
+    Schmidt-Kalman updater. Efficiencies could be made by enforcing view operations rather than
+    copies, using the square-root form or, most promisingly, by employing Cython.
+
 
     References
     ----------
@@ -769,6 +777,7 @@ class SchmidtKalmanUpdater(ExtendedKalmanUpdater):
         # Intermediate matrices P_p and H.
         pp = hypothesis.prediction.covar[np.tile(self.consider, (len(self.consider), 1))]
         pp = pp.reshape((len(self.consider), np.sum(self.consider)))
+        #pp = hypothesis.prediction.covar[:, np.sum(~self.consider):]
         hh = self._measurement_matrix(predicted_state=hypothesis.prediction)
 
         # First get the Kalman gain
