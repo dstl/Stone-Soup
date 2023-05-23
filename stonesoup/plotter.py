@@ -682,10 +682,7 @@ class MetricPlotter(ABC):
         metrics_kwargs = dict(linestyle="-")
         metrics_kwargs.update(kwargs)
 
-        if generator_names is None:
-            generator_names = list(metrics.keys())
-        else:
-            generator_names = list(generator_names)
+        generator_names = list(metrics.keys()) if generator_names is None else list(generator_names)
 
         metrics_to_plot = self.extract_plottable_metrics(metrics, generator_names)
 
@@ -750,11 +747,11 @@ class MetricPlotter(ABC):
         # determine how many plots required - equal to number of metric types
         number_of_subplots = self.count_subplots(metrics_to_plot, True)
 
-        # initialise each plot
+        # initialise each subplot
         fig, axes = plt.subplots(number_of_subplots, figsize=(10, 6*number_of_subplots))
         fig.subplots_adjust(hspace=0.3)
 
-        # extract data for each plot and plot it
+        # extract data for each subplot and plot it
         metric_types = self.extract_metric_types(metrics_to_plot)
 
         axes = axes if isinstance(axes, Iterable) else [axes]
