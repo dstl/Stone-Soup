@@ -138,7 +138,7 @@ class Plotter(_Plotter):
         and labels as str
     """
 
-    def __init__(self, dimension=Dimension.TWO, plot_timeseries=False, **kwargs):
+    def __init__(self, dimension=Dimension.TWO, **kwargs):
         figure_kwargs = {"figsize": (10, 6)}
         figure_kwargs.update(kwargs)
         if isinstance(dimension, type(Dimension.TWO)):
@@ -651,48 +651,13 @@ class MetricPlotter(ABC):
     A plotting class which is used to simplify the process of plotting metrics.
     Legends are automatically generated with each plot.
 
-    Parameters
-    ----------
-    \\*\\*kwargs: dict
-        Any additional arguments to be passed to plot function. For example, figsize (Default is
-        (10, 6) or x/y axes labels.
-
-    Attributes
-    ----------
-    fig: matplotlib.figure.Figure
-        Generated figure for graphs to be plotted on
-    ax: matplotlib.axes.Axes
-        Generated axes for graphs to be plotted on
-    legend_dict: dict
-        Dictionary of legend handles as :class:`matplotlib.legend_handler.HandlerBase`
-        and labels as str
     """
-    def __init__(self):
-        pass
-        # Create empty dictionary for legend handles and labels - dict used to
-        # prevent multiple entries with the same label from displaying on legend
-        # This is new compared to plotter.py
-        # self.legend_dict = {}  # create an empty dictionary to hold legend entries
-
-    # def __init__(self, **kwargs):  # original init method
-    #     figure_kwargs = {"figsize": (10, 6)}
-    #     figure_kwargs.update(kwargs)
-    #     # Generate plot axes
-    #     self.fig = plt.figure(**figure_kwargs)
-    #     self.ax = self.fig.add_subplot(1, 1, 1)
-    #     self.ax.set_xlabel("timestamp")
-    #     self.ax.set_ylabel("metric value")
-    #
-    #     # Create empty dictionary for legend handles and labels - dict used to
-    #     # prevent multiple entries with the same label from displaying on legend
-    #     # This is new compared to plotter.py
-    #     self.legend_dict = {}  # create an empty dictionary to hold legend entries
 
     def plot_metrics(self, metrics, generator_names=None, combine_plots=True, **kwargs):
         """Plots metrics
 
-        Plots each plottable metric passed in to :attr:`metrics` and generates a legend
-        automatically. Metrics are plotted as lines with default colors.
+        Plots each plottable metric passed in to :attr:`metrics` across a series of subplots
+        and generates legend(s) automatically. Metrics are plotted as lines with default colors.
 
         Users can change linestyle, color and marker using keyword arguments. Any changes
         will apply to all metrics.
@@ -700,10 +665,10 @@ class MetricPlotter(ABC):
         Parameters
         ----------
         metrics : dict of :class:`~.Metric`
-            Dictionary of metrics to be plotted.
+            Dictionary of generated metrics to be plotted.
         generator_names: list or str
-            Generator(s) to extract metrics from dictionary of :class:`~.Metric` for plotting.
-            Default None to take all metrics from the dictionary.
+            Generator(s) to extract specific metrics from :attr:`metrics` for plotting.
+            Default None to take all metrics.
         combine_plots: bool
             Plot metrics of same type on the same subplot. Default True.
         \\*\\*kwargs: dict
@@ -711,15 +676,16 @@ class MetricPlotter(ABC):
 
         Returns
         -------
-        : list of :class:`matplotlib.artist.Artist`
-            List of artists that have been added to the axes.
+        : :class:`matplotlib.pyplot.figure`
+            Figure containing subplots displaying all plottable metrics.
         """
         metrics_kwargs = dict(linestyle="-")
         metrics_kwargs.update(kwargs)
 
         if generator_names is None:
             generator_names = list(metrics.keys())
-        generator_names = list(generator_names)
+        else:
+            generator_names = list(generator_names)
 
         metrics_to_plot = self.extract_plottable_metrics(metrics, generator_names)
 
@@ -732,6 +698,7 @@ class MetricPlotter(ABC):
     def extract_plottable_metrics(metrics, generator_names):
 
         plottable_metrics = ["OSPA distances",
+                             "GOSPA Metrics",
                              "SIAP Completeness at times",
                              "SIAP Ambiguity at times",
                              "SIAP Spuriousness at times",
