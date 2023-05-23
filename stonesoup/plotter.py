@@ -764,7 +764,11 @@ class MetricPlotter(ABC):
             legend_dict = {}
 
             # generate colour map for lines to be plotted
-            colour_map = iter(plt.cm.rainbow(np.linspace(0, 1, len(metrics_to_plot.keys()))))
+            if 'color' not in metrics_kwargs.keys():
+                colour_map = iter(plt.cm.rainbow(np.linspace(0, 1, len(metrics_to_plot.keys()))))
+            else:
+                colour_map = iter(metrics_kwargs['color'])
+                metrics_kwargs.pop('color')
 
             for generator in metrics_to_plot.keys():
                 for metric in metrics_to_plot[generator].keys():  # can change to a try except block with key error
@@ -811,7 +815,7 @@ class MetricPlotter(ABC):
                       **metrics_kwargs)
 
             # Generate legend
-            metric_handle = Line2D([], [], linestyle=metrics_kwargs['linestyle'])
+            metric_handle = Line2D([], [], linestyle=metrics_kwargs['linestyle'], color=metrics_kwargs['color'])
             axis.legend(handles=[metric_handle],
                         labels=[metric.split(' at times')[0]])
 
