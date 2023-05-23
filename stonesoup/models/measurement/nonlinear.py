@@ -2,6 +2,7 @@ from abc import ABC
 import copy
 from typing import Sequence, Tuple, Union
 
+from math import sqrt
 import numpy as np
 from scipy.linalg import inv, pinv, block_diag
 from scipy.stats import multivariate_normal
@@ -116,6 +117,9 @@ class NonLinearGaussianMeasurement(MeasurementModel, GaussianModel, ABC):
         # Set values to defaults if not provided
         if self.rotation_offset is None:
             self.rotation_offset = StateVector([[0], [0], [0]])
+
+        if not isinstance(self.noise_covar, CovarianceMatrix):
+            self.noise_covar = CovarianceMatrix(self.noise_covar)
 
     def covar(self, **kwargs) -> CovarianceMatrix:
         """Returns the measurement model noise covariance matrix.
@@ -962,6 +966,93 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
         out = np.array([[Elevation(0)], [Bearing(0)], [0.], [0.]]) + out
         return out
 
+    def jacobian(self, state, **kwargs):
+        """Model jacobian matrix :math:`H_{jac}`
+
+        Parameters
+        ----------
+        state : :class:`~.State`
+            An input state
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape (:py:attr:`~ndim_meas`, \
+        :py:attr:`~ndim_state`)
+            The model jacobian matrix evaluated around the given state vector.
+        """
+        # Account for origin offset in position to enable range and angles to be determined
+        xyz_pos = state.state_vector[self.mapping, :] - self.translation_offset
+
+        # Determine the net velocity component in the engagement
+        xyz_vel = state.state_vector[self.velocity_mapping, :] - self.velocity
+
+        # Rotate into RADAR coordinate system to linearize around the correct
+        # state
+        xyz_pos = self.rotation_matrix @ xyz_pos
+        xyz_vel = self.rotation_matrix @ xyz_vel
+
+        jac = np.zeros((4, 6), dtype=np.float_)
+
+        x, y, z = xyz_pos
+        vx, vy, vz = xyz_vel
+        x2, y2, z2 = x**2, y**2, z**2
+        x2y2 = x2 + y2
+        r2 = x2y2 + z2
+        r = sqrt(r2)
+        sqrt_x2_y2 = sqrt(x2y2)
+        r32 = r2*r
+
+        # Jacobian encodes partial derivatives of measurement vector components
+        # Y = <theta, phi, r, rdot> against state vector
+        # X = <x, vx, y, vy, z, vz>.
+
+        # dtheta/dx
+        sqrt_x2_y2r2 = sqrt_x2_y2*r2
+        jac[0, 0] = -(x*z)/(sqrt_x2_y2r2)
+
+        # dtheta/dy
+        jac[0, 2] = -(y*z)/(sqrt_x2_y2r2)
+
+        # dthtea/dz
+        jac[0, 4] = sqrt_x2_y2/r2
+
+        # dphi/dx
+        jac[1, 0] = - y/(x2y2)
+
+        # dphi/dy
+        jac[1, 2] = x/(x2y2)
+
+        # dphi/dz = 0
+
+        # dr/dx and drdot/dvx
+        jac[2, 0] = jac[3, 1] = x/r
+
+        # dr/dx and drdot/dvy
+        jac[2, 2] = jac[3, 3] = y/r
+
+        # dr/dx and drdot/dvz
+        jac[2, 4] = jac[3, 5] = z/r
+
+        vx_x, vy_y, vz_z = vx*x, vy*y, vz*z
+
+        # drdot/dx
+        jac[3, 0] = (-x*(vy_y + vz_z) + vx*(y2 + z2))/r32
+
+        # drdot/dy
+        jac[3, 2] = (vy*(x2 + z2) - y*(vx_x + vz_z))/r32
+
+        # drdot/dz
+        jac[3, 4] = (vz*(x2y2) - (vx_x + vy_y)*z)/r32
+
+        # Up to this point, the Jacobian has been with respect to the state
+        # vector after rotating into the RADAR coordinate system. However, we
+        # want the Jacobian with respect to world state vector, so we must post
+        # multiply Jacobian by the RADAR rotation matrix.
+        jac[:, self.mapping] = jac[:, self.mapping] @ self.rotation_matrix
+        jac[:, self.velocity_mapping] = jac[:, self.velocity_mapping] @ self.rotation_matrix
+
+        return jac
+
 
 class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
     r"""This is a class implementation of a time-invariant measurement model, \
@@ -1081,16 +1172,18 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
 
         return out
 
-    def _gaussian_integral(self, a, b, mean, cov):
+    @classmethod
+    def _gaussian_integral(cls, a, b, mean, cov):
         # this function is the cumulative probability ranging from a to b for a normal distribution
         return (multivariate_normal.cdf(a, mean=mean, cov=cov)
                 - multivariate_normal.cdf(b, mean=mean, cov=cov))
 
-    def _binned_pdf(self, measured_value, mean, bin_size, cov):
+    @classmethod
+    def _binned_pdf(cls, measured_value, mean, bin_size, cov):
         # this function finds the probability density of the bin the measured_value is in
         a = np.floor(measured_value / bin_size) * bin_size + bin_size
         b = np.floor(measured_value / bin_size) * bin_size
-        return self._gaussian_integral(a, b, mean, cov)/bin_size
+        return cls._gaussian_integral(a, b, mean, cov)/bin_size
 
     def pdf(self, state1, state2, **kwargs):
         r"""Model pdf/likelihood evaluation function
@@ -1136,19 +1229,19 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
             az_el_pdf = multivariate_normal.pdf(
                 state1.state_vector[:2, 0],
                 mean=mean_vector[:2, 0],
-                cov=self.covar()[:2])
+                cov=self.covar()[:2, :2])
 
             # pdf for the binned range and velocity
             range_pdf = self._binned_pdf(
                 state1.state_vector[2, 0],
                 mean_vector[2, 0],
                 self.range_res,
-                self.covar()[2])
+                self.covar()[2, 2])
             velocity_pdf = self._binned_pdf(
                 state1.state_vector[3, 0],
                 mean_vector[3, 0],
                 self.range_rate_res,
-                self.covar()[3])
+                self.covar()[3, 3])
             return Probability(range_pdf * velocity_pdf * az_el_pdf)
         else:
             return Probability(0)

@@ -54,7 +54,7 @@ import random
 from ordered_set import OrderedSet
 from datetime import datetime, timedelta
 
-start_time = datetime.now()
+start_time = datetime.now().replace(microsecond=0)
 
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, ConstantVelocity
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
@@ -83,19 +83,20 @@ yps = range(0, 100, 10)  # y value for prior state
 truths = OrderedSet()
 ntruths = 3  # number of ground truths in simulation
 time_max = 50  # timestamps the simulation is observed over
+timesteps = [start_time + timedelta(seconds=k) for k in range(time_max)]
 
 xdirection = 1
 ydirection = 1
 
 # Generate ground truths
 for j in range(0, ntruths):
-    truth = GroundTruthPath([GroundTruthState([0, xdirection, yps[j], ydirection], timestamp=start_time)],
-                            id=f"id{j}")
+    truth = GroundTruthPath([GroundTruthState([0, xdirection, yps[j], ydirection],
+                                              timestamp=timesteps[0])], id=f"id{j}")
 
     for k in range(1, time_max):
         truth.append(
             GroundTruthState(transition_model.function(truth[k - 1], noise=True, time_interval=timedelta(seconds=1)),
-                             timestamp=start_time + timedelta(seconds=k)))
+                             timestamp=timesteps[k]))
     truths.add(truth)
 
     xdirection *= -1
@@ -105,11 +106,11 @@ for j in range(0, ntruths):
 # %%
 # Plot the ground truths. This is done using the :class:`~.Plotterly` class from Stone Soup.
 
-from stonesoup.plotter import Plotterly
+from stonesoup.plotter import AnimatedPlotterly
 
 # Stonesoup plotter requires sets not lists
 
-plotter = Plotterly()
+plotter = AnimatedPlotterly(timesteps, tail_length=1)
 plotter.plot_ground_truths(truths, [0, 2])
 plotter.fig
 
@@ -307,11 +308,6 @@ data_associator = GNNWith2DAssignment(hypothesiser)
 
 from ordered_set import OrderedSet
 
-# Generate list of timesteps from ground truth timestamps
-timesteps = []
-for state in truths[0]:
-    timesteps.append(state.timestamp)
-
 for timestep in timesteps[1:]:
 
     # Generate chosen configuration
@@ -345,10 +341,10 @@ for timestep in timesteps[1:]:
 # Plot ground truths, tracks and uncertainty ellipses for each target. The positions of the sensors are indicated
 # by black x markers.
 
-plotterA = Plotterly()
+plotterA = AnimatedPlotterly(timesteps, tail_length=1)
 plotterA.plot_sensors(sensor_setA)
 plotterA.plot_ground_truths(truths, [0, 2])
-plotterA.plot_tracks(tracksA, [0, 2], uncertainty=True)
+plotterA.plot_tracks(tracksA, [0, 2], uncertainty=True, plot_history=False)
 plotterA.fig
 
 # %%
@@ -414,10 +410,10 @@ for timestep in timesteps[1:]:
 # %%
 # Plot ground truths, tracks and uncertainty ellipses for each target.
 
-plotterB = Plotterly()
+plotterB = AnimatedPlotterly(timesteps, tail_length=1)
 plotterB.plot_sensors(sensor_setB)
 plotterB.plot_ground_truths(truths, [0, 2])
-plotterB.plot_tracks(tracksB, [0, 2], uncertainty=True)
+plotterB.plot_tracks(tracksB, [0, 2], uncertainty=True, plot_history=False)
 plotterB.fig
 
 # %%

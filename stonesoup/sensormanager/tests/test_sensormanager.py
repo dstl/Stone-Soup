@@ -75,7 +75,7 @@ def test_uncertainty_based_managers():
                                                               ConstantVelocity(0.005)])
     predictor = KalmanPredictor(transition_model)
     updater = ExtendedKalmanUpdater(measurement_model=None)
-    reward_function = UncertaintyRewardFunction(predictor, updater)
+    reward_function = UncertaintyRewardFunction(predictor, updater, method_sum=False)
 
     all_dwell_centres = []
 

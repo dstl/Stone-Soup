@@ -167,7 +167,7 @@ class StateVectors(Matrix):
     def _mean(state_vectors, axis=None, dtype=None, out=None, keepdims=np._NoValue):
         if state_vectors.dtype != np.object_:
             # Can just use standard numpy mean if not using custom objects
-            return np.mean(axis, dtype, out, keepdims)
+            return np.mean(np.asarray(state_vectors), axis, dtype, out, keepdims)
         elif axis == 1 and out is None:
             state_vector = np.average(state_vectors, axis)
             if dtype:

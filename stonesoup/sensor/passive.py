@@ -4,6 +4,7 @@ from ..base import Property
 from ..models.measurement.nonlinear import CartesianToElevationBearing
 from ..sensor.sensor import SimpleSensor
 from ..types.array import CovarianceMatrix
+from ..types.detection import Detection
 from ..types.groundtruth import GroundTruthState
 
 
@@ -39,4 +40,7 @@ class PassiveElevationBearing(SimpleSensor):
             rotation_offset=self.orientation)
 
     def is_detectable(self, state: GroundTruthState) -> bool:
+        return True
+
+    def is_clutter_detectable(self, state: Detection) -> bool:
         return True

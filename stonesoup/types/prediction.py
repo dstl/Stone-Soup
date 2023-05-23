@@ -3,7 +3,8 @@ from typing import Sequence
 
 from .array import CovarianceMatrix
 from .base import Type
-from .state import (State, GaussianState, ParticleState, EnsembleState,
+from .state import (State, GaussianState, EnsembleState,
+                    ParticleState, MultiModelParticleState, RaoBlackwellisedParticleState,
                     SqrtGaussianState, InformationState, TaggedWeightedGaussianState,
                     WeightedGaussianState, CategoricalState, ASDGaussianState)
 from ..base import Property
@@ -132,6 +133,20 @@ class ParticleMeasurementPrediction(MeasurementPrediction, ParticleState):
     """MeasurementStatePrediction type
 
     This is a simple Particle measurement prediction object.
+    """
+
+
+class MultiModelParticleStatePrediction(Prediction, MultiModelParticleState):
+    """MultiModelParticleStatePrediction type
+
+    This is a simple multi-model Particle state prediction object.
+    """
+
+
+class RaoBlackwellisedParticleStatePrediction(Prediction, RaoBlackwellisedParticleState):
+    """RaoBlackwellisedParticleStatePrediction type
+
+    This is a simple Rao Blackwellised Particle state prediction object.
     """
 
 
