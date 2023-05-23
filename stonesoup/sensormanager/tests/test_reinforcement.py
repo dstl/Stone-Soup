@@ -45,7 +45,6 @@ except ImportError:
     )
 
 
-
 def test_reinforcement_manager():
     np.random.seed(1990)
     start_time = datetime.now()
