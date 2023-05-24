@@ -181,7 +181,7 @@ groundtruth_sims = [
         number_steps=number_of_steps,
         birth_rate=birth_rate,
         death_probability=death_probability,
-        initial_number_targets=200)
+        initial_number_targets=100)
     for _ in range(3)]
 
 # %%
