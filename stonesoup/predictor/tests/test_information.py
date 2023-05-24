@@ -54,14 +54,14 @@ def test_information(PredictorClass, transition_model,
     pred_mean = pred_covar @ prediction.state_vector
 
     # And do the tests
-    assert(np.allclose(predictor._transition_function(prior,
+    assert np.allclose(predictor._transition_function(prior,
                                                       time_interval=new_timestamp-timestamp),
-                       test_prediction.state_vector, 0, atol=1e-14))
-    assert(np.allclose(pred_mean,
-                       test_prediction.state_vector, 0, atol=1.e-14))
-    assert(np.allclose(pred_covar,
-                       test_prediction.covar, 0, atol=1.e-14))
-    assert(prediction.timestamp == new_timestamp)
+                       test_prediction.state_vector, 0, atol=1e-14)
+    assert np.allclose(pred_mean,
+                       test_prediction.state_vector, 0, atol=1.e-14)
+    assert np.allclose(pred_covar,
+                       test_prediction.covar, 0, atol=1.e-14)
+    assert prediction.timestamp == new_timestamp
 
     # test that we can get to the inverse matrix
     class ConstantVelocitywithInverse(ConstantVelocity):

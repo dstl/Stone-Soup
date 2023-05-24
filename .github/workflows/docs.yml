@@ -1,0 +1,50 @@
+name: Docs
+
+on: [push, pull_request]
+
+jobs:
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            setup.cfg
+            docs/ci-requirements.txt
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .[dev,orbital] opencv-python-headless
+          python -m pip install -r docs/ci-requirements.txt
+      - name: Build Docs
+        uses: rickstaa/sphinx-action-composite@v1
+        with:
+          docs-folder: "docs/"
+          build-command: "python -m coverage run --rcfile=../.coveragerc --data-file=../.coverage -m sphinx -b html -d build/.doctrees -W -D sphinx_gallery_conf.junit=../../../test-reports/sphinx-gallery/junit.xml source build/html"
+      - name: Coverage Report
+        run: python -m coverage xml -o test-reports/coverage.xml
+      - name: Upload Test Results
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: Doc Test Results
+          path: test-reports/sphinx-gallery/junit.xml
+      - name: Upload artifacts
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: html-docs
+          path: docs/build/html/
+          retention-days: 30
+      - name: Upload CodeCov
+        uses: codecov/codecov-action@v3
+        with:
+          flags: integration
+          files: test-reports/coverage.xml

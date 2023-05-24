@@ -61,43 +61,43 @@ def test_sif(UpdaterClass, measurement_model, prediction, measurement, layer_wid
 
     # Get and assert measurement prediction
     measurement_prediction = updater.predict_measurement(prediction)
-    assert(np.allclose(measurement_prediction.mean,
+    assert np.allclose(measurement_prediction.mean,
                        eval_measurement_prediction.mean,
-                       0, atol=1.e-14))
-    assert(np.allclose(measurement_prediction.covar,
+                       0, atol=1.e-14)
+    assert np.allclose(measurement_prediction.covar,
                        eval_measurement_prediction.covar,
-                       0, atol=1.e-14))
-    assert(np.allclose(measurement_prediction.cross_covar,
+                       0, atol=1.e-14)
+    assert np.allclose(measurement_prediction.cross_covar,
                        eval_measurement_prediction.cross_covar,
-                       0, atol=1.e-14))
+                       0, atol=1.e-14)
 
     # Perform and assert state update (without measurement prediction)
     posterior = updater.update(SingleHypothesis(
         prediction=prediction,
         measurement=measurement))
-    assert(np.allclose(posterior.mean, eval_posterior.mean, 0, atol=1.e-14))
-    assert(np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-14))
-    assert(np.array_equal(posterior.hypothesis.prediction, prediction))
-    assert (np.allclose(
+    assert np.allclose(posterior.mean, eval_posterior.mean, 0, atol=1.e-14)
+    assert np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-14)
+    assert np.array_equal(posterior.hypothesis.prediction, prediction)
+    assert np.allclose(
         posterior.hypothesis.measurement_prediction.state_vector,
-        measurement_prediction.state_vector, 0, atol=1.e-14))
-    assert (np.allclose(posterior.hypothesis.measurement_prediction.covar,
-                        measurement_prediction.covar, 0, atol=1.e-14))
-    assert(np.array_equal(posterior.hypothesis.measurement, measurement))
-    assert(posterior.timestamp == prediction.timestamp)
+        measurement_prediction.state_vector, 0, atol=1.e-14)
+    assert np.allclose(posterior.hypothesis.measurement_prediction.covar,
+                       measurement_prediction.covar, 0, atol=1.e-14)
+    assert np.array_equal(posterior.hypothesis.measurement, measurement)
+    assert posterior.timestamp == prediction.timestamp
 
     # Perform and assert state update
     posterior = updater.update(SingleHypothesis(
         prediction=prediction,
         measurement=measurement,
         measurement_prediction=measurement_prediction))
-    assert(np.allclose(posterior.mean, eval_posterior.mean, 0, atol=1.e-14))
-    assert(np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-14))
-    assert(np.array_equal(posterior.hypothesis.prediction, prediction))
-    assert (np.allclose(
+    assert np.allclose(posterior.mean, eval_posterior.mean, 0, atol=1.e-14)
+    assert np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-14)
+    assert np.array_equal(posterior.hypothesis.prediction, prediction)
+    assert np.allclose(
         posterior.hypothesis.measurement_prediction.state_vector,
-        measurement_prediction.state_vector, 0, atol=1.e-14))
-    assert (np.allclose(posterior.hypothesis.measurement_prediction.covar,
-                        measurement_prediction.covar, 0, atol=1.e-14))
-    assert(np.array_equal(posterior.hypothesis.measurement, measurement))
-    assert(posterior.timestamp == prediction.timestamp)
+        measurement_prediction.state_vector, 0, atol=1.e-14)
+    assert np.allclose(posterior.hypothesis.measurement_prediction.covar,
+                       measurement_prediction.covar, 0, atol=1.e-14)
+    assert np.array_equal(posterior.hypothesis.measurement, measurement)
+    assert posterior.timestamp == prediction.timestamp

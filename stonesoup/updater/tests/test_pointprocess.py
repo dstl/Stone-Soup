@@ -76,11 +76,11 @@ def test_phd_single_component_update(UpdaterClass, measurement_model,
     assert len(updated_mixture) == 2
     # Check updated component
     updated_component = updated_mixture[0]
-    assert(np.allclose(updated_component.mean, eval_posterior.mean, 0,
-                       atol=1.e-14))
-    assert(np.allclose(updated_component.covar, eval_posterior.covar, 0,
-                       atol=1.e-14))
-    assert(updated_component.timestamp == measurement.timestamp)
+    assert np.allclose(updated_component.mean, eval_posterior.mean, 0,
+                       atol=1.e-14)
+    assert np.allclose(updated_component.covar, eval_posterior.covar, 0,
+                       atol=1.e-14)
+    assert updated_component.timestamp == measurement.timestamp
     prob_detection = 0.9
     prob_survival = 1
     q = multivariate_normal.pdf(
@@ -91,17 +91,16 @@ def test_phd_single_component_update(UpdaterClass, measurement_model,
     clutter_density = 1e-26
     new_weight = (prob_detection*prediction.weight*q*prob_survival) / \
         ((prob_detection*prediction.weight*q*prob_survival)+clutter_density)
-    assert(updated_component.weight == new_weight)
+    assert updated_component.weight == new_weight
     # Check miss detected component
     miss_detected_component = updated_mixture[1]
-    assert(np.allclose(miss_detected_component.mean, prediction.mean, 0,
-                       atol=1.e-14))
-    assert(np.allclose(miss_detected_component.covar, prediction.covar, 0,
-                       atol=1.e-14))
-    assert(miss_detected_component.timestamp == prediction.timestamp)
+    assert np.allclose(miss_detected_component.mean, prediction.mean, 0,
+                       atol=1.e-14)
+    assert np.allclose(miss_detected_component.covar, prediction.covar, 0,
+                       atol=1.e-14)
+    assert miss_detected_component.timestamp == prediction.timestamp
     l1 = 1
-    assert(miss_detected_component.weight == prediction.weight *
-           (1-prob_detection)*l1)
+    assert miss_detected_component.weight == prediction.weight*(1-prob_detection)*l1
 
 
 @pytest.mark.parametrize(
@@ -148,11 +147,11 @@ def test_lcc_single_component_update(UpdaterClass, measurement_model,
     assert len(updated_mixture) == 2
     # Check updated component
     updated_component = updated_mixture[0]
-    assert(np.allclose(updated_component.mean, eval_posterior.mean, 0,
-                       atol=1.e-14))
-    assert(np.allclose(updated_component.covar, eval_posterior.covar, 0,
-                       atol=1.e-14))
-    assert(updated_component.timestamp == measurement.timestamp)
+    assert np.allclose(updated_component.mean, eval_posterior.mean, 0,
+                       atol=1.e-14)
+    assert np.allclose(updated_component.covar, eval_posterior.covar, 0,
+                       atol=1.e-14)
+    assert updated_component.timestamp == measurement.timestamp
     prob_detection = 0.9
     prob_survival = 1
     q = multivariate_normal.pdf(
@@ -163,14 +162,13 @@ def test_lcc_single_component_update(UpdaterClass, measurement_model,
     clutter_density = 1e-26
     new_weight = (prob_detection*prediction.weight*q*prob_survival) / \
         ((prob_detection*prediction.weight*q*prob_survival)+clutter_density)
-    assert(updated_component.weight == new_weight)
+    assert updated_component.weight == new_weight
     # Check miss detected component
     miss_detected_component = updated_mixture[1]
-    assert(np.allclose(miss_detected_component.mean, prediction.mean, 0,
-                       atol=1.e-14))
-    assert(np.allclose(miss_detected_component.covar, prediction.covar, 0,
-                       atol=1.e-14))
-    assert(miss_detected_component.timestamp == prediction.timestamp)
+    assert np.allclose(miss_detected_component.mean, prediction.mean, 0,
+                       atol=1.e-14)
+    assert np.allclose(miss_detected_component.covar, prediction.covar, 0,
+                       atol=1.e-14)
+    assert miss_detected_component.timestamp == prediction.timestamp
     l1 = 1
-    assert(miss_detected_component.weight ==
-           prediction.weight*(1-prob_detection)*l1)
+    assert miss_detected_component.weight == prediction.weight*(1-prob_detection)*l1

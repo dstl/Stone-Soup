@@ -112,7 +112,7 @@ def test_covariancematrix():
                               [0, 0.3897, 0.0013, 0.0135]]) * 1e3
 
     covar_matrix = CovarianceMatrix(covar_nparray)
-    assert(np.array_equal(covar_matrix, covar_nparray))
+    assert np.array_equal(covar_matrix, covar_nparray)
 
 
 def test_precisionmatrix():
@@ -127,7 +127,7 @@ def test_precisionmatrix():
                              [0, 0.4, 0.3, 5]])
 
     prec_matrix = PrecisionMatrix(prec_nparray)
-    assert(np.array_equal(prec_matrix, prec_nparray))
+    assert np.array_equal(prec_matrix, prec_nparray)
 
 
 def test_matrix():
@@ -139,7 +139,7 @@ def test_matrix():
                               [0, 0.3897, 0.0013, 0.0135]]) * 1e3
 
     matrix = Matrix(covar_nparray)
-    assert(np.array_equal(matrix, covar_nparray))
+    assert np.array_equal(matrix, covar_nparray)
 
 
 def test_multiplication():

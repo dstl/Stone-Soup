@@ -49,17 +49,21 @@ Tests
 PyTest_ is used for testing in Stone Soup. As much effort should be put into
 developing tests as the code. Tests should be provide to test functionality and
 also ensuring exceptions are raised or managed appropriately. Tests can be run
-(including Flake8_) with the following::
+with the following::
 
     pytest --flake8 stonesoup
 
 Code coverage should also be checked, aiming for 100% coverage (noting coverage
 alone is not a measure of test quality), using `Coverage.py`_. This can be run
-with the following (along with Flake8_)::
+with the following::
 
-    pytest --cov=stonesoup --cov-report=html --flake8 stonesoup
+    pytest --cov=stonesoup --cov-report=html stonesoup
 
 This will produce a report in `htmlcov` directory.
+
+Linting with Flake8_ can be run via the following command::
+
+    flake8 stonesoup
 
 License
 -------
