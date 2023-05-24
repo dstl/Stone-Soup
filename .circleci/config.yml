@@ -36,7 +36,7 @@ jobs:
             mkdir test-reports
             pytest --junitxml=test-reports/junit.xml --flake8 --cov --cov-report=xml:test-reports/coverage.xml stonesoup
       - store_test_results:
-          path: test-reports
+          path: test-reports/junit.xml
       - store_artifacts:
           path: test-reports 
       - run:
@@ -87,7 +87,7 @@ jobs:
           path: docs/build/html
           destination: docs
       - store_test_results:
-          path: test-reports
+          path: test-reports/sphinx-gallery/junit.xml
       - store_artifacts:
           path: test-reports
       - run:
