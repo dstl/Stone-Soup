@@ -81,8 +81,8 @@ plotter = Plotter()
 
 
 def test_dimension_raise():
-    with pytest.raises(TypeError):
-        Plotter(dimension=1)  # expected to raise TypeError
+    with pytest.raises(ValueError):
+        Plotter(dimension=1)  # expected to raise ValueError
 
 
 def test_dimension_inlist():  # ensure dimension type is in predefined enum list

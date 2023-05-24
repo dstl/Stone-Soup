@@ -69,7 +69,8 @@ class _Plotter(ABC):
     def plot_sensors(self, sensors, sensor_label="Sensors", **kwargs):
         raise NotImplementedError
 
-    def _conv_measurements(self, measurements, mapping, measurement_model=None) -> \
+    def _conv_measurements(self, measurements, mapping, measurement_model=None,
+                           convert_measurements=True) -> \
             Tuple[Dict[detection.Detection, StateVector], Dict[detection.Clutter, StateVector]]:
         conv_detections = {}
         conv_clutter = {}
@@ -77,7 +78,10 @@ class _Plotter(ABC):
             meas_model = state.measurement_model  # measurement_model from detections
             if meas_model is None:
                 meas_model = measurement_model  # measurement_model from input
-            if isinstance(meas_model, LinearModel):
+
+            if not convert_measurements:
+                state_vec = state.state_vector[mapping, :]
+            elif isinstance(meas_model, LinearModel):
                 model_matrix = meas_model.matrix()
                 inv_model_matrix = np.linalg.pinv(model_matrix)
                 state_vec = (inv_model_matrix @ state.state_vector)[mapping, :]
@@ -137,6 +141,8 @@ class Plotter(_Plotter):
         figure_kwargs.update(kwargs)
         if isinstance(dimension, type(Dimension.TWO)):
             self.dimension = dimension
+        elif isinstance(dimension, int):
+            self.dimension = Dimension(dimension)
         else:
             raise TypeError("%s is an unsupported type for \'dimension\'; "
                             "expected type %s" % (type(dimension), type(Dimension.TWO)))
@@ -174,6 +180,8 @@ class Plotter(_Plotter):
             for iteration.
         mapping: list
             List of items specifying the mapping of the position components of the state space.
+        truths_label: str
+            Label for truth data. Default is "Ground Truth"
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function. Default is ``linestyle="--"``.
 
@@ -211,7 +219,7 @@ class Plotter(_Plotter):
         return artists
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          measurements_label="Measurements", **kwargs):
+                          measurements_label="Measurements", convert_measurements=True, **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -230,6 +238,11 @@ class Plotter(_Plotter):
         measurement_model : :class:`~.Model`, optional
             User-defined measurement model to be used in finding measurement state inverses if
             they cannot be found from the measurements themselves.
+        measurements_label : str
+            Label for the measurements.  Default is "Measurements".
+        convert_measurements : bool
+            Should the measurements be converted from measurement space to state space before
+            being plotted. Default is True
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function for detections. Defaults are
             ``marker='o'`` and ``color='b'``.
@@ -253,7 +266,8 @@ class Plotter(_Plotter):
 
         plot_detections, plot_clutter = self._conv_measurements(measurements_set,
                                                                 mapping,
-                                                                measurement_model)
+                                                                measurement_model,
+                                                                convert_measurements)
 
         artists = []
         if plot_detections:
@@ -281,7 +295,7 @@ class Plotter(_Plotter):
         return artists
 
     def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, track_label="Tracks",
-                    err_freq=1, **kwargs):
+                    err_freq=1, same_color=False, **kwargs):
         """Plots track(s)
 
         Plots each track generated, generating a legend automatically. If ``uncertainty=True``
@@ -311,6 +325,8 @@ class Plotter(_Plotter):
         err_freq: int
             Frequency of error bar plotting on tracks. Default value is 1, meaning
             error bars are plotted at every track step.
+        same_color: bool
+            Should all the tracks have the same color. Default False
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function. Defaults are ``linestyle="-"``,
             ``marker='s'`` for :class:`~.Update` and ``marker='o'`` for other states.
@@ -356,6 +372,8 @@ class Plotter(_Plotter):
                     linestyle='',
                     color=plt.getp(line[0], 'color')))
             track_colors[track] = plt.getp(line[0], 'color')
+            if same_color:
+                tracks_kwargs['color'] = plt.getp(line[0], 'color')
 
         if tracks:  # If no tracks `line` won't be defined
             # Assuming a single track or all plotted as the same colour then the following will
@@ -533,14 +551,14 @@ class Plotter(_Plotter):
                            [state.state_vector[2] for state in ghosts],
                            linestyle="")
 
-    def plot_density(self, state_sequences: Iterable[StateMutableSequence],
+    def plot_density(self, state_sequences: Collection[StateMutableSequence],
                      index: Union[int, None] = -1,
                      mapping=(0, 2), n_bins=300, **kwargs):
         """
 
         Parameters
         ----------
-        state_sequences : an iterable of :class:`~.StateMutableSequence`
+        state_sequences : a collection of :class:`~.StateMutableSequence`
             Set of tracks which will be plotted. If not a set, and instead a single
             :class:`~.Track` type, the argument is modified to be a set to allow for iteration.
         index: int
@@ -651,6 +669,8 @@ class Plotterly(_Plotter):
             raise RuntimeError("Usage of Plotterly plotter requires installation of `plotly`")
         if isinstance(dimension, type(Dimension.TWO)):
             self.dimension = dimension
+        elif isinstance(dimension, int):
+            self.dimension = Dimension(dimension)
         else:
             raise TypeError("%s is an unsupported type for \'dimension\'; "
                             "expected type %s" % (type(dimension), type(Dimension.TWO)))
@@ -695,6 +715,8 @@ class Plotterly(_Plotter):
             set to allow for iteration.
         mapping: list
             List of items specifying the mapping of the position components of the state space.
+        truths_label: str
+            Label for truth data. Default is "Ground Truth"
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function. Default is
             ``line=dict(dash="dash")``.
@@ -722,7 +744,7 @@ class Plotterly(_Plotter):
                 **scatter_kwargs)
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          measurements_label="Measurements", **kwargs):
+                          measurements_label="Measurements", convert_measurements=True, **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -743,6 +765,9 @@ class Plotterly(_Plotter):
             they cannot be found from the measurements themselves.
         measurements_label : str
             Label for the measurements.  Default is "Measurements".
+        convert_measurements: bool
+            Should the measurements be converted from measurement space to state space before
+            being plotted. Default is True
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function for detections. Defaults are
             ``marker=dict(color="#636EFA")``.
@@ -758,7 +783,8 @@ class Plotterly(_Plotter):
 
         plot_detections, plot_clutter = self._conv_measurements(measurements_set,
                                                                 mapping,
-                                                                measurement_model)
+                                                                measurement_model,
+                                                                convert_measurements)
 
         if plot_detections:
             name = measurements_label + "<br>(Detections)"
@@ -771,7 +797,7 @@ class Plotterly(_Plotter):
                 measurement_kwargs['showlegend'] = True
             else:
                 measurement_kwargs['showlegend'] = False
-            detection_array = np.array(list(plot_detections.values()))
+            detection_array = np.asfarray(list(plot_detections.values()))
             self.fig.add_scatter(
                 x=detection_array[:, 0],
                 y=detection_array[:, 1],
@@ -790,7 +816,7 @@ class Plotterly(_Plotter):
                 measurement_kwargs['showlegend'] = True
             else:
                 measurement_kwargs['showlegend'] = False
-            clutter_array = np.array(list(plot_clutter.values()))
+            clutter_array = np.asfarray(list(plot_clutter.values()))
             self.fig.add_scatter(
                 x=clutter_array[:, 0],
                 y=clutter_array[:, 1],
@@ -798,8 +824,30 @@ class Plotterly(_Plotter):
                 **measurement_kwargs,
             )
 
+    def get_next_color(self):
+        """
+        Find the colour of the next plot. This approach to getting colour isn't ideal, but should
+        work in most cases...
+        Returns
+        -------
+        dist : str
+            Hex string for a colour
+        """
+        # Find how many sequences have been plotted so far. The current plot has already been added
+        # to fig.data, so -1 is needed
+        figure_index = len(self.fig.data) - 1
+
+        # Get the list of colours used for plotting
+        colorway = self.fig.layout.colorway
+        max_index = len(colorway)
+
+        # Use the modulo operator to limit the colour index to limits of the colorway.
+        # If figure_index > max_index then colours will be reused
+        color_index = figure_index % max_index
+        return colorway[color_index]
+
     def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, track_label="Tracks",
-                    ellipse_points=30, **kwargs):
+                    ellipse_points=30, same_color=False, **kwargs):
         """Plots track(s)
 
         Plots each track generated, generating a legend automatically. If ``uncertainty=True``
@@ -824,6 +872,8 @@ class Plotterly(_Plotter):
             Label to apply to all tracks for legend.
         ellipse_points: int
             Number of points for polygon approximating ellipse shape
+        same_color: bool
+            Should all the tracks have the same colour. Default False
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function. Defaults are
             ``marker=dict(symbol='square')`` for :class:`~.Update` and
@@ -838,6 +888,15 @@ class Plotterly(_Plotter):
         track_kwargs.update(kwargs)
         add_legend = track_kwargs['legendgroup'] not in {trace.legendgroup
                                                          for trace in self.fig.data}
+        if same_color:
+            color = track_kwargs.get('marker', {}).get('color') or \
+                    track_kwargs.get('line', {}).get('color')
+
+            # Set the colour if it hasn't already been set
+            if color is None:
+                track_kwargs['marker'] = track_kwargs.get('marker', {})
+                track_kwargs['marker']['color'] = self.get_next_color()
+
         for track in tracks:
             scatter_kwargs = track_kwargs.copy()
             scatter_kwargs['name'] = track.id
@@ -857,15 +916,10 @@ class Plotterly(_Plotter):
                 y=[getattr(state, 'mean', state.state_vector)[mapping[1]] for state in track],
                 text=[self._format_state_text(state) for state in track],
                 **scatter_kwargs)
-            color = self.fig.data[-1].line.color
-            if color is not None:
-                track_colors[track] = color
-            else:
-                # This approach to getting colour isn't ideal, but should work in most cases...
-                index = len(self.fig.data) - 1
-                colorway = self.fig.layout.colorway
-                max_index = len(colorway)
-                track_colors[track] = colorway[index % max_index]
+
+            track_colors[track] = (self.fig.data[-1].line.color
+                                   or self.fig.data[-1].marker.color
+                                   or self.get_next_color())
 
         if uncertainty:
             name = track_kwargs['legendgroup'] + "<br>(Ellipses)"
@@ -1069,7 +1123,7 @@ class AnimationPlotter(_Plotter):
         mapping: list
             List of items specifying the mapping of the position components of the state space.
         truths_label: str
-            Label for truth data
+            Label for truth data. Default is "Ground Truth"
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function. Default is ``linestyle="--"``.
         """
@@ -1148,7 +1202,7 @@ class AnimationPlotter(_Plotter):
             ))
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          measurements_label="", **kwargs):
+                          measurements_label="", convert_measurements=True, **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -1168,7 +1222,10 @@ class AnimationPlotter(_Plotter):
             User-defined measurement model to be used in finding measurement state inverses if
             they cannot be found from the measurements themselves.
         measurements_label: str
-            Label for measurements
+            Label for measurements. Default will be "Detections" or "Clutter"
+        convert_measurements: bool
+            Should the measurements be converted from measurement space to state space before
+            being plotted. Default is True
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function for detections. Defaults are
             ``marker='o'`` and ``color='b'``.
@@ -1187,7 +1244,8 @@ class AnimationPlotter(_Plotter):
 
         plot_detections, plot_clutter = self._conv_measurements(measurements_set,
                                                                 mapping,
-                                                                measurement_model)
+                                                                measurement_model,
+                                                                convert_measurements)
 
         if measurements_label != "":
             measurements_label = measurements_label + " "
@@ -1338,8 +1396,6 @@ class AnimationPlotter(_Plotter):
             The data that will be plotted, to be plotted.
         data_list : List[List[State]]
             All the data that should be plotted
-        mapping : tuple
-            The indices of the state vector that should be plotted
         start_times : List[datetime]
             lowest (earliest) time for an item to be plotted
         end_times : List[datetime]
