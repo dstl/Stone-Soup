@@ -1,3 +1,5 @@
+from abc import abstractmethod
+
 import numpy as np
 
 from .base import Sampler
@@ -12,6 +14,7 @@ class DetectionSampler(Sampler):
 
     Samples from a continuous distribution based on provided detections.
     """
+    @abstractmethod
     def sample(self, detections):
         """Sample from continuous distribution based on detections
 
