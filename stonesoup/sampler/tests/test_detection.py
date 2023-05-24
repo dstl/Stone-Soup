@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import datetime
 
-from ..detection import RedundantDetectionSampler, GaussianDetectionParticleSampler
+from ..detection import SwitchingDetectionSampler, GaussianDetectionParticleSampler
 from ..particle import ParticleSampler
 from ...models.measurement.nonlinear import CartesianToBearingRange
 from ...types.detection import Detection
@@ -108,7 +108,7 @@ def test_detection_sampler(states, measurement_model, nsamples):
                                              'size': (nsamples, ndim_state)},
                                      ndim_state=ndim_state)
 
-    sampler = RedundantDetectionSampler(detection_sampler=detection_sampler,
+    sampler = SwitchingDetectionSampler(detection_sampler=detection_sampler,
                                         backup_sampler=backup_sampler)
 
     samples = sampler.sample(detections)

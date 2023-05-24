@@ -104,7 +104,7 @@ class GaussianDetectionParticleSampler(DetectionSampler):
         return weights
 
 
-class RedundantDetectionSampler(DetectionSampler):
+class SwitchingDetectionSampler(DetectionSampler):
     """Redundant detection sampler class.
 
     Redundant detection sampler accepts two :class:`~.Sampler` objects, one
