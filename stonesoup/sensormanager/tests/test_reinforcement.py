@@ -2,9 +2,6 @@ import numpy as np
 from datetime import datetime, timedelta
 
 import pytest
-from tf_agents.specs import array_spec
-from tf_agents.trajectories import time_step as ts
-from tf_agents.environments import utils
 import copy
 from ordered_set import OrderedSet
 from itertools import chain
@@ -30,6 +27,9 @@ from ...sensor.action.dwell_action import DwellActionsGenerator
 from ...sensor.radar import RadarRotatingBearingRange
 
 try:
+    from tf_agents.specs import array_spec
+    from tf_agents.trajectories import time_step as ts
+    from tf_agents.environments import utils
     from ...sensormanager.reinforcement import ReinforcementSensorManager, BaseEnvironment
 except ImportError:
     pytest.skip(
