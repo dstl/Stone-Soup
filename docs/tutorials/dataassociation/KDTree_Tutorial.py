@@ -149,8 +149,10 @@
 # We will simulate a large number of targets moving in the :math:`x`, :math:`y` Cartesian plane. We will then add
 # detections with a high clutter rate at each time step.
 
-import numpy as np
 import datetime
+from itertools import tee
+
+import numpy as np
 
 from stonesoup.types.array import StateVector, CovarianceMatrix
 from stonesoup.types.state import GaussianState
@@ -171,15 +173,16 @@ transition_model = CombinedLinearGaussianTransitionModel(
 
 from stonesoup.simulator.simple import MultiTargetGroundTruthSimulator
 
-groundtruth_sim = MultiTargetGroundTruthSimulator(
-    transition_model=transition_model,
-    initial_state=initial_state,
-    timestep=timestep_size,
-    number_steps=number_of_steps,
-    birth_rate=birth_rate,
-    death_probability=death_probability,
-    initial_number_targets=200
-)
+groundtruth_sims = [
+    MultiTargetGroundTruthSimulator(
+        transition_model=transition_model,
+        initial_state=initial_state,
+        timestep=timestep_size,
+        number_steps=number_of_steps,
+        birth_rate=birth_rate,
+        death_probability=death_probability,
+        initial_number_targets=200)
+    for _ in range(3)]
 
 # %%
 # Initialise the measurement models
@@ -199,13 +202,17 @@ probability_detection = 0.9
 clutter_area = np.array([[-1, 1], [-1, 1]]) * 500
 clutter_rate = 50
 
-detection_sim = SimpleDetectionSimulator(
-    groundtruth=groundtruth_sim,
-    measurement_model=measurement_model,
-    detection_probability=probability_detection,
-    meas_range=clutter_area,
-    clutter_rate=clutter_rate
-)
+detection_sims = [
+   SimpleDetectionSimulator(
+        groundtruth=groundtruth_sim,
+        measurement_model=measurement_model,
+        detection_probability=probability_detection,
+        meas_range=clutter_area,
+        clutter_rate=clutter_rate)
+   for groundtruth_sim in groundtruth_sims]
+
+# Use tee to create 3 versions, for GNN, kD-tree and TPR-Tree
+sim_sets = list(zip(*[tee(sim, 3) for sim in detection_sims]))
 
 # %%
 # Import tracker components
@@ -257,7 +264,7 @@ KD_data_associator = DetectionKDTreeGNN2D(hypothesiser=hypothesiser,
 run_times_KDTree = []
 
 # run loop to calculate average run time
-for _ in range(0, 3):
+for n, detection_sim in enumerate(sim_sets[0]):
     start_time = timer.perf_counter()
 
     # create tracker components
@@ -296,8 +303,8 @@ for _ in range(0, 3):
     tracks = set()
 
     for time, ctracks in tracker:
-        groundtruth.update(groundtruth_sim.groundtruth_paths)
-        detections.update(detection_sim.detections)
+        groundtruth.update(groundtruth_sims[n].groundtruth_paths)
+        detections.update(detection_sims[n].detections)
         tracks.update(ctracks)
 
     end_time = timer.perf_counter()
@@ -332,7 +339,7 @@ TPR_data_associator = TPRTreeGNN2D(hypothesiser=hypothesiser,
 
 run_times_TPRTree = []
 
-for _ in range(0, 3):
+for detection_sim in sim_sets[1]:
     start_time = timer.perf_counter()
 
     TPR_data_associator = TPRTreeGNN2D(hypothesiser=hypothesiser,
@@ -370,13 +377,9 @@ for _ in range(0, 3):
     )
 
     # run tracker
-    groundtruth = set()
-    detections = set()
     tracks = set()
 
     for time, ctracks in tracker:
-        groundtruth.update(groundtruth_sim.groundtruth_paths)
-        detections.update(detection_sim.detections)
         tracks.update(ctracks)
 
     end_time = timer.perf_counter()
@@ -408,7 +411,7 @@ GNN_data_associator = GNNWith2DAssignment(hypothesiser=hypothesiser)
 run_times_GNN = []
 
 # run loop to calculate average run time
-for _ in range(0, 3):
+for detection_sim in sim_sets[2]:
     start_time = timer.perf_counter()
 
     # create tracker components
@@ -442,13 +445,9 @@ for _ in range(0, 3):
     )
 
     # run tracker
-    groundtruth = set()
-    detections = set()
     tracks = set()
 
     for time, ctracks in tracker:
-        groundtruth.update(groundtruth_sim.groundtruth_paths)
-        detections.update(detection_sim.detections)
         tracks.update(ctracks)
 
     end_time = timer.perf_counter()
