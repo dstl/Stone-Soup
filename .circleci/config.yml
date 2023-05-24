@@ -81,7 +81,7 @@ jobs:
           name: Build Docs
           command: |
             . venv/bin/activate
-            coverage run -m sphinx -b html -W --keep-going -D sphinx_gallery_conf.junit=../../../test-reports/sphinx-gallery/junit.xml docs/source docs/build/html
+            coverage run -m sphinx -b html -d build/.doctrees -W --keep-going -D sphinx_gallery_conf.junit=../../../test-reports/sphinx-gallery/junit.xml docs/source docs/build/html
             coverage xml -o test-reports/coverage.xml
       - store_artifacts:
           path: docs/build/html
