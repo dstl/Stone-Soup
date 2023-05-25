@@ -5,7 +5,7 @@ from ..types.hypothesis import Hypothesis
 from ..types.track import Track
 from ..tracker.base import Tracker
 from .edge import DataPiece, FusionQueue
-
+from ..tracker.fusion import SimpleFusionTracker
 from datetime import datetime
 from typing import Tuple
 
@@ -79,7 +79,10 @@ class FusionNode(Node):
     # feeder probably as well
     tracker: Tracker = Property(
         doc="Tracker used by this Node to fuse together Tracks and Detections")
-    fusion_queue: FusionQueue = Property(doc="The queue from which this node draws data to be fused")
+    fusion_queue: FusionQueue = Property(
+        doc="The queue from which this node draws data to be fused")
+    track_fusion_tracker: Tracker = Property(
+        doc="Tracker for associating tracks at the node")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -97,6 +100,10 @@ class FusionNode(Node):
         print("A node be fusin")
         # we have a queue.
         data = self.fusion_queue.get_message()
+
+        # Sort detections and tracks and group by time
+
+
         if data:
             # track it
             print("there's data")
