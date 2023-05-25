@@ -211,8 +211,9 @@ detection_sims = [
         clutter_rate=clutter_rate)
    for groundtruth_sim in groundtruth_sims]
 
-# Use tee to create 3 versions, for GNN, kD-tree and TPR-Tree
-sim_sets = list(zip(*[tee(sim, 3) for sim in detection_sims]))
+# Use tee to create 3 identical versions, for GNN, k-D tree and TPR-Tree
+sim_sets = [tee(sim, 3) for sim in detection_sims]
+sim_sets = list(zip(*sim_sets))
 
 # %%
 # Import tracker components
