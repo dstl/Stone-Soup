@@ -5,7 +5,7 @@ from .base import MetricManager, MetricGenerator
 from ..base import Property
 from ..dataassociator import Associator
 from .tracktotruthmetrics import SIAPMetrics
-
+from .basicmetrics import BasicMetrics
 
 class MultiManager(MetricManager):
     """MultiManager class for metric management
@@ -21,6 +21,7 @@ class MultiManager(MetricManager):
         super().__init__(*args, **kwargs)
         self.states_sets = dict()
         self.association_set = None
+        self.metrics = None
 
     def add_data(self, metric_data: Dict = None, overwrite=True):
         """Adds data to the metric generator
@@ -64,7 +65,10 @@ class MultiManager(MetricManager):
         """
 
         metrics = {}
-        for generator in self.generators:
+
+        generators = self.generators if isinstance(self.generators, list) else [self.generators]
+
+        for generator in generators:
             if isinstance(generator, SIAPMetrics):
                 if self.associator is not None and self.association_set is None:
                     self.associate_tracks(generator)
@@ -78,7 +82,7 @@ class MultiManager(MetricManager):
                 else:
                     metrics[generator.generator_name][metric.title] = metric
 
-        return metrics
+        self.metrics = metrics
 
     def list_timestamps(self, generator):
         """List all the timestamps used in the tracks and truth, in order
@@ -95,3 +99,13 @@ class MultiManager(MetricManager):
                       for state in sequence}
 
         return sorted(timestamps)
+
+    def display_basic_metrics(self):
+        """
+        Print basic metrics generated for each :class:`BasicMetrics` generator.
+        """
+        for generator_name, generator in self.metrics.items():
+            print(f'Generator: {generator_name}')
+            for metric_key, metric in generator.items():
+                if isinstance(metric.generator, BasicMetrics):
+                    print(f"{metric.title}: {metric.value}")
