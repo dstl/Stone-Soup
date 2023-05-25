@@ -294,7 +294,8 @@ class BaseMeta(ABCMeta):
 
                 if not (isinstance(value.cls, type)
                         or getattr(value.cls, '__module__', "") == 'typing'
-                        or value.cls == name):
+                        or value.cls == name
+                        or isinstance(value.cls, str)):  # Forward declaration for type hinting
                     raise ValueError(f'Invalid type specification ({str(value.cls)}) '
                                      f'for property {key} of class {name}')
 
