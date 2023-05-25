@@ -366,7 +366,7 @@ utils.validate_py_environment(train_env, episodes=5)
 #
 # We initiate our reinforcement learning sensor manager with the environment we have designed
 
-from stonesoup.sensormanager import ReinforcementSensorManager
+from stonesoup.sensormanager.reinforcement import ReinforcementSensorManager
 reinforcementsensormanager = ReinforcementSensorManager({sensorA}, env=StoneSoupEnv())
 
 from stonesoup.sensormanager import BruteForceSensorManager
