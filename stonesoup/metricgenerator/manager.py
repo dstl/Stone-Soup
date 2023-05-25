@@ -7,6 +7,7 @@ from ..dataassociator import Associator
 from .tracktotruthmetrics import SIAPMetrics
 from .basicmetrics import BasicMetrics
 
+
 class MultiManager(MetricManager):
     """MultiManager class for metric management
 
