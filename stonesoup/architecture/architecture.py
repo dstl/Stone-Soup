@@ -19,8 +19,8 @@ class Architecture(Base):
             "Edge with edge_pair=(A, B) in this object.")
     current_time: datetime = Property(
         doc="The time which the instance is at for the purpose of simulation. "
-            "This is increased by the propagate method. This should be set to the earliest timestep "
-            "from the ground truth")
+            "This is increased by the propagate method. This should be set to the earliest timestep"
+            " from the ground truth")
     name: str = Property(
         default=None,
         doc="A name for the architecture, to be used to name files and/or title plots. Default is "
