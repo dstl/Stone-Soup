@@ -509,6 +509,47 @@ def rotz(theta):
                      [zero, zero, one]])
 
 
+def gm_sample(means, covars, size, weights=None):
+    """Sample from a mixture of multi-variate Gaussians
+
+    Parameters
+    ----------
+    means : :class:`~.StateVector`, :class:`~.StateVectors`, :class:`np.ndarray` of shape \
+    (num_dims, num_components)
+        The means of GM components
+    covars : :class:`np.ndarray` of shape (num_components, num_dims, num_dims) or list of \
+    :class:`np.ndarray` of shape (num_dims, num_dims)
+        Covariance matrices of the GM components
+    size : int
+        Number of samples to return.
+    weights : :class:`np.ndarray` of shape (num_components, ), optional
+        The weights of the GM components. If not defined, assumed equal.
+
+    Returns
+    -------
+    : :class:`~.StateVectors` of shape (num_dims, :attr:`size`)"""
+
+    if isinstance(means, np.ndarray):
+        if len(means.shape) == 1:
+            means = StateVectors(np.array([means]).T)
+        else:
+            means = StateVectors(means)
+
+    if isinstance(means, StateVector):
+        means = means.view(StateVectors)
+
+    if isinstance(means, StateVectors) and weights is None:
+        weights = np.array([1/means.shape[1]]*means.shape[1])
+    elif weights is None:
+        weights = np.array([1/len(means)]*len(means))
+
+    n_samples = np.random.multinomial(size, weights)
+    samples = np.vstack([np.random.multivariate_normal(mean.ravel(), covar, sample)
+                         for (mean, covar, sample) in zip(means, covars, n_samples)]).T
+
+    return StateVectors(samples)
+
+
 def gm_reduce_single(means, covars, weights):
     """Reduce mixture of multi-variate Gaussians to single Gaussian
 
