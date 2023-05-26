@@ -106,7 +106,8 @@ class MultiManager(MetricManager):
         Print basic metrics generated for each :class:`BasicMetrics` generator.
         """
         for generator_name, generator in self.metrics.items():
-            print(f'Generator: {generator_name}')
-            for metric_key, metric in generator.items():
-                if isinstance(metric.generator, BasicMetrics):
-                    print(f"{metric.title}: {metric.value}")
+            if "Number of targets" in generator.keys():
+                print(f'\nGenerator: {generator_name}')
+                for metric_key, metric in generator.items():
+                    if isinstance(metric.generator, BasicMetrics):
+                        print(f"{metric.title}: {metric.value}")
