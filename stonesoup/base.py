@@ -59,9 +59,8 @@ from reprlib import Repr
 from abc import ABCMeta
 from collections import OrderedDict
 from copy import copy
+from functools import cached_property
 from types import MappingProxyType
-
-from ._util import cached_property
 
 
 class Property:
