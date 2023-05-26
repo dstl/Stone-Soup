@@ -85,6 +85,8 @@ class MultiManager(MetricManager):
 
         self.metrics = metrics
 
+        return self.metrics
+
     def list_timestamps(self, generator):
         """List all the timestamps used in the tracks and truth, in order
 
