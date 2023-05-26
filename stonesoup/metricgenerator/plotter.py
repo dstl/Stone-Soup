@@ -61,7 +61,7 @@ class TwoDPlotter(PlotGenerator):
 
         Parameters
         ----------
-        tracks: set of :class:`~.Track`
+        tracks: list of set of :class:`~.Track`
             Objects to be plotted as tracks
         groundtruth_paths: set of :class:`~.GroundTruthPath`
             Objects to be plotted as truths
@@ -79,6 +79,8 @@ class TwoDPlotter(PlotGenerator):
         """
 
         plotter = Plotter()  # initialises axes using Plotter class
+
+        plotter.ax.set_title(self.generator_name)
 
         plotter.plot_measurements(detections, [self.detection_indices[0],
                                                self.detection_indices[1]],
@@ -104,16 +106,19 @@ class TwoDPlotter(PlotGenerator):
             if uncertainty:
                 plotter.plot_tracks(plotting_tracks, [self.track_indices[0],
                                                       self.track_indices[1]],
-                                    uncertainty=True)
+                                    uncertainty=True,
+                                    track_label=self.tracks_key)
 
             elif particle:
                 plotter.plot_tracks(plotting_tracks, [self.track_indices[0],
                                                       self.track_indices[1]],
-                                    particle=True)
+                                    particle=True,
+                                    track_label=self.tracks_key)
 
             else:
                 plotter.plot_tracks(plotting_tracks, [self.track_indices[0],
-                                                      self.track_indices[1]])
+                                                      self.track_indices[1]],
+                                    track_label=self.tracks_key)
         else:
             tracks = []
 
