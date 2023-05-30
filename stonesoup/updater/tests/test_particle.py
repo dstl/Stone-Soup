@@ -21,8 +21,8 @@ from ...predictor.particle import BernoulliParticlePredictor
 from ...models.transition.linear import ConstantVelocity
 from ...types.update import BernoulliParticleStateUpdate
 from ...regulariser.particle import MCMCRegulariser
-from ...sampler.particle import ParticleSampler, GaussianDetectionParticleSampler
-from ...sampler.detection import DetectionSampler
+from ...sampler.particle import ParticleSampler
+from ...sampler.detection import SwitchingDetectionSampler, GaussianDetectionParticleSampler
 
 
 @pytest.fixture(params=(
@@ -129,7 +129,8 @@ def test_bernoulli_particle():
                                              'high': np.array([30, 30]),
                                              'size': (nbirth_parts, 2)},
                                      ndim_state=2)
-    sampler = DetectionSampler(detection_sampler=detection_sampler, backup_sampler=backup_sampler)
+    sampler = SwitchingDetectionSampler(detection_sampler=detection_sampler,
+                                        backup_sampler=backup_sampler)
 
     predictor = BernoulliParticlePredictor(transition_model=cv,
                                            birth_sampler=sampler,

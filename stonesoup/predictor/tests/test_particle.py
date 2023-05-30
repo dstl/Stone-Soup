@@ -13,8 +13,8 @@ from ...types.update import BernoulliParticleStateUpdate
 from ...types.state import ParticleState, BernoulliParticleState
 from ...models.measurement.linear import LinearGaussian
 from ...types.detection import Detection
-from ...sampler.particle import ParticleSampler, GaussianDetectionParticleSampler
-from ...sampler.detection import DetectionSampler
+from ...sampler.particle import ParticleSampler
+from ...sampler.detection import SwitchingDetectionSampler, GaussianDetectionParticleSampler
 from ...functions import gm_sample
 from ...types.hypothesis import SingleHypothesis
 from ...types.multihypothesis import MultipleHypothesis
@@ -113,7 +113,8 @@ def test_bernoulli_particle_no_detection():
                                              'size': (nbirth_parts, 2)},
                                      ndim_state=2)
     detection_sampler = GaussianDetectionParticleSampler(nbirth_parts)
-    sampler = DetectionSampler(detection_sampler=detection_sampler, backup_sampler=backup_sampler)
+    sampler = SwitchingDetectionSampler(detection_sampler=detection_sampler,
+                                        backup_sampler=backup_sampler)
 
     np.random.seed(random_seed)
     birth_samples = np.random.uniform(np.array([0, 10]), np.array([30, 30]), (nbirth_parts, 2))
@@ -212,15 +213,16 @@ def test_bernoulli_particle_detection():
                                              'high': np.array([30, 30]),
                                              'size': (nbirth_parts, 2)},
                                      ndim_state=2)
-    sampler = DetectionSampler(detection_sampler=detection_sampler, backup_sampler=backup_sampler)
+    sampler = SwitchingDetectionSampler(detection_sampler=detection_sampler,
+                                        backup_sampler=backup_sampler)
 
     np.random.seed(random_seed)
     birth_samples = gm_sample([np.array([detections[0].state_vector[0], 0]),
                               np.array([detections[1].state_vector[0], 0]),
                               np.array([detections[2].state_vector[0], 0])],
-                              [np.diag([detections[0].measurement_model.noise_covar[0], 0]),
-                              np.diag([detections[1].measurement_model.noise_covar[0], 0]),
-                              np.diag([detections[2].measurement_model.noise_covar[0], 0])],
+                              [np.diag([detections[0].measurement_model.noise_covar[0, 0], 0]),
+                              np.diag([detections[1].measurement_model.noise_covar[0, 0], 0]),
+                              np.diag([detections[2].measurement_model.noise_covar[0, 0], 0])],
                               nbirth_parts,
                               np.array([1/3]*3))
 
