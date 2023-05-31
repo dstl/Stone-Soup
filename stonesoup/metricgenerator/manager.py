@@ -71,7 +71,7 @@ class MultiManager(MetricManager):
 
         for generator in generators:
             if isinstance(generator, SIAPMetrics):
-                if self.associator is not None and self.association_set is None:
+                if self.associator is not None:
                     self.associate_tracks(generator)
             metric_list = generator.compute_metric(self)
             # If not already a list, force it to be one below
@@ -113,3 +113,17 @@ class MultiManager(MetricManager):
                 for metric_key, metric in generator.items():
                     if isinstance(metric.generator, BasicMetrics):
                         print(f"{metric.title}: {metric.value}")
+
+    def get_siap_averages(self, generator_name):
+        """
+        Get SIAP averages metrics from SIAP metric generator specified by generator_name
+
+        Returns
+        ----------
+        : dict of :class`SIAPMetrics` averages
+        """
+        siap_metrics = self.metrics[generator_name]
+        siap_averages = {siap_metrics.get(metric) for metric in siap_metrics
+                         if metric.startswith("SIAP") and not metric.endswith(" at times")}
+
+        return siap_averages
