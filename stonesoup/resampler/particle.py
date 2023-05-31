@@ -6,6 +6,12 @@ from ..types.state import ParticleState
 
 
 class SystematicResampler(Resampler):
+    """
+    Traditional style resampler for particle filter. Calculates first random point in (0, 1/nparts],
+    then calculates |nparts| points that are equidistantly distributed across the cdf. Complexity
+    of order O(N) where N is the number of resampled particles.
+
+    """
 
     def resample(self, particles, nparts=None):
         """Resample the particles
@@ -90,3 +96,100 @@ class ESSResampler(Resampler):
             return self.resampler.resample(self.resampler, particles)
         else:
             return particles
+
+
+class MultinomialResampler(Resampler):
+    """
+    Traditional style resampler for particle filter. Calculates a random point in (0, 1]
+    individually for each particle, and picks the corresponding particle from the cdf calculated
+    from particle weights. Complexity is of order O(NM) where N and M are the number of resampled
+    and existing particles respectively.
+    """
+
+    def resample(self, particles, nparts=None):
+        """Resample the particles
+
+        Parameters
+        ----------
+        particles : :class:`~.ParticleState` or list of :class:`~.Particle`
+            The particles or particle state to be resampled according to their weights
+        nparts : int
+            The number of particles to be returned from resampling
+
+        Returns
+        -------
+        particle state: :class:`~.ParticleState`
+            The particle state after resampling
+        """
+
+        if not isinstance(particles, ParticleState):
+            particles = ParticleState(None, particle_list=particles)
+        if nparts is None:
+            nparts = len(particles)
+
+        log_weights = particles.log_weight
+        weight_order = np.argsort(log_weights, kind='stable')
+        max_log_value = log_weights[weight_order[-1]]
+        with np.errstate(divide='ignore'):
+            cdf = np.log(np.cumsum(np.exp(log_weights[weight_order] - max_log_value)))
+        cdf += max_log_value
+
+        # Pick random points for each of the particles
+        u_j = np.random.rand(nparts)
+
+        # Pick particles that represent the chosen point from the cdf
+        index = weight_order[np.searchsorted(cdf, np.log(u_j))]
+
+        new_particles = particles[index]
+        new_particles.log_weight = np.full((nparts, ), np.log(1/nparts))
+        return new_particles
+
+
+class StratifiedResampler(Resampler):
+    """
+    Traditional style resampler for particle filter. Splits the cdf into N evenly sized
+    subpopulations ('strata'), then independently picks one value from each strata. Complexity of
+    order O(N).
+
+    """
+
+    def resample(self, particles, nparts=None):
+        """Resample the particles
+
+        Parameters
+        ----------
+        particles : :class:`~.ParticleState` or list of :class:`~.Particle`
+            The particles or particle state to be resampled according to their weights
+        nparts : int
+            The number of particles to be returned from resampling
+
+        Returns
+        -------
+        particle state: :class:`~.ParticleState`
+            The particle state after resampling
+        """
+
+        if not isinstance(particles, ParticleState):
+            particles = ParticleState(None, particle_list=particles)
+        if nparts is None:
+            nparts = len(particles)
+
+        log_weights = particles.log_weight
+        weight_order = np.argsort(log_weights, kind='stable')
+        max_log_value = log_weights[weight_order[-1]]
+        with np.errstate(divide='ignore'):
+            cdf = np.log(np.cumsum(np.exp(log_weights[weight_order] - max_log_value)))
+        cdf += max_log_value
+
+        # Strata lower bounds:
+        s_l = np.arange(nparts) * (1 / nparts)
+
+        # Independently pick a point in each strata
+        u_j = np.random.uniform(s_l, s_l + 1 / nparts)
+
+        # Pick particles that represent the chosen point from the cdf
+        index = weight_order[np.searchsorted(cdf, np.log(u_j))]
+
+        new_particles = particles[index]
+        new_particles.log_weight = np.full((nparts, ), np.log(1/nparts))
+        return new_particles
