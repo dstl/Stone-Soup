@@ -704,7 +704,9 @@ class MetricPlotter(ABC):
                              "SIAP ID Completeness at times",
                              "SIAP ID Correctness at times",
                              "SIAP ID Ambiguity at times",
-                             "PCRB Metrics"
+                             "PCRB Metrics",
+                             "Sum of Covariance Norms Metric",
+                             "Mean of Covariance Norms Metric"
                              ]
 
         metrics_dict = dict()
@@ -788,6 +790,8 @@ class MetricPlotter(ABC):
             artists.extend(axis.set(title=metric_type.split(' at times')[0], xlabel="Time", ylabel=y_label))
 
     def plot_separately(self, metrics_to_plot, metrics_kwargs):
+        metrics_kwargs['color'] = metrics_kwargs['color'] if 'color' in metrics_kwargs.keys() else 'blue'
+
         # determine how many plots required - equal to number of metrics within the generators
         number_of_subplots = self.count_subplots(metrics_to_plot, False)
 
@@ -799,7 +803,7 @@ class MetricPlotter(ABC):
         all_metrics = {}
         for generator in metrics_to_plot.keys():
             for metric in list(metrics_to_plot[generator].keys()):
-                all_metrics[f'{generator}_{metric}'] = metrics_to_plot[generator][metric]
+                all_metrics[f'{generator}: {metric}'] = metrics_to_plot[generator][metric]
 
         axes = axes if isinstance(axes, Iterable) else [axes]
 
