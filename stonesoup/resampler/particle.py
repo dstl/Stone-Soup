@@ -148,7 +148,7 @@ class MultinomialResampler(Resampler):
 class StratifiedResampler(Resampler):
     """
     Traditional style resampler for particle filter. Splits the cdf into N evenly sized
-    subpopulations ('strata'), then independently picks one value from each strata. Complexity of
+    subpopulations ('strata'), then independently picks one value from each stratum. Complexity of
     order O(N).
 
     """
