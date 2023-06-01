@@ -174,7 +174,6 @@ from stonesoup.simulator.simple import SwitchMultiTargetGroundTruthSimulator
 from stonesoup.types.state import GaussianState
 
 # generate truths
-
 n_truths = 3
 xmin = 0
 xmax = 40
