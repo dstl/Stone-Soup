@@ -244,7 +244,7 @@ from stonesoup.sensormanager import BruteForceSensorManager
 # which minimizes a function over a given range using a brute force method. This can be tailored by setting
 # the number of grid points to search over or by adding the use of a polishing function.
 
-from stonesoup.sensormanager import OptimizeBruteSensorManager
+from stonesoup.sensormanager.optimise import OptimizeBruteSensorManager
 
 # %%
 # Optimised Basin Hopping Sensor Manager
@@ -255,7 +255,7 @@ from stonesoup.sensormanager import OptimizeBruteSensorManager
 # global stepping algorithm and local minimization at each step. Parameters such as number of basin hopping
 # iterations or stepsize can be set to tailor the algorithm to requirements.
 
-from stonesoup.sensormanager import OptimizeBasinHoppingSensorManager
+from stonesoup.sensormanager.optimise import OptimizeBasinHoppingSensorManager
 
 # %%
 # Initiate sensor managers
