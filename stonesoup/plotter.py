@@ -652,6 +652,9 @@ class MetricPlotter(ABC):
     Legends are automatically generated with each plot.
 
     """
+    def __init__(self):
+        self.fig = None
+        self.axes = None
 
     def plot_metrics(self, metrics, generator_names=None, combine_plots=True, **kwargs):
         """Plots metrics
@@ -750,29 +753,31 @@ class MetricPlotter(ABC):
         number_of_subplots = self.count_subplots(metrics_to_plot, True)
 
         # initialise each subplot
-        fig, axes = plt.subplots(number_of_subplots, figsize=(10, 6*number_of_subplots))
-        fig.subplots_adjust(hspace=0.3)
+        self.fig, axes = plt.subplots(number_of_subplots, figsize=(10, 6*number_of_subplots))
+        self.fig.subplots_adjust(hspace=0.3)
 
         # extract data for each subplot and plot it
         metric_types = self.extract_metric_types(metrics_to_plot)
 
-        axes = axes if isinstance(axes, Iterable) else [axes]
+        self.axes = axes if isinstance(axes, Iterable) else [axes]
 
-        for metric_type, axis in zip(list(metric_types), axes):
+        # generate colour map for lines to be plotted
+        if 'color' not in metrics_kwargs.keys():
+            colour_map = plt.cm.rainbow(np.linspace(0, 1, len(metrics_to_plot.keys())))
+        else:
+            colour_map = metrics_kwargs['color']
+            metrics_kwargs.pop('color')
+
+        for metric_type, axis in zip(list(metric_types), self.axes):
             artists = []
             legend_dict = {}
 
-            # generate colour map for lines to be plotted
-            if 'color' not in metrics_kwargs.keys():
-                colour_map = iter(plt.cm.rainbow(np.linspace(0, 1, len(metrics_to_plot.keys()))))
-            else:
-                colour_map = iter(metrics_kwargs['color'])
-                metrics_kwargs.pop('color')
+            colour_map_copy = iter(colour_map.copy())
 
             for generator in metrics_to_plot.keys():
                 for metric in metrics_to_plot[generator].keys():  # can change to a try except block with key error
                     if metric == metric_type:
-                        colour = next(colour_map)
+                        colour = next(colour_map_copy)
                         metric_values = metrics_to_plot[generator][metric].value
                         artists.extend(axis.plot([_.timestamp for _ in metric_values],
                                                  [_.value for _ in metric_values],
@@ -796,8 +801,8 @@ class MetricPlotter(ABC):
         number_of_subplots = self.count_subplots(metrics_to_plot, False)
 
         # initialise each plot
-        fig, axes = plt.subplots(number_of_subplots, figsize=(10, 6*number_of_subplots))
-        fig.subplots_adjust(hspace=0.3)
+        self.fig, axes = plt.subplots(number_of_subplots, figsize=(10, 6*number_of_subplots))
+        self.fig.subplots_adjust(hspace=0.3)
 
         # extract data for each plot and plot it
         all_metrics = {}
@@ -805,9 +810,9 @@ class MetricPlotter(ABC):
             for metric in list(metrics_to_plot[generator].keys()):
                 all_metrics[f'{generator}: {metric}'] = metrics_to_plot[generator][metric]
 
-        axes = axes if isinstance(axes, Iterable) else [axes]
+        self.axes = axes if isinstance(axes, Iterable) else [axes]
 
-        for metric, axis in zip(all_metrics.keys(), axes):
+        for metric, axis in zip(all_metrics.keys(), self.axes):
             y_label = str(all_metrics[metric].title).split(' at times')[0]
             axis.set(title=str(all_metrics[metric].title), xlabel='Time', ylabel=y_label)
             metric_values = all_metrics[metric].value
