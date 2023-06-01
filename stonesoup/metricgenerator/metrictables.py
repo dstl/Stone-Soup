@@ -114,7 +114,7 @@ class SIAPTableGenerator(RedGreenTableGenerator):
             "SIAP Position Accuracy": 0,
             "SIAP Velocity Accuracy": 0,
             "SIAP Rate of Track Number Change": 0,
-            "SIAP Longest Track Segment": None,
+            "SIAP Longest Track Segment": 1,
             "SIAP ID Completeness": 1,
             "SIAP ID Correctness": 1,
             "SIAP ID Ambiguity": 0

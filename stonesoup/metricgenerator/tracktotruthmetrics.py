@@ -22,7 +22,7 @@ class SIAPMetrics(MetricGenerator):
     implementation, with the assumption being that the fused sensor set is being assessed.
 
     Metrics:
-        * Continuity (C): Fraction of true objects being tracked. The output is in the range
+        * Completeness (C): Fraction of true objects being tracked. The output is in the range
           :math:`0:1`, with a target score of 1.
         * Ambiguity (A): Number of tracks assigned to a true object. The output is unbounded with
           a range of :math:`0:\infty`. The target score is 1.
@@ -35,9 +35,8 @@ class SIAPMetrics(MetricGenerator):
           The output is a distance measure, range :math:`0:\infty`, with a target score of 0.
         * Rate of track number changes (R): SIAP continuity measure. Rate of number of track
           changes per truth. The output is in the range :math:`0:\infty`, with a target score of 0.
-        * Longest track Segment (LS): SIAP continuity measure. Duration of longest associated
-          track segment per truth. The output is a float (seconds), with a target score equal to
-          the sum of all true object lifetimes.
+        * Longest track Segment (LS): SIAP continuity measure. Proportion of longest associated
+          track segment per truth. The output is in the range :math:`0:1`, with a target score of 1.
 
     Reference
         [1] Single Integrated Air Picture (SIAP) Metrics Implementation, Votruba et al, 29-10-2001
