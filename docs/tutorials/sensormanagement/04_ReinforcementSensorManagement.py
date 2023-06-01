@@ -535,7 +535,9 @@ plotterB.fig
 
 # %%
 # With a properly trained policy, the :class:`~.ReinforcementSensorManager` performs almost as well as the
-# :class:`~.BruteForceSensorManager`.
+# :class:`~.BruteForceSensorManager`. Also, once the policy has been learnt, the time taken to run the
+# tracking loop is far smaller for the :class:`~.ReinforcementSensorManager` than for the
+# :class:`~.BruteForceSensorManager`, which must re-calculate the best actions each time it is run.
 
 
 # %%
