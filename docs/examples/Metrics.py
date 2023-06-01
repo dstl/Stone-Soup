@@ -12,8 +12,8 @@ Metrics example
 # to easily generate metric plots for visualisation.
 #
 # To generate metrics, we need:
-#  - At least one metric generator - these are used to determine the metric type we want to generate and to compute the
-#    metrics themselves.
+#  - At least one :class:`MetricGenerator` - these are used to determine the metric type we want to generate and to
+#    compute the metrics themselves.
 #  - The :class:`MultiManager` metric manager - this is used to hold the metric generator(s) as well as all the ground
 #    truth, track, and detection sets we want to generate our metrics from. We will generate our metrics using the
 #    generate_metrics method of the :class:`MultiManager` class.
