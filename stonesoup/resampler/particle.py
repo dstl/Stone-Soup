@@ -184,8 +184,8 @@ class StratifiedResampler(Resampler):
         # Strata lower bounds:
         s_l = np.arange(nparts) * (1 / nparts)
 
-        # Independently pick a point in each strata
-        u_j = np.random.uniform(s_l, s_l + 1 / nparts)
+        # Independently pick a point in each stratum
+        u_j = np.random.uniform(s_l, s_l + (1 / nparts))
 
         # Pick particles that represent the chosen point from the cdf
         index = weight_order[np.searchsorted(cdf, np.log(u_j))]
