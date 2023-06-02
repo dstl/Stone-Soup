@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from ...metricgenerator.manager import SimpleManager
+from ...metricgenerator.manager import MultiManager
 from ...types.association import TimeRangeAssociation, AssociationSet
 from ...types.detection import Detection
 from ...types.groundtruth import GroundTruthPath, GroundTruthState
@@ -210,8 +210,9 @@ def trial_associations(trial_truths, trial_tracks, trial_timestamps):
 
 @pytest.fixture()
 def trial_manager(trial_truths, trial_tracks, trial_associations):
-    manager = SimpleManager()
-    manager.add_data(trial_truths, trial_tracks)
+    manager = MultiManager()
+    manager.add_data({'truths': trial_truths,
+                      'tracks': trial_tracks})
     manager.association_set = trial_associations
 
     return manager
