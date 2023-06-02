@@ -425,9 +425,13 @@ siap_table = SIAPTableGenerator(siap_averages_PF).compute_metric()
 #
 # To use :class:`MetricPlotter` we first create an instance of the class. We can then use the .plot_metrics() method to
 # plot the metrics of our choice. Key features of :class:`MetricPlotter`:
-# - You can specify which metrics you want to plot using the generator_names argument. If you don't pass the
-#   generator_names argument, .plot_metrics() will automatically extract all plottable metrics from those you have
-#   generated and plot them.
+# - You can specify exactly which metrics you want to plot by specifying the optional generator_names and metric_names
+#   parameters.
+# - generator_names allows you to specify which generators you want to plot metrics from. If you don't pass the
+#   generator_names argument, .plot_metrics() will automatically extract all plottable metrics from all metric
+#   generators in the :class:`MultiManager` and plot them.
+# - metric_names allows you to specify which specific metrics types you want to plot from the metric generators. This is
+#   mostly relevant for the SIAP metrics. You can view which metrics are plottable with MetricPlotter.plottable_metrics.
 # - .plot_metrics has a combine_plots argument which defaults to True. This means that all metrics of the same type will
 #   be plotted together on a single subplot.
 # - You can specify additional formatting, like colour and linestyle, for the plots produced by using keyword arguments
@@ -443,9 +447,11 @@ graph.plot_metrics(metrics, generator_names=['OSPA_EKF-truth',
                                              'OSPA_EKF-PF',
                                              'SIAP_EKF-truth',
                                              'SIAP_PF-truth'],
+                   # metric_names=['OSPA distances',
+                   #               'SIAP Position Accuracy at times'],  # uncomment and run to see effect
                    color=['orange', 'green', 'blue'])
 
-# update y-axis label and title, other subplots have auto-generated title and labels
+# update y-axis label and title, other subplots are displaying auto-generated title and labels
 graph.axes[0].set(ylabel='OSPA metrics', title='OSPA distances over time')
 graph.fig.show()
 
