@@ -655,8 +655,22 @@ class MetricPlotter(ABC):
     def __init__(self):
         self.fig = None
         self.axes = None
+        self.plottable_metrics = ["OSPA distances",
+                                  "GOSPA Metrics",
+                                  "SIAP Completeness at times",
+                                  "SIAP Ambiguity at times",
+                                  "SIAP Spuriousness at times",
+                                  "SIAP Position Accuracy at times",
+                                  "SIAP Velocity Accuracy at times",
+                                  "SIAP ID Completeness at times",
+                                  "SIAP ID Correctness at times",
+                                  "SIAP ID Ambiguity at times",
+                                  "PCRB Metrics",
+                                  "Sum of Covariance Norms Metric",
+                                  "Mean of Covariance Norms Metric"
+                                  ]
 
-    def plot_metrics(self, metrics, generator_names=None, combine_plots=True, **kwargs):
+    def plot_metrics(self, metrics, generator_names=None, metric_names=None, combine_plots=True, **kwargs):
         """Plots metrics
 
         Plots each plottable metric passed in to :attr:`metrics` across a series of subplots
@@ -669,9 +683,12 @@ class MetricPlotter(ABC):
         ----------
         metrics : dict of :class:`~.Metric`
             Dictionary of generated metrics to be plotted.
-        generator_names: list or str
+        generator_names: list
             Generator(s) to extract specific metrics from :attr:`metrics` for plotting.
             Default None to take all metrics.
+        metric_names: list
+            Specific metric(s) to extract from :class:`MetricGenerator` for plotting.
+            Default None to take all metrics in generators.
         combine_plots: bool
             Plot metrics of same type on the same subplot. Default True.
         \\*\\*kwargs: dict
@@ -685,42 +702,34 @@ class MetricPlotter(ABC):
         metrics_kwargs = dict(linestyle="-")
         metrics_kwargs.update(kwargs)
 
-        generator_names = list(metrics.keys()) if generator_names is None else list(generator_names)
+        generator_names = list(metrics.keys()) if generator_names is None else generator_names
 
-        metrics_to_plot = self.extract_plottable_metrics(metrics, generator_names)
+        # warning for user input metrics that will not be plotted
+        if metric_names is not None:
+            for metric_name in metric_names:
+                if metric_name not in self.plottable_metrics:
+                    warnings.warn(f"{metric_name} is not a plottable metric and will not be plotted")
+        else:
+            metric_names = self.extract_metric_types(metrics)
+
+        metrics_to_plot = self.extract_plottable_metrics(metrics, generator_names, metric_names)
 
         if combine_plots:
             self.combine_plots(metrics_to_plot, metrics_kwargs)
         else:
             self.plot_separately(metrics_to_plot, metrics_kwargs)
 
-    @staticmethod
-    def extract_plottable_metrics(metrics, generator_names):
-
-        plottable_metrics = ["OSPA distances",
-                             "GOSPA Metrics",
-                             "SIAP Completeness at times",
-                             "SIAP Ambiguity at times",
-                             "SIAP Spuriousness at times",
-                             "SIAP Position Accuracy at times",
-                             "SIAP Velocity Accuracy at times",
-                             "SIAP ID Completeness at times",
-                             "SIAP ID Correctness at times",
-                             "SIAP ID Ambiguity at times",
-                             "PCRB Metrics",
-                             "Sum of Covariance Norms Metric",
-                             "Mean of Covariance Norms Metric"
-                             ]
+    def extract_plottable_metrics(self, metrics, generator_names, metric_names):
 
         metrics_dict = dict()
 
         for generator_name in generator_names:
-            for metric_key in list(metrics[generator_name].keys()):
-                if metric_key in plottable_metrics:
+            for metric_name in metric_names:
+                if metric_name in metrics[generator_name].keys() and metric_name in self.plottable_metrics:
                     if generator_name not in metrics_dict.keys():
-                        metrics_dict[generator_name] = {metric_key: metrics[generator_name][metric_key]}
+                        metrics_dict[generator_name] = {metric_name: metrics[generator_name][metric_name]}
                     else:
-                        metrics_dict[generator_name][metric_key] = metrics[generator_name][metric_key]
+                        metrics_dict[generator_name][metric_name] = metrics[generator_name][metric_name]
 
         return metrics_dict
 
@@ -737,10 +746,10 @@ class MetricPlotter(ABC):
         return number_of_subplots
 
     @staticmethod
-    def extract_metric_types(metrics_to_plot):
+    def extract_metric_types(metrics):
         metric_types = set()
-        for generator in metrics_to_plot.keys():
-            for metric_key in metrics_to_plot[generator].keys():
+        for generator in metrics.keys():
+            for metric_key in metrics[generator].keys():
                 metric_types.add(metric_key)
 
         metric_types = list(metric_types)
