@@ -320,7 +320,8 @@ plotter2.plot_tracks(tracks_plot, [0, 2, 4], uncertainty=True, err_freq=5)
 
 # OSPA metric
 from stonesoup.metricgenerator.ospametric import OSPAMetric
-ospa_generator = OSPAMetric(c=40, p=1)
+ospa_generator = OSPAMetric(c=40, p=1, generator_name='OSPA',
+                            tracks_key='tracks', truths_key='truths')
 
 # SIAP metrics
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
@@ -329,66 +330,51 @@ SIAPpos_measure = Euclidean(mapping=np.array([0, 2]))
 SIAPvel_measure = Euclidean(mapping=np.array([1, 3]))
 siap_generator = SIAPMetrics(
     position_measure=SIAPpos_measure,
-    velocity_measure=SIAPvel_measure
+    velocity_measure=SIAPvel_measure,
+    generator_name='SIAP',
+    tracks_key='tracks', truths_key='truths'
 )
 
 # Uncertainty metric
 from stonesoup.metricgenerator.uncertaintymetric import \
     SumofCovarianceNormsMetric
-uncertainty_generator = SumofCovarianceNormsMetric()
-
+uncertainty_generator = SumofCovarianceNormsMetric(generator_name='uncertainty',
+                                                   tracks_key='tracks')
 
 # %%
 # The metric manager requires us to define an associator. Here we want to
 # compare the track estimates with the ground truth.
+
 from stonesoup.dataassociator.tracktotrack import TrackToTruth
 associator = TrackToTruth(association_threshold=30)
 
-from stonesoup.metricgenerator.manager import SimpleManager
-metric_manager = SimpleManager(
+from stonesoup.metricgenerator.manager import MultiManager
+metric_manager = MultiManager(
     [ospa_generator, siap_generator, uncertainty_generator],
     associator=associator
 )
 
-
 # %%
 # Since we saved the groundtruth and tracks before, we can easily add them
 # to the metric manager now, and then tell it to generate the metrics.
-metric_manager.add_data(groundtruth_plot, tracks_plot)
+metric_manager.add_data({'truths': groundtruth_plot, 'tracks': tracks_plot})
 metrics = metric_manager.generate_metrics()
 
 
 # %%
 # The first metric we will look at is the OSPA metric.
-ospa_metric = metrics["OSPA distances"]
+from stonesoup.plotter import MetricPlotter
 
-fig, ax = plt.subplots()
-ax.plot([i.timestamp for i in ospa_metric.value],
-        [i.value for i in ospa_metric.value])
-ax.set_ylabel("OSPA distance")
-_ = ax.set_xlabel("Time")
+fig = MetricPlotter()
+fig.plot_metrics(metrics, generator_names=['OSPA'])
 
 
 # %%
 # Next are the SIAP metrics. Specifically, we will look at the position and
 # velocity accuracy.
-position_accuracy = metrics['SIAP Position Accuracy at times']
-velocity_accuracy = metrics['SIAP Velocity Accuracy at times']
-times = metric_manager.list_timestamps()
-
-# Make a figure with 2 subplots.
-fig, axes = plt.subplots(2)
-
-# The first subplot will show the position accuracy
-axes[0].set(title='Positional Accuracy Over Time', xlabel='Time',
-            ylabel='Accuracy')
-axes[0].plot(times, [metric.value for metric in position_accuracy.value])
-
-# The second subplot will show the velocity accuracy
-axes[1].set(title='Velocity Accuracy Over Time', xlabel='Time',
-            ylabel='Accuracy')
-axes[1].plot(times, [metric.value for metric in velocity_accuracy.value])
-plt.tight_layout()
+fig2 = MetricPlotter()
+fig2.plot_metrics(metrics, metric_names=['SIAP Position Accuracy at times',
+                                         'SIAP Velocity Accuracy at times'])
 
 
 # %%
@@ -396,10 +382,5 @@ plt.tight_layout()
 # the sum of the norms of the covariance matrices of each estimated state.
 # Since the sum is not normalized for the number of estimated states, it is
 # most important to look at the trends of this graph rather than the values.
-uncertainty_metric = metrics["Sum of Covariance Norms Metric"]
-
-fig, ax = plt.subplots()
-ax.plot([i.timestamp for i in uncertainty_metric.value],
-        [i.value for i in uncertainty_metric.value])
-_ = ax.set(title="Track Uncertainty Over Time", xlabel="Time",
-           ylabel="Sum of covariance matrix norms")
+fig3 = MetricPlotter()
+fig3.plot_metrics(metrics, generator_names=['uncertainty'])
