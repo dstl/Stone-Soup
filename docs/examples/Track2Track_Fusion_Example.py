@@ -87,7 +87,7 @@ Multi-Sensor Fusion: Covariance Intersection Using Tracks as Measurements
 #     both radars. This is created to compare with the covariance intersection method.
 #   * Create a GM-PHD tracker that will perform track fusion via covariance intersection using
 #     the :class:`ChernoffUpdater` class.
-#   * Create metric managers for each of the four trackers
+#   * Create a metric manager to generate metrics for each of the four trackers
 #   * Set up the detection feeders. Each tracker will receive measurements using a custom
 #     :class:`DummyDetector` class. The track fusion tracker will also use the
 #     :class:`Tracks2GaussianDetectionFeeder` class.
@@ -488,9 +488,9 @@ track_fusion_tracker = PointProcessMultiTargetTracker(
 )
 
 # %%
-# 6: Make Metric Managers
+# 6: Make Metric Manager
 # -----------------------
-# We will track the metrics of each of the four trackers for comparison.
+# We will generate metrics of each of the four trackers for comparison.
 
 # %%
 from stonesoup.metricgenerator.basicmetrics import BasicMetrics
@@ -620,7 +620,7 @@ for t in range(num_steps):
 
     # ----------------------------------------------------------------------
 
-    # Add ground truth data and measurements to metric managers
+    # Add ground truth data and measurements to metric manager
     truths = radar_simulator.groundtruth.current
     detections = s1d[1] | s2d[1]
     metric_manager.add_data({'truths': truths[1], 'detections': detections}, overwrite=False)
@@ -637,7 +637,7 @@ gmlcc_tracks = set([track for track in gmlcc_tracks if len(track) > 1])
 meas_fusion_tracks = set([track for track in meas_fusion_tracks if len(track) > 1])
 track_fusion_tracks = set([track for track in track_fusion_tracks if len(track) > 1])
 
-# Add data to the metric manager
+# Add track data to the metric manager
 metric_manager.add_data({'jpda_tracks': jpda_tracks,
                          'gmlcc_tracks': gmlcc_tracks,
                          'meas_fusion_tracks': meas_fusion_tracks,
@@ -722,7 +722,7 @@ import matplotlib.pyplot as plt
 fig, ax = plt.subplots()
 times = metric_manager.list_timestamps(metric_manager.generators[2])
 
-# Iterate through the metric managers. For each one, go through the list of all timesteps
+# Iterate through the trackers. For each one, go through the list of all timesteps
 # and calculate the ratio at that time
 for track_label, label in zip(track_labels, labels):
     ratios = []
