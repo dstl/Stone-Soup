@@ -618,6 +618,8 @@ fig2.plot_metrics(metrics, metric_names=['Sum of Covariance Norms Metric'],
 #
 # Now let us compare the calculated runtime of the tracking loop for each of the sensor managers.
 
+import matplotlib.pyplot as plt
+
 fig = plt.figure()
 ax = fig.add_subplot(1, 1, 1)
 ax.set_ylabel('Cell run time (s)')
