@@ -40,7 +40,8 @@ class MultiManager(MetricManager):
 
     def _add(self, overwrite, metric_data):
         if overwrite:
-            self.states_sets = metric_data
+            for key, value in metric_data.items():
+                self.states_sets[key] = set(value)
         else:
             for key, value in metric_data.items():
                 if key not in self.states_sets.keys():
