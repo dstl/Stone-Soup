@@ -497,23 +497,44 @@ from stonesoup.metricgenerator.basicmetrics import BasicMetrics
 from stonesoup.metricgenerator.ospametric import OSPAMetric
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
 from stonesoup.metricgenerator.uncertaintymetric import SumofCovarianceNormsMetric
+
+metric_generators = []
+
+track_labels = ['jpda', 'gmlcc', 'meas_fusion', 'track_fusion']
+labels = ['Airborne Radar (JPDAF)', 'Ground Radar (GM-LCC)', 'Measurement Fusion (GM-PHD)',
+          'Covariance Intersection (GM-PHD)']
+
+for track_label, label in zip(track_labels, labels):
+    # for _ in ['jpda', 'gmlcc', 'meas_fusion', 'track_fusion']:
+    metric_generators.extend([BasicMetrics(generator_name=f'basic {label}',
+                                           tracks_key=f'{track_label}_tracks',
+                                           truths_key='truths'
+                                           ),
+                              OSPAMetric(c=10, p=1, measure=Euclidean([0, 2, 4]),
+                                         generator_name=f'OSPA {label}',
+                                         tracks_key=f'{track_label}_tracks',
+                                         truths_key='truths'
+                                         ),
+                              SIAPMetrics(position_measure=Euclidean(), velocity_measure=Euclidean(),
+                                          generator_name=f'SIAP {label}',
+                                          tracks_key=f'{track_label}_tracks',
+                                          truths_key='truths'
+                                          ),
+                              SumofCovarianceNormsMetric(generator_name=f'Uncertainty {label}',
+                                                         tracks_key=f'{track_label}_tracks'
+                                                         )
+
+                              ])
+
+
+# %%
 from stonesoup.dataassociator.tracktotrack import TrackToTruth
-from stonesoup.metricgenerator.manager import SimpleManager
-
-# Make the basic metric manager
-basic_generator = BasicMetrics()
-ospa_generator = OSPAMetric(c=10, p=1, measure=Euclidean([0, 2, 4]))
-siap_generator = SIAPMetrics(position_measure=Euclidean(), velocity_measure=Euclidean())
-uncertainty_generator = SumofCovarianceNormsMetric()
-
 associator = TrackToTruth(association_threshold=30)
-base_metric_manager = SimpleManager([basic_generator, ospa_generator, siap_generator,
-                                     uncertainty_generator],
-                                    associator=associator)
 
-sensor1_mm, sensor2_mm = deepcopy(base_metric_manager), deepcopy(base_metric_manager)
-meas_fusion_mm, track_fusion_mm = deepcopy(base_metric_manager), deepcopy(base_metric_manager)
+# %%
+from stonesoup.metricgenerator.manager import MultiManager
 
+metric_manager = MultiManager(metric_generators, associator=associator)
 
 # %%
 # 7: Set Up the Detection Feeders
@@ -553,6 +574,8 @@ class DummyDetector(DetectionReader):
 sensor1_detections, sensor2_detections = [], []
 jpda_tracks, gmlcc_tracks = set(), set()
 meas_fusion_tracks, track_fusion_tracks = set(), set()
+
+metric_manager.add_data({'detections': set()})
 
 sim_generator = radar_simulator.detections_gen()
 
@@ -597,19 +620,10 @@ for t in range(num_steps):
 
     # ----------------------------------------------------------------------
 
-    # Add ground truth data to metric managers
+    # Add ground truth data and measurements to metric managers
     truths = radar_simulator.groundtruth.current
-    for manager in [sensor1_mm, sensor2_mm, meas_fusion_mm, track_fusion_mm]:
-        manager.add_data(groundtruth_paths=truths[1], overwrite=False)
-
-    # Add measurements to metric managers
-    sensor1_mm.add_data(detections=s1d[1], overwrite=False)
-    sensor2_mm.add_data(detections=s2d[1], overwrite=False)
-    meas_fusion_mm.add_data(detections=s1d[1], overwrite=False)
-    meas_fusion_mm.add_data(detections=s2d[1], overwrite=False)
-    track_fusion_mm.add_data(detections=s1d[1], overwrite=False)
-    track_fusion_mm.add_data(detections=s2d[1], overwrite=False)
-
+    detections = s1d[1] | s2d[1]
+    metric_manager.add_data({'truths': truths[1], 'detections': detections}, overwrite=False)
 
 # Ensure that all tracks have been extracted from the trackers
 jpda_tracks.update(jpda_tracker.tracks)
@@ -623,11 +637,12 @@ gmlcc_tracks = set([track for track in gmlcc_tracks if len(track) > 1])
 meas_fusion_tracks = set([track for track in meas_fusion_tracks if len(track) > 1])
 track_fusion_tracks = set([track for track in track_fusion_tracks if len(track) > 1])
 
-# Add tracks to metric managers
-sensor1_mm.add_data(tracks=jpda_tracks, overwrite=False)
-sensor2_mm.add_data(tracks=gmlcc_tracks, overwrite=False)
-meas_fusion_mm.add_data(tracks=meas_fusion_tracks, overwrite=False)
-track_fusion_mm.add_data(tracks=track_fusion_tracks, overwrite=False)
+# Add data to the metric manager
+metric_manager.add_data({'jpda_tracks': jpda_tracks,
+                         'gmlcc_tracks': gmlcc_tracks,
+                         'meas_fusion_tracks': meas_fusion_tracks,
+                         'track_fusion_tracks': track_fusion_tracks
+                         }, overwrite=False)
 
 # %%
 # 9: Plot the Results
@@ -684,14 +699,11 @@ plotter2.fig.show()
 
 
 # %%
-# Now we will plot the metrics. First, we call a function for each sensor manager to calculate
+# Now we will plot the metrics. First, we call a function to calculate
 # the metrics.
 
 # %%
-s1_metrics = sensor1_mm.generate_metrics()
-s2_metrics = sensor2_mm.generate_metrics()
-meas_fusion_metrics = meas_fusion_mm.generate_metrics()
-track_fusion_metrics = track_fusion_mm.generate_metrics()
+metrics = metric_manager.generate_metrics()
 
 # %%
 # Now we can plot them. The SIAP and OSPA metrics can be done together in a loop. The
@@ -699,62 +711,26 @@ track_fusion_metrics = track_fusion_mm.generate_metrics()
 # timestep.
 
 # %%
-from matplotlib import pyplot as plt
-from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
+from stonesoup.plotter import MetricPlotter
 
-# Legend labels for each type of tracker
-labels = ['Airborne Radar (JPDAF)', 'Ground Radar (GM-LCC)', 'Measurement Fusion (GM-PHD)',
-          'Covariance Intersection (GM-PHD)']
-linestyles = ['dashed', 'dotted', 'solid', 'dashdot']
+fig = MetricPlotter()
+fig.plot_metrics(metrics, color=['blue', 'orange', 'green', 'red'], linestyle='--')
 
-# Iterate through the SIAP and OSPA metrics
-for metric_name in ['SIAP Position Accuracy at times', 'SIAP Velocity Accuracy at times',
-                    'SIAP Spuriousness at times', 'SIAP Completeness at times',
-                    'SIAP Ambiguity at times', 'OSPA distances', 'Sum of Covariance Norms Metric']:
-    fig, ax = plt.subplots()
-
-    # Plot the metrics from each metric manager
-    for tracker_metrics, label, line in zip([s1_metrics, s2_metrics, meas_fusion_metrics,
-                                             track_fusion_metrics], labels, linestyles):
-        metrics = tracker_metrics[metric_name]
-        ax.plot([m.value for m in metrics.value], linewidth=2, label=label, linestyle=line)
-
-    # Set x and y labels and title
-    ax.set_xlabel("Time $(s)$")
-    if metric_name.startswith('OSPA'):
-        ax.set_title('OSPA Distance')
-        ax.set_ylabel('Distance')
-        ax.set_ylim(0, 12)  # change y axis range for OSPA distance
-    elif metric_name.startswith('Sum of'):
-        ax.set_title(metric_name)
-        ax.set_ylabel('Sum of Covariance Norms')
-    else:
-        ax.set_title(metric_name)
-        ax.set_ylabel(metric_name[5:-9])
-
-    # Add units to y axis where applicable
-    if metric_name.startswith('SIAP Position') or metric_name.startswith('SIAP Velocity') \
-       or metric_name.startswith('OSPA'):
-        ax.set_ylabel(ax.yaxis.get_label().get_text() + ' $(m)$')
-
-    # Add legend
-    ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
-
-
+# %%
 # Plot Track to Truth Ratio
+import matplotlib.pyplot as plt
 fig, ax = plt.subplots()
-times = sensor1_mm.list_timestamps()
+times = metric_manager.list_timestamps(metric_manager.generators[2])
 
 # Iterate through the metric managers. For each one, go through the list of all timesteps
 # and calculate the ratio at that time
-for manager, label, line in zip([sensor1_mm, sensor2_mm, meas_fusion_mm, track_fusion_mm],
-                                labels, linestyles):
+for track_label, label in zip(track_labels, labels):
     ratios = []
     for time in times:
-        num_tracks = SIAPMetrics.num_tracks_at_time(manager=manager, timestamp=time)
-        num_truths = SIAPMetrics.num_truths_at_time(manager=manager, timestamp=time)
+        num_tracks = SIAPMetrics.num_tracks_at_time(metric_manager.states_sets[f'{track_label}_tracks'], timestamp=time)
+        num_truths = SIAPMetrics.num_truths_at_time(metric_manager.states_sets['truths'], timestamp=time)
         ratios.append(num_tracks / num_truths)
-    plt.plot(ratios, linewidth=2, label=label, linestyle=line)
+    plt.plot(ratios, linewidth=2, label=label, linestyle='--')
 
 ax.set_title('Track-to-Truth Ratio')
 ax.set_ylabel('Ratio')
