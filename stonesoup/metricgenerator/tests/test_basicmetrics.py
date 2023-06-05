@@ -2,7 +2,7 @@ import datetime
 
 import numpy as np
 
-from ..manager import SimpleManager
+from ..manager import MultiManager
 from ..basicmetrics import BasicMetrics
 from ...types.groundtruth import GroundTruthPath
 from ...types.metric import TimeRangeMetric
@@ -12,8 +12,11 @@ from ...types.track import Track
 
 
 def test_basicmetrics():
-    generator = BasicMetrics()
-    manager = SimpleManager([generator])
+    generator = BasicMetrics(generator_name='test_basic',
+                             tracks_key='tracks',
+                             truths_key='truths'
+                             )
+    manager = MultiManager([generator])
 
     start_time = datetime.datetime.now()
     tracks = set(Track(
@@ -26,7 +29,7 @@ def test_basicmetrics():
                       timestamp=start_time + datetime.timedelta(seconds=i))
                 for i in range(5)]) for j in range(3))
 
-    manager.add_data(truths, tracks)
+    manager.add_data({'truths': truths, 'tracks': tracks})
 
     metrics = manager.generate_metrics()
 
