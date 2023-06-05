@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from ..manager import SimpleManager
+from ..manager import MultiManager
 from ..pcrbmetric import PCRBMetric
 from ...types.groundtruth import GroundTruthState
 from ...types.array import StateVector, StateVectors, CovarianceMatrix
@@ -130,13 +130,15 @@ def test_compute_pcrb_single(prior, transition_model, measurement_model, groundt
 def test_computemetric(prior, transition_model, measurement_model, groundtruth,
                        sensor_locations, irf_overall, position_mapping, velocity_mapping):
     pcrb = PCRBMetric(prior, transition_model, measurement_model, sensor_locations,
-                      position_mapping, velocity_mapping, irf_overall)
+                      position_mapping, velocity_mapping, irf_overall,
+                      generator_name='generator',
+                      truths_key='truths')
 
-    manager = SimpleManager([pcrb])
+    manager = MultiManager([pcrb])
 
-    manager.add_data({groundtruth})
+    manager.add_data({'truths': groundtruth})
 
-    metric = pcrb.compute_metric(manager)[0]
+    metric = pcrb.compute_metric(manager)['generator']['PCRB Metrics']
 
     assert metric.title == 'PCRB Metrics'
     assert metric.time_range.start_timestamp == groundtruth.states[0].timestamp
