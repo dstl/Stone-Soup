@@ -520,39 +520,60 @@ ax.set_zlabel("log of no. combinations")
 # As in Tutorial 1 the metrics used here are the OSPA, SIAP and uncertainty metrics.
 
 from stonesoup.metricgenerator.ospametric import OSPAMetric
-ospa_generator = OSPAMetric(c=40, p=1)
+ospa_generatorA = OSPAMetric(c=40, p=1,
+                             generator_name='RandomSensorManager',
+                             tracks_key='tracksA',
+                             truths_key='truths')
+
+ospa_generatorB = OSPAMetric(c=40, p=1,
+                             generator_name='BruteForceSensorManager',
+                             tracks_key='tracksB',
+                             truths_key='truths')
 
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
 from stonesoup.measures import Euclidean
-siap_generator = SIAPMetrics(position_measure=Euclidean((0, 2)),
-                             velocity_measure=Euclidean((1, 3)))
+siap_generatorA = SIAPMetrics(position_measure=Euclidean((0, 2)),
+                              velocity_measure=Euclidean((1, 3)),
+                              generator_name='RandomSensorManager',
+                              tracks_key='tracksA',
+                              truths_key='truths')
+
+siap_generatorB = SIAPMetrics(position_measure=Euclidean((0, 2)),
+                              velocity_measure=Euclidean((1, 3)),
+                              generator_name='BruteForceSensorManager',
+                              tracks_key='tracksB',
+                              truths_key='truths')
 
 from stonesoup.dataassociator.tracktotrack import TrackToTruth
 associator = TrackToTruth(association_threshold=30)
 
 from stonesoup.metricgenerator.uncertaintymetric import SumofCovarianceNormsMetric
-uncertainty_generator = SumofCovarianceNormsMetric()
+uncertainty_generatorA = SumofCovarianceNormsMetric(generator_name='RandomSensorManager',
+                                                    tracks_key='tracksA')
+
+uncertainty_generatorB = SumofCovarianceNormsMetric(generator_name='BruteForceSensorManager',
+                                                    tracks_key='tracksB')
 
 # %%
-# Generate a metrics manager for each sensor management method.
+# Generate a metrics manager.
 
-from stonesoup.metricgenerator.manager import SimpleManager
+from stonesoup.metricgenerator.manager import MultiManager
 
-metric_managerA = SimpleManager([ospa_generator, siap_generator, uncertainty_generator],
-                                associator=associator)
-
-metric_managerB = SimpleManager([ospa_generator, siap_generator, uncertainty_generator],
-                                associator=associator)
+metric_manager = MultiManager([ospa_generatorA,
+                               ospa_generatorB,
+                               siap_generatorA,
+                               siap_generatorB,
+                               uncertainty_generatorA,
+                               uncertainty_generatorB],
+                               associator=associator)
 
 # %%
 # For each time step, data is added to the metric manager on truths and tracks.
 # The metrics themselves can then be generated from the metric manager.
 
-metric_managerA.add_data(truths, tracksA)
-metric_managerB.add_data(truths, tracksB)
+metric_manager.add_data({'truths': truths, 'tracksA': tracksA, 'tracksB': tracksB})
 
-metricsA = metric_managerA.generate_metrics()
-metricsB = metric_managerB.generate_metrics()
+metrics = metric_manager.generate_metrics()
 
 # %%
 # OSPA metric
@@ -560,20 +581,10 @@ metricsB = metric_managerB.generate_metrics()
 #
 # First we look at the OSPA metric. This is plotted over time for each sensor manager method.
 
-ospa_metricA = metricsA['OSPA distances']
-ospa_metricB = metricsB['OSPA distances']
+from stonesoup.plotter import MetricPlotter
 
-fig = plt.figure()
-ax = fig.add_subplot(1, 1, 1)
-ax.plot([i.timestamp for i in ospa_metricA.value],
-        [i.value for i in ospa_metricA.value],
-        label='RandomSensorManager')
-ax.plot([i.timestamp for i in ospa_metricB.value],
-        [i.value for i in ospa_metricB.value],
-        label='BruteForceSensorManager')
-ax.set_ylabel("OSPA distance")
-ax.set_xlabel("Time")
-ax.legend()
+fig = MetricPlotter()
+fig.plot_metrics(metrics, metric_names=['OSPA distances'])
 
 # %%
 # The OSPA distance for the :class:`~.BruteForceSensorManager` is generally smaller than for the random
@@ -585,29 +596,9 @@ ax.legend()
 # Next we look at SIAP metrics. We are only interested in the positional accuracy (PA) and
 # velocity accuracy (VA). These metrics can be plotted to show how they change over time.
 
-fig, axes = plt.subplots(2)
-
-times = metric_managerA.list_timestamps()
-
-pa_metricA = metricsA['SIAP Position Accuracy at times']
-va_metricA = metricsA['SIAP Velocity Accuracy at times']
-
-pa_metricB = metricsB['SIAP Position Accuracy at times']
-va_metricB = metricsB['SIAP Velocity Accuracy at times']
-
-axes[0].set(title='Positional Accuracy', xlabel='Time', ylabel='PA')
-axes[0].plot(times, [metric.value for metric in pa_metricA.value],
-             label='RandomSensorManager')
-axes[0].plot(times, [metric.value for metric in pa_metricB.value],
-             label='BruteForceSensorManager')
-axes[0].legend()
-
-axes[1].set(title='Velocity Accuracy', xlabel='Time', ylabel='VA')
-axes[1].plot(times, [metric.value for metric in va_metricA.value],
-             label='RandomSensorManager')
-axes[1].plot(times, [metric.value for metric in va_metricB.value],
-             label='BruteForceSensorManager')
-axes[1].legend()
+fig2 = MetricPlotter()
+fig2.plot_metrics(metrics, metric_names=['SIAP Position Accuracy at times',
+                                         'SIAP Velocity Accuracy at times'])
 
 # %%
 # Similar to the OSPA distance the :class:`~.BruteForceSensorManager` generally results in both a better
@@ -619,20 +610,8 @@ axes[1].legend()
 # Finally we look at the uncertainty metric which computes the sum of covariance matrix norms of each state at each
 # time step. This is plotted over time for each sensor manager method.
 
-uncertainty_metricA = metricsA['Sum of Covariance Norms Metric']
-uncertainty_metricB = metricsB['Sum of Covariance Norms Metric']
-
-fig = plt.figure()
-ax = fig.add_subplot(1, 1, 1)
-ax.plot([i.timestamp for i in uncertainty_metricA.value],
-        [i.value for i in uncertainty_metricA.value],
-        label='RandomSensorManager')
-ax.plot([i.timestamp for i in uncertainty_metricB.value],
-        [i.value for i in uncertainty_metricB.value],
-        label='BruteForceSensorManager')
-ax.set_ylabel("Sum of covariance matrix norms")
-ax.set_xlabel("Time")
-ax.legend()
+fig3 = MetricPlotter()
+fig3.plot_metrics(metrics, metric_names=['Sum of Covariance Norms Metric'])
 
 # sphinx_gallery_thumbnail_number = 7
 
