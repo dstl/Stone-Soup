@@ -19,7 +19,7 @@ resolutions = {'location_x': 10., 'location_y': 10.}
 # both the X and Y locations to [-100, 100]. This means that the action space will contain values
 # in the range [-100, 100] with a step size of 10 units for each property (based on the resolution
 # specified above).
-limits = {'location_x': [-100, 100], 'location_y': [-100, 100]}
+limits = {'location_x': [-100, 100], 'location_y': [-90, 90]}
 
 # Create a camera object
 sensor = MovableUAVCamera(ndim_state=6, mapping=[0, 2, 4],
@@ -28,6 +28,7 @@ sensor = MovableUAVCamera(ndim_state=6, mapping=[0, 2, 4],
                           resolutions=resolutions,
                           position=position,
                           fov_radius=100,
+                          fov_in_km=False,
                           limits=limits)
 
 # Set a query time
