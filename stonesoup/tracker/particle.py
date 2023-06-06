@@ -55,6 +55,8 @@ class SingleTargetExpectedLikelihoodParticleFilter(Tracker):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if self.resampler is None:
+            self.resampler = SystematicResampler()
         self._track = None
 
     @property
@@ -74,7 +76,7 @@ class SingleTargetExpectedLikelihoodParticleFilter(Tracker):
             multihypothesis = associations[self._track]
 
             if len(multihypothesis) == 1 and not multihypothesis[0]:
-                # if there is only one hypothesisa, and it is the missed detection hypothesis,
+                # if there is only one hypothesis, and it is the missed detection hypothesis,
                 # then there is nothing to update, so we just append the prediction
                 new_state = multihypothesis[0].prediction
             else:
