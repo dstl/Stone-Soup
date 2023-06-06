@@ -735,6 +735,7 @@ class CartesianToBearingRangeRate(_AngleNonLinearGaussianMeasurement):
     def _typed_vector():
         return np.array([[Bearing(0)], [0.], [0.]])
 
+
 class CartesianToBearingRangeRate2D(NonLinearGaussianMeasurement, ReversibleModel):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of bearing \
