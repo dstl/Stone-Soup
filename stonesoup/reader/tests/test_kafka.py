@@ -3,7 +3,7 @@ import datetime
 import pytest
 from dateutil.parser import parse
 
-from stonesoup.reader.kafka import KafkaDetectionReader, KafkaGroundTruthReader
+from ..kafka import KafkaDetectionReader, KafkaGroundTruthReader
 
 
 @pytest.fixture(params=[KafkaDetectionReader, KafkaGroundTruthReader])

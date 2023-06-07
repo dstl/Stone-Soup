@@ -6,15 +6,21 @@ from queue import Empty, Queue
 from threading import Thread
 from typing import Dict, List, Collection
 
+try:
+    from confluent_kafka import Consumer
+except ImportError as error:  # pragma: no cover
+    raise ImportError(
+        "Kafka Readers require the dependency 'confluent-kafka' to be installed."
+    ) from error
 import numpy as np
-from confluent_kafka import Consumer
 from dateutil.parser import parse
-from stonesoup.base import Property
-from stonesoup.buffered_generator import BufferedGenerator
-from stonesoup.reader.base import DetectionReader, Reader, GroundTruthReader
-from stonesoup.types.array import StateVector
-from stonesoup.types.detection import Detection
-from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
+
+from .base import DetectionReader, Reader, GroundTruthReader
+from ..base import Property
+from ..buffered_generator import BufferedGenerator
+from ..types.array import StateVector
+from ..types.detection import Detection
+from ..types.groundtruth import GroundTruthPath, GroundTruthState
 
 
 class _KafkaReader(Reader):

@@ -1,9 +1,15 @@
 import json
 from typing import Dict
 
-from confluent_kafka import Producer
-from stonesoup.base import Property
-from stonesoup.writer import Writer
+try:
+    from confluent_kafka import Producer
+except ImportError as error:  # pragma: no cover
+    raise ImportError(
+        "Kafka Writers require the dependency 'confluent-kafka' to be installed."
+    ) from error
+
+from .base import Writer
+from ..base import Property
 
 
 class KafkaWriter(Writer):

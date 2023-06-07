@@ -1,4 +1,4 @@
-from stonesoup.writer.kafka import KafkaWriter
+from ..kafka import KafkaWriter
 
 
 def test_writer_default():
