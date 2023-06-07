@@ -56,14 +56,14 @@ class _BaseExpectedLikelihoodParticleFilter(Tracker):
         for hypothesis in multihypothesis:
             if not hypothesis:
                 particle_weights_per_hypothesis.append(
-                    hypothesis.weight.log() + hypothesis.prediction.log_weight
+                    np.log(hypothesis.weight) + hypothesis.prediction.log_weight
                 )
             else:
                 # Run the updater on the hypothesis
                 # NOTE: We MUST NOT resample here, as we do that after computing the new weights
                 update = self.updater.update(hypothesis)
                 particle_weights_per_hypothesis.append(
-                    hypothesis.weight.log() + update.log_weight
+                    np.log(hypothesis.weight) + update.log_weight
                 )
                 if hypothesis.weight > missed_detection_weight:
                     associated_detections.add(hypothesis.measurement)

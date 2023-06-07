@@ -6,11 +6,12 @@ from scipy.stats import multivariate_normal
 
 from ...buffered_generator import BufferedGenerator
 from ...reader import DetectionReader
-from ...types.array import StateVector
+from ...types.array import StateVector, StateVectors
 from ...types.detection import MissedDetection, GaussianDetection
 from ...types.hypothesis import SingleDistanceHypothesis, \
     SingleProbabilityHypothesis
 from ...types.multihypothesis import MultipleHypothesis
+from ...types.numeric import Probability
 from ...types.prediction import StateMeasurementPrediction, \
     GaussianStatePrediction, GaussianMeasurementPrediction, ParticleStatePrediction, \
     ParticleMeasurementPrediction
@@ -37,7 +38,8 @@ def particle_initiator(initiator):
                 samples = multivariate_normal.rvs(detection.state_vector.ravel(),
                                                   np.eye(detection.state_vector.shape[0])*0.01,
                                                   size=100)
-                state = ParticleState(samples, weight=np.ones(100)/100,
+                state_vector = StateVectors(np.atleast_2d(samples))
+                state = ParticleState(state_vector, weight=np.ones(100)/100,
                                       timestamp=detection.timestamp)
                 tracks.add(Track([state]))
             return tracks
@@ -155,7 +157,7 @@ def data_particle_associator():
                             SingleProbabilityHypothesis(
                                 prediction, detection,
                                 measurement_prediction=measurement_prediction,
-                                probability=0.9
+                                probability=Probability(0.9)
                             ))
                         multihypothesis.append(
                             SingleProbabilityHypothesis(
@@ -199,6 +201,8 @@ def updater():
 @pytest.fixture()
 def particle_updater():
     class TestParticleUpdater:
+        resampler = None
+
         def update(self, hypothesis):
             return ParticleStateUpdate(hypothesis.measurement.state_vector,
                                        weight=hypothesis.prediction.weight,
