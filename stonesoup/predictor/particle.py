@@ -247,17 +247,18 @@ class BernoulliParticlePredictor(ParticlePredictor):
     """Bernoulli Particle Filter Predictor class
 
     An implementation of a particle filter predictor utilising the Bernoulli
-    filter formulation that estimates the spatial distribution of a target and
-    estimates its existence, as described in [1]_.
+    filter formulation that estimates the spatial distribution of a single
+    target and estimates its existence, as described in [2]_.
 
     This should be used in conjunction with the
     :class:`~.BernoulliParticleUpdater`.
 
     References
     ----------
-    .. [1] Ristic, Branko & Vo, Ba-Toung & Vo, Ba-Ngu & Farina, Alfonso, A
-    Tutorial on Bernoulli Filters: Theory, Implementation and Applications,
-    2013, IEEE Transactions on Signal Processing, 61(13), 3406-3430."""
+    .. [2] Ristic, Branko & Vo, Ba-Toung & Vo, Ba-Ngu & Farina, Alfonso, A
+       Tutorial on Bernoulli Filters: Theory, Implementation and Applications,
+       2013, IEEE Transactions on Signal Processing, 61(13), 3406-3430.
+    """
 
     birth_probability: float = Property(
         default=0.01,

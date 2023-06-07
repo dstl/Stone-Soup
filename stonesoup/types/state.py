@@ -865,14 +865,15 @@ class RaoBlackwellisedParticleState(ParticleState):
 class BernoulliParticleState(ParticleState):
     """Bernoulli Particle State type
 
-    This is a particle state object that describes the target as a distribution of particles and an
-    estimated existence probability according to the Bernoulli Particle Filter [1]_.
+    This is a particle state object that describes the target
+    as a distribution of particles and an estimated existence
+    probability according to the Bernoulli particle filter [1]_.
 
     References
     ----------
     .. [1] Ristic, Branko & Vo, Ba-Toung & Vo, Ba-Ngu & Farina, Alfonso, A
-    tutorial on Bernoulli filters: theory, implementation and applications,
-    2013, IEEE Transactions on Signal Processing, 61(13), 3406-3430.
+       Tutorial on Bernoulli Filters: Theory, Implementation and Applications,
+       2013, IEEE Transactions on Signal Processing, 61(13), 3406-3430.
 
     """
 

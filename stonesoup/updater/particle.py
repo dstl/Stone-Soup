@@ -354,12 +354,22 @@ class RaoBlackwellisedParticleUpdater(MultiModelParticleUpdater):
 
 
 class BernoulliParticleUpdater(ParticleUpdater):
-    """Particle updater for the Bernoulli Particle Filter. Both
-    target state and probability of existence are updated based
-    on measurements. Due to the nature of the Bernoulli Particle
-    Filter prediction process, resampling is required at every
+    """Bernoulli Particle Filter Updater class
+
+    An implementation of a particle filter updater utilising the
+    Bernoulli filter formulation that estimates the spatial distribution
+    of a single target and estimates its existence, as described in [1]_.
+
+    Due to the nature of the Bernoulli particle
+    filter prediction process, resampling is required at every
     time step to reduce the number of particles back down to the
     desired size.
+
+    References
+    ----------
+    .. [1] Ristic, Branko & Vo, Ba-Toung & Vo, Ba-Ngu & Farina, Alfonso, A
+       Tutorial on Bernoulli Filters: Theory, Implementation and Applications,
+       2013, IEEE Transactions on Signal Processing, 61(13), 3406-3430.
     """
 
     birth_probability: float = Property(
