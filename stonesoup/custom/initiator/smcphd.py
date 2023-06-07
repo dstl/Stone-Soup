@@ -424,6 +424,14 @@ class ISMCPHDFilter(SMCPHDFilter):
                                                           allow_singular=True) * Probability(self.birth_rate / num_birth)
                 birth_particles = np.hstack((birth_particles, birth_particles_i))
                 birth_weights = np.hstack((birth_weights, birth_weights_i))
+        else:
+            birth_particles = multivariate_normal.rvs(self.birth_density.mean.ravel(),
+                                                      self.birth_density.covar,
+                                                      num_birth).T
+            birth_weights = multivariate_normal.pdf(birth_particles.T,
+                                                    self.birth_density.mean.ravel(),
+                                                    self.birth_density.covar,
+                                                    allow_singular=True) * Probability(self.birth_rate / num_birth)
         # birth_weights = np.full((num_birth,), Probability(self.birth_rate / num_birth))
         birth_particles = StateVectors(birth_particles)
         birth_state = Prediction.from_state(prediction,
