@@ -24,6 +24,9 @@ class MFADataAssociator(DataAssociator):
     slide_window: int = Property(doc='Length of MFA slide window')
 
     def associate(self, tracks, detections, timestamp, **kwargs):
+        # No tracks, nothing to do
+        if not tracks:
+            return {}
         # Generate a set of hypotheses for each track on each detection
         # and shuffle hypothesis data into format required by the MFA algorithm
         tracks_list = []
