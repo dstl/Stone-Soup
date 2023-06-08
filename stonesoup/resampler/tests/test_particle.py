@@ -2,7 +2,8 @@ import numpy as np
 
 from ...types.particle import Particle
 from ...types.state import ParticleState
-from ..particle import SystematicResampler, MultinomialResampler, StratifiedResampler
+from ..particle import SystematicResampler, MultinomialResampler, StratifiedResampler, \
+    ResidualResampler
 from ..particle import ESSResampler
 
 
@@ -144,6 +145,22 @@ def test_ess_stratified():
     assert new_particles1 == particles and all([w == 1 / 10 for w in new_particles2.weight])
 
 
+def test_ess_residual():
+    particles = [Particle(np.array([[i]]), weight=(i + 1) / 55)
+                 for i in range(10)]
+    particles = ParticleState(None, particle_list=particles)
+
+    # This resampler should not resample
+    resampler1 = ESSResampler(resampler=ResidualResampler)
+    # This resampler should resample
+    resampler2 = ESSResampler(3025/385 + 0.01, resampler=ResidualResampler)
+
+    new_particles1 = resampler1.resample(particles)
+    new_particles2 = resampler2.resample(particles)
+
+    assert new_particles1 == particles and all([w == 1 / 10 for w in new_particles2.weight])
+
+
 def test_multinomial_single():
     particles = [Particle(np.array([[i]]), weight=1 if i == 10 else 0)
                  for i in range(20)]
@@ -274,3 +291,101 @@ def test_stratified_upsample():
 
     # Check that the resampler upsamples the particles correctly
     assert len(new_particles) == 40
+
+
+def test_residual_single():
+    particles = [Particle(np.array([[i]]), weight=1 if i == 10 else 0)
+                 for i in range(20)]
+
+    resampler = ResidualResampler()
+
+    new_particles = resampler.resample(particles)
+
+    # Weight all at single particle at index/vector 10, so all should be
+    # at same point
+    assert all(np.array_equal(np.array([[10]]), new_particle.state_vector)
+               for new_particle in new_particles)
+
+
+def test_residual_equal():
+    particles = [Particle(np.array([[i]]), weight=1 / 20 if i % 2 == 0 else 1 / 20) for i in
+                 range(20)]
+
+    resampler = ResidualResampler()
+
+    new_particles = resampler.resample(particles)
+
+    # All particles have weight = 1/N so all should be resampled once
+    assert all(np.array_equal(np.array([[i]]), new_particle.state_vector)
+               for i, new_particle in enumerate(new_particles))
+
+
+def test_residual_multinomial_alternating():
+    particles = [Particle(np.array([[i]]), weight=3 / 80 if i % 2 == 0 else 5 / 80) for i in
+                 range(20)]
+
+    resampler = ResidualResampler()
+
+    new_particles = resampler.resample(particles, residual_method='multinomial')
+
+    # Weight all at single particle at index/vector 10, so all should be
+    # at same point
+    odd = 0
+    even = 0
+    for particle in new_particles:
+        if particle.state_vector[0] % 2 == 0:
+            even += 1
+        else:
+            odd += 1
+
+    # Odd indices should all automatically get resampled once each (50%), plus a chance that their
+    # residual also gets resampled
+    assert odd >= even
+
+
+def test_residual_stratified_alternating():
+    # Repeat alternating test with stratified method for residual resampling
+    particles = [Particle(np.array([[i]]), weight=3 / 80 if i % 2 == 0 else 5 / 80) for i in
+                 range(20)]
+
+    resampler = ResidualResampler()
+
+    new_particles = resampler.resample(particles, residual_method='stratified')
+
+    # Weight all at single particle at index/vector 10, so all should be
+    # at same point
+    odd = 0
+    even = 0
+    for particle in new_particles:
+        if particle.state_vector[0] % 2 == 0:
+            even += 1
+        else:
+            odd += 1
+
+    # Odd indices should all automatically get resampled once each (50%), plus a chance that their
+    # residual also gets resampled
+    assert odd >= even
+
+
+def test_residual_systematic_alternating():
+    # Repeat alternating test with systematic method for residual resampling
+    particles = [Particle(np.array([[i]]), weight=3 / 80 if i % 2 == 0 else 5 / 80) for i in
+                 range(20)]
+
+    resampler = ResidualResampler()
+
+    new_particles = resampler.resample(particles, residual_method='systematic')
+
+    # Weight all at single particle at index/vector 10, so all should be
+    # at same point
+    odd = 0
+    even = 0
+    for particle in new_particles:
+        if particle.state_vector[0] % 2 == 0:
+            even += 1
+        else:
+            odd += 1
+
+    # Odd indices should all automatically get resampled once each (50%), plus a chance that their
+    # residual also gets resampled
+    assert odd >= even
