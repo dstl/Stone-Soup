@@ -197,7 +197,14 @@ class StratifiedResampler(Resampler):
 
 class ResidualResampler(Resampler):
     """
+    Traditional resampler. Any particle, p with weight W >= 1/N, will be resampled floor(W_p)
+    times, providing N_stage_1 = sum(floor(W_p)) resampled particles.
 
+    The residual weights of each particle are carried over and passed into another resampler, where
+    the remaining N - N_stage_1 particles are resampled from.
+
+    Should be a more computationally efficient method than resampling all particles from a CDF.
+    Cannot be used to upsample or downsample.
     """
 
     def resample(self, particles, residual_method=None):
@@ -221,6 +228,9 @@ class ResidualResampler(Resampler):
             particles = ParticleState(None, particle_list=particles)
         if residual_method is None:
             residual_method = 'multinomial'
+        elif type(residual_method) != str:
+            raise TypeError("residual_method variable must be a string name of a resampling "
+                            "method")
 
         nparts = len(particles)
 
@@ -276,6 +286,8 @@ class ResidualResampler(Resampler):
 
             # Independently pick a point in each stratum
             u_j = np.random.uniform(s_l, s_l + (1 / nparts))
+        else:
+            raise ValueError("Invalid string variable given for stage 2 residual resampler")
 
         # Pick particles that represent the chosen point from the cdf
         stage_2_index = weight_order[np.searchsorted(cdf, np.log(u_j))]
