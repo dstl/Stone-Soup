@@ -117,7 +117,7 @@ resampler = SystematicResampler()
 # %%
 # Load the particle updater
 from stonesoup.updater.particle import ParticleUpdater
-updater = ParticleUpdater(None, resampler)  # We can also use the measurement model instead of None
+updater = ParticleUpdater(None)  # We can also use the measurement model instead of None
 
 # %%
 # After having initialised the predictor, updater and resampler we consider the data associator.
