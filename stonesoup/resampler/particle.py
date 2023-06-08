@@ -193,3 +193,97 @@ class StratifiedResampler(Resampler):
         new_particles = particles[index]
         new_particles.log_weight = np.full((nparts, ), np.log(1/nparts))
         return new_particles
+
+
+class ResidualResampler(Resampler):
+    """
+
+    """
+
+    def resample(self, particles, residual_method=None):
+        """Resample the particles
+
+        Parameters
+        ----------
+        particles : :class:`~.ParticleState` or list of :class:`~.Particle`
+            The particles or particle state to be resampled according to their weights
+        residual_method : str
+            Resampling method used for resampling te residuals. Must be a string value from the
+            following options: ['multinomial', 'systematic', 'stratified'].
+
+        Returns
+        -------
+        particle state: :class:`~.ParticleState`
+            The particle state after resampling
+        """
+
+        if not isinstance(particles, ParticleState):
+            particles = ParticleState(None, particle_list=particles)
+        if residual_method is None:
+            residual_method = 'multinomial'
+
+        nparts = len(particles)
+
+        log_weights = particles.log_weight
+
+        # Get the true weight of each particle
+        weights = np.exp(log_weights)
+
+        # **** Stage 1 ****
+
+        # Calculate the floor
+        floors = np.floor(weights * nparts)
+
+        # Generate particle index from stage 1 resampling
+        # There might be a better way to do this, seems a complicated way to do a simple task
+        stage_1_index = np.array([index for sublist in
+                                  [[index]*int(floor) for index, floor in enumerate(floors)
+                                   if int(floor) != 0] for index in sublist])
+
+        # **** Stage 2 ****
+
+        # Calculate number of particles to be resampled from residuals
+        n_stage_2_parts = nparts - int(sum(floors))
+
+        # Calculate the residuals
+        r_weights = weights - floors/nparts
+
+        # Normalise residual weights
+        normalised_r_weights = r_weights * 1/sum(r_weights)
+
+        r_log_weights = np.log(normalised_r_weights)
+        weight_order = np.argsort(r_log_weights, kind='stable')
+        max_log_value = r_log_weights[weight_order[-1]]
+        with np.errstate(divide='ignore'):
+            cdf = np.log(np.cumsum(np.exp(r_log_weights[weight_order] - max_log_value)))
+        cdf += max_log_value
+
+        if residual_method == 'multinomial':
+            # Pick random points for each of the particles
+            u_j = np.random.rand(n_stage_2_parts)
+
+        elif residual_method == 'systematic':
+            # Pick random starting point
+            u_i = np.random.uniform(0, 1 / nparts)
+
+            # Cycle through the cumulative distribution and copy the particle
+            # that pushed the score over the current value
+            u_j = u_i + (1 / nparts) * np.arange(nparts)
+
+        elif residual_method == 'stratified':
+            # Strata lower bounds:
+            s_l = np.arange(nparts) * (1 / nparts)
+
+            # Independently pick a point in each stratum
+            u_j = np.random.uniform(s_l, s_l + (1 / nparts))
+
+        # Pick particles that represent the chosen point from the cdf
+        stage_2_index = weight_order[np.searchsorted(cdf, np.log(u_j))]
+
+        # Combine the indexes from both stages
+        index = np.concatenate([stage_1_index, stage_2_index])
+
+        new_particles = particles[index]
+        new_particles.log_weight = np.full((nparts, ), np.log(1/nparts))
+
+        return new_particles
