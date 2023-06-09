@@ -25,9 +25,12 @@ from ..types.update import TwoStateGaussianStateUpdate, Update
 
 
 class TrackletExtractor(Base, BufferedGenerator):
-    trackers: List[Tracker] = Property(doc='List of trackers from which to extract tracks')
     transition_model: TransitionModel = Property(doc='Transition model')
     fuse_interval: datetime.timedelta = Property(doc='Fusion interval')
+    trackers: List[Tracker] = Property(
+        doc='List of trackers from which to extract tracks.',
+        default=None
+    )
     real_time: bool = Property(doc='Flag indicating whether the extractor should report '
                                    'real time', default=False)
 
@@ -266,38 +269,12 @@ class TrackletExtractor(Base, BufferedGenerator):
         return joint_smoothed_mean, joint_smoothed_cov
 
 
-class TrackletExtractorWithTracker(TrackletExtractor):
-    detectors: List[Detector] = Property(doc='List of detectors')
-    core_tracker: Tracker = Property(doc='Core tracker used for each detector')
-    run_async: bool = Property(
-        doc="If set to ``True``, the reader will read tracks from the tracker asynchronously "
-            "and only yield the latest set of tracks when iterated."
-            "Defaults to ``False``",
-        default=False)
-
-    def __init__(self, *args, **kwargs):
-        super(TrackletExtractorWithTracker, self).__init__(*args, **kwargs)
-        sensor_id_offset = len(self.trackers)
-        for i, detector in enumerate(self.detectors):
-            tracker = deepcopy(self.core_tracker)
-            tracker.detector = detector
-            # Extract transition model
-            hypothesiser = tracker.data_associator.hypothesiser
-            while not hasattr(hypothesiser, 'predictor'):
-                hypothesiser = hypothesiser.hypothesiser
-            transition_model = hypothesiser.predictor.transition_model
-            self.trackers.append(TrackReader(tracker,
-                                             transition_model=transition_model,
-                                             sensor_id=sensor_id_offset+i,
-                                             run_async=self.run_async))
-
-
 class PseudoMeasExtractor(Base, BufferedGenerator):
-    tracklet_extractor: TrackletExtractor = Property(doc='The tracket extractor')
+    tracklet_extractor: TrackletExtractor = Property(doc='The tracket extractor', default=None)
     target_state_dim: int = Property(doc='The target state dim', default=None)
     state_idx_to_use: List[int] = Property(doc='The indices of the state corresponding to pos/vel',
                                            default=None)
-    use_prior: bool = Property(doc="", default=True)
+    use_prior: bool = Property(doc="", default=False)
 
     def __init__(self, *args, **kwargs):
         super(PseudoMeasExtractor, self).__init__(*args, **kwargs)
