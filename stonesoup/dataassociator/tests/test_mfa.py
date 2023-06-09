@@ -39,14 +39,17 @@ def generate_detections(tracks, timestamp, predictor, measurement_model, n=2):
         for track in tracks for _ in range(n)}  # n detections per track; pseudo clutter
 
 
-@pytest.mark.parametrize('slide_window', (2, 3, 6))
-def test_mfa(predictor, updater, measurement_model, probability_hypothesiser, slide_window):
-    start_time = datetime.datetime.now()
-
+@pytest.fixture(scope='function', params=[2, 3, 6])
+def data_associator(request, probability_hypothesiser):
     # Hypothesiser and Data Associator
     hypothesiser = MFAHypothesiser(probability_hypothesiser)
 
-    data_associator = MFADataAssociator(hypothesiser, slide_window=slide_window)
+    return MFADataAssociator(hypothesiser, slide_window=request.param)
+
+
+def test_mfa(predictor, updater, measurement_model, data_associator):
+    start_time = datetime.datetime.now()
+    slide_window = data_associator.slide_window
 
     prior1 = GaussianMixture([TaggedWeightedGaussianState([[0], [1], [0], [1]],
                                                           np.diag([1.5, 0.5, 1.5, 0.5]),
@@ -126,3 +129,11 @@ def test_mfa(predictor, updater, measurement_model, probability_hypothesiser, sl
                 assert tuple(hyp.prediction.tag) in list(product(range(0, 5),
                                                                  range(0, 5),
                                                                  range(1, 5)))
+
+
+def test_mfa_no_tracks(data_associator):
+    associations = data_associator.associate(set(), set(), datetime.datetime.now())
+    assert not associations
+
+    associations = data_associator.associate(set(), {Detection([0, 1])}, datetime.datetime.now())
+    assert not associations
