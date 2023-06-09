@@ -97,7 +97,7 @@ for j in range(0, ntruths):
         ydirection *= -1
 
 # %%
-# Plot the ground truths. This is done using the :class:`~.Plotterly` class from Stone Soup.
+# Plot the ground truths. This is done using the :class:`~.AnimatedPlotterly` class from Stone Soup.
 
 from stonesoup.plotter import AnimatedPlotterly
 
@@ -309,10 +309,12 @@ data_associator = GNNWith2DAssignment(hypothesiser)
 
 from ordered_set import OrderedSet
 import time
+import copy
 
 # Start timer for cell execution time
 cell_start_time1 = time.time()
 
+sensor_history_A = dict()
 for timestep in timesteps[1:]:
 
     # Generate chosen configuration
@@ -325,11 +327,16 @@ for timestep in timesteps[1:]:
         for sensor, actions in chosen_action.items():
             sensor.add_actions(actions)
 
+    sensor_history_at_t = []
     for sensor in sensor_setA:
         sensor.act(timestep)
+        sensor_history_at_t.append(copy.copy(sensor))
 
         # Observe this ground truth
         measurementsA |= sensor.measure(OrderedSet(truth[timestep] for truth in truths), noise=True)
+
+    # Store sensor history for plotting
+    sensor_history_A[timestep] = sensor_history_at_t
 
     hypotheses = data_associator.associate(tracksA,
                                            measurementsA,
@@ -346,12 +353,57 @@ cell_run_time1 = round(time.time() - cell_start_time1, 2)
 
 # %%
 # Plot ground truths, tracks and uncertainty ellipses for each target. The positions of the sensors are indicated
-# by black x markers.
+# by black x markers.This uses the Stone Soup
+# :class:`~.AnimatedPlotterly`, with added code to plot the field of view of the sensor.
 
-plotterA = AnimatedPlotterly(timesteps, tail_length=1)
+import plotly.graph_objects as go
+from stonesoup.functions import pol2cart
+
+plotterA = AnimatedPlotterly(timesteps, tail_length=1, sim_duration=10)
 plotterA.plot_sensors(sensor_setA)
 plotterA.plot_ground_truths(truths, [0, 2])
 plotterA.plot_tracks(set(tracksA), [0, 2], uncertainty=True, plot_history=False)
+
+# Plot sensor field of view
+trace_base = len(plotterA.fig.data)
+for _ in sensor_setA:
+    plotterA.fig.add_trace(go.Scatter(mode='lines',
+                                      line=go.scatter.Line(color='black',
+                                                           dash='dash')))
+
+for frame in plotterA.fig.frames:
+    traces_ = list(frame.traces)
+    data_ = list(frame.data)
+
+    timestring = frame.name
+    timestamp = datetime.strptime(timestring, "%Y-%m-%d %H:%M:%S")
+
+    for n, sensor_ in enumerate(sensor_setA):
+        x = [0, 0]
+        y = [0, 0]
+
+        if timestamp in sensor_history_A.keys():
+            sensor = sensor_history_A[timestamp][n]
+            for i, fov_side in enumerate((-1, 1)):
+                range_ = min(getattr(sensor, 'max_range', np.inf), 100)
+                x[i], y[i] = pol2cart(range_,
+                                      sensor.dwell_centre[0, 0]
+                                      + sensor.fov_angle / 2 * fov_side) \
+                             + sensor.position[[0, 1], 0]
+        else:
+            continue
+
+        data_.append(go.Scatter(x=[x[0], sensor.position[0], x[1]],
+                                y=[y[0], sensor.position[1], y[1]],
+                                mode="lines",
+                                line=go.scatter.Line(color='black',
+                                                     dash='dash'),
+                                showlegend=False))
+        traces_.append(trace_base + n)
+
+    frame.traces = traces_
+    frame.data = data_
+
 plotterA.fig
 
 # %%
@@ -364,6 +416,7 @@ plotterA.fig
 # Start timer for cell execution time
 cell_start_time2 = time.time()
 
+sensor_history_B = dict()
 for timestep in timesteps[1:]:
 
     # Generate chosen configuration
@@ -376,11 +429,16 @@ for timestep in timesteps[1:]:
         for sensor, actions in chosen_action.items():
             sensor.add_actions(actions)
 
+    sensor_history_at_t = []
     for sensor in sensor_setB:
         sensor.act(timestep)
+        sensor_history_at_t.append(copy.copy(sensor))
 
         # Observe this ground truth
         measurementsB |= sensor.measure(OrderedSet(truth[timestep] for truth in truths), noise=True)
+
+    # Store sensor history for plotting
+    sensor_history_B[timestep] = sensor_history_at_t
 
     hypotheses = data_associator.associate(tracksB,
                                            measurementsB,
@@ -398,10 +456,52 @@ cell_run_time2 = round(time.time() - cell_start_time2, 2)
 # %%
 # Plot ground truths, tracks and uncertainty ellipses for each target.
 
-plotterB = AnimatedPlotterly(timesteps, tail_length=1)
+plotterB = AnimatedPlotterly(timesteps, tail_length=1, sim_duration=10)
 plotterB.plot_sensors(sensor_setB)
 plotterB.plot_ground_truths(truths, [0, 2])
 plotterB.plot_tracks(tracksB, [0, 2], uncertainty=True, plot_history=False)
+
+
+# Plot sensor field of view
+trace_base = len(plotterB.fig.data)
+for _ in sensor_setB:
+    plotterB.fig.add_trace(go.Scatter(mode='lines',
+                                      line=go.scatter.Line(color='black',
+                                                           dash='dash')))
+
+for frame in plotterB.fig.frames:
+    traces_ = list(frame.traces)
+    data_ = list(frame.data)
+
+    timestring = frame.name
+    timestamp = datetime.strptime(timestring, "%Y-%m-%d %H:%M:%S")
+
+    for n, sensor_ in enumerate(sensor_setB):
+        x = [0, 0]
+        y = [0, 0]
+
+        if timestamp in sensor_history_B.keys():
+            sensor = sensor_history_B[timestamp][n]
+            for i, fov_side in enumerate((-1, 1)):
+                range_ = min(getattr(sensor, 'max_range', np.inf), 100)
+                x[i], y[i] = pol2cart(range_,
+                                      sensor.dwell_centre[0, 0]
+                                      + sensor.fov_angle / 2 * fov_side) \
+                             + sensor.position[[0, 1], 0]
+        else:
+            continue
+
+        data_.append(go.Scatter(x=[x[0], sensor.position[0], x[1]],
+                                y=[y[0], sensor.position[1], y[1]],
+                                mode="lines",
+                                line=go.scatter.Line(color='black',
+                                                     dash='dash'),
+                                showlegend=False))
+        traces_.append(trace_base + n)
+
+    frame.traces = traces_
+    frame.data = data_
+
 plotterB.fig
 
 # %%
@@ -411,6 +511,7 @@ plotterB.fig
 # Start timer for cell execution time
 cell_start_time3 = time.time()
 
+sensor_history_C = dict()
 for timestep in timesteps[1:]:
 
     # Generate chosen configuration
@@ -423,11 +524,16 @@ for timestep in timesteps[1:]:
         for sensor, actions in chosen_action.items():
             sensor.add_actions(actions)
 
+    sensor_history_at_t = []
     for sensor in sensor_setC:
         sensor.act(timestep)
+        sensor_history_at_t.append(copy.copy(sensor))
 
         # Observe this ground truth
         measurementsC |= sensor.measure(OrderedSet(truth[timestep] for truth in truths), noise=True)
+
+    # Store sensor history for plotting
+    sensor_history_C[timestep] = sensor_history_at_t
 
     hypotheses = data_associator.associate(tracksC,
                                            measurementsC,
@@ -445,10 +551,51 @@ cell_run_time3 = round(time.time() - cell_start_time3, 2)
 # %%
 # Plot ground truths, tracks and uncertainty ellipses for each target.
 
-plotterC = AnimatedPlotterly(timesteps, tail_length=1)
+plotterC = AnimatedPlotterly(timesteps, tail_length=1, sim_duration=10)
 plotterC.plot_sensors(sensor_setC)
 plotterC.plot_ground_truths(truths, [0, 2])
 plotterC.plot_tracks(tracksC, [0, 2], uncertainty=True, plot_history=False)
+
+# Plot sensor field of view
+trace_base = len(plotterC.fig.data)
+for _ in sensor_setC:
+    plotterC.fig.add_trace(go.Scatter(mode='lines',
+                                      line=go.scatter.Line(color='black',
+                                                           dash='dash')))
+
+for frame in plotterC.fig.frames:
+    traces_ = list(frame.traces)
+    data_ = list(frame.data)
+
+    timestring = frame.name
+    timestamp = datetime.strptime(timestring, "%Y-%m-%d %H:%M:%S")
+
+    for n, sensor_ in enumerate(sensor_setC):
+        x = [0, 0]
+        y = [0, 0]
+
+        if timestamp in sensor_history_C.keys():
+            sensor = sensor_history_C[timestamp][n]
+            for i, fov_side in enumerate((-1, 1)):
+                range_ = min(getattr(sensor, 'max_range', np.inf), 100)
+                x[i], y[i] = pol2cart(range_,
+                                      sensor.dwell_centre[0, 0]
+                                      + sensor.fov_angle / 2 * fov_side) \
+                             + sensor.position[[0, 1], 0]
+        else:
+            continue
+
+        data_.append(go.Scatter(x=[x[0], sensor.position[0], x[1]],
+                                y=[y[0], sensor.position[1], y[1]],
+                                mode="lines",
+                                line=go.scatter.Line(color='black',
+                                                     dash='dash'),
+                                showlegend=False))
+        traces_.append(trace_base + n)
+
+    frame.traces = traces_
+    frame.data = data_
+
 plotterC.fig
 
 # %%
