@@ -420,15 +420,13 @@ class BernoulliParticleUpdater(ParticleUpdater):
             detections = [single_hypothesis.measurement
                           for single_hypothesis in hypotheses.single_hypotheses]
 
-            if self.measurement_model is None:
-                self.measurement_model = next(iter(detections)).measurement_model
-
             # Evaluate measurement likelihood and approximate integrals
             meas_likelihood = []
             delta_part2 = []
             detection_probability = np.array([self.detection_probability]*len(prediction))
 
             for detection in detections:
+                measurement_model = detection.measurement_model or self.measurement_model
                 meas_likelihood.append(
                     np.exp(
                         self.measurement_model.logpdf(
