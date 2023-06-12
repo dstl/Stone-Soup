@@ -428,7 +428,6 @@ class BernoulliParticleUpdater(ParticleUpdater):
 
             for detection in detections:
                 measurement_model = detection.measurement_model or self.measurement_model
-                measurement_model = detection.measurement_model or self.measurement_model
                 log_meas_likelihood.append(measurement_model.logpdf(detection, updated_state))
                 delta_part2.append(self._log_space_product(
                     log_detection_probability,
