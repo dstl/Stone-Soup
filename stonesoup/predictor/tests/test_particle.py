@@ -161,7 +161,7 @@ def test_bernoulli_particle_no_detection():
     # check that the existence estimate is correct
     assert prediction.existence_probability == eval_existence
     # check that the weight prediction is correct
-    assert all(eval_weight == prediction.weight)
+    assert np.allclose(eval_weight, prediction.weight.astype(np.float_))
     # check that the weights are normalised
     assert np.around(float(np.sum(prediction.weight)), decimals=1) == 1
 
