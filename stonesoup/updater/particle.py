@@ -421,37 +421,40 @@ class BernoulliParticleUpdater(ParticleUpdater):
                           for single_hypothesis in hypotheses.single_hypotheses]
 
             # Evaluate measurement likelihood and approximate integrals
-            meas_likelihood = []
+            log_meas_likelihood = []
             delta_part2 = []
-            detection_probability = np.array([self.detection_probability]*len(prediction))
+            log_detection_probability = np.full(len(prediction),
+                                                np.log(self.detection_probability))
 
             for detection in detections:
                 measurement_model = detection.measurement_model or self.measurement_model
-                meas_likelihood.append(
-                    np.exp(
-                        self.measurement_model.logpdf(
-                            detection, updated_state)))
-                delta_part2.append(detection_probability @
-                                   ((meas_likelihood[-1] /
-                                     (self.clutter_rate * self.clutter_distribution))
-                                    * updated_state.weight))
+                measurement_model = detection.measurement_model or self.measurement_model
+                log_meas_likelihood.append(measurement_model.logpdf(detection, updated_state))
+                delta_part2.append(self._log_space_product(
+                    log_detection_probability,
+                    log_meas_likelihood[-1]
+                    - np.log(self.clutter_rate * self.clutter_distribution)
+                    + updated_state.log_weight))
 
-            meas_likelihood = np.vstack(meas_likelihood)
-            delta = detection_probability @ updated_state.weight \
-                - np.sum(delta_part2)
+                delta = \
+                    np.exp(self._log_space_product(log_detection_probability,
+                                                   updated_state.log_weight)) \
+                    - np.exp(logsumexp(delta_part2))
 
-            updated_state.existence_probability = (1 - delta) / \
-                (1 - updated_state.existence_probability*delta) \
-                * updated_state.existence_probability
+                updated_state.existence_probability = \
+                    (1 - delta) \
+                    / (1 - updated_state.existence_probability * delta) \
+                    * updated_state.existence_probability
 
-            updated_state.weight = (1 - detection_probability +
-                                    (detection_probability *
-                                     (np.sum(meas_likelihood, axis=0) /
-                                      (self.clutter_rate * self.clutter_distribution))))\
-                * updated_state.weight
+            updated_state.log_weight = \
+                np.logaddexp(log_detection_probability
+                             + logsumexp(log_meas_likelihood, axis=0)
+                             - np.log(self.clutter_rate * self.clutter_distribution),
+                             np.log(1 - self.detection_probability)) \
+                + updated_state.log_weight
 
             # Normalise weights
-            updated_state.weight = updated_state.weight / np.sum(updated_state.weight)
+            updated_state.log_weight -= logsumexp(updated_state.log_weight)
 
         # Resampling
         if self.resampler is not None:
@@ -468,9 +471,16 @@ class BernoulliParticleUpdater(ParticleUpdater):
 
         return Update.from_state(
             updated_state,
-            state_vector=updated_state.state_vector,
-            existence_probability=updated_state.existence_probability,
             timestamp=updated_state.timestamp,
             hypothesis=hypotheses,
-            particle_list=None,
         )
+
+    @staticmethod
+    def _log_space_product(A, B):
+        if A.ndim < 2:
+            A = np.atleast_2d(A)
+        if B.ndim < 2:
+            B = np.atleast_2d(B).T
+        Astack = np.stack([A] * B.shape[1]).transpose(1, 0, 2)
+        Bstack = np.stack([B] * A.shape[0]).transpose(0, 2, 1)
+        return np.squeeze(logsumexp(Astack + Bstack, axis=2))
