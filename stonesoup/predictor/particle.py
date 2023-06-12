@@ -330,18 +330,18 @@ class BernoulliParticlePredictor(ParticlePredictor):
         predicted_existence = self.estimate_existence(
             new_particle_state.existence_probability)
 
-        predicted_weights = self.predict_weights(new_particle_state.existence_probability,
-                                                 predicted_existence, nsurv_particles,
-                                                 new_particle_state.weight, nbirth_particles)
-        new_particle_state.weight = predicted_weights
+        predicted_log_weights = self.predict_log_weights(
+            new_particle_state.existence_probability,
+            predicted_existence, nsurv_particles,
+            new_particle_state.log_weight)
 
         # Create the prediction output
         new_particle_state = Prediction.from_state(
             new_particle_state,
             state_vector=new_state_vector,
+            log_weight=predicted_log_weights,
             existence_probability=predicted_existence,
             parent=untransitioned_state,
-            particle_list=None,
             timestamp=timestamp,
         )
         return new_particle_state
