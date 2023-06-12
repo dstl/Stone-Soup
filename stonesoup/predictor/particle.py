@@ -315,11 +315,7 @@ class BernoulliParticlePredictor(ParticlePredictor):
 
         untransitioned_state = Prediction.from_state(
             new_particle_state,
-            state_vector=new_particle_state.state_vector,
-            existence_probability=new_particle_state.existence_probability,
             parent=prior,
-            particle_list=None,
-            timestamp=new_particle_state.timestamp,
         )
 
         # Predict particles using the transition model
