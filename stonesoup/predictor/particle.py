@@ -309,10 +309,9 @@ class BernoulliParticlePredictor(ParticlePredictor):
         new_particle_state.state_vector = StateVectors(np.concatenate(
             (new_particle_state.state_vector, birth_part), axis=1))
         # Extend weights to match length of state_vector
-        new_weight_vector = np.concatenate(
-            (new_particle_state.weight, np.array([Probability(1/nbirth_particles)]
-                                                 * nbirth_particles)))
-        new_particle_state.weight = new_weight_vector/sum(new_weight_vector)
+        new_log_weight_vector = np.concatenate(
+            (new_particle_state.log_weight, np.full(nbirth_particles, np.log(1/nbirth_particles))))
+        new_particle_state.log_weight = new_log_weight_vector - logsumexp(new_log_weight_vector)
 
         untransitioned_state = Prediction.from_state(
             new_particle_state,
