@@ -15,7 +15,6 @@ from ..types.state import GaussianState
 from ..sampler import Sampler
 
 from ..types.array import StateVectors
-from ..types.numeric import Probability
 
 
 class ParticlePredictor(Predictor):
