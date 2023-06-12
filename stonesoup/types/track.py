@@ -135,7 +135,7 @@ class Track(StateMutableSequence):
                                 and hypothesis.measurement.metadata is not None:
                             self.metadata.update(hypothesis.measurement.metadata)
                 except TypeError:
-                    self.metadata.update({})
+                    pass
             else:
                 hypothesis = state.hypothesis
                 if hypothesis and hypothesis.measurement.metadata is not None:
