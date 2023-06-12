@@ -2,6 +2,7 @@ import copy
 from typing import Sequence
 
 import numpy as np
+from scipy.special import logsumexp
 from ordered_set import OrderedSet
 
 from .base import Predictor
