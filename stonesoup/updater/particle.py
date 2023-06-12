@@ -435,15 +435,15 @@ class BernoulliParticleUpdater(ParticleUpdater):
                     - np.log(self.clutter_rate * self.clutter_distribution)
                     + updated_state.log_weight))
 
-                delta = \
-                    np.exp(self._log_space_product(log_detection_probability,
-                                                   updated_state.log_weight)) \
-                    - np.exp(logsumexp(delta_part2))
+            delta = \
+                np.exp(self._log_space_product(log_detection_probability,
+                                               updated_state.log_weight)) \
+                - np.exp(logsumexp(delta_part2))
 
-                updated_state.existence_probability = \
-                    (1 - delta) \
-                    / (1 - updated_state.existence_probability * delta) \
-                    * updated_state.existence_probability
+            updated_state.existence_probability = \
+                (1 - delta) \
+                / (1 - updated_state.existence_probability * delta) \
+                * updated_state.existence_probability
 
             updated_state.log_weight = \
                 np.logaddexp(log_detection_probability
