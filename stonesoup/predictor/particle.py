@@ -350,24 +350,24 @@ class BernoulliParticlePredictor(ParticlePredictor):
                              + self.survival_probability * existence_prior
         return existence_estimate
 
-    def predict_weights(self, prior_existence, predicted_existence, surv_part_size, prior_weights,
-                        nbirth_particles):
+    def predict_log_weights(self, prior_existence, predicted_existence, surv_part_size,
+                            prior_log_weights):
 
         # Weight prediction function currently assumes that the chosen importance density is the
         # transition density. This will need to change if implementing a different importance
         # density or incorporating visibility information
 
-        surv_weights = (self.survival_probability*prior_existence)/predicted_existence \
-            * prior_weights[:surv_part_size]
+        surv_weights = np.log((self.survival_probability*prior_existence)/predicted_existence) \
+            + prior_log_weights[:surv_part_size]
 
-        birth_weights = (self.birth_probability*(1-prior_existence))/predicted_existence \
-            * prior_weights[nbirth_particles:]
-        predicted_weights = np.concatenate((surv_weights, birth_weights))
+        birth_weights = np.log((self.birth_probability*(1-prior_existence))/predicted_existence) \
+            + prior_log_weights[surv_part_size:]
+        predicted_log_weights = np.concatenate((surv_weights, birth_weights))
 
         # Normalise weights
-        predicted_weights = predicted_weights / np.sum(predicted_weights)
+        predicted_log_weights -= logsumexp(predicted_log_weights)
 
-        return predicted_weights
+        return predicted_log_weights
 
     @staticmethod
     def get_detections(prior):
