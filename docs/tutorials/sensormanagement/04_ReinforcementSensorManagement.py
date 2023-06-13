@@ -8,15 +8,15 @@
 """
 
 # %%
-# This tutorial introduces using a Deep Q Network (DQN) reinforcement learning sensor management algorithm in
+# This tutorial introduces using a Deep Q Network (DQN) reinforcement learning (RL) sensor management algorithm in
 # Stone Soup.
 #
-# This is compared to the performance of a brute force algorithm using the same metrics as in precious tutorials.
+# This is compared to the performance of a brute force algorithm using the same metrics as in previous tutorials.
 #
 # This example is similar to previous examples, simulating 3 targets and a :class:`~.RadarRotatingBearingRange` sensor,
 # which can be actioned to point in different directions.
 #
-# tensorflow-agents is used as the reinforcement learning framework. This currently only works on Linux based OSes, or
+# Tensorflow-agents is used as the reinforcement learning framework. This currently only works on Linux based OSes, or
 # via Windows Subsystem for Linux (WSL). See Tensorflow instructions for creating environments (with GPU support if
 # applicable) [#]_.
 
@@ -216,6 +216,21 @@ data_associator = GNNWith2DAssignment(hypothesiser)
 
 from stonesoup.sensormanager.reward import UncertaintyRewardFunction
 reward_function = UncertaintyRewardFunction(predictor=predictor, updater=updater)
+
+
+# %%
+# Reinforcement Learning
+# ^^^^^^^^^^^^^^^^^^^^^^
+#
+# Reinforcement learning is when an intelligent agents make decisions to maximise a cumulative reward. First, the agent
+# must train in an environment to create a policy, which determines which actions to take. During training, the agent
+# makes decisions and receives rewards, which is uses to optimise the policy.
+#
+# .. image:: ../../_static/rl_training.png
+#   :width: 800
+#   :alt: Illustration of sequential actions and measurements
+#
+# Once training has completed, the policy can be exploited to gain rewards.
 
 
 # %%
@@ -641,7 +656,7 @@ ax.legend()
 # Next we look at SIAP metrics. We are only interested in the positional accuracy (PA) and velocity accuracy (VA).
 # These metrics can be plotted to show how they change over time.
 
-fig, axes = plt.subplots(2)
+fig, axes = plt.subplots(2, constrained_layout=True)
 
 times = metric_managerA.list_timestamps()
 
@@ -668,7 +683,7 @@ axes[1].legend()
 # %%
 # Similar to the OSPA distances the :class:`~.BruteForceSensorManager`
 # generally results in both a better positional accuracy and velocity accuracy than the observations
-# of the :class:`~.ReinforcmentSensorManager`.
+# of the :class:`~.ReinforcementSensorManager`.
 #
 
 # %%
