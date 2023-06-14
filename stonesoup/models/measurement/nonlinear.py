@@ -1,11 +1,13 @@
 from abc import ABC
 import copy
 from typing import Sequence, Tuple, Union
+# import math
 
 from math import sqrt
 import numpy as np
 from scipy.linalg import inv, pinv, block_diag
 from scipy.stats import multivariate_normal
+from scipy.special import erf
 
 from ...base import Property, clearable_cached_property
 from ...types.numeric import Probability
@@ -17,6 +19,7 @@ from ...types.array import StateVector, CovarianceMatrix, StateVectors
 from ...types.angle import Bearing, Elevation
 from ..base import LinearModel, GaussianModel, ReversibleModel
 from .base import MeasurementModel
+from ...types.state import State
 
 
 class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel, MeasurementModel):
@@ -1248,3 +1251,90 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
     def logpdf(self, *args, **kwargs):
         # As pdf replaced, need to go to first non GaussianModel parent
         return super(ReversibleModel, self).logpdf(*args, **kwargs)
+
+
+class PasquilGaussianPlume(GaussianModel):
+    """Pasquil Gaussian Plume model
+    """
+
+    noise: float = Property(default=0.6)
+
+    translation_offset: StateVector = Property(
+        default=None,
+        doc="A 3x1 array specifying the Cartesian origin offset in terms of :math:`x,y,z` "
+            "coordinates.")
+
+    missed_detection_probability: Probability = Property(
+        default=0.1,
+        doc="The probability that the detection has detection has been affected by turbulence."
+    )
+
+    sensing_threshold: float = Property(
+        default=0.1,
+        doc="Measurement threshold. Should be set high enough to minimise false detections."
+    )
+
+
+    def __init__(self, *args, **kwargs):
+        """
+        Ensure that the translation offset is initiated
+        """
+        super().__init__(*args, **kwargs)
+        # Set values to defaults if not provided
+        if self.translation_offset is None:
+            self.translation_offset = StateVector([0] * 3)
+
+    def covar(self, **kwargs) -> CovarianceMatrix:
+        return CovarianceMatrix([[self.noise]])
+
+    @property
+    def ndim(self) -> int:
+        return 1
+
+    def function(self, state: State, noise: Union[bool, np.ndarray] = False, **kwargs) -> Union[
+        StateVector, StateVectors]:
+
+        x, y, z, Q, u, phi, ci, cii = state.state_vector.view(np.ndarray)
+
+        px, py, pz = self.translation_offset
+        lambda_ = np.sqrt((ci * cii)/(1 + (u**2 * cii)/(4 * ci)))
+        abs_dist = np.linalg.norm(state.state_vector[:3, :] - self.translation_offset, axis=0)
+
+        # prevent divide by zero when converging on the source location
+        abs_dist[abs_dist < 0.1] = 0.1
+
+        C = Q / (4 * np.pi * ci * abs_dist) * np.exp(
+            (-(px - x) * u * np.cos(phi) / (2 * ci)) + (-(py - y) * u * np.sin(phi) / (2 * ci))
+            + (-1 * abs_dist / lambda_))
+
+        C = np.atleast_2d(C)
+
+        if noise:
+            C += self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
+            C[C < 0] = 0
+
+        return C.view(StateVectors)
+
+    def logpdf(self, state1: State, state2: State, **kwargs) -> Union[float, np.ndarray]:
+
+        covar = self.covar(**kwargs)
+
+        # If model has None-type covariance or contains None, it does not represent a Gaussian
+        if covar is None or None in covar:
+            raise ValueError("Cannot generate pdf from None-type covariance")
+
+        p_m = self.missed_detection_probability
+        nd_sigma = 1e-4 + state1.state_vector
+        if state1.state_vector < self.sensing_threshold:
+            pdf = p_m + ((1-p_m) * 1/2 * (1+erf((self.sensing_threshold - state1.state_vector)
+                                                     / (nd_sigma * sqrt(2)))))
+            likelihood = np.atleast_1d(np.log(pdf))
+        else:
+            likelihood = np.atleast_1d(
+                multivariate_normal.logpdf(
+                    (state1.state_vector - self.function(state2, **kwargs)).T, cov=covar))
+
+        if len(likelihood) == 1:
+            likelihood = likelihood[0]
+
+        return likelihood
