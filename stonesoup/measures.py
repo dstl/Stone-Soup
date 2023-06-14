@@ -1,4 +1,5 @@
 import copy
+import math
 from abc import abstractmethod
 from functools import lru_cache
 
@@ -6,7 +7,7 @@ import numpy as np
 from scipy.spatial import distance
 
 from .base import Base, Property
-from .types.state import State
+from .types.state import State, ParticleState, GaussianState
 
 
 class Measure(Base):
@@ -401,3 +402,33 @@ class ObservationAccuracy(Measure):
         mins = [min(s1, s2) for s1, s2 in zip(s1, s2)]
         maxs = [max(s1, s2) for s1, s2 in zip(s1, s2)]
         return np.sum(mins)/np.sum(maxs)
+
+class KLDivergence(Measure):
+    """  """
+
+    def __call__(self, state1, state2):
+        r"""
+        Computes the Kullback–Leibler divergence from :class:`~.State` object1 to :class: '~.State object2
+
+        Parameters
+        ----------
+        state1 : :class:`~.State`
+        state2 : :class:`~.State`
+
+        Returns
+        -------
+        float
+            Kullback–Leibler divergence from :class:`~.State` object1 to :class: '~.State object2
+
+        """
+        if isinstance(state1, ParticleState) and isinstance(state2, ParticleState):
+            if len(state1.particles) == len(state2.particles):
+                kld = 0
+                for ii in range(0, len(state1.particles)):
+                    kld += math.exp(state1.log_weight[ii])*(state1.log_weight[ii] - state2.log_weight[ii])
+            else:
+                raise ValueError('The input objects different number of particles.')
+        else:
+            raise TypeError('The inputs are possible states')
+
+        return kld

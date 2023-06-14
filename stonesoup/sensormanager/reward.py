@@ -5,6 +5,9 @@ from typing import Mapping, Sequence, Set
 
 import numpy as np
 
+from ..measures import KLDivergence
+from ..platform import Platform
+from ..sensor.actionable import Actionable
 from ..types.detection import TrueDetection
 from ..base import Base, Property
 from ..predictor.kalman import KalmanPredictor
@@ -13,7 +16,8 @@ from ..types.track import Track
 from ..types.hypothesis import SingleHypothesis
 from ..sensor.sensor import Sensor
 from ..sensor.action import Action
-
+from ..updater.particle import ParticleUpdater
+from ..types.state import State
 
 class RewardFunction(Base, ABC):
     """
@@ -133,3 +137,44 @@ class UncertaintyRewardFunction(RewardFunction):
 
         # Return value of configuration metric
         return config_metric
+
+class ExpectedKLDivergenceSTE(RewardFunction):
+    """
+
+    """
+    updater: ParticleUpdater = Property()
+
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+        self.KLD = KLDivergence()
+
+    def __call__(self, config: Mapping[Actionable, Sequence[Action]], tracks: Set[Track],
+                 metric_time: datetime.datetime, *args, **kwargs):
+        predicted_actionable = list()
+        memo = {}
+        # For each sensor in the configuration
+        for actionable, actions in config.items():
+            if isinstance(actionable, Platform):
+                # print(actionable.sensors)
+                predicted_actionable = copy.deepcopy(actionable, memo)
+                predicted_actionable.add_actions(actions)
+                predicted_actionable.act(metric_time)
+            # if isinstance(actionable, Actionable):
+            #     predicted_actionable.append(predicted_actionable)  # checks if its a sensor
+        sensors = predicted_actionable.sensors
+        kld = 0
+        for sensor in sensors:
+            for track in tracks:
+                prior = track[-1]
+                post = prior
+                predicted_measurement = sensor.measure({State(prior.mean)}, noise=False)
+                for measurement in predicted_measurement:
+                    if isinstance(measurement,TrueDetection):
+                        hypothesis = SingleHypothesis(prior, measurement)
+                        post = self.updater.update(hypothesis)
+                        prior = post
+
+            kld += self.KLD(track[-1], post)
+        # print(kld)
+
+        return kld
