@@ -6,7 +6,7 @@ from pytest import approx, raises
 
 from .. import (
     cholesky_eps, jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma,
-    rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart, dotproduct)
+    rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart, dotproduct, gm_sample)
 from ...types.array import StateVector, StateVectors, Matrix
 from ...types.state import State, GaussianState
 
@@ -271,3 +271,64 @@ def test_dotproduct(state_vector1, state_vector2):
 
             assert np.allclose(dotproduct(state_vector1, state_vector2),
                                np.reshape(out, np.shape(dotproduct(state_vector1, state_vector2))))
+
+
+@pytest.mark.parametrize(
+    "means, covars, weights, size",
+    [
+        (
+            [np.array([10, 10]), np.array([20, 20]), np.array([30, 30])],  # means
+            [np.eye(2), np.eye(2), np.eye(2)],  # covars
+            np.array([1/3]*3),  # weights
+            20  # size
+        ), (
+            StateVectors(np.array([[20, 30, 40, 50], [20, 30, 40, 50]])),  # means
+            [np.eye(2), np.eye(2), np.eye(2), np.eye(2)],  # covars
+            np.array([1/4]*4),  # weights
+            20  # size
+        ), (
+            [np.array([10, 10]), np.array([20, 20]), np.array([30, 30])],  # means
+            np.array([np.eye(2), np.eye(2), np.eye(2)]),  # covars
+            np.array([1/3]*3),  # weights
+            20  # size
+        ), (
+            [StateVector(np.array([10, 10])), StateVector(np.array([20, 20])),
+             StateVector(np.array([30, 30]))],  # means
+            [np.eye(2), np.eye(2), np.eye(2)],  # covars
+            np.array([1/3]*3),  # weights
+            20  # size
+        ), (
+            StateVector(np.array([10, 10])),  # means
+            [np.eye(2)],  # covars
+            np.array([1]),  # weights
+            20  # size
+        ), (
+            np.array([10, 10]),  # means
+            [np.eye(2)],  # covars
+            np.array([1]),  # weights
+            20  # size
+        ), (
+            [np.array([10, 10]), np.array([20, 20]), np.array([30, 30])],  # means
+            [np.eye(2), np.eye(2), np.eye(2)],  # covars
+            None,  # weights
+            20  # size
+        ), (
+            StateVectors(np.array([[20, 30, 40, 50], [20, 30, 40, 50]])),  # means
+            [np.eye(2), np.eye(2), np.eye(2), np.eye(2)],  # covars
+            None,  # weights
+            20  # size
+        )
+    ], ids=["mean_list", "mean_statevectors", "3d_covar_array", "mean_statevector_list",
+            "single_statevector_mean", "single_ndarray_mean", "no_weight_mean_list",
+            "no_weight_mean_statevectors"]
+)
+def test_gm_sample(means, covars, weights, size):
+    samples = gm_sample(means, covars, size, weights=weights)
+
+    # check orientation and size of samples
+    assert samples.shape[1] == size
+    # check number of dimensions
+    if isinstance(means, list):
+        assert samples.shape[0] == means[0].shape[0]
+    else:
+        assert samples.shape[0] == means.shape[0]

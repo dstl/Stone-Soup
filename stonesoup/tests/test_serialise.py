@@ -1,8 +1,11 @@
+import datetime
+
 import numpy as np
 import pytest
 from ruamel.yaml.constructor import ConstructorError
 
-from stonesoup.sensor.sensor import Sensor
+from .conftest import _TestBase
+from ..sensor.sensor import Sensor
 from ..serialise import YAML
 from ..base import Property
 from ..types.array import Matrix, StateVector, CovarianceMatrix
@@ -44,19 +47,23 @@ def test_nested_declarative(base, serialised_file):
     assert new_instance.property_c.property_b == "nested"
 
 
-def test_duplicate_tag_warning(base, serialised_file):
+class _TestDuplicateBase(_TestBase):
+    pass
+
+
+first_class = _TestDuplicateBase
+
+
+class _TestDuplicateBase(_TestBase):  # noqa:F801
+    pass
+
+
+second_class = _TestDuplicateBase
+
+
+def test_duplicate_tag_warning(serialised_file):
     if 'safe' in serialised_file.typ:
         pytest.xfail("With 'safe' constructor, warning isn't raised")
-
-    class _TestDuplicateBase(base):
-        pass
-
-    first_class = _TestDuplicateBase
-
-    class _TestDuplicateBase(base):  # noqa:F801
-        pass
-
-    second_class = _TestDuplicateBase
 
     instance = first_class(2, "20")
     instance.new_property = True
@@ -103,10 +110,11 @@ def test_probability(serialised_file):
     assert instance == new_instance
 
 
-def test_numpy(base, serialised_file):
-    class _TestNumpy(base):
-        property_d: np.ndarray = Property()
+class _TestNumpy(_TestBase):
+    property_d: np.ndarray = Property()
 
+
+def test_numpy(serialised_file):
     instance = _TestNumpy(1, "two",
                           property_d=np.array([[1, 2], [3, 4], [5, 6]]))
 
@@ -143,14 +151,13 @@ def test_numpy_dtypes(serialised_file, values):
     assert new_values == values
 
 
-def test_datetime(base, serialised_file):
-    import datetime
+class _TestDatetime(_TestBase):
+    property_d: datetime.datetime = Property()
 
-    class _TestNumpy(base):
-        property_d: datetime.datetime = Property()
 
-    instance = _TestNumpy(1, "two",
-                          property_d=datetime.timedelta(seconds=500))
+def test_datetime(serialised_file):
+    instance = _TestDatetime(1, "two",
+                             property_d=datetime.timedelta(seconds=500))
 
     serialised_str = serialised_file.dumps(instance)
 
@@ -187,7 +194,7 @@ def test_path(serialised_file):
 def test_references(base, serialised_file):
     serialised_str = """
         property_b: &prop_b '20'
-        test1: &id001 !stonesoup.tests.conftest.base.%3Clocals%3E._TestBase
+        test1: &id001 !stonesoup.tests.conftest._TestBase
             - property_a: 2
             - property_b: *prop_b
         test2: *id001
@@ -253,15 +260,16 @@ def test_missing_property(base, serialised_file):
         serialised_file.load(serialised_str)
 
 
+class TestSensor(Sensor):
+    @property
+    def measurement_model(self):
+        raise NotImplementedError
+
+    def measure(self):
+        pass
+
+
 def test_sensor_serialisation(serialised_file):
-    class TestSensor(Sensor):
-        @property
-        def measurement_model(self):
-            raise NotImplementedError
-
-        def measure(self):
-            pass
-
     sensor = TestSensor()
     assert sensor.position is None
     assert sensor.orientation is None
