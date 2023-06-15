@@ -226,7 +226,7 @@ pseudomeas_extractor = PseudoMeasExtractor()
 fuse_tracker1 = FuseTracker2(initiator=initiator1, predictor=two_state_predictor,
                              updater=two_state_updater, associator=fuse_associator,
                              tracklet_extractor=tracklet_extractor,
-                             pseudomeas_extractor=detector, death_rate=1e-4,
+                             pseudomeas_extractor=pseudomeas_extractor, death_rate=1e-4,
                              prob_detect=Probability(prob_detect),
                              delete_thresh=Probability(0.1))
 
@@ -237,8 +237,8 @@ tracklet_extractor2 = TrackletExtractor(transition_model=transition_model,
 pseudomeas_extractor2 = PseudoMeasExtractor()
 fuse_tracker2 = FuseTracker2(initiator=initiator1, predictor=two_state_predictor,
                              updater=two_state_updater, associator=fuse_associator,
-                             tracklet_extractor=tracklet_extractor,
-                             pseudomeas_extractor=detector, death_rate=1e-4,
+                             tracklet_extractor=tracklet_extractor2,
+                             pseudomeas_extractor=pseudomeas_extractor2, death_rate=1e-4,
                              prob_detect=Probability(prob_detect),
                              delete_thresh=Probability(0.1))
 
@@ -249,8 +249,8 @@ tracklet_extractor3 = TrackletExtractor(transition_model=transition_model,
 pseudomeas_extractor3 = PseudoMeasExtractor()
 fuse_tracker3 = FuseTracker2(initiator=initiator1, predictor=two_state_predictor,
                              updater=two_state_updater, associator=fuse_associator,
-                             tracklet_extractor=tracklet_extractor2,
-                             pseudomeas_extractor=detector, death_rate=1e-4,
+                             tracklet_extractor=tracklet_extractor3,
+                             pseudomeas_extractor=pseudomeas_extractor3, death_rate=1e-4,
                              prob_detect=Probability(prob_detect),
                              delete_thresh=Probability(0.1))
 
@@ -278,6 +278,8 @@ for (timestamp, tracks1), (_, tracks2), (_, tracks3) in zip(*leaf_trackers):
     scans1 = pseudomeas_extractor.extract(tracklets1, timestamp)
     # Generate fused tracks
     ctracks1 = fuse_tracker1.process_scans(scans1)
+    # The above steps can be combined into a single function call
+    # ctracks1 = fuse_tracker1.process_tracks(alltracks1, timestamp)
 
     # Run Fuse tracker 2
     # ~~~~~~~~~~~~~~~~~~~~
@@ -289,6 +291,8 @@ for (timestamp, tracks1), (_, tracks2), (_, tracks3) in zip(*leaf_trackers):
     scans2 = pseudomeas_extractor2.extract(tracklets2, timestamp)
     # Generate fused tracks
     ctracks2 = fuse_tracker2.process_scans(scans2)
+    # The above steps can be combined into a single function call
+    # ctracks2 = fuse_tracker2.process_tracks(alltracks2, timestamp)
 
     # Run Root tracker
     # ~~~~~~~~~~~~~~~~
@@ -304,6 +308,8 @@ for (timestamp, tracks1), (_, tracks2), (_, tracks3) in zip(*leaf_trackers):
     scans3 = pseudomeas_extractor3.extract(tracklets3, timestamp)
     # Generate fused tracks
     ctracks3 = fuse_tracker3.process_scans(scans3)
+    # The above steps can be combined into a single function call
+    # ctracks3 = fuse_tracker3.process_tracks(alltracks3, timestamp)
 
     # Store tracks
     tracks.update(ctracks3)
