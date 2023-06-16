@@ -129,10 +129,13 @@ class Track(StateMutableSequence):
                 # from all hypotheses are retained, but more likely
                 # hypotheses will over-write the metadata set by less likely
                 # ones.
-                for hypothesis in sorted(state.hypothesis, reverse=True):
-                    if hypothesis \
-                            and hypothesis.measurement.metadata is not None:
-                        self.metadata.update(hypothesis.measurement.metadata)
+                try:
+                    for hypothesis in sorted(state.hypothesis, reverse=True):
+                        if hypothesis \
+                                and hypothesis.measurement.metadata is not None:
+                            self.metadata.update(hypothesis.measurement.metadata)
+                except TypeError:
+                    pass
             else:
                 hypothesis = state.hypothesis
                 if hypothesis and hypothesis.measurement.metadata is not None:

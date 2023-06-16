@@ -11,6 +11,7 @@ from ..base import Property
 from ..functions import cholesky_eps, sde_euler_maruyama_integration
 from ..predictor.particle import MultiModelPredictor, RaoBlackwellisedMultiModelPredictor
 from ..resampler import Resampler
+from ..regulariser import Regulariser
 from ..types.prediction import (
     Prediction, ParticleMeasurementPrediction, GaussianStatePrediction, MeasurementPrediction)
 from ..types.update import ParticleStateUpdate, Update
@@ -28,6 +29,8 @@ class ParticleUpdater(Updater):
     """
 
     resampler: Resampler = Property(default=None, doc='Resampler to prevent particle degeneracy')
+    regulariser: Regulariser = Property(default=None, doc="Regulariser to prevent particle "
+                                                          "impoverishment")
 
     def update(self, hypothesis, **kwargs):
         """Particle Filter update step
@@ -348,3 +351,135 @@ class RaoBlackwellisedParticleUpdater(MultiModelParticleUpdater):
         new_log_probabilities -= logsumexp(new_log_probabilities, axis=0)
 
         return np.exp(new_log_probabilities)
+
+
+class BernoulliParticleUpdater(ParticleUpdater):
+    """Bernoulli Particle Filter Updater class
+
+    An implementation of a particle filter updater utilising the
+    Bernoulli filter formulation that estimates the spatial distribution
+    of a single target and estimates its existence, as described in [1]_.
+
+    Due to the nature of the Bernoulli particle
+    filter prediction process, resampling is required at every
+    time step to reduce the number of particles back down to the
+    desired size.
+
+    References
+    ----------
+    .. [1] Ristic, Branko & Vo, Ba-Toung & Vo, Ba-Ngu & Farina, Alfonso, A
+       Tutorial on Bernoulli Filters: Theory, Implementation and Applications,
+       2013, IEEE Transactions on Signal Processing, 61(13), 3406-3430.
+    """
+
+    birth_probability: float = Property(
+        default=0.01,
+        doc="Probability of target birth.")
+
+    survival_probability: float = Property(
+        default=0.98,
+        doc="Probability of target survival")
+
+    clutter_rate: int = Property(
+        default=1,
+        doc="Average number of clutter measurements per time step. Implementation assumes number "
+            "of clutter measurements follows a Poisson distribution")
+
+    clutter_distribution: float = Property(
+        default=None,
+        doc="Distribution used to describe clutter measurements. This is usually assumed uniform "
+            "in the measurement space.")
+    detection_probability: float = Property(
+        default=None,
+        doc="Probability of detection assigned to the generated samples of the birth distribution."
+            " If None, it will inherit from the input.")
+    nsurv_particles: float = Property(
+        default=None,
+        doc="Number of particles describing the surviving distribution, which will be output from "
+            "the update algorithm.")
+
+    def update(self, hypotheses, **kwargs):
+        """Bernoulli Particle Filter update step
+
+        Parameters
+        ----------
+        hypotheses : :class:`~.MultipleHypothesis`
+            Hypotheses containing the sequence of single hypotheses
+            that contain the prediction and unassociated measurements.
+        Returns
+        -------
+        : :class:`~.BernoulliParticleStateUpdate`
+            The state posterior.
+        """
+        # copy prediction
+        prediction = hypotheses.single_hypotheses[0].prediction
+
+        updated_state = copy.copy(prediction)
+
+        if any(hypotheses):
+            detections = [single_hypothesis.measurement
+                          for single_hypothesis in hypotheses.single_hypotheses]
+
+            # Evaluate measurement likelihood and approximate integrals
+            log_meas_likelihood = []
+            delta_part2 = []
+            log_detection_probability = np.full(len(prediction),
+                                                np.log(self.detection_probability))
+
+            for detection in detections:
+                measurement_model = detection.measurement_model or self.measurement_model
+                log_meas_likelihood.append(measurement_model.logpdf(detection, updated_state))
+                delta_part2.append(self._log_space_product(
+                    log_detection_probability,
+                    log_meas_likelihood[-1]
+                    - np.log(self.clutter_rate * self.clutter_distribution)
+                    + updated_state.log_weight))
+
+            delta = \
+                np.exp(self._log_space_product(log_detection_probability,
+                                               updated_state.log_weight)) \
+                - np.exp(logsumexp(delta_part2))
+
+            updated_state.existence_probability = \
+                (1 - delta) \
+                / (1 - updated_state.existence_probability * delta) \
+                * updated_state.existence_probability
+
+            updated_state.log_weight = \
+                np.logaddexp(log_detection_probability
+                             + logsumexp(log_meas_likelihood, axis=0)
+                             - np.log(self.clutter_rate * self.clutter_distribution),
+                             np.log(1 - self.detection_probability)) \
+                + updated_state.log_weight
+
+            # Normalise weights
+            updated_state.log_weight -= logsumexp(updated_state.log_weight)
+
+        # Resampling
+        if self.resampler is not None:
+            updated_state = self.resampler.resample(updated_state,
+                                                    self.nsurv_particles)
+
+        if any(hypotheses):
+            # Regularisation
+            if self.regulariser is not None:
+                regularised_parts = self.regulariser.regularise(updated_state.parent,
+                                                                updated_state,
+                                                                detections)
+                updated_state.state_vector = regularised_parts.state_vector
+
+        return Update.from_state(
+            updated_state,
+            timestamp=updated_state.timestamp,
+            hypothesis=hypotheses,
+        )
+
+    @staticmethod
+    def _log_space_product(A, B):
+        if A.ndim < 2:
+            A = np.atleast_2d(A)
+        if B.ndim < 2:
+            B = np.atleast_2d(B).T
+        Astack = np.stack([A] * B.shape[1]).transpose(1, 0, 2)
+        Bstack = np.stack([B] * A.shape[0]).transpose(0, 2, 1)
+        return np.squeeze(logsumexp(Astack + Bstack, axis=2))
