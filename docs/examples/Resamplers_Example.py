@@ -20,10 +20,14 @@ Particle Filter Resamplers: Example
 # - Systematic resampler
 # - Multinomial resampler
 # - Stratified resampler
+# - Residual resampler*
+# - Effective Sample Size Resampler*
+#
+# *preprocessing methods that require the use of another resampler
 
 # %%
 # Plotter for this notebook
-# """""""""""""""""""""""""
+# ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 import matplotlib.pyplot as plt
 
@@ -138,7 +142,7 @@ plot(normalised_weights, u_j)
 
 # %%
 # Multinomial Resampler
-# """""""""""""""""""""
+# ^^^^^^^^^^^^^^^^^^^^^
 #
 # The Multinomial resampler calculates :math:`N` independent random numbers from the uniform
 # distribution :math:`u \sim U(0,1]`, where :math:`N` is the target number of particles to
@@ -161,7 +165,7 @@ plot(normalised_weights, u_j)
 
 # %%
 # Systematic Resampler
-# """"""""""""""""""""
+# ^^^^^^^^^^^^^^^^^^^^
 #
 # Unlike the Multinomial resampler, the Systematic resampler doesn't calculate all points
 # independently. Instead, a single, random starting point is chosen. :math:`N` points are then
@@ -183,7 +187,7 @@ plot(normalised_weights, u_j)
 
 # %%
 # Stratified Resampler
-# """"""""""""""""""""
+# ^^^^^^^^^^^^^^^^^^^^
 #
 # The Stratified resampler splits the whole CDF into :math:`N` evenly sized strata
 # (subpopulations). A random point is then chosen, independently, from each stratum. This results
@@ -204,11 +208,53 @@ u_j = np.random.uniform(s_lb, s_lb + (1 / n_particles))
 plot(normalised_weights, u_j, s_lb)
 
 # %%
+# Preprocessing methods
+# ---------------------
+
+# %%
+# Residual Resampler
+# ^^^^^^^^^^^^^^^^^^
+#
+# The residual resampler consists of two stages.
+#
+# **Stage 1**
+#
+# The first stage determines which particles have weight :math:`w^{i}_{j} \geq N`. Each of these
+# particles is then resampled :math:`N^{i}_{j} = floor(Nw^{i}_{j})` times. Hence we resample
+# :math:`N_j = \sum_{i=1}^{N}` particles in stage 1.
+#
+# **Stage 2**
+# We now look to resample the remaining :math:`R_j = N - N_j` particles from stage 2. The
+# residual weights from each particle are carried over from stage 1. These residual weights are
+# normalised, and used to calculate a CDF. We then use any of the first 3 resamplers to sample
+# :math:`R_j` particles using the CDF.
+#
+# This method reduces the number of particles that are sampled through the more computationally
+# expensive methods seen above.
+#
+# When using the Residual resampler in Stone-Soup, the Resampler requires a property
+# 'residual_resampler'. This property defines which resampler method to use for resampling the
+# residuals in stage 2.
+# The variable must be a string value from the following: ['multinomial', 'systematic',
+# 'stratified']. `If no residual_method` variable is provided, the multinomial method will be used
+# by default.
+
+# %%
+# ESS Resampler
+# ^^^^^^^^^^^^^
+#
+# The ESS (Effective Sample Size) resampler is a wrapper around another resampler. It performs a
+# check at each time step to determine whether it is necessary to resample the particles.
+# Resampling is only performed at a given time step if a defined criterion is met. By default,
+# this criterion is
+# :math:`\frac{1}{\sum \exp(2 * particle_log_weight)}1 \leq \frac{n_particles}{2}`
+
+# %%
 # Example in Stone-Soup
 # ---------------------
 #
 # Generate some particles
-# """""""""""""""""""""""
+# ^^^^^^^^^^^^^^^^^^^^^^^
 #
 # An example of resampling particles using the Stone-Soup package. We generate some particles
 # using the Particle class from Stone-Soup. In this example, we give every particle an equal
@@ -222,8 +268,8 @@ from stonesoup.types.particle import Particle
 particles = [Particle(np.array([[i]]), weight=1/5) for i in range(5)]
 
 # %%
-# Specify and run resampler
-# """""""""""""""""""""""""
+# Simple Example
+# """"""""""""""
 
 
 from stonesoup.resampler.particle import MultinomialResampler
@@ -240,3 +286,15 @@ print(resampled_particles.weight)
 # %%
 # Here we can see which particles were chosen to be resampled, and the weights of the new
 # particles.
+
+# %%
+# Example using ESS and ResidualResampler
+# """""""""""""""""""""""""""""""""""""""
+
+from stonesoup.resampler.particle import ESSResampler, ResidualResampler
+
+# Resampler
+
+subresampler = ResidualResampler(residual_method='')
+resampler = ESSResampler(resampler=subresampler)
+resampler.resample(particles)
