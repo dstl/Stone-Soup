@@ -270,6 +270,13 @@ particles = [Particle(np.array([[i]]), weight=1/5) for i in range(5)]
 # %%
 # Simple Example
 # """"""""""""""
+#
+# In this example, we use the Multinomial Resampler to resample the particles generated above. We
+# simply define the Resampler, and then call the Resampler's method resample(), to resample the
+# particles.
+#
+# There are situations where we may want to resample to a different number of particles. Excluding
+# the ResidualResampler, all stonesoup resamplers can up or down-sample as shown below.
 
 
 from stonesoup.resampler.particle import MultinomialResampler
@@ -279,9 +286,14 @@ resampler = MultinomialResampler()
 
 # Resample particles
 resampled_particles = resampler.resample(particles)
-
 print(resampled_particles.state_vector)
 print(resampled_particles.weight)
+
+# Repeat while upsampling particles
+upsampled_particles = resampler.resample(particles, nparts=10)
+print(upsampled_particles.state_vector)
+print(upsampled_particles.weight)
+
 
 # %%
 # Here we can see which particles were chosen to be resampled, and the weights of the new
@@ -290,11 +302,15 @@ print(resampled_particles.weight)
 # %%
 # Example using ESS and ResidualResampler
 # """""""""""""""""""""""""""""""""""""""
+#
+# In this example, we use both the Effecive Sample Size method, and the residual resampler, using
+# the systematic method to resample the residuals.
 
 from stonesoup.resampler.particle import ESSResampler, ResidualResampler
 
-# Resampler
-
-subresampler = ResidualResampler(residual_method='')
+# Define Resampler
+subresampler = ResidualResampler(residual_method='systematic')
 resampler = ESSResampler(resampler=subresampler)
+
+# Resample Particles
 resampler.resample(particles)
