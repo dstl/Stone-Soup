@@ -18,23 +18,28 @@ class DummyDetector(DetectionReader):
         yield self.current
 
 
-class SimpleFusionTracker(Tracker):
-    """Presumes data from this node are detections, and from every other node are tracks"""
-    tracker: Tracker = Property(
+class SimpleFusionTracker(Tracker): # implement tracks method
+    """Presumes data from this node are detections, and from every other node are tracks
+    Acts as a wrapper around a base tracker. Track is fixed after the sliding window.
+    It exists within it, but the States may change. """
+    base_tracker: Tracker = Property(
         doc="Tracker given to the fusion node")
-    track_fusion_tracker: Tracker = Property(
-        doc="Tracker for associating tracks at the node")
-    sliding_window = Property(
+    # Question (for Alasdair??): Do we want an over-arching fusion tracker,
+    # or give each Node its own? Probably latter
+    sliding_window = Property(  # This entails assumptions: fixed time intervals for one.
+        # Do we express in seconds, or steps
         doc="The number of time steps before the result is fixed")
-    data = Property(
-        doc="data received from queue and sensor")
-    current_time: datetime.datetime = Property(
-        doc='Current time in simulation')
+    data = Property( # better name for this
+        doc="Data received from queue and sensor")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._tracks = set()
 
     def __next__(self):
         # Get data in time window
-        data_in_window = set()
-        data_not_in_window = set()
+        data_in_window = set()  #? Convert to list? If ordered we can remove [0] and add to end.
+        data_not_in_window = set() # This should just be fixed_track or something like that (ie a Track object)
         for data_piece in self.data:
             if (self.current_time - datetime.timedelta(seconds=self.sliding_window) <
                     data_piece.time_arrived <= self.current_time):
@@ -63,7 +68,9 @@ class SimpleFusionTracker(Tracker):
             self.track_fusion_tracker.detector = Tracks2GaussianDetectionFeeder(dummy_detector)
             self.track_fusion_tracker.__iter__()
             _, tracks = next(self.track_fusion_tracker)
-            self.track_fusion_tracks.update(tracks)
+            self.track_fusion_tracker.update(tracks)
+
+        return time, self.tracks
 
 
     # Don't edit anything that comes before the current time - the sliding window. That's fixed forever.
