@@ -1,10 +1,23 @@
 import numpy as np
+import pytest
 
 from ...types.particle import Particle
 from ...types.state import ParticleState
 from ..particle import SystematicResampler, MultinomialResampler, StratifiedResampler, \
     ResidualResampler
 from ..particle import ESSResampler
+
+
+def test_raise_errors():
+    particles = [Particle(np.array([[i]]), weight=1 / 20) for i in range(20)]
+    resampler1 = ResidualResampler()
+    resampler2 = ResidualResampler(residual_method='This_is_not_a_valid_residual_method')
+
+    with pytest.raises(ValueError):
+        resampler1.resample(particles, nparts=5000000)
+
+    with pytest.raises(ValueError):
+        resampler2.resample(particles)
 
 
 def test_systematic_equal():
@@ -113,15 +126,49 @@ def test_ess_empty_threshold():
     assert resampler.threshold == 5
 
 
+def test_ess_upsample():
+    particles = [Particle(np.array([[i]]), weight=(i + 1) / 55)
+                 for i in range(10)]
+    particles = ParticleState(None, particle_list=particles)
+
+    # This resampler should not resample
+    resampler1 = ESSResampler(resampler=MultinomialResampler())
+    # This resampler should resample
+    resampler2 = ESSResampler(3025 / 385 + 0.01, resampler=MultinomialResampler())
+
+    new_particles1 = resampler1.resample(particles, nparts=20)
+    new_particles2 = resampler2.resample(particles, nparts=20)
+
+    assert new_particles1 == particles and all([w == 1 / 20 for w in new_particles2.weight])
+    assert len(new_particles2) == 20
+
+
+def test_ess_downsample():
+    particles = [Particle(np.array([[i]]), weight=(i + 1) / 55)
+                 for i in range(10)]
+    particles = ParticleState(None, particle_list=particles)
+
+    # This resampler should not resample
+    resampler1 = ESSResampler(resampler=MultinomialResampler())
+    # This resampler should resample
+    resampler2 = ESSResampler(3025 / 385 + 0.01, resampler=MultinomialResampler())
+
+    new_particles1 = resampler1.resample(particles, nparts=5)
+    new_particles2 = resampler2.resample(particles, nparts=5)
+
+    assert new_particles1 == particles and all([w == 1 / 5 for w in new_particles2.weight])
+    assert len(new_particles2) == 5
+
+
 def test_ess_multinomial():
     particles = [Particle(np.array([[i]]), weight=(i + 1) / 55)
                  for i in range(10)]
     particles = ParticleState(None, particle_list=particles)
 
     # This resampler should not resample
-    resampler1 = ESSResampler(resampler=MultinomialResampler)
+    resampler1 = ESSResampler(resampler=MultinomialResampler())
     # This resampler should resample
-    resampler2 = ESSResampler(3025/385 + 0.01, resampler=MultinomialResampler)
+    resampler2 = ESSResampler(3025/385 + 0.01, resampler=MultinomialResampler())
 
     new_particles1 = resampler1.resample(particles)
     new_particles2 = resampler2.resample(particles)
@@ -135,9 +182,9 @@ def test_ess_stratified():
     particles = ParticleState(None, particle_list=particles)
 
     # This resampler should not resample
-    resampler1 = ESSResampler(resampler=StratifiedResampler)
+    resampler1 = ESSResampler(resampler=StratifiedResampler())
     # This resampler should resample
-    resampler2 = ESSResampler(3025/385 + 0.01, resampler=StratifiedResampler)
+    resampler2 = ESSResampler(3025/385 + 0.01, resampler=StratifiedResampler())
 
     new_particles1 = resampler1.resample(particles)
     new_particles2 = resampler2.resample(particles)
@@ -150,10 +197,32 @@ def test_ess_residual():
                  for i in range(10)]
     particles = ParticleState(None, particle_list=particles)
 
+    subresampler = ResidualResampler()
+
     # This resampler should not resample
-    resampler1 = ESSResampler(resampler=ResidualResampler)
+    resampler1 = ESSResampler(resampler=subresampler)
+
     # This resampler should resample
-    resampler2 = ESSResampler(3025/385 + 0.01, resampler=ResidualResampler)
+    resampler2 = ESSResampler(3025/385 + 0.01, resampler=subresampler)
+
+    new_particles1 = resampler1.resample(particles)
+    new_particles2 = resampler2.resample(particles)
+
+    assert new_particles1 == particles and all([w == 1 / 10 for w in new_particles2.weight])
+
+
+def test_ess_residual_non_default():
+    particles = [Particle(np.array([[i]]), weight=(i + 1) / 55)
+                 for i in range(10)]
+    particles = ParticleState(None, particle_list=particles)
+
+    subresampler = ResidualResampler(residual_method='stratified')
+
+    # This resampler should not resample
+    resampler1 = ESSResampler(resampler=subresampler)
+
+    # This resampler should resample
+    resampler2 = ESSResampler(3025/385 + 0.01, resampler=subresampler)
 
     new_particles1 = resampler1.resample(particles)
     new_particles2 = resampler2.resample(particles)
@@ -324,9 +393,9 @@ def test_residual_multinomial_alternating():
     particles = [Particle(np.array([[i]]), weight=3 / 80 if i % 2 == 0 else 5 / 80) for i in
                  range(20)]
 
-    resampler = ResidualResampler()
+    resampler = ResidualResampler(residual_method='multinomial')
 
-    new_particles = resampler.resample(particles, residual_method='multinomial')
+    new_particles = resampler.resample(particles)
 
     # Weight all at single particle at index/vector 10, so all should be
     # at same point
@@ -348,9 +417,9 @@ def test_residual_stratified_alternating():
     particles = [Particle(np.array([[i]]), weight=3 / 80 if i % 2 == 0 else 5 / 80) for i in
                  range(20)]
 
-    resampler = ResidualResampler()
+    resampler = ResidualResampler(residual_method='stratified')
 
-    new_particles = resampler.resample(particles, residual_method='stratified')
+    new_particles = resampler.resample(particles)
 
     # Weight all at single particle at index/vector 10, so all should be
     # at same point
@@ -372,9 +441,9 @@ def test_residual_systematic_alternating():
     particles = [Particle(np.array([[i]]), weight=3 / 80 if i % 2 == 0 else 5 / 80) for i in
                  range(20)]
 
-    resampler = ResidualResampler()
+    resampler = ResidualResampler(residual_method='systematic')
 
-    new_particles = resampler.resample(particles, residual_method='systematic')
+    new_particles = resampler.resample(particles)
 
     # Weight all at single particle at index/vector 10, so all should be
     # at same point

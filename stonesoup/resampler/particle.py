@@ -71,11 +71,11 @@ class ESSResampler(Resampler):
                                 doc='Threshold compared with ESS to decide whether to resample. \
                                     Default is number of particles divided by 2, \
                                         set in resample method')
-    resampler: Resampler = Property(default=SystematicResampler,
+    resampler: Resampler = Property(default=SystematicResampler(),
                                     doc='Resampler to wrap, which is called \
                                         when ESS below threshold')
 
-    def resample(self, particles):
+    def resample(self, particles, nparts=None):
         """
         Parameters
         ----------
@@ -89,11 +89,14 @@ class ESSResampler(Resampler):
         """
         if not isinstance(particles, ParticleState):
             particles = ParticleState(None, particle_list=particles)
+        if nparts is None:
+            nparts = len(particles)
         if self.threshold is None:
             self.threshold = len(particles) / 2
         # If ESS too small, resample
         if 1 / np.sum(np.exp(2*particles.log_weight)) < self.threshold:
-            return self.resampler.resample(self.resampler, particles)
+            print('ran')
+            return self.resampler.resample(particles, nparts)
         else:
             return particles
 
@@ -206,34 +209,45 @@ class ResidualResampler(Resampler):
     Should be a more computationally efficient method than resampling all particles from a CDF.
     Cannot be used to upsample or downsample.
     """
+    residual_method: str = Property(default=None,
+                                    doc="string value...")
 
-    def resample(self, particles, residual_method=None):
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     if self.residual_method is None:
+    #         self.residual_method = 'multinomial'
+
+    def resample(self, particles, nparts=None):
         """Resample the particles
 
         Parameters
         ----------
         particles : :class:`~.ParticleState` or list of :class:`~.Particle`
             The particles or particle state to be resampled according to their weights
-        residual_method : str
-            Resampling method used for resampling te residuals. Must be a string value from the
-            following options: ['multinomial', 'systematic', 'stratified'].
+        nparts : int
+            The number of particles to be returned from resampling
+        residual_method: str
+            Method used to resample from residuals, must be a string value from ['multinomial',
+            'systematic', 'stratified']
 
         Returns
         -------
         particle state: :class:`~.ParticleState`
             The particle state after resampling
         """
-
         if not isinstance(particles, ParticleState):
             particles = ParticleState(None, particle_list=particles)
-        if residual_method is None:
-            residual_method = 'multinomial'
-        elif type(residual_method) != str:
-            raise TypeError("residual_method variable must be a string name of a resampling "
-                            "method")
 
-        nparts = len(particles)
-
+        if nparts is None:
+            nparts = len(particles)
+        elif nparts != len(particles):
+            raise ValueError("Residual Resampler cannot up-sample or down-sample, nparts must be "
+                             "equal to the exiting number of particles"
+                             "equal the number particles from the previous time step")
+        if self.residual_method is None:
+            self.residual_method = 'multinomial'
+        residual_method = self.residual_method
+        print(residual_method)
         log_weights = particles.log_weight
 
         # Get the true weight of each particle
@@ -287,7 +301,7 @@ class ResidualResampler(Resampler):
             # Independently pick a point in each stratum
             u_j = np.random.uniform(s_l, s_l + (1 / nparts))
         else:
-            raise ValueError("Invalid string variable given for stage 2 residual resampler")
+            raise ValueError("Invalid string variable given for stage 2 residual_method")
 
         # Pick particles that represent the chosen point from the cdf
         stage_2_index = weight_order[np.searchsorted(cdf, np.log(u_j))]
