@@ -14,7 +14,8 @@ class SystematicResampler(Resampler):
     """
 
     def resample(self, particles, nparts=None):
-        """Resample the particles
+        """
+        Resample the particles
 
         Parameters
         ----------
@@ -55,17 +56,18 @@ class SystematicResampler(Resampler):
 
 
 class ESSResampler(Resampler):
-    """ This wrapper uses a :class:`~.Resampler` to resample the particles inside
-        an instant of :class:`~.Particles`, but only after checking if this is necessary
-        by comparing Effective Sample Size (ESS) with a supplied threshold (numeric).
-        Kish's ESS is used, as recommended in Section 3.5 of this tutorial [1]_.
+    """
+    This wrapper uses a :class:`~.Resampler` to resample the particles inside
+    an instant of :class:`~.Particles`, but only after checking if this is necessary
+    by comparing Effective Sample Size (ESS) with a supplied threshold (numeric).
+    Kish's ESS is used, as recommended in Section 3.5 of this tutorial [1]_.
 
-        References
-        ----------
-        .. [1] Doucet A., Johansen A.M., 2009, Tutorial on Particle Filtering \
-        and Smoothing: Fifteen years later, Handbook of Nonlinear Filtering, Vol. 12.
+    References
+    ----------
+    .. [1] Doucet A., Johansen A.M., 2009, Tutorial on Particle Filtering \
+    and Smoothing: Fifteen years later, Handbook of Nonlinear Filtering, Vol. 12.
 
-        """
+    """
 
     threshold: float = Property(default=None,
                                 doc='Threshold compared with ESS to decide whether to resample. \
@@ -81,6 +83,8 @@ class ESSResampler(Resampler):
         ----------
         particles : list of :class:`~.Particle`
             The particles to be resampled according to their weight
+        nparts : int
+            The number of particles to be returned from resampling
 
         Returns
         -------
@@ -226,9 +230,6 @@ class ResidualResampler(Resampler):
             The particles or particle state to be resampled according to their weights
         nparts : int
             The number of particles to be returned from resampling
-        residual_method: str
-            Method used to resample from residuals, must be a string value from ['multinomial',
-            'systematic', 'stratified']
 
         Returns
         -------
