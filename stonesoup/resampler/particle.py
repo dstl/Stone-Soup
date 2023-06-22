@@ -99,7 +99,6 @@ class ESSResampler(Resampler):
             self.threshold = len(particles) / 2
         # If ESS too small, resample
         if 1 / np.sum(np.exp(2*particles.log_weight)) < self.threshold:
-            print('ran')
             return self.resampler.resample(particles, nparts)
         else:
             return particles
@@ -247,8 +246,6 @@ class ResidualResampler(Resampler):
                              "equal the number particles from the previous time step")
         if self.residual_method is None:
             self.residual_method = 'multinomial'
-        residual_method = self.residual_method
-        print(residual_method)
         log_weights = particles.log_weight
 
         # Get the true weight of each particle
@@ -270,45 +267,50 @@ class ResidualResampler(Resampler):
         # Calculate number of particles to be resampled from residuals
         n_stage_2_parts = nparts - int(sum(floors))
 
-        # Calculate the residuals
-        r_weights = weights - floors/nparts
+        # Check stage 2 is necessary (Necessary in all cases except where all weights = 1/N)
 
-        # Normalise residual weights
-        normalised_r_weights = r_weights * 1/sum(r_weights)
+        if n_stage_2_parts > 0:
+            # Calculate the residuals
+            r_weights = weights - floors/nparts
 
-        r_log_weights = np.log(normalised_r_weights)
-        weight_order = np.argsort(r_log_weights, kind='stable')
-        max_log_value = r_log_weights[weight_order[-1]]
-        with np.errstate(divide='ignore'):
-            cdf = np.log(np.cumsum(np.exp(r_log_weights[weight_order] - max_log_value)))
-        cdf += max_log_value
+            # Normalise residual weights
+            normalised_r_weights = r_weights * 1/sum(r_weights)
 
-        if residual_method == 'multinomial':
-            # Pick random points for each of the particles
-            u_j = np.random.rand(n_stage_2_parts)
+            r_log_weights = np.log(normalised_r_weights)
+            weight_order = np.argsort(r_log_weights, kind='stable')
+            max_log_value = r_log_weights[weight_order[-1]]
+            with np.errstate(divide='ignore'):
+                cdf = np.log(np.cumsum(np.exp(r_log_weights[weight_order] - max_log_value)))
+            cdf += max_log_value
 
-        elif residual_method == 'systematic':
-            # Pick random starting point
-            u_i = np.random.uniform(0, 1 / nparts)
+            if self.residual_method == 'multinomial':
+                # Pick random points for each of the particles
+                u_j = np.random.rand(n_stage_2_parts)
 
-            # Cycle through the cumulative distribution and copy the particle
-            # that pushed the score over the current value
-            u_j = u_i + (1 / nparts) * np.arange(nparts)
+            elif self.residual_method == 'systematic':
+                # Pick random starting point
+                u_i = np.random.uniform(0, 1 / n_stage_2_parts)
 
-        elif residual_method == 'stratified':
-            # Strata lower bounds:
-            s_l = np.arange(nparts) * (1 / nparts)
+                # Cycle through the cumulative distribution and copy the particle
+                # that pushed the score over the current value
+                u_j = u_i + (1 / n_stage_2_parts) * np.arange(n_stage_2_parts)
 
-            # Independently pick a point in each stratum
-            u_j = np.random.uniform(s_l, s_l + (1 / nparts))
+            elif self.residual_method == 'stratified':
+                # Strata lower bounds:
+                s_l = np.arange(n_stage_2_parts) * (1 / n_stage_2_parts)
+
+                # Independently pick a point in each stratum
+                u_j = np.random.uniform(s_l, s_l + (1 / n_stage_2_parts))
+            else:
+                raise ValueError("Invalid string variable given for stage 2 residual_method")
+
+            # Pick particles that represent the chosen point from the cdf
+            stage_2_index = weight_order[np.searchsorted(cdf, np.log(u_j))]
+            # Combine the indexes from both stages
+            index = np.concatenate([stage_1_index, stage_2_index])
+
         else:
-            raise ValueError("Invalid string variable given for stage 2 residual_method")
-
-        # Pick particles that represent the chosen point from the cdf
-        stage_2_index = weight_order[np.searchsorted(cdf, np.log(u_j))]
-
-        # Combine the indexes from both stages
-        index = np.concatenate([stage_1_index, stage_2_index])
+            index = stage_1_index
 
         new_particles = particles[index]
         new_particles.log_weight = np.full((nparts, ), np.log(1/nparts))

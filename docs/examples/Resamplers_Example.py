@@ -230,7 +230,8 @@ plot(normalised_weights, u_j, s_lb)
 # :math:`R_j` particles using the CDF.
 #
 # This method reduces the number of particles that are sampled through the more computationally
-# expensive methods seen above.
+# expensive methods seen above. The Residual resampler also guarantees that any particle of weight
+# greater than :math:`1/N` will be represented at in the set of resampled particles.
 #
 # When using the Residual resampler in Stone-Soup, the Resampler requires a property
 # 'residual_resampler'. This property defines which resampler method to use for resampling the
