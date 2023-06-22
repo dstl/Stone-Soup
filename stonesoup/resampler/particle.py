@@ -8,7 +8,7 @@ from ..types.state import ParticleState
 class SystematicResampler(Resampler):
     """
     Traditional style resampler for particle filter. Calculates first random point in
-    (0, 1/nparts], then calculates |nparts| points that are equidistantly distributed across the
+    (0, 1/nparts], then calculates nparts points that are equidistantly distributed across the
     cdf. Complexity of order O(N) where N is the number of resampled particles.
 
     """
