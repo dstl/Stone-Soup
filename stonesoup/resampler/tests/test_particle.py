@@ -9,7 +9,8 @@ from ..particle import ESSResampler
 
 
 def test_raise_errors():
-    particles = [Particle(np.array([[i]]), weight=1 / 20) for i in range(20)]
+    particles = [Particle(np.array([[i]]), weight=1.5/20 if i % 2 == 0 else 0.5/20)
+                 for i in range(20)]
     resampler1 = ResidualResampler()
     resampler2 = ResidualResampler(residual_method='This_is_not_a_valid_residual_method')
 
@@ -295,8 +296,6 @@ def test_stratified_equal():
     resampler = StratifiedResampler()
 
     new_particles = resampler.resample(particles)
-    for p in new_particles:
-        print(p.state_vector)
 
     # Particles equal weight, so should end up with similar particles.
     assert all(np.array_equal(np.array([[i]]), new_particle.state_vector)
@@ -387,6 +386,7 @@ def test_residual_equal():
     # All particles have weight = 1/N so all should be resampled once
     assert all(np.array_equal(np.array([[i]]), new_particle.state_vector)
                for i, new_particle in enumerate(new_particles))
+    assert resampler.residual_method == 'multinomial'
 
 
 def test_residual_multinomial_alternating():
@@ -410,6 +410,7 @@ def test_residual_multinomial_alternating():
     # Odd indices should all automatically get resampled once each (50%), plus a chance that their
     # residual also gets resampled
     assert odd >= even
+    assert resampler.residual_method == 'multinomial'
 
 
 def test_residual_stratified_alternating():
@@ -434,6 +435,7 @@ def test_residual_stratified_alternating():
     # Odd indices should all automatically get resampled once each (50%), plus a chance that their
     # residual also gets resampled
     assert odd >= even
+    assert resampler.residual_method == 'stratified'
 
 
 def test_residual_systematic_alternating():
@@ -458,3 +460,4 @@ def test_residual_systematic_alternating():
     # Odd indices should all automatically get resampled once each (50%), plus a chance that their
     # residual also gets resampled
     assert odd >= even
+    assert resampler.residual_method == 'systematic'
