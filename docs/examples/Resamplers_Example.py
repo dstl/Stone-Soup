@@ -20,10 +20,10 @@ Particle Filter Resamplers: Example
 # - Systematic resampler
 # - Multinomial resampler
 # - Stratified resampler
-# - Residual resampler*
-# - Effective Sample Size Resampler*
+# - Residual resampler \ast
+# - Effective Sample Size Resampler \ast
 #
-# *preprocessing methods that require the use of another resampler
+# \ast preprocessing methods that require the use of another resampler
 
 # %%
 # Plotter for this notebook
