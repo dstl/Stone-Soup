@@ -49,12 +49,13 @@ np.random.seed(2001)
 start_time = datetime.now()
 
 #%%
-# 1) Create the moving platforma and the radar
+# 1) Create the moving platform and the radar
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Firstly create the initial state of the platform, including the origin point and the
 # velocity in x,y of his movements. Then we create a transition motion (in 2D cartesian coordinates)
 # of the platform.
-# At this point we can create a Radar which receives only the bearing measurements from the targets.
+# At this point we can create a Radar which receives only the bearing measurements from the targets using the
+# :class:`~.RadarBearing` object.
 
 # import the platform to place the sensor
 from stonesoup.platform.base import MovingPlatform
@@ -100,7 +101,7 @@ platform.add_sensor(radar)
 # platform as shown in other tutorials.
 
 # %%
-# 2) Generate the target movements and groundtruths
+# 2) Generate the target movements and ground truths
 # In this case we build a single target ground truth simulator using a simple transition model
 # and a known initial target state
 
@@ -117,7 +118,7 @@ initial_target_state = GaussianState([50, 0, 50, 0],
                                      np.diag([1, 1, 1, 1])**2,
                                      timestamp=start_time)
 
-# Setup the groundtruth simulation
+# Setup the ground truth simulation
 groundtruth_simulation = SingleTargetGroundTruthSimulator(
     transition_model=transition_model,
     initial_state = initial_target_state,
@@ -127,7 +128,8 @@ groundtruth_simulation = SingleTargetGroundTruthSimulator(
 
 # %%
 # 3) Setup the simulation generating measurements and ground truths
-# After defining the measuremnt model we will have the needed components to start running our example
+# After defining the measurement model we will have the needed components to start running our example.
+# The measurement model is the :class:`~.Cartesian2DToBearing` which is a spherical model.
 
 # Define the measurement model using a Cartesian to bearing
 meas_model = Cartesian2DToBearing(
@@ -200,6 +202,7 @@ for time, ctracks in kalman_tracker:
         if track not in kalman_tracks:
             kalman_tracks[track] = []
         kalman_tracks[track].append(loc)
+
     for truth in groundtruth_simulation.current[1]:
         loc = (truth.state_vector[0], truth.state_vector[2])
         if truth not in groundtruth_paths:
