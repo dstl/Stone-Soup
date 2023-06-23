@@ -37,7 +37,7 @@ except ImportError:
         "Usage of reinforcement learning classes requires that the optional "
         "package dependency tf-agents[reverb] is installed. "
         "This can be achieved by running "
-        "'python -m pip install stonesoup[reinforcement]'. "
+        "'python -m pip install -e .[reinforcement]'. "
         "PLEASE NOTE: This RL implementation will only work on "
         "Linux based OSes, or via Windows Subsystem for Linux (WSL) (See "
         "Tensorflow for how to set up environments on WSL).",
