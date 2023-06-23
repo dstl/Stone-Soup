@@ -104,7 +104,7 @@ for j in range(0, ntruths):
         ydirection *= -1
 
 # %%
-# Plot the ground truths. This is done using the :class:`~.Plotterly` class from Stone Soup.
+# Plot the ground truths. This is done using the :class:`~.AnimatedPlotterly` class from Stone Soup.
 
 from stonesoup.plotter import AnimatedPlotterly
 
@@ -307,7 +307,10 @@ data_associator = GNNWith2DAssignment(hypothesiser)
 # :class:`~.ChangeDwellAction`, selected at random.
 
 from ordered_set import OrderedSet
+from collections import defaultdict
+import copy
 
+sensor_history_A = defaultdict(dict)
 for timestep in timesteps[1:]:
 
     # Generate chosen configuration
@@ -322,6 +325,7 @@ for timestep in timesteps[1:]:
 
     for sensor in sensor_setA:
         sensor.act(timestep)
+        sensor_history_A[timestep][sensor] = copy.copy(sensor)
 
         # Observe this ground truth
         measurementsA |= sensor.measure(OrderedSet(truth[timestep] for truth in truths), noise=True)
@@ -339,12 +343,61 @@ for timestep in timesteps[1:]:
 
 # %%
 # Plot ground truths, tracks and uncertainty ellipses for each target. The positions of the sensors are indicated
-# by black x markers.
+# by black x markers. This uses the Stone Soup
+# :class:`~.AnimatedPlotterly`, with added code to plot the field of view of the sensor.
 
-plotterA = AnimatedPlotterly(timesteps, tail_length=1)
+import plotly.graph_objects as go
+from stonesoup.functions import pol2cart
+
+plotterA = AnimatedPlotterly(timesteps, tail_length=1, sim_duration=10)
 plotterA.plot_sensors(sensor_setA)
 plotterA.plot_ground_truths(truths, [0, 2])
 plotterA.plot_tracks(tracksA, [0, 2], uncertainty=True, plot_history=False)
+
+
+def plot_sensor_fov(fig, sensor_set, sensor_history):
+    # Plot sensor field of view
+    trace_base = len(fig.data)
+    for _ in sensor_set:
+        fig.add_trace(go.Scatter(mode='lines',
+                                 line=go.scatter.Line(color='black',
+                                                      dash='dash')))
+
+    for frame in fig.frames:
+        traces_ = list(frame.traces)
+        data_ = list(frame.data)
+
+        timestring = frame.name
+        timestamp = datetime.strptime(timestring, "%Y-%m-%d %H:%M:%S")
+
+        for n, sensor_ in enumerate(sensor_set):
+            x = [0, 0]
+            y = [0, 0]
+
+            if timestamp in sensor_history:
+                sensor = sensor_history[timestamp][sensor_]
+                for i, fov_side in enumerate((-1, 1)):
+                    range_ = min(getattr(sensor, 'max_range', np.inf), 100)
+                    x[i], y[i] = pol2cart(range_,
+                                          sensor.dwell_centre[0, 0]
+                                          + sensor.fov_angle / 2 * fov_side) \
+                                 + sensor.position[[0, 1], 0]
+            else:
+                continue
+
+            data_.append(go.Scatter(x=[x[0], sensor.position[0], x[1]],
+                                    y=[y[0], sensor.position[1], y[1]],
+                                    mode="lines",
+                                    line=go.scatter.Line(color='black',
+                                                         dash='dash'),
+                                    showlegend=False))
+            traces_.append(trace_base + n)
+
+        frame.traces = traces_
+        frame.data = data_
+
+
+plot_sensor_fov(plotterA.fig, sensor_setA, sensor_history_A)
 plotterA.fig
 
 # %%
@@ -378,6 +431,7 @@ plotterA.fig
 # the tracks updated based on these measurements. Predictions are made for tracks
 # which have not been observed by the sensors.
 
+sensor_history_B = defaultdict(dict)
 for timestep in timesteps[1:]:
 
     # Generate chosen configuration
@@ -392,6 +446,7 @@ for timestep in timesteps[1:]:
 
     for sensor in sensor_setB:
         sensor.act(timestep)
+        sensor_history_B[timestep][sensor] = copy.copy(sensor)
 
         # Observe this ground truth
         measurementsB |= sensor.measure(OrderedSet(truth[timestep] for truth in truths), noise=True)
@@ -410,10 +465,11 @@ for timestep in timesteps[1:]:
 # %%
 # Plot ground truths, tracks and uncertainty ellipses for each target.
 
-plotterB = AnimatedPlotterly(timesteps, tail_length=1)
+plotterB = AnimatedPlotterly(timesteps, tail_length=1, sim_duration=10)
 plotterB.plot_sensors(sensor_setB)
 plotterB.plot_ground_truths(truths, [0, 2])
 plotterB.plot_tracks(tracksB, [0, 2], uncertainty=True, plot_history=False)
+plot_sensor_fov(plotterB.fig, sensor_setB, sensor_history_B)
 plotterB.fig
 
 # %%
