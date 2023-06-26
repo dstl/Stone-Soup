@@ -4,13 +4,15 @@
 Bearings-only tracking
 ====================================
 
-Nonlinear bearing-only target tracking is a complex problem because the models have only the knowledge of
-the direction towards the sensor, leaving a lot of information that needs to be extracted from the measurements
+Non-linear bearing-only target tracking is a complex problem since the model has only the knowledge of
+the target direction towards the sensor, leaving a lot of information that needs to be extracted from the measurements
 from the sensor.
 
-In this short tutorial we simulate a radar placed on top of a moving platform using an Extended Kalman Filter
-to produce the most accurate tracking of the target. In this example we use a distance based data associator
-to merge the hypothesis and the measurements from the sensor.
+The purpose of this short tutorial we show how we can run a bearing-only simulation inside Stone Soup framework.
+
+In this tutorial we simulate a radar placed on top of a moving platform collecting measurements,
+then using :class:~`ExtendedKalmanFilter` we provide the tracking of the target. In this example we employ a
+distance based data associator to merge the hypothesis and the detections from the sensor.
 
 """
 
@@ -19,9 +21,9 @@ to merge the hypothesis and the measurements from the sensor.
 # ^^^^^^
 # The layout of this example follows:
 #
-# 1) Create the moving platform and the Bearings-Only radar
-# 2) Generate the target movements and groundtruths
-# 3) Setup the simulation generating measurements and groundtruths
+# 1) Create the moving platform and the :class:~`RadarBearing` detector;
+# 2) Generate the target ground truths tracks;
+# 3) Setup the simulation for generating detections and ground truths;
 # 4) Run the simulation and create the plots
 #
 
@@ -49,42 +51,44 @@ np.random.seed(2001)
 start_time = datetime.now()
 
 #%%
-# 1) Create the moving platform and the radar
+# 1) Create the moving platform and the Bearing-Only radar
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Firstly create the initial state of the platform, including the origin point and the
-# velocity in x,y of his movements. Then we create a transition motion (in 2D cartesian coordinates)
+# Firstly, we create the initial state of the platform, including the origin point and the
+# cartesian (x,y) movement direction. Then, we create a transition motion (in 2D cartesian coordinates)
 # of the platform.
-# At this point we can create a Radar which receives only the bearing measurements from the targets using the
+# At this point, we can setup the Radar which receives only the bearing measurements from the targets using the
 # :class:`~.RadarBearing` object.
+#
 
-# import the platform to place the sensor
+# Import the platform to place the sensor
 from stonesoup.platform.base import MovingPlatform
 
-# define the platform location, place it in the origin, and its movement. In addition specify the
-# mapping of the position and the velocity mapping. This is done in 2D cartesian coordinates.
+# Define the platform location, place it in the origin, and define its cartesian movements.
+# In addition specify the position and velocity mapping. This is done in 2D cartesian coordinates.
+
 platform_state_vector = StateVector([[0],[-5], [0],[-7]])
 position_mapping = (0,2)
 velocity_mapping = (1,3)
 
-# create the initial state (position and time)
+# Create the initial state (position and time)
 platform_state = State(platform_state_vector, start_time)
 
-# Create a platform transition model, lest assume it is moving into a straight line from its origin place
+# Create a platform transition model, let's assume it is moving into a straight line from its starting place
 platform_transition_model = CombinedLinearGaussianTransitionModel([
     ConstantVelocity(0.0), ConstantVelocity(0.0)])
 
-# Now we can create the platform with the initial state, the various mapping and the transition model
+# We can instantiate the platform initial state, position and velocity mapping and the transition model
 platform = MovingPlatform(states=platform_state,
                           position_mapping=position_mapping,
                           velocity_mapping=velocity_mapping,
                           transition_model=platform_transition_model)
 
-# At this stage we need to create the sensor, let's import the RadarBearing. This sensor only elaborates the
-# bearing measurements from the target, the range is not specified.
+# At this stage, we need to create the sensor, let's import the RadarBearing. This sensor only elaborates the
+# bearing measurements from the target detections, the range is not specified.
 from stonesoup.sensor.radar.radar import RadarBearing
 
 # Configure the radar noise, since we are using just a dimension we need to specify only the
-# noise associated to the bearing, we assume a bearing accuracy  of +/- 0.025 degrees for each measurments
+# noise associated to the bearing, we assume a bearing accuracy  of +/- 0.025 degrees for each measurements
 noise_covar = CovarianceMatrix(np.array(np.diag([np.deg2rad(0.025)**2])))
 
 # This radar needs to be informed of the x and y mapping of the space target.
@@ -102,8 +106,9 @@ platform.add_sensor(radar)
 
 # %%
 # 2) Generate the target movements and ground truths
-# In this case we build a single target ground truth simulator using a simple transition model
-# and a known initial target state
+# In this tutorial we build a single target ground truth simulator using a simple transition model
+# and a known initial target state.
+#
 
 # Load the single target ground truth simulator
 from stonesoup.simulator.simple import SingleTargetGroundTruthSimulator
@@ -113,7 +118,7 @@ transition_model = CombinedLinearGaussianTransitionModel([
     ConstantVelocity(1.0), ConstantVelocity(1.0)])
 
 # Define the initial state of the target using a gaussian state specifying the origin point and the
-# accuracy of the predictions on the x and y (using the covariance matrix)
+# accuracy of the predictions on the 2D Cartesian location and speed (using the covariance matrix).
 initial_target_state = GaussianState([50, 0, 50, 0],
                                      np.diag([1, 1, 1, 1])**2,
                                      timestamp=start_time)
@@ -128,8 +133,9 @@ groundtruth_simulation = SingleTargetGroundTruthSimulator(
 
 # %%
 # 3) Setup the simulation generating measurements and ground truths
-# After defining the measurement model we will have the needed components to start running our example.
-# The measurement model is the :class:`~.Cartesian2DToBearing` which is a spherical model.
+# After defining the measurement model and simulation,  we will have the needed components to start running our example.
+# The measurement model is the :class:`~.Cartesian2DToBearing`.
+#
 
 # Define the measurement model using a Cartesian to bearing
 meas_model = Cartesian2DToBearing(
@@ -140,13 +146,14 @@ meas_model = Cartesian2DToBearing(
 # Import the PlatformDetectionSimulator
 from stonesoup.simulator.platform import PlatformDetectionSimulator
 
-sim = PlatformDetectionSimulator(groundtruth=groundtruth_simulation, platforms=[platform])
+sim = PlatformDetectionSimulator(groundtruth=groundtruth_simulation,
+                                 platforms=[platform])
 
 # Instantiate the filter components
-# Create an Unscented Kalman Predictor
+# Create an Extended Kalman Predictor
 predictor = ExtendedKalmanPredictor(transition_model)
 
-# Create an Unscented Kalman Updater
+# Create an Extended Kalman Updater
 updater = ExtendedKalmanUpdater(measurement_model=None)
 
 # Instantiate the single point initiator
@@ -161,8 +168,9 @@ initiator = SinglePointInitiator(
 
 # %%
 # Add the hypothesiser components, we use a distance based hypothesiser using a Malahonobis
-# distance to measure the data association between the measurements and the tracks.
-# Since in this case we use a single target a simple nearest neighbour will work just fine
+# distance to measure the data association between the detections and the tracks.
+# Since in this case we use a single target a simple nearest neighbour will work just fine.
+#
 
 # Load the hypothesiser and data associator
 from stonesoup.hypothesiser.distance import DistanceHypothesiser
@@ -175,7 +183,7 @@ hypothesiser = DistanceHypothesiser(predictor, updater,
 from stonesoup.dataassociator.neighbour import NearestNeighbour
 data_associator = NearestNeighbour(hypothesiser)
 
-# Instantiate the deleter
+# Instantiate the time based deleter
 deleter = UpdateTimeStepsDeleter(time_steps_since_update=3)
 
 # Build the kalman tracker
@@ -189,13 +197,14 @@ kalman_tracker = SingleTargetTracker(
 
 # %%
 # 4) Run the simulation and create the plots
-# At this stage we have everything for running the simulation, we have the tracker, the sensor
-# measurements and position
+# We have everything for running the simulation, we have the tracker, the sensor
+# detections and detector movements.
+#
 
 kalman_tracks = {}  # Store for plotting later
 groundtruth_paths = {}  # Store for plotting later
 
-# Loop for the tracks and the groundtruths
+# Loop for the tracks and the ground truths
 for time, ctracks in kalman_tracker:
     for track in ctracks:
         loc = (track.state_vector[0], track.state_vector[2])
@@ -224,17 +233,23 @@ ax.set_xlim(-900, 100)
 for key in groundtruth_paths:
     X = [coord[0] for coord in groundtruth_paths[key]]
     Y = [coord[1] for coord in groundtruth_paths[key]]
-    ax.plot(X, Y, color='r', label='GroundTruth')  # Plot true locations in red
+    ax.plot(X, Y, color='r',lw=3, alpha=0.9, label='Ground truth track')  # Plot true locations in red
 
 for key in kalman_tracks:
     X = [coord[0] for coord in kalman_tracks[key]]
     Y = [coord[1] for coord in kalman_tracks[key]]
-    ax.plot(X, Y, color='b', label='Track estimates')  # Plot track estimates in blue
+    ax.plot(X, Y, color='b',lw=3, alpha=0.9, label='Track estimates')  # Plot track estimates in blue
 
 # plot platform location
-ax.plot(Xp, Yp, color='y', label='Radar track')
-plt.legend()
+ax.plot(Xp, Yp, color='y',lw=2, label='Platform track')
+ax.scatter(0,0, color='k', alpha=0.8, label='Platform origin')
+plt.legend(frameon=False, fontsize='medium')
 plt.show()
+
+# %%
+# This concludes this short tutorial on how to setup and run a simple single target
+# simulation using Bearings-Only measurements obtained by a moving sensor using an Extended Kalman Filter.
+#
 
 
 """
