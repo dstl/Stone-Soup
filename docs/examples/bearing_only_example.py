@@ -13,19 +13,17 @@ The purpose of this short tutorial we show how we can run a bearing-only simulat
 In this tutorial we simulate a radar placed on top of a moving platform collecting measurements,
 then using :class:`~.ExtendedKalmanFilter` we provide the tracking of the target. In this example we employ a
 distance based data associator to merge the hypothesis and the detections from the sensor.
-
 """
 
 # %%%
 # Layout
-# ^^^^^^
+# ------
 # The layout of this example follows:
 #
 # 1) Create the moving platform and the :class:`~.RadarBearing` detector;
 # 2) Generate the target ground truths tracks;
 # 3) Setup the simulation for generating detections and ground truths;
 # 4) Run the simulation and create the plots
-#
 
 # some general imports
 import numpy as np
@@ -52,13 +50,12 @@ start_time = datetime.now()
 
 # %%
 # 1) Create the moving platform and the Bearing-Only radar
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# --------------------------------------------------------
 # Firstly, we create the initial state of the platform, including the origin point and the
 # cartesian (x,y) movement direction. Then, we create a transition motion (in 2D cartesian coordinates)
 # of the platform.
 # At this point, we can setup the Radar which receives only the bearing measurements from the targets using the
 # :class:`~.RadarBearing` object.
-#
 
 # Import the platform to place the sensor
 from stonesoup.platform.base import MovingPlatform
@@ -106,10 +103,9 @@ platform.add_sensor(radar)
 
 # %%
 # 2) Generate the target movements and ground truths
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# --------------------------------------------------
 # In this tutorial we build a single target ground truth simulator using a simple transition model
 # and a known initial target state.
-#
 
 # Load the single target ground truth simulator
 from stonesoup.simulator.simple import SingleTargetGroundTruthSimulator
@@ -134,10 +130,9 @@ groundtruth_simulation = SingleTargetGroundTruthSimulator(
 
 # %%
 # 3) Setup the simulation generating measurements and ground truths
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# -----------------------------------------------------------------
 # After defining the measurement model and simulation, we will have the needed components to start running our example.
 # The measurement model is the :class:`~.Cartesian2DToBearing`.
-#
 
 # Define the measurement model using a Cartesian to bearing
 meas_model = Cartesian2DToBearing(
@@ -172,7 +167,6 @@ initiator = SinglePointInitiator(
 # Add the hypothesiser components, we use a distance based hypothesiser using a Malahonobis
 # distance to do the data association between the detections and the tracks.
 # Since we consider a single target case a simple nearest neighbour will be enough for the data associator.
-#
 
 # Load the hypothesiser and data associator
 from stonesoup.hypothesiser.distance import DistanceHypothesiser
@@ -200,10 +194,9 @@ kalman_tracker = SingleTargetTracker(
 
 # %%
 # 4) Run the simulation and create the plots
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ------------------------------------------
 # We have everything for running the simulation, we have the tracker, the sensor
 # detections and detector movements.
-#
 
 kalman_tracks = {}  # Store for plotting later
 groundtruth_paths = {}  # Store for plotting later
@@ -253,14 +246,12 @@ plt.show()
 # %%
 # This concludes this short tutorial on how to setup and run a simple single target
 # simulation using Bearings-Only measurements obtained by a moving sensor using an Extended Kalman Filter.
-#
-
 
 # %%
 # References
-# ^^^^^^^^^^
-# ..[#] Xiangdong Lin, Thiagalingam Kirubarajan, Yaakov Bar-Shalom, Simon Maskell,
-#   "Comparison of EKF, pseudomeasurement, and particle filters for a bearing-only target tracking problem", in
-#   Signal and Data Processing of Small Targets 2002, 2002, vol 4728, pp. 240-250. doi:10.1117/12.478508
-#.. [#] Vincent J. Aidala, "Kalman Filter Behavior in Bearing-Only Tracking Applications", IEEE Transactions
-#   on Aerospace Electronic Systems, Vol. 15, January 1979
+# ----------
+# [1] Xiangdong Lin, Thiagalingam Kirubarajan, Yaakov Bar-Shalom, Simon Maskell,
+# "Comparison of EKF, pseudomeasurement, and particle filters for a bearing-only target tracking problem", in
+# Signal and Data Processing of Small Targets 2002, 2002, vol 4728, pp. 240-250. doi:10.1117/12.478508
+# [2] Vincent J. Aidala, "Kalman Filter Behavior in Bearing-Only Tracking Applications", IEEE Transactions
+# on Aerospace Electronic Systems, Vol. 15, January 1979
