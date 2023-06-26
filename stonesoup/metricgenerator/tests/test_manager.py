@@ -146,8 +146,6 @@ def test_generate_metrics():
     metrics = manager.generate_metrics()
     metric1 = metrics['generator1']
     metric2 = metrics['generator2']
-    # metric1 = [metrics.get(i) for i in metrics if metrics[i].generator == generator1][0]
-    # metric2 = [metrics.get(i) for i in metrics if metrics[i].generator == generator2][0]
 
     assert len(metrics) == 2
     assert list(metric1.keys())[0] == "Test metric2"
