@@ -6,7 +6,7 @@ from typing import Sequence
 from .base import MetricGenerator
 from ..base import Property
 from ..types.state import GaussianState
-from ..types.groundtruth import GroundTruthPath
+from ..types.groundtruth import GroundTruthState, GroundTruthPath
 from ..types.array import StateVectors
 from ..models.transition import TransitionModel
 from ..models.measurement import MeasurementModel
@@ -56,6 +56,12 @@ class PCRBMetric(MetricGenerator):
     def compute_metric(self, manager, **kwargs):
         groundtruth_paths = self._get_data(manager, self.truths_key)
         pcrb_metrics = []
+
+        # if groundtruth is a set of states not paths, make states into a path
+        if isinstance(next(iter(groundtruth_paths)), GroundTruthState):
+            groundtruth_paths = sorted(list(groundtruth_paths), key=lambda x: x.timestamp)
+            groundtruth_paths = [GroundTruthPath(groundtruth_paths)]
+
         for gnd_path in groundtruth_paths:
             pcrb_metric = self._compute_pcrb_single(self.prior, self.transition_model,
                                                     self.measurement_model, gnd_path,
