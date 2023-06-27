@@ -15,7 +15,8 @@ from ...types.array import StateVectors
 def test_twodplotter():
     plotter = TwoDPlotter(track_indices=[0, 1],
                           detection_indices=[0, 1],
-                          gtruth_indices=[0, 1])
+                          gtruth_indices=[0, 1],
+                          generator_name='test_plotter')
     timestamp1 = datetime.datetime.now()
     timestamp2 = timestamp1 + datetime.timedelta(seconds=10)
 
